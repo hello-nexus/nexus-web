@@ -1,15 +1,13 @@
-import { Fragment, useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense, type ReactNode } from 'react';
 import {
   Activity, LayoutDashboard, Lightbulb, Fan, Settings,
   Bug, Usb, PanelLeftClose, Smartphone,
-  LogOut, ShieldAlert, ShieldCheck,
+  LogOut,
   Wrench, Gauge, Users,
 } from 'lucide-react';
 import classNames from 'classnames';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { Button } from './components/Button/Button';
-import { ServiceLaunchButton } from './components/ServiceLaunchButton/ServiceLaunchButton';
-import { Popover } from './components/Popover/Popover';
 import { ProfileDropdown } from './components/ProfileDropdown/ProfileDropdown';
 import { DevicePopup } from './components/DevicePopup/DevicePopup';
 import { ConfirmDialog } from './components/ConfirmDialog/ConfirmDialog';
@@ -30,9 +28,8 @@ import { ToolsView } from './components/views/ToolsView';
 import { SettingsView } from './components/views/SettingsView';
 import { DevicesView } from './components/views/DevicesView/DevicesView';
 import { LightingView } from './components/views/LightingView';
-import { useServiceStatus } from './hooks/useServiceStatus';
+import { useServiceStatus, type ConnectionState } from './hooks/useServiceStatus';
 import { useServiceState } from './hooks/useServiceState';
-import { useProcessElevation, type ProcessElevationHookState } from './hooks/useProcessElevation';
 import { useProfiles } from './hooks/useProfiles';
 import { useRoute } from './hooks/useRoute';
 import { useBuilder } from './hooks/useBuilder';
@@ -417,216 +414,84 @@ function QosLogo({ size = 28 }: { size?: number }) {
   );
 }
 
-// ── Brand area (in top nav bar) ─────────────────────────────────────────
+// ── Sidebar brand (logo + wordmark at top of sidebar) ───────────────────
 
-function BrandArea({ onToggleCompact }: { onToggleCompact?: () => void }) {
+function SidebarBrand({ compact, onToggleCompact, expandLabel, collapseLabel }: {
+  compact: boolean;
+  onToggleCompact: () => void;
+  expandLabel: string;
+  collapseLabel: string;
+}) {
   return (
-    <div className={styles.brand}>
-      <span className={styles.logo}><QosLogo /></span>
-      <span className={styles.brandName}>QOS</span>
-      {onToggleCompact && (
+    <div className={classNames(styles.sidebarBrand, { [styles.sidebarBrandCompact]: compact })}>
+      {compact ? (
         <button
           type="button"
-          className={styles.collapseGhost}
+          className={classNames(styles.sidebarBrandLogo, styles.sidebarBrandLogoBtn)}
           onClick={onToggleCompact}
-          title="Collapse sidebar"
+          title={expandLabel}
+          aria-label={expandLabel}
         >
-          <PanelLeftClose size={16} />
+          <QosLogo size={24} />
         </button>
-      )}
-    </div>
-  );
-}
-
-// ── Service status block (in sidebar, my-computer only) ─────────────────
-
-const ADMIN_FEATURE_KEYS = [
-  'status.admin.feature.sensors',
-  'status.admin.feature.fans',
-  'status.admin.feature.rgb',
-  'status.admin.feature.ec',
-  'status.admin.feature.display',
-] as const;
-
-function ServiceStatusBlock({ status, elevation, t, compact = false }: {
-  status: ReturnType<typeof useServiceStatus>;
-  elevation: ProcessElevationHookState;
-  t: (key: string, params?: Record<string, string | number>) => string;
-  compact?: boolean;
-}) {
-  const isOnline = status.state === 'online';
-  const isOffline = status.state === 'offline' || status.state === 'offline-installed';
-  const isLimited = isOnline
-    && elevation.state === 'ready'
-    && elevation.elevation.supported
-    && elevation.elevation.status === 'not-elevated';
-
-  // Bump connectKey every time we transition to online so the shield + label
-  // remount and replay their entry animation. Initial mount with isOnline
-  // already true still plays once because the key starts at 0 and that's a
-  // first-paint mount of the keyed fragment.
-  const wasOnlineRef = useRef(isOnline);
-  const [connectKey, setConnectKey] = useState(0);
-  useEffect(() => {
-    if (isOnline && !wasOnlineRef.current) {
-      setConnectKey(k => k + 1);
-      wasOnlineRef.current = true;
-    } else if (!isOnline) {
-      wasOnlineRef.current = false;
-    }
-  }, [isOnline]);
-
-  // Offline (installed or never): the only useful action is to launch the
-  // service. Drop the dot + "Not running" / "Not installed" label and show a
-  // single primary launch button instead. The button itself communicates
-  // state by being there.
-  if (isOffline) {
-    return (
-      <div className={classNames(styles.statusBlock, styles.statusBlockAction)}>
-        <ServiceLaunchButton iconOnly={compact} />
-      </div>
-    );
-  }
-
-  const label = isOnline
-    ? (isLimited ? t('status.online-limited') : t('status.online'))
-    : t('status.checking');
-
-  return (
-    <div className={classNames(styles.statusBlock, { [styles.statusBlockCompact]: compact })} title={compact ? label : undefined}>
-      {isOnline ? (
-        <Fragment key={connectKey}>
-          {elevation.state === 'ready' ? (
-            <StatusInfoShield elevation={elevation} t={t} compact={compact} animateIn />
-          ) : (
-            <span
-              className={classNames(styles.statusBadge, styles.statusBadgeOk, styles.statusBadgeAnimateIn)}
-              aria-hidden
-            >
-              <ShieldCheck size={14} />
-            </span>
-          )}
-          {!compact && (
-            <span className={classNames(styles.statusLabel, styles.statusLabelAnimateIn)}>
-              {label}
-            </span>
-          )}
-        </Fragment>
       ) : (
         <>
-          <div className={classNames(styles.statusDot, styles.checking)} />
-          {!compact && <span className={styles.statusLabel}>{label}</span>}
+          <span className={styles.sidebarBrandLogo}><QosLogo size={28} /></span>
+          <span className={styles.sidebarBrandName}>Qos</span>
+          <button
+            type="button"
+            className={styles.sidebarBrandCollapse}
+            onClick={onToggleCompact}
+            title={collapseLabel}
+            aria-label={collapseLabel}
+          >
+            <PanelLeftClose size={16} />
+          </button>
         </>
       )}
     </div>
   );
 }
 
-// Shield badge that's clickable in both elevated (green) and not-elevated
-// (yellow) states. Each state opens a small popover anchored under the
-// badge: green confirms a secure connection, yellow lists the disabled
-// hardware features and offers a one-click "Restart as administrator".
-// Unsupported platforms (mac/Linux) render a static green badge with a
-// tooltip - no popover, since admin elevation doesn't apply.
-function StatusInfoShield({ elevation, t, compact, animateIn = false }: {
-  elevation: Extract<ProcessElevationHookState, { state: 'ready' }>;
+// ── Connected profile slot ──────────────────────────────────────────────
+
+// Wraps the profile dropdown so it remounts (via `key`) every time the service
+// transitions offline -> online. The remount replays the one-shot fade-in
+// animation defined in App.module.scss (.connectedSlotAnimate).
+function ConnectedProfileSlot({ connectEpoch, children }: {
+  connectEpoch: number;
+  children: ReactNode;
+}) {
+  return (
+    <div key={connectEpoch} className={styles.connectedSlotAnimate}>
+      {children}
+    </div>
+  );
+}
+
+// ── Not-connected badge (sits in the sidebar profile slot when offline) ──
+
+function NotConnectedBadge({ state, t, compact }: {
+  state: ConnectionState;
   t: (key: string, params?: Record<string, string | number>) => string;
   compact: boolean;
-  animateIn?: boolean;
 }) {
-  const supported = elevation.elevation.supported;
-  const isElevated = elevation.elevation.isElevated;
-
-  const [open, setOpen] = useState(false);
-  const [restarting, setRestarting] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement | null>(null);
-
-  const handleRestart = useCallback(async () => {
-    if (restarting) return;
-    setRestarting(true);
-    const result = await elevation.relaunch();
-    if (result === 'started') return;
-    setRestarting(false);
-  }, [elevation, restarting]);
-
-  // Static badge for unsupported platforms (mac/Linux): no popover needed.
-  if (!supported) {
-    return (
-      <span
-        className={classNames(
-          styles.statusBadge,
-          styles.statusBadgeOk,
-          { [styles.statusBadgeAnimateIn]: animateIn },
-        )}
-        title={t('status.admin.elevated')}
-        aria-label={t('status.admin.elevated')}
-        role="img"
-      >
-        <ShieldCheck size={14} />
-      </span>
-    );
-  }
-
-  const tone = isElevated ? styles.statusBadgeOk : styles.statusBadgeWarn;
-  const triggerLabel = isElevated ? t('status.admin.elevated') : t('status.admin.notElevated');
+  const label = state === 'checking'
+    ? t('status.checking')
+    : state === 'offline-installed'
+    ? t('status.offline-installed')
+    : t('status.offline');
+  const isChecking = state === 'checking';
 
   return (
-    <div className={styles.statusBadgeWrap} ref={wrapperRef}>
-      <button
-        type="button"
-        className={classNames(
-          styles.statusBadge,
-          styles.statusBadgeBtn,
-          tone,
-          { [styles.statusBadgeAnimateIn]: animateIn },
-        )}
-        onClick={() => setOpen(o => !o)}
-        title={triggerLabel}
-        aria-label={triggerLabel}
-        aria-expanded={open}
-      >
-        {isElevated ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
-      </button>
-      <Popover
-        open={open}
-        onClose={() => setOpen(false)}
-        anchorRef={wrapperRef}
-        placement={compact ? 'right-start' : 'bottom-start'}
-        ariaLabel={triggerLabel}
-      >
-        {isElevated ? (
-          <>
-            <div className={classNames(styles.shieldPopoverHeader, styles.shieldPopoverHeaderOk)}>
-              <ShieldCheck size={16} />
-              <span>{t('status.connected.title')}</span>
-            </div>
-            <p className={styles.shieldPopoverIntro}>{t('status.connected.body')}</p>
-          </>
-        ) : (
-          <>
-            <div className={styles.shieldPopoverHeader}>
-              <ShieldAlert size={16} />
-              <span>{t('status.admin.popoverTitle')}</span>
-            </div>
-            <p className={styles.shieldPopoverIntro}>{t('status.admin.popoverIntro')}</p>
-            <ul className={styles.shieldPopoverList}>
-              {ADMIN_FEATURE_KEYS.map(key => (
-                <li key={key}>{t(key)}</li>
-              ))}
-            </ul>
-            <Button
-              type="button"
-              tone="accent"
-              size="sm"
-              onClick={handleRestart}
-              disabled={restarting}
-              loading={restarting}
-            >
-              {restarting ? t('status.admin.relaunching') : t('status.admin.relaunch')}
-            </Button>
-          </>
-        )}
-      </Popover>
+    <div
+      className={classNames(styles.notConnected, { [styles.notConnectedCompact]: compact })}
+      title={compact ? label : undefined}
+      role="status"
+      aria-live="polite"
+    >
+      <span className={classNames(styles.notConnectedDot, { [styles.notConnectedDotChecking]: isChecking })} aria-hidden />
+      {!compact && <span className={styles.notConnectedLabel}>{label}</span>}
     </div>
   );
 }
@@ -985,7 +850,6 @@ function Dashboard() {
   const online = status.state === 'online';
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online);
-  const processElevation = useProcessElevation(online);
   const profilesHook = useProfiles(online);
   const { t, setLanguage } = useTranslation();
 
@@ -1088,6 +952,17 @@ function Dashboard() {
   const sidebarCompact = manualOverride ?? viewportNarrow;
   const compact = hasSidebar && sidebarCompact;
 
+  // Bump on every offline -> online transition so the profile dropdown
+  // remounts and replays its fade-in once.
+  const wasOnlineRef = useRef(online);
+  const [connectEpoch, setConnectEpoch] = useState(0);
+  useEffect(() => {
+    if (online && !wasOnlineRef.current) {
+      setConnectEpoch(n => n + 1);
+    }
+    wasOnlineRef.current = online;
+  }, [online]);
+
   // ── Render main content based on section + view ────────────────────────
   const renderContent = () => {
     switch (section) {
@@ -1163,33 +1038,35 @@ function Dashboard() {
         activeProfileId={profilesHook.activeId}
       >
       <div className={classNames(styles.layout, { [styles.layoutCompact]: compact })}>
-        {/* Top row: QOS wordmark only, full build only, hidden in compact mode */}
-        {!__SERVICE_BUILD__ && !compact && (
-          <div className={styles.topRow}>
-            <BrandArea onToggleCompact={hasSidebar ? () => setManualOverride(!sidebarCompact) : undefined} />
-          </div>
-        )}
-
         {/* Body row: sidebar (my-computer only) + content */}
         <div className={styles.bodyRow}>
           {hasSidebar && (
             <div className={classNames(styles.sidebarColumn, { [styles.sidebarCompact]: compact })}>
+              <SidebarBrand
+                compact={compact}
+                onToggleCompact={() => setManualOverride(!sidebarCompact)}
+                expandLabel={t('sidebar.expand')}
+                collapseLabel={t('sidebar.collapse')}
+              />
               <Sidebar
                 items={serviceNav}
                 active={serviceNavActive}
                 onChange={handleServiceNavChange}
                 sectionLabel={t('nav.section.my_computer')}
                 serviceState={serviceState}
-                statusBlock={<ServiceStatusBlock status={status} elevation={processElevation} t={t} compact={compact} />}
-                profileDropdown={
+                headerSlot={
                   online ? (
-                    <ProfileDropdown
-                      profiles={profilesHook}
-                      onPreferencesChanged={handlePreferencesChanged}
-                      onNavigateSettings={handleNavigateSettings}
-                      compact={compact}
-                    />
-                  ) : undefined
+                    <ConnectedProfileSlot connectEpoch={connectEpoch}>
+                      <ProfileDropdown
+                        profiles={profilesHook}
+                        onPreferencesChanged={handlePreferencesChanged}
+                        onNavigateSettings={handleNavigateSettings}
+                        compact={compact}
+                      />
+                    </ConnectedProfileSlot>
+                  ) : (
+                    <NotConnectedBadge state={status.state} t={t} compact={compact} />
+                  )
                 }
                 compact={compact}
                 extraItems={portalNav}

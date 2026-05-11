@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ChevronDown, Plus, Download, Upload, Settings } from 'lucide-react';
+import { ChevronDown, Plus, Download, Upload, Settings, UserRound } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../lib/i18n';
 import { useClickOutside } from '../../hooks/useClickOutside';
@@ -88,14 +88,20 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
           {initial}
         </button>
       ) : (
-        <button type="button" className={styles.trigger} onClick={() => setOpen(o => !o)}>
-          <span className={styles.triggerPrefix}>{t('profile.label')}:</span>
+        <button
+          type="button"
+          className={styles.trigger}
+          onClick={() => setOpen(o => !o)}
+          aria-label={`${t('profile.label')}: ${displayName}`}
+        >
+          <UserRound size={14} className={styles.triggerIcon} aria-hidden />
           <span className={styles.triggerName}>{displayName}</span>
           <ChevronDown size={14} className={classNames(styles.chevron, { [styles.chevronOpen]: open })} />
         </button>
       )}
       {open && (
         <div className={classNames(styles.dropdown, { [styles.compactDropdown]: compact })}>
+          <div className={styles.dropdownHeader}>{t('profile.header')}</div>
           <div className={styles.profileList}>
             {profiles.profiles.map(p => (
               <button key={p.id} type="button"

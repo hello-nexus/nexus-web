@@ -23,8 +23,7 @@ interface SidebarProps {
   onChange: (key: string) => void;
   sectionLabel: string;
   serviceState: ServiceState;
-  statusBlock?: ReactNode;
-  profileDropdown?: ReactNode;
+  headerSlot?: ReactNode;
   compact?: boolean;
   extraItems?: readonly ExtraNavItem[];
   extraSectionLabel?: string;
@@ -34,15 +33,14 @@ interface SidebarProps {
 
 export function Sidebar({
   items, active, onChange, sectionLabel, serviceState,
-  statusBlock, profileDropdown, compact = false,
+  headerSlot, compact = false,
   extraItems, extraSectionLabel, extraActive, extraOnChange,
 }: SidebarProps) {
   return (
     <div className={classNames(styles.nav, { [styles.navCompact]: compact })}>
-      {(statusBlock || profileDropdown) && (
+      {headerSlot && (
         <div className={classNames(styles.serviceHeader, { [styles.serviceHeaderCompact]: compact })}>
-          {statusBlock}
-          {profileDropdown}
+          {headerSlot}
         </div>
       )}
       {!compact && <div className={styles.sectionLabel}>{sectionLabel}</div>}

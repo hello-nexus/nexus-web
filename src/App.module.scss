@@ -13,18 +13,6 @@
   min-width: 864px;
 }
 
-// ── Top row: QOS wordmark (full build only) ────────────────────────
-
-.topRow {
-  display: flex;
-  align-items: center;
-  height: 48px;
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border);
-  padding: 0 0.25rem 0 0.75rem;
-  flex-shrink: 0;
-}
-
 // ── Body row: sidebar + content side by side ────────────────────────────
 
 .bodyRow {
@@ -36,12 +24,13 @@
 // ── Left sidebar column ──────────────────────────────────────────────────
 
 .sidebarColumn {
+  --sidebar-section-height: 48px;
   position: relative;
   display: flex;
   flex-direction: column;
   width: 200px;
   background: var(--bg-elevated);
-  padding: 0.75rem 0;
+  padding: 0 0 0.75rem;
   flex-shrink: 0;
   transition: width var(--ease);
 }
@@ -89,15 +78,61 @@
   }
 }
 
-// ── Brand area (in top nav bar) ──────────────────────────────────────────
+// ── Sidebar brand (logo + wordmark at top of sidebar) ────────────────────
+// The brand row and the .serviceHeader row share the same fixed
+// --sidebar-section-height so the horizontal separators between them stay
+// pinned in place when the sidebar collapses or expands.
 
-.brand {
+.sidebarBrand {
   display: flex;
   align-items: center;
   gap: 0.55rem;
+  height: var(--sidebar-section-height);
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
-.collapseGhost {
+.sidebarBrandCompact {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebarBrandLogo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  filter: drop-shadow(0 0 10px var(--accent-glow-shadow));
+  flex-shrink: 0;
+}
+
+.sidebarBrandLogoBtn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform var(--ease-fast);
+
+  &:hover {
+    transform: scale(1.06);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+.sidebarBrandName {
+  @include text-heading;
+  letter-spacing: 0.06em;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sidebarBrandCollapse {
   display: grid;
   place-items: center;
   width: 24px;
@@ -108,7 +143,6 @@
   color: var(--text-faded);
   cursor: pointer;
   padding: 0;
-  margin-left: auto;
   flex-shrink: 0;
   transition: color var(--ease-fast);
 
@@ -117,74 +151,54 @@
   }
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  color: var(--accent);
-  filter: drop-shadow(0 0 10px var(--accent-glow-shadow));
-}
+// ── Not-connected badge (offline state of the sidebar header slot) ───────
 
-.brandName {
-  @include text-heading;
-  letter-spacing: 0.06em;
-}
-
-.statusBlock {
+.notConnected {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  height: 32px;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  align-self: flex-start;
+  gap: 0.45rem;
+  min-height: 32px;
+  white-space: nowrap;
 }
 
-.statusBlockCompact {
+.notConnectedCompact {
   justify-content: center;
   align-self: center;
   width: 100%;
 }
 
-.statusBlockAction {
-  // When showing the launch CTA instead of a status indicator, give the row
-  // its own breathing room so the button has room to land at full size and
-  // doesn't crowd the profile dropdown that sits next to the status block.
-  height: auto;
-  width: 100%;
-  justify-content: flex-start;
-}
-
-.statusDot {
-  width: 6px;
-  height: 6px;
+.notConnectedDot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--text-faded);
+  background: var(--bad);
   flex-shrink: 0;
-
-  &.offline {
-    background: var(--bad);
-  }
-  &.checking {
-    background: var(--warn);
-    animation: pulse 1.4s ease-in-out infinite;
-  }
 }
 
-.statusLabel {
+.notConnectedDotChecking {
+  background: var(--warn);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.notConnectedLabel {
   @include text-button;
   color: var(--text-dim);
-  white-space: nowrap;
+}
+
+// One-shot fade/slide-in for the profile dropdown when the service comes
+// online. Triggered by a React key bump on the wrapper.
+.connectedSlotAnimate {
+  animation: connected-slot-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
+}
+
+@keyframes connected-slot-in {
+  0%   { opacity: 0; transform: translateX(-8px); }
+  100% { opacity: 1; transform: translateX(0); }
 }
 
 // ── Sidebar footer ───────────────────────────────────────────────────────
@@ -572,110 +586,6 @@
     background: rgb(255 255 255 / var(--alpha-faint));
   }
 }
-
-// .debugBtn / .debugActive moved onto canonical Button (size="sm",
-// tone toggles ghost <-> accent based on active state). No custom rule
-// needed.
-
-.statusBadgeWrap {
-  position: relative;
-  display: inline-flex;
-}
-
-.statusBadge {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-faded);
-  flex-shrink: 0;
-  padding: 0;
-}
-
-.statusBadgeBtn {
-  cursor: pointer;
-  transition: filter var(--ease-fast), border-color var(--ease-fast);
-
-  &:hover {
-    filter: brightness(1.15);
-    border-color: var(--border-strong);
-  }
-}
-
-.statusBadgeOk {
-  border-color: rgba(16, 185, 129, 0.35);
-  background: rgba(16, 185, 129, 0.08);
-  color: var(--good);
-}
-
-.statusBadgeWarn {
-  border-color: rgba(245, 158, 11, 0.4);
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--warn);
-}
-
-// "Just connected" celebration: shield bounces in, label slides in after.
-// Plays once on mount; we trigger replays by remounting via React key.
-.statusBadgeAnimateIn {
-  animation: connected-shield-in 0.95s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  transform-origin: center;
-}
-
-.statusLabelAnimateIn {
-  animation: connected-label-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
-}
-
-@keyframes connected-shield-in {
-  0%   { transform: scale(0.3); opacity: 0; }
-  35%  { transform: scale(1.65); opacity: 1; }
-  60%  { transform: scale(0.92); }
-  100% { transform: scale(1); }
-}
-
-@keyframes connected-label-in {
-  0%   { opacity: 0; transform: translateX(-10px); }
-  100% { opacity: 1; transform: translateX(0); }
-}
-
-// Popover content classes for the status shield. Container + positioning
-// live in components/Popover/Popover.module.scss; these only style the
-// shield-specific header / body / list nested inside it.
-.shieldPopoverHeader {
-  @include text-button;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--warn);
-}
-
-.shieldPopoverHeaderOk {
-  color: var(--good);
-}
-
-.shieldPopoverIntro {
-  @include text-button;
-  margin: 0;
-  color: var(--text-dim);
-  line-height: 1.4;
-}
-
-.shieldPopoverList {
-  @include text-button;
-  margin: 0;
-  padding: 0 0 0 1rem;
-  color: var(--text-dim);
-  line-height: 1.5;
-
-  li + li {
-    margin-top: 2px;
-  }
-}
-
-// .adminRelaunchBtn moved onto canonical Button (tone="accent" size="sm"
-// + loading prop). No custom rule needed.
 
 .version {
   @include text-numeric;

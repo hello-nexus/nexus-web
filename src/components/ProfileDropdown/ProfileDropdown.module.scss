@@ -28,8 +28,9 @@
   }
 }
 
-.triggerPrefix {
+.triggerIcon {
   color: var(--text-faded);
+  flex-shrink: 0;
 }
 
 .triggerName {
@@ -80,6 +81,16 @@
 .compactDropdown {
   left: calc(100% + 8px);
   top: 0;
+}
+
+.dropdownHeader {
+  padding: 0.55rem 0.75rem 0.3rem;
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  color: var(--text-faded);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
 }
 
 .profileList {

@@ -6,7 +6,7 @@
 // IMPORTANT: never intercept localhost — the local Qos service must hit the
 // network directly so the SPA can detect it going up/down in real time.
 
-const CACHE_VERSION = 'qos-web-v124-single-page-dashboard';
+const CACHE_VERSION = 'qos-web-v129-profile-icon';
 const SHELL_URLS = ['/', '/index.html', '/favicon.svg', '/icons.svg', '/manifest.webmanifest', '/panel-phone.webmanifest', '/fonts/lexend/lexend-latin.woff2'];
 
 self.addEventListener('install', (event) => {

@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 0.5rem;
+  padding: 0.5rem 0.5rem 0;
   flex: 1;
 }
 
@@ -13,18 +13,20 @@
 }
 
 .serviceHeader {
+  position: relative;
+  z-index: 20;
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0 0.75rem 0.5rem;
-  margin-bottom: 0.25rem;
+  align-items: center;
+  height: var(--sidebar-section-height);
+  padding: 0 0.75rem;
+  margin-bottom: 0.5rem;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .serviceHeaderCompact {
-  padding: 0 0.5rem 0.5rem;
-  align-items: center;
-  gap: 0.6rem;
+  justify-content: center;
+  padding: 0 0.5rem;
 }
 
 .sectionLabel {
