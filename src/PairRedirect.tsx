@@ -5,7 +5,7 @@ const APP_LINK_PROBE_MS = 1500;
 
 /**
  * Tiny landing page rendered when a phone scans the pairing QR but the
- * qOS iOS app is not installed (or the user is on Android / a desktop).
+ * Qos iOS app is not installed (or the user is on Android / a desktop).
  *
  * The QR encodes a Universal Link of the form
  *   https://nexusqos.com/r/pair?host=192.168.x.x&port=9443&pair=TOKEN&fp=SPKI_HASH
@@ -49,7 +49,7 @@ export function PairRedirect() {
   if (stage === 'loading') {
     return (
       <Frame>
-        <Title>Opening qOS...</Title>
+        <Title>Opening Qos...</Title>
         <Sub>If the app is installed, it will take over in a moment.</Sub>
       </Frame>
     );
@@ -68,7 +68,7 @@ export function PairRedirect() {
 
   return (
     <Frame>
-      <Title>Pair phone with qOS</Title>
+      <Title>Pair phone with Qos</Title>
       <Sub>Choose how you want to continue.</Sub>
 
       <a
@@ -90,7 +90,7 @@ export function PairRedirect() {
       </button>
 
       <Sub style={{ marginTop: 24, fontSize: 12 }}>
-        Browser fallback only works on a trusted home network. The qOS app uses end-to-end encryption.
+        Browser fallback only works on a trusted home network. The Qos app uses end-to-end encryption.
       </Sub>
     </Frame>
   );

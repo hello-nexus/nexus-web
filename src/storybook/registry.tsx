@@ -168,7 +168,7 @@ function PreviewInfoTooltip() {
       </div>
       <div className={styles.previewHoverCard}>
         <span>Devices</span>
-        <InfoTooltip message="Every USB peripheral qOS can see. Connect new devices through your browser or inspect the raw USB table." side="top" />
+        <InfoTooltip message="Every USB peripheral Qos can see. Connect new devices through your browser or inspect the raw USB table." side="top" />
       </div>
     </div>
   );

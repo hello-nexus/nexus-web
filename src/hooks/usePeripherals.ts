@@ -1,4 +1,4 @@
-// Detected peripherals (mice, keyboards, headsets qOS talks to directly).
+// Detected peripherals (mice, keyboards, headsets Qos talks to directly).
 // Refetches on the multiplex `devices` topic; initial fetch on mount.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchService } from '../api/service';
@@ -17,7 +17,7 @@ export interface Peripheral {
   firmwareVersion: string;
   isWireless: boolean;
   capabilities: string[];
-  /** Which backend owns this peripheral — the qOS service, or the browser via WebHID. */
+  /** Which backend owns this peripheral — the Qos service, or the browser via WebHID. */
   source?: PeripheralSource;
   dpi?: DpiState;
   polling?: PollingState;

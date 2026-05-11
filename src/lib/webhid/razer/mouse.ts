@@ -1,6 +1,6 @@
 // WebHID-backed Razer mouse handler. Mirrors the service-side
 // RazerMousePeripheral.cs byte-for-byte, driven by the same shared JSON spec.
-// This is the browser fallback path: when the qOS service isn't installed
+// This is the browser fallback path: when the Qos service isn't installed
 // or running, the user can still configure their mouse via Chrome's WebHID.
 import '../types';
 import type { WebHidPeripheral, WebHidPeripheralSnapshot } from '../peripheral';

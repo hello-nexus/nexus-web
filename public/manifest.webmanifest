@@ -1,6 +1,6 @@
 {
-  "name": "qOS",
-  "short_name": "qOS",
+  "name": "Qos",
+  "short_name": "Qos",
   "description": "Benchmark your build. Find your next qos.",
   "start_url": "/",
   "display": "standalone",

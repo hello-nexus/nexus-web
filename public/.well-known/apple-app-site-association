@@ -6,7 +6,7 @@
         "components": [
           {
             "/": "/r/pair",
-            "comment": "Pair a phone with a local qOS service"
+            "comment": "Pair a phone with a local Qos service"
           },
           {
             "/": "/r/pair?*",

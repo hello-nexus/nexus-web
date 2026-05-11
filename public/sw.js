@@ -1,9 +1,9 @@
-// qOS Web service worker — offline shell cache.
+// Qos Web service worker — offline shell cache.
 // Strategy: precache the app shell on install; serve hashed /assets/* cache-first;
 // for navigations, try network and fall back to cached index.html.
 // Bump CACHE_VERSION on every deploy to invalidate stale shells.
 //
-// IMPORTANT: never intercept localhost — the local qOS service must hit the
+// IMPORTANT: never intercept localhost — the local Qos service must hit the
 // network directly so the SPA can detect it going up/down in real time.
 
 const CACHE_VERSION = 'qos-web-v124-single-page-dashboard';
@@ -32,7 +32,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // Never intercept the local qOS service — it must hit the network directly.
+  // Never intercept the local Qos service — it must hit the network directly.
   if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.localhost')) {
     return;
   }

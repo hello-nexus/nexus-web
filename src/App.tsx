@@ -159,7 +159,7 @@ export default function App() {
   }
 
   // /r/pair is the Universal Link target on nexusqos.com. iOS opens the
-  // qOS app directly when installed; otherwise this landing page
+  // Qos app directly when installed; otherwise this landing page
   // offers App Store + LAN-redirect fallbacks.
   if (window.location.pathname === '/r/pair') {
     return <PairRedirect />;
@@ -366,11 +366,11 @@ function PanelEntrypointFailure({ kind, detail, isPhone, onRetry }: {
   if (kind === 'auth') {
     headline = isPhone ? 'Pair this phone first' : 'This panel needs to be authorized';
     body = isPhone
-      ? 'On your PC, open the qOS dashboard, tap "Pair Phone" in the sidebar, and scan the QR code with this phone. Then tap Retry below.'
+      ? 'On your PC, open the Qos dashboard, tap "Pair Phone" in the sidebar, and scan the QR code with this phone. Then tap Retry below.'
       : 'Open this URL with a service token (?token=...), or load it from the local machine where qos-service is running.';
   } else if (kind === 'pair-expired') {
     headline = 'Pairing expired';
-    body = 'Generate a new QR from the qOS dashboard ("Pair Phone") and scan it again.';
+    body = 'Generate a new QR from the Qos dashboard ("Pair Phone") and scan it again.';
   } else {
     headline = 'Could not reach the service';
     body = 'Check that qos-service is running, then retry.';

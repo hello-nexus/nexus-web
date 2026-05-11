@@ -2538,10 +2538,10 @@ function usePhonePanelManifest(enabled: boolean) {
 
     const appleTitle = document.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-title"]');
     const previousAppleTitle = appleTitle?.getAttribute('content');
-    if (appleTitle) appleTitle.content = 'qOS Panel';
+    if (appleTitle) appleTitle.content = 'Qos Panel';
 
     const title = document.title;
-    document.title = 'qOS Panel';
+    document.title = 'Qos Panel';
 
     return () => {
       if (manifest && previousManifest) manifest.href = previousManifest;

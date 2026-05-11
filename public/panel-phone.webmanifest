@@ -1,7 +1,7 @@
 {
-  "name": "qOS Panel",
+  "name": "Qos Panel",
   "short_name": "Panel",
-  "description": "qOS phone panel",
+  "description": "Qos phone panel",
   "id": "/panel/phone",
   "start_url": "/panel/phone",
   "scope": "/panel/",
