@@ -135,37 +135,43 @@ interface GeneralTabProps {
 
 function GeneralTab({ settings, updateGeneral, serviceOnline, platform }: GeneralTabProps) {
   const { t } = useTranslation();
-  const [startOnLogin, setStartOnLogin] = useState<boolean | null>(settings.general.startOnLogin);
-  const [startLoading, setStartLoading] = useState(false);
+  const [autoStart, setAutoStart] = useState<boolean | null>(null);
+  const [autoStartLoading, setAutoStartLoading] = useState(false);
+  const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [screenTimeOpen, setScreenTimeOpen] = useState(false);
 
+  // Hydrate "Start Qos at system startup" from the SCM-backed endpoint on
+  // mount. The state is independent of the per-user "Show in tray" flag.
   useEffect(() => {
-    if (!serviceOnline) return;
+    if (!serviceOnline || platform !== 'windows') return;
     let cancelled = false;
-    setStartLoading(true);
-    fetchService<{ enabled: boolean }>('/start').then(data => {
-      if (data && !cancelled) {
-        setStartOnLogin(data.enabled);
-        updateGeneral({ startOnLogin: data.enabled });
-      }
+    setAutoStartLoading(true);
+    fetchService<{ autoStart: boolean }>('/service/startup-mode').then(data => {
+      if (data && !cancelled) setAutoStart(data.autoStart);
     }).finally(() => {
-      if (!cancelled) setStartLoading(false);
+      if (!cancelled) setAutoStartLoading(false);
     });
     return () => { cancelled = true; };
-  }, [serviceOnline, updateGeneral]);
+  }, [serviceOnline, platform]);
 
-  const toggleStartup = async () => {
-    setStartLoading(true);
-    const resp = await postService<{ enabled: boolean }>('/start', {
-      enabled: !startOnLogin,
-      path: '',
-      arguments: '',
+  const toggleAutoStart = async () => {
+    if (autoStart === null) return;
+    setAutoStartLoading(true);
+    const resp = await postService<{ autoStart: boolean }>('/service/startup-mode', {
+      autoStart: !autoStart,
     });
-    if (resp) {
-      setStartOnLogin(resp.enabled);
-      updateGeneral({ startOnLogin: resp.enabled });
-    }
-    setStartLoading(false);
+    if (resp) setAutoStart(resp.autoStart);
+    setAutoStartLoading(false);
+  };
+
+  const stopService = async () => {
+    setStopping(true);
+    await postService('/service/stop', {});
+    // The service is going down; close the dialog and let the dashboard's
+    // connection-status hook reflect the offline state.
+    setStopConfirmOpen(false);
+    setStopping(false);
   };
 
   return (
@@ -177,13 +183,15 @@ function GeneralTab({ settings, updateGeneral, serviceOnline, platform }: Genera
         onChange={v => updateGeneral({ language: v as Language })}
       />
 
-      <ToggleRow
-        label={t('settings.startup.label')}
-        description={t('settings.startup.description')}
-        checked={startOnLogin ?? false}
-        onChange={toggleStartup}
-        disabled={!serviceOnline || startLoading}
-      />
+      {platform === 'windows' && autoStart !== null && (
+        <ToggleRow
+          label={t('settings.systemStartup.label')}
+          description={t('settings.systemStartup.description')}
+          checked={autoStart}
+          onChange={toggleAutoStart}
+          disabled={!serviceOnline || autoStartLoading}
+        />
+      )}
 
       <ToggleRow
         label={t('settings.alerts.label')}
@@ -239,6 +247,34 @@ function GeneralTab({ settings, updateGeneral, serviceOnline, platform }: Genera
           {t('settings.feedback.report')}
         </a>
       </div>
+
+      {platform === 'windows' && (
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <span className={styles.rowLabel}>{t('settings.stopService.label')}</span>
+            <span className={styles.rowDesc}>{t('settings.stopService.description')}</span>
+          </div>
+          <Button
+            type="button"
+            tone="danger"
+            size="sm"
+            onClick={() => setStopConfirmOpen(true)}
+            disabled={!serviceOnline || stopping}
+          >
+            {t('settings.stopService.button')}
+          </Button>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={stopConfirmOpen}
+        title={t('settings.stopService.confirmTitle')}
+        message={t('settings.stopService.confirmMessage')}
+        confirmLabel={t('settings.stopService.button')}
+        destructive
+        onConfirm={stopService}
+        onCancel={() => setStopConfirmOpen(false)}
+      />
 
       <ScreenTimeDataControl
         open={screenTimeOpen}
