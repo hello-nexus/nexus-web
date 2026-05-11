@@ -1,0 +1,80 @@
+/* Themed wrapper for native <select>. The wrapper span positions a
+   ChevronDown icon on the right edge so the dropdown affordance reads
+   at a glance. The native popup still opens on click of the select
+   itself; the chevron is purely decorative (pointer-events: none) so
+   clicks fall through to the select. */
+
+.wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--type-small);
+  padding: 0.4rem 1.9rem 0.4rem 0.7rem;
+  cursor: pointer;
+  transition: border-color var(--ease-fast) ease, box-shadow var(--ease-fast) ease;
+  outline: none;
+  width: 100%;
+
+  &:focus,
+  &:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.chevron {
+  position: absolute;
+  right: 0.55rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.wrapper:hover .chevron,
+.wrapper:focus-within .chevron {
+  color: var(--text);
+}
+
+.sm .select {
+  padding: 0.25rem 1.55rem 0.25rem 0.55rem;
+  font-size: var(--type-mini, 0.7rem);
+}
+
+.sm .chevron {
+  right: 0.4rem;
+}
+
+/* Ghost variant: no border, no background fill. The value reads as
+   plain text with just the chevron beside it. Use when the select
+   already sits inside a bordered card and the standard chrome reads as
+   a redundant box (cooling fan / curve rows). */
+.ghost .select {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  padding-left: 0.25rem;
+
+  &:focus,
+  &:focus-visible {
+    border-color: transparent;
+    box-shadow: none;
+    color: var(--accent);
+  }
+}

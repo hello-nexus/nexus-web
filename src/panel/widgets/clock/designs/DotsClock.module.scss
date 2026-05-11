@@ -1,0 +1,112 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+
+  &.size-2x2  {
+    --dot-size: 4px;
+    --dot-gap: 1.9px;
+    --row-gap: 3.1px;
+    --clock-scale: 0.96;
+    padding: 7px 6px;
+
+    .ampm {
+      font-size: 8px;
+      margin-left: 0;
+      padding-bottom: 1px;
+    }
+
+    .date {
+      margin-top: 4px;
+      font-size: 9px;
+    }
+  }
+
+  &.size-4x2  { --dot-size: 8px; --dot-gap: 4px; }
+  &.size-4x4  { --dot-size: 7px; --dot-gap: 3.5px; }
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--row-gap, calc(var(--dot-gap, 4px) * 2.5));
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  transform: scale(var(--clock-scale, 1));
+  transform-origin: center;
+}
+
+.digit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dot-gap, 4px);
+  flex: 0 0 auto;
+}
+
+.dotRow {
+  display: flex;
+  gap: var(--dot-gap, 4px);
+}
+
+.dot {
+  width: var(--dot-size, 8px);
+  height: var(--dot-size, 8px);
+  border-radius: 50%;
+  transition: opacity var(--ease);
+}
+
+.on {
+  background: var(--panel-text);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--panel-text) 36%, transparent);
+}
+
+.off {
+  background: var(--panel-border);
+}
+
+// Colon - two dots centered vertically
+.colonWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--dot-gap, 4px) * 3);
+  flex: 0 0 auto;
+  // Match digit height (5 dots + 4 gaps)
+  height: calc(var(--dot-size, 8px) * 5 + var(--dot-gap, 4px) * 4);
+}
+
+.ampm {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--panel-text-faint);
+  margin-left: 4px;
+  align-self: flex-end;
+  flex: 0 0 auto;
+}
+
+.date {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--panel-text-faint);
+  text-align: center;
+}
+
+.accent {
+  .dot.on {
+    background: var(--panel-accent);
+    box-shadow: 0 0 4px var(--panel-accent-shadow);
+  }
+}

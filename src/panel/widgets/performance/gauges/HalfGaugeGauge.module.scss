@@ -1,0 +1,66 @@
+.halfGauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 6px 6px 8px;
+  gap: 8px;
+}
+
+.arcWrap {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svg {
+  width: 80%;
+  max-height: 100%;
+}
+
+.trackArc {
+  fill: none;
+  stroke: var(--panel-border);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+
+.fillArc {
+  fill: none;
+  stroke: var(--panel-accent);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.value {
+  font-size: 1.4em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--panel-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--panel-text-faint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}

@@ -1,0 +1,59 @@
+// Cross-browser scrollbar mixins. Pair: hidden by default (applied globally
+// in global.scss), visible opt-in for long-list / modal / picker surfaces.
+//
+// This file contains only @mixin declarations - no class selectors - so
+// @use'ing it from a .module.scss is safe (no Vite/CSS-Modules class hashing
+// surprises). Contrast with panel/styles/tokens.scss, which defines actual
+// classes and must be loaded as a side-effect import from a .tsx instead.
+
+@mixin scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// Default thumb maps to var(--border); hover lifts to var(--border-strong).
+// Width is symmetric for vertical and horizontal axes. Pass any parameter to
+// override; pass none for the canonical app scrollbar.
+@mixin scrollbar-visible(
+  $width: 8px,
+  $thumb: var(--border),
+  $thumb-hover: var(--border-strong),
+  $track: transparent,
+  $radius: 4px
+) {
+  scrollbar-width: thin;
+  scrollbar-color: #{$thumb} #{$track};
+
+  &::-webkit-scrollbar {
+    // Explicitly re-enable: the global hidden default sets display: none on
+    // *::-webkit-scrollbar, and class-level pseudo-element specificity wins.
+    display: block;
+    width: $width;
+    height: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $track;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $thumb;
+    border-radius: $radius;
+
+    &:hover {
+      background: $thumb-hover;
+    }
+  }
+
+  &::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}

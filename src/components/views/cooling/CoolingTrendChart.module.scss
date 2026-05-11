@@ -1,0 +1,89 @@
+// Frame mirrors StackedChart so the cooling page reads as the same surface
+// language as the monitoring tabs (border + bg-card + radius + 0.75rem inset
+// title row + chart).
+.chartWrap {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
+  color: var(--text);
+}
+
+// CPU / GPU / RPM legend. Spaced apart so each label-swatch-value triple
+// reads as its own group rather than one continuous run of numbers.
+.stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-small);
+  color: var(--text);
+}
+
+.statLabel {
+  color: var(--text-faded);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+
+.statValue {
+  font-weight: var(--weight-body);
+}
+
+.statSwatch {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 12px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.statCpu .statSwatch {
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+.statGpu .statSwatch {
+  background: var(--accent-deep);
+  opacity: 0.95;
+}
+
+// Fan series renders as a dashed line on the chart, so its swatch glyph is
+// drawn as a dashed rule instead of a solid block.
+.statFan .statSwatch {
+  background: transparent;
+  border-top: 2px dashed var(--accent-glow);
+  height: 0;
+  width: 14px;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+}

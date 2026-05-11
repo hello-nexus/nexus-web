@@ -1,0 +1,37 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  color: var(--panel-text-faint);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.input {
+  appearance: none;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel-control-bg);
+  color: var(--panel-text);
+  font: 700 14px/1.2 var(--panel-font, 'Lexend', system-ui, sans-serif);
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color var(--ease-fast) ease, background-color var(--ease-fast) ease;
+}
+
+.input:focus-visible {
+  border-color: var(--panel-accent);
+  background: var(--panel-control-bg-hover);
+}
+
+.hint {
+  color: var(--panel-text-muted);
+  font-size: 11px;
+  line-height: 1.3;
+}

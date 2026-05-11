@@ -1,0 +1,50 @@
+// Canonical interaction mixins. Like _text.scss is the source of truth for
+// type, this is the source of truth for focus rings, pressed/active feedback,
+// and disabled state. Component styles should @include these instead of
+// re-rolling the same outline / box-shadow / opacity declarations.
+//
+// The mixins are deliberately small so they compose with whatever the
+// component already does (e.g. a button rolls @include focus-ring inside its
+// :focus-visible block; the rest of the button stays as-is).
+
+// Keyboard focus indicator. Two rings stacked: a tight white border for
+// contrast against any background, a soft accent halo for the chrome. Always
+// scoped to :focus-visible so mouse clicks don't paint the ring.
+@mixin focus-ring {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+// Inset variant - for elements where the ring would clip outside the parent
+// (e.g. inputs inside a card that's already at a border).
+@mixin focus-ring-inset {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+// Pressed / active feedback. Tiny scale-down so the user feels the click on
+// touch surfaces and dense kiosk panels. Pair with a transition on transform
+// for the spring-back animation.
+@mixin pressed {
+  transform: scale(0.97);
+}
+
+// Subtle pressed - for dense controls where 0.97 reads as too dramatic.
+@mixin pressed-subtle {
+  transform: scale(0.99);
+}
+
+// Disabled state. Standard 0.45 opacity + non-interactive cursor.
+@mixin disabled {
+  opacity: var(--alpha-medium);
+  cursor: not-allowed;
+}
+
+// Standard transition for state-driven props (background, border, color).
+// Matches --ease (180ms) which is the default rung. Components that need a
+// snappier feel can override with var(--ease-fast).
+@mixin state-transition {
+  transition: background-color var(--ease) ease,
+              border-color var(--ease) ease,
+              color var(--ease) ease;
+}

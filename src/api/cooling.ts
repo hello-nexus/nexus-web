@@ -1,0 +1,179 @@
+// Cooling API wrapper — authenticated fetch/post to the local service.
+
+import { fetchService, postService } from './service';
+
+// ── Types ──
+
+export interface FanChannel {
+  id: string;
+  name: string;
+  dutyPercent: number;
+  rpm: number;
+  mode: string; // "Auto" | "Manual" | "Curve"
+  minRpm?: number | null;
+  maxRpm?: number | null;
+  minDuty?: number | null;
+  classification?: string | null; // "Controllable" | "Fixed" | "Stalling" | "Unresponsive"
+  calibrated?: boolean;
+}
+
+export interface FanCalibrationPoint {
+  duty: number;
+  rpm: number;
+}
+
+export interface FanCalibration {
+  fanId: string;
+  classification: string;
+  minRpm: number;
+  maxRpm: number;
+  minDuty: number;
+  curve: FanCalibrationPoint[];
+  calibratedAtUnixMs: number;
+}
+
+export interface TemperatureSource {
+  id: string;
+  name: string;
+  category: string; // "CPU" | "GPU" | "Motherboard" | "Storage"
+  value: number;
+}
+
+export interface CoolingComponent {
+  id: string;
+  name: string;
+  type: string;
+  devices: Array<{
+    id: string;
+    name: string;
+    type: string;
+    speed: number | null;
+    rpm: number | null;
+    temperature: number | null;
+    pwm: number | null;
+  }>;
+}
+
+export interface FanProfile {
+  name: string;
+  description: string;
+}
+
+export interface CurvePoint {
+  temp: number;
+  speed: number;
+}
+
+// ── API responses ──
+
+interface FanChannelsResponse {
+  channels: FanChannel[];
+}
+
+interface TemperatureSourcesResponse {
+  sources: TemperatureSource[];
+}
+
+interface CurvesResponse {
+  globalSpeedModifier: number;
+  curves: Array<{
+    id: string;
+    name: string;
+    type: string;
+    input: { id: string; type: string; device: string };
+    outputs: Array<{ id: string; type: string }>;
+    flat?: { speed: number } | null;
+    linear?: {
+      responseTime: number;
+      minTemp: number;
+      maxTemp: number;
+      minSpeed: number;
+      maxSpeed: number;
+    } | null;
+    graph?: {
+      responseTime: number;
+      speedModifier: number;
+      points: CurvePoint[];
+    } | null;
+    mixed?: {
+      responseTime: number;
+      curveIds: string[];
+      fn: string;
+    } | null;
+    preset?: 'silent' | 'balanced' | 'performance' | null;
+  }>;
+}
+
+interface ProfilesResponse {
+  profiles: FanProfile[];
+  active: string;
+}
+
+interface CoolingAllResponse {
+  coolingComponents: CoolingComponent[];
+}
+
+// ── REST wrappers ──
+
+export const fetchCoolingAll = () =>
+  fetchService<CoolingAllResponse>('/cooling/all');
+
+export const fetchCurves = () =>
+  fetchService<CurvesResponse>('/cooling/curves');
+
+export const fetchFanChannels = () =>
+  fetchService<FanChannelsResponse>('/cooling/fans');
+
+export const fetchTemperatureSources = () =>
+  fetchService<TemperatureSourcesResponse>('/cooling/sources');
+
+export const fetchProfiles = () =>
+  fetchService<ProfilesResponse>('/cooling/profiles');
+
+export const setFanSpeed = (id: string, speed: number) =>
+  postService(`/cooling/fan/${encodeURIComponent(id)}/speed`, { speed });
+
+export const releaseFanAuto = (id: string) =>
+  postService(`/cooling/fan/${encodeURIComponent(id)}/auto`, {});
+
+export const applyProfile = (name: string) =>
+  postService(`/cooling/profile/${encodeURIComponent(name)}`, {});
+
+export const renameFan = (id: string, name: string) =>
+  postService(`/cooling/fan/${encodeURIComponent(id)}/name`, { name });
+
+export const saveCurves = (body: {
+  globalSpeedModifier: number;
+  curves: Array<{
+    id: string;
+    name: string;
+    type: string;
+    input: { id: string; type: string; device: string };
+    outputs: Array<{ id: string; type: string }>;
+    flat?: { speed: number } | null;
+    linear?: {
+      responseTime: number;
+      minTemp: number;
+      maxTemp: number;
+      minSpeed: number;
+      maxSpeed: number;
+    } | null;
+    graph?: {
+      responseTime: number;
+      speedModifier: number;
+      points: CurvePoint[];
+    } | null;
+    mixed?: {
+      responseTime: number;
+      curveIds: string[];
+      fn: string;
+    } | null;
+    preset?: 'silent' | 'balanced' | 'performance' | null;
+  }>;
+}) => postService('/cooling/curves/set', body);
+
+export const startCalibration = (fanIds: string[]) =>
+  postService<{ sessionId: string; error: boolean; msg: string }>('/cooling/calibrate', { fanIds });
+
+export const fetchCalibrations = () =>
+  fetchService<{ calibrations: FanCalibration[] }>('/cooling/calibrations');

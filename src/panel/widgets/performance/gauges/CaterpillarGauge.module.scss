@@ -1,0 +1,57 @@
+.caterpillar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 6px 6px 8px;
+}
+
+.svg {
+  position: absolute;
+  inset: 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+}
+
+.trackRing,
+.fillRing {
+  fill: none;
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+
+.trackRing {
+  stroke: var(--panel-border);
+}
+
+.fillRing {
+  stroke: var(--panel-accent);
+}
+
+.center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.value {
+  font-size: 1.4em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--panel-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--panel-text-faint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

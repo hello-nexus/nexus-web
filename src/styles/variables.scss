@@ -1,0 +1,143 @@
+// qOS design tokens.
+// Dark-first with a violet accent. Light theme via [data-theme="light"].
+//
+// Typography: Lexend (highly legible, friendly geometric).
+// Only 3 type treatments: heading, body, small.
+
+// ── Dark theme (default) ─────────────────────────────────────────────────────
+
+:root,
+[data-theme="dark"] {
+  // Surfaces — pure grayscale to mirror light mode's neutral whites.
+  --bg: #0f0f0f;
+  --bg-elevated: #1a1a1a;
+  --bg-card: #212121;
+  --bg-card-hover: #292929;
+  --border: #303030;
+  --border-strong: #424242;
+
+  // Text — neutral off-whites.
+  --text: #f5f5f5;
+  --text-dim: #a0a0a0;
+  --text-faded: #6a6a6a;
+
+  // Accent — violet (fallback; runtime values come from applyAccentColor()
+  // which sets these same custom properties on <html>).
+  --accent: #8b5cf6;
+  --accent-glow: #a78bfa;
+  --accent-deep: #6d28d9;
+  --accent-soft: rgba(139, 92, 246, 0.12);
+  --accent-glow-shadow: rgba(139, 92, 246, 0.45);
+  --accent-text: #ffffff;
+  --accent-glow-text: #000000;
+  --accent-deep-text: #ffffff;
+
+  // Status
+  --good: #10b981;
+  --warn: #f59e0b;
+  --bad: #ef4444;
+
+  // ── Surface scales ──
+  // Single source of truth. Each scale is intentionally short (3-5 rungs).
+  // If a real new use case appears, add a rung deliberately - don't drift to
+  // raw px / rem in component styles.
+
+  // Border radius. 5 rungs covering tiny details to full pill.
+  --radius-sm: 6px;        // chips, small buttons, dense controls
+  --radius: 10px;          // default cards, modals, large buttons
+  --radius-lg: 16px;       // hero cards, primary surfaces
+  --radius-pill: 999px;    // pill chips, status badges
+
+  // Spacing. T-shirt sizing matches `--size-*`. Anything beyond xl is rare
+  // enough to be raw with a comment, or compose multiples
+  // (`var(--space-xl) * 2`).
+  --space-xs: 4px;         // micro inset, icon gap
+  --space-sm: 8px;         // default gap inside dense rows
+  --space-md: 12px;        // default card padding step
+  --space-lg: 16px;        // section gap, card body padding
+  --space-xl: 24px;        // page-level section break
+
+  // Opacity tiers. 3 wide rungs absorb ~80% of the literal alphas that
+  // used to scatter across the codebase. Use via
+  // `color-mix(in srgb, X var(--alpha-Y), transparent)` or
+  // `rgb(R G B / var(--alpha-Y))`.
+  --alpha-faint: 0.10;     // micro-tints, faint dividers, subtle borders
+  --alpha-medium: 0.40;    // panel shadows, focus rings, soft overlays
+  --alpha-strong: 0.65;    // overlays, scrim, dense backgrounds
+
+  // Shadows. 3 rungs: thumb-tiny / card-medium / modal-huge.
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / var(--alpha-medium));
+  --shadow-md: 0 8px 24px rgb(0 0 0 / var(--alpha-medium));
+  --shadow-xl: 0 20px 60px rgb(0 0 0 / var(--alpha-medium));
+
+  // Blur radii. 2 rungs cover backdrop-filter / filter: blur() use cases.
+  --blur-sm: 8px;          // subtle veils, popover backdrops
+  --blur-lg: 20px;         // heavy modal backdrops, panel actions tray
+
+  // Animation timing. Three rungs cover the 100-300ms range. Use via
+  // `transition: bg var(--ease) ease` etc.
+  --ease-fast: 120ms;      // micro feedback (hover tint, press scale)
+  --ease: 180ms;           // default (most state changes)
+  --ease-slow: 300ms;      // narrative animation (sheet open, tab swap)
+
+  // Control size scale (heights). Buttons, chips, inputs, status badges,
+  // icon-only buttons all pick from this scale. Icon glyphs and avatars
+  // sit on the same scale so dense rows align cleanly.
+  --size-sm: 28px;         // compact buttons, dense inputs, icon-only buttons
+  --size-md: 36px;         // default buttons, default inputs, default avatars
+  --size-lg: 44px;         // primary CTA buttons, kiosk surfaces
+
+  // Type — Lexend
+  --font-sans: 'Twemoji Country Flags', 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+
+  // Canonical 6-rung type scale. Consumed by the text mixins in
+  // src/styles/_text.scss - those mixins are the only authorized way to
+  // set font-size/weight/line-height/letter-spacing in component styles.
+  // A stylelint warning will flag any raw type declaration outside _text.scss
+  // (lands in a follow-up commit).
+  --type-display: 2rem;      // 32px - hero numbers, biggest values on screen
+  --type-heading: 1.25rem;   // 20px - page / modal titles
+  --type-body: 1rem;         //  16px - reading text, card titles
+  --type-small: 0.84rem;     //  ~13px - buttons, action chips, tabular nums
+  --type-mini: 0.75rem;      //  12px - badges, eyebrows, table headers
+  --type-tiny: 0.6875rem;    //  11px - timestamps, footnotes, sensor units
+
+  // Legacy semantic aliases. New code should use the text mixins instead.
+  --weight-heading: 700;
+  --weight-body: 500;
+  --weight-small: 400;
+
+  // Page width contract. Constrained surfaces (Settings, Monitoring Detailed)
+  // cap at this value so dense label/value lists stay readable. Fluid
+  // surfaces (Overview, Cooling, Lighting, ...) ignore it.
+  --page-content-max: 720px;
+}
+
+// ── Light theme ──────────────────────────────────────────────────────────────
+
+[data-theme="light"] {
+  --bg: #f4f4f8;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f0f5;
+  --border: #d8d8e4;
+  --border-strong: #c0c0d0;
+
+  --text: #1a1a2e;
+  --text-dim: #5a5a78;
+  --text-faded: #9090a8;
+
+  --accent: #7c3aed;
+  --accent-glow: #8b5cf6;
+  --accent-deep: #5b21b6;
+  --accent-soft: rgba(124, 58, 237, 0.1);
+  --accent-glow-shadow: rgba(124, 58, 237, 0.35);
+  --accent-text: #ffffff;
+  --accent-glow-text: #ffffff;
+  --accent-deep-text: #ffffff;
+
+  --good: #059669;
+  --warn: #d97706;
+  --bad: #dc2626;
+}

@@ -1,0 +1,220 @@
+.cooling {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  padding: 12px 14px;
+  gap: 8px;
+  color: var(--panel-text);
+  box-sizing: border-box;
+}
+
+.trend {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+// Header floats over the chart so the sparklines fill the full trend area.
+// Mode label anchored top-left, value pair top-right - both rendered above
+// the chart's grid lines and lines via z-index.
+.trendHeader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.modeLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--panel-text-faint);
+  font: 600 11px/1 var(--panel-font);
+}
+
+.trendValues {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.trendValue {
+  color: var(--panel-text-faint);
+  font: 600 11px/1 var(--panel-font);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chartWrap {
+  position: absolute;
+  inset: 0;
+}
+
+.chart {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.gridLine {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--panel-border);
+  opacity: 0.68;
+}
+
+.gridLine[data-line='upper'] { top: 31%; }
+.gridLine[data-line='lower'] { top: 65%; }
+
+// Fan sparkline rendered after temp so its dots sit on top of the filled
+// temperature line. Same accent color; the dotted treatment is what
+// disambiguates the two series.
+.fanLine :global(path) {
+  stroke-dasharray: 2 5;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.chip {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: var(--panel-element-bg);
+  color: var(--panel-text-muted);
+  padding: 0 8px;
+  font: 900 11px/1 var(--panel-font);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  svg {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+  }
+
+  &[data-active='true'] {
+    border-color: var(--panel-accent);
+    background: var(--panel-accent-soft);
+    color: var(--panel-accent-glow);
+  }
+}
+
+// 2x2: just the preset grid, no trend or header.
+.cooling[data-size='2x2'] {
+  padding: 10px;
+  gap: 8px;
+
+  .chips {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .chip {
+    min-height: 0;
+    padding: 0;
+
+    svg {
+      width: 17px;
+      height: 17px;
+    }
+  }
+}
+
+// 4x4: more breathing room around the chart.
+.cooling[data-size='4x4'] {
+  padding: 16px 18px;
+  gap: 12px;
+
+  .chip {
+    min-height: 44px;
+
+    svg {
+      width: 22px;
+      height: 22px;
+    }
+  }
+}
+
+// Display-only mode (Show Controls = off): centered Fan icon + active mode + RPM.
+// Sizing scales with --panel-cell-size so it reads consistently across surfaces.
+.display {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px;
+  text-align: center;
+}
+
+.displayIcon {
+  width: clamp(44px, calc(var(--panel-cell-size, 172px) * 0.40), 120px);
+  height: clamp(44px, calc(var(--panel-cell-size, 172px) * 0.40), 120px);
+  color: var(--panel-text);
+  stroke-width: 1.6;
+  flex-shrink: 0;
+}
+
+.displayMode {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--panel-text-faint);
+  font: 600 12px/1 var(--panel-font);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.displayValue {
+  color: var(--panel-text);
+  font: 800 18px/1 var(--panel-font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.cooling[data-size='2x2'][data-display-only='true'] {
+  padding: 8px;
+
+  .display { gap: 6px; }
+  .displayMode { font-size: 11px; }
+  .displayValue { font-size: 16px; }
+}
+
+.cooling[data-size='4x4'][data-display-only='true'] {
+  .display { gap: 14px; }
+  .displayMode { font-size: 13px; }
+  .displayValue { font-size: 26px; }
+}

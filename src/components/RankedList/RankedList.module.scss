@@ -1,0 +1,99 @@
+.rankedList {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 0.85rem 1rem;
+}
+
+.rankedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.rankedTitle {
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
+  color: var(--text);
+}
+
+.rankedSubtitle {
+  font-size: var(--type-small);
+  color: var(--text-faded);
+}
+
+.rankedEmpty {
+  font-size: var(--type-small);
+  color: var(--text-faded);
+  padding: 0.6rem 0;
+}
+
+.rankedRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+
+}
+
+.rank {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  color: var(--text-faded);
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.otherRow {
+  margin-top: 0.25rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--border);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.name {
+  font-size: var(--type-small);
+  color: var(--text);
+  width: 140px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar {
+  flex: 1;
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 40px;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: none;
+}
+
+.val {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  color: var(--text);
+  min-width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}

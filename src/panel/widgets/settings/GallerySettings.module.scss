@@ -1,0 +1,44 @@
+@use '../../../styles/scrollbar' as *;
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.urlsRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.urlsLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--panel-text-muted);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 100px;
+  background: var(--panel-element-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--panel-text);
+  font-family: var(--panel-font, inherit);
+  font-size: 12px;
+  padding: 8px 10px;
+  resize: vertical;
+  box-sizing: border-box;
+  @include scrollbar-visible;
+
+  &::placeholder {
+    color: var(--panel-text-faint);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--panel-accent);
+    box-shadow: 0 0 0 2px var(--panel-accent-soft);
+  }
+}

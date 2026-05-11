@@ -1,0 +1,70 @@
+// Canonical text styles. Bundles font-size + weight + line-height + tracking
+// into 7 named mixins. These are the ONLY authorized way to set type in any
+// component-level SCSS module. A stylelint rule will warn on raw font-size,
+// font-weight, line-height, or letter-spacing declarations outside this file
+// (lands separately, see the consolidation plan).
+//
+// The Storybook viewer (Tools > Debug Tools > Storybook > Foundation) renders
+// every style x every text color so you can compare them visually before
+// picking one. Treat that grid as the spec.
+//
+// Adding an 8th style is allowed but should be a deliberate decision, not a
+// silent one-off. Bring the proposal up before adding.
+
+@mixin text-display {
+  font-family: var(--font-sans);
+  font-size: var(--type-display);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+@mixin text-heading {
+  font-family: var(--font-sans);
+  font-size: var(--type-heading);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+@mixin text-body {
+  font-family: var(--font-sans);
+  font-size: var(--type-body);
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+@mixin text-button {
+  font-family: var(--font-sans);
+  font-size: var(--type-small);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+@mixin text-label {
+  font-family: var(--font-sans);
+  font-size: var(--type-mini);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@mixin text-caption {
+  font-family: var(--font-sans);
+  font-size: var(--type-tiny);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+
+@mixin text-numeric {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}

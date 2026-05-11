@@ -1,0 +1,138 @@
+.themePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.themeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.themeSectionTitle,
+.animationPickerHeader {
+  color: var(--panel-text-faint);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.themeModeTabs,
+.backgroundModeTabs {
+  display: grid;
+  gap: 6px;
+  padding: 3px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel-control-bg);
+}
+
+.themeModeTabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.backgroundModeTabs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.themeToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 44px;
+  color: var(--panel-text);
+  font: 800 13px/1.2 var(--panel-font, 'Lexend', system-ui, sans-serif);
+}
+
+.backgroundShaderControls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.animationPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.animationPickerHeader {
+  display: grid;
+  gap: 4px;
+}
+
+.animationCategoryChips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+
+.animationCategoryChip {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border: 1px solid var(--panel-border);
+  border-radius: 9px;
+  background: var(--panel-control-bg);
+  color: var(--panel-text-muted);
+  padding: 0 10px;
+  font: 900 11px/1 var(--panel-font, 'Lexend', system-ui, sans-serif);
+  cursor: pointer;
+}
+
+.animationCategoryChipActive {
+  border-color: var(--panel-accent);
+  background: var(--panel-accent-soft);
+  color: var(--panel-accent-glow);
+}
+
+.animationScroller {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-auto-columns: minmax(112px, 132px);
+  gap: 8px;
+  min-height: 0;
+  max-height: 214px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1px 2px 3px 1px;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+
+.animationCardFrame {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.animationCardFrame > button {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  font-family: var(--panel-font, 'Lexend', system-ui, sans-serif);
+}
+
+.backgroundTemplateRow {
+  --effect-template-height: 42px;
+  --effect-template-gap: 7px;
+  --effect-template-padding: 6px;
+  --effect-template-radius: 10px;
+  --effect-template-preview-radius: 7px;
+  --effect-template-border: var(--panel-border);
+  --effect-template-hover-border: var(--panel-accent);
+  --effect-template-bg: var(--panel-control-bg);
+  --effect-template-text: var(--panel-text-muted);
+  --effect-template-active-border: var(--panel-accent);
+  --effect-template-active-bg: var(--panel-accent-soft);
+  --effect-template-active-text: var(--panel-text);
+  --effect-template-active-shadow: 0 0 0 1px var(--panel-accent);
+  --effect-template-number-font: 900 11px/1 var(--panel-font, 'Lexend', system-ui, sans-serif);
+}

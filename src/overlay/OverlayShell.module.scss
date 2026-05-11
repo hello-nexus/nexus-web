@@ -1,0 +1,61 @@
+// Floating desktop widget shell. Hosted inside the per-monitor overlay
+// served by qos-desktop.exe. Body and root must stay transparent so
+// the desktop shows through.
+//
+// Widgets are placed at cell coordinates inset by `inset` pixels on each
+// side so they have visual breathing room between neighbors - mirrors
+// the panel's --panel-widget-card-margin-x / --panel-widget-card-bottom-gap
+// rather than rendering flush to the cell.
+
+:global(html), :global(body) {
+  background: transparent !important;
+}
+
+.root {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  background: transparent;
+  overflow: hidden;
+  color: var(--panel-text);
+  font-family: var(--panel-font, system-ui);
+}
+
+.widget {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  // Card dropshadow stripped: the host carves SetWindowRgn to widget rects
+  // so any shadow extending past the rect would render half-clipped against
+  // a hard edge. Skipping the lift entirely is cleaner than enlarging the
+  // carve and losing 30 px of click-through halo around each card.
+  box-shadow: none;
+
+  &[data-dragging="true"] {
+    cursor: grabbing;
+    z-index: 5;
+  }
+}
+
+
+.widgetBody {
+  flex: 1 1 auto;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  // While the user is dragging via the outer pointer capture, suppress
+  // any text-selection / click ghosting in the widget body. Otherwise a
+  // drag that started on top of a calculator button leaves the button
+  // visually pressed.
+  pointer-events: auto;
+}
+
+.widget[data-dragging="true"] .widgetBody {
+  pointer-events: none;
+}
+

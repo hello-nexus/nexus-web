@@ -1,0 +1,220 @@
+// ── Component Detail View ────────────────────────────────────────────────────
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0.5rem 0 2rem;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.backLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.topSpacer {
+  flex: 1;
+}
+
+.addBtn {
+  padding: 0.4rem 1rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &:hover {
+    filter: brightness(1.15);
+  }
+}
+
+// ── Title block ─────────────────────────────────────────────────────────────
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.componentTitle {
+  font-size: 1.4rem;
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  margin: 0;
+}
+
+.componentSubtitle {
+  font-size: var(--type-body);
+  color: var(--text-dim);
+}
+
+// ── Sections ────────────────────────────────────────────────────────────────
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.sectionTitle {
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  padding: 0.65rem 1rem;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  margin: 0;
+}
+
+// ── Specs table ─────────────────────────────────────────────────────────────
+
+.specsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.specRow {
+  &:nth-child(even) {
+    background: var(--bg-card);
+  }
+}
+
+.specKey {
+  padding: 0.5rem 1rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+  width: 180px;
+  vertical-align: top;
+}
+
+.specVal {
+  padding: 0.5rem 1rem;
+  font-size: var(--type-small);
+  color: var(--text);
+  word-break: break-word;
+}
+
+// ── Prices table ────────────────────────────────────────────────────────────
+
+.pricesTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.priceRow {
+  &:nth-child(even) {
+    background: var(--bg-card);
+  }
+}
+
+.priceRetailer {
+  padding: 0.55rem 1rem;
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
+  color: var(--text);
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.priceValue {
+  padding: 0.55rem 0.75rem;
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.stockBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.55rem 0.75rem;
+  font-size: var(--type-small);
+  white-space: nowrap;
+}
+
+.stockDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &.inStock {
+    background: var(--good);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  }
+
+  &.outOfStock {
+    background: var(--text-faded);
+  }
+}
+
+.stockLabel {
+  color: var(--text-dim);
+}
+
+.buyCell {
+  padding: 0.4rem 1rem;
+  text-align: right;
+}
+
+.buyLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: var(--type-small);
+  font-family: var(--font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    filter: brightness(1.15);
+  }
+}
+
+.noRetailers {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--text-faded);
+  font-size: var(--type-body);
+}

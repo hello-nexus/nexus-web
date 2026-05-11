@@ -1,0 +1,40 @@
+/* Canonical modal/sheet base. Each variant lays out the backdrop
+   placement; consumer chrome (size, header, body, footer) is painted via
+   the className the consumer passes through. */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+}
+
+.backdropDialog,
+.backdropAlert {
+  background: rgb(0 0 0 / var(--alpha-medium));
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.backdropSheet {
+  /* Sheets paint their own backdrop. We keep z-index handling here so the
+     drawer sits above the page chrome but the drawer's owning view can
+     animate the surface independently. */
+  background: transparent;
+  pointer-events: none;
+}
+
+.backdropSheet > .surface {
+  pointer-events: auto;
+}
+
+.surface {
+  /* Intentionally minimal: no width, height, background, border, or
+     shadow. The consumer brings its own surface chrome via className so
+     existing modal sizes (large, wide, fullscreen) keep working without
+     fighting CSS module specificity. */
+  display: flex;
+  flex-direction: column;
+}

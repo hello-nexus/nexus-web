@@ -1,0 +1,58 @@
+.wedge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 6px 6px 8px;
+  gap: 8px;
+}
+
+.chartWrap {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svg {
+  width: 80%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.track {
+  fill: var(--panel-border);
+  opacity: 0.35;
+}
+
+.fill {
+  fill: var(--panel-accent);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.value {
+  font-size: 1.4em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--panel-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--panel-text-faint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

@@ -1,0 +1,50 @@
+/* Centered empty-state stack: icon + title + optional hint + action. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-dim);
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faded);
+
+  > svg { width: 36px; height: 36px; stroke-width: 1.4; }
+}
+
+.title {
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  margin: 0;
+}
+
+.hint {
+  font-size: var(--type-small);
+  color: var(--text-faded);
+  max-width: 32ch;
+}
+
+.action {
+  margin-top: 0.5rem;
+}
+
+.compact {
+  gap: 0.3rem;
+  padding: 0.75rem 0.5rem;
+
+  .icon > svg { width: 22px; height: 22px; }
+  .title { font-size: var(--type-small); }
+  .hint { font-size: var(--type-mini, 0.7rem); }
+}

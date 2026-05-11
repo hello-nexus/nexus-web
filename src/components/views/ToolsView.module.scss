@@ -1,0 +1,167 @@
+@use '../../styles/text' as *;
+
+/* Debug Tools page. Card chrome lives on the shared Card primitive; this
+   file owns the page layout and the kv/btn affordances inside cards. */
+.tools {
+  padding: 2rem;
+}
+
+.title {
+  @include text-heading;
+  margin: 0;
+}
+
+.subtitle {
+  @include text-body;
+  color: var(--text-dim);
+  margin: 0.25rem 0 1.5rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.wide {
+  grid-column: span 2;
+}
+
+.kv {
+  @include text-button;
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+}
+
+.val {
+  @include text-numeric;
+  color: var(--text);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.good {
+  color: var(--good);
+}
+
+.dim {
+  @include text-button;
+  color: var(--text-faded);
+}
+
+.resetRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.simList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.simTuningRow {
+  display: flex;
+  align-items: end;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card-hover);
+}
+
+.tuningField {
+  @include text-button;
+  display: grid;
+  grid-template-columns: auto 92px;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-faded);
+}
+
+.simRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card-hover);
+}
+
+.simMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.1rem;
+
+  strong {
+    @include text-button;
+    color: var(--text);
+  }
+
+  span {
+    @include text-numeric;
+    color: var(--text-faded);
+  }
+}
+
+.customControls {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns:
+    minmax(72px, 0.7fr)
+    auto
+    minmax(72px, 0.7fr)
+    auto
+    minmax(72px, 0.7fr)
+    auto
+    minmax(104px, 0.85fr)
+    minmax(104px, 0.85fr)
+    auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dimensionInput {
+  @include text-button;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text);
+  padding: 0 0.45rem;
+  outline: none;
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+}
+
+.readonlyInput {
+  color: var(--text-dim);
+  background: var(--bg-card-hover);
+  cursor: default;
+}
+
+@media (max-width: 720px) {
+  .wide {
+    grid-column: span 1;
+  }
+
+  .customControls {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  .customControls .applyBtn {
+    grid-column: 1 / -1;
+  }
+}

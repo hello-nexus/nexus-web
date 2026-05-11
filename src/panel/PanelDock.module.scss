@@ -1,0 +1,64 @@
+.dock {
+  position: relative;
+  display: grid;
+  gap: var(--panel-gap, 8px);
+  // No internal padding - the dock's visual area must fit inside the
+  // single grid row reserved for it by pageRowsForGrid. Padding here
+  // would push the dock taller than 1 row + gap.
+  padding: 0;
+  background: transparent;
+  pointer-events: auto;
+  z-index: 40;
+}
+
+.dockEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in srgb, white 40%, transparent);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.panelRoot[data-theme='light'] .dock {
+  background: color-mix(in srgb, white 70%, transparent);
+}
+
+.panelRoot[data-theme='light'] .dockEmpty {
+  color: color-mix(in srgb, black 45%, transparent);
+}
+
+// Wraps each dock slot so the panel-card visual + iOS-style label below
+// stack inside the slot's grid track. The card shrinks by the label
+// strip; with labels off (`--panel-widget-label-strip: 0px`) the card
+// reclaims the full track height.
+.dockSlotWrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dockSlotLabelStrip {
+  flex: 0 0 auto;
+}
+
+.dockSlot {
+  position: relative;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.placeholderSlot {
+  border: 1px dashed color-mix(in srgb, white 14%, transparent);
+}
+
+.panelRoot[data-theme='light'] .placeholderSlot {
+  border-color: color-mix(in srgb, black 14%, transparent);
+}

@@ -1,0 +1,129 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+
+  &.size-2x2  { --seg-scale: 0.52; padding: 10px; }
+  &.size-4x2  { --seg-scale: 0.85; }
+  &.size-4x4  { --seg-scale: 0.75; }
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--seg-scale, 0.85));
+  max-width: 100%;
+}
+
+// Individual digit container - 7 positioned segments
+.digit {
+  position: relative;
+  width: calc(40px * var(--seg-scale, 0.85));
+  height: calc(68px * var(--seg-scale, 0.85));
+}
+
+// Base segment shape
+.segment {
+  position: absolute;
+  border-radius: 1.5px;
+  transition: opacity var(--ease-fast);
+}
+
+.on {
+  background: var(--panel-text);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--panel-text) 30%, transparent);
+  opacity: 1;
+}
+
+.off {
+  background: var(--panel-border);
+  opacity: 1;
+}
+
+// Horizontal segments
+.seg-a,
+.seg-d,
+.seg-g {
+  left: calc(4px * var(--seg-scale, 0.85));
+  width: calc(30px * var(--seg-scale, 0.85));
+  height: calc(4px * var(--seg-scale, 0.85));
+}
+
+.seg-a { top: 0; }
+.seg-g { top: calc(32px * var(--seg-scale, 0.85)); }
+.seg-d { top: calc(64px * var(--seg-scale, 0.85)); }
+
+// Vertical segments
+.seg-b,
+.seg-c,
+.seg-e,
+.seg-f {
+  width: calc(4px * var(--seg-scale, 0.85));
+  height: calc(28px * var(--seg-scale, 0.85));
+}
+
+.seg-b { right: 0; top: calc(4px * var(--seg-scale, 0.85)); }
+.seg-c { right: 0; top: calc(36px * var(--seg-scale, 0.85)); }
+.seg-e { left: 0; top: calc(36px * var(--seg-scale, 0.85)); }
+.seg-f { left: 0; top: calc(4px * var(--seg-scale, 0.85)); }
+
+// Colon between digit groups
+.colon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(16px * var(--seg-scale, 0.85));
+  width: calc(10px * var(--seg-scale, 0.85));
+  height: calc(68px * var(--seg-scale, 0.85));
+}
+
+.colonDot {
+  width: calc(6px * var(--seg-scale, 0.85));
+  height: calc(6px * var(--seg-scale, 0.85));
+  border-radius: 50%;
+  transition: opacity var(--ease);
+
+  &.on {
+    background: var(--panel-text);
+    box-shadow: 0 0 4px color-mix(in srgb, var(--panel-text) 30%, transparent);
+  }
+
+  &.off {
+    background: var(--panel-border);
+  }
+}
+
+.ampm {
+  font-size: calc(14px * var(--seg-scale, 0.85));
+  font-weight: 700;
+  color: var(--panel-text-faint);
+  margin-left: calc(4px * var(--seg-scale, 0.85));
+  align-self: flex-end;
+}
+
+.date {
+  margin-top: calc(6px * var(--seg-scale, 0.85));
+  font-size: calc(12px * var(--seg-scale, 0.85));
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--panel-text-faint);
+  text-align: center;
+}
+
+.accent {
+  .segment.on {
+    background: var(--panel-accent);
+    box-shadow: 0 0 6px var(--panel-accent-shadow);
+  }
+  .colonDot.on {
+    background: var(--panel-accent);
+    box-shadow: 0 0 4px var(--panel-accent-shadow);
+  }
+}

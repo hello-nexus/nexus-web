@@ -1,0 +1,193 @@
+// Panel-only tokens. Prefixed --panel-* to avoid leaking into the main app.
+// This is a plain .scss file (NOT .module.scss), so class names are global
+// automatically. Do NOT wrap in :global() - that's CSS Modules syntax and
+// the browser silently drops the whole rule block if it sees it here.
+
+// Lexend is the unified default; the @font-face is loaded once from
+// global.scss. The Tools > Debug font picker fetches alternatives on
+// demand if the user picks one.
+
+.panel-root {
+  --panel-text: var(--text);
+  --panel-text-muted: var(--text-dim);
+  --panel-text-faint: var(--text-faded);
+  --panel-border: var(--border);
+  --panel-border-strong: var(--border-strong);
+  --panel-control-bg: var(--bg-card-hover);
+  --panel-control-bg-hover: var(--border);
+  --panel-control-bg-active: var(--border-strong);
+  --panel-sheet-bg: color-mix(in srgb, var(--bg-elevated) 98%, transparent);
+  --panel-scrim-bg: rgb(0 0 0 / var(--alpha-strong));
+
+  --panel-card-radius: var(--radius);
+  --panel-card-bg: var(--bg-card);
+  // User-controlled widget surface alpha. Applied via color-mix on
+  // .panel-card so only the background, border, and shadow fade with the
+  // slider; contents (text, icons, charts) stay fully opaque. Written as
+  // a percentage string by buildPanelThemeVars in PanelApp.tsx; the value
+  // here is the pre-runtime fallback.
+  --panel-card-bg-opacity: 100%;
+  --panel-card-border: var(--panel-border);
+  // iOS-style cast under each widget card. Geometry + color split so the
+  // user-controlled opacity can fade the cast without changing the blur.
+  // Light mode overrides both.
+  --panel-card-shadow-geometry: 0 10px 28px;
+  --panel-card-shadow-color: rgb(0 0 0 / var(--alpha-medium));
+  --panel-card-shadow: var(--panel-card-shadow-geometry) var(--panel-card-shadow-color);
+  --panel-card-padding: 14px;
+
+  --panel-gap: 12px;
+  --panel-page-padding: 10px;
+  --panel-cell-size: 172px;
+
+  // Widget label / card-inset variables. Moved from PanelApp.module.scss to
+  // a global token so any consumer of `.panel-root` (the live runtime AND
+  // the desktop simulator preview) gets the same defaults. Per-surface
+  // overrides may still adjust them. The `data-show-widget-labels='false'`
+  // selector below collapses every absolute inset to 0 in lockstep.
+  // Label strip + font scale with cell size so smaller surfaces (phone)
+  // hit the floor and bigger surfaces (Y70 portrait, larger desktop
+  // dashboards) read at the same proportion - no per-device overrides
+  // required. Floor matches the original phone defaults; ceiling caps it
+  // before the label dominates very large cells.
+  --panel-widget-label-strip: clamp(18px, calc(var(--panel-cell-size, 172px) * 0.15), 28px);
+  --panel-widget-label-font-size: clamp(12px, calc(var(--panel-cell-size, 172px) * 0.10), 18px);
+  --panel-widget-card-margin-x: 6px;
+  --panel-widget-card-bottom-gap: 4px;
+  --panel-widget-card-inner-pad: 0px;
+
+  --panel-element-bg: var(--panel-control-bg);
+  --panel-element-bg-hover: var(--panel-control-bg-hover);
+  --panel-element-bg-active: var(--panel-control-bg-active);
+  --panel-element-radius: 10px;
+
+  --panel-font: 'Lexend', system-ui, sans-serif;
+
+  --panel-accent:        var(--accent);
+  --panel-accent-glow:   var(--accent-glow);
+  --panel-accent-soft:   var(--accent-soft);
+  --panel-accent-shadow: var(--accent-glow-shadow);
+  --panel-good:          var(--good);
+  --panel-warn:          var(--warn);
+  --panel-bad:           var(--bad);
+
+  font-family: var(--panel-font);
+  color: var(--panel-text);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.panel-root[data-show-widget-labels='false'] {
+  --panel-widget-label-strip: 0px;
+  --panel-widget-card-margin-x: 0px;
+  --panel-widget-card-bottom-gap: 0px;
+  --panel-widget-card-inner-pad: 0px;
+}
+
+// iOS WKWebView re-enables selection / shows the long-press magnifier
+// on any text-rendering descendant unless EVERY ancestor blocks it.
+// Stamp the suppression on every child with !important so widget-level
+// styles can't reopen it. The form-element opt-in below re-enables
+// selection only for actual inputs.
+.panel-root * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+.panel-root input,
+.panel-root textarea,
+.panel-root select,
+.panel-root [contenteditable='true'],
+.panel-root [data-panel-allow-text-selection='true'] {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+
+.panel-root input:not([type='range']),
+.panel-root textarea,
+.panel-root select {
+  // iOS zooms the whole viewport when focusing controls below 16px.
+  font-size: max(16px, 1rem);
+}
+
+.panel-root[data-theme='light'] {
+  --panel-scrim-bg: rgba(248, 250, 252, 0.48);
+  --panel-card-shadow-geometry: 0 10px 28px;
+  --panel-card-shadow-color: rgba(15, 23, 42, 0.18);
+}
+
+// Desktop overlay widget cards composite per-pixel against the wallpaper.
+// The card surface, border and shadow alphas are driven by the user's
+// --panel-card-bg-opacity (set by the desktop widgets settings opacity
+// slider). The drop shadow is widened so the floating glassy card reads
+// against arbitrary wallpapers.
+.panel-root[data-surface='desktop'] {
+  --panel-card-shadow-geometry: 0 16px 40px;
+  --panel-card-shadow-color: rgb(0 0 0 / 0.42);
+}
+
+.panel-root[data-theme='light'][data-surface='desktop'] {
+  --panel-card-shadow-geometry: 0 16px 40px;
+  --panel-card-shadow-color: rgba(15, 23, 42, 0.22);
+}
+
+// Sensor unit suffix inside any monitoring gauge (% / RPM / GB / °C / etc).
+// Smaller, dimmer, with a tiny gap from the value so the number stays the
+// primary read. Mirrors the desktop monitoring overview's value+unit pair.
+.panel-gauge-unit {
+  display: inline-block;
+  margin-left: 0.18em;
+  font-size: 0.55em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--panel-text-muted);
+  vertical-align: baseline;
+}
+
+.panel-card {
+  background-color: color-mix(in srgb, var(--panel-card-bg) var(--panel-card-bg-opacity, 100%), transparent);
+  // Border + shadow fade with the user's widget opacity slider so a 0%
+  // widget has zero visible chrome - just the contents floating over the
+  // panel background. .panel-chip and other consumers of --panel-card-border
+  // are intentionally not affected.
+  border: 1px solid color-mix(in srgb, var(--panel-card-border) var(--panel-card-bg-opacity, 100%), transparent);
+  border-radius: var(--panel-card-radius);
+  box-shadow: var(--panel-card-shadow-geometry) color-mix(in srgb, var(--panel-card-shadow-color) var(--panel-card-bg-opacity, 100%), transparent);
+  overflow: hidden;
+  position: relative;
+  transition: background-color var(--ease-slow);
+  color: var(--panel-text);
+  font-family: var(--panel-font);
+}
+
+.panel-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-card-border);
+  border-radius: var(--panel-element-radius);
+  background: var(--panel-element-bg);
+  color: var(--panel-text);
+  font-family: var(--panel-font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color var(--ease) ease, color var(--ease) ease, border-color var(--ease) ease;
+
+  &:hover:not(:disabled) { background: var(--panel-element-bg-hover); }
+  &:active:not(:disabled) { background: var(--panel-element-bg-active); transform: scale(0.98); }
+  &:disabled { opacity: 0.35; cursor: default; }
+
+  &[data-active='true'] {
+    background: var(--panel-accent-soft);
+    border-color: var(--panel-accent);
+    color: var(--panel-accent-glow);
+  }
+}

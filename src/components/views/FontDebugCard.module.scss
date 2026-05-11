@@ -1,0 +1,40 @@
+.fontGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.fontTile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease;
+
+  &:hover { background: var(--bg-card-hover); }
+}
+
+.fontTileActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.fontTileLabel {
+  font-size: var(--type-small);
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.fontTileSample {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}

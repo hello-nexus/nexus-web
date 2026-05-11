@@ -1,0 +1,40 @@
+.indicator {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, black 28%, transparent);
+  backdrop-filter: blur(10px) saturate(0.9);
+  -webkit-backdrop-filter: blur(10px) saturate(0.9);
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 320ms ease;
+}
+
+.indicator[data-fade='true'] {
+  opacity: 0;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, white 35%, transparent);
+  transition: background var(--ease) ease, transform var(--ease) ease;
+}
+
+.dot[data-active='true'] {
+  background: var(--panel-accent, white);
+  transform: scale(1.18);
+}
+
+.panelRoot[data-theme='light'] .indicator {
+  background: color-mix(in srgb, white 70%, transparent);
+}
+
+.panelRoot[data-theme='light'] .dot {
+  background: color-mix(in srgb, black 35%, transparent);
+}

@@ -1,0 +1,55 @@
+.builder {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.summaryBar {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.summarySpacer {
+  flex: 1;
+}
+
+.totalPrice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+
+.totalLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.totalValue {
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+
+.compatSection {
+  // Compat panel sits below the summary
+}
+
+.tableSection {
+  // Table fills available width
+}
+
+.pickerSection {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}

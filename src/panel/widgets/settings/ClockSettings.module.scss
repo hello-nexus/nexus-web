@@ -1,0 +1,64 @@
+.container {
+  --clock-settings-border: var(--panel-border, var(--border));
+  --clock-settings-bg: var(--panel-element-bg, var(--bg-card));
+  --clock-settings-bg-hover: var(--panel-element-bg-hover, var(--bg-card-hover));
+  --clock-settings-text: var(--panel-text, var(--text));
+  --clock-settings-faint: var(--panel-text-faint, var(--text-faded));
+  --clock-settings-accent: var(--panel-accent, var(--accent));
+  --clock-settings-accent-glow: var(--panel-accent-glow, var(--accent-glow));
+  --clock-settings-accent-soft: var(--panel-accent-soft, var(--accent-soft));
+  --icon-label-button-height: 52px;
+  --icon-label-button-min-width: 58px;
+  --icon-label-button-padding-x: 5px;
+  --icon-label-button-padding-y: 4px;
+  --icon-label-button-gap: 3px;
+  --icon-label-button-radius: var(--radius-sm, 6px);
+  --icon-label-button-border: var(--clock-settings-border);
+  --icon-label-button-bg: var(--clock-settings-bg);
+  --icon-label-button-bg-hover: var(--clock-settings-bg-hover);
+  --icon-label-button-text: var(--clock-settings-faint);
+  --icon-label-button-text-hover: var(--clock-settings-text);
+  --icon-label-button-active-border: var(--clock-settings-accent);
+  --icon-label-button-active-bg: var(--clock-settings-accent-soft);
+  --icon-label-button-active-text: var(--clock-settings-accent-glow);
+  --icon-label-icon-size: 18px;
+  --icon-label-label-size: 9.5px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.designRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  gap: 6px;
+}
+
+.designBtn {
+  width: 100%;
+  min-width: 0;
+}
+
+.textInput {
+  appearance: none;
+  background: var(--panel-element-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--panel-text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  min-width: 140px;
+  outline: none;
+  transition: border-color var(--ease);
+
+  &::placeholder {
+    color: var(--panel-text-faint);
+  }
+
+  &:focus {
+    border-color: var(--panel-accent);
+  }
+}

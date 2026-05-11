@@ -1,0 +1,242 @@
+@use '../../../styles/text' as *;
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.avatar,
+.avatarFallback {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 10px;
+}
+
+.avatar {
+  object-fit: cover;
+}
+
+.avatarFallback {
+  display: grid;
+  place-items: center;
+  background: var(--panel-accent-soft);
+  color: var(--panel-accent-glow);
+}
+
+.profileText {
+  flex: 1;
+  min-width: 0;
+}
+
+.name,
+.playingName {
+  @include text-button;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusLine {
+  @include text-caption;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 4px;
+  color: var(--panel-text-faint);
+}
+
+.nowPlaying {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.level {
+  @include text-label;
+  min-width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--panel-accent);
+  border-radius: var(--radius-pill);
+  background: var(--panel-accent-soft);
+  color: var(--panel-accent-glow);
+}
+
+.content {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.list {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.gameRow,
+.friendRow {
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 9px;
+  background: var(--panel-element-bg);
+  padding: 5px 7px;
+}
+
+.gameIcon,
+.gameIconFallback,
+.friendAvatar {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.gameIconFallback {
+  background: var(--panel-accent-soft);
+}
+
+.rowTitle {
+  @include text-caption;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta,
+.rowSub {
+  @include text-caption;
+  color: var(--panel-text-faint);
+}
+
+.friendInfo {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rowSub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playing {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bannerWrap,
+.banner,
+.bannerFallback {
+  width: 100%;
+  aspect-ratio: 92 / 43;
+  min-height: 0;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.banner {
+  display: block;
+  object-fit: cover;
+}
+
+.bannerFallback {
+  background: linear-gradient(135deg, var(--panel-element-bg), var(--panel-accent-soft));
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.stat {
+  min-width: 0;
+  border-radius: 9px;
+  background: var(--panel-element-bg);
+  padding: 7px;
+}
+
+.statValue {
+  @include text-button;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--panel-text);
+
+  i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--panel-good);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--panel-good) 60%, transparent);
+  }
+}
+
+.statLabel {
+  @include text-label;
+  display: block;
+  margin-top: 3px;
+  color: var(--panel-text-faint);
+}
+
+.achievements {
+  margin-top: auto;
+  display: grid;
+  gap: 5px;
+}
+
+.achievementTop {
+  @include text-caption;
+  display: flex;
+  justify-content: space-between;
+  color: var(--panel-text-muted);
+}
+
+.achievementTrack {
+  height: 7px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--panel-border);
+}
+
+.achievementFill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--panel-accent);
+}
+
+.widget[data-size='4x4'] {
+  .avatar,
+  .avatarFallback {
+    width: 36px;
+    height: 36px;
+  }
+}

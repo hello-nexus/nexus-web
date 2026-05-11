@@ -1,0 +1,228 @@
+@use '../../../styles/text' as *;
+
+.empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  // No outer padding - ImmersiveLayout owns it so all immersive views
+  // share the same outer margin.
+  padding: 0;
+  box-sizing: border-box;
+  gap: 12px;
+}
+
+.artworkWrap {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+}
+
+.artwork,
+.artworkPlaceholder {
+  width: min(100%, 360px);
+  max-height: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 18px;
+  background: var(--panel-element-bg, rgba(255, 255, 255, 0.05));
+  box-shadow: 0 16px 40px rgb(0 0 0 / var(--alpha-medium));
+}
+
+.artworkPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in srgb, var(--panel-text) 50%, transparent);
+}
+
+.meta {
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.title {
+  @include text-heading;
+  color: var(--panel-text);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artist {
+  @include text-button;
+  color: var(--panel-text-muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.album {
+  @include text-caption;
+  color: var(--panel-text-faint);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seekBar {
+  width: 100%;
+  max-width: 360px;
+  height: 4px;
+  background: var(--panel-border);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.seekFill {
+  height: 100%;
+  background: var(--panel-accent-glow);
+  border-radius: 2px;
+  transition: width var(--ease-slow) ease;
+}
+
+// Controls row mirrors MediaWidget exactly so the buttons look the
+// same in both views.
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--panel-element-bg);
+  color: var(--panel-text);
+  cursor: pointer;
+  transition: background-color var(--ease) ease, transform var(--ease-fast) ease, color var(--ease) ease;
+  flex-shrink: 0;
+
+  svg { width: 20px; height: 20px; }
+
+  &:hover:not(:disabled) { background: var(--panel-element-bg-hover); }
+  &:active:not(:disabled) { transform: scale(0.95); }
+  &:disabled { opacity: 0.3; cursor: default; }
+}
+
+.primary {
+  width: 56px;
+  height: 56px;
+  background: var(--panel-accent);
+  color: white;
+
+  svg { width: 24px; height: 24px; }
+
+  &:hover:not(:disabled) { background: var(--panel-accent-glow); }
+}
+
+.toggle { color: var(--panel-text-faint); }
+.toggleOn {
+  color: var(--panel-accent-glow);
+  background: var(--panel-element-bg-hover);
+}
+
+// Horizontal volume row at the bottom: small mute icon button on the
+// left, long horizontal track that takes the rest of the row.
+.volumeRow {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.volumeMuteBtn {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--panel-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  svg { width: 16px; height: 16px; }
+
+  &:hover { color: var(--panel-text); background: color-mix(in srgb, white 8%, transparent); }
+  &[aria-pressed='true'] { color: var(--panel-accent-glow); }
+}
+
+.volumeTrack {
+  position: relative;
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  // Critical: don't let the panel scroller eat the horizontal drag.
+  touch-action: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 6px;
+    background: var(--panel-border);
+    border-radius: var(--radius-pill);
+  }
+}
+
+.volumeFill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 6px;
+  background: var(--panel-accent-glow);
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+
+.volumeKnob {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: var(--panel-accent-glow);
+  box-shadow: 0 1px 3px rgb(0 0 0 / var(--alpha-medium));
+  pointer-events: none;
+}

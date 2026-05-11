@@ -1,0 +1,291 @@
+import { useEffect, useRef, useState } from 'react';
+import {
+  Play, Pause, SkipBack, SkipForward, Music,
+  Shuffle, Repeat, Repeat1,
+  Volume, Volume1, Volume2, VolumeX,
+} from 'lucide-react';
+import { useMedia, controlMedia, type MediaSession } from '../../../hooks/useMedia';
+import { useSystemVolume } from '../../../hooks/useSystemVolume';
+import { fetchServiceBlob } from '../../../api/service';
+import { useTranslation } from '../../../lib/i18n';
+import { EmptyState } from '../../../components/EmptyState/EmptyState';
+import type { WidgetProps } from '../types';
+import { surfaceSupportsTouch } from '../../types';
+import { PanelMixerSlider } from '../common/PanelMixerSlider';
+import { mediaArtSignature } from './mediaArt';
+import styles from './MediaWidget.module.scss';
+
+interface MediaArtAsset {
+  key: string;
+  signature: string;
+  url: string;
+}
+
+function pickActive(sessions: Record<string, MediaSession>): { key: string; session: MediaSession } | null {
+  const entries = Object.entries(sessions);
+  if (entries.length === 0) return null;
+  const playing = entries.find(([, s]) => s.playback.playing && !s.playback.stopped);
+  const [key, session] = playing ?? entries[0];
+  return { key, session };
+}
+
+function VolumeIcon({ volume, muted }: { volume: number; muted: boolean }) {
+  if (muted || volume <= 0) return <VolumeX strokeWidth={1.8} />;
+  if (volume < 0.34) return <Volume strokeWidth={1.8} />;
+  if (volume < 0.67) return <Volume1 strokeWidth={1.8} />;
+  return <Volume2 strokeWidth={1.8} />;
+}
+
+export function MediaWidget({ widget, surface }: WidgetProps) {
+  const { t } = useTranslation();
+  const { sessions } = useMedia(true);
+  const [artAsset, setArtAsset] = useState<MediaArtAsset>({ key: '', signature: '', url: '' });
+  const showControls = surface ? surfaceSupportsTouch(surface) : true;
+  const compact = widget.size === '2x2';
+  const volumeBridge = useSystemVolume(showControls && !compact);
+  const { state: volume, previewVolume, commitVolume, setMuted } = volumeBridge;
+
+  const active = pickActive(sessions);
+  const activeKey = active?.key ?? '';
+  const artSignature = mediaArtSignature(active?.session);
+  const showVolume = showControls && !compact && volume.supported;
+  const artUrl = artAsset.key === activeKey && artAsset.signature === artSignature ? artAsset.url : '';
+
+  useEffect(() => {
+    if (!activeKey || compact) return;
+    let cancelled = false;
+    let blobUrl: string | null = null;
+
+    fetchServiceBlob(`/api/media/${encodeURIComponent(activeKey)}/album-art`).then(blob => {
+      if (cancelled || !blob) {
+        if (!cancelled) setArtAsset({ key: activeKey, signature: artSignature, url: '' });
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      blobUrl = url;
+      setArtAsset({ key: activeKey, signature: artSignature, url });
+    }).catch(() => {
+      if (!cancelled) setArtAsset({ key: activeKey, signature: artSignature, url: '' });
+    });
+
+    return () => {
+      cancelled = true;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [activeKey, artSignature, compact]);
+
+  const control = (action: string) => {
+    if (!active) return;
+    controlMedia(active.key, action).catch(() => {});
+  };
+
+  if (!active) {
+    return (
+      <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${showControls ? '' : styles.statusOnly}`}>
+        {showVolume ? (
+          <div className={styles.fullContent}>
+            <EmptyState
+              compact
+              icon={<Music strokeWidth={1.5} />}
+              title={t('panel.media.empty')}
+              className={styles.emptySlot}
+            />
+            <MediaVolumeSlider
+              volume={volume.volume}
+              muted={volume.muted}
+              sourceLabel={t('panel.widget.media')}
+              onPreview={previewVolume}
+              onCommit={commitVolume}
+              onToggleMute={() => setMuted(!volume.muted)}
+              t={t}
+            />
+          </div>
+        ) : (
+          <EmptyState
+            compact
+            icon={<Music strokeWidth={1.5} />}
+            title={t('panel.media.empty')}
+            className={styles.emptySlot}
+          />
+        )}
+      </div>
+    );
+  }
+
+  const s = active.session;
+  const playing = s.playback.playing;
+  const progress = s.playback.durationMs > 0
+    ? Math.min(100, (s.playback.positionMs / s.playback.durationMs) * 100)
+    : 0;
+  const repeatMode = (s.playback.repeatMode || 'None');
+  const repeatActive = repeatMode === 'List' || repeatMode === 'Track';
+
+  return (
+    <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${showControls ? '' : styles.statusOnly}`}>
+      {compact ? (
+        <>
+          <div className={styles.compactMeta}>
+            <div className={styles.title}>{s.song.title || '-'}</div>
+            <div className={styles.artist}>{s.song.artist}</div>
+            {s.song.album && <div className={styles.album}>{s.song.album}</div>}
+          </div>
+          {showControls && (
+            <div className={styles.controls}>
+              <button type="button" onClick={() => control('previous')} disabled={!s.controls.isPrevEnabled} className={styles.btn} aria-label="Previous">
+                <SkipBack strokeWidth={1.8} />
+              </button>
+              <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? 'Pause' : 'Play'}>
+                {playing ? <Pause strokeWidth={2} /> : <Play strokeWidth={2} />}
+              </button>
+              <button type="button" onClick={() => control('next')} disabled={!s.controls.isNextEnabled} className={styles.btn} aria-label="Next">
+                <SkipForward strokeWidth={1.8} />
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className={styles.fullContent}>
+          <div className={styles.playbackColumn}>
+            <div className={styles.topRow}>
+              <div className={styles.artWrap} aria-hidden="true">
+                {artUrl ? (
+                  <img src={artUrl} alt="" className={styles.art} />
+                ) : (
+                  <div className={styles.artFallback}>
+                    <Music strokeWidth={1.4} />
+                  </div>
+                )}
+                {playing && <Eq />}
+              </div>
+              <div className={styles.metadata}>
+                <div className={styles.title}>{s.song.title || '-'}</div>
+                <div className={styles.artist}>{s.song.artist}</div>
+                {s.song.album && <div className={styles.album}>{s.song.album}</div>}
+                {s.playback.durationMs > 0 && (
+                  <div className={styles.progressTrack}>
+                    <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+                  </div>
+                )}
+              </div>
+            </div>
+            {showControls && (
+              <div className={styles.controls}>
+                <button
+                  type="button"
+                  onClick={() => control('shuffle')}
+                  disabled={!s.controls.isShuffleEnabled}
+                  className={`${styles.btn} ${styles.toggle} ${s.playback.shuffled ? styles.toggleOn : ''}`}
+                  aria-label="Shuffle"
+                  aria-pressed={!!s.playback.shuffled}
+                >
+                  <Shuffle strokeWidth={1.8} />
+                </button>
+                <button type="button" onClick={() => control('previous')} disabled={!s.controls.isPrevEnabled} className={styles.btn} aria-label="Previous">
+                  <SkipBack strokeWidth={1.8} />
+                </button>
+                <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? 'Pause' : 'Play'}>
+                  {playing ? <Pause strokeWidth={2} /> : <Play strokeWidth={2} />}
+                </button>
+                <button type="button" onClick={() => control('next')} disabled={!s.controls.isNextEnabled} className={styles.btn} aria-label="Next">
+                  <SkipForward strokeWidth={1.8} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => control('repeatmode')}
+                  disabled={!s.controls.isRepeatModeEnabled}
+                  className={`${styles.btn} ${styles.toggle} ${repeatActive ? styles.toggleOn : ''}`}
+                  aria-label="Repeat"
+                  aria-pressed={repeatActive}
+                >
+                  {repeatMode === 'Track' ? <Repeat1 strokeWidth={1.8} /> : <Repeat strokeWidth={1.8} />}
+                </button>
+              </div>
+            )}
+          </div>
+          {showVolume && (
+            <MediaVolumeSlider
+              volume={volume.volume}
+              muted={volume.muted}
+              sourceLabel={s.sourceAppName || t('panel.widget.media')}
+              onPreview={previewVolume}
+              onCommit={commitVolume}
+              onToggleMute={() => setMuted(!volume.muted)}
+              t={t}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MediaVolumeSlider({
+  volume,
+  muted,
+  sourceLabel,
+  onPreview,
+  onCommit,
+  onToggleMute,
+  t,
+}: {
+  volume: number;
+  muted: boolean;
+  sourceLabel: string;
+  onPreview: (v: number) => void;
+  onCommit: (v: number, options?: { flush?: boolean }) => void;
+  onToggleMute: () => void;
+  t: (k: string) => string;
+}) {
+  const unmuteRequested = useRef(false);
+
+  const applyVolume = (v: number, flush = false) => {
+    const nextVolume = Math.max(0, Math.min(1, v / 100));
+    if (muted && nextVolume > 0 && !unmuteRequested.current) {
+      unmuteRequested.current = true;
+      onToggleMute();
+    }
+    onPreview(nextVolume);
+    onCommit(nextVolume, { flush });
+  };
+
+  const displayVolume = muted ? 0 : volume;
+  const fillPct = Math.round(displayVolume * 100);
+
+  return (
+    <PanelMixerSlider
+      min={0}
+      max={100}
+      value={fillPct}
+      topLabel={sourceLabel}
+      ariaLabel={t('panel.media.volume')}
+      valueLabel={`${fillPct}`}
+      icon={<VolumeIcon volume={volume} muted={muted} />}
+      iconButton={{
+        ariaLabel: muted ? t('panel.media.unmute') : t('panel.media.mute'),
+        ariaPressed: muted,
+        active: muted,
+        onClick: onToggleMute,
+      }}
+      onInteractionStart={() => { unmuteRequested.current = false; }}
+      onChange={v => applyVolume(v)}
+      onCommit={v => {
+        applyVolume(v, true);
+        unmuteRequested.current = false;
+      }}
+      className={styles.volumeMixer}
+    />
+  );
+}
+
+function Eq() {
+  return (
+    <div className={styles.eqBars} aria-hidden="true">
+      <span className={styles.eqBar} style={{ animationDelay: '0s' }} />
+      <span className={styles.eqBar} style={{ animationDelay: '0.12s' }} />
+      <span className={styles.eqBar} style={{ animationDelay: '0.24s' }} />
+      <span className={styles.eqBar} style={{ animationDelay: '0.36s' }} />
+    </div>
+  );
+}
+
+export default MediaWidget;

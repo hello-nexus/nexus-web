@@ -1,0 +1,113 @@
+$card-bg: var(--bg-card);
+$card-border: var(--border);
+
+%card {
+  background: $card-bg;
+  border: 1px solid $card-border;
+  border-radius: var(--radius);
+}
+
+.monitoring {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.chart {
+  @extend %card;
+  height: 260px;
+}
+
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.statCard {
+  @extend %card;
+  height: 100px;
+}
+
+.listPair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.listCard {
+  @extend %card;
+  height: 220px;
+}
+
+.lighting {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+.strip {
+  @extend %card;
+  height: 110px;
+}
+
+.effectGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.effectTile {
+  @extend %card;
+  aspect-ratio: 16 / 9;
+}
+
+.cooling {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1.5rem;
+  align-items: start;
+}
+
+.fanGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.fanCard {
+  @extend %card;
+  height: 150px;
+}
+
+.curveCard {
+  @extend %card;
+  height: 320px;
+}
+
+.devices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.deviceCard {
+  @extend %card;
+  height: 170px;
+}
+
+.generic {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.block {
+  @extend %card;
+  height: 140px;
+}

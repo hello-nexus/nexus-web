@@ -1,0 +1,48 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgb(0 0 0 / var(--alpha-medium));
+  color: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  line-height: 1;
+  transition: opacity var(--ease-fast) ease, background var(--ease-fast) ease, color var(--ease-fast) ease;
+
+  &:hover { background: var(--bad); color: #fff; }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+// Default: hidden until the containing card is hovered OR the button itself
+// has keyboard focus. The `data-card-delete="hover"` attribute jumps CSS
+// module scope so callers can write `.card:hover [data-card-delete="hover"]`
+// in their own stylesheet without knowing this component's mangled class name.
+// pointer-events: none while invisible stops accidental taps on touch
+// devices (Y70 panel, etc.) where :hover never resolves; the parent's
+// :hover / :focus-within rule must also re-enable pointer-events.
+.root[data-card-delete='hover'] {
+  opacity: 0;
+  pointer-events: none;
+  &:focus-visible { opacity: 1; pointer-events: auto; }
+}
+
+// Coarse pointers (touch): always show the X since :hover is unreliable.
+// Users rely on long-press / swipe for delete on other controls, but our
+// curve + media cards are small; keeping the X visible is the safer UX.
+@media (pointer: coarse) {
+  .root[data-card-delete='hover'] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.root[data-card-delete='always'] {
+  opacity: 1;
+}

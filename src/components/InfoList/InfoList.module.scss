@@ -1,0 +1,59 @@
+/* Shared key/value display. `InfoList` is an optional bounded widget (card
+   surface + padding); each `InfoRow` is a single label/value line inside it.
+   Used by popups and debug cards that need to surface meta without stealing
+   vertical space from the controls below. */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem 0.7rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child { border-bottom: none; }
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--type-mini, 0.7rem);
+  color: var(--text-faded);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.value {
+  font-size: var(--type-small);
+  color: var(--text);
+  text-align: right;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.valueCapitalize {
+  text-transform: capitalize;
+}
+
+.valueAccent {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.valueGood { color: var(--good); }
+.valueWarn { color: var(--warn); }
+.valueBad { color: var(--bad); }
+.valueDim { color: var(--text-dim); }

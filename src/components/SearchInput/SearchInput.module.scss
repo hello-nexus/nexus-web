@@ -1,0 +1,55 @@
+/* Themed search input. Icon on the left, clear button on the right
+   when the value is non-empty. Sized to fit inline alongside other
+   form controls or as a full-width filter at the top of a list. */
+
+.root {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.icon {
+  position: absolute;
+  left: 0.55rem;
+  color: var(--text-faded);
+  pointer-events: none;
+}
+
+.input {
+  width: 100%;
+  padding: 0.45rem 1.85rem 0.45rem 1.85rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: var(--type-small);
+  outline: none;
+  transition: border-color var(--ease-fast) ease, box-shadow var(--ease-fast) ease;
+
+  &::placeholder { color: var(--text-faded); }
+
+  &:focus,
+  &:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}
+
+.clear {
+  position: absolute;
+  right: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background var(--ease-fast) ease, color var(--ease-fast) ease;
+
+  &:hover { background: var(--bg-card-hover); color: var(--text); }
+}

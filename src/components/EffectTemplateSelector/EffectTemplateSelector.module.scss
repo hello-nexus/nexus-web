@@ -1,0 +1,62 @@
+.selector {
+  --effect-template-gap: 0.35rem;
+  --effect-template-height: 32px;
+  --effect-template-radius: var(--radius-sm, 6px);
+  --effect-template-border: var(--panel-border, var(--border));
+  --effect-template-hover-border: var(--border-strong, var(--effect-template-border));
+  --effect-template-bg: var(--panel-element-bg, var(--bg-card));
+  --effect-template-text: var(--panel-text-muted, var(--text-dim));
+  --effect-template-active-border: var(--panel-accent, var(--accent));
+  --effect-template-active-bg: var(--effect-template-bg);
+  --effect-template-active-text: var(--panel-accent-glow, var(--accent));
+  --effect-template-active-shadow: 0 0 0 1px var(--effect-template-active-border), 0 0 8px var(--accent-glow-shadow, transparent);
+
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--effect-template-gap);
+}
+
+.button {
+  position: relative;
+  min-width: 0;
+  height: var(--effect-template-height);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--effect-template-border);
+  border-radius: var(--effect-template-radius);
+  background: var(--effect-template-bg);
+  color: var(--effect-template-text);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), background var(--ease-fast), color var(--ease-fast), transform 0.08s, box-shadow var(--ease-fast);
+  appearance: none;
+  font: inherit;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: var(--effect-template-hover-border);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--effect-template-active-border);
+    box-shadow: 0 0 0 2px var(--panel-accent-soft, var(--accent-soft));
+  }
+
+  &[data-active='true'] {
+    border-color: var(--effect-template-active-border);
+    background: var(--effect-template-active-bg);
+    color: var(--effect-template-active-text);
+    box-shadow: var(--effect-template-active-shadow);
+  }
+
+  &[data-active='true']:hover {
+    border-color: var(--effect-template-active-border);
+  }
+}
+
+.preview {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+}

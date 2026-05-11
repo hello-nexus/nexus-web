@@ -1,0 +1,25 @@
+/* Sensor card layout. Chrome (background, border, padding) lives on the
+   shared Card primitive. */
+.sensorCard {
+  max-width: 340px;
+}
+
+.sensor {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+}
+
+.label {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.value {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  color: var(--text);
+}

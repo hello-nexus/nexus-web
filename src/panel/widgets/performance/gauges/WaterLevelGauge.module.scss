@@ -1,0 +1,56 @@
+.water {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 6px 6px 8px;
+}
+
+.container {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  height: calc(100% - 12px);
+  max-width: calc(100% - 12px);
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.fill {
+  width: 100%;
+  background: var(--panel-accent-soft);
+  border-top: 2px solid var(--panel-accent);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.value {
+  font-size: 1.6em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--panel-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--panel-text-faint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

@@ -1,0 +1,141 @@
+.menu {
+  position: fixed;
+  z-index: 100;
+  // The desktop overlay root opts every descendant out of pointer events
+  // (it's a click-through window) and lets each .widget opt in. The menu
+  // is a sibling of the widgets, not a child, so it must opt in itself
+  // or pointer events fall through to the widget beneath, putting the
+  // drag cursor on the menu and dropping clicks on the size buttons.
+  pointer-events: auto;
+  cursor: default;
+  transform-origin: var(--menu-origin-x, 18px) var(--menu-origin-y, 18px);
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--panel-sheet-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+  box-shadow: 0 8px 32px rgb(0 0 0 / var(--alpha-medium));
+  animation: menuFadeIn 140ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
+  will-change: opacity, transform, filter;
+
+  &[data-state='closing'] {
+    pointer-events: none;
+    animation: menuFadeOut var(--ease-fast) cubic-bezier(0.4, 0, 1, 1) both;
+  }
+}
+
+@keyframes menuFadeIn {
+  from {
+    opacity: 0;
+    filter: blur(0.5px);
+    transform: translateY(5px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes menuFadeOut {
+  from {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    filter: blur(0.5px);
+    transform: translateY(3px) scale(0.985);
+  }
+}
+
+.sizeRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.sizeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--panel-text-faint);
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+
+  &:hover {
+    background: var(--panel-element-bg-hover);
+    color: var(--panel-text);
+  }
+}
+
+.sizeBtnActive {
+  color: var(--panel-accent);
+}
+
+.divider {
+  height: 1px;
+  background: var(--panel-border);
+  margin: 2px 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--panel-text-muted);
+  font-family: var(--panel-font, inherit);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+  text-align: left;
+
+  &:hover {
+    background: var(--panel-element-bg-hover);
+    color: var(--panel-text);
+  }
+}
+
+.itemDanger {
+  color: var(--panel-bad);
+
+  &:hover {
+    background: color-mix(in srgb, var(--panel-bad) 12%, transparent);
+    color: var(--panel-bad);
+  }
+}
+
+.itemChecked {
+  color: var(--panel-accent);
+
+  &:hover {
+    color: var(--panel-accent);
+  }
+}
+
+.itemCheck {
+  margin-left: auto;
+  color: var(--panel-accent);
+  display: inline-flex;
+  align-items: center;
+}

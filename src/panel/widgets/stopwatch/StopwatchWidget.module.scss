@@ -1,0 +1,92 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  color: var(--panel-text);
+  gap: 14px;
+  overflow: hidden;
+}
+
+.wide {
+  gap: 18px;
+}
+
+.compact {
+  gap: 10px;
+}
+
+.display {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.digits {
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.fraction {
+  font-weight: 600;
+  opacity: 0.55;
+}
+
+// Size-responsive font scaling
+.compact .display {
+  font-size: 2.6em;
+}
+
+.compact .display[data-hours='true'] {
+  font-size: 2.2em;
+}
+
+.compact .fraction {
+  font-size: 0.6em;
+}
+
+.wide .display {
+  font-size: 3.6em;
+}
+
+.wide .display[data-hours='true'] {
+  font-size: 3.2em;
+}
+
+.wide .fraction {
+  font-size: 0.55em;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.controlBtn {
+  padding: 10px 16px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.playBtn {
+  padding: 10px 20px;
+  min-width: 44px;
+  min-height: 44px;
+  gap: 8px;
+  font-size: 14px;
+
+  &:not(:disabled) {
+    background: var(--panel-accent);
+    border-color: var(--panel-accent);
+  }
+}

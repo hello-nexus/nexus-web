@@ -1,0 +1,47 @@
+import { useEditable } from './useEditable';
+import styles from './Editable.module.scss';
+
+/*
+ * Click-to-edit string. Single click to enter edit mode, Enter or blur to
+ * commit, Escape to revert. Caller controls the committed value via
+ * `onCommit`; intermediate keystrokes are kept inside the hook.
+ *
+ * `maxLength` defaults to 20 to match the legacy fan/curve rename limit;
+ * pass a different number when a wider input is needed. The trimmed value
+ * is what gets committed - empty values are dropped.
+ */
+export interface EditableTextProps {
+  value: string;
+  onCommit: (value: string) => void;
+  maxLength?: number;
+  className?: string;
+  ariaLabel?: string;
+}
+
+export function EditableText({ value, onCommit, maxLength = 20, className, ariaLabel }: EditableTextProps) {
+  const editable = useEditable<string>({
+    value,
+    onCommit,
+    parse: draft => {
+      const trimmed = draft.trim().slice(0, maxLength);
+      return trimmed ? trimmed : null;
+    },
+  });
+
+  if (editable.editing) {
+    return <input className={`${styles.input} ${className ?? ''}`} maxLength={maxLength} aria-label={ariaLabel} {...editable.inputProps} />;
+  }
+
+  return (
+    <span
+      className={`${styles.display} ${className ?? ''}`}
+      onClick={editable.start}
+      role="button"
+      tabIndex={0}
+      aria-label={ariaLabel}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); editable.start(); } }}
+    >
+      {value}
+    </span>
+  );
+}

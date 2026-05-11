@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["8ZFCKY2SQ9.com.nexusqos.panel"],
+        "components": [
+          {
+            "/": "/r/pair",
+            "comment": "Pair a phone with a local qOS service"
+          },
+          {
+            "/": "/r/pair?*",
+            "comment": "Pair URL with query string"
+          }
+        ]
+      }
+    ]
+  }
+}

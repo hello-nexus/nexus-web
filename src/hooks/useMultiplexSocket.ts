@@ -1,0 +1,246 @@
+import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { resolveAuthWs } from '../api/service';
+
+interface TopicListener {
+  refCount: number;
+  listeners: Set<(data: unknown) => void>;
+}
+
+// Per-topic cache of the latest frame, used by useTopic to seed state
+// across remounts (e.g. after closing the panel edit drawer) so the
+// widget keeps showing the last value instead of blanking while the WS
+// resub lands. NOT replayed through subscribe() because useTopicCallback
+// consumers ("refetch on push") would interpret a replayed stale frame
+// as a real server push and trigger unnecessary refetches.
+const lastFrameCache = new Map<string, unknown>();
+
+interface MultiplexContextValue {
+  subscribe: (topic: string, listener: (data: unknown) => void) => void;
+  unsubscribe: (topic: string, listener: (data: unknown) => void) => void;
+  connected: boolean;
+  reconnect: () => void;
+  /** Wall-clock ms when the next scheduled reconnect attempt will fire, or null if a connect is in flight or the socket is open. */
+  nextAttemptAt: number | null;
+}
+
+export const MultiplexContext = createContext<MultiplexContextValue | null>(null);
+
+const RECONNECT_MIN_MS = 5000;
+const RECONNECT_MAX_MS = 60000;
+
+export function useMultiplex(): MultiplexContextValue | null {
+  return useContext(MultiplexContext);
+}
+
+/**
+ * Hook that subscribes to a single topic on the multiplexed WebSocket.
+ * Subscriptions are ref-counted: the first subscriber for a topic sends
+ * {"sub":["topic"]} to the server, and the last unsubscriber sends
+ * {"unsub":["topic"]}. Navigation between views drives subscriptions
+ * automatically via React component lifecycle.
+ */
+export function useTopic<T>(topic: string, enabled = true): T | null {
+  const ctx = useContext(MultiplexContext);
+  // Seed from the cached last frame so a remount (e.g. closing the
+  // panel edit drawer) renders the previous value on first paint.
+  const [data, setData] = useState<T | null>(() =>
+    enabled ? ((lastFrameCache.get(topic) as T | undefined) ?? null) : null,
+  );
+
+  useEffect(() => {
+    if (!ctx || !enabled) {
+      setData(null);
+      return;
+    }
+
+    // Re-seed on topic change before the resub round-trip lands.
+    const cached = lastFrameCache.get(topic);
+    if (cached !== undefined) setData(cached as T);
+
+    const listener = (raw: unknown) => setData(raw as T);
+    ctx.subscribe(topic, listener);
+    return () => ctx.unsubscribe(topic, listener);
+  }, [ctx, topic, enabled]);
+
+  return data;
+}
+
+/**
+ * Subscribe to a topic and fire a callback on every received frame. Useful
+ * for "refetch on push" patterns: instead of polling on a setInterval, the
+ * widget calls useTopicCallback('lighting', enabled, refetch) and refetches
+ * the canonical resource whenever the server says it changed. The callback
+ * ref is stored so consumers can pass an inline closure without re-binding
+ * the subscription on every render.
+ */
+export function useTopicCallback(topic: string, enabled: boolean, onFrame: (data: unknown) => void): void {
+  const ctx = useContext(MultiplexContext);
+  const cbRef = useRef(onFrame);
+  useEffect(() => { cbRef.current = onFrame; }, [onFrame]);
+
+  useEffect(() => {
+    if (!ctx || !enabled) return;
+    const listener = (raw: unknown) => cbRef.current(raw);
+    ctx.subscribe(topic, listener);
+    return () => ctx.unsubscribe(topic, listener);
+  }, [ctx, topic, enabled]);
+}
+
+/**
+ * Creates the multiplex WebSocket connection and topic management.
+ * Call this once at the app level and pass the return value to MultiplexContext.Provider.
+ */
+export function useMultiplexConnection(enabled: boolean): MultiplexContextValue | null {
+  const wsRef = useRef<WebSocket | null>(null);
+  const mountedRef = useRef(true);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const topicsRef = useRef<Map<string, TopicListener>>(new Map());
+  const pendingSubsRef = useRef<Set<string>>(new Set());
+  const backoffStepRef = useRef(0);
+  const [connected, setConnected] = useState(false);
+  const [nextAttemptAt, setNextAttemptAt] = useState<number | null>(null);
+
+  const close = useCallback(() => {
+    clearTimeout(reconnectTimer.current);
+    if (wsRef.current) {
+      wsRef.current.onclose = null;
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  }, []);
+
+  const scheduleReconnect = useCallback((connectFn: () => void) => {
+    if (!mountedRef.current) return;
+    const delay = Math.min(
+      RECONNECT_MAX_MS,
+      RECONNECT_MIN_MS * Math.pow(2, backoffStepRef.current),
+    );
+    backoffStepRef.current += 1;
+    setNextAttemptAt(Date.now() + delay);
+    reconnectTimer.current = setTimeout(() => {
+      setNextAttemptAt(null);
+      connectFn();
+    }, delay);
+  }, []);
+
+  const connect = useCallback(async () => {
+    close();
+    setNextAttemptAt(null);
+    try {
+      const url = await resolveAuthWs('/ws');
+      if (!mountedRef.current) return;
+
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        backoffStepRef.current = 0;
+        setConnected(true);
+        // Re-send all active subscriptions on reconnect.
+        const activeTopics = Array.from(topicsRef.current.keys());
+        if (activeTopics.length > 0) {
+          ws.send(JSON.stringify({ sub: activeTopics }));
+        }
+        // Send any subs that were queued while disconnected.
+        if (pendingSubsRef.current.size > 0) {
+          ws.send(JSON.stringify({ sub: Array.from(pendingSubsRef.current) }));
+          pendingSubsRef.current.clear();
+        }
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data) as { t: string; d: unknown };
+          lastFrameCache.set(msg.t, msg.d);
+          const entry = topicsRef.current.get(msg.t);
+          if (entry) {
+            for (const listener of entry.listeners) {
+              listener(msg.d);
+            }
+          }
+        } catch { /* malformed frame */ }
+      };
+
+      ws.onclose = () => {
+        setConnected(false);
+        scheduleReconnect(connect);
+      };
+
+      ws.onerror = () => ws.close();
+    } catch {
+      setConnected(false);
+      scheduleReconnect(connect);
+    }
+  }, [close, scheduleReconnect]);
+
+  const reconnect = useCallback(() => {
+    backoffStepRef.current = 0;
+    clearTimeout(reconnectTimer.current);
+    setNextAttemptAt(null);
+    if (mountedRef.current && enabled) {
+      connect();
+    }
+  }, [connect, enabled]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    if (enabled) {
+      backoffStepRef.current = 0;
+      connect();
+    } else {
+      backoffStepRef.current = 0;
+      setConnected(false);
+      setNextAttemptAt(null);
+      close();
+    }
+    return () => {
+      mountedRef.current = false;
+      close();
+    };
+  }, [enabled, connect, close]);
+
+  const subscribe = useCallback((topic: string, listener: (data: unknown) => void) => {
+    const topics = topicsRef.current;
+    let entry = topics.get(topic);
+    if (!entry) {
+      entry = { refCount: 0, listeners: new Set() };
+      topics.set(topic, entry);
+    }
+    entry.refCount++;
+    entry.listeners.add(listener);
+
+    if (entry.refCount === 1) {
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ sub: [topic] }));
+      } else {
+        pendingSubsRef.current.add(topic);
+      }
+    }
+  }, []);
+
+  const unsubscribe = useCallback((topic: string, listener: (data: unknown) => void) => {
+    const topics = topicsRef.current;
+    const entry = topics.get(topic);
+    if (!entry) return;
+
+    entry.listeners.delete(listener);
+    entry.refCount--;
+
+    if (entry.refCount <= 0) {
+      topics.delete(topic);
+      pendingSubsRef.current.delete(topic);
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ unsub: [topic] }));
+      }
+    }
+  }, []);
+
+  return useMemo<MultiplexContextValue | null>(
+    () => enabled
+      ? { subscribe, unsubscribe, connected, reconnect, nextAttemptAt }
+      : null,
+    [enabled, subscribe, unsubscribe, connected, reconnect, nextAttemptAt],
+  );
+}

@@ -1,0 +1,65 @@
+.performance {
+  display: grid;
+  gap: 14px;
+  height: 100%;
+  width: 100%;
+  padding: 14px;
+  box-sizing: border-box;
+}
+
+.solo   { grid-template-columns: 1fr; }
+.grid2col { grid-template-columns: 1fr 1fr; }
+.grid2row { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+.grid2x2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.slotSelectable {
+  position: relative;
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 0;
+  touch-action: manipulation;
+  transition: background var(--ease), box-shadow var(--ease), color var(--ease);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 2px solid transparent;
+    border-style: dashed;
+    border-radius: inherit;
+    pointer-events: none;
+    transition: border-color var(--ease), box-shadow var(--ease);
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &:focus-visible::after {
+    border-color: var(--panel-accent, var(--accent));
+  }
+}
+
+.slotSelected {
+  background: transparent;
+  box-shadow: none;
+
+  &::after {
+    border-color: var(--panel-accent, var(--accent));
+    box-shadow: none;
+  }
+}

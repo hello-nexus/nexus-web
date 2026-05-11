@@ -1,0 +1,374 @@
+@use '../../styles/scrollbar' as *;
+@use '../../styles/text' as *;
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+}
+
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  @include scrollbar-visible;
+}
+
+// ── Tab panel ────────────────────────────────────────────────────────────────
+
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  // Width comes from the shared .pageConstrained utility (added in
+  // global.scss); this module owns the rest of the panel chrome.
+  max-width: var(--page-content-max);
+}
+
+// ── Unified row ──────────────────────────────────────────────────────────────
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+
+  &.disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+}
+
+.rowInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.rowLabel {
+  @include text-body;
+  color: var(--text);
+}
+
+.rowDesc {
+  @include text-button;
+  color: var(--text-faded);
+  line-height: 1.4;
+}
+
+// ── Theme radio options ──────────────────────────────────────────────────────
+
+.themeOptions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.themeOption {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--ease), background var(--ease);
+  background: var(--bg-elevated);
+
+  &:hover {
+    border-color: var(--border-strong);
+  }
+
+  &:has(.themeRadio:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
+.themeRadio {
+  accent-color: var(--accent);
+  margin: 0;
+}
+
+.themeLabel {
+  @include text-body;
+  color: var(--text);
+}
+
+// ── Accent color section ─────────────────────────────────────────────────────
+
+.accentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.colorRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  align-items: stretch;
+  max-width: 320px;
+}
+
+.swatchGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  padding: 0;
+  cursor: pointer;
+  transition: transform var(--ease-fast) ease, border-color var(--ease) ease, box-shadow var(--ease) ease;
+
+  &:hover {
+    transform: scale(1.08);
+    border-color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--text);
+  }
+
+  &.swatchSelected {
+    border-color: var(--text);
+    box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent);
+  }
+}
+
+.swatchCustom {
+  background: conic-gradient(from 180deg,
+    #ef4444 0deg, #f59e0b 60deg, #10b981 120deg,
+    #06b6d4 180deg, #3b82f6 240deg, #8b5cf6 300deg, #ef4444 360deg);
+  cursor: default;
+
+  &:hover { transform: none; }
+}
+
+// ── Note ─────────────────────────────────────────────────────────────────────
+
+.note {
+  @include text-button;
+  color: var(--text-faded);
+  line-height: 1.5;
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0;
+}
+
+// ── Standard row button ──────────────────────────────────────────────────────
+
+.rowButton {
+  @include text-button;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background var(--ease), border-color var(--ease), color var(--ease);
+
+  &:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ── Profiles tab ──
+
+.profileList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profileCard {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  transition: border-color var(--ease), box-shadow var(--ease), background var(--ease);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+
+  &.profileCardActive {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    cursor: default;
+
+    &:hover {
+      background: var(--accent-soft);
+    }
+  }
+
+  &.profileCardDragOver {
+    border-color: var(--accent-glow);
+    box-shadow: 0 0 0 1px var(--accent-glow);
+  }
+}
+
+.profileInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.profileName {
+  @include text-body;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profileBadge {
+  @include text-label;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-text);
+  flex-shrink: 0;
+}
+
+.profileActions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.profileButtons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.profileBadgePrimary {
+  @include text-label;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  flex-shrink: 0;
+}
+
+.sharingSection {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sharingHeading {
+  @include text-heading;
+  margin: 0;
+}
+
+.sharingPrimaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.sharingExplain {
+  @include text-caption;
+  color: var(--text-faded);
+  margin: 0;
+  padding: 0 0.25rem;
+}
+
+.sharingCategories {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sharingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.sharingControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.segmentedOption {
+  @include text-button;
+  padding: 0.35rem 0.75rem;
+  background: transparent;
+  border: 0;
+  color: var(--text-faded);
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+
+  &:hover:not(:disabled) {
+    color: var(--text);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &.segmentedOptionActive {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+}

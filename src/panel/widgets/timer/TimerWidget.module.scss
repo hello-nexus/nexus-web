@@ -1,0 +1,128 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  color: var(--panel-text);
+  gap: 12px;
+}
+
+.wide {
+  gap: 16px;
+}
+
+.compact {
+  gap: 10px;
+}
+
+// Setup phase - time pickers
+.pickers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.separator {
+  font-size: 1.4em;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.5;
+  padding: 0 2px;
+}
+
+.stepper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stepBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 28px;
+  background: var(--panel-element-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-element-radius);
+  color: var(--panel-text);
+  font-size: 10px;
+  cursor: pointer;
+  transition: background-color var(--ease) ease;
+  user-select: none;
+
+  &:hover { background: var(--panel-element-bg-hover); }
+  &:active { background: var(--panel-element-bg-active); transform: scale(0.96); }
+}
+
+.stepValue {
+  font-size: 1.6em;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  min-width: 2ch;
+  text-align: center;
+}
+
+.startBtn {
+  padding: 10px 20px;
+  font-size: 14px;
+  gap: 8px;
+
+  &:not(:disabled) {
+    background: var(--panel-accent);
+    border-color: var(--panel-accent);
+  }
+}
+
+// Running / complete phase - countdown display
+.countdown {
+  font-size: 3em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.wide .countdown {
+  font-size: 3.8em;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.controlBtn {
+  padding: 10px 16px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.resetBtn {
+  padding: 10px 20px;
+  gap: 8px;
+  font-size: 14px;
+  background: var(--panel-accent);
+  border-color: var(--panel-accent);
+}
+
+// Complete state - glow pulse
+.container[data-complete='true'] {
+  animation: completePulse 1.2s ease-in-out infinite alternate;
+}
+
+.container[data-complete='true'] .countdown {
+  color: var(--panel-accent-glow);
+  text-shadow: 0 0 20px var(--panel-accent-shadow);
+}
+
+@keyframes completePulse {
+  from { background: transparent; }
+  to   { background: var(--panel-accent-soft); }
+}

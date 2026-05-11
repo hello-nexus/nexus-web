@@ -1,0 +1,587 @@
+import { useCallback, useEffect, useState } from 'react';
+import { ArrowLeft, Monitor, Trash2 } from 'lucide-react';
+import { SIZE_ICONS } from '../../panel/widgets/common/SizeIcons';
+import { WidgetControlGroup } from '../../panel/widgets/common/WidgetControlGroup';
+import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../../panel/widgets/performance/perfSlots';
+import { SlotCountIcon } from '../../panel/widgets/performance/SlotCountIcons';
+import { appendWidget } from '../../panel/engine/panelLayoutOps';
+import { normalizePanelLayout } from '../../panel/engine/usePanelLayout';
+import { fetchService, postService } from '../../api/service';
+import { fetchPreferences, savePreferences } from '../../api/profiles';
+import {
+  allocatePanelDevice,
+  fetchPanelDevices,
+  patchPanelDevice,
+} from '../../api/panel';
+import { useTranslation } from '../../lib/i18n';
+import { createUuid } from '../../lib/uuid';
+import { IconLabelButton } from '../IconLabelButton/IconLabelButton';
+import { Slider } from '../Slider/Slider';
+import { Toggle } from '../Toggle/Toggle';
+import { PanelEmbedFrame } from './PanelEmbedFrame';
+import { broadcastLayoutChanged } from '../../panel/engine/panelSync';
+import { usePanelTheme, useResolvedPanelThemeMode } from '../../panel/PanelApp';
+import { PanelThemeSettings } from '../../panel/editor/PanelThemeSettings';
+import { lookupWidget, sizesForSurface } from '../../panel/widgets/registry';
+import { sizeToSpan } from '../../panel/engine/grid';
+import { ErrorBoundary } from '../ErrorBoundary';
+import {
+  type PanelLayout,
+  type PanelSurface,
+  type PanelWidget,
+  type PanelWidgetSize,
+  type PanelConfigValue,
+} from '../../panel/types';
+import type { PanelDevice } from '../../panel/panelDevices';
+import { defaultLayoutForSurface } from '../../panel/engine/defaultLayout';
+import { loadSimulatedPanelLayout, saveSimulatedPanelLayout } from '../../lib/panelSimulation';
+import { PanelWidgetCatalog } from '../../panel/editor/PanelWidgetCatalog';
+import { DevicePopup } from './DevicePopup';
+import '../../panel/styles/tokens.scss';
+import styles from './PanelDevicePopup.module.scss';
+
+interface PanelDevicePopupProps {
+  open: boolean;
+  onClose: () => void;
+  device?: PanelDevice | null;
+}
+
+interface BrightnessResponse { brightness: number }
+interface RotationParams { orientation: string }
+interface ToggleResponse { toggle: boolean }
+
+type Tab = 'widgets' | 'theme' | 'settings';
+
+export function PanelDevicePopup({ open, onClose, device }: PanelDevicePopupProps) {
+  const { t } = useTranslation();
+  const [tab, setTab] = useState<Tab>('widgets');
+  const [brightness, setBrightness] = useState(50);
+  const [orientation, setOrientation] = useState('portrait');
+  const [screenOn, setScreenOn] = useState(true);
+  const [autoLaunch, setAutoLaunch] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [layout, setLayout] = useState<PanelLayout>(() => defaultLayoutForSurface('y70'));
+  const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
+  const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
+  const isTestDevice = device?.managementMode === 'managed-test' || device?.connectionKind === 'simulated';
+  const surface = device?.runtimeSurface ?? 'y70';
+  const simulatedDeviceId = device?.id ?? 'simulated:y70';
+  const supportsDisplayControls = device?.capabilities.displayControls ?? surface === 'y70';
+  const supportsAutoLaunch = device?.capabilities.launchClose ?? surface === 'y70';
+  const settingsAvailable = supportsDisplayControls || supportsAutoLaunch;
+  const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
+  // Drive the simulator's theme tab from the SAME hook the live panel
+  // runtime uses, so the UI gets every section (theme, accent, background
+  // mode + animations + opacity, widgets), and the preview reacts to every
+  // commit. Managed devices write through to /preferences and broadcast to
+  // the kiosk; test/simulated devices keep changes purely local (no
+  // fetch, no write) so they don't pollute prefs.
+  const panelTheme = usePanelTheme(!isTestDevice, !isTestDevice);
+  const theme = panelTheme.theme;
+  const effectiveThemeMode = theme.themeSyncWithDesktop ? theme.appThemeMode : theme.themeMode;
+  const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    if (isTestDevice) {
+      const timer = window.setTimeout(() => {
+        if (cancelled) return;
+        setBrightness(80);
+        setOrientation(device?.previewSize && device.previewSize.width > device.previewSize.height ? 'landscape' : 'portrait');
+        setScreenOn(true);
+        setAutoLaunch(false);
+        setLayout(normalizePanelLayout(
+          loadSimulatedPanelLayout(simulatedDeviceId) ?? defaultLayoutForSurface(surface),
+          surface,
+        ));
+        setLoaded(true);
+      }, 0);
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+      };
+    }
+    Promise.all([
+      supportsDisplayControls ? fetchService<BrightnessResponse>('/y70/brightness') : Promise.resolve(null),
+      supportsDisplayControls ? fetchService<RotationParams>('/y70/rotation') : Promise.resolve(null),
+      supportsDisplayControls ? fetchService<ToggleResponse>('/y70/toggle') : Promise.resolve(null),
+      fetchPreferences(),
+      fetchPanelDevices(),
+    ]).then(([b, r, tog, prefs, devices]) => {
+      if (cancelled) return;
+      if (b) setBrightness(b.brightness);
+      if (r) setOrientation(r.orientation);
+      if (tog) setScreenOn(tog.toggle);
+      // Pick the most recently active device record matching this popup's
+      // surface. The /panel/devices list is sorted by lastSeenAt desc.
+      const match = devices?.devices.find(d => d.capabilities?.surface === surface);
+      setEditingDeviceId(match?.id ?? null);
+      const savedLayout = match?.layout ?? defaultLayoutForSurface(surface);
+      setLayout(normalizePanelLayout(savedLayout, surface));
+      if (prefs) setAutoLaunch(prefs.panelAutoLaunch ?? false);
+      setLoaded(true);
+    }).catch(() => { if (!cancelled) setLoaded(true); });
+    return () => { cancelled = true; };
+  }, [device?.previewSize, isTestDevice, open, simulatedDeviceId, surface, supportsDisplayControls]);
+
+  const pushBrightness = (value: number) => {
+    setBrightness(value);
+    if (isTestDevice || !supportsDisplayControls) return;
+    postService('/y70/brightness', { brightness: value }).catch(() => {});
+  };
+
+  const updateLayout = useCallback((next: PanelLayout) => {
+    const normalized = normalizePanelLayout(next, surface);
+    setLayout(normalized);
+    if (isTestDevice) {
+      saveSimulatedPanelLayout(simulatedDeviceId, normalized);
+      return;
+    }
+    // Per-device editing path. If no device for this surface is registered
+    // yet (no panel of this kind has ever connected), allocate one on first
+    // edit so the user's changes persist.
+    const persist = (id: string) =>
+      patchPanelDevice(id, { layout: normalized })
+        .then(() => broadcastLayoutChanged())
+        .catch(() => {});
+    if (editingDeviceId) {
+      void persist(editingDeviceId);
+      return;
+    }
+    void allocatePanelDevice({ surface }, `${surface} panel`).then(record => {
+      if (record?.id) {
+        setEditingDeviceId(record.id);
+        return persist(record.id);
+      }
+    });
+  }, [editingDeviceId, isTestDevice, simulatedDeviceId, surface]);
+
+  // Editor capacity is the surface default - the live runtime may
+  // recompute based on physical size. With explicit (col, row) the
+  // user can place widgets anywhere within these bounds in the editor.
+  const editorCapacity = (() => {
+    if (surface === 'q60') return { gridCols: 2, pageRows: 4 };
+    if (surface === 'desktop') return { gridCols: 8, pageRows: 6 };
+    return { gridCols: 4, pageRows: 16 };
+  })();
+
+  const handleAddWidget = useCallback((type: string, size: PanelWidgetSize) => {
+    const next: PanelWidget = {
+      id: createUuid(),
+      type,
+      size,
+      col: 0,
+      row: 0,
+    };
+    updateLayout(appendWidget(layout, next, editorCapacity));
+  }, [editorCapacity, layout, updateLayout]);
+
+  const handleRemoveWidget = useCallback((widgetId: string) => {
+    const page = layout.pages[0];
+    if (!page) return;
+    updateLayout({
+      ...layout,
+      pages: [{ ...page, widgets: page.widgets.filter(w => w.id !== widgetId) }],
+    });
+  }, [layout, updateLayout]);
+
+  const handleConfigureWidget = useCallback((widget: PanelWidget) => {
+    setConfiguringWidget(widget);
+  }, []);
+
+  const handleUpdateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
+    const page = layout.pages[0];
+    if (!page) return;
+    const next: PanelLayout = {
+      ...layout,
+      pages: [{
+        ...page,
+        widgets: page.widgets.map(w =>
+          w.id === widgetId ? { ...w, config } : w,
+        ),
+      }],
+    };
+    updateLayout(next);
+    setConfiguringWidget(prev => prev?.id === widgetId ? { ...prev, config } : prev);
+  }, [layout, updateLayout]);
+
+  const handleResizeWidget = useCallback((widgetId: string, size: PanelWidgetSize) => {
+    const page = layout.pages[0];
+    if (!page) return;
+    const current = page.widgets.find(w => w.id === widgetId);
+    if (!current || current.size === size) return;
+    const next: PanelLayout = {
+      ...layout,
+      pages: [{
+        ...page,
+        widgets: page.widgets.map(w =>
+          w.id === widgetId ? { ...w, size } : w,
+        ),
+      }],
+    };
+    updateLayout(next);
+    setConfiguringWidget(prev => prev?.id === widgetId ? { ...prev, size } : prev);
+  }, [layout, updateLayout]);
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'widgets', label: t('devices.y70.tab.widgets') },
+    { key: 'theme', label: t('devices.y70.tab.theme') },
+    ...(settingsAvailable
+      ? [{ key: 'settings' as const, label: t('devices.y70.tab.settings') }]
+      : []),
+  ];
+
+  return (
+    <DevicePopup
+      open={open}
+      onClose={() => { setTab('widgets'); onClose(); }}
+      title={device?.name ?? t('devices.y70.title')}
+      icon={<Monitor size={20} />}
+      fullscreen
+    >
+      {!loaded ? (
+        <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
+      ) : (
+        <div className={styles.splitLayout}>
+          <div className={styles.leftPane}>
+            {configuringWidget ? (
+              <InlineWidgetSettings
+                key={configuringWidget.id}
+                widget={configuringWidget}
+                surface={surface}
+                onBack={() => setConfiguringWidget(null)}
+                onUpdate={handleUpdateWidgetConfig}
+                onResize={handleResizeWidget}
+                onRemove={(id) => { handleRemoveWidget(id); setConfiguringWidget(null); }}
+              />
+            ) : (
+              <>
+                <nav className={styles.tabBar}>
+                  {tabs.map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`${styles.tab} ${activeTab === key ? styles.tabActive : ''}`}
+                      onClick={() => setTab(key)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </nav>
+
+                <div className={styles.tabContent}>
+                  {activeTab === 'widgets' && (
+                    <PanelWidgetCatalog
+                      surface={surface}
+                      onAdd={handleAddWidget}
+                      variant="desktop-popup"
+                      aspect="square"
+                      themeMode={resolvedPanelThemeMode}
+                      className={styles.catalog}
+                    />
+                  )}
+                  {activeTab === 'theme' && (
+                    <PanelThemeSettings
+                      theme={theme}
+                      resolvedThemeMode={resolvedPanelThemeMode}
+                      onThemeSyncCommit={panelTheme.commitThemeSync}
+                      onThemeModeCommit={panelTheme.commitThemeMode}
+                      onAccentSyncCommit={panelTheme.commitAccentSync}
+                      onAccentPreview={panelTheme.previewAccent}
+                      onAccentCommit={panelTheme.commitAccent}
+                      onBackgroundPreview={panelTheme.previewBackground}
+                      onBackgroundCommit={panelTheme.commitBackground}
+                      onBackgroundModeCommit={panelTheme.commitBackgroundMode}
+                      onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
+                      onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
+                      onBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
+                      onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
+                      onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
+                      onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
+                      onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
+                    />
+                  )}
+                  {activeTab === 'settings' && (
+                    <SettingsPanel
+                      brightness={brightness}
+                      onBrightness={pushBrightness}
+                      orientation={orientation}
+                      onOrientation={(next) => {
+                        setOrientation(next);
+                        if (isTestDevice || !supportsDisplayControls) return;
+                        postService('/y70/rotation', { orientation: next }).catch(() => {});
+                      }}
+                      screenOn={screenOn}
+                      onScreenToggle={() => {
+                        const next = !screenOn;
+                        setScreenOn(next);
+                        if (isTestDevice || !supportsDisplayControls) return;
+                        postService('/y70/toggle', { toggle: next }).catch(() => {});
+                      }}
+                      autoLaunch={autoLaunch}
+                      onAutoLaunchToggle={() => {
+                        const next = !autoLaunch;
+                        setAutoLaunch(next);
+                        if (isTestDevice || !supportsAutoLaunch) return;
+                        savePreferences({ panelAutoLaunch: next }).catch(() => {});
+                      }}
+                      showDisplayControls={supportsDisplayControls}
+                      showAutoLaunch={supportsAutoLaunch}
+                    />
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className={styles.previewPane}>
+            <div className={styles.previewStage}>
+              <PanelEmbedFrame
+                surface={surface}
+                layout={layout}
+                theme={theme}
+                themeMode={resolvedPanelThemeMode}
+                selectedWidgetId={configuringWidget?.id ?? null}
+                onLayoutChange={updateLayout}
+                onWidgetClicked={handleConfigureWidget}
+                onBackgroundClicked={() => setConfiguringWidget(null)}
+                canvasSize={device?.previewSize}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </DevicePopup>
+  );
+}
+
+// --- Inline Widget Settings (replaces left pane when editing a widget) ---
+
+interface InlineWidgetSettingsProps {
+  widget: PanelWidget;
+  surface: PanelSurface;
+  onBack: () => void;
+  onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
+  onResize: (widgetId: string, size: PanelWidgetSize) => void;
+  onRemove: (widgetId: string) => void;
+}
+
+function InlineWidgetSettings({ widget, surface, onBack, onUpdate, onResize, onRemove }: InlineWidgetSettingsProps) {
+  const { t } = useTranslation();
+  const def = lookupWidget(widget.type);
+  const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
+  const sizes = def ? sizesForSurface(def.meta, surface) : [];
+  const Settings = def?.SettingsComponent;
+  const isMonitoringWidget = widget.type === 'monitoring';
+  const slotCountOptions = isMonitoringWidget ? slotCountOptionsForSize(widget.size) : [];
+  const slotCount = resolvedSlotCountForSize(widget.size, widget.config?.slotCount?.n);
+  const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
+
+  const handleConfigUpdate = (config: Record<string, PanelConfigValue>) => {
+    onUpdate(widget.id, { ...widget.config, ...config });
+  };
+
+  const handleResize = (size: PanelWidgetSize) => {
+    setSelectedMonitoringSlot(slot => Math.min(slot, resolvedSlotCountForSize(size, widget.config?.slotCount?.n) - 1));
+    onResize(widget.id, size);
+  };
+
+  const handleSlotCount = (n: number) => {
+    setSelectedMonitoringSlot(slot => Math.min(slot, n - 1));
+    handleConfigUpdate({ slotCount: { n } });
+  };
+
+  const Icon = def?.meta.icon;
+
+  return (
+    <div className={styles.inlineSettings}>
+      <div className={styles.inlineSettingsHeader}>
+        <button type="button" className={styles.backBtn} onClick={onBack} aria-label="Back">
+          <ArrowLeft size={16} />
+        </button>
+        <div className={styles.inlineSettingsTitle}>
+          {Icon && <Icon size={16} />}
+          <span>{widgetLabel}</span>
+        </div>
+        <div className={styles.inlineSettingsActions}>
+          <button
+            type="button"
+            className={styles.inlineRemoveBtn}
+            onClick={() => onRemove(widget.id)}
+            aria-label="Remove"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+
+      {(sizes.length > 1 || slotCountOptions.length > 1) && (
+        <div className={styles.inlineControlsRow}>
+          {sizes.length > 1 && (
+            <WidgetControlGroup title={isMonitoringWidget ? 'Layout' : 'Size'}>
+              {sizes.map(s => {
+                const SizeIcon = SIZE_ICONS[s];
+                return (
+                  <IconLabelButton
+                    key={s}
+                    className={styles.inlineIconButton}
+                    active={s === widget.size}
+                    icon={SizeIcon ? <SizeIcon aria-hidden="true" /> : undefined}
+                    ariaLabel={`${isMonitoringWidget ? 'Layout' : 'Size'} ${s}`}
+                    onPress={() => handleResize(s)}
+                    title={s}
+                  />
+                );
+              })}
+            </WidgetControlGroup>
+          )}
+          {isMonitoringWidget && slotCountOptions.length > 0 && (
+            <WidgetControlGroup title="Slots">
+              {slotCountOptions.map(n => (
+                <IconLabelButton
+                  key={n}
+                  className={styles.inlineIconButton}
+                  active={n === slotCount}
+                  icon={<SlotCountIcon count={n} size={widget.size} aria-hidden="true" />}
+                  ariaLabel={`${n} ${n === 1 ? 'slot' : 'slots'}`}
+                  title={`${n} ${n === 1 ? 'slot' : 'slots'}`}
+                  onPress={() => handleSlotCount(n)}
+                />
+              ))}
+            </WidgetControlGroup>
+          )}
+        </div>
+      )}
+
+      <div className={styles.inlineSettingsPreview}>
+        {def && (() => {
+          const Comp = def.Component;
+          const span = sizeToSpan(widget.size);
+          const previewW = span.cols * 90 + (span.cols - 1) * 6;
+          const previewH = span.rows * 90 + (span.rows - 1) * 6;
+          return (
+            <div
+              className={`panel-root ${isMonitoringWidget ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
+              data-theme="dark"
+              style={{ width: previewW, height: previewH }}
+            >
+              <div className={`panel-card ${styles.inlineSettingsPreviewCard}`}>
+                <ErrorBoundary label={widget.type}>
+                  <Comp
+                    widget={widget}
+                    selectedSlot={isMonitoringWidget ? selectedMonitoringSlot : undefined}
+                    onSelectSlot={isMonitoringWidget ? setSelectedMonitoringSlot : undefined}
+                  />
+                </ErrorBoundary>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+
+      {Settings ? (
+        <div className={styles.inlineSettingsBody}>
+          <Settings
+            widget={widget}
+            onUpdate={handleConfigUpdate}
+            onResize={handleResize}
+            selectedSlot={isMonitoringWidget ? selectedMonitoringSlot : undefined}
+            onSelectedSlotChange={isMonitoringWidget ? setSelectedMonitoringSlot : undefined}
+          />
+        </div>
+      ) : (
+        <div className={styles.inlineSettingsEmpty}>
+          {t('peripheral.noCapabilities') || 'No configurable settings.'}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Settings Panel ---
+
+interface SettingsPanelProps {
+  brightness: number;
+  onBrightness: (v: number) => void;
+  orientation: string;
+  onOrientation: (v: string) => void;
+  screenOn: boolean;
+  onScreenToggle: () => void;
+  autoLaunch: boolean;
+  onAutoLaunchToggle: () => void;
+  showDisplayControls: boolean;
+  showAutoLaunch: boolean;
+}
+
+function SettingsPanel({
+  brightness, onBrightness,
+  orientation, onOrientation,
+  screenOn, onScreenToggle,
+  autoLaunch, onAutoLaunchToggle,
+  showDisplayControls,
+  showAutoLaunch,
+}: SettingsPanelProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div className={styles.settingsContent}>
+      {showDisplayControls && (
+        <>
+          <div className="device-popup-section">{t('devices.y70.display')}</div>
+
+          <div className="device-popup-row">
+            <div className="device-popup-label">{t('devices.y70.brightness')}</div>
+            <div className={styles.brightnessControl}>
+              <Slider
+                orientation="bare"
+                min={0}
+                max={100}
+                value={brightness}
+                trackFill={brightness}
+                onChange={onBrightness}
+                ariaLabel={t('devices.y70.brightness')}
+                className={styles.brightnessSlider}
+              />
+              <span className={styles.brightnessValue}>{brightness}</span>
+            </div>
+          </div>
+
+          <div className="device-popup-row">
+            <div>
+              <div className="device-popup-label">{t('devices.y70.orientation')}</div>
+              <div className="device-popup-hint">{orientation}</div>
+            </div>
+            <Toggle
+              checked={orientation === 'landscape'}
+              onChange={() => onOrientation(orientation === 'portrait' ? 'landscape' : 'portrait')}
+              ariaLabel={t('devices.y70.orientation')}
+            />
+          </div>
+
+          <div className="device-popup-row">
+            <div>
+              <div className="device-popup-label">{t('devices.y70.screen')}</div>
+              <div className="device-popup-hint">{screenOn ? 'On' : 'Off'}</div>
+            </div>
+            <Toggle checked={screenOn} onChange={onScreenToggle} ariaLabel={t('devices.y70.screen')} />
+          </div>
+        </>
+      )}
+
+      {showAutoLaunch && (
+        <div className="device-popup-section" style={{ marginTop: showDisplayControls ? 8 : 0 }}>{t('devices.y70.panel')}</div>
+      )}
+
+      {showAutoLaunch && (
+        <div className="device-popup-row">
+          <div>
+            <div className="device-popup-label">{t('devices.y70.panelAutoLaunch')}</div>
+            <div className="device-popup-hint">{t('devices.y70.panelAutoLaunchHint')}</div>
+          </div>
+          <Toggle checked={autoLaunch} onChange={onAutoLaunchToggle} ariaLabel={t('devices.y70.panelAutoLaunch')} />
+        </div>
+      )}
+    </div>
+  );
+}

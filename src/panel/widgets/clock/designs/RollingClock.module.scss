@@ -1,0 +1,90 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+
+  &.size-2x2  { font-size: 1.65em; padding: 10px; }
+  &.size-4x2  { font-size: 2.6em; }
+  &.size-4x4  { font-size: 2.4em; }
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.04em;
+  max-width: 100%;
+}
+
+.digitWrapper {
+  width: 0.7em;
+  height: 1.2em;
+  overflow: hidden;
+  border-radius: 0.06em;
+  background: var(--panel-element-bg);
+}
+
+.digitColumn {
+  display: flex;
+  flex-direction: column;
+  transition: transform 500ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.digitCell {
+  width: 0.7em;
+  height: 1.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--panel-text);
+  flex-shrink: 0;
+}
+
+.colon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+  width: 0.3em;
+  height: 1.2em;
+}
+
+.colonDot {
+  display: block;
+  width: 0.12em;
+  height: 0.12em;
+  border-radius: 50%;
+  background: var(--panel-text-faint);
+}
+
+.ampm {
+  font-size: 0.35em;
+  font-weight: 700;
+  color: var(--panel-text-faint);
+  margin-left: 0.2em;
+  align-self: flex-end;
+  padding-bottom: 0.15em;
+}
+
+.date {
+  margin-top: 0.2em;
+  font-size: 0.38em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--panel-text-faint);
+  text-align: center;
+}
+
+.accent {
+  .digitCell {
+    color: var(--panel-accent);
+  }
+}

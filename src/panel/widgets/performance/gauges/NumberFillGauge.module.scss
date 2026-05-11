@@ -1,0 +1,49 @@
+.numberFill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 6px 6px 8px;
+  gap: 6px;
+}
+
+.textWrap {
+  display: inline-grid;
+  align-items: center;
+  justify-items: center;
+  line-height: 1;
+}
+
+.textDim,
+.textBright {
+  grid-area: 1 / 1;
+  font-size: 2.4em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.textDim {
+  // Same hue as the fill, alpha'd down - mirrors the line+fill colour
+  // pairing the Sparkline gauge uses.
+  color: color-mix(in srgb, var(--panel-accent) 28%, transparent);
+}
+
+.textBright {
+  color: var(--panel-accent);
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--panel-text-faint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}

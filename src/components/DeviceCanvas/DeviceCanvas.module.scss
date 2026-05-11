@@ -1,0 +1,178 @@
+.canvas {
+  position: relative;
+  height: 380px;
+  width: clamp(calc(380px * 16 / 9), 100%, calc(380px * 21 / 9));
+  flex-shrink: 0;
+  background: #080808;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.bgCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.glCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--ease);
+}
+
+.glCanvasReady {
+  opacity: 1;
+}
+
+.overlayLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.device {
+  position: absolute;
+  border: 1.5px solid rgb(255 255 255 / var(--alpha-medium));
+  border-radius: 3px;
+  background-color: rgba(255, 255, 255, 0.04);
+  background-image: radial-gradient(circle, rgb(255 255 255 / var(--alpha-faint)) 0.8px, transparent 1.2px);
+  background-size: 8px 8px;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  z-index: 2;
+  transition: border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.8);
+    .rotateBtn, .maximizeBtn, .settingsBtn, .resizeHandle { opacity: 1; }
+  }
+
+  &.selected {
+    border-color: var(--accent);
+    z-index: 8;
+    .rotateBtn, .maximizeBtn, .settingsBtn, .resizeHandle { opacity: 1; }
+  }
+
+  &.dragging {
+    cursor: grabbing;
+    border-color: var(--accent-glow);
+    box-shadow: 0 0 12px var(--accent-glow-shadow);
+    z-index: 10;
+    .rotateBtn, .maximizeBtn, .settingsBtn, .resizeHandle { opacity: 1; }
+  }
+}
+
+.deviceLabel {
+  font-size: var(--type-small);
+  color: #fff;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90%;
+  pointer-events: none;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  font-weight: 500;
+}
+
+.rotateBtn {
+  position: absolute;
+  top: -11px;
+  right: 52px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.65);
+  color: rgba(255,255,255,0.75);
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity var(--ease-fast);
+  z-index: 5;
+  padding: 0;
+  &:hover { background: var(--accent); color: var(--accent-text); }
+}
+
+.maximizeBtn {
+  position: absolute;
+  top: -11px;
+  right: 27px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.65);
+  color: rgba(255,255,255,0.75);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity var(--ease-fast);
+  z-index: 5;
+  padding: 0;
+  &:hover { background: var(--accent); color: var(--accent-text); }
+}
+
+.settingsBtn {
+  position: absolute;
+  top: -11px;
+  right: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.65);
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity var(--ease-fast);
+  z-index: 5;
+  padding: 0;
+  &:hover { background: var(--accent); color: var(--accent-text); }
+}
+
+.ledDot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / var(--alpha-medium));
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+
+.resizeHandle {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--accent);
+  cursor: se-resize;
+  opacity: 0;
+  transition: opacity var(--ease-fast);
+  z-index: 5;
+}

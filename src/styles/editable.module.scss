@@ -1,0 +1,15 @@
+/* Shared click-to-edit affordance. Compose into any text element that becomes
+   editable on click (EditableName, StackedSlider value, future EditableNumber)
+   so the highlight rectangle is identical everywhere - typography stays
+   context-specific in the consuming module. */
+.affordance {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 0.05rem 0.3rem;
+  margin: -0.05rem -0.3rem;
+  transition: background var(--ease-fast), color var(--ease-fast);
+  user-select: none;
+
+  &:hover { background: var(--bg-card-hover); color: var(--accent); }
+  &:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+}

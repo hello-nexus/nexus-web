@@ -1,0 +1,124 @@
+.calculator {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  color: var(--panel-text);
+  gap: 8px;
+}
+
+// Display area
+.display {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 8px 12px;
+  min-height: 56px;
+  background: var(--panel-element-bg);
+  border-radius: var(--panel-element-radius);
+  overflow: hidden;
+}
+
+.displayText {
+  font-size: 2.4em;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  word-break: break-all;
+}
+
+// Button grid - 4 columns, 5 rows
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+}
+
+// Shared button base
+%btn-base {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-element-radius);
+  color: var(--panel-text);
+  font-family: var(--panel-font);
+  font-size: 1.1em;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  min-height: 40px;
+  transition: background-color var(--ease) ease, transform 80ms ease;
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+// Number buttons
+.btnNum {
+  @extend %btn-base;
+  background: var(--panel-element-bg);
+
+  &:hover { background: var(--panel-element-bg-hover); }
+  &:active { background: var(--panel-element-bg-active); }
+}
+
+// Function buttons (percent, negate, delete)
+.btnFunc {
+  @extend %btn-base;
+  background: var(--panel-element-bg);
+  color: var(--panel-text-muted);
+  font-size: 0.95em;
+
+  &:hover { background: var(--panel-element-bg-hover); }
+  &:active { background: var(--panel-element-bg-active); }
+}
+
+// AC button - subtle red tint
+.btnClear {
+  @extend %btn-base;
+  background: color-mix(in srgb, var(--panel-bad) 14%, transparent);
+  color: var(--panel-bad);
+
+  &:hover { background: color-mix(in srgb, var(--panel-bad) 22%, transparent); }
+  &:active { background: color-mix(in srgb, var(--panel-bad) 30%, transparent); }
+}
+
+// Operator buttons (default state)
+.btnOp {
+  @extend %btn-base;
+  background: var(--panel-element-bg);
+  color: var(--panel-accent-glow);
+
+  &:hover { background: var(--panel-element-bg-hover); }
+  &:active { background: var(--panel-element-bg-active); }
+}
+
+// Operator buttons (active/selected state)
+.btnOpActive {
+  @extend %btn-base;
+  background: var(--panel-accent);
+  border-color: var(--panel-accent);
+  color: var(--accent-text);
+
+  &:hover { background: var(--panel-accent-glow); }
+  &:active { background: var(--panel-accent); }
+}
+
+// Equals button - accent background
+.btnEquals {
+  @extend %btn-base;
+  background: var(--panel-accent);
+  border-color: var(--panel-accent);
+
+  &:hover { background: var(--panel-accent-glow); }
+  &:active { background: var(--panel-accent); }
+}

@@ -1,0 +1,122 @@
+/* Dual-knob slider primitive. Sibling of `Slider`. The visible track is built
+   from two divs (gray underlay + colored band) so both thumbs can render
+   above the band painting. The colored band is also the pointer target for
+   shifting both knobs together. Thumb / focus chrome lives in `global.scss`
+   against `input[type="range"][data-range-knob]`. */
+
+.root {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
+.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stacked {
+  flex-direction: column;
+  gap: var(--slider-stack-gap, 0.05rem);
+}
+
+.bare {
+  flex-direction: row;
+  align-items: center;
+}
+
+.label {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.inline .label {
+  min-width: 50px;
+}
+
+.value {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.valueGroup {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.valueSep {
+  font-size: var(--type-small);
+  color: var(--text-faded);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Track container: a fixed-height row that hosts the painted underlay,
+   the colored band, and the two range inputs (which only paint thumbs).
+   Height matches the single `input[type="range"]` height in global.scss
+   so layout stays consistent with Slider. */
+.track {
+  position: relative;
+  width: 100%;
+  height: 40px;
+}
+
+/* Gray full-width underlay. Same color/height/radius as the regular
+   range track in global.scss. Decorative only. */
+.trackBg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 3px;
+  background: var(--border-strong);
+  pointer-events: none;
+}
+
+/* Colored band between the two knobs. Inline `left` + `width` are driven
+   from React so the band tracks (valMin, valMax). Pointer events are on
+   so the user can grab and shift the whole interval. */
+.trackBand {
+  position: absolute;
+  top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 3px;
+  background: var(--accent-glow, var(--accent));
+  cursor: grab;
+  touch-action: none;
+
+  &:active { cursor: grabbing; }
+}
+
+.range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  display: block;
+
+  &:disabled { cursor: not-allowed; opacity: 0.5; }
+}
+
+.rangeLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--type-mini, 0.7rem);
+  color: var(--text-faded);
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.15rem;
+}

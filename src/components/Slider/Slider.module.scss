@@ -1,0 +1,94 @@
+/* Unified slider primitive. Drives the inline (label | track | value),
+   stacked (label/value above, full-width track below), and bare (track
+   only) layouts. Typography of value/label is shared so all sliders read
+   the same. The optional `trackFill` prop paints a level-style accent
+   gradient inside the track for brightness/opacity/volume semantics. */
+
+.root {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
+.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stacked {
+  flex-direction: column;
+  // Vertical gap between the label-row and the track. Kept minimal so the
+  // value/label read as a caption directly above the bar.
+  gap: var(--slider-stack-gap, 0.05rem);
+}
+
+.bare {
+  flex-direction: row;
+  align-items: center;
+}
+
+.label {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.inline .label {
+  min-width: 50px;
+}
+
+.value {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.track {
+  position: relative;
+  width: 100%;
+}
+
+.range {
+  width: 100%;
+  display: block;
+  cursor: pointer;
+  margin: 0;
+
+  /* Visual chrome (track, thumb, focus ring, level-style trackFill mode)
+     lives in `src/styles/global.scss` against `input[type="range"]` so the
+     same look reaches every chunk that renders a Slider, not only the
+     chunks that bundle Slider.module.scss. */
+
+  &:disabled { cursor: not-allowed; opacity: 0.5; }
+}
+
+.zeroTick {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 12px;
+  background: var(--text-dim);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  border-radius: 1px;
+  opacity: 0.8;
+}
+
+.rangeLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--type-mini, 0.7rem);
+  color: var(--text-faded);
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.15rem;
+}

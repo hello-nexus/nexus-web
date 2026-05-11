@@ -1,0 +1,180 @@
+.wrapper {
+  position: relative;
+}
+
+.wrapperCompact {
+  display: flex;
+  justify-content: center;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 32px;
+  padding: 0 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  cursor: pointer;
+  transition: color var(--ease);
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--text);
+  }
+}
+
+.triggerPrefix {
+  color: var(--text-faded);
+}
+
+.triggerName {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.letterCircle {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--accent-glow);
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  cursor: pointer;
+  transition: border-color var(--ease), color var(--ease);
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+}
+
+.chevron {
+  flex-shrink: 0;
+  transition: transform var(--ease);
+}
+.chevronOpen { transform: rotate(180deg); }
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 100;
+  min-width: 200px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.compactDropdown {
+  left: calc(100% + 8px);
+  top: 0;
+}
+
+.profileList {
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem;
+}
+
+.profileItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--type-body);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+
+  &.profileActive {
+    background: var(--accent-soft);
+    color: var(--text);
+
+    .profileDot {
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent-glow-shadow);
+    }
+  }
+}
+
+.profileDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faded);
+  flex-shrink: 0;
+}
+
+.profileName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem;
+  border-top: 1px solid var(--border);
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+
+    &:hover {
+      background: transparent;
+      color: var(--text-dim);
+    }
+  }
+}
+
+.actionSep {
+  height: 1px;
+  background: var(--border);
+  margin: 0.2rem 0.6rem;
+}
+
+.hiddenInput {
+  display: none;
+}

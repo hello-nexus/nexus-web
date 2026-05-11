@@ -1,0 +1,305 @@
+.lighting {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  box-sizing: border-box;
+  color: var(--panel-text);
+}
+
+// Preview area takes the remaining height; mode buttons render below it.
+// Labels float over the preview the same way the cooling chart's header
+// floats over the sparkline.
+.thumbBox {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: 0 -12px;
+  display: block;
+}
+
+.thumb {
+  position: absolute;
+  inset: 0 8px;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--panel-element-radius);
+  background: var(--panel-element-bg);
+
+  img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    image-rendering: pixelated;
+    // Suppress native HTML5 image drag so the panel's pointer-based widget
+    // drag owns the gesture. Without this, dragging the thumbnail on the
+    // desktop surface starts a browser image-copy drag and the panel's
+    // drag never engages.
+    -webkit-user-drag: none;
+  }
+
+  // Top-of-thumb fade so the mode + item labels stay legible over bright
+  // effects and color swatches. Tinted with the widget card color so the
+  // fade reads as the chrome bleeding into the thumbnail (darker in dark
+  // theme, lighter in light theme) rather than a black overlay.
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 50%;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--panel-card-bg) 88%, transparent) 0%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+}
+
+.thumbSwatch {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.thumbSkeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    var(--panel-element-bg) 0%,
+    var(--panel-element-bg-active) 42%,
+    var(--panel-element-bg) 80%
+  );
+  background-size: 200% 100%;
+  animation: thumbShimmer 1.4s ease-in-out infinite;
+}
+
+.modeLabel,
+.itemLabel {
+  position: absolute;
+  top: 6px;
+  z-index: 2;
+  max-width: calc(50% - 36px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 10px;
+  pointer-events: none;
+  font: 600 11px/1 var(--panel-font);
+  color: var(--panel-text-muted);
+  text-shadow: 0 1px 2px rgb(0 0 0 / var(--alpha-medium));
+}
+
+.modeLabel {
+  left: 8px;
+}
+
+.itemLabel {
+  right: 8px;
+  text-align: right;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.arrowBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  // Wide invisible hit target so flicking near the chevron lands; visible
+  // glyph keeps its svg size while the box stays transparent.
+  width: 56px;
+  height: 70%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--panel-text-muted);
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  opacity: 0.7;
+  transition: opacity var(--ease-fast) ease, color var(--ease-fast) ease;
+
+  svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.8;
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / var(--alpha-medium)));
+  }
+
+  // Inset slightly from the thumb edges so the chevron reads as overlay
+  // rather than running off into the corner.
+  &[data-side='prev'] { left: 6px; justify-content: flex-start; padding-left: 6px; }
+  &[data-side='next'] { right: 6px; justify-content: flex-end; padding-right: 6px; }
+
+  &:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
+
+  &:not(:disabled):hover {
+    opacity: 1;
+    color: var(--panel-text);
+  }
+
+  &:not(:disabled):active {
+    color: var(--panel-accent-glow);
+  }
+}
+
+.modeGrid {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.modeButton {
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: var(--panel-element-bg);
+  color: var(--panel-text-muted);
+  padding: 0;
+  font: 900 10px/1 var(--panel-font);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  svg {
+    flex-shrink: 0;
+    width: 17px;
+    height: 17px;
+  }
+
+  &[data-active='true'] {
+    border-color: var(--panel-accent);
+    background: var(--panel-accent-soft);
+    color: var(--panel-accent-glow);
+  }
+}
+
+.message {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 8px 14px;
+  color: var(--panel-text-muted);
+  font: 900 12px/1.3 var(--panel-font);
+}
+
+.lighting[data-size='4x4'] {
+  .modeLabel,
+  .itemLabel {
+    top: 8px;
+    font-size: 12px;
+  }
+
+  .arrowBtn {
+    width: 72px;
+
+    svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    &[data-side='prev'] { left: 10px; padding-left: 8px; }
+    &[data-side='next'] { right: 10px; padding-right: 8px; }
+  }
+}
+
+.lighting[data-size='2x2'] {
+  padding: 10px;
+  gap: 8px;
+
+  .modeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex: 1;
+  }
+
+  .modeButton {
+    min-height: 0;
+  }
+}
+
+// Display-only mode (Show Controls = off): centered Lightbulb icon + active mode.
+.display {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px;
+  text-align: center;
+}
+
+.displayIcon {
+  width: clamp(44px, calc(var(--panel-cell-size, 172px) * 0.40), 120px);
+  height: clamp(44px, calc(var(--panel-cell-size, 172px) * 0.40), 120px);
+  color: var(--panel-text);
+  stroke-width: 1.6;
+  flex-shrink: 0;
+}
+
+.displayMode {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--panel-text-faint);
+  font: 600 12px/1 var(--panel-font);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.displayValue {
+  color: var(--panel-text);
+  font: 800 18px/1 var(--panel-font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.lighting[data-size='2x2'][data-display-only='true'] {
+  padding: 8px;
+
+  .display { gap: 6px; }
+  .displayMode { font-size: 11px; }
+  .displayValue { font-size: 16px; }
+}
+
+.lighting[data-size='4x4'][data-display-only='true'] {
+  .display { gap: 14px; }
+  .displayMode { font-size: 13px; }
+  .displayValue { font-size: 26px; }
+}
+
+@keyframes thumbShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}

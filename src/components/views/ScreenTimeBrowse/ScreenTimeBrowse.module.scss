@@ -1,0 +1,450 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.manageBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: var(--type-small);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+}
+
+.dateNav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.6rem;
+}
+
+.dateNavBtn {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 1.5rem;
+  line-height: 1;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover:not(:disabled) {
+    background: var(--bg-card-hover);
+  }
+  &:disabled {
+    color: var(--text-faded);
+    cursor: not-allowed;
+  }
+}
+
+.dateNavLabel {
+  flex: 1;
+  text-align: center;
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+
+.dateNavSubLabel {
+  color: var(--text-dim);
+  font-weight: var(--weight-body);
+}
+
+.datePicker {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--type-small);
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+}
+
+.summaryCard {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  flex-wrap: wrap;
+}
+
+.summaryTotal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summaryValue {
+  font-size: 2.25rem;
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+.summarySub {
+  font-size: var(--type-small);
+  color: var(--text-faded);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summaryStats {
+  display: flex;
+  gap: 1.5rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.statBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-end;
+}
+
+.statValue {
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+.statLabel {
+  font-size: var(--type-small);
+  color: var(--text-faded);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statDeltaUp {
+  font-family: var(--font-mono);
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  color: var(--bad);
+}
+
+.statDeltaDown {
+  font-family: var(--font-mono);
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  color: var(--good);
+}
+
+.hourlyCard,
+.appsCard,
+.weekCard,
+.monthCard,
+.appChartCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+
+.cardTitle {
+  font-size: var(--type-small);
+  color: var(--text-faded);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.clearFilter {
+  background: transparent;
+  border: none;
+  color: var(--accent-glow);
+  font-size: var(--type-small);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+  &:hover { text-decoration: underline; }
+}
+
+.hourlyChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 90px;
+}
+
+.hourBar,
+.hourBarActive {
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 2px;
+  transition: opacity var(--ease-fast) ease;
+
+  &:hover .hourBarFill {
+    background: var(--accent-glow);
+  }
+}
+
+.hourBarFill {
+  width: 100%;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+  transition: height var(--ease) ease, background var(--ease-fast) ease;
+}
+
+.hourBarActive .hourBarFill {
+  background: var(--accent-glow);
+}
+
+.hourlyAxis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: var(--type-small);
+  color: var(--text-faded);
+  font-family: var(--font-mono);
+}
+
+.appsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.appRow {
+  display: grid;
+  grid-template-columns: 12px 160px 1fr 80px;
+  align-items: center;
+  gap: 0.75rem;
+  background: transparent;
+  border: none;
+  padding: 0.5rem 0.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  transition: background var(--ease-fast) ease;
+
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.appSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.appNameCell {
+  font-size: var(--type-body);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appBarCell {
+  height: 8px;
+  background: var(--bg-elevated);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.appBar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width var(--ease) ease;
+}
+
+.appTimeCell {
+  font-family: var(--font-mono);
+  font-size: var(--type-body);
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.empty {
+  text-align: center;
+  color: var(--text-faded);
+  font-size: var(--type-body);
+  padding: 1.5rem;
+}
+
+.weekChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  height: 140px;
+}
+
+.weekBar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  height: 100%;
+
+  &:hover .weekBarFill {
+    background: var(--accent-glow);
+  }
+}
+
+.weekBarFill {
+  width: 100%;
+  max-width: 60px;
+  background: var(--accent);
+  border-radius: var(--radius) var(--radius) 0 0;
+  min-height: 2px;
+  transition: height var(--ease) ease, background var(--ease-fast) ease;
+}
+
+.weekBarLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  font-weight: var(--weight-heading);
+}
+
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.heatCell {
+  aspect-ratio: 1;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-text);
+  font-size: var(--type-small);
+  font-family: var(--font-mono);
+  transition: transform var(--ease-fast) ease;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: var(--accent-glow-shadow) 0 0 0 2px;
+  }
+}
+
+.heatCellLabel {
+  pointer-events: none;
+}
+
+.heatmapLegend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: var(--type-small);
+  color: var(--text-faded);
+}
+
+.heatmapGradient {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right,
+    color-mix(in srgb, var(--accent) 15%, transparent),
+    var(--accent));
+}
+
+.appHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.backBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius);
+  font-size: var(--type-small);
+  cursor: pointer;
+  &:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+}
+
+.appName {
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+
+.appStatsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.statCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.deleteAppBtn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid var(--bad);
+  color: var(--bad);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-size: var(--type-small);
+  cursor: pointer;
+  margin-top: 0.5rem;
+
+  &:hover {
+    background: var(--bad);
+    color: white;
+  }
+}

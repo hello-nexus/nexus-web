@@ -1,0 +1,91 @@
+.wrap {
+  position: relative;
+  display: block;
+  touch-action: none;
+  user-select: none;
+}
+
+/* Rainbow strip - rendered as SVG arcs in PaletteRing.tsx, not CSS. This
+   rule just enables crisp rendering for the sliced donut. */
+.rainbow {
+  shape-rendering: geometricPrecision;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bodyZone {
+  fill: transparent;
+  cursor: grab;
+
+  &:active { cursor: grabbing; }
+}
+
+/* Full-radius pie slice over the un-selected sector. Pure black (not the
+   theme bg) so it reads as "darker" in both light and dark modes - on a
+   light theme `var(--bg-elevated)` is a pale colour which desaturates the
+   rainbow rather than darkening it, making the dim look like it stops at
+   the ring midline. A real dark fill darkens uniformly all the way out. */
+.dim {
+  fill: #000;
+  fill-opacity: 0.55;
+}
+
+/* Handle circle matches the native slider thumb used elsewhere in the app
+   (see input[type="range"]::-webkit-slider-thumb in styles/global.scss).
+   No stroke so the drawn radius stays exactly HANDLE_R. */
+.handle {
+  fill: #fff;
+  stroke: none;
+  cursor: grab;
+  filter: drop-shadow(0 0 2.5px rgba(0, 0, 0, 0.65));
+  transition: filter 120ms ease;
+
+  &:hover {
+    filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.7));
+  }
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+/* Cursor is tugging at the snap boundary - accent-glow halo signals
+   "keep pulling to pop open / release to snap shut". No stroke (would
+   expand visible radius beyond the ring), glow comes from drop-shadow. */
+.handleHint {
+  filter: drop-shadow(0 0 8px var(--accent-glow-shadow)) drop-shadow(0 0 2px var(--accent-glow));
+}
+
+/* Split tabs on the tangential edges of the merged (snapped) handle.
+   Invisible by default; fade in when the user hovers the merged group so
+   the affordance is "hidden until you're near it". Clicking a tab pulls
+   the handles apart in that direction. */
+.splitTab {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 1.5;
+  opacity: 0;
+  cursor: grab;
+  transition: opacity 140ms ease, transform 140ms ease;
+  transform-box: fill-box;
+  transform-origin: center;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.snappedGroup {
+  &:hover .splitTab {
+    opacity: 0.95;
+  }
+  /* Tab hover emphasises just that one */
+  .splitTab:hover {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 4px var(--accent-glow-shadow));
+  }
+}

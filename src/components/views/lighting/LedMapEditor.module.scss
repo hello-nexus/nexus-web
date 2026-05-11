@@ -1,0 +1,487 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: #080808;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  touch-action: none;
+  cursor: crosshair;
+  user-select: none;
+}
+
+.deviceRect {
+  position: absolute;
+  border: 1.5px solid rgb(255 255 255 / var(--alpha-medium));
+  border-radius: 3px;
+  background-color: transparent;
+  background-image: radial-gradient(circle, rgb(0 0 0 / var(--alpha-medium)) 0.7px, transparent 1.1px);
+  background-size: 4px 4px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rectResize {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+  pointer-events: auto;
+  z-index: 6;
+  opacity: 0.4;
+  transition: opacity var(--ease-fast);
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid rgb(255 255 255 / var(--alpha-medium));
+    border-bottom: 2px solid rgb(255 255 255 / var(--alpha-medium));
+  }
+
+  &:hover { opacity: 1; }
+}
+
+.led {
+  position: absolute;
+  // Bigger than a dot so the LED index sits legibly inside the circle.
+  // Still small enough to pack hundreds of keys on a keyboard matrix without
+  // the circles merging into one blob.
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  transition: box-shadow var(--ease-fast);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    box-shadow: 0 0 0 2px var(--accent-glow);
+    z-index: 3;
+  }
+
+  &.ledDragging {
+    cursor: grabbing;
+    z-index: 10;
+  }
+
+  &.ledSelected {
+    box-shadow: 0 0 0 3px var(--accent);
+    z-index: 5;
+  }
+
+  // Darker fills than the live-canvas accent/good/warn so the bold white
+  // LED index inside each circle has enough contrast to read cleanly. Still
+  // tinted per zone-type so the visual grouping (matrix/linear/single)
+  // survives at a glance.
+  &.ledMatrix {
+    background: color-mix(in srgb, var(--accent) 58%, #000 42%);
+  }
+
+  &.ledLinear {
+    background: color-mix(in srgb, var(--good) 48%, #000 52%);
+  }
+
+  &.ledSingle {
+    background: color-mix(in srgb, var(--warn) 48%, #000 52%);
+  }
+
+  &.ledCustom {
+    outline: 2px dashed var(--text-dim);
+    outline-offset: 1px;
+  }
+
+  &.ledDisabled {
+    opacity: 0.2;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  // Parked / deleted LEDs sit in the row below the device frame. Keep them
+  // visually distinct (dimmer, grey fill) so they read as "off-device" but
+  // still clearly draggable back in.
+  &.ledParked {
+    opacity: 0.55;
+    background: color-mix(in srgb, var(--text-dim) 40%, #000 60%) !important;
+    cursor: grab;
+
+    &:hover { opacity: 0.9; }
+  }
+}
+
+// LED index number rendered inside the circle. Bold so it stays readable on
+// the coloured LED fills (accent, good, warn). pointer-events none so the
+// underlying .led still owns drag + click.
+.ledIndex {
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 3px rgb(0 0 0 / var(--alpha-strong));
+  pointer-events: none;
+  user-select: none;
+}
+
+// Dashed outline around the selected-LED bbox. Visual anchor for the floating
+// group toolbar on the right edge. Parent has pointer-events:none; individual
+// corner handles inside re-enable pointer-events to capture resize drags.
+.selectionBox {
+  position: absolute;
+  border: 1px dashed var(--accent);
+  background: transparent;
+  pointer-events: none;
+  z-index: 6;
+}
+
+// Corner resize handles. Drag a corner to scale the bbox, which proportionally
+// stretches/compresses the selected LEDs along both axes so the whole group
+// can be quickly resized into a new shape without re-picking LEDs.
+.selectionHandle {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  background: var(--accent);
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgb(0 0 0 / var(--alpha-medium));
+  z-index: 26;
+  pointer-events: auto;
+}
+
+.selectionHandleNW { top: -6px; left: -6px; cursor: nwse-resize; }
+.selectionHandleNE { top: -6px; right: -6px; cursor: nesw-resize; }
+.selectionHandleSW { bottom: -6px; left: -6px; cursor: nesw-resize; }
+.selectionHandleSE { bottom: -6px; right: -6px; cursor: nwse-resize; }
+
+// Floating toolbar on the top-right of the selection bbox. Same visual
+// treatment as the lighting-canvas corner buttons so the two surfaces feel
+// related.
+.selectionToolbar {
+  position: absolute;
+  display: flex;
+  gap: 0.25rem;
+  transform: translate(-100%, -100%);
+  margin-top: -4px;
+  margin-left: -2px;
+  padding: 0.2rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 14px rgb(0 0 0 / var(--alpha-medium));
+  pointer-events: auto;
+  z-index: 25;
+}
+
+.selectionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
+.sweepLine {
+  position: absolute;
+  background: rgb(255 255 255 / var(--alpha-medium));
+  pointer-events: none;
+  z-index: 0;
+}
+
+.marquee {
+  position: absolute;
+  border: 1px dashed var(--accent);
+  background: var(--accent-soft);
+  pointer-events: none;
+  z-index: 15;
+}
+
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.65rem;
+  color: var(--text);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  z-index: 20;
+  transform: translate(-50%, -100%);
+  margin-top: -8px;
+}
+
+.tooltipMeta {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+// Horizontal divider inside the selection toolbar separating the bbox ops
+// (align / flip / rotate / reset) from the destructive op (delete).
+.selectionBtnSeparator {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  margin: 0 0.15rem;
+}
+
+// Delete button styling in the selection toolbar. Destructive tint so it
+// doesn't blend with the safe ops next to it.
+.selectionBtnDanger {
+  color: var(--bad);
+
+  &:hover {
+    color: var(--bad);
+    border-color: var(--bad);
+    background: color-mix(in srgb, var(--bad) 12%, transparent 88%);
+  }
+}
+
+// Thin horizontal divider drawn just below the device frame to visually
+// separate the live-canvas from the parking row where deleted LEDs live.
+.parkSeparator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.modeBtns {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.modeBtnsLabel {
+  font-size: var(--type-small);
+  color: var(--text-faded);
+  margin-right: 0.15rem;
+  white-space: nowrap;
+}
+
+.modeBtn {
+  padding: 0.3rem 0.6rem;
+  font-size: var(--type-small);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+}
+
+.modeBtnActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.separator {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 0.15rem;
+}
+
+.zoneBtns {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.zoneBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  font-size: var(--type-small);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-faded);
+  cursor: pointer;
+  transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast), opacity var(--ease-fast);
+  opacity: 0.5;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-strong);
+  }
+}
+
+.zoneBtnActive {
+  opacity: 1;
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.legendDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.25rem;
+  vertical-align: middle;
+}
+
+.legendDotMatrix { background: var(--accent); }
+.legendDotLinear { background: var(--good); }
+.legendDotSingle { background: var(--warn); }
+
+.ledCountField {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.ledCountLabel {
+  color: var(--text-dim);
+}
+
+.ledCountInput {
+  width: 3.5rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: none;
+  transition: border-color var(--ease-fast);
+
+  &:hover { border-color: var(--border-strong); }
+  &:focus { border-color: var(--accent); }
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; }
+  -moz-appearance: textfield;
+}
+
+.spacer { flex: 1; }
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    &:hover { background: var(--bg-card); border-color: var(--border); color: var(--text-dim); }
+  }
+}
+
+.btn {
+  padding: 0.3rem 0.65rem;
+  font-size: var(--type-small);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--ease-fast), border-color var(--ease-fast);
+
+  &:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-strong);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btnPrimary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+
+  &:hover {
+    background: var(--accent-glow);
+    border-color: var(--accent-glow);
+  }
+}
+
+.hint {
+  font-size: 0.65rem;
+  color: var(--text-faded);
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}

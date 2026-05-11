@@ -1,0 +1,173 @@
+.root {
+  --mixer-touch-width: 58px;
+  --mixer-frame-width: 48px;
+  --mixer-track-min: 64px;
+  --mixer-track-max: 112px;
+  --mixer-segment-width: 28px;
+  --mixer-segment-gap: 4px;
+  --mixer-icon-size: 32px;
+  --mixer-label-size: 10px;
+  --mixer-value-height: 13px;
+  --mixer-frame-padding-y: 4px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: var(--mixer-touch-width);
+  min-height: 0;
+  height: 100%;
+  color: var(--panel-text);
+  user-select: none;
+  -webkit-user-select: none;
+
+  &[data-disabled='true'] {
+    opacity: 0.5;
+  }
+}
+
+.label {
+  width: 100%;
+  min-height: 12px;
+  font-size: var(--mixer-label-size);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--panel-text);
+  opacity: 0.5;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.value {
+  flex-shrink: 0;
+  min-height: var(--mixer-value-height);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--panel-text);
+  opacity: 0.82;
+}
+
+.hitbox {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  flex: 1 1 auto;
+  width: var(--mixer-touch-width);
+  min-height: calc(var(--mixer-track-min) + var(--mixer-icon-size) + var(--mixer-value-height) + var(--mixer-segment-gap) + var(--mixer-segment-gap) + var(--mixer-frame-padding-y) + var(--mixer-frame-padding-y));
+  max-height: calc(var(--mixer-track-max) + var(--mixer-icon-size) + var(--mixer-value-height) + var(--mixer-segment-gap) + var(--mixer-segment-gap) + var(--mixer-frame-padding-y) + var(--mixer-frame-padding-y));
+  cursor: pointer;
+  touch-action: none;
+}
+
+.track {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: var(--mixer-track-min);
+  max-height: var(--mixer-track-max);
+  padding: 0;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  outline: none;
+  touch-action: none;
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &:focus-visible .segments {
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+}
+
+.frame {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mixer-segment-gap);
+  align-items: center;
+  justify-content: stretch;
+  width: var(--mixer-frame-width);
+  min-height: 100%;
+  padding: var(--mixer-frame-padding-y) 5px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 8px;
+  background: var(--panel-element-bg);
+  box-shadow: none;
+}
+
+.segments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mixer-segment-gap);
+  justify-content: stretch;
+  width: var(--mixer-segment-width);
+  height: 100%;
+  border-radius: 3px;
+}
+
+.segment {
+  display: block;
+  flex: 1 1 0;
+  min-height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--panel-text) 12%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
+  transition: background-color 90ms ease, box-shadow 90ms ease, opacity 90ms ease;
+
+  &[data-active='true'] {
+    background: linear-gradient(180deg, var(--panel-accent-glow), var(--panel-accent));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, white 18%, transparent);
+  }
+}
+
+.icon,
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--mixer-icon-size);
+  height: var(--mixer-icon-size);
+  padding: 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  border-radius: 6px;
+  color: var(--panel-accent-glow);
+  background: transparent;
+  border: none;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.iconButton {
+  cursor: pointer;
+  transition: background-color var(--ease) ease, color var(--ease) ease, transform var(--ease-fast) ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--panel-text) 8%, transparent);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &[data-active='true'] {
+    color: var(--panel-text-faint);
+    background: color-mix(in srgb, var(--panel-text) 6%, transparent);
+  }
+}

@@ -1,0 +1,173 @@
+@use '../../styles/text' as *;
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 3rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+
+  h2 {
+    @include text-heading;
+    margin: 0;
+  }
+
+  p {
+    @include text-body;
+    margin: 0;
+    color: var(--text-dim);
+    max-width: 56ch;
+    line-height: 1.6;
+  }
+}
+
+.badge {
+  @include text-label;
+  font-family: var(--font-mono);
+  color: var(--accent-glow);
+  background: var(--accent-soft);
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--accent-glow-shadow);
+  align-self: flex-start;
+}
+
+.offlineBody {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 420px;
+}
+
+.skeletonWrap {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  filter: blur(1px);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2.5rem 2rem 2rem;
+}
+
+.overlayCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 1.75rem 2rem;
+  max-width: 460px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+
+.overlayMessage {
+  @include text-body;
+  margin: 0;
+  color: var(--text-dim);
+  max-width: 52ch;
+}
+
+// Safari-specific warning block. Compass icon (greyed) cues the user that
+// this is a Safari limitation rather than a generic "something went wrong"
+// alert, so the message reads as "use another browser" at a glance.
+.safariNote {
+  @include text-button;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text);
+  line-height: 1.4;
+  max-width: 52ch;
+}
+
+.safariIcon {
+  color: var(--text-faded);
+  opacity: 0.75;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.safariNoteText {
+  margin: 0;
+}
+
+.downloadSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  width: 100%;
+}
+
+.downloadLabel {
+  @include text-button;
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.downloadSecondary {
+  @include text-body;
+  display: inline-block;
+  padding: 0.5rem 1.2rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent-glow);
+    color: var(--accent-glow);
+    background: var(--bg-card-hover);
+  }
+}
+
+.downloadAlts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.downloadAltsLabel {
+  @include text-button;
+  color: var(--text-faded);
+  margin-right: 0.25rem;
+}
+
+.downloadChip {
+  @include text-button;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-dim);
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent-glow);
+    color: var(--accent-glow);
+  }
+}

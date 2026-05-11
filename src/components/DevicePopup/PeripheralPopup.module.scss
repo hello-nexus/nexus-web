@@ -1,0 +1,37 @@
+/* PeripheralPopup-specific spacing. The info widget and per-row treatment
+   live in src/components/InfoList/. */
+
+.info {
+  margin-bottom: 0.6rem;
+}
+
+/* The source/wireless row combines two tones in one value: dim for the
+   transport name (Service / WebHID), accent for the "Wireless" tag so the
+   user can spot the radio vs wired distinction at a glance. */
+.sourceText {
+  color: var(--text-dim);
+}
+
+.sep {
+  color: var(--text-faded);
+  margin: 0 0.15rem;
+}
+
+.wireless {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+}
+
+.empty {
+  color: var(--text-faded);
+  font-size: var(--type-small);
+  padding: 0.5rem 0;
+  text-align: center;
+}

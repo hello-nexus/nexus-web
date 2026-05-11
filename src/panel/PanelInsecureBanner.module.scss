@@ -1,0 +1,43 @@
+.banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 240;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 8px 14px;
+  font-family: var(--panel-font, 'Lexend', system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--bg);
+  background: var(--warn);
+  box-shadow: 0 2px 8px rgb(0 0 0 / var(--alpha-faint));
+  pointer-events: auto;
+  text-align: center;
+  line-height: 1.35;
+  padding-top: max(8px, env(safe-area-inset-top));
+}
+
+.icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.message {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.cta {
+  flex: 0 0 auto;
+  text-decoration: underline;
+  color: inherit;
+  font-weight: 700;
+}

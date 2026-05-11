@@ -1,0 +1,309 @@
+@use '../../styles/scrollbar' as *;
+
+// --- Layout ---
+
+.splitLayout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 1.5rem;
+  overflow: hidden;
+}
+
+.leftPane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.previewPane {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Wrapper the PanelEmbedFrame ResizeObserver measures. Mirrors the pane
+// dimensions so the iframe's fit-height math reflects the visible canvas
+// region exactly.
+.previewStage {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.toggleLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--type-small);
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+// --- Tabs (matches ViewHeader underline style) ---
+
+.tabBar {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  position: relative;
+  padding: 0.55rem 0.9rem;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
+  cursor: pointer;
+  transition: color var(--ease) ease;
+
+  &:hover { color: var(--text); }
+}
+
+.tabActive {
+  color: var(--text);
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: -1px;
+    height: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow-shadow);
+    border-radius: 2px;
+  }
+}
+
+.tabContent {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 1rem;
+  padding-right: 4px;
+}
+
+// --- Widget Catalog (Widgets tab) ---
+
+.catalog {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  @include scrollbar-visible($thumb: var(--border-strong));
+}
+
+// --- Theme Panel ---
+
+.themePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.themeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.themeModeTabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+}
+
+// --- Color Picker ---
+
+// --- Inline Widget Settings (left pane when editing a widget) ---
+
+.inlineSettings {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.inlineSettingsHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+}
+
+.inlineSettingsTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inlineSettingsActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.inlineRemoveBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: rgba(239, 68, 68, 0.6);
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+}
+
+.inlineControlsRow {
+  --widget-control-title-color: var(--text-faded);
+  --icon-label-button-height: 36px;
+  --icon-label-button-min-width: 36px;
+  --icon-label-button-padding-x: 0;
+  --icon-label-button-padding-y: 0;
+  --icon-label-button-gap: 0;
+  --icon-label-button-radius: var(--radius-sm);
+  --icon-label-button-border: transparent;
+  --icon-label-button-bg: transparent;
+  --icon-label-button-bg-hover: var(--bg-card-hover);
+  --icon-label-button-text: var(--text-faded);
+  --icon-label-button-text-hover: var(--text);
+  --icon-label-button-active-border: transparent;
+  --icon-label-button-active-bg: var(--accent-soft);
+  --icon-label-button-active-text: var(--accent-glow);
+  --icon-label-icon-size: 21px;
+  --icon-label-label-size: 10px;
+
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.inlineIconButton {
+  flex: 0 0 auto;
+}
+
+.inlineSettingsPreview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.inlineSettingsPreviewRoot {
+  pointer-events: none;
+}
+
+.inlineSettingsPreviewRootInteractive {
+  pointer-events: auto;
+}
+
+.inlineSettingsPreviewCard {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+}
+
+.inlineSettingsBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem 0.25rem 1rem 0;
+  @include scrollbar-visible($thumb: var(--border-strong));
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.inlineSettingsEmpty {
+  padding: 2rem 0;
+  text-align: center;
+  color: var(--text-faded);
+  font-size: var(--type-small);
+}
+
+// --- Settings Panel ---
+
+.settingsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.brightnessControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.brightnessSlider {
+  flex: 1;
+}
+
+.brightnessValue {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  min-width: 2.5ch;
+  text-align: right;
+}

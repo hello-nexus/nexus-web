@@ -1,0 +1,271 @@
+@use '../../../styles/text' as *;
+
+.media {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  padding: 12px 14px;
+  gap: 8px;
+  color: var(--panel-text);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.full { /* 4x2 layout - playback column with persistent mixer on the right */ }
+
+.compact { /* 2x2 - no album art, smaller controls */
+  padding: 10px 12px;
+  gap: 8px;
+}
+
+.fullContent {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.playbackColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+// Non-touch (Q-series) variant: no controls row. The reclaimed space goes to
+// larger album art and roomier metadata so the now-playing card reads at a
+// glance from across the room.
+.statusOnly {
+  &.full {
+    .artWrap {
+      width: 116px;
+      height: 116px;
+    }
+
+    .title {
+      @include text-heading;
+    }
+
+    .artist {
+      @include text-button;
+    }
+  }
+
+  &.compact {
+    justify-content: center;
+  }
+}
+
+// Top row of the 4x2 layout: album art on the left, metadata column on the
+// right. The metadata column hosts the source label, title/artist/album, and
+// seek bar while the persistent volume mixer owns the far-right column.
+.topRow {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.artWrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 92px;
+  height: 92px;
+  // Anchor at the top of the row so it visually sits at the top-left
+  // of the widget rather than vertically centred.
+  align-self: flex-start;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--panel-element-bg);
+  box-shadow: 0 4px 16px rgb(0 0 0 / var(--alpha-medium));
+}
+
+.art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.artFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--panel-text-faint);
+
+  svg { width: 28px; height: 28px; }
+}
+
+.metadata {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.compactMeta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
+  gap: 2px;
+}
+
+.title {
+  @include text-button;
+  color: var(--panel-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.artist {
+  @include text-caption;
+  opacity: 0.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.album {
+  @include text-caption;
+  opacity: 0.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+// Equalizer playing indicator - floats over album art, bottom-right
+.eqBars {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / var(--alpha-medium));
+}
+
+.eqBar {
+  width: 2px;
+  height: 100%;
+  background-color: var(--panel-accent-glow);
+  border-radius: 1px;
+  transform-origin: bottom;
+  animation: eq 0.6s ease-in-out infinite;
+}
+
+@keyframes eq {
+  0%, 100% { transform: scaleY(0.3); }
+  50%      { transform: scaleY(1); }
+}
+
+.progressTrack {
+  height: 3px;
+  background: var(--panel-border);
+  border-radius: 2px;
+  overflow: hidden;
+  // Higher up (right under the title/artist text) instead of pushed
+  // to the bottom of the metadata column.
+  margin-top: 6px;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--panel-accent-glow);
+  border-radius: 2px;
+  transition: width var(--ease-slow) ease;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.compact .controls {
+  justify-content: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--panel-element-bg);
+  color: var(--panel-text);
+  cursor: pointer;
+  transition: background-color var(--ease) ease, transform var(--ease-fast) ease, color var(--ease) ease;
+  flex-shrink: 0;
+
+  svg { width: 16px; height: 16px; }
+
+  &:hover:not(:disabled) { background: var(--panel-element-bg-hover); }
+  &:active:not(:disabled) { transform: scale(0.95); }
+  &:disabled { opacity: 0.3; cursor: default; }
+}
+
+.primary {
+  width: 40px;
+  height: 40px;
+  background: var(--panel-accent);
+  color: var(--accent-text);
+
+  svg { width: 18px; height: 18px; }
+
+  &:hover:not(:disabled) { background: var(--panel-accent-glow); }
+}
+
+// Toggle button (shuffle / repeat) - off state is dim, on state lights up
+// with the accent glow. Uses aria-pressed for screen readers.
+.toggle {
+  color: var(--panel-text-faint);
+}
+
+.toggleOn {
+  color: var(--panel-accent-glow);
+  background: var(--panel-element-bg-hover);
+}
+
+.btnActive {
+  background: var(--panel-element-bg-hover);
+  color: var(--panel-accent-glow);
+}
+
+.emptySlot {
+  flex: 1;
+}
+
+.volumeMixer {
+  flex: 0 0 66px;
+  width: 100%;
+  max-width: 66px;
+  --mixer-track-min: 64px;
+  --mixer-track-max: 112px;
+  --mixer-touch-width: 56px;
+  --mixer-frame-width: 48px;
+  --mixer-segment-width: 28px;
+  --mixer-icon-size: 32px;
+}

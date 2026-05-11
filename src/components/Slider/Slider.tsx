@@ -1,0 +1,192 @@
+import { useEffect, useRef, type CSSProperties, type PointerEventHandler } from 'react';
+import { EditableNumber } from '../Editable/EditableNumber';
+import styles from './Slider.module.scss';
+
+/*
+ * Unified slider primitive.
+ *
+ * Layouts:
+ *   - 'inline'   : [label] [=== track ===] [value]
+ *   - 'stacked'  : [label]               [value]
+ *                  [================ track =================]
+ *   - 'bare'     : [================ track =================]
+ *                  Renders only the input. Useful when the consumer wraps
+ *                  the slider with its own icon and value markup (e.g. the
+ *                  panel brightness widgets) and just needs the unified
+ *                  thumb/track chrome.
+ *
+ * Optional features:
+ *   - editable    : value display becomes click-to-edit (uses EditableNumber)
+ *   - zeroMarker  : if range straddles zero, draws a tick at 0 on the track
+ *   - showRange   : prints min / max under the track (DPI-style)
+ *   - formatValue : controls how the value is rendered (e.g. '1.5s', '800 DPI')
+ *   - trackFill   : enable level-style accent fill inside the track.
+ *                   - `true` auto-computes the fill from value/min/max.
+ *                     When the range straddles zero (e.g. -100..100), the
+ *                     fill paints from the centre outward toward the value;
+ *                     otherwise it fills from the start.
+ *                   - a number (0..100) explicitly sets the end percent in
+ *                     start-fill mode (legacy contract preserved for
+ *                     callers that pre-compute the percentage).
+ *
+ * Callbacks:
+ *   - onChange(v, commit?) fires for every range step AND for committed input edits.
+ *     `commit` is true only when the user types a precise value into the editable
+ *     field, so the parent can apply + persist in one shot. For drag, parents wire
+ *     `onCommit()` to the gesture-end so persistence happens once at the end.
+ */
+export interface SliderProps {
+  label?: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  orientation?: 'inline' | 'stacked' | 'bare';
+  editable?: boolean;
+  zeroMarker?: boolean;
+  showRange?: boolean;
+  formatValue?: (v: number) => string;
+  onChange: (v: number, commit?: boolean) => void;
+  onCommit?: (v: number) => void;
+  onPointerDown?: PointerEventHandler<HTMLInputElement>;
+  onPointerCancel?: PointerEventHandler<HTMLInputElement>;
+  disabled?: boolean;
+  trackFill?: boolean | number;
+  ariaLabel?: string;
+  className?: string;
+}
+
+export function Slider({
+  label = '', value, min, max, step = 1,
+  orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
+  formatValue, onChange, onCommit, onPointerDown, onPointerCancel,
+  disabled, trackFill, ariaLabel, className,
+}: SliderProps) {
+  const latestInputValueRef = useRef(value);
+  const onCommitRef = useRef(onCommit);
+  const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showZero = zeroMarker && min < 0 && max > 0;
+  const zeroPct = showZero ? ((0 - min) / (max - min)) * 100 : 0;
+  const fillEnabled = trackFill === true || typeof trackFill === 'number';
+  const isBipolar = fillEnabled && min < 0 && max > 0;
+  const valuePct = ((value - min) / (max - min)) * 100;
+  const clamp = (v: number) => Math.min(100, Math.max(0, v));
+  let fillStartPct = 0;
+  let fillEndPct = 0;
+  if (fillEnabled) {
+    if (isBipolar) {
+      const centerPct = ((0 - min) / (max - min)) * 100;
+      fillStartPct = clamp(Math.min(centerPct, valuePct));
+      fillEndPct = clamp(Math.max(centerPct, valuePct));
+    } else if (typeof trackFill === 'number') {
+      fillEndPct = clamp(trackFill);
+    } else {
+      fillEndPct = clamp(valuePct);
+    }
+  }
+  const trackStyle = fillEnabled
+    ? ({
+        '--slider-fill-start': `${fillStartPct}%`,
+        '--slider-fill-end': `${fillEndPct}%`,
+      } as CSSProperties)
+    : undefined;
+
+  useEffect(() => {
+    latestInputValueRef.current = value;
+  }, [value]);
+
+  useEffect(() => {
+    onCommitRef.current = onCommit;
+  }, [onCommit]);
+
+  useEffect(() => () => {
+    if (commitTimerRef.current) {
+      clearTimeout(commitTimerRef.current);
+      commitTimerRef.current = null;
+    }
+  }, []);
+
+  const handleChange = (next: number, commit = false) => {
+    latestInputValueRef.current = next;
+    onChange(next, commit);
+  };
+
+  const valueNode = editable ? (
+    <EditableNumber value={value} min={min} max={max} step={step}
+      onCommit={v => handleChange(v, true)} format={formatValue} className={styles.value} />
+  ) : (
+    <span className={styles.value}>{formatValue ? formatValue(value) : value}</span>
+  );
+
+  const handleEnd = () => {
+    if (!onCommitRef.current) return;
+    if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+    // Some native range track taps deliver pointer-up before React has seen
+    // the final input event. Defer one tick so the committed value matches the
+    // last previewed slider value, not the stale DOM value from pointer-up.
+    commitTimerRef.current = setTimeout(() => {
+      commitTimerRef.current = null;
+      onCommitRef.current?.(latestInputValueRef.current);
+    }, 0);
+  };
+
+  const range = (
+    <input type="range" min={min} max={max} step={step} value={value}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      data-fill={fillEnabled ? '' : undefined}
+      style={trackStyle}
+      onChange={e => handleChange(Number(e.target.value), false)}
+      onPointerDown={onPointerDown}
+      onPointerUp={handleEnd}
+      onPointerCancel={e => {
+        if (onPointerCancel) onPointerCancel(e);
+        handleEnd();
+      }}
+      onKeyUp={handleEnd}
+      className={styles.range} />
+  );
+
+  if (orientation === 'bare') {
+    return (
+      <div className={`${styles.root} ${styles.bare} ${className ?? ''}`}>
+        <div className={styles.track}>
+          {range}
+          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+        </div>
+      </div>
+    );
+  }
+
+  if (orientation === 'stacked') {
+    return (
+      <label className={`${styles.root} ${styles.stacked} ${className ?? ''}`}>
+        <div className={styles.head}>
+          <span className={styles.label}>{label}</span>
+          {valueNode}
+        </div>
+        <div className={styles.track}>
+          {range}
+          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+        </div>
+        {showRange && (
+          <div className={styles.rangeLabels}>
+            <span>{formatValue ? formatValue(min) : min}</span>
+            <span>{formatValue ? formatValue(max) : max}</span>
+          </div>
+        )}
+      </label>
+    );
+  }
+
+  return (
+    <label className={`${styles.root} ${styles.inline} ${className ?? ''}`}>
+      <span className={styles.label}>{label}</span>
+      <div className={styles.track}>
+        {range}
+        {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+      </div>
+      {valueNode}
+    </label>
+  );
+}

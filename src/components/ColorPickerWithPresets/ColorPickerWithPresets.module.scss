@@ -1,0 +1,46 @@
+/* Fixed 10-column swatch grid. Swatches stretch to fill the container so the
+   grid sits comfortably edge-to-edge inside narrow surfaces (panel sheet,
+   phone) while staying capped at a comfortable size on wide containers. */
+
+.root {
+  --swatch-size-cap: 38px;
+  --swatch-gap: 0.3rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  /* Cap total width on wide containers so swatches do not balloon on desktop;
+     narrow containers (phone settings sheet) flex below the cap and each
+     swatch grows to fill 1/10 of the available width. */
+  max-width: calc(10 * var(--swatch-size-cap) + 9 * var(--swatch-gap));
+}
+
+.swatchGrid {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: var(--swatch-gap);
+}
+
+.swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  padding: 0;
+  cursor: pointer;
+  transition: transform var(--ease-fast) ease, border-color var(--ease) ease, box-shadow var(--ease) ease;
+
+  &:hover:not([disabled]) {
+    transform: scale(1.08);
+  }
+
+  &:active:not([disabled]) {
+    transform: scale(0.94);
+  }
+}
+
+.swatchSelected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft, rgba(139, 92, 246, 0.18));
+}

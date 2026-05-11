@@ -1,0 +1,106 @@
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  position: relative;
+  padding: 0.55rem 0.9rem;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
+  cursor: pointer;
+  transition: color var(--ease) ease;
+
+  &:hover:not(:disabled):not(.active) {
+    color: var(--text);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &.active {
+    color: var(--text);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0.5rem;
+      right: 0.5rem;
+      bottom: -1px;
+      height: 2px;
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow-shadow);
+      border-radius: 2px;
+    }
+  }
+}
+
+.tabInner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.tabIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    display: block;
+  }
+}
+
+.tabLabel {
+  min-width: 0;
+}
+
+// ── Pill variant ───────────────────────────────────────────────────────────
+// Segmented bordered group - single border around the whole bar, internal
+// separators between segments, accent-soft fill on the active pill. Used for
+// secondary in-page toggles (ScreenTime day/week/month/app).
+
+.tabsPill {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-card);
+  gap: 0; // segments share borders; no gap
+}
+
+.pillTab {
+  padding: 0.5rem 1rem;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  cursor: pointer;
+  transition: background var(--ease-fast) ease, color var(--ease-fast) ease;
+
+  &:hover:not(:disabled):not(.pillActive) {
+    color: var(--text);
+    background: var(--bg-card-hover);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.pillActive {
+  background: var(--accent-soft);
+  color: var(--accent-glow);
+  font-weight: var(--weight-heading);
+}

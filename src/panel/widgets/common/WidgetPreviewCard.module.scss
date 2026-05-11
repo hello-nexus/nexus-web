@@ -1,0 +1,45 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  padding: 6px;
+  cursor: pointer;
+  transition: border-color var(--ease), background var(--ease), transform var(--ease-fast);
+  outline: none;
+  text-align: center;
+  font-family: var(--panel-font, 'Lexend', system-ui, sans-serif);
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--panel-accent);
+    background: var(--panel-accent-soft);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.cardDragging {
+  opacity: 0.4;
+}
+
+.preview {
+  width: 100%;
+  overflow: hidden;
+  background: var(--panel-control-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  position: relative;
+}
+
+.thumbInner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+}
+

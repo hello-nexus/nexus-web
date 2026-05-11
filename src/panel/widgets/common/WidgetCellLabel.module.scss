@@ -1,0 +1,23 @@
+// iOS Home Screen-style label that sits in a fixed-height strip directly
+// below a widget's bounding box. Strip height is exposed as a CSS variable on
+// the panel root (`--panel-widget-label-strip`) so cell wrappers can shrink
+// the bounding box by exactly that amount when labels are on, and reclaim it
+// when labels are off.
+
+.label {
+  height: var(--panel-widget-label-strip, 18px);
+  line-height: var(--panel-widget-label-strip, 18px);
+  padding: 0 6px;
+  margin-top: 2px;
+  font-family: var(--panel-font, 'Lexend', system-ui, sans-serif);
+  font-size: var(--panel-widget-label-font-size, 12px);
+  font-weight: 700;
+  color: var(--panel-text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  user-select: none;
+}
+

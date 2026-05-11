@@ -1,0 +1,1367 @@
+// tokens.scss is imported as a global side-effect in PanelApp.tsx, NOT via
+// @use here, because @use from a .module.scss causes Vite to hash the
+// imported class names (panel-root, panel-card, panel-chip) which breaks the
+// raw className="panel-root" references in JSX. The scrollbar @use below is
+// safe because _scrollbar.scss contains only @mixin declarations (no class
+// selectors), so nothing gets hashed.
+
+@use '../styles/scrollbar' as *;
+@use '../styles/text' as *;
+
+.panelRoot {
+  --panel-columns: 4;
+  --panel-rows: 4;
+  // Strip height under each cell when labels are on. Collapses to 0 when
+  // labels are toggled off so the cell card reclaims the full grid track.
+  --panel-widget-label-strip: 18px;
+  // Outer insets on the cell card itself (visible card box).
+  --panel-widget-card-margin-x: 6px;
+  --panel-widget-card-bottom-gap: 4px;
+  // Inner padding INSIDE the cell card, between the card edge and the
+  // widget contents. 0 means contents reach the rounded edge directly;
+  // raise to add uniform breathing room on top/right/bottom/left.
+  --panel-widget-card-inner-pad: 0px;
+  // iOS-style kiosk surfaces use a larger absolute corner radius so the
+  // big cells read as proportionally rounded as the smaller desktop
+  // dashboard cells (which use var(--radius)=10px and stay at it).
+  --panel-card-radius: var(--radius-lg);
+  &[data-show-widget-labels='false'] {
+    --panel-widget-label-strip: 0px;
+    --panel-widget-card-margin-x: 0px;
+    --panel-widget-card-bottom-gap: 0px;
+    --panel-widget-card-inner-pad: 0px;
+  }
+  height: 100vh;
+  width: 100vw;
+  background: var(--panel-background-solid);
+  color: var(--panel-text);
+  position: relative;
+  // No padding here - the pager runs full-bleed so per-page content
+  // can shadow into the safe-area zone without the pager's overflow:
+  // hidden boundary clipping the shadow. Each .page applies its own
+  // padding (see PanelPager.module.scss) so widget content stays
+  // inside the safe area visually while shadows extend cleanly.
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  // Pages handle their own swipe gesture; the surface itself blocks
+  // both axes so Edge / WebView don't try to bounce-scroll the page.
+  touch-action: none;
+  overscroll-behavior: none;
+  // Prevent text selection and long-press context menu on the kiosk.
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.backgroundShader {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  overflow: hidden;
+  background: var(--panel-background-solid);
+}
+
+.backgroundShader[data-ready='true'] {
+  opacity: var(--panel-background-opacity, 0.4);
+}
+
+.backgroundShaderCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+@keyframes connectionIntroBackdrop {
+  0%, 18% { opacity: 1; }
+  72% { opacity: 0.22; }
+  100% { opacity: 0; }
+}
+
+@keyframes connectionIntroWidget {
+  0%, 18% {
+    opacity: 0;
+    transform: scale(0.46);
+    filter: blur(8px) saturate(0.82);
+  }
+  56% {
+    opacity: 0.82;
+    filter: blur(1px) saturate(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0) saturate(1);
+  }
+}
+
+@keyframes connectionIntroDockWidget {
+  0%, 18% {
+    opacity: 0;
+    transform: scale(0.46);
+    filter: blur(8px) saturate(0.82);
+  }
+  56% {
+    opacity: 0.82;
+    filter: blur(1px) saturate(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0) saturate(1);
+  }
+}
+
+@keyframes connectionIntroTray {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 120%);
+  }
+  16% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  76% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 120%);
+  }
+}
+
+.connectionIntroBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 48;
+  pointer-events: none;
+  background: var(--panel-background-solid, var(--bg, #0a0a10));
+  animation: connectionIntroBackdrop 980ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.connectionIntroTray {
+  position: absolute;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 66;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 7px;
+  width: min(360px, calc(100vw - max(32px, env(safe-area-inset-left)) - max(32px, env(safe-area-inset-right))));
+  max-width: 88vw;
+  min-height: 46px;
+  padding:
+    12px
+    max(18px, env(safe-area-inset-right))
+    12px
+    max(18px, env(safe-area-inset-left));
+  border: 1px solid var(--panel-accent);
+  border-radius: var(--radius-pill);
+  background: var(--panel-accent-soft);
+  color: var(--panel-accent-glow);
+  box-shadow: 0 18px 44px rgb(0 0 0 / var(--alpha-medium));
+  backdrop-filter: blur(20px) saturate(0.95);
+  -webkit-backdrop-filter: blur(20px) saturate(0.95);
+  box-sizing: border-box;
+  pointer-events: none;
+  animation: connectionIntroTray 1600ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.connectionIntroLabel {
+  @include text-label;
+  flex: 0 0 auto;
+  color: currentColor;
+  opacity: 0.72;
+}
+
+.connectionIntroName {
+  @include text-button;
+  min-width: 0;
+  overflow: hidden;
+  color: currentColor;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panelRoot[data-theme='light'] .connectionIntroTray {
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.16);
+}
+
+.panelRoot[data-connection-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) {
+  transform-origin: center;
+  animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.panelRoot[data-connection-intro='active'] .panelDockPosition [data-panel-widget-id] {
+  transform-origin: center;
+  animation: connectionIntroDockWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connectionIntroBackdrop {
+    animation: none;
+    opacity: 0;
+  }
+
+  .connectionIntroTray {
+    animation: none;
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  .panelRoot[data-connection-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell),
+  .panelRoot[data-connection-intro='active'] .panelDockPosition [data-panel-widget-id] {
+    animation: none;
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+// Grid with explicit 4-column layout. Uses `minmax(0, 1fr)` so cells can
+// shrink below their content width when the viewport is narrower than
+// 4 × cell-size + 3 × gap (happens on the Y70 portrait panel).
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--panel-columns), minmax(0, 1fr));
+  grid-auto-rows: var(--panel-row-size, var(--panel-cell-size, 172px));
+  // grid-auto-flow defaults to `row` (no dense backfill). Visual order
+  // matches flat order, which the projected-layout strategy and
+  // paginate() rely on. Do NOT set `dense` here - later small widgets
+  // would slide into earlier gaps and break drag-and-drop predictability.
+  gap: var(--panel-gap, 10px);
+  width: 100%;
+}
+
+.panelScroller {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  position: relative;
+}
+
+// Stage hosts the pager (one page = one viewport) plus an optional dock
+// rail. data-orientation flips the dock from the bottom to the right.
+.panelStage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+// Hosts the editor-docked widget cell rendered via portal. Lives at the
+// panel-root level - i.e. outside the pager track - so the docked
+// cell's `position: fixed` anchors to the viewport even when the active
+// page is page 2+ (where the track has a transform that would otherwise
+// trap fixed descendants).
+.editorDockPortal {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  // Children (the docked cell) opt back into pointer events via their
+  // own rules; this wrapper just provides an untransformed anchor.
+}
+.editorDockPortal > * {
+  pointer-events: auto;
+}
+
+.panelStage[data-orientation='landscape'][data-dock-active='true'] {
+  flex-direction: row;
+}
+
+.panelStagePages {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panelDockPosition {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--panel-gap, 8px) 0 0;
+}
+
+.panelDockPosition[data-orientation='landscape'] {
+  padding: 0 0 0 var(--panel-gap, 8px);
+}
+
+.panelPageIndicatorPosition {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  z-index: 30;
+  pointer-events: none;
+}
+
+.panelPageIndicatorPosition[data-orientation='landscape'] {
+  left: auto;
+  right: 8px;
+  bottom: 50%;
+  transform: translateY(50%);
+}
+
+.panelRoot[data-surface='phone'] {
+  --panel-columns: 4;
+  --panel-rows: 4;
+  --panel-gap: 8px;
+  --panel-widget-scale: 1;
+  --panel-card-radius: var(--radius-lg);
+  --panel-actions-height: 58px;
+  --panel-safe-top: max(8px, env(safe-area-inset-top));
+  --panel-safe-right: max(8px, env(safe-area-inset-right));
+  --panel-safe-bottom: max(8px, env(safe-area-inset-bottom));
+  --panel-safe-left: max(8px, env(safe-area-inset-left));
+  --panel-page-padding: var(--panel-safe-left);
+  --panel-page-padding-top: var(--panel-safe-top);
+  --panel-page-padding-right: var(--panel-safe-right);
+  --panel-page-padding-bottom: var(--panel-safe-bottom);
+  --panel-page-padding-left: var(--panel-safe-left);
+  --panel-cell-size: calc((100vw - var(--panel-safe-left) - var(--panel-safe-right) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
+  min-height: 100dvh;
+  height: 100dvh;
+  // Padding lives inside each .page now (see PanelPager), so the pager's
+  // overflow boundary sits at the actual surface edge and widget shadows
+  // can extend into the safe-area zone without being clipped.
+  padding: 0;
+  touch-action: none;
+  overscroll-behavior: auto;
+}
+
+.panelRoot[data-surface='q60'] {
+  --panel-columns: 2;
+  --panel-rows: 4;
+  --panel-gap: 8px;
+  --panel-page-padding: 8px;
+  --panel-page-padding-top: 8px;
+  --panel-page-padding-right: 8px;
+  --panel-page-padding-bottom: 8px;
+  --panel-page-padding-left: 8px;
+  --panel-card-radius: var(--radius-lg);
+  --panel-cell-size: calc((100vw - 2 * var(--panel-page-padding) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
+  --panel-row-size: calc((100dvh - 2 * var(--panel-page-padding) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
+  --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100dvh;
+  padding: 0;
+  overflow: hidden;
+}
+
+.panelRoot[data-surface='q60'] .panelScroller {
+  min-height: 0;
+  height: 100%;
+}
+
+.panelRoot[data-surface='q60'] .grid {
+  height: calc(var(--panel-rows) * var(--panel-row-size) + (var(--panel-rows) - 1) * var(--panel-gap));
+}
+
+.panelRoot[data-surface='q60'] .panelActions {
+  display: none;
+}
+
+.panelRoot[data-surface='desktop'] {
+  --panel-columns: 8;
+  --panel-rows: 8;
+  --panel-gap: 10px;
+  --panel-page-padding: 16px;
+  --panel-page-padding-top: 16px;
+  --panel-page-padding-right: 16px;
+  --panel-page-padding-bottom: 16px;
+  --panel-page-padding-left: 16px;
+  --panel-card-radius: var(--radius);
+  --panel-font: var(--font-sans);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: transparent;
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+.panelRoot[data-surface='desktop'] .panelStage {
+  height: calc(100% - var(--panel-desktop-actions-height, 74px));
+}
+
+.panelRoot[data-surface='desktop'] .grid {
+  grid-template-columns: repeat(var(--panel-columns), var(--panel-cell-size));
+  width: auto;
+  align-self: flex-start;
+  justify-content: start;
+  position: relative;
+}
+
+.panelRoot[data-surface='phone'][data-context-menu-open='true'],
+.panelRoot[data-surface='phone'][data-editing='true'] {
+  overflow: hidden;
+  touch-action: none;
+}
+
+@media (orientation: landscape) {
+  .panelRoot[data-surface='phone'] {
+    --panel-landscape-height: max(100vh, 100dvh);
+    --panel-safe-bottom: var(--panel-safe-top);
+    // In landscape on a phone surface, cell size derives from the
+    // height (short axis after rotation). The pager + dock layout
+    // owns the horizontal axis so we don't scroll the surface.
+    --panel-cell-size: calc((var(--panel-landscape-height) - var(--panel-safe-top) - var(--panel-safe-bottom) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
+    min-height: var(--panel-landscape-height);
+    height: var(--panel-landscape-height);
+    padding-bottom: var(--panel-safe-bottom);
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+}
+
+// On the Y70 portrait panel (734x1707 CSS @ 1.5x DPR), derive the cell size
+// from viewport width so rows match columns (square cells). This keeps widget
+// content proportions identical to the catalog card previews.
+@media (max-width: 800px) and (min-height: 1500px) {
+  .panelRoot {
+    --panel-gap: 8px;
+    --panel-page-padding: 8px;
+    --panel-page-padding-top: 8px;
+    --panel-page-padding-right: 8px;
+    --panel-page-padding-bottom: 8px;
+    --panel-page-padding-left: 8px;
+    --panel-cell-size: calc((100vw - 2 * var(--panel-page-padding) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
+  }
+}
+
+// Wraps each grid cell so we can stack the widget bounding box (.cell card)
+// and an iOS-style underline label below it. The wrapper holds the grid
+// placement, the dnd-kit transform, and any ambient state (drag z-index,
+// context-menu dim) that should affect the whole cell + label unit. The
+// inner .cell still owns the press hint, rearrange shake, and editor dock
+// motion so those visual effects stay attached to the rounded card only.
+.cellWrap {
+  // `position: relative` so the label strip sits in the same stacking
+  // context as `<PanelBackgroundShader>` (position: fixed, z-index: 0).
+  // Without it the shader paints over the label in animation mode while
+  // the cell card (panel-card has its own position: relative) still
+  // shows above it.
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+  // The dnd-kit transition + transform are applied inline; this default
+  // covers the un-tracked case so the press feedback on the underlying
+  // cell does not jitter the wrapper. Opacity + filter transitions match
+  // the values that lived on .cell pre-wrap so the context-menu dim
+  // (which now applies to the wrapper) still cross-fades smoothly.
+  transition:
+    transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 140ms ease-out,
+    filter 140ms ease-out;
+}
+
+// When the inner cell is portaled into the editor-dock layer, the wrapper
+// remains in the grid as an empty placeholder. Hide the label so a stray
+// title does not appear under nothing.
+.cellWrap[data-cell-state='docked'] > .cellLabelStrip {
+  visibility: hidden;
+}
+
+.cellLabelStrip {
+  flex: 0 0 auto;
+}
+
+.cell {
+  --panel-press-duration: var(--ease-fast);
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transform-origin: center;
+  // Layout-level insets on the cell card. Margin (not transform) so
+  // descendants stay at 1:1 aspect.
+  margin:
+    0
+    var(--panel-widget-card-margin-x, 0px)
+    var(--panel-widget-card-bottom-gap, 0px);
+  // touch-action: none on the cell so a long-press + vertical drag is
+  // not hijacked by the browser's pan-y scroll gesture. Without this,
+  // the second pointermove arrives as pointercancel and dnd-kit's
+  // drag never commits. Widget scroll panes opt back into pan-y via
+  // [data-panel-scrollable="true"].
+  touch-action: none;
+  // iOS WKWebView aggressively triggers the text-selection magnifier
+  // and the long-press callout (Look Up, Share, Copy) on any held
+  // touch over text content. Suppressing both at the cell boundary
+  // (and on every descendant) keeps the long-press belonging to OUR
+  // context-menu / drag pipeline instead of iOS's.
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+
+  [data-panel-scrollable='true'] {
+    touch-action: pan-y;
+  }
+}
+
+// iOS selectively re-enables selection on text-rendering descendants
+// even when an ancestor sets user-select: none. Re-stamp on every
+// descendant so the suppression is unconditional inside a cell.
+.cell * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+
+// Two-class specificity so the global `.panel-card` rule in tokens.scss (which
+// declares `transition: background-color 300ms` and is loaded later in the
+// cascade) does not blow away the transform transition via shorthand reset.
+// `background-color` is preserved here so the cell still cross-fades on theme
+// switches.
+//
+// :not() exclusions: cells in those states have transforms driven elsewhere
+// (dnd-kit inline styles for rearrange, CSS @keyframes for dock in/out). If
+// the transition fires concurrently with those, the transform value is being
+// targeted by two systems and the result reads as a glitch / repeated tween.
+.panelRoot .cell:not(.cellRearranging):not(.cellEditorDocked):not(.cellEditorDockClosing):not(.cellResizeMotion) {
+  transition:
+    transform var(--panel-press-duration) cubic-bezier(0.32, 0.72, 0, 1),
+    background-color var(--ease-slow),
+    box-shadow var(--ease-fast) ease-out,
+    border-color var(--ease-fast) ease-out,
+    opacity 140ms ease-out,
+    filter 140ms ease-out;
+}
+
+.panelRoot[data-background-mode='shader'] .cell {
+  backdrop-filter: blur(10px);
+}
+
+.panelRoot[data-surface='phone'] .cell {
+  // Must match PRESS_SHRINK_MS in usePanelTouchMode.ts.
+  --panel-press-duration: var(--ease-slow);
+}
+
+.panelRoot[data-surface='phone'] .cellPressHint {
+  transform: scale(0.982);
+  border-color: var(--panel-accent-soft);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.26),
+    0 0 0 1px var(--panel-accent-soft);
+}
+
+.cellContextDimmed {
+  opacity: 0.5;
+  filter: brightness(0.58) saturate(0.72) blur(0.5px);
+}
+
+// Dashboard clickthrough widgets (monitoring / lighting / cooling): a click
+// jumps to the matching sidebar section instead of opening immersive. The
+// cell gets a hover lift so it reads as a tappable shortcut, mirroring the
+// MonitoringView .detailRow:hover treatment. Pointer-only so phone / y70
+// surfaces never end up with sticky-touch hover state.
+.cellWrap[data-clickthrough='true'] {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .cellWrap[data-clickthrough='true']:hover .cell {
+    background: var(--panel-accent-soft);
+    border-color: var(--panel-accent);
+    box-shadow:
+      0 10px 24px rgb(0 0 0 / var(--alpha-faint)),
+      0 0 0 1px var(--panel-accent-soft);
+  }
+}
+
+@keyframes widgetEditorDockIn {
+  from {
+    transform:
+      translate(var(--panel-editor-dock-start-x, 0), var(--panel-editor-dock-start-y, 0))
+      scale(var(--panel-editor-dock-start-scale-x, 1), var(--panel-editor-dock-start-scale-y, 1));
+  }
+  to { transform: translate(0, 0) scale(1); }
+}
+
+@keyframes widgetEditorDockOut {
+  from { transform: translate(0, 0) scale(1); }
+  to {
+    transform:
+      translate(var(--panel-editor-dock-start-x, 0), var(--panel-editor-dock-start-y, 0))
+      scale(var(--panel-editor-dock-start-scale-x, 1), var(--panel-editor-dock-start-scale-y, 1));
+  }
+}
+
+// Scale widget content so text/icons fill the same proportion of the cell
+// regardless of cell size. Reference: 90px per grid unit (matches the editor
+// preview in InlineWidgetSettings). tan(atan2(a,b)) computes a/b as unitless.
+//
+// The cellScaler now fills the cell card's actual visible rectangle minus
+// a static inner padding on all four sides. The scale `--_s` stays uniform
+// (based on the cell-size reference) so children inside still render at
+// 1:1 aspect - what changes is the cellScaler's RECT shape: it matches
+// the card aspect, so widget flex/grid layouts get to spread their
+// internal elements (e.g. lighting buttons) into the wider rectangle
+// without any axis distortion. Inner padding is the SAME absolute pixels
+// on top/right/bottom/left, every widget size.
+.cellScaler {
+  --_content: var(--panel-content-scale, var(--panel-cell-size, 172px));
+  --_cols: var(--panel-span-cols, 1);
+  --_rows: var(--panel-span-rows, 1);
+  --_gap: var(--panel-gap, 10px);
+  --_margin-x: var(--panel-widget-card-margin-x, 0px);
+  --_label-strip: var(--panel-widget-label-strip, 0px);
+  --_bottom-gap: var(--panel-widget-card-bottom-gap, 0px);
+  --_inner-pad: var(--panel-widget-card-inner-pad, 0px);
+  // Card visible box and inner area (card minus uniform inner padding).
+  --_grid-w: calc(var(--_cols) * var(--_content) + (var(--_cols) - 1) * var(--_gap));
+  --_grid-h: calc(var(--_rows) * var(--_content) + (var(--_rows) - 1) * var(--_gap));
+  --_card-w: calc(var(--_grid-w) - 2 * var(--_margin-x));
+  --_card-h: calc(var(--_grid-h) - var(--_label-strip) - var(--_bottom-gap));
+  --_inner-w: calc(var(--_card-w) - 2 * var(--_inner-pad));
+  --_inner-h: calc(var(--_card-h) - 2 * var(--_inner-pad));
+  --_s: tan(atan2(var(--_content), 90px));
+  width: calc(var(--_inner-w) / var(--_s));
+  height: calc(var(--_inner-h) / var(--_s));
+  transform: scale(var(--_s));
+  transform-origin: center center;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panelRoot[data-surface='phone'] .cellScaler {
+  --_s: var(--panel-widget-scale);
+}
+
+.panelRoot[data-surface='phone'] .cellEditorDocked,
+.panelRoot[data-surface='desktop'] .cellEditorDocked {
+  position: fixed;
+  // Above the safe-area scrim (z 140) so the focused widget reads sharp on
+  // top of the backdrop blur. The editor sheet (z 230) sits above this so a
+  // 4x4 widget docked in the 4x2 detent is overlaid by the drawer, not the
+  // other way around.
+  z-index: 200;
+  top: var(--panel-editor-dock-top, max(8px, env(safe-area-inset-top)));
+  left: var(--panel-editor-dock-left, 50%);
+  width: var(--panel-editor-dock-width, calc(var(--panel-editor-dock-cols) * var(--panel-cell-size) + (var(--panel-editor-dock-cols) - 1) * var(--panel-gap)));
+  height: var(--panel-editor-dock-height, calc(var(--panel-editor-dock-rows) * var(--panel-cell-size) + (var(--panel-editor-dock-rows) - 1) * var(--panel-gap)));
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  transform-origin: top left;
+  animation: widgetEditorDockIn var(--ease) ease-out both;
+  // When the user picks a new size from the edit drawer's size picker, the
+  // CSS dock variables update and the cell smoothly retargets the new span
+  // (matching the transition you get from the rearrange context menu).
+  transition:
+    width 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    height 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    top 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    left 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  will-change: transform;
+}
+
+.cellResizeMotion {
+  position: relative;
+  z-index: 90;
+  transform-origin: top left;
+  animation: widgetEditorDockIn 220ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.panelRoot[data-surface='phone'] .cellEditorDockClosing,
+.panelRoot[data-surface='desktop'] .cellEditorDockClosing {
+  animation: widgetEditorDockOut var(--ease) ease-out both;
+  pointer-events: none;
+}
+
+// Reserves the docked cell's grid slot so neighbours don't reflow under the
+// blur while the cell is hoisted to fixed positioning.
+.cellSlotPlaceholder {
+  visibility: hidden;
+  pointer-events: none;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panelRoot[data-surface='phone'] .cellEditorDocked .cellScaler {
+  --_s: var(--panel-widget-scale, tan(atan2(var(--panel-cell-size, 172px), 90px)));
+}
+
+.panelActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--panel-gap, 10px);
+  width: 100%;
+  margin-top: var(--panel-gap, 10px);
+  margin-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+.panelRoot[data-surface='phone'] .panelActions {
+  margin-bottom: 0;
+}
+
+.panelActionsWithPairing {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 64px;
+}
+
+.panelRoot[data-surface='phone'] .panelActionButton {
+  min-height: 46px;
+}
+
+@media (orientation: landscape) {
+  .panelRoot[data-surface='phone'] .panelActions {
+    grid-template-columns: minmax(0, 1fr);
+    align-self: flex-end;
+    flex: 0 0 auto;
+    width: clamp(94px, calc(var(--panel-cell-size) * 1.2), 132px);
+    min-height: var(--panel-actions-height);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .panelRoot[data-surface='phone'] .panelActionsWithPairing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.panelActionButton {
+  @include text-button;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 54px;
+  border: 1px dashed var(--panel-border);
+  border-radius: var(--panel-card-radius, 16px);
+  background: var(--panel-control-bg);
+  color: var(--panel-text-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    transform: scale(0.99);
+    background: var(--panel-control-bg-hover);
+  }
+}
+
+.panelActionButtonCompact {
+  @include text-caption;
+  min-width: 0;
+  min-height: 54px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 4px;
+  line-height: 1;
+  letter-spacing: 0;
+
+  span {
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.editorBackdrop {
+  --panel-columns: 4;
+  --panel-rows: 4;
+  --panel-gap: 8px;
+  --panel-card-radius: var(--radius);
+  --panel-page-padding: max(8px, env(safe-area-inset-left));
+  --panel-cell-size: calc((100vw - 2 * var(--panel-page-padding) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
+  --panel-editor-dock-cols: 4;
+  --panel-editor-dock-rows: 4;
+  --panel-editor-dock-width: calc(var(--panel-editor-dock-cols) * var(--panel-cell-size) + (var(--panel-editor-dock-cols) - 1) * var(--panel-gap));
+  --panel-editor-dock-height: calc(var(--panel-editor-dock-rows) * var(--panel-cell-size) + (var(--panel-editor-dock-rows) - 1) * var(--panel-gap));
+  --panel-font: 'Lexend', system-ui, sans-serif;
+  position: fixed;
+  inset: 0;
+  // No z-index on the backdrop: it must NOT form a stacking context, so the
+  // child .editorSheet (z 230 below) can paint above the docked widget (z 200)
+  // when the drawer is anchored higher than the widget's full height.
+  background: var(--panel-scrim-bg);
+  backdrop-filter: blur(11px);
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  font-family: var(--panel-font, 'Lexend', system-ui, sans-serif);
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
+  animation: scrimIn 140ms ease-out both;
+}
+
+.editorBackdrop[data-surface='q60'] {
+  --panel-columns: 2;
+  --panel-rows: 4;
+  --panel-gap: 8px;
+  --panel-page-padding: 8px;
+  --panel-cell-size: calc((100vw - 2 * var(--panel-page-padding) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
+  --panel-row-size: calc((100dvh - 2 * var(--panel-page-padding) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
+  --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
+}
+
+.editorBackdrop[data-surface='desktop'] {
+  --panel-columns: 8;
+  --panel-rows: 6;
+  --panel-gap: 10px;
+  --panel-page-padding: 16px;
+  --panel-card-radius: var(--radius);
+  --panel-font: var(--font-sans);
+  background: color-mix(in srgb, var(--bg) 58%, transparent);
+}
+
+.editorBackdrop[data-surface='desktop'] .editorSheet {
+  width: min(440px, 92vw);
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border);
+}
+
+.editorBackdrop[data-surface='phone'][data-mode='settings'] {
+  background: rgb(0 0 0 / var(--alpha-medium));
+  backdrop-filter: blur(10px);
+}
+
+@media (orientation: landscape) {
+  .editorBackdrop[data-surface='phone'] .editorSheet {
+    padding-bottom: 8px;
+  }
+}
+
+.editorBackdrop[data-state='closing'] {
+  pointer-events: none;
+  // Match the sheet's close duration: if scrim faded faster (it was var(--ease)
+  // while the sheet animates 220-240ms), the sheet inherits opacity 0 from
+  // its DOM parent and the slide-out becomes invisible halfway through.
+  animation: scrimOut 240ms ease-out both;
+}
+
+.editorSheet {
+  position: relative;
+  // Above the docked widget (z 200) so that on small screens, when the drawer
+  // is anchored at the 4x2 detent, it overlays the bottom of taller widgets
+  // instead of being covered by them. Below offline overlay (z 250).
+  z-index: 230;
+  width: min(380px, 88vw);
+  max-width: 100vw;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-sheet-bg);
+  border-left: 1px solid var(--panel-border);
+  box-shadow: -24px 0 60px rgb(0 0 0 / var(--alpha-medium));
+  color: var(--panel-text);
+  padding:
+    max(14px, env(safe-area-inset-top))
+    max(14px, env(safe-area-inset-right))
+    max(14px, env(safe-area-inset-bottom))
+    14px;
+  box-sizing: border-box;
+  animation: sheetIn 170ms ease-out both;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  will-change: transform;
+}
+
+.editorBackdrop[data-state='closing'] .editorSheet {
+  animation: sheetOut var(--ease) ease-out both;
+}
+
+// Inline transform from the swipe-to-dismiss gesture overrides any active
+// keyframe animation. `dragging` follows the finger 1:1 (no transition),
+// `settling` springs back to rest (or off-screen, on dismiss) over a fixed
+// duration before the host removes the sheet.
+.editorSheet[data-drag] {
+  animation: none !important;
+}
+
+.editorSheet[data-drag='settling'] {
+  transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+// Once the entry keyframe has finished playing on initial mount, suppress
+// further animations so toggling [data-drag] (drag start/end) doesn't restart
+// the entry animation. The closing keyframe on [data-state='closing'] has
+// higher specificity and still wins for the X-button close path.
+.editorSheet[data-entered='true'] {
+  animation: none;
+}
+
+// Small grabber pill at the top center of the sheet, signaling that it can
+// be swiped down. Only shown for bottom-anchored sheets (mobile/Y70 width)
+// where the swipe gesture is wired up.
+.editorSheetGrabber {
+  display: none;
+}
+
+.editorHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
+}
+
+.editorTitle {
+  @include text-heading;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--panel-text);
+}
+
+.editorIconButton,
+.removeButton {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: var(--panel-control-bg);
+  color: var(--panel-text-muted);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.removeButton {
+  color: #f87171;
+}
+
+.settingsBody {
+  min-height: 0;
+  overflow-y: auto;
+  @include scrollbar-visible($thumb: var(--panel-border), $thumb-hover: var(--panel-border-strong));
+}
+
+.dockToggleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.dockToggleLabel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dockToggleTitle {
+  @include text-button;
+  color: var(--panel-text);
+}
+
+.dockToggleHint {
+  @include text-caption;
+  color: var(--panel-text-faint);
+}
+
+.dockToggleSwitch {
+  flex-shrink: 0;
+  position: relative;
+  width: 46px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, white 12%, transparent);
+  border: 1px solid color-mix(in srgb, white 16%, transparent);
+  cursor: pointer;
+  transition: background var(--ease) ease, border-color var(--ease) ease;
+  padding: 0;
+}
+
+.dockToggleSwitch[data-on='true'] {
+  background: var(--panel-accent);
+  border-color: var(--panel-accent);
+}
+
+.dockToggleSwitchThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: white;
+  transition: transform var(--ease) cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: 0 1px 2px rgb(0 0 0 / var(--alpha-medium));
+}
+
+.dockToggleSwitch[data-on='true'] .dockToggleSwitchThumb {
+  transform: translateX(20px);
+}
+
+.editorActions {
+  --widget-control-title-color: var(--panel-text-faint);
+  --icon-label-button-height: 36px;
+  --icon-label-button-min-width: 36px;
+  --icon-label-button-padding-x: 0;
+  --icon-label-button-padding-y: 0;
+  --icon-label-button-gap: 0;
+  --icon-label-button-radius: 8px;
+  --icon-label-button-border: var(--panel-border);
+  --icon-label-button-bg: var(--panel-control-bg);
+  --icon-label-button-bg-hover: var(--panel-element-bg-hover);
+  --icon-label-button-text: var(--panel-text-muted);
+  --icon-label-button-text-hover: var(--panel-text);
+  --icon-label-button-active-border: var(--panel-accent);
+  --icon-label-button-active-bg: var(--panel-accent-soft);
+  --icon-label-button-active-text: var(--panel-text);
+  --icon-label-icon-size: 21px;
+  --icon-label-label-size: 10px;
+
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0 0;
+  flex-shrink: 0;
+}
+
+.controlPicker {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.editorControlButton {
+  flex: 0 0 auto;
+}
+
+.settingsBody {
+  padding: 12px 2px 0 0;
+  flex: 1;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.panelSettingsTabs {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 10px 0 0;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.panelSettingsTab {
+  @include text-button;
+  position: relative;
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--panel-text-muted);
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.panelSettingsTabActive {
+  color: var(--panel-text);
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: -1px;
+    height: 2px;
+    border-radius: var(--radius-pill);
+    background: var(--panel-accent);
+    box-shadow: 0 0 12px var(--panel-accent-shadow);
+  }
+}
+
+.settingsEmpty {
+  @include text-button;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  color: var(--panel-text-faint);
+}
+
+@keyframes scrimIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to { opacity: 1; }
+}
+
+@keyframes scrimOut {
+  from { opacity: 1; }
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+}
+
+@keyframes sheetIn {
+  from { transform: translateX(28px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes sheetOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(28px); opacity: 0; }
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes sheetDown {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+@media (max-width: 900px) {
+  // Bottom-sheet layout is for the panel surfaces (phone / Y70 / Q60). The
+  // dashboard's embedded panel uses data-surface='desktop' and must keep its
+  // side-drawer layout at every width, so each rule below scopes itself out
+  // of that surface.
+  .editorBackdrop:not([data-surface='desktop']) {
+    align-items: flex-end;
+    justify-content: stretch;
+  }
+
+  .editorBackdrop:not([data-surface='desktop']) .editorSheet {
+    width: 100%;
+    height: auto;
+    max-height: min(76dvh, 760px);
+    border-left: 0;
+    border-top: 1px solid var(--panel-border);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -24px 60px rgb(0 0 0 / var(--alpha-medium));
+    animation: sheetUp 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
+    padding-top: 18px;
+  }
+
+  .editorBackdrop:not([data-surface='desktop'])[data-state='closing'] .editorSheet {
+    animation: sheetDown 220ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  .editorBackdrop:not([data-surface='desktop']) .editorSheetGrabber {
+    display: block;
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--panel-text-faint) 60%, transparent);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .editorBackdrop[data-surface='phone'][data-mode='settings'] .editorSheet {
+    // Pin the top edge at the 2-row (4x2) detent so the drawer always slides
+    // up to the same Y regardless of the widget being edited. Taller widgets
+    // (4x4) render at full size and are partially overlapped by the drawer,
+    // matching iOS modal-sheet behavior.
+    position: absolute;
+    top: calc(max(8px, env(safe-area-inset-top)) + 2 * var(--panel-cell-size) + var(--panel-gap) + 24px);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: auto;
+    max-height: none;
+    padding-top: 14px;
+  }
+
+  .editorBackdrop[data-surface='phone'][data-mode='catalog'] .editorSheet,
+  .editorBackdrop[data-surface='phone'][data-mode='panelSettings'] .editorSheet {
+    height: calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));
+    max-height: none;
+    margin-bottom: max(8px, env(safe-area-inset-bottom));
+    border-radius: 0;
+    padding:
+      14px
+      max(14px, env(safe-area-inset-right))
+      14px
+      max(14px, env(safe-area-inset-left));
+  }
+
+}
+
+@media (orientation: landscape) {
+  .editorBackdrop[data-surface='phone'] {
+    --panel-cell-size: min(
+      calc((100vw - 2 * var(--panel-page-padding) - 7 * var(--panel-gap)) / 8),
+      calc((100dvh - 2 * var(--panel-page-padding) - 3 * var(--panel-gap)) / 4)
+    );
+  }
+
+  .editorBackdrop[data-surface='phone'][data-mode='settings'] {
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+
+  .editorBackdrop[data-surface='phone'][data-mode='settings'] .editorSheet {
+    // Reset the portrait absolute-positioning so landscape uses flex layout.
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: min(380px, calc(100vw - var(--panel-editor-dock-width) - max(40px, 4 * var(--panel-page-padding))));
+    height: 100%;
+    max-height: none;
+    border-top: 0;
+    border-left: 1px solid var(--panel-border);
+    border-radius: 0;
+    box-shadow: -24px 0 60px rgb(0 0 0 / var(--alpha-medium));
+    // Side-drawer entrance: short horizontal slide, not the bottom-sheet
+    // travel used by portrait/full-screen layouts.
+    animation: sheetIn 170ms ease-out both;
+  }
+
+  .editorBackdrop[data-surface='phone'][data-mode='settings'][data-state='closing'] .editorSheet {
+    animation: sheetOut var(--ease) ease-out both;
+  }
+
+  .editorBackdrop[data-surface='phone'][data-mode='catalog'],
+  .editorBackdrop[data-surface='phone'][data-mode='panelSettings'] {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .editorBackdrop[data-surface='phone'][data-mode='catalog'] .editorSheet,
+  .editorBackdrop[data-surface='phone'][data-mode='panelSettings'] .editorSheet {
+    width: calc(100vw - max(8px, env(safe-area-inset-left)) - max(8px, env(safe-area-inset-right)));
+    height: calc(100dvh - max(8px, env(safe-area-inset-top)) - 8px);
+    max-height: none;
+    margin:
+      max(8px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      8px
+      max(8px, env(safe-area-inset-left));
+    border-top: 0;
+    border-left: 0;
+    border-radius: 0;
+    animation-name: sheetUp;
+    padding:
+      14px
+      max(14px, env(safe-area-inset-right))
+      14px
+      max(14px, env(safe-area-inset-left));
+  }
+
+  .editorBackdrop[data-surface='phone'][data-mode='catalog'][data-state='closing'] .editorSheet,
+  .editorBackdrop[data-surface='phone'][data-mode='panelSettings'][data-state='closing'] .editorSheet {
+    animation-name: sheetDown;
+  }
+}
+
+.gridRearranging {
+  touch-action: none;
+}
+
+.cellRearranging {
+  outline: 2px dashed var(--panel-accent);
+  outline-offset: -2px;
+  cursor: grab;
+  animation: rearrangePulse 1.2s ease-in-out infinite;
+
+  &:active { cursor: grabbing; }
+}
+
+// Source cell while a drag overlay is floating its visual at the
+// cursor. Hidden so the user sees the slot it came from rather than
+// a duplicate. Pulse animation paused so the empty outline doesn't
+// distract.
+.cellDragSource {
+  opacity: 0;
+  animation: none;
+  pointer-events: none;
+}
+
+// Wrapper rendered inside @dnd-kit's DragOverlay (portaled to
+// document.body). Carries the panel-root context (theme tokens,
+// data-surface) so the floating clone matches the in-grid cell.
+.dragOverlayHost {
+  display: inline-block;
+  pointer-events: none;
+  // panel-root ships with width/height: 100vw/100vh which would push
+  // the overlay across the whole viewport. Reset to fit-content here.
+  width: auto;
+  height: auto;
+  background: transparent;
+  overflow: visible;
+}
+
+.dragOverlayCell {
+  // Subtle lift via shadow only - DO NOT add a transform on the inner
+  // cell. The cellScaler already applies its own scale based on
+  // --panel-widget-scale, and a wrapper transform would compound with
+  // that (the overlay would render at scale^2 of the in-grid sibling).
+  cursor: grabbing;
+
+  > .cell {
+    box-shadow: 0 24px 48px rgb(0 0 0 / var(--alpha-medium)), 0 0 0 1px var(--panel-border);
+  }
+}
+
+@keyframes rearrangePulse {
+  0%, 100% { outline-color: var(--panel-accent); }
+  50% { outline-color: var(--panel-border); }
+}
+
+.missing {
+  outline: 2px dashed rgba(248, 113, 113, 0.5);
+  background: rgba(60, 20, 20, 0.5);
+}
+
+// Debug banner across the top - shows viewport + widget count so we can
+// diagnose remotely. Small enough to not steal much vertical space.
+.debugBanner {
+  @include text-label;
+  color: var(--panel-text-faint);
+  padding: 2px 8px 8px;
+  text-align: center;
+  background: var(--panel-element-bg);
+}
+
+.loading {
+  @include text-body;
+  position: relative;
+  z-index: 1;
+  padding: 40px;
+  color: var(--panel-text-faint);
+  text-align: center;
+}

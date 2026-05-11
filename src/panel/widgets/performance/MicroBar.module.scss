@@ -1,0 +1,61 @@
+@use '../../../styles/text' as *;
+
+.row {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label {
+  @include text-caption;
+
+  flex: 1;
+  min-width: 0;
+  color: var(--panel-text-faint);
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value {
+  @include text-numeric;
+
+  flex: 0 0 auto;
+  color: var(--panel-text);
+  white-space: nowrap;
+
+  // The shared `.panel-gauge-unit` token sizes the suffix relative to its
+  // parent's font-size, calibrated for the oversized gauge values. In a
+  // Micro row the value rides the smaller numeric token, so pin the unit
+  // directly to the canonical sensor-units type token instead.
+  :global(.panel-gauge-unit) {
+    font-size: var(--type-tiny);
+  }
+}
+
+.track {
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--panel-border);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--panel-accent);
+  box-shadow: 0 0 6px var(--panel-accent-shadow);
+}

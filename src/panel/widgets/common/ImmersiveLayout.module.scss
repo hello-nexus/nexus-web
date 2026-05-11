@@ -1,0 +1,72 @@
+.pagerContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.indicator {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  z-index: 30;
+  pointer-events: none;
+}
+
+.layout {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  gap: var(--panel-gap, 8px);
+  // Single source of truth for immersive page padding. Per-widget
+  // immersive components (lighting, media, monitoring) inherit this -
+  // they MUST NOT add their own outer padding.
+  padding: 12px;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+// Portrait: stack cells vertically, each cell takes its share of the
+// height. With 1 cell + center, top + bottom padding makes it look
+// centred on a tall page.
+.layout[data-orientation='portrait'] {
+  flex-direction: column;
+}
+
+// Landscape: cells side by side.
+.layout[data-orientation='landscape'] {
+  flex-direction: row;
+}
+
+.layout[data-center='true'] {
+  align-items: center;
+  justify-content: center;
+}
+
+.cell {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  // Cells render edge to edge inside the immersive overlay; the
+  // background card chrome belongs to the widget's own content if
+  // wanted (most immersive content goes chromeless).
+}
+
+// When centred (one cell on a multi-cell page), don't expand the cell
+// to full height/width - keep it the same size as it would have if
+// stacked.
+.layout[data-center='true'] .cell {
+  flex: 0 1 auto;
+  height: 50%;
+  width: 100%;
+}
+
+.layout[data-orientation='landscape'][data-center='true'] .cell {
+  height: 100%;
+  width: 50%;
+}

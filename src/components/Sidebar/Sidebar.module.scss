@@ -1,0 +1,133 @@
+// Context-dependent sidebar nav section (used inside the sidebar column)
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 0.5rem;
+  flex: 1;
+}
+
+.navCompact {
+  padding: 0 0.5rem;
+}
+
+.serviceHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.75rem 0.5rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.serviceHeaderCompact {
+  padding: 0 0.5rem 0.5rem;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.sectionLabel {
+  padding: 0.5rem 0.75rem 0.25rem;
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  color: var(--text-faded);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
+  cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+  text-align: left;
+  text-decoration: none;
+  width: 100%;
+  position: relative;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+
+  &.active {
+    background: var(--accent-soft);
+    color: var(--text);
+
+    .icon {
+      color: var(--accent-glow);
+    }
+  }
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.statusIndicator {
+  margin-left: auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+
+  &.statusPulsing {
+    animation: statusPulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.label {
+  white-space: nowrap;
+}
+
+.extraGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 1.25rem;
+}
+
+.extraSectionLabel {
+  padding-top: 0;
+}
+
+.externalIcon {
+  margin-left: auto;
+  color: var(--text-faded);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.itemCompact {
+  justify-content: center;
+  padding: 0.6rem 0.75rem;
+  width: 100%;
+  gap: 0;
+
+  .statusIndicator {
+    position: absolute;
+    margin: 0;
+    top: 50%;
+    right: 2px;
+    transform: translateY(-50%);
+  }
+}

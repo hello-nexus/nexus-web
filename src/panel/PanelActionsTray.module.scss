@@ -1,0 +1,219 @@
+.handleZone {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  pointer-events: auto;
+  z-index: 50;
+}
+
+.handleHint {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, white 30%, transparent);
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity 220ms ease;
+}
+
+:global(.panel-root)[data-theme='light'] .handleHint {
+  background: color-mix(in srgb, black 25%, transparent);
+}
+
+.tray {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  // Honor safe-area insets on every side - in landscape on a notched
+  // phone the buttons would otherwise punch out under the notch /
+  // rounded corners. max() ensures we still have a visual gutter on
+  // devices with no inset.
+  padding:
+    10px
+    max(16px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  background: color-mix(in srgb, var(--panel-card-bg) 92%, transparent);
+  backdrop-filter: blur(20px) saturate(0.95);
+  -webkit-backdrop-filter: blur(20px) saturate(0.95);
+  border-top: 1px solid color-mix(in srgb, white 8%, transparent);
+  transform: translateY(100%);
+  transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 60;
+  box-sizing: border-box;
+}
+
+.tray[data-state='open'] {
+  transform: translateY(0);
+}
+
+.tray[data-state='dragging'] {
+  transition: none;
+}
+
+:global(.panel-root)[data-theme='light'] .tray {
+  border-top-color: color-mix(in srgb, black 8%, transparent);
+}
+
+:global(.panel-root)[data-surface='desktop'] .tray {
+  left: 16px;
+  right: 16px;
+  bottom: 0;
+  min-height: var(--panel-desktop-actions-height, 74px);
+  padding: 12px 0;
+  background: transparent;
+  border-top: 1px solid var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  justify-content: flex-end;
+  transform: translateY(100%);
+}
+
+:global(.panel-root)[data-surface='desktop'] .actionRow {
+  justify-content: flex-end;
+}
+
+// Desktop chrome already shows the host PC in the sidebar; the in-tray
+// label would be redundant there.
+:global(.panel-root)[data-surface='desktop'] .connectedTo {
+  display: none;
+}
+
+:global(.panel-root)[data-surface='desktop'] .tray[data-state='open'] {
+  transform: translateY(0);
+}
+
+:global(.panel-root)[data-surface='desktop'] .actionButton {
+  flex: 0 0 auto;
+  min-width: 148px;
+  min-height: 42px;
+  border-radius: var(--radius-sm);
+  border-color: var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--type-small);
+}
+
+:global(.panel-root)[data-surface='desktop'] .actionButton:hover,
+:global(.panel-root)[data-surface='desktop'] .actionButton:focus-visible {
+  background: var(--bg-card-hover);
+  border-color: var(--border-strong);
+}
+
+// "Connected to <PC>" header - sits above the action row inside the
+// tray so the user knows which machine the panel is bound to.
+.connectedTo {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  color: var(--panel-text);
+  line-height: 1.2;
+  padding: 2px 4px 4px;
+  min-width: 0;
+}
+
+.connectedLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--panel-text) 55%, transparent);
+  flex: 0 0 auto;
+}
+
+.connectedName {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.actionRow {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+}
+
+.actionButton {
+  flex: 1 1 0;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, white 10%, transparent);
+  background: color-mix(in srgb, white 5%, transparent);
+  color: var(--panel-text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.actionButton:hover,
+.actionButton:focus-visible {
+  background: color-mix(in srgb, white 10%, transparent);
+  border-color: color-mix(in srgb, white 20%, transparent);
+  outline: none;
+}
+
+.actionButton:active {
+  background: color-mix(in srgb, white 14%, transparent);
+}
+
+:global(.panel-root)[data-theme='light'] .actionButton {
+  border-color: color-mix(in srgb, black 12%, transparent);
+  background: color-mix(in srgb, black 4%, transparent);
+}
+
+.actionButton svg { flex-shrink: 0; }
+
+.actionButtonCompact {
+  flex: 0 0 auto;
+  width: 48px;
+  padding: 12px;
+}
+
+.actionButtonCompact span { display: none; }
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, black 32%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+  z-index: 55;
+}
+
+.scrim[data-visible='true'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+// During the swipe-to-open drag, opacity is driven by inline style and
+// must follow the finger 1:1 instead of easing.
+.scrim[data-dragging='true'] {
+  transition: none;
+}

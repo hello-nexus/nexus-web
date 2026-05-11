@@ -1,0 +1,21 @@
+.track {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-card-hover);
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+}
+
+.segOther {
+  height: 100%;
+  background: var(--border-strong);
+  flex-shrink: 0;
+}
+
+.segAccent {
+  height: 100%;
+  background: var(--accent);
+  flex-shrink: 0;
+}

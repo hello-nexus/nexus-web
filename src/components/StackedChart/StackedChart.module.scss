@@ -1,0 +1,103 @@
+.chartWrap {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 0.75rem;
+  overflow: visible;
+  width: 100%;
+  min-width: 0;
+}
+
+.chartTitleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.chartTitle {
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
+  color: var(--text);
+  min-width: 0;
+}
+
+.chartTitleRight {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.chart {
+  display: block;
+  cursor: crosshair;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-faded);
+  font-family: var(--font-mono);
+  font-size: var(--type-body);
+}
+
+.tooltip {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.85rem;
+  min-width: 220px;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 4px 20px rgb(0 0 0 / var(--alpha-medium));
+}
+
+.tooltipHeader {
+  font-family: var(--font-mono);
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
+  color: var(--text);
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+}
+
+.tooltipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.tooltipName {
+  flex: 1;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tooltipVal {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  font-weight: var(--weight-small);
+  color: var(--text);
+}

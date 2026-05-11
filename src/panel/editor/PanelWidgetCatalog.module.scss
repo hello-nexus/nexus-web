@@ -1,0 +1,45 @@
+@use '../../styles/scrollbar' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.search {
+  margin: 4px 0 12px;
+}
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+  @include scrollbar-visible($thumb: var(--panel-border), $thumb-hover: var(--panel-border-strong));
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 4px 2px 12px;
+  align-content: start;
+}
+
+.grid > [data-tile-span='wide'] {
+  grid-column: 1 / -1;
+}
+
+.desktop .grid {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.6rem;
+  padding: 0.25rem;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  padding: 32px 8px;
+  text-align: center;
+  color: var(--panel-text-muted);
+  font: 700 13px/1.4 var(--panel-font, 'Lexend', system-ui, sans-serif);
+}

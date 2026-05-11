@@ -1,0 +1,114 @@
+// Shared card used by both the animate shader grid and the media library grid.
+// The two grids pass the same card width (via their grid-template-columns
+// minmax), so visually the cards line up side-by-side in consistent columns.
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), background var(--ease-fast), transform 0.08s;
+  appearance: none;
+  text-align: inherit;
+  font: inherit;
+
+  &:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+}
+
+.cardActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+
+  &:hover { border-color: var(--accent); }
+}
+
+.thumbWrap {
+  position: relative;
+}
+
+.thumbImg {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  object-fit: cover;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.thumbSkeleton {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: linear-gradient(
+    100deg,
+    var(--bg-elevated) 0%,
+    var(--bg-card) 40%,
+    var(--bg-elevated) 80%
+  );
+  background-size: 200% 100%;
+  animation: thumbShimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes thumbShimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.audioBadge {
+  position: absolute;
+  bottom: 0.3rem;
+  right: 0.3rem;
+  color: rgba(255, 255, 255, 0.7);
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+  pointer-events: none;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.meta {
+  font-size: 0.62rem;
+  color: var(--text-faded);
+  font-family: var(--font-mono);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 0.15rem;
+}
+
+.deleteBtnSlot {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+}
+
+.card:hover [data-card-delete='hover'],
+.card:focus-within [data-card-delete='hover'] {
+  opacity: 1;
+  pointer-events: auto;
+}

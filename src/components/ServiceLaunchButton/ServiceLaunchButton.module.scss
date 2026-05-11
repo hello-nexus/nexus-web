@@ -1,0 +1,49 @@
+.button {
+  // Locked to the success-green token (matches the connected shield) so the
+  // button doesn't shift hue with the user's accent setting - "Launch" reads
+  // as a safe, ready-to-go action, not a brand-coloured CTA.
+  --launch-bg: var(--good);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 36px;
+  padding: 0 0.9rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--launch-bg);
+  color: white;
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter var(--ease-fast), transform 0.05s;
+
+  &:hover:not(:disabled) { filter: brightness(1.1); }
+  &:active:not(:disabled) { transform: translateY(1px); }
+  &:focus-visible { outline: 2px solid var(--launch-bg); outline-offset: 2px; }
+  &:disabled { cursor: progress; opacity: 0.85; }
+}
+
+.buttonIconOnly {
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+}
+
+.iconSpin {
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.label {
+  line-height: 1;
+}

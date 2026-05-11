@@ -1,0 +1,312 @@
+@use './scrollbar' as *;
+
+// Self-hosted Lexend variable font. Single woff2 per subset covers the full
+// 100..900 weight axis - smaller than 6 static weights and works offline
+// (kiosk + iOS WKWebView, where SPKI pinning blocks fonts.gstatic.com).
+// Subsets mirror Google's split: Latin handles ASCII + Western European,
+// Latin Extended adds Polish / Turkish / Czech glyphs, Vietnamese covers
+// the diacritic-heavy code points. CJK / Cyrillic locales fall back to
+// system fonts (Lexend has no CJK / Cyrillic masters).
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/lexend/lexend-latin.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/lexend/lexend-latin-ext.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/lexend/lexend-vietnamese.woff2') format('woff2-variations');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+
+@font-face {
+  font-family: 'Twemoji Country Flags';
+  src: url('/fonts/TwemojiCountryFlags.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+1F1E6-1F1FF;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: var(--weight-body);
+  line-height: 1.5;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-weight: var(--weight-heading);
+}
+
+a {
+  color: var(--accent-glow);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--accent);
+  }
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+// Visible by default across the desktop app. The panel/kiosk surface
+// (.panel-root) hides bars instead. Per-component @include scrollbar-visible
+// inside the panel still wins because :where(...) keeps the panel-scope rule
+// at 0 specificity, so any class-level opt-in beats it.
+* {
+  @include scrollbar-visible;
+}
+
+:where(.panel-root, .panel-root *) {
+  @include scrollbar-hidden;
+}
+
+// Range sliders: normalise the chrome across browsers so Safari (WebKit) on
+// macOS doesn't render its default pill thumb with a white halo ring. We
+// strip the native appearance and draw a minimal track + round thumb tinted
+// with the accent colour, matching the look Blink / Edge draw from
+// `accent-color` out of the box. The input element height drives the
+// pointer/touch hit area while the visible track stays thin via the
+// runnable-track pseudo - bigger here means easier to grab on touch panels
+// without changing the visual.
+input[type="range"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 40px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  // Sliders are horizontal controls. In panel sheets, ancestor surfaces use
+  // vertical pan gestures for scrolling and swipe-dismiss; letting the browser
+  // negotiate `manipulation` makes the range thumb unreliable near min/max.
+  touch-action: none;
+
+  // WebKit track
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    border: none;
+  }
+  // WebKit thumb - centered on a 4px track so margin-top = -(thumb-4)/2
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    box-shadow: none;
+    margin-top: -5px;
+    transition: transform var(--ease-fast) ease;
+  }
+  &:hover::-webkit-slider-thumb { transform: scale(1.1); }
+  &:active::-webkit-slider-thumb { transform: scale(1.15); }
+
+  // Firefox
+  &::-moz-range-track {
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    border: none;
+  }
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    box-shadow: none;
+  }
+  &:focus { outline: none; }
+  &:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  &:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}
+
+// "Level" style range slider. Activated by `data-fill` attribute on the
+// input plus `--slider-fill-start` / `--slider-fill-end` CSS custom
+// properties in inline style. Used by the `Slider` primitive when its
+// `trackFill` prop is set so brightness, opacity, volume, and bipolar
+// (center-out) controls all read the same. The two-stop gradient lets
+// the painted band start anywhere along the track, so a slider whose
+// range straddles zero fills from the midpoint outward toward the
+// value. Lives at the global scope so the rule reaches every chunk
+// that renders an `<input type="range" data-fill>`, not just the chunk
+// that owns Slider.module.scss.
+input[type="range"][data-fill] {
+  accent-color: auto;
+
+  // Both pseudo-elements share the same gradient so Firefox renders the
+  // band identically without a separate ::-moz-range-progress override
+  // (which only paints from track start to thumb and can't represent a
+  // centred band).
+  &::-webkit-slider-runnable-track,
+  &::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(
+      to right,
+      var(--border-strong) 0,
+      var(--border-strong) var(--slider-fill-start, 0%),
+      var(--accent-glow, var(--accent)) var(--slider-fill-start, 0%),
+      var(--accent-glow, var(--accent)) var(--slider-fill-end, 0%),
+      var(--border-strong) var(--slider-fill-end, 0%),
+      var(--border-strong) 100%
+    );
+  }
+  &::-webkit-slider-thumb {
+    background: var(--text);
+    box-shadow: var(--shadow-sm);
+    margin-top: -4px;
+  }
+  &::-moz-range-thumb {
+    background: var(--text);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+// Dual-knob mode. RangeSlider stacks two `<input type="range">` on top of a
+// painted track (gray underlay + colored band as separate divs) and tags each
+// input with `data-range-knob`. The inputs paint ONLY the thumb - the track is
+// transparent so the underlying band/underlay shows through and both thumbs
+// stack above the band. Pointer events are off on the input but on for the
+// thumb pseudo so each thumb is independently grabbable; the band itself is a
+// separate pointer target rendered by RangeSlider.module.scss.
+input[type="range"][data-range-knob] {
+  pointer-events: none;
+  background: transparent;
+
+  &::-webkit-slider-runnable-track { background: transparent; height: 6px; }
+  &::-moz-range-track { background: transparent; height: 6px; }
+
+  &::-webkit-slider-thumb {
+    pointer-events: auto;
+    background: var(--text);
+    box-shadow: var(--shadow-sm);
+    margin-top: -4px;
+  }
+  &::-moz-range-thumb {
+    pointer-events: auto;
+    background: var(--text);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+// ── Chips: unified pill styling for selectors and status indicators ──────────
+// Two variants — clickable (.chip-action) and read-only (.chip-status).
+// Both share pill geometry so they feel like one family.
+
+%chip-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: var(--weight-body);
+  line-height: 1;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.chip-action {
+  @extend %chip-base;
+  // Darker than bg-card so the chip row pops off the surrounding panel the
+  // same way the select-style inputs do.
+  background: var(--bg);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--ease) ease, border-color var(--ease) ease, color var(--ease) ease;
+
+  &:hover:not(:disabled):not(.chip-active) {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &.chip-active {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent);
+  }
+}
+
+.chip-status {
+  @extend %chip-base;
+  cursor: default;
+
+  &.chip-status-muted {
+    background: transparent;
+    color: var(--text-faded);
+    border-color: var(--border);
+  }
+
+  &.chip-status-accent {
+    background: var(--accent-soft);
+    color: var(--accent-glow);
+    border-color: var(--accent-glow-shadow);
+  }
+}
+
+// Tight grouping for segmented-style chip rows (Live / 60s etc.)
+.chip-group {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+// Page-width contract. Every view's content root picks one. Constrained caps
+// at the shared --page-content-max so dense label/value reports stay readable;
+// fluid fills the available width.
+.pageConstrained {
+  width: 100%;
+  max-width: var(--page-content-max);
+}
+
+.pageFluid {
+  width: 100%;
+  max-width: none;
+}

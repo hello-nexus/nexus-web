@@ -1,0 +1,241 @@
+import { deleteService, fetchService, postService, resolveHttp } from './service';
+import type { PanelLayout, PanelSurface } from '../panel/types';
+
+export interface PanelStatus {
+  msg: string;
+  kioskRunning: boolean;
+  phoneConnected: boolean;
+  phoneSubscribers: number;
+}
+
+// Per-device record: identity (deviceId), persisted layout, optional
+// per-device theme overrides, last-reported capabilities. Mirrors
+// qos-service Models/Panel/PanelDeviceDto.cs.
+export interface PanelDeviceCapabilitiesDto {
+  surface?: PanelSurface;
+  grid?: string;
+  touch?: boolean;
+  dock?: boolean;
+  orientation?: string;
+}
+
+export interface PanelDeviceRecord {
+  id: string;
+  displayName: string;
+  layout?: PanelLayout;
+  themeMode?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  backgroundColorLight?: string;
+  backgroundMode?: string;
+  backgroundEffect?: string;
+  backgroundTemplate?: number;
+  backgroundOpacity?: number;
+  firstSeenAt: number;
+  lastSeenAt: number;
+  capabilities?: PanelDeviceCapabilitiesDto;
+}
+
+export interface PanelDevicePatch {
+  displayName?: string;
+  layout?: PanelLayout;
+  themeMode?: string | null;
+  accentColor?: string | null;
+  backgroundColor?: string | null;
+  backgroundColorLight?: string | null;
+  backgroundMode?: string | null;
+  backgroundEffect?: string | null;
+  backgroundTemplate?: number;
+  backgroundOpacity?: number;
+  capabilities?: PanelDeviceCapabilitiesDto;
+}
+
+export const allocatePanelDevice = (capabilities?: PanelDeviceCapabilitiesDto, displayName?: string) =>
+  postService<PanelDeviceRecord>('/panel/devices', { displayName, capabilities });
+
+export type PanelAllocResult =
+  | { ok: true; record: PanelDeviceRecord }
+  | { ok: false; status: number };
+
+// Alloc variant that surfaces the HTTP status. Lets the panel entrypoint show
+// a "pair this phone" message on 401/403 and "service unreachable" on others,
+// instead of dead-ending with a generic "could not register" toast.
+export async function allocatePanelDeviceWithStatus(
+  capabilities?: PanelDeviceCapabilitiesDto,
+  displayName?: string,
+): Promise<PanelAllocResult> {
+  try {
+    const { getToken } = await import('./auth');
+    const token = await getToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(resolveHttp('/panel/devices'), {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({ displayName, capabilities }),
+    });
+    if (!res.ok) return { ok: false, status: res.status };
+    const record = (await res.json()) as PanelDeviceRecord;
+    return { ok: true, record };
+  } catch {
+    return { ok: false, status: 0 };
+  }
+}
+
+export const fetchPanelDevice = (id: string) =>
+  fetchService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}`);
+
+export const fetchPanelDevices = () =>
+  fetchService<{ devices: PanelDeviceRecord[] }>('/panel/devices');
+
+export const patchPanelDevice = (id: string, patch: PanelDevicePatch) =>
+  postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}`, patch);
+
+export type PanelDeviceFetchResult =
+  | { found: true; record: PanelDeviceRecord }
+  | { found: false; status: number };
+
+// Status-aware variants so usePanelLayout can distinguish a 404 ("device
+// record was wiped, e.g. after a profile switch") from a network failure.
+// The non-status variants conflate both as `null` and trigger an infinite
+// auto-persist loop when the kiosk holds an id the server no longer knows.
+export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDeviceFetchResult> {
+  try {
+    const { getToken, handleUnauthorized } = await import('./auth');
+    let token = await getToken();
+    const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
+    const buildInit = (): RequestInit => {
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      return { headers, credentials: 'include', cache: 'no-store' };
+    };
+    let res = await fetch(url, buildInit());
+    if (res.status === 401) {
+      const refreshed = await handleUnauthorized();
+      if (refreshed) {
+        token = refreshed;
+        res = await fetch(url, buildInit());
+      }
+    }
+    if (res.status === 404) return { found: false, status: 404 };
+    if (!res.ok) return { found: false, status: res.status };
+    return { found: true, record: (await res.json()) as PanelDeviceRecord };
+  } catch {
+    return { found: false, status: 0 };
+  }
+}
+
+export type PanelDevicePatchResult =
+  | { ok: true; record: PanelDeviceRecord }
+  | { ok: false; status: number };
+
+export async function patchPanelDeviceWithStatus(id: string, patch: PanelDevicePatch): Promise<PanelDevicePatchResult> {
+  try {
+    const { getToken, handleUnauthorized } = await import('./auth');
+    let token = await getToken();
+    const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
+    const buildInit = (): RequestInit => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      return { method: 'POST', headers, credentials: 'include', body: JSON.stringify(patch) };
+    };
+    let res = await fetch(url, buildInit());
+    if (res.status === 401) {
+      const refreshed = await handleUnauthorized();
+      if (refreshed) {
+        token = refreshed;
+        res = await fetch(url, buildInit());
+      }
+    }
+    if (!res.ok) return { ok: false, status: res.status };
+    return { ok: true, record: (await res.json()) as PanelDeviceRecord };
+  } catch {
+    return { ok: false, status: 0 };
+  }
+}
+
+export const removePanelDevice = (id: string) =>
+  deleteService<{ error?: boolean; msg?: string }>(`/panel/devices/${encodeURIComponent(id)}`);
+
+export interface PanelPhonePairQr {
+  url: string;
+  qrDataUrl: string;
+  machineName?: string;
+  ttlSeconds: number;
+  expiresAt: number;
+}
+
+export interface PanelPhoneClaimResponse {
+  paired: boolean;
+  token: string;
+  machineName?: string;
+  error: string;
+}
+
+export interface PanelPhoneSession {
+  id: string;
+  name: string;
+  deviceType: string;
+  userAgent: string;
+  remoteAddress: string;
+  createdAt: number;
+  lastSeenAt: number;
+  expiresAt: number;
+  recentlyActive: boolean;
+}
+
+export interface PanelPhoneSessionsResponse {
+  connectedCount: number;
+  authorizedCount: number;
+  sessionIdleMs: number;
+  now: number;
+  sessions: PanelPhoneSession[];
+}
+
+export const fetchPanelStatus = () =>
+  fetchService<PanelStatus>('/panel/status');
+
+export const fetchPanelPhonePairQr = () =>
+  fetchService<PanelPhonePairQr>('/panel/phone/pair-qr');
+
+export const fetchPanelPhoneSessions = () =>
+  fetchService<PanelPhoneSessionsResponse>('/panel/phone/sessions');
+
+export const revokePanelPhoneSession = (id: string) =>
+  deleteService<{ error?: boolean; msg?: string }>(`/panel/phone/sessions/${encodeURIComponent(id)}`);
+
+export const revokeAllPanelPhoneSessions = () =>
+  deleteService<{ error?: boolean; msg?: string }>('/panel/phone/sessions');
+
+export const renamePanelPhoneSession = (id: string, name: string) =>
+  postService<{ error?: boolean; msg?: string }>(`/panel/phone/sessions/${encodeURIComponent(id)}/name`, { name });
+
+export interface PanelHostNameResponse {
+  machineName: string;
+}
+
+/**
+ * Set the user-overridden display name for the host PC. Empty / whitespace
+ * clears the override so the next read falls back to Environment.MachineName.
+ * Returns the resolved name (post-normalization, post-fallback).
+ */
+export const setPanelHostName = (name: string) =>
+  postService<PanelHostNameResponse>('/panel/host-name', { name });
+
+export async function claimPanelPhonePairing(pairToken: string): Promise<PanelPhoneClaimResponse | null> {
+  try {
+    const res = await fetch(resolveHttp('/panel/phone/claim'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pairToken }),
+    });
+    if (!res.ok) {
+      try { return (await res.json()) as PanelPhoneClaimResponse; }
+      catch { return null; }
+    }
+    return (await res.json()) as PanelPhoneClaimResponse;
+  } catch {
+    return null;
+  }
+}

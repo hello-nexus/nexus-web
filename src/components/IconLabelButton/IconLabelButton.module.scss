@@ -1,0 +1,85 @@
+.button {
+  --icon-label-button-height: 54px;
+  --icon-label-button-min-width: 56px;
+  --icon-label-button-padding-x: 7px;
+  --icon-label-button-padding-y: 5px;
+  --icon-label-button-gap: 3px;
+  --icon-label-button-radius: var(--radius-sm, 6px);
+  --icon-label-button-border: var(--border);
+  --icon-label-button-bg: var(--bg-card);
+  --icon-label-button-bg-hover: var(--bg-card-hover);
+  --icon-label-button-text: var(--text-dim);
+  --icon-label-button-text-hover: var(--text);
+  --icon-label-button-active-border: var(--accent);
+  --icon-label-button-active-bg: var(--accent-soft);
+  --icon-label-button-active-text: var(--accent-glow, var(--accent));
+  --icon-label-icon-size: 18px;
+  --icon-label-label-size: 10px;
+
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--icon-label-button-gap);
+  min-width: var(--icon-label-button-min-width);
+  min-height: var(--icon-label-button-height);
+  padding: var(--icon-label-button-padding-y) var(--icon-label-button-padding-x);
+  border: 1px solid var(--icon-label-button-border);
+  border-radius: var(--icon-label-button-radius);
+  background: var(--icon-label-button-bg);
+  color: var(--icon-label-button-text);
+  font: inherit;
+  cursor: pointer;
+  text-align: center;
+  touch-action: manipulation;
+  transition: background var(--ease), border-color var(--ease), color var(--ease), box-shadow var(--ease);
+
+  &:hover:not(:disabled) {
+    background: var(--icon-label-button-bg-hover);
+    color: var(--icon-label-button-text-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--icon-label-button-active-border);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  &[data-active='true'],
+  &[data-active='true']:hover:not(:disabled),
+  &[data-active='true']:active:not(:disabled) {
+    border-color: var(--icon-label-button-active-border);
+    background: var(--icon-label-button-active-bg);
+    color: var(--icon-label-button-active-text);
+  }
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: var(--icon-label-icon-size);
+  height: var(--icon-label-icon-size);
+  flex: 0 0 auto;
+
+  svg {
+    width: var(--icon-label-icon-size);
+    height: var(--icon-label-icon-size);
+    display: block;
+  }
+}
+
+.label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: var(--icon-label-label-size);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0;
+}

@@ -1,0 +1,23 @@
+.container {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #0a0a10;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.container[data-surface='y70'] {
+  border-radius: 0;
+}
+
+// The iframe itself is rendered at device-native canvas dimensions and
+// CSS-transformed to fit the available space. transform-origin is top-left
+// so the simulator hugs the container's top-left and pointer hit testing
+// stays aligned with what the user sees.
+.frame {
+  border: 0;
+  display: block;
+  transform-origin: top left;
+  background: transparent;
+}

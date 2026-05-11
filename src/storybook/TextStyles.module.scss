@@ -1,0 +1,224 @@
+@use '../styles/text' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.title {
+  @include text-heading;
+  margin: 0 0 8px;
+  color: var(--text);
+}
+
+.subtitle {
+  @include text-body;
+  margin: 0;
+  color: var(--text-dim);
+  max-width: 720px;
+
+  code {
+    @include text-numeric;
+    background: var(--bg-card);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+}
+
+.controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.controlGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controlLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+
+  &[data-on-panel='true'] {
+    background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg) 100%);
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionTitle {
+  @include text-label;
+  margin: 0;
+  color: var(--text);
+}
+
+.subSectionTitle {
+  @include text-label;
+  color: var(--text-dim);
+  margin: 8px 0 4px;
+}
+
+.matrix {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.matrixTable {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+
+  thead th {
+    @include text-label;
+    color: var(--text-faded);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.specCol {
+  min-width: 220px;
+  max-width: 260px;
+}
+
+.specName {
+  @include text-body;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.specMixin {
+  @include text-numeric;
+  display: inline-block;
+  color: var(--accent-glow);
+  background: var(--accent-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.specMeta {
+  @include text-caption;
+  color: var(--text-faded);
+  margin-bottom: 4px;
+}
+
+.specCaps,
+.specMono {
+  @include text-label;
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 4px;
+  background: var(--border);
+  color: var(--text-dim);
+  border-radius: 3px;
+}
+
+.specUse {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.sample {
+  min-width: 110px;
+  white-space: nowrap;
+}
+
+// Offscreen probes - the matrix reads computed type styles from these so the
+// spec column reflects what the mixin actually paints. Hidden but rendered
+// so getComputedStyle works.
+.probes {
+  position: absolute;
+  left: -9999px;
+  visibility: hidden;
+  pointer-events: none;
+
+  span {
+    display: block;
+  }
+}
+
+// Demo classes - one per mixin. The page applies these by reference so each
+// row shows what the mixin actually paints.
+.display      { @include text-display; }
+.heading      { @include text-heading; }
+.body         { @include text-body; }
+.button       { @include text-button; }
+.label        { @include text-label; }
+.caption      { @include text-caption; }
+.numeric      { @include text-numeric; }
+
+.swatchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.swatchChip {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.swatchName {
+  @include text-numeric;
+  color: var(--text);
+}
+
+.swatchAlias {
+  @include text-caption;
+  color: var(--text-faded);
+  margin-left: auto;
+}

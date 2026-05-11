@@ -1,0 +1,20 @@
+{
+  "name": "qOS Panel",
+  "short_name": "Panel",
+  "description": "qOS phone panel",
+  "id": "/panel/phone",
+  "start_url": "/panel/phone",
+  "scope": "/panel/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a10",
+  "theme_color": "#0a0a10",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
