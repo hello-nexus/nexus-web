@@ -23,6 +23,7 @@ interface ServerPrefs {
   overlayWidgetsAlwaysOnTop?: boolean;
   overlayWidgetScale?: number;
   overlayWidgetOpacity?: number;
+  overlayWidgetsMonitor?: number;
 }
 
 function normalizeOpacity(raw: number | undefined): number {
@@ -137,6 +138,14 @@ export default function OverlayShell() {
   const [accentColor, setAccentColor] = useState<string | null>(null);
   const [themeMode, setThemeModeState] = useState<ThemeMode>('dark');
 
+  // Tracks the last monitor index we pushed to the host via webMessage.
+  // Initialized to a sentinel that never matches a real index (or -1)
+  // so the first prefs sync after mount always emits a setMonitor -
+  // the launch URL's ?monitor param may not agree with the persisted
+  // pref (different process / stale schtask invocation) and the host
+  // needs an authoritative initial state.
+  const lastSentMonitorRef = useRef<number>(Number.NaN);
+
   // Mirror the app theme from /preferences (profile-scoped). The desktop
   // overlay's WebView2 has its own localStorage so the dashboard's theme
   // doesn't propagate via that path; the server's /preferences is the
@@ -159,6 +168,15 @@ export default function OverlayShell() {
     if (prefs.themeMode) {
       applyThemeMode(prefs.themeMode as ThemeMode);
       setThemeModeState(prefs.themeMode as ThemeMode);
+    }
+    if (typeof prefs.overlayWidgetsMonitor === 'number'
+        && prefs.overlayWidgetsMonitor !== lastSentMonitorRef.current) {
+      // Push the move to the host immediately via the same webMessage
+      // bridge we use for setAlwaysOnTop. The host moves the existing
+      // window (no teardown/respawn) and the prefs poll's 5 s slow path
+      // becomes a no-op for this transition.
+      lastSentMonitorRef.current = prefs.overlayWidgetsMonitor;
+      postToHost({ type: 'setMonitor', value: prefs.overlayWidgetsMonitor });
     }
   }, []);
 
@@ -202,10 +220,13 @@ export default function OverlayShell() {
     } as CSSProperties;
   }, [accentColor, themeMode, widgetOpacity]);
 
-  const monitorWidgets = useMemo(
-    () => layout.filter(entry => entry.monitor === monitor),
-    [layout, monitor],
-  );
+  // Single-monitor model: render every widget regardless of its
+  // legacy `monitor` field. The overlay process now runs on exactly
+  // one user-chosen monitor (set via the popup dropdown); the per-widget
+  // monitor index is vestigial data that we don't filter on anymore.
+  // Keeps existing layouts visible after a monitor switch.
+  void monitor; // suppresses unused-binding lint; still read above for URL parsing
+  const monitorWidgets = layout;
 
   // Server-side scale changes preserve visual position but don't know the
   // monitor size, so a widget close to the right/bottom edge can end up

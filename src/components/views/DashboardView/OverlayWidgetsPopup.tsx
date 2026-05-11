@@ -3,6 +3,7 @@ import { Trash2, X } from 'lucide-react';
 import { Overlay } from '../../Overlay/Overlay';
 import { Toggle } from '../../Toggle/Toggle';
 import { Slider } from '../../Slider/Slider';
+import { Select } from '../../Select/Select';
 import { fetchService, postService } from '../../../api/service';
 import { listOverlayWidgets, deleteOverlayWidget, type OverlayWidgetDto } from '../../../api/overlay';
 import { WIDGET_REGISTRY } from '../../../panel/widgets/registry';
@@ -14,6 +15,7 @@ interface ServerPrefs {
   overlayWidgetsEnabled?: boolean;
   overlayWidgetScale?: number;
   overlayWidgetOpacity?: number;
+  overlayWidgetsMonitor?: number;
 }
 
 interface OverlayWidgetsPopupProps {
@@ -39,6 +41,10 @@ export function OverlayWidgetsPopup({ open, onClose }: OverlayWidgetsPopupProps)
   const [enabled, setEnabled] = useState(false);
   const [scale, setScale] = useState(SCALE_DEFAULT);
   const [opacity, setOpacity] = useState(OPACITY_DEFAULT);
+  // 0-based monitor index. Legacy installs may persist -1 (the old
+  // "primary fallback" sentinel); we display that as monitor 0 in the
+  // dropdown and the next user pick writes a real index.
+  const [monitor, setMonitor] = useState<number>(0);
   const [widgets, setWidgets] = useState<OverlayWidgetDto[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -53,6 +59,12 @@ export function OverlayWidgetsPopup({ open, onClose }: OverlayWidgetsPopupProps)
     setOpacity(typeof prefs?.overlayWidgetOpacity === 'number'
       ? Math.round(prefs.overlayWidgetOpacity * 100)
       : OPACITY_DEFAULT);
+    // Legacy -1 (primary fallback sentinel) collapses to 0 for display
+    // purposes - the user can pick any monitor in the dropdown and the
+    // next POST writes a real index.
+    const persisted = typeof prefs?.overlayWidgetsMonitor === 'number'
+      ? prefs.overlayWidgetsMonitor : 0;
+    setMonitor(persisted < 0 ? 0 : persisted);
     setLoaded(true);
   }, []);
 
@@ -81,6 +93,25 @@ export function OverlayWidgetsPopup({ open, onClose }: OverlayWidgetsPopupProps)
     setOpacity(clampedPct);
     await postService('/preferences', { overlayWidgetOpacity: clampedPct / 100 });
   }, []);
+
+  const handleMonitorChange = useCallback(async (value: string) => {
+    const next = Number(value);
+    setMonitor(next);
+    await postService('/preferences', { overlayWidgetsMonitor: next });
+  }, []);
+
+  // Dropdown options: numbered monitors only, no "Primary" entry. We
+  // always offer at least 2 monitors so single-display users can still
+  // see the control is a list; widgets already referencing a higher
+  // index expand the list, and the current selection is always present
+  // (covers a user who picked a now-disconnected monitor).
+  const monitorOptions = useMemo(() => {
+    const referenced = widgets.length > 0 ? Math.max(...widgets.map(w => w.monitor)) : -1;
+    const upper = Math.max(1, referenced, monitor);
+    const slots: { value: string; label: string }[] = [];
+    for (let i = 0; i <= upper; i++) slots.push({ value: String(i), label: `Monitor ${i + 1}` });
+    return slots;
+  }, [widgets, monitor]);
 
   const handleUnpin = useCallback(async (id: string) => {
     setWidgets(prev => prev.filter(w => w.id !== id));
@@ -129,6 +160,15 @@ export function OverlayWidgetsPopup({ open, onClose }: OverlayWidgetsPopupProps)
           </section>
 
           <section className={styles.section}>
+            <div className={styles.row}>
+              <span className={styles.rowLabel}>Monitor</span>
+              <Select
+                value={String(monitor)}
+                onChange={(v) => { void handleMonitorChange(v); }}
+                options={monitorOptions}
+                ariaLabel="Desktop widget monitor"
+              />
+            </div>
             <Slider
               label="Scale"
               value={scale}

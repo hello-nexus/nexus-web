@@ -14,7 +14,8 @@ type PopoverRect = { x: number; y: number; w: number; h: number };
 
 export type HostMessage =
   | { type: 'reportLayout'; widgets: WidgetRect[]; popover?: PopoverRect }
-  | { type: 'setAlwaysOnTop'; value: boolean };
+  | { type: 'setAlwaysOnTop'; value: boolean }
+  | { type: 'setMonitor'; value: number };
 
 interface WebView2Bridge { postMessage(payload: unknown): void }
 interface WKMessageHandler { postMessage(payload: unknown): void }
