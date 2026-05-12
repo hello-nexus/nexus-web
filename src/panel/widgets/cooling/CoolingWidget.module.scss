@@ -9,68 +9,28 @@
   box-sizing: border-box;
 }
 
-.trend {
-  position: relative;
+// Slot grid auto-fits to slot count - 1 / 2 / 3 columns depending on which
+// sensors are present. Each slot fills the available height so the
+// reused monitoring gauges scale with the widget cell.
+.slotGrid {
   flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--slot-count, 3), minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cooling[data-slots='1'] .slotGrid { --slot-count: 1; }
+.cooling[data-slots='2'] .slotGrid { --slot-count: 2; }
+.cooling[data-slots='3'] .slotGrid { --slot-count: 3; }
+.cooling[data-slots='0'] .slotGrid { display: none; }
+
+.slot {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  box-sizing: border-box;
-}
-
-// Header floats over the chart so the sparklines fill the full trend area.
-// Both values centred together at the top so the eye picks them up as a
-// paired metric rather than a mode/label split.
-.trendHeader {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 2;
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 14px;
-  pointer-events: none;
-}
-
-.trendValue {
-  color: var(--panel-text-faint);
-  font: 600 11px/1 var(--panel-font);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.chartWrap {
-  position: absolute;
-  inset: 0;
-}
-
-.chart {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.gridLine {
-  position: absolute;
-  right: 0;
-  left: 0;
-  height: 1px;
-  background: var(--panel-border);
-  opacity: 0.68;
-}
-
-.gridLine[data-line='upper'] { top: 31%; }
-.gridLine[data-line='lower'] { top: 65%; }
-
-// Fan sparkline rendered after temp so its dots sit on top of the filled
-// temperature line. Same accent color; the dotted treatment is what
-// disambiguates the two series.
-.fanLine :global(path) {
-  stroke-dasharray: 2 5;
 }
 
 .chips {
@@ -117,7 +77,7 @@
   white-space: nowrap;
 }
 
-// 4x4: more breathing room around the chart and labelled chips.
+// 4x4: roomier chips for the immersive view.
 .cooling[data-size='4x4'] {
   padding: 16px 18px;
   gap: 12px;
@@ -132,74 +92,20 @@
   }
 }
 
-// 2x2: a pair of micro-rows. Each row shows the value next to its own
-// inline sparkline so the user can read both Temp and RPM at a glance
-// without the full chart taking over the widget.
+// 2x2: tighter padding, MicroBar rows only - no preset row.
 .cooling[data-size='2x2'] {
   padding: 10px;
   gap: 4px;
 }
 
-// 2x2 micro layout: two stacked rows, each with a label, value, and a
-// horizontal fill bar representing the current value against its domain.
-// No trend line - intentional: at this size the glance read is "where is
-// this now?", not "how is it moving?".
-.microBars {
+// Stacked horizontal-bar rows for the 2x2 surface. Reuses the standard
+// MicroBar component the micro monitoring widget uses, so cooling reads
+// visually consistent with the other compact metric widgets.
+.microRows {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 12px;
-  min-width: 0;
-  min-height: 0;
-}
-
-.microBar {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.microBarHeader {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-}
-
-.microBarLabel {
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font: 700 10px/1 var(--panel-font);
-  color: var(--panel-text-faint);
-}
-
-.microBarValue {
-  color: var(--panel-text);
-  font: 800 14px/1 var(--panel-font);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.microBarTrack {
-  position: relative;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--panel-element-bg);
-  overflow: hidden;
-
-  &[data-active='false'] {
-    opacity: 0.4;
-  }
-}
-
-.microBarFill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: var(--panel-accent);
-  border-radius: 999px;
-  transition: width var(--ease-fast) ease;
+  gap: 10px;
 }
