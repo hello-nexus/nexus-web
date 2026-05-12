@@ -49,6 +49,10 @@
 
 .dashWide {
   cursor: pointer;
+  // Title row removed; the table's column header acts as the visual anchor,
+  // so trim the vertical padding to keep the card balanced.
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .dashCardHeader {

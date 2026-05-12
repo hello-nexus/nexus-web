@@ -277,9 +277,6 @@ function OverviewTab({ frame, hist, onNavigate }: {
       {/* Bottom: Top Processes */}
       {topProcs.length > 0 && (
         <button type="button" className={styles.dashCard + ' ' + styles.dashWide} onClick={() => onNavigate('cpu')}>
-          <div className={styles.dashCardHeader}>
-            <span className={styles.dashCardTitle}>{t('monitoring.overview.topProcesses')}</span>
-          </div>
           <table className={styles.procTable}>
             <thead>
               <tr>

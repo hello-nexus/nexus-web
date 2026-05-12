@@ -18,10 +18,70 @@ interface StackedChartProps {
   height?: number;
 }
 
-const PAD = { left: 48, right: 12, top: 12, bottom: 24 };
+const PAD = { left: 64, right: 12, top: 12, bottom: 24 };
+
+// Pick a Y-axis tick step that produces "round" intermediate values and
+// guarantees the top tick is the actual yMax. For binary units (MB) we also
+// admit power-of-two steps so power-of-two memory sizes get clean axis ticks.
+function niceYTicks(max: number, yUnit: string): number[] {
+  if (!isFinite(max) || max <= 0) return [0];
+  const binary = yUnit === 'MB';
+  const candidates = new Set<number>();
+  for (let order = -3; order <= 9; order++) {
+    const mag = Math.pow(10, order);
+    for (const b of [1, 2, 2.5, 4, 5, 8]) candidates.add(b * mag);
+  }
+  for (let p = 0; p <= 20; p++) candidates.add(Math.pow(2, p));
+
+  let bestStep = max / 5;
+  let bestScore = -Infinity;
+  for (const step of candidates) {
+    const count = max / step;
+    if (count < 3 || count > 8) continue;
+    const fits = Math.abs(count - Math.round(count)) < 0.01;
+    const isPow2 = Math.abs(Math.log2(step) - Math.round(Math.log2(step))) < 0.001;
+    const score = -Math.abs(count - 5) + (fits ? 2 : 0) + (binary && isPow2 ? 0.3 : 0);
+    if (score > bestScore) { bestScore = score; bestStep = step; }
+  }
+
+  const ticks: number[] = [];
+  const n = Math.floor(max / bestStep + 1e-9);
+  for (let i = 0; i <= n; i++) ticks.push(i * bestStep);
+  const last = ticks[ticks.length - 1];
+  if (last < max - 1e-6) {
+    if (max - last < bestStep * 0.4) ticks.pop();
+    ticks.push(max);
+  } else {
+    ticks[ticks.length - 1] = max;
+  }
+  return ticks;
+}
+
+// Pick the precision that keeps the label readable without losing information.
+// Integers print bare; otherwise one decimal is used when it preserves the
+// value, two when finer precision is required.
+function formatNum(v: number): string {
+  if (Math.abs(v - Math.round(v)) < 1e-9) return String(Math.round(v));
+  if (Math.abs(v - parseFloat(v.toFixed(1))) < 1e-6) return v.toFixed(1);
+  return v.toFixed(2);
+}
+
+// Keep the unit consistent across all ticks: once yMax crosses into the larger
+// unit, every label scales up so we never mix small and large units on one axis.
+// Memory uses binary scaling (1 GiB = 1024 MiB); network rates use decimal
+// scaling (1 MB/s = 1000 KB/s) to match how rates are normally reported.
+function formatYLabel(val: number, yUnit: string, yMax: number): string {
+  if (yUnit === '%') return `${Math.round(val)}%`;
+  if (yUnit === 'KB/s') {
+    if (yMax >= 1000) return `${formatNum(val / 1000)} MB/s`;
+    return `${formatNum(val)} KB/s`;
+  }
+  if (yMax >= 1024) return `${formatNum(val / 1024)} GB`;
+  return `${formatNum(val)} MB`;
+}
 
 /**
- * Reusable stacked area chart. Used for both CPU% and Memory MB.
+ * Reusable stacked area chart. Used for CPU%, Memory MB, and Network KB/s.
  * Width tracks the container via ResizeObserver, height stays fixed.
  * Text and grid use pixel sizes that don't scale with width.
  */
@@ -125,7 +185,7 @@ export function StackedChart({
   }
 
   const hoverX = hoverIdx !== null ? PAD.left + hoverIdx * xStep : null;
-  const gridSteps = 5;
+  const yTicks = niceYTicks(yMax, yUnit);
 
   return (
     <div ref={wrapRef} className={styles.chartWrap}>
@@ -137,20 +197,15 @@ export function StackedChart({
         preserveAspectRatio="none"
         onMouseMove={onMouseMove} onMouseLeave={() => setHoverIdx(null)}>
 
-        {Array.from({ length: gridSteps + 1 }, (_, i) => {
-          const frac = i / gridSteps;
-          const y = PAD.top + chartH * (1 - frac);
-          const label = yUnit === '%' ? `${Math.round(yMax * frac)}%`
-            : yUnit === 'KB/s' ? (yMax * frac >= 1024 ? `${(yMax * frac / 1024).toFixed(0)} MB/s` : `${Math.round(yMax * frac)} KB/s`)
-            : yMax * frac >= 1024 ? `${(yMax * frac / 1024).toFixed(1)} GB`
-            : `${Math.round(yMax * frac)} MB`;
+        {yTicks.map((tickVal, i) => {
+          const y = PAD.top + chartH * (1 - tickVal / yMax);
           return (
             <g key={i}>
               <line x1={PAD.left} y1={y} x2={width - PAD.right} y2={y}
                 stroke="var(--border)" strokeWidth="0.5" />
               <text x={PAD.left - 4} y={y + 3} fill="var(--text-faded)"
                 fontSize="11" fontFamily="var(--font-mono)" textAnchor="end">
-                {label}
+                {formatYLabel(tickVal, yUnit, yMax)}
               </text>
             </g>
           );
