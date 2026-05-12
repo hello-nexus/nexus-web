@@ -358,7 +358,12 @@ function SingleItemView({ view, t, showArrows }: { view: SingleView; t: (key: st
     <div className={styles.thumbBox}>
       <span className={styles.thumb}>
         {view.kind === 'color' && <span className={styles.thumbSwatch} style={{ background: view.color }} />}
-        {view.kind === 'icon' && <span className={styles.thumbIconWrap}><view.icon className={styles.thumbIcon} aria-hidden="true" /></span>}
+        {view.kind === 'icon' && (
+          <span className={styles.thumbIconWrap}>
+            <view.icon className={styles.thumbIcon} aria-hidden="true" />
+            <span className={styles.thumbCaption}>{view.label}</span>
+          </span>
+        )}
         {view.kind === 'thumb' && (
           view.thumbUrl
             ? <img src={view.thumbUrl} alt="" draggable={false} />
