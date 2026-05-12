@@ -312,6 +312,11 @@ export default function OverlayShell() {
     if (ok) await reload();
   }, [reload]);
 
+  const handleOpenDashboard = useCallback(() => {
+    setMenu(null);
+    void postService('/service/open-app', {});
+  }, []);
+
   const handleDragCommit = useCallback(async (id: string, col: number, row: number) => {
     setDragOverride(null);
     setLayout(prev => prev.map(entry => entry.id === id ? { ...entry, col, row } : entry));
@@ -344,20 +349,15 @@ export default function OverlayShell() {
 
   // While either the context menu or the edit sheet is open, force the
   // desktop overlay always-on-top so the popover can't slip behind another
-  // window. We read the user's value out of a ref at cleanup time so prefs
-  // broadcasts arriving during the interaction don't re-fire this effect
-  // (which would briefly flip the host back to the user's value before
-  // re-asserting `true`). No POST to /preferences here - the persisted
-  // setting is unchanged.
+  // window. Whenever both close, restore the user's persisted value. The
+  // ref keeps the latest saved value accessible without re-firing this
+  // effect when prefs broadcasts arrive mid-popover. No POST to
+  // /preferences here - the persisted setting is unchanged.
   const alwaysOnTopRef = useRef(alwaysOnTop);
   useEffect(() => { alwaysOnTopRef.current = alwaysOnTop; }, [alwaysOnTop]);
   const popoverOpen = menu !== null || editingWidgetId !== null;
   useEffect(() => {
-    if (!popoverOpen) return;
-    postToHost({ type: 'setAlwaysOnTop', value: true });
-    return () => {
-      postToHost({ type: 'setAlwaysOnTop', value: alwaysOnTopRef.current });
-    };
+    postToHost({ type: 'setAlwaysOnTop', value: popoverOpen ? true : alwaysOnTopRef.current });
   }, [popoverOpen]);
 
   // Reset the slot picker any time we open the editor on a new widget,
@@ -420,6 +420,7 @@ export default function OverlayShell() {
             removeLabel="Unpin"
             alwaysOnTop={alwaysOnTop}
             onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
+            onOpenDashboard={handleOpenDashboard}
             onBoundsChange={setMenuRect}
             onResize={size => { if (entry) void handleResize(entry.id, size); }}
             onEdit={() => { if (entry) setEditingWidgetId(entry.id); }}

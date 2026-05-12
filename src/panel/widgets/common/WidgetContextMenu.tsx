@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, GripVertical, Maximize2, Monitor, Pin, Settings, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, GripVertical, Maximize2, Monitor, Pin, Settings, Trash2 } from 'lucide-react';
 import { SIZE_ICONS } from './SizeIcons';
 import type { PanelWidgetSize } from '../../types';
 import styles from './WidgetContextMenu.module.scss';
@@ -32,6 +32,9 @@ interface WidgetContextMenuProps {
   // "Always on top" item with a checkmark reflecting `alwaysOnTop`.
   alwaysOnTop?: boolean;
   onToggleAlwaysOnTop?: () => void;
+  // Desktop-overlay-only bottom action. Renders a separator + "Open
+  // dashboard" shortcut at the foot of the menu when provided.
+  onOpenDashboard?: () => void;
   // Desktop-overlay-only callback fired with the menu's measured viewport
   // rect after it has clamped to the safe area, and again with `null` on
   // unmount. The desktop host uses this to keep its SetWindowRgn carve-out
@@ -51,6 +54,7 @@ export function WidgetContextMenu({
   removeLabel,
   alwaysOnTop,
   onToggleAlwaysOnTop,
+  onOpenDashboard,
   onBoundsChange,
 }: WidgetContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -210,6 +214,16 @@ export function WidgetContextMenu({
         <Trash2 size={14} />
         <span>{removeLabel ?? 'Remove'}</span>
       </button>
+
+      {onOpenDashboard && (
+        <>
+          <div className={styles.divider} />
+          <button type="button" className={styles.item} onClick={() => runAndClose(onOpenDashboard)}>
+            <ExternalLink size={14} />
+            <span>Open dashboard</span>
+          </button>
+        </>
+      )}
     </div>
   );
 }
