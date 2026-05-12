@@ -7,6 +7,7 @@ import { ColorPickerWithPresets } from '../ColorPickerWithPresets/ColorPickerWit
 import { Toggle } from '../Toggle/Toggle';
 import { Select } from '../Select/Select';
 import { ConfirmDialog } from '../ConfirmDialog/ConfirmDialog';
+import { PromptDialog } from '../PromptDialog/PromptDialog';
 import { fetchService, postService } from '../../api/service';
 import { ScreenTimeDataControl } from './ScreenTimeBrowse/ScreenTimeDataControl';
 import { ServiceRequired } from './ServiceRequired';
@@ -364,6 +365,8 @@ function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfiles
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<ConfirmKind | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [renameError, setRenameError] = useState<{ profileId: string; message: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Match the cooling FanCard / CurveEditor drag pattern: the whole card is
@@ -372,10 +375,15 @@ function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfiles
   // time so HTML5 drag never initiates and the child keeps the pointer.
   const profileInteractiveSelector = 'button, [role="button"], input';
 
-  const handleSwitch = async (id: string) => {
-    const ui = await profiles.switchProfile(id);
-    if (ui) onPreferencesChanged(ui);
-    // The new active profile may toggle the implicit Primary; refetch.
+  const handleSwitch = (id: string) => {
+    // switchProfile flips the active state optimistically inside the hook,
+    // so this returns control synchronously - awaiting would just delay
+    // the visual update by the round-trip.
+    profiles.switchProfile(id).then(ui => {
+      if (ui) onPreferencesChanged(ui);
+    });
+    // Primary badge follows whatever profile is active; refresh in the
+    // background, do not block the click.
     sharing.refresh();
   };
 
@@ -520,17 +528,30 @@ function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfiles
                     value={p.name}
                     onCommit={name => {
                       const trimmed = name.trim();
-                      if (!trimmed || trimmed === p.name) return;
-                      const dupe = profiles.profiles.some(pp => pp.id !== p.id && pp.name.toLowerCase() === trimmed.toLowerCase());
-                      if (dupe) {
-                        alert(t('profile.duplicateName'));
+                      if (!trimmed || trimmed === p.name) {
+                        if (renameError?.profileId === p.id) setRenameError(null);
                         return;
                       }
+                      const dupe = profiles.profiles.some(pp => pp.id !== p.id && pp.name.toLowerCase() === trimmed.toLowerCase());
+                      if (dupe) {
+                        setRenameError({ profileId: p.id, message: t('profile.duplicateName') });
+                        return;
+                      }
+                      setRenameError(null);
                       profiles.renameProfile(p.id, trimmed);
                     }}
                     className={styles.profileName}
                     ariaLabel={t('profile.rename')}
                   />
+                  {renameError?.profileId === p.id && (
+                    <p
+                      className={styles.profileRenameError}
+                      role="alert"
+                      aria-live="polite"
+                    >
+                      {renameError.message}
+                    </p>
+                  )}
                   {isActive && (
                     <span className={styles.profileBadge}>{t('settings.profiles.active')}</span>
                   )}
@@ -597,17 +618,7 @@ function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfiles
           type="button"
           tone="neutral"
           size="sm"
-          onClick={() => {
-            const name = prompt(t('profile.createPrompt'));
-            const trimmed = name?.trim();
-            if (!trimmed) return;
-            const dupe = profiles.profiles.some(pp => pp.name.toLowerCase() === trimmed.toLowerCase());
-            if (dupe) {
-              alert(t('profile.duplicateName'));
-              return;
-            }
-            profiles.createProfile(trimmed);
-          }}
+          onClick={() => setCreateOpen(true)}
           disabled={atLimit}
         >
           {t('profile.create')}
@@ -625,6 +636,26 @@ function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfiles
         <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
       </div>
       {atLimit && <p className={styles.note}>{t('profile.maxReached')}</p>}
+
+      <PromptDialog
+        open={createOpen}
+        title={t('profile.create')}
+        message={t('profile.createPrompt')}
+        maxLength={20}
+        validate={raw => {
+          const trimmed = raw.trim();
+          if (!trimmed) return null;
+          const dupe = profiles.profiles.some(pp => pp.name.toLowerCase() === trimmed.toLowerCase());
+          return dupe ? t('profile.duplicateName') : null;
+        }}
+        onConfirm={async raw => {
+          const trimmed = raw.trim().slice(0, 20);
+          if (!trimmed) return;
+          setCreateOpen(false);
+          await profiles.createProfile(trimmed);
+        }}
+        onCancel={() => setCreateOpen(false)}
+      />
 
       <SharingSection
         profiles={profiles}

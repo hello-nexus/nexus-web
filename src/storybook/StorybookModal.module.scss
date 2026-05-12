@@ -180,6 +180,12 @@
   &:hover { border-color: var(--accent); color: var(--accent); }
 }
 
+.previewNote {
+  margin: 0.6rem 0 0;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
 .previewPopupBody {
   padding: 1rem;
   color: var(--text-dim);

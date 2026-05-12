@@ -7,6 +7,7 @@ import { PRESET_ACCENTS, loadSettings } from '../../lib/settings';
 import type { UseProfilesResult } from '../../hooks/useProfiles';
 import type { UiSettings } from '../../api/profiles';
 import { savePreferences } from '../../api/profiles';
+import { PromptDialog } from '../PromptDialog/PromptDialog';
 import styles from './ProfileDropdown.module.scss';
 
 interface ProfileDropdownProps {
@@ -19,6 +20,7 @@ interface ProfileDropdownProps {
 export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSettings, compact = false }: ProfileDropdownProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -26,22 +28,32 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
 
   const activeEntry = profiles.profiles.find(p => p.id === profiles.activeId);
 
-  const handleSwitch = useCallback(async (id: string) => {
+  const handleSwitch = useCallback((id: string) => {
     if (id === profiles.activeId) return;
-    const ui = await profiles.switchProfile(id);
-    if (ui) onPreferencesChanged(ui);
+    // Close the dropdown immediately - the optimistic update inside
+    // switchProfile already flips the active highlight, so awaiting here
+    // would just delay the dismissal.
     setOpen(false);
+    profiles.switchProfile(id).then(ui => {
+      if (ui) onPreferencesChanged(ui);
+    });
   }, [profiles, onPreferencesChanged]);
 
-  const handleCreate = useCallback(async () => {
-    const name = prompt(t('profile.createPrompt'));
-    if (!name?.trim()) return;
+  const handleCreate = useCallback(() => {
+    setCreateOpen(true);
+    setOpen(false);
+  }, []);
+
+  const handleCreateConfirm = useCallback(async (rawName: string) => {
+    const name = rawName.trim().slice(0, 20);
+    if (!name) return;
+    setCreateOpen(false);
 
     const currentAccent = loadSettings().general.accentColor;
     const others = PRESET_ACCENTS.filter(c => c !== currentAccent);
     const newAccent = others[Math.floor(Math.random() * others.length)];
 
-    await profiles.createProfile(name.trim().slice(0, 20));
+    await profiles.createProfile(name);
     const updated = profiles.profiles;
     const created = updated[updated.length - 1];
     if (created) {
@@ -49,8 +61,14 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
       await savePreferences({ accentColor: newAccent });
       if (ui) onPreferencesChanged({ ...ui, accentColor: newAccent });
     }
-    setOpen(false);
-  }, [profiles, t, onPreferencesChanged]);
+  }, [profiles, onPreferencesChanged]);
+
+  const validateNewName = useCallback((raw: string): string | null => {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    const dupe = profiles.profiles.some(p => p.name.toLowerCase() === trimmed.toLowerCase());
+    return dupe ? t('profile.duplicateName') : null;
+  }, [profiles.profiles, t]);
 
   const handleExport = useCallback(async () => {
     await profiles.exportProfile(profiles.activeId);
@@ -130,6 +148,15 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
           <input ref={fileRef} type="file" accept=".json" className={styles.hiddenInput} onChange={handleFileChange} />
         </div>
       )}
+      <PromptDialog
+        open={createOpen}
+        title={t('profile.create')}
+        message={t('profile.createPrompt')}
+        maxLength={20}
+        validate={validateNewName}
+        onConfirm={handleCreateConfirm}
+        onCancel={() => setCreateOpen(false)}
+      />
     </div>
   );
 }

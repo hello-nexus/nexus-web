@@ -25,6 +25,7 @@ import { EffectCard } from '../components/EffectCard/EffectCard';
 import { EffectControls } from '../components/views/lighting/EffectControls';
 import { Tabs } from '../components/Tabs/Tabs';
 import { ConfirmDialog } from '../components/ConfirmDialog/ConfirmDialog';
+import { PromptDialog } from '../components/PromptDialog/PromptDialog';
 import { UsageBar } from '../components/UsageBar/UsageBar';
 import { CapacityBar } from '../components/CapacityBar/CapacityBar';
 import { StackedChart } from '../components/StackedChart/StackedChart';
@@ -327,6 +328,35 @@ function PreviewConfirmDialog() {
         message={'This cannot be undone.\nThe item will be permanently removed.'}
         note="Only applies to this device. Other profiles are unaffected."
         onConfirm={() => setOpen(false)}
+        onCancel={() => setOpen(false)}
+      />
+    </>
+  );
+}
+
+function PreviewPromptDialog() {
+  const [open, setOpen] = useState(false);
+  const [last, setLast] = useState<string | null>(null);
+  const existing = ['Default', 'Gaming', 'Quiet'];
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        New Profile
+      </button>
+      {last && <p className={styles.previewNote}>Last submitted: <strong>{last}</strong></p>}
+      <PromptDialog
+        open={open}
+        title="New Profile"
+        message="Enter a name for the new profile:"
+        placeholder="e.g. Streaming"
+        maxLength={20}
+        validate={(raw) => {
+          const trimmed = raw.trim();
+          if (!trimmed) return null;
+          const dupe = existing.some(n => n.toLowerCase() === trimmed.toLowerCase());
+          return dupe ? 'A profile with this name already exists.' : null;
+        }}
+        onConfirm={(value) => { setLast(value); setOpen(false); }}
         onCancel={() => setOpen(false)}
       />
     </>
@@ -931,6 +961,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/ConfirmDialog/ConfirmDialog.tsx',
     description: 'Native-in-app confirmation modal with title + body + optional note + confirm/cancel actions. Esc cancels, Enter confirms, click-outside cancels. Cancel autofocused so destructive intent must be explicit. Used instead of window.confirm so the dialog matches app chrome.', Preview: PreviewConfirmDialog,
     notes: 'destructive defaults to true (red confirm button). Pass destructive={false} for non-destructive confirmations like "save changes?".',
+  },
+  {
+    name: 'PromptDialog', category: 'modals',
+    filePath: 'src/components/PromptDialog/PromptDialog.tsx',
+    description: 'Native-in-app text-input modal. Replaces window.prompt with a themed dialog so the input experience is consistent across macOS / Linux / Windows (WKWebView, Edge kiosk, browsers all suppress or restyle native prompts). Autofocuses the input, Enter submits, Esc cancels, click-outside cancels. Supports a sync validator that displays its error inline and disables the submit button.', Preview: PreviewPromptDialog,
+    notes: 'Use the validate callback for live duplicate-name checks. The submit button is disabled while the value is empty or invalid, so the caller does not need to defensively re-validate.',
   },
   {
     name: 'SupportedDevicesModal', category: 'modals',

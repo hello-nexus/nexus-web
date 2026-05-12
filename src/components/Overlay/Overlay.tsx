@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './Overlay.module.scss';
 
 /**
@@ -76,7 +77,13 @@ export function Overlay({
       ? styles.backdropAlert
       : styles.backdropDialog;
 
-  return (
+  // Portal to <body> so position:fixed anchors to the viewport regardless of
+  // ancestor transforms / filters / contain rules (which silently re-anchor
+  // fixed children to their bounding box - that's what made dialogs render
+  // squished inside animated header slots etc.).
+  const portalTarget = typeof document !== 'undefined' ? document.body : null;
+
+  const content = (
     <div
       className={`${styles.backdrop} ${variantClass} ${backdropClassName ?? ''}`}
       role={role}
@@ -97,4 +104,6 @@ export function Overlay({
       </div>
     </div>
   );
+
+  return portalTarget ? createPortal(content, portalTarget) : content;
 }

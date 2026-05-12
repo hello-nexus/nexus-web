@@ -64,12 +64,24 @@ export function useProfiles(enabled: boolean): UseProfilesResult {
   }, [enabled, refresh]);
 
   const switchProfileFn = useCallback(async (id: string): Promise<UiSettings | null> => {
-    const resp = await apiSwitch(id);
-    if (resp) {
-      setActiveId(resp.switched);
-      await refresh();
-      return resp.ui;
+    // Optimistic: flip the active highlight in the UI immediately so the
+    // dropdown and settings list feel instant. The server call + manifest
+    // refresh continue in the background; if the call fails the refresh
+    // reverts the local state.
+    setActiveId(id);
+    try {
+      const resp = await apiSwitch(id);
+      if (resp) {
+        if (resp.switched && resp.switched !== id) setActiveId(resp.switched);
+        // Background refresh - manifest `updatedAt` etc. matter for the
+        // settings list ordering but not for the switch UX.
+        refresh().catch(() => { /* best-effort */ });
+        return resp.ui;
+      }
+    } catch {
+      // fall through to revert
     }
+    refresh().catch(() => { /* best-effort */ });
     return null;
   }, [refresh]);
 
