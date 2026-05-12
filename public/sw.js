@@ -6,7 +6,7 @@
 // IMPORTANT: never intercept localhost — the local Qos service must hit the
 // network directly so the SPA can detect it going up/down in real time.
 
-const CACHE_VERSION = 'qos-web-v129-profile-icon';
+const CACHE_VERSION = 'qos-web-v130-no-activate-reload';
 const SHELL_URLS = ['/', '/index.html', '/favicon.svg', '/icons.svg', '/manifest.webmanifest', '/panel-phone.webmanifest', '/fonts/lexend/lexend-latin.woff2'];
 
 self.addEventListener('install', (event) => {
@@ -17,11 +17,17 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+  // Drop stale caches, then take over fetches for already-open pages.
+  // Do NOT force a navigate() on existing windows: that double-fires
+  // the SPA mount on URLs that carry one-shot tokens (e.g. the phone
+  // pair flow at /panel/phone?pair=...), making the second claim attempt
+  // see the consumed token and surface a misleading "expired" error.
+  // Navigations are network-first below, so users still pick up shell
+  // updates on the next manual navigation without us reloading them here.
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)))
-    ).then(() => self.clients.matchAll({ type: 'window' }))
-      .then((clients) => Promise.all(clients.map((client) => client.navigate(client.url))))
+    )
   );
   self.clients.claim();
 });

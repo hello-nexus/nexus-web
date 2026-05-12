@@ -181,10 +181,23 @@ export function resolveTheme(mode: ThemeMode): 'dark' | 'light' {
 // thread the accent through.
 let currentAccent = DEFAULT_ACCENT;
 
+// Match the --bg surface tokens in src/styles/variables.scss. Kept in sync
+// manually so the iOS Safari URL bar / overscroll area painted via the
+// theme-color meta matches the body background the user actually sees.
+const THEME_COLOR_DARK = '#0f0f0f';
+const THEME_COLOR_LIGHT = '#f4f4f8';
+
 /** Apply the theme mode by toggling a data attribute on <html>. */
 export function applyThemeMode(mode: ThemeMode): void {
   const effective = resolveTheme(mode);
   document.documentElement.setAttribute('data-theme', effective);
+  // Update the iOS Safari / Chrome address-bar color so the chrome above
+  // and below the viewport matches the page background instead of falling
+  // back to a light system default.
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute('content', effective === 'light' ? THEME_COLOR_LIGHT : THEME_COLOR_DARK);
+  }
   // Re-derive accent shades for the newly effective theme mode.
   applyAccentColor(currentAccent);
 }

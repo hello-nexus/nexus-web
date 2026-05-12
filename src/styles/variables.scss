@@ -8,6 +8,12 @@
 
 :root,
 [data-theme="dark"] {
+  // Tell the UA we're in dark mode so it paints its own chrome (iOS Safari
+  // URL bar, scrollbars, rubber-band overscroll area, form controls) to
+  // match. Without this, Safari can leave the toolbars in light/system
+  // mode and the dark body bleeds into a white halo at the edges.
+  color-scheme: dark;
+
   // Surfaces — pure grayscale to mirror light mode's neutral whites.
   --bg: #0f0f0f;
   --bg-elevated: #1a1a1a;
@@ -117,6 +123,8 @@
 // ── Light theme ──────────────────────────────────────────────────────────────
 
 [data-theme="light"] {
+  color-scheme: light;
+
   --bg: #f4f4f8;
   --bg-elevated: #ffffff;
   --bg-card: #ffffff;
