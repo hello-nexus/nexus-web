@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Trash2, X } from 'lucide-react';
 import { Overlay } from '../../Overlay/Overlay';
 import { Toggle } from '../../Toggle/Toggle';
@@ -48,6 +48,12 @@ export function OverlayWidgetsPopup({ open, onClose }: OverlayWidgetsPopupProps)
   const [widgets, setWidgets] = useState<OverlayWidgetDto[]>([]);
   const [loaded, setLoaded] = useState(false);
 
+  // True while the user is mid-drag on the opacity slider. The prefs WS
+  // broadcast we trigger from livePostOpacity round-trips back as a
+  // refresh, which would yank the slider thumb back to a stale value
+  // racing the live drag. Gated below.
+  const isDraggingOpacityRef = useRef(false);
+
   const refresh = useCallback(async () => {
     const [list, prefs] = await Promise.all([
       listOverlayWidgets(),
@@ -56,9 +62,11 @@ export function OverlayWidgetsPopup({ open, onClose }: OverlayWidgetsPopupProps)
     setWidgets(list);
     setEnabled(Boolean(prefs?.overlayWidgetsEnabled));
     setScale(prefs?.overlayWidgetScale ?? SCALE_DEFAULT);
-    setOpacity(typeof prefs?.overlayWidgetOpacity === 'number'
-      ? Math.round(prefs.overlayWidgetOpacity * 100)
-      : OPACITY_DEFAULT);
+    if (!isDraggingOpacityRef.current) {
+      setOpacity(typeof prefs?.overlayWidgetOpacity === 'number'
+        ? Math.round(prefs.overlayWidgetOpacity * 100)
+        : OPACITY_DEFAULT);
+    }
     // Legacy -1 (primary fallback sentinel) collapses to 0 for display
     // purposes - the user can pick any monitor in the dropdown and the
     // next POST writes a real index.
@@ -88,9 +96,46 @@ export function OverlayWidgetsPopup({ open, onClose }: OverlayWidgetsPopupProps)
     await postService('/preferences', { overlayWidgetScale: clamped });
   }, []);
 
+  // Live preview: stream opacity to the server during slider drag so the
+  // overlay widgets update in real time, not just when the user releases.
+  // Coalesce to one POST per animation frame so a fast drag doesn't
+  // produce a backlog of in-flight requests. The service updates its
+  // in-memory cache synchronously and broadcasts on the `prefs` topic
+  // before the disk-write debounce fires, so the overlay SPA sees each
+  // intermediate value through the same WS path it uses on commit.
+  const livePostFrameRef = useRef<number | null>(null);
+  const livePostPendingRef = useRef<number | null>(null);
+  const livePostOpacity = useCallback((next: number) => {
+    const clampedPct = Math.round(Math.max(OPACITY_MIN, Math.min(OPACITY_MAX, next)));
+    livePostPendingRef.current = clampedPct;
+    if (livePostFrameRef.current !== null) return;
+    livePostFrameRef.current = requestAnimationFrame(() => {
+      livePostFrameRef.current = null;
+      const value = livePostPendingRef.current;
+      livePostPendingRef.current = null;
+      if (value === null) return;
+      void postService('/preferences', { overlayWidgetOpacity: value / 100 });
+    });
+  }, []);
+
+  useEffect(() => () => {
+    if (livePostFrameRef.current !== null) {
+      cancelAnimationFrame(livePostFrameRef.current);
+      livePostFrameRef.current = null;
+    }
+  }, []);
+
   const handleOpacityCommit = useCallback(async (next: number) => {
     const clampedPct = Math.round(Math.max(OPACITY_MIN, Math.min(OPACITY_MAX, next)));
     setOpacity(clampedPct);
+    // Cancel any pending preview-only POST so we don't race the commit
+    // with a stale intermediate value.
+    if (livePostFrameRef.current !== null) {
+      cancelAnimationFrame(livePostFrameRef.current);
+      livePostFrameRef.current = null;
+      livePostPendingRef.current = null;
+    }
+    isDraggingOpacityRef.current = false;
     await postService('/preferences', { overlayWidgetOpacity: clampedPct / 100 });
   }, []);
 
@@ -190,7 +235,9 @@ export function OverlayWidgetsPopup({ open, onClose }: OverlayWidgetsPopupProps)
               step={5}
               orientation="inline"
               formatValue={(v) => `${v}%`}
-              onChange={(v) => setOpacity(v)}
+              onPointerDown={() => { isDraggingOpacityRef.current = true; }}
+              onPointerCancel={() => { isDraggingOpacityRef.current = false; }}
+              onChange={(v) => { setOpacity(v); livePostOpacity(v); }}
               onCommit={(v) => { void handleOpacityCommit(v); }}
               ariaLabel="Desktop widget opacity"
               trackFill
