@@ -51,7 +51,7 @@ import { PanelOfflineOverlay } from './PanelOfflineOverlay';
 import { isInsecureBrowserPanel } from './PanelInsecureBanner';
 import { useTranslation } from '../lib/i18n';
 import {
-  DEFAULT_ACCENT, deriveAccentVars, LANGUAGES, resolveTheme, THEME_MODES,
+  applyHtmlChromeTheme, DEFAULT_ACCENT, deriveAccentVars, LANGUAGES, resolveTheme, THEME_MODES,
   type Language, type ThemeMode,
 } from '../lib/settings';
 import { fetchPreferences, savePreferences } from '../api/profiles';
@@ -509,6 +509,15 @@ export function PanelContent({
   const resolvedThemeMode = simulator && simulatorThemeMode
     ? simulatorThemeMode
     : embedded ? desktopResolvedThemeMode : panelResolvedThemeMode;
+  // Standalone phone / kiosk panel owns the whole tab - mirror its resolved
+  // theme to <html> so iOS Safari paints its chrome (URL bar, overscroll,
+  // scrollbars) via the matching `color-scheme` rule and `<meta theme-color>`.
+  // Skipped when embedded inside the desktop dashboard, where the desktop
+  // already drives html theme via applyThemeMode.
+  useEffect(() => {
+    if (embedded || simulator) return;
+    applyHtmlChromeTheme(resolvedThemeMode);
+  }, [embedded, simulator, resolvedThemeMode]);
   const nativeSettings = useNativeSettingsBridge(kioskBehavior && surface === 'phone');
   const serviceStatus = useServiceStatus(kioskBehavior);
   const multiplex = useMultiplex();

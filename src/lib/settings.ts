@@ -187,17 +187,27 @@ let currentAccent = DEFAULT_ACCENT;
 const THEME_COLOR_DARK = '#0f0f0f';
 const THEME_COLOR_LIGHT = '#f4f4f8';
 
-/** Apply the theme mode by toggling a data attribute on <html>. */
-export function applyThemeMode(mode: ThemeMode): void {
-  const effective = resolveTheme(mode);
-  document.documentElement.setAttribute('data-theme', effective);
-  // Update the iOS Safari / Chrome address-bar color so the chrome above
-  // and below the viewport matches the page background instead of falling
-  // back to a light system default.
+/**
+ * Set the html `data-theme` attribute and the iOS Safari / Chrome address-bar
+ * color so the browser chrome (URL bar, overscroll, scrollbars) matches the
+ * page background. Caller passes an already-resolved 'dark' | 'light' value;
+ * use applyThemeMode if you have a raw ThemeMode (incl. 'system'/'auto').
+ *
+ * Split out from applyThemeMode so surfaces with independent theme state
+ * (e.g. the phone panel, which has its own panel-theme separate from the
+ * desktop theme) can update html chrome without touching the desktop accent.
+ */
+export function applyHtmlChromeTheme(resolved: 'dark' | 'light'): void {
+  document.documentElement.setAttribute('data-theme', resolved);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.setAttribute('content', effective === 'light' ? THEME_COLOR_LIGHT : THEME_COLOR_DARK);
+    meta.setAttribute('content', resolved === 'light' ? THEME_COLOR_LIGHT : THEME_COLOR_DARK);
   }
+}
+
+/** Apply the theme mode by toggling a data attribute on <html>. */
+export function applyThemeMode(mode: ThemeMode): void {
+  applyHtmlChromeTheme(resolveTheme(mode));
   // Re-derive accent shades for the newly effective theme mode.
   applyAccentColor(currentAccent);
 }
