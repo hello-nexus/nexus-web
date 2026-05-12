@@ -25,6 +25,7 @@ import { PanelSimulatorContent } from './panel/embed/PanelSimulatorContent';
 import { SIMULATOR_QUERY_FLAG } from './panel/embed/simulatorProtocol';
 import OverlayShell from './overlay/OverlayShell';
 import { PairRedirect } from './PairRedirect';
+import { OpenInAppBanner } from './components/OpenInAppBanner';
 import { ToolsView } from './components/views/ToolsView';
 import { SettingsView } from './components/views/SettingsView';
 import { DevicesView } from './components/views/DevicesView/DevicesView';
@@ -1160,6 +1161,7 @@ function Dashboard() {
         activeProfileId={profilesHook.activeId}
       >
       <div className={classNames(styles.layout, { [styles.layoutCompact]: compact })}>
+        <OpenInAppBanner />
         {/* Body row: sidebar (my-computer only) + content */}
         <div className={styles.bodyRow}>
           {hasSidebar && (

@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+// TODO: replace with the real App Store ID when the iOS app is published.
+// Today the entitlement still carries `?mode=developer` so distribution is
+// TestFlight/dev-signed only; this href is a placeholder.
 const APP_STORE_URL = 'https://apps.apple.com/app/qos/id0000000000';
 const APP_LINK_PROBE_MS = 1500;
+const CUSTOM_SCHEME_PROBE_MS = 1500;
 
 /**
  * Tiny landing page rendered when a phone scans the pairing QR but the
@@ -14,6 +18,14 @@ const APP_LINK_PROBE_MS = 1500;
  * `application(_:continue:userActivity:)` - this component never renders.
  * If not installed, this page lets the user either install the app (App Store)
  * or continue in the mobile browser, redirected to the LAN URL the QR encoded.
+ *
+ * The "Open in Qos app" button is a manual fallback: if the user landed here
+ * despite having the app installed (Chrome on iOS, in-app browser, AASA cache
+ * miss), tapping it navigates to `nexusqos://r/pair?...` via the registered
+ * custom URL scheme. We use a visibility-change probe to detect whether the
+ * app actually opened; if not, we surface the install/browser fallbacks. If
+ * the user returns to Safari after the handoff, the probe transitions back
+ * to the choose stage so they're not stuck on the "Opening..." screen.
  */
 export function PairRedirect() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
@@ -25,13 +37,58 @@ export function PairRedirect() {
   // the only sane guess.
   const httpPort = params.get('httpPort') ?? '9400';
 
-  const [stage, setStage] = useState<'loading' | 'choose' | 'redirecting'>('loading');
+  const [stage, setStage] = useState<'loading' | 'choose' | 'opening-app' | 'app-missing' | 'redirecting'>('loading');
+  const customSchemeTimer = useRef<number | null>(null);
 
-  // Probe for app handover: if iOS opens the app, this component unmounts.
-  // After the probe window we consider the app missing and show the choices.
+  // Probe for app handover via Universal Link: if iOS opens the app, this
+  // component unmounts. After the probe window we consider the app missing
+  // and show the choices.
   useEffect(() => {
     const t = window.setTimeout(() => setStage('choose'), APP_LINK_PROBE_MS);
     return () => window.clearTimeout(t);
+  }, []);
+
+  // Visibility-change probe for the custom-scheme handover. Two outcomes:
+  //   1. Page goes hidden before the timeout: the OS handed off to the app.
+  //      Clear the timer; if Safari later regains focus (user returned from
+  //      the app), bounce back to 'choose' so they're not stuck on
+  //      "Opening Qos app..." forever.
+  //   2. Page stays visible past the timeout: the scheme isn't registered,
+  //      so the app probably isn't installed; show 'app-missing' fallbacks.
+  useEffect(() => {
+    if (stage !== 'opening-app') return;
+    let wasHidden = false;
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        wasHidden = true;
+        if (customSchemeTimer.current != null) {
+          window.clearTimeout(customSchemeTimer.current);
+          customSchemeTimer.current = null;
+        }
+      } else if (wasHidden) {
+        setStage('choose');
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    customSchemeTimer.current = window.setTimeout(() => {
+      customSchemeTimer.current = null;
+      setStage('app-missing');
+    }, CUSTOM_SCHEME_PROBE_MS);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (customSchemeTimer.current != null) {
+        window.clearTimeout(customSchemeTimer.current);
+        customSchemeTimer.current = null;
+      }
+    };
+  }, [stage]);
+
+  const openInApp = useCallback(() => {
+    // Reuse the exact query string so the app gets the same pair token, host,
+    // port, and fingerprint that the QR encoded.
+    const appUrl = `nexusqos://r/pair?${window.location.search.replace(/^\?/, '')}`;
+    setStage('opening-app');
+    window.location.href = appUrl;
   }, []);
 
   // Validity guard: native iOS uses `port` for the HTTPS-pinned path, but the
@@ -55,6 +112,15 @@ export function PairRedirect() {
     );
   }
 
+  if (stage === 'opening-app') {
+    return (
+      <Frame>
+        <Title>Opening Qos app...</Title>
+        <Sub>If nothing happens, the app isn't installed on this device.</Sub>
+      </Frame>
+    );
+  }
+
   const lanURL = `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}`;
 
   if (stage === 'redirecting') {
@@ -66,21 +132,26 @@ export function PairRedirect() {
     );
   }
 
+  const appMissing = stage === 'app-missing';
+
   return (
     <Frame>
       <Title>Pair phone with Qos</Title>
-      <Sub>Choose how you want to continue.</Sub>
+      <Sub>
+        {appMissing
+          ? "The Qos app doesn't seem to be installed on this device."
+          : 'Choose how you want to continue.'}
+      </Sub>
 
-      <a
-        href={APP_STORE_URL}
-        style={btnPrimary}
-      >
-        Install the app (recommended)
-      </a>
+      {!appMissing && (
+        <button type="button" style={btnPrimary} onClick={openInApp}>
+          Open in Qos app
+        </button>
+      )}
 
       <button
         type="button"
-        style={btnSecondary}
+        style={appMissing ? btnPrimary : btnSecondary}
         onClick={() => {
           setStage('redirecting');
           window.location.href = lanURL;
@@ -88,6 +159,10 @@ export function PairRedirect() {
       >
         Continue in browser
       </button>
+
+      <a href={APP_STORE_URL} style={btnSecondary}>
+        Get the app
+      </a>
 
       <Sub style={{ marginTop: 24, fontSize: 12 }}>
         Browser fallback only works on a trusted home network. The Qos app uses end-to-end encryption.
@@ -185,11 +260,15 @@ const btnPrimary: React.CSSProperties = {
   fontWeight: 600,
   fontSize: 15,
   marginBottom: 12,
+  width: '100%',
+  border: 'none',
+  cursor: 'pointer',
 };
 
 const btnSecondary: React.CSSProperties = {
   display: 'block',
   width: '100%',
+  textDecoration: 'none',
   textAlign: 'center',
   padding: '14px 16px',
   borderRadius: 12,
@@ -199,4 +278,5 @@ const btnSecondary: React.CSSProperties = {
   fontSize: 15,
   border: '1px solid #2c2c36',
   cursor: 'pointer',
+  marginBottom: 12,
 };

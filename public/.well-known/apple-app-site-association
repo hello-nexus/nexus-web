@@ -5,12 +5,8 @@
         "appIDs": ["8ZFCKY2SQ9.com.nexusqos.panel"],
         "components": [
           {
-            "/": "/r/pair",
-            "comment": "Pair a phone with a local Qos service"
-          },
-          {
-            "/": "/r/pair?*",
-            "comment": "Pair URL with query string"
+            "/": "/r/**",
+            "comment": "All Qos redirect routes (pair flow, future deep-links)"
           }
         ]
       }
