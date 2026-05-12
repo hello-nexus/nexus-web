@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Fan } from 'lucide-react';
 import { applyProfile, fetchProfiles } from '../../../api/cooling';
 import { useSensors } from '../../../hooks/useSensors';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -15,6 +14,10 @@ import { useTranslation } from '../../../lib/i18n';
 import { PERF_HISTORY_SAMPLES, useHistory } from '../common/useHistory';
 import type { WidgetProps } from '../types';
 import styles from './CoolingWidget.module.scss';
+
+const TEMP_RANGE_MAX = TEMP_DOMAIN[1];
+
+const WIDGET_PRESET_KEYS: CoolingPresetKey[] = ['silent', 'balanced', 'performance'];
 
 export function CoolingWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
@@ -45,7 +48,6 @@ export function CoolingWidget({ widget }: WidgetProps) {
   useEffect(() => { refreshProfiles(); }, [refreshProfiles]);
   useTopicCallback('cooling', true, refreshProfiles);
 
-  // Cross-window sync: a tab change on the desktop should reflect immediately.
   useEffect(() => subscribeControlSync(event => {
     if (event.domain !== 'cooling') return;
     const next = event.activePreset ?? event.activeProfile;
@@ -59,36 +61,37 @@ export function CoolingWidget({ widget }: WidgetProps) {
   };
 
   const compact = widget.size === '2x2';
-  const showControls = widget.config?.showControls?.b ?? true;
-  const activeLabel = t(COOLING_PRESETS.find(p => p.key === active)?.i18nKey ?? 'cooling.preset.custom');
+  const widgetPresets = useMemo(
+    () => COOLING_PRESETS.filter(p => WIDGET_PRESET_KEYS.includes(p.key)),
+    [],
+  );
 
-  if (!showControls) {
+  if (compact) {
     return (
       <div className={styles.cooling} data-size={widget.size} data-display-only="true">
-        <div className={styles.display}>
-          <Fan className={styles.displayIcon} aria-hidden="true" />
-          {active !== 'off' && <div className={styles.displayMode}>{activeLabel}</div>}
-          <div className={styles.displayValue}>{formatFanRpm(fanValue, hasFans)}</div>
-        </div>
+        <CoolingMicroBars
+          t={t}
+          tempValue={tempValue}
+          fanValue={fanValue}
+          fanHistory={fanHistory}
+          hasFans={hasFans}
+        />
       </div>
     );
   }
 
   return (
     <div className={styles.cooling} data-size={widget.size}>
-      {!compact && (
-        <CoolingTrend
-          activeLabel={activeLabel}
-          tempValue={tempValue}
-          tempHistory={tempHistory}
-          fanHistory={fanHistory}
-          fanValue={fanValue}
-          hasFans={hasFans}
-        />
-      )}
+      <CoolingTrend
+        tempValue={tempValue}
+        tempHistory={tempHistory}
+        fanHistory={fanHistory}
+        fanValue={fanValue}
+        hasFans={hasFans}
+      />
 
       <div className={styles.chips}>
-        {COOLING_PRESETS.map(p => {
+        {widgetPresets.map(p => {
           const label = t(p.i18nKey);
           return (
             <button
@@ -102,6 +105,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
               title={label}
             >
               <p.Icon aria-hidden="true" />
+              <span className={styles.chipLabel}>{label}</span>
             </button>
           );
         })}
@@ -111,7 +115,6 @@ export function CoolingWidget({ widget }: WidgetProps) {
 }
 
 interface CoolingTrendProps {
-  activeLabel: string;
   tempValue: number | undefined;
   tempHistory: number[];
   fanHistory: number[];
@@ -120,7 +123,6 @@ interface CoolingTrendProps {
 }
 
 function CoolingTrend({
-  activeLabel,
   tempValue,
   tempHistory,
   fanHistory,
@@ -143,11 +145,8 @@ function CoolingTrend({
       aria-label="Average temperature compared with average fan speed"
     >
       <div className={styles.trendHeader}>
-        <span className={styles.modeLabel}>{activeLabel}</span>
-        <span className={styles.trendValues}>
-          <span className={styles.trendValue}>{formatAverageTemp(tempValue)}</span>
-          <span className={styles.trendValue}>{formatFanRpm(fanValue, hasFans)}</span>
-        </span>
+        <span className={styles.trendValue}>{formatAverageTemp(tempValue)}</span>
+        <span className={styles.trendValue}>{formatFanRpm(fanValue, hasFans)}</span>
       </div>
       <div className={styles.chartWrap}>
         <span className={styles.gridLine} data-line="upper" aria-hidden="true" />
@@ -181,6 +180,63 @@ function CoolingTrend({
         )}
       </div>
     </section>
+  );
+}
+
+interface CoolingMicroBarsProps {
+  t: (key: string) => string;
+  tempValue: number | undefined;
+  fanValue: number;
+  fanHistory: number[];
+  hasFans: boolean;
+}
+
+function CoolingMicroBars({ t, tempValue, fanValue, fanHistory, hasFans }: CoolingMicroBarsProps) {
+  // Temp fills 0-100°C - the domain the cooling page already uses.
+  // Fan fills 0 to the current observed max (auto-scaled) so the bar
+  // remains useful at idle when the absolute RPM is low.
+  const fanMax = hasFans ? fanDomainMax(fanHistory, fanValue) : FAN_MIN_DOMAIN_MAX;
+  const tempPct = tempValue === undefined ? 0 : Math.max(0, Math.min(1, tempValue / TEMP_RANGE_MAX)) * 100;
+  const fanPct = !hasFans || fanMax <= 0 ? 0 : Math.max(0, Math.min(1, fanValue / fanMax)) * 100;
+
+  return (
+    <div className={styles.microBars}>
+      <MicroBar
+        label={t('cooling.label.temp')}
+        value={formatAverageTemp(tempValue)}
+        pct={tempPct}
+        active={tempValue !== undefined}
+      />
+      <MicroBar
+        label={t('cooling.label.fan')}
+        value={formatFanRpm(fanValue, hasFans)}
+        pct={fanPct}
+        active={hasFans}
+      />
+    </div>
+  );
+}
+
+function MicroBar({ label, value, pct, active }: {
+  label: string;
+  value: string;
+  pct: number;
+  active: boolean;
+}) {
+  return (
+    <div className={styles.microBar}>
+      <div className={styles.microBarHeader}>
+        <span className={styles.microBarLabel}>{label}</span>
+        <span className={styles.microBarValue}>{value}</span>
+      </div>
+      <div className={styles.microBarTrack} data-active={active ? 'true' : 'false'}>
+        <span
+          className={styles.microBarFill}
+          style={{ width: `${pct}%` }}
+          aria-hidden="true"
+        />
+      </div>
+    </div>
   );
 }
 

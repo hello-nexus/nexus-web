@@ -42,8 +42,6 @@ import { WeatherSettings } from './settings/WeatherSettings';
 import { ObsSettings } from './settings/ObsSettings';
 import { SteamSettings } from './settings/SteamSettings';
 import { DiscordSettings } from './settings/DiscordSettings';
-import { LightingSettings } from './settings/LightingSettings';
-import { CoolingSettings } from './settings/CoolingSettings';
 
 // Single source of truth for widget type -> metadata + component.
 // Phase 2: all v1 widgets have real components. PlaceholderWidget stays
@@ -136,11 +134,10 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       sizes: ['2x2', '4x2', '4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: true },
-      hasConfig: true,
+      hasConfig: false,
       touch: 'touch-only',
     },
     Component: LightingWidget,
-    SettingsComponent: LightingSettings,
     ImmersiveComponent: LightingImmersive,
   },
   obs: {
@@ -197,11 +194,10 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       sizes: ['2x2', '4x2', '4x4'],
       defaultSize: '2x2',
       supportsImmersive: { portrait: true, landscape: false },
-      hasConfig: true,
+      hasConfig: false,
       touch: 'any',
     },
     Component: CoolingWidget,
-    SettingsComponent: CoolingSettings,
   },
   displays: {
     meta: {

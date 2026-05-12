@@ -92,28 +92,47 @@ export const startScreenMirror = (saturation = 1, contrast = 1, monitor = '', hu
     monitor, effect: 'average', saturation, contrast, blur: 0, hue, colorize,
   });
 
-// Post-process params persisted across sessions for Screen Mirror + Media.
+// Post-process params persisted across sessions for Mirror + Media.
 // Backend shared by both modes: the canvas post-process (hue shift, colorize,
-// saturation, contrast) is applied after the capture / playback frame is
-// produced and before it's blitted to the LED canvas.
+// saturation, contrast) plus optional horizontal/vertical flip are applied
+// after the capture / playback frame is produced and before it's blitted to
+// the LED canvas. Flip is geometric and runs before the colour transform.
 export interface PostProcessSettings {
   hue: number;
   colorize: number;
   saturation: number;
   contrast: number;
+  flipX?: boolean;
+  flipY?: boolean;
 }
 
 export const fetchScreenEffect = () =>
   fetchService<PostProcessSettings>('/lighting/screen/effect');
 
 export const setScreenEffect = (v: PostProcessSettings, persist = true) =>
-  postService('/lighting/screen/effect', { ...v, persist });
+  postService('/lighting/screen/effect', {
+    hue: v.hue,
+    colorize: v.colorize,
+    saturation: v.saturation,
+    contrast: v.contrast,
+    flipX: !!v.flipX,
+    flipY: !!v.flipY,
+    persist,
+  });
 
 export const fetchMediaEffect = () =>
   fetchService<PostProcessSettings>('/lighting/media/effect');
 
 export const setMediaEffect = (v: PostProcessSettings, persist = true) =>
-  postService('/lighting/media/effect', { ...v, persist });
+  postService('/lighting/media/effect', {
+    hue: v.hue,
+    colorize: v.colorize,
+    saturation: v.saturation,
+    contrast: v.contrast,
+    flipX: !!v.flipX,
+    flipY: !!v.flipY,
+    persist,
+  });
 
 // --- Screen monitor enumeration ---
 

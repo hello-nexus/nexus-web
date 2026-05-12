@@ -706,7 +706,13 @@ export function LightingView({ serviceOnline, connectionState, activeProfileId }
             <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} />
           ) : (
             <div className={styles.controls}>
-              <ModeControls mode={mode} staticColor={staticColor} onStaticChange={handleStaticColorChange} />
+              <ModeControls
+                mode={mode}
+                staticColor={staticColor}
+                onStaticChange={handleStaticColorChange}
+                screenPP={screenPP}
+                onScreenPPChange={setScreenPP}
+              />
             </div>
           )}
         </div>
@@ -781,6 +787,8 @@ function normalizePP(s: PostProcessSettings | null | undefined): PostProcessStat
     colorize: typeof s.colorize === 'number' ? s.colorize : 0,
     saturation: typeof s.saturation === 'number' ? s.saturation : 1,
     contrast: typeof s.contrast === 'number' ? s.contrast : 1,
+    flipX: !!s.flipX,
+    flipY: !!s.flipY,
   };
 }
 

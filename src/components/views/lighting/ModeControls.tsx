@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import {
-  startStatic, fetchScreenMonitors, startScreenMirror, fetchScreenEffect,
-  type ScreenMonitor,
+  startStatic, fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect,
+  type ScreenMonitor, type PostProcessSettings,
 } from '../../../api/lighting';
 import { fetchServiceBlob } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
@@ -9,25 +9,28 @@ import type { LightingMode } from '../../../types/lighting';
 import { EffectCard } from '../../EffectCard/EffectCard';
 import { ConfirmDialog } from '../../ConfirmDialog/ConfirmDialog';
 import { Select } from '../../Select/Select';
+import { SCREEN_FILTERS, matchScreenFilter, screenFilterByKey, type ScreenFilterKey } from './screenFilters';
 import styles from '../LightingView.module.scss';
 
 /**
  * Mode-specific control rows rendered under the canvas when the user is NOT
  * on animate mode. Animate is handled separately because it uses a full grid
  * + the Effect-tab inspector on the right. Colour post-process (hue, colorize,
- * saturation, contrast) for Media and Screen Mirror also lives in the Effect
- * tab now, so this file only handles what sits UNDER the canvas: static
- * swatches, screen-mirror monitor picker, media library, off message.
+ * saturation, contrast) for Media and Mirror also lives in the Effect tab,
+ * so this file only handles what sits UNDER the canvas: static swatches,
+ * mirror monitor picker + filter presets, media library, off message.
  */
-export const ModeControls = memo(function ModeControls({ mode, staticColor, onStaticChange }: {
+export const ModeControls = memo(function ModeControls({ mode, staticColor, onStaticChange, screenPP, onScreenPPChange }: {
   mode: LightingMode;
   staticColor: string;
   onStaticChange: (hex: string) => void;
+  screenPP: PostProcessSettings;
+  onScreenPPChange: (pp: PostProcessSettings) => void;
 }) {
   switch (mode) {
     case 'static': return <StaticControls color={staticColor} onChange={onStaticChange} />;
     case 'animate': return null;
-    case 'screen': return <ScreenControls />;
+    case 'screen': return <ScreenControls screenPP={screenPP} onScreenPPChange={onScreenPPChange} />;
     case 'gif': return <MediaControls />;
     case 'none': return <OffControls />;
   }
@@ -59,7 +62,10 @@ function StaticControls({ color, onChange }: { color: string; onChange: (hex: st
   );
 }
 
-function ScreenControls() {
+function ScreenControls({ screenPP, onScreenPPChange }: {
+  screenPP: PostProcessSettings;
+  onScreenPPChange: (pp: PostProcessSettings) => void;
+}) {
   const { t } = useTranslation();
   const [monitors, setMonitors] = useState<ScreenMonitor[]>([]);
   const [selectedMonitor, setSelectedMonitor] = useState('');
@@ -85,23 +91,67 @@ function ScreenControls() {
     );
   };
 
+  const activeFilter: ScreenFilterKey | null = matchScreenFilter(screenPP);
+
+  const applyFilter = async (key: ScreenFilterKey) => {
+    const def = screenFilterByKey(key);
+    const nextPP: PostProcessSettings = {
+      hue: def.pp.hue,
+      colorize: def.pp.colorize,
+      saturation: def.pp.saturation,
+      contrast: def.pp.contrast,
+      flipX: def.pp.flipX,
+      flipY: def.pp.flipY,
+    };
+    onScreenPPChange(nextPP);
+    await setScreenEffect(nextPP, true);
+    // Re-arm the running mirror effect so the new flip/colour state takes
+    // effect immediately on the live frame stream.
+    await startScreenMirror(
+      nextPP.saturation,
+      nextPP.contrast,
+      selectedMonitor,
+      nextPP.hue,
+      nextPP.colorize,
+    );
+  };
+
   return (
     <div className={styles.screenControls}>
-      {monitors.length > 0 && (
-        <div className={styles.monitorPicker}>
-          <span className={styles.compactLabel}>{t('lighting.controls.monitor')}</span>
-          <Select
-            className={styles.monitorSelect}
-            value={selectedMonitor}
-            onChange={handleMonitorChange}
-            ariaLabel={t('lighting.controls.monitor')}
-          >
-            {monitors.map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </Select>
+      <div className={styles.filtersRow}>
+        <span className={styles.compactLabel}>{t('lighting.filters.title')}</span>
+        <div className={styles.filterChips}>
+          {SCREEN_FILTERS.map(f => (
+            <button
+              key={f.key}
+              type="button"
+              className={styles.filterChip}
+              data-active={activeFilter === f.key ? 'true' : 'false'}
+              onClick={() => applyFilter(f.key)}
+              aria-pressed={activeFilter === f.key}
+              title={t(f.i18nKey)}
+            >
+              {t(f.i18nKey)}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
+      <div className={styles.monitorPicker}>
+        <span className={styles.compactLabel}>{t('lighting.controls.monitor')}</span>
+        <Select
+          className={styles.monitorSelect}
+          value={selectedMonitor}
+          onChange={handleMonitorChange}
+          ariaLabel={t('lighting.controls.monitor')}
+          disabled={monitors.length === 0}
+        >
+          {monitors.length === 0
+            ? <option value="">{t('lighting.controls.noMonitors')}</option>
+            : monitors.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+        </Select>
+      </div>
     </div>
   );
 }

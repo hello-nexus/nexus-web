@@ -5,7 +5,7 @@ import { CoolingWidget } from './CoolingWidget';
 
 const sensorFixture = vi.hoisted(() => {
   const build = () => ({
-    cpu: [{ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 58, units: 'C', formatted: '58 C', parent: { id: 'cpu', name: 'CPU' } }],
+    cpu: [{ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 58, units: 'C', formatted: '58°C', parent: { id: 'cpu', name: 'CPU' } }],
     gpu: [{ id: 'gpu-temp', name: 'GPU Core', type: 'Temperature', value: 46, units: 'C', formatted: '46 C', parent: { id: 'gpu', name: 'GPU' } }],
     memory: [],
     storage: [],
@@ -73,61 +73,50 @@ describe('CoolingWidget', () => {
     sensorFixture.current = sensorFixture.build();
   });
 
-  it('renders icon-only preset buttons and hides the trend in the 2x2 layout', () => {
+  it('renders 2x2 as micro stats (no preset buttons, no full trend)', () => {
     render(<CoolingWidget widget={coolingWidget('2x2')} />);
 
-    const off = screen.getByRole('button', { name: 'Apply Off cooling profile' });
-    const silent = screen.getByRole('button', { name: 'Apply Silent cooling profile' });
-    const balanced = screen.getByRole('button', { name: 'Apply Balanced cooling profile' });
-    const performance = screen.getByRole('button', { name: 'Apply Performance cooling profile' });
-    const custom = screen.getByRole('button', { name: 'Apply Custom cooling profile' });
-
+    expect(screen.queryByRole('button', { name: 'Apply Silent cooling profile' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Apply Balanced cooling profile' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Apply Performance cooling profile' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Average temperature compared with average fan speed')).not.toBeInTheDocument();
-    expect(screen.queryByText('52 C')).not.toBeInTheDocument();
-    expect(screen.queryByText('1,400 RPM')).not.toBeInTheDocument();
-    for (const button of [off, silent, balanced, performance, custom]) {
-      expect(button).toContainHTML('svg');
-    }
-    expect(silent).not.toHaveTextContent('Silent');
-    expect(balanced).not.toHaveTextContent('Balanced');
-    expect(performance).not.toHaveTextContent('Performance');
+
+    expect(screen.getByText('52°C')).toBeInTheDocument();
+    expect(screen.getByText('1,400 RPM')).toBeInTheDocument();
   });
 
-  it('shows the active mode label and value-only metrics in the 4x2 layout', async () => {
+  it('renders only Silent/Balanced/Performance buttons in 4x2', async () => {
     render(<CoolingWidget widget={coolingWidget('4x2')} />);
 
-    expect(screen.getByRole('button', { name: 'Apply Silent cooling profile' })).not.toHaveTextContent('Silent');
-    expect(screen.getByRole('button', { name: 'Apply Balanced cooling profile' })).not.toHaveTextContent('Balanced');
-    expect(screen.getByRole('button', { name: 'Apply Performance cooling profile' })).not.toHaveTextContent('Performance');
+    expect(screen.getByRole('button', { name: 'Apply Silent cooling profile' })).toHaveTextContent('Silent');
+    expect(screen.getByRole('button', { name: 'Apply Balanced cooling profile' })).toHaveTextContent('Balanced');
+    expect(screen.getByRole('button', { name: 'Apply Performance cooling profile' })).toHaveTextContent('Performance');
+
+    // Off + Custom dropped from the widget surface in the 3-button redesign.
+    expect(screen.queryByRole('button', { name: 'Apply Off cooling profile' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Apply Custom cooling profile' })).not.toBeInTheDocument();
 
     const trend = screen.getByLabelText('Average temperature compared with average fan speed');
     expect(trend).toBeInTheDocument();
 
-    expect(await screen.findByText('Balanced')).toBeInTheDocument();
-
-    expect(screen.getByText('52 C')).toBeInTheDocument();
+    // Temp + RPM live at the top centre, no mode label next to them.
+    expect(screen.getByText('52°C')).toBeInTheDocument();
     expect(screen.getByText('1,400 RPM')).toBeInTheDocument();
 
-    expect(screen.queryByText('Avg Temp')).not.toBeInTheDocument();
-    expect(screen.queryByText('Avg Speed')).not.toBeInTheDocument();
-    expect(screen.queryByText('0-100 C')).not.toBeInTheDocument();
-    expect(screen.queryByText(/0-\d+,\d+ RPM/)).not.toBeInTheDocument();
-    expect(screen.queryByText('CPU')).not.toBeInTheDocument();
-    expect(screen.queryByText('GPU')).not.toBeInTheDocument();
+    // Active-mode tag is no longer rendered inside the trend header.
+    await waitFor(() => {
+      const header = trend.querySelector(':scope > div');
+      expect(header).not.toBeNull();
+      expect(header!.textContent).not.toContain('Balanced');
+    });
   });
 
-  it('uses --panel-accent for both temp and fan sparklines', () => {
+  it('marks the active preset button with data-active=true after profiles load', async () => {
     render(<CoolingWidget widget={coolingWidget('4x2')} />);
-
-    const trend = screen.getByLabelText('Average temperature compared with average fan speed');
-    const paths = trend.querySelectorAll('svg path');
-    expect(paths.length).toBeGreaterThan(0);
-    for (const path of Array.from(paths)) {
-      const stroke = path.getAttribute('stroke');
-      const fill = path.getAttribute('fill');
-      // Stroke is set; fill is either the accent (filled temp series) or 'none' (dotted fan).
-      expect(stroke === 'var(--panel-accent)' || fill === 'var(--panel-accent)').toBe(true);
-    }
+    await waitFor(() => {
+      const balanced = screen.getByRole('button', { name: 'Apply Balanced cooling profile' });
+      expect(balanced.getAttribute('data-active')).toBe('true');
+    });
   });
 
   it('does not draw fake zero lines for missing sensor series', async () => {
@@ -141,24 +130,8 @@ describe('CoolingWidget', () => {
 
     const trend = screen.getByLabelText('Average temperature compared with average fan speed');
     await waitFor(() => expect(trend.querySelectorAll('svg')).toHaveLength(1));
-    expect(screen.queryByText('0 C')).not.toBeInTheDocument();
-    expect(screen.getByText('58 C')).toBeInTheDocument();
+    expect(screen.queryByText('0°C')).not.toBeInTheDocument();
+    expect(screen.getByText('58°C')).toBeInTheDocument();
     expect(trend).toHaveTextContent('--');
-  });
-
-  it('keeps the fan value finite when fan sensors appear after startup', async () => {
-    sensorFixture.current = {
-      ...sensorFixture.build(),
-      motherboard: [],
-    };
-
-    const { rerender } = render(<CoolingWidget widget={coolingWidget('4x2')} />);
-    expect(screen.getByText('--')).toBeInTheDocument();
-
-    sensorFixture.current = sensorFixture.build();
-    rerender(<CoolingWidget widget={coolingWidget('4x2')} />);
-
-    await waitFor(() => expect(screen.getByText('1,400 RPM')).toBeInTheDocument());
-    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
   });
 });

@@ -645,11 +645,51 @@
   to { transform: rotate(360deg); }
 }
 
-// Screen mirror controls
+// Mirror controls
 .screenControls {
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filtersRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filterChips {
+  display: flex;
   gap: 0.35rem;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.filterChip {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: border-color var(--ease-fast) ease, background var(--ease-fast) ease, color var(--ease-fast) ease;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  &[data-active='true'] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-glow);
+  }
 }
 
 .monitorPicker {

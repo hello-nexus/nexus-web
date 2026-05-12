@@ -19,8 +19,8 @@
 }
 
 // Header floats over the chart so the sparklines fill the full trend area.
-// Mode label anchored top-left, value pair top-right - both rendered above
-// the chart's grid lines and lines via z-index.
+// Both values centred together at the top so the eye picks them up as a
+// paired metric rather than a mode/label split.
 .trendHeader {
   position: absolute;
   top: 0;
@@ -29,26 +29,9 @@
   z-index: 2;
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
+  gap: 14px;
   pointer-events: none;
-}
-
-.modeLabel {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--panel-text-faint);
-  font: 600 11px/1 var(--panel-font);
-}
-
-.trendValues {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 10px;
 }
 
 .trendValue {
@@ -109,13 +92,14 @@
   background: var(--panel-element-bg);
   color: var(--panel-text-muted);
   padding: 0 8px;
-  font: 900 11px/1 var(--panel-font);
+  font: 700 11px/1 var(--panel-font);
+  letter-spacing: 0.02em;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 
   svg {
-    width: 17px;
-    height: 17px;
+    width: 15px;
+    height: 15px;
     flex-shrink: 0;
   }
 
@@ -126,30 +110,14 @@
   }
 }
 
-// 2x2: just the preset grid, no trend or header.
-.cooling[data-size='2x2'] {
-  padding: 10px;
-  gap: 8px;
-
-  .chips {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-  }
-
-  .chip {
-    min-height: 0;
-    padding: 0;
-
-    svg {
-      width: 17px;
-      height: 17px;
-    }
-  }
+.chipLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-// 4x4: more breathing room around the chart.
+// 4x4: more breathing room around the chart and labelled chips.
 .cooling[data-size='4x4'] {
   padding: 16px 18px;
   gap: 12px;
@@ -158,63 +126,80 @@
     min-height: 44px;
 
     svg {
-      width: 22px;
-      height: 22px;
+      width: 18px;
+      height: 18px;
     }
   }
 }
 
-// Display-only mode (Show Controls = off): centered Fan icon + active mode + RPM.
-// Sizing scales with --panel-cell-size so it reads consistently across surfaces.
-.display {
+// 2x2: a pair of micro-rows. Each row shows the value next to its own
+// inline sparkline so the user can read both Temp and RPM at a glance
+// without the full chart taking over the widget.
+.cooling[data-size='2x2'] {
+  padding: 10px;
+  gap: 4px;
+}
+
+// 2x2 micro layout: two stacked rows, each with a label, value, and a
+// horizontal fill bar representing the current value against its domain.
+// No trend line - intentional: at this size the glance read is "where is
+// this now?", not "how is it moving?".
+.microBars {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
   min-height: 0;
-  padding: 8px;
-  text-align: center;
 }
 
-.displayIcon {
-  width: clamp(44px, calc(var(--panel-cell-size, 172px) * 0.40), 120px);
-  height: clamp(44px, calc(var(--panel-cell-size, 172px) * 0.40), 120px);
-  color: var(--panel-text);
-  stroke-width: 1.6;
-  flex-shrink: 0;
+.microBar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
-.displayMode {
+.microBarHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.microBarLabel {
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  font: 700 10px/1 var(--panel-font);
   color: var(--panel-text-faint);
-  font: 600 12px/1 var(--panel-font);
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.microBarValue {
+  color: var(--panel-text);
+  font: 800 14px/1 var(--panel-font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
-.displayValue {
-  color: var(--panel-text);
-  font: 800 18px/1 var(--panel-font);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
+.microBarTrack {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--panel-element-bg);
+  overflow: hidden;
+
+  &[data-active='false'] {
+    opacity: 0.4;
+  }
 }
 
-.cooling[data-size='2x2'][data-display-only='true'] {
-  padding: 8px;
-
-  .display { gap: 6px; }
-  .displayMode { font-size: 11px; }
-  .displayValue { font-size: 16px; }
-}
-
-.cooling[data-size='4x4'][data-display-only='true'] {
-  .display { gap: 14px; }
-  .displayMode { font-size: 13px; }
-  .displayValue { font-size: 26px; }
+.microBarFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--panel-accent);
+  border-radius: 999px;
+  transition: width var(--ease-fast) ease;
 }

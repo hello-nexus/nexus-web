@@ -6,19 +6,18 @@ import { LightingWidget } from './LightingWidget';
 vi.mock('../../../api/lighting', () => ({
   fetchAnimateSettings: vi.fn(() => Promise.resolve({ effect: 'rainbow', templates: {} })),
   fetchCurrentSync: vi.fn(() => Promise.resolve({ sync: 'static' })),
+  fetchScreenEffect: vi.fn(() => Promise.resolve({ hue: 0, colorize: 0, saturation: 1, contrast: 1, flipX: false, flipY: false })),
   fetchStaticColor: vi.fn(() => Promise.resolve({ r: 255, g: 0, b: 0 })),
   setMusicReactive: vi.fn(() => Promise.resolve()),
+  setScreenEffect: vi.fn(() => Promise.resolve()),
   startAnimate: vi.fn(() => Promise.resolve()),
   startScreenMirror: vi.fn(() => Promise.resolve()),
   startStatic: vi.fn(() => Promise.resolve()),
-  stopLighting: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('../../../api/mediaLibrary', () => ({
   fetchMediaCurrent: vi.fn(() => Promise.resolve(null)),
   fetchMediaLibrary: vi.fn(() => Promise.resolve([])),
-  playCurrentOrFirstMedia: vi.fn(() => Promise.resolve()),
-  playMedia: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('../../../api/service', () => ({
@@ -38,15 +37,21 @@ vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string) => ({
       'lighting.mode.off': 'Off',
-      'lighting.mode.animate': 'Animate',
+      'lighting.mode.animate': 'Animation',
       'lighting.mode.gif': 'Media',
-      'lighting.mode.screen': 'Screen',
-      'lighting.mode.static': 'Solid',
+      'lighting.mode.screen': 'Mirror',
+      'lighting.mode.static': 'Static',
       'lighting.panel.prev': 'Previous',
       'lighting.panel.next': 'Next',
-      'lighting.panel.screenActive': 'Screen mirror active',
+      'lighting.panel.screenActive': 'Mirror is active',
       'lighting.panel.selectMode': 'Select a mode',
       'lighting.controls.noMedia': 'No media available',
+      'lighting.controls.rainbow': 'Rainbow',
+      'lighting.filter.normal': 'Normal',
+      'lighting.filter.bw': 'B&W',
+      'lighting.filter.highsat': 'High Saturation',
+      'lighting.filter.mirrorx': 'Mirror X',
+      'lighting.filter.mirrory': 'Mirror Y',
     }[key] ?? key),
   }),
 }));
@@ -62,33 +67,43 @@ function lightingWidget(size: PanelWidget['size']): PanelWidget {
 }
 
 describe('LightingWidget', () => {
-  it('shows just the mode buttons in the 2x2 layout (no mode label, no thumb, no item label)', async () => {
+  it('2x2 has no arrows and no mode buttons - thumbnail only', async () => {
     render(<LightingWidget widget={lightingWidget('2x2')} />);
 
-    expect(screen.getByLabelText('Off')).toBeInTheDocument();
-    expect(screen.getByLabelText('Animate')).toBeInTheDocument();
-    expect(screen.getByLabelText('Solid')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Previous' })).not.toBeInTheDocument();
+    // Wait one tick for hydrate() to resolve.
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Previous' })).not.toBeInTheDocument();
+    });
     expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Animation' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mirror' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Static' })).not.toBeInTheDocument();
   });
 
-  it('renders top-center mode label, edge-to-edge thumb, and bottom item label in the 4x2 layout', async () => {
+  it('renders 4x2 with three labelled mode buttons + L/R arrows', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
-    // Mode label in the header (Solid, since mocked sync returns 'static')
-    await waitFor(() => expect(screen.getByText('Solid')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Animation' })).toBeInTheDocument());
 
-    const prev = screen.getByRole('button', { name: 'Previous' });
-    const next = screen.getByRole('button', { name: 'Next' });
+    expect(screen.getByRole('button', { name: 'Mirror' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Static' })).toBeInTheDocument();
 
-    // Arrow buttons have no border / no background
-    const prevStyle = window.getComputedStyle(prev);
-    expect(prevStyle.border === '' || prevStyle.borderWidth === '0px' || prevStyle.borderStyle === 'none').toBe(true);
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
 
-    expect(prev).toBeInTheDocument();
-    expect(next).toBeInTheDocument();
+    // No 'Off' or 'Media' buttons - these were intentionally dropped from
+    // the widget surface in the 3-button redesign.
+    expect(screen.queryByRole('button', { name: 'Off' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Media' })).not.toBeInTheDocument();
+  });
 
-    // Bottom-center item label - the static color label resolves to 'Red' (from #ff0000)
-    await waitFor(() => expect(screen.getByText('Red')).toBeInTheDocument());
+  it('marks the active mode button using data-active', async () => {
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+    await waitFor(() => {
+      const staticBtn = screen.getByRole('button', { name: 'Static' });
+      expect(staticBtn.getAttribute('data-active')).toBe('true');
+    });
+    expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('false');
+    expect(screen.getByRole('button', { name: 'Mirror' }).getAttribute('data-active')).toBe('false');
   });
 });

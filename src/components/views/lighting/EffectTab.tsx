@@ -6,15 +6,19 @@ import { EffectControls } from './EffectControls';
 import styles from '../LightingView.module.scss';
 
 /**
- * Post-process params shared by Screen Mirror and Media modes: hue shift,
- * colorize (0 = pure hue rotate, 1 = grayscale + tint), saturation (0 = mono,
- * 1 = unchanged, up to 4 = oversaturated), contrast (same range).
+ * Post-process params shared by Mirror and Media modes: hue shift, colorize
+ * (0 = pure hue rotate, 1 = grayscale + tint), saturation (0 = mono, 1 =
+ * unchanged, up to 4 = oversaturated), contrast (same range), plus optional
+ * X/Y flip flags used by the Mirror filter presets. Flip is geometric and
+ * applied at the source on the service.
  */
 export interface PostProcessState {
   hue: number;
   colorize: number;
   saturation: number;
   contrast: number;
+  flipX?: boolean;
+  flipY?: boolean;
 }
 
 /**

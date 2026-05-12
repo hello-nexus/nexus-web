@@ -1,32 +1,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lightbulb, Monitor, Sparkles, Palette } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
   fetchAnimateSettings,
   fetchCurrentSync,
-  fetchLightingDevices,
+  fetchScreenEffect,
   fetchStaticColor,
   setMusicReactive,
+  setScreenEffect,
   startAnimate,
   startScreenMirror,
   startStatic,
-  stopLighting,
 } from '../../../api/lighting';
 import {
   fetchMediaCurrent,
   fetchMediaLibrary,
-  playCurrentOrFirstMedia,
-  playMedia,
   type MediaItem,
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync } from '../../../lib/controlSync';
 import { useTranslation } from '../../../lib/i18n';
-import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
+import {
+  DEFAULT_SCREEN_FILTER,
+  SCREEN_FILTERS,
+  matchScreenFilter,
+  screenFilterByKey,
+  type ScreenFilterKey,
+} from '../../../components/views/lighting/screenFilters';
 import {
   EFFECTS,
-  MODES,
   defaultStateFor,
   type EffectState,
   type EffectTemplateBundle,
@@ -48,6 +51,14 @@ const STATIC_COLORS = [
   { hex: '#ffffff', label: 'White' },
 ];
 
+type WidgetMode = 'animate' | 'screen' | 'static';
+
+const WIDGET_BUTTONS: { key: WidgetMode; icon: LucideIcon; labelKey: string }[] = [
+  { key: 'animate', icon: Sparkles, labelKey: 'lighting.mode.animate' },
+  { key: 'screen',  icon: Monitor,  labelKey: 'lighting.mode.screen'  },
+  { key: 'static',  icon: Palette,  labelKey: 'lighting.mode.static'  },
+];
+
 export function LightingWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<LightingMode>('none');
@@ -58,14 +69,16 @@ export function LightingWidget({ widget }: WidgetProps) {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const [mediaThumbs, setMediaThumbs] = useState<Record<string, string>>({});
+  const [filter, setFilter] = useState<ScreenFilterKey>(DEFAULT_SCREEN_FILTER);
   const mediaThumbsRef = useRef<Record<string, string>>({});
   const compact = widget.size === '2x2';
 
   const hydrate = useCallback(async () => {
-    const [sync, animate, color] = await Promise.all([
+    const [sync, animate, color, screen] = await Promise.all([
       fetchCurrentSync(),
       fetchAnimateSettings(),
       fetchStaticColor(),
+      fetchScreenEffect(),
     ]);
 
     const nextTemplates = buildAllDefaultTemplates();
@@ -86,18 +99,15 @@ export function LightingWidget({ widget }: WidgetProps) {
       setStaticColor(rgbToHex(color.r, color.g, color.b));
     }
     setMode(resolveMode(rawSync));
+    setFilter(matchScreenFilter(screen) ?? DEFAULT_SCREEN_FILTER);
   }, []);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
-  // Push-driven refresh: every lighting mutation on the service publishes a
-  // 'lighting' frame on the multiplex hub. We refetch the canonical state
-  // on receive instead of polling on a 4s timer.
   useTopicCallback('lighting', true, hydrate);
 
   useEffect(() => {
-    if (compact) return;
     let cancelled = false;
     const urls: string[] = [];
     (async () => {
@@ -114,8 +124,11 @@ export function LightingWidget({ widget }: WidgetProps) {
       cancelled = true;
       urls.forEach(url => URL.revokeObjectURL(url));
     };
-  }, [compact]);
+  }, []);
 
+  // Media library is only needed when the service is actually in gif mode so
+  // we can show the active media name; we never enter gif mode from the
+  // widget, so no need to load library otherwise.
   const refreshMedia = useCallback(async () => {
     const [lib, cur] = await Promise.all([fetchMediaLibrary(), fetchMediaCurrent()]);
     if (lib?.items) setMediaItems(lib.items);
@@ -188,47 +201,15 @@ export function LightingWidget({ widget }: WidgetProps) {
     publishLighting('static', 'static', { staticColor: hex });
   }, [publishLighting]);
 
-  const applyMedia = useCallback(async (id: string) => {
-    const ok = await playMedia(id);
-    if (ok) {
-      setActiveMediaId(id);
-      setMode('gif');
-      publishLighting('gif', 'media');
-    }
-  }, [publishLighting]);
-
-  const setLightingMode = useCallback(async (nextMode: LightingMode) => {
-    if (nextMode === 'animate') {
-      const effect = EFFECTS.some(e => e.key === activeEffect) ? activeEffect : 'rainbow';
-      await applyEffect(effect);
-      return;
-    }
-    if (nextMode === 'static') {
-      await applyStatic(staticColor);
-      return;
-    }
-    if (nextMode === 'screen') {
-      setMode('screen');
-      setMusicReactive(false).catch(() => { /* best-effort */ });
-      await startScreenMirror(1, 1, '', 0, 0);
-      publishLighting('screen', 'screen');
-      return;
-    }
-    if (nextMode === 'gif') {
-      setMusicReactive(false).catch(() => { /* best-effort */ });
-      const mediaId = await playCurrentOrFirstMedia();
-      if (mediaId) {
-        setActiveMediaId(mediaId);
-        setMode('gif');
-        publishLighting('gif', 'media');
-      }
-      return;
-    }
-    setMode('none');
+  const applyMirrorFilter = useCallback(async (key: ScreenFilterKey) => {
+    const def = screenFilterByKey(key);
+    setFilter(key);
+    setMode('screen');
     setMusicReactive(false).catch(() => { /* best-effort */ });
-    await stopLighting();
-    publishLighting('none', 'none');
-  }, [activeEffect, applyEffect, applyStatic, publishLighting, staticColor]);
+    await setScreenEffect(def.pp);
+    await startScreenMirror(def.pp.saturation, def.pp.contrast, '', def.pp.hue, def.pp.colorize);
+    publishLighting('screen', 'screen');
+  }, [publishLighting]);
 
   const cycleAnimate = useCallback((delta: number) => {
     const idx = EFFECTS.findIndex(e => e.key === activeEffect);
@@ -245,23 +226,39 @@ export function LightingWidget({ widget }: WidgetProps) {
     applyStatic(STATIC_COLORS[nextIdx].hex);
   }, [applyStatic, staticColor]);
 
-  const cycleMedia = useCallback((delta: number) => {
-    if (!mediaItems.length) return;
-    const idx = mediaItems.findIndex(m => m.id === activeMediaId);
+  const cycleFilter = useCallback((delta: number) => {
+    const idx = SCREEN_FILTERS.findIndex(f => f.key === filter);
     const base = idx < 0 ? 0 : idx;
-    const nextIdx = (base + delta + mediaItems.length) % mediaItems.length;
-    applyMedia(mediaItems[nextIdx].id);
-  }, [activeMediaId, applyMedia, mediaItems]);
+    const nextIdx = (base + delta + SCREEN_FILTERS.length) % SCREEN_FILTERS.length;
+    applyMirrorFilter(SCREEN_FILTERS[nextIdx].key);
+  }, [applyMirrorFilter, filter]);
 
-  const singleView = useMemo(() => {
-    if (compact) return null;
+  const onAnimateButton = useCallback(() => {
+    const effect = EFFECTS.some(e => e.key === activeEffect) ? activeEffect : 'rainbow';
+    applyEffect(effect);
+  }, [activeEffect, applyEffect]);
+
+  const onMirrorButton = useCallback(() => {
+    applyMirrorFilter(filter);
+  }, [applyMirrorFilter, filter]);
+
+  const onStaticButton = useCallback(() => {
+    applyStatic(staticColor);
+  }, [applyStatic, staticColor]);
+
+  const handleButton = (k: WidgetMode) => {
+    if (k === 'animate') onAnimateButton();
+    else if (k === 'screen') onMirrorButton();
+    else if (k === 'static') onStaticButton();
+  };
+
+  const view = useMemo<SingleView>(() => {
     if (mode === 'animate') {
       const effect = EFFECTS.find(e => e.key === activeEffect) ?? EFFECTS[0];
       return {
-        kind: 'thumb' as const,
+        kind: 'thumb',
         thumbUrl: thumbs[effect.key] ?? null,
         label: t(effect.labelKey),
-        showArrows: true,
         onPrev: () => cycleAnimate(-1),
         onNext: () => cycleAnimate(1),
       };
@@ -270,175 +267,126 @@ export function LightingWidget({ widget }: WidgetProps) {
       const lower = staticColor.toLowerCase();
       const preset = STATIC_COLORS.find(c => c.hex.toLowerCase() === lower);
       return {
-        kind: 'color' as const,
+        kind: 'color',
         color: staticColor,
         label: preset?.label ?? staticColor.toUpperCase(),
-        showArrows: true,
         onPrev: () => cycleStatic(-1),
         onNext: () => cycleStatic(1),
+      };
+    }
+    if (mode === 'screen') {
+      const def = screenFilterByKey(filter);
+      return {
+        kind: 'icon',
+        icon: Monitor,
+        label: t(def.i18nKey),
+        onPrev: () => cycleFilter(-1),
+        onNext: () => cycleFilter(1),
       };
     }
     if (mode === 'gif') {
       const item = mediaItems.find(m => m.id === activeMediaId) ?? mediaItems[0];
       if (!item) {
-        return { kind: 'message' as const, message: t('lighting.controls.noMedia') };
+        return { kind: 'message', message: t('lighting.controls.noMedia'), label: t('lighting.mode.gif') };
       }
       return {
-        kind: 'thumb' as const,
+        kind: 'thumb',
         thumbUrl: mediaThumbs[item.id] ?? null,
         label: item.name.replace(/\.[^.]+$/, ''),
-        showArrows: mediaItems.length > 1,
-        onPrev: () => cycleMedia(-1),
-        onNext: () => cycleMedia(1),
       };
     }
-    if (mode === 'screen') {
-      return { kind: 'message' as const, message: t('lighting.panel.screenActive') };
-    }
-    return { kind: 'message' as const, message: t('lighting.panel.selectMode') };
-  }, [compact, mode, activeEffect, thumbs, t, staticColor, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, cycleStatic, cycleMedia]);
+    return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off') };
+  }, [mode, activeEffect, thumbs, t, staticColor, filter, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, cycleStatic, cycleFilter]);
 
-  const activeModeLabel = t(MODES.find(item => item.key === mode)?.labelKey ?? 'lighting.mode.off');
-  const showControls = widget.config?.showControls?.b ?? true;
-  const displayOnly = !showControls;
+  const widgetMode: WidgetMode | null =
+    mode === 'animate' ? 'animate'
+    : mode === 'static' ? 'static'
+    : mode === 'screen' ? 'screen'
+    : null;
 
-  const [deviceCount, setDeviceCount] = useState(0);
-  useEffect(() => {
-    if (!displayOnly) return;
-    let cancelled = false;
-    const refresh = async () => {
-      const data = await fetchLightingDevices();
-      if (cancelled || !data) return;
-      setDeviceCount(data.devices?.length ?? 0);
-    };
-    refresh();
-    return () => { cancelled = true; };
-  }, [displayOnly]);
-  useTopicCallback('lighting', displayOnly, () => {
-    fetchLightingDevices().then(data => {
-      if (data) setDeviceCount(data.devices?.length ?? 0);
-    });
-  });
-
-  if (displayOnly) {
-    const lightingOn = mode !== 'none';
-    const deviceLabel = deviceCount === 1
-      ? t('panel.widget.lighting.deviceCount.one')
-      : t('panel.widget.lighting.deviceCount.other').replace('{n}', String(deviceCount));
+  if (compact) {
     return (
-      <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-display-only="true">
-        <div className={styles.display}>
-          <Lightbulb className={styles.displayIcon} aria-hidden="true" />
-          <div className={styles.displayMode}>{activeModeLabel}</div>
-          {lightingOn && deviceCount > 0 && <div className={styles.displayValue}>{deviceLabel}</div>}
-        </div>
+      <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
+        <SingleItemView view={view} t={t} showArrows={false} />
       </div>
     );
   }
 
   return (
     <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
-      {singleView && (
-        <SingleItemView
-          view={singleView}
-          modeLabel={!compact ? activeModeLabel : null}
-          t={t}
-        />
-      )}
+      <SingleItemView view={view} t={t} showArrows />
       <div className={styles.modeGrid}>
-        {MODES.map(item => (
-          <ModeButton
+        {WIDGET_BUTTONS.map(item => (
+          <button
             key={item.key}
-            icon={LIGHTING_MODE_ICONS[item.key]}
-            label={t(item.labelKey)}
-            active={mode === item.key}
-            onClick={() => setLightingMode(item.key)}
-          />
+            type="button"
+            className={styles.modeButton}
+            data-active={widgetMode === item.key ? 'true' : 'false'}
+            onClick={() => handleButton(item.key)}
+            aria-label={t(item.labelKey)}
+            title={t(item.labelKey)}
+          >
+            <item.icon size={15} aria-hidden="true" />
+            <span className={styles.modeButtonLabel}>{t(item.labelKey)}</span>
+          </button>
         ))}
       </div>
     </div>
   );
 }
 
-function ModeButton({
-  icon: Icon,
-  label,
-  active,
-  onClick,
-}: {
-  icon: LucideIcon;
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={styles.modeButton}
-      data-active={active ? 'true' : 'false'}
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-    >
-      <Icon size={15} />
-    </button>
-  );
-}
-
 type SingleView =
-  | {
-      kind: 'thumb';
-      thumbUrl: string | null;
-      label: string;
-      showArrows: boolean;
-      onPrev: () => void;
-      onNext: () => void;
-    }
-  | {
-      kind: 'color';
-      color: string;
-      label: string;
-      showArrows: boolean;
-      onPrev: () => void;
-      onNext: () => void;
-    }
-  | { kind: 'message'; message: string };
+  | { kind: 'thumb'; thumbUrl: string | null; label: string; onPrev?: () => void; onNext?: () => void }
+  | { kind: 'color'; color: string;          label: string; onPrev?: () => void; onNext?: () => void }
+  | { kind: 'icon';  icon: LucideIcon;       label: string; onPrev?: () => void; onNext?: () => void }
+  | { kind: 'message'; message: string;      label: string };
 
-function SingleItemView({ view, modeLabel, t }: { view: SingleView; modeLabel: string | null; t: (key: string) => string }) {
+function SingleItemView({ view, t, showArrows }: { view: SingleView; t: (key: string) => string; showArrows: boolean }) {
   if (view.kind === 'message') {
-    return <div className={styles.message}>{view.message}</div>;
+    return (
+      <div className={styles.thumbBox}>
+        <span className={styles.thumb}>
+          <span className={styles.thumbIconWrap}>
+            <Lightbulb className={styles.thumbIcon} aria-hidden="true" />
+          </span>
+        </span>
+      </div>
+    );
   }
+  const arrowsRendered = showArrows && !!view.onPrev && !!view.onNext;
   return (
     <div className={styles.thumbBox}>
       <span className={styles.thumb}>
-        {view.kind === 'color'
-          ? <span className={styles.thumbSwatch} style={{ background: view.color }} />
-          : view.thumbUrl
+        {view.kind === 'color' && <span className={styles.thumbSwatch} style={{ background: view.color }} />}
+        {view.kind === 'icon' && <span className={styles.thumbIconWrap}><view.icon className={styles.thumbIcon} aria-hidden="true" /></span>}
+        {view.kind === 'thumb' && (
+          view.thumbUrl
             ? <img src={view.thumbUrl} alt="" draggable={false} />
-            : <span className={styles.thumbSkeleton} />}
+            : <span className={styles.thumbSkeleton} />
+        )}
       </span>
-      {modeLabel && <span className={styles.modeLabel}>{modeLabel}</span>}
-      <span className={styles.itemLabel} title={view.label}>{view.label}</span>
-      <button
-        type="button"
-        className={styles.arrowBtn}
-        data-side="prev"
-        onClick={view.onPrev}
-        disabled={!view.showArrows}
-        aria-label={t('lighting.panel.prev')}
-      >
-        <ChevronLeft />
-      </button>
-      <button
-        type="button"
-        className={styles.arrowBtn}
-        data-side="next"
-        onClick={view.onNext}
-        disabled={!view.showArrows}
-        aria-label={t('lighting.panel.next')}
-      >
-        <ChevronRight />
-      </button>
+      {arrowsRendered && (
+        <>
+          <button
+            type="button"
+            className={styles.arrowBtn}
+            data-side="prev"
+            onClick={view.onPrev}
+            aria-label={t('lighting.panel.prev')}
+          >
+            <ChevronLeft />
+          </button>
+          <button
+            type="button"
+            className={styles.arrowBtn}
+            data-side="next"
+            onClick={view.onNext}
+            aria-label={t('lighting.panel.next')}
+          >
+            <ChevronRight />
+          </button>
+        </>
+      )}
     </div>
   );
 }
