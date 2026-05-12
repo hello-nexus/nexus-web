@@ -1,0 +1,39 @@
+// Inline wrapper around the trigger. Inline-flex so the wrap collapses to
+// the natural size of its child and inherits whatever layout context the
+// trigger sits in (chip rows, icon clusters, etc.).
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+// Portal'd onto document.body. position: fixed against the viewport with
+// top/left/transform set inline by the JS reposition logic. Two-line layout
+// (bold title above a muted body) shares the elevated-surface chrome with
+// InfoTooltip so all hover hints read with one voice.
+.tooltip {
+  position: fixed;
+  z-index: 1050;
+  max-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--bg-elevated, var(--bg-card));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  line-height: 1.35;
+  pointer-events: none;
+}
+.title {
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+.body {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}

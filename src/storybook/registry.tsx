@@ -18,6 +18,7 @@ import { EffectTemplateSelector } from '../components/EffectTemplateSelector/Eff
 import { DevicePopup } from '../components/DevicePopup/DevicePopup';
 import { CardDeleteButton } from '../components/CardDeleteButton/CardDeleteButton';
 import { InfoTooltip } from '../components/InfoTooltip/InfoTooltip';
+import { HoverTooltip } from '../components/HoverTooltip/HoverTooltip';
 import { Popover } from '../components/Popover/Popover';
 import { DatePicker } from '../components/DatePicker/DatePicker';
 import { EffectCard } from '../components/EffectCard/EffectCard';
@@ -170,6 +171,35 @@ function PreviewInfoTooltip() {
         <span>Devices</span>
         <InfoTooltip message="Every USB peripheral Qos can see. Connect new devices through your browser or inspect the raw USB table." side="top" />
       </div>
+    </div>
+  );
+}
+
+function PreviewHoverTooltip() {
+  return (
+    <div className={styles.previewStack}>
+      <div className="chip-group" style={{ display: 'flex', gap: '0.3rem' }}>
+        <HoverTooltip title="Fixed" body="Hold a constant duty regardless of temperature." side="bottom">
+          <button type="button" className="chip-action chip-active" aria-label="Fixed">
+            <Monitor size={14} aria-hidden />
+          </button>
+        </HoverTooltip>
+        <HoverTooltip title="Linear" body="Ramp duty smoothly between a min and max temperature." side="bottom">
+          <button type="button" className="chip-action" aria-label="Linear">
+            <Sparkles size={14} aria-hidden />
+          </button>
+        </HoverTooltip>
+        <HoverTooltip title="Custom" body="Multi-point shape. Drag points to adjust, double-click to add, right-click to remove." side="bottom">
+          <button type="button" className="chip-action" aria-label="Custom">
+            <Palette size={14} aria-hidden />
+          </button>
+        </HoverTooltip>
+      </div>
+      <HoverTooltip body="Single-line variant - just a body, no title." side="right">
+        <button type="button" className="chip-action" aria-label="Body only">
+          <Settings size={14} aria-hidden />
+        </button>
+      </HoverTooltip>
     </div>
   );
 }
@@ -806,6 +836,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/InfoTooltip/InfoTooltip.tsx',
     description: 'Subtle info affordance rendered next to section titles. Hover (pointer) or click (touch) reveals a one-sentence explanation in an elevated-surface tooltip matching the app chrome. Used by ViewHeader (via titleTooltip prop) and inline next to Cooling section h3s.', Preview: PreviewInfoTooltip,
     notes: 'Hover, or Tab into the icon, or click to toggle. Esc closes. Auto-positions via the `side` prop (top/bottom/left/right).',
+  },
+  {
+    name: 'HoverTooltip', category: 'status',
+    filePath: 'src/components/HoverTooltip/HoverTooltip.tsx',
+    description: 'Instant hover tooltip that wraps any trigger element. Optional bold title line above a muted body line, portal\'d to document.body so curve-card overflow / scroll containers can\'t clip it. Companion to InfoTooltip - use this when the trigger is the surrounding content (chip button, icon-only control) rather than an (i) icon. Used by the cooling curve-type chips so each chip surfaces its description on hover with zero open delay.', Preview: PreviewHoverTooltip,
+    notes: 'Opens on pointerenter and keyboard focus, closes on leave / blur. Tooltip itself is pointer-events: none so the trigger keeps ownership of the cursor. Pass `title` for the bold first line plus `body` for the description, or just `body` for a single-line variant.',
   },
   {
     name: 'Popover', category: 'modals',

@@ -603,51 +603,58 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
   };
   const [wireEndpoints, setWireEndpoints] = useState<WireEndpoints[]>([]);
   const recomputeRafRef = useRef(0);
-  const recomputeWires = useCallback(() => {
+  // Synchronous wire recompute. Used inside useLayoutEffect so the wire
+  // positions update in the same paint as the layout change that caused them
+  // (e.g., expanding a curve card pushes cards below it down - their nubs
+  // need to move with the new card y-coords without a one-frame lag).
+  const recomputeWiresImmediate = useCallback(() => {
     if (!bodyRef.current) return;
     cancelAnimationFrame(recomputeRafRef.current);
-    recomputeRafRef.current = requestAnimationFrame(() => {
-      const bodyRect = bodyRef.current?.getBoundingClientRect();
-      if (!bodyRect) return;
-      const curvesScroll = bodyRef.current?.querySelector(`.${styles.curvesScroll}`);
-      const fanScroll = bodyRef.current?.querySelector(`.${styles.fanList}`);
-      const curvesScrollRect = curvesScroll?.getBoundingClientRect();
-      const fanScrollRect = fanScroll?.getBoundingClientRect();
-      const next: WireEndpoints[] = [];
-      for (const [fanId, st] of Object.entries(fanStates)) {
-        if (!st.curveId) continue;
-        const curveEl = curveNubRefs.current.get(st.curveId);
-        const fanEl = fanNubRefs.current.get(fanId);
-        if (!curveEl || !fanEl) continue;
-        const a = curveEl.getBoundingClientRect();
-        const b = fanEl.getBoundingClientRect();
-        // A nub is "visible" when at least its center sits inside its scroll
-        // container's viewport band. Half-visible nubs (partially clipped at
-        // a scroll edge) still read as connected, which keeps the wire from
-        // popping out as soon as one pixel scrolls under the edge.
-        const aVisible = !curvesScrollRect ||
-          (a.top + a.height / 2 >= curvesScrollRect.top &&
-           a.top + a.height / 2 <= curvesScrollRect.bottom);
-        const bVisible = !fanScrollRect ||
-          (b.top + b.height / 2 >= fanScrollRect.top &&
-           b.top + b.height / 2 <= fanScrollRect.bottom);
-        // Nubs are small circles straddling the card edge. Anchor wire
-        // endpoints at the circle's center so the bezier visually starts /
-        // ends right on the card edge regardless of which side the wire
-        // approaches from.
-        next.push({
-          fanId,
-          curveId: st.curveId,
-          from: { x: a.left + a.width / 2 - bodyRect.left, y: a.top + a.height / 2 - bodyRect.top },
-          to:   { x: b.left + b.width / 2 - bodyRect.left, y: b.top + b.height / 2 - bodyRect.top },
-          visible: aVisible && bVisible,
-        });
-      }
-      setWireEndpoints(next);
-    });
+    const bodyRect = bodyRef.current.getBoundingClientRect();
+    const curvesScroll = bodyRef.current.querySelector(`.${styles.curvesScroll}`);
+    const fanScroll = bodyRef.current.querySelector(`.${styles.fanList}`);
+    const curvesScrollRect = curvesScroll?.getBoundingClientRect();
+    const fanScrollRect = fanScroll?.getBoundingClientRect();
+    const next: WireEndpoints[] = [];
+    for (const [fanId, st] of Object.entries(fanStates)) {
+      if (!st.curveId) continue;
+      const curveEl = curveNubRefs.current.get(st.curveId);
+      const fanEl = fanNubRefs.current.get(fanId);
+      if (!curveEl || !fanEl) continue;
+      const a = curveEl.getBoundingClientRect();
+      const b = fanEl.getBoundingClientRect();
+      // A nub is "visible" when at least its center sits inside its scroll
+      // container's viewport band. Half-visible nubs (partially clipped at
+      // a scroll edge) still read as connected, which keeps the wire from
+      // popping out as soon as one pixel scrolls under the edge.
+      const aVisible = !curvesScrollRect ||
+        (a.top + a.height / 2 >= curvesScrollRect.top &&
+         a.top + a.height / 2 <= curvesScrollRect.bottom);
+      const bVisible = !fanScrollRect ||
+        (b.top + b.height / 2 >= fanScrollRect.top &&
+         b.top + b.height / 2 <= fanScrollRect.bottom);
+      // Nubs are small circles straddling the card edge. Anchor wire
+      // endpoints at the circle's center so the bezier visually starts /
+      // ends right on the card edge regardless of which side the wire
+      // approaches from.
+      next.push({
+        fanId,
+        curveId: st.curveId,
+        from: { x: a.left + a.width / 2 - bodyRect.left, y: a.top + a.height / 2 - bodyRect.top },
+        to:   { x: b.left + b.width / 2 - bodyRect.left, y: b.top + b.height / 2 - bodyRect.top },
+        visible: aVisible && bVisible,
+      });
+    }
+    setWireEndpoints(next);
   }, [fanStates]);
+  // rAF-batched variant for high-frequency triggers (scroll, resize) that
+  // don't need a same-frame paint.
+  const recomputeWires = useCallback(() => {
+    cancelAnimationFrame(recomputeRafRef.current);
+    recomputeRafRef.current = requestAnimationFrame(recomputeWiresImmediate);
+  }, [recomputeWiresImmediate]);
 
-  useLayoutEffect(() => { recomputeWires(); }, [recomputeWires, curves, fanStates, channels, fanOrder]);
+  useLayoutEffect(() => { recomputeWiresImmediate(); }, [recomputeWiresImmediate, curves, fanStates, channels, fanOrder, expandedCurveId]);
   useEffect(() => {
     if (!bodyRef.current) return;
     const ro = new ResizeObserver(() => recomputeWires());

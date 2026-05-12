@@ -4,18 +4,18 @@ import type { CurvePoint, TemperatureSource } from '../../../api/cooling';
 import { useTranslation } from '../../../lib/i18n';
 import type { CurveDef, CurveType, MixFn } from '../../../types/cooling';
 import { EditableText } from '../../Editable/EditableText';
-import { InfoTooltip } from '../../InfoTooltip/InfoTooltip';
+import { HoverTooltip } from '../../HoverTooltip/HoverTooltip';
 import { Slider } from '../../Slider/Slider';
 import { RangeSlider } from '../../Slider/RangeSlider';
 import { Select } from '../../Select/Select';
 import { presetIconFor } from './coolingPresets';
 import styles from '../CoolingView.module.scss';
 
-const CURVE_TYPES: { key: CurveType; labelKey: string; icon: ReactNode }[] = [
-  { key: 'flat', labelKey: 'cooling.curve.type.fixed', icon: <Minus size={14} /> },
-  { key: 'linear', labelKey: 'cooling.curve.type.linear', icon: <TrendingUp size={14} /> },
-  { key: 'graph', labelKey: 'cooling.curve.type.custom', icon: <Activity size={14} /> },
-  { key: 'mix', labelKey: 'cooling.curve.type.mix', icon: <Combine size={14} /> },
+const CURVE_TYPES: { key: CurveType; labelKey: string; hintKey: string; icon: ReactNode }[] = [
+  { key: 'flat', labelKey: 'cooling.curve.type.fixed', hintKey: 'cooling.curve.fixed.hint', icon: <Minus size={14} /> },
+  { key: 'linear', labelKey: 'cooling.curve.type.linear', hintKey: 'cooling.curve.linear.hint', icon: <TrendingUp size={14} /> },
+  { key: 'graph', labelKey: 'cooling.curve.type.custom', hintKey: 'cooling.curve.graph.hint', icon: <Activity size={14} /> },
+  { key: 'mix', labelKey: 'cooling.curve.type.mix', hintKey: 'cooling.curve.mix.hint', icon: <Combine size={14} /> },
 ];
 
 // Sum is intentionally omitted from the UI -- the backend still honors it for
@@ -328,17 +328,6 @@ export const CurveCard = memo(function CurveCard({
     highlighted ? styles.curveCardHighlighted : '',
   ].filter(Boolean).join(' ');
 
-  // Per-mode hint shown as an (i) tooltip next to the active type label on
-  // the right column. The 'flat' curve type maps to the i18n token 'fixed'
-  // (matches the chip label).
-  const hintI18nKey = (
-    curve.type === 'flat' ? 'cooling.curve.fixed.hint' :
-    curve.type === 'linear' ? 'cooling.curve.linear.hint' :
-    curve.type === 'graph' ? 'cooling.curve.graph.hint' :
-    'cooling.curve.mix.hint'
-  );
-  const activeType = CURVE_TYPES.find(ct => ct.key === curve.type);
-
   // Selector list for "foreground controls win" gating. Anything matching
   // this blocks card reorder so the child's gesture (slider, chip button,
   // source select, name editor, mix-source toggle, curve graph SVG, wire
@@ -392,28 +381,54 @@ export const CurveCard = memo(function CurveCard({
       onMouseEnter={() => onHover(curve.id)}
       onMouseLeave={() => onHover(null)}
     >
-      {/* Right-anchored slot for the mode badge + live % chip. Pinned to the
-          card's right edge via absolute positioning so its position never
-          shifts when the card collapses or expands (the curveCardLeft column
-          width changes between states - this slot does not). The wire nub
-          lives inside the slot so its vertical center always tracks the
-          live-% chip's vertical center; horizontal offset reaches past the
-          slot's own `right: 1.25rem` to land on the card's outer edge. */}
-      <div className={styles.curveCardRightSlot}>
-        {activeType && (
-          <div className={styles.curveTypeBadge}>
-            <span className={styles.curveTypeBadgeIcon} aria-hidden="true">{activeType.icon}</span>
-            <span className={styles.curveTypeBadgeLabel}>{t(activeType.labelKey)}</span>
-            <InfoTooltip message={t(hintI18nKey)} side="bottom" />
+      {/* Header is a 2-column row that stays identical across collapsed and
+          expanded states: title on the left half, mode selector + active
+          mode label + live duty % on the right half (aligned to the left
+          edge of the right half). The wire nub straddles the card's outer
+          right edge, vertically centered on the header so its position is
+          stable regardless of whether the body below is rendered. */}
+      <div className={styles.curveCardHeader}>
+        <div className={styles.curveCardTitle}>
+          {PresetIcon && (
+            <span className={styles.presetGlyph} aria-hidden="true" title={t('cooling.curve.presetLockedTooltip')}>
+              <PresetIcon size={14} />
+            </span>
+          )}
+          {isPreset ? (
+            <span className={styles.presetName} title={t('cooling.curve.presetLockedTooltip')}>{curve.name}</span>
+          ) : (
+            <EditableText value={curve.name} onCommit={name => set({ name })} className={styles.editableName} />
+          )}
+        </div>
+
+        <div className={styles.curveCardModeArea}>
+          <div className={`chip-group ${styles.curveTypeChipGroup}`} role="radiogroup"
+            aria-label={t('cooling.curve.type.label')}>
+            {CURVE_TYPES.map(ct => {
+              const selected = ct.key === curve.type;
+              const label = t(ct.labelKey);
+              return (
+                <HoverTooltip key={ct.key} title={label} body={t(ct.hintKey)} side="bottom">
+                  <button type="button" role="radio"
+                    className={`chip-action${selected ? ' chip-active' : ''}`}
+                    onClick={() => set({ type: ct.key })}
+                    aria-label={label}
+                    aria-checked={selected}>
+                    {ct.icon}
+                  </button>
+                </HoverTooltip>
+              );
+            })}
           </div>
-        )}
-        <span
-          className={styles.curveOutBadge}
-          title={t('cooling.curve.output')}
-          aria-label={`${t('cooling.curve.output')} ${output.toFixed(0)}%`}
-        >
-          {output.toFixed(0)}%
-        </span>
+          <span
+            className={styles.curveOutBadge}
+            title={t('cooling.curve.output')}
+            aria-label={`${t('cooling.curve.output')} ${output.toFixed(0)}%`}
+          >
+            {output.toFixed(0)}%
+          </span>
+        </div>
+
         <div
           ref={nubRef}
           className={`${styles.curveOutNub}${inUse ? ' ' + styles.nubConnected : ''}`}
@@ -423,59 +438,8 @@ export const CurveCard = memo(function CurveCard({
         />
       </div>
 
-      <div className={styles.curveCardLeft}>
-        <div className={styles.curveCardHeader}>
-          <div className={styles.curveCardTitle}>
-            {PresetIcon && (
-              <span className={styles.presetGlyph} aria-hidden="true" title={t('cooling.curve.presetLockedTooltip')}>
-                <PresetIcon size={14} />
-              </span>
-            )}
-            {isPreset ? (
-              <span className={styles.presetName} title={t('cooling.curve.presetLockedTooltip')}>{curve.name}</span>
-            ) : (
-              <EditableText value={curve.name} onCommit={name => set({ name })} className={styles.editableName} />
-            )}
-          </div>
-        </div>
-
-        <div className={`chip-group ${styles.curveTypeChipGroup}`} role="radiogroup"
-          aria-label={t('cooling.curve.type.label')}>
-          {CURVE_TYPES.map(ct => {
-            const selected = ct.key === curve.type;
-            const label = t(ct.labelKey);
-            return (
-              <button key={ct.key} type="button" role="radio"
-                className={`chip-action${selected ? ' chip-active' : ''}`}
-                onClick={() => set({ type: ct.key })}
-                aria-label={label}
-                aria-checked={selected}
-                title={label}>
-                {ct.icon}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Anchored at the bottom of the left column so it stays visually
-            stable regardless of how tall the right column grows. Only shown
-            on the expanded card so the collapsed list stays scannable. */}
-        {expanded && (
-          <button
-            type="button"
-            className={styles.curveCardRemoveBtn}
-            onClick={e => { e.stopPropagation(); onDelete(); }}
-            aria-label={t('cooling.curves.delete')}
-            title={t('cooling.curves.delete')}
-          >
-            <Trash2 size={12} aria-hidden />
-            <span>{t('cooling.curves.removeBtn')}</span>
-          </button>
-        )}
-      </div>
-
       {expanded && (
-      <div className={styles.curveCardRight}>
+      <div className={styles.curveCardBody}>
         {curve.type !== 'mix' && curve.type !== 'flat' && (
           <label className={styles.sourceRow}>
             <span className={styles.controlLabel}>{t('cooling.curve.source')}</span>
@@ -531,6 +495,17 @@ export const CurveCard = memo(function CurveCard({
               onChange={v => set({ mix: { ...curve.mix, responseTime: v } })} />
           </>
         )}
+
+        <button
+          type="button"
+          className={styles.curveCardRemoveBtn}
+          onClick={e => { e.stopPropagation(); onDelete(); }}
+          aria-label={t('cooling.curves.delete')}
+          title={t('cooling.curves.delete')}
+        >
+          <Trash2 size={12} aria-hidden />
+          <span>{t('cooling.curves.removeBtn')}</span>
+        </button>
       </div>
       )}
 
