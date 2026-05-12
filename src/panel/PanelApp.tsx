@@ -1676,6 +1676,7 @@ export function PanelContent({
           themeStyle={panelThemeVars}
           nativeBridgeAvailable={nativeSettings.available}
           nextAttemptAt={multiplex?.nextAttemptAt ?? null}
+          remoteDisabled={multiplex?.remoteDisabled ?? false}
           onRetry={handleRetry}
           onOpenNativePairing={nativeSettings.open}
         />

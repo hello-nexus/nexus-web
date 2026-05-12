@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { QrCode, RefreshCw, Smartphone } from 'lucide-react';
+import { Lock, QrCode, RefreshCw, Smartphone } from 'lucide-react';
 import { useTranslation } from '../lib/i18n';
 import type { ConnectionState } from '../hooks/useServiceStatus';
 import type { PanelSurface } from './types';
@@ -13,6 +13,13 @@ interface PanelOfflineOverlayProps {
   nativeBridgeAvailable: boolean;
   /** Wall-clock ms when the next reconnect attempt fires; null while a connect is in flight or socket is open. */
   nextAttemptAt: number | null;
+  /**
+   * True when the host has turned off Pair Remote. Trumps the connection
+   * state - the service is reachable, but our session is locked out, so we
+   * render a distinct "disabled by host" surface instead of the generic
+   * "service offline" copy.
+   */
+  remoteDisabled: boolean;
   onRetry: () => void;
   onOpenNativePairing: () => void;
 }
@@ -42,11 +49,48 @@ export function PanelOfflineOverlay({
   themeStyle,
   nativeBridgeAvailable,
   nextAttemptAt,
+  remoteDisabled,
   onRetry,
   onOpenNativePairing,
 }: PanelOfflineOverlayProps) {
   const { t } = useTranslation();
   const secondsLeft = useCountdownSeconds(nextAttemptAt);
+
+  if (remoteDisabled) {
+    // Host disabled Pair Remote. Hook is already slow-polling for re-enable,
+    // so we just need to keep the panel coherent (no stale data, clear copy).
+    const retryLine = secondsLeft != null
+      ? t('connection.remoteDisabled.checkingIn', { seconds: secondsLeft })
+      : t('connection.remoteDisabled.checking');
+    return (
+      <div
+        className={`panel-root ${styles.overlay}`}
+        data-theme={resolvedThemeMode}
+        data-surface={surface}
+        style={themeStyle}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="panel-offline-title"
+      >
+        <div className={`panel-card ${styles.card}`}>
+          <div className={styles.lockIcon} aria-hidden="true"><Lock size={28} /></div>
+          <h2 id="panel-offline-title" className={styles.title}>{t('connection.remoteDisabled.title')}</h2>
+          <p className={styles.message}>{t('connection.remoteDisabled.message')}</p>
+          <p className={styles.statusLine} aria-live="polite">{retryLine}</p>
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={onRetry}
+            >
+              <RefreshCw size={15} />
+              <span>{t('connection.lost.retry')}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (state === 'online') return null;
 

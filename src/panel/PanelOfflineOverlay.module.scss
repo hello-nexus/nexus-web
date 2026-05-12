@@ -72,6 +72,18 @@
   margin-bottom: 4px;
 }
 
+.lockIcon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.16);
+  color: #f59e0b;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

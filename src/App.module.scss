@@ -266,8 +266,22 @@
   border-radius: 50%;
   background: var(--text-faded);
   box-shadow: 0 0 0 2px var(--bg);
+
+  // Killswitch ON, devices connected.
+  &[data-state='connected'] {
+    background: var(--good);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(16, 185, 129, 0.6);
+  }
+
+  // Killswitch OFF, paired devices preserved but unreachable. Amber signals
+  // "system is intentionally locked" without using the same red as errors.
+  &[data-state='paired'] {
+    background: #f59e0b;
+    box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(245, 158, 11, 0.55);
+  }
 }
 
+// Legacy class kept for any consumer still toggling .phonePairDotOn.
 .phonePairDotOn {
   background: var(--good);
   box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(16, 185, 129, 0.6);
@@ -491,6 +505,53 @@
   border-color: rgba(16, 185, 129, 0.35);
   background: rgba(16, 185, 129, 0.12);
   color: var(--good);
+}
+
+.phonePairSessionBadgeDisabled {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+// Pair Remote killswitch header row, sits above the QR. The Toggle component
+// here is the single authority for the system's "reachable" state.
+.phonePairKillswitchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+
+  & > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    min-width: 0;
+  }
+}
+
+.phonePairKillswitchLabel {
+  @include text-button;
+  color: var(--text);
+}
+
+.phonePairKillswitchHint {
+  @include text-caption;
+  color: var(--text-faded);
+}
+
+// While the killswitch is OFF, the QR + sessions sections render dimmed so the
+// user sees the preserved list without thinking it's still actively reachable.
+.phonePairQrPanel[data-disabled='true'],
+.phonePairSessionsPanel[data-disabled='true'] {
+  opacity: 0.55;
+  pointer-events: auto;
+
+  // The per-row Revoke buttons remain interactive on purpose - the user can
+  // still prune the list while the system is locked down.
 }
 
 .phonePairRevoke {

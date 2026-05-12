@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { resolveAuthWs } from '../api/service';
+import { resolveAuthWs, resolveHttp } from '../api/service';
 
 interface TopicListener {
   refCount: number;
@@ -18,6 +18,14 @@ interface MultiplexContextValue {
   subscribe: (topic: string, listener: (data: unknown) => void) => void;
   unsubscribe: (topic: string, listener: (data: unknown) => void) => void;
   connected: boolean;
+  /**
+   * True when the Qos service has disabled Pair Remote (killswitch off).
+   * Phone clients in this state can't open the WS or call protected REST
+   * routes - render an explicit "disabled by host" surface and skip any
+   * UI that depends on live data. Cleared automatically when the host
+   * turns the killswitch back on.
+   */
+  remoteDisabled: boolean;
   reconnect: () => void;
   /** Wall-clock ms when the next scheduled reconnect attempt will fire, or null if a connect is in flight or the socket is open. */
   nextAttemptAt: number | null;
@@ -27,6 +35,7 @@ export const MultiplexContext = createContext<MultiplexContextValue | null>(null
 
 const RECONNECT_MIN_MS = 5000;
 const RECONNECT_MAX_MS = 60000;
+const REMOTE_DISABLED_POLL_MS = 5000;
 
 export function useMultiplex(): MultiplexContextValue | null {
   return useContext(MultiplexContext);
@@ -97,7 +106,9 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
   const topicsRef = useRef<Map<string, TopicListener>>(new Map());
   const pendingSubsRef = useRef<Set<string>>(new Set());
   const backoffStepRef = useRef(0);
+  const remoteDisabledRef = useRef(false);
   const [connected, setConnected] = useState(false);
+  const [remoteDisabled, setRemoteDisabled] = useState(false);
   const [nextAttemptAt, setNextAttemptAt] = useState<number | null>(null);
 
   const close = useCallback(() => {
@@ -123,6 +134,52 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     }, delay);
   }, []);
 
+  // After any disconnect (kicked mid-session OR cold-open while OFF), check
+  // the Pair Remote killswitch before reconnecting. If it's OFF the WS
+  // upgrade would just be 403-rejected anyway; switch to slow-polling the
+  // public state endpoint until the host re-enables, then resume.
+  const connectRef = useRef<() => void>(() => {});
+  const handleDisconnect = useCallback(async () => {
+    if (!mountedRef.current) return;
+    try {
+      const res = await fetch(resolveHttp('/panel/phone/remote-control'), { cache: 'no-store' });
+      // The mount check after every await is load-bearing: an unmount during
+      // the fetch must not leave a setTimeout chain running forever on a
+      // dead component, which would also resurrect remoteDisabled state.
+      if (!mountedRef.current) return;
+      if (res.ok) {
+        const body = await res.json() as { enabled?: boolean };
+        if (!mountedRef.current) return;
+        if (body.enabled === false) {
+          remoteDisabledRef.current = true;
+          setRemoteDisabled(true);
+          clearTimeout(reconnectTimer.current);
+          setNextAttemptAt(Date.now() + REMOTE_DISABLED_POLL_MS);
+          reconnectTimer.current = setTimeout(() => {
+            if (!mountedRef.current) return;
+            setNextAttemptAt(null);
+            void handleDisconnect();
+          }, REMOTE_DISABLED_POLL_MS);
+          return;
+        }
+      }
+    } catch { /* network glitch - fall through to normal backoff */ }
+    if (!mountedRef.current) return;
+
+    // Killswitch is on (or endpoint unreachable). If we were locked out,
+    // clear that state and reconnect immediately; otherwise normal backoff.
+    if (remoteDisabledRef.current) {
+      remoteDisabledRef.current = false;
+      setRemoteDisabled(false);
+      backoffStepRef.current = 0;
+      clearTimeout(reconnectTimer.current);
+      setNextAttemptAt(null);
+      connectRef.current();
+      return;
+    }
+    scheduleReconnect(() => connectRef.current());
+  }, [scheduleReconnect]);
+
   const connect = useCallback(async () => {
     close();
     setNextAttemptAt(null);
@@ -135,6 +192,10 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
       ws.onopen = () => {
         backoffStepRef.current = 0;
+        if (remoteDisabledRef.current) {
+          remoteDisabledRef.current = false;
+          setRemoteDisabled(false);
+        }
         setConnected(true);
         // Re-send all active subscriptions on reconnect.
         const activeTopics = Array.from(topicsRef.current.keys());
@@ -163,24 +224,35 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
       ws.onclose = () => {
         setConnected(false);
-        scheduleReconnect(connect);
+        void handleDisconnect();
       };
 
       ws.onerror = () => ws.close();
     } catch {
       setConnected(false);
-      scheduleReconnect(connect);
+      void handleDisconnect();
     }
-  }, [close, scheduleReconnect]);
+  }, [close, handleDisconnect]);
+
+  // Keep the ref in sync so handleDisconnect can call the latest connect
+  // without recreating handleDisconnect (which would loop the deps cycle).
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   const reconnect = useCallback(() => {
     backoffStepRef.current = 0;
     clearTimeout(reconnectTimer.current);
     setNextAttemptAt(null);
-    if (mountedRef.current && enabled) {
-      connect();
+    if (!mountedRef.current || !enabled) return;
+    // If the user manually retries while we're in remote-disabled mode,
+    // re-check state immediately rather than firing a doomed WS open.
+    if (remoteDisabledRef.current) {
+      void handleDisconnect();
+      return;
     }
-  }, [connect, enabled]);
+    connect();
+  }, [connect, enabled, handleDisconnect]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -239,8 +311,8 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
   return useMemo<MultiplexContextValue | null>(
     () => enabled
-      ? { subscribe, unsubscribe, connected, reconnect, nextAttemptAt }
+      ? { subscribe, unsubscribe, connected, remoteDisabled, reconnect, nextAttemptAt }
       : null,
-    [enabled, subscribe, unsubscribe, connected, reconnect, nextAttemptAt],
+    [enabled, subscribe, unsubscribe, connected, remoteDisabled, reconnect, nextAttemptAt],
   );
 }

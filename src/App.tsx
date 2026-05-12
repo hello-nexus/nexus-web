@@ -12,6 +12,7 @@ import { ProfileDropdown } from './components/ProfileDropdown/ProfileDropdown';
 import { DevicePopup } from './components/DevicePopup/DevicePopup';
 import { ConfirmDialog } from './components/ConfirmDialog/ConfirmDialog';
 import { EditableText } from './components/Editable/EditableText';
+import { Toggle } from './components/Toggle/Toggle';
 import { Placeholder } from './components/views/Placeholder';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ComponentDetailView } from './components/views/ComponentDetailView';
@@ -39,9 +40,11 @@ import {
   claimPanelPhonePairing,
   fetchPanelPhonePairQr,
   fetchPanelPhoneSessions,
+  fetchPanelRemoteControlState,
   renamePanelPhoneSession,
   revokeAllPanelPhoneSessions,
   revokePanelPhoneSession,
+  setPanelRemoteControlEnabled,
   type PanelPhonePairQr,
   type PanelPhoneSessionsResponse,
 } from './api/panel';
@@ -571,15 +574,24 @@ function formatDateTime(value: number, t: TranslateFn) {
   }).format(new Date(value));
 }
 
-function PairPhoneButton({ connectedCount, disabled, compact, onClick }: {
+function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compact, onClick }: {
   connectedCount: number;
+  remoteEnabled: boolean;
   disabled: boolean;
   compact: boolean;
   onClick: () => void;
 }) {
   const { t } = useTranslation();
   const connected = connectedCount > 0;
-  const countLabel = formatConnectedDevices(connectedCount, t);
+  // remoteEnabled === false beats connected-count: when the killswitch is OFF
+  // the dot becomes amber regardless of how many devices were previously paired,
+  // because none of them can reach the system right now.
+  const dotState: 'off' | 'paired' | 'connected' = !remoteEnabled
+    ? 'paired'
+    : connected ? 'connected' : 'off';
+  const countLabel = remoteEnabled
+    ? formatConnectedDevices(connectedCount, t)
+    : t('phonePair.killswitch.offLabel');
   return (
     <div className={classNames(styles.phonePairWrap, { [styles.phonePairWrapCompact]: compact })}>
       <button
@@ -591,7 +603,7 @@ function PairPhoneButton({ connectedCount, disabled, compact, onClick }: {
       >
         <span className={styles.phonePairIcon}>
           <Smartphone size={16} />
-          <span className={classNames(styles.phonePairDot, { [styles.phonePairDotOn]: connected })} />
+          <span className={styles.phonePairDot} data-state={dotState} />
         </span>
         {!compact && (
           <>
@@ -604,9 +616,11 @@ function PairPhoneButton({ connectedCount, disabled, compact, onClick }: {
   );
 }
 
-function PairPhoneModal({ open, connectedCount, onClose }: {
+function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledChange, onClose }: {
   open: boolean;
   connectedCount: number;
+  remoteEnabled: boolean;
+  onRemoteEnabledChange: (next: boolean) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -617,6 +631,8 @@ function PairPhoneModal({ open, connectedCount, onClose }: {
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [confirmRemoveAllOpen, setConfirmRemoveAllOpen] = useState(false);
+  const [confirmDisableOpen, setConfirmDisableOpen] = useState(false);
+  const [togglingRemote, setTogglingRemote] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const refreshInFlightRef = useRef(false);
   const sessionsInFlightRef = useRef(false);
@@ -680,18 +696,53 @@ function PairPhoneModal({ open, connectedCount, onClose }: {
       .finally(() => loadSessions(false));
   }, [loadSessions]);
 
+  const applyRemoteEnabled = useCallback(async (next: boolean) => {
+    setTogglingRemote(true);
+    try {
+      const result = await setPanelRemoteControlEnabled(next);
+      // Trust the server's confirmation only - postService returns null on
+      // any non-OK response (401/403/network), and optimistically flipping
+      // the UI in that case would lie until the 10s poll resyncs.
+      if (result) {
+        onRemoteEnabledChange(result.enabled);
+        // KickAllPhoneAsync ran synchronously on the server when next=false,
+        // so the connected count drops to 0 by the next sessions poll; pull
+        // it now for snappy UI.
+        loadSessions(false);
+      }
+    } finally {
+      setTogglingRemote(false);
+    }
+  }, [loadSessions, onRemoteEnabledChange]);
+
+  const handleRemoteToggle = useCallback((next: boolean) => {
+    if (!next) {
+      setConfirmDisableOpen(true);
+      return;
+    }
+    void applyRemoteEnabled(true);
+  }, [applyRemoteEnabled]);
+
+  const confirmDisableRemote = useCallback(() => {
+    setConfirmDisableOpen(false);
+    void applyRemoteEnabled(false);
+  }, [applyRemoteEnabled]);
+
   useEffect(() => {
     if (!open) return;
     const timer = window.setTimeout(() => {
-      refresh();
+      if (remoteEnabled) refresh();
       loadSessions(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [open, loadSessions, refresh]);
+  }, [open, loadSessions, refresh, remoteEnabled]);
 
   useEffect(() => {
     if (open) return;
-    const timer = window.setTimeout(() => setConfirmRemoveAllOpen(false), 0);
+    const timer = window.setTimeout(() => {
+      setConfirmRemoveAllOpen(false);
+      setConfirmDisableOpen(false);
+    }, 0);
     return () => window.clearTimeout(timer);
   }, [open]);
 
@@ -708,11 +759,11 @@ function PairPhoneModal({ open, connectedCount, onClose }: {
   }, [loadSessions, open]);
 
   useEffect(() => {
-    if (!open || !qr) return;
+    if (!open || !qr || !remoteEnabled) return;
     const msUntilRefresh = Math.max(1000, qr.expiresAt - Date.now());
     const timer = window.setTimeout(refresh, msUntilRefresh);
     return () => window.clearTimeout(timer);
-  }, [open, qr, refresh]);
+  }, [open, qr, refresh, remoteEnabled]);
 
   if (!open) return null;
 
@@ -724,35 +775,70 @@ function PairPhoneModal({ open, connectedCount, onClose }: {
   const sessionNow = sessions?.now ?? now;
   const sessionList = sessions?.sessions ?? [];
 
+  // Off-state count: prefer authorizedCount (the server's view) so we don't
+  // render "0 devices paired" while sessions is still null on first open.
+  const offPairedCount = sessions?.authorizedCount ?? sessionList.length;
+  const sessionCountLabel = remoteEnabled
+    ? formatConnectedDevices(liveConnectedCount, t)
+    : sessions == null
+      ? t('phonePair.loadingSessions')
+      : t(
+          offPairedCount === 1
+            ? 'phonePair.killswitch.offSummaryOne'
+            : 'phonePair.killswitch.offSummaryOther',
+          { count: offPairedCount },
+        );
+
   return (
     <>
       <DevicePopup open={open} onClose={onClose} title={t('phonePair.title')} icon={<Smartphone size={18} />}>
-        <div className={styles.phonePairContent}>
+        <div className={styles.phonePairContent} data-remote-enabled={remoteEnabled ? 'true' : 'false'}>
           <p className={styles.phonePairIntro}>
             {t('phonePair.intro')}
           </p>
 
-          <section className={styles.phonePairQrPanel} aria-label={t('phonePair.ariaQr')}>
+          <div className={styles.phonePairKillswitchRow}>
+            <div>
+              <span className={styles.phonePairKillswitchLabel} id="phone-pair-killswitch-label">
+                {t('phonePair.killswitch.label')}
+              </span>
+              <span className={styles.phonePairKillswitchHint}>
+                {remoteEnabled
+                  ? t('phonePair.killswitch.onHint')
+                  : t('phonePair.killswitch.offHint')}
+              </span>
+            </div>
+            <Toggle
+              checked={remoteEnabled}
+              disabled={togglingRemote}
+              onChange={handleRemoteToggle}
+              ariaLabelledBy="phone-pair-killswitch-label"
+            />
+          </div>
+
+          <section className={styles.phonePairQrPanel} aria-label={t('phonePair.ariaQr')} data-disabled={remoteEnabled ? 'false' : 'true'}>
             <div className={styles.phonePairQrBox}>
-              {qr?.qrDataUrl && !loading ? (
+              {!remoteEnabled ? (
+                <div className={styles.phonePairLoading}>{t('phonePair.killswitch.qrDisabled')}</div>
+              ) : qr?.qrDataUrl && !loading ? (
                 <img src={qr.qrDataUrl} alt={t('phonePair.qrAlt')} />
               ) : (
                 <div className={styles.phonePairLoading}>{t('phonePair.loadingQr')}</div>
               )}
             </div>
             <div className={styles.phonePairMeta}>
-              <span>{qrStatus}</span>
+              <span>{remoteEnabled ? qrStatus : t('phonePair.killswitch.qrPaused')}</span>
             </div>
             <p className={styles.phonePairSecurityNote}>
               {t('phonePair.securityNote')}
             </p>
           </section>
 
-          <section className={styles.phonePairSessionsPanel} aria-label={t('phonePair.ariaSessions')}>
+          <section className={styles.phonePairSessionsPanel} aria-label={t('phonePair.ariaSessions')} data-disabled={remoteEnabled ? 'false' : 'true'}>
             <div className={styles.phonePairSessionsHeader}>
               <div>
                 <h3>{t('phonePair.authorizedDevices')}</h3>
-                <span>{formatConnectedDevices(liveConnectedCount, t)}</span>
+                <span>{sessionCountLabel}</span>
               </div>
               <button
                 type="button"
@@ -794,10 +880,15 @@ function PairPhoneModal({ open, connectedCount, onClose }: {
                           />
                           <span
                             className={classNames(styles.phonePairSessionBadge, {
-                              [styles.phonePairSessionBadgeActive]: session.recentlyActive,
+                              [styles.phonePairSessionBadgeActive]: remoteEnabled && session.recentlyActive,
+                              [styles.phonePairSessionBadgeDisabled]: !remoteEnabled,
                             })}
                           >
-                            {session.recentlyActive ? t('phonePair.statusRecentlyActive') : t('phonePair.statusPaired')}
+                            {!remoteEnabled
+                              ? t('phonePair.killswitch.statusDisabled')
+                              : session.recentlyActive
+                                ? t('phonePair.statusRecentlyActive')
+                                : t('phonePair.statusPaired')}
                           </span>
                           {renamingId === session.id && (
                             <span className={styles.phonePairSessionSaving}>{t('phonePair.saving')}</span>
@@ -837,6 +928,15 @@ function PairPhoneModal({ open, connectedCount, onClose }: {
         confirmLabel={t('phonePair.removeAll')}
         onConfirm={revokeAllSessions}
         onCancel={() => setConfirmRemoveAllOpen(false)}
+      />
+      <ConfirmDialog
+        open={confirmDisableOpen}
+        title={t('phonePair.killswitch.confirmTitle')}
+        message={t('phonePair.killswitch.confirmMessage')}
+        note={t('phonePair.killswitch.confirmNote')}
+        confirmLabel={t('phonePair.killswitch.confirmAction')}
+        onConfirm={confirmDisableRemote}
+        onCancel={() => setConfirmDisableOpen(false)}
       />
     </>
   );
@@ -940,6 +1040,28 @@ function Dashboard() {
   // null = auto (follow viewport), true = user-collapsed, false = user-expanded
   const [manualOverride, setManualOverride] = useState<boolean | null>(null);
   const [pairPhoneOpen, setPairPhoneOpen] = useState(false);
+  // Pair Remote killswitch state. Optimistic default of true matches the
+  // service default so the dot color does not flicker before the first fetch.
+  const [remoteControlEnabled, setRemoteControlEnabled] = useState(true);
+  useEffect(() => {
+    if (!online) return;
+    let cancelled = false;
+    const load = () => {
+      void fetchPanelRemoteControlState().then(result => {
+        if (cancelled || !result) return;
+        setRemoteControlEnabled(result.enabled);
+      });
+    };
+    load();
+    // Keep the indicator honest even when another desktop window flips the
+    // killswitch. 10 s is gentle - the popup itself is the high-frequency
+    // surface, this only powers the sidebar dot color.
+    const timer = window.setInterval(load, 10_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [online]);
   const [viewportNarrow, setViewportNarrow] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 999px)').matches,
   );
@@ -1076,6 +1198,7 @@ function Dashboard() {
               />
               <PairPhoneButton
                 connectedCount={serviceState.panel?.phoneSubscribers ?? 0}
+                remoteEnabled={remoteControlEnabled}
                 disabled={!online}
                 compact={compact}
                 onClick={() => setPairPhoneOpen(true)}
@@ -1089,6 +1212,8 @@ function Dashboard() {
               <PairPhoneModal
                 open={pairPhoneOpen}
                 connectedCount={serviceState.panel?.phoneSubscribers ?? 0}
+                remoteEnabled={remoteControlEnabled}
+                onRemoteEnabledChange={setRemoteControlEnabled}
                 onClose={() => setPairPhoneOpen(false)}
               />
               <button

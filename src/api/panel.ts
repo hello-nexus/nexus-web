@@ -211,6 +211,20 @@ export const revokeAllPanelPhoneSessions = () =>
 export const renamePanelPhoneSession = (id: string, name: string) =>
   postService<{ error?: boolean; msg?: string }>(`/panel/phone/sessions/${encodeURIComponent(id)}/name`, { name });
 
+export interface RemoteControlState {
+  enabled: boolean;
+}
+
+// Pair Remote killswitch. When `enabled` is false, the service rejects every
+// phone-session-authenticated request with 403 RemoteDisabled and force-closes
+// active phone-session WebSockets. Paired devices stay in the sessions list
+// and reconnect automatically when re-enabled.
+export const fetchPanelRemoteControlState = () =>
+  fetchService<RemoteControlState>('/panel/phone/remote-control');
+
+export const setPanelRemoteControlEnabled = (enabled: boolean) =>
+  postService<RemoteControlState>('/panel/phone/remote-control', { enabled });
+
 export interface PanelHostNameResponse {
   machineName: string;
 }
