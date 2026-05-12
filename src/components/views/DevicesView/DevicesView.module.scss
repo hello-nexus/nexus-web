@@ -10,14 +10,27 @@
   position: relative;
 }
 
-// Position-only override - chrome lives on the canonical Button primitive.
-// The dashed-border accent variant from the previous look is intentionally
-// dropped during consolidation; the ghost-pill Button reads as a tertiary
-// action without competing visually with the tabs above.
+// Mirrors the `browseBottom` tertiary action in LightingView so the two
+// "browse supported devices" affordances read as the same control.
 .catalogBtn {
   position: absolute;
   top: 0;
   right: 0;
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--accent);
+    border-style: solid;
+    background: var(--accent-soft);
+  }
 }
 
 // --- Device Grid ---

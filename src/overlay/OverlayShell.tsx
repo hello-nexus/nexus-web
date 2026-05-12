@@ -342,21 +342,23 @@ export default function OverlayShell() {
     if (ok) await reload();
   }, [reload]);
 
-  // While the edit sheet is open, force the desktop overlay always-on-top so
-  // the sheet can't slip behind another window mid-edit. We read the user's
-  // value out of a ref at cleanup time so prefs broadcasts arriving during
-  // the edit don't re-fire this effect (which would briefly flip the host
-  // back to the user's value before re-asserting `true`). No POST to
-  // /preferences here - the persisted setting is unchanged.
+  // While either the context menu or the edit sheet is open, force the
+  // desktop overlay always-on-top so the popover can't slip behind another
+  // window. We read the user's value out of a ref at cleanup time so prefs
+  // broadcasts arriving during the interaction don't re-fire this effect
+  // (which would briefly flip the host back to the user's value before
+  // re-asserting `true`). No POST to /preferences here - the persisted
+  // setting is unchanged.
   const alwaysOnTopRef = useRef(alwaysOnTop);
   useEffect(() => { alwaysOnTopRef.current = alwaysOnTop; }, [alwaysOnTop]);
+  const popoverOpen = menu !== null || editingWidgetId !== null;
   useEffect(() => {
-    if (!editingWidgetId) return;
+    if (!popoverOpen) return;
     postToHost({ type: 'setAlwaysOnTop', value: true });
     return () => {
       postToHost({ type: 'setAlwaysOnTop', value: alwaysOnTopRef.current });
     };
-  }, [editingWidgetId]);
+  }, [popoverOpen]);
 
   // Reset the slot picker any time we open the editor on a new widget,
   // matching PanelApp's expected starting state (slot 0).

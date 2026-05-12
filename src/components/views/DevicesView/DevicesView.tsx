@@ -176,9 +176,9 @@ export function DevicesView({ serviceOnline, connectionState }: DevicesViewProps
       <div className={styles.headerRow}>
         <ViewHeader title={t('devices.title')} titleTooltip={t('devices.title.tooltip')} tabs={tabs} activeTab={tab} onTabChange={(k) => setTab(k as TabKey)} tabsDisabled={!serviceOnline && !webhid.available} />
         {serviceOnline && tab === 'supported' && (
-          <Button type="button" tone="ghost" size="sm" pill onClick={() => setModalOpen(true)} className={styles.catalogBtn}>
+          <button type="button" className={styles.catalogBtn} onClick={() => setModalOpen(true)}>
             {t('devices.supported.browse')}
-          </Button>
+          </button>
         )}
       </div>
 

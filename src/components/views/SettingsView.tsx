@@ -165,13 +165,12 @@ function GeneralTab({ settings, updateGeneral, serviceOnline, platform }: Genera
     setAutoStartLoading(false);
   };
 
-  const stopService = async () => {
+  const shutDown = async () => {
     setStopping(true);
     await postService('/service/stop', {});
-    // The service is going down; close the dialog and let the dashboard's
-    // connection-status hook reflect the offline state.
     setStopConfirmOpen(false);
     setStopping(false);
+    window.close();
   };
 
   return (
@@ -251,8 +250,8 @@ function GeneralTab({ settings, updateGeneral, serviceOnline, platform }: Genera
       {platform === 'windows' && (
         <div className={styles.row}>
           <div className={styles.rowInfo}>
-            <span className={styles.rowLabel}>{t('settings.stopService.label')}</span>
-            <span className={styles.rowDesc}>{t('settings.stopService.description')}</span>
+            <span className={styles.rowLabel}>{t('settings.shutDown.label')}</span>
+            <span className={styles.rowDesc}>{t('settings.shutDown.description')}</span>
           </div>
           <Button
             type="button"
@@ -261,18 +260,18 @@ function GeneralTab({ settings, updateGeneral, serviceOnline, platform }: Genera
             onClick={() => setStopConfirmOpen(true)}
             disabled={!serviceOnline || stopping}
           >
-            {t('settings.stopService.button')}
+            {t('settings.shutDown.button')}
           </Button>
         </div>
       )}
 
       <ConfirmDialog
         open={stopConfirmOpen}
-        title={t('settings.stopService.confirmTitle')}
-        message={t('settings.stopService.confirmMessage')}
-        confirmLabel={t('settings.stopService.button')}
+        title={t('settings.shutDown.confirmTitle')}
+        message={t('settings.shutDown.confirmMessage')}
+        confirmLabel={t('settings.shutDown.button')}
         destructive
-        onConfirm={stopService}
+        onConfirm={shutDown}
         onCancel={() => setStopConfirmOpen(false)}
       />
 
