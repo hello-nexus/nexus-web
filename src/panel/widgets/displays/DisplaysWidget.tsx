@@ -25,6 +25,9 @@ export function DisplaysWidget({ widget }: WidgetProps) {
   const draggingRef = useRef<Set<string>>(new Set());
   const lastSentValueRef = useRef<Record<string, number>>({});
   const optimisticUntilRef = useRef<Record<string, number>>({});
+  // Remembers the brightness to restore when toggling back on via the icon.
+  // Updated whenever the user lands on a non-zero value.
+  const lastNonZeroRef = useRef<Record<string, number>>({});
   const compact = widget.size === '2x2';
 
   const hydrate = useCallback(async () => {
@@ -113,6 +116,7 @@ export function DisplaysWidget({ widget }: WidgetProps) {
   const pushBrightness = useCallback((id: string, value: number) => {
     setValues(prev => ({ ...prev, [id]: value }));
     optimisticUntilRef.current[id] = Date.now() + OPTIMISTIC_SETTLE_MS;
+    if (value > 0) lastNonZeroRef.current[id] = value;
     setErrors(prev => {
       if (!prev[id]) return prev;
       const next = { ...prev };
@@ -122,6 +126,13 @@ export function DisplaysWidget({ widget }: WidgetProps) {
     pendingRef.current[id] = value;
     void drainPending(id);
   }, [drainPending]);
+
+  const toggleBrightness = useCallback((id: string, current: number) => {
+    const restore = lastNonZeroRef.current[id] ?? 100;
+    const target = current > 0 ? 0 : restore;
+    if (current > 0) lastNonZeroRef.current[id] = current;
+    pushBrightness(id, target);
+  }, [pushBrightness]);
 
   const startDrag = useCallback((id: string) => {
     draggingRef.current.add(id);
@@ -151,18 +162,22 @@ export function DisplaysWidget({ widget }: WidgetProps) {
   return (
     <div className={styles.displays} data-size={widget.size}>
       <div className={styles.sliderGrid} data-count={visibleDisplays.length}>
-        {visibleDisplays.map((d, i) => (
-          <DisplayBrightnessSlider
-            key={d.id}
-            display={d}
-            brightness={values[d.id] ?? d.brightnessControl?.current ?? 0}
-            error={errors[d.id] || ''}
-            index={i}
-            onPointerDown={() => startDrag(d.id)}
-            onChange={v => pushBrightness(d.id, v)}
-            onCommit={v => endDrag(d.id, v)}
-          />
-        ))}
+        {visibleDisplays.map((d, i) => {
+          const brightness = values[d.id] ?? d.brightnessControl?.current ?? 0;
+          return (
+            <DisplayBrightnessSlider
+              key={d.id}
+              display={d}
+              brightness={brightness}
+              error={errors[d.id] || ''}
+              index={i}
+              onPointerDown={() => startDrag(d.id)}
+              onChange={v => pushBrightness(d.id, v)}
+              onCommit={v => endDrag(d.id, v)}
+              onToggle={() => toggleBrightness(d.id, brightness)}
+            />
+          );
+        })}
       </div>
       {hint && <div className={styles.hint}>{hint}</div>}
     </div>
@@ -177,6 +192,7 @@ function DisplayBrightnessSlider({
   onPointerDown,
   onChange,
   onCommit,
+  onToggle,
 }: {
   display: Display;
   brightness: number;
@@ -185,8 +201,10 @@ function DisplayBrightnessSlider({
   onPointerDown: () => void;
   onChange: (value: number) => void;
   onCommit: (value: number) => void;
+  onToggle: () => void;
 }) {
   const supports = supportsBrightness(display);
+  const off = brightness <= 0;
   return (
     <div
       className={styles.sliderCell}
@@ -201,6 +219,12 @@ function DisplayBrightnessSlider({
         topLabel={`DISPLAY ${index + 1}`}
         valueLabel={supports ? `${Math.round(brightness)}` : '--'}
         icon={<Sun strokeWidth={1.7} />}
+        iconButton={{
+          ariaLabel: off ? `Restore brightness ${display.name}` : `Turn off ${display.name}`,
+          ariaPressed: off,
+          active: off,
+          onClick: onToggle,
+        }}
         onInteractionStart={onPointerDown}
         onChange={onChange}
         onCommit={onCommit}

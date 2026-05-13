@@ -147,6 +147,7 @@ export function PanelMixerSlider({
       data-active={iconButton.active ? 'true' : 'false'}
       aria-label={iconButton.ariaLabel}
       aria-pressed={iconButton.ariaPressed}
+      disabled={disabled}
       onPointerDown={(event) => {
         event.stopPropagation();
       }}

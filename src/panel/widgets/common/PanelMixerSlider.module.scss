@@ -7,8 +7,8 @@
   --mixer-segment-gap: 4px;
   --mixer-icon-size: 32px;
   --mixer-label-size: 10px;
-  --mixer-value-height: 13px;
-  --mixer-frame-padding-y: 4px;
+  --mixer-value-height: 17px;
+  --mixer-frame-padding-y: 6px;
 
   display: flex;
   flex-direction: column;
@@ -45,6 +45,9 @@
 
 .value {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: var(--mixer-value-height);
   font-size: 11px;
   line-height: 1;
@@ -121,7 +124,7 @@
 .segment {
   display: block;
   flex: 1 1 0;
-  min-height: 4px;
+  min-height: 2px;
   border-radius: 2px;
   background: color-mix(in srgb, var(--panel-text) 12%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
@@ -158,12 +161,16 @@
   cursor: pointer;
   transition: background-color var(--ease) ease, color var(--ease) ease, transform var(--ease-fast) ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: color-mix(in srgb, var(--panel-text) 8%, transparent);
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: scale(0.96);
+  }
+
+  &:disabled {
+    cursor: default;
   }
 
   &[data-active='true'] {

@@ -6,7 +6,7 @@
   flex-direction: column;
   height: 100%;
   width: 100%;
-  padding: 12px 14px;
+  padding: 18px 14px;
   gap: 8px;
   color: var(--panel-text);
   box-sizing: border-box;
@@ -259,13 +259,13 @@
 }
 
 .volumeMixer {
-  flex: 0 0 66px;
+  flex: 0 0 72px;
   width: 100%;
-  max-width: 66px;
-  --mixer-track-min: 64px;
-  --mixer-track-max: 112px;
-  --mixer-touch-width: 56px;
-  --mixer-frame-width: 48px;
-  --mixer-segment-width: 28px;
-  --mixer-icon-size: 32px;
+  max-width: 72px;
+  --mixer-track-min: 68px;
+  --mixer-track-max: 120px;
+  --mixer-touch-width: 62px;
+  --mixer-frame-width: 54px;
+  --mixer-segment-width: 32px;
+  --mixer-icon-size: 34px;
 }
