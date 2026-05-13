@@ -12,6 +12,10 @@
   color: var(--text-dim);
   font-size: var(--type-body);
   font-weight: var(--weight-body);
+  // Lock line-height so icon and non-icon tabs share the same line-box. The
+  // icon's layout slot below is sized in em so it slots into that same box
+  // and the text-to-underline gap matches across both shapes.
+  line-height: 1.5;
   cursor: pointer;
   transition: color var(--ease) ease;
 
@@ -38,6 +42,27 @@
       box-shadow: 0 0 12px var(--accent-glow-shadow);
       border-radius: 2px;
     }
+
+    // Icon emphasis: when a tab carries an icon it doubles as a "mode" picker
+    // (Lighting, Cooling). Solid accent disc — same fill recipe as the
+    // chip-active curve-type buttons in CurveEditor — makes the mode semantic
+    // legible at a glance. The disc is painted by a ::before pseudo so it can
+    // appear visually larger than the layout slot without growing the row.
+    .tabIcon {
+      color: var(--accent-text);
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 1.85em;
+        height: 1.85em;
+        transform: translate(-50%, -50%);
+        background: var(--accent);
+        border-radius: 50%;
+      }
+    }
   }
 }
 
@@ -45,18 +70,28 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   min-width: 0;
 }
 
 .tabIcon {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  // Layout slot sized to the text's line-box so an icon tab is exactly the
+  // same height as a label-only tab. The visible active disc is painted by
+  // the .active &::before above and can extend past this slot without
+  // affecting layout.
+  width: 1.5em;
+  height: 1.5em;
+  transition: color var(--ease) ease;
 
   svg {
     display: block;
+    position: relative;
+    z-index: 1;
   }
 }
 

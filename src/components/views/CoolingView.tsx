@@ -46,7 +46,11 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
   const [curves, setCurves] = useState<CurveDef[]>([]);
   const [fanStates, setFanStates] = useState<Record<string, FanState>>({});
   const [calibrationResults, setCalibrationResults] = useState<FanCalibration[] | null>(null);
-  const [activePreset, setActivePreset] = useState<CoolingPresetKey>('custom');
+  // null until the first /cooling/profiles snapshot returns. Keeps the preset
+  // tab bar unselected during load instead of flashing 'custom' before the
+  // real state arrives - the accent disc on the active tab makes that flash
+  // visible.
+  const [activePreset, setActivePreset] = useState<CoolingPresetKey | null>(null);
   const activeCoolingProfileRef = useRef('');
   // After an optimistic preset change (user click or Off-guard) we lock the
   // displayed preset for a short window so a stale `/cooling/profiles` poll or
@@ -941,7 +945,7 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
             title={t('cooling.title')}
             titleTooltip={t('cooling.title.tooltip')}
             tabs={presetTabs}
-            activeTab={activePreset}
+            activeTab={activePreset ?? undefined}
             onTabChange={k => handlePresetChange(k)}
             tabsDisabled
           />
@@ -958,7 +962,7 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
           title={t('cooling.title')}
           titleTooltip={t('cooling.title.tooltip')}
           tabs={presetTabs}
-          activeTab={activePreset}
+          activeTab={activePreset ?? undefined}
           onTabChange={k => handlePresetChange(k)}
         />
       </div>

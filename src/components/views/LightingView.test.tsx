@@ -13,6 +13,7 @@ vi.mock('../../hooks/useLightingSync', () => ({
     setMode: setModeMock,
     rawSync: 'rainbow',
     setRawSync: setRawSyncMock,
+    synced: true,
   }),
 }));
 

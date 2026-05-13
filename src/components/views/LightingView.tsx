@@ -55,7 +55,7 @@ const DEFAULT_POST_PROCESS: PostProcessState = { hue: 0, colorize: 0, saturation
 
 export function LightingView({ serviceOnline, connectionState, activeProfileId }: LightingViewProps) {
   const { t } = useTranslation();
-  const { mode, setMode, rawSync, setRawSync } = useLightingSync(serviceOnline, activeProfileId);
+  const { mode, setMode, rawSync, setRawSync, synced } = useLightingSync(serviceOnline, activeProfileId);
   const frames = useLightingFrames();
   const rgb = useRgbStatus(serviceOnline);
   const [devices, setDevices] = useState<LightingDevice[]>([]);
@@ -645,7 +645,7 @@ export function LightingView({ serviceOnline, connectionState, activeProfileId }
     return (
       <div className={styles.lighting}>
         <div className={styles.topBar}>
-          <ViewHeader title={t('lighting.title')} titleTooltip={t('lighting.title.tooltip')} tabs={modeTabs} activeTab={mode} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
+          <ViewHeader title={t('lighting.title')} titleTooltip={t('lighting.title.tooltip')} tabs={modeTabs} activeTab={synced ? mode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
         </div>
         <ServiceRequired state={connectionState} skeleton={<LightingSkeleton />} />
       </div>
@@ -655,7 +655,7 @@ export function LightingView({ serviceOnline, connectionState, activeProfileId }
   return (
     <div className={styles.lighting}>
       <div className={styles.topBar}>
-        <ViewHeader title={t('lighting.title')} titleTooltip={t('lighting.title.tooltip')} tabs={modeTabs} activeTab={mode} onTabChange={k => handleModeChange(k as LightingMode)} />
+        <ViewHeader title={t('lighting.title')} titleTooltip={t('lighting.title.tooltip')} tabs={modeTabs} activeTab={synced ? mode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} />
         <div className={styles.topBarRight}>
           <div className={styles.statusCardSlot}>
             <RgbStatusCard rgbRunning={rgb.running} />

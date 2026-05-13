@@ -1030,7 +1030,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Tabs (underline)', category: 'navigation',
     filePath: 'src/components/Tabs/Tabs.tsx',
-    description: 'Horizontal tab bar with accent underline on the active tab. Supports optional leading icons through TabDef.icon; used inside ViewHeader for page-level mode tabs and standalone for secondary nav. Per-tab disable via TabDef.disabled.', Preview: PreviewTabs,
+    description: 'Horizontal tab bar with accent underline on the active tab. Supports optional leading icons through TabDef.icon - when present, the active tab\'s icon is wrapped in a solid accent disc so the tabs read as mode pickers (Lighting modes, Cooling presets) rather than plain nav. Used inside ViewHeader for page-level mode tabs and standalone for secondary nav. Per-tab disable via TabDef.disabled.', Preview: PreviewTabs,
     notes: 'Pairs with ViewHeader - do not roll your own tab bars. Disabled tabs get opacity 0.4 + not-allowed cursor.',
   },
   {

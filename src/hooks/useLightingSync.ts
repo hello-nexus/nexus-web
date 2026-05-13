@@ -18,6 +18,10 @@ export type LightingMode = 'static' | 'animate' | 'screen' | 'gif' | 'none';
 export function useLightingSync(enabled: boolean, refreshKey?: string) {
   const [mode, setMode] = useState<LightingMode>('none');
   const [rawSync, setRawSync] = useState('none');
+  // False until the first real sync state arrives. Callers gate the active
+  // tab indicator on this so the mode tabs stay unhighlighted during load
+  // instead of flashing 'none' before /lighting/current returns.
+  const [synced, setSynced] = useState(false);
 
   // refreshKey lets callers (profile switcher) force a re-fetch of the sync
   // state when the active profile changes -- the backend stops the engine on
@@ -29,6 +33,7 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
     const applySync = (sync: string) => {
       setMode(normalizeSync(sync));
       setRawSync(sync);
+      setSynced(true);
     };
 
     const refresh = () => fetchCurrentSync().then(data => {
@@ -45,6 +50,7 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
         applySync(event.rawSync);
       } else if (event.mode) {
         setMode(event.mode);
+        setSynced(true);
       }
     });
 
@@ -61,11 +67,12 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
       if (data?.sync) {
         setMode(normalizeSync(data.sync));
         setRawSync(data.sync);
+        setSynced(true);
       }
     });
   });
 
-  return { mode, setMode, rawSync, setRawSync };
+  return { mode, setMode, rawSync, setRawSync, synced };
 }
 
 function normalizeSync(sync: string): LightingMode {
