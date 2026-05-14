@@ -343,9 +343,14 @@ function PanelSimulatorCard() {
                 <strong>{panel.name}</strong>
                 <span>{panel.surface} - {panel.width}x{panel.height} @ {panel.dpi} dpi - short {formatPanelInches(physical.shortSideInches)} / diag {formatPanelInches(physical.diagonalInches)} - {capacity.columns}x{capacity.rows} widget grid</span>
               </div>
-              <button type="button" className={connected ? styles.btnDanger : styles.btn} onClick={() => toggle(panel.id)}>
+              <Button
+                type="button"
+                tone={connected ? 'danger' : 'accent'}
+                size="sm"
+                onClick={() => toggle(panel.id)}
+              >
                 {connected ? 'Disconnect' : 'Connect'}
-              </button>
+              </Button>
               {isCustom && (
                 <div className={styles.customControls}>
                   <input

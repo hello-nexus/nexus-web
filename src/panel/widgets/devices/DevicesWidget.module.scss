@@ -1,0 +1,201 @@
+.devicesWidget {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  box-sizing: border-box;
+  color: var(--panel-text);
+}
+
+.thumbBox {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: 0 -12px;
+}
+
+// Tile grid: 1 / 1x2 / 2x2 depending on size. `data-cols` carries the
+// column count so the same rule covers all three.
+.tileGrid {
+  position: absolute;
+  inset: 0 8px;
+  display: grid;
+  gap: 6px;
+
+  &[data-cols='1'] {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  &[data-cols='2'] {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  // 4x4 widget renders 2 cols × 2 rows.
+  .devicesWidget[data-size='4x4'] & {
+    &[data-cols='2'] {
+      grid-template-rows: 1fr 1fr;
+    }
+  }
+}
+
+// One device thumbnail tile. Square-ish via aspect-ratio so the icon
+// stays centred even when the widget gets unusual aspect ratios.
+.tile {
+  appearance: none;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-element-radius);
+  background: var(--panel-element-bg);
+  color: var(--panel-text);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease;
+
+  &[data-connected='false'] {
+    opacity: 0.55;
+  }
+}
+
+// Pointer affordance + hover/active states are scoped to the <button>
+// variant only - on Y70/phone surfaces the tile is a non-interactive
+// <div role="img"> and must not advertise clickability.
+button.tile {
+  cursor: pointer;
+
+  &:hover {
+    background: var(--panel-accent-soft);
+    border-color: var(--panel-accent);
+  }
+
+  &:active {
+    background: var(--panel-element-bg-active);
+  }
+}
+
+.tilePlaceholder {
+  border-radius: var(--panel-element-radius);
+  background: var(--panel-element-bg);
+  opacity: 0.35;
+}
+
+.tileIcon {
+  display: block;
+  width: 56%;
+  max-width: 88px;
+  max-height: 88px;
+  aspect-ratio: 1;
+  flex-shrink: 1;
+  background-color: var(--panel-text);
+  mask: var(--icon-url) center / contain no-repeat;
+  -webkit-mask: var(--icon-url) center / contain no-repeat;
+}
+
+.tileLabel {
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 11px/1.1 var(--panel-font);
+  color: var(--panel-text);
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+// 2x2 makes the label slightly smaller so a long short-name like
+// "Fan Hub" still fits.
+.devicesWidget[data-size='2x2'] .tileLabel {
+  font-size: 10px;
+}
+
+// 4x4: roomier label.
+.devicesWidget[data-size='4x4'] .tileLabel {
+  font-size: 12px;
+}
+
+// Empty state - centred USB icon + caption, mirrors how the lighting
+// widget shows its "select a mode" placeholder.
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--panel-text-muted);
+}
+
+.emptyIcon {
+  width: 28%;
+  height: 28%;
+  max-width: 72px;
+  max-height: 72px;
+  stroke-width: 1.5;
+}
+
+.emptyLabel {
+  font: 600 11px/1 var(--panel-font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+// Arrow chrome copied from LightingWidget so the two widgets feel like
+// siblings. Naked chevrons over the tile grid.
+.arrowBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--panel-text-muted);
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ease-fast) ease, transform var(--ease-fast) ease;
+
+  svg {
+    width: 26px;
+    height: 26px;
+    stroke-width: 2.2;
+    filter: drop-shadow(0 1px 3px rgb(0 0 0 / var(--alpha-strong)));
+  }
+
+  &[data-side='prev'] { left: 0; justify-content: flex-start; padding-left: 4px; }
+  &[data-side='next'] { right: 0; justify-content: flex-end; padding-right: 4px; }
+
+  &:hover {
+    color: var(--panel-text);
+    transform: translateY(-50%) scale(1.04);
+  }
+
+  &:active {
+    transform: translateY(-50%) scale(0.96);
+    color: var(--panel-accent-glow);
+  }
+}
+
+.devicesWidget[data-size='4x4'] .arrowBtn {
+  width: 56px;
+  height: 56px;
+
+  svg {
+    width: 32px;
+    height: 32px;
+  }
+}

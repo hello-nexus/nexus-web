@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ComponentType, LazyExoticComponent } from 'react';
+import type { DashboardSectionNavigate } from '../PanelApp';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
 
 export interface WidgetProps {
@@ -11,6 +12,9 @@ export interface WidgetProps {
   // content into the same number of 4x4 cells per page as the panel
   // grid does. Undefined when rendered as a tile.
   immersiveGrid?: { columns: number; rows: number };
+  // Only populated when the widget is rendered inside the embedded
+  // desktop dashboard; widgets can call this to deep-link into a section.
+  onSectionNavigate?: DashboardSectionNavigate;
 }
 
 export type WidgetTouchSupport = 'touch-only' | 'any';

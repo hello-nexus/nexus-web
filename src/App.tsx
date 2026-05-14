@@ -1011,6 +1011,7 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
 
 function Dashboard() {
   const { section, view, subtab, componentId, fromCategory, navigate, setView, setSubtab, navigateToComponent } = useRoute();
+  const [pendingDeviceKey, setPendingDeviceKey] = useState<string | null>(null);
   const status = useServiceStatus();
   const online = status.state === 'online';
   const multiplex = useMultiplexConnection(online);
@@ -1216,11 +1217,27 @@ function Dashboard() {
 
   const renderMyComputerView = () => {
     switch (activeView) {
-      case 'dashboard':  return <DashboardView serviceOnline={online} connectionState={status.state} onSectionNavigate={setView} />;
+      case 'dashboard':  return (
+        <DashboardView
+          serviceOnline={online}
+          connectionState={status.state}
+          onSectionNavigate={(target, payload) => {
+            if (target === 'devices' && payload?.deviceKey) setPendingDeviceKey(payload.deviceKey);
+            setView(target);
+          }}
+        />
+      );
       case 'monitoring': return <MonitoringView serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
       case 'lighting':   return <LightingView serviceOnline={online} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
       case 'cooling':    return <CoolingView serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
-      case 'devices':    return <DevicesView serviceOnline={online} connectionState={status.state} />;
+      case 'devices':    return (
+        <DevicesView
+          serviceOnline={online}
+          connectionState={status.state}
+          initialOpenKey={pendingDeviceKey}
+          onInitialOpenConsumed={() => setPendingDeviceKey(null)}
+        />
+      );
       case 'tools':      return <ToolsView serviceOnline={online} connectionState={status.state} />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} profiles={profilesHook} />;
       default:           return <Placeholder title={activeView} />;

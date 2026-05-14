@@ -313,9 +313,18 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   return <PanelKioskContent deviceId={deviceId} surface={resolvedSurface} />;
 }
 
-export type DashboardWidgetSection = 'monitoring' | 'lighting' | 'cooling';
+export type DashboardWidgetSection = 'monitoring' | 'lighting' | 'cooling' | 'devices';
 
-const DASHBOARD_CLICKTHROUGH_TYPES = new Set<string>(['monitoring', 'lighting', 'cooling']);
+export interface DashboardSectionNavigatePayload {
+  // Optional deep-link key. Currently used by the devices widget to
+  // ask DevicesView to auto-open the popup for a specific device.
+  deviceKey?: string;
+}
+
+export type DashboardSectionNavigate =
+  (section: DashboardWidgetSection, payload?: DashboardSectionNavigatePayload) => void;
+
+const DASHBOARD_CLICKTHROUGH_TYPES = new Set<string>(['monitoring', 'lighting', 'cooling', 'devices']);
 
 interface DragTarget { pageId: string; col: number; row: number; }
 
@@ -428,7 +437,7 @@ function isDashboardClickthroughType(type: string): type is DashboardWidgetSecti
 export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, onSectionNavigate }: {
   openCatalogSignal?: number;
   appAccentColor?: string;
-  onSectionNavigate?: (section: DashboardWidgetSection) => void;
+  onSectionNavigate?: DashboardSectionNavigate;
 }) {
   const layoutState = useDashboardLayout();
   return (
@@ -479,7 +488,7 @@ export function PanelContent({
   onSimulatorBackgroundClicked?: () => void;
   openCatalogSignal?: number;
   appAccentColor?: string;
-  onSectionNavigate?: (section: DashboardWidgetSection) => void;
+  onSectionNavigate?: DashboardSectionNavigate;
 }) {
   // Simulator runs alongside the iframe parent, which owns kiosk-only
   // chrome (offline overlay, viewport lock, page-scroll lock, native
@@ -1487,6 +1496,7 @@ export function PanelContent({
                               cellPointers={touch.bindCellPointers(w)}
                               previewLayout={previewLayout}
                               anyDragging={Boolean(activeDragId)}
+                              onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                             />
                           </ErrorBoundary>
                         ))}
@@ -2836,6 +2846,7 @@ export function PanelTouchCell({
   cellPointers,
   previewLayout = null,
   anyDragging = false,
+  onSectionNavigate,
 }: {
   widget: PanelWidget;
   surface?: PanelSurface;
@@ -2859,6 +2870,7 @@ export function PanelTouchCell({
   };
   previewLayout?: PanelLayout | null;
   anyDragging?: boolean;
+  onSectionNavigate?: DashboardSectionNavigate;
 }) {
   const { t } = useTranslation();
   const def = lookupWidget(widget.type);
@@ -3036,7 +3048,7 @@ export function PanelTouchCell({
         data-size={widget.size}
       >
         <div className={styles.cellScaler}>
-          <Comp widget={widget} surface={surface} selectedSlot={selectedSlot} onSelectSlot={onSelectSlot} />
+          <Comp widget={widget} surface={surface} selectedSlot={selectedSlot} onSelectSlot={onSelectSlot} onSectionNavigate={onSectionNavigate} />
         </div>
       </div>
       <div className={styles.cellLabelStrip}>

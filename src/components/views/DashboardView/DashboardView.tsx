@@ -10,12 +10,13 @@ import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { OverlayWidgetsPopup } from './OverlayWidgetsPopup';
 import { listOverlayWidgets } from '../../../api/overlay';
+import type { DashboardSectionNavigate } from '../../../panel/PanelApp';
 import styles from './DashboardView.module.scss';
 
 interface DashboardViewProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
-  onSectionNavigate?: (section: 'monitoring' | 'lighting' | 'cooling') => void;
+  onSectionNavigate?: DashboardSectionNavigate;
 }
 
 export function DashboardView({ serviceOnline, connectionState, onSectionNavigate }: DashboardViewProps) {
@@ -25,7 +26,7 @@ export function DashboardView({ serviceOnline, connectionState, onSectionNavigat
   return <DashboardOnline onSectionNavigate={onSectionNavigate} />;
 }
 
-function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: (section: 'monitoring' | 'lighting' | 'cooling') => void }) {
+function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardSectionNavigate }) {
   const { t } = useTranslation();
   const { settings } = useUiSettings();
   const [addWidgetSignal, setAddWidgetSignal] = useState(0);

@@ -1,0 +1,167 @@
+// Shared selector for the Devices page "Available" tab AND the
+// dashboard Devices widget. Keeping both surfaces on the same unified
+// list (and the same `key` namespace) means a widget click can deep-link
+// straight to a card on the page by matching keys.
+
+import { useEffect, useMemo, useState } from 'react';
+import { useDevices } from './useDevices';
+import { usePanelDevices } from './usePanelDevices';
+import { usePeripherals, type Peripheral } from './usePeripherals';
+import { useWebHidPeripherals } from './useWebHidPeripherals';
+import {
+  getConnectedSimulatedPanels,
+  PANEL_SIMULATION_CHANGED_EVENT,
+} from '../lib/panelSimulation';
+import type { PanelDevice } from '../panel/panelDevices';
+
+export type UnifiedDeviceKind = 'panel' | 'curated' | 'peripheral';
+
+export interface UnifiedDevice {
+  key: string;
+  shortName: string;
+  name: string;
+  subtitle: string;
+  category: string;
+  iconSrc: string;
+  connected: boolean;
+  firmwareVersion?: string;
+  kind: UnifiedDeviceKind;
+  curatedId?: string;
+  peripheral?: Peripheral;
+  panelDevice?: PanelDevice;
+}
+
+const CATEGORY_ICONS: Record<string, string> = {
+  mouse: '/assets/devices/mouse.svg',
+  keyboard: '/assets/devices/keyboard.svg',
+  headset: '/assets/devices/headset.svg',
+  gamepad: '/assets/devices/gamepad.svg',
+  display: '/assets/devices/y70.svg',
+  controller: '/assets/devices/cnvs.svg',
+  hub: '/assets/devices/fan-hub.svg',
+};
+
+const CURATED_ICONS: Record<string, string> = {
+  cnvs: '/assets/devices/cnvs.svg',
+  q60: '/assets/devices/q60.svg',
+  q80: '/assets/devices/q80.svg',
+  y70: '/assets/devices/y70.svg',
+  keeb: '/assets/devices/keeb.svg',
+  'fan-hub': '/assets/devices/fan-hub.svg',
+};
+
+const CURATED_SHORT_NAMES: Record<string, string> = {
+  y70: 'Y70',
+  q60: 'Q60',
+  q80: 'Q80',
+  cnvs: 'Cnvs',
+  keeb: 'Keeb',
+  'fan-hub': 'Fan Hub',
+};
+
+const FALLBACK_ICON = '/assets/devices/device.svg';
+
+export function useUnifiedDevices(enabled: boolean) {
+  const [simulatedPanels, setSimulatedPanels] = useState(() => getConnectedSimulatedPanels());
+
+  useEffect(() => {
+    const handler = () => setSimulatedPanels(getConnectedSimulatedPanels());
+    window.addEventListener(PANEL_SIMULATION_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(PANEL_SIMULATION_CHANGED_EVENT, handler);
+  }, []);
+
+  const devices = useDevices(enabled);
+  const peripherals = usePeripherals(enabled);
+  const webhid = useWebHidPeripherals(enabled);
+  const panels = usePanelDevices(enabled, {
+    simulatedPanels,
+    includeSimulatedY70: true,
+  });
+
+  const merged: Peripheral[] = useMemo(() => {
+    const servicePeripherals = peripherals.peripherals.map(p => ({ ...p, source: 'service' as const }));
+    const servicePids = new Set(servicePeripherals.map(p => p.productId.toLowerCase()));
+    const webhidPeripherals = webhid.peripherals
+      .filter(p => !servicePids.has(p.productId.toLowerCase()))
+      .map(p => ({ ...p, source: 'webhid' as const }));
+    return [...servicePeripherals, ...webhidPeripherals];
+  }, [peripherals.peripherals, webhid.peripherals]);
+
+  const unified = useMemo(() => {
+    // Phone sessions are stored server-side in settings.json and stick around
+    // even after the phone hasn't pinged in months. The Available tab is for
+    // currently-available devices, so we explicitly drop external-browser
+    // sessions stuck in 'paired' (no recent keepalive). Any future status
+    // values on phone sessions are surfaced by default; only the known
+    // stale-pair state is filtered out.
+    const filteredPanels = panels.devices.filter(p =>
+      !(p.connectionKind === 'external-browser' && p.status === 'paired')
+    );
+    return buildUnifiedList(filteredPanels, devices.filter(d => d.connected), merged);
+  }, [panels.devices, devices, merged]);
+
+  return {
+    unified,
+    merged,
+    webhidAvailable: webhid.available,
+    requestWebHid: webhid.requestDevice,
+  };
+}
+
+function buildUnifiedList(
+  panelDevices: PanelDevice[],
+  curated: { id: string; name: string; category: string; connected: boolean; firmwareVersion: string }[],
+  peripherals: Peripheral[],
+): UnifiedDevice[] {
+  const list: UnifiedDevice[] = [];
+  const claimedCuratedIds = new Set<string>();
+
+  for (const p of panelDevices) {
+    if (p.sourceId) claimedCuratedIds.add(p.sourceId);
+    const sourceId = p.sourceId;
+    list.push({
+      key: `panel-${p.id}`,
+      shortName: (sourceId && CURATED_SHORT_NAMES[sourceId]) || p.name,
+      name: p.name,
+      subtitle: p.subtitle,
+      category: 'display',
+      iconSrc: p.iconSrc,
+      connected: p.status !== 'offline',
+      kind: 'panel',
+      panelDevice: p,
+      curatedId: sourceId,
+    });
+  }
+
+  for (const d of curated) {
+    if (claimedCuratedIds.has(d.id)) continue;
+    list.push({
+      key: `curated-${d.id}`,
+      shortName: CURATED_SHORT_NAMES[d.id] || d.name,
+      name: d.name,
+      subtitle: d.category,
+      category: d.category,
+      iconSrc: CURATED_ICONS[d.id] || CATEGORY_ICONS[d.category] || FALLBACK_ICON,
+      connected: d.connected,
+      firmwareVersion: d.firmwareVersion || undefined,
+      kind: 'curated',
+      curatedId: d.id,
+    });
+  }
+
+  for (const p of peripherals) {
+    list.push({
+      key: `peripheral-${p.id}`,
+      shortName: p.name,
+      name: p.name,
+      subtitle: p.vendor,
+      category: p.category,
+      iconSrc: CATEGORY_ICONS[p.category] || FALLBACK_ICON,
+      connected: true,
+      kind: 'peripheral',
+      peripheral: p,
+    });
+  }
+
+  return list;
+}

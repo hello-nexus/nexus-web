@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
-import { useDevices } from '../../../hooks/useDevices';
-import { usePanelDevices } from '../../../hooks/usePanelDevices';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
-import { usePeripherals, type Peripheral } from '../../../hooks/usePeripherals';
-import { useWebHidPeripherals } from '../../../hooks/useWebHidPeripherals';
+import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
+import { type Peripheral } from '../../../hooks/usePeripherals';
 import { useTranslation } from '../../../lib/i18n';
-import {
-  getConnectedSimulatedPanels,
-  PANEL_SIMULATION_CHANGED_EVENT,
-} from '../../../lib/panelSimulation';
 import type { PanelDevice } from '../../../panel/panelDevices';
 import { ViewHeader } from '../../ViewHeader/ViewHeader';
 import { Button } from '../../Button/Button';
@@ -23,112 +17,30 @@ import styles from './DevicesView.module.scss';
 interface DevicesViewProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
+  // When set, on mount/update find the matching device in the unified
+  // Available list and auto-open its popup. The dashboard "Devices"
+  // widget hands the device's `key` here so the user lands directly on
+  // the management surface.
+  initialOpenKey?: string | null;
+  onInitialOpenConsumed?: () => void;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  mouse: '/assets/devices/mouse.svg',
-  keyboard: '/assets/devices/keyboard.svg',
-  headset: '/assets/devices/headset.svg',
-  gamepad: '/assets/devices/gamepad.svg',
-  display: '/assets/devices/y70.svg',
-  controller: '/assets/devices/cnvs.svg',
-  hub: '/assets/devices/fan-hub.svg',
-};
+type TabKey = 'available' | 'connected';
 
-const CURATED_ICONS: Record<string, string> = {
-  cnvs: '/assets/devices/cnvs.svg',
-  q60: '/assets/devices/q60.svg',
-  q80: '/assets/devices/q80.svg',
-  y70: '/assets/devices/y70.svg',
-  keeb: '/assets/devices/keeb.svg',
-  'fan-hub': '/assets/devices/fan-hub.svg',
-};
-
-const FALLBACK_ICON = '/assets/devices/device.svg';
-
-type TabKey = 'supported' | 'panels' | 'connected';
-
-interface UnifiedDevice {
-  key: string;
-  name: string;
-  subtitle: string;
-  category: string;
-  iconSrc: string;
-  connected: boolean;
-  firmwareVersion?: string;
-  kind: 'curated' | 'peripheral';
-  curatedId?: string;
-  peripheral?: Peripheral;
-  panelDevice?: PanelDevice;
-}
-
-function buildUnifiedList(
-  curated: { id: string; name: string; category: string; connected: boolean; firmwareVersion: string }[],
-  peripherals: Peripheral[],
-): UnifiedDevice[] {
-  const list: UnifiedDevice[] = [];
-
-  for (const d of curated) {
-    list.push({
-      key: `curated-${d.id}`,
-      name: d.name,
-      subtitle: d.category,
-      category: d.category,
-      iconSrc: CURATED_ICONS[d.id] || CATEGORY_ICONS[d.category] || FALLBACK_ICON,
-      connected: d.connected,
-      firmwareVersion: d.firmwareVersion || undefined,
-      kind: 'curated',
-      curatedId: d.id,
-    });
-  }
-
-  for (const p of peripherals) {
-    list.push({
-      key: `peripheral-${p.id}`,
-      name: p.name,
-      subtitle: p.vendor,
-      category: p.category,
-      iconSrc: CATEGORY_ICONS[p.category] || FALLBACK_ICON,
-      connected: true,
-      kind: 'peripheral',
-      peripheral: p,
-    });
-  }
-
-  return list;
-}
-
-export function DevicesView({ serviceOnline, connectionState }: DevicesViewProps) {
+export function DevicesView({ serviceOnline, connectionState, initialOpenKey, onInitialOpenConsumed }: DevicesViewProps) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<TabKey>('supported');
+  const [tab, setTab] = useState<TabKey>('available');
   const [modalOpen, setModalOpen] = useState(false);
   const [panelPopupOpen, setPanelPopupOpen] = useState(false);
   const [panelPopupDevice, setPanelPopupDevice] = useState<PanelDevice | null>(null);
   const [peripheralPopup, setPeripheralPopup] = useState<Peripheral | null>(null);
-  const [simulatedPanels, setSimulatedPanels] = useState(() => getConnectedSimulatedPanels());
+  const consumedInitialKeyRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    const handler = () => setSimulatedPanels(getConnectedSimulatedPanels());
-    window.addEventListener(PANEL_SIMULATION_CHANGED_EVENT, handler);
-    return () => window.removeEventListener(PANEL_SIMULATION_CHANGED_EVENT, handler);
-  }, []);
-
-  const devices = useDevices(serviceOnline && tab === 'supported');
-  const peripherals = usePeripherals(serviceOnline && tab === 'supported');
-  const webhid = useWebHidPeripherals(tab === 'supported');
-  const panels = usePanelDevices(serviceOnline && tab === 'panels', { simulatedPanels });
+  const availableActive = tab === 'available';
+  const { unified, merged, webhidAvailable, requestWebHid } = useUnifiedDevices(serviceOnline && availableActive);
   const usb = useUsbDevices(serviceOnline && tab === 'connected');
-
-  const merged: Peripheral[] = useMemo(() => {
-    const servicePeripherals = peripherals.peripherals.map(p => ({ ...p, source: 'service' as const }));
-    const servicePids = new Set(servicePeripherals.map(p => p.productId.toLowerCase()));
-    const webhidPeripherals = webhid.peripherals
-      .filter(p => !servicePids.has(p.productId.toLowerCase()))
-      .map(p => ({ ...p, source: 'webhid' as const }));
-    return [...servicePeripherals, ...webhidPeripherals];
-  }, [peripherals.peripherals, webhid.peripherals]);
-
   const allUsb = useUsbDevices(serviceOnline);
+
   const detectedVidPids = useMemo(() => {
     const set = new Set<string>();
     for (const d of allUsb.devices) {
@@ -140,56 +52,67 @@ export function DevicesView({ serviceOnline, connectionState }: DevicesViewProps
     return set;
   }, [allUsb.devices, merged]);
 
-  const supportedAvailable = serviceOnline || webhid.available;
-
-  const unified = useMemo(() => {
-    const connected = serviceOnline ? devices.filter(d => d.connected) : [];
-    return buildUnifiedList(connected, merged);
-  }, [serviceOnline, devices, merged]);
+  const availableAvailable = serviceOnline || webhidAvailable;
 
   const handleCardClick = (device: UnifiedDevice) => {
     if (device.panelDevice) {
       setPanelPopupDevice(device.panelDevice);
-      setPanelPopupOpen(true);
-    } else if (device.curatedId === 'y70') {
-      setPanelPopupDevice(null);
       setPanelPopupOpen(true);
     } else if (device.peripheral) {
       setPeripheralPopup(device.peripheral);
     }
   };
 
-  const handlePanelCardClick = (device: PanelDevice) => {
-    if (!device.popupKind) return;
-    setPanelPopupDevice(device);
-    setPanelPopupOpen(true);
-  };
+  // Deep-link from the dashboard "Devices" widget: when an initialOpenKey
+  // arrives, find the matching device in the unified Available list and
+  // open its popup. The ref guard means we consume each distinct key only
+  // once even if the parent re-renders with the same value.
+  useEffect(() => {
+    // The consumed-key ref is what guarantees "open the popup exactly
+    // once per distinct key" even if the parent passes an inline
+    // onInitialOpenConsumed (new identity every render) or forgets to
+    // clear `initialOpenKey`. Reset when the parent does clear it so a
+    // subsequent navigation to the same device still fires.
+    if (!initialOpenKey) {
+      consumedInitialKeyRef.current = null;
+      return;
+    }
+    if (consumedInitialKeyRef.current === initialOpenKey) return;
+    if (!availableAvailable) return;
+    const match = unified.find(d => d.key === initialOpenKey);
+    if (!match) return;
+    consumedInitialKeyRef.current = initialOpenKey;
+    // setState-in-effect is intentional here — opening the popup is the
+    // entire purpose of this deep-link callback, not a derived render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    handleCardClick(match);
+    onInitialOpenConsumed?.();
+  }, [initialOpenKey, unified, availableAvailable, onInitialOpenConsumed]);
 
   const tabs = [
-    { key: 'supported', label: t('devices.tabs.supported') },
-    { key: 'panels', label: t('devices.tabs.panels') },
+    { key: 'available', label: t('devices.tabs.available') },
     { key: 'connected', label: t('devices.tabs.connected') },
   ] as const;
 
   return (
     <section className={styles.devices}>
       <div className={styles.headerRow}>
-        <ViewHeader title={t('devices.title')} titleTooltip={t('devices.title.tooltip')} tabs={tabs} activeTab={tab} onTabChange={(k) => setTab(k as TabKey)} tabsDisabled={!serviceOnline && !webhid.available} />
-        {serviceOnline && tab === 'supported' && (
+        <ViewHeader title={t('devices.title')} titleTooltip={t('devices.title.tooltip')} tabs={tabs} activeTab={tab} onTabChange={(k) => setTab(k as TabKey)} tabsDisabled={!serviceOnline && !webhidAvailable} />
+        {serviceOnline && availableActive && (
           <button type="button" className={styles.catalogBtn} onClick={() => setModalOpen(true)}>
             {t('devices.supported.browse')}
           </button>
         )}
       </div>
 
-      {tab === 'supported' ? (
-        !supportedAvailable ? (
+      {availableActive ? (
+        !availableAvailable ? (
           <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
         ) : (
           <>
-            <p className={styles.explainer}>{t('devices.supported.description')}</p>
+            <p className={styles.explainer}>{t('devices.available.description')}</p>
 
-            {webhid.available && (
+            {webhidAvailable && (
               <div className={styles.webhidToolbar}>
                 {/* DOM order: description first so screen readers hear what the
                     button does before the button itself. CSS `order` flips
@@ -200,36 +123,18 @@ export function DevicesView({ serviceOnline, connectionState }: DevicesViewProps
                     {merged.some(p => p.source === 'webhid') ? t('peripheral.webhid.addMore') : t('peripheral.webhid.hint')}
                   </span>
                 </div>
-                <Button type="button" tone="accent" size="md" pill onClick={webhid.requestDevice} className={styles.webhidBtn}>
+                <Button type="button" tone="accent" size="md" pill onClick={requestWebHid} className={styles.webhidBtn}>
                   {t('peripheral.webhid.connect')}
                 </Button>
               </div>
             )}
 
             {unified.length === 0 ? (
-              <div className={styles.empty}>{t('devices.supported.none')}</div>
+              <div className={styles.empty}>{t('devices.available.none')}</div>
             ) : (
               <div className={styles.grid}>
                 {unified.map(d => (
                   <DeviceCard key={d.key} device={d} onClick={() => handleCardClick(d)} />
-                ))}
-              </div>
-            )}
-          </>
-        )
-      ) : tab === 'panels' ? (
-        !serviceOnline ? (
-          <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
-        ) : (
-          <>
-            <p className={styles.explainer}>{t('devices.panels.description')}</p>
-
-            {panels.devices.length === 0 && !panels.loading ? (
-              <div className={styles.empty}>{t('devices.panels.empty')}</div>
-            ) : (
-              <div className={styles.grid}>
-                {panels.devices.map(d => (
-                  <PanelDeviceCard key={d.id} device={d} onClick={() => handlePanelCardClick(d)} />
                 ))}
               </div>
             )}
@@ -264,43 +169,6 @@ export function DevicesView({ serviceOnline, connectionState }: DevicesViewProps
         onClose={() => setPeripheralPopup(null)}
       />
     </section>
-  );
-}
-
-function PanelDeviceCard({ device, onClick }: { device: PanelDevice; onClick: () => void }) {
-  const actionable = !!device.popupKind;
-  const connected = device.status !== 'offline';
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!actionable) return;
-    if (e.key === 'Enter') onClick();
-  };
-
-  return (
-    <div
-      className={`${styles.card} ${connected ? styles.connected : styles.disconnected} ${actionable ? '' : styles.staticCard}`}
-      onClick={actionable ? onClick : undefined}
-      role={actionable ? 'button' : undefined}
-      tabIndex={actionable ? 0 : undefined}
-      onKeyDown={handleKeyDown}
-    >
-      <div className={styles.cardIcon}>
-        <span
-          className={styles.cardIconGlyph}
-          role="img"
-          aria-label={device.connectionKind}
-          style={{ ['--icon-url' as string]: `url(${device.iconSrc})` }}
-        />
-      </div>
-      <div className={styles.cardInfo}>
-        <span className={styles.cardName}>{device.name}</span>
-        <span className={styles.cardSub}>{device.subtitle}</span>
-        <span className={styles.statusLine}>
-          <span className={styles.statusDot} />
-          <span className={styles.statusText}>{device.statusLabel}</span>
-        </span>
-      </div>
-    </div>
   );
 }
 

@@ -2,7 +2,7 @@ import {
   Clock, Activity, Music, Lightbulb, Fan, Monitor,
   Hourglass, Watch, Calculator, Globe, Tv, Zap,
   PenLine, Smile, ImageIcon, Gamepad2, Grid3X3, Fish, BarChart, RadioTower, MessageCircle,
-  Boxes,
+  Boxes, Usb,
 } from 'lucide-react';
 import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
@@ -26,6 +26,7 @@ import { MediaImmersive } from './media/MediaImmersive';
 import { MonitoringImmersive } from './performance/MonitoringImmersive';
 import { makeWidgetImmersive } from './common/WidgetImmersive';
 import { CoolingWidget } from './cooling/CoolingWidget';
+import { DevicesWidget } from './devices/DevicesWidget';
 import { TimerWidget } from './timer/TimerWidget';
 import { StopwatchWidget } from './stopwatch/StopwatchWidget';
 import { CalculatorWidget } from './calculator/CalculatorWidget';
@@ -188,6 +189,20 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       touch: 'any',
     },
     Component: CoolingWidget,
+  },
+  devices: {
+    meta: {
+      type: 'devices',
+      i18nKey: 'panel.widget.devices',
+      icon: Usb,
+      supportedSurfaces: ['y70', 'phone', 'desktop'],
+      sizes: ['2x2', '4x2', '4x4'],
+      defaultSize: '2x2',
+      supportsImmersive: { portrait: false, landscape: false },
+      hasConfig: false,
+      touch: 'any',
+    },
+    Component: DevicesWidget,
   },
   displays: {
     meta: {
