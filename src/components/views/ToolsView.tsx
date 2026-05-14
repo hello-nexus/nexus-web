@@ -20,7 +20,7 @@ import {
   setSimulatedPanelConnected,
 } from '../../lib/panelSimulation';
 import { FontDebugCard } from './FontDebugCard';
-import { fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
+import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DevicePopup } from '../DevicePopup/DevicePopup';
 import styles from './ToolsView.module.scss';
 
@@ -160,59 +160,77 @@ function InstallDefaultsCard() {
 }
 
 interface SectionDef {
-  key: string;
-  /** Key as it appears in install-defaults.json — what goes on the clipboard
-   *  alongside the value. May differ from `key` for virtual rows like
-   *  "dashboard" → "desktop". */
-  jsonKey: string;
-  /** Resolves the current snapshot value for this section. */
-  pick: (s: InstallDefaultsDocument) => unknown;
-  /** Optional path hint shown under the label so the user knows where to
-   *  paste (e.g. dashboard lives under panel.layouts). */
-  path?: string;
+  key: keyof InstallDefaultsDocument;
 }
 
 const SECTIONS: SectionDef[] = [
-  { key: 'theme',         jsonKey: 'theme',         pick: s => s.theme },
-  { key: 'monitoring',    jsonKey: 'monitoring',    pick: s => s.monitoring },
-  { key: 'panel',         jsonKey: 'panel',         pick: s => s.panel },
-  { key: 'dashboard',     jsonKey: 'desktop',       pick: s => s.panel.layouts.desktop, path: 'panel.layouts.desktop' },
-  { key: 'panel-y70',     jsonKey: 'y70',           pick: s => s.panel.layouts.y70,     path: 'panel.layouts.y70' },
-  { key: 'panel-phone',   jsonKey: 'phone',         pick: s => s.panel.layouts.phone,   path: 'panel.layouts.phone' },
-  { key: 'panel-q60',     jsonKey: 'q60',           pick: s => s.panel.layouts.q60,     path: 'panel.layouts.q60' },
-  { key: 'overlay',       jsonKey: 'overlay',       pick: s => s.overlay },
-  { key: 'lighting',      jsonKey: 'lighting',      pick: s => s.lighting },
-  { key: 'y70',           jsonKey: 'y70',           pick: s => s.y70 },
-  { key: 'keeb',          jsonKey: 'keeb',          pick: s => s.keeb },
-  { key: 'cooling',       jsonKey: 'cooling',       pick: s => s.cooling },
-  { key: 'obs',           jsonKey: 'obs',           pick: s => s.obs },
-  { key: 'screenTime',    jsonKey: 'screenTime',    pick: s => s.screenTime },
-  { key: 'cnvs',          jsonKey: 'cnvs',          pick: s => s.cnvs },
-  { key: 'auth',          jsonKey: 'auth',          pick: s => s.auth },
+  { key: 'theme' },
+  { key: 'monitoring' },
+  { key: 'panel' },
+  { key: 'overlay' },
+  { key: 'lighting' },
+  { key: 'y70' },
+  { key: 'keeb' },
+  { key: 'cooling' },
+  { key: 'obs' },
+  { key: 'screenTime' },
+  { key: 'cnvs' },
+  { key: 'auth' },
 ];
 
 function InstallDefaultsPopup({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [tab, setTab] = useState<'current' | 'defaults'>('current');
   const [snapshot, setSnapshot] = useState<InstallDefaultsDocument | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
+  const [canonical, setCanonical] = useState<InstallDefaultsDocument | null>(null);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    fetchInstallDefaultsSnapshot()
-      .then(d => { if (!cancelled) setSnapshot(d); })
-      .catch(() => { /* popup stays empty */ });
+    Promise.all([
+      fetchInstallDefaultsSnapshot().catch(() => null),
+      fetchInstallDefaults().catch(() => null),
+    ]).then(([snap, canon]) => {
+      if (cancelled) return;
+      setSnapshot(snap);
+      setCanonical(canon);
+    });
     return () => { cancelled = true; };
   }, [open]);
 
-  const formatFragment = (jsonKey: string, value: unknown) => {
-    // Build "key": <pretty-value> as a paste-ready snippet. Strip the outer
-    // wrapper braces + outer indent so the fragment slots into an existing
-    // object literal without extra punctuation.
-    const wrapped = JSON.stringify({ [jsonKey]: value }, null, 2);
+  const doc = tab === 'current' ? snapshot : canonical;
+
+  return (
+    <DevicePopup open={open} onClose={onClose} wide title="Install defaults">
+      <div className={styles.installDefaultsPopup}>
+        <p className={styles.dim}>
+          Copy any section's values and paste over the matching block in
+          <code> qos-service/data/install-defaults.json</code> to make them the new defaults.
+        </p>
+        <div className={styles.installDefaultsTabs} role="tablist">
+          <button type="button" role="tab" aria-selected={tab === 'current'}
+            className={`${styles.installDefaultsTab} ${tab === 'current' ? styles.installDefaultsTabActive : ''}`}
+            onClick={() => setTab('current')}>Current</button>
+          <button type="button" role="tab" aria-selected={tab === 'defaults'}
+            className={`${styles.installDefaultsTab} ${tab === 'defaults' ? styles.installDefaultsTabActive : ''}`}
+            onClick={() => setTab('defaults')}>Defaults</button>
+        </div>
+        {!doc ? (
+          <p className={styles.dim}>Loading…</p>
+        ) : (
+          <InstallDefaultsTabBody doc={doc} tab={tab} />
+        )}
+      </div>
+    </DevicePopup>
+  );
+}
+
+function InstallDefaultsTabBody({ doc, tab }: { doc: InstallDefaultsDocument; tab: 'current' | 'defaults' }) {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const formatFragment = (key: string, value: unknown) => {
+    const wrapped = JSON.stringify({ [key]: value }, null, 2);
     return wrapped.replace(/^\{\n/, '').replace(/\n\}$/, '').replace(/^  /gm, '');
   };
-
-  const formatBody = (value: unknown) => JSON.stringify(value, null, 2);
 
   const copy = (id: string, text: string) => {
     void navigator.clipboard.writeText(text);
@@ -220,50 +238,43 @@ function InstallDefaultsPopup({ open, onClose }: { open: boolean; onClose: () =>
     window.setTimeout(() => setCopied(prev => prev === id ? null : prev), 1200);
   };
 
-  const allText = snapshot ? JSON.stringify(snapshot, null, 2) : '';
+  const copyAllId = `__all__-${tab}`;
+  const allText = JSON.stringify(doc, null, 2);
 
   return (
-    <DevicePopup open={open} onClose={onClose} wide title="Install defaults">
-      <div className={styles.installDefaultsPopup}>
-        <p className={styles.dim}>
-          Copy any section's current values; paste over the matching block in
-          <code> qos-service/data/install-defaults.json</code> to make them the new defaults.
-        </p>
-        <div className={styles.installDefaultsTopBar}>
-          <Button tone="accent" size="sm" disabled={!snapshot} onClick={() => copy('__all__', allText)}>
-            {copied === '__all__' ? 'Copied!' : 'Copy entire snapshot'}
-          </Button>
-        </div>
-        {!snapshot ? (
-          <p className={styles.dim}>Loading…</p>
-        ) : (
-          <div className={styles.installDefaultsSections}>
-            {SECTIONS.map(s => {
-              const value = s.pick(snapshot);
-              const fragment = formatFragment(s.jsonKey, value);
-              return (
-                <section key={s.key} className={styles.installDefaultsSection}>
-                  <div className={styles.installDefaultsSectionHeader}>
-                    <div className={styles.installDefaultsSectionLabel}>
-                      <code className={styles.installDefaultsKey}>{s.key}</code>
-                      {s.path && <span className={styles.installDefaultsPath}>{s.path}</span>}
-                    </div>
-                    <button
-                      type="button"
-                      className={styles.installDefaultsCopy}
-                      onClick={() => copy(s.key, fragment)}
-                    >
-                      {copied === s.key ? 'Copied!' : 'Copy'}
-                    </button>
-                  </div>
-                  <pre className={styles.installDefaultsJson}>{formatBody(value)}</pre>
-                </section>
-              );
-            })}
-          </div>
-        )}
+    <>
+      <div className={styles.installDefaultsTopBar}>
+        <Button tone="accent" size="sm" onClick={() => copy(copyAllId, allText)}>
+          {copied === copyAllId ? 'Copied!' : `Copy entire ${tab === 'current' ? 'snapshot' : 'defaults'}`}
+        </Button>
       </div>
-    </DevicePopup>
+      <div className={styles.installDefaultsSections}>
+        {SECTIONS.map(s => {
+          const value = doc[s.key];
+          const fragment = formatFragment(s.key, value);
+          const id = `${s.key}-${tab}`;
+          return (
+            <details key={s.key} className={styles.installDefaultsSection}>
+              <summary className={styles.installDefaultsSectionHeader}>
+                <code className={styles.installDefaultsKey}>{s.key}</code>
+                {/* Span guards click-bubbling so the button toggle doesn't also
+                    flip the parent <details> open/closed. */}
+                <span onClick={e => e.preventDefault()}>
+                  <button
+                    type="button"
+                    className={styles.installDefaultsCopy}
+                    onClick={e => { e.stopPropagation(); copy(id, fragment); }}
+                  >
+                    {copied === id ? 'Copied!' : 'Copy'}
+                  </button>
+                </span>
+              </summary>
+              <pre className={styles.installDefaultsJson}>{JSON.stringify(value, null, 2)}</pre>
+            </details>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
