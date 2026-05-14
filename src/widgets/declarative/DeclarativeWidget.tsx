@@ -45,7 +45,9 @@ export function DeclarativeWidget({ listing, size, instanceId }: DeclarativeWidg
   const [localState, setLocalState] = useWidgetLocalState({
     widgetId: listing.id, instanceId, defaults: localDefaults,
   });
-  const settingsBridge = useMemo(() => new WidgetSettingsBridge(listing.id), [listing.id]);
+  // Per-instance settings — the widget's placement id is the key, not the
+  // marketplace listing id, so two placements keep separate configs.
+  const settingsBridge = useMemo(() => new WidgetSettingsBridge(instanceId), [instanceId]);
   const [settingsValues, setSettingsValues] = useState<Record<string, unknown>>(() => settingsBridge.get());
   useEffect(() => {
     const unsub = settingsBridge.onChange((v) => setSettingsValues({ ...v }));

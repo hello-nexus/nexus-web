@@ -24,12 +24,13 @@ export type WidgetSettingsListener = (values: Record<string, unknown>) => void;
  * both talk to this.
  */
 export class WidgetSettingsBridge {
-  private readonly widgetId: string;
+  /** Placement id, NOT the marketplace widget type — config is per-instance now. */
+  private readonly instanceId: string;
   private values: Record<string, unknown> = {};
   private loaded = false;
   private readonly listeners = new Set<WidgetSettingsListener>();
 
-  constructor(widgetId: string) { this.widgetId = widgetId; }
+  constructor(instanceId: string) { this.instanceId = instanceId; }
 
   /** Returns the cached values. Triggers a load on first call. */
   get(): Record<string, unknown> {
@@ -43,7 +44,7 @@ export class WidgetSettingsBridge {
 
   async load(): Promise<Record<string, unknown>> {
     const doc = await fetchService<WidgetSettingsDocument>(
-      `/widgets-api/installed/${encodeURIComponent(this.widgetId)}/settings`,
+      `/widgets-api/instance/${encodeURIComponent(this.instanceId)}/settings`,
     );
     if (doc?.values) {
       this.values = doc.values;
@@ -57,14 +58,14 @@ export class WidgetSettingsBridge {
     const token = await getToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    let res = await fetch(resolveHttp(`/widgets-api/installed/${encodeURIComponent(this.widgetId)}/settings`), {
+    let res = await fetch(resolveHttp(`/widgets-api/instance/${encodeURIComponent(this.instanceId)}/settings`), {
       method: 'PATCH', headers, body: JSON.stringify(patch),
     });
     if (res.status === 401) {
       const next = await handleUnauthorized();
       if (next) {
         headers['Authorization'] = `Bearer ${next}`;
-        res = await fetch(resolveHttp(`/widgets-api/installed/${encodeURIComponent(this.widgetId)}/settings`), {
+        res = await fetch(resolveHttp(`/widgets-api/instance/${encodeURIComponent(this.instanceId)}/settings`), {
           method: 'PATCH', headers, body: JSON.stringify(patch),
         });
       }
