@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { APP_STORE_URL } from './lib/appStore';
 
-// TODO: replace with the real App Store ID when the iOS app is published.
-// Today the entitlement still carries `?mode=developer` so distribution is
-// TestFlight/dev-signed only; this href is a placeholder.
-const APP_STORE_URL = 'https://apps.apple.com/app/qos/id0000000000';
 const APP_LINK_PROBE_MS = 1500;
 const CUSTOM_SCHEME_PROBE_MS = 1500;
 

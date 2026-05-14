@@ -1,8 +1,7 @@
 import { ShieldAlert } from 'lucide-react';
 import { useTranslation } from '../lib/i18n';
+import { APP_STORE_URL } from '../lib/appStore';
 import styles from './PanelInsecureBanner.module.scss';
-
-const APP_STORE_URL = 'https://apps.apple.com/app/qos/id0000000000';
 
 /**
  * Persistent strip shown when the panel surface was reached over plain HTTP
