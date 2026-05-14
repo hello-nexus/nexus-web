@@ -63,7 +63,7 @@ import type { MonitoringFrame } from './hooks/useMonitoringFrame';
 import type { ScreenTimeData } from './hooks/useScreenTime';
 import { useTranslation, I18nProvider } from './lib/i18n';
 import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from './lib/settings';
-import type { UiSettings } from './api/profiles';
+import type { Preferences } from './api/profiles';
 import type { Language, ThemeMode } from './lib/settings';
 import type { ComponentCategory, ComponentOption } from './types/builder';
 import styles from './App.module.scss';
@@ -1033,11 +1033,20 @@ function Dashboard() {
   // + cache + theme/accent apply. The legacy effect that did all three
   // inline used to live here; removed to keep a single source of truth.
 
-  const handlePreferencesChanged = useCallback((ui: UiSettings) => {
-    applyThemeMode(ui.themeMode as ThemeMode);
-    applyAccentColor(ui.accentColor);
-    if (ui.language) setLanguage(ui.language as Language);
-    cachePreferencesLocally(ui);
+  const handlePreferencesChanged = useCallback((prefs: Preferences) => {
+    applyThemeMode(prefs.theme.themeMode as ThemeMode);
+    applyAccentColor(prefs.theme.accentColor);
+    if (prefs.theme.language) setLanguage(prefs.theme.language as Language);
+    cachePreferencesLocally({
+      language: prefs.theme.language,
+      themeMode: prefs.theme.themeMode,
+      accentColor: prefs.theme.accentColor,
+      disableConflictAlerts: prefs.ui?.disableConflictAlerts,
+      monitoringShowAverage: prefs.monitoring?.showAverage,
+      monitoringDetailedCollapsed: prefs.monitoring?.detailedCollapsed,
+      showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
+      showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,
+    });
   }, [setLanguage]);
 
   const handleNavigateSettings = useCallback(() => {

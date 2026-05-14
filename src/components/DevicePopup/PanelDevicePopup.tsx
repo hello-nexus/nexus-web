@@ -119,7 +119,7 @@ export function PanelDevicePopup({ open, onClose, device }: PanelDevicePopupProp
       setEditingDeviceId(match?.id ?? null);
       const savedLayout = match?.layout ?? defaultLayoutForSurface(surface);
       setLayout(normalizePanelLayout(savedLayout, surface));
-      if (prefs) setAutoLaunch(prefs.panelAutoLaunch ?? false);
+      if (prefs) setAutoLaunch(prefs.panel?.autoLaunch ?? false);
       setLoaded(true);
     }).catch(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
@@ -324,7 +324,7 @@ export function PanelDevicePopup({ open, onClose, device }: PanelDevicePopupProp
                         const next = !autoLaunch;
                         setAutoLaunch(next);
                         if (isTestDevice || !supportsAutoLaunch) return;
-                        savePreferences({ panelAutoLaunch: next }).catch(() => {});
+                        savePreferences({ panel: { autoLaunch: next } }).catch(() => {});
                       }}
                       showDisplayControls={supportsDisplayControls}
                       showAutoLaunch={supportsAutoLaunch}

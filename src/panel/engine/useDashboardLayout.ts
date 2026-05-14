@@ -30,7 +30,7 @@ export function useDashboardLayout(): UseDashboardLayoutResult {
 
   const fetchLayout = useCallback(() => {
     fetchPreferences().then(prefs => {
-      const next = prefs?.dashboardLayout ?? defaultLayoutForDashboard();
+      const next = prefs?.panel?.dashboardLayout ?? defaultLayoutForDashboard();
       setLayoutState(collapseToSinglePage(normalizePanelLayout(next, 'desktop')));
       setLoaded(true);
     }).catch(() => {
@@ -51,7 +51,7 @@ export function useDashboardLayout(): UseDashboardLayoutResult {
     if (writeTimer.current) clearTimeout(writeTimer.current);
     writeTimer.current = setTimeout(() => {
       writeTimer.current = null;
-      savePreferences({ dashboardLayout: normalized })
+      savePreferences({ panel: { dashboardLayout: normalized } })
         .then(() => broadcastLayoutChanged())
         .catch(() => {});
     }, 250);

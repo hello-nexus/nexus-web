@@ -7,7 +7,11 @@ import {
   applyThemeMode, applyAccentColor,
   type QosSettings, type ThemeMode, type Language,
 } from '../lib/settings';
-import { fetchPreferences, savePreferences, type UiSettings as ServerUiSettings } from '../api/profiles';
+import {
+  fetchPreferences, savePreferences,
+  type Preferences as ServerPreferences,
+  type PreferencesPatch,
+} from '../api/profiles';
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 
@@ -90,33 +94,41 @@ function toQosSettings(src: UiSettingsValue): QosSettings {
   };
 }
 
-/** Extract the fields that should round-trip to the server. */
-function toServerPatch(patch: Patch): Partial<ServerUiSettings> {
-  const server: Partial<ServerUiSettings> = {};
-  if (patch.language !== undefined) server.language = patch.language;
-  if (patch.themeMode !== undefined) server.themeMode = patch.themeMode;
-  if (patch.accentColor !== undefined) server.accentColor = patch.accentColor;
-  if (patch.disableConflictAlerts !== undefined) server.disableConflictAlerts = patch.disableConflictAlerts;
-  if (patch.monitoringShowAverage !== undefined) server.monitoringShowAverage = patch.monitoringShowAverage;
-  if (patch.monitoringDetailedCollapsed !== undefined) server.monitoringDetailedCollapsed = patch.monitoringDetailedCollapsed;
-  if (patch.showMacStatusBarIcon !== undefined) server.showMacStatusBarIcon = patch.showMacStatusBarIcon;
-  if (patch.showWindowsTrayIcon !== undefined) server.showWindowsTrayIcon = patch.showWindowsTrayIcon;
-  if (patch.fanChannelOrder !== undefined) server.fanChannelOrder = patch.fanChannelOrder;
-  return server;
+/** Translate the hook's flat field patch into the nested PreferencesPatch the server expects. */
+function toServerPatch(patch: Patch): PreferencesPatch {
+  const out: PreferencesPatch = {};
+  // theme block
+  const theme: Partial<{ language: Language; themeMode: ThemeMode; accentColor: string }> = {};
+  if (patch.language !== undefined) theme.language = patch.language;
+  if (patch.themeMode !== undefined) theme.themeMode = patch.themeMode;
+  if (patch.accentColor !== undefined) theme.accentColor = patch.accentColor;
+  if (Object.keys(theme).length > 0) out.theme = theme;
+  // monitoring block
+  const monitoring: Partial<{ showAverage: boolean; showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[] }> = {};
+  if (patch.monitoringShowAverage !== undefined) monitoring.showAverage = patch.monitoringShowAverage;
+  if (patch.monitoringDetailedCollapsed !== undefined) monitoring.detailedCollapsed = patch.monitoringDetailedCollapsed;
+  if (patch.showMacStatusBarIcon !== undefined) monitoring.showMacStatusBarIcon = patch.showMacStatusBarIcon;
+  if (patch.showWindowsTrayIcon !== undefined) monitoring.showWindowsTrayIcon = patch.showWindowsTrayIcon;
+  if (Object.keys(monitoring).length > 0) out.monitoring = monitoring;
+  // cooling block
+  if (patch.fanChannelOrder !== undefined) out.cooling = { fanChannelOrder: patch.fanChannelOrder };
+  // ui block
+  if (patch.disableConflictAlerts !== undefined) out.ui = { disableConflictAlerts: patch.disableConflictAlerts };
+  return out;
 }
 
-function applyServerToLocal(server: ServerUiSettings, base: UiSettingsValue): UiSettingsValue {
+function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): UiSettingsValue {
   return {
     ...base,
-    language: (server.language as Language) ?? base.language,
-    themeMode: (server.themeMode as ThemeMode) ?? base.themeMode,
-    accentColor: server.accentColor ?? base.accentColor,
-    disableConflictAlerts: server.disableConflictAlerts ?? base.disableConflictAlerts,
-    monitoringShowAverage: server.monitoringShowAverage ?? base.monitoringShowAverage,
-    monitoringDetailedCollapsed: server.monitoringDetailedCollapsed ?? base.monitoringDetailedCollapsed,
-    showMacStatusBarIcon: server.showMacStatusBarIcon ?? base.showMacStatusBarIcon,
-    showWindowsTrayIcon: server.showWindowsTrayIcon ?? base.showWindowsTrayIcon,
-    fanChannelOrder: server.fanChannelOrder ?? base.fanChannelOrder,
+    language: (server.theme?.language as Language) ?? base.language,
+    themeMode: (server.theme?.themeMode as ThemeMode) ?? base.themeMode,
+    accentColor: server.theme?.accentColor ?? base.accentColor,
+    disableConflictAlerts: server.ui?.disableConflictAlerts ?? base.disableConflictAlerts,
+    monitoringShowAverage: server.monitoring?.showAverage ?? base.monitoringShowAverage,
+    monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
+    showMacStatusBarIcon: server.monitoring?.showMacStatusBarIcon ?? base.showMacStatusBarIcon,
+    showWindowsTrayIcon: server.monitoring?.showWindowsTrayIcon ?? base.showWindowsTrayIcon,
+    fanChannelOrder: server.cooling?.fanChannelOrder ?? base.fanChannelOrder,
   };
 }
 
@@ -149,7 +161,11 @@ export function UiSettingsProvider({
   const scheduleServerWrite = useCallback((patch: Patch) => {
     if (!serviceOnline) return;
     const serverPatch = toServerPatch(patch);
-    if (Object.keys(serverPatch).length === 0) return;
+    // toServerPatch produces an empty object when the patch only touches
+    // client-scoped fields — short-circuit to skip a pointless POST.
+    const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
+      || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui;
+    if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     // 250ms debounce collapses rapid slider-style updates into one POST.
     writeTimer.current = setTimeout(() => {
@@ -193,7 +209,16 @@ export function UiSettingsProvider({
       // Also call the legacy cache helper so any non-migrated code paths that
       // still read via loadSettings() see the refreshed values until their
       // migration lands. Safe to remove once every view goes through the hook.
-      cachePreferencesLocally(prefs);
+      cachePreferencesLocally({
+        language: prefs.theme?.language,
+        themeMode: prefs.theme?.themeMode,
+        accentColor: prefs.theme?.accentColor,
+        disableConflictAlerts: prefs.ui?.disableConflictAlerts,
+        monitoringShowAverage: prefs.monitoring?.showAverage,
+        monitoringDetailedCollapsed: prefs.monitoring?.detailedCollapsed,
+        showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
+        showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,
+      });
     }).catch(() => { /* best-effort */ });
   }, [serviceOnline, persistLocal, setLanguage]);
 

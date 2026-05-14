@@ -5,14 +5,14 @@ import { useTranslation } from '../../lib/i18n';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { PRESET_ACCENTS, loadSettings } from '../../lib/settings';
 import type { UseProfilesResult } from '../../hooks/useProfiles';
-import type { UiSettings } from '../../api/profiles';
+import type { Preferences } from '../../api/profiles';
 import { savePreferences } from '../../api/profiles';
 import { PromptDialog } from '../PromptDialog/PromptDialog';
 import styles from './ProfileDropdown.module.scss';
 
 interface ProfileDropdownProps {
   profiles: UseProfilesResult;
-  onPreferencesChanged: (ui: UiSettings) => void;
+  onPreferencesChanged: (prefs: Preferences) => void;
   onNavigateSettings: () => void;
   compact?: boolean;
 }
@@ -34,8 +34,8 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
     // switchProfile already flips the active highlight, so awaiting here
     // would just delay the dismissal.
     setOpen(false);
-    profiles.switchProfile(id).then(ui => {
-      if (ui) onPreferencesChanged(ui);
+    profiles.switchProfile(id).then(prefs => {
+      if (prefs) onPreferencesChanged(prefs);
     });
   }, [profiles, onPreferencesChanged]);
 
@@ -57,9 +57,12 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
     const updated = profiles.profiles;
     const created = updated[updated.length - 1];
     if (created) {
-      const ui = await profiles.switchProfile(created.id);
-      await savePreferences({ accentColor: newAccent });
-      if (ui) onPreferencesChanged({ ...ui, accentColor: newAccent });
+      const prefs = await profiles.switchProfile(created.id);
+      await savePreferences({ theme: { accentColor: newAccent } });
+      if (prefs) onPreferencesChanged({
+        ...prefs,
+        theme: { ...prefs.theme, accentColor: newAccent },
+      });
     }
   }, [profiles, onPreferencesChanged]);
 

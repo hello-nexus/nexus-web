@@ -87,7 +87,7 @@ describe('useDashboardLayout', () => {
         },
       ],
     };
-    fetchPreferencesMock.mockResolvedValue({ dashboardLayout: savedLayout });
+    fetchPreferencesMock.mockResolvedValue({ panel: { dashboardLayout: savedLayout } });
     savePreferencesMock.mockResolvedValue({ error: false, msg: 'ok' });
 
     const { result } = renderHook(() => useDashboardLayout());
@@ -103,7 +103,7 @@ describe('useDashboardLayout', () => {
     });
 
     expect(savePreferencesMock).toHaveBeenCalledWith({
-      dashboardLayout: expect.objectContaining({ surface: 'desktop' }),
+      panel: { dashboardLayout: expect.objectContaining({ surface: 'desktop' }) },
     });
     expect(broadcastLayoutChangedMock).toHaveBeenCalledTimes(1);
   });

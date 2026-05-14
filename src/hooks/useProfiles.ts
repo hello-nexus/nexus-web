@@ -5,7 +5,7 @@ import {
   exportProfile as apiExport, importProfileFile as apiImport,
   fetchSharing, setPrimaryProfile as apiSetPrimary, setCategoryShared as apiSetCategoryShared,
   resetProfile as apiResetProfile, resetProfileCategory as apiResetProfileCategory,
-  type ProfileEntry, type UiSettings, type ProfileCategory, type SharingConfig,
+  type ProfileEntry, type Preferences, type ProfileCategory, type SharingConfig,
 } from '../api/profiles';
 
 const ORDER_KEY = 'qos_profile_order';
@@ -32,7 +32,7 @@ function sortByOrder(profiles: ProfileEntry[], order: string[]): ProfileEntry[] 
 export interface UseProfilesResult {
   profiles: ProfileEntry[];
   activeId: string;
-  switchProfile: (id: string) => Promise<UiSettings | null>;
+  switchProfile: (id: string) => Promise<Preferences | null>;
   createProfile: (name: string) => Promise<void>;
   renameProfile: (id: string, name: string) => Promise<void>;
   deleteProfile: (id: string) => Promise<void>;
@@ -63,7 +63,7 @@ export function useProfiles(enabled: boolean): UseProfilesResult {
     refresh().finally(() => setLoading(false));
   }, [enabled, refresh]);
 
-  const switchProfileFn = useCallback(async (id: string): Promise<UiSettings | null> => {
+  const switchProfileFn = useCallback(async (id: string): Promise<Preferences | null> => {
     // Optimistic: flip the active highlight in the UI immediately so the
     // dropdown and settings list feel instant. The server call + manifest
     // refresh continue in the background; if the call fails the refresh
@@ -76,7 +76,7 @@ export function useProfiles(enabled: boolean): UseProfilesResult {
         // Background refresh - manifest `updatedAt` etc. matter for the
         // settings list ordering but not for the switch UX.
         refresh().catch(() => { /* best-effort */ });
-        return resp.ui;
+        return resp.prefs;
       }
     } catch {
       // fall through to revert

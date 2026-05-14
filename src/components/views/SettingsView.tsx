@@ -14,7 +14,7 @@ import { ServiceRequired } from './ServiceRequired';
 import { GenericSkeleton } from './PageSkeleton/PageSkeleton';
 import type { ConnectionState } from '../../hooks/useServiceStatus';
 import { useProfileSharing, type UseProfilesResult } from '../../hooks/useProfiles';
-import { exportProfile, PROFILE_CATEGORIES, type UiSettings, type ProfileCategory } from '../../api/profiles';
+import { exportProfile, PROFILE_CATEGORIES, type Preferences, type ProfileCategory } from '../../api/profiles';
 import { useTranslation } from '../../lib/i18n';
 import { useUiSettings } from '../../hooks/useUiSettings';
 import {
@@ -51,7 +51,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
   // through this hook now. No fetchPreferences/savePreferences in this file.
   const { settings: ui, update: updateUi } = useUiSettings();
 
-  const onPreferencesChanged = useCallback((_ui: UiSettings) => {
+  const onPreferencesChanged = useCallback((_prefs: Preferences) => {
     // Kept for ProfilesTab compatibility. The UiSettingsProvider already
     // reloads + re-applies theme/accent/language on profile switch, so this
     // callback is effectively a no-op -- retained to avoid rewiring the
@@ -359,7 +359,7 @@ type ConfirmKind =
   | { kind: 'resetCategory'; profileId: string; category: ProfileCategory; shared: boolean }
   | { kind: 'shareCategory'; category: ProfileCategory; primaryName: string };
 
-function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfilesResult; onPreferencesChanged: (ui: UiSettings) => void }) {
+function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfilesResult; onPreferencesChanged: (prefs: Preferences) => void }) {
   const { t } = useTranslation();
   const sharing = useProfileSharing(true);
   const [dragId, setDragId] = useState<string | null>(null);

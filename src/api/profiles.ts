@@ -1,6 +1,7 @@
 import { fetchService, postService, putService, deleteService, resolveHttp } from './service';
 import { getToken } from './auth';
 import type { PanelLayout } from '../panel/types';
+import type { OverlayWidgetDto } from './overlay';
 
 export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'theme', 'dashboard'] as const;
 export type ProfileCategory = typeof PROFILE_CATEGORIES[number];
@@ -12,34 +13,77 @@ export interface ProfileEntry {
   updatedAt: string;
 }
 
-export interface UiSettings {
+// Shared between install-defaults and the live profile. Mirror of the C#
+// POCOs in qos-service/src/Persistence/SharedSettings.cs.
+
+export interface ThemeSettings {
   language: string;
   themeMode: string;
   accentColor: string;
-  disableConflictAlerts: boolean;
-  monitoringShowAverage: boolean;
-  monitoringDetailedCollapsed?: string[];
+}
+
+export interface MonitoringSettings {
+  showAverage: boolean;
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
-  // Any consumer that posts partial preferences can omit this; the service's
-  // merge rule preserves the existing saved order in that case.
-  fanChannelOrder?: string[];
-  // Auto-launch the panel kiosk when a recognized device display is connected.
-  panelAutoLaunch?: boolean;
-  // Panel-specific theme defaults. Per-device records override these.
-  panelThemeSyncWithDesktop?: boolean;
-  panelThemeMode?: string;
-  panelAccentSyncWithDesktop?: boolean;
-  panelAccentColor?: string;
-  panelBackgroundColor?: string;
-  panelBackgroundColorLight?: string;
-  panelBackgroundMode?: string;
-  panelBackgroundEffect?: string;
-  panelBackgroundTemplate?: number;
-  panelBackgroundOpacity?: number;
-  panelWidgetOpacity?: number;
-  panelWidgetLabels?: boolean;
+  detailedCollapsed: string[];
+}
+
+export interface PanelSettings {
+  autoLaunch: boolean;
+  themeSyncWithDesktop: boolean;
+  themeMode: string;
+  accentSyncWithDesktop: boolean;
+  accentColor?: string;
+  backgroundColor?: string;
+  backgroundColorLight?: string;
+  backgroundMode: string;
+  backgroundEffect: string;
+  backgroundTemplate: number;
+  backgroundOpacity: number;
+  widgetOpacity: number;
+  widgetLabels: boolean;
+  // Profile-scoped desktop dashboard layout. Absent / null when the SPA's
+  // built-in default seed applies on first load.
   dashboardLayout?: PanelLayout;
+}
+
+export interface OverlaySettings {
+  enabled: boolean;
+  alwaysOnTop: boolean;
+  scale: number;
+  opacity: number;
+  monitor: number;
+  layout: OverlayWidgetDto[];
+}
+
+export interface CoolingPrefs {
+  fanChannelOrder?: string[];
+}
+
+export interface UiPrefs {
+  disableConflictAlerts: boolean;
+}
+
+// Nested preferences shape — same nesting on read (GET /preferences) and
+// write (POST /preferences). Per-domain sub-patches are partial; omitted
+// fields are unchanged.
+export interface Preferences {
+  theme: ThemeSettings;
+  panel: PanelSettings;
+  overlay: OverlaySettings;
+  monitoring: MonitoringSettings;
+  cooling: CoolingPrefs;
+  ui: UiPrefs;
+}
+
+export interface PreferencesPatch {
+  theme?: Partial<ThemeSettings>;
+  panel?: Partial<PanelSettings>;
+  overlay?: Partial<OverlaySettings>;
+  monitoring?: Partial<MonitoringSettings>;
+  cooling?: Partial<CoolingPrefs>;
+  ui?: Partial<UiPrefs>;
 }
 
 interface GetProfilesResponse {
@@ -53,7 +97,7 @@ interface ProfileResponse {
 
 interface SwitchProfileResponse {
   switched: string;
-  ui: UiSettings;
+  prefs: Preferences;
 }
 
 export const fetchProfiles = () =>
@@ -75,10 +119,10 @@ export const saveProfile = (id: string) =>
   postService(`/profiles/${encodeURIComponent(id)}/save`, {});
 
 export const fetchPreferences = () =>
-  fetchService<UiSettings>('/preferences');
+  fetchService<Preferences>('/preferences');
 
-export const savePreferences = (prefs: Partial<UiSettings>) =>
-  postService('/preferences', prefs);
+export const savePreferences = (patch: PreferencesPatch) =>
+  postService('/preferences', patch);
 
 export interface SharingConfig {
   primaryProfileId: string | null;

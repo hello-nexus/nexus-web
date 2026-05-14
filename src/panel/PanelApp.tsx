@@ -2079,7 +2079,7 @@ function usePanelLanguageSync(enabled = true) {
   const syncLanguage = useCallback(() => {
     if (!enabled) return;
     fetchPreferences().then(prefs => {
-      const next = prefs?.language;
+      const next = prefs?.theme?.language;
       if (typeof next !== 'string') return;
       if (!(LANGUAGES as readonly string[]).includes(next)) return;
       if (next === languageRef.current) return;
@@ -2122,21 +2122,23 @@ export function usePanelTheme(enabled = true, persist = true) {
   const fetchTheme = useCallback(() => {
     if (!enabled) return;
     fetchPreferences().then(prefs => {
+      const t = prefs?.theme;
+      const p = prefs?.panel;
       setTheme({
-        appThemeMode: normalizePanelThemeMode(prefs?.themeMode),
-        themeSyncWithDesktop: normalizePanelDesktopSync(prefs?.panelThemeSyncWithDesktop),
-        themeMode: normalizePanelThemeMode(prefs?.panelThemeMode),
-        appAccentColor: prefs?.accentColor || DEFAULT_ACCENT,
-        accentSyncWithDesktop: normalizePanelDesktopSync(prefs?.panelAccentSyncWithDesktop),
-        accentColor: prefs?.panelAccentColor ?? '',
-        backgroundColor: prefs?.panelBackgroundColor ?? '',
-        backgroundColorLight: prefs?.panelBackgroundColorLight ?? '',
-        backgroundMode: normalizePanelBackgroundMode(prefs?.panelBackgroundMode),
-        backgroundEffect: normalizePanelBackgroundEffect(prefs?.panelBackgroundEffect),
-        backgroundTemplate: normalizePanelBackgroundTemplate(prefs?.panelBackgroundTemplate),
-        backgroundOpacity: normalizePanelBackgroundOpacity(prefs?.panelBackgroundOpacity),
-        widgetOpacity: normalizePanelWidgetOpacity(prefs?.panelWidgetOpacity),
-        widgetLabels: normalizePanelWidgetLabels(prefs?.panelWidgetLabels),
+        appThemeMode: normalizePanelThemeMode(t?.themeMode),
+        themeSyncWithDesktop: normalizePanelDesktopSync(p?.themeSyncWithDesktop),
+        themeMode: normalizePanelThemeMode(p?.themeMode),
+        appAccentColor: t?.accentColor || DEFAULT_ACCENT,
+        accentSyncWithDesktop: normalizePanelDesktopSync(p?.accentSyncWithDesktop),
+        accentColor: p?.accentColor ?? '',
+        backgroundColor: p?.backgroundColor ?? '',
+        backgroundColorLight: p?.backgroundColorLight ?? '',
+        backgroundMode: normalizePanelBackgroundMode(p?.backgroundMode),
+        backgroundEffect: normalizePanelBackgroundEffect(p?.backgroundEffect),
+        backgroundTemplate: normalizePanelBackgroundTemplate(p?.backgroundTemplate),
+        backgroundOpacity: normalizePanelBackgroundOpacity(p?.backgroundOpacity),
+        widgetOpacity: normalizePanelWidgetOpacity(p?.widgetOpacity),
+        widgetLabels: normalizePanelWidgetLabels(p?.widgetLabels),
       });
     }).catch(() => { /* keep local theme */ });
   }, [enabled]);
@@ -2160,13 +2162,13 @@ export function usePanelTheme(enabled = true, persist = true) {
 
   const commitThemeSync = useCallback((synced: boolean) => {
     setTheme(prev => ({ ...prev, themeSyncWithDesktop: synced }));
-    persistPatch({ panelThemeSyncWithDesktop: synced });
+    persistPatch({ panel: { themeSyncWithDesktop: synced } });
   }, [persistPatch]);
 
   const commitThemeMode = useCallback((mode: ThemeMode) => {
     const nextMode = normalizePanelThemeMode(mode);
     setTheme(prev => ({ ...prev, themeMode: nextMode }));
-    persistPatch({ panelThemeMode: nextMode });
+    persistPatch({ panel: { themeMode: nextMode } });
   }, [persistPatch]);
 
   const commitAccentSync = useCallback((synced: boolean) => {
@@ -2180,14 +2182,16 @@ export function usePanelTheme(enabled = true, persist = true) {
       accentColor: !synced && !prev.accentColor ? prev.appAccentColor || DEFAULT_ACCENT : prev.accentColor,
     }));
     persistPatch({
-      panelAccentSyncWithDesktop: synced,
-      ...(!synced ? { panelAccentColor: nextAccent || DEFAULT_ACCENT } : {}),
+      panel: {
+        accentSyncWithDesktop: synced,
+        ...(!synced ? { accentColor: nextAccent || DEFAULT_ACCENT } : {}),
+      },
     });
   }, [persistPatch]);
 
   const commitAccent = useCallback((hex: string) => {
     setTheme(prev => ({ ...prev, accentColor: hex }));
-    persistPatch({ panelAccentColor: hex });
+    persistPatch({ panel: { accentColor: hex } });
   }, [persistPatch]);
 
   const commitBackground = useCallback((hex: string) => {
@@ -2196,42 +2200,42 @@ export function usePanelTheme(enabled = true, persist = true) {
     // the same value for both since no counterpart can be derived.
     const { dark, light } = panelBackgroundPair(hex);
     setTheme(prev => ({ ...prev, backgroundColor: dark, backgroundColorLight: light }));
-    persistPatch({ panelBackgroundColor: dark, panelBackgroundColorLight: light });
+    persistPatch({ panel: { backgroundColor: dark, backgroundColorLight: light } });
   }, [persistPatch]);
 
   const commitBackgroundMode = useCallback((mode: PanelBackgroundMode) => {
     setTheme(prev => ({ ...prev, backgroundMode: mode }));
-    persistPatch({ panelBackgroundMode: mode });
+    persistPatch({ panel: { backgroundMode: mode } });
   }, [persistPatch]);
 
   const commitBackgroundEffect = useCallback((effect: string) => {
     const nextEffect = normalizePanelBackgroundEffect(effect);
     setTheme(prev => ({ ...prev, backgroundEffect: nextEffect }));
-    persistPatch({ panelBackgroundEffect: nextEffect });
+    persistPatch({ panel: { backgroundEffect: nextEffect } });
   }, [persistPatch]);
 
   const commitBackgroundTemplate = useCallback((template: number) => {
     const nextTemplate = normalizePanelBackgroundTemplate(template);
     setTheme(prev => ({ ...prev, backgroundTemplate: nextTemplate }));
-    persistPatch({ panelBackgroundTemplate: nextTemplate });
+    persistPatch({ panel: { backgroundTemplate: nextTemplate } });
   }, [persistPatch]);
 
   const commitBackgroundOpacity = useCallback((opacity: number) => {
     const nextOpacity = normalizePanelBackgroundOpacity(opacity);
     setTheme(prev => ({ ...prev, backgroundOpacity: nextOpacity }));
-    persistPatch({ panelBackgroundOpacity: nextOpacity });
+    persistPatch({ panel: { backgroundOpacity: nextOpacity } });
   }, [persistPatch]);
 
   const commitWidgetOpacity = useCallback((opacity: number) => {
     const nextOpacity = normalizePanelWidgetOpacity(opacity);
     setTheme(prev => ({ ...prev, widgetOpacity: nextOpacity }));
-    persistPatch({ panelWidgetOpacity: nextOpacity });
+    persistPatch({ panel: { widgetOpacity: nextOpacity } });
   }, [persistPatch]);
 
   const commitWidgetLabels = useCallback((enabled: boolean) => {
     const next = normalizePanelWidgetLabels(enabled);
     setTheme(prev => ({ ...prev, widgetLabels: next }));
-    persistPatch({ panelWidgetLabels: next });
+    persistPatch({ panel: { widgetLabels: next } });
   }, [persistPatch]);
 
   return {
