@@ -198,6 +198,8 @@
   "cooling.curves.maxReached": "Limit erreicht: max. 10 Kurven. Eine löschen, um weitere hinzuzufügen.",
   "cooling.curves.name": "Name",
   "cooling.curves.removeBtn": "Kurve entfernen",
+  "cooling.curves.resetBtn": "Zurücksetzen",
+  "cooling.curves.resetToDefaults": "Auf Standardwerte zurücksetzen",
   "cooling.curves.title": "Lüfterkurven",
   "cooling.empty": "Keine steuerbaren Lüfter erkannt",
   "cooling.fan.disconnected": "Getrennt",

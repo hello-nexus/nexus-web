@@ -198,6 +198,8 @@
   "cooling.curves.maxReached": "已达上限:最多 10 条曲线。先删除再新增。",
   "cooling.curves.name": "名称",
   "cooling.curves.removeBtn": "删除曲线",
+  "cooling.curves.resetBtn": "重置",
+  "cooling.curves.resetToDefaults": "重置为默认值",
   "cooling.curves.title": "风扇曲线",
   "cooling.empty": "未检测到可控风扇",
   "cooling.fan.disconnected": "未连接",

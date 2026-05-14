@@ -4,6 +4,7 @@ import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
   setFanSpeed, releaseFanAuto, saveCurves, renameFan,
   startCalibration, fetchCalibrations, fetchProfiles, applyProfile,
+  resetPresetCurve,
   type FanChannel, type TemperatureSource,
   type FanCalibration,
 } from '../../api/cooling';
@@ -388,6 +389,15 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
       if (fans?.channels) setChannels(fans.channels);
     }
   }, [curves, sources, fanStates, pushCurves, exitOffToCustomIfNeeded]);
+
+  // Reset a preset curve (silent/balanced/performance) back to defaults via
+  // the service endpoint. Fan attachments are preserved server-side, so the
+  // active preset stays in place; we just refetch to pick up the new template
+  // values.
+  const handleResetPresetCurve = useCallback(async (presetKey: string) => {
+    await resetPresetCurve(presetKey);
+    await refreshCoolingConfig();
+  }, [refreshCoolingConfig]);
 
   const deleteCurve = useCallback(async (id: string) => {
     const next = curves.filter(c => c.id !== id);
@@ -1010,6 +1020,7 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
                         onCollapse={() => setExpandedCurveId(null)}
                         onHover={setHoveredCurveId}
                         onChange={saveCurveAndPush} onDelete={() => deleteCurve(c.id)}
+                        onResetPreset={c.preset ? () => handleResetPresetCurve(c.preset!) : undefined}
                         drag={{
                           isDragging: dragCurveId === c.id,
                           isDragOver: dragOverCurveId === c.id && dragCurveId !== c.id,

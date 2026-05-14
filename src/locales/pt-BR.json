@@ -198,6 +198,8 @@
   "cooling.curves.maxReached": "Limite atingido: máx. 10 curvas. Apague uma para adicionar mais.",
   "cooling.curves.name": "Nome",
   "cooling.curves.removeBtn": "Remover curva",
+  "cooling.curves.resetBtn": "Redefinir",
+  "cooling.curves.resetToDefaults": "Redefinir para padrões",
   "cooling.curves.title": "Curvas de Ventoinha",
   "cooling.empty": "Nenhuma ventoinha controlavel detectada",
   "cooling.fan.disconnected": "Desconectado",

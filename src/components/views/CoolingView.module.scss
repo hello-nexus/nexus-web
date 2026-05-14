@@ -445,7 +445,9 @@
   text-align: right;
   font-family: var(--font-mono);
   font-size: var(--type-small);
-  color: var(--accent);
+  // Body-text color keeps the value legible; the accent-tinted chip behind
+  // it carries the "live readout" emphasis on its own.
+  color: var(--text);
   font-variant-numeric: tabular-nums;
   padding: 0.15rem 0.5rem;
   border-radius: var(--radius-sm);
@@ -504,10 +506,18 @@
   background: var(--accent);
 }
 
-// Remove control sits at the foot of the per-type editor body. Aligned to
-// the left so it stays clear of the centered chevron at the very bottom.
-.curveCardRemoveBtn {
+// Footer row for the per-type editor body. Holds the preset Reset button
+// (when applicable) alongside Remove. Left-aligned so the centered chevron
+// at the card's bottom stays free.
+.curveCardFooterActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   align-self: flex-start;
+}
+
+.curveCardRemoveBtn,
+.curveCardResetBtn {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -519,8 +529,16 @@
   font-size: 0.72rem;
   cursor: pointer;
   transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease, background var(--ease-fast) ease;
-  &:hover { color: var(--bad); border-color: var(--bad); background: rgba(239, 68, 68, 0.08); }
   &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+}
+.curveCardRemoveBtn:hover {
+  color: var(--bad); border-color: var(--bad); background: rgba(239, 68, 68, 0.08);
+}
+.curveCardResetBtn {
+  // Hover lifts to accent rather than .bad — reset is a recover-state op,
+  // not a destructive one.
+  &:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  &:disabled { cursor: default; opacity: 0.45; }
 }
 
 .curveCardDragging { opacity: 0.5; }

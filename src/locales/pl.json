@@ -198,6 +198,8 @@
   "cooling.curves.maxReached": "Osiągnięto limit: maks. 10 krzywych. Usuń jedną, by dodać więcej.",
   "cooling.curves.name": "Nazwa",
   "cooling.curves.removeBtn": "Usun krzywa",
+  "cooling.curves.resetBtn": "Resetuj",
+  "cooling.curves.resetToDefaults": "Przywróć ustawienia domyślne",
   "cooling.curves.title": "Krzywe wentylatorow",
   "cooling.empty": "Nie wykryto sterowalnych wentylatorow",
   "cooling.fan.disconnected": "Rozlaczono",

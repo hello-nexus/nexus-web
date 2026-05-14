@@ -198,6 +198,8 @@
   "cooling.curves.maxReached": "上限に達しました:カーブは最大10。1つ削除してから追加してください。",
   "cooling.curves.name": "名前",
   "cooling.curves.removeBtn": "カーブを削除",
+  "cooling.curves.resetBtn": "リセット",
+  "cooling.curves.resetToDefaults": "デフォルトにリセット",
   "cooling.curves.title": "ファンカーブ",
   "cooling.empty": "制御可能なファンが検出されません",
   "cooling.fan.disconnected": "未接続",

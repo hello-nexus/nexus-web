@@ -1,4 +1,5 @@
 import { Power, Moon, Gauge, Zap, Sliders, type LucideIcon } from 'lucide-react';
+import type { CurveDef, CurvePreset } from '../../../types/cooling';
 
 /**
  * Canonical 5-tab cooling preset set, shared by the desktop CoolingView,
@@ -39,4 +40,27 @@ export function presetIconFor(preset: string | null | undefined): LucideIcon | n
   if (!preset) return null;
   const def = COOLING_PRESETS.find(p => p.key === preset);
   return def?.Icon ?? null;
+}
+
+// Mirror of FanProfiles.PresetDefaults.For on the service. Used only to gate
+// the Reset button; the reset itself is server-driven, so drift here just
+// enables/disables the button incorrectly.
+const PRESET_LINEAR_DEFAULTS: Readonly<Record<CurvePreset, readonly [number, number, number, number, number]>> = {
+  // [responseTime, minTemp, maxTemp, minSpeed, maxSpeed]
+  silent:      [3.0, 45, 85, 20, 70],
+  balanced:    [1.5, 35, 75, 30, 90],
+  performance: [0.5, 30, 65, 50, 100],
+};
+
+/** True when a preset curve is no longer at its default Linear template.
+ *  Float `!==` is safe here because the sliders snap to integer steps (temps,
+ *  speeds) or `Number(v.toFixed(1))` (response time), and the defaults above
+ *  are exactly representable at those steps — no rounding drift to worry about. */
+export function isPresetCurveDirty(curve: CurveDef): boolean {
+  if (!curve.preset) return false;
+  if (curve.type !== 'linear') return true;
+  const [rt, mnT, mxT, mnS, mxS] = PRESET_LINEAR_DEFAULTS[curve.preset];
+  const l = curve.linear;
+  return l.responseTime !== rt || l.minTemp !== mnT || l.maxTemp !== mxT
+      || l.minSpeed !== mnS || l.maxSpeed !== mxS;
 }

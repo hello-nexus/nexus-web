@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Minus, TrendingUp, Activity, Combine, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Minus, TrendingUp, Activity, Combine, Trash2, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import type { CurvePoint, TemperatureSource } from '../../../api/cooling';
 import { useTranslation } from '../../../lib/i18n';
 import type { CurveDef, CurveType, MixFn } from '../../../types/cooling';
@@ -8,7 +8,7 @@ import { HoverTooltip } from '../../HoverTooltip/HoverTooltip';
 import { Slider } from '../../Slider/Slider';
 import { RangeSlider } from '../../Slider/RangeSlider';
 import { Select } from '../../Select/Select';
-import { presetIconFor } from './coolingPresets';
+import { presetIconFor, isPresetCurveDirty } from './coolingPresets';
 import styles from '../CoolingView.module.scss';
 
 const CURVE_TYPES: { key: CurveType; labelKey: string; hintKey: string; icon: ReactNode }[] = [
@@ -280,7 +280,7 @@ export interface CurveCardDrag {
 
 export const CurveCard = memo(function CurveCard({
   curve, allCurves, sources, inUse, expanded, highlighted, outputPercent,
-  onChange, onDelete, onExpand, onCollapse, onHover,
+  onChange, onDelete, onResetPreset, onExpand, onCollapse, onHover,
   nubRef, cardRef: cardRefProp, onWirePointerDown, drag,
 }: {
   curve: CurveDef;
@@ -298,6 +298,10 @@ export const CurveCard = memo(function CurveCard({
   outputPercent?: number;
   onChange: (c: CurveDef) => void;
   onDelete: () => void;
+  /** Reset a preset curve (silent/balanced/performance) back to its default
+   *  type + linear params. Only rendered when curve.preset is set; gated by
+   *  isPresetCurveDirty so the button is disabled when already at defaults. */
+  onResetPreset?: () => void;
   /** Click on the card body requests expand. Card body clicks never collapse;
    *  collapse is only via the chevron button or by selecting another curve. */
   onExpand: () => void;
@@ -496,16 +500,23 @@ export const CurveCard = memo(function CurveCard({
           </>
         )}
 
-        <button
-          type="button"
-          className={styles.curveCardRemoveBtn}
-          onClick={e => { e.stopPropagation(); onDelete(); }}
-          aria-label={t('cooling.curves.delete')}
-          title={t('cooling.curves.delete')}
-        >
-          <Trash2 size={12} aria-hidden />
-          <span>{t('cooling.curves.removeBtn')}</span>
-        </button>
+        <div className={styles.curveCardFooterActions}>
+          {isPreset && onResetPreset && (
+            <button type="button" className={styles.curveCardResetBtn}
+              onClick={e => { e.stopPropagation(); onResetPreset(); }}
+              disabled={!isPresetCurveDirty(curve)}
+              title={t('cooling.curves.resetToDefaults')}>
+              <RotateCcw size={12} aria-hidden />
+              <span>{t('cooling.curves.resetBtn')}</span>
+            </button>
+          )}
+          <button type="button" className={styles.curveCardRemoveBtn}
+            onClick={e => { e.stopPropagation(); onDelete(); }}
+            title={t('cooling.curves.delete')}>
+            <Trash2 size={12} aria-hidden />
+            <span>{t('cooling.curves.removeBtn')}</span>
+          </button>
+        </div>
       </div>
       )}
 

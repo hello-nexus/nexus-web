@@ -139,6 +139,9 @@ export const releaseFanAuto = (id: string) =>
 export const applyProfile = (name: string) =>
   postService(`/cooling/profile/${encodeURIComponent(name)}`, {});
 
+export const resetPresetCurve = (name: string) =>
+  postService(`/cooling/profile/${encodeURIComponent(name)}/reset`, {});
+
 export const renameFan = (id: string, name: string) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/name`, { name });
 

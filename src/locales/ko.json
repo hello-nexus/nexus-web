@@ -198,6 +198,8 @@
   "cooling.curves.maxReached": "한도 도달: 최대 10개 커브. 추가하려면 하나 삭제하세요.",
   "cooling.curves.name": "이름",
   "cooling.curves.removeBtn": "곡선 제거",
+  "cooling.curves.resetBtn": "재설정",
+  "cooling.curves.resetToDefaults": "기본값으로 재설정",
   "cooling.curves.title": "팬 커브",
   "cooling.empty": "제어 가능한 팬이 감지되지 않음",
   "cooling.fan.disconnected": "연결 안됨",

@@ -198,6 +198,8 @@
   "cooling.curves.maxReached": "Limite raggiunto: max 10 curve. Eliminane una per aggiungerne altre.",
   "cooling.curves.name": "Nome",
   "cooling.curves.removeBtn": "Rimuovi curva",
+  "cooling.curves.resetBtn": "Reimposta",
+  "cooling.curves.resetToDefaults": "Reimposta ai valori predefiniti",
   "cooling.curves.title": "Curve ventole",
   "cooling.empty": "Nessuna ventola controllabile rilevata",
   "cooling.fan.disconnected": "Disconnesso",
