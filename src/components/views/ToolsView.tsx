@@ -21,6 +21,7 @@ import {
 } from '../../lib/panelSimulation';
 import { FontDebugCard } from './FontDebugCard';
 import { fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
+import { DevicePopup } from '../DevicePopup/DevicePopup';
 import styles from './ToolsView.module.scss';
 
 interface ToolsViewProps {
@@ -135,83 +136,134 @@ function PawnIoCard() {
   );
 }
 
-// Per-section copy buttons for the live install-defaults snapshot. Click a
-// row's Copy and the matching key + value lands on the clipboard in the same
-// shape used by qos-service/data/install-defaults.json — paste over the
-// matching block in that file to make the current values the new defaults.
+// Install-defaults export. The card holds an Open button; the popup shows
+// every section's current JSON inline with its own Copy button. Each Copy
+// puts the matching `"key": <value>` fragment on the clipboard so the user
+// can find-and-replace the corresponding block in
+// qos-service/data/install-defaults.json.
+//
+// "dashboard" is a virtual row that maps to panel.layouts.desktop (the
+// install-defaults file nests it; users think of it as its own thing).
 function InstallDefaultsCard() {
-  const [snapshot, setSnapshot] = useState<InstallDefaultsDocument | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchInstallDefaultsSnapshot()
-      .then(d => { if (!cancelled) setSnapshot(d); })
-      .catch(() => { /* card stays disabled */ });
-    return () => { cancelled = true; };
-  }, []);
-
-  const copy = (key: string, value: unknown) => {
-    // Wrap the value with its key so the user can find-and-replace the
-    // matching block in install-defaults.json in one paste action.
-    const body = JSON.stringify({ [key]: value }, null, 2);
-    // Strip the outer braces so what lands on the clipboard is just the
-    // `"key": <value>` fragment — pastes cleanly inside an existing object.
-    const trimmed = body.replace(/^\{\n/, '').replace(/\n\}$/, '').replace(/^  /gm, '');
-    void navigator.clipboard.writeText(trimmed);
-    setCopied(key);
-    window.setTimeout(() => setCopied(prev => prev === key ? null : prev), 1200);
-  };
-
-  const copyAll = () => {
-    if (!snapshot) return;
-    void navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2));
-    setCopied('__all__');
-    window.setTimeout(() => setCopied(prev => prev === '__all__' ? null : prev), 1200);
-  };
-
-  const sections: { key: keyof InstallDefaultsDocument; label: string }[] = [
-    { key: 'theme',      label: 'theme' },
-    { key: 'monitoring', label: 'monitoring' },
-    { key: 'panel',      label: 'panel' },
-    { key: 'overlay',    label: 'overlay' },
-    { key: 'lighting',   label: 'lighting' },
-    { key: 'y70',        label: 'y70' },
-    { key: 'keeb',       label: 'keeb' },
-    { key: 'cooling',    label: 'cooling' },
-    { key: 'obs',        label: 'obs' },
-    { key: 'screenTime', label: 'screenTime' },
-    { key: 'cnvs',       label: 'cnvs' },
-    { key: 'auth',       label: 'auth' },
-  ];
+  const [open, setOpen] = useState(false);
 
   return (
     <Card title="Install defaults" className={styles.wide}>
       <span className={styles.dim}>
-        Copy a section's current values, then paste over the matching block in
-        <code> qos-service/data/install-defaults.json</code> to make them the new defaults.
+        Open the snapshot, copy any section's current values, and paste over the matching
+        block in <code>qos-service/data/install-defaults.json</code> to make them the new defaults.
       </span>
-      <div className={styles.installDefaultsRow}>
-        <Button tone="accent" size="sm" disabled={!snapshot} onClick={copyAll}>
-          {copied === '__all__' ? 'Copied!' : 'Copy entire snapshot'}
-        </Button>
-      </div>
-      <div className={styles.installDefaultsList}>
-        {sections.map(s => (
-          <div key={s.key} className={styles.installDefaultsItem}>
-            <code className={styles.installDefaultsKey}>{s.label}</code>
-            <button
-              type="button"
-              className={styles.installDefaultsCopy}
-              disabled={!snapshot}
-              onClick={() => snapshot && copy(s.key, snapshot[s.key])}
-            >
-              {copied === s.key ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
-        ))}
-      </div>
+      <Button tone="accent" size="sm" onClick={() => setOpen(true)}>Open snapshot</Button>
+      <InstallDefaultsPopup open={open} onClose={() => setOpen(false)} />
     </Card>
+  );
+}
+
+interface SectionDef {
+  key: string;
+  /** Key as it appears in install-defaults.json — what goes on the clipboard
+   *  alongside the value. May differ from `key` for virtual rows like
+   *  "dashboard" → "desktop". */
+  jsonKey: string;
+  /** Resolves the current snapshot value for this section. */
+  pick: (s: InstallDefaultsDocument) => unknown;
+  /** Optional path hint shown under the label so the user knows where to
+   *  paste (e.g. dashboard lives under panel.layouts). */
+  path?: string;
+}
+
+const SECTIONS: SectionDef[] = [
+  { key: 'theme',         jsonKey: 'theme',         pick: s => s.theme },
+  { key: 'monitoring',    jsonKey: 'monitoring',    pick: s => s.monitoring },
+  { key: 'panel',         jsonKey: 'panel',         pick: s => s.panel },
+  { key: 'dashboard',     jsonKey: 'desktop',       pick: s => s.panel.layouts.desktop, path: 'panel.layouts.desktop' },
+  { key: 'panel-y70',     jsonKey: 'y70',           pick: s => s.panel.layouts.y70,     path: 'panel.layouts.y70' },
+  { key: 'panel-phone',   jsonKey: 'phone',         pick: s => s.panel.layouts.phone,   path: 'panel.layouts.phone' },
+  { key: 'panel-q60',     jsonKey: 'q60',           pick: s => s.panel.layouts.q60,     path: 'panel.layouts.q60' },
+  { key: 'overlay',       jsonKey: 'overlay',       pick: s => s.overlay },
+  { key: 'lighting',      jsonKey: 'lighting',      pick: s => s.lighting },
+  { key: 'y70',           jsonKey: 'y70',           pick: s => s.y70 },
+  { key: 'keeb',          jsonKey: 'keeb',          pick: s => s.keeb },
+  { key: 'cooling',       jsonKey: 'cooling',       pick: s => s.cooling },
+  { key: 'obs',           jsonKey: 'obs',           pick: s => s.obs },
+  { key: 'screenTime',    jsonKey: 'screenTime',    pick: s => s.screenTime },
+  { key: 'cnvs',          jsonKey: 'cnvs',          pick: s => s.cnvs },
+  { key: 'auth',          jsonKey: 'auth',          pick: s => s.auth },
+];
+
+function InstallDefaultsPopup({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [snapshot, setSnapshot] = useState<InstallDefaultsDocument | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetchInstallDefaultsSnapshot()
+      .then(d => { if (!cancelled) setSnapshot(d); })
+      .catch(() => { /* popup stays empty */ });
+    return () => { cancelled = true; };
+  }, [open]);
+
+  const formatFragment = (jsonKey: string, value: unknown) => {
+    // Build "key": <pretty-value> as a paste-ready snippet. Strip the outer
+    // wrapper braces + outer indent so the fragment slots into an existing
+    // object literal without extra punctuation.
+    const wrapped = JSON.stringify({ [jsonKey]: value }, null, 2);
+    return wrapped.replace(/^\{\n/, '').replace(/\n\}$/, '').replace(/^  /gm, '');
+  };
+
+  const formatBody = (value: unknown) => JSON.stringify(value, null, 2);
+
+  const copy = (id: string, text: string) => {
+    void navigator.clipboard.writeText(text);
+    setCopied(id);
+    window.setTimeout(() => setCopied(prev => prev === id ? null : prev), 1200);
+  };
+
+  const allText = snapshot ? JSON.stringify(snapshot, null, 2) : '';
+
+  return (
+    <DevicePopup open={open} onClose={onClose} large title="Install defaults">
+      <div className={styles.installDefaultsPopup}>
+        <p className={styles.dim}>
+          Copy any section's current values; paste over the matching block in
+          <code> qos-service/data/install-defaults.json</code> to make them the new defaults.
+        </p>
+        <div className={styles.installDefaultsTopBar}>
+          <Button tone="accent" size="sm" disabled={!snapshot} onClick={() => copy('__all__', allText)}>
+            {copied === '__all__' ? 'Copied!' : 'Copy entire snapshot'}
+          </Button>
+        </div>
+        {!snapshot ? (
+          <p className={styles.dim}>Loading…</p>
+        ) : (
+          <div className={styles.installDefaultsSections}>
+            {SECTIONS.map(s => {
+              const value = s.pick(snapshot);
+              const fragment = formatFragment(s.jsonKey, value);
+              return (
+                <section key={s.key} className={styles.installDefaultsSection}>
+                  <div className={styles.installDefaultsSectionHeader}>
+                    <div className={styles.installDefaultsSectionLabel}>
+                      <code className={styles.installDefaultsKey}>{s.key}</code>
+                      {s.path && <span className={styles.installDefaultsPath}>{s.path}</span>}
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.installDefaultsCopy}
+                      onClick={() => copy(s.key, fragment)}
+                    >
+                      {copied === s.key ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <pre className={styles.installDefaultsJson}>{formatBody(value)}</pre>
+                </section>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </DevicePopup>
   );
 }
 
