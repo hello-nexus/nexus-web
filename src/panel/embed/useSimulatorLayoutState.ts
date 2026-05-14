@@ -38,7 +38,10 @@ const SIMULATOR_FALLBACK_LAYOUT: PanelLayout = {
 function postToParent(message: SimulatorChildToParent) {
   if (typeof window === 'undefined') return;
   if (window.parent === window) return;
-  window.parent.postMessage(message, '*');
+  // Parent is always same-origin (the simulator iframe is loaded from
+  // the same dev/service host that hosts the parent dashboard), so pin
+  // the target to window.location.origin instead of '*'.
+  window.parent.postMessage(message, window.location.origin);
 }
 
 export function useSimulatorLayoutState(): SimulatorRuntimeState {
@@ -55,6 +58,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       const data = event.data;
       if (!isSimulatorMessage(data)) return;
       switch (data.type) {

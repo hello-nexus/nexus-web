@@ -36,6 +36,12 @@ export const MultiplexContext = createContext<MultiplexContextValue | null>(null
 const RECONNECT_MIN_MS = 5000;
 const RECONNECT_MAX_MS = 60000;
 const REMOTE_DISABLED_POLL_MS = 5000;
+// Hard ceiling on a single multiplex frame. The largest legitimate topic
+// today is the 1Hz monitoring composite, which clocks in well under 512KB
+// even with topN process + network lists at their cap. Anything bigger is
+// either a server bug or a malformed frame — drop it before parse to
+// avoid a JSON.parse blowout on a long-lived socket.
+const MAX_FRAME_BYTES = 1024 * 1024;
 
 export function useMultiplex(): MultiplexContextValue | null {
   return useContext(MultiplexContext);
@@ -211,7 +217,10 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
       ws.onmessage = (e) => {
         try {
-          const msg = JSON.parse(e.data) as { t: string; d: unknown };
+          if (typeof e.data !== 'string' || e.data.length > MAX_FRAME_BYTES) return;
+          const parsed = JSON.parse(e.data);
+          if (!parsed || typeof parsed !== 'object' || typeof parsed.t !== 'string') return;
+          const msg = parsed as { t: string; d: unknown };
           lastFrameCache.set(msg.t, msg.d);
           const entry = topicsRef.current.get(msg.t);
           if (entry) {

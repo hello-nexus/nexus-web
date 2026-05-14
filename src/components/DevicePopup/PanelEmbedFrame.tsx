@@ -97,7 +97,10 @@ export function PanelEmbedFrame({
   const post = useCallback((message: SimulatorParentToChild) => {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
-    win.postMessage(message, '*');
+    // Iframe is always same-origin (served from the same Vite/service
+    // host as the parent), so pin the target to window.location.origin
+    // instead of '*' — defence-in-depth if the runtime ever cross-mounts.
+    win.postMessage(message, window.location.origin);
   }, []);
 
   // 'simulator/ready' is the handshake signal from the child. Until it
@@ -105,6 +108,7 @@ export function PanelEmbedFrame({
   // not be wired yet on a brand-new iframe).
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       if (event.source !== iframeRef.current?.contentWindow) return;
       const data = event.data;
       if (!isSimulatorMessage(data)) return;
