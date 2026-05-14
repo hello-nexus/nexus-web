@@ -45,10 +45,9 @@ export function Sidebar({
       )}
       {!compact && <div className={styles.sectionLabel}>{sectionLabel}</div>}
       {items.map((item) => {
-        // Dot lights up while any fan is software-controlled (curve or bias).
-        // BIOS-only means the user has not taken manual control of anything,
-        // so the indicator stays dark. Curve + bias together is the
-        // "cooling is doing something" signal.
+        // Dot lights up while any fan is software-controlled (curve or
+        // manual). BIOS-only means the user has not taken manual control of
+        // anything, so the indicator stays dark.
         const coolActive = item.key === 'cooling'
           && ((serviceState.cooling?.activeCurveFanCount ?? 0) + (serviceState.cooling?.manualFans ?? 0)) > 0;
         const coolCalibrating = item.key === 'cooling' && serviceState.cooling?.calibrating;

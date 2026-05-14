@@ -3,10 +3,8 @@ import styles from './Editable.module.scss';
 
 /*
  * Click-to-edit number. Pairs with a slider in the Slider primitive so the
- * user can either drag for coarse changes or type for precise ones. The
- * commit signature exposes a `committed=true` flag to the parent so
- * downstream code can persist the typed value in one shot (no separate
- * onCommit fire needed - state and persist happen together).
+ * user can either drag for coarse changes or type for precise ones. Fires
+ * onCommit once with the typed value on Enter / blur.
  */
 export interface EditableNumberProps {
   value: number;

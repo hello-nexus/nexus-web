@@ -4,7 +4,7 @@
 // render without ever fetching from /panel/devices/*. User edits inside
 // the iframe are echoed back to the parent via 'simulator/layout-changed'.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { PanelLayout, PanelSurface } from '../types';
 import {
   isSimulatorMessage,
@@ -51,10 +51,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [theme, setTheme] = useState<SimulatorTheme | null>(null);
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
-  // Track the last layout we received from the parent so an inbound
-  // 'simulator/set-layout' carrying a layout we just echoed back doesn't
-  // trigger a redundant local state update.
-  const lastReceivedLayoutRef = useRef<PanelLayout | null>(null);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -65,7 +61,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         case 'simulator/init': {
           setSurface(data.surface);
           setLayoutLocal(data.layout);
-          lastReceivedLayoutRef.current = data.layout;
           setTheme(data.theme);
           setThemeMode(data.themeMode);
           setSelectedWidgetId(data.selectedWidgetId);
@@ -73,7 +68,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           break;
         }
         case 'simulator/set-layout': {
-          lastReceivedLayoutRef.current = data.layout;
           setLayoutLocal(data.layout);
           break;
         }

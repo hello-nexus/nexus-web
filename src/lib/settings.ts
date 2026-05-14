@@ -45,8 +45,9 @@ export const THEME_MODES = ['system', 'dark', 'light'] as const;
 export type ThemeMode = (typeof THEME_MODES)[number];
 
 // Accent color — user-selectable in Settings. Hex #rrggbb.
-// All other accent tokens (glow, deep, soft, glow-shadow) are derived from
-// this single value per-theme in applyAccentColor().
+// All other accent tokens (glow, deep, soft, glow-shadow, plus the
+// matching --accent-text variants) are derived from this single value
+// per-theme in applyAccentColor().
 export const DEFAULT_ACCENT = '#8b5cf6';
 
 // Preset swatch grid shown in the settings picker. Two rows of ten span ten

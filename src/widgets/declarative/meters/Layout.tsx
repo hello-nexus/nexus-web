@@ -157,17 +157,6 @@ export function Switch({ view, ctx }: MeterProps) {
 }
 
 /**
- * Iterate an array (from data, settings, or a literal) and render the
- * `template` view for each entry. Within the template, `{item.x}` resolves
- * against the current array element and `{index}` is the 0-based index.
- *
- * Manifest shape:
- *   { type: "repeat", in: "{data.weather.hourly}", limit: 6, gap: 6,
- *     direction: "horizontal" | "vertical",
- *     template: { type: "vstack", children: [...] },
- *     empty: { type: "text", text: "no data" } }
- */
-/**
  * Fixed-dimension slot. Useful for grid-style row layouts (day | icon | bar)
  * where each column needs a hard width to align cleanly across rows.
  * Renders its `child` (or `children`) inside a flex container that doesn't
@@ -195,6 +184,17 @@ export function Box({ view, ctx }: MeterProps) {
   );
 }
 
+/**
+ * Iterate an array (from data, settings, or a literal) and render the
+ * `template` view for each entry. Within the template, `{item.x}` resolves
+ * against the current array element and `{index}` is the 0-based index.
+ *
+ * Manifest shape:
+ *   { type: "repeat", in: "{data.weather.hourly}", limit: 6, gap: 6,
+ *     direction: "horizontal" | "vertical",
+ *     template: { type: "vstack", children: [...] },
+ *     empty: { type: "text", text: "no data" } }
+ */
 export function Repeat({ view, ctx }: MeterProps) {
   const source = bind(view.in, ctx);
   const items = Array.isArray(source) ? source : [];

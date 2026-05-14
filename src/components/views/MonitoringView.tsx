@@ -79,7 +79,6 @@ export function MonitoringView({ serviceOnline, connectionState, tab: urlTab, on
       case 'network': return <NetworkTab network={network} showAverage={showAverage} onToggle={toggleMode} />;
       case 'screentime': return <ScreenTimeBrowse key={browseRefresh} onManageData={() => setDataControlOpen(true)} />;
       case 'detailed': return <DetailedTab sensors={sensors} />;
-      // case fallthrough satisfies the exhaustive check on MonitoringTab.
     }
   };
 

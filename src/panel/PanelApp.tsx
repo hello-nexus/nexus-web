@@ -773,17 +773,6 @@ export function PanelContent({
   // widget's translated rect happens to be over there.
   const activePageIndexRef = useRef(activePageIndex);
   useEffect(() => { activePageIndexRef.current = activePageIndex; }, [activePageIndex]);
-  // Two-stage drag state:
-  //   dragArmedId: set the moment dnd-kit's delay activation completes
-  //                (the long-press has matured into a "ready to drag"
-  //                gesture). Used to disable competing gestures
-  //                (tray-swipe, page-swipe) immediately so a vertical
-  //                or horizontal move doesn't trigger them in the
-  //                window between activation and the first dragMove.
-  //   activeDragId: set the moment the user actually starts moving
-  //                 the finger past activation. Drives the visual
-  //                 overlay clone + the source-cell hide. Until the
-  //                 finger moves, no lift effect appears.
   // Frozen snapshot of the dragged cell's pixel size + the panel's
   // runtime CSS vars at drag start. Captured ONCE in onDragStart and
   // reused every overlay render so the floating clone never re-measures

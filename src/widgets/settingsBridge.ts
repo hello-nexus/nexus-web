@@ -1,6 +1,6 @@
 // Host-side settings facade for the widget bridge. Talks to
 // `/widgets-api/installed/{id}/settings` and broadcasts changes to
-// subscribers (the iframe bridge + the in-host settings form).
+// subscribers (the Tier 2 worker host and the in-host settings form).
 
 import { fetchService, resolveHttp } from '../api/service';
 import { getToken, handleUnauthorized } from '../api/auth';
@@ -19,8 +19,9 @@ export type WidgetSettingsListener = (values: Record<string, unknown>) => void;
 
 /**
  * Lazy-loaded, cached settings document with a subscriber list. One instance
- * per widget surfaced by the dashboard. Both the iframe bridge (read +
- * propagate) and the host React settings form (read + patch) talk to this.
+ * per widget surfaced by the dashboard. The Tier 2 worker host (read via
+ * `qos.settings.get()`) and the in-host React settings form (read + patch)
+ * both talk to this.
  */
 export class WidgetSettingsBridge {
   private readonly widgetId: string;

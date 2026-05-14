@@ -19,7 +19,7 @@ import { useTranslation } from '../lib/i18n';
  *
  * Rules enforced here:
  *   - `clientScoped` fields (startOnLogin) live in localStorage only.
- *   - `profileScoped` fields (language, theme, accent, polling, monitoring,
+ *   - `profileScoped` fields (language, theme, accent, monitoring,
  *     fanChannelOrder, etc.) live on the server per-profile. localStorage is
  *     strictly a boot-time cache so the first render is not blank; every
  *     write path pushes to the server too.

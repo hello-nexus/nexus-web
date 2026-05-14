@@ -52,9 +52,6 @@ import { SteamSettings } from './settings/SteamSettings';
 import { DiscordSettings } from './settings/DiscordSettings';
 
 // Single source of truth for widget type -> metadata + component.
-// Phase 2: all v1 widgets have real components. PlaceholderWidget stays
-// around for Phase 3 use when a user adds a new widget before it has been
-// wired up.
 export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
   clock: {
     meta: {

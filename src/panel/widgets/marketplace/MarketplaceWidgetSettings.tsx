@@ -48,8 +48,8 @@ const DEBOUNCE_MS = 200;
  * setting types.
  *
  * Storage is via `WidgetSettingsBridge` (qos-service settings doc), NOT
- * `widget.config` - the iframe reads values via `qos.settings.get()`, and
- * the bridge's `qos.settings.changed` notification re-runs the widget.
+ * `widget.config` - the Tier 2 worker reads values via `qos.settings.get()`,
+ * and the bridge's `qos.settings.changed` notification re-runs the widget.
  */
 export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
   const id = marketplaceIdFromType(widget.type) ?? '';

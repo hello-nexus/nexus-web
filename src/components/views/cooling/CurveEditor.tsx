@@ -266,7 +266,7 @@ function MixControls({ curve, allCurves, sources, onChange }: {
   );
 }
 
-// ── Curve Card (always open, not collapsible) ──────────────────────────────
+// ── Curve Card (collapsible) ───────────────────────────────────────────────
 
 export interface CurveCardDrag {
   isDragging: boolean;
