@@ -30,18 +30,20 @@ if (
     location.hostname === 'localhost' ||
     location.hostname.endsWith('.localhost'))
 ) {
-  window.addEventListener('load', () => {
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    });
+  // Attach controllerchange exactly once. The previous shape registered it
+  // inside the `load` callback, so an HMR re-eval (or any second module-init
+  // path) would stack a second listener and reload twice on every SW update.
+  // `{ once: true }` auto-removes after firing, so no manual `refreshing` guard
+  // is needed.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  }, { once: true });
 
+  window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((registration) => {
       registration.update().catch(() => { /* best-effort */ });
     }).catch((err) => {
       console.warn('[qos-web] service worker registration failed:', err);
     });
-  });
+  }, { once: true });
 }

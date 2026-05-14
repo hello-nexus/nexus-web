@@ -23,6 +23,12 @@ export function useShaderRenderer(
   const programRef = useRef<WebGLProgram | null>(null);
   const vaoRef = useRef<WebGLVertexArrayObject | null>(null);
   const rafRef = useRef(0);
+  // Bumped on every effect re-run. The RAF callback captures the epoch at
+  // schedule time; if the effect re-runs while a frame is in flight, the
+  // outgoing callback sees epoch !== epochRef.current and bails before
+  // re-queueing, so we never end up with two render loops running
+  // concurrently against the same GL context.
+  const epochRef = useRef(0);
   const uniformsRef = useRef<Record<string, WebGLUniformLocation | null>>({});
   const compiledRef = useRef<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -75,8 +81,14 @@ export function useShaderRenderer(
     setLoading(true);
     setError(null);
     cancelAnimationFrame(rafRef.current);
+    const myEpoch = ++epochRef.current;
 
     fetchShaderSource(effect).then(src => {
+      // If the effect changed (or the parent unmounted GL) while the fetch was
+      // in flight, abandon this resolution entirely. Otherwise the post-fetch
+      // block would compile a stale shader, overwrite programRef with it, and
+      // poison the next live RAF tick.
+      if (epochRef.current !== myEpoch) return;
       if (!src) { setError('Failed to fetch shader'); setLoading(false); return; }
       if (programRef.current) { gl.deleteProgram(programRef.current); programRef.current = null; }
 
@@ -124,6 +136,7 @@ export function useShaderRenderer(
       let firstFrame = true;
 
       const render = () => {
+        if (epochRef.current !== myEpoch) return;
         if (!glRef.current || !programRef.current) return;
         const g = glRef.current;
         const c = canvasRef.current!;

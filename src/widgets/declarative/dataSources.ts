@@ -223,7 +223,17 @@ export function useDataSources({
       // monitors) — a sub-second cadence is real CPU draw for no UX win.
       const safeMs = Math.max(5_000, intervalMs);
       let cancelled = false;
+      // One AbortController per tick. The new tick aborts the previous tick's
+      // in-flight request before spinning up its own — otherwise a host action
+      // slower than the 5s cadence (e.g. screentime walking the full session
+      // log) would leak past, resolve later, and call setHostState on a stale
+      // capabilities snapshot. Cleanup aborts whatever's current.
+      let currentAbort: AbortController | null = null;
       const tick = async () => {
+        if (cancelled) return;
+        currentAbort?.abort();
+        currentAbort = new AbortController();
+        const signal = currentAbort.signal;
         try {
           const body = JSON.stringify({
             widgetId, action: source.host!.action, args: source.host!.args ?? {},
@@ -232,26 +242,32 @@ export function useDataSources({
           const headers: Record<string, string> = { 'Content-Type': 'application/json' };
           if (token) headers.Authorization = `Bearer ${token}`;
           let res = await fetch(resolveHttp('/widgets-api/dispatch'), {
-            method: 'POST', headers, body,
+            method: 'POST', headers, body, signal,
           });
           if (res.status === 401) {
             const refreshed = await handleUnauthorized();
-            if (refreshed) {
+            if (refreshed && !signal.aborted) {
               headers.Authorization = `Bearer ${refreshed}`;
-              res = await fetch(resolveHttp('/widgets-api/dispatch'), { method: 'POST', headers, body });
+              res = await fetch(resolveHttp('/widgets-api/dispatch'), { method: 'POST', headers, body, signal });
             }
           }
-          if (!res.ok || cancelled) return;
+          if (!res.ok || cancelled || signal.aborted) return;
           const payload = await res.json() as { ok?: boolean; result?: unknown };
-          if (!payload.ok) return;
+          if (!payload.ok || signal.aborted) return;
           setHostState((prev) => ({ ...prev, [key]: payload.result as Record<string, unknown> | null }));
-        } catch {
-          /* swallow — keep the previous value */
+        } catch (err) {
+          // AbortError is expected on cleanup; everything else is swallowed
+          // (the renderer keeps showing the previous value).
+          if ((err as Error)?.name !== 'AbortError') { /* swallow */ }
         }
       };
       void tick();
       const handle = setInterval(tick, safeMs);
-      stops.push(() => { cancelled = true; clearInterval(handle); });
+      stops.push(() => {
+        cancelled = true;
+        clearInterval(handle);
+        currentAbort?.abort();
+      });
     }
     return () => { for (const s of stops) s(); };
   }, [widgetId, JSON.stringify(sources)]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -269,7 +285,12 @@ export function useDataSources({
       const safeMs = Math.max(minMs, intervalMs);
 
       let cancelled = false;
+      let currentAbort: AbortController | null = null;
       const tick = async () => {
+        if (cancelled) return;
+        currentAbort?.abort();
+        currentAbort = new AbortController();
+        const signal = currentAbort.signal;
         try {
           const body = {
             widgetId,
@@ -283,20 +304,20 @@ export function useDataSources({
           const headers: Record<string, string> = { 'Content-Type': 'application/json' };
           if (token) headers.Authorization = `Bearer ${token}`;
           let res = await fetch(resolveHttp('/widgets-api/proxy'), {
-            method: 'POST', headers, body: JSON.stringify(body),
+            method: 'POST', headers, body: JSON.stringify(body), signal,
           });
           if (res.status === 401) {
             const next = await handleUnauthorized();
-            if (next) {
+            if (next && !signal.aborted) {
               headers.Authorization = `Bearer ${next}`;
               res = await fetch(resolveHttp('/widgets-api/proxy'), {
-                method: 'POST', headers, body: JSON.stringify(body),
+                method: 'POST', headers, body: JSON.stringify(body), signal,
               });
             }
           }
-          if (!res.ok) return;
+          if (!res.ok || signal.aborted) return;
           const payload = await res.json() as { body?: unknown };
-          if (cancelled) return;
+          if (cancelled || signal.aborted) return;
           // Apply JSONPath extractors.
           const extracted: Record<string, unknown> = { _raw: payload.body };
           if (source.extract) {
@@ -305,15 +326,18 @@ export function useDataSources({
             }
           }
           setFetchState((prev) => ({ ...prev, [key]: extracted }));
-        } catch {
-          // Network errors are best-effort; the renderer will see the
-          // previous value (or null) until the next tick.
+        } catch (err) {
+          if ((err as Error)?.name !== 'AbortError') { /* swallow */ }
         }
       };
       // Fire immediately + on cadence.
       void tick();
       const handle = setInterval(tick, safeMs);
-      stops.push(() => { cancelled = true; clearInterval(handle); });
+      stops.push(() => {
+        cancelled = true;
+        clearInterval(handle);
+        currentAbort?.abort();
+      });
     }
     return () => { for (const s of stops) s(); };
   }, [widgetId, JSON.stringify(sources), JSON.stringify(capabilities?.['net.fetch'] ?? [])]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -30,16 +30,25 @@ function colorFor(name: string): string {
 export { SERIES_COLORS, OTHER_COLOR, colorFor };
 
 // ── Process history ──────────────────────────────────────────────────────
+//
+// `idleStreak` counts consecutive frames where this entry pushed a zero.
+// We can't infer "how long ago did this process exit?" from `values` alone —
+// the array is trimmed to MAX_SAMPLES, so a 60-sample tail of zeros could
+// mean "exited 1 minute ago" or "exited 10 minutes ago." The counter lets
+// evictStaleHistEntries drop entries that have been idle long enough without
+// needing to widen the sample window.
 
-const cpuHist = new Map<string, { color: string; values: number[] }>();
-const memHist = new Map<string, { color: string; values: number[] }>();
+interface HistEntry { color: string; values: number[]; idleStreak: number }
+
+const cpuHist = new Map<string, HistEntry>();
+const memHist = new Map<string, HistEntry>();
 let otherCpuHist: number[] = [];
 let otherMemHist: number[] = [];
 let systemMemMb = 0;
 
 // ── Network history ──────────────────────────────────────────────────────
 
-const netHist = new Map<string, { color: string; values: number[] }>();
+const netHist = new Map<string, HistEntry>();
 
 // ── Overview sparklines ──────────────────────────────────────────────────
 
@@ -74,7 +83,10 @@ export function pushPanelSensorSample(key: string, value: number) {
     ? prev.slice(prev.length - MAX_SAMPLES + 1).concat(value)
     : [...prev, value];
   panelSensorHist.set(key, next);
-  notify();
+  // Wake only consumers of this specific key. Cross-slot pushes (e.g. CPU
+  // tile pushing while GPU tile is mounted) no longer wake every panel
+  // sensor consumer in the tree.
+  notifyKey(key);
 }
 
 export function getPanelSensorHist(key: string): readonly number[] {
@@ -114,11 +126,45 @@ function notify() {
 export function subscribe(fn: () => void) { listeners.add(fn); }
 export function unsubscribe(fn: () => void) { listeners.delete(fn); }
 
+// Per-key wake for panel sensor history consumers (one Set per `${device}::${sensorName}` key).
+// A push for "cpu::CPU Total" wakes only that key's listeners, not every panel widget.
+const keyListeners = new Map<string, Set<() => void>>();
+
+function notifyKey(key: string) {
+  const set = keyListeners.get(key);
+  if (!set) return;
+  for (const fn of set) fn();
+}
+
+export function subscribePanelSensorKey(key: string, fn: () => void) {
+  let set = keyListeners.get(key);
+  if (!set) { set = new Set(); keyListeners.set(key, set); }
+  set.add(fn);
+}
+
+export function unsubscribePanelSensorKey(key: string, fn: () => void) {
+  const set = keyListeners.get(key);
+  if (!set) return;
+  set.delete(fn);
+  if (set.size === 0) keyListeners.delete(key);
+}
+
 // ── Ingest ───────────────────────────────────────────────────────────────
 
 export function setSystemMemMb(mb: number) { systemMemMb = mb; }
 
 let ingestCount = 0;
+
+// Drop history entries whose `idleStreak` has reached STALE_AFTER_ZERO frames.
+// At ~1 Hz ingest this evicts processes that exited ~10 minutes ago, so a
+// long session doesn't accumulate a permanent entry for every transient
+// process name (installers, build tools, AV scans, browser child procs).
+const STALE_AFTER_ZERO = 600;
+function evictStaleHistEntries(map: Map<string, HistEntry>) {
+  for (const [name, entry] of map) {
+    if (entry.idleStreak >= STALE_AFTER_ZERO) map.delete(name);
+  }
+}
 
 function pruneColors() {
   for (const name of nameColors.keys()) {
@@ -144,8 +190,11 @@ export function ingestMonitoring(frame: MonitoringFrame) {
 
   // Process history — aggregate by name first so duplicate process names
   // (Windows doesn't group by name like macOS) push exactly one value per frame.
+  // `grouped` stays empty on a null/empty-procs frame so fillUnseen still
+  // bumps idleStreak for every existing entry (a missing-procs frame counts
+  // toward the eviction threshold the same as an exited-process frame).
+  const grouped = new Map<string, { cpu: number; mem: number }>();
   if (procs && procs.processes.length > 0) {
-    const grouped = new Map<string, { cpu: number; mem: number }>();
     for (const p of procs.processes) {
       const existing = grouped.get(p.name);
       if (existing) {
@@ -163,15 +212,6 @@ export function ingestMonitoring(frame: MonitoringFrame) {
       pushHist(memHist, name, mem);
     }
 
-    for (const [, entry] of cpuHist) {
-      if (entry.values.length < maxLen(cpuHist)) entry.values.push(0);
-      trimArr(entry);
-    }
-    for (const [, entry] of memHist) {
-      if (entry.values.length < maxLen(memHist)) entry.values.push(0);
-      trimArr(entry);
-    }
-
     otherCpuHist.push(Math.round(Math.max(0, procs.totalCpu - topCpuSum) * 10) / 10);
     if (otherCpuHist.length > MAX_SAMPLES) otherCpuHist = otherCpuHist.slice(-MAX_SAMPLES);
 
@@ -180,22 +220,29 @@ export function ingestMonitoring(frame: MonitoringFrame) {
     otherMemHist.push(Math.round(Math.max(0, totalUsedMb - topMemSum)));
     if (otherMemHist.length > MAX_SAMPLES) otherMemHist = otherMemHist.slice(-MAX_SAMPLES);
   }
+  // Runs unconditionally — entries absent this frame get idleStreak bumped
+  // toward STALE_AFTER_ZERO. If `grouped` is empty (null/empty-procs frame),
+  // every entry is treated as absent.
+  fillUnseen(cpuHist, grouped);
+  fillUnseen(memHist, grouped);
 
   // Network history — per-process
+  const netSeen = new Set<string>();
   if (net && net.entries) {
-    const seen = new Set<string>();
     for (const e of net.entries) {
-      seen.add(e.name);
+      netSeen.add(e.name);
       const rateKBs = (e.rateIn + e.rateOut) / 1024;
       pushHist(netHist, e.name, rateKBs);
     }
-    for (const [, entry] of netHist) {
-      if (entry.values.length < maxLen(netHist)) entry.values.push(0);
-      trimArr(entry);
-    }
   }
+  fillUnseen(netHist, netSeen);
 
-  if (++ingestCount % 60 === 0) pruneColors();
+  if (++ingestCount % 60 === 0) {
+    evictStaleHistEntries(cpuHist);
+    evictStaleHistEntries(memHist);
+    evictStaleHistEntries(netHist);
+    pruneColors();
+  }
 
   notify();
 }
@@ -298,26 +345,38 @@ function push60(arr: number[], val: number) {
 }
 
 function pushHist(
-  map: Map<string, { color: string; values: number[] }>,
+  map: Map<string, HistEntry>,
   name: string, val: number,
 ) {
   let entry = map.get(name);
   if (!entry) {
-    entry = { color: colorFor(name), values: [] };
+    entry = { color: colorFor(name), values: [], idleStreak: 0 };
     map.set(name, entry);
   }
   entry.values.push(val);
+  // The entry was present in this frame, so reset the absence counter
+  // regardless of the value. idleStreak tracks "frames since last seen,"
+  // not "frames since last non-zero" — a running process that happens to
+  // report 0 on one of its axes shouldn't be evicted.
+  entry.idleStreak = 0;
 }
 
-function trimArr(entry: { values: number[] }) {
+function trimArr(entry: HistEntry) {
   if (entry.values.length > MAX_SAMPLES)
     entry.values = entry.values.slice(-MAX_SAMPLES);
 }
 
-function maxLen(map: Map<string, { values: number[] }>): number {
-  let m = 0;
-  for (const [, e] of map) if (e.values.length > m) m = e.values.length;
-  return m;
+// For every entry in `map` that wasn't seen in the current frame, push a 0
+// and bump idleStreak. This is what makes evictStaleHistEntries reach the
+// threshold for processes that exited mid-session — without it, an exited
+// process's history just freezes at length 60 and never decays.
+function fillUnseen(map: Map<string, HistEntry>, seen: Map<string, unknown> | Set<string>) {
+  for (const [name, entry] of map) {
+    if (seen.has(name)) { trimArr(entry); continue; }
+    entry.values.push(0);
+    entry.idleStreak++;
+    trimArr(entry);
+  }
 }
 
 function padLeft(arr: number[]): number[] {
@@ -330,7 +389,7 @@ function padLeft(arr: number[]): number[] {
 }
 
 function buildSeries(
-  map: Map<string, { color: string; values: number[] }>,
+  map: Map<string, HistEntry>,
   procs: Array<{ name: string; cpuPercent: number; memoryMb: number }>,
   field: 'cpuPercent' | 'memoryMb',
   topN: number,

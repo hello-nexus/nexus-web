@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
-import { getPanelSensorHist, pushPanelSensorSample, subscribe, unsubscribe } from '../../../lib/monitoringStore';
+import {
+  getPanelSensorHist,
+  pushPanelSensorSample,
+  subscribePanelSensorKey,
+  unsubscribePanelSensorKey,
+} from '../../../lib/monitoringStore';
 
 /**
  * Per-sensor 60-sample history backed by the shared monitoringStore
@@ -7,27 +12,22 @@ import { getPanelSensorHist, pushPanelSensorSample, subscribe, unsubscribe } fro
  * returns the SAME buffer - so re-mounting a PerfSlot in the immersive
  * view picks up the existing 60 s of samples instead of starting fresh.
  *
- * The hook pushes a new sample whenever `value` changes. Multiple
- * mounts pointing at the same key collaborate: the first to render
- * after a fresh value writes; subsequent mounts read the same buffer.
- * Race-on-mount: a fresh second mount reads the existing buffer
- * immediately, so its sparkline draws with full history right away.
+ * Subscription is per-key: only consumers of "cpu::CPU Total" wake on a
+ * CPU push, so a GPU tile sitting next door doesn't re-render every time
+ * the CPU sample lands.
  */
 export function useSharedSensorHistory(key: string, value: number): readonly number[] {
   const [, force] = useState(0);
 
-  // Push the latest value into the singleton each render where value
-  // changes (effect runs after value mutates).
   useEffect(() => {
     pushPanelSensorSample(key, value);
   }, [key, value]);
 
-  // Subscribe so re-renders happen when other writers push updates.
   useEffect(() => {
     const fn = () => force(n => n + 1);
-    subscribe(fn);
-    return () => unsubscribe(fn);
-  }, []);
+    subscribePanelSensorKey(key, fn);
+    return () => unsubscribePanelSensorKey(key, fn);
+  }, [key]);
 
   return getPanelSensorHist(key);
 }
