@@ -122,7 +122,7 @@ export function WidgetEditSheet({
   const isMonitoringWidget = widget.type === 'monitoring';
   const slotCountOptions = isMonitoringWidget ? slotCountOptionsForSize(widget.size) : [];
   const slotCount = isMonitoringWidget
-    ? resolvedSlotCountForSize(widget.size, widget.config?.slotCount?.n)
+    ? resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined)
     : 0;
   const [internalSelectedSlot, setInternalSelectedSlot] = useState(0);
   const slotControlled = externalSelectedSlot !== undefined;
@@ -214,7 +214,7 @@ export function WidgetEditSheet({
 
   const handleResize = useCallback((size: PanelWidgetSize) => {
     if (isMonitoringWidget) {
-      const nextSlotCount = resolvedSlotCountForSize(size, widget.config?.slotCount?.n);
+      const nextSlotCount = resolvedSlotCountForSize(size, widget.config?.slotCount as number | undefined);
       setSelectedMonitoringSlot(prev => Math.min(prev, nextSlotCount - 1));
     }
     onResize(widget.id, size);

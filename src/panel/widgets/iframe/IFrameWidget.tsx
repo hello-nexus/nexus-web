@@ -5,7 +5,7 @@ import styles from './IFrameWidget.module.scss';
 
 export function IFrameWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
-  const url = getSafeEmbedUrl(widget.config?.url?.s);
+  const url = getSafeEmbedUrl(widget.config?.url as string | undefined);
 
   if (!url) {
     return (

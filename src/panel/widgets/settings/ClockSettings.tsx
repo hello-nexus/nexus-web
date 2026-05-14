@@ -26,35 +26,35 @@ const DESIGN_ICONS: Record<string, LucideIcon> = {
 };
 
 export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
-  const currentDesign = widget.config?.design?.s ?? 'digital';
-  const format = widget.config?.format?.s ?? '24h';
-  const showSeconds = widget.config?.showSeconds?.b ?? false;
-  const showDate = widget.config?.showDate?.b ?? true;
-  const useAccentColor = widget.config?.useAccentColor?.b ?? false;
-  const timezone = widget.config?.timezone?.s ?? '';
+  const currentDesign = ((widget.config?.design as string | undefined) ?? 'digital');
+  const format = ((widget.config?.format as string | undefined) ?? '24h');
+  const showSeconds = ((widget.config?.showSeconds as boolean | undefined) ?? false);
+  const showDate = ((widget.config?.showDate as boolean | undefined) ?? true);
+  const useAccentColor = ((widget.config?.useAccentColor as boolean | undefined) ?? false);
+  const timezone = ((widget.config?.timezone as string | undefined) ?? '');
 
   const setDesign = (key: string) => {
-    onUpdate({ design: { s: key } });
+    onUpdate({ design: key });
   };
 
   const setFormat = (value: string) => {
-    onUpdate({ format: { s: value } });
+    onUpdate({ format: value });
   };
 
   const setShowSeconds = (checked: boolean) => {
-    onUpdate({ showSeconds: { b: checked } });
+    onUpdate({ showSeconds: checked });
   };
 
   const setShowDate = (checked: boolean) => {
-    onUpdate({ showDate: { b: checked } });
+    onUpdate({ showDate: checked });
   };
 
   const setUseAccentColor = (checked: boolean) => {
-    onUpdate({ useAccentColor: { b: checked } });
+    onUpdate({ useAccentColor: checked });
   };
 
   const setTimezone = (value: string) => {
-    onUpdate({ timezone: { s: value || undefined } });
+    onUpdate({ timezone: value || null });
   };
 
   return (

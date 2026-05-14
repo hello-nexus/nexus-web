@@ -4,7 +4,7 @@ import { SettingsRow } from './SettingsRow';
 
 export function TwitchSettings({ widget, onUpdate }: WidgetSettingsProps) {
   const { t } = useTranslation();
-  const channel = widget.config?.channel?.s ?? '';
+  const channel = ((widget.config?.channel as string | undefined) ?? '');
 
   return (
     <SettingsRow label={t('panel.settings.channel')}>
@@ -12,7 +12,7 @@ export function TwitchSettings({ widget, onUpdate }: WidgetSettingsProps) {
         type="text"
         value={channel}
         placeholder="channel_name"
-        onChange={e => onUpdate({ channel: { s: e.target.value } })}
+        onChange={e => onUpdate({ channel: e.target.value })}
       />
     </SettingsRow>
   );

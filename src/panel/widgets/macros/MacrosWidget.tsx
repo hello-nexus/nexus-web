@@ -10,12 +10,12 @@ export function MacrosWidget({ widget }: WidgetProps) {
   const pressTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => { clearTimeout(pressTimer.current); }, []);
 
-  const title = widget.config?.title?.s;
-  const action = widget.config?.action?.s;
-  const url = widget.config?.url?.s;
-  const shortcut = widget.config?.shortcut?.s;
-  const icon = widget.config?.icon?.s;
-  const appId = widget.config?.appId?.s;
+  const title = (widget.config?.title as string | undefined);
+  const action = (widget.config?.action as string | undefined);
+  const url = (widget.config?.url as string | undefined);
+  const shortcut = (widget.config?.shortcut as string | undefined);
+  const icon = (widget.config?.icon as string | undefined);
+  const appId = (widget.config?.appId as string | undefined);
 
   const isApp = action === 'app' && !!appId;
   const configured = !!(action && (title || isApp));

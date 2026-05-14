@@ -144,7 +144,7 @@ function microNormalizationPatch(
   networkSensors: ReturnType<typeof buildNetworkSensors>,
   count: number,
 ): Record<string, PanelConfigValue> {
-  const currentDevice = (widget.config?.micro_device?.s as DeviceKey) ?? 'cpu';
+  const currentDevice = ((widget.config?.micro_device as DeviceKey | undefined) ?? 'cpu');
   const targetDevice = deviceHasEnoughSensorsForMicro(sensors, networkSensors, currentDevice, count)
     ? currentDevice
     : firstEligibleMicroDevice(sensors, networkSensors, count);
@@ -152,15 +152,15 @@ function microNormalizationPatch(
   const sensorList = sensorsForDevice(sensors, networkSensors, targetDevice);
   const patch: Record<string, PanelConfigValue> = {};
 
-  if (widget.config?.micro_device?.s !== targetDevice) {
-    patch.micro_device = { s: targetDevice };
+  if ((widget.config?.micro_device as string | undefined) !== targetDevice) {
+    patch.micro_device = targetDevice;
   }
 
   for (let i = 0; i < count; i++) {
-    const stored = widget.config?.[`micro_sensor${i}`]?.s ?? '';
+    const stored = ((widget.config?.[`micro_sensor${i}`] as string | undefined) ?? '');
     const valid = stored && sensorList.some(opt => opt.value === stored);
     if (!valid) {
-      patch[`micro_sensor${i}`] = { s: sensorList[i]?.value ?? sensorList[0]?.value ?? '' };
+      patch[`micro_sensor${i}`] = sensorList[i]?.value ?? sensorList[0]?.value ?? '';
     }
   }
 
@@ -169,23 +169,23 @@ function microNormalizationPatch(
 
 export function PerformanceSettings({ widget, onUpdate, selectedSlot = 0 }: WidgetSettingsProps) {
   const sensors = useSensors(true);
-  const count = resolvedSlotCountForSize(widget.size, widget.config?.slotCount?.n);
+  const count = resolvedSlotCountForSize(widget.size, (widget.config?.slotCount as number | undefined));
   const activeSlot = Math.max(0, Math.min(selectedSlot, count - 1));
   const isMicro = isMicroLayout(widget.size, count);
 
   const slotConfigs = Array.from({ length: count }, (_, i) => {
-    const device = (widget.config?.[`slot${i}_device`]?.s as DeviceKey) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu';
-    const sensorName = widget.config?.[`slot${i}_sensor`]?.s ?? DEFAULT_SLOTS[i]?.sensor ?? '';
+    const device = ((widget.config?.[`slot${i}_device`] as DeviceKey | undefined) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu');
+    const sensorName = ((widget.config?.[`slot${i}_sensor`] as string | undefined) ?? DEFAULT_SLOTS[i]?.sensor ?? '');
     const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL
       : device === 'fps' && !sensorName ? 'FPS'
       : sensorName;
-    const design = (widget.config?.[`slot${i}_design`]?.s as GaugeDesignKey) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline';
-    const scale = (widget.config?.[`slot${i}_scale`]?.s as ScaleMode) ?? DEFAULT_SCALE_MODE;
+    const design = ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline');
+    const scale = ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE);
     return { device, sensorName: effectiveSensorName, design, scale };
   });
 
-  const microDevice = (widget.config?.micro_device?.s as DeviceKey) ?? 'cpu';
-  const microSensorNames = Array.from({ length: count }, (_, i) => widget.config?.[`micro_sensor${i}`]?.s ?? '');
+  const microDevice = ((widget.config?.micro_device as DeviceKey | undefined) ?? 'cpu');
+  const microSensorNames = Array.from({ length: count }, (_, i) => ((widget.config?.[`micro_sensor${i}`] as string | undefined) ?? ''));
 
   const usesNetwork = isMicro
     ? microDevice === 'network'
@@ -221,9 +221,9 @@ export function PerformanceSettings({ widget, onUpdate, selectedSlot = 0 }: Widg
             onChange={v => {
               const next = v as DeviceKey;
               const list = sensorsForDevice(sensors, networkSensors, next);
-              const patch: Record<string, PanelConfigValue> = { micro_device: { s: next } };
+              const patch: Record<string, PanelConfigValue> = { micro_device: next };
               for (let i = 0; i < count; i++) {
-                patch[`micro_sensor${i}`] = { s: list[i]?.value ?? list[0]?.value ?? '' };
+                patch[`micro_sensor${i}`] = list[i]?.value ?? list[0]?.value ?? '';
               }
               onUpdate(patch);
             }}
@@ -239,7 +239,7 @@ export function PerformanceSettings({ widget, onUpdate, selectedSlot = 0 }: Widg
                 className={styles.selectWide}
                 size="sm"
                 value={selectedSensorValue(microSensorOptions, name)}
-                onChange={v => onUpdate({ [`micro_sensor${i}`]: { s: v } })}
+                onChange={v => onUpdate({ [`micro_sensor${i}`]: v })}
                 options={microSensorOptions}
                 ariaLabel={`Sensor ${i + 1}`}
               />
@@ -265,8 +265,8 @@ export function PerformanceSettings({ widget, onUpdate, selectedSlot = 0 }: Widg
               size="sm"
               value={activeConfig.device}
               onChange={v => onUpdate({
-                [`slot${activeSlot}_device`]: { s: v },
-                [`slot${activeSlot}_sensor`]: { s: defaultSensorForDevice(v as DeviceKey, sensors, networkSensors) },
+                [`slot${activeSlot}_device`]: v,
+                [`slot${activeSlot}_sensor`]: defaultSensorForDevice(v as DeviceKey, sensors, networkSensors),
               })}
               options={DEVICE_OPTIONS}
               ariaLabel="Device"
@@ -275,7 +275,7 @@ export function PerformanceSettings({ widget, onUpdate, selectedSlot = 0 }: Widg
               className={styles.selectWide}
               size="sm"
               value={sensorValue}
-              onChange={v => onUpdate({ [`slot${activeSlot}_sensor`]: { s: v } })}
+              onChange={v => onUpdate({ [`slot${activeSlot}_sensor`]: v })}
               options={sensorOptions}
               ariaLabel="Sensor"
             />
@@ -293,7 +293,7 @@ export function PerformanceSettings({ widget, onUpdate, selectedSlot = 0 }: Widg
                   active={active}
                   icon={Icon ? <Icon aria-hidden="true" /> : undefined}
                   label={GAUGE_DESIGN_LABELS[k]}
-                  onPress={() => onUpdate({ [`slot${activeSlot}_design`]: { s: k } })}
+                  onPress={() => onUpdate({ [`slot${activeSlot}_design`]: k })}
                 />
               );
             })}
@@ -309,7 +309,7 @@ export function PerformanceSettings({ widget, onUpdate, selectedSlot = 0 }: Widg
                     className={styles.scaleBtn}
                     active={opt.value === activeConfig.scale}
                     label={opt.label}
-                    onPress={() => onUpdate({ [`slot${activeSlot}_scale`]: { s: opt.value } })}
+                    onPress={() => onUpdate({ [`slot${activeSlot}_scale`]: opt.value })}
                   />
                 ))}
               </div>

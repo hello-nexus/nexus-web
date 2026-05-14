@@ -16,9 +16,9 @@ const INTERVAL_OPTIONS = [
 ];
 
 export function GallerySettings({ widget, onUpdate }: WidgetSettingsProps) {
-  const mode = widget.config?.mode?.s ?? 'single';
-  const interval = String(widget.config?.interval?.n ?? 10);
-  const urls = widget.config?.urls?.s ?? '';
+  const mode = ((widget.config?.mode as string | undefined) ?? 'single');
+  const interval = String(((widget.config?.interval as number | undefined) ?? 10));
+  const urls = ((widget.config?.urls as string | undefined) ?? '');
 
   return (
     <div className={styles.settings}>
@@ -27,14 +27,14 @@ export function GallerySettings({ widget, onUpdate }: WidgetSettingsProps) {
           label="Mode"
           value={mode}
           options={MODE_OPTIONS}
-          onChange={v => onUpdate({ mode: { s: v } })}
+          onChange={v => onUpdate({ mode: v })}
         />
         {mode === 'slideshow' && (
           <SettingsSelect
             label="Interval"
             value={interval}
             options={INTERVAL_OPTIONS}
-            onChange={v => onUpdate({ interval: { n: Number(v) } })}
+            onChange={v => onUpdate({ interval: Number(v) })}
           />
         )}
       </SettingsSection>
@@ -44,7 +44,7 @@ export function GallerySettings({ widget, onUpdate }: WidgetSettingsProps) {
           <textarea
             className={styles.textarea}
             value={urls}
-            onChange={e => onUpdate({ urls: { s: e.target.value } })}
+            onChange={e => onUpdate({ urls: e.target.value })}
             placeholder={'https://example.com/image1.jpg\nhttps://example.com/image2.jpg'}
             rows={6}
             spellCheck={false}

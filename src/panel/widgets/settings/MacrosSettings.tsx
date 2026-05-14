@@ -5,12 +5,12 @@ import { SettingsRow, SettingsSelect } from './SettingsRow';
 
 export function MacrosSettings({ widget, onUpdate }: WidgetSettingsProps) {
   const { t } = useTranslation();
-  const title = widget.config?.title?.s ?? '';
-  const action = widget.config?.action?.s ?? 'url';
-  const url = widget.config?.url?.s ?? '';
-  const shortcut = widget.config?.shortcut?.s ?? '';
-  const icon = widget.config?.icon?.s ?? '';
-  const appId = widget.config?.appId?.s ?? '';
+  const title = ((widget.config?.title as string | undefined) ?? '');
+  const action = ((widget.config?.action as string | undefined) ?? 'url');
+  const url = ((widget.config?.url as string | undefined) ?? '');
+  const shortcut = ((widget.config?.shortcut as string | undefined) ?? '');
+  const icon = ((widget.config?.icon as string | undefined) ?? '');
+  const appId = ((widget.config?.appId as string | undefined) ?? '');
 
   const actionOptions = [
     { value: 'url', label: t('panel.settings.url') },
@@ -24,7 +24,7 @@ export function MacrosSettings({ widget, onUpdate }: WidgetSettingsProps) {
         <input
           type="text"
           value={title}
-          onChange={e => onUpdate({ title: { s: e.target.value } })}
+          onChange={e => onUpdate({ title: e.target.value })}
         />
       </SettingsRow>
 
@@ -32,7 +32,7 @@ export function MacrosSettings({ widget, onUpdate }: WidgetSettingsProps) {
         label={t('panel.settings.action')}
         value={action}
         options={actionOptions}
-        onChange={v => onUpdate({ action: { s: v } })}
+        onChange={v => onUpdate({ action: v })}
       />
 
       {action === 'url' && (
@@ -41,7 +41,7 @@ export function MacrosSettings({ widget, onUpdate }: WidgetSettingsProps) {
             type="text"
             value={url}
             placeholder="https://example.com"
-            onChange={e => onUpdate({ url: { s: e.target.value } })}
+            onChange={e => onUpdate({ url: e.target.value })}
           />
         </SettingsRow>
       )}
@@ -52,7 +52,7 @@ export function MacrosSettings({ widget, onUpdate }: WidgetSettingsProps) {
             type="text"
             value={shortcut}
             placeholder="ctrl+c"
-            onChange={e => onUpdate({ shortcut: { s: e.target.value } })}
+            onChange={e => onUpdate({ shortcut: e.target.value })}
           />
         </SettingsRow>
       )}
@@ -61,8 +61,8 @@ export function MacrosSettings({ widget, onUpdate }: WidgetSettingsProps) {
         <AppPicker
           selectedId={appId}
           onSelect={app => onUpdate({
-            appId: { s: app.id },
-            title: { s: title || app.name },
+            appId: app.id,
+            title: title || app.name,
           })}
         />
       )}
@@ -72,7 +72,7 @@ export function MacrosSettings({ widget, onUpdate }: WidgetSettingsProps) {
           <input
             type="text"
             value={icon}
-            onChange={e => onUpdate({ icon: { s: e.target.value } })}
+            onChange={e => onUpdate({ icon: e.target.value })}
           />
         </SettingsRow>
       )}

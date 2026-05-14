@@ -45,13 +45,13 @@ function monitoringWidget(): PanelWidget {
     col: 0,
     row: 0,
     config: {
-      slotCount: { n: 2 },
-      slot0_device: { s: 'cpu' },
-      slot0_sensor: { s: 'CPU Total' },
-      slot0_design: { s: 'sparkline' },
-      slot1_device: { s: 'gpu' },
-      slot1_sensor: { s: 'GPU Core' },
-      slot1_design: { s: 'bar' },
+      slotCount: 2,
+      slot0_device: 'cpu',
+      slot0_sensor: 'CPU Total',
+      slot0_design: 'sparkline',
+      slot1_device: 'gpu',
+      slot1_sensor: 'GPU Core',
+      slot1_design: 'bar',
     },
   };
 }
@@ -108,8 +108,8 @@ describe('PerformanceSettings', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Device' }), { target: { value: 'fan' } });
 
     expect(onUpdate).toHaveBeenLastCalledWith({
-      slot1_device: { s: 'fan' },
-      slot1_sensor: { s: 'Fan 1' },
+      slot1_device: 'fan',
+      slot1_sensor: 'Fan 1',
     });
   });
 
@@ -120,8 +120,8 @@ describe('PerformanceSettings', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Device' }), { target: { value: 'network' } });
 
     expect(onUpdate).toHaveBeenLastCalledWith({
-      slot0_device: { s: 'network' },
-      slot0_sensor: { s: 'Network Total' },
+      slot0_device: 'network',
+      slot0_sensor: 'Network Total',
     });
     expect(screen.getByRole('button', { name: /select network total/i })).toBeInTheDocument();
     expect(screen.getByText('1.5')).toBeInTheDocument();
@@ -129,7 +129,7 @@ describe('PerformanceSettings', () => {
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Sensor' }), { target: { value: 'Network In' } });
     expect(onUpdate).toHaveBeenLastCalledWith({
-      slot0_sensor: { s: 'Network In' },
+      slot0_sensor: 'Network In',
     });
   });
 

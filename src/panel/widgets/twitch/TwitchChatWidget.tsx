@@ -5,7 +5,7 @@ import styles from './TwitchChatWidget.module.scss';
 
 export function TwitchChatWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
-  const channel = widget.config?.channel?.s;
+  const channel = widget.config?.channel as string | undefined;
 
   if (!channel) {
     return (

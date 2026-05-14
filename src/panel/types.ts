@@ -29,11 +29,19 @@ export function normalizePanelWidgetSizeForSurface(
   return normalized === '1x1' || normalized === '2x2' ? '2x2' : '2x4';
 }
 
-export interface PanelConfigValue {
-  s?: string;
-  n?: number;
-  b?: boolean;
-}
+/**
+ * Per-widget config value on the wire. Raw JSON — widgets read scalars
+ * (`string` / `number` / `boolean`) directly or structured shapes (arrays,
+ * objects) declared by the widget itself. Same shape native panel widgets
+ * and marketplace widgets share.
+ */
+export type PanelConfigValue =
+  | string
+  | number
+  | boolean
+  | null
+  | PanelConfigValue[]
+  | { [key: string]: PanelConfigValue };
 
 export interface PanelWidget {
   id: string;

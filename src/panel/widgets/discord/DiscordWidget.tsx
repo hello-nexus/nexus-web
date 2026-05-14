@@ -31,7 +31,7 @@ const POLL_MS = 5000;
 export function DiscordWidget({ widget }: WidgetProps) {
   const [status, setStatus] = useState<DiscordStatusResponse | null>(null);
   const [activeTab, setActiveTab] = useState<DiscordTab>('activity');
-  const privacyMode = widget.config?.privacyMode?.b ?? false;
+  const privacyMode = ((widget.config?.privacyMode as boolean | undefined) ?? false);
 
   useEffect(() => {
     let cancelled = false;

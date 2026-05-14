@@ -9,9 +9,9 @@ function parseUrls(raw?: string): string[] {
 }
 
 export function GalleryWidget({ widget }: WidgetProps) {
-  const mode = widget.config?.mode?.s ?? 'single';
-  const interval = (widget.config?.interval?.n ?? 10) * 1000;
-  const urls = useMemo(() => parseUrls(widget.config?.urls?.s), [widget.config?.urls?.s]);
+  const mode = ((widget.config?.mode as string | undefined) ?? 'single');
+  const interval = (((widget.config?.interval as number | undefined) ?? 10) * 1000);
+  const urls = useMemo(() => parseUrls(widget.config?.urls as string | undefined), [widget.config?.urls]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [showIndex, setShowIndex] = useState(0);

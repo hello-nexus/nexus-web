@@ -92,19 +92,19 @@ export function percentForSensor(device: DeviceKey, sensor: HardwareSensor | und
 }
 
 export function PerformanceWidget({ widget, selectedSlot, onSelectSlot }: WidgetProps) {
-  const count = resolvedSlotCountForSize(widget.size, widget.config?.slotCount?.n);
+  const count = resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined);
   const isMicro = isMicroLayout(widget.size, count);
 
   // Compute slot configs for both modes - in Micro mode the loop reads stale
   // slot{N}_* keys that the render path ignores, but the values are only used
   // here to detect whether the lazy fps/network hooks need to subscribe.
   const slotConfigs = Array.from({ length: count }, (_, i) => ({
-    device: (widget.config?.[`slot${i}_device`]?.s as DeviceKey) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu',
-    sensorName: widget.config?.[`slot${i}_sensor`]?.s ?? DEFAULT_SLOTS[i]?.sensor ?? '',
-    design: (widget.config?.[`slot${i}_design`]?.s as GaugeDesignKey) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline',
-    scale: (widget.config?.[`slot${i}_scale`]?.s as ScaleMode) ?? DEFAULT_SCALE_MODE,
+    device: ((widget.config?.[`slot${i}_device`] as DeviceKey | undefined) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu'),
+    sensorName: ((widget.config?.[`slot${i}_sensor`] as string | undefined) ?? DEFAULT_SLOTS[i]?.sensor ?? ''),
+    design: ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline'),
+    scale: ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE),
   }));
-  const microDevice = widget.config?.micro_device?.s as DeviceKey | undefined;
+  const microDevice = widget.config?.micro_device as DeviceKey | undefined;
   const usesFps = isMicro
     ? microDevice === 'fps'
     : slotConfigs.some(slot => slot.device === 'fps');

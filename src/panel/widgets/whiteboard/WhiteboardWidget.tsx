@@ -22,7 +22,7 @@ export function WhiteboardWidget({ widget }: WidgetProps) {
   const [penColor, setPenColor] = useState('#ffffff');
   const [penSize, setPenSize] = useState(5);
 
-  const bgColor = widget.config?.backgroundColor?.s ?? '#1a1a2e';
+  const bgColor = ((widget.config?.backgroundColor as string | undefined) ?? '#1a1a2e');
 
   // Redraw entire canvas from stroke history
   const redrawAll = useCallback(() => {

@@ -17,7 +17,7 @@ export function DiscordSettings({ widget, onUpdate }: WidgetSettingsProps) {
   const [clientSecret, setClientSecret] = useState('');
   const [hasClientSecret, setHasClientSecret] = useState(false);
   const [saved, setSaved] = useState(false);
-  const privacyMode = widget.config?.privacyMode?.b ?? false;
+  const privacyMode = ((widget.config?.privacyMode as boolean | undefined) ?? false);
 
   useEffect(() => {
     fetchDiscordConfig().then(config => {
@@ -49,7 +49,7 @@ export function DiscordSettings({ widget, onUpdate }: WidgetSettingsProps) {
         <SettingsToggle
           label="Privacy mode"
           checked={privacyMode}
-          onChange={checked => onUpdate({ privacyMode: { b: checked } })}
+          onChange={checked => onUpdate({ privacyMode: checked })}
         />
       </SettingsSection>
       <SettingsSection title="OAuth">

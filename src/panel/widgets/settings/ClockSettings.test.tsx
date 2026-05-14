@@ -11,7 +11,7 @@ function clockWidget(): PanelWidget {
     col: 0,
     row: 0,
     config: {
-      design: { s: 'analog' },
+      design: 'analog',
     },
   };
 }
@@ -36,6 +36,6 @@ describe('ClockSettings', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Split Flap' }));
 
-    expect(onUpdate).toHaveBeenCalledWith({ design: { s: 'splitflap' } });
+    expect(onUpdate).toHaveBeenCalledWith({ design: 'splitflap' });
   });
 });

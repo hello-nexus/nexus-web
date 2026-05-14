@@ -127,10 +127,10 @@ export function WeatherWidget({ widget, mockSnap, fixedNow }: WidgetProps & { mo
     return () => { cancelled = true; clearInterval(t); };
   }, [mockSnap]);
 
-  const unit = resolveUnit(widget.config?.unit?.s, snap?.countryCode);
-  const showCondition = widget.config?.showCondition?.b ?? true;
-  const showLocation = widget.config?.showLocation?.b ?? true;
-  const showDetails = widget.config?.showDetails?.b ?? true;
+  const unit = resolveUnit(widget.config?.unit as string | undefined, snap?.countryCode);
+  const showCondition = (widget.config?.showCondition as boolean | undefined) ?? true;
+  const showLocation = (widget.config?.showLocation as boolean | undefined) ?? true;
+  const showDetails = (widget.config?.showDetails as boolean | undefined) ?? true;
   const tempValue = snap ? (unit === 'F' ? snap.temperatureF : snap.temperatureC) : null;
   const tempText = formatTemp(tempValue, loaded ? '—' : '…');
 

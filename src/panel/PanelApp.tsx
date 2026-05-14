@@ -2347,7 +2347,7 @@ function PanelEditorSheet({
   const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface) : [];
   const slotCountOptions = editingWidget && isMonitoringWidget ? slotCountOptionsForSize(editingWidget.size) : [];
   const slotCount = editingWidget && isMonitoringWidget
-    ? resolvedSlotCountForSize(editingWidget.size, editingWidget.config?.slotCount?.n)
+    ? resolvedSlotCountForSize(editingWidget.size, editingWidget.config?.slotCount as number | undefined)
     : 0;
   const editingSpan = editingWidget ? sizeToSpan(editingWidget.size) : null;
   const editorStyle = {
@@ -2395,7 +2395,7 @@ function PanelEditorSheet({
 
   const handleResize = (size: PanelWidgetSize) => {
     if (!editingWidget) return;
-    const nextSlotCount = resolvedSlotCountForSize(size, editingWidget.config?.slotCount?.n);
+    const nextSlotCount = resolvedSlotCountForSize(size, editingWidget.config?.slotCount as number | undefined);
     onSelectedMonitoringSlotChange(Math.min(selectedMonitoringSlot, nextSlotCount - 1));
     onResize(editingWidget.id, size);
   };

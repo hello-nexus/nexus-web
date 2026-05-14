@@ -375,7 +375,7 @@ function InlineWidgetSettings({ widget, surface, onBack, onUpdate, onResize, onR
   const Settings = def?.SettingsComponent;
   const isMonitoringWidget = widget.type === 'monitoring';
   const slotCountOptions = isMonitoringWidget ? slotCountOptionsForSize(widget.size) : [];
-  const slotCount = resolvedSlotCountForSize(widget.size, widget.config?.slotCount?.n);
+  const slotCount = resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
 
   const handleConfigUpdate = (config: Record<string, PanelConfigValue>) => {
@@ -383,13 +383,13 @@ function InlineWidgetSettings({ widget, surface, onBack, onUpdate, onResize, onR
   };
 
   const handleResize = (size: PanelWidgetSize) => {
-    setSelectedMonitoringSlot(slot => Math.min(slot, resolvedSlotCountForSize(size, widget.config?.slotCount?.n) - 1));
+    setSelectedMonitoringSlot(slot => Math.min(slot, resolvedSlotCountForSize(size, widget.config?.slotCount as number | undefined) - 1));
     onResize(widget.id, size);
   };
 
   const handleSlotCount = (n: number) => {
     setSelectedMonitoringSlot(slot => Math.min(slot, n - 1));
-    handleConfigUpdate({ slotCount: { n } });
+    handleConfigUpdate({ slotCount: n });
   };
 
   const Icon = def?.meta.icon;

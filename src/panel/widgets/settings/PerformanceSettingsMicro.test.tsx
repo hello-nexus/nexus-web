@@ -58,14 +58,14 @@ function microWidget(initialCount: number): PanelWidget {
     col: 0,
     row: 0,
     config: {
-      slotCount: { n: initialCount },
+      slotCount: initialCount,
       // Pre-existing multi-sensor config that must NOT be touched by Micro.
-      slot0_device: { s: 'gpu' },
-      slot0_sensor: { s: 'GPU Core' },
-      slot0_design: { s: 'sparkline' },
-      slot1_device: { s: 'memory' },
-      slot1_sensor: { s: 'Memory Usage' },
-      slot1_design: { s: 'caterpillar' },
+      slot0_device: 'gpu',
+      slot0_sensor: 'GPU Core',
+      slot0_design: 'sparkline',
+      slot1_device: 'memory',
+      slot1_sensor: 'Memory Usage',
+      slot1_design: 'caterpillar',
     },
   };
 }
@@ -89,10 +89,10 @@ describe('PerformanceSettings - Micro mode', () => {
     render(<MicroHarness initial={microWidget(3)} onUpdate={cfg => updates.push(cfg)} />);
 
     const merged = mergedPatch(updates);
-    expect(merged.micro_device?.s).toBe('cpu');
-    expect(merged.micro_sensor0?.s).toBeTruthy();
-    expect(merged.micro_sensor1?.s).toBeTruthy();
-    expect(merged.micro_sensor2?.s).toBeTruthy();
+    expect(merged.micro_device).toBe('cpu');
+    expect(merged.micro_sensor0).toBeTruthy();
+    expect(merged.micro_sensor1).toBeTruthy();
+    expect(merged.micro_sensor2).toBeTruthy();
     // The pre-existing multi-sensor config must not have been overwritten.
     expect(merged.slot0_device).toBeUndefined();
     expect(merged.slot1_design).toBeUndefined();
@@ -103,10 +103,10 @@ describe('PerformanceSettings - Micro mode', () => {
     render(<MicroHarness initial={microWidget(4)} onUpdate={cfg => updates.push(cfg)} />);
 
     const merged = mergedPatch(updates);
-    expect(merged.micro_sensor0?.s).toBeTruthy();
-    expect(merged.micro_sensor1?.s).toBeTruthy();
-    expect(merged.micro_sensor2?.s).toBeTruthy();
-    expect(merged.micro_sensor3?.s).toBeTruthy();
+    expect(merged.micro_sensor0).toBeTruthy();
+    expect(merged.micro_sensor1).toBeTruthy();
+    expect(merged.micro_sensor2).toBeTruthy();
+    expect(merged.micro_sensor3).toBeTruthy();
   });
 
   it('changing the device writes micro_device + reset micro_sensorN; multi keys remain untouched', () => {
@@ -119,11 +119,11 @@ describe('PerformanceSettings - Micro mode', () => {
     });
 
     const last = updates[updates.length - 1];
-    expect(last.micro_device).toEqual({ s: 'gpu' });
-    expect(last.micro_sensor0?.s).toBe('GPU Core');
-    expect(last.micro_sensor1?.s).toBe('GPU Hotspot');
-    expect(last.micro_sensor2?.s).toBe('GPU Memory');
-    expect(last.micro_sensor3?.s).toBe('GPU Power');
+    expect(last.micro_device).toBe('gpu');
+    expect(last.micro_sensor0).toBe('GPU Core');
+    expect(last.micro_sensor1).toBe('GPU Hotspot');
+    expect(last.micro_sensor2).toBe('GPU Memory');
+    expect(last.micro_sensor3).toBe('GPU Power');
     // Multi-sensor keys must not be touched by the device-change handler.
     expect(last.slot0_device).toBeUndefined();
     expect(last.slot1_design).toBeUndefined();

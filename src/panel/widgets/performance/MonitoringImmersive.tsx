@@ -23,16 +23,16 @@ import styles from './MonitoringImmersive.module.scss';
  * 4 slots  -> paginates (2 cells per page on phone).
  */
 export function MonitoringImmersive({ widget, immersiveGrid }: WidgetProps) {
-  const slotCount = resolvedSlotCountForSize(widget.size, widget.config?.slotCount?.n);
+  const slotCount = resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined);
   const isMicro = isMicroLayout(widget.size, slotCount);
 
   const slotConfigs = Array.from({ length: slotCount }, (_, i) => ({
-    device: (widget.config?.[`slot${i}_device`]?.s as DeviceKey) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu',
-    sensorName: widget.config?.[`slot${i}_sensor`]?.s ?? DEFAULT_SLOTS[i]?.sensor ?? '',
-    design: (widget.config?.[`slot${i}_design`]?.s as GaugeDesignKey) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline',
+    device: ((widget.config?.[`slot${i}_device`] as DeviceKey | undefined) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu'),
+    sensorName: ((widget.config?.[`slot${i}_sensor`] as string | undefined) ?? DEFAULT_SLOTS[i]?.sensor ?? ''),
+    design: ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline'),
   }));
 
-  const microDevice = widget.config?.micro_device?.s as DeviceKey | undefined;
+  const microDevice = widget.config?.micro_device as DeviceKey | undefined;
   const usesFps = isMicro
     ? microDevice === 'fps'
     : slotConfigs.some(s => s.device === 'fps');

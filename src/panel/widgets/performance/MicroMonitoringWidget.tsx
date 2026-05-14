@@ -27,11 +27,11 @@ interface MicroMonitoringWidgetProps {
 // so toggling between Micro and multi-sensor modes never mutates the other
 // mode's per-slot configuration.
 function readMicroDevice(widget: PanelWidget): DeviceKey {
-  return (widget.config?.micro_device?.s as DeviceKey) ?? 'cpu';
+  return ((widget.config?.micro_device as DeviceKey | undefined) ?? 'cpu');
 }
 
 function readMicroSensorName(widget: PanelWidget, index: number): string {
-  return widget.config?.[`micro_sensor${index}`]?.s ?? '';
+  return ((widget.config?.[`micro_sensor${index}`] as string | undefined) ?? '');
 }
 
 function bottomLabelForDevice(

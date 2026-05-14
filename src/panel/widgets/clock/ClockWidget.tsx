@@ -15,15 +15,15 @@ export function ClockWidget({ widget }: WidgetProps) {
     return () => clearInterval(t);
   }, []);
 
-  const designKey = widget.config?.design?.s ?? 'digital';
+  const designKey = ((widget.config?.design as string | undefined) ?? 'digital');
   const entry = CLOCK_DESIGNS[designKey] ?? CLOCK_DESIGNS['digital'];
   const Design = entry.component;
 
-  const showSeconds = widget.config?.showSeconds?.b ?? false;
-  const showDate = widget.config?.showDate?.b ?? true;
-  const tz = widget.config?.timezone?.s;
-  const hour12 = (widget.config?.format?.s ?? '24h') === '12h';
-  const useAccentColor = widget.config?.useAccentColor?.b ?? false;
+  const showSeconds = ((widget.config?.showSeconds as boolean | undefined) ?? false);
+  const showDate = ((widget.config?.showDate as boolean | undefined) ?? true);
+  const tz = widget.config?.timezone as string | undefined;
+  const hour12 = (((widget.config?.format as string | undefined) ?? '24h') === '12h');
+  const useAccentColor = ((widget.config?.useAccentColor as boolean | undefined) ?? false);
 
   return (
     <Design

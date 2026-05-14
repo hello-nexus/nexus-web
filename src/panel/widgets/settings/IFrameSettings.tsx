@@ -4,7 +4,7 @@ import { SettingsRow } from './SettingsRow';
 
 export function IFrameSettings({ widget, onUpdate }: WidgetSettingsProps) {
   const { t } = useTranslation();
-  const url = widget.config?.url?.s ?? '';
+  const url = ((widget.config?.url as string | undefined) ?? '');
 
   return (
     <SettingsRow label={t('panel.settings.url')}>
@@ -12,7 +12,7 @@ export function IFrameSettings({ widget, onUpdate }: WidgetSettingsProps) {
         type="text"
         value={url}
         placeholder="https://example.com"
-        onChange={e => onUpdate({ url: { s: e.target.value } })}
+        onChange={e => onUpdate({ url: e.target.value })}
       />
     </SettingsRow>
   );
