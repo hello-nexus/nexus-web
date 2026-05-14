@@ -30,8 +30,11 @@ export function CoolingResponseChart({
   cpuTemp, gpuTemp, avgDuty,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const fanReadoutRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(220);
   const [height, setHeight] = useState(72);
+  const [fanReadoutWidth, setFanReadoutWidth] = useState(0);
+  const hasFanReadout = typeof avgDuty === 'number';
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -50,6 +53,17 @@ export function CoolingResponseChart({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => {
+    const el = fanReadoutRef.current;
+    if (!el) { setFanReadoutWidth(0); return; }
+    const measure = () => setFanReadoutWidth(Math.ceil(el.getBoundingClientRect().width));
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [hasFanReadout]);
 
   const samples = useMemo(() => {
     const channelMap = new Map(channels.map(c => [c.id, c]));
@@ -79,10 +93,10 @@ export function CoolingResponseChart({
   if (samples.length === 0) {
     return (
       <div ref={wrapRef} className={styles.chart}>
-        {typeof avgDuty === 'number' && (
-          <div className={styles.fanReadout} aria-label="Average fan duty">
+        {hasFanReadout && (
+          <div ref={fanReadoutRef} className={styles.fanReadout} aria-label="Average fan duty">
             <span className={styles.fanLabel}>FANS</span>
-            <span className={styles.fanValue}>{Math.round(avgDuty)}%</span>
+            <span className={styles.fanValue}>{Math.round(avgDuty!)}%</span>
           </div>
         )}
       </div>
@@ -100,14 +114,21 @@ export function CoolingResponseChart({
   const first = samples[0], last = samples[samples.length - 1];
   const area = `${path} L ${tempToX(last.temp).toFixed(1)} ${speedToY(0).toFixed(1)} L ${tempToX(first.temp).toFixed(1)} ${speedToY(0).toFixed(1)} Z`;
 
-  // Notch positions; if CPU and GPU labels would overlap, stagger the GPU
-  // badge down a row so both stay readable.
+  // Notch positions. Stagger order: FANS readout pins the top-right, so any
+  // badge that would slide under it drops a row to clear it; then if CPU and
+  // GPU still share a row horizontally, GPU drops one more.
   const cpuX = typeof cpuTemp === 'number' ? tempToX(Math.max(TEMP_MIN, Math.min(TEMP_MAX, cpuTemp))) : null;
   const gpuX = typeof gpuTemp === 'number' ? tempToX(Math.max(TEMP_MIN, Math.min(TEMP_MAX, gpuTemp))) : null;
   const BADGE_W = 52, BADGE_H = 15;
-  const collision = cpuX !== null && gpuX !== null && Math.abs(cpuX - gpuX) < BADGE_W;
-  const cpuBadgeY = 0;
-  const gpuBadgeY = collision ? BADGE_H + 1 : 0;
+  const FANS_CLEAR_Y = 20; // clears .fanReadout (top: 2px, ~18px tall)
+  const fansLeftX = fanReadoutWidth > 0 ? width - 6 - fanReadoutWidth - 4 : Infinity;
+  const cpuClipsFans = cpuX !== null && cpuX + BADGE_W / 2 > fansLeftX;
+  const gpuClipsFans = gpuX !== null && gpuX + BADGE_W / 2 > fansLeftX;
+  const cpuBadgeY = cpuClipsFans ? FANS_CLEAR_Y : 0;
+  let gpuBadgeY = gpuClipsFans ? FANS_CLEAR_Y : 0;
+  if (cpuX !== null && gpuX !== null && Math.abs(cpuX - gpuX) < BADGE_W && cpuBadgeY === gpuBadgeY) {
+    gpuBadgeY = cpuBadgeY + BADGE_H + 1;
+  }
 
   const renderNotch = (x: number | null, temp: number | undefined, label: string, badgeY: number) => {
     if (x === null || typeof temp !== 'number') return null;
@@ -125,10 +146,10 @@ export function CoolingResponseChart({
 
   return (
     <div ref={wrapRef} className={styles.chart}>
-      {typeof avgDuty === 'number' && (
-        <div className={styles.fanReadout} aria-label="Average fan duty">
+      {hasFanReadout && (
+        <div ref={fanReadoutRef} className={styles.fanReadout} aria-label="Average fan duty">
           <span className={styles.fanLabel}>FANS</span>
-          <span className={styles.fanValue}>{Math.round(avgDuty)}%</span>
+          <span className={styles.fanValue}>{Math.round(avgDuty!)}%</span>
         </div>
       )}
       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className={styles.svg}>
