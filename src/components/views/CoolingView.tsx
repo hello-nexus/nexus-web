@@ -125,6 +125,7 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
             fn: (c.mixed?.fn ?? 'max') as MixFn,
           },
           preset: c.preset ? (c.preset as CurvePreset) : undefined,
+          isDefault: c.isDefault ?? undefined,
         }));
         setCurves(loadedCurves);
 

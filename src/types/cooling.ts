@@ -28,6 +28,10 @@ export interface CurveDef {
   graph: { responseTime: number; points: CurvePoint[] };
   mix: { responseTime: number; curveIds: string[]; fn: MixFn };
   preset?: CurvePreset;
+  /** For preset curves only: true when the curve's Type + Linear params still
+   *  match the service's PresetDefaults. Computed server-side and shipped on
+   *  /cooling/curves so the FE doesn't have to mirror PresetDefaults locally. */
+  isDefault?: boolean;
 }
 
 export interface FanState {

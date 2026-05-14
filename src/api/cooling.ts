@@ -101,6 +101,10 @@ interface CurvesResponse {
       fn: string;
     } | null;
     preset?: 'silent' | 'balanced' | 'performance' | null;
+    /** For preset curves only: true when the curve's Type + Linear params
+     *  still match the service's PresetDefaults. Drives the Reset button's
+     *  enabled state. Null for user curves. */
+    isDefault?: boolean | null;
   }>;
 }
 
