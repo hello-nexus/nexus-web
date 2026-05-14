@@ -462,14 +462,24 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
   }, [channels, savedFanOrder]);
 
   const orderedChannels = useMemo(() => {
-    if (fanOrder.length === 0) return channels;
-    const byId = new Map(channels.map(c => [c.id, c]));
-    const out: FanChannel[] = [];
-    for (const id of fanOrder) {
-      const ch = byId.get(id);
-      if (ch) out.push(ch);
+    const base: FanChannel[] = [];
+    if (fanOrder.length === 0) {
+      base.push(...channels);
+    } else {
+      const byId = new Map(channels.map(c => [c.id, c]));
+      for (const id of fanOrder) {
+        const ch = byId.get(id);
+        if (ch) base.push(ch);
+      }
     }
-    return out;
+    // Calibration can mark fans Unresponsive (no tach / not controllable).
+    // Pin those to the bottom of the list so the actionable cards stay near
+    // the top; preserve relative order within each group, and don't mutate
+    // the saved fanOrder — if a fan recovers it returns to its prior slot.
+    const live: FanChannel[] = [];
+    const dead: FanChannel[] = [];
+    for (const ch of base) (ch.classification === 'Unresponsive' ? dead : live).push(ch);
+    return dead.length === 0 ? base : [...live, ...dead];
   }, [channels, fanOrder]);
 
   const dropFanOn = (targetId: string) => {

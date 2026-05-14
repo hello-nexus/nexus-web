@@ -27,6 +27,19 @@
   vector-effect: non-scaling-stroke;
 }
 
+.area { opacity: 1; }
+
+// Synthetic BIOS fallback: dashed stroke + softer fill so users read it as
+// an approximation, not measured data. CPU/GPU notches stay solid so the
+// "where am I on this curve" cue is still strong.
+.chart[data-synthetic='true'] {
+  .line {
+    stroke-dasharray: 4 3;
+    opacity: 0.7;
+  }
+  .area { opacity: 0.45; }
+}
+
 // Notch treatment matches CoolingView's .curveTempIndicator: outlined badge
 // in panel bg, --accent-glow border + text, dashed glow line.
 .notch { pointer-events: none; }

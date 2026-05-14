@@ -7,7 +7,36 @@ import styles from './CoolingResponseChart.module.scss';
 const TEMP_MIN = 20;
 const TEMP_MAX = 100;
 const SAMPLE_STEP = 2;
-const PAD = { left: 6, right: 6, top: 18, bottom: 6 };
+const PAD = { left: 6, right: 6, top: 22, bottom: 6 };
+
+// BIOS fan curves aren't exposed via LibreHardwareMonitor / ACPI, so when
+// every fan is hardware-controlled (no curves bound, no Manual channels) we
+// approximate with the typical motherboard Q-Fan / Smart Fan "standard"
+// profile. Piecewise-linear, precomputed once at module scope since the
+// shape is constant.
+const BIOS_FALLBACK_SAMPLES: ReadonlyArray<{ temp: number; speed: number }> = (() => {
+  const pts = [
+    { temp: 30, speed: 30 },
+    { temp: 50, speed: 40 },
+    { temp: 70, speed: 70 },
+    { temp: 85, speed: 100 },
+  ];
+  const out: Array<{ temp: number; speed: number }> = [];
+  for (let T = TEMP_MIN; T <= TEMP_MAX; T += SAMPLE_STEP) {
+    if (T <= pts[0].temp) { out.push({ temp: T, speed: pts[0].speed }); continue; }
+    const last = pts[pts.length - 1];
+    if (T >= last.temp) { out.push({ temp: T, speed: last.speed }); continue; }
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      if (T <= b.temp) {
+        const f = (T - a.temp) / (b.temp - a.temp);
+        out.push({ temp: T, speed: a.speed + f * (b.speed - a.speed) });
+        break;
+      }
+    }
+  }
+  return out;
+})();
 
 interface Props {
   curves: CurveDef[];
@@ -65,7 +94,7 @@ export function CoolingResponseChart({
     return () => ro.disconnect();
   }, [hasFanReadout]);
 
-  const samples = useMemo(() => {
+  const { samples, isSynthetic } = useMemo(() => {
     const channelMap = new Map(channels.map(c => [c.id, c]));
     const pts: Array<{ temp: number; speed: number }> = [];
 
@@ -87,7 +116,14 @@ export function CoolingResponseChart({
 
       if (n > 0) pts.push({ temp: T, speed: Math.max(0, Math.min(100, sum / n)) });
     }
-    return pts;
+
+    if (pts.length > 0) return { samples: pts, isSynthetic: false };
+    // Only fall back to the synthetic curve once the service has actually
+    // reported the fan inventory — otherwise the initial mount (channels
+    // empty, fanStates empty) would flash a dashed estimate over real data
+    // for a frame before refreshCoolingConfig resolves.
+    if (channels.length === 0) return { samples: [], isSynthetic: false };
+    return { samples: BIOS_FALLBACK_SAMPLES.slice(), isSynthetic: true };
   }, [curves, fanStates, channels, sources]);
 
   if (samples.length === 0) {
@@ -145,7 +181,7 @@ export function CoolingResponseChart({
   };
 
   return (
-    <div ref={wrapRef} className={styles.chart}>
+    <div ref={wrapRef} className={styles.chart} data-synthetic={isSynthetic ? 'true' : undefined}>
       {hasFanReadout && (
         <div ref={fanReadoutRef} className={styles.fanReadout} aria-label="Average fan duty">
           <span className={styles.fanLabel}>FANS</span>
@@ -165,7 +201,7 @@ export function CoolingResponseChart({
             x2={width - PAD.right} y2={speedToY(s)}
             className={styles.gridLine} />
         ))}
-        <path d={area} fill="url(#cwResponseGrad)" />
+        <path d={area} className={styles.area} fill="url(#cwResponseGrad)" />
         <path d={path} className={styles.line} fill="none" />
 
         {renderNotch(cpuX, cpuTemp, 'CPU', cpuBadgeY)}

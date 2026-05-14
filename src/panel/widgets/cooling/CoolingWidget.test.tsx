@@ -114,9 +114,15 @@ describe('CoolingWidget', () => {
     expect(screen.queryByRole('button', { name: 'Apply Off cooling profile' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Apply Custom cooling profile' })).not.toBeInTheDocument();
 
-    // No standalone CPU/GPU/FAN gauge labels in the non-compact surface anymore.
-    expect(screen.queryByText('CPU')).not.toBeInTheDocument();
-    expect(screen.queryByText('GPU')).not.toBeInTheDocument();
+    // BIOS-driven (no curves bound, fans in Auto): chart falls back to a
+    // synthetic curve and pins CPU/GPU notches onto it so the temps are
+    // always visible. data-synthetic='true' is the regression guard: if the
+    // real curve ever rendered as a flat zero-line we'd lose the fallback.
+    await waitFor(() => {
+      expect(screen.getByText('CPU')).toBeInTheDocument();
+    });
+    expect(screen.getByText('GPU')).toBeInTheDocument();
+    expect(document.querySelector('[data-synthetic="true"]')).toBeInTheDocument();
 
     // Avg duty readout in the chart's top-right corner (40 + 60) / 2 = 50%.
     await waitFor(() => {
