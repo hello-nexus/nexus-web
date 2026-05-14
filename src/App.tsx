@@ -26,6 +26,7 @@ import { SIMULATOR_QUERY_FLAG } from './panel/embed/simulatorProtocol';
 import OverlayShell from './overlay/OverlayShell';
 import { PairRedirect } from './PairRedirect';
 import { OpenInAppBanner } from './components/OpenInAppBanner';
+import { ConflictWarningBadge } from './components/Sidebar/ConflictWarning';
 import { ToolsView } from './components/views/ToolsView';
 import { SettingsView } from './components/views/SettingsView';
 import { DevicesView } from './components/views/DevicesView/DevicesView';
@@ -52,7 +53,8 @@ import {
 import { inferSurfaceFromViewport } from './panel/inferSurface';
 import { storePhoneToken } from './api/auth';
 import { MultiplexContext, useMultiplexConnection } from './hooks/useMultiplexSocket';
-import { UiSettingsProvider } from './hooks/useUiSettings';
+import { UiSettingsProvider, useUiSettings } from './hooks/useUiSettings';
+import { useConflictApps } from './hooks/useConflictApps';
 import * as monitoringStore from './lib/monitoringStore';
 import type { MonitoringFrame } from './hooks/useMonitoringFrame';
 import type { ScreenTimeData } from './hooks/useScreenTime';
@@ -511,6 +513,32 @@ function NotConnectedBadge({ state, t, compact }: {
 }
 
 // ── Sidebar footer (debug + version) ────────────────────────────────────────
+
+/**
+ * Bottom-left sidebar conflict warning slot. Reads the user's
+ * <c>disableConflictAlerts</c> preference from the UiSettings context so we
+ * can both gate the WebSocket subscription (no point polling when the user
+ * hid the badge) and let the in-modal "Don't show again" checkbox persist
+ * the flag through the same write path.
+ */
+function SidebarConflictSlot({ serviceOnline, compact }: {
+  serviceOnline: boolean;
+  compact: boolean;
+}) {
+  const { settings, update } = useUiSettings();
+  const enabled = serviceOnline && !settings.disableConflictAlerts;
+  const conflicts = useConflictApps(enabled);
+
+  if (!enabled) return null;
+
+  return (
+    <ConflictWarningBadge
+      conflicts={conflicts}
+      compact={compact}
+      onDismissForever={() => update({ disableConflictAlerts: true })}
+    />
+  );
+}
 
 function SidebarFooter({ active, onDebug, debugIcon, compact }: {
   active: boolean;
@@ -1215,6 +1243,7 @@ function Dashboard() {
                 compact={compact}
                 onClick={() => setPairPhoneOpen(true)}
               />
+              <SidebarConflictSlot serviceOnline={online} compact={compact} />
               <SidebarFooter
                 active={activeView === 'tools'}
                 onDebug={() => navigate('my-computer', 'tools')}
