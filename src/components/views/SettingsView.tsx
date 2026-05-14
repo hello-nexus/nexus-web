@@ -32,8 +32,8 @@ import {
 } from '../../lib/settings';
 import styles from './SettingsView.module.scss';
 
-type SettingsTab = 'general' | 'theme' | 'profiles';
-const VALID_TABS: SettingsTab[] = ['general', 'theme', 'profiles'];
+type SettingsTab = 'general' | 'theme' | 'profiles' | 'debug';
+const VALID_TABS: SettingsTab[] = ['general', 'theme', 'profiles', 'debug'];
 
 interface SettingsViewProps {
   serviceOnline: boolean;
@@ -82,6 +82,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
     { key: 'general', label: t('settings.general') },
     { key: 'theme', label: t('settings.theme') },
     { key: 'profiles', label: t('settings.tab.profiles') },
+    { key: 'debug', label: t('settings.tab.debug') },
   ];
 
   const updateGeneral = useCallback((patch: Partial<QosSettings['general']>) => {
@@ -110,6 +111,8 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
         return <ThemeTab settings={settings} updateGeneral={updateGeneral} />;
       case 'profiles':
         return <ProfilesTab profiles={profilesHook} onPreferencesChanged={onPreferencesChanged} />;
+      case 'debug':
+        return <DebugTab />;
       default:
         return null;
     }
@@ -798,6 +801,76 @@ function SelectRow({ label, value, options, onChange }: SelectRowProps) {
     <div className={styles.row}>
       {label && <span className={styles.rowLabel}>{label}</span>}
       <Select value={value} onChange={onChange} options={options} ariaLabel={label} />
+    </div>
+  );
+}
+
+// Debug tab — exports the running config in install-defaults.json shape so
+// the user can copy it to clipboard and paste back to the AI to overwrite
+// the canonical file. Two sources side-by-side: /defaults (the values
+// currently embedded in the AOT binary) and /defaults/snapshot (the live
+// values from QosSettings, projected into the same shape).
+function DebugTab() {
+  const { t } = useTranslation();
+  const [snapshot, setSnapshot] = useState<unknown>(null);
+  const [canonical, setCanonical] = useState<unknown>(null);
+  const [copied, setCopied] = useState<'snapshot' | 'canonical' | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      fetchService<unknown>('/defaults/snapshot').catch(() => null),
+      fetchService<unknown>('/defaults').catch(() => null),
+    ]).then(([snap, canon]) => {
+      if (cancelled) return;
+      setSnapshot(snap);
+      setCanonical(canon);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const copy = useCallback((which: 'snapshot' | 'canonical', value: unknown) => {
+    void navigator.clipboard.writeText(JSON.stringify(value, null, 2));
+    setCopied(which);
+    window.setTimeout(() => setCopied(prev => (prev === which ? null : prev)), 1500);
+  }, []);
+
+  return (
+    <div className={styles.tabPanel}>
+      <p className={styles.sectionHint}>{t('settings.debug.intro')}</p>
+      <DefaultsBlock
+        title={t('settings.debug.snapshotTitle')}
+        hint={t('settings.debug.snapshotHint')}
+        value={snapshot}
+        copiedLabel={copied === 'snapshot' ? t('settings.debug.copied') : t('settings.debug.copy')}
+        onCopy={() => copy('snapshot', snapshot)}
+      />
+      <DefaultsBlock
+        title={t('settings.debug.canonicalTitle')}
+        hint={t('settings.debug.canonicalHint')}
+        value={canonical}
+        copiedLabel={copied === 'canonical' ? t('settings.debug.copied') : t('settings.debug.copy')}
+        onCopy={() => copy('canonical', canonical)}
+      />
+    </div>
+  );
+}
+
+function DefaultsBlock({ title, hint, value, copiedLabel, onCopy }: {
+  title: string; hint: string; value: unknown; copiedLabel: string; onCopy: () => void;
+}) {
+  return (
+    <div className={styles.section}>
+      <div className={styles.sectionHeader}>
+        <h3 className={styles.sectionTitle}>{title}</h3>
+        <button type="button" className={styles.debugCopyBtn} onClick={onCopy} disabled={value === null}>
+          {copiedLabel}
+        </button>
+      </div>
+      <p className={styles.sectionHint}>{hint}</p>
+      <pre className={styles.debugJson}>
+        {value === null ? '…' : JSON.stringify(value, null, 2)}
+      </pre>
     </div>
   );
 }

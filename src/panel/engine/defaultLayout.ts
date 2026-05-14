@@ -2,11 +2,14 @@ import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
 import { createUuid } from '../../lib/uuid';
 
 // Client-side fallback when /preferences returns null or fails to load.
-// Kept intentionally identical in shape to qos-service/Panel/PanelLayoutDefaults.cs
-// so the two can't drift - if they disagree it's a bug, not a feature.
 //
-// Defaults are minimal on purpose: clock at the top, monitoring under
-// it. The user can drag in more from the catalog when they want them.
+// Canonical source lives at qos-service/data/install-defaults.json (see
+// panel.layouts.{desktop,y70,phone,q60}). The service consumes that file
+// at startup via InstallDefaults. These values are a sync-callable mirror
+// so the SPA's first paint doesn't need to await a network fetch; if you
+// change install-defaults.json, mirror the change here too. A follow-up
+// will swap this for a synchronous read of a pre-fetched /defaults cache,
+// removing the duplication entirely.
 
 function widget(type: string, size: PanelWidgetSize, col: number, row: number): PanelWidget {
   return {
