@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { applyProfile, fetchProfiles } from '../../../api/cooling';
+import {
+  applyProfile, fetchProfiles,
+  fetchCurves, fetchFanChannels, fetchTemperatureSources,
+  type FanChannel, type TemperatureSource,
+} from '../../../api/cooling';
 import { useSensors } from '../../../hooks/useSensors';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from '../../../components/views/cooling/coolingPresets';
-import { averageFanRpm } from '../../../components/views/cooling/coolingTrendHelpers';
-import { HalfGaugeGauge } from '../performance/gauges/HalfGaugeGauge';
 import { MicroBar } from '../performance/MicroBar';
 import type { GaugeProps } from '../performance/gauges/types';
+import type { CurveDef, CurveType, FanState, MixFn, CurvePreset } from '../../../types/cooling';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
+import { CoolingResponseChart } from './CoolingResponseChart';
 import styles from './CoolingWidget.module.scss';
 
 const WIDGET_PRESET_KEYS: CoolingPresetKey[] = ['silent', 'balanced', 'performance'];
 const TEMP_MAX = 100;
-const FAN_BASELINE_MAX = 2500;
 
 interface CoolingSlot {
   key: 'cpu' | 'gpu' | 'fan';
@@ -24,6 +27,10 @@ interface CoolingSlot {
 export function CoolingWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
   const [active, setActive] = useState<CoolingPresetKey>('custom');
+  const [curves, setCurves] = useState<CurveDef[]>([]);
+  const [fanStates, setFanStates] = useState<Record<string, FanState>>({});
+  const [channels, setChannels] = useState<FanChannel[]>([]);
+  const [sources, setSources] = useState<TemperatureSource[]>([]);
 
   const sensors = useSensors(true);
   const cpuTemp = sensors.cpu.find(s => s.type === 'Temperature');
@@ -33,8 +40,11 @@ export function CoolingWidget({ widget }: WidgetProps) {
     ...sensors.gpu.filter(s => s.type === 'Fan'),
   ];
   const hasFans = fanSensors.length > 0;
-  const fanValue = averageFanRpm(fanSensors.map(s => s.value));
-  const fanMax = Math.max(FAN_BASELINE_MAX, fanValue * 1.2);
+  const avgDuty = channels.length
+    ? channels.reduce((sum, c) => sum + c.dutyPercent, 0) / channels.length
+    : undefined;
+
+  const compact = widget.size === '2x2';
 
   const slots = useMemo<CoolingSlot[]>(() => {
     const list: CoolingSlot[] = [];
@@ -51,13 +61,14 @@ export function CoolingWidget({ widget }: WidgetProps) {
       });
     }
     if (hasFans) {
+      const duty = avgDuty ?? 0;
       list.push({
         key: 'fan',
-        props: gaugeProps(fanValue, (fanValue / fanMax) * 100, formatFan(fanValue), t('cooling.label.fan')),
+        props: gaugeProps(duty, duty, formatDuty(duty), t('cooling.label.fan')),
       });
     }
     return list;
-  }, [cpuTemp, gpuTemp, fanValue, fanMax, hasFans, t]);
+  }, [cpuTemp, gpuTemp, avgDuty, hasFans, t]);
 
   const refreshProfiles = useCallback(() => {
     fetchProfiles().then(data => {
@@ -65,8 +76,73 @@ export function CoolingWidget({ widget }: WidgetProps) {
       if (data.active && isCoolingPresetKey(data.active)) setActive(data.active);
     }).catch(() => { /* best-effort */ });
   }, []);
-  useEffect(() => { refreshProfiles(); }, [refreshProfiles]);
-  useTopicCallback('cooling', true, refreshProfiles);
+
+  // Load curves + fan-state mapping + temperature sources for the response
+  // chart. Mirrors CoolingView's normalisation: the API ships curves keyed
+  // by "input.id" / "Flat|Linear|Graph|Mixed" so we adapt to the shared
+  // CurveDef shape that computeCurveSpeed expects. Fan→curve assignment is
+  // derived from each curve's `outputs` plus any channel whose mode is
+  // Manual (those count as a flat baseline at their current duty).
+  const refreshCoolingConfig = useCallback(() => {
+    Promise.all([fetchFanChannels(), fetchCurves(), fetchTemperatureSources()])
+      .then(([fans, saved, temps]) => {
+        const restored: Record<string, FanState> = {};
+        if (fans?.channels) {
+          setChannels(fans.channels);
+          for (const ch of fans.channels) {
+            if (ch.mode === 'Manual') restored[ch.id] = { softwareControl: true, curveId: null };
+          }
+        }
+        if (saved?.curves?.length) {
+          const loaded: CurveDef[] = saved.curves.map(c => ({
+            id: c.id,
+            name: c.name,
+            type: (c.type === 'Flat' ? 'flat' : c.type === 'Linear' ? 'linear' : c.type === 'Graph' ? 'graph' : 'mix') as CurveType,
+            sourceId: c.input?.id ?? '',
+            flat: { speed: c.flat?.speed ?? 50 },
+            linear: {
+              responseTime: c.linear?.responseTime ?? 1.5,
+              minTemp: c.linear?.minTemp ?? 35,
+              maxTemp: c.linear?.maxTemp ?? 75,
+              minSpeed: c.linear?.minSpeed ?? 30,
+              maxSpeed: c.linear?.maxSpeed ?? 90,
+            },
+            graph: {
+              responseTime: c.graph?.responseTime ?? 1.5,
+              points: c.graph?.points?.length ? c.graph.points : [
+                { temp: 30, speed: 25 }, { temp: 50, speed: 40 },
+                { temp: 70, speed: 70 }, { temp: 90, speed: 100 },
+              ],
+            },
+            mix: {
+              responseTime: c.mixed?.responseTime ?? 1.0,
+              curveIds: c.mixed?.curveIds ?? [],
+              fn: (c.mixed?.fn ?? 'max') as MixFn,
+            },
+            preset: c.preset ? (c.preset as CurvePreset) : undefined,
+          }));
+          setCurves(loaded);
+          for (const c of saved.curves) {
+            for (const out of c.outputs ?? []) {
+              restored[out.id] = { softwareControl: true, curveId: c.id };
+            }
+          }
+        } else {
+          setCurves([]);
+        }
+        setFanStates(restored);
+        if (temps?.sources) setSources(temps.sources);
+      })
+      .catch(() => { /* best-effort */ });
+  }, []);
+
+  const onCoolingTopic = useCallback(() => {
+    refreshProfiles();
+    refreshCoolingConfig();
+  }, [refreshProfiles, refreshCoolingConfig]);
+
+  useEffect(() => { refreshProfiles(); refreshCoolingConfig(); }, [refreshProfiles, refreshCoolingConfig]);
+  useTopicCallback('cooling', true, onCoolingTopic);
 
   useEffect(() => subscribeControlSync(event => {
     if (event.domain !== 'cooling') return;
@@ -80,7 +156,6 @@ export function CoolingWidget({ widget }: WidgetProps) {
     applyProfile(key).catch(() => { /* best-effort */ });
   };
 
-  const compact = widget.size === '2x2';
   const widgetPresets = useMemo(
     () => COOLING_PRESETS.filter(p => WIDGET_PRESET_KEYS.includes(p.key)),
     [],
@@ -104,18 +179,16 @@ export function CoolingWidget({ widget }: WidgetProps) {
   }
 
   return (
-    <div className={styles.cooling} data-size={widget.size} data-slots={slots.length}>
-      <div
-        className={styles.slotGrid}
-        role="group"
-        aria-label={t('panel.widget.cooling')}
-      >
-        {slots.map(slot => (
-          <div key={slot.key} className={styles.slot}>
-            <HalfGaugeGauge {...slot.props} />
-          </div>
-        ))}
-      </div>
+    <div className={styles.cooling} data-size={widget.size}>
+      <CoolingResponseChart
+        curves={curves}
+        fanStates={fanStates}
+        channels={channels}
+        sources={sources}
+        cpuTemp={cpuTemp?.value}
+        gpuTemp={gpuTemp?.value}
+        avgDuty={avgDuty}
+      />
 
       <div className={styles.chips}>
         {widgetPresets.map(p => {
@@ -157,11 +230,8 @@ function formatTemp(value: number): string {
   return `${Math.round(value)}°C`;
 }
 
-function formatFan(value: number): string {
-  // No thousands separator - splitFormatted's number regex only handles
-  // plain digits, so "1,400 RPM" would split into "1" + ",400 RPM" and
-  // the unit chip would swallow most of the number.
-  return `${Math.round(value)} RPM`;
+function formatDuty(value: number): string {
+  return `${Math.round(value)}%`;
 }
 
 export default CoolingWidget;

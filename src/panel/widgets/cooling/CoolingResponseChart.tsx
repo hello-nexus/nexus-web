@@ -1,0 +1,155 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { computeCurveSpeed } from '../../../components/views/cooling/CurveEditor';
+import type { CurveDef, FanState } from '../../../types/cooling';
+import type { FanChannel, TemperatureSource } from '../../../api/cooling';
+import styles from './CoolingResponseChart.module.scss';
+
+const TEMP_MIN = 20;
+const TEMP_MAX = 100;
+const SAMPLE_STEP = 2;
+const PAD = { left: 6, right: 6, top: 18, bottom: 6 };
+
+interface Props {
+  curves: CurveDef[];
+  fanStates: Record<string, FanState>;
+  channels: FanChannel[];
+  sources: TemperatureSource[];
+  cpuTemp?: number;
+  gpuTemp?: number;
+  avgDuty?: number;
+}
+
+/**
+ * Approximate "if all temps were at T" average fan duty across every
+ * software-controlled fan. Sweeping the *unified* virtual temperature lets
+ * any curve (regardless of its individual source) respond along a single
+ * axis. Manual fans contribute a flat baseline at their current duty.
+ */
+export function CoolingResponseChart({
+  curves, fanStates, channels, sources,
+  cpuTemp, gpuTemp, avgDuty,
+}: Props) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(220);
+  const [height, setHeight] = useState(72);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0) setWidth(Math.round(rect.width));
+    if (rect.height > 0) setHeight(Math.round(rect.height));
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(es => {
+      for (const e of es) {
+        const w = e.contentRect.width, h = e.contentRect.height;
+        if (w > 0) setWidth(Math.round(w));
+        if (h > 0) setHeight(Math.round(h));
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const samples = useMemo(() => {
+    const channelMap = new Map(channels.map(c => [c.id, c]));
+    const pts: Array<{ temp: number; speed: number }> = [];
+
+    for (let T = TEMP_MIN; T <= TEMP_MAX; T += SAMPLE_STEP) {
+      const swept = sources.map(s => ({ ...s, value: T }));
+      let sum = 0;
+      let n = 0;
+
+      for (const [fanId, state] of Object.entries(fanStates)) {
+        if (!state.softwareControl) continue;
+        if (state.curveId === null) {
+          const ch = channelMap.get(fanId);
+          if (ch) { sum += ch.dutyPercent; n += 1; }
+        } else {
+          const curve = curves.find(c => c.id === state.curveId);
+          if (curve) { sum += computeCurveSpeed(curve, swept, curves); n += 1; }
+        }
+      }
+
+      if (n > 0) pts.push({ temp: T, speed: Math.max(0, Math.min(100, sum / n)) });
+    }
+    return pts;
+  }, [curves, fanStates, channels, sources]);
+
+  if (samples.length === 0) {
+    return (
+      <div ref={wrapRef} className={styles.chart}>
+        {typeof avgDuty === 'number' && (
+          <div className={styles.fanReadout} aria-label="Average fan duty">
+            <span className={styles.fanLabel}>FANS</span>
+            <span className={styles.fanValue}>{Math.round(avgDuty)}%</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const chartW = Math.max(1, width - PAD.left - PAD.right);
+  const chartH = height - PAD.top - PAD.bottom;
+  const tempToX = (t: number) => PAD.left + ((t - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * chartW;
+  const speedToY = (s: number) => PAD.top + chartH - (s / 100) * chartH;
+
+  // Dense linear sampling (every 2 °C). Straight segments between ~40 points
+  // read as a smooth curve at widget sizes; no spline math needed.
+  const path = samples.map((p, i) => `${i === 0 ? 'M' : 'L'} ${tempToX(p.temp).toFixed(1)} ${speedToY(p.speed).toFixed(1)}`).join(' ');
+  const first = samples[0], last = samples[samples.length - 1];
+  const area = `${path} L ${tempToX(last.temp).toFixed(1)} ${speedToY(0).toFixed(1)} L ${tempToX(first.temp).toFixed(1)} ${speedToY(0).toFixed(1)} Z`;
+
+  // Notch positions; if CPU and GPU labels would overlap, stagger the GPU
+  // badge down a row so both stay readable.
+  const cpuX = typeof cpuTemp === 'number' ? tempToX(Math.max(TEMP_MIN, Math.min(TEMP_MAX, cpuTemp))) : null;
+  const gpuX = typeof gpuTemp === 'number' ? tempToX(Math.max(TEMP_MIN, Math.min(TEMP_MAX, gpuTemp))) : null;
+  const BADGE_W = 52, BADGE_H = 15;
+  const collision = cpuX !== null && gpuX !== null && Math.abs(cpuX - gpuX) < BADGE_W;
+  const cpuBadgeY = 0;
+  const gpuBadgeY = collision ? BADGE_H + 1 : 0;
+
+  const renderNotch = (x: number | null, temp: number | undefined, label: string, badgeY: number) => {
+    if (x === null || typeof temp !== 'number') return null;
+    return (
+      <g className={styles.notch}>
+        <line x1={x} y1={PAD.top} x2={x} y2={height - PAD.bottom} className={styles.notchLine} />
+        <rect x={x - BADGE_W / 2} y={badgeY} width={BADGE_W} height={BADGE_H} rx="2" className={styles.notchBadge} />
+        <text x={x} y={badgeY + BADGE_H - 4} className={styles.notchText} textAnchor="middle">
+          <tspan className={styles.notchLabel}>{label}</tspan>
+          <tspan className={styles.notchValue}> {Math.round(temp)}°</tspan>
+        </text>
+      </g>
+    );
+  };
+
+  return (
+    <div ref={wrapRef} className={styles.chart}>
+      {typeof avgDuty === 'number' && (
+        <div className={styles.fanReadout} aria-label="Average fan duty">
+          <span className={styles.fanLabel}>FANS</span>
+          <span className={styles.fanValue}>{Math.round(avgDuty)}%</span>
+        </div>
+      )}
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className={styles.svg}>
+        <defs>
+          <linearGradient id="cwResponseGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--panel-accent, var(--accent))" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--panel-accent, var(--accent))" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {[25, 50, 75].map(s => (
+          <line key={s}
+            x1={PAD.left} y1={speedToY(s)}
+            x2={width - PAD.right} y2={speedToY(s)}
+            className={styles.gridLine} />
+        ))}
+        <path d={area} fill="url(#cwResponseGrad)" />
+        <path d={path} className={styles.line} fill="none" />
+
+        {renderNotch(cpuX, cpuTemp, 'CPU', cpuBadgeY)}
+        {renderNotch(gpuX, gpuTemp, 'GPU', gpuBadgeY)}
+      </svg>
+    </div>
+  );
+}

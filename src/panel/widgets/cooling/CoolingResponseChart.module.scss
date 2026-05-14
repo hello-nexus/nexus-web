@@ -1,0 +1,87 @@
+.chart {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 60px;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.gridLine {
+  stroke: var(--panel-border);
+  stroke-width: 0.5;
+  stroke-dasharray: 2 3;
+  opacity: 0.45;
+}
+
+.line {
+  stroke: var(--panel-accent-glow, var(--accent-glow));
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+// Notch treatment matches CoolingView's .curveTempIndicator: outlined badge
+// in panel bg, --accent-glow border + text, dashed glow line.
+.notch { pointer-events: none; }
+
+.notchLine {
+  stroke: var(--accent-glow);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  opacity: 0.85;
+}
+
+.notchBadge {
+  fill: var(--bg, var(--panel-bg));
+  stroke: var(--accent-glow);
+  stroke-width: 1;
+  opacity: 0.95;
+}
+
+.notchText {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+// Label ("CPU"/"GPU") in accent-glow; value ("67°") in primary text.
+// Same mix used by the .fanReadout in the top-right.
+.notchLabel { fill: var(--accent-glow); }
+.notchValue { fill: var(--panel-text, var(--text)); }
+
+// Average fan duty, top-right. Allowed to overlap the curve line at high
+// duty. Label = primary text (--panel-text), value = accent-glow, so the
+// readout reads as a normal labeled metric, not a colored chip.
+.fanReadout {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  z-index: 1;
+  line-height: 1;
+}
+
+.fanLabel {
+  color: var(--accent-glow);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.fanValue {
+  color: var(--panel-text, var(--text));
+  font-size: 16px;
+  font-weight: 700;
+}

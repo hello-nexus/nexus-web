@@ -34,6 +34,14 @@ vi.mock('../../../api/cooling', () => ({
       { name: 'Performance' },
     ],
   })),
+  fetchCurves: vi.fn(() => Promise.resolve({ globalSpeedModifier: 1, curves: [] })),
+  fetchFanChannels: vi.fn(() => Promise.resolve({
+    channels: [
+      { id: 'fan-1', name: 'Fan 1', dutyPercent: 40, rpm: 1200, mode: 'Auto' },
+      { id: 'fan-2', name: 'Fan 2', dutyPercent: 60, rpm: 1600, mode: 'Auto' },
+    ],
+  })),
+  fetchTemperatureSources: vi.fn(() => Promise.resolve({ sources: [] })),
 }));
 
 vi.mock('../../../hooks/useSensors', () => ({
@@ -76,7 +84,7 @@ describe('CoolingWidget', () => {
     sensorFixture.current = sensorFixture.build();
   });
 
-  it('renders 2x2 with three BarGauge slots and no preset buttons', () => {
+  it('renders 2x2 MicroBars with CPU/GPU temps and FAN duty %, no preset buttons', async () => {
     render(<CoolingWidget widget={coolingWidget('2x2')} />);
 
     expect(screen.queryByRole('button', { name: 'Apply Silent cooling profile' })).not.toBeInTheDocument();
@@ -88,10 +96,14 @@ describe('CoolingWidget', () => {
     expect(screen.getByText('FAN')).toBeInTheDocument();
     expect(screen.getByText('58')).toBeInTheDocument();
     expect(screen.getByText('46')).toBeInTheDocument();
-    expect(screen.getByText('1400')).toBeInTheDocument();
+
+    // FAN reads duty % once fan channels load (mock: avg of 40 + 60 = 50).
+    await waitFor(() => {
+      expect(screen.getByText('50')).toBeInTheDocument();
+    });
   });
 
-  it('renders 4x2 with HalfGaugeGauge slots + Silent/Balanced/Performance buttons', async () => {
+  it('renders 4x2 with response chart fan readout + Silent/Balanced/Performance buttons', async () => {
     render(<CoolingWidget widget={coolingWidget('4x2')} />);
 
     expect(screen.getByRole('button', { name: 'Apply Silent cooling profile' })).toHaveTextContent('Silent');
@@ -102,23 +114,28 @@ describe('CoolingWidget', () => {
     expect(screen.queryByRole('button', { name: 'Apply Off cooling profile' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Apply Custom cooling profile' })).not.toBeInTheDocument();
 
-    expect(screen.getByText('CPU')).toBeInTheDocument();
-    expect(screen.getByText('GPU')).toBeInTheDocument();
-    expect(screen.getByText('FAN')).toBeInTheDocument();
+    // No standalone CPU/GPU/FAN gauge labels in the non-compact surface anymore.
+    expect(screen.queryByText('CPU')).not.toBeInTheDocument();
+    expect(screen.queryByText('GPU')).not.toBeInTheDocument();
+
+    // Avg duty readout in the chart's top-right corner (40 + 60) / 2 = 50%.
+    await waitFor(() => {
+      expect(screen.getByLabelText('Average fan duty')).toHaveTextContent('50%');
+    });
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Apply Balanced cooling profile' }).getAttribute('data-active')).toBe('true');
     });
   });
 
-  it('hides slots whose sensors are absent', () => {
+  it('hides MicroBar slots whose sensors are absent (2x2)', () => {
     sensorFixture.current = {
       ...sensorFixture.build(),
       gpu: [],
       motherboard: [],
     };
 
-    render(<CoolingWidget widget={coolingWidget('4x2')} />);
+    render(<CoolingWidget widget={coolingWidget('2x2')} />);
 
     expect(screen.getByText('CPU')).toBeInTheDocument();
     expect(screen.queryByText('GPU')).not.toBeInTheDocument();

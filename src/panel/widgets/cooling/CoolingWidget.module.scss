@@ -9,30 +9,6 @@
   box-sizing: border-box;
 }
 
-// Slot grid auto-fits to slot count - 1 / 2 / 3 columns depending on which
-// sensors are present. Each slot fills the available height so the
-// reused monitoring gauges scale with the widget cell.
-.slotGrid {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: repeat(var(--slot-count, 3), minmax(0, 1fr));
-  gap: 8px;
-}
-
-.cooling[data-slots='1'] .slotGrid { --slot-count: 1; }
-.cooling[data-slots='2'] .slotGrid { --slot-count: 2; }
-.cooling[data-slots='3'] .slotGrid { --slot-count: 3; }
-.cooling[data-slots='0'] .slotGrid { display: none; }
-
-.slot {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
 .chips {
   display: flex;
   gap: 6px;
