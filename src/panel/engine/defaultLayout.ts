@@ -1,92 +1,43 @@
 import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
 import { createUuid } from '../../lib/uuid';
+import { getInstallDefaults } from '../../api/installDefaultsCache';
 
-// Client-side fallback when /preferences returns null or fails to load.
+// Synchronous accessors for the four canonical surface layouts. Pulls from
+// the install-defaults cache populated by `preloadInstallDefaults()` at
+// bootstrap (main.tsx). When the cache hasn't filled yet — only possible
+// during a sub-100ms race between bootstrap and the first hook init — we
+// return an empty-widgets layout so the SPA renders something; the next
+// /preferences round-trip replaces it with the persisted state anyway.
 //
-// Canonical source lives at qos-service/data/install-defaults.json (see
-// panel.layouts.{desktop,y70,phone,q60}). The service consumes that file
-// at startup via InstallDefaults. These values are a sync-callable mirror
-// so the SPA's first paint doesn't need to await a network fetch; if you
-// change install-defaults.json, mirror the change here too. A follow-up
-// will swap this for a synchronous read of a pre-fetched /defaults cache,
-// removing the duplication entirely.
+// Canonical values live in qos-service/data/install-defaults.json under
+// panel.layouts.{desktop,y70,phone,q60}.
 
-function widget(type: string, size: PanelWidgetSize, col: number, row: number): PanelWidget {
+function buildLayout(surface: PanelLayout['surface']): PanelLayout {
+  const defaults = getInstallDefaults();
+  const src = defaults?.panel.layouts[surface];
   return {
-    id: createUuid(),
-    type,
-    size,
-    col,
-    row,
-  };
-}
-
-export function defaultLayoutForY70(): PanelLayout {
-  return {
-    layoutSchemaVersion: 2,
-    surface: 'y70',
+    layoutSchemaVersion: src?.layoutSchemaVersion ?? 2,
+    surface,
     pages: [
       {
         id: createUuid(),
-        widgets: [
-          widget('clock',      '4x2', 0, 0),
-          widget('monitoring', '4x4', 0, 2),
-        ],
+        widgets: (src?.widgets ?? []).map(w => ({
+          id: createUuid(),
+          type: w.type,
+          size: w.size as PanelWidgetSize,
+          col: w.col,
+          row: w.row,
+        }) satisfies PanelWidget),
       },
     ],
   };
 }
 
-export function defaultLayoutForPhone(): PanelLayout {
-  return {
-    layoutSchemaVersion: 2,
-    surface: 'phone',
-    pages: [
-      {
-        id: createUuid(),
-        widgets: [
-          widget('clock',      '4x2', 0, 0),
-          widget('monitoring', '4x4', 0, 2),
-        ],
-      },
-    ],
-  };
-}
-
-export function defaultLayoutForQ60(): PanelLayout {
-  return {
-    layoutSchemaVersion: 2,
-    surface: 'q60',
-    pages: [
-      {
-        id: createUuid(),
-        widgets: [
-          widget('monitoring', '2x4', 0, 0),
-        ],
-      },
-    ],
-  };
-}
-
-export function defaultLayoutForDashboard(): PanelLayout {
-  return {
-    layoutSchemaVersion: 2,
-    surface: 'desktop',
-    pages: [
-      {
-        id: createUuid(),
-        widgets: [
-          widget('clock',      '4x2', 0, 0),
-          widget('monitoring', '4x4', 0, 2),
-        ],
-      },
-    ],
-  };
-}
+export const defaultLayoutForY70       = (): PanelLayout => buildLayout('y70');
+export const defaultLayoutForPhone     = (): PanelLayout => buildLayout('phone');
+export const defaultLayoutForQ60       = (): PanelLayout => buildLayout('q60');
+export const defaultLayoutForDashboard = (): PanelLayout => buildLayout('desktop');
 
 export function defaultLayoutForSurface(surface: PanelLayout['surface']): PanelLayout {
-  if (surface === 'desktop') return defaultLayoutForDashboard();
-  if (surface === 'phone') return defaultLayoutForPhone();
-  if (surface === 'q60') return defaultLayoutForQ60();
-  return defaultLayoutForY70();
+  return buildLayout(surface);
 }

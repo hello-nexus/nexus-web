@@ -48,6 +48,9 @@ export type ThemeMode = (typeof THEME_MODES)[number];
 // All other accent tokens (glow, deep, soft, glow-shadow, plus the
 // matching --accent-text variants) are derived from this single value
 // per-theme in applyAccentColor().
+// Absolute-last-resort fallback for the first paint, before either
+// localStorage or the /defaults cache has anything useful. Must mirror
+// qos-service/data/install-defaults.json → theme.accentColor.
 export const DEFAULT_ACCENT = '#8b5cf6';
 
 // Preset swatch grid shown in the settings picker. Two rows of ten span ten
@@ -100,6 +103,11 @@ export interface QosSettings {
 
 // ── Defaults ─────────────────────────────────────────────────────────────────
 
+// First-paint defaults — used only when localStorage is empty AND the
+// /defaults cache hasn't loaded yet. The canonical values for every field
+// here live in qos-service/data/install-defaults.json (theme.* and
+// monitoring.*); keep them in sync until the cache-aware bootstrap can
+// take over this read too.
 export function getDefaultSettings(): QosSettings {
   return {
     general: {

@@ -6,6 +6,7 @@ import './styles/variables.scss';
 import './styles/global.scss';
 import { loadSettings, applyThemeMode, applyAccentColor, watchSystemTheme } from './lib/settings';
 import { bootDebugFont } from './lib/debugFont';
+import { preloadInstallDefaults } from './api/installDefaultsCache';
 
 // Apply persisted theme mode + accent color before first paint so there's
 // no flash of the default violet.
@@ -14,6 +15,12 @@ applyThemeMode(general.themeMode);
 applyAccentColor(general.accentColor);
 watchSystemTheme(general.themeMode);
 bootDebugFont();
+
+// Kick off the install-defaults fetch in parallel with React mount; the
+// `defaultLayout*` helpers read from this cache instead of hardcoding the
+// panel surface layouts. Not awaited — the network round-trip resolves
+// faster than the first hook that needs it.
+void preloadInstallDefaults();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

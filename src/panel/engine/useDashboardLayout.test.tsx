@@ -21,6 +21,30 @@ vi.mock('./panelSync', () => ({
   onLayoutChanged: () => () => {},
 }));
 
+// defaultLayout.ts now reads from the install-defaults cache. Stub the cache
+// with the canonical layouts so the seeded-desktop test assertion (clock +
+// monitoring widgets) matches the canonical install-defaults.json values.
+vi.mock('../../api/installDefaultsCache', () => ({
+  preloadInstallDefaults: () => Promise.resolve(null),
+  getInstallDefaults: () => ({
+    panel: {
+      layouts: {
+        desktop: {
+          layoutSchemaVersion: 2,
+          surface: 'desktop',
+          widgets: [
+            { type: 'clock',      size: '4x2', col: 0, row: 0 },
+            { type: 'monitoring', size: '4x4', col: 0, row: 2 },
+          ],
+        },
+        y70:   { layoutSchemaVersion: 2, surface: 'y70',   widgets: [] },
+        phone: { layoutSchemaVersion: 2, surface: 'phone', widgets: [] },
+        q60:   { layoutSchemaVersion: 2, surface: 'q60',   widgets: [] },
+      },
+    },
+  }),
+}));
+
 import { useDashboardLayout } from './useDashboardLayout';
 
 beforeEach(() => {
