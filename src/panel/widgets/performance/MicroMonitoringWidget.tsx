@@ -99,7 +99,7 @@ function MicroRow({ sensors, fpsSensors, networkSensors, device, sensorName }: M
   const history = useSharedSensorHistory(sensorKey, rawValue) as number[];
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
-    : staticMaxForDevice(device);
+    : staticMaxForDevice(device, sensor?.name);
   const fillPercent = percentForSensor(device, sensor, maxValue);
 
   return <MicroBar label={label} formatted={formatted} fillPercent={fillPercent} />;

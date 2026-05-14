@@ -74,10 +74,10 @@ export function labelForDevice(device: DeviceKey, sensorName: string): string {
   }
 }
 
-export function staticMaxForDevice(device: DeviceKey): number {
+export function staticMaxForDevice(device: DeviceKey, sensorName?: string): number {
   if (device === 'fan') return 2500;
   if (device === 'storage') return 100;
-  if (device === 'fps') return 240;
+  if (device === 'fps') return sensorName === 'Frame Time' ? 50 : 240;
   // Load/temperature/clock sensors - default percentage max
   return 100;
 }
@@ -180,9 +180,9 @@ export function PerfSlot({ sensors, fpsSensors, networkSensors, device, sensorNa
   const history = useSharedSensorHistory(sensorKey, rawValue) as number[];
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
-    : staticMaxForDevice(device);
+    : staticMaxForDevice(device, sensor?.name);
   const value = percentForSensor(device, sensor, maxValue);
-  const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale);
+  const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name);
   // Stabilize tuple reference so the Sparkline path-memo keys on bound values, not array identity.
   const historyDomain = useMemo<[number, number]>(() => [domainMin, domainMax], [domainMin, domainMax]);
 

@@ -18,9 +18,10 @@ export function chartDomainForScale(
   history: readonly number[],
   staticMax: number,
   scale: ScaleMode,
+  sensorName?: string,
 ): [number, number] {
   if (scale === 'fixed') return [0, staticMax];
-  return relativeHistoryDomain(device, rawValue, history, staticMax);
+  return relativeHistoryDomain(device, rawValue, history, staticMax, sensorName);
 }
 
 const PERCENT_FLOOR = 25;
@@ -29,6 +30,8 @@ const FAN_FLOOR = 1200;
 const FAN_STEP = 500;
 const FPS_FLOOR = 60;
 const FPS_STEP = 30;
+const FRAME_TIME_FLOOR = 20;
+const FRAME_TIME_STEP = 10;
 
 /**
  * Relative chart domain for the panel performance line gauges. Lower bound
@@ -44,6 +47,7 @@ export function relativeHistoryDomain(
   rawValue: number,
   history: readonly number[],
   staticMax: number,
+  sensorName?: string,
 ): [number, number] {
   if (device === 'network') return [0, staticMax];
 
@@ -56,6 +60,9 @@ export function relativeHistoryDomain(
     return [0, Math.max(FAN_FLOOR, Math.ceil(observed / FAN_STEP) * FAN_STEP)];
   }
   if (device === 'fps') {
+    if (sensorName === 'Frame Time') {
+      return [0, Math.max(FRAME_TIME_FLOOR, Math.ceil(observed / FRAME_TIME_STEP) * FRAME_TIME_STEP)];
+    }
     return [0, Math.max(FPS_FLOOR, Math.ceil(observed / FPS_STEP) * FPS_STEP)];
   }
   // cpu/gpu/memory/storage report 0-100 percent; clamp to 100 ceiling.

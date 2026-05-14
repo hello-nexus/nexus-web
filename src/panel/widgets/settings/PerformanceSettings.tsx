@@ -69,7 +69,10 @@ function sensorsForDevice(
         : [];
       break;
     case 'fps':
-      options = [{ value: 'FPS', label: 'FPS' }];
+      options = [
+        { value: 'FPS', label: 'FPS' },
+        { value: 'Frame Time', label: 'Frame Time' },
+      ];
       break;
     default:
       options = [];
