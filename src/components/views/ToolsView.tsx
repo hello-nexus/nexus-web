@@ -59,10 +59,10 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
       <div className={styles.grid}>
         <StorybookCard />
         <WidgetSdkCard />
+        <InstallDefaultsCard />
         <PawnIoCard />
         <PanelSimulatorCard />
         <FontDebugCard />
-        <InstallDefaultsCard />
       </div>
     </div>
   );
@@ -73,7 +73,7 @@ function StorybookCard() {
   const [open, setOpen] = useState(false);
 
   return (
-    <Card title={t('tools.storybook')} className={styles.wide}>
+    <Card title={t('tools.storybook')}>
       <span className={styles.dim}>{t('tools.storybook.label')}</span>
       <Button tone="accent" size="sm" onClick={() => setOpen(true)}>{t('tools.storybook.open')}</Button>
       <StorybookModal open={open} onClose={() => setOpen(false)} />
@@ -90,7 +90,7 @@ function StorybookCard() {
  */
 function WidgetSdkCard() {
   return (
-    <Card title="Widget SDK reference" className={styles.wide}>
+    <Card title="Widget SDK reference">
       <span className={styles.dim}>
         Every meter, binding function, data source, dispatch action, capability — with live previews.
         Acts as the bible for the declarative widget SDK and 3rd-party widget authors.
@@ -148,7 +148,7 @@ function InstallDefaultsCard() {
   const [open, setOpen] = useState(false);
 
   return (
-    <Card title="Install defaults" className={styles.wide}>
+    <Card title="Install defaults">
       <span className={styles.dim}>
         Open the snapshot, copy any section's current values, and paste over the matching
         block in <code>qos-service/data/install-defaults.json</code> to make them the new defaults.
@@ -223,7 +223,7 @@ function InstallDefaultsPopup({ open, onClose }: { open: boolean; onClose: () =>
   const allText = snapshot ? JSON.stringify(snapshot, null, 2) : '';
 
   return (
-    <DevicePopup open={open} onClose={onClose} large title="Install defaults">
+    <DevicePopup open={open} onClose={onClose} wide title="Install defaults">
       <div className={styles.installDefaultsPopup}>
         <p className={styles.dim}>
           Copy any section's current values; paste over the matching block in
