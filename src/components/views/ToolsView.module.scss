@@ -167,22 +167,25 @@
 }
 
 // ── Install-defaults export popup ───────────────────────────────────────────
-// The popup itself has a fixed max-height; the SECTIONS list is the single
-// scroll container. Each section's JSON renders fully (no inner max-height)
-// so there's only one scrollbar to deal with.
+// DevicePopup's body already owns the scrollbar (overflow-y: auto). The
+// content here is a plain stacked column — no inner scrollers, no flex
+// heroics. The popup body grows up to its max-height and the body scrolls.
 
 .installDefaultsPopup {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  flex: 1;
-  min-height: 0;
 }
 .installDefaultsTabs {
   display: flex;
   gap: 0.25rem;
-  flex-shrink: 0;
   border-bottom: 1px solid var(--border-faint);
+  position: sticky;
+  top: -1.25rem; // cancel the popup body's top padding so the tab bar pins flush
+  background: var(--bg-elevated);
+  z-index: 1;
+  margin: -0.25rem 0 0;
+  padding-top: 0.25rem;
 }
 .installDefaultsTab {
   padding: 0.5rem 1rem;
@@ -204,16 +207,11 @@
 .installDefaultsTopBar {
   display: flex;
   justify-content: flex-end;
-  flex-shrink: 0;
 }
 .installDefaultsSections {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
-  padding-right: 0.5rem;
 }
 .installDefaultsSection {
   border: 1px solid var(--border-faint);
