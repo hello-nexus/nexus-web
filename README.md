@@ -1,73 +1,48 @@
-# React + TypeScript + Vite
+# qos-web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite dashboard for [Qos](https://nexusqos.com). The same
+bundle is shipped two ways:
 
-Currently, two official plugins are available:
+- **Standalone web app** — served via the bundled Node server (`npm start`)
+  or any static host. Used during development and for the marketing demo.
+- **Service-embedded UI** — built into `qos-service` and served from the
+  local Windows service on `http://127.0.0.1:9400` / `https://127.0.0.1:9443`.
+  Builds with `npm run build:service`.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Surfaces
 
-## React Compiler
+The app routes a small set of top-level surfaces from the URL path:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Path | Purpose |
+|---|---|
+| `/` | Dashboard (desktop). Connects to qos-service over REST + WS. |
+| `/panel/:deviceId` | Kiosk panel surface for embedded touchscreens. |
+| `/panel/phone` | Mobile remote surface (paired via QR). |
+| `/overlay` | Per-monitor overlay hosted by `qos-overlay.exe`. |
+| `/r/pair` | iOS Universal Link landing page (App Store / browser fallback). |
+| `/snapshot-harness` | Dev-only Playwright visual-parity fixture. |
 
-## Expanding the ESLint configuration
+## Scripts
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+npm run dev              # vite dev server
+npm run build            # standalone build (dist/)
+npm run build:service    # build that qos-service embeds
+npm run lint
+npm test                 # vitest unit
+npm run test:e2e         # playwright
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Environment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Vite-side env vars (`VITE_*`) and runtime probing in `src/api/service.ts`
+resolve the service host. Local development typically uses
+`http://127.0.0.1:9400`; the embedded build is same-origin.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Architecture
+
+See `qos/docs/network-transport.md` in the parent qos workspace (or
+`qos-service/docs/network-transport.md` here as a submodule) for the
+authoritative transport, polling cadence, and WebSocket topic inventory.
+Widget host architecture is documented under `src/widgets/` and
+`qos-service/docs/api-spec.md`.
