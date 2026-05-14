@@ -20,6 +20,7 @@ import {
   setSimulatedPanelConnected,
 } from '../../lib/panelSimulation';
 import { FontDebugCard } from './FontDebugCard';
+import { fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import styles from './ToolsView.module.scss';
 
 interface ToolsViewProps {
@@ -60,6 +61,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
         <PawnIoCard />
         <PanelSimulatorCard />
         <FontDebugCard />
+        <InstallDefaultsCard />
       </div>
     </div>
   );
@@ -129,6 +131,86 @@ function PawnIoCard() {
       ) : (
         <span className={styles.dim}>{t('tools.pawnio.loading')}</span>
       )}
+    </Card>
+  );
+}
+
+// Per-section copy buttons for the live install-defaults snapshot. Click a
+// row's Copy and the matching key + value lands on the clipboard in the same
+// shape used by qos-service/data/install-defaults.json — paste over the
+// matching block in that file to make the current values the new defaults.
+function InstallDefaultsCard() {
+  const [snapshot, setSnapshot] = useState<InstallDefaultsDocument | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchInstallDefaultsSnapshot()
+      .then(d => { if (!cancelled) setSnapshot(d); })
+      .catch(() => { /* card stays disabled */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const copy = (key: string, value: unknown) => {
+    // Wrap the value with its key so the user can find-and-replace the
+    // matching block in install-defaults.json in one paste action.
+    const body = JSON.stringify({ [key]: value }, null, 2);
+    // Strip the outer braces so what lands on the clipboard is just the
+    // `"key": <value>` fragment — pastes cleanly inside an existing object.
+    const trimmed = body.replace(/^\{\n/, '').replace(/\n\}$/, '').replace(/^  /gm, '');
+    void navigator.clipboard.writeText(trimmed);
+    setCopied(key);
+    window.setTimeout(() => setCopied(prev => prev === key ? null : prev), 1200);
+  };
+
+  const copyAll = () => {
+    if (!snapshot) return;
+    void navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2));
+    setCopied('__all__');
+    window.setTimeout(() => setCopied(prev => prev === '__all__' ? null : prev), 1200);
+  };
+
+  const sections: { key: keyof InstallDefaultsDocument; label: string }[] = [
+    { key: 'theme',      label: 'theme' },
+    { key: 'monitoring', label: 'monitoring' },
+    { key: 'panel',      label: 'panel' },
+    { key: 'overlay',    label: 'overlay' },
+    { key: 'lighting',   label: 'lighting' },
+    { key: 'y70',        label: 'y70' },
+    { key: 'keeb',       label: 'keeb' },
+    { key: 'cooling',    label: 'cooling' },
+    { key: 'obs',        label: 'obs' },
+    { key: 'screenTime', label: 'screenTime' },
+    { key: 'cnvs',       label: 'cnvs' },
+    { key: 'auth',       label: 'auth' },
+  ];
+
+  return (
+    <Card title="Install defaults" className={styles.wide}>
+      <span className={styles.dim}>
+        Copy a section's current values, then paste over the matching block in
+        <code> qos-service/data/install-defaults.json</code> to make them the new defaults.
+      </span>
+      <div className={styles.installDefaultsRow}>
+        <Button tone="accent" size="sm" disabled={!snapshot} onClick={copyAll}>
+          {copied === '__all__' ? 'Copied!' : 'Copy entire snapshot'}
+        </Button>
+      </div>
+      <div className={styles.installDefaultsList}>
+        {sections.map(s => (
+          <div key={s.key} className={styles.installDefaultsItem}>
+            <code className={styles.installDefaultsKey}>{s.label}</code>
+            <button
+              type="button"
+              className={styles.installDefaultsCopy}
+              disabled={!snapshot}
+              onClick={() => snapshot && copy(s.key, snapshot[s.key])}
+            >
+              {copied === s.key ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        ))}
+      </div>
     </Card>
   );
 }

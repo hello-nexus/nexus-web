@@ -164,4 +164,51 @@
   .customControls .applyBtn {
     grid-column: 1 / -1;
   }
+
+  .installDefaultsList { grid-template-columns: 1fr; }
+}
+
+// ── Install-defaults export card ────────────────────────────────────────────
+
+.installDefaultsRow {
+  display: flex;
+  justify-content: flex-start;
+  margin: 0.5rem 0 0.75rem;
+}
+.installDefaultsList {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 0.75rem;
+}
+.installDefaultsItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border-faint);
+
+  &:last-child { border-bottom: none; }
+}
+.installDefaultsKey {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  color: var(--text);
+}
+.installDefaultsCopy {
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-faded);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease, background var(--ease-fast) ease;
+  &:hover:not(:disabled) {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  &:disabled { opacity: 0.45; cursor: default; }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 }
