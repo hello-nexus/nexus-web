@@ -13,6 +13,12 @@ import { lookupWidget, sizesForSurface, widgetAvailableForSurface } from '../wid
 import { defaultLayoutForSurface } from './defaultLayout';
 import { broadcastLayoutChanged, onLayoutChanged } from './panelSync';
 import { sizeToSpan } from './grid';
+import {
+  getMarketplaceListing,
+  hasMarketplaceLoadedOnce,
+  isMarketplaceType,
+  marketplaceIdFromType,
+} from '../../widgets/marketplaceRegistry';
 
 const REMOVED_WIDGET_TYPES = new Set(['y70-controls']);
 
@@ -54,7 +60,30 @@ function reconcileWidgetsAgainstRegistry(
 ): PanelWidget[] {
   return widgets.flatMap((widget): PanelWidget[] => {
     const def = lookupWidget(widget.type);
-    if (!def) return [];
+    if (!def) {
+      // Marketplace widget rectangles can stick around in the layout
+      // through one of two windows:
+      //   1. App-start: the marketplace registry hasn't loaded yet, so
+      //      every marketplace:* type is "unknown" transiently. Preserve
+      //      the rect so a slow first fetch doesn't silently delete the
+      //      user's widgets; MarketplaceWidget renders a Loading…
+      //      placeholder until the listing lands.
+      //   2. Post-load: the registry HAS loaded but the listing for this
+      //      id is missing — the widget was uninstalled (or renamed, e.g.
+      //      com.qos.* → com.nexusqos.*). Drop it from the layout so the
+      //      panel doesn't show an "unknown:" cell forever.
+      if (isMarketplaceType(widget.type)) {
+        if (!hasMarketplaceLoadedOnce()) return [widget];
+        const id = marketplaceIdFromType(widget.type);
+        if (id && getMarketplaceListing(id)) return [widget];
+        // Stale id — purge silently. The layout writer will persist the
+        // cleaned shape on the next debounced flush.
+        // eslint-disable-next-line no-console
+        console.info(`[panel-layout] dropping orphaned marketplace widget: ${widget.type}`);
+        return [];
+      }
+      return [];
+    }
     if (!widgetAvailableForSurface(def.meta, surface)) return [];
     const surfaceSize = normalizePanelWidgetSizeForSurface(widget.size, surface);
     const allowed = sizesForSurface(def.meta, surface);

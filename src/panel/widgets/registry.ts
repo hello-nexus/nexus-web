@@ -1,12 +1,21 @@
 import {
-  Clock, Activity, Music, Cloud, Lightbulb, Fan, Monitor,
+  Clock, Activity, Music, Lightbulb, Fan, Monitor,
   Hourglass, Watch, Calculator, Globe, Tv, Zap,
   PenLine, Smile, ImageIcon, Gamepad2, Grid3X3, Fish, BarChart, RadioTower, MessageCircle,
+  Boxes,
 } from 'lucide-react';
+import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
+import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
+import {
+  getAllMarketplaceListings,
+  getMarketplaceListing,
+  isMarketplaceType,
+  marketplaceIdFromType,
+  typeForMarketplace,
+} from '../../widgets/marketplaceRegistry';
 import type { WidgetDef } from './types';
 import { Q60_WIDGET_SIZES, surfaceSupportsTouch, type PanelSurface, type PanelWidgetSize } from '../types';
 import { ClockWidget } from './clock/ClockWidget';
-import { WeatherWidget } from './weather/WeatherWidget';
 import { PerformanceWidget } from './performance/PerformanceWidget';
 import { MediaWidget } from './media/MediaWidget';
 import { ScreentimeWidget } from './screentime/ScreentimeWidget';
@@ -38,7 +47,6 @@ import { IFrameSettings } from './settings/IFrameSettings';
 import { TwitchSettings } from './settings/TwitchSettings';
 import { MacrosSettings } from './settings/MacrosSettings';
 import { GallerySettings } from './settings/GallerySettings';
-import { WeatherSettings } from './settings/WeatherSettings';
 import { ObsSettings } from './settings/ObsSettings';
 import { SteamSettings } from './settings/SteamSettings';
 import { DiscordSettings } from './settings/DiscordSettings';
@@ -109,21 +117,6 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       touch: 'any',
     },
     Component: ScreentimeWidget,
-  },
-  weather: {
-    meta: {
-      type: 'weather',
-      i18nKey: 'panel.widget.weather',
-      icon: Cloud,
-      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
-      sizes: ['1x1', '2x2', '4x2', '4x4'],
-      defaultSize: '2x2',
-      supportsImmersive: { portrait: true, landscape: true },
-      hasConfig: true,
-      touch: 'any',
-    },
-    Component: WeatherWidget,
-    SettingsComponent: WeatherSettings,
   },
   lighting: {
     meta: {
@@ -397,15 +390,75 @@ export function widgetAvailableForSurface(meta: WidgetDef['meta'], surface: Pane
 }
 
 export function lookupWidget(type: string): WidgetDef | undefined {
+  if (isMarketplaceType(type)) {
+    const id = marketplaceIdFromType(type);
+    if (!id) return undefined;
+    const listing = getMarketplaceListing(id);
+    if (!listing) return undefined;
+    return makeMarketplaceWidgetDef(id, listing.name, listing.sizes, listing.defaultSize);
+  }
   return WIDGET_REGISTRY[type];
 }
 
-// Resolve the size to use for a widget in the add-widget picker (both for the
-// preview tile and for the size at which the widget is inserted on click).
-// Honors an explicit `pickerSize` override; otherwise picks the smallest
-// sensible size from the supported list - 2x2 if available, then 2x4, then
-// 4x2, then 4x4. This keeps newly added widgets compact unless the widget can
-// only render at a larger size.
+/**
+ * Panel catalog + add-widget modal source. Returns every static widget
+ * plus one synthetic entry per installed marketplace widget, keyed by
+ * `marketplace:<id>`. The Add Widget catalog iterates this so external
+ * widgets show up next to the built-ins with the standard preview / drag /
+ * resize chrome - no custom UI.
+ */
+export function getCatalogEntries(): Array<[string, WidgetDef]> {
+  const builtIns = Object.entries(WIDGET_REGISTRY);
+  const marketplace = getAllMarketplaceListings().map((listing): [string, WidgetDef] => [
+    typeForMarketplace(listing.id),
+    makeMarketplaceWidgetDef(listing.id, listing.name, listing.sizes, listing.defaultSize),
+  ]);
+  return [...builtIns, ...marketplace];
+}
+
+// Panel-engine sizes the marketplace synthetic WidgetDef accepts. The
+// manifest may declare any string here; anything outside this set falls
+// through the filter so a typo can't crash the picker.
+const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '4x2', '4x4'];
+
+// Synthesise a panel WidgetDef for a marketplace widget. Sizes come from the
+// listing's manifest so a 1x1 macros widget stays 1x1 and a 4x2-only weather
+// stays 4x2. Anything the manifest declares that the panel engine doesn't
+// know about is filtered out.
+function makeMarketplaceWidgetDef(
+  id: string,
+  label: string,
+  manifestSizes: string[] | undefined,
+  manifestDefault: string | undefined,
+): WidgetDef {
+  const sizes = (manifestSizes ?? [])
+    .filter((s): s is PanelWidgetSize => (VALID_MARKETPLACE_SIZES as readonly string[]).includes(s));
+  const safeSizes: PanelWidgetSize[] = sizes.length > 0 ? sizes : ['2x2'];
+  const defaultSize: PanelWidgetSize =
+    (manifestDefault && (safeSizes as readonly string[]).includes(manifestDefault))
+      ? (manifestDefault as PanelWidgetSize)
+      : safeSizes[0];
+  return {
+    meta: {
+      type: typeForMarketplace(id),
+      i18nKey: label,
+      icon: Boxes,
+      supportedSurfaces: ['desktop', 'phone', 'y70'],
+      sizes: safeSizes,
+      defaultSize,
+      pickerSize: defaultSize,
+      supportsImmersive: { portrait: false, landscape: false },
+      hasConfig: true,
+      touch: 'any',
+    },
+    Component: MarketplaceWidget,
+    SettingsComponent: MarketplaceWidgetSettings,
+  };
+}
+
+// Allowed sizes for a widget on a given surface. Q60 has its own
+// allowlist (display-only, no touch). Everything else returns the
+// manifest's `sizes` array verbatim.
 export function sizesForSurface(meta: WidgetDef['meta'], surface?: PanelSurface): PanelWidgetSize[] {
   if (surface === 'q60' && meta.supportedSurfaces.includes('q60')) {
     return [...Q60_WIDGET_SIZES];
@@ -413,11 +466,15 @@ export function sizesForSurface(meta: WidgetDef['meta'], surface?: PanelSurface)
   return [...meta.sizes];
 }
 
+// Size to use in the add-widget picker (preview + insertion size). Honors
+// an explicit `pickerSize`; otherwise picks the smallest sensible — 1x1
+// then 2x2 then 4x2 then 4x4 — so newly added widgets stay compact.
+
 export function pickerSizeFor(meta: WidgetDef['meta'], surface?: PanelSurface): PanelWidgetSize {
   const sizes = sizesForSurface(meta, surface);
   if (meta.pickerSize && sizes.includes(meta.pickerSize)) return meta.pickerSize;
+  if (sizes.includes('1x1')) return '1x1';
   if (sizes.includes('2x2')) return '2x2';
-  if (sizes.includes('2x4')) return '2x4';
   if (sizes.includes('4x2')) return '4x2';
   if (sizes.includes('4x4')) return '4x4';
   return meta.defaultSize;

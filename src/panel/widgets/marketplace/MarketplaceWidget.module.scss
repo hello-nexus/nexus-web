@@ -1,0 +1,34 @@
+.wrap {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: hidden;
+  position: relative;
+}
+
+.wrap iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  // The panel grid owns drag / select / context-menu gestures on the
+  // cell wrapper. iframes capture pointer events inside their document
+  // by default, so without this the user can never long-press or drag
+  // a marketplace widget. Phase 4+ can add a manifest `interactive`
+  // flag to flip this for widgets that need pointer input - until then
+  // every marketplace widget is read-only display, consistent with the
+  // built-in cpu / clock / weather tiles.
+  pointer-events: none;
+}
+
+.empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--panel-text-muted, rgba(245, 245, 245, 0.6));
+  padding: 8px;
+  text-align: center;
+}

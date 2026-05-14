@@ -43,6 +43,10 @@ vi.mock('../widgets/registry', () => {
   };
   return {
     WIDGET_REGISTRY: REGISTRY,
+    // Mirror the real `getCatalogEntries` which the catalog now uses to
+    // walk both built-in and marketplace entries; tests don't exercise
+    // marketplace registration so the second list stays empty.
+    getCatalogEntries: () => Object.entries(REGISTRY),
     pickerSizeFor: () => '2x2',
     widgetAvailableForSurface: (meta: MockMeta, surface: PanelSurface) => {
       if (!meta.supportedSurfaces.includes(surface)) return false;
@@ -51,6 +55,19 @@ vi.mock('../widgets/registry', () => {
     },
   };
 });
+
+// The catalog now eagerly triggers a marketplace registry refresh on mount.
+// The test environment has no service to talk to, so stub both the
+// registry helpers to no-op functions.
+vi.mock('../../widgets/marketplaceRegistry', () => ({
+  isMarketplaceRegistryStale: () => false,
+  loadMarketplaceWidgets: () => Promise.resolve(),
+  subscribeMarketplaceRegistry: () => () => {},
+  isMarketplaceType: (type: string) => type.startsWith('marketplace:'),
+  marketplaceIdFromType: (type: string) =>
+    type.startsWith('marketplace:') ? type.slice('marketplace:'.length) : null,
+  isMarketplaceIdEnabled: () => true,
+}));
 
 vi.mock('../widgets/common/WidgetPreviewCard', () => ({
   WidgetPreviewCard: ({

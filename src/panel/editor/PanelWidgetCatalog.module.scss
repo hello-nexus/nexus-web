@@ -43,3 +43,40 @@
   color: var(--panel-text-muted);
   font: 700 13px/1.4 var(--panel-font, 'Lexend', system-ui, sans-serif);
 }
+
+.sectionHeader {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 4px 6px;
+  color: var(--panel-text-muted);
+  font-family: var(--panel-font, 'Lexend', system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--panel-border);
+  }
+}
+
+.sectionHeaderLabel {
+  white-space: nowrap;
+}
+
+.sectionHeaderTag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--panel-accent, currentColor) 18%, transparent);
+  color: var(--panel-accent, currentColor);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}

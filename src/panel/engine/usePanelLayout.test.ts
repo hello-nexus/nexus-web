@@ -41,9 +41,9 @@ describe('normalizePanelLayout registry reconciliation', () => {
   });
 
   it('snaps a widget whose size is not in meta.sizes to the nearest allowed size', () => {
-    // cooling allows ['2x2', '4x2'] - 4x4 should snap down to 4x2 (same area)
+    // media allows ['2x2', '4x2'] - 4x4 should snap down to 4x2 (same area).
     const result = normalizePanelLayout(
-      layout([widget({ id: 'a', type: 'cooling', size: '4x4' })]),
+      layout([widget({ id: 'a', type: 'media', size: '4x4' })]),
       'y70',
     );
     expect(result.pages[0].widgets[0].size).toBe('4x2');

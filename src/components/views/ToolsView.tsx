@@ -56,6 +56,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
       <p className={styles.subtitle}>{t('tools.subtitle')}</p>
       <div className={styles.grid}>
         <StorybookCard />
+        <WidgetSdkCard />
         <PawnIoCard />
         <PanelSimulatorCard />
         <FontDebugCard />
@@ -73,6 +74,27 @@ function StorybookCard() {
       <span className={styles.dim}>{t('tools.storybook.label')}</span>
       <Button tone="accent" size="sm" onClick={() => setOpen(true)}>{t('tools.storybook.open')}</Button>
       <StorybookModal open={open} onClose={() => setOpen(false)} />
+    </Card>
+  );
+}
+
+/**
+ * Widget SDK reference card. Opens the storybook-style /widget-reference
+ * page in a new tab — every meter tag, every binding function, every data
+ * source type, every dispatch action with live previews. This is the
+ * system bible we hand to third-party widget authors AND review ourselves
+ * as the SDK grows.
+ */
+function WidgetSdkCard() {
+  return (
+    <Card title="Widget SDK reference" className={styles.wide}>
+      <span className={styles.dim}>
+        Every meter, binding function, data source, dispatch action, capability — with live previews.
+        Acts as the bible for the declarative widget SDK and 3rd-party widget authors.
+      </span>
+      <Button tone="accent" size="sm" onClick={() => {
+        window.open('/widget-reference', '_blank', 'noopener,noreferrer');
+      }}>Open reference</Button>
     </Card>
   );
 }

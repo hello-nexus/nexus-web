@@ -3,9 +3,9 @@ import {
   Sun, Cloud, CloudSun, CloudFog, CloudDrizzle, CloudRain,
   CloudSnow, CloudRainWind, CloudLightning, HelpCircle, Droplet, Wind,
 } from 'lucide-react';
-import { fetchService } from '../../../api/service';
-import type { WidgetProps } from '../types';
-import styles from './WeatherWidget.module.scss';
+import { fetchService } from '../../api/service';
+import type { WidgetProps } from '../../panel/widgets/types';
+import styles from './LegacyWeatherWidget.module.scss';
 
 interface WeatherSnapshot {
   temperatureC: number | null;
@@ -102,12 +102,17 @@ function dailyMax(item: WeatherDailyForecast, unit: 'C' | 'F') {
   return unit === 'F' ? item.temperatureMaxF : item.temperatureMaxC;
 }
 
-export function WeatherWidget({ widget }: WidgetProps) {
-  const [snap, setSnap] = useState<WeatherSnapshot | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [referenceNow, setReferenceNow] = useState(0);
+// Snapshot test variant: accepts an optional `mockSnap` to render with a
+// fixed payload instead of hitting /api/weather. The test harness uses
+// this to render the legacy widget alongside the declarative one with
+// identical data so the diff is purely visual.
+export function WeatherWidget({ widget, mockSnap, fixedNow }: WidgetProps & { mockSnap?: WeatherSnapshot; fixedNow?: number }) {
+  const [snap, setSnap] = useState<WeatherSnapshot | null>(mockSnap ?? null);
+  const [loaded, setLoaded] = useState(Boolean(mockSnap));
+  const [referenceNow, setReferenceNow] = useState(fixedNow ?? 0);
 
   useEffect(() => {
+    if (mockSnap) return; // harness mode - no fetch
     let cancelled = false;
     async function load() {
       const data = await fetchService<WeatherSnapshot>('/api/weather');
@@ -120,7 +125,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
     load();
     const t = setInterval(load, REFRESH_MS);
     return () => { cancelled = true; clearInterval(t); };
-  }, []);
+  }, [mockSnap]);
 
   const unit = resolveUnit(widget.config?.unit?.s, snap?.countryCode);
   const showCondition = widget.config?.showCondition?.b ?? true;

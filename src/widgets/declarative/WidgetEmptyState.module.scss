@@ -1,0 +1,83 @@
+// Universal empty / loading state for declarative widgets. Uses container
+// queries (cqi = % of inline size) so a 2x2 cell gets a small icon and a
+// 4x4 cell gets a proportionally larger one with no per-size manifest
+// overrides. The widget's wrap div sets `container-type: size`.
+
+.shell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 2cqi, 10px);
+  padding: clamp(8px, 4cqi, 18px);
+  box-sizing: border-box;
+  color: var(--text-dim, var(--panel-text-muted, rgba(245, 245, 245, 0.55)));
+}
+
+.icon, .iconStill {
+  // Quiet, neutral loading mark. Sized via container queries so a 2x2
+  // gets a small mark and a 4x4 a slightly bigger one without per-size
+  // manifest overrides. Intentionally NOT accent-glow — the loading
+  // state is transient and shouldn't dominate the cell.
+  width: clamp(20px, 18cqi, 44px);
+  height: clamp(20px, 18cqi, 44px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim, var(--panel-text-muted, rgba(245, 245, 245, 0.55)));
+  opacity: 0.6;
+}
+
+.icon {
+  animation: widget-breathe 2.6s ease-in-out infinite;
+}
+
+.iconImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.iconStub {
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+}
+
+.primary {
+  font-size: clamp(11px, 4cqi, 14px);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-align: center;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text, var(--panel-text, #f5f5f5));
+  opacity: 0.78;
+}
+
+.secondary {
+  font-size: clamp(10px, 3.2cqi, 12px);
+  text-align: center;
+  max-width: 90%;
+  line-height: 1.35;
+  opacity: 0.55;
+}
+
+@keyframes widget-breathe {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.75; }
+}
+
+// Respect users who prefer reduced motion.
+@media (prefers-reduced-motion: reduce) {
+  .icon {
+    animation: none;
+    opacity: 0.7;
+  }
+}

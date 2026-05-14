@@ -2924,6 +2924,13 @@ export function PanelTouchCell({
   const previewTransition = 'transform 220ms cubic-bezier(0.25, 1, 0.5, 1)';
 
   if (!def) {
+    // Reconciler in usePanelLayout drops orphan marketplace widgets after
+    // the registry has loaded once, so the only path to this branch is
+    // either (a) the registry is still loading on app start, or (b) a
+    // built-in widget type was renamed/removed mid-session. Render a
+    // minimal placeholder rather than a red "unknown:" box — the user
+    // shouldn't see internal type strings, and the layout will self-heal
+    // on the next normalize pass.
     return (
       <div
         className={styles.cellWrap}
@@ -2933,17 +2940,7 @@ export function PanelTouchCell({
           '--panel-span-cols': span.cols,
           '--panel-span-rows': span.rows,
         } as CSSProperties}
-      >
-        <div
-          className={`panel-card ${styles.cell} ${styles.missing}`}
-          style={{ padding: 12, color: 'var(--panel-bad)', fontSize: 12 }}
-        >
-          unknown: {widget.type}
-        </div>
-        <div className={styles.cellLabelStrip}>
-          <WidgetCellLabel label={widget.type} />
-        </div>
-      </div>
+      />
     );
   }
 

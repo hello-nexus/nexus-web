@@ -1,0 +1,326 @@
+{
+  "schema": "qos.widget/2",
+  "id": "com.nexusqos.weather",
+  "name": "Weather",
+  "version": "2.2.0",
+  "description": "Current conditions + hourly strip + 5-day forecast. Tier 2 worker calls OpenMeteo through qos.net.fetch and publishes parsed payload to the declarative view.",
+  "author": { "name": "Qos", "url": "https://nexusqos.com" },
+  "icon": "assets/icon.svg",
+  "min_qos_version": "0.42.0",
+  "surfaces": ["dashboard"],
+  "sizes": ["2x2", "4x2", "4x4"],
+  "default_size": "4x2",
+
+  "capabilities": {
+    "sensors.read": [],
+    "rgb.read": false,
+    "rgb.write": false,
+    "net.fetch": ["api.open-meteo.com", "ipwho.is"],
+    "config": true,
+    "code": "worker"
+  },
+
+  "settings": [
+    { "key": "autoDetect", "type": "boolean", "label": "Auto-detect location", "default": true },
+    { "key": "latitude",  "type": "number", "label": "Latitude (manual)",  "default": null, "min": -90, "max": 90,  "step": 0.0001 },
+    { "key": "longitude", "type": "number", "label": "Longitude (manual)", "default": null, "min": -180, "max": 180, "step": 0.0001 },
+    { "key": "label",     "type": "string", "label": "Place name (manual)", "default": "" },
+    { "key": "units",     "type": "select", "label": "Units", "default": "auto",
+      "options": ["auto", "celsius", "fahrenheit"] },
+    { "key": "showCondition", "type": "boolean", "label": "Show condition", "default": true },
+    { "key": "showLocation",  "type": "boolean", "label": "Show location",  "default": true },
+    { "key": "showDetails",   "type": "boolean", "label": "Show humidity / wind", "default": true }
+  ],
+
+  "data": {
+    "weather": { "worker": "weather" }
+  },
+
+  "view": {
+    "2x2": {
+      "type": "vstack",
+      "padding": 12,
+      "gap": 5,
+      "align": "stretch",
+      "justify": "center",
+      "grow": true,
+      "children": [
+        {
+          "type": "hstack",
+          "gap": 10,
+          "align": "center",
+          "children": [
+            { "type": "icon", "name": "{data.weather.current.icon}", "size": 54, "color": "accent-glow" },
+            {
+              "type": "vstack",
+              "gap": 4,
+              "align": "stretch",
+              "justify": "center",
+              "children": [
+                {
+                  "type": "value",
+                  "text": "{data.weather.current.tempLabel}",
+                  "size": 38,
+                  "align": "left",
+                  "weight": "bold"
+                },
+                {
+                  "type": "conditional",
+                  "when": "settings.showDetails && data.weather.current.hasData",
+                  "then": {
+                    "type": "hstack",
+                    "gap": 8,
+                    "align": "center",
+                    "children": [
+                      { "type": "icon", "name": "droplet", "size": 10, "color": "text-dim" },
+                      { "type": "text", "text": "{data.weather.current.humidityLabel}", "size": 10, "align": "left", "transform": "none", "opacity": 0.58 },
+                      { "type": "icon", "name": "wind", "size": 10, "color": "text-dim" },
+                      { "type": "text", "text": "{data.weather.current.windLabel}", "size": 10, "align": "left", "transform": "none", "opacity": 0.58 }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "conditional",
+          "when": "settings.showCondition",
+          "then": { "type": "text", "text": "{data.weather.current.condition}", "size": 12, "align": "center", "truncate": true, "transform": "none", "opacity": 0.7 }
+        },
+        {
+          "type": "conditional",
+          "when": "settings.showLocation",
+          "then": { "type": "text", "text": "{data.weather.current.label}", "size": 11, "align": "center", "truncate": true, "transform": "none", "opacity": 0.4 }
+        }
+      ]
+    },
+
+    "4x2": {
+      "type": "vstack",
+      "padding": 14,
+      "gap": 0,
+      "align": "stretch",
+      "justify": "center",
+      "grow": true,
+      "children": [
+        {
+          "type": "hstack",
+          "gap": 14,
+          "align": "start",
+          "justify": "space-between",
+          "children": [
+            {
+              "type": "vstack",
+              "gap": 5,
+              "align": "stretch",
+              "children": [
+                {
+                  "type": "value",
+                  "text": "{data.weather.current.tempLabel}",
+                  "size": 50,
+                  "align": "left",
+                  "weight": "bold"
+                },
+                {
+                  "type": "conditional",
+                  "when": "settings.showDetails && data.weather.current.hasData",
+                  "then": {
+                    "type": "hstack",
+                    "gap": 11,
+                    "align": "center",
+                    "children": [
+                      { "type": "icon", "name": "droplet", "size": 12, "color": "text-dim" },
+                      { "type": "text", "text": "{data.weather.current.humidityLabel}", "size": 11, "align": "left", "transform": "none", "opacity": 0.58 },
+                      { "type": "icon", "name": "wind", "size": 12, "color": "text-dim" },
+                      { "type": "text", "text": "{data.weather.current.windLabel}", "size": 11, "align": "left", "transform": "none", "opacity": 0.58 }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "vstack",
+              "gap": 3,
+              "align": "end",
+              "children": [
+                {
+                  "type": "hstack",
+                  "gap": 6,
+                  "align": "center",
+                  "justify": "end",
+                  "children": [
+                    { "type": "icon", "name": "{data.weather.current.icon}", "size": 24, "color": "accent-glow" },
+                    {
+                      "type": "conditional",
+                      "when": "settings.showCondition",
+                      "then": { "type": "text", "text": "{data.weather.current.condition}", "size": 12, "align": "right", "transform": "none", "opacity": 0.72, "truncate": true }
+                    }
+                  ]
+                },
+                { "type": "text", "text": "{data.weather.current.hiLoLabel}", "size": 12, "align": "right", "transform": "none", "opacity": 0.55 },
+                {
+                  "type": "conditional",
+                  "when": "settings.showLocation",
+                  "then": { "type": "text", "text": "{data.weather.current.label}", "size": 11, "align": "right", "transform": "none", "opacity": 0.42, "truncate": true }
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "spacer", "size": 15 },
+        {
+          "type": "repeat",
+          "in": "{data.weather.hourly}",
+          "limit": 6,
+          "direction": "horizontal",
+          "gap": 3,
+          "justify": "space-between",
+          "template": {
+            "type": "vstack",
+            "gap": 5,
+            "align": "center",
+            "children": [
+              { "type": "text", "text": "{data.item.hourLabel}", "size": 11, "transform": "none", "opacity": 0.48 },
+              { "type": "icon", "name": "{data.item.icon}", "size": 22, "color": "accent-glow" },
+              { "type": "text", "text": "{data.item.tempLabel}", "size": 11, "transform": "none" }
+            ]
+          }
+        }
+      ]
+    },
+
+    "4x4": {
+      "type": "vstack",
+      "padding": 18,
+      "gap": 0,
+      "align": "stretch",
+      "grow": true,
+      "children": [
+        {
+          "type": "hstack",
+          "gap": 16,
+          "align": "start",
+          "justify": "space-between",
+          "children": [
+            {
+              "type": "vstack",
+              "gap": 6,
+              "align": "stretch",
+              "children": [
+                {
+                  "type": "value",
+                  "text": "{data.weather.current.tempLabel}",
+                  "size": 56,
+                  "align": "left",
+                  "weight": "bold"
+                },
+                {
+                  "type": "conditional",
+                  "when": "settings.showDetails && data.weather.current.hasData",
+                  "then": {
+                    "type": "hstack",
+                    "gap": 11,
+                    "align": "center",
+                    "children": [
+                      { "type": "icon", "name": "droplet", "size": 12, "color": "text-dim" },
+                      { "type": "text", "text": "{data.weather.current.humidityLabel}", "size": 11, "align": "left", "transform": "none", "opacity": 0.58 },
+                      { "type": "icon", "name": "wind", "size": 12, "color": "text-dim" },
+                      { "type": "text", "text": "{data.weather.current.windLabel}", "size": 11, "align": "left", "transform": "none", "opacity": 0.58 }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "vstack",
+              "gap": 3,
+              "align": "end",
+              "children": [
+                {
+                  "type": "hstack",
+                  "gap": 6,
+                  "align": "center",
+                  "justify": "end",
+                  "children": [
+                    { "type": "icon", "name": "{data.weather.current.icon}", "size": 24, "color": "accent-glow" },
+                    {
+                      "type": "conditional",
+                      "when": "settings.showCondition",
+                      "then": { "type": "text", "text": "{data.weather.current.condition}", "size": 12, "align": "right", "transform": "none", "opacity": 0.72, "truncate": true }
+                    }
+                  ]
+                },
+                { "type": "text", "text": "{data.weather.current.hiLoLabel}", "size": 12, "align": "right", "transform": "none", "opacity": 0.55 },
+                {
+                  "type": "conditional",
+                  "when": "settings.showLocation",
+                  "then": { "type": "text", "text": "{data.weather.current.label}", "size": 11, "align": "right", "transform": "none", "opacity": 0.42, "truncate": true }
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "spacer", "size": 22 },
+        {
+          "type": "repeat",
+          "in": "{data.weather.hourly}",
+          "limit": 6,
+          "direction": "horizontal",
+          "gap": 3,
+          "justify": "space-between",
+          "template": {
+            "type": "vstack",
+            "gap": 5,
+            "align": "center",
+            "children": [
+              { "type": "text", "text": "{data.item.hourLabel}", "size": 11, "transform": "none", "opacity": 0.48 },
+              { "type": "icon", "name": "{data.item.icon}", "size": 22, "color": "accent-glow" },
+              { "type": "text", "text": "{data.item.tempLabel}", "size": 11, "transform": "none" }
+            ]
+          }
+        },
+        { "type": "spacer", "size": 16 },
+        { "type": "divider" },
+        { "type": "spacer", "size": 6 },
+        {
+          "type": "repeat",
+          "in": "{data.weather.daily}",
+          "limit": 5,
+          "direction": "vertical",
+          "gap": 0,
+          "grow": true,
+          "justify": "space-evenly",
+          "empty": { "type": "text", "text": "Loading...", "align": "center", "transform": "none", "opacity": 0.48 },
+          "template": {
+            "type": "hstack",
+            "gap": 9,
+            "align": "center",
+            "children": [
+              { "type": "text", "text": "{data.item.dayLabel}", "size": 12, "align": "left", "width": 42, "transform": "none" },
+              {
+                "type": "box",
+                "width": 22,
+                "align": "center",
+                "child": { "type": "icon", "name": "{data.item.icon}", "size": 21, "color": "accent-glow" }
+              },
+              { "type": "text", "text": "{data.item.loLabel}", "size": 12, "align": "right", "width": 31, "transform": "none", "opacity": 0.45 },
+              {
+                "type": "range",
+                "lo": "{data.item.lo}",
+                "hi": "{data.item.hi}",
+                "min": "{data.weather.weekMin}",
+                "max": "{data.weather.weekMax}",
+                "gradient": ["#38bdf8d2", "accent-glow", "#fbbf24e6"],
+                "glow": true,
+                "height": 5,
+                "radius": 999
+              },
+              { "type": "text", "text": "{data.item.hiLabel}", "size": 12, "align": "left", "width": 31, "transform": "none" }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

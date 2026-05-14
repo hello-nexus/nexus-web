@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Boxes } from 'lucide-react';
 import { ErrorBoundary } from '../../../components/ErrorBoundary';
 import { lookupWidget } from '../registry';
 import { sizeToSpan } from '../../engine/grid';
+import { isMarketplaceType } from '../../../widgets/marketplaceRegistry';
 import type { PanelWidget, PanelWidgetSize } from '../../types';
 import { WidgetCellLabel } from './WidgetCellLabel';
 import styles from './WidgetPreviewCard.module.scss';
@@ -78,6 +80,7 @@ export function WidgetPreviewCard({
 
   if (!def) return null;
   const Comp = def.Component;
+  const isMarketplace = isMarketplaceType(widgetType);
 
   const fakeWidget: PanelWidget = {
     id: 'preview',
@@ -145,6 +148,15 @@ export function WidgetPreviewCard({
             </ErrorBoundary>
           </div>
         </div>
+        {isMarketplace && (
+          <span
+            className={styles.marketplaceBadge}
+            title="Marketplace widget"
+            aria-label="Marketplace widget"
+          >
+            <Boxes size={10} strokeWidth={2} />
+          </span>
+        )}
       </div>
       <WidgetCellLabel label={label} />
     </div>

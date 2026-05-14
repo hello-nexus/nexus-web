@@ -253,53 +253,56 @@ export function WidgetEditSheet({
         </button>
       </header>
 
-      {(sizes.length > 1 || slotCountOptions.length > 1) && (
-        <div className={styles.actions}>
-          <div className={styles.controlPicker}>
-            {sizes.length > 1 && (
-              <WidgetControlGroup title={isMonitoringWidget ? 'Layout' : 'Size'}>
-                {sizes.map(size => {
-                  const Icon = SIZE_ICONS[size];
-                  return (
-                    <IconLabelButton
-                      key={size}
-                      className={styles.controlButton}
-                      active={size === widget.size}
-                      icon={Icon ? <Icon aria-hidden="true" /> : undefined}
-                      ariaLabel={`${isMonitoringWidget ? 'Layout' : 'Size'} ${size}`}
-                      title={size}
-                      onPress={() => handleResize(size)}
-                    />
-                  );
-                })}
-              </WidgetControlGroup>
-            )}
-            {isMonitoringWidget && slotCountOptions.length > 0 && (
-              <WidgetControlGroup title="Slots">
-                {slotCountOptions.map(n => (
+      {/* The actions row always renders so the user can delete the widget;
+          the size + slot pickers inside only render when there's more than
+          one option to choose from. Hiding the entire row when sizes.length
+          == 1 used to swallow the delete button (e.g. for a 1x1 macros
+          widget). */}
+      <div className={styles.actions}>
+        <div className={styles.controlPicker}>
+          {sizes.length > 1 && (
+            <WidgetControlGroup title={isMonitoringWidget ? 'Layout' : 'Size'}>
+              {sizes.map(size => {
+                const Icon = SIZE_ICONS[size];
+                return (
                   <IconLabelButton
-                    key={n}
+                    key={size}
                     className={styles.controlButton}
-                    active={n === slotCount}
-                    icon={<SlotCountIcon count={n} size={widget.size} aria-hidden="true" />}
-                    ariaLabel={`${n} ${n === 1 ? 'slot' : 'slots'}`}
-                    title={`${n} ${n === 1 ? 'slot' : 'slots'}`}
-                    onPress={() => handleSlotCount(n)}
+                    active={size === widget.size}
+                    icon={Icon ? <Icon aria-hidden="true" /> : undefined}
+                    ariaLabel={`${isMonitoringWidget ? 'Layout' : 'Size'} ${size}`}
+                    title={size}
+                    onPress={() => handleResize(size)}
                   />
-                ))}
-              </WidgetControlGroup>
-            )}
-          </div>
-          <button
-            type="button"
-            className={styles.removeButton}
-            onClick={() => onRemove(widget.id)}
-            aria-label="Remove widget"
-          >
-            <Trash2 size={15} />
-          </button>
+                );
+              })}
+            </WidgetControlGroup>
+          )}
+          {isMonitoringWidget && slotCountOptions.length > 0 && (
+            <WidgetControlGroup title="Slots">
+              {slotCountOptions.map(n => (
+                <IconLabelButton
+                  key={n}
+                  className={styles.controlButton}
+                  active={n === slotCount}
+                  icon={<SlotCountIcon count={n} size={widget.size} aria-hidden="true" />}
+                  ariaLabel={`${n} ${n === 1 ? 'slot' : 'slots'}`}
+                  title={`${n} ${n === 1 ? 'slot' : 'slots'}`}
+                  onPress={() => handleSlotCount(n)}
+                />
+              ))}
+            </WidgetControlGroup>
+          )}
         </div>
-      )}
+        <button
+          type="button"
+          className={styles.removeButton}
+          onClick={() => onRemove(widget.id)}
+          aria-label="Remove widget"
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
 
       {Settings ? (
         <div className={styles.body}>

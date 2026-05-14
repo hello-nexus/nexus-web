@@ -43,3 +43,19 @@
   overflow: hidden;
 }
 
+.marketplaceBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--panel-accent-soft, rgba(167, 139, 250, 0.18));
+  color: var(--panel-accent, var(--accent, #a78bfa));
+  border: 1px solid var(--panel-accent, var(--accent, rgba(167, 139, 250, 0.45)));
+  pointer-events: none;
+}
+

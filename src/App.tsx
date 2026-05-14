@@ -25,12 +25,15 @@ import { PanelSimulatorContent } from './panel/embed/PanelSimulatorContent';
 import { SIMULATOR_QUERY_FLAG } from './panel/embed/simulatorProtocol';
 import OverlayShell from './overlay/OverlayShell';
 import { PairRedirect } from './PairRedirect';
+import { WidgetReferenceWrapper } from './widgets/reference/WidgetReference';
+import { SnapshotHarness } from './__snapshots__/legacy-weather/SnapshotHarness';
 import { OpenInAppBanner } from './components/OpenInAppBanner';
 import { ConflictWarningBadge } from './components/Sidebar/ConflictWarning';
 import { ToolsView } from './components/views/ToolsView';
 import { SettingsView } from './components/views/SettingsView';
 import { DevicesView } from './components/views/DevicesView/DevicesView';
 import { LightingView } from './components/views/LightingView';
+import { loadMarketplaceWidgets } from './widgets/marketplaceRegistry';
 import { useServiceStatus, type ConnectionState } from './hooks/useServiceStatus';
 import { useServiceState } from './hooks/useServiceState';
 import { useProfiles } from './hooks/useProfiles';
@@ -166,6 +169,29 @@ export default function App() {
   // offers App Store + LAN-redirect fallbacks.
   if (window.location.pathname === '/r/pair') {
     return <PairRedirect />;
+  }
+
+  // Declarative widget UI reference. A storybook-style catalog of every
+  // meter type plus the binding cheatsheet. Lets widget authors see what
+  // tags / props / variants are available without trawling the source.
+  if (window.location.pathname === '/widget-reference') {
+    return (
+      <I18nProvider>
+        <WidgetReferenceWrapper />
+      </I18nProvider>
+    );
+  }
+
+  // Snapshot harness for widget visual-parity work. Renders the
+  // legacy + declarative versions side-by-side with identical mocked
+  // data; Playwright takes pixel screenshots so we can iterate on the
+  // declarative manifest until visual fidelity matches.
+  if (window.location.pathname === '/snapshot-harness') {
+    return (
+      <I18nProvider>
+        <SnapshotHarness />
+      </I18nProvider>
+    );
   }
 
   // /overlay is hosted by qos-overlay.exe (transparent layered window
@@ -1122,6 +1148,15 @@ function Dashboard() {
       setConnectEpoch(n => n + 1);
     }
     wasOnlineRef.current = online;
+  }, [online]);
+
+  // Prime the marketplace widget cache once the service is reachable so
+  // the panel registry can resolve `marketplace:<id>` widgets the first
+  // time a layout is reconciled. Refreshes are cheap (one /widgets-api
+  // listing call) and idempotent.
+  useEffect(() => {
+    if (!online) return;
+    void loadMarketplaceWidgets();
   }, [online]);
 
   // ── Render main content based on section + view ────────────────────────
