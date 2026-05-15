@@ -15,6 +15,7 @@ import styles from '../LightingView.module.scss';
  */
 export function ZoneCard({
   device,
+  displayName,
   selected,
   indent,
   frameHidden,
@@ -24,6 +25,8 @@ export function ZoneCard({
   onOpenSettings,
 }: {
   device: LightingDevice;
+  /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
+  displayName?: string;
   selected: boolean;
   /** True when this card is a zone child rendered under a motherboard group header. */
   indent: boolean;
@@ -108,7 +111,7 @@ export function ZoneCard({
           </button>
         </div>
       )}
-      <span className={styles.deviceName}>{device.name}</span>
+      <span className={styles.deviceName}>{displayName ?? device.name}</span>
       {unavailable ? (
         <span className={styles.deviceMetaUnavailable}>
           {t('lighting.devices.detectionFailed')}

@@ -76,6 +76,7 @@ export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onToggl
                   <ZoneCard
                     key={z.id}
                     device={z}
+                    displayName={stripParentPrefix(z.name, g.parentName)}
                     selected={z.id === selectedDeviceId}
                     indent={true}
                     frameHidden={hiddenFrameIds.has(z.id)}
@@ -101,4 +102,19 @@ function deriveParentName(zone: LightingDevice): string {
   const dash = zone.name.indexOf(' - ');
   if (dash > 0) return zone.name.slice(0, dash);
   return zone.name;
+}
+
+// Strip the parent name (plus a separator) off the front of a child zone's
+// name so the child card shows just the zone-specific part. Falls back to the
+// original name if it doesn't actually start with the parent prefix.
+function stripParentPrefix(name: string, parentName: string): string {
+  if (!parentName) return name;
+  for (const sep of [' - ', ': ', ' ']) {
+    const prefix = parentName + sep;
+    if (name.startsWith(prefix)) {
+      const rest = name.slice(prefix.length).trim();
+      if (rest) return rest;
+    }
+  }
+  return name;
 }
