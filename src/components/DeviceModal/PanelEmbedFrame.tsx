@@ -34,7 +34,6 @@ interface PanelEmbedFrameProps {
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
-  panelOpacity: number;
 }
 
 const DEFAULT_CANVAS_W = 682;
@@ -61,7 +60,6 @@ export function PanelEmbedFrame({
   brightness,
   screenOn,
   showPanel,
-  panelOpacity,
 }: PanelEmbedFrameProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -160,7 +158,6 @@ export function PanelEmbedFrame({
       brightness,
       screenOn,
       showPanel,
-      panelOpacity,
     });
     lastSyncedLayoutSerializedRef.current = JSON.stringify(layout);
     // Initial init only - subsequent changes flow through the per-prop
@@ -196,8 +193,8 @@ export function PanelEmbedFrame({
 
   useEffect(() => {
     if (!childReady) return;
-    post({ type: 'simulator/set-display', brightness, screenOn, showPanel, panelOpacity });
-  }, [childReady, brightness, screenOn, showPanel, panelOpacity, post]);
+    post({ type: 'simulator/set-display', brightness, screenOn, showPanel });
+  }, [childReady, brightness, screenOn, showPanel, post]);
 
   const src = `/panel?${SIMULATOR_QUERY_FLAG}=1`;
 

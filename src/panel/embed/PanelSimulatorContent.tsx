@@ -11,48 +11,25 @@ import { useSimulatorLayoutState } from './useSimulatorLayoutState';
 // is still readable. Screen-off goes fully opaque.
 const MAX_BRIGHTNESS_DIM = 0.6;
 
-// Faux desktop wallpaper rendered behind the panel surface when Panel
-// Opacity < 100 % so users can see how transparent the panel will be
-// over the actual Windows wallpaper on real hardware. Conic gradient
-// roughly approximates the Windows 11 "Bloom" stock wallpaper hue.
-const FAUX_DESKTOP_BACKGROUND =
-  'conic-gradient(from 200deg at 50% 50%, #1e3a8a, #2563eb, #7c3aed, #db2777, #f59e0b, #1e3a8a)';
-
 export function PanelSimulatorContent() {
   const sim = useSimulatorLayoutState();
   if (!sim.ready || !sim.theme) return null;
   const dimOpacity = sim.screenOn
     ? Math.max(0, Math.min(MAX_BRIGHTNESS_DIM, ((100 - sim.brightness) / 100) * MAX_BRIGHTNESS_DIM))
     : 1;
-  const showWallpaper = sim.panelOpacity < 1 && sim.showPanel;
-  const panelLayerOpacity = sim.showPanel ? sim.panelOpacity : 1;
   return (
     <ErrorBoundary label="PanelSimulator">
-      {showWallpaper && (
-        <div
-          aria-hidden
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: FAUX_DESKTOP_BACKGROUND,
-            pointerEvents: 'none',
-            zIndex: 0,
-          }}
-        />
-      )}
       {sim.showPanel ? (
-        <div style={{ position: 'absolute', inset: 0, opacity: panelLayerOpacity, transition: 'opacity 120ms linear' }}>
-          <PanelContent
-            surface={sim.surface}
-            layoutState={sim.layoutState}
-            simulator
-            simulatorTheme={sim.theme}
-            simulatorThemeMode={sim.themeMode}
-            simulatorSelectedWidgetId={sim.selectedWidgetId}
-            onSimulatorWidgetClicked={sim.onWidgetClicked}
-            onSimulatorBackgroundClicked={sim.onBackgroundClicked}
-          />
-        </div>
+        <PanelContent
+          surface={sim.surface}
+          layoutState={sim.layoutState}
+          simulator
+          simulatorTheme={sim.theme}
+          simulatorThemeMode={sim.themeMode}
+          simulatorSelectedWidgetId={sim.selectedWidgetId}
+          onSimulatorWidgetClicked={sim.onWidgetClicked}
+          onSimulatorBackgroundClicked={sim.onBackgroundClicked}
+        />
       ) : (
         <div
           style={{

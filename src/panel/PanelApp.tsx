@@ -19,7 +19,6 @@ import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard'
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
 import { usePanelSheetSwipe } from './engine/usePanelSheetSwipe';
 import { broadcastLayoutChanged, onLayoutChanged } from './engine/panelSync';
-import { surfaceSupportsTransparency } from './panelDevices';
 import { panelGridCapacityForCanvas, sizeToSpan, snapStride, type PanelGridCapacity } from './engine/grid';
 import { paginateCapacityForGrid, repaginatePanelLayout, type PaginateCapacity } from './engine/paginate';
 import {
@@ -72,14 +71,12 @@ import { PanelBackgroundShader } from './PanelBackgroundShader';
 import {
   DEFAULT_PANEL_BACKGROUND_EFFECT,
   DEFAULT_PANEL_BACKGROUND_OPACITY,
-  DEFAULT_PANEL_OPACITY,
   DEFAULT_PANEL_BACKGROUND_TEMPLATE,
   DEFAULT_PANEL_WIDGET_LABELS,
   DEFAULT_PANEL_WIDGET_OPACITY,
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
-  normalizePanelOpacity,
   normalizePanelBackgroundTemplate,
   normalizePanelWidgetLabels,
   normalizePanelWidgetOpacity,
@@ -1665,8 +1662,6 @@ export function PanelContent({
           onThemeBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
           onThemeBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
           onThemeBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
-          onThemePanelOpacityPreview={panelTheme.previewPanelOpacity}
-          onThemePanelOpacityCommit={panelTheme.commitPanelOpacity}
           onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
@@ -2120,7 +2115,6 @@ export function usePanelTheme(enabled = true, persist = true) {
     backgroundEffect: DEFAULT_PANEL_BACKGROUND_EFFECT,
     backgroundTemplate: DEFAULT_PANEL_BACKGROUND_TEMPLATE,
     backgroundOpacity: DEFAULT_PANEL_BACKGROUND_OPACITY,
-    panelOpacity: DEFAULT_PANEL_OPACITY,
     widgetOpacity: DEFAULT_PANEL_WIDGET_OPACITY,
     widgetLabels: DEFAULT_PANEL_WIDGET_LABELS,
   });
@@ -2150,7 +2144,6 @@ export function usePanelTheme(enabled = true, persist = true) {
         backgroundEffect: normalizePanelBackgroundEffect(p?.backgroundEffect),
         backgroundTemplate: normalizePanelBackgroundTemplate(p?.backgroundTemplate),
         backgroundOpacity: normalizePanelBackgroundOpacity(p?.backgroundOpacity),
-        panelOpacity: normalizePanelOpacity(p?.panelOpacity),
         widgetOpacity: normalizePanelWidgetOpacity(p?.widgetOpacity),
         widgetLabels: normalizePanelWidgetLabels(p?.widgetLabels),
       });
@@ -2240,12 +2233,6 @@ export function usePanelTheme(enabled = true, persist = true) {
     persistPatch({ panel: { backgroundOpacity: nextOpacity } });
   }, [persistPatch]);
 
-  const commitPanelOpacity = useCallback((opacity: number) => {
-    const nextOpacity = normalizePanelOpacity(opacity);
-    setTheme(prev => ({ ...prev, panelOpacity: nextOpacity }));
-    persistPatch({ panel: { panelOpacity: nextOpacity } });
-  }, [persistPatch]);
-
   const commitWidgetOpacity = useCallback((opacity: number) => {
     const nextOpacity = normalizePanelWidgetOpacity(opacity);
     setTheme(prev => ({ ...prev, widgetOpacity: nextOpacity }));
@@ -2278,10 +2265,6 @@ export function usePanelTheme(enabled = true, persist = true) {
       { ...prev, backgroundOpacity: normalizePanelBackgroundOpacity(opacity) }
     )),
     commitBackgroundOpacity,
-    previewPanelOpacity: (opacity: number) => setTheme(prev => (
-      { ...prev, panelOpacity: normalizePanelOpacity(opacity) }
-    )),
-    commitPanelOpacity,
     previewWidgetOpacity: (opacity: number) => setTheme(prev => (
       { ...prev, widgetOpacity: normalizePanelWidgetOpacity(opacity) }
     )),
@@ -2313,8 +2296,6 @@ function PanelEditorSheet({
   onThemeBackgroundTemplateCommit,
   onThemeBackgroundOpacityPreview,
   onThemeBackgroundOpacityCommit,
-  onThemePanelOpacityPreview,
-  onThemePanelOpacityCommit,
   onThemeWidgetOpacityPreview,
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
@@ -2349,8 +2330,6 @@ function PanelEditorSheet({
   onThemeBackgroundTemplateCommit: (template: number) => void;
   onThemeBackgroundOpacityPreview: (opacity: number) => void;
   onThemeBackgroundOpacityCommit: (opacity: number) => void;
-  onThemePanelOpacityPreview: (opacity: number) => void;
-  onThemePanelOpacityCommit: (opacity: number) => void;
   onThemeWidgetOpacityPreview: (opacity: number) => void;
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
@@ -2557,12 +2536,9 @@ function PanelEditorSheet({
               onBackgroundTemplateCommit={onThemeBackgroundTemplateCommit}
               onBackgroundOpacityPreview={onThemeBackgroundOpacityPreview}
               onBackgroundOpacityCommit={onThemeBackgroundOpacityCommit}
-              onPanelOpacityPreview={onThemePanelOpacityPreview}
-              onPanelOpacityCommit={onThemePanelOpacityCommit}
               onWidgetOpacityPreview={onThemeWidgetOpacityPreview}
               onWidgetOpacityCommit={onThemeWidgetOpacityCommit}
               onWidgetLabelsCommit={onThemeWidgetLabelsCommit}
-              supportsTransparency={surfaceSupportsTransparency(surface)}
             />
           </div>
         )}

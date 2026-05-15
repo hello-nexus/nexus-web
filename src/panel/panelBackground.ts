@@ -13,7 +13,6 @@ export type PanelResolvedTheme = 'dark' | 'light';
 export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'aurora';
 export const DEFAULT_PANEL_BACKGROUND_TEMPLATE = 0;
 export const DEFAULT_PANEL_BACKGROUND_OPACITY = 0.4;
-export const DEFAULT_PANEL_OPACITY = 1;
 export const DEFAULT_PANEL_WIDGET_OPACITY = 1;
 export const DEFAULT_PANEL_WIDGET_LABELS = true;
 
@@ -187,11 +186,6 @@ export function normalizePanelBackgroundTemplate(value: number | null | undefine
 
 export function normalizePanelBackgroundOpacity(value: number | null | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_PANEL_BACKGROUND_OPACITY;
-  return Math.min(Math.max(value, 0), 1);
-}
-
-export function normalizePanelOpacity(value: number | null | undefined): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_PANEL_OPACITY;
   return Math.min(Math.max(value, 0), 1);
 }
 

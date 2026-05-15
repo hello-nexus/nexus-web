@@ -6,7 +6,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { PanelLayout, PanelSurface } from '../types';
-import { normalizePanelOpacity } from '../panelBackground';
 import {
   isSimulatorMessage,
   type SimulatorChildToParent,
@@ -29,7 +28,6 @@ export interface SimulatorRuntimeState {
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
-  panelOpacity: number;
   onWidgetClicked: (id: string) => void;
   onBackgroundClicked: () => void;
 }
@@ -59,7 +57,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [brightness, setBrightness] = useState(100);
   const [screenOn, setScreenOn] = useState(true);
   const [showPanel, setShowPanel] = useState(true);
-  const [panelOpacity, setPanelOpacity] = useState(1);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -76,10 +73,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setBrightness(data.brightness);
           setScreenOn(data.screenOn);
           setShowPanel(data.showPanel);
-          // Normalize on receive so an older or misbehaving parent that
-          // sends out-of-range / NaN can't drive the dim overlay into a
-          // useless state.
-          setPanelOpacity(normalizePanelOpacity(data.panelOpacity));
           setReady(true);
           break;
         }
@@ -100,7 +93,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setBrightness(data.brightness);
           setScreenOn(data.screenOn);
           setShowPanel(data.showPanel);
-          setPanelOpacity(normalizePanelOpacity(data.panelOpacity));
           break;
         }
         default:
@@ -142,7 +134,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     brightness,
     screenOn,
     showPanel,
-    panelOpacity,
     onWidgetClicked,
     onBackgroundClicked,
   };

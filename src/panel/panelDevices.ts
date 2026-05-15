@@ -13,9 +13,6 @@ export interface PanelDeviceCapabilities {
   pairing: boolean;
   presence: boolean;
   touch: boolean;
-  /// <summary>Panel surface supports see-through rendering over the desktop
-  /// wallpaper (Panel Opacity slider). True for monitor-attached panels.</summary>
-  transparency: boolean;
 }
 
 export interface PanelDevice {
@@ -39,12 +36,3 @@ export interface PanelDevice {
 
 export const PANEL_DEVICE_ICON = '/assets/devices/y70.svg';
 export const PANEL_MONITOR_ICON = '/assets/devices/device.svg';
-
-/// Single source of truth for which panel surfaces can fade over the
-/// desktop wallpaper via the kiosk's WS_EX_LAYERED uniform alpha. Used
-/// by both the device-capability tables in usePanelDevices and the
-/// in-panel editor sheet's transparency-slider gate, so the policy
-/// stays consistent across entry points.
-export function surfaceSupportsTransparency(surface: PanelSurface): boolean {
-  return surface === 'y70' || surface === 'q60';
-}

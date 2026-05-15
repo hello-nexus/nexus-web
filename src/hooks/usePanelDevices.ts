@@ -13,7 +13,6 @@ import { useDevices, type DeviceListItem } from './useDevices';
 import {
   PANEL_DEVICE_ICON,
   PANEL_MONITOR_ICON,
-  surfaceSupportsTransparency,
   type PanelDevice,
   type PanelDeviceCapabilities,
 } from '../panel/panelDevices';
@@ -27,12 +26,8 @@ const Y70_CAPABILITIES: PanelDeviceCapabilities = {
   pairing: false,
   presence: false,
   touch: true,
-  transparency: true,
 };
 
-// Defaults to transparency: false; per-device construction overrides the
-// flag through surfaceSupportsTransparency() so a future non-monitor
-// widget surface doesn't silently inherit the slider.
 const WIDGET_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
   layout: true,
   theme: true,
@@ -41,7 +36,6 @@ const WIDGET_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
   pairing: false,
   presence: false,
   touch: true,
-  transparency: false,
 };
 
 const EXTERNAL_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
@@ -52,7 +46,6 @@ const EXTERNAL_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
   pairing: true,
   presence: true,
   touch: true,
-  transparency: false,
 };
 
 const WIDGET_PANEL_PROFILES: Partial<Record<string, {
@@ -176,10 +169,7 @@ function buildPanelDevices({
       previewSize: { width: profile.width, height: profile.height },
       previewDpi: profile.dpi,
       iconSrc: PANEL_DEVICE_ICON,
-      capabilities: {
-        ...(isY70 ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES),
-        transparency: surfaceSupportsTransparency(profile.surface),
-      },
+      capabilities: isY70 ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES,
       modalKind: isY70 ? 'y70-compat' : 'panel-editor',
     });
   }
@@ -202,10 +192,7 @@ function buildPanelDevices({
       previewSize: { width: panel.width, height: panel.height },
       previewDpi: panel.dpi,
       iconSrc: PANEL_DEVICE_ICON,
-      capabilities: {
-        ...(panel.surface === 'y70' ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES),
-        transparency: surfaceSupportsTransparency(panel.surface),
-      },
+      capabilities: panel.surface === 'y70' ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES,
       modalKind: panel.surface === 'y70' ? 'y70-compat' : 'panel-editor',
     });
   }

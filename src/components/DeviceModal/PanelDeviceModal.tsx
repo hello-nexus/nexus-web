@@ -279,12 +279,9 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
                       onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
                       onBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
                       onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
-                      onPanelOpacityPreview={panelTheme.previewPanelOpacity}
-                      onPanelOpacityCommit={panelTheme.commitPanelOpacity}
                       onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
                       onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
                       onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
-                      supportsTransparency={device?.capabilities.transparency ?? false}
                     />
                   )}
                   {activeTab === 'settings' && (
@@ -335,7 +332,6 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
                 brightness={supportsDisplayControls ? brightness : 100}
                 screenOn={supportsDisplayControls ? screenOn : true}
                 showPanel={supportsAutoLaunch ? autoLaunch : true}
-                panelOpacity={panelTheme.theme.panelOpacity}
               />
             </div>
           </div>
