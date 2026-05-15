@@ -180,7 +180,7 @@ function buildPanelDevices({
       previewDpi: profile.dpi,
       iconSrc: PANEL_DEVICE_ICON,
       capabilities: isY70 ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES,
-      popupKind: isY70 ? 'y70-compat' : 'panel-editor',
+      modalKind: isY70 ? 'y70-compat' : 'panel-editor',
     });
   }
 
@@ -203,7 +203,7 @@ function buildPanelDevices({
       previewDpi: panel.dpi,
       iconSrc: PANEL_DEVICE_ICON,
       capabilities: TEST_PANEL_CAPABILITIES,
-      popupKind: 'panel-editor',
+      modalKind: 'panel-editor',
     });
   }
 

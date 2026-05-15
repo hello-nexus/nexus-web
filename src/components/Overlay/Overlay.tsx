@@ -10,8 +10,8 @@ import styles from './Overlay.module.scss';
  * consumer brings their own header/body/footer chrome.
  *
  * Variants control surface placement + a11y role:
- *   - 'dialog' : centered modal (default; non-blocking - DevicePopup et al)
- *   - 'alert'  : centered modal with role=alertdialog (ConfirmDialog)
+ *   - 'dialog' : centered modal (default; non-blocking - DeviceModal et al)
+ *   - 'alert'  : centered modal with role=alertdialog (ConfirmModal)
  *   - 'sheet'  : right-anchored slide drawer (AnimateDrawer)
  *
  * Use `noBackdropDismiss` for sheets that need internal pointer events to
@@ -19,7 +19,7 @@ import styles from './Overlay.module.scss';
  * confirm in alert dialogs.
  *
  * The surface receives `className` so consumers can keep their existing
- * size/shape classes (popupLarge, popupFullscreen, etc.) without rewriting
+ * size/shape classes (modalLarge, modalFullscreen, etc.) without rewriting
  * style sheets.
  */
 export interface OverlayProps {

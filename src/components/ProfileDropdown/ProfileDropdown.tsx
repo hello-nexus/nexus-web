@@ -7,7 +7,7 @@ import { PRESET_ACCENTS, loadSettings } from '../../lib/settings';
 import type { UseProfilesResult } from '../../hooks/useProfiles';
 import type { Preferences } from '../../api/profiles';
 import { savePreferences } from '../../api/profiles';
-import { PromptDialog } from '../PromptDialog/PromptDialog';
+import { PromptModal } from '../PromptModal/PromptModal';
 import styles from './ProfileDropdown.module.scss';
 
 interface ProfileDropdownProps {
@@ -151,7 +151,7 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
           <input ref={fileRef} type="file" accept=".json" className={styles.hiddenInput} onChange={handleFileChange} />
         </div>
       )}
-      <PromptDialog
+      <PromptModal
         open={createOpen}
         title={t('profile.create')}
         message={t('profile.createPrompt')}

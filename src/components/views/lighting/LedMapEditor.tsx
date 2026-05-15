@@ -9,8 +9,8 @@ import {
   type LedMapEntry, type LightingDevice,
 } from '../../../api/lighting';
 import { useTranslation } from '../../../lib/i18n';
-import { DevicePopup } from '../../DevicePopup/DevicePopup';
-import { ConfirmDialog } from '../../ConfirmDialog/ConfirmDialog';
+import { DeviceModal } from '../../DeviceModal/DeviceModal';
+import { ConfirmModal } from '../../ConfirmModal/ConfirmModal';
 import styles from './LedMapEditor.module.scss';
 
 const isMac = /mac/i.test(navigator.userAgent);
@@ -259,7 +259,7 @@ export function LedMapEditor({ device, onClose }: Props) {
   }>({ selectAll: () => { }, deleteSelected: () => { }, nudge: () => { }, undo: () => { }, redo: () => { } });
   // Tracks the current selection size so the Escape branch can decide
   // whether to clear-selection-only (stop propagation) vs bubble to
-  // DevicePopup to trigger close. Sync'd in render below.
+  // DeviceModal to trigger close. Sync'd in render below.
   const selectedSizeRef = useRef(0);
 
   useEffect(() => {
@@ -281,8 +281,8 @@ export function LedMapEditor({ device, onClose }: Props) {
       if (mod) return;
       if (e.key === 'Escape') {
         // Escape clears the selection when something is selected; only if
-        // nothing is selected do we bubble to DevicePopup to close. Stop
-        // propagation in the clear case so the popup doesn't also try to
+        // nothing is selected do we bubble to DeviceModal to close. Stop
+        // propagation in the clear case so the modal doesn't also try to
         // close (which would re-trigger the unsaved-changes confirm).
         if (selectedSizeRef.current > 0) {
           e.preventDefault();
@@ -1182,7 +1182,7 @@ export function LedMapEditor({ device, onClose }: Props) {
   ];
 
   return (
-    <DevicePopup open onClose={handleClose} title={`${deviceName} - ${t('lighting.ledMap.title')}`} wide>
+    <DeviceModal open onClose={handleClose} title={`${deviceName} - ${t('lighting.ledMap.title')}`} wide>
       {loading ? (
         <div className={styles.loading}>{t('lighting.ledMap.title')}...</div>
       ) : (
@@ -1539,7 +1539,7 @@ export function LedMapEditor({ device, onClose }: Props) {
           </div>
         </div>
       )}
-      <ConfirmDialog
+      <ConfirmModal
         open={showUnsavedConfirm}
         title={t('lighting.ledMap.unsavedTitle')}
         message={t('lighting.ledMap.unsavedMessage')}
@@ -1549,6 +1549,6 @@ export function LedMapEditor({ device, onClose }: Props) {
         onConfirm={handleDiscardAndClose}
         onCancel={() => setShowUnsavedConfirm(false)}
       />
-    </DevicePopup>
+    </DeviceModal>
   );
 }

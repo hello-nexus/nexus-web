@@ -21,7 +21,7 @@ import {
 } from '../../lib/panelSimulation';
 import { FontDebugCard } from './FontDebugCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
-import { DevicePopup } from '../DevicePopup/DevicePopup';
+import { DeviceModal } from '../DeviceModal/DeviceModal';
 import styles from './ToolsView.module.scss';
 
 interface ToolsViewProps {
@@ -136,7 +136,7 @@ function PawnIoCard() {
   );
 }
 
-// Install-defaults export. The card holds an Open button; the popup shows
+// Install-defaults export. The card holds an Open button; the modal shows
 // every section's current JSON inline with its own Copy button. Each Copy
 // puts the matching `"key": <value>` fragment on the clipboard so the user
 // can find-and-replace the corresponding block in
@@ -154,7 +154,7 @@ function InstallDefaultsCard() {
         block in <code>qos-service/data/install-defaults.json</code> to make them the new defaults.
       </span>
       <Button tone="accent" size="sm" onClick={() => setOpen(true)}>Open snapshot</Button>
-      <InstallDefaultsPopup open={open} onClose={() => setOpen(false)} />
+      <InstallDefaultsModal open={open} onClose={() => setOpen(false)} />
     </Card>
   );
 }
@@ -178,7 +178,7 @@ const SECTIONS: SectionDef[] = [
   { key: 'auth' },
 ];
 
-function InstallDefaultsPopup({ open, onClose }: { open: boolean; onClose: () => void }) {
+function InstallDefaultsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [tab, setTab] = useState<'current' | 'defaults'>('current');
   const [snapshot, setSnapshot] = useState<InstallDefaultsDocument | null>(null);
   const [canonical, setCanonical] = useState<InstallDefaultsDocument | null>(null);
@@ -200,8 +200,8 @@ function InstallDefaultsPopup({ open, onClose }: { open: boolean; onClose: () =>
   const doc = tab === 'current' ? snapshot : canonical;
 
   return (
-    <DevicePopup open={open} onClose={onClose} wide title="Install defaults">
-      <div className={styles.installDefaultsPopup}>
+    <DeviceModal open={open} onClose={onClose} wide title="Install defaults">
+      <div className={styles.installDefaultsModal}>
         <p className={styles.dim}>
           Copy any section's values and paste over the matching block in
           <code> qos-service/data/install-defaults.json</code> to make them the new defaults.
@@ -220,7 +220,7 @@ function InstallDefaultsPopup({ open, onClose }: { open: boolean; onClose: () =>
           <InstallDefaultsTabBody doc={doc} tab={tab} />
         )}
       </div>
-    </DevicePopup>
+    </DeviceModal>
   );
 }
 

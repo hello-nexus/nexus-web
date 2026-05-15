@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
-import styles from './ConfirmDialog.module.scss';
+import styles from './ConfirmModal.module.scss';
 
-interface ConfirmDialogProps {
+interface ConfirmModalProps {
   open: boolean;
   title: string;
   /** Body text. May contain plain newlines; they are rendered as paragraph breaks. */
@@ -26,7 +26,7 @@ interface ConfirmDialogProps {
  * Esc cancels, Enter confirms, click outside cancels. Autofocuses Cancel so
  * destructive actions require an explicit user intent.
  */
-export function ConfirmDialog({
+export function ConfirmModal({
   open,
   title,
   message,
@@ -36,7 +36,7 @@ export function ConfirmDialog({
   destructive = true,
   onConfirm,
   onCancel,
-}: ConfirmDialogProps) {
+}: ConfirmModalProps) {
   const { t } = useTranslation();
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -50,7 +50,7 @@ export function ConfirmDialog({
 
   return (
     <Overlay open={open} onClose={onCancel} variant="alert" onEnter={onConfirm}
-      className={styles.dialog} ariaLabel={title}>
+      className={styles.modal} ariaLabel={title}>
       <h2 className={styles.title}>{title}</h2>
       <div className={styles.body}>
         {paragraphs.map((p, i) => <p key={i} className={styles.text}>{p}</p>)}

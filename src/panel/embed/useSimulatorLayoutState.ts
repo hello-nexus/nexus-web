@@ -1,5 +1,5 @@
 // Hook used by the iframe-hosted /panel?simulator=1 runtime. The parent
-// (PanelDevicePopup) owns the canonical layout + theme; this hook exposes
+// (PanelDeviceModal) owns the canonical layout + theme; this hook exposes
 // a PanelLayoutState shape backed by postMessage, so PanelContent can
 // render without ever fetching from /panel/devices/*. User edits inside
 // the iframe are echoed back to the parent via 'simulator/layout-changed'.

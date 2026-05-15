@@ -2,8 +2,8 @@ import styles from './Toggle.module.scss';
 
 /**
  * Switch-style toggle. 40x22 pill with a 16x16 white knob that slides on
- * checked. Replaces the duplicate implementations across DevicePopup
- * (`device-popup-toggle`), SettingsView, PanelApp `themeToggle`, and the
+ * checked. Replaces the duplicate implementations across DeviceModal
+ * (`device-modal-toggle`), SettingsView, PanelApp `themeToggle`, and the
  * panel widget settings `SettingsRow` toggle.
  *
  * Accepts a single `checked` boolean and `onChange(next)`. Use

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { useSupportedDevices, type SupportedDevice, type SupportedSource } from '../../hooks/useSupportedDevices';
-import { DevicePopup } from '../DevicePopup/DevicePopup';
+import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { SearchInput } from '../SearchInput/SearchInput';
 import styles from './SupportedDevicesModal.module.scss';
 
@@ -60,7 +60,7 @@ export function SupportedDevicesModal({
   const current = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
 
   return (
-    <DevicePopup open={open} onClose={handleClose} fullscreen title={title ?? t('supported.title')}>
+    <DeviceModal open={open} onClose={handleClose} fullscreen title={title ?? t('supported.title')}>
       <div className={styles.content}>
         <div className={styles.searchRow}>
           <SearchInput
@@ -115,7 +115,7 @@ export function SupportedDevicesModal({
           </div>
         )}
       </div>
-    </DevicePopup>
+    </DeviceModal>
   );
 }
 

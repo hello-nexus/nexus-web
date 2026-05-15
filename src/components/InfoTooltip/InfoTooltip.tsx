@@ -90,7 +90,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
     };
     const onKey = (e: KeyboardEvent) => {
       // stopPropagation so dismissing an open tooltip inside a modal does
-      // not also close the modal (ConfirmDialog / SupportedDevicesModal
+      // not also close the modal (ConfirmModal / SupportedDevicesModal
       // register their own Esc handlers on window).
       if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); }
     };

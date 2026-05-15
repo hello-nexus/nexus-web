@@ -36,11 +36,11 @@ import type { PanelDevice } from '../../panel/panelDevices';
 import { defaultLayoutForSurface } from '../../panel/engine/defaultLayout';
 import { loadSimulatedPanelLayout, saveSimulatedPanelLayout } from '../../lib/panelSimulation';
 import { PanelWidgetCatalog } from '../../panel/editor/PanelWidgetCatalog';
-import { DevicePopup } from './DevicePopup';
+import { DeviceModal } from './DeviceModal';
 import '../../panel/styles/tokens.scss';
-import styles from './PanelDevicePopup.module.scss';
+import styles from './PanelDeviceModal.module.scss';
 
-interface PanelDevicePopupProps {
+interface PanelDeviceModalProps {
   open: boolean;
   onClose: () => void;
   device?: PanelDevice | null;
@@ -52,7 +52,7 @@ interface ToggleResponse { toggle: boolean }
 
 type Tab = 'widgets' | 'theme' | 'settings';
 
-export function PanelDevicePopup({ open, onClose, device }: PanelDevicePopupProps) {
+export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('widgets');
   const [brightness, setBrightness] = useState(50);
@@ -113,7 +113,7 @@ export function PanelDevicePopup({ open, onClose, device }: PanelDevicePopupProp
       if (b) setBrightness(b.brightness);
       if (r) setOrientation(r.orientation);
       if (tog) setScreenOn(tog.toggle);
-      // Pick the most recently active device record matching this popup's
+      // Pick the most recently active device record matching this modal's
       // surface. The /panel/devices list is sorted by lastSeenAt desc.
       const match = devices?.devices.find(d => d.capabilities?.surface === surface);
       setEditingDeviceId(match?.id ?? null);
@@ -233,7 +233,7 @@ export function PanelDevicePopup({ open, onClose, device }: PanelDevicePopupProp
   ];
 
   return (
-    <DevicePopup
+    <DeviceModal
       open={open}
       onClose={() => { setTab('widgets'); onClose(); }}
       title={device?.name ?? t('devices.y70.title')}
@@ -275,7 +275,7 @@ export function PanelDevicePopup({ open, onClose, device }: PanelDevicePopupProp
                     <PanelWidgetCatalog
                       surface={surface}
                       onAdd={handleAddWidget}
-                      variant="desktop-popup"
+                      variant="desktop-modal"
                       aspect="square"
                       themeMode={resolvedPanelThemeMode}
                       className={styles.catalog}
@@ -352,7 +352,7 @@ export function PanelDevicePopup({ open, onClose, device }: PanelDevicePopupProp
           </div>
         </div>
       )}
-    </DevicePopup>
+    </DeviceModal>
   );
 }
 
@@ -528,10 +528,10 @@ function SettingsPanel({
     <div className={styles.settingsContent}>
       {showDisplayControls && (
         <>
-          <div className="device-popup-section">{t('devices.y70.display')}</div>
+          <div className="device-modal-section">{t('devices.y70.display')}</div>
 
-          <div className="device-popup-row">
-            <div className="device-popup-label">{t('devices.y70.brightness')}</div>
+          <div className="device-modal-row">
+            <div className="device-modal-label">{t('devices.y70.brightness')}</div>
             <div className={styles.brightnessControl}>
               <Slider
                 orientation="bare"
@@ -547,10 +547,10 @@ function SettingsPanel({
             </div>
           </div>
 
-          <div className="device-popup-row">
+          <div className="device-modal-row">
             <div>
-              <div className="device-popup-label">{t('devices.y70.orientation')}</div>
-              <div className="device-popup-hint">{orientation}</div>
+              <div className="device-modal-label">{t('devices.y70.orientation')}</div>
+              <div className="device-modal-hint">{orientation}</div>
             </div>
             <Toggle
               checked={orientation === 'landscape'}
@@ -559,10 +559,10 @@ function SettingsPanel({
             />
           </div>
 
-          <div className="device-popup-row">
+          <div className="device-modal-row">
             <div>
-              <div className="device-popup-label">{t('devices.y70.screen')}</div>
-              <div className="device-popup-hint">{screenOn ? 'On' : 'Off'}</div>
+              <div className="device-modal-label">{t('devices.y70.screen')}</div>
+              <div className="device-modal-hint">{screenOn ? 'On' : 'Off'}</div>
             </div>
             <Toggle checked={screenOn} onChange={onScreenToggle} ariaLabel={t('devices.y70.screen')} />
           </div>
@@ -570,14 +570,14 @@ function SettingsPanel({
       )}
 
       {showAutoLaunch && (
-        <div className="device-popup-section" style={{ marginTop: showDisplayControls ? 8 : 0 }}>{t('devices.y70.panel')}</div>
+        <div className="device-modal-section" style={{ marginTop: showDisplayControls ? 8 : 0 }}>{t('devices.y70.panel')}</div>
       )}
 
       {showAutoLaunch && (
-        <div className="device-popup-row">
+        <div className="device-modal-row">
           <div>
-            <div className="device-popup-label">{t('devices.y70.panelAutoLaunch')}</div>
-            <div className="device-popup-hint">{t('devices.y70.panelAutoLaunchHint')}</div>
+            <div className="device-modal-label">{t('devices.y70.panelAutoLaunch')}</div>
+            <div className="device-modal-hint">{t('devices.y70.panelAutoLaunchHint')}</div>
           </div>
           <Toggle checked={autoLaunch} onChange={onAutoLaunchToggle} ariaLabel={t('devices.y70.panelAutoLaunch')} />
         </div>

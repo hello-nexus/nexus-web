@@ -9,7 +9,7 @@ import { listOverlayWidgets, deleteOverlayWidget, type OverlayWidgetDto } from '
 import { WIDGET_REGISTRY } from '../../../panel/widgets/registry';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
-import styles from './DesktopWidgetsPopup.module.scss';
+import styles from './DesktopWidgetsModal.module.scss';
 
 interface ServerPrefs {
   overlayWidgetsEnabled?: boolean;
@@ -18,7 +18,7 @@ interface ServerPrefs {
   overlayWidgetsMonitor?: number;
 }
 
-interface OverlayWidgetsPopupProps {
+interface OverlayWidgetsModalProps {
   open: boolean;
   onClose: () => void;
 }
@@ -36,7 +36,7 @@ const OPACITY_DEFAULT = 100;
  * overlay, scale the grid + widget content, and inspect / unpin widgets
  * one at a time.
  */
-export function OverlayWidgetsPopup({ open, onClose }: OverlayWidgetsPopupProps) {
+export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps) {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(false);
   const [scale, setScale] = useState(SCALE_DEFAULT);

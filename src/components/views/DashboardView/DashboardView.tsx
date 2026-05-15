@@ -8,7 +8,7 @@ import { PanelEmbeddedContent } from '../../../panel/PanelApp';
 import { ViewHeader } from '../../ViewHeader/ViewHeader';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
-import { OverlayWidgetsPopup } from './OverlayWidgetsPopup';
+import { OverlayWidgetsModal } from './OverlayWidgetsModal';
 import { listOverlayWidgets } from '../../../api/overlay';
 import type { DashboardSectionNavigate } from '../../../panel/PanelApp';
 import styles from './DashboardView.module.scss';
@@ -30,7 +30,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
   const { t } = useTranslation();
   const { settings } = useUiSettings();
   const [addWidgetSignal, setAddWidgetSignal] = useState(0);
-  const [desktopPopupOpen, setDesktopPopupOpen] = useState(false);
+  const [desktopModalOpen, setDesktopModalOpen] = useState(false);
   const [desktopWidgetCount, setDesktopWidgetCount] = useState(0);
 
   const refreshDesktopWidgetCount = useCallback(async () => {
@@ -62,7 +62,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
             <button
               type="button"
               className={styles.addWidgetButton}
-              onClick={() => setDesktopPopupOpen(true)}
+              onClick={() => setDesktopModalOpen(true)}
             >
               <Monitor size={14} aria-hidden="true" />
               <span>Desktop Widgets</span>
@@ -76,7 +76,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
       <div className={styles.panelHost}>
         <PanelEmbeddedContent openCatalogSignal={addWidgetSignal} appAccentColor={settings.accentColor} onSectionNavigate={onSectionNavigate} />
       </div>
-      <OverlayWidgetsPopup open={desktopPopupOpen} onClose={() => setDesktopPopupOpen(false)} />
+      <OverlayWidgetsModal open={desktopModalOpen} onClose={() => setDesktopModalOpen(false)} />
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { fetchServiceBlob } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
 import type { LightingMode } from '../../../types/lighting';
 import { EffectCard } from '../../EffectCard/EffectCard';
-import { ConfirmDialog } from '../../ConfirmDialog/ConfirmDialog';
+import { ConfirmModal } from '../../ConfirmModal/ConfirmModal';
 import { Select } from '../../Select/Select';
 import { SCREEN_FILTERS, matchScreenFilter, screenFilterByKey, type ScreenFilterKey } from './screenFilters';
 import styles from '../LightingView.module.scss';
@@ -329,7 +329,7 @@ function MediaControls() {
       {items.length === 0 && !importing && !importError && (
         <p className={styles.mediaEmpty}>{t('lighting.controls.noMedia')}</p>
       )}
-      <ConfirmDialog
+      <ConfirmModal
         open={pendingDelete !== null}
         title={t('lighting.controls.mediaDeleteTitle')}
         message={t('lighting.controls.mediaDeleteMessage', { name: pendingDelete?.name ?? '' })}

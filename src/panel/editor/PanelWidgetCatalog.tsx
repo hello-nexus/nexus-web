@@ -20,7 +20,7 @@ export interface PanelWidgetCatalogProps {
   onAdd: (type: string, size: PanelWidgetSize) => void;
   draggable?: boolean;
   searchable?: boolean;
-  variant?: 'panel-sheet' | 'desktop-popup';
+  variant?: 'panel-sheet' | 'desktop-modal';
   aspect?: 'natural' | 'square';
   themeMode?: 'dark' | 'light';
   className?: string;
@@ -79,7 +79,7 @@ export function PanelWidgetCatalog({
   const rootClass = [
     'panel-root',
     styles.root,
-    variant === 'desktop-popup' ? styles.desktop : '',
+    variant === 'desktop-modal' ? styles.desktop : '',
     className ?? '',
   ].filter(Boolean).join(' ');
 
@@ -91,7 +91,7 @@ export function PanelWidgetCatalog({
             value={query}
             onChange={setQuery}
             placeholder={t('panel.add.searchPlaceholder')}
-            autoFocus={variant === 'desktop-popup'}
+            autoFocus={variant === 'desktop-modal'}
           />
         </div>
       )}

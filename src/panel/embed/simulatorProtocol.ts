@@ -1,4 +1,4 @@
-// postMessage protocol used between PanelDevicePopup (parent) and the
+// postMessage protocol used between PanelDeviceModal (parent) and the
 // iframe-hosted /panel?simulator=1 runtime. The parent owns the canonical
 // layout and theme; the iframe is a renderer + interaction surface that
 // echoes user actions back as 'layout-changed' messages. This mirrors how

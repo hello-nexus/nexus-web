@@ -15,7 +15,7 @@ import { HsvPicker } from '../components/HsvPicker/HsvPicker';
 import { PaletteRing } from '../components/PaletteRing/PaletteRing';
 import { PresetSwatch } from '../components/PresetSwatch/PresetSwatch';
 import { EffectTemplateSelector } from '../components/EffectTemplateSelector/EffectTemplateSelector';
-import { DevicePopup } from '../components/DevicePopup/DevicePopup';
+import { DeviceModal } from '../components/DeviceModal/DeviceModal';
 import { CardDeleteButton } from '../components/CardDeleteButton/CardDeleteButton';
 import { InfoTooltip } from '../components/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/HoverTooltip/HoverTooltip';
@@ -24,8 +24,8 @@ import { DatePicker } from '../components/DatePicker/DatePicker';
 import { EffectCard } from '../components/EffectCard/EffectCard';
 import { EffectControls } from '../components/views/lighting/EffectControls';
 import { Tabs } from '../components/Tabs/Tabs';
-import { ConfirmDialog } from '../components/ConfirmDialog/ConfirmDialog';
-import { PromptDialog } from '../components/PromptDialog/PromptDialog';
+import { ConfirmModal } from '../components/ConfirmModal/ConfirmModal';
+import { PromptModal } from '../components/PromptModal/PromptModal';
 import { UsageBar } from '../components/UsageBar/UsageBar';
 import { CapacityBar } from '../components/CapacityBar/CapacityBar';
 import { StackedChart } from '../components/StackedChart/StackedChart';
@@ -315,14 +315,14 @@ function PreviewTabsPill() {
   />;
 }
 
-function PreviewConfirmDialog() {
+function PreviewConfirmModal() {
   const [open, setOpen] = useState(false);
   return (
     <>
       <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
         Delete sample item
       </button>
-      <ConfirmDialog
+      <ConfirmModal
         open={open}
         title="Delete item?"
         message={'This cannot be undone.\nThe item will be permanently removed.'}
@@ -334,7 +334,7 @@ function PreviewConfirmDialog() {
   );
 }
 
-function PreviewPromptDialog() {
+function PreviewPromptModal() {
   const [open, setOpen] = useState(false);
   const [last, setLast] = useState<string | null>(null);
   const existing = ['Default', 'Gaming', 'Quiet'];
@@ -344,7 +344,7 @@ function PreviewPromptDialog() {
         New Profile
       </button>
       {last && <p className={styles.previewNote}>Last submitted: <strong>{last}</strong></p>}
-      <PromptDialog
+      <PromptModal
         open={open}
         title="New Profile"
         message="Enter a name for the new profile:"
@@ -544,18 +544,18 @@ function PreviewEffectCard() {
   );
 }
 
-function PreviewDevicePopup() {
+function PreviewDeviceModal() {
   const [open, setOpen] = useState(false);
   return (
     <>
       <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
-        Open sample popup
+        Open sample modal
       </button>
-      <DevicePopup open={open} onClose={() => setOpen(false)} title="Sample popup">
-        <p className={styles.previewPopupBody}>
-          DevicePopup wraps the standard escape-to-close + click-outside dismiss + X-button pattern.
+      <DeviceModal open={open} onClose={() => setOpen(false)} title="Sample modal">
+        <p className={styles.previewModalBody}>
+          DeviceModal wraps the standard escape-to-close + click-outside dismiss + X-button pattern.
         </p>
-      </DevicePopup>
+      </DeviceModal>
     </>
   );
 }
@@ -568,7 +568,7 @@ function PreviewOverlay() {
         Open bare overlay
       </button>
       <Overlay open={open} onClose={() => setOpen(false)} variant="dialog" className={styles.previewOverlaySurface}>
-        <p className={styles.previewPopupBody}>
+        <p className={styles.previewModalBody}>
           Overlay only ships the backdrop + dismiss behavior; the consumer brings the surface chrome.
         </p>
         <button type="button" className={styles.previewBtn} onClick={() => setOpen(false)}>Close</button>
@@ -795,7 +795,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Slider (trackFill)', category: 'inputs',
     filePath: 'src/components/Slider/Slider.tsx',
-    description: 'Slider with an accent fill painted from 0 up to the trackFill percent, emphasising "level" semantics. Used for monitor brightness (DisplaysWidget), Y70 brightness (Y70Popup), and the panel background opacity.', Preview: PreviewSliderTrackFill,
+    description: 'Slider with an accent fill painted from 0 up to the trackFill percent, emphasising "level" semantics. Used for monitor brightness (DisplaysWidget), Y70 brightness (Y70Modal), and the panel background opacity.', Preview: PreviewSliderTrackFill,
     notes: 'Set trackFill to the same numeric value as the slider value to draw a brightness/volume-style fill. Works in any orientation.',
   },
   {
@@ -817,7 +817,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Toggle', category: 'inputs',
     filePath: 'src/components/Toggle/Toggle.tsx',
-    description: 'Switch-style on/off toggle. 40x22 pill, 16x16 white knob, accent fill on checked. Replaces the duplicate device-popup-toggle global class, panel themeToggle, settings ToggleRow, and panel SettingsRow toggle.', Preview: PreviewToggle,
+    description: 'Switch-style on/off toggle. 40x22 pill, 16x16 white knob, accent fill on checked. Replaces the duplicate device-modal-toggle global class, panel themeToggle, settings ToggleRow, and panel SettingsRow toggle.', Preview: PreviewToggle,
   },
   {
     name: 'Toggle (off)', category: 'inputs',
@@ -949,23 +949,23 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'Overlay', category: 'modals',
     filePath: 'src/components/Overlay/Overlay.tsx',
     description: 'Canonical modal/sheet base. Owns the backdrop, escape-to-close, and click-outside dismiss; the consumer brings the surface chrome via className. Variants: dialog (centred), alert (alertdialog role + Enter-to-confirm), sheet (transparent backdrop for slide drawers).', Preview: PreviewOverlay,
-    notes: 'DevicePopup, ConfirmDialog, and SupportedDevicesModal compose Overlay - reach for those existing wrappers before using Overlay directly.',
+    notes: 'DeviceModal, ConfirmModal, and SupportedDevicesModal compose Overlay - reach for those existing wrappers before using Overlay directly.',
   },
   {
-    name: 'DevicePopup', category: 'modals',
-    filePath: 'src/components/DevicePopup/DevicePopup.tsx',
-    description: 'Reusable modal shell built on Overlay. Title + close button + standard escape/click-outside dismiss. wide / fullscreen variants.', Preview: PreviewDevicePopup,
+    name: 'DeviceModal', category: 'modals',
+    filePath: 'src/components/DeviceModal/DeviceModal.tsx',
+    description: 'Reusable modal shell built on Overlay. Title + close button + standard escape/click-outside dismiss. wide / fullscreen variants.', Preview: PreviewDeviceModal,
   },
   {
-    name: 'ConfirmDialog', category: 'modals',
-    filePath: 'src/components/ConfirmDialog/ConfirmDialog.tsx',
-    description: 'Native-in-app confirmation modal with title + body + optional note + confirm/cancel actions. Esc cancels, Enter confirms, click-outside cancels. Cancel autofocused so destructive intent must be explicit. Used instead of window.confirm so the dialog matches app chrome.', Preview: PreviewConfirmDialog,
+    name: 'ConfirmModal', category: 'modals',
+    filePath: 'src/components/ConfirmModal/ConfirmModal.tsx',
+    description: 'Native-in-app confirmation modal with title + body + optional note + confirm/cancel actions. Esc cancels, Enter confirms, click-outside cancels. Cancel autofocused so destructive intent must be explicit. Used instead of window.confirm so the dialog matches app chrome.', Preview: PreviewConfirmModal,
     notes: 'destructive defaults to true (red confirm button). Pass destructive={false} for non-destructive confirmations like "save changes?".',
   },
   {
-    name: 'PromptDialog', category: 'modals',
-    filePath: 'src/components/PromptDialog/PromptDialog.tsx',
-    description: 'Native-in-app text-input modal. Replaces window.prompt with a themed dialog so the input experience is consistent across macOS / Linux / Windows (WKWebView, Edge kiosk, browsers all suppress or restyle native prompts). Autofocuses the input, Enter submits, Esc cancels, click-outside cancels. Supports a sync validator that displays its error inline and disables the submit button.', Preview: PreviewPromptDialog,
+    name: 'PromptModal', category: 'modals',
+    filePath: 'src/components/PromptModal/PromptModal.tsx',
+    description: 'Native-in-app text-input modal. Replaces window.prompt with a themed dialog so the input experience is consistent across macOS / Linux / Windows (WKWebView, Edge kiosk, browsers all suppress or restyle native prompts). Autofocuses the input, Enter submits, Esc cancels, click-outside cancels. Supports a sync validator that displays its error inline and disables the submit button.', Preview: PreviewPromptModal,
     notes: 'Use the validate callback for live duplicate-name checks. The submit button is disabled while the value is empty or invalid, so the caller does not need to defensively re-validate.',
   },
   {

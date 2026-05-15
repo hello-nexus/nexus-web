@@ -1,9 +1,9 @@
 import { type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Overlay } from '../Overlay/Overlay';
-import styles from './DevicePopup.module.scss';
+import styles from './DeviceModal.module.scss';
 
-interface DevicePopupProps {
+interface DeviceModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
@@ -15,12 +15,12 @@ interface DevicePopupProps {
   children: ReactNode;
 }
 
-export function DevicePopup({ open, onClose, title, icon, large, wide, fullscreen, headerRight, children }: DevicePopupProps) {
-  const variantClass = fullscreen ? styles.popupFullscreen
-    : wide ? styles.popupWide
-    : large ? styles.popupLarge
+export function DeviceModal({ open, onClose, title, icon, large, wide, fullscreen, headerRight, children }: DeviceModalProps) {
+  const variantClass = fullscreen ? styles.modalFullscreen
+    : wide ? styles.modalWide
+    : large ? styles.modalLarge
     : '';
-  const surfaceClass = `${styles.popup} ${variantClass}`.trim();
+  const surfaceClass = `${styles.modal} ${variantClass}`.trim();
 
   return (
     <Overlay open={open} onClose={onClose} variant="dialog" className={surfaceClass} ariaLabel={title}>

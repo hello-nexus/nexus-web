@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import type { DetectedConflict } from '../../api/conflicts';
 import { killConflict } from '../../api/conflicts';
 import { Button } from '../Button/Button';
-import { DevicePopup } from '../DevicePopup/DevicePopup';
+import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { useTranslation } from '../../lib/i18n';
 import styles from './ConflictWarning.module.scss';
 
@@ -23,7 +23,7 @@ interface ConflictWarningProps {
 /**
  * Bottom-left amber badge that opens the conflict modal. The badge button
  * is hidden when there are no conflicts, but the modal stays mounted as
- * long as the user has it open — that way the popup doesn't auto-close
+ * long as the user has it open — that way the modal doesn't auto-close
  * mid-read when the watcher clears the last conflict; instead it transitions
  * to an "all clear" empty state until the user dismisses it.
  */
@@ -32,7 +32,7 @@ export function ConflictWarningBadge({ conflicts, compact, onDismissForever }: C
   const [open, setOpen] = useState(false);
   const count = conflicts.length;
 
-  // Nothing to show: no badge and no open popup → render nothing so the
+  // Nothing to show: no badge and no open modal → render nothing so the
   // sidebar footer collapses cleanly.
   if (count === 0 && !open) return null;
 
@@ -126,7 +126,7 @@ function ConflictWarningModal({ open, conflicts, onClose, onDismissForever }: Co
   const hasConflicts = conflicts.length > 0;
 
   return (
-    <DevicePopup
+    <DeviceModal
       open={open}
       onClose={onClose}
       title={t('conflicts.modal.title')}
@@ -179,6 +179,6 @@ function ConflictWarningModal({ open, conflicts, onClose, onDismissForever }: Co
           </span>
         </label>
       </div>
-    </DevicePopup>
+    </DeviceModal>
   );
 }

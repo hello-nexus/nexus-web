@@ -7,9 +7,9 @@ import { DpiControl } from '../peripherals/DpiControl';
 import { PollingPicker } from '../peripherals/PollingPicker';
 import { BatteryBar } from '../peripherals/BatteryBar';
 import { SleepConfig } from '../peripherals/SleepConfig';
-import { DevicePopup } from './DevicePopup';
+import { DeviceModal } from './DeviceModal';
 import { InfoList, InfoRow } from '../InfoList/InfoList';
-import styles from './PeripheralPopup.module.scss';
+import styles from './PeripheralModal.module.scss';
 
 const CATEGORY_ICONS: Record<string, typeof Mouse> = {
   mouse: Mouse,
@@ -47,12 +47,12 @@ async function snapshotWebHid(id: string, base: Peripheral): Promise<Peripheral 
   }
 }
 
-interface PeripheralPopupProps {
+interface PeripheralModalProps {
   peripheral: Peripheral | null;
   onClose: () => void;
 }
 
-export function PeripheralPopup({ peripheral, onClose }: PeripheralPopupProps) {
+export function PeripheralModal({ peripheral, onClose }: PeripheralModalProps) {
   const { t } = useTranslation();
   const [detail, setDetail] = useState<Peripheral | null>(null);
 
@@ -90,7 +90,7 @@ export function PeripheralPopup({ peripheral, onClose }: PeripheralPopupProps) {
   const hasCaps = !!(p.battery || p.dpi || p.polling || p.sleep);
 
   return (
-    <DevicePopup
+    <DeviceModal
       open
       onClose={onClose}
       title={p.name}
@@ -131,6 +131,6 @@ export function PeripheralPopup({ peripheral, onClose }: PeripheralPopupProps) {
       {!hasCaps && p.capabilities.length === 0 && (
         <div className={styles.empty}>{t('peripheral.noCapabilities')}</div>
       )}
-    </DevicePopup>
+    </DeviceModal>
   );
 }

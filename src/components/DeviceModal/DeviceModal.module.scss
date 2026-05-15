@@ -1,6 +1,6 @@
 @use '../../styles/scrollbar' as *;
 
-.popup {
+.modal {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -13,18 +13,18 @@
   transition: width 250ms ease;
 }
 
-.popupWide {
+.modalWide {
   width: calc(100vw - 4rem);
   max-width: 1200px;
   max-height: 90vh;
 }
 
-.popupLarge {
+.modalLarge {
   width: min(980px, calc(100vw - 4rem));
   max-height: 90vh;
 }
 
-.popupFullscreen {
+.modalFullscreen {
   width: calc(100vw - 3rem);
   height: calc(100vh - 3rem);
   max-height: none;
@@ -48,7 +48,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.25rem;
+  padding: 0.65rem 1.25rem;
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -102,9 +103,9 @@
   @include scrollbar-visible;
 }
 
-// Reusable row layout for settings inside the popup body.
+// Reusable row layout for settings inside the modal body.
 // Each row: label on left, control on right.
-:global(.device-popup-row) {
+:global(.device-modal-row) {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -112,18 +113,18 @@
   min-height: 2.25rem;
 }
 
-:global(.device-popup-label) {
+:global(.device-modal-label) {
   font-size: var(--type-body);
   color: var(--text);
 }
 
-:global(.device-popup-hint) {
+:global(.device-modal-hint) {
   font-size: var(--type-small);
   color: var(--text-dim);
   margin-top: 0.15rem;
 }
 
-:global(.device-popup-section) {
+:global(.device-modal-section) {
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
   text-transform: uppercase;
@@ -133,7 +134,7 @@
   border-bottom: 1px solid var(--border);
 }
 
-:global(.device-popup-select) {
+:global(.device-modal-select) {
   padding: 0.35rem 0.6rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);

@@ -317,7 +317,7 @@ export type DashboardWidgetSection = 'monitoring' | 'lighting' | 'cooling' | 'de
 
 export interface DashboardSectionNavigatePayload {
   // Optional deep-link key. Currently used by the devices widget to
-  // ask DevicesView to auto-open the popup for a specific device.
+  // ask DevicesView to auto-open the modal for a specific device.
   deviceKey?: string;
 }
 
@@ -827,7 +827,7 @@ export function PanelContent({
 
   const onCellTap = useCallback((w: PanelWidget) => {
     if (simulator) {
-      // Simulator: a tap opens this widget's settings in the parent popup.
+      // Simulator: a tap opens this widget's settings in the parent modal.
       onSimulatorWidgetClicked?.(w.id);
       return;
     }
@@ -2363,7 +2363,7 @@ function PanelEditorSheet({
     sheetRef,
     onDismiss: onClose,
   });
-  // Esc closes the sheet. The desktop popups (DevicePopup, ConfirmDialog)
+  // Esc closes the sheet. The desktop modals (DeviceModal, ConfirmModal)
   // get this through Overlay; the panel editor sheet keeps its bespoke
   // swipe + dock-motion lifecycle, so we wire the keyboard handler
   // inline rather than wrap the sheet in Overlay (which would conflict

@@ -6,8 +6,8 @@ import { EditableText } from '../Editable/EditableText';
 import { ColorPickerWithPresets } from '../ColorPickerWithPresets/ColorPickerWithPresets';
 import { Toggle } from '../Toggle/Toggle';
 import { Select } from '../Select/Select';
-import { ConfirmDialog } from '../ConfirmDialog/ConfirmDialog';
-import { PromptDialog } from '../PromptDialog/PromptDialog';
+import { ConfirmModal } from '../ConfirmModal/ConfirmModal';
+import { PromptModal } from '../PromptModal/PromptModal';
 import { fetchService, postService } from '../../api/service';
 import { ScreenTimeDataControl } from './ScreenTimeBrowse/ScreenTimeDataControl';
 import { ServiceRequired } from './ServiceRequired';
@@ -266,7 +266,7 @@ function GeneralTab({ settings, updateGeneral, serviceOnline, platform }: Genera
         </div>
       )}
 
-      <ConfirmDialog
+      <ConfirmModal
         open={stopConfirmOpen}
         title={t('settings.shutDown.confirmTitle')}
         message={t('settings.shutDown.confirmMessage')}
@@ -637,7 +637,7 @@ function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfiles
       </div>
       {atLimit && <p className={styles.note}>{t('profile.maxReached')}</p>}
 
-      <PromptDialog
+      <PromptModal
         open={createOpen}
         title={t('profile.create')}
         message={t('profile.createPrompt')}
@@ -673,7 +673,7 @@ function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfiles
       />
 
       {confirmTarget && confirmCopy && (
-        <ConfirmDialog
+        <ConfirmModal
           open
           title={confirmCopy.title}
           message={confirmCopy.message}

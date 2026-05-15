@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from '../lib/i18n';
-import { DevicePopup } from '../components/DevicePopup/DevicePopup';
+import { DeviceModal } from '../components/DeviceModal/DeviceModal';
 import { REGISTRY, type StorybookCategory } from './registry';
 import { StorybookCard } from './StorybookCard';
 import styles from './StorybookModal.module.scss';
@@ -18,7 +18,7 @@ export function StorybookModal({ open, onClose }: { open: boolean; onClose: () =
   const entries = useMemo(() => REGISTRY.filter(e => e.category === view), [view]);
 
   return (
-    <DevicePopup open={open} onClose={onClose} fullscreen title={t('storybook.title')}>
+    <DeviceModal open={open} onClose={onClose} fullscreen title={t('storybook.title')}>
       <div className={styles.shell}>
         <aside className={styles.sidebar}>
           {CATEGORIES.map(cat => {
@@ -44,6 +44,6 @@ export function StorybookModal({ open, onClose }: { open: boolean; onClose: () =
           )}
         </main>
       </div>
-    </DevicePopup>
+    </DeviceModal>
   );
 }

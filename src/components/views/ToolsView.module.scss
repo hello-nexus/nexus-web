@@ -166,12 +166,12 @@
   }
 }
 
-// ── Install-defaults export popup ───────────────────────────────────────────
-// DevicePopup's body already owns the scrollbar (overflow-y: auto). The
+// ── Install-defaults export modal ───────────────────────────────────────────
+// DeviceModal's body already owns the scrollbar (overflow-y: auto). The
 // content here is a plain stacked column — no inner scrollers, no flex
-// heroics. The popup body grows up to its max-height and the body scrolls.
+// heroics. The modal body grows up to its max-height and the body scrolls.
 
-.installDefaultsPopup {
+.installDefaultsModal {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -181,7 +181,7 @@
   gap: 0.25rem;
   border-bottom: 1px solid var(--border-faint);
   position: sticky;
-  top: -1.25rem; // cancel the popup body's top padding so the tab bar pins flush
+  top: -1.25rem; // cancel the modal body's top padding so the tab bar pins flush
   background: var(--bg-elevated);
   z-index: 1;
   margin: -0.25rem 0 0;

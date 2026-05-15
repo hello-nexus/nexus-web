@@ -1,6 +1,6 @@
 /* Shared key/value display. `InfoList` is an optional bounded widget (card
    surface + padding); each `InfoRow` is a single label/value line inside it.
-   Used by popups and debug cards that need to surface meta without stealing
+   Used by modals and debug cards that need to surface meta without stealing
    vertical space from the controls below. */
 
 .list {

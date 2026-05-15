@@ -68,7 +68,7 @@ export function PanelEmbedFrame({
   const lastSyncedLayoutSerializedRef = useRef<string | null>(null);
   // Fit-to-container scale: the iframe is rendered at native canvas
   // dimensions and transform-scaled so its visible footprint matches the
-  // available height. ResizeObserver keeps the scale current as the popup
+  // available height. ResizeObserver keeps the scale current as the modal
   // resizes.
   const canvasW = canvasSize?.width ?? DEFAULT_CANVAS_W;
   const canvasH = canvasSize?.height ?? DEFAULT_CANVAS_H;

@@ -3,7 +3,7 @@ import type { PanelSurface } from './types';
 export type PanelConnectionKind = 'attached-monitor' | 'usb-display' | 'external-browser' | 'simulated';
 export type PanelManagementMode = 'managed' | 'self-managed' | 'managed-test';
 export type PanelDeviceStatus = 'online' | 'offline' | 'paired' | 'recently-active' | 'running';
-export type PanelDevicePopupKind = 'y70-compat' | 'panel-editor';
+export type PanelDeviceModalKind = 'y70-compat' | 'panel-editor';
 
 export interface PanelDeviceCapabilities {
   layout: boolean;
@@ -29,7 +29,7 @@ export interface PanelDevice {
   previewDpi?: number;
   iconSrc: string;
   capabilities: PanelDeviceCapabilities;
-  popupKind?: PanelDevicePopupKind;
+  modalKind?: PanelDeviceModalKind;
   sourceId?: string;
   displayId?: string;
 }

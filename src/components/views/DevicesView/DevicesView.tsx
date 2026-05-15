@@ -10,15 +10,15 @@ import { Button } from '../../Button/Button';
 import { ServiceRequired } from '../ServiceRequired';
 import { DevicesSkeleton } from '../PageSkeleton/PageSkeleton';
 import { SupportedDevicesModal } from '../../SupportedDevicesModal/SupportedDevicesModal';
-import { PanelDevicePopup } from '../../DevicePopup/PanelDevicePopup';
-import { PeripheralPopup } from '../../DevicePopup/PeripheralPopup';
+import { PanelDeviceModal } from '../../DeviceModal/PanelDeviceModal';
+import { PeripheralModal } from '../../DeviceModal/PeripheralModal';
 import styles from './DevicesView.module.scss';
 
 interface DevicesViewProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
   // When set, on mount/update find the matching device in the unified
-  // Available list and auto-open its popup. The dashboard "Devices"
+  // Available list and auto-open its modal. The dashboard "Devices"
   // widget hands the device's `key` here so the user lands directly on
   // the management surface.
   initialOpenKey?: string | null;
@@ -31,9 +31,9 @@ export function DevicesView({ serviceOnline, connectionState, initialOpenKey, on
   const { t } = useTranslation();
   const [tab, setTab] = useState<TabKey>('available');
   const [modalOpen, setModalOpen] = useState(false);
-  const [panelPopupOpen, setPanelPopupOpen] = useState(false);
-  const [panelPopupDevice, setPanelPopupDevice] = useState<PanelDevice | null>(null);
-  const [peripheralPopup, setPeripheralPopup] = useState<Peripheral | null>(null);
+  const [panelModalOpen, setPanelModalOpen] = useState(false);
+  const [panelModalDevice, setPanelModalDevice] = useState<PanelDevice | null>(null);
+  const [peripheralModal, setPeripheralModal] = useState<Peripheral | null>(null);
   const consumedInitialKeyRef = useRef<string | null>(null);
 
   const availableActive = tab === 'available';
@@ -56,19 +56,19 @@ export function DevicesView({ serviceOnline, connectionState, initialOpenKey, on
 
   const handleCardClick = (device: UnifiedDevice) => {
     if (device.panelDevice) {
-      setPanelPopupDevice(device.panelDevice);
-      setPanelPopupOpen(true);
+      setPanelModalDevice(device.panelDevice);
+      setPanelModalOpen(true);
     } else if (device.peripheral) {
-      setPeripheralPopup(device.peripheral);
+      setPeripheralModal(device.peripheral);
     }
   };
 
   // Deep-link from the dashboard "Devices" widget: when an initialOpenKey
   // arrives, find the matching device in the unified Available list and
-  // open its popup. The ref guard means we consume each distinct key only
+  // open its modal. The ref guard means we consume each distinct key only
   // once even if the parent re-renders with the same value.
   useEffect(() => {
-    // The consumed-key ref is what guarantees "open the popup exactly
+    // The consumed-key ref is what guarantees "open the modal exactly
     // once per distinct key" even if the parent passes an inline
     // onInitialOpenConsumed (new identity every render) or forgets to
     // clear `initialOpenKey`. Reset when the parent does clear it so a
@@ -82,7 +82,7 @@ export function DevicesView({ serviceOnline, connectionState, initialOpenKey, on
     const match = unified.find(d => d.key === initialOpenKey);
     if (!match) return;
     consumedInitialKeyRef.current = initialOpenKey;
-    // setState-in-effect is intentional here — opening the popup is the
+    // setState-in-effect is intentional here — opening the modal is the
     // entire purpose of this deep-link callback, not a derived render.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     handleCardClick(match);
@@ -155,18 +155,18 @@ export function DevicesView({ serviceOnline, connectionState, initialOpenKey, on
         detectedVidPids={detectedVidPids}
       />
 
-      <PanelDevicePopup
-        open={panelPopupOpen}
-        device={panelPopupDevice}
+      <PanelDeviceModal
+        open={panelModalOpen}
+        device={panelModalDevice}
         onClose={() => {
-          setPanelPopupOpen(false);
-          setPanelPopupDevice(null);
+          setPanelModalOpen(false);
+          setPanelModalDevice(null);
         }}
       />
 
-      <PeripheralPopup
-        peripheral={peripheralPopup}
-        onClose={() => setPeripheralPopup(null)}
+      <PeripheralModal
+        peripheral={peripheralModal}
+        onClose={() => setPeripheralModal(null)}
       />
     </section>
   );

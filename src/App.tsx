@@ -9,8 +9,8 @@ import classNames from 'classnames';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { Button } from './components/Button/Button';
 import { ProfileDropdown } from './components/ProfileDropdown/ProfileDropdown';
-import { DevicePopup } from './components/DevicePopup/DevicePopup';
-import { ConfirmDialog } from './components/ConfirmDialog/ConfirmDialog';
+import { DeviceModal } from './components/DeviceModal/DeviceModal';
+import { ConfirmModal } from './components/ConfirmModal/ConfirmModal';
 import { EditableText } from './components/Editable/EditableText';
 import { Toggle } from './components/Toggle/Toggle';
 import { Placeholder } from './components/views/Placeholder';
@@ -106,7 +106,7 @@ function PanelWrapper({ deviceId }: { deviceId: string }) {
   );
 }
 
-// Iframe-only entrypoint for /panel?simulator=1. The parent popup owns
+// Iframe-only entrypoint for /panel?simulator=1. The parent modal owns
 // layout + theme + selection and feeds the iframe via postMessage. We
 // still wire the multiplex provider so widgets that read live monitoring
 // frames render with real data from the local service.
@@ -240,7 +240,7 @@ export default function App() {
         `${window.location.origin}${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`,
       );
     }
-    // Simulator iframe entrypoint: PanelDevicePopup loads /panel?simulator=1
+    // Simulator iframe entrypoint: PanelDeviceModal loads /panel?simulator=1
     // and feeds layout + theme over postMessage. Skip the device-allocation
     // pairing flow entirely - the simulator has no deviceId.
     if (params.get(SIMULATOR_QUERY_FLAG) === '1') {
@@ -856,7 +856,7 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
 
   return (
     <>
-      <DevicePopup open={open} onClose={onClose} title={t('phonePair.title')} icon={<Smartphone size={18} />}>
+      <DeviceModal open={open} onClose={onClose} title={t('phonePair.title')} icon={<Smartphone size={18} />}>
         <div className={styles.phonePairContent} data-remote-enabled={remoteEnabled ? 'true' : 'false'}>
           <p className={styles.phonePairIntro}>
             {t('phonePair.intro')}
@@ -984,8 +984,8 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
             )}
           </section>
         </div>
-      </DevicePopup>
-      <ConfirmDialog
+      </DeviceModal>
+      <ConfirmModal
         open={confirmRemoveAllOpen}
         title={t('phonePair.confirmRemoveAllTitle')}
         message={t('phonePair.confirmRemoveAllMessage')}
@@ -994,7 +994,7 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
         onConfirm={revokeAllSessions}
         onCancel={() => setConfirmRemoveAllOpen(false)}
       />
-      <ConfirmDialog
+      <ConfirmModal
         open={confirmDisableOpen}
         title={t('phonePair.killswitch.confirmTitle')}
         message={t('phonePair.killswitch.confirmMessage')}
@@ -1129,7 +1129,7 @@ function Dashboard() {
     };
     load();
     // Keep the indicator honest even when another desktop window flips the
-    // killswitch. 10 s is gentle - the popup itself is the high-frequency
+    // killswitch. 10 s is gentle - the modal itself is the high-frequency
     // surface, this only powers the sidebar dot color.
     const timer = window.setInterval(load, 10_000);
     return () => {

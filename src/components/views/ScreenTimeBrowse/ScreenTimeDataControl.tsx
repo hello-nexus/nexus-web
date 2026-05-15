@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
-import { ConfirmDialog } from '../../ConfirmDialog/ConfirmDialog';
+import { ConfirmModal } from '../../ConfirmModal/ConfirmModal';
 import { DatePicker } from '../../DatePicker/DatePicker';
-import { DevicePopup } from '../../DevicePopup/DevicePopup';
+import { DeviceModal } from '../../DeviceModal/DeviceModal';
 import { Toggle } from '../../Toggle/Toggle';
 import {
   deleteScreenTimeAll,
@@ -86,7 +86,7 @@ export function ScreenTimeDataControl({ open, onClose, onChanged }: ScreenTimeDa
 
   return (
     <>
-      <DevicePopup open={open} onClose={handleClose} title={t('settings.screentime.title')}>
+      <DeviceModal open={open} onClose={handleClose} title={t('settings.screentime.title')}>
         <div className={styles.content}>
           <div className={styles.toggleRow}>
             <div className={styles.toggleInfo}>
@@ -132,9 +132,9 @@ export function ScreenTimeDataControl({ open, onClose, onChanged }: ScreenTimeDa
             </button>
           </div>
         </div>
-      </DevicePopup>
+      </DeviceModal>
 
-      <ConfirmDialog
+      <ConfirmModal
         open={confirm.open}
         title={t('settings.screentime.clearConfirmTitle')}
         message={confirm.all

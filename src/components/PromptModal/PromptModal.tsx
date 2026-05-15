@@ -1,9 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
-import styles from './PromptDialog.module.scss';
+import styles from './PromptModal.module.scss';
 
-interface PromptDialogProps {
+interface PromptModalProps {
   open: boolean;
   title: string;
   message?: string;
@@ -27,9 +27,9 @@ interface PromptDialogProps {
  * consistent across macOS / Linux / Windows (WKWebView, Edge kiosk, and
  * browsers all suppress or restyle native prompts differently). Composes
  * Overlay with variant="alert" so it inherits the centered backdrop blur,
- * Esc-cancel, and Enter-submit wiring used by ConfirmDialog.
+ * Esc-cancel, and Enter-submit wiring used by ConfirmModal.
  */
-export function PromptDialog({
+export function PromptModal({
   open,
   title,
   message,
@@ -41,7 +41,7 @@ export function PromptDialog({
   validate,
   onConfirm,
   onCancel,
-}: PromptDialogProps) {
+}: PromptModalProps) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
@@ -93,7 +93,7 @@ export function PromptDialog({
 
   return (
     <Overlay open={open} onClose={onCancel} variant="alert" onEnter={submit}
-      className={styles.dialog} ariaLabel={title}>
+      className={styles.modal} ariaLabel={title}>
       <h2 id={inputId + '-title'} className={styles.title}>{title}</h2>
       <div className={styles.fieldWrap}>
         {message && <label htmlFor={inputId} className={styles.message}>{message}</label>}

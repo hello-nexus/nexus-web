@@ -26,7 +26,7 @@ interface WidgetPreviewCardProps {
   // Force a specific theme for the inner preview. When undefined, the inner
   // panel-root inherits the document-level theme (light/dark) via the panel
   // token mappings to `--text` etc. Pass 'dark' explicitly when the surrounding
-  // shell is not panel-themed (e.g. Y70Popup catalog inside the desktop app).
+  // shell is not panel-themed (e.g. Y70Modal catalog inside the desktop app).
   themeMode?: 'dark' | 'light';
   // Optional drag handlers from dnd-kit. Typed as unknown because dnd-kit's
   // listener-map shape is library-internal; we just spread them onto the

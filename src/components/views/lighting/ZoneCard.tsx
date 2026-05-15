@@ -115,7 +115,7 @@ export function ZoneCard({
         </span>
       ) : resizable ? (
         // Read-only count display: the editable LED-count lives in the LED
-        // map editor popup (gear icon) so there's one canonical place to
+        // map editor modal (gear icon) so there's one canonical place to
         // resize + arrange + delete LEDs instead of two affordances that
         // could disagree mid-flight.
         <span className={styles.deviceMetaZone}>

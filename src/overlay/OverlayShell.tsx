@@ -222,7 +222,7 @@ export default function OverlayShell() {
 
   // Single-monitor model: render every widget regardless of its
   // legacy `monitor` field. The overlay process now runs on exactly
-  // one user-chosen monitor (set via the popup dropdown); the per-widget
+  // one user-chosen monitor (set via the modal dropdown); the per-widget
   // monitor index is vestigial data that we don't filter on anymore.
   // Keeps existing layouts visible after a monitor switch.
   void monitor; // suppresses unused-binding lint; still read above for URL parsing
