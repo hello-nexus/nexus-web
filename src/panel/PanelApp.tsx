@@ -19,6 +19,7 @@ import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard'
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
 import { usePanelSheetSwipe } from './engine/usePanelSheetSwipe';
 import { broadcastLayoutChanged, onLayoutChanged } from './engine/panelSync';
+import { surfaceSupportsTransparency } from './panelDevices';
 import { panelGridCapacityForCanvas, sizeToSpan, snapStride, type PanelGridCapacity } from './engine/grid';
 import { paginateCapacityForGrid, repaginatePanelLayout, type PaginateCapacity } from './engine/paginate';
 import {
@@ -2554,7 +2555,7 @@ function PanelEditorSheet({
               onWidgetOpacityPreview={onThemeWidgetOpacityPreview}
               onWidgetOpacityCommit={onThemeWidgetOpacityCommit}
               onWidgetLabelsCommit={onThemeWidgetLabelsCommit}
-              supportsTransparency={surface === 'y70' || surface === 'q60'}
+              supportsTransparency={surfaceSupportsTransparency(surface)}
             />
           </div>
         )}

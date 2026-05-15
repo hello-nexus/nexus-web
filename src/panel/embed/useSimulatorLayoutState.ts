@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { PanelLayout, PanelSurface } from '../types';
+import { normalizePanelOpacity } from '../panelBackground';
 import {
   isSimulatorMessage,
   type SimulatorChildToParent,
@@ -75,7 +76,10 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setBrightness(data.brightness);
           setScreenOn(data.screenOn);
           setShowPanel(data.showPanel);
-          setPanelOpacity(data.panelOpacity);
+          // Normalize on receive so an older or misbehaving parent that
+          // sends out-of-range / NaN can't drive the dim overlay into a
+          // useless state.
+          setPanelOpacity(normalizePanelOpacity(data.panelOpacity));
           setReady(true);
           break;
         }
@@ -96,7 +100,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setBrightness(data.brightness);
           setScreenOn(data.screenOn);
           setShowPanel(data.showPanel);
-          setPanelOpacity(data.panelOpacity);
+          setPanelOpacity(normalizePanelOpacity(data.panelOpacity));
           break;
         }
         default:
