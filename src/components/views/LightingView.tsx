@@ -33,6 +33,7 @@ import { DevicePanel } from './lighting/DevicePanel';
 import { LedMapEditor } from './lighting/LedMapEditor';
 import { RescanDevicesButton } from './lighting/RescanDevicesButton';
 import { RgbStatusCard } from './lighting/RgbStatusCard';
+import { GlobalBrightnessSlider } from './lighting/GlobalBrightnessSlider';
 import { RightPaneTabs, type RightPaneTab } from './lighting/RightPaneTabs';
 import { EffectTab, type PostProcessState } from './lighting/EffectTab';
 import { useThrottle } from '../../hooks/cadence';
@@ -658,6 +659,7 @@ export function LightingView({ serviceOnline, connectionState, activeProfileId }
         <ViewHeader title={t('lighting.title')} titleTooltip={t('lighting.title.tooltip')} tabs={modeTabs} activeTab={synced ? mode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} />
         <div className={styles.topBarRight}>
           <div className={styles.statusCardSlot}>
+            <GlobalBrightnessSlider serviceOnline={serviceOnline} />
             <RgbStatusCard rgbRunning={rgb.running} />
           </div>
           <RightPaneTabs

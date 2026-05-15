@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
-  Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square,
+  Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square, Sun, SunDim,
 } from 'lucide-react';
 import {
   fetchLedMap, fetchLedMapDefaults, saveLedMap, resetLedMap, highlightLeds, testLedPattern, clearLedEditor,
-  setZoneLedCount,
+  setZoneLedCount, setLightingDeviceBrightness,
   type LedMapEntry, type LightingDevice,
 } from '../../../api/lighting';
 import { useTranslation } from '../../../lib/i18n';
 import { DeviceModal } from '../../DeviceModal/DeviceModal';
 import { ConfirmModal } from '../../ConfirmModal/ConfirmModal';
+import { Slider } from '../../Slider/Slider';
+import { useThrottle } from '../../../hooks/cadence';
 import styles from './LedMapEditor.module.scss';
 
 const isMac = /mac/i.test(navigator.userAgent);
@@ -54,6 +56,21 @@ export function LedMapEditor({ device, onClose }: Props) {
   const [ledCountDraft, setLedCountDraft] = useState(String(device.ledCount));
   const ledCountEscapeRef = useRef(false);
   const countChangingRef = useRef(false);
+  // Per-device brightness multiplier (0..100). Multiplies the global brightness
+  // slider so the effective output is `global * device / 100`. Default 100% so
+  // existing devices light up at full brightness until the user dials it down.
+  const [brightness, setBrightness] = useState<number>(device.brightness ?? 100);
+  const brightnessThrottle = useThrottle();
+  const sendBrightness = useCallback((value: number) => {
+    setLightingDeviceBrightness(device.id, value).catch(() => { /* best-effort */ });
+  }, [device.id]);
+  const handleBrightnessChange = useCallback((value: number) => {
+    setBrightness(value);
+    brightnessThrottle(() => sendBrightness(value));
+  }, [brightnessThrottle, sendBrightness]);
+  const handleBrightnessCommit = useCallback((value: number) => {
+    sendBrightness(value);
+  }, [sendBrightness]);
   // Only motherboard ARGB zones with the `zoneResizable` flag accept
   // resize opcodes; keyboard matrices, GPU strips, etc. have fixed counts.
   const canEditLedCount = device.zoneResizable === true;
@@ -1252,6 +1269,25 @@ export function LedMapEditor({ device, onClose }: Props) {
                 </label>
               </>
             )}
+            <div className={styles.separator} />
+            <div className={styles.brightnessField}>
+              {brightness === 0
+                ? <SunDim size={14} strokeWidth={1.7} className={styles.brightnessIcon} aria-hidden />
+                : <Sun size={14} strokeWidth={1.7} className={styles.brightnessIcon} aria-hidden />}
+              <Slider
+                value={brightness}
+                min={0}
+                max={100}
+                step={1}
+                orientation="bare"
+                onChange={handleBrightnessChange}
+                onCommit={handleBrightnessCommit}
+                trackFill
+                ariaLabel={t('lighting.devices.brightness')}
+                className={styles.brightnessTrack}
+              />
+              <span className={styles.brightnessValue}>{brightness}%</span>
+            </div>
             <div className={styles.spacer} />
             <button
               type="button"

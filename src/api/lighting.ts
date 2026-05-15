@@ -203,6 +203,19 @@ export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h:
 export const setLightingDevicePower = (id: string, on: boolean) =>
   postService('/devices/lighting-devices/power', { id, on });
 
+// Per-device brightness multiplier (0..100). Applied in the RGB bridge so the
+// canvas preview stays at full brightness while the LED output dims.
+export const setLightingDeviceBrightness = (id: string, brightness: number) =>
+  postService('/devices/lighting-devices/brightness', { id, brightness });
+
+// Master brightness multiplier (0..1). Multiplies every per-device value so
+// the effective brightness for an LED is `global * device / 100`.
+export const fetchGlobalBrightness = () =>
+  fetchService<{ value: number }>('/lighting/global-brightness');
+
+export const setGlobalBrightness = (value: number) =>
+  postService('/lighting/global-brightness', { value });
+
 // Resize a motherboard ARGB zone's LED count. Persisted + applied live via
 // OpenRGB's RESIZEZONE opcode. Only valid for split zone ids ("openrgb-N-Z").
 export const setZoneLedCount = (id: string, count: number) =>

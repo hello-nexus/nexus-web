@@ -413,6 +413,35 @@
   -moz-appearance: textfield;
 }
 
+// Compact icon-track-value layout for the per-device brightness slider in the
+// toolbar. Sun glyph mirrors the global brightness control on the lighting
+// page so the two affordances feel like a matched set.
+.brightnessField {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-dim);
+}
+
+.brightnessIcon {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.brightnessTrack {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.brightnessValue {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 2.4em;
+  text-align: right;
+}
+
 .spacer { flex: 1; }
 
 .iconBtn {

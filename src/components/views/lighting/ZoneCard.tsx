@@ -52,6 +52,8 @@ export function ZoneCard({
     identifyLightingDevice(device.id, 2000).catch(() => { /* silent */ });
   };
 
+  const ledLabel = device.ledCount === 1 ? 'LED' : 'LEDs';
+
   return (
     <div
       className={[
@@ -64,77 +66,72 @@ export function ZoneCard({
       onClick={() => { if (!unavailable) onSelect(); }}
       title={unavailable ? t('lighting.devices.detectionFailedTooltip') : undefined}
     >
-      {!unavailable && (
-        <div className={styles.deviceCardActions}>
-          {device.ledCount > 0 && (
-            <>
-              <button
-                type="button"
-                className={styles.deviceSettingsBtn}
-                title={t('lighting.devices.identify')}
-                aria-label={t('lighting.devices.identify')}
-                onClick={handleIdentify}
-              >
-                <Eye />
-              </button>
-              <button
-                type="button"
-                className={`${styles.deviceSettingsBtn} ${frameHidden ? styles.deviceFrameBtnHidden : ''}`}
-                title={t(frameHidden ? 'lighting.devices.showFrame' : 'lighting.devices.hideFrame')}
-                aria-label={t(frameHidden ? 'lighting.devices.showFrame' : 'lighting.devices.hideFrame')}
-                aria-pressed={frameHidden}
-                onClick={e => { e.stopPropagation(); onToggleFrame(); }}
-              >
-                <Scan />
-              </button>
-              <button
-                type="button"
-                className={styles.deviceSettingsBtn}
-                title={t('lighting.ledMap.settings')}
-                aria-label={t('lighting.ledMap.settings')}
-                onClick={e => { e.stopPropagation(); onOpenSettings(); }}
-              >
-                <Settings />
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={device.ledsOn}
-            className={`${styles.devicePowerBtn} ${device.ledsOn ? styles.devicePowerBtnOn : ''}`}
-            title={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
-            aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
-            onClick={e => { e.stopPropagation(); onTogglePower(); }}
-          >
-            <Power />
-          </button>
-        </div>
-      )}
       <span className={styles.deviceName}>{displayName ?? device.name}</span>
-      {unavailable ? (
-        <span className={styles.deviceMetaUnavailable}>
-          {t('lighting.devices.detectionFailed')}
-        </span>
-      ) : resizable ? (
-        // Read-only count display: the editable LED-count lives in the LED
-        // map editor modal (gear icon) so there's one canonical place to
-        // resize + arrange + delete LEDs instead of two affordances that
-        // could disagree mid-flight.
-        <span className={styles.deviceMetaZone}>
-          <span className={styles.zoneLedCountValue}>{device.ledCount}</span>
-          <span className={styles.zoneLedCountLabel}>{t('lighting.devices.zoneLedCount')}</span>
-        </span>
-      ) : isZone && device.zoneType === 'single' ? (
-        <span
-          className={styles.deviceMeta}
-          title={t('lighting.devices.zoneFixedTooltip')}
-        >
-          {t('lighting.devices.zoneFixed')}
-        </span>
-      ) : (
-        <span className={styles.deviceMeta}>{device.ledCount} LEDs · {device.type}</span>
-      )}
+      <div className={styles.deviceMetaRow}>
+        {unavailable ? (
+          <span className={styles.deviceMetaUnavailable}>
+            {t('lighting.devices.detectionFailed')}
+          </span>
+        ) : isZone && device.zoneType === 'single' && !resizable ? (
+          <span
+            className={styles.deviceMeta}
+            title={t('lighting.devices.zoneFixedTooltip')}
+          >
+            {t('lighting.devices.zoneFixed')}
+          </span>
+        ) : (
+          <span className={styles.deviceMeta}>
+            <span className={styles.deviceMetaCount}>{device.ledCount}</span> {ledLabel}
+          </span>
+        )}
+        {!unavailable && (
+          <div className={styles.deviceCardActions}>
+            {device.ledCount > 0 && (
+              <>
+                <button
+                  type="button"
+                  className={styles.deviceSettingsBtn}
+                  title={t('lighting.devices.identify')}
+                  aria-label={t('lighting.devices.identify')}
+                  onClick={handleIdentify}
+                >
+                  <Eye />
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.deviceSettingsBtn} ${frameHidden ? styles.deviceFrameBtnHidden : ''}`}
+                  title={t(frameHidden ? 'lighting.devices.showFrame' : 'lighting.devices.hideFrame')}
+                  aria-label={t(frameHidden ? 'lighting.devices.showFrame' : 'lighting.devices.hideFrame')}
+                  aria-pressed={frameHidden}
+                  onClick={e => { e.stopPropagation(); onToggleFrame(); }}
+                >
+                  <Scan />
+                </button>
+                <button
+                  type="button"
+                  className={styles.deviceSettingsBtn}
+                  title={t('lighting.ledMap.settings')}
+                  aria-label={t('lighting.ledMap.settings')}
+                  onClick={e => { e.stopPropagation(); onOpenSettings(); }}
+                >
+                  <Settings />
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={device.ledsOn}
+              className={`${styles.devicePowerBtn} ${device.ledsOn ? styles.devicePowerBtnOn : ''}`}
+              title={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
+              aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
+              onClick={e => { e.stopPropagation(); onTogglePower(); }}
+            >
+              <Power />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -25,11 +25,16 @@ export function RescanDevicesButton({ rgbRunning, scanning }: {
     : busy ? 'lighting.devices.rescanning'
     : 'lighting.devices.rescan';
 
+  // Hold the local spinner long enough for useRgbStatus to observe
+  // `scanning=true` and start its poll loop. The rescan POST now broadcasts
+  // a lighting topic so the refetch usually happens within 100-200ms, but the
+  // network round-trip + state update can take a beat; 2s is a safe window
+  // that prevents the brief off-then-on flicker we saw with 500ms.
   const handleClick = async () => {
     if (disabled) return;
     setUserRescanning(true);
     try { await rescanLightingDevices(); }
-    finally { setTimeout(() => setUserRescanning(false), 500); }
+    finally { setTimeout(() => setUserRescanning(false), 2000); }
   };
 
   return (

@@ -5,13 +5,16 @@ import { useTopicCallback } from './useMultiplexSocket';
 /**
  * Tracks the bundled openrgb-headless subprocess state and rescan flag.
  *
- * Push-driven: every /lighting/* mutation publishes a 'lighting' frame,
- * which is when the most-likely state change happens (user started an effect
- * that triggered the RGB process to start, etc.). Autonomous RGB events
- * (rescan triggered by USB topology change with no user action) won't push
- * today; they'd need a dedicated rgb/status topic. Acceptable trade-off:
- * those events are rare and the spinner self-corrects on the next
- * mutation. Removes the prior 2s setInterval poll.
+ * Push-driven for steady-state: every /lighting/* mutation publishes a
+ * 'lighting' frame, which is when the most-likely state change happens (user
+ * started an effect that triggered the RGB process to start, etc.).
+ *
+ * Polled while scanning: rescan completion isn't a /lighting/* mutation, so
+ * there's no topic frame to tell us it finished. Without a fallback the
+ * "Rescanning..." label stuck until the next unrelated event or a tab change.
+ * Once `scanning` flips true (boot, user-triggered rescan, or USB topology
+ * change), the hook polls every 1s until it flips false, then drops back to
+ * push-only.
  */
 interface LightingStatusResponse {
   rgbRunning: boolean;
@@ -48,6 +51,14 @@ export function useRgbStatus(enabled: boolean): RgbStatus {
   useTopicCallback('lighting', enabled, () => {
     void fetchStatus();
   });
+
+  // Poll while scanning: see the file header for why this exists. Cleared as
+  // soon as scanning flips false so we're back to zero background work.
+  useEffect(() => {
+    if (!enabled || !status.scanning) return;
+    const id = setInterval(fetchStatus, 1000);
+    return () => clearInterval(id);
+  }, [enabled, status.scanning, fetchStatus]);
 
   return status;
 }
