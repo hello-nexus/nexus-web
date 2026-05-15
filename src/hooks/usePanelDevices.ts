@@ -26,6 +26,7 @@ const Y70_CAPABILITIES: PanelDeviceCapabilities = {
   pairing: false,
   presence: false,
   touch: true,
+  transparency: true,
 };
 
 const WIDGET_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
@@ -36,6 +37,7 @@ const WIDGET_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
   pairing: false,
   presence: false,
   touch: true,
+  transparency: true,
 };
 
 const EXTERNAL_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
@@ -46,6 +48,7 @@ const EXTERNAL_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
   pairing: true,
   presence: true,
   touch: true,
+  transparency: false,
 };
 
 const WIDGET_PANEL_PROFILES: Partial<Record<string, {

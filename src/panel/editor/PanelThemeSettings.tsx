@@ -36,6 +36,7 @@ export interface PanelThemeSettingsState {
   backgroundEffect: string;
   backgroundTemplate: number;
   backgroundOpacity: number;
+  panelOpacity: number;
   widgetOpacity: number;
   widgetLabels: boolean;
 }
@@ -55,9 +56,14 @@ export interface PanelThemeSettingsProps {
   onBackgroundTemplateCommit: (template: number) => void;
   onBackgroundOpacityPreview: (opacity: number) => void;
   onBackgroundOpacityCommit: (opacity: number) => void;
+  onPanelOpacityPreview: (opacity: number) => void;
+  onPanelOpacityCommit: (opacity: number) => void;
   onWidgetOpacityPreview: (opacity: number) => void;
   onWidgetOpacityCommit: (opacity: number) => void;
   onWidgetLabelsCommit: (enabled: boolean) => void;
+  /// <summary>Whether this panel surface supports see-through rendering over
+  /// the desktop wallpaper. True for monitor-attached panels (Y70, Q60).</summary>
+  supportsTransparency: boolean;
 }
 
 type AnimationFilter = EffectCategory | 'all';
@@ -82,9 +88,12 @@ export function PanelThemeSettings({
   onBackgroundTemplateCommit,
   onBackgroundOpacityPreview,
   onBackgroundOpacityCommit,
+  onPanelOpacityPreview,
+  onPanelOpacityCommit,
   onWidgetOpacityPreview,
   onWidgetOpacityCommit,
   onWidgetLabelsCommit,
+  supportsTransparency,
 }: PanelThemeSettingsProps) {
   const { t } = useTranslation();
   const label = (key: string, fallback: string) => {
@@ -95,6 +104,7 @@ export function PanelThemeSettings({
   const backgroundEffect = normalizePanelBackgroundEffect(theme.backgroundEffect);
   const backgroundTemplate = normalizePanelBackgroundTemplate(theme.backgroundTemplate);
   const backgroundOpacityPercent = Math.round(theme.backgroundOpacity * 100);
+  const panelOpacityPercent = Math.round(theme.panelOpacity * 100);
   const widgetOpacityPercent = Math.round(theme.widgetOpacity * 100);
 
   return (
@@ -202,6 +212,28 @@ export function PanelThemeSettings({
           </div>
         )}
       </div>
+
+      {supportsTransparency && (
+        <div className={styles.themeSection}>
+          <div className={styles.themeSectionTitle}>{label('panel.settings.panel', 'Panel')}</div>
+          <Slider
+            orientation="stacked"
+            label={label('panel.settings.panelOpacity', 'Panel Opacity')}
+            value={panelOpacityPercent}
+            min={0}
+            max={100}
+            step={1}
+            trackFill={panelOpacityPercent}
+            formatValue={v => `${v}%`}
+            onChange={(v, commit) => {
+              const next = v / 100;
+              if (commit) onPanelOpacityCommit(next);
+              else onPanelOpacityPreview(next);
+            }}
+            onCommit={v => onPanelOpacityCommit(v / 100)}
+          />
+        </div>
+      )}
 
       <div className={styles.themeSection}>
         <div className={styles.themeSectionTitle}>{label('panel.settings.widgets', 'Widgets')}</div>

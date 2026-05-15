@@ -41,6 +41,7 @@ export interface PanelSettings {
   backgroundEffect: string;
   backgroundTemplate: number;
   backgroundOpacity: number;
+  panelOpacity: number;
   widgetOpacity: number;
   widgetLabels: boolean;
   // Profile-scoped desktop dashboard layout. Absent / null when the SPA's

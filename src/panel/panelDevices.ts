@@ -13,6 +13,9 @@ export interface PanelDeviceCapabilities {
   pairing: boolean;
   presence: boolean;
   touch: boolean;
+  /// <summary>Panel surface supports see-through rendering over the desktop
+  /// wallpaper (Panel Opacity slider). True for monitor-attached panels.</summary>
+  transparency: boolean;
 }
 
 export interface PanelDevice {

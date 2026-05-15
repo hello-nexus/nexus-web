@@ -26,6 +26,7 @@ export interface SimulatorInitMessage {
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
+  panelOpacity: number;
 }
 
 export interface SimulatorSetDisplayMessage {
@@ -33,6 +34,7 @@ export interface SimulatorSetDisplayMessage {
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
+  panelOpacity: number;
 }
 
 export interface SimulatorSetLayoutMessage {
