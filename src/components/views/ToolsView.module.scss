@@ -1,9 +1,13 @@
 @use '../../styles/text' as *;
 
 /* Debug Tools page. Card chrome lives on the shared Card primitive; this
-   file owns the page layout and the kv/btn affordances inside cards. */
+   file owns the page layout and the kv/btn affordances inside cards. The
+   surrounding App `.content` shell already supplies `padding: 1rem 1.25rem`
+   — every other view (Monitoring, Devices, Lighting, …) renders flush
+   inside that, so this page must too. */
 .tools {
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .title {
