@@ -42,6 +42,7 @@ import { useBuilder } from './hooks/useBuilder';
 import { fetchService } from './api/service';
 import {
   allocatePanelDeviceWithStatus,
+  patchPanelDevice,
   claimPanelPhonePairing,
   fetchPanelPhonePairQr,
   fetchPanelPhoneSessions,
@@ -293,6 +294,21 @@ function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken }: {
   const [failureDetail, setFailureDetail] = useState('');
   const [allocAttempt, setAllocAttempt] = useState(0);
   const inferredSurface = useMemo(() => inferSurfaceFromViewport(isPhonePair), [isPhonePair]);
+  // Snapshot the kiosk's own viewport so the service can pass it on to the
+  // dashboard simulator iframe (which otherwise renders against a hardcoded
+  // profile that doesn't reflect the user's actual Y70 model + Windows DPI).
+  const viewportCapabilities = useMemo(() => {
+    if (typeof window === 'undefined') return undefined;
+    const dpr = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0
+      ? window.devicePixelRatio
+      : 1;
+    return {
+      surface: inferredSurface,
+      cssWidth: Math.max(1, Math.round(window.innerWidth)),
+      cssHeight: Math.max(1, Math.round(window.innerHeight)),
+      dpr,
+    };
+  }, [inferredSurface]);
 
   // Phone pair flow: claim the QR token, store the session cookie, then fall
   // through to allocate-or-cache a deviceId for this phone.
@@ -336,10 +352,15 @@ function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken }: {
     if (cached) {
       // Trust the cache; if the server has forgotten this device the panel
       // page will 404 the device fetch and PanelApp re-allocates from there.
+      // Patch capabilities with the current viewport so the dashboard sees
+      // up-to-date hardware dimensions even when we skip the allocate path.
+      if (viewportCapabilities) {
+        patchPanelDevice(cached, { capabilities: viewportCapabilities }).catch(() => {});
+      }
       finish(cached);
       return;
     }
-    allocatePanelDeviceWithStatus({ surface: inferredSurface }).then(result => {
+    allocatePanelDeviceWithStatus(viewportCapabilities ?? { surface: inferredSurface }).then(result => {
       if (cancelled) return;
       if (result.ok) {
         finish(result.record.id);
@@ -354,7 +375,7 @@ function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken }: {
       setState('failed');
     });
     return () => { cancelled = true; };
-  }, [state, inferredSurface, allocAttempt]);
+  }, [state, inferredSurface, viewportCapabilities, allocAttempt]);
 
   const retry = useCallback(() => {
     setFailureDetail('');

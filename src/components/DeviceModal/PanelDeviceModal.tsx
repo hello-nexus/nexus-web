@@ -61,6 +61,11 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
   const [loaded, setLoaded] = useState(false);
   const [layout, setLayout] = useState<PanelLayout>(() => defaultLayoutForSurface('y70'));
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
+  // Live canvas size reported by the kiosk's SPA via capabilities. Overrides
+  // the hardcoded profile (which assumes a single Y70 model) so the simulator
+  // iframe matches whatever Y70 variant + Windows DPI scaling is actually
+  // attached.
+  const [liveCanvas, setLiveCanvas] = useState<{ width: number; height: number } | null>(null);
   const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
   const surface = device?.runtimeSurface ?? 'y70';
   const supportsDisplayControls = device?.capabilities.displayControls ?? surface === 'y70';
@@ -95,6 +100,9 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
       // surface. The /panel/devices list is sorted by lastSeenAt desc.
       const match = devices?.devices.find(d => d.capabilities?.surface === surface);
       setEditingDeviceId(match?.id ?? null);
+      const cw = match?.capabilities?.cssWidth;
+      const ch = match?.capabilities?.cssHeight;
+      setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
       const savedLayout = match?.layout ?? defaultLayoutForSurface(surface);
       setLayout(normalizePanelLayout(savedLayout, surface));
       if (prefs) setAutoLaunch(prefs.panel?.autoLaunch ?? false);
@@ -323,7 +331,7 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
                 onLayoutChange={updateLayout}
                 onWidgetClicked={handleConfigureWidget}
                 onBackgroundClicked={() => setConfiguringWidget(null)}
-                canvasSize={device?.previewSize}
+                canvasSize={liveCanvas ?? device?.previewSize}
                 brightness={supportsDisplayControls ? brightness : 100}
                 screenOn={supportsDisplayControls ? screenOn : true}
                 showPanel={supportsAutoLaunch ? autoLaunch : true}

@@ -17,6 +17,9 @@ export interface PanelDeviceCapabilitiesDto {
   touch?: boolean;
   dock?: boolean;
   orientation?: string;
+  cssWidth?: number;
+  cssHeight?: number;
+  dpr?: number;
 }
 
 export interface PanelDeviceRecord {

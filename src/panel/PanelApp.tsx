@@ -626,7 +626,7 @@ export function PanelContent({
   // gestures inside the iframe just like on a real touch surface.
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   usePhoneContentScale(surface === 'phone' && loaded, rootRef);
-  const runtimeGrid = useRuntimePanelGrid(surface, rootRef);
+  const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator);
   const panelThemeVars = useMemo(
     () => embedded ? buildEmbeddedPanelThemeVars(appAccentColor, resolvedThemeMode) : buildPanelThemeVars(effectiveTheme, resolvedThemeMode),
     [appAccentColor, embedded, effectiveTheme, resolvedThemeMode],
@@ -1911,11 +1911,12 @@ function usePanelPageScrollLock(enabled = true) {
 function useRuntimePanelGrid(
   surface: PanelSurface,
   rootRef?: RefObject<HTMLElement | null>,
+  simulator = false,
 ): PanelGridCapacity {
-  const [metrics, setMetrics] = useState(() => readRuntimePanelGrid(surface, rootRef?.current ?? null));
+  const [metrics, setMetrics] = useState(() => readRuntimePanelGrid(surface, rootRef?.current ?? null, simulator));
 
   useEffect(() => {
-    const update = () => setMetrics(readRuntimePanelGrid(surface, rootRef?.current ?? null));
+    const update = () => setMetrics(readRuntimePanelGrid(surface, rootRef?.current ?? null, simulator));
     update();
     const observed = rootRef?.current ?? null;
     const observer = observed && typeof ResizeObserver !== 'undefined'
@@ -1933,12 +1934,12 @@ function useRuntimePanelGrid(
       window.removeEventListener(PANEL_SIMULATION_CHANGED_EVENT, update);
       observer?.disconnect();
     };
-  }, [surface, rootRef]);
+  }, [surface, rootRef, simulator]);
 
   return metrics;
 }
 
-function readRuntimePanelGrid(surface: PanelSurface, root?: HTMLElement | null): PanelGridCapacity {
+function readRuntimePanelGrid(surface: PanelSurface, root?: HTMLElement | null, simulator = false): PanelGridCapacity {
   if (typeof window === 'undefined') {
     return panelGridCapacityForCanvas(682, 2560, {
       surface,
@@ -1960,9 +1961,15 @@ function readRuntimePanelGrid(surface: PanelSurface, root?: HTMLElement | null):
     };
   }
 
-  const dpr = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0
-    ? window.devicePixelRatio
-    : 1;
+  // In simulator mode the iframe is sized at the device's native pixel
+  // dimensions (e.g. 682x2560 for Y70); the host browser's DPR would
+  // inflate the physical-size calc and trip the 4-to-8 column jump on
+  // Retina hosts, so treat cssWidth/cssHeight as device pixels directly.
+  const dpr = simulator
+    ? 1
+    : Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0
+      ? window.devicePixelRatio
+      : 1;
   const rect = root?.getBoundingClientRect();
   const cssWidth = Math.max(1, Math.round(rect?.width ?? window.innerWidth));
   const cssHeight = Math.max(1, Math.round(rect?.height ?? window.innerHeight));

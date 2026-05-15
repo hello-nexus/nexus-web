@@ -309,6 +309,16 @@
   transform: translateY(50%);
 }
 
+.panelRoot[data-surface='y70'] {
+  // Without this the cellScaler falls back to a hardcoded 172px reference
+  // for --_content, so widget contents render at "172px-cell scale" even
+  // when the actual fluid 1fr cell is wider (e.g. ~268px on Y70 hardware at
+  // 100% Windows scaling, vs ~176px at 150%). Tracking the real cell width
+  // makes the rendering scaling-aware on the kiosk AND keeps the simulator
+  // iframe faithful at whatever canvas size the kiosk reports.
+  --panel-cell-size: calc((100vw - (var(--panel-columns) - 1) * var(--panel-gap, 10px)) / var(--panel-columns));
+}
+
 .panelRoot[data-surface='phone'] {
   --panel-columns: 4;
   --panel-rows: 4;
