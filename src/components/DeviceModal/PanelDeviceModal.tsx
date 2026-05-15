@@ -16,6 +16,7 @@ import {
 import { useTranslation } from '../../lib/i18n';
 import { createUuid } from '../../lib/uuid';
 import { IconLabelButton } from '../IconLabelButton/IconLabelButton';
+import { Select } from '../Select/Select';
 import { Slider } from '../Slider/Slider';
 import { Toggle } from '../Toggle/Toggle';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
@@ -49,13 +50,30 @@ interface BrightnessResponse { brightness: number }
 interface RotationParams { orientation: string }
 interface ToggleResponse { toggle: boolean }
 
+const Y70_ORIENTATIONS = ['Landscape', 'Portrait', 'LandscapeFlipped', 'PortraitFlipped'] as const;
+type Y70Orientation = (typeof Y70_ORIENTATIONS)[number];
+
+function normalizeOrientation(value: string | undefined | null): Y70Orientation {
+  if (!value) return 'Landscape';
+  // Older builds persisted lowercase 'landscape' / 'portrait'. Normalize back
+  // to the Windows-style PascalCase values the backend now expects.
+  const lower = value.toLowerCase();
+  if (lower === 'portrait') return 'Portrait';
+  if (lower === 'landscapeflipped' || lower === 'landscape_flipped') return 'LandscapeFlipped';
+  if (lower === 'portraitflipped' || lower === 'portrait_flipped') return 'PortraitFlipped';
+  if (lower === 'landscape') return 'Landscape';
+  return (Y70_ORIENTATIONS as readonly string[]).includes(value)
+    ? (value as Y70Orientation)
+    : 'Landscape';
+}
+
 type Tab = 'widgets' | 'theme' | 'settings';
 
 export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('widgets');
   const [brightness, setBrightness] = useState(50);
-  const [orientation, setOrientation] = useState('portrait');
+  const [orientation, setOrientation] = useState<Y70Orientation>('Landscape');
   const [screenOn, setScreenOn] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -93,7 +111,7 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
     ]).then(([b, r, tog, prefs, devices]) => {
       if (cancelled) return;
       if (b) setBrightness(b.brightness);
-      if (r) setOrientation(r.orientation);
+      if (r) setOrientation(normalizeOrientation(r.orientation));
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
       // Pick the most recently active device record matching this modal's
@@ -294,6 +312,7 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
                         if (!supportsDisplayControls) return;
                         postService('/y70/rotation', { orientation: next }).catch(() => {});
                       }}
+                      orientationOptions={Y70_ORIENTATIONS}
                       screenOn={screenOn}
                       onScreenToggle={() => {
                         const next = !screenOn;
@@ -489,8 +508,9 @@ function InlineWidgetSettings({ widget, surface, onBack, onUpdate, onResize, onR
 interface SettingsPanelProps {
   brightness: number;
   onBrightness: (v: number) => void;
-  orientation: string;
-  onOrientation: (v: string) => void;
+  orientation: Y70Orientation;
+  onOrientation: (v: Y70Orientation) => void;
+  orientationOptions: readonly Y70Orientation[];
   screenOn: boolean;
   onScreenToggle: () => void;
   autoLaunch: boolean;
@@ -501,7 +521,7 @@ interface SettingsPanelProps {
 
 function SettingsPanel({
   brightness, onBrightness,
-  orientation, onOrientation,
+  orientation, onOrientation, orientationOptions,
   screenOn, onScreenToggle,
   autoLaunch, onAutoLaunchToggle,
   showDisplayControls,
@@ -533,14 +553,16 @@ function SettingsPanel({
           </div>
 
           <div className="device-modal-row">
-            <div>
-              <div className="device-modal-label">{t('devices.y70.orientation')}</div>
-              <div className="device-modal-hint">{orientation}</div>
-            </div>
-            <Toggle
-              checked={orientation === 'landscape'}
-              onChange={() => onOrientation(orientation === 'portrait' ? 'landscape' : 'portrait')}
+            <div className="device-modal-label">{t('devices.y70.orientation')}</div>
+            <Select
+              value={orientation}
+              onChange={(v) => onOrientation(v as Y70Orientation)}
+              options={orientationOptions.map(o => ({
+                value: o,
+                label: t(`devices.y70.orientation.${o}`),
+              }))}
               ariaLabel={t('devices.y70.orientation')}
+              size="sm"
             />
           </div>
 
