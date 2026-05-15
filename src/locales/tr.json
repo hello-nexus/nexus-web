@@ -758,6 +758,7 @@
   "service.required.badge": "Servis gerekli",
   "service.required.dontHaveIt": "Henuz yok mu? Indirin:",
   "service.required.downloadFor": "{os} icin indir",
+  "service.required.needReinstall": "Yeniden yuklemek mi istiyorsunuz? Qos'u indirin:",
   "service.required.message": "Bu bolum, Qos servisinin sisteminizde calisiyor olmasi gerektirir.",
   "service.required.os.linux": "Linux",
   "service.required.os.macos": "macOS",

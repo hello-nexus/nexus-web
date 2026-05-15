@@ -21,7 +21,19 @@ export function ServiceRequired({ state = 'offline', skeleton }: ServiceRequired
   const detected: DetectedOS = useMemo(() => detectOS(), []);
   const primaryOS: DownloadableOS = detected === 'unknown' ? 'windows' : detected;
   const alternateOS = ALL_DOWNLOADABLE_OS.filter((os) => os !== primaryOS);
-  const neverInstalled = state === 'offline';
+  // Show the download CTA whenever the service isn't reachable, not only
+  // for first-time visitors. Someone whose localStorage flag says they
+  // installed Qos before (so state is 'offline-installed') might be on a
+  // different machine where they don't actually have it - they still need
+  // a download link. Different label for the two cases keeps the UX honest.
+  const showDownload = state === 'offline' || state === 'offline-installed';
+  // Default to the friendlier "don't have it yet?" phrasing - the
+  // reinstall variant is reserved strictly for the localStorage-says-
+  // installed-but-unreachable case so future state additions don't
+  // accidentally inherit a wrong label.
+  const downloadLabelKey = state === 'offline-installed'
+    ? 'service.required.needReinstall'
+    : 'service.required.dontHaveIt';
   const showSafariNote = useMemo(() => {
     if (!isSafari()) return false;
     return typeof window !== 'undefined' && window.location.protocol === 'https:';
@@ -53,9 +65,9 @@ export function ServiceRequired({ state = 'offline', skeleton }: ServiceRequired
               won't fire. */}
           {!showSafariNote && <ServiceLaunchButton />}
 
-          {neverInstalled && (
+          {showDownload && (
             <div className={styles.downloadSection}>
-              <p className={styles.downloadLabel}>{t('service.required.dontHaveIt')}</p>
+              <p className={styles.downloadLabel}>{t(downloadLabelKey)}</p>
               <a
                 className={styles.downloadSecondary}
                 href={DOWNLOAD_URLS[primaryOS]}

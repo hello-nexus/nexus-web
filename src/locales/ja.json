@@ -758,6 +758,7 @@
   "service.required.badge": "サービスが必要",
   "service.required.dontHaveIt": "まだお持ちでないですか？ダウンロード：",
   "service.required.downloadFor": "{os} 用にダウンロード",
+  "service.required.needReinstall": "再インストールしますか？Qos をダウンロード：",
   "service.required.message": "このセクションではお使いのシステムで Qos サービスが実行されている必要があります。",
   "service.required.os.linux": "Linux",
   "service.required.os.macos": "macOS",
