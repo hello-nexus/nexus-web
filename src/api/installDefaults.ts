@@ -25,7 +25,13 @@ export interface InstallDefaultsDocument {
     layouts: Record<'desktop' | 'y70' | 'phone' | 'q60', {
       layoutSchemaVersion: number;
       surface: string;
-      widgets: { type: string; size: string; col: number; row: number }[];
+      widgets: {
+        type: string;
+        size: string;
+        col: number;
+        row: number;
+        config?: Record<string, unknown>;
+      }[];
     }>;
   };
   overlay: { enabled: boolean; alwaysOnTop: boolean; scale: number; opacity: number; monitor: number };

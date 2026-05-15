@@ -1,4 +1,4 @@
-import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
+import type { PanelConfigValue, PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
 import { createUuid } from '../../lib/uuid';
 import { getInstallDefaults } from '../../api/installDefaultsCache';
 
@@ -27,6 +27,7 @@ function buildLayout(surface: PanelLayout['surface']): PanelLayout {
           size: w.size as PanelWidgetSize,
           col: w.col,
           row: w.row,
+          ...(w.config ? { config: w.config as Record<string, PanelConfigValue> } : {}),
         }) satisfies PanelWidget),
       },
     ],
