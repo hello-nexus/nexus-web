@@ -34,7 +34,6 @@ import {
 } from '../../panel/types';
 import type { PanelDevice } from '../../panel/panelDevices';
 import { defaultLayoutForSurface } from '../../panel/engine/defaultLayout';
-import { loadSimulatedPanelLayout, saveSimulatedPanelLayout } from '../../lib/panelSimulation';
 import { PanelWidgetCatalog } from '../../panel/editor/PanelWidgetCatalog';
 import { DeviceModal } from './DeviceModal';
 import '../../panel/styles/tokens.scss';
@@ -63,20 +62,16 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
   const [layout, setLayout] = useState<PanelLayout>(() => defaultLayoutForSurface('y70'));
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
   const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
-  const isTestDevice = device?.managementMode === 'managed-test' || device?.connectionKind === 'simulated';
   const surface = device?.runtimeSurface ?? 'y70';
-  const simulatedDeviceId = device?.id ?? 'simulated:y70';
   const supportsDisplayControls = device?.capabilities.displayControls ?? surface === 'y70';
   const supportsAutoLaunch = device?.capabilities.launchClose ?? surface === 'y70';
   const settingsAvailable = supportsDisplayControls || supportsAutoLaunch;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
-  // Drive the simulator's theme tab from the SAME hook the live panel
-  // runtime uses, so the UI gets every section (theme, accent, background
-  // mode + animations + opacity, widgets), and the preview reacts to every
-  // commit. Managed devices write through to /preferences and broadcast to
-  // the kiosk; test/simulated devices keep changes purely local (no
-  // fetch, no write) so they don't pollute prefs.
-  const panelTheme = usePanelTheme(!isTestDevice, !isTestDevice);
+  // Simulator and real hardware share the same code path: theme, layout,
+  // brightness, orientation, screen-on, and auto-launch all read/write the
+  // service's persisted state. Swapping a real Y70 in for the simulator (or
+  // vice versa) picks up exactly the same configuration.
+  const panelTheme = usePanelTheme();
   const theme = panelTheme.theme;
   const effectiveThemeMode = theme.themeSyncWithDesktop ? theme.appThemeMode : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
@@ -84,24 +79,6 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    if (isTestDevice) {
-      const timer = window.setTimeout(() => {
-        if (cancelled) return;
-        setBrightness(80);
-        setOrientation(device?.previewSize && device.previewSize.width > device.previewSize.height ? 'landscape' : 'portrait');
-        setScreenOn(true);
-        setAutoLaunch(false);
-        setLayout(normalizePanelLayout(
-          loadSimulatedPanelLayout(simulatedDeviceId) ?? defaultLayoutForSurface(surface),
-          surface,
-        ));
-        setLoaded(true);
-      }, 0);
-      return () => {
-        cancelled = true;
-        window.clearTimeout(timer);
-      };
-    }
     Promise.all([
       supportsDisplayControls ? fetchService<BrightnessResponse>('/y70/brightness') : Promise.resolve(null),
       supportsDisplayControls ? fetchService<RotationParams>('/y70/rotation') : Promise.resolve(null),
@@ -112,7 +89,8 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
       if (cancelled) return;
       if (b) setBrightness(b.brightness);
       if (r) setOrientation(r.orientation);
-      if (tog) setScreenOn(tog.toggle);
+      // /y70/toggle returns the persisted ScreenOff value, not "screen on".
+      if (tog) setScreenOn(!tog.toggle);
       // Pick the most recently active device record matching this modal's
       // surface. The /panel/devices list is sorted by lastSeenAt desc.
       const match = devices?.devices.find(d => d.capabilities?.surface === surface);
@@ -123,21 +101,17 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
       setLoaded(true);
     }).catch(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
-  }, [device?.previewSize, isTestDevice, open, simulatedDeviceId, surface, supportsDisplayControls]);
+  }, [open, surface, supportsDisplayControls]);
 
   const pushBrightness = (value: number) => {
     setBrightness(value);
-    if (isTestDevice || !supportsDisplayControls) return;
+    if (!supportsDisplayControls) return;
     postService('/y70/brightness', { brightness: value }).catch(() => {});
   };
 
   const updateLayout = useCallback((next: PanelLayout) => {
     const normalized = normalizePanelLayout(next, surface);
     setLayout(normalized);
-    if (isTestDevice) {
-      saveSimulatedPanelLayout(simulatedDeviceId, normalized);
-      return;
-    }
     // Per-device editing path. If no device for this surface is registered
     // yet (no panel of this kind has ever connected), allocate one on first
     // edit so the user's changes persist.
@@ -155,7 +129,7 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
         return persist(record.id);
       }
     });
-  }, [editingDeviceId, isTestDevice, simulatedDeviceId, surface]);
+  }, [editingDeviceId, surface]);
 
   // Editor capacity is the surface default - the live runtime may
   // recompute based on physical size. With explicit (col, row) the
@@ -309,21 +283,21 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
                       orientation={orientation}
                       onOrientation={(next) => {
                         setOrientation(next);
-                        if (isTestDevice || !supportsDisplayControls) return;
+                        if (!supportsDisplayControls) return;
                         postService('/y70/rotation', { orientation: next }).catch(() => {});
                       }}
                       screenOn={screenOn}
                       onScreenToggle={() => {
                         const next = !screenOn;
                         setScreenOn(next);
-                        if (isTestDevice || !supportsDisplayControls) return;
-                        postService('/y70/toggle', { toggle: next }).catch(() => {});
+                        if (!supportsDisplayControls) return;
+                        postService('/y70/toggle', { toggle: !next }).catch(() => {});
                       }}
                       autoLaunch={autoLaunch}
                       onAutoLaunchToggle={() => {
                         const next = !autoLaunch;
                         setAutoLaunch(next);
-                        if (isTestDevice || !supportsAutoLaunch) return;
+                        if (!supportsAutoLaunch) return;
                         savePreferences({ panel: { autoLaunch: next } }).catch(() => {});
                       }}
                       showDisplayControls={supportsDisplayControls}
@@ -347,6 +321,9 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
                 onWidgetClicked={handleConfigureWidget}
                 onBackgroundClicked={() => setConfiguringWidget(null)}
                 canvasSize={device?.previewSize}
+                brightness={supportsDisplayControls ? brightness : 100}
+                screenOn={supportsDisplayControls ? screenOn : true}
+                showPanel={supportsAutoLaunch ? autoLaunch : true}
               />
             </div>
           </div>

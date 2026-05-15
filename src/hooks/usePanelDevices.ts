@@ -38,16 +38,6 @@ const WIDGET_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
   touch: true,
 };
 
-const TEST_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
-  layout: true,
-  theme: true,
-  displayControls: true,
-  launchClose: false,
-  pairing: false,
-  presence: false,
-  touch: true,
-};
-
 const EXTERNAL_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
   layout: false,
   theme: false,
@@ -202,8 +192,8 @@ function buildPanelDevices({
       previewSize: { width: panel.width, height: panel.height },
       previewDpi: panel.dpi,
       iconSrc: PANEL_DEVICE_ICON,
-      capabilities: TEST_PANEL_CAPABILITIES,
-      modalKind: 'panel-editor',
+      capabilities: panel.surface === 'y70' ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES,
+      modalKind: panel.surface === 'y70' ? 'y70-compat' : 'panel-editor',
     });
   }
 

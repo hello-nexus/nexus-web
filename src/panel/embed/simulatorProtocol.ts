@@ -23,6 +23,16 @@ export interface SimulatorInitMessage {
   theme: SimulatorTheme;
   themeMode: 'dark' | 'light';
   selectedWidgetId: string | null;
+  brightness: number;
+  screenOn: boolean;
+  showPanel: boolean;
+}
+
+export interface SimulatorSetDisplayMessage {
+  type: 'simulator/set-display';
+  brightness: number;
+  screenOn: boolean;
+  showPanel: boolean;
 }
 
 export interface SimulatorSetLayoutMessage {
@@ -59,7 +69,8 @@ export type SimulatorParentToChild =
   | SimulatorInitMessage
   | SimulatorSetLayoutMessage
   | SimulatorSetThemeMessage
-  | SimulatorSetSelectionMessage;
+  | SimulatorSetSelectionMessage
+  | SimulatorSetDisplayMessage;
 
 export type SimulatorChildToParent =
   | SimulatorReadyMessage

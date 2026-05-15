@@ -1,4 +1,4 @@
-import type { PanelLayout, PanelSurface } from '../panel/types';
+import type { PanelSurface } from '../panel/types';
 import {
   DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES,
   panelGridCapacityForCanvas,
@@ -9,7 +9,6 @@ import {
 const SIMULATE_Y70_KEY = 'qos_simulate_y70';
 const SIMULATED_PANEL_IDS_KEY = 'qos_simulated_panel_ids';
 const SIMULATED_PANEL_CUSTOM_KEY = 'qos_simulated_panel_custom';
-const SIMULATED_PANEL_LAYOUT_PREFIX = 'qos_simulated_panel_layout:';
 const SIMULATED_PANEL_GRID_SIZING_KEY = 'qos_simulated_panel_grid_sizing';
 
 export const PANEL_SIMULATION_CHANGED_EVENT = 'y70-simulate-changed';
@@ -225,13 +224,4 @@ export function isY70Simulated(): boolean {
 
 export function setY70Simulated(next: boolean): void {
   setSimulatedPanelConnected('y70', next);
-}
-
-export function loadSimulatedPanelLayout(deviceId: string): PanelLayout | null {
-  return readJson<PanelLayout | null>(`${SIMULATED_PANEL_LAYOUT_PREFIX}${deviceId}`, null);
-}
-
-export function saveSimulatedPanelLayout(deviceId: string, layout: PanelLayout): void {
-  if (typeof localStorage === 'undefined') return;
-  localStorage.setItem(`${SIMULATED_PANEL_LAYOUT_PREFIX}${deviceId}`, JSON.stringify(layout));
 }

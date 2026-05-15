@@ -25,6 +25,9 @@ export interface SimulatorRuntimeState {
   theme: SimulatorTheme | null;
   themeMode: 'dark' | 'light';
   selectedWidgetId: string | null;
+  brightness: number;
+  screenOn: boolean;
+  showPanel: boolean;
   onWidgetClicked: (id: string) => void;
   onBackgroundClicked: () => void;
 }
@@ -51,6 +54,9 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [theme, setTheme] = useState<SimulatorTheme | null>(null);
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
+  const [brightness, setBrightness] = useState(100);
+  const [screenOn, setScreenOn] = useState(true);
+  const [showPanel, setShowPanel] = useState(true);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -64,6 +70,9 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setTheme(data.theme);
           setThemeMode(data.themeMode);
           setSelectedWidgetId(data.selectedWidgetId);
+          setBrightness(data.brightness);
+          setScreenOn(data.screenOn);
+          setShowPanel(data.showPanel);
           setReady(true);
           break;
         }
@@ -78,6 +87,12 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         }
         case 'simulator/set-selection': {
           setSelectedWidgetId(data.widgetId);
+          break;
+        }
+        case 'simulator/set-display': {
+          setBrightness(data.brightness);
+          setScreenOn(data.screenOn);
+          setShowPanel(data.showPanel);
           break;
         }
         default:
@@ -116,6 +131,9 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     theme,
     themeMode,
     selectedWidgetId,
+    brightness,
+    screenOn,
+    showPanel,
     onWidgetClicked,
     onBackgroundClicked,
   };

@@ -31,6 +31,9 @@ interface PanelEmbedFrameProps {
   onWidgetClicked: (widget: PanelWidget) => void;
   onBackgroundClicked: () => void;
   canvasSize?: { width: number; height: number };
+  brightness: number;
+  screenOn: boolean;
+  showPanel: boolean;
 }
 
 const DEFAULT_CANVAS_W = 682;
@@ -54,6 +57,9 @@ export function PanelEmbedFrame({
   onWidgetClicked,
   onBackgroundClicked,
   canvasSize,
+  brightness,
+  screenOn,
+  showPanel,
 }: PanelEmbedFrameProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -149,6 +155,9 @@ export function PanelEmbedFrame({
       theme,
       themeMode,
       selectedWidgetId,
+      brightness,
+      screenOn,
+      showPanel,
     });
     lastSyncedLayoutSerializedRef.current = JSON.stringify(layout);
     // Initial init only - subsequent changes flow through the per-prop
@@ -181,6 +190,11 @@ export function PanelEmbedFrame({
     if (!childReady) return;
     post({ type: 'simulator/set-selection', widgetId: selectedWidgetId });
   }, [childReady, selectedWidgetId, post]);
+
+  useEffect(() => {
+    if (!childReady) return;
+    post({ type: 'simulator/set-display', brightness, screenOn, showPanel });
+  }, [childReady, brightness, screenOn, showPanel, post]);
 
   const src = `/panel?${SIMULATOR_QUERY_FLAG}=1`;
 
