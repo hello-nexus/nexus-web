@@ -41,7 +41,10 @@
   padding: 32px 8px;
   text-align: center;
   color: var(--panel-text-muted);
-  font: 700 13px/1.4 var(--panel-font, 'Lexend', system-ui, sans-serif);
+  font-family: var(--panel-font, 'Lexend', system-ui, sans-serif);
+  font-size: var(--type-small);
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .sectionHeader {
@@ -52,7 +55,7 @@
   padding: 18px 4px 6px;
   color: var(--panel-text-muted);
   font-family: var(--panel-font, 'Lexend', system-ui, sans-serif);
-  font-size: 11px;
+  font-size: var(--type-tiny);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -75,7 +78,7 @@
   border-radius: 4px;
   background: color-mix(in srgb, var(--panel-accent, currentColor) 18%, transparent);
   color: var(--panel-accent, currentColor);
-  font-size: 9px;
+  font-size: var(--type-tiny);
   font-weight: 700;
   letter-spacing: 0.1em;
   line-height: 1;

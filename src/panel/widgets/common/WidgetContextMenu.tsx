@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { Check, ExternalLink, GripVertical, Maximize2, Monitor, Pin, Settings, Trash2 } from 'lucide-react';
 import { SIZE_ICONS } from './SizeIcons';
-import type { PanelWidgetSize } from '../../types';
+import type { PanelSurface, PanelWidgetSize } from '../../types';
 import styles from './WidgetContextMenu.module.scss';
 
 interface WidgetContextMenuProps {
@@ -10,6 +10,7 @@ interface WidgetContextMenuProps {
   currentSize: PanelWidgetSize;
   sizes: PanelWidgetSize[];
   hasConfig: boolean;
+  surface?: PanelSurface;
   themeMode?: 'dark' | 'light';
   themeStyle?: CSSProperties;
   isRearranging?: boolean;
@@ -47,6 +48,7 @@ export function WidgetContextMenu({
   x, y,
   currentSize, sizes,
   hasConfig,
+  surface,
   themeMode = 'dark',
   themeStyle,
   isRearranging,
@@ -143,6 +145,7 @@ export function WidgetContextMenu({
       ref={menuRef}
       className={`panel-root ${styles.menu}`}
       data-theme={themeMode}
+      data-surface={surface}
       data-state={closing ? 'closing' : 'open'}
       style={menuStyle}
     >

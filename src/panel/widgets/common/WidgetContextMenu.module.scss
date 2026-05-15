@@ -104,7 +104,7 @@
   background: transparent;
   color: var(--panel-text-muted);
   font-family: var(--panel-font, inherit);
-  font-size: 13px;
+  font-size: var(--type-small);
   font-weight: 600;
   cursor: pointer;
   transition: background var(--ease), color var(--ease);
@@ -139,3 +139,12 @@
   display: inline-flex;
   align-items: center;
 }
+
+// Monitor-attached panel chrome scaling (everything except phone +
+// desktop). Animation is disabled because it also sets transform — running
+// both at once would clobber the scale.
+:global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']).menu {
+  transform: scale(var(--panel-ui-zoom, 1));
+  animation: none;
+}
+

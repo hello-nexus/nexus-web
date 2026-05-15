@@ -87,8 +87,10 @@ export function PanelActionsTray({
             // Track the finger 1:1 from fully hidden (translateY(100%))
             // toward fully visible (translateY(0)) as offset grows.
             // Clamp at 0 so an over-pull doesn't push the tray above its
-            // natural top position.
-            ? { transform: `translateY(max(0px, calc(100% - ${swipe.offset}px)))` }
+            // natural top position. scale(var(--panel-ui-zoom, 1))
+            // preserves the monitor-panel chrome scale; on phone it's
+            // a no-op (the var falls back to 1).
+            ? { transform: `translateY(max(0px, calc(100% - ${swipe.offset}px))) scale(var(--panel-ui-zoom, 1))` }
             : undefined
         }
         aria-label="Panel actions"

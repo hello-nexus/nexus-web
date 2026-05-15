@@ -415,6 +415,7 @@ export default function OverlayShell() {
             currentSize={currentSize}
             sizes={sizes}
             hasConfig={hasConfig}
+            surface="desktop"
             themeMode={resolvedMode}
             themeStyle={themeStyle}
             removeLabel="Unpin"

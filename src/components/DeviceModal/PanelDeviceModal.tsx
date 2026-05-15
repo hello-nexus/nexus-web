@@ -163,6 +163,7 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
   const editorCapacity = (() => {
     if (surface === 'q60') return { gridCols: 2, pageRows: 4 };
     if (surface === 'desktop') return { gridCols: 8, pageRows: 6 };
+    if (surface === 'y70') return { gridCols: 4, pageRows: 12 };
     return { gridCols: 4, pageRows: 16 };
   })();
 

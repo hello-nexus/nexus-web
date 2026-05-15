@@ -7,6 +7,22 @@
 // global.scss. The Tools > Debug font picker fetches alternatives on
 // demand if the user picks one.
 
+// Source-level scaling for monitor-attached panel chrome (tray, editor
+// sheet, context menu, immersive overlay). Applies to every surface that
+// is NOT a phone (paired) or desktop (dashboard) — i.e. Y70, Q60, and
+// any future kiosk panel. `--panel-ui-zoom` mirrors the cellScaler's
+// ratio (cell-size / 90px) so chrome scales identically to widget
+// content. Every portaled panel-root tree picks this up independently —
+// apply `transform: scale(var(--panel-ui-zoom, 1))` on any surface that
+// should follow.
+.panel-root:not([data-surface='phone']):not([data-surface='desktop']) {
+  --panel-cell-size: calc((100vw - (var(--panel-columns, 4) - 1) * var(--panel-gap, 10px)) / var(--panel-columns, 4));
+  // Divide by `90px` (length / length = unitless number). Dividing by a
+  // unitless `90` would leave the result as a length, which transform:
+  // scale() and width: calc(.. / x) silently reject.
+  --panel-ui-zoom: calc(var(--panel-cell-size) / 90px);
+}
+
 .panel-root {
   --panel-text: var(--text);
   --panel-text-muted: var(--text-dim);

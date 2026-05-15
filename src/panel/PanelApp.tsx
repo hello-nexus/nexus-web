@@ -15,6 +15,7 @@ import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
 import { useKioskWatchdog } from './engine/useKioskWatchdog';
 import { PANEL_CONTEXT_MENU_TRIGGER_MS, usePanelTouchMode } from './engine/usePanelTouchMode';
+import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
 import { usePanelSheetSwipe } from './engine/usePanelSheetSwipe';
@@ -861,6 +862,50 @@ export function PanelContent({
     return label === 'panel.connectedTo' ? 'Connected to' : label;
   })();
 
+  // Long-press on the empty panel background opens the actions tray, mirroring
+  // the long-press-to-context-menu gesture on widgets. Only fires on kiosk-mode
+  // surfaces (when the tray itself is rendered), only when not already in a
+  // sheet / immersive / drag state, and only when the press target wasn't
+  // inside a widget or interactive element.
+  const backgroundLongPress = useLongPress(() => setTrayOpen(true), PANEL_CONTEXT_MENU_TRIGGER_MS);
+  const backgroundPressBlocked = !kioskBehavior
+    || trayOpen
+    || Boolean(sheetMode)
+    || Boolean(immersiveWidgetId)
+    || Boolean(activeDragId)
+    || Boolean(dragArmedId)
+    || isOffline
+    || touch.rearranging;
+  const handleBackgroundPointerDown = useCallback((e: React.PointerEvent) => {
+    if (backgroundPressBlocked) return;
+    if (!(e.target instanceof Element)) return;
+    // Skip if the press landed on a widget, an interactive control, the bottom
+    // tray itself, the page indicator, or any element that handles its own
+    // press. The widget's own long-press (context menu) and the tray's swipe
+    // handler keep their gestures intact.
+    if (
+      e.target.closest('[data-panel-widget-id]')
+      || e.target.closest('button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"]')
+      || e.target.closest('[data-panel-scrollable="true"]')
+    ) return;
+    backgroundLongPress.onPointerDown(e);
+  }, [backgroundPressBlocked, backgroundLongPress]);
+  // Mouse right-click on the empty background is the desktop equivalent of
+  // the touch long-press: same gating, same outcome (opens the bottom tray).
+  // Suppresses the browser's native menu when it would otherwise fire on the
+  // panel surface.
+  const handleBackgroundContextMenu = useCallback((e: React.MouseEvent) => {
+    if (backgroundPressBlocked) return;
+    if (!(e.target instanceof Element)) return;
+    if (
+      e.target.closest('[data-panel-widget-id]')
+      || e.target.closest('button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"]')
+      || e.target.closest('[data-panel-scrollable="true"]')
+    ) return;
+    e.preventDefault();
+    setTrayOpen(true);
+  }, [backgroundPressBlocked]);
+
   useEffect(() => {
     if (embedded || !loaded || isOffline || serviceStatus.state !== 'online') return;
     if (connectionIntroAnnouncedRef.current) return;
@@ -1445,6 +1490,11 @@ export function PanelContent({
           // Forward to the parent so it closes its settings pane.
           if (e.target === e.currentTarget) onSimulatorBackgroundClicked?.();
         } : undefined}
+        onPointerDown={handleBackgroundPointerDown}
+        onPointerMove={backgroundLongPress.onPointerMove}
+        onPointerUp={backgroundLongPress.onPointerUp}
+        onPointerCancel={backgroundLongPress.onPointerCancel}
+        onContextMenu={handleBackgroundContextMenu}
       >
         {(!embedded || simulator) && effectiveTheme.backgroundMode === 'shader' && (
           <PanelBackgroundShader
@@ -1590,6 +1640,7 @@ export function PanelContent({
             currentSize={ctxWidget.size}
             sizes={sizesForSurface(def.meta, surface)}
             hasConfig
+            surface={surface}
             themeMode={resolvedThemeMode}
             themeStyle={panelThemeVars}
             isRearranging={touch.rearranging}
@@ -2383,9 +2434,12 @@ function PanelEditorSheet({
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [closing, onClose]);
+  // scale(var(--panel-ui-zoom, 1)) keeps the monitor-panel chrome scale
+  // during a swipe-to-dismiss drag; the var falls back to 1 on phone /
+  // desktop so it's a no-op there.
   const sheetTransform = swipe.state === 'idle' && swipe.offset === 0
     ? undefined
-    : { transform: `translateY(${swipe.offset}px)` };
+    : { transform: `translateY(${swipe.offset}px) scale(var(--panel-ui-zoom, 1))` };
   // [data-entered] suppresses the entry keyframe after it has played, so
   // toggling [data-drag] at the end of a snap-back doesn't re-trigger the
   // slide-up. The fallback timer covers the no-interaction case; the
