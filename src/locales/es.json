@@ -210,7 +210,7 @@
   "cooling.preset.custom": "Personalizado",
   "cooling.preset.off": "Apagado",
   "cooling.preset.off.banner": "Todos los ventiladores controlados por la BIOS",
-  "cooling.preset.performance": "Rendimiento",
+  "cooling.preset.turbo": "Turbo",
   "cooling.preset.silent": "Silencioso",
   "cooling.preset.tabs.label": "Preajuste de refrigeracion",
   "cooling.profile.auto": "Auto",

@@ -210,7 +210,7 @@
   "cooling.preset.custom": "自定义",
   "cooling.preset.off": "关闭",
   "cooling.preset.off.banner": "所有风扇由 BIOS 控制",
-  "cooling.preset.performance": "性能",
+  "cooling.preset.turbo": "涡轮",
   "cooling.preset.silent": "静音",
   "cooling.preset.tabs.label": "冷却预设",
   "cooling.profile.auto": "自动",

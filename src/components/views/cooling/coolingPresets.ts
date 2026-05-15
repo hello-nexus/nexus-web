@@ -10,7 +10,7 @@ import type { CurveDef } from '../../../types/cooling';
  * exactly so the tab key round-trips through `/cooling/profiles` and
  * `/cooling/profile/{name}` without a translation table.
  */
-export type CoolingPresetKey = 'off' | 'silent' | 'balanced' | 'performance' | 'custom';
+export type CoolingPresetKey = 'off' | 'silent' | 'balanced' | 'turbo' | 'custom';
 
 export interface CoolingPresetDef {
   readonly key: CoolingPresetKey;
@@ -22,7 +22,7 @@ export const COOLING_PRESETS: readonly CoolingPresetDef[] = [
   { key: 'off',         i18nKey: 'cooling.preset.off',         Icon: Power },
   { key: 'silent',      i18nKey: 'cooling.preset.silent',      Icon: Moon },
   { key: 'balanced',    i18nKey: 'cooling.preset.balanced',    Icon: Gauge },
-  { key: 'performance', i18nKey: 'cooling.preset.performance', Icon: Zap },
+  { key: 'turbo', i18nKey: 'cooling.preset.turbo', Icon: Zap },
   { key: 'custom',      i18nKey: 'cooling.preset.custom',      Icon: Sliders },
 ] as const;
 

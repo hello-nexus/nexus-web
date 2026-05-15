@@ -701,7 +701,7 @@ function PreviewSelect() {
       options={[
         { value: 'silent', label: 'Silent' },
         { value: 'balanced', label: 'Balanced' },
-        { value: 'performance', label: 'Performance' },
+        { value: 'turbo', label: 'Turbo' },
       ]}
       ariaLabel="Profile"
     />

@@ -210,7 +210,7 @@
   "cooling.preset.custom": "Wlasny",
   "cooling.preset.off": "Wylaczone",
   "cooling.preset.off.banner": "Wszystkie wentylatory sterowane przez BIOS",
-  "cooling.preset.performance": "Wydajnosc",
+  "cooling.preset.turbo": "Turbo",
   "cooling.preset.silent": "Cichy",
   "cooling.preset.tabs.label": "Preset chlodzenia",
   "cooling.profile.auto": "Automatyczny",

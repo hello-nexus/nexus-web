@@ -298,7 +298,7 @@ export const CurveCard = memo(function CurveCard({
   outputPercent?: number;
   onChange: (c: CurveDef) => void;
   onDelete: () => void;
-  /** Reset a preset curve (silent/balanced/performance) back to its default
+  /** Reset a preset curve (silent/balanced/turbo) back to its default
    *  type + linear params. Only rendered when curve.preset is set; gated by
    *  isPresetCurveDirty so the button is disabled when already at defaults. */
   onResetPreset?: () => void;

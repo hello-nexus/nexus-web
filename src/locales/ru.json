@@ -210,7 +210,7 @@
   "cooling.preset.custom": "Свой",
   "cooling.preset.off": "Выкл",
   "cooling.preset.off.banner": "Всеми вентиляторами управляет BIOS",
-  "cooling.preset.performance": "Производительность",
+  "cooling.preset.turbo": "Турбо",
   "cooling.preset.silent": "Тихий",
   "cooling.preset.tabs.label": "Пресет охлаждения",
   "cooling.profile.auto": "Авто",

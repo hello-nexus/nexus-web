@@ -391,7 +391,7 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
     }
   }, [curves, sources, fanStates, pushCurves, exitOffToCustomIfNeeded]);
 
-  // Reset a preset curve (silent/balanced/performance) back to defaults via
+  // Reset a preset curve (silent/balanced/turbo) back to defaults via
   // the service endpoint. Fan attachments are preserved server-side, so the
   // active preset stays in place; we just refetch to pick up the new template
   // values.

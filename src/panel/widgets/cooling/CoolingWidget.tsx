@@ -16,7 +16,7 @@ import type { WidgetProps } from '../types';
 import { CoolingResponseChart } from './CoolingResponseChart';
 import styles from './CoolingWidget.module.scss';
 
-const WIDGET_PRESET_KEYS: CoolingPresetKey[] = ['silent', 'balanced', 'performance'];
+const WIDGET_PRESET_KEYS: CoolingPresetKey[] = ['silent', 'balanced', 'turbo'];
 const TEMP_MAX = 100;
 
 interface CoolingSlot {

@@ -100,7 +100,7 @@ interface CurvesResponse {
       curveIds: string[];
       fn: string;
     } | null;
-    preset?: 'silent' | 'balanced' | 'performance' | null;
+    preset?: 'silent' | 'balanced' | 'turbo' | null;
     /** For preset curves only: true when the curve's Type + Linear params
      *  still match the service's PresetDefaults. Drives the Reset button's
      *  enabled state. Null for user curves. */
@@ -175,7 +175,7 @@ export const saveCurves = (body: {
       curveIds: string[];
       fn: string;
     } | null;
-    preset?: 'silent' | 'balanced' | 'performance' | null;
+    preset?: 'silent' | 'balanced' | 'turbo' | null;
   }>;
 }) => postService('/cooling/curves/set', body);
 

@@ -210,7 +210,7 @@
   "cooling.preset.custom": "カスタム",
   "cooling.preset.off": "オフ",
   "cooling.preset.off.banner": "すべてのファンを BIOS が制御",
-  "cooling.preset.performance": "パフォーマンス",
+  "cooling.preset.turbo": "ターボ",
   "cooling.preset.silent": "静音",
   "cooling.preset.tabs.label": "冷却プリセット",
   "cooling.profile.auto": "自動",

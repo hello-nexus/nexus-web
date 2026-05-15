@@ -16,7 +16,7 @@ export type MixFn = 'min' | 'max' | 'avg' | 'sum';
  * can be Linear today and Graph tomorrow without losing its preset
  * identity.
  */
-export type CurvePreset = 'silent' | 'balanced' | 'performance';
+export type CurvePreset = 'silent' | 'balanced' | 'turbo';
 
 export interface CurveDef {
   id: string;

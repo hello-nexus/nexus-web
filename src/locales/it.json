@@ -210,7 +210,7 @@
   "cooling.preset.custom": "Personalizzato",
   "cooling.preset.off": "Spento",
   "cooling.preset.off.banner": "Tutte le ventole controllate dal BIOS",
-  "cooling.preset.performance": "Prestazioni",
+  "cooling.preset.turbo": "Turbo",
   "cooling.preset.silent": "Silenzioso",
   "cooling.preset.tabs.label": "Preset di raffreddamento",
   "cooling.profile.auto": "Auto",

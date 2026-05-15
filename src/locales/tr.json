@@ -210,7 +210,7 @@
   "cooling.preset.custom": "Ozel",
   "cooling.preset.off": "Kapali",
   "cooling.preset.off.banner": "Tum fanlar BIOS tarafindan kontrol ediliyor",
-  "cooling.preset.performance": "Performans",
+  "cooling.preset.turbo": "Turbo",
   "cooling.preset.silent": "Sessiz",
   "cooling.preset.tabs.label": "Sogutma on ayari",
   "cooling.profile.auto": "Otomatik",

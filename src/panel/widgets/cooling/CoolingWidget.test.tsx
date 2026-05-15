@@ -31,7 +31,7 @@ vi.mock('../../../api/cooling', () => ({
     profiles: [
       { name: 'Silent' },
       { name: 'Balanced' },
-      { name: 'Performance' },
+      { name: 'Turbo' },
     ],
   })),
   fetchCurves: vi.fn(() => Promise.resolve({ globalSpeedModifier: 1, curves: [] })),
@@ -55,7 +55,7 @@ vi.mock('../../../lib/i18n', () => ({
       'cooling.preset.off': 'Off',
       'cooling.preset.silent': 'Silent',
       'cooling.preset.balanced': 'Balanced',
-      'cooling.preset.performance': 'Performance',
+      "cooling.preset.turbo": 'Performance',
       'cooling.preset.custom': 'Custom',
       'cooling.label.cpu': 'CPU',
       'cooling.label.gpu': 'GPU',
@@ -89,7 +89,7 @@ describe('CoolingWidget', () => {
 
     expect(screen.queryByRole('button', { name: 'Apply Silent cooling profile' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Apply Balanced cooling profile' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Apply Performance cooling profile' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Apply Turbo cooling profile' })).not.toBeInTheDocument();
 
     expect(screen.getByText('CPU')).toBeInTheDocument();
     expect(screen.getByText('GPU')).toBeInTheDocument();
@@ -103,12 +103,12 @@ describe('CoolingWidget', () => {
     });
   });
 
-  it('renders 4x2 with response chart fan readout + Silent/Balanced/Performance buttons', async () => {
+  it('renders 4x2 with response chart fan readout + Silent/Balanced/Turbo buttons', async () => {
     render(<CoolingWidget widget={coolingWidget('4x2')} />);
 
     expect(screen.getByRole('button', { name: 'Apply Silent cooling profile' })).toHaveTextContent('Silent');
     expect(screen.getByRole('button', { name: 'Apply Balanced cooling profile' })).toHaveTextContent('Balanced');
-    expect(screen.getByRole('button', { name: 'Apply Performance cooling profile' })).toHaveTextContent('Performance');
+    expect(screen.getByRole('button', { name: 'Apply Turbo cooling profile' })).toHaveTextContent('Performance');
 
     // Off + Custom dropped from the widget surface.
     expect(screen.queryByRole('button', { name: 'Apply Off cooling profile' })).not.toBeInTheDocument();

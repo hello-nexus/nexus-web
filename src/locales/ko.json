@@ -210,7 +210,7 @@
   "cooling.preset.custom": "사용자 정의",
   "cooling.preset.off": "끄기",
   "cooling.preset.off.banner": "모든 팬을 BIOS가 제어",
-  "cooling.preset.performance": "성능",
+  "cooling.preset.turbo": "터보",
   "cooling.preset.silent": "저소음",
   "cooling.preset.tabs.label": "냉각 프리셋",
   "cooling.profile.auto": "자동",

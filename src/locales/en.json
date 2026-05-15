@@ -210,7 +210,7 @@
   "cooling.preset.custom": "Custom",
   "cooling.preset.off": "Off",
   "cooling.preset.off.banner": "All fans controlled by BIOS",
-  "cooling.preset.performance": "Performance",
+  "cooling.preset.turbo": "Turbo",
   "cooling.preset.silent": "Silent",
   "cooling.preset.tabs.label": "Cooling preset",
   "cooling.profile.auto": "Auto",

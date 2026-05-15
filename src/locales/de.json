@@ -210,7 +210,7 @@
   "cooling.preset.custom": "Benutzerdefiniert",
   "cooling.preset.off": "Aus",
   "cooling.preset.off.banner": "Alle Lufter vom BIOS gesteuert",
-  "cooling.preset.performance": "Leistung",
+  "cooling.preset.turbo": "Turbo",
   "cooling.preset.silent": "Leise",
   "cooling.preset.tabs.label": "Kuhlungs-Voreinstellung",
   "cooling.profile.auto": "Auto",
