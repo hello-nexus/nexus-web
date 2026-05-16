@@ -103,5 +103,5 @@ export const fetchSteamFriends = () =>
 export const fetchSteamAchievements = (appId: number) =>
   fetchService<SteamAchievement[]>(`/api/steam/achievements/${appId}`);
 
-export const launchSteam = () =>
-  postService('/api/steam/launch', {});
+export const launchSteam = (appId?: number) =>
+  postService(appId ? `/api/steam/launch?appId=${appId}` : '/api/steam/launch', {});

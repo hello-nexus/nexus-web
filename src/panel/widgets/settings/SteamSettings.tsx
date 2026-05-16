@@ -46,6 +46,13 @@ export function SteamSettings(props: WidgetSettingsProps) {
   return (
     <>
       <SettingsSection title="Steam API">
+        <SettingsHint>
+          Sign in at{' '}
+          <a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noreferrer noopener">
+            steamcommunity.com/dev/apikey
+          </a>
+          {' '}to register a personal key. Any non-empty domain (e.g. <code>localhost</code>) is accepted &mdash; it&apos;s a label, not validated.
+        </SettingsHint>
         <SettingsRow label="API key">
           <SettingsInput
             type="password"
@@ -62,6 +69,14 @@ export function SteamSettings(props: WidgetSettingsProps) {
             placeholder="7656119..."
           />
         </SettingsRow>
+        <SettingsHint>
+          Your 17-digit ID. Find it via{' '}
+          <a href="https://steamcommunity.com/my/profile" target="_blank" rel="noreferrer noopener">
+            your profile page
+          </a>
+          {' '}&rarr; profile menu &rarr; <em>Copy page URL</em>, or paste your vanity URL into{' '}
+          <a href="https://steamid.io/" target="_blank" rel="noreferrer noopener">steamid.io</a>.
+        </SettingsHint>
         {autoDetectedSteamId && (
           <SettingsHint>Detected local SteamID64: {autoDetectedSteamId}</SettingsHint>
         )}

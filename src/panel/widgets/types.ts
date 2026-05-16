@@ -15,6 +15,10 @@ export interface WidgetProps {
   // Only populated when the widget is rendered inside the embedded
   // desktop dashboard; widgets can call this to deep-link into a section.
   onSectionNavigate?: DashboardSectionNavigate;
+  // Opens the widget's settings sheet. Wired by PanelApp; widgets surface
+  // it from setup states ("Add API key…") so the user has a direct path
+  // to config without going through the right-click context menu.
+  onConfigure?: () => void;
 }
 
 export type WidgetTouchSupport = 'touch-only' | 'any';

@@ -1547,6 +1547,7 @@ export function PanelContent({
                               previewLayout={previewLayout}
                               anyDragging={Boolean(activeDragId)}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
+                              onConfigureWidget={openWidgetSettings}
                             />
                           </ErrorBoundary>
                         ))}
@@ -2912,6 +2913,7 @@ export function PanelTouchCell({
   previewLayout = null,
   anyDragging = false,
   onSectionNavigate,
+  onConfigureWidget,
 }: {
   widget: PanelWidget;
   surface?: PanelSurface;
@@ -2936,6 +2938,7 @@ export function PanelTouchCell({
   previewLayout?: PanelLayout | null;
   anyDragging?: boolean;
   onSectionNavigate?: DashboardSectionNavigate;
+  onConfigureWidget?: (widget: PanelWidget) => void;
 }) {
   const { t } = useTranslation();
   const def = lookupWidget(widget.type);
@@ -3113,7 +3116,14 @@ export function PanelTouchCell({
         data-size={widget.size}
       >
         <div className={styles.cellScaler}>
-          <Comp widget={widget} surface={surface} selectedSlot={selectedSlot} onSelectSlot={onSelectSlot} onSectionNavigate={onSectionNavigate} />
+          <Comp
+            widget={widget}
+            surface={surface}
+            selectedSlot={selectedSlot}
+            onSelectSlot={onSelectSlot}
+            onSectionNavigate={onSectionNavigate}
+            onConfigure={onConfigureWidget ? () => onConfigureWidget(widget) : undefined}
+          />
         </div>
       </div>
       <div className={styles.cellLabelStrip}>

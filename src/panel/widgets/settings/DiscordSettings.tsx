@@ -53,6 +53,13 @@ export function DiscordSettings({ widget, onUpdate }: WidgetSettingsProps) {
         />
       </SettingsSection>
       <SettingsSection title="OAuth">
+        <SettingsHint>
+          Create an app at{' '}
+          <a href="https://discord.com/developers/applications" target="_blank" rel="noreferrer noopener">
+            discord.com/developers/applications
+          </a>
+          {' '}&rarr; <em>New Application</em>. The <em>Application ID</em> on the General Information page is your Client ID. For the secret, open <em>OAuth2</em> &rarr; <em>Reset Secret</em> and copy the value (Discord only shows it once). Required for the RPC OAuth token exchange.
+        </SettingsHint>
         <SettingsRow label="Client ID">
           <SettingsInput
             type="text"
@@ -69,7 +76,6 @@ export function DiscordSettings({ widget, onUpdate }: WidgetSettingsProps) {
             placeholder={hasClientSecret ? 'configured' : 'required'}
           />
         </SettingsRow>
-        <SettingsHint>Required for the Discord RPC OAuth token exchange.</SettingsHint>
         <SettingsActions>
           <SettingsButton onClick={() => save()}>
             Save

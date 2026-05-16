@@ -28,7 +28,7 @@ type DiscordTab = 'activity' | 'voice' | 'servers';
 
 const POLL_MS = 5000;
 
-export function DiscordWidget({ widget }: WidgetProps) {
+export function DiscordWidget({ widget, onConfigure }: WidgetProps) {
   const [status, setStatus] = useState<DiscordStatusResponse | null>(null);
   const [activeTab, setActiveTab] = useState<DiscordTab>('activity');
   const privacyMode = ((widget.config?.privacyMode as boolean | undefined) ?? false);
@@ -54,6 +54,7 @@ export function DiscordWidget({ widget }: WidgetProps) {
   ), [notifications]);
 
   if (!ready) {
+    const needsConfig = !(status?.configured ?? false);
     return (
       <PanelWidgetShell size={widget.size} className={styles.widget}>
         <PanelWidgetSetup
@@ -61,10 +62,19 @@ export function DiscordWidget({ widget }: WidgetProps) {
           message={status?.reason || 'Discord is not connected'}
           actions={(
             <div className={styles.setupActions}>
-              <button type="button" className="panel-chip" onClick={() => { void launchDiscord(); }}>
-                Launch
-              </button>
-              {!(status?.configured ?? false) && (
+              {/* When OAuth isn't configured the only useful action is "open
+                  settings"; once configured but not connected, Launch reopens
+                  the Discord client so the RPC handshake can happen. */}
+              {needsConfig && onConfigure ? (
+                <button type="button" className="panel-chip" onClick={onConfigure}>
+                  Settings
+                </button>
+              ) : (
+                <button type="button" className="panel-chip" onClick={() => { void launchDiscord(); }}>
+                  Launch
+                </button>
+              )}
+              {needsConfig && (
                 <span className={styles.configHint}>
                   <Shield size={12} />
                   OAuth setup required

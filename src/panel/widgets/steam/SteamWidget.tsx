@@ -28,9 +28,10 @@ import styles from './SteamWidget.module.scss';
 
 type SteamTab = 'activity' | 'playing' | 'friends';
 
-const POLL_MS = 15_000;
+const PROFILE_POLL_MS = 5_000;
+const LISTS_POLL_MS = 30_000;
 
-export function SteamWidget({ widget }: WidgetProps) {
+export function SteamWidget({ widget, onConfigure }: WidgetProps) {
   const [status, setStatus] = useState<SteamStatusResponse | null>(null);
   const [profile, setProfile] = useState<SteamPlayerSummary | null>(null);
   const [level, setLevel] = useState<number | null>(null);
@@ -39,8 +40,6 @@ export function SteamWidget({ widget }: WidgetProps) {
   const [friends, setFriends] = useState<SteamFriendSummary[]>([]);
   const [achievements, setAchievements] = useState<SteamAchievement[]>([]);
   const [activeTab, setActiveTab] = useState<SteamTab>('activity');
-  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
-  const [elapsed, setElapsed] = useState(0);
   const [bannerError, setBannerError] = useState(false);
   const trackedAppId = useRef<number | null>(null);
 
@@ -50,32 +49,24 @@ export function SteamWidget({ widget }: WidgetProps) {
     return { appId, name: profile.gameExtraInfo };
   }, [profile]);
 
+  // Profile + status drive the current-game detection that auto-switches to
+  // the Playing tab, so they poll fast. Recent games + owned games + friends
+  // change rarely; the service caches them anyway. Two timers > one combined
+  // poll to keep activity-tab data from staling out the auto-switch.
   useEffect(() => {
     let cancelled = false;
-    async function load() {
+    async function loadProfile() {
       const nextStatus = await fetchSteamStatus();
       if (cancelled || !nextStatus) return;
       setStatus(nextStatus);
       if (!nextStatus.ready) return;
-
-      const [profileResponse, recentResponse, ownedResponse, friendsResponse] = await Promise.all([
-        fetchSteamProfile(),
-        fetchSteamRecentGames(),
-        fetchSteamOwnedGames(),
-        fetchSteamFriends(),
-      ]);
-      if (cancelled) return;
-      if (profileResponse && !profileResponse.error) {
-        setProfile(profileResponse.profile ?? null);
-        setLevel(profileResponse.level ?? null);
-      }
-      if (recentResponse) setRecentGames(recentResponse);
-      if (ownedResponse) setOwnedGames(ownedResponse);
-      if (friendsResponse) setFriends(friendsResponse);
+      const profileResponse = await fetchSteamProfile();
+      if (cancelled || !profileResponse || profileResponse.error) return;
+      setProfile(profileResponse.profile ?? null);
+      setLevel(profileResponse.level ?? null);
     }
-
-    load();
-    const timer = window.setInterval(load, POLL_MS);
+    loadProfile();
+    const timer = window.setInterval(loadProfile, PROFILE_POLL_MS);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
@@ -83,27 +74,38 @@ export function SteamWidget({ widget }: WidgetProps) {
   }, []);
 
   useEffect(() => {
+    if (!status?.ready) return;
+    let cancelled = false;
+    async function loadLists() {
+      const [recentResponse, ownedResponse, friendsResponse] = await Promise.all([
+        fetchSteamRecentGames(),
+        fetchSteamOwnedGames(),
+        fetchSteamFriends(),
+      ]);
+      if (cancelled) return;
+      if (recentResponse) setRecentGames(recentResponse);
+      if (ownedResponse) setOwnedGames(ownedResponse);
+      if (friendsResponse) setFriends(friendsResponse);
+    }
+    loadLists();
+    const timer = window.setInterval(loadLists, LISTS_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [status?.ready]);
+
+  useEffect(() => {
     if (!currentGame) {
       trackedAppId.current = null;
-      setSessionStartedAt(null);
-      setElapsed(0);
       return;
     }
     if (trackedAppId.current !== currentGame.appId) {
       trackedAppId.current = currentGame.appId;
-      setSessionStartedAt(Date.now());
       setActiveTab('playing');
       setBannerError(false);
     }
   }, [currentGame]);
-
-  useEffect(() => {
-    if (!sessionStartedAt) return;
-    const tick = () => setElapsed(Date.now() - sessionStartedAt);
-    tick();
-    const timer = window.setInterval(tick, 1000);
-    return () => window.clearInterval(timer);
-  }, [sessionStartedAt]);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,12 +129,12 @@ export function SteamWidget({ widget }: WidgetProps) {
       <PanelWidgetShell size={widget.size} className={styles.widget}>
         <PanelWidgetSetup
           icon={<Gamepad2 size={28} />}
-          message={status?.reason || 'Steam widget is not configured'}
-          actions={(
-            <button type="button" className="panel-chip" onClick={() => { void launchSteam(); }}>
-              Launch
+          message={status?.reason || 'Add a Steam Web API key in widget settings.'}
+          actions={onConfigure ? (
+            <button type="button" className="panel-chip" onClick={onConfigure}>
+              Settings
             </button>
-          )}
+          ) : undefined}
         />
       </PanelWidgetShell>
     );
@@ -167,7 +169,13 @@ export function SteamWidget({ widget }: WidgetProps) {
         {activeTab === 'activity' && (
           <div className={styles.list}>
             {visibleRecent.length > 0 ? visibleRecent.map(game => (
-              <div key={game.appId} className={styles.gameRow}>
+              <button
+                key={game.appId}
+                type="button"
+                className={styles.gameRow}
+                onClick={() => { void launchSteam(game.appId); }}
+                title={`Launch ${game.name}`}
+              >
                 {game.iconHash ? (
                   <img className={styles.gameIcon} src={steamIconUrl(game.appId, game.iconHash)} alt="" />
                 ) : (
@@ -175,7 +183,7 @@ export function SteamWidget({ widget }: WidgetProps) {
                 )}
                 <span className={styles.rowTitle}>{game.name}</span>
                 <span className={styles.rowMeta}>{formatMinutes(game.playtime2Weeks)}</span>
-              </div>
+              </button>
             )) : (
               <PanelWidgetEmpty icon={<Gamepad2 size={22} />} title="No recent games" />
             )}
@@ -185,7 +193,12 @@ export function SteamWidget({ widget }: WidgetProps) {
         {activeTab === 'playing' && (
           currentGame ? (
             <div className={styles.playing}>
-              <div className={styles.bannerWrap}>
+              <button
+                type="button"
+                className={styles.bannerWrap}
+                onClick={() => { void launchSteam(currentGame.appId); }}
+                title={`Launch ${currentGame.name}`}
+              >
                 {bannerError ? (
                   <div className={styles.bannerFallback} />
                 ) : (
@@ -196,11 +209,11 @@ export function SteamWidget({ widget }: WidgetProps) {
                     onError={() => setBannerError(true)}
                   />
                 )}
-              </div>
+              </button>
               <div className={styles.playingName}>{currentGame.name}</div>
               <div className={styles.stats}>
                 <Stat label="Total" value={formatMinutes(ownedGames.find(g => g.appId === currentGame.appId)?.playtimeForever ?? 0)} />
-                {sessionStartedAt && <Stat label="Session" value={formatElapsed(elapsed)} live />}
+                <Stat label="2 weeks" value={formatMinutes(ownedGames.find(g => g.appId === currentGame.appId)?.playtime2Weeks ?? 0)} />
               </div>
               <AchievementBar achievements={achievements} />
             </div>
@@ -230,10 +243,10 @@ export function SteamWidget({ widget }: WidgetProps) {
   );
 }
 
-function Stat({ label, value, live = false }: { label: string; value: string; live?: boolean }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className={styles.stat}>
-      <span className={styles.statValue}>{live && <i />} {value}</span>
+      <span className={styles.statValue}>{value}</span>
       <span className={styles.statLabel}>{label}</span>
     </div>
   );
@@ -270,16 +283,6 @@ function formatMinutes(minutes: number) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
-}
-
-function formatElapsed(ms: number) {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  return h > 0
-    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-    : `${m}:${String(s).padStart(2, '0')}`;
 }
 
 function personaStatusKey(state: number | undefined): 'online' | 'away' | 'busy' | 'offline' {
