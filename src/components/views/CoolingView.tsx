@@ -1126,10 +1126,15 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
                 // future devices) render with a header + their child fans
                 // beneath. Motherboard fans (no deviceId) render flat at
                 // the top so users with no hub see the exact UI they
-                // always had. Preserves orderedChannels' order within
-                // each group.
+                // always had. Disconnected (Unresponsive) fans sort to the
+                // bottom of each group so live fans are above the dead ones.
+                const sorted = [...orderedChannels].sort((a, b) => {
+                  const aDead = a.classification === 'Unresponsive' ? 1 : 0;
+                  const bDead = b.classification === 'Unresponsive' ? 1 : 0;
+                  return aDead - bDead;
+                });
                 const groups = new Map<string | null, FanChannel[]>();
-                for (const ch of orderedChannels) {
+                for (const ch of sorted) {
                   const key = ch.deviceId || null;
                   if (!groups.has(key)) groups.set(key, []);
                   groups.get(key)!.push(ch);
