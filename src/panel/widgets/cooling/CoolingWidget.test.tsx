@@ -48,6 +48,15 @@ vi.mock('../../../hooks/useSensors', () => ({
   useSensors: () => sensorFixture.current,
 }));
 
+vi.mock('../../../hooks/useUiSettings', () => ({
+  useUiSettings: () => ({
+    settings: { preferredCpuTempSensorId: '', preferredGpuTempSensorId: '' },
+    update: vi.fn(),
+    reload: vi.fn(),
+  }),
+  useTempSensorPrefs: () => ({ cpuId: '', gpuId: '' }),
+}));
+
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string) => ({

@@ -9,6 +9,7 @@ import { useSensors, type HardwareSensor } from '../../hooks/useSensors';
 import { useSensorExtras, type ExtrasComponent } from '../../hooks/useSensorExtras';
 import { useTranslation } from '../../lib/i18n';
 import { useUiSettings } from '../../hooks/useUiSettings';
+import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../lib/tempSensorResolver';
 import * as monitoringStore from '../../lib/monitoringStore';
 import { StackedChart } from '../StackedChart/StackedChart';
 import { RankedList } from '../RankedList/RankedList';
@@ -109,6 +110,7 @@ function OverviewTab({ frame, hist, onNavigate }: {
   onNavigate: (tab: string) => void;
 }) {
   const { t } = useTranslation();
+  const { settings } = useUiSettings();
 
   const cpuSensors = frame?.cpu?.sensors ?? [];
   const gpuSensors = frame?.gpu?.[0]?.sensors ?? [];
@@ -118,10 +120,10 @@ function OverviewTab({ frame, hist, onNavigate }: {
   const network = frame?.network;
 
   const findSensor = (list: typeof cpuSensors, id: string) => list.find(s => s.id.includes(id));
-  const cpuTemp = cpuSensors.find(s => s.type === 'Temperature') ?? findSensor(cpuSensors, 'temp');
+  const cpuTemp = resolveCpuTempSensor(cpuSensors, settings.preferredCpuTempSensorId);
   const cpuCores = findSensor(cpuSensors, 'cores');
   const gpuLoad = findSensor(gpuSensors, 'load');
-  const gpuTemp = findSensor(gpuSensors, 'temperature') ?? findSensor(gpuSensors, 'temp');
+  const gpuTemp = resolveGpuTempSensor(gpuSensors, settings.preferredGpuTempSensorId);
   const gpuVram = findSensor(gpuSensors, 'vram');
   const memUsage = findSensor(memorySensors, 'usage');
 

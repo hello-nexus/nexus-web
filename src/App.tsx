@@ -102,7 +102,9 @@ function PanelWrapper({ deviceId }: { deviceId: string }) {
   useMonitoringStoreBridge(multiplex);
   return (
     <MultiplexContext.Provider value={multiplex}>
-      <PanelApp deviceId={deviceId} />
+      <UiSettingsProvider serviceOnline={true} manageDom={false}>
+        <PanelApp deviceId={deviceId} />
+      </UiSettingsProvider>
     </MultiplexContext.Provider>
   );
 }
@@ -116,7 +118,9 @@ function PanelSimulatorWrapper() {
   useMonitoringStoreBridge(multiplex);
   return (
     <MultiplexContext.Provider value={multiplex}>
-      <PanelSimulatorContent />
+      <UiSettingsProvider serviceOnline={true} manageDom={false}>
+        <PanelSimulatorContent />
+      </UiSettingsProvider>
     </MultiplexContext.Provider>
   );
 }
@@ -126,7 +130,9 @@ function OverlayWrapper() {
   useMonitoringStoreBridge(multiplex);
   return (
     <MultiplexContext.Provider value={multiplex}>
-      <OverlayShell />
+      <UiSettingsProvider serviceOnline={true} manageDom={false}>
+        <OverlayShell />
+      </UiSettingsProvider>
     </MultiplexContext.Provider>
   );
 }

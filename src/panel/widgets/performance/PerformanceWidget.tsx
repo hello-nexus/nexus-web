@@ -3,6 +3,8 @@ import { useSensors } from '../../../hooks/useSensors';
 import type { HardwareSensor } from '../../../hooks/useSensors';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
+import { useTempSensorPrefs } from '../../../hooks/useUiSettings';
+import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSensorResolver';
 import type { WidgetProps } from '../types';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
 import { GAUGE_DESIGNS } from './gauges';
@@ -15,9 +17,20 @@ import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './ne
 import { chartDomainForScale, DEFAULT_SCALE_MODE, type ScaleMode } from './perfDomain';
 import styles from './PerformanceWidget.module.scss';
 
+interface TempSensorPrefs {
+  cpuId: string;
+  gpuId: string;
+}
+
 /**
  * Resolve a sensor from the sensor state given a device category and sensor name.
  * For fan, if no sensor name is specified, picks the first fan sensor.
+ *
+ * For CPU/GPU slots, when the slot's `sensorName` is the generic type flag
+ * "Temperature", we defer to the global preferred-temp-sensor settings so the
+ * widget agrees with the Cooling page, Monitoring dashboard, and Cooling
+ * widget. An explicit named sensor (e.g. "CPU Package", "GPU Hot Spot") is
+ * still respected as-is.
  */
 export function resolveSensor(
   sensors: ReturnType<typeof useSensors>,
@@ -25,13 +38,20 @@ export function resolveSensor(
   networkSensors: HardwareSensor[],
   device: DeviceKey,
   sensorName: string,
+  tempPrefs?: TempSensorPrefs,
 ): HardwareSensor | undefined {
   switch (device) {
     case 'cpu':
+      if (sensorName === 'Temperature') {
+        return resolveCpuTempSensor(sensors.cpu, tempPrefs?.cpuId ?? '');
+      }
       return sensorName
         ? sensors.cpu.find(s => s.name === sensorName) ?? sensors.cpu.find(s => s.name === 'CPU Total')
         : sensors.cpu.find(s => s.name === 'CPU Total') ?? sensors.cpu[0];
     case 'gpu':
+      if (sensorName === 'Temperature') {
+        return resolveGpuTempSensor(sensors.gpu, tempPrefs?.gpuId ?? '');
+      }
       return sensorName
         ? sensors.gpu.find(s => s.name === sensorName || (s.name === 'GPU Core' && s.type === sensorName))
           ?? sensors.gpu.find(s => s.name === 'GPU Core' && s.type === 'Load')
@@ -118,6 +138,7 @@ export function PerformanceWidget({ widget, selectedSlot, onSelectSlot }: Widget
   const fpsSensors = useFpsSensors(usesFps);
   const network = useNetworkMonitor(usesNetwork);
   const networkSensors = buildNetworkSensors(network);
+  const tempPrefs: TempSensorPrefs = useTempSensorPrefs();
 
   if (isMicro) {
     return <MicroMonitoringWidget widget={widget} count={count} />;
@@ -146,6 +167,7 @@ export function PerformanceWidget({ widget, selectedSlot, onSelectSlot }: Widget
             sensorName={sensorName}
             design={design}
             scale={scale}
+            tempPrefs={tempPrefs}
             selected={selectable && i === activeSlot}
             onSelect={selectable ? () => onSelectSlot?.(i) : undefined}
           />
@@ -163,13 +185,14 @@ interface PerfSlotProps {
   sensorName: string;
   design: GaugeDesignKey;
   scale?: ScaleMode;
+  tempPrefs?: TempSensorPrefs;
   selected?: boolean;
   onSelect?: () => void;
 }
 
-export function PerfSlot({ sensors, fpsSensors, networkSensors, device, sensorName, design, scale = DEFAULT_SCALE_MODE, selected = false, onSelect }: PerfSlotProps) {
+export function PerfSlot({ sensors, fpsSensors, networkSensors, device, sensorName, design, scale = DEFAULT_SCALE_MODE, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
-  const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName);
+  const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor?.formatted ?? '-';
   const label = labelForDevice(device, effectiveSensorName);

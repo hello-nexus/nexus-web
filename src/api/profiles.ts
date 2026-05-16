@@ -59,6 +59,11 @@ export interface OverlaySettings {
 
 export interface CoolingPrefs {
   fanChannelOrder?: string[];
+  // Empty string / null = "auto" (let the UI pick the default temperature
+  // sensor for that domain). Sent verbatim on save; server treats null as
+  // "field omitted, keep current" and empty string as "reset to auto".
+  preferredCpuTempSensorId?: string | null;
+  preferredGpuTempSensorId?: string | null;
 }
 
 export interface UiPrefs {

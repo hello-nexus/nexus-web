@@ -59,6 +59,40 @@
 }
 .offStatusLabel { letter-spacing: 0.02em; }
 
+// Gear icon in the top-right of the ViewHeader. Opens CoolingSettingsModal.
+// Mirrors the visual weight of FanCard icon buttons so the topBar stays
+// minimal — neutral until hovered, tinted on hover with no fill. The
+// trailing margin offsets the topBar's `margin-right: -1.25rem` (which lets
+// the underline reach the viewport edge) and adds extra inset so the gear
+// doesn't crowd the page edge.
+.settingsBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin-right: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+
+  &:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+}
+
 // ── Body (two-column) ──────────────────────────────────────────────────────
 // Left main pane: trend chart on top, curves list below. Right sidebar is
 // wider than lighting's DevicePanel but narrower than the desktop FanCard

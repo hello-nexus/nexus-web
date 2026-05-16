@@ -5,6 +5,8 @@ import {
   type FanChannel, type TemperatureSource,
 } from '../../../api/cooling';
 import { useSensors } from '../../../hooks/useSensors';
+import { useTempSensorPrefs } from '../../../hooks/useUiSettings';
+import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSensorResolver';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from '../../../components/views/cooling/coolingPresets';
@@ -33,8 +35,9 @@ export function CoolingWidget({ widget }: WidgetProps) {
   const [sources, setSources] = useState<TemperatureSource[]>([]);
 
   const sensors = useSensors(true);
-  const cpuTemp = sensors.cpu.find(s => s.type === 'Temperature');
-  const gpuTemp = sensors.gpu.find(s => s.type === 'Temperature');
+  const tempPrefs = useTempSensorPrefs();
+  const cpuTemp = resolveCpuTempSensor(sensors.cpu, tempPrefs.cpuId);
+  const gpuTemp = resolveGpuTempSensor(sensors.gpu, tempPrefs.gpuId);
   const fanSensors = [
     ...sensors.motherboard.filter(s => s.type === 'Fan'),
     ...sensors.gpu.filter(s => s.type === 'Fan'),

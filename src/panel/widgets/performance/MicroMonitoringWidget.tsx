@@ -1,6 +1,7 @@
 import { useSensors } from '../../../hooks/useSensors';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
+import { useTempSensorPrefs } from '../../../hooks/useUiSettings';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
 import type { PanelWidget } from '../../types';
 import {
@@ -59,6 +60,7 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
   const fpsSensors = useFpsSensors(usesFps);
   const network = useNetworkMonitor(usesNetwork);
   const networkSensors = buildNetworkSensors(network);
+  const tempPrefs = useTempSensorPrefs();
 
   const bottomLabel = bottomLabelForDevice(device, sensors);
 
@@ -73,6 +75,7 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
             networkSensors={networkSensors}
             device={device}
             sensorName={rawName}
+            tempPrefs={tempPrefs}
           />
         ))}
       </div>
@@ -87,11 +90,12 @@ interface MicroRowProps {
   networkSensors: ReturnType<typeof buildNetworkSensors>;
   device: DeviceKey;
   sensorName: string;
+  tempPrefs?: { cpuId: string; gpuId: string };
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, device, sensorName }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, device, sensorName, tempPrefs }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
-  const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName);
+  const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor?.formatted ?? '-';
   const label = bareSensorLabel(device, effectiveSensorName) || effectiveSensorName;

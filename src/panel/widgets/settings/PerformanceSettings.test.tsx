@@ -37,6 +37,15 @@ vi.mock('../../../hooks/useNetworkMonitor', () => ({
   }),
 }));
 
+vi.mock('../../../hooks/useUiSettings', () => ({
+  useUiSettings: () => ({
+    settings: { preferredCpuTempSensorId: '', preferredGpuTempSensorId: '' },
+    update: vi.fn(),
+    reload: vi.fn(),
+  }),
+  useTempSensorPrefs: () => ({ cpuId: '', gpuId: '' }),
+}));
+
 function monitoringWidget(): PanelWidget {
   return {
     id: 'monitoring-1',

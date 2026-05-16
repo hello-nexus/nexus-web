@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Gauge, Plus, Power } from 'lucide-react';
+import { Gauge, Plus, Power, Settings } from 'lucide-react';
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
   setFanSpeed, releaseFanAuto, saveCurves, renameFan,
@@ -23,7 +23,9 @@ import { CoolingSkeleton } from './PageSkeleton/PageSkeleton';
 import { FanCard } from './cooling/FanCard';
 import { CurveCard, computeCurveSpeed } from './cooling/CurveEditor';
 import { CoolingTrendChart } from './cooling/CoolingTrendChart';
+import { CoolingSettingsModal } from './cooling/CoolingSettingsModal';
 import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './cooling/coolingPresets';
+import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../lib/tempSensorResolver';
 import { newCurve, type CurveDef, type CurvePreset, type CurveType, type FanState, type MixFn } from '../../types/cooling';
 import styles from './CoolingView.module.scss';
 
@@ -63,8 +65,10 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
   const realtimeData = useCoolingRealtime(serviceOnline);
   useCoolingCurves(serviceOnline);
   const sensors = useSensors(serviceOnline);
-  const cpuTemp = sensors.cpu.find(s => s.type === 'Temperature');
-  const gpuTemp = sensors.gpu.find(s => s.type === 'Temperature');
+  const { settings } = useUiSettings();
+  const cpuTemp = resolveCpuTempSensor(sensors.cpu, settings.preferredCpuTempSensorId);
+  const gpuTemp = resolveGpuTempSensor(sensors.gpu, settings.preferredGpuTempSensorId);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const refreshCoolingConfig = useCallback(async () => {
     if (!serviceOnline) return;
@@ -985,8 +989,26 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
           tabs={presetTabs}
           activeTab={activePreset ?? undefined}
           onTabChange={k => handlePresetChange(k)}
+          actions={
+            <button
+              type="button"
+              className={styles.settingsBtn}
+              onClick={() => setSettingsOpen(true)}
+              aria-label={t('cooling.settings.open')}
+              title={t('cooling.settings.open')}
+            >
+              <Settings size={16} aria-hidden />
+            </button>
+          }
         />
       </div>
+
+      <CoolingSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        cpuSensors={sensors.cpu}
+        gpuSensors={sensors.gpu}
+      />
 
       {channels.length === 0 ? (
         <p className={styles.empty}>{t('cooling.empty')}</p>

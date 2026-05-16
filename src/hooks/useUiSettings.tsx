@@ -50,6 +50,11 @@ export interface UiSettingsValue {
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
   fanChannelOrder: string[];
+  // Empty string === "auto" (each view falls back to its built-in default).
+  // Kept on the server under cooling.preferredCpu/GpuTempSensorId so the
+  // choice survives profile switches and is shared via the Dashboard category.
+  preferredCpuTempSensorId: string;
+  preferredGpuTempSensorId: string;
 }
 
 type Patch = Partial<UiSettingsValue>;
@@ -75,6 +80,8 @@ function fromQosSettings(src: QosSettings): UiSettingsValue {
     showMacStatusBarIcon: src.general.showMacStatusBarIcon,
     showWindowsTrayIcon: src.general.showWindowsTrayIcon,
     fanChannelOrder: [],
+    preferredCpuTempSensorId: '',
+    preferredGpuTempSensorId: '',
   };
 }
 
@@ -111,7 +118,11 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.showWindowsTrayIcon !== undefined) monitoring.showWindowsTrayIcon = patch.showWindowsTrayIcon;
   if (Object.keys(monitoring).length > 0) out.monitoring = monitoring;
   // cooling block
-  if (patch.fanChannelOrder !== undefined) out.cooling = { fanChannelOrder: patch.fanChannelOrder };
+  const cooling: Partial<{ fanChannelOrder: string[]; preferredCpuTempSensorId: string | null; preferredGpuTempSensorId: string | null }> = {};
+  if (patch.fanChannelOrder !== undefined) cooling.fanChannelOrder = patch.fanChannelOrder;
+  if (patch.preferredCpuTempSensorId !== undefined) cooling.preferredCpuTempSensorId = patch.preferredCpuTempSensorId;
+  if (patch.preferredGpuTempSensorId !== undefined) cooling.preferredGpuTempSensorId = patch.preferredGpuTempSensorId;
+  if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
   if (patch.disableConflictAlerts !== undefined) out.ui = { disableConflictAlerts: patch.disableConflictAlerts };
   return out;
@@ -129,6 +140,8 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     showMacStatusBarIcon: server.monitoring?.showMacStatusBarIcon ?? base.showMacStatusBarIcon,
     showWindowsTrayIcon: server.monitoring?.showWindowsTrayIcon ?? base.showWindowsTrayIcon,
     fanChannelOrder: server.cooling?.fanChannelOrder ?? base.fanChannelOrder,
+    preferredCpuTempSensorId: server.cooling?.preferredCpuTempSensorId ?? '',
+    preferredGpuTempSensorId: server.cooling?.preferredGpuTempSensorId ?? '',
   };
 }
 
@@ -138,10 +151,20 @@ interface UiSettingsProviderProps {
   serviceOnline: boolean;
   /** Active profile id (for re-fetching on profile switch). */
   activeProfileId?: string;
+  /**
+   * Whether server-driven theme / accent / language changes should be
+   * applied to `document.documentElement` and the global i18n state.
+   * `true` (default) is what the desktop dashboard wants. `false` for
+   * the kiosk panel, the overlay process, and the simulator iframe —
+   * those surfaces own their own theme/language pipelines (usePanelTheme,
+   * the overlay's standalone theme manager, the parent modal's postMessage
+   * theme feed) and would fight a second writer.
+   */
+  manageDom?: boolean;
 }
 
 export function UiSettingsProvider({
-  children, serviceOnline, activeProfileId,
+  children, serviceOnline, activeProfileId, manageDom = true,
 }: UiSettingsProviderProps) {
   // Language now lives in I18nProvider (see lib/i18n.tsx). Calling setLanguage
   // from this hook keeps the provider in sync whenever settings.general.language
@@ -181,15 +204,19 @@ export function UiSettingsProvider({
 
       // Apply side effects for fields the whole UI cares about. Done here so
       // the caller never forgets (the old pattern had view-level handlers
-      // calling applyThemeMode / applyAccentColor inconsistently).
-      if (patch.themeMode !== undefined) applyThemeMode(patch.themeMode);
-      if (patch.accentColor !== undefined) applyAccentColor(patch.accentColor);
-      if (patch.language !== undefined) setLanguage(patch.language);
+      // calling applyThemeMode / applyAccentColor inconsistently). Guarded
+      // by `manageDom` so non-desktop surfaces don't trample their own
+      // theme/language managers.
+      if (manageDom) {
+        if (patch.themeMode !== undefined) applyThemeMode(patch.themeMode);
+        if (patch.accentColor !== undefined) applyAccentColor(patch.accentColor);
+        if (patch.language !== undefined) setLanguage(patch.language);
+      }
 
       return next;
     });
     scheduleServerWrite(patch);
-  }, [persistLocal, scheduleServerWrite, setLanguage]);
+  }, [persistLocal, scheduleServerWrite, setLanguage, manageDom]);
 
   const reload = useCallback(() => {
     if (!serviceOnline) return;
@@ -200,10 +227,13 @@ export function UiSettingsProvider({
         persistLocal(next);
         // Re-apply theme/accent when server state differs -- this is the
         // profile-switch path (settings really changed) so hydration should
-        // also touch the DOM.
-        if (next.themeMode !== prev.themeMode) applyThemeMode(next.themeMode);
-        if (next.accentColor !== prev.accentColor) applyAccentColor(next.accentColor);
-        if (next.language !== prev.language) setLanguage(next.language);
+        // also touch the DOM. Same `manageDom` guard as in update() so
+        // non-desktop surfaces aren't surprised by a server-driven repaint.
+        if (manageDom) {
+          if (next.themeMode !== prev.themeMode) applyThemeMode(next.themeMode);
+          if (next.accentColor !== prev.accentColor) applyAccentColor(next.accentColor);
+          if (next.language !== prev.language) setLanguage(next.language);
+        }
         return next;
       });
       // Also call the legacy cache helper so any non-migrated code paths that
@@ -220,7 +250,7 @@ export function UiSettingsProvider({
         showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,
       });
     }).catch(() => { /* best-effort */ });
-  }, [serviceOnline, persistLocal, setLanguage]);
+  }, [serviceOnline, persistLocal, setLanguage, manageDom]);
 
   // Hydrate from server when online or when the profile changes.
   useEffect(() => {
@@ -259,4 +289,21 @@ export function useUiSettings(): UiSettingsContextValue {
     throw new Error('useUiSettings must be used inside <UiSettingsProvider>');
   }
   return ctx;
+}
+
+/**
+ * Safe read-only accessor for the preferred CPU/GPU temperature sensor ids.
+ * Returns empty strings (auto-mode) when called outside a UiSettingsProvider —
+ * the resolver then naturally falls back to the per-domain default sensor.
+ * Acts as a fail-safe for any future surface that mounts a temp-aware widget
+ * without first wrapping with the provider; in normal use today the desktop
+ * dashboard, panel, simulator, and overlay all provide one.
+ */
+export function useTempSensorPrefs(): { cpuId: string; gpuId: string } {
+  const ctx = useContext(UiSettingsContext);
+  if (!ctx) return { cpuId: '', gpuId: '' };
+  return {
+    cpuId: ctx.settings.preferredCpuTempSensorId,
+    gpuId: ctx.settings.preferredGpuTempSensorId,
+  };
 }
