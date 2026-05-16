@@ -1596,7 +1596,7 @@ export function PanelContent({
                 </div>
               )}
             </div>
-            {kioskBehavior && (
+            {kioskBehavior && surfaceSupportsTouch(surface) && (
               <PanelActionsTray
                 open={trayOpen}
                 onOpen={() => setTrayOpen(true)}
