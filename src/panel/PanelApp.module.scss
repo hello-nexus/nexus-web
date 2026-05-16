@@ -388,6 +388,25 @@
   display: none;
 }
 
+// Q60 widget content scale.
+//
+// The default cellScaler uses `tan(atan2(--_content, 90px))` to express
+// "cell-size / 90px" as a unit-less number for `transform: scale()`. CSS
+// trig functions only landed in Chrome 111 (March 2023); the Q60 ships
+// Android System WebView v83 (Chrome 83, June 2020) which doesn't parse
+// them, so `--_s` resolves invalid, the scale transform falls back to 1,
+// and widget contents render at design-pixel size — visually about 40 %
+// of what Y70/phone show.
+//
+// Hardcode the scale here. Q60 hardware is fixed at 720x1280 @ density
+// 240 (dpr 1.5), so the CSS viewport is 480x853 and `--panel-cell-size`
+// is always (480 - 16 - 8) / 2 = 228 CSS px → 228 / 90 ≈ 2.53. Use 2.5
+// flat to leave 1 % overhead for the rounded card border + inner
+// padding to breathe.
+.panelRoot[data-surface='q60'] .cellScaler {
+  --_s: 2.5;
+}
+
 .panelRoot[data-surface='desktop'] {
   --panel-columns: 8;
   --panel-rows: 8;
