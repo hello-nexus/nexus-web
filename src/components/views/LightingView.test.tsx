@@ -21,10 +21,6 @@ vi.mock('../../hooks/useLightingFrames', () => ({
   useLightingFrames: () => ({ canvasPixels: null, canvasW: 160, canvasH: 90 }),
 }));
 
-vi.mock('../../hooks/useRgbStatus', () => ({
-  useRgbStatus: () => ({ running: false, scanning: false }),
-}));
-
 vi.mock('../../hooks/useUsbDevices', () => ({
   useUsbDevices: () => ({ devices: [] }),
 }));
@@ -154,7 +150,7 @@ describe('LightingView profile switching', () => {
 
   it('replays the freshly loaded profile effect instead of stale rawSync', async () => {
     const { rerender } = render(
-      <LightingView serviceOnline activeProfileId="old" />,
+      <LightingView serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />,
     );
 
     await waitFor(() => {
@@ -173,7 +169,7 @@ describe('LightingView profile switching', () => {
     vi.mocked(lightingApi.startAnimate).mockClear();
 
     profileRef.current = 'new';
-    rerender(<LightingView serviceOnline activeProfileId="new" />);
+    rerender(<LightingView serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="new" />);
 
     await waitFor(() => {
       expect(lightingApi.startAnimate).toHaveBeenCalledWith(

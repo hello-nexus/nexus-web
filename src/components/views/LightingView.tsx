@@ -10,7 +10,7 @@ import {
 import { useLightingFrames } from '../../hooks/useLightingFrames';
 import { useLightingSync } from '../../hooks/useLightingSync';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
-import { useRgbStatus } from '../../hooks/useRgbStatus';
+import type { ServiceState } from '../../hooks/useServiceState';
 import type { ConnectionState } from '../../hooks/useServiceStatus';
 import { useTranslation } from '../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../lib/controlSync';
@@ -48,17 +48,27 @@ import styles from './LightingView.module.scss';
 
 interface LightingViewProps {
   serviceOnline: boolean;
+  serviceState: ServiceState;
   connectionState?: ConnectionState;
   activeProfileId?: string;
 }
 
 const DEFAULT_POST_PROCESS: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
 
-export function LightingView({ serviceOnline, connectionState, activeProfileId }: LightingViewProps) {
+export function LightingView({ serviceOnline, serviceState, connectionState, activeProfileId }: LightingViewProps) {
   const { t } = useTranslation();
   const { mode, setMode, rawSync, setRawSync, synced } = useLightingSync(serviceOnline, activeProfileId);
   const frames = useLightingFrames();
-  const rgb = useRgbStatus(serviceOnline);
+  // RGB running/scanning was its own /lighting/status fetch; ride on useServiceState
+  // instead (already subscribed to the lighting topic for the sidebar pip)
+  // so a single topic push doesn't trigger two duplicate GETs. `running` here
+  // is the openrgb-headless subprocess state (LightingStatus.rgbRunning), not
+  // the effect-engine `running` field - consumers below ("OpenRGB running"
+  // badge, rescan button gate) want the subprocess.
+  const rgb = {
+    running: serviceState.lighting?.rgbRunning ?? false,
+    scanning: serviceState.lighting?.scanning ?? false,
+  };
   const [devices, setDevices] = useState<LightingDevice[]>([]);
   const deviceDraggingRef = useRef(false);
   const handleDragActiveChange = useCallback((active: boolean) => { deviceDraggingRef.current = active; }, []);
@@ -316,6 +326,7 @@ export function LightingView({ serviceOnline, connectionState, activeProfileId }
   // Push-driven refresh: every /lighting/* mutation publishes a 'lighting'
   // frame on the multiplex hub. Each branch refetches the resource it owns.
   useTopicCallback('lighting', serviceOnline, () => {
+    void refreshDevices();
     if (mode === 'static') {
       fetchStaticColor().then(data => {
         if (!data) return;
@@ -569,23 +580,36 @@ export function LightingView({ serviceOnline, connectionState, activeProfileId }
     return set;
   }, [usb.devices]);
 
+  // Devices list: fetch on entry + profile change, then refresh push-driven.
+  // The `lighting` topic fires on every /lighting mutation (layout edits,
+  // renames). The `devices` topic fires on USB hardware add/remove. RGB
+  // rescan completion has no topic frame, so we piggyback on rgb.scanning
+  // transitioning back to false (useServiceState polls for that flip).
+  const refreshDevices = useCallback(async () => {
+    const data = await fetchLightingDevices();
+    if (!data || deviceDraggingRef.current) return;
+    const devices = (data.devices ?? []).map(d => ({
+      ...d,
+      canvasW: Math.max(60, d.canvasW),
+      canvasH: Math.max(60, d.canvasH),
+    }));
+    setDevices(devices);
+  }, []);
+
   useEffect(() => {
     if (!serviceOnline) return;
-    let cancelled = false;
-    const refresh = async () => {
-      const data = await fetchLightingDevices();
-      if (cancelled || !data || deviceDraggingRef.current) return;
-      const devices = (data.devices ?? []).map(d => ({
-        ...d,
-        canvasW: Math.max(60, d.canvasW),
-        canvasH: Math.max(60, d.canvasH),
-      }));
-      setDevices(devices);
-    };
-    refresh();
-    const id = setInterval(refresh, 3000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [serviceOnline, activeProfileId]);
+    void refreshDevices();
+  }, [serviceOnline, activeProfileId, refreshDevices]);
+
+  useTopicCallback('devices', serviceOnline, () => {
+    void refreshDevices();
+  });
+
+  const prevScanningRef = useRef(rgb.scanning);
+  useEffect(() => {
+    if (prevScanningRef.current && !rgb.scanning) void refreshDevices();
+    prevScanningRef.current = rgb.scanning;
+  }, [rgb.scanning, refreshDevices]);
 
   const handleModeChange = useCallback(async (m: LightingMode) => {
     setMode(m);

@@ -17,5 +17,5 @@ interface CoolingRealtimeFrame {
 }
 
 export function useCoolingRealtime(enabled: boolean): CoolingRealtimeFrame | null {
-  return useTopic<CoolingRealtimeFrame>('cooling', enabled);
+  return useTopic<CoolingRealtimeFrame>('cooling-realtime', enabled);
 }

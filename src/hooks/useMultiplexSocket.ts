@@ -14,7 +14,7 @@ interface TopicListener {
 // as a real server push and trigger unnecessary refetches.
 const lastFrameCache = new Map<string, unknown>();
 
-interface MultiplexContextValue {
+export interface MultiplexContextValue {
   subscribe: (topic: string, listener: (data: unknown) => void) => void;
   unsubscribe: (topic: string, listener: (data: unknown) => void) => void;
   connected: boolean;

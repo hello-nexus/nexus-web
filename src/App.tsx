@@ -1042,7 +1042,7 @@ function Dashboard() {
   const status = useServiceStatus();
   const online = status.state === 'online';
   const multiplex = useMultiplexConnection(online);
-  const serviceState = useServiceState(online);
+  const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
   const { t, setLanguage } = useTranslation();
 
@@ -1264,7 +1264,7 @@ function Dashboard() {
         />
       );
       case 'monitoring': return <MonitoringView serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
-      case 'lighting':   return <LightingView serviceOnline={online} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
+      case 'lighting':   return <LightingView serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
       case 'cooling':    return <CoolingView serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
       case 'devices':    return (
         <DevicesView

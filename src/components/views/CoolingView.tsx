@@ -10,6 +10,7 @@ import {
 } from '../../api/cooling';
 import { useCoolingRealtime } from '../../hooks/useCooling';
 import { useCoolingCurves } from '../../hooks/useCoolingCurves';
+import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 import { useSensors } from '../../hooks/useSensors';
 import type { ServiceState } from '../../hooks/useServiceState';
 import type { ConnectionState } from '../../hooks/useServiceStatus';
@@ -63,7 +64,7 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
   const calibrating = serviceState.cooling?.calibrating ?? false;
 
   const realtimeData = useCoolingRealtime(serviceOnline);
-  useCoolingCurves(serviceOnline);
+  const curveCalcs = useCoolingCurves(serviceOnline);
   const sensors = useSensors(serviceOnline);
   const { settings } = useUiSettings();
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, settings.preferredCpuTempSensorId);
@@ -163,38 +164,50 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
     refreshCoolingConfig();
   }), [refreshCoolingConfig]);
 
-  useEffect(() => {
-    if (!serviceOnline) return;
-    let cancelled = false;
-    const tick = async () => {
-      // Skip polling while a user-initiated preset transition is in flight; a
-      // mid-transition fetch can return the prior preset and visibly flicker.
-      if (Date.now() < presetLockUntilRef.current) return;
+  // Cross-window profile detection: every profile switch broadcasts on the
+  // `prefs` topic, so we refetch the active profile when the topic fires
+  // instead of polling fetchProfiles() every second. The preset-lock gate
+  // still applies — a mid-transition push from our own mutation would
+  // otherwise repaint stale state.
+  useTopicCallback('prefs', serviceOnline, () => {
+    if (Date.now() < presetLockUntilRef.current) return;
+    void (async () => {
       const profiles = await fetchProfiles();
       const next = profiles?.active ?? '';
-      if (cancelled || !next || next === activeCoolingProfileRef.current) return;
+      if (!next || next === activeCoolingProfileRef.current) return;
       activeCoolingProfileRef.current = next;
       refreshCoolingConfig();
-    };
-    const timer = window.setInterval(tick, 1000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [serviceOnline, refreshCoolingConfig]);
+    })();
+  });
 
   // Keep the curve sources' temperature values live so the select labels and
   // the graph's vertical temperature line track real-time sensor readings.
+  // The `cooling-curves` topic streams inputTemperature per active curve at
+  // ~1 Hz, so we merge those readings into the existing sources list instead
+  // of refetching /cooling/sources every second. Sources that aren't driving
+  // any curve keep their last-fetched value until a mutation (curve
+  // assignment change, profile switch, etc.) triggers a refresh.
   useEffect(() => {
-    if (!serviceOnline) return;
-    let cancelled = false;
-    const tick = async () => {
-      const temps = await fetchTemperatureSources();
-      if (!cancelled && temps?.sources) setSources(temps.sources);
-    };
-    const id = setInterval(tick, 1000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [serviceOnline]);
+    if (!curveCalcs?.calculations?.length) return;
+    setSources(prev => {
+      if (prev.length === 0) return prev;
+      const updates = new Map<string, number>();
+      for (const calc of curveCalcs.calculations) {
+        if (calc.inputSensorId && Number.isFinite(calc.inputTemperature)) {
+          updates.set(calc.inputSensorId, calc.inputTemperature);
+        }
+      }
+      if (updates.size === 0) return prev;
+      let changed = false;
+      const next = prev.map(s => {
+        const v = updates.get(s.id);
+        if (v == null || v === s.value) return s;
+        changed = true;
+        return { ...s, value: v };
+      });
+      return changed ? next : prev;
+    });
+  }, [curveCalcs]);
 
   useEffect(() => {
     if (!realtimeData?.coolingComponents) return;
