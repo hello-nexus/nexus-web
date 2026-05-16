@@ -1,3 +1,6 @@
+// Polyfills MUST load before any other import — they patch globals that the
+// rest of the bundle's transitive imports may call at module-init time.
+import './lib/polyfills';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';

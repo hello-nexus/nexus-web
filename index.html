@@ -23,6 +23,60 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <title>Qos</title>
+    <script>
+      // Sync polyfills for Chromium 83 (HYTE Q60 Android System WebView).
+      // Runs before any module bundle so chunked third-party code sees the
+      // patched globals even at top-level module-init time. Module scripts
+      // hoist past inline `import` modules, so the polyfills.ts import alone
+      // is not enough.
+      (function () {
+        if (typeof String.prototype.replaceAll !== 'function') {
+          Object.defineProperty(String.prototype, 'replaceAll', {
+            value: function (search, replacement) {
+              if (search instanceof RegExp) {
+                if (!search.flags.includes('g')) {
+                  throw new TypeError('replaceAll must be called with a global RegExp');
+                }
+                return String(this).replace(search, replacement);
+              }
+              var s = String(search);
+              var escaped = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              return String(this).replace(new RegExp(escaped, 'g'), replacement);
+            },
+            writable: true, configurable: true,
+          });
+        }
+        if (typeof Array.prototype.at !== 'function') {
+          Object.defineProperty(Array.prototype, 'at', {
+            value: function (n) {
+              var len = this.length;
+              var i = n < 0 ? len + n : n;
+              return i >= 0 && i < len ? this[i] : undefined;
+            },
+            writable: true, configurable: true,
+          });
+        }
+        if (typeof String.prototype.at !== 'function') {
+          Object.defineProperty(String.prototype, 'at', {
+            value: function (n) {
+              var s = String(this);
+              var len = s.length;
+              var i = n < 0 ? len + n : n;
+              return i >= 0 && i < len ? s[i] : undefined;
+            },
+            writable: true, configurable: true,
+          });
+        }
+        if (typeof Object.hasOwn !== 'function') {
+          Object.defineProperty(Object, 'hasOwn', {
+            value: function (o, k) {
+              return Object.prototype.hasOwnProperty.call(o, k);
+            },
+            writable: true, configurable: true,
+          });
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
