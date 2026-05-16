@@ -152,6 +152,29 @@
   // the cards off the viewport edge.
   padding: 0 1rem 0 2.5rem;
 }
+// Device group header rendered above an external-hub block (NP50, etc.)
+// in the cooling fan list. Motherboard/GPU fans render without one so the
+// pre-NP50 UI shape is preserved for users with no hub.
+.deviceGroupHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0.5rem 0.5rem 0.25rem;
+  margin-top: 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.45);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.deviceGroupName {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+.deviceGroupCount {
+  font-variant-numeric: tabular-nums;
+}
+
 .fanList {
   display: flex;
   flex-direction: column;

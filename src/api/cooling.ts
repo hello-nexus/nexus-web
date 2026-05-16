@@ -15,6 +15,14 @@ export interface FanChannel {
   minDuty?: number | null;
   classification?: string | null; // "Controllable" | "Fixed" | "Stalling" | "Unresponsive"
   calibrated?: boolean;
+  // ── External-device metadata.
+  // All null for motherboard/GPU fans; populated by the service only when the
+  // channel lives on a USB hub like NP50. Drives device-grouped rendering on
+  // the cooling page.
+  deviceId?: string | null;     // e.g. "np50:1A2B3C"
+  portLabel?: string | null;    // e.g. "Port 1" | "Legacy 4-pin"
+  fanModel?: string | null;     // e.g. "LS30" | "LS10" | "FP12"
+  orientation?: string | null;  // "Back" | "Down" | "Up" | "Front"
 }
 
 export interface FanCalibrationPoint {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Gauge, Plus, Power, Settings } from 'lucide-react';
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
@@ -1121,37 +1121,69 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
 
             <div className={`${styles.fanList} ${calibrating ? styles.fanGridDisabled : ''}`}>
               {offStatusCard}
-              {orderedChannels.map(ch => (
-                <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
-                  calibrating={calibrating}
-                  compact
-                  canCreateCurve={curves.length < MAX_CURVES}
-                  highlighted={highlightedFanIds.has(ch.id) && ch.classification !== 'Unresponsive'}
-                  nubRef={el => setFanNub(ch.id, el)}
-                  cardRef={el => setFanCard(ch.id, el)}
-                  onWirePointerDown={onFanNubPointerDown(ch.id)}
-                  onWireHover={setHoveredFanId}
-                  onSetMode={v => setFanMode(ch.id, v)}
-                  onCreateCurve={() => createCurveAndAssign(ch.id)}
-                  onRename={handleRename}
-                  onSpeedChange={handleSpeedChange}
-                  drag={{
-                    isDragging: dragFanId === ch.id,
-                    isDragOver: dragOverFanId === ch.id && dragFanId !== ch.id,
-                    onDragStart: () => setDragFanId(ch.id),
-                    onDragOver: () => setDragOverFanId(ch.id),
-                    onDragLeave: () => setDragOverFanId(null),
-                    onDrop: () => {
-                      dropFanOn(ch.id);
-                      setDragFanId(null);
-                      setDragOverFanId(null);
-                    },
-                    onDragEnd: () => {
-                      setDragFanId(null);
-                      setDragOverFanId(null);
-                    },
-                  }} />
-              ))}
+              {(() => {
+                // Group channels by deviceId so external USB hubs (NP50,
+                // future devices) render with a header + their child fans
+                // beneath. Motherboard fans (no deviceId) render flat at
+                // the top so users with no hub see the exact UI they
+                // always had. Preserves orderedChannels' order within
+                // each group.
+                const groups = new Map<string | null, FanChannel[]>();
+                for (const ch of orderedChannels) {
+                  const key = ch.deviceId || null;
+                  if (!groups.has(key)) groups.set(key, []);
+                  groups.get(key)!.push(ch);
+                }
+                const renderFan = (ch: FanChannel) => (
+                  <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
+                    calibrating={calibrating}
+                    compact
+                    canCreateCurve={curves.length < MAX_CURVES}
+                    highlighted={highlightedFanIds.has(ch.id) && ch.classification !== 'Unresponsive'}
+                    nubRef={el => setFanNub(ch.id, el)}
+                    cardRef={el => setFanCard(ch.id, el)}
+                    onWirePointerDown={onFanNubPointerDown(ch.id)}
+                    onWireHover={setHoveredFanId}
+                    onSetMode={v => setFanMode(ch.id, v)}
+                    onCreateCurve={() => createCurveAndAssign(ch.id)}
+                    onRename={handleRename}
+                    onSpeedChange={handleSpeedChange}
+                    drag={{
+                      isDragging: dragFanId === ch.id,
+                      isDragOver: dragOverFanId === ch.id && dragFanId !== ch.id,
+                      onDragStart: () => setDragFanId(ch.id),
+                      onDragOver: () => setDragOverFanId(ch.id),
+                      onDragLeave: () => setDragOverFanId(null),
+                      onDrop: () => {
+                        dropFanOn(ch.id);
+                        setDragFanId(null);
+                        setDragOverFanId(null);
+                      },
+                      onDragEnd: () => {
+                        setDragFanId(null);
+                        setDragOverFanId(null);
+                      },
+                    }} />
+                );
+                const blocks: ReactNode[] = [];
+                // Motherboard / GPU fans first (existing UI shape).
+                const mobo = groups.get(null);
+                if (mobo) for (const ch of mobo) blocks.push(renderFan(ch));
+                // Then one labeled group per external device, in stable order.
+                const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k).sort();
+                for (const key of deviceKeys) {
+                  const list = groups.get(key)!;
+                  const deviceName = key.startsWith('np50:') ? 'HYTE NP50' : key;
+                  blocks.push(
+                    <div key={`${key}-hdr`} className={styles.deviceGroupHeader}>
+                      <span className={styles.deviceGroupName}>{deviceName}</span>
+                      <span className={styles.deviceGroupCount}>{list.length} fan{list.length === 1 ? '' : 's'}</span>
+                    </div>
+                  );
+                  for (const ch of list) blocks.push(renderFan(ch));
+                }
+                return blocks;
+              })()}
             </div>
 
             <div className={styles.fanPanelFooter}>
