@@ -131,7 +131,11 @@ export async function postServiceForm<T>(path: string, form: FormData): Promise<
 }
 
 export async function fetchServiceBlob(path: string): Promise<Blob | null> {
-  const r = await authFetch(path, { cache: 'no-store' });
+  // No explicit cache directive: respect the server's Cache-Control header.
+  // Effect thumbnails + app icons are static-per-key bytes; the routes that
+  // care set Cache-Control accordingly. Forcing no-store here would void any
+  // server cache hint and refetch on every mount.
+  const r = await authFetch(path);
   return r ? await r.blob() : null;
 }
 

@@ -107,23 +107,27 @@ export function LightingWidget({ widget }: WidgetProps) {
   }, [hydrate]);
   useTopicCallback('lighting', true, hydrate);
 
+  // The widget shows ONE thumbnail at a time (the active effect, with Prev/Next
+  // cycling). Pre-fetching all 60+ effect BMPs on mount was pure waste; load
+  // the active one on demand and cache subsequent picks as the user cycles.
+  const thumbsRef = useRef<Record<string, string>>({});
   useEffect(() => {
+    if (!activeEffect || thumbsRef.current[activeEffect]) return;
     let cancelled = false;
-    const urls: string[] = [];
     (async () => {
-      for (const effect of EFFECTS) {
-        const blob = await fetchServiceBlob(`/lighting/effects/${effect.key}/thumbnail.bmp`);
-        if (cancelled) return;
-        if (!blob) continue;
-        const url = URL.createObjectURL(blob);
-        urls.push(url);
-        setThumbs(prev => ({ ...prev, [effect.key]: url }));
-      }
+      const blob = await fetchServiceBlob(`/lighting/effects/${activeEffect}/thumbnail.bmp`);
+      if (cancelled || !blob) return;
+      if (thumbsRef.current[activeEffect]) return;
+      const url = URL.createObjectURL(blob);
+      thumbsRef.current = { ...thumbsRef.current, [activeEffect]: url };
+      setThumbs(thumbsRef.current);
     })();
-    return () => {
-      cancelled = true;
-      urls.forEach(url => URL.revokeObjectURL(url));
-    };
+    return () => { cancelled = true; };
+  }, [activeEffect]);
+
+  useEffect(() => () => {
+    for (const url of Object.values(thumbsRef.current)) URL.revokeObjectURL(url);
+    thumbsRef.current = {};
   }, []);
 
   // Media library is only needed when the service is actually in gif mode so
