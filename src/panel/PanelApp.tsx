@@ -289,6 +289,20 @@ interface EditorDockSourceRect {
   height: number;
 }
 
+// Inert touch handlers for surfaces that don't accept pointer input (Q60).
+// `cellPointers` is shaped like RN's PointerEvent bag and the cell wires
+// every callback unconditionally, so we hand back a no-op for each to keep
+// the call sites typed without registering listeners that could fire on a
+// stray simulated pointer.
+const noopMouseHandler = (_e: React.MouseEvent) => { /* no-op on Q60 */ };
+const noopPointerHandler = (_e: React.PointerEvent) => { /* no-op on Q60 */ };
+const noopCellPointers = {
+  onPointerDown: noopPointerHandler,
+  onPointerMove: noopPointerHandler,
+  onPointerUp: noopPointerHandler,
+  onPointerCancel: noopPointerHandler,
+};
+
 export default function PanelApp({ deviceId }: { deviceId: string }) {
   // Resolve the device record once on mount; the surface classification
   // stamped on the record (via inferSurfaceFromViewport at allocation
@@ -869,6 +883,7 @@ export function PanelContent({
   // inside a widget or interactive element.
   const backgroundLongPress = useLongPress(() => setTrayOpen(true), PANEL_CONTEXT_MENU_TRIGGER_MS);
   const backgroundPressBlocked = !kioskBehavior
+    || !surfaceSupportsTouch(surface)
     || trayOpen
     || Boolean(sheetMode)
     || Boolean(immersiveWidgetId)
@@ -1541,9 +1556,9 @@ export function PanelContent({
                               selectedSlot={sheetMode === 'settings' && editingWidgetId === w.id && w.type === 'monitoring' ? selectedMonitoringSlot : undefined}
                               onSelectSlot={sheetMode === 'settings' && editingWidgetId === w.id && w.type === 'monitoring' ? setSelectedMonitoringSlot : undefined}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
-                              onContextMenu={e => touch.handleContextMenu(e, w)}
-                              onRearrangeTap={touch.handleRearrangeTap}
-                              cellPointers={touch.bindCellPointers(w)}
+                              onContextMenu={surfaceSupportsTouch(surface) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
+                              onRearrangeTap={surfaceSupportsTouch(surface) ? touch.handleRearrangeTap : noopMouseHandler}
+                              cellPointers={surfaceSupportsTouch(surface) ? touch.bindCellPointers(w) : noopCellPointers}
                               previewLayout={previewLayout}
                               anyDragging={Boolean(activeDragId)}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
