@@ -12,7 +12,12 @@ export function surfaceSupportsTouch(surface: PanelSurface): boolean {
   return surface !== 'q60';
 }
 
-export const Q60_WIDGET_SIZES: readonly PanelWidgetSize[] = ['2x2', '2x4'];
+// Q-series LCD hosts exactly one 2x4 widget. The surface is too small
+// for anything else and is single-widget by design (see
+// SINGLE_WIDGET_SURFACES in usePanelLayout.ts). Any size persisted at
+// some other value gets snapped here on read so the catalog, picker,
+// and reconciliation all see the same allowed list.
+export const Q60_WIDGET_SIZES: readonly PanelWidgetSize[] = ['2x4'];
 
 export function normalizePanelWidgetSize(size: string | null | undefined): PanelWidgetSize {
   return PANEL_WIDGET_SIZES.includes(size as PanelWidgetSize)
@@ -26,7 +31,7 @@ export function normalizePanelWidgetSizeForSurface(
 ): PanelWidgetSize {
   const normalized = normalizePanelWidgetSize(size);
   if (surface !== 'q60') return normalized;
-  return normalized === '1x1' || normalized === '2x2' ? '2x2' : '2x4';
+  return '2x4';
 }
 
 /**

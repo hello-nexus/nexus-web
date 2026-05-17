@@ -10,7 +10,7 @@ import {
   type PanelWidgetSize,
 } from '../types';
 import { lookupWidget, sizesForSurface, widgetAvailableForSurface } from '../widgets/registry';
-import { defaultLayoutForSurface } from './defaultLayout';
+import { defaultDockForMissingSurface, defaultLayoutForSurface } from './defaultLayout';
 import { broadcastLayoutChanged, onLayoutChanged } from './panelSync';
 import { sizeToSpan } from './grid';
 import {
@@ -197,34 +197,71 @@ function migrateLayoutSchema(layout: PanelLayout, surface: PanelSurface): PanelL
   };
 }
 
+// Surfaces that host exactly one widget at a time. The Q-series LCD is
+// a 240x800-ish portrait strip with no touch and no room for a second
+// tile, so its layout invariant is: one page, one widget, always 2x4.
+// Encoding this as a surface property keeps the engine generic so the
+// next small-form surface (a future tiny secondary display, e.g.) drops
+// in without bespoke wiring.
+const SINGLE_WIDGET_SURFACES: ReadonlySet<PanelSurface> = new Set(['q60']);
+
+export function isSingleWidgetSurface(surface: PanelSurface): boolean {
+  return SINGLE_WIDGET_SURFACES.has(surface);
+}
+
 export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface): PanelLayout {
   const migrated = migrateLayoutSchema(layout, surface);
   const layoutWithoutLegacyDensity = { ...migrated } as PanelLayout & { gridDensity?: unknown };
   delete layoutWithoutLegacyDensity.gridDensity;
-  const dock = migrated.dock
+  // Surfaces that ship with a default dock (currently Y70 only) get one
+  // injected when no dock state has been persisted yet. Once the user
+  // toggles the dock — even to `enabled: false` — that decision sticks
+  // and we never re-inject. Existing pre-dock-feature layouts upgrade
+  // transparently on next load.
+  const sourceDock = migrated.dock ?? defaultDockForMissingSurface(surface);
+  const dock = sourceDock
     ? {
-        ...migrated.dock,
+        ...sourceDock,
         // Dock slots own their size (always 1x1 visually), so we only filter
-        // out widgets that no longer exist or aren't valid for this surface.
-        widgets: migrated.dock.widgets.filter(widget => {
+        // out widgets that no longer exist or aren't valid for this surface,
+        // plus anything not actually 1x1 (defensive — store-level invariant).
+        widgets: sourceDock.widgets.filter(widget => {
+          if (widget.size !== '1x1') return false;
           if (REMOVED_WIDGET_TYPES.has(widget.type)) return false;
           const def = lookupWidget(widget.type);
           if (!def) return false;
           return widgetAvailableForSurface(def.meta, surface);
         }),
       }
-    : migrated.dock;
+    : undefined;
+  const reconciledPages = migrated.pages.map(page => ({
+    ...page,
+    widgets: reconcileWidgetsAgainstRegistry(
+      page.widgets.filter(widget => !REMOVED_WIDGET_TYPES.has(widget.type)),
+      surface,
+    ),
+  }));
+
+  // Single-widget surface invariant: collapse to one page, one widget,
+  // snapped to the surface's allowed size. The earlier reconciliation
+  // pass has already normalized each widget's size via
+  // normalizePanelWidgetSizeForSurface, so we just keep the first
+  // surviving widget across all pages.
+  let finalPages = reconciledPages;
+  if (isSingleWidgetSurface(surface)) {
+    const firstWidget = reconciledPages.flatMap(p => p.widgets)[0];
+    const firstPageId = reconciledPages[0]?.id;
+    finalPages = [{
+      id: firstPageId ?? '',
+      widgets: firstWidget ? [{ ...firstWidget, col: 0, row: 0 }] : [],
+    }];
+  }
+
   return {
     ...layoutWithoutLegacyDensity,
     surface,
-    dock,
-    pages: migrated.pages.map(page => ({
-      ...page,
-      widgets: reconcileWidgetsAgainstRegistry(
-        page.widgets.filter(widget => !REMOVED_WIDGET_TYPES.has(widget.type)),
-        surface,
-      ),
-    })),
+    ...(dock ? { dock } : {}),
+    pages: finalPages,
   };
 }
 

@@ -54,6 +54,26 @@ export function appendWidget(
 }
 
 /**
+ * Single-widget surface helper: replaces every page-widget with one
+ * fresh widget at (0, 0). Used for Q-series and any future small-form
+ * surface that hosts exactly one widget at a time. The page list is
+ * collapsed to one page; dock entries are left alone (single-widget
+ * surfaces have no dock today, but if they ever do the engine should
+ * not silently nuke it).
+ */
+export function replaceWidget(
+  layout: PanelLayout,
+  next: PanelWidget,
+): PanelLayout {
+  const placed: PanelWidget = { ...next, col: 0, row: 0 };
+  const firstPageId = layout.pages[0]?.id ?? createUuid();
+  return {
+    ...layout,
+    pages: [{ id: firstPageId, widgets: [placed] }],
+  };
+}
+
+/**
  * Removes a widget by id. The cell stays empty: no later widget
  * shifts up to fill. If the removal empties a non-first page, the
  * page is dropped so the user does not end up paging through blank
