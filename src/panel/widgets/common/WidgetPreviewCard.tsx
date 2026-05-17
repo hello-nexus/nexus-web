@@ -36,6 +36,10 @@ interface WidgetPreviewCardProps {
   dragListeners?: unknown;
   dragAttributes?: unknown;
   isDragging?: boolean;
+  // Visually marks this card as the currently chosen widget. Used by
+  // single-widget surfaces where the catalog acts as a chooser rather
+  // than an additive picker.
+  selected?: boolean;
   onClick?: () => void;
 }
 
@@ -49,6 +53,7 @@ export function WidgetPreviewCard({
   dragListeners,
   dragAttributes,
   isDragging,
+  selected,
   onClick,
 }: WidgetPreviewCardProps) {
   const def = lookupWidget(widgetType);
@@ -118,7 +123,7 @@ export function WidgetPreviewCard({
   return (
     <div
       ref={dragRef}
-      className={`${styles.card} ${isDragging ? styles.cardDragging : ''}`}
+      className={`${styles.card} ${isDragging ? styles.cardDragging : ''} ${selected ? styles.cardSelected : ''}`}
       // Spread drag attributes/listeners FIRST so our explicit role / tabIndex
       // / onClick / onKeyDown / aria-label win on conflict. Today only the
       // pointer sensor is wired up in the catalog, but a future keyboard
@@ -130,6 +135,7 @@ export function WidgetPreviewCard({
       onClick={onClick}
       onKeyDown={handleKeyDown}
       aria-label={label}
+      aria-pressed={selected ? true : undefined}
       data-tile-span={isWide ? 'wide' : undefined}
     >
       <div

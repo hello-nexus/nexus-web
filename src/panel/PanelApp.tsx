@@ -28,6 +28,7 @@ import {
   patchWidgetById,
   previewDrag,
   removeWidgetById,
+  setDockEnabled,
 } from './engine/panelLayoutOps';
 import { PANEL_EDGE_ADVANCE_DWELL_MS } from './engine/dragConstants';
 import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
@@ -46,6 +47,7 @@ import { slotCountOptionsForSize, resolvedSlotCountForSize } from './widgets/per
 import { SlotCountIcon } from './widgets/performance/SlotCountIcons';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { IconLabelButton } from '../components/IconLabelButton/IconLabelButton';
+import { Toggle } from '../components/Toggle/Toggle';
 import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { PanelOfflineOverlay } from './PanelOfflineOverlay';
@@ -689,8 +691,9 @@ export function PanelContent({
       runtimeGrid.rows,
       dockActive,
       isLandscape ? 'landscape' : 'portrait',
+      surface,
     ),
-    [runtimeGrid.columns, runtimeGrid.rows, dockActive, isLandscape],
+    [runtimeGrid.columns, runtimeGrid.rows, dockActive, isLandscape, surface],
   );
 
   // Two-stage drag state declared early so the layout derivations
@@ -819,7 +822,6 @@ export function PanelContent({
   const pendingDragRef = useRef<DragSnapshot | null>(null);
 
   const dockWidgets = paginatedLayout.dock?.widgets ?? [];
-  const dockSlotCount = Math.max(1, Math.min(runtimeGrid.columns, runtimeGrid.rows));
   const dockOrientation: 'portrait' | 'landscape' = isLandscape ? 'landscape' : 'portrait';
 
   const widgetById = useCallback((id: string): PanelWidget | undefined => {
@@ -1097,6 +1099,10 @@ export function PanelContent({
     setPendingScrollId(next.id);
     closeSheet();
   }, [closeSheet, embedded, paginatedLayout, capacity, setLayout, surface]);
+
+  const toggleDock = useCallback(() => {
+    setLayout(setDockEnabled(paginatedLayout, !dockEnabled, capacity));
+  }, [paginatedLayout, dockEnabled, capacity, setLayout]);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     setLayout(patchWidgetById(
@@ -1559,6 +1565,11 @@ export function PanelContent({
                               onContextMenu={surfaceSupportsTouch(surface) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               onRearrangeTap={surfaceSupportsTouch(surface) ? touch.handleRearrangeTap : noopMouseHandler}
                               cellPointers={surfaceSupportsTouch(surface) ? touch.bindCellPointers(w) : noopCellPointers}
+                              // Non-touch simulator surfaces (Q-series) can't reach onCellTap
+                              // through the pointer/long-press pipeline. Wire a plain click
+                              // so the user can tap the rendered widget in the device-page
+                              // iframe to open its edit sheet.
+                              onSimulatorClick={simulator && !surfaceSupportsTouch(surface) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
                               previewLayout={previewLayout}
                               anyDragging={Boolean(activeDragId)}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
@@ -1602,11 +1613,8 @@ export function PanelContent({
                 <div className={styles.panelDockPosition} data-orientation={dockOrientation}>
                   <PanelDock
                     widgets={dockWidgets}
-                    slotCount={dockSlotCount}
                     surface={surface}
                     orientation={dockOrientation}
-                    cellSize={runtimeGrid.cellSize}
-                    gap={8}
                   />
                 </div>
               )}
@@ -1740,6 +1748,9 @@ export function PanelContent({
           onRemove={removeWidget}
           selectedMonitoringSlot={selectedMonitoringSlot}
           onSelectedMonitoringSlotChange={setSelectedMonitoringSlot}
+          dockSupported={dockSupported}
+          dockEnabled={dockEnabled}
+          onDockToggle={toggleDock}
         />
       )}
 
@@ -2374,6 +2385,9 @@ function PanelEditorSheet({
   onRemove,
   selectedMonitoringSlot,
   onSelectedMonitoringSlotChange,
+  dockSupported,
+  dockEnabled,
+  onDockToggle,
 }: {
   mode: SheetMode;
   surface: PanelSurface;
@@ -2408,6 +2422,9 @@ function PanelEditorSheet({
   onRemove: (widgetId: string) => void;
   selectedMonitoringSlot: number;
   onSelectedMonitoringSlotChange: (slot: number) => void;
+  dockSupported: boolean;
+  dockEnabled: boolean;
+  onDockToggle: () => void;
 }) {
   const { t } = useTranslation();
   const def = editingWidget ? lookupWidget(editingWidget.type) : undefined;
@@ -2480,7 +2497,7 @@ function PanelEditorSheet({
   const handleSlotCount = (n: number) => {
     if (!editingWidget) return;
     onSelectedMonitoringSlotChange(Math.min(selectedMonitoringSlot, n - 1));
-    onUpdate(editingWidget.id, { slotCount: { n } });
+    onUpdate(editingWidget.id, { slotCount: n });
   };
 
   return (
@@ -2586,11 +2603,26 @@ function PanelEditorSheet({
         )}
 
         {mode === 'panelSettings' && (
-          <div className={styles.settingsBody}>
+          <div className={`${styles.settingsBody} ${styles.panelSettingsStack}`}>
             <PanelHostNameSetting
               machineName={machineName}
               onCommit={onMachineNameCommit}
             />
+            {dockSupported && (
+              <div className={styles.dockSection}>
+                <div className={styles.dockSectionTitle}>Dock</div>
+                <div className={styles.dockToggleRow}>
+                  <span className={styles.dockToggleHint}>
+                    Pin up to 4 shortcuts that stay visible across pages.
+                  </span>
+                  <Toggle
+                    checked={dockEnabled}
+                    onChange={onDockToggle}
+                    ariaLabel="Dock"
+                  />
+                </div>
+              </div>
+            )}
             <PanelThemeSettings
               theme={panelTheme}
               resolvedThemeMode={resolvedThemeMode}
@@ -2925,6 +2957,7 @@ export function PanelTouchCell({
   onContextMenu,
   onRearrangeTap,
   cellPointers,
+  onSimulatorClick,
   previewLayout = null,
   anyDragging = false,
   onSectionNavigate,
@@ -2950,6 +2983,7 @@ export function PanelTouchCell({
     onPointerUp: (e: React.PointerEvent) => void;
     onPointerCancel: (e: React.PointerEvent) => void;
   };
+  onSimulatorClick?: () => void;
   previewLayout?: PanelLayout | null;
   anyDragging?: boolean;
   onSectionNavigate?: DashboardSectionNavigate;
@@ -3123,6 +3157,7 @@ export function PanelTouchCell({
         zIndex: !dragMotionActive && isDragging && rearranging ? 50 : undefined,
       }}
       onContextMenu={dragMotionActive ? e => e.preventDefault() : onContextMenu}
+      onClick={onSimulatorClick}
       {...(dragMotionActive ? {} : attributes)}
       {...composedPointerHandlers}
     >

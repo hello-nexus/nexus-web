@@ -27,6 +27,15 @@
   opacity: 0.4;
 }
 
+// Active widget in single-widget mode (q-series). Persistent accent ring
+// so the user can tell which catalog entry is the one currently rendered
+// on the device.
+.cardSelected {
+  border-color: var(--panel-accent);
+  background: var(--panel-accent-soft);
+  box-shadow: 0 0 0 1px var(--panel-accent);
+}
+
 .preview {
   width: 100%;
   overflow: hidden;

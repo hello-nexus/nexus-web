@@ -24,6 +24,10 @@ export interface PanelWidgetCatalogProps {
   aspect?: 'natural' | 'square';
   themeMode?: 'dark' | 'light';
   className?: string;
+  // Highlight the catalog card matching this widget type. Used by
+  // single-widget surfaces (q-series) so the user can see which entry
+  // is currently the active widget on the device.
+  selectedWidgetType?: string;
 }
 
 export function PanelWidgetCatalog({
@@ -35,6 +39,7 @@ export function PanelWidgetCatalog({
   aspect = 'natural',
   themeMode,
   className,
+  selectedWidgetType,
 }: PanelWidgetCatalogProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -100,6 +105,7 @@ export function PanelWidgetCatalog({
           {visibleBuiltIns.map(([type, def]) => {
             const label = t(def.meta.i18nKey) || type;
             const size = pickerSizeFor(def.meta, surface);
+            const selected = selectedWidgetType === type;
             return draggable ? (
               <DraggableCatalogCard
                 key={type}
@@ -108,6 +114,7 @@ export function PanelWidgetCatalog({
                 label={label}
                 aspect={aspect}
                 themeMode={themeMode}
+                selected={selected}
                 onAdd={onAdd}
               />
             ) : (
@@ -118,6 +125,7 @@ export function PanelWidgetCatalog({
                 label={label}
                 aspect={aspect}
                 themeMode={themeMode}
+                selected={selected}
                 onClick={() => onAdd(type, size)}
               />
             );
@@ -131,6 +139,7 @@ export function PanelWidgetCatalog({
           {visibleMarketplace.map(([type, def]) => {
             const label = t(def.meta.i18nKey) || type;
             const size = pickerSizeFor(def.meta, surface);
+            const selected = selectedWidgetType === type;
             return draggable ? (
               <DraggableCatalogCard
                 key={type}
@@ -139,6 +148,7 @@ export function PanelWidgetCatalog({
                 label={label}
                 aspect={aspect}
                 themeMode={themeMode}
+                selected={selected}
                 onAdd={onAdd}
               />
             ) : (
@@ -149,6 +159,7 @@ export function PanelWidgetCatalog({
                 label={label}
                 aspect={aspect}
                 themeMode={themeMode}
+                selected={selected}
                 onClick={() => onAdd(type, size)}
               />
             );
@@ -170,6 +181,7 @@ function DraggableCatalogCard({
   label,
   aspect,
   themeMode,
+  selected,
   onAdd,
 }: {
   widgetType: string;
@@ -177,6 +189,7 @@ function DraggableCatalogCard({
   label: string;
   aspect: 'natural' | 'square';
   themeMode?: 'dark' | 'light';
+  selected?: boolean;
   onAdd: (type: string, size: PanelWidgetSize) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -191,6 +204,7 @@ function DraggableCatalogCard({
       label={label}
       aspect={aspect}
       themeMode={themeMode}
+      selected={selected}
       dragRef={setNodeRef}
       dragListeners={listeners}
       dragAttributes={attributes}

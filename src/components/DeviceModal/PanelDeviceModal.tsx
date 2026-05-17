@@ -4,8 +4,8 @@ import { SIZE_ICONS } from '../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../panel/widgets/common/WidgetControlGroup';
 import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../../panel/widgets/performance/perfSlots';
 import { SlotCountIcon } from '../../panel/widgets/performance/SlotCountIcons';
-import { appendWidget } from '../../panel/engine/panelLayoutOps';
-import { normalizePanelLayout } from '../../panel/engine/usePanelLayout';
+import { appendWidget, replaceWidget } from '../../panel/engine/panelLayoutOps';
+import { isSingleWidgetSurface, normalizePanelLayout } from '../../panel/engine/usePanelLayout';
 import { fetchService, postService } from '../../api/service';
 import { fetchPreferences, savePreferences } from '../../api/profiles';
 import {
@@ -167,7 +167,29 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
     return { gridCols: 4, pageRows: 16 };
   })();
 
+  const singleWidget = isSingleWidgetSurface(surface);
+  const currentSingleWidget: PanelWidget | undefined = singleWidget
+    ? layout.pages[0]?.widgets[0]
+    : undefined;
+
   const handleAddWidget = useCallback((type: string, size: PanelWidgetSize) => {
+    if (singleWidget) {
+      // Single-widget surface (q-series): one widget at a time, fixed 2x4.
+      // Clicking the catalog tile that matches what's already on the
+      // device is a no-op — protects the existing config from being
+      // wiped by an accidental click.
+      const current = layout.pages[0]?.widgets[0];
+      if (current && current.type === type) return;
+      const next: PanelWidget = {
+        id: createUuid(),
+        type,
+        size,
+        col: 0,
+        row: 0,
+      };
+      updateLayout(replaceWidget(layout, next));
+      return;
+    }
     const next: PanelWidget = {
       id: createUuid(),
       type,
@@ -176,7 +198,7 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
       row: 0,
     };
     updateLayout(appendWidget(layout, next, editorCapacity));
-  }, [editorCapacity, layout, updateLayout]);
+  }, [editorCapacity, layout, singleWidget, updateLayout]);
 
   const handleRemoveWidget = useCallback((widgetId: string) => {
     const page = layout.pages[0];
@@ -233,11 +255,21 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
       : []),
   ];
 
+  // Simulator badge: the dashboard page is identical for real hardware
+  // and the LCD debug simulator (same controls, same data set), so the
+  // only outward difference is a "(Simulator)" suffix on the modal title
+  // when no physical device is attached. The user explicitly asked for
+  // this on Q-series so they can tell at a glance whether the page is
+  // driving real hardware or the simulator.
+  const isSimulated = device?.connectionKind === 'simulated';
+  const baseTitle = device?.name ?? t('devices.y70.title');
+  const modalTitle = isSimulated ? `${baseTitle} (Simulator)` : baseTitle;
+
   return (
     <DeviceModal
       open={open}
       onClose={() => { setTab('widgets'); onClose(); }}
-      title={device?.name ?? t('devices.y70.title')}
+      title={modalTitle}
       icon={<Monitor size={20} />}
       fullscreen
     >
@@ -280,6 +312,7 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
                       aspect="square"
                       themeMode={resolvedPanelThemeMode}
                       className={styles.catalog}
+                      selectedWidgetType={currentSingleWidget?.type}
                     />
                   )}
                   {activeTab === 'theme' && (
