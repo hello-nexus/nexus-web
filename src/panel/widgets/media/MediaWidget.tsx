@@ -79,9 +79,10 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
     controlMedia(active.key, action).catch(() => {});
   };
 
+  const tall = widget.size === '2x4';
   if (!active) {
     return (
-      <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${showControls ? '' : styles.statusOnly}`}>
+      <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${tall ? styles.tall : ''} ${showControls ? '' : styles.statusOnly}`}>
         {showVolume ? (
           <div className={styles.fullContent}>
             <EmptyState
@@ -121,7 +122,7 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
   const repeatActive = repeatMode === 'List' || repeatMode === 'Track';
 
   return (
-    <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${showControls ? '' : styles.statusOnly}`}>
+    <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${tall ? styles.tall : ''} ${showControls ? '' : styles.statusOnly}`}>
       {compact ? (
         <>
           <div className={styles.compactMeta}>

@@ -29,6 +29,7 @@
     }
   }
 
+  &.size-2x4  { --dot-size: 6px; --dot-gap: 3px; }
   &.size-4x2  { --dot-size: 8px; --dot-gap: 4px; }
   &.size-4x4  { --dot-size: 7px; --dot-gap: 3.5px; }
 }

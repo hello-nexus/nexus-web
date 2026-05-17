@@ -20,6 +20,51 @@
   gap: 8px;
 }
 
+// 2x4 tall layout - portrait aspect (240 wide x 800 tall on Q60).
+// Stack art on top, metadata below, controls/volume underneath.
+.tall.full {
+  .fullContent {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .playbackColumn {
+    gap: 14px;
+  }
+
+  .topRow {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .artWrap {
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+    aspect-ratio: 1;
+    align-self: center;
+  }
+
+  .metadata {
+    text-align: center;
+    align-items: center;
+    width: 100%;
+  }
+
+  .volumeMixer {
+    flex: 0 0 auto;
+    align-self: center;
+  }
+}
+
+// Q-series statusOnly + tall: bigger album art since there are no controls.
+.statusOnly.tall.full {
+  .artWrap {
+    max-width: 100%;
+  }
+}
+
 .fullContent {
   display: flex;
   align-items: stretch;
