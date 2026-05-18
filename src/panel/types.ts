@@ -12,12 +12,31 @@ export function surfaceSupportsTouch(surface: PanelSurface): boolean {
   return surface !== 'q60';
 }
 
-// Q-series LCD hosts exactly one 2x4 widget. The surface is too small
-// for anything else and is single-widget by design (see
-// SINGLE_WIDGET_SURFACES in usePanelLayout.ts). Any size persisted at
-// some other value gets snapped here on read so the catalog, picker,
-// and reconciliation all see the same allowed list.
-export const Q60_WIDGET_SIZES: readonly PanelWidgetSize[] = ['2x4'];
+// Surfaces that host exactly one widget at a time, each locked to a
+// single fixed widget size. Adding a new such surface = adding an entry
+// here; nothing else in the codebase should branch on a literal surface
+// name. The Q-series LCD is the original example: 240x800-ish portrait
+// strip with no touch and no room for a second tile.
+export const SINGLE_WIDGET_SURFACE_SIZE: Readonly<Partial<Record<PanelSurface, PanelWidgetSize>>> = {
+  q60: '2x4',
+};
+
+export function singleWidgetSurfaceSize(surface: PanelSurface): PanelWidgetSize | undefined {
+  return SINGLE_WIDGET_SURFACE_SIZE[surface];
+}
+
+export function isSingleWidgetSurface(surface: PanelSurface): boolean {
+  return singleWidgetSurfaceSize(surface) !== undefined;
+}
+
+// Sizes reserved for single-widget surfaces. Multi-widget surfaces hide
+// these from the size picker and snap any persisted widget at one of
+// these sizes to the nearest non-reserved size on reconcile.
+export const SINGLE_WIDGET_SIZES: ReadonlySet<PanelWidgetSize> = new Set(
+  Object.values(SINGLE_WIDGET_SURFACE_SIZE).filter(
+    (s): s is PanelWidgetSize => s !== undefined,
+  ),
+);
 
 export function normalizePanelWidgetSize(size: string | null | undefined): PanelWidgetSize {
   return PANEL_WIDGET_SIZES.includes(size as PanelWidgetSize)
@@ -30,8 +49,9 @@ export function normalizePanelWidgetSizeForSurface(
   surface: PanelSurface,
 ): PanelWidgetSize {
   const normalized = normalizePanelWidgetSize(size);
-  if (surface !== 'q60') return normalized;
-  return '2x4';
+  const single = singleWidgetSurfaceSize(surface);
+  if (single !== undefined) return single;
+  return normalized;
 }
 
 /**

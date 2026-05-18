@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchPanelDeviceWithStatus, patchPanelDeviceWithStatus } from '../../api/panel';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 import {
+  isSingleWidgetSurface,
   normalizePanelWidgetSizeForSurface,
   type PanelLayout,
   type PanelPage,
@@ -195,18 +196,6 @@ function migrateLayoutSchema(layout: PanelLayout, surface: PanelSurface): PanelL
     layoutSchemaVersion: 2,
     pages,
   };
-}
-
-// Surfaces that host exactly one widget at a time. The Q-series LCD is
-// a 240x800-ish portrait strip with no touch and no room for a second
-// tile, so its layout invariant is: one page, one widget, always 2x4.
-// Encoding this as a surface property keeps the engine generic so the
-// next small-form surface (a future tiny secondary display, e.g.) drops
-// in without bespoke wiring.
-const SINGLE_WIDGET_SURFACES: ReadonlySet<PanelSurface> = new Set(['q60']);
-
-export function isSingleWidgetSurface(surface: PanelSurface): boolean {
-  return SINGLE_WIDGET_SURFACES.has(surface);
 }
 
 export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface): PanelLayout {

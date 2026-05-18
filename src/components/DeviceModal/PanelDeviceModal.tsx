@@ -5,7 +5,8 @@ import { WidgetControlGroup } from '../../panel/widgets/common/WidgetControlGrou
 import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../../panel/widgets/performance/perfSlots';
 import { SlotCountIcon } from '../../panel/widgets/performance/SlotCountIcons';
 import { appendWidget, replaceWidget } from '../../panel/engine/panelLayoutOps';
-import { isSingleWidgetSurface, normalizePanelLayout } from '../../panel/engine/usePanelLayout';
+import { normalizePanelLayout } from '../../panel/engine/usePanelLayout';
+import { isSingleWidgetSurface } from '../../panel/types';
 import { fetchService, postService } from '../../api/service';
 import { fetchPreferences, savePreferences } from '../../api/profiles';
 import {

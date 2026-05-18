@@ -14,7 +14,13 @@ import {
   typeForMarketplace,
 } from '../../widgets/marketplaceRegistry';
 import type { WidgetDef } from './types';
-import { Q60_WIDGET_SIZES, surfaceSupportsTouch, type PanelSurface, type PanelWidgetSize } from '../types';
+import {
+  SINGLE_WIDGET_SIZES,
+  singleWidgetSurfaceSize,
+  surfaceSupportsTouch,
+  type PanelSurface,
+  type PanelWidgetSize,
+} from '../types';
 import { ClockWidget } from './clock/ClockWidget';
 import { PerformanceWidget } from './performance/PerformanceWidget';
 import { MediaWidget } from './media/MediaWidget';
@@ -86,20 +92,28 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     Component: PerformanceWidget,
     SettingsComponent: PerformanceSettings,
     ImmersiveComponent: MonitoringImmersive,
-    resolveInitialSelection: ({ point }) => {
+    resolveInitialSelection: ({ point, widget }) => {
       // PerformanceWidget stamps `data-monitoring-slot-index` on each slot
       // div/button (multi-slot layouts only; micro layouts have no per-slot
-      // selection). Walk up from the press point to land on the closest slot.
-      const el = typeof document !== 'undefined'
-        ? document.elementFromPoint(point.x, point.y)
-        : null;
-      const slot = el instanceof Element
-        ? el.closest<HTMLElement>('[data-monitoring-slot-index]')
-        : null;
-      const idx = slot?.dataset.monitoringSlotIndex;
-      if (idx === undefined) return undefined;
-      const parsed = Number.parseInt(idx, 10);
-      return Number.isFinite(parsed) ? { selectedSlot: parsed } : undefined;
+      // selection). We can't use elementFromPoint here because the context
+      // menu is still mounted on top of the press point — it would shadow
+      // the bottom-row slots whenever the menu opens upward. Query the
+      // widget's slots directly and hit-test by bounding rect instead.
+      if (typeof document === 'undefined') return undefined;
+      const widgetEl = document.querySelector<HTMLElement>(
+        `[data-panel-widget-id="${widget.id}"]`,
+      );
+      if (!widgetEl) return undefined;
+      const slots = widgetEl.querySelectorAll<HTMLElement>('[data-monitoring-slot-index]');
+      for (const slot of slots) {
+        const r = slot.getBoundingClientRect();
+        if (point.x >= r.left && point.x <= r.right
+            && point.y >= r.top && point.y <= r.bottom) {
+          const parsed = Number.parseInt(slot.dataset.monitoringSlotIndex ?? '', 10);
+          if (Number.isFinite(parsed)) return { selectedSlot: parsed };
+        }
+      }
+      return undefined;
     },
   },
   media: {
@@ -415,17 +429,19 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
 
 // Whether a widget can appear on a given surface. Combines `supportedSurfaces`
 // (form-factor compatibility) with `touch` (input requirement). Touch-only
-// widgets are unavailable on display-only surfaces regardless of supportedSurfaces.
+// widgets are unavailable on touchless surfaces regardless of supportedSurfaces.
 //
-// Q-series is derived from capabilities, not from an explicit
-// `supportedSurfaces: [..., 'q60']` opt-in. The rule is: any widget that
-// declares a 2x4 size AND is not flagged touch-only is available on the
-// Q-series. This keeps the catalog complete without having to remember to
-// add q60 to every new non-touch widget's manifest.
+// Single-widget surfaces are derived from capabilities, not from an
+// explicit `supportedSurfaces` opt-in. The rule is: any widget that
+// declares the surface's locked size AND is compatible with the
+// surface's input modality is available. This keeps the catalog
+// complete without having to remember to add each single-widget
+// surface to every new widget's manifest.
 export function widgetAvailableForSurface(meta: WidgetDef['meta'], surface: PanelSurface): boolean {
-  if (surface === 'q60') {
-    if (meta.touch === 'touch-only') return false;
-    if (!meta.sizes.includes('2x4')) return false;
+  const single = singleWidgetSurfaceSize(surface);
+  if (single !== undefined) {
+    if (meta.touch === 'touch-only' && !surfaceSupportsTouch(surface)) return false;
+    if (!meta.sizes.includes(single)) return false;
     return true;
   }
   if (!meta.supportedSurfaces.includes(surface)) return false;
@@ -500,20 +516,24 @@ function makeMarketplaceWidgetDef(
   };
 }
 
-// Allowed sizes for a widget on a given surface. Q60 has its own
-// allowlist (display-only, no touch). Everything else returns the
-// manifest's `sizes` array verbatim.
+// Allowed sizes for a widget on a given surface.
 //
-// On Q-series the only valid runtime size is 2x4 — see
-// `Q60_WIDGET_SIZES`. We return that single-element allowlist whenever
-// the widget is also Q-series-available per `widgetAvailableForSurface`
-// (touch-allowed + declares a 2x4 size). For everything else, the
-// manifest's full `sizes` array is returned verbatim.
+// Single-widget surfaces lock to one size: return [singleSize] when the
+// widget supports it (and is input-compatible), else [].
+//
+// Multi-widget surfaces hide any size reserved by a single-widget
+// surface (e.g. 2x4 belongs to q60; everywhere else doesn't see it).
+// The reconciler snaps existing widgets at a hidden size to the nearest
+// non-reserved size on load.
 export function sizesForSurface(meta: WidgetDef['meta'], surface?: PanelSurface): PanelWidgetSize[] {
-  if (surface === 'q60' && meta.sizes.includes('2x4') && meta.touch !== 'touch-only') {
-    return [...Q60_WIDGET_SIZES];
+  if (!surface) return [...meta.sizes];
+  const single = singleWidgetSurfaceSize(surface);
+  if (single !== undefined) {
+    if (!meta.sizes.includes(single)) return [];
+    if (meta.touch === 'touch-only' && !surfaceSupportsTouch(surface)) return [];
+    return [single];
   }
-  return [...meta.sizes];
+  return meta.sizes.filter(s => !SINGLE_WIDGET_SIZES.has(s));
 }
 
 // Size to use in the add-widget picker (preview + insertion size). Honors

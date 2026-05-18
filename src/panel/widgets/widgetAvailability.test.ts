@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { surfaceSupportsTouch } from '../types';
-import { WIDGET_REGISTRY, widgetAvailableForSurface } from './registry';
+import { isSingleWidgetSurface, surfaceSupportsTouch } from '../types';
+import { sizesForSurface, WIDGET_REGISTRY, widgetAvailableForSurface } from './registry';
 import enLocale from '../../locales/en.json';
 
 describe('surfaceSupportsTouch', () => {
@@ -126,6 +126,50 @@ describe('widgetAvailableForSurface', () => {
       expect(def.meta.touch, `${type} should be touch-only`).toBe('touch-only');
       expect(widgetAvailableForSurface(def.meta, 'q60'), `${type} must be unavailable on q60`).toBe(false);
     }
+  });
+});
+
+describe('sizesForSurface', () => {
+  it('hides 2x4 from every multi-widget surface', () => {
+    // 2x4 is reserved for the q60 single-widget surface. y70 / phone /
+    // desktop should never see it offered in the size picker, even on
+    // widgets that declare 2x4 in their `sizes`.
+    for (const surface of ['y70', 'phone', 'desktop'] as const) {
+      for (const type of ['clock', 'monitoring', 'media', 'iframe', 'gallery']) {
+        const def = WIDGET_REGISTRY[type];
+        expect(def.meta.sizes, `${type} should declare 2x4`).toContain('2x4');
+        expect(sizesForSurface(def.meta, surface), `${type} on ${surface}`).not.toContain('2x4');
+      }
+    }
+  });
+
+  it('locks single-widget surfaces to their single size', () => {
+    // q60 is the only single-widget surface today: any q60-eligible
+    // widget gets exactly ['2x4'] back.
+    const monitoring = WIDGET_REGISTRY.monitoring;
+    expect(sizesForSurface(monitoring.meta, 'q60')).toEqual(['2x4']);
+  });
+
+  it('returns [] on a single-widget surface for widgets that lack the locked size', () => {
+    // calculator declares ['2x2', '4x4'] (no 2x4). On q60 there's no
+    // valid size, so the picker offers nothing.
+    const calculator = WIDGET_REGISTRY.calculator;
+    expect(calculator.meta.sizes).not.toContain('2x4');
+    expect(sizesForSurface(calculator.meta, 'q60')).toEqual([]);
+  });
+
+  it('returns the manifest sizes verbatim when no surface is passed', () => {
+    const monitoring = WIDGET_REGISTRY.monitoring;
+    expect(sizesForSurface(monitoring.meta)).toEqual([...monitoring.meta.sizes]);
+  });
+});
+
+describe('isSingleWidgetSurface', () => {
+  it('marks q60 as single-widget and everyone else as multi', () => {
+    expect(isSingleWidgetSurface('q60')).toBe(true);
+    expect(isSingleWidgetSurface('y70')).toBe(false);
+    expect(isSingleWidgetSurface('phone')).toBe(false);
+    expect(isSingleWidgetSurface('desktop')).toBe(false);
   });
 });
 
