@@ -73,6 +73,39 @@ describe('normalizePanelLayout registry reconciliation', () => {
     expect(twice.pages[0].widgets).toEqual(once.pages[0].widgets);
   });
 
+  it('re-flows row-major when a size snap introduces overlap with siblings', () => {
+    // monitoring at 2x4 sits at (0, 0); a sibling at (2, 0) at 2x2 fits
+    // beside it without overlap. On y70 the 2x4 size is reserved for
+    // single-widget surfaces, so reconcile snaps it to 4x2 — which would
+    // now overlap the sibling at cols 2-3 / rows 0-1 if positions were
+    // left untouched. The post-reconcile re-flow detects the overlap and
+    // re-packs both widgets row-major so the layout never lands in a
+    // visually broken state that locks out subsequent edits.
+    const result = normalizePanelLayout(
+      layout([
+        widget({ id: 'mon', type: 'monitoring', size: '2x4', col: 0, row: 0 }),
+        widget({ id: 'sib', type: 'cooling',    size: '2x2', col: 2, row: 0 }),
+      ]),
+      'y70',
+    );
+    const sizes = result.pages[0].widgets.map(w => ({ id: w.id, size: w.size, col: w.col, row: w.row }));
+    // monitoring snapped to 4x2; both widgets fit without overlap.
+    expect(sizes.find(s => s.id === 'mon')?.size).toBe('4x2');
+    expect(sizes.find(s => s.id === 'sib')?.size).toBe('2x2');
+    const rects = result.pages[0].widgets.map(w => {
+      const cols = w.size === '2x2' ? 2 : 4;
+      const rows = w.size === '2x2' ? 2 : 2;
+      return { left: w.col, right: w.col + cols, top: w.row, bottom: w.row + rows };
+    });
+    for (let i = 0; i < rects.length; i++) {
+      for (let j = i + 1; j < rects.length; j++) {
+        const a = rects[i], b = rects[j];
+        const overlap = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        expect(overlap, `widgets ${i} and ${j} overlap`).toBe(false);
+      }
+    }
+  });
+
   it('filters dock widgets but preserves their stored size', () => {
     const result = normalizePanelLayout(
       layout(

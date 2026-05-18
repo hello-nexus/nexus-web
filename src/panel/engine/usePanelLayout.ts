@@ -149,26 +149,32 @@ function migrateLegacyPage(widgets: PanelWidget[], cols: number): PanelWidget[] 
   });
 }
 
-function widgetsOverlap(layout: PanelLayout, cols: number): boolean {
-  for (const page of layout.pages) {
-    const rects = page.widgets.map(w => {
-      const span = sizeToSpan(w.size);
-      const colSpan = Math.max(1, Math.min(span.cols, cols));
-      const rowSpan = Math.max(1, span.rows);
-      return { col: w.col, row: w.row, colSpan, rowSpan };
-    });
-    for (let i = 0; i < rects.length; i++) {
-      for (let j = i + 1; j < rects.length; j++) {
-        const a = rects[i];
-        const b = rects[j];
-        if (a.col < b.col + b.colSpan && b.col < a.col + a.colSpan
-          && a.row < b.row + b.rowSpan && b.row < a.row + a.rowSpan) {
-          return true;
-        }
+function pageHasOverlap(widgets: readonly PanelWidget[], cols: number): boolean {
+  const rects = widgets.map(w => {
+    const span = sizeToSpan(w.size);
+    const colSpan = Math.max(1, Math.min(span.cols, cols));
+    const rowSpan = Math.max(1, span.rows);
+    return { col: w.col, row: w.row, colSpan, rowSpan };
+  });
+  for (let i = 0; i < rects.length; i++) {
+    for (let j = i + 1; j < rects.length; j++) {
+      const a = rects[i];
+      const b = rects[j];
+      if (a.col < b.col + b.colSpan && b.col < a.col + a.colSpan
+        && a.row < b.row + b.rowSpan && b.row < a.row + a.rowSpan) {
+        return true;
       }
     }
   }
   return false;
+}
+
+function widgetsOverlap(layout: PanelLayout, cols: number): boolean {
+  return layout.pages.some(page => pageHasOverlap(page.widgets, cols));
+}
+
+function pagesHaveOverlap(pages: readonly PanelPage[], cols: number): boolean {
+  return pages.some(page => pageHasOverlap(page.widgets, cols));
 }
 
 function migrateLayoutSchema(layout: PanelLayout, surface: PanelSurface): PanelLayout {
@@ -231,12 +237,26 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface)
     ),
   }));
 
+  // Reconcile may have snapped a widget's size (e.g. 2x4 → 4x2 on a
+  // multi-widget surface), which can introduce overlap with siblings
+  // that the earlier migrate pass didn't see because it ran against
+  // pre-snap sizes. Detect post-snap overlap and re-flow row-major in
+  // place using the same packing migrate uses, so the UI never lands
+  // on overlapping widgets that lock out subsequent edits.
+  const reflowCols = SCHEMA_MIGRATION_COLS[surface] ?? 4;
+  const reflowedPages = pagesHaveOverlap(reconciledPages, reflowCols)
+    ? reconciledPages.map(page => ({
+        ...page,
+        widgets: migrateLegacyPage(page.widgets, reflowCols),
+      }))
+    : reconciledPages;
+
   // Single-widget surface invariant: collapse to one page, one widget,
   // snapped to the surface's allowed size. The earlier reconciliation
   // pass has already normalized each widget's size via
   // normalizePanelWidgetSizeForSurface, so we just keep the first
   // surviving widget across all pages.
-  let finalPages = reconciledPages;
+  let finalPages = reflowedPages;
   if (isSingleWidgetSurface(surface)) {
     const firstWidget = reconciledPages.flatMap(p => p.widgets)[0];
     const firstPageId = reconciledPages[0]?.id;
