@@ -107,8 +107,8 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'screentime',
       i18nKey: 'panel.widget.screentime',
       icon: BarChart,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
-      sizes: ['2x2', '4x2', '4x4'],
+      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
+      sizes: ['2x2', '2x4', '4x2', '4x4'],
       defaultSize: '4x2',
       supportsImmersive: { portrait: true, landscape: false },
       hasConfig: true,
@@ -181,8 +181,8 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'cooling',
       i18nKey: 'panel.widget.cooling',
       icon: Fan,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
-      sizes: ['2x2', '4x2', '4x4'],
+      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
+      sizes: ['2x2', '2x4', '4x2', '4x4'],
       defaultSize: '2x2',
       supportsImmersive: { portrait: true, landscape: false },
       hasConfig: false,
@@ -196,11 +196,14 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       i18nKey: 'panel.widget.devices',
       icon: Usb,
       supportedSurfaces: ['y70', 'phone', 'desktop'],
-      sizes: ['2x2', '4x2', '4x4'],
+      sizes: ['2x2', '2x4', '4x2', '4x4'],
       defaultSize: '2x2',
       supportsImmersive: { portrait: false, landscape: false },
       hasConfig: false,
-      touch: 'any',
+      // Pager arrows + per-device tap-through controls — needs touch to
+      // page between devices and configure them. Display-only surfaces
+      // (q60) get this excluded by the widgetAvailableForSurface gate.
+      touch: 'touch-only',
     },
     Component: DevicesWidget,
   },
@@ -214,7 +217,10 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       defaultSize: '4x2',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: false,
-      touch: 'any',
+      // Pointer-driven sliders (brightness, contrast) make this widget
+      // touch-only — there's no read-only path. Display-only surfaces
+      // (q60) get this excluded by the widgetAvailableForSurface gate.
+      touch: 'touch-only',
     },
     Component: DisplaysWidget,
   },
@@ -280,8 +286,8 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'twitch',
       i18nKey: 'panel.widget.twitch',
       icon: Tv,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
-      sizes: ['4x4'],
+      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
+      sizes: ['2x4', '4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: true,
@@ -395,7 +401,18 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
 // Whether a widget can appear on a given surface. Combines `supportedSurfaces`
 // (form-factor compatibility) with `touch` (input requirement). Touch-only
 // widgets are unavailable on display-only surfaces regardless of supportedSurfaces.
+//
+// Q-series is derived from capabilities, not from an explicit
+// `supportedSurfaces: [..., 'q60']` opt-in. The rule is: any widget that
+// declares a 2x4 size AND is not flagged touch-only is available on the
+// Q-series. This keeps the catalog complete without having to remember to
+// add q60 to every new non-touch widget's manifest.
 export function widgetAvailableForSurface(meta: WidgetDef['meta'], surface: PanelSurface): boolean {
+  if (surface === 'q60') {
+    if (meta.touch === 'touch-only') return false;
+    if (!meta.sizes.includes('2x4')) return false;
+    return true;
+  }
   if (!meta.supportedSurfaces.includes(surface)) return false;
   if (meta.touch === 'touch-only' && !surfaceSupportsTouch(surface)) return false;
   return true;
@@ -471,8 +488,14 @@ function makeMarketplaceWidgetDef(
 // Allowed sizes for a widget on a given surface. Q60 has its own
 // allowlist (display-only, no touch). Everything else returns the
 // manifest's `sizes` array verbatim.
+//
+// On Q-series the only valid runtime size is 2x4 — see
+// `Q60_WIDGET_SIZES`. We return that single-element allowlist whenever
+// the widget is also Q-series-available per `widgetAvailableForSurface`
+// (touch-allowed + declares a 2x4 size). For everything else, the
+// manifest's full `sizes` array is returned verbatim.
 export function sizesForSurface(meta: WidgetDef['meta'], surface?: PanelSurface): PanelWidgetSize[] {
-  if (surface === 'q60' && meta.supportedSurfaces.includes('q60')) {
+  if (surface === 'q60' && meta.sizes.includes('2x4') && meta.touch !== 'touch-only') {
     return [...Q60_WIDGET_SIZES];
   }
   return [...meta.sizes];

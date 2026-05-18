@@ -32,9 +32,11 @@ describe('normalizePanelLayout registry reconciliation', () => {
   });
 
   it('drops widgets that are not supported on the current surface', () => {
-    // cooling is supported on y70/phone but NOT q60
+    // lighting is touch-only, so it's never available on q60 even after
+    // the capability-based filter was introduced (q60 = has 2x4 + not
+    // touch-only). Use it as the canonical "unsupported on q60" example.
     const result = normalizePanelLayout(
-      layout([widget({ id: 'a', type: 'cooling', size: '2x2' })]),
+      layout([widget({ id: 'a', type: 'lighting', size: '2x2' })]),
       'q60',
     );
     expect(result.pages[0].widgets).toHaveLength(0);
