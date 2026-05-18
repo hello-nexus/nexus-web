@@ -1,4 +1,4 @@
-import type { PanelDock, PanelLayout, PanelPage, PanelWidget } from '../types';
+import type { PanelDock, PanelLayout, PanelPage, PanelWidget, PanelWidgetSize } from '../types';
 import { firstFreeRect, rectsOverlap, type PaginateCapacity } from './paginate';
 import { sizeToSpan, snapStride } from './grid';
 import { createUuid } from '../../lib/uuid';
@@ -452,6 +452,157 @@ export function previewDrag(
     return page;
   });
   return { ...layout, pages };
+}
+
+/**
+ * Resize a widget to `newSize`, pushing overlapped siblings out of the
+ * way (cascading across pages, creating new pages up to `maxPages` if
+ * needed). Returns the new layout on success, or `null` when the
+ * displaced widgets simply have nowhere to go. Callers treat `null` as
+ * a hard rejection: do NOT mutate state, surface feedback to the user.
+ *
+ * Cascade order: source page first (so a shrink stays put), then later
+ * pages in order, then any earlier pages, then a brand-new trailing
+ * page. We never silently clobber siblings or leave overlapping rects
+ * behind — that was the prior failure mode of resize-via-patchWidgetById
+ * when previewDrag couldn't find single-page room.
+ */
+export function tryResizeWidget(
+  layout: PanelLayout,
+  widgetId: string,
+  newSize: PanelWidgetSize,
+  capacity: PaginateCapacity,
+  maxPages: number,
+): PanelLayout | null {
+  const cols = Math.max(1, capacity.gridCols);
+  const rows = Math.max(1, capacity.pageRows);
+
+  let sourcePageIdx = -1;
+  let source: PanelWidget | undefined;
+  for (let i = 0; i < layout.pages.length; i++) {
+    const found = layout.pages[i].widgets.find(w => w.id === widgetId);
+    if (found) { source = found; sourcePageIdx = i; break; }
+  }
+  if (!source) return layout;
+  if (source.size === newSize) return layout;
+
+  const newSpan = sizeToSpan(newSize);
+  const newColSpan = Math.max(1, Math.min(newSpan.cols, cols));
+  const newRowSpan = Math.max(1, newSpan.rows);
+  // Hard refusal: the size itself doesn't fit on any page.
+  if (newRowSpan > rows) return null;
+  // Slide left / up so the resized rect stays in bounds.
+  const placedCol = Math.max(0, Math.min(source.col, cols - newColSpan));
+  const placedRow = Math.max(0, Math.min(source.row, rows - newRowSpan));
+  const placed: PanelWidget = { ...source, size: newSize, col: placedCol, row: placedRow };
+  const placedRect: WidgetRect = { col: placedCol, row: placedRow, colSpan: newColSpan, rowSpan: newRowSpan };
+
+  const sourceSiblings = layout.pages[sourcePageIdx].widgets.filter(w => w.id !== widgetId);
+  const overlapping: PanelWidget[] = [];
+  const stationary: PanelWidget[] = [];
+  for (const w of sourceSiblings) {
+    if (rectsOverlap(placedRect, widgetRect(w, cols))) overlapping.push(w);
+    else stationary.push(w);
+  }
+
+  // Build a working set of pages with occupancy bitmaps. The source
+  // page starts with the resized widget + stationary siblings only;
+  // every other page keeps its current widgets.
+  type WorkingPage = { id: string; widgets: PanelWidget[]; occupied: boolean[][] };
+  const buildOccupancy = (widgets: readonly PanelWidget[]): boolean[][] => {
+    const occ: boolean[][] = Array.from({ length: rows }, () => Array(cols).fill(false));
+    for (const w of widgets) {
+      const r = widgetRect(w, cols);
+      for (let rr = r.row; rr < r.row + r.rowSpan; rr++) {
+        for (let cc = r.col; cc < r.col + r.colSpan; cc++) {
+          if (rr >= 0 && rr < rows && cc >= 0 && cc < cols) occ[rr][cc] = true;
+        }
+      }
+    }
+    return occ;
+  };
+  const working: WorkingPage[] = layout.pages.map((page, idx) => {
+    if (idx === sourcePageIdx) {
+      const widgets = [...stationary, placed];
+      return { id: page.id, widgets, occupied: buildOccupancy(widgets) };
+    }
+    return { id: page.id, widgets: [...page.widgets], occupied: buildOccupancy(page.widgets) };
+  });
+
+  // Walk displaced widgets in row-major order — outcome is deterministic
+  // regardless of how the source page stored them.
+  const sorted = overlapping.slice().sort((a, b) =>
+    a.row !== b.row ? a.row - b.row : a.col - b.col,
+  );
+
+  const findFitOnPage = (
+    occupied: boolean[][],
+    colSpan: number,
+    rowSpan: number,
+  ): { col: number; row: number } | null => {
+    const colStep = snapStride(colSpan);
+    const rowStep = snapStride(rowSpan);
+    for (let r = 0; r + rowSpan <= rows; r += rowStep) {
+      for (let c = 0; c + colSpan <= cols; c += colStep) {
+        let fits = true;
+        for (let rr = r; rr < r + rowSpan && fits; rr++) {
+          for (let cc = c; cc < c + colSpan && fits; cc++) {
+            if (occupied[rr][cc]) fits = false;
+          }
+        }
+        if (fits) return { col: c, row: r };
+      }
+    }
+    return null;
+  };
+
+  for (const w of sorted) {
+    const span = sizeToSpan(w.size);
+    const colSpan = Math.max(1, Math.min(span.cols, cols));
+    const rowSpan = Math.max(1, span.rows);
+    if (rowSpan > rows) return null; // physically can't fit anywhere
+
+    let landing: { pageIdx: number; col: number; row: number } | null = null;
+    // Source page first (so resizing in place doesn't shuffle siblings to
+    // page 2 unnecessarily), then later pages, then earlier pages.
+    const pageOrder: number[] = [
+      sourcePageIdx,
+      ...working.map((_, i) => i).filter(i => i > sourcePageIdx),
+      ...working.map((_, i) => i).filter(i => i >= 0 && i < sourcePageIdx),
+    ];
+    for (const pageIdx of pageOrder) {
+      const slot = findFitOnPage(working[pageIdx].occupied, colSpan, rowSpan);
+      if (slot) {
+        landing = { pageIdx, col: slot.col, row: slot.row };
+        break;
+      }
+    }
+
+    // No existing page fits — spawn a new trailing page if we have room.
+    if (!landing && working.length < maxPages) {
+      working.push({
+        id: createUuid(),
+        widgets: [],
+        occupied: Array.from({ length: rows }, () => Array(cols).fill(false)),
+      });
+      landing = { pageIdx: working.length - 1, col: 0, row: 0 };
+    }
+
+    if (!landing) return null;
+
+    const target = working[landing.pageIdx];
+    for (let rr = landing.row; rr < landing.row + rowSpan; rr++) {
+      for (let cc = landing.col; cc < landing.col + colSpan; cc++) {
+        target.occupied[rr][cc] = true;
+      }
+    }
+    target.widgets.push({ ...w, col: landing.col, row: landing.row });
+  }
+
+  return {
+    ...layout,
+    pages: working.map(wp => ({ id: wp.id, widgets: wp.widgets })),
+  };
 }
 
 /**

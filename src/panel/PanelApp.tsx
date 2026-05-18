@@ -29,6 +29,7 @@ import {
   previewDrag,
   removeWidgetById,
   setDockEnabled,
+  tryResizeWidget,
 } from './engine/panelLayoutOps';
 import { PANEL_EDGE_ADVANCE_DWELL_MS } from './engine/dragConstants';
 import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
@@ -557,6 +558,38 @@ export function PanelContent({
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
   const [editorDockMotion, setEditorDockMotion] = useState<EditorDockMotion | null>(null);
+  // Widgets that just had an action rejected (e.g. resize couldn't fit
+  // anywhere, even across pages). Drives a brief shake/flash on the
+  // cell so the user understands why the change didn't land. The
+  // animation auto-clears via a timer; the keyset is plural so multiple
+  // simultaneous rejections each get their own play.
+  const [flashedWidgets, setFlashedWidgets] = useState<ReadonlySet<string>>(() => new Set());
+  const flashTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const triggerFlash = useCallback((widgetId: string) => {
+    setFlashedWidgets(prev => {
+      if (prev.has(widgetId)) return prev;
+      const next = new Set(prev);
+      next.add(widgetId);
+      return next;
+    });
+    const existing = flashTimersRef.current.get(widgetId);
+    if (existing) window.clearTimeout(existing);
+    const handle = window.setTimeout(() => {
+      flashTimersRef.current.delete(widgetId);
+      setFlashedWidgets(prev => {
+        if (!prev.has(widgetId)) return prev;
+        const next = new Set(prev);
+        next.delete(widgetId);
+        return next;
+      });
+    }, 600);
+    flashTimersRef.current.set(widgetId, handle);
+  }, []);
+  useEffect(() => () => {
+    const timers = flashTimersRef.current;
+    for (const handle of timers.values()) window.clearTimeout(handle);
+    timers.clear();
+  }, []);
   const [connectionIntroHost, setConnectionIntroHost] = useState<string | null>(null);
   // Portal target for the editor-docked cell. The pager track applies a
   // `transform` for any non-active page, which traps `position: fixed`
@@ -1121,16 +1154,22 @@ export function PanelContent({
     const current = widgetById(widgetId);
     if (!current || current.size === size) return;
 
+    // Try to fit the new size with siblings cascading across pages
+    // (creating new ones up to MAX_PANEL_PAGES). If even that fails the
+    // displaced widgets have nowhere to go, so the resize is rejected
+    // outright and the user gets a flash on the widget instead of a
+    // silent layout corruption.
+    const next = tryResizeWidget(paginatedLayout, widgetId, size, capacity, MAX_PANEL_PAGES);
+    if (!next) {
+      triggerFlash(widgetId);
+      return;
+    }
+
     if (opts?.animateFromContextMenu) {
       beginResizeMotion(widgetId);
     }
 
-    setLayout(patchWidgetById(
-      paginatedLayout,
-      widgetId,
-      w => ({ ...w, size }),
-      capacity,
-    ));
+    setLayout(next);
     // Keep the editor-dock motion attached to the current widget visual.
     setEditorDockMotion(prev => {
       if (!prev || prev.widgetId !== widgetId) return prev;
@@ -1140,7 +1179,7 @@ export function PanelContent({
         style: buildEditorDockMotionStyle(rootRef.current, widgetWithNewSize, prev.sourceRect, surface),
       };
     });
-  }, [beginResizeMotion, paginatedLayout, capacity, setLayout, surface, widgetById]);
+  }, [beginResizeMotion, paginatedLayout, capacity, setLayout, surface, triggerFlash, widgetById]);
 
   const removeWidget = useCallback((widgetId: string) => {
     setLayout(removeWidgetById(paginatedLayout, widgetId, capacity));
@@ -1569,6 +1608,7 @@ export function PanelContent({
                               dimmed={Boolean(contextMenuWidgetId) && contextMenuWidgetId !== w.id}
                               editorDockMotion={editorDockSupported && sheetMode === 'settings' && editorDockMotion?.widgetId === w.id ? editorDockMotion : null}
                               editorDockPortal={editorDockPortalEl}
+                              flash={flashedWidgets.has(w.id)}
                               isDragSource={activeDragId === w.id}
                               resizeMotion={!sheetMode && resizeMotionWidgetId === w.id}
                               selectedSlot={sheetMode === 'settings' && editingWidgetId === w.id && w.type === 'monitoring' ? selectedMonitoringSlot : undefined}
@@ -2962,6 +3002,7 @@ export function PanelTouchCell({
   dimmed = false,
   editorDockMotion = null,
   editorDockPortal = null,
+  flash = false,
   isDragSource = false,
   resizeMotion = false,
   selectedSlot,
@@ -2983,6 +3024,7 @@ export function PanelTouchCell({
   dimmed?: boolean;
   editorDockMotion?: EditorDockMotion | null;
   editorDockPortal?: HTMLElement | null;
+  flash?: boolean;
   isDragSource?: boolean;
   resizeMotion?: boolean;
   selectedSlot?: number;
@@ -3097,7 +3139,7 @@ export function PanelTouchCell({
         data-panel-cell-col-span={span.cols}
         data-panel-cell-row-span={span.rows}
         data-clickthrough={clickthrough ? 'true' : undefined}
-        className={`${styles.cellWrap} ${dimmed ? styles.cellContextDimmed : ''} ${isDragSource ? styles.cellDragSource : ''}`}
+        className={`${styles.cellWrap} ${dimmed ? styles.cellContextDimmed : ''} ${isDragSource ? styles.cellDragSource : ''} ${flash ? styles.cellFlash : ''}`}
         style={{
           ...wrapStyle,
           // Make-room transform comes from previewLayout, not from
@@ -3154,7 +3196,7 @@ export function PanelTouchCell({
       data-panel-cell-row-span={span.rows}
       data-cell-state={editorDockMotion ? 'docked' : undefined}
       data-clickthrough={clickthrough && !editorDockMotion ? 'true' : undefined}
-      className={`${styles.cellWrap} ${editorDockMotion ? styles.cellEditorDocked : ''} ${resizeMotion ? styles.cellResizeMotion : ''} ${editorDockMotion?.phase === 'closing' ? styles.cellEditorDockClosing : ''} ${dimmed ? styles.cellContextDimmed : ''}`}
+      className={`${styles.cellWrap} ${editorDockMotion ? styles.cellEditorDocked : ''} ${resizeMotion ? styles.cellResizeMotion : ''} ${editorDockMotion?.phase === 'closing' ? styles.cellEditorDockClosing : ''} ${dimmed ? styles.cellContextDimmed : ''} ${flash ? styles.cellFlash : ''}`}
       style={{
         ...wrapStyle,
         // Make-room transform comes from previewLayout (state-based)
