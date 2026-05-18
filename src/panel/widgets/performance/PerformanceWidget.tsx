@@ -160,6 +160,7 @@ export function PerformanceWidget({ widget, selectedSlot, onSelectSlot }: Widget
         return (
           <PerfSlot
             key={`${i}-${device}-${sensorName}`}
+            slotIndex={i}
             sensors={sensors}
             fpsSensors={fpsSensors}
             networkSensors={networkSensors}
@@ -178,6 +179,7 @@ export function PerformanceWidget({ widget, selectedSlot, onSelectSlot }: Widget
 }
 
 interface PerfSlotProps {
+  slotIndex?: number;
   sensors: ReturnType<typeof useSensors>;
   fpsSensors: HardwareSensor[];
   networkSensors: HardwareSensor[];
@@ -190,7 +192,7 @@ interface PerfSlotProps {
   onSelect?: () => void;
 }
 
-export function PerfSlot({ sensors, fpsSensors, networkSensors, device, sensorName, design, scale = DEFAULT_SCALE_MODE, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
+export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, device, sensorName, design, scale = DEFAULT_SCALE_MODE, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
   const rawValue = sensor?.value ?? 0;
@@ -224,12 +226,13 @@ export function PerfSlot({ sensors, fpsSensors, networkSensors, device, sensorNa
   const content = <GaugeComponent {...props} />;
 
   if (!onSelect) {
-    return <div className={styles.slot}>{content}</div>;
+    return <div className={styles.slot} data-monitoring-slot-index={slotIndex}>{content}</div>;
   }
 
   return (
     <button
       type="button"
+      data-monitoring-slot-index={slotIndex}
       className={`${styles.slot} ${styles.slotSelectable} ${selected ? styles.slotSelected : ''}`}
       aria-pressed={selected}
       aria-label={`Select ${label}`}

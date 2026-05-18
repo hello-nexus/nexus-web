@@ -1149,7 +1149,7 @@ export function PanelContent({
     }
   }, [editingWidgetId, finishSheetClose, paginatedLayout, capacity, setLayout]);
 
-  const openWidgetSettings = useCallback((widget: PanelWidget) => {
+  const openWidgetSettings = useCallback((widget: PanelWidget, point?: { x: number; y: number }) => {
     clearCloseTimer();
     const source = rootRef.current?.querySelector<HTMLElement>(`[data-panel-widget-id="${widget.id}"]`);
     const sourceRect = toEditorDockSourceRect(source?.getBoundingClientRect());
@@ -1160,7 +1160,15 @@ export function PanelContent({
       sourceRect,
     });
     setSheetClosing(false);
-    setSelectedMonitoringSlot(0);
+    // Resolve initial sheet state (e.g. which monitoring slot is selected)
+    // from where the context menu / right-click summoned the edit flow. Read
+    // the DOM at the original press point before the dock animation has had
+    // a chance to hoist the widget out of its grid position.
+    const def = lookupWidget(widget.type);
+    const initial = point && def?.resolveInitialSelection
+      ? def.resolveInitialSelection({ point, widget })
+      : undefined;
+    setSelectedMonitoringSlot(initial?.selectedSlot ?? 0);
     setEditingWidgetId(widget.id);
     setSheetMode('settings');
   }, [clearCloseTimer, surface]);
@@ -1658,13 +1666,14 @@ export function PanelContent({
         const immersiveAvailable = Boolean(def.ImmersiveComponent)
           && def.meta.supportsImmersive[orientationKey];
         const ctxWidget = touch.ctxMenu.widget;
+        const ctxPoint = { x: touch.ctxMenu.x, y: touch.ctxMenu.y };
         const desktopPinAvailable = embedded
           && surface === 'desktop'
           && def.meta.supportedSurfaces.includes('desktop');
         return (
           <WidgetContextMenu
-            x={touch.ctxMenu.x}
-            y={touch.ctxMenu.y}
+            x={ctxPoint.x}
+            y={ctxPoint.y}
             currentSize={ctxWidget.size}
             sizes={sizesForSurface(def.meta, surface)}
             hasConfig
@@ -1673,7 +1682,7 @@ export function PanelContent({
             themeStyle={panelThemeVars}
             isRearranging={touch.rearranging}
             onResize={size => resizeWidget(ctxWidget.id, size, { animateFromContextMenu: true })}
-            onEdit={() => openWidgetSettings(ctxWidget)}
+            onEdit={() => openWidgetSettings(ctxWidget, ctxPoint)}
             onRemove={() => removeWidget(ctxWidget.id)}
             onRearrange={touch.toggleRearrange}
             onImmersive={!embedded && immersiveAvailable ? () => enterImmersive(ctxWidget.id) : undefined}

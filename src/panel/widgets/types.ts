@@ -51,6 +51,14 @@ export interface WidgetMetadata {
   touch: WidgetTouchSupport;
 }
 
+// Initial sheet state derived from where the user invoked the edit flow.
+// Widgets that have sub-elements the user might want pre-selected (e.g.
+// monitoring slots) implement `resolveInitialSelection` to translate a
+// viewport coordinate into the matching slot index.
+export interface WidgetEditInitialSelection {
+  selectedSlot?: number;
+}
+
 export interface WidgetDef {
   meta: WidgetMetadata;
   Component: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
@@ -59,4 +67,12 @@ export interface WidgetDef {
   // "Immersive mode" entry. Only widgets that ship this AND that have
   // `meta.supportsImmersive[currentOrientation]` true get the menu entry.
   ImmersiveComponent?: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
+  // Translates the press / right-click coordinate that summoned the
+  // context menu into initial edit-sheet state. Called only when the
+  // edit flow has a captured point (context-menu and long-press paths);
+  // self-triggered configure buttons skip it.
+  resolveInitialSelection?: (args: {
+    point: { x: number; y: number };
+    widget: PanelWidget;
+  }) => WidgetEditInitialSelection | undefined;
 }

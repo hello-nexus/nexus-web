@@ -86,6 +86,21 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     Component: PerformanceWidget,
     SettingsComponent: PerformanceSettings,
     ImmersiveComponent: MonitoringImmersive,
+    resolveInitialSelection: ({ point }) => {
+      // PerformanceWidget stamps `data-monitoring-slot-index` on each slot
+      // div/button (multi-slot layouts only; micro layouts have no per-slot
+      // selection). Walk up from the press point to land on the closest slot.
+      const el = typeof document !== 'undefined'
+        ? document.elementFromPoint(point.x, point.y)
+        : null;
+      const slot = el instanceof Element
+        ? el.closest<HTMLElement>('[data-monitoring-slot-index]')
+        : null;
+      const idx = slot?.dataset.monitoringSlotIndex;
+      if (idx === undefined) return undefined;
+      const parsed = Number.parseInt(idx, 10);
+      return Number.isFinite(parsed) ? { selectedSlot: parsed } : undefined;
+    },
   },
   media: {
     meta: {
