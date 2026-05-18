@@ -240,6 +240,59 @@ export interface PanelHostNameResponse {
 export const setPanelHostName = (name: string) =>
   postService<PanelHostNameResponse>('/panel/host-name', { name });
 
+// Manual pair-code flow (BT-SSP Numeric Comparison). Additive to the QR
+// flow; the dashboard generates a 6-digit code that the user types into
+// a phone (no camera needed). The phone POSTs the typed code and gets
+// back a SAS; the user visually compares SAS on both screens and both
+// sides press Allow / Confirm before a session token is issued.
+
+export interface PanelPhonePairCodeStart {
+  host: string;
+  port: number;
+  code: string;
+  ttlSeconds: number;
+  expiresAt: number;
+}
+
+export type PanelPhonePairCodeHostDecisionStatus =
+  | 'waiting-phone'
+  | 'waiting-host'
+  | 'approved'
+  | 'denied'
+  | 'expired'
+  | 'unknown';
+
+export interface PanelPhonePairCodeHostDecisionResponse {
+  status: PanelPhonePairCodeHostDecisionStatus;
+}
+
+export const startPanelPhonePairCode = () =>
+  postService<PanelPhonePairCodeStart>('/panel/phone/pair-code/start', {});
+
+export const decidePanelPhonePairCode = (requestId: string, approved: boolean) =>
+  postService<PanelPhonePairCodeHostDecisionResponse>(
+    '/panel/phone/pair-code/host-decision',
+    { requestId, approved },
+  );
+
+export type PanelPhonePairCodeFrameKind = 'request' | 'cancelled';
+export type PanelPhonePairCodeCancelReason =
+  | 'expired'
+  | 'phone-denied'
+  | 'host-denied'
+  | 'host-started-new-code';
+
+export interface PanelPhonePairCodeRequestFrame {
+  kind: PanelPhonePairCodeFrameKind;
+  requestId: string;
+  sas: string;
+  deviceLabel: string;
+  remoteAddress: string;
+  userAgent: string;
+  expiresAt: number;
+  reason: PanelPhonePairCodeCancelReason | '';
+}
+
 export async function claimPanelPhonePairing(pairToken: string): Promise<PanelPhoneClaimResponse | null> {
   try {
     const res = await fetch(resolveHttp('/panel/phone/claim'), {

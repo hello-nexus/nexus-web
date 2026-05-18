@@ -322,10 +322,73 @@
   gap: 1rem;
 }
 
+// Two-column layout for the wide Pair Remote modal. Left = remote-
+// control toggle + authorized device list. Right = pairing flow
+// (QR or Code, tabbed).
+.phonePairLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.phonePairCol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+// Bounded card containers used for every region inside the layout, so
+// the killswitch, device list, and pairing flow all share the same
+// chrome (border + radius + padding).
+.phonePairCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  min-width: 0;
+}
+
+.phonePairFlowCard {
+  // Pairing flow needs more vertical space so QR fits without pushing
+  // the layout around when the user toggles tabs.
+  min-height: 360px;
+}
+
+.phonePairFlowTabs {
+  align-self: flex-start;
+}
+
+// One canonical "hint" style for every explanatory blurb across both
+// tabs and every state - consistent color, size, line-height.
+.phonePairFlowHint {
+  @include text-button;
+  margin: 0;
+  color: var(--text-faded);
+  line-height: 1.45;
+}
+
+.phonePairFlowFooter {
+  @include text-button;
+  margin: auto 0 0;
+  padding-top: 0.5rem;
+  color: var(--text-faded);
+  line-height: 1.45;
+  border-top: 1px solid var(--border-soft, var(--border));
+}
+
 .phonePairIntro {
   @include text-button;
   margin: 0;
-  color: var(--text-dim);
+  color: var(--text-faded);
   line-height: 1.45;
 }
 
@@ -380,6 +443,103 @@
   margin: 0.75rem 0 0;
   color: var(--text-faded);
   line-height: 1.45;
+}
+
+.phonePairCodeIdle,
+.phonePairCodeShown,
+.phonePairCodeTerminal,
+.phonePairCodeConfirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.phonePairCodeRows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+}
+
+.phonePairCodeFieldLabel {
+  @include text-caption;
+  color: var(--text-faded);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.phonePairCodeHost {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  color: var(--text);
+}
+
+.phonePairCodeDigits {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 1.7rem;
+  letter-spacing: 0.18em;
+  color: var(--text);
+}
+
+.phonePairCodeError {
+  @include text-button;
+  color: var(--accent-warn, #f87171);
+  margin: 0;
+}
+
+.phonePairCodeSas {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 2.2rem;
+  letter-spacing: 0.22em;
+  color: var(--text);
+  text-align: center;
+  padding: 0.7rem 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-low, var(--bg-card));
+  border: 1px solid var(--border);
+}
+
+.phonePairCodeMeta {
+  @include text-caption;
+  color: var(--text-faded);
+  text-align: center;
+}
+
+.phonePairCodeActions {
+  display: flex;
+  gap: 0.55rem;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+}
+
+%phonePairCodeBtn {
+  @include text-button;
+  appearance: none;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  border: 1px solid var(--border);
+
+  &:disabled { opacity: 0.55; cursor: progress; }
+}
+
+.phonePairCodeAllow {
+  @extend %phonePairCodeBtn;
+  background: var(--accent);
+  color: var(--accent-text, white);
+  border-color: transparent;
+}
+
+.phonePairCodeDeny,
+.phonePairCodeGenerate {
+  @extend %phonePairCodeBtn;
+  background: var(--surface-raised, var(--bg-card));
+  color: var(--text);
+  align-self: flex-start;
 }
 
 .phonePairSessionsHeader {
