@@ -93,6 +93,14 @@ describe('paginateCapacityForGrid', () => {
     expect(paginateCapacityForGrid(8, 4, true, 'landscape')).toEqual({ gridCols: 7, pageRows: 4 });
   });
 
+  it('keeps the full 4x12 page on Y70 portrait — its fixed grid has room for the dock below', () => {
+    expect(paginateCapacityForGrid(4, 12, true, 'portrait', 'y70')).toEqual({ gridCols: 4, pageRows: 12 });
+  });
+
+  it('still shaves a column on Y70 landscape — the 4x2 grid is too wide to fit a dock column', () => {
+    expect(paginateCapacityForGrid(4, 2, true, 'landscape', 'y70')).toEqual({ gridCols: 3, pageRows: 2 });
+  });
+
   it('returns full grid dimensions when the dock is disabled', () => {
     expect(paginateCapacityForGrid(4, 8, false, 'portrait')).toEqual({ gridCols: 4, pageRows: 8 });
     expect(paginateCapacityForGrid(8, 4, false, 'landscape')).toEqual({ gridCols: 8, pageRows: 4 });

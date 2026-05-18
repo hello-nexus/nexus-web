@@ -222,7 +222,7 @@ export function WidgetEditSheet({
 
   const handleSlotCount = (n: number) => {
     setSelectedMonitoringSlot(prev => Math.min(prev, n - 1));
-    onUpdate(widget.id, { slotCount: { n } });
+    onUpdate(widget.id, { slotCount: n });
   };
 
   const sheetStyle = {

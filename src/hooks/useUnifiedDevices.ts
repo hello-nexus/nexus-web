@@ -43,8 +43,10 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 const CURATED_ICONS: Record<string, string> = {
   cnvs: '/assets/devices/cnvs.svg',
-  q60: '/assets/devices/q60.svg',
-  q80: '/assets/devices/q80.svg',
+  // Q60 and Q80 share the QSeriesHandler (id 'qseries') on the service side.
+  // Use the Q60 art as the family icon since the silhouettes are nearly
+  // identical at thumbnail size.
+  qseries: '/assets/devices/q60.svg',
   y70: '/assets/devices/y70.svg',
   keeb: '/assets/devices/keeb.svg',
   'fan-hub': '/assets/devices/fan-hub.svg',
@@ -52,8 +54,7 @@ const CURATED_ICONS: Record<string, string> = {
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
   y70: 'Y70',
-  q60: 'Q60',
-  q80: 'Q80',
+  qseries: 'Q-series',
   cnvs: 'Cnvs',
   keeb: 'Keeb',
   'fan-hub': 'Fan Hub',

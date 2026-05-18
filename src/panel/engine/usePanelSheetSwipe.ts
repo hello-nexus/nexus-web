@@ -173,7 +173,7 @@ export function usePanelSheetSwipe({
 function isSheetSwipeControlTarget(start: Element | null, until: HTMLElement): boolean {
   let node = start instanceof HTMLElement ? start : null;
   while (node && node !== until) {
-    if (node.matches('input[type="range"], [role="slider"], [data-panel-horizontal-control="true"]')) {
+    if (node.matches('input[type="range"], [role="slider"], [data-panel-horizontal-control="true"], [data-panel-no-sheet-swipe="true"]')) {
       return true;
     }
     node = node.parentElement;

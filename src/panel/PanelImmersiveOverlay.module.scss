@@ -44,24 +44,47 @@
   transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-// Top grabber handle. Replaces the bottom chevron - dismissal is now
-// a swipe DOWN (matches the editor sheet pattern), and the iOS home
-// indicator owns the bottom edge.
+// Top grabber handle, doubles as a tap-to-close button. Swipe DOWN still
+// works (matches editor sheet pattern); tap is the no-gesture fallback.
+// The visible pill stays 56x4 but the button hit-target is 88x36 so
+// fingers can land it reliably without aiming.
 .exitHint {
   position: absolute;
   top: max(env(safe-area-inset-top), 8px);
   left: 50%;
   transform: translateX(-50%);
-  width: 56px;
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, white 38%, transparent);
-  pointer-events: none;
-  opacity: 0.7;
+  width: 120px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  // Parent .panelRoot sets touch-action: none which can suppress synthetic
+  // click events on tap in WebView2/Edge. Re-enable click synthesis here.
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   z-index: 210;
+
+  &::before {
+    content: '';
+    width: 56px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, white 38%, transparent);
+    opacity: 0.7;
+    transition: opacity var(--ease-fast) ease;
+  }
+
+  &:hover::before,
+  &:active::before {
+    opacity: 1;
+  }
 }
 
-.panelRoot[data-theme='light'] .exitHint {
+.panelRoot[data-theme='light'] .exitHint::before {
   background: color-mix(in srgb, black 30%, transparent);
 }
 

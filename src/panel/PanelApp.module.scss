@@ -293,6 +293,20 @@
   padding: 0 0 0 var(--panel-gap, 8px);
 }
 
+// Y70 portrait reserves vertical room for the dock inside its 12-row grid
+// budget (see paginateCapacityForGrid). Float the dock at the bottom of the
+// stage so toggling it on/off doesn't reflow the page area and shift widget
+// placement upward.
+.panelRoot[data-surface='y70']
+  .panelStage[data-orientation='portrait'][data-dock-active='true']
+  .panelDockPosition {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0;
+}
+
 .panelPageIndicatorPosition {
   position: absolute;
   left: 50%;
@@ -1000,64 +1014,42 @@
   @include scrollbar-visible($thumb: var(--panel-border), $thumb-hover: var(--panel-border-strong));
 }
 
+.panelSettingsStack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.dockSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dockSectionTitle {
+  color: var(--panel-text-faint);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
 .dockToggleRow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--panel-border);
-}
-
-.dockToggleLabel {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.dockToggleTitle {
-  @include text-button;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 44px;
   color: var(--panel-text);
+  font: 800 13px/1.2 var(--panel-font, 'Lexend', system-ui, sans-serif);
 }
 
 .dockToggleHint {
+  flex: 1 1 auto;
+  min-width: 0;
   @include text-caption;
   color: var(--panel-text-faint);
-}
-
-.dockToggleSwitch {
-  flex-shrink: 0;
-  position: relative;
-  width: 46px;
-  height: 26px;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, white 12%, transparent);
-  border: 1px solid color-mix(in srgb, white 16%, transparent);
-  cursor: pointer;
-  transition: background var(--ease) ease, border-color var(--ease) ease;
-  padding: 0;
-}
-
-.dockToggleSwitch[data-on='true'] {
-  background: var(--panel-accent);
-  border-color: var(--panel-accent);
-}
-
-.dockToggleSwitchThumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-pill);
-  background: white;
-  transition: transform var(--ease) cubic-bezier(0.32, 0.72, 0, 1);
-  box-shadow: 0 1px 2px rgb(0 0 0 / var(--alpha-medium));
-}
-
-.dockToggleSwitch[data-on='true'] .dockToggleSwitchThumb {
-  transform: translateX(20px);
 }
 
 .editorActions {

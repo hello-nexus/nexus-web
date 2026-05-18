@@ -115,7 +115,17 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
       aria-modal="true"
     >
       <div className={styles.body}>{children}</div>
-      <span className={styles.exitHint} aria-hidden="true" />
+      <button
+        type="button"
+        className={styles.exitHint}
+        onClick={beginExit}
+        // Marks this element so usePanelSheetSwipe.isSheetSwipeControlTarget
+        // skips arming the drag when the touch lands here. Without this the
+        // swipe handler engages on tap, then onClick races the snap-back and
+        // the overlay can get stuck partway down on Y70 WebView2.
+        data-panel-no-sheet-swipe="true"
+        aria-label="Close immersive view"
+      />
     </div>
   );
 }

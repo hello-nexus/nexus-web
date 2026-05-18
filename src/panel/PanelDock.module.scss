@@ -1,45 +1,43 @@
+// iOS-springboard-style dock. Sits in the row (portrait) or column
+// (landscape) reserved for it by paginateCapacityForGrid. Slots use the
+// same --panel-cell-size / --panel-row-size as the page grid so 1x1 dock
+// icons line up exactly with 1x1 page widgets directly above (portrait)
+// or beside (landscape).
 .dock {
-  position: relative;
-  display: grid;
+  display: flex;
+  // <4 icons center themselves. The reserved row's full width still
+  // lives in the parent .panelDockPosition (which also justify-centers),
+  // so the dock can grow up to 4 cells without flexing past either edge.
+  justify-content: center;
+  align-items: center;
   gap: var(--panel-gap, 8px);
-  // No internal padding - the dock's visual area must fit inside the
-  // single grid row reserved for it by pageRowsForGrid. Padding here
-  // would push the dock taller than 1 row + gap.
   padding: 0;
   background: transparent;
   pointer-events: auto;
   z-index: 40;
 }
 
-.dockEmpty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: color-mix(in srgb, white 40%, transparent);
-  font-size: 12px;
-  font-style: italic;
+.dock[data-orientation='portrait'] {
+  flex-direction: row;
 }
 
-.panelRoot[data-theme='light'] .dock {
-  background: color-mix(in srgb, white 70%, transparent);
+.dock[data-orientation='landscape'] {
+  flex-direction: column;
 }
 
-.panelRoot[data-theme='light'] .dockEmpty {
-  color: color-mix(in srgb, black 45%, transparent);
-}
-
-// Wraps each dock slot so the panel-card visual + iOS-style label below
-// stack inside the slot's grid track. The card shrinks by the label
-// strip; with labels off (`--panel-widget-label-strip: 0px`) the card
-// reclaims the full track height.
+// Each slot is exactly one grid cell. .dockSlotWrap stacks the card +
+// label like .cellWrap does on the page grid, so widget content scales
+// identically to a 1x1 widget on the same surface.
 .dockSlotWrap {
   position: relative;
-  width: 100%;
-  height: 100%;
+  width: var(--panel-cell-size);
+  height: var(--panel-row-size, var(--panel-cell-size));
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   min-width: 0;
   min-height: 0;
+  flex: 0 0 auto;
 }
 
 .dockSlotLabelStrip {
@@ -48,17 +46,15 @@
 
 .dockSlot {
   position: relative;
-  width: 100%;
   flex: 1 1 auto;
   min-height: 0;
-  border-radius: 14px;
+  min-width: 0;
+  border-radius: var(--panel-card-radius, 14px);
   overflow: hidden;
-}
-
-.placeholderSlot {
-  border: 1px dashed color-mix(in srgb, white 14%, transparent);
-}
-
-.panelRoot[data-theme='light'] .placeholderSlot {
-  border-color: color-mix(in srgb, black 14%, transparent);
+  // Match the page grid's cell margins so a dock 1x1 visually aligns
+  // pixel-for-pixel with a 1x1 widget on the page directly above it.
+  margin:
+    0
+    var(--panel-widget-card-margin-x, 0px)
+    var(--panel-widget-card-bottom-gap, 0px);
 }

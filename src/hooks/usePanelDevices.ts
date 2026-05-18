@@ -55,7 +55,10 @@ const WIDGET_PANEL_PROFILES: Partial<Record<string, {
   dpi: number;
 }>> = {
   y70: { surface: 'y70', width: 682, height: 2560, dpi: 337 },
-  q60: { surface: 'q60', width: 720, height: 1280, dpi: 220 },
+  // Q-series (Q60 + Q80) share this profile. Bench-verified on a real Q60
+  // (2026-05-15): wm size 720x1280, wm density 240, 60 Hz, MT8167 Android 11.
+  // The `qseries` key matches QSeriesHandler.Id on the service side.
+  qseries: { surface: 'q60', width: 720, height: 1280, dpi: 240 },
 };
 
 const WIDGET_PANEL_IDS = new Set(Object.keys(WIDGET_PANEL_PROFILES));

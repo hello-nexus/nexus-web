@@ -26,10 +26,10 @@ describe('sizeToSpan', () => {
     });
   });
 
-  it('rounds derived Y70 capacity down to even rows', () => {
+  it('locks Y70 portrait to a fixed 4x12 grid', () => {
     expect(panelGridCapacityForCanvas(682, 2560, { surface: 'y70', dpi: 337 })).toMatchObject({
       columns: 4,
-      rows: 14,
+      rows: 12,
     });
   });
 
