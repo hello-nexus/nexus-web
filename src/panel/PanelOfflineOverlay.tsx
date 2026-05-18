@@ -56,6 +56,15 @@ export function PanelOfflineOverlay({
   const { t } = useTranslation();
   const secondsLeft = useCountdownSeconds(nextAttemptAt);
 
+  // The Q-series LCD has no touch input, so a "connection lost / retry"
+  // card with buttons is unactionable. qshell (the Android host) detects
+  // the disconnect on its own /ping monitor and falls back to the OEM
+  // rainbow-gradient "THICC Q60/Q80" splash. Showing this overlay first
+  // flashes a useless card on screen for ~1 s before qshell unmounts the
+  // WebView. Returning null here makes the transition seamless: panel
+  // straight to OEM splash, no intermediate state.
+  if (surface === 'q60') return null;
+
   if (remoteDisabled) {
     // Host disabled Pair Remote. Hook is already slow-polling for re-enable,
     // so we just need to keep the panel coherent (no stale data, clear copy).
