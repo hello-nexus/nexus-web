@@ -800,19 +800,30 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
   }, [loadSessions]);
 
   const applyRemoteEnabled = useCallback(async (next: boolean) => {
+    // Optimistic flip: the toggle moves immediately. If the server
+    // rejects (401/403/network), snap back to the previous state. The
+    // old "wait for confirmation" path made the killswitch feel laggy
+    // because the visual didn't move until the round-trip + session
+    // refetch resolved.
+    onRemoteEnabledChange(next);
     setTogglingRemote(true);
     try {
       const result = await setPanelRemoteControlEnabled(next);
-      // Trust the server's confirmation only - postService returns null on
-      // any non-OK response (401/403/network), and optimistically flipping
-      // the UI in that case would lie until the 10s poll resyncs.
       if (result) {
-        onRemoteEnabledChange(result.enabled);
+        // Server may snap to a different state under contention (another
+        // dashboard already toggled). Trust the server's reading.
+        if (result.enabled !== next) onRemoteEnabledChange(result.enabled);
         // KickAllPhoneAsync ran synchronously on the server when next=false,
         // so the connected count drops to 0 by the next sessions poll; pull
         // it now for snappy UI.
         loadSessions(false);
+      } else {
+        // Request failed (no body / non-OK status). Revert the optimistic
+        // flip so the toggle reflects the actual server state.
+        onRemoteEnabledChange(!next);
       }
+    } catch {
+      onRemoteEnabledChange(!next);
     } finally {
       setTogglingRemote(false);
     }
