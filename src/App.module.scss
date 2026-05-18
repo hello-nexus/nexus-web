@@ -327,7 +327,7 @@
 // (QR or Code, tabbed).
 .phonePairLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr);
   gap: 1rem;
   align-items: start;
 
@@ -385,6 +385,27 @@
   border-top: 1px solid var(--border-soft, var(--border));
 }
 
+// Countdown text - accent color so it stands out from the regular hint
+// copy. Flashes when ≤5s remaining so the user can react before
+// regeneration happens under them.
+.phonePairTimer {
+  @include text-button;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-glow, var(--accent));
+  font-variant-numeric: tabular-nums;
+}
+
+.phonePairTimerFlash {
+  animation: phonePairTimerFlash 1s steps(2, end) infinite;
+}
+
+@keyframes phonePairTimerFlash {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0.35; }
+}
+
 .phonePairIntro {
   @include text-button;
   margin: 0;
@@ -412,14 +433,18 @@
 .phonePairQrBox {
   display: grid;
   place-items: center;
-  min-height: 232px;
-  margin: 0 0 0.65rem;
+  margin: 0;
+  padding: 0.5rem;
   border-radius: var(--radius-sm);
   background: #fff;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  max-width: 320px;
+  align-self: center;
 
   img {
-    width: 212px;
-    height: 212px;
+    width: 100%;
+    height: 100%;
     display: block;
   }
 }
@@ -455,14 +480,14 @@
 }
 
 .phonePairCodeRows {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 
   > div {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.18rem;
   }
 }
 
@@ -534,12 +559,10 @@
   border-color: transparent;
 }
 
-.phonePairCodeDeny,
-.phonePairCodeGenerate {
+.phonePairCodeDeny {
   @extend %phonePairCodeBtn;
   background: var(--surface-raised, var(--bg-card));
   color: var(--text);
-  align-self: flex-start;
 }
 
 .phonePairSessionsHeader {

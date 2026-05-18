@@ -879,19 +879,6 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
     setPairMode('qr');
   }, [open, remoteEnabled]);
 
-  // Pair-code TTL expiry watcher. The server also enforces TTL but
-  // surfacing it client-side keeps the countdown UI honest without an
-  // extra round-trip on every tick.
-  useEffect(() => {
-    if (!pairCode || pairCodeRequest || pairCodeTerminal) return;
-    const msUntilExpiry = Math.max(1000, pairCode.expiresAt - Date.now());
-    const timer = window.setTimeout(() => {
-      setPairCode(null);
-      setPairCodeTerminal({ kind: 'expired' });
-    }, msUntilExpiry);
-    return () => window.clearTimeout(timer);
-  }, [pairCode, pairCodeRequest, pairCodeTerminal]);
-
   const handleStartCode = useCallback(async () => {
     setPairCodeBusy(true);
     setPairCodeError(null);
@@ -905,6 +892,28 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
       setPairCodeBusy(false);
     }
   }, [t]);
+
+  // Auto-mint a code as soon as the user lands on the Code tab (or
+  // reopens the modal with Code already active). Mirrors the QR flow:
+  // the user shouldn't have to press a "generate" button.
+  useEffect(() => {
+    if (!open || !remoteEnabled || pairMode !== 'code') return;
+    if (pairCode || pairCodeRequest || pairCodeTerminal || pairCodeBusy) return;
+    handleStartCode();
+  }, [open, remoteEnabled, pairMode, pairCode, pairCodeRequest, pairCodeTerminal, pairCodeBusy, handleStartCode]);
+
+  // Auto-refresh on TTL expiry, identical to the QR refresh effect.
+  // Server enforces TTL too; this keeps the UI showing a usable code
+  // without requiring user input.
+  useEffect(() => {
+    if (!pairCode || pairCodeRequest || pairCodeTerminal) return;
+    const msUntilExpiry = Math.max(1000, pairCode.expiresAt - Date.now());
+    const timer = window.setTimeout(() => {
+      setPairCode(null);
+      handleStartCode();
+    }, msUntilExpiry);
+    return () => window.clearTimeout(timer);
+  }, [pairCode, pairCodeRequest, pairCodeTerminal, handleStartCode]);
 
   const handleDecide = useCallback(async (requestId: string, approved: boolean) => {
     setPairCodeBusy(true);
@@ -967,9 +976,13 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
   if (!open) return null;
 
   const secondsLeft = qr ? Math.max(0, Math.ceil((qr.expiresAt - now) / 1000)) : 0;
+  const codeSecondsLeft = pairCode ? Math.max(0, Math.ceil((pairCode.expiresAt - now) / 1000)) : 0;
   const qrStatus = loading || secondsLeft <= 0
     ? t('phonePair.refreshing')
     : t('phonePair.refreshesIn', { seconds: secondsLeft });
+  const codeStatus = !pairCode || codeSecondsLeft <= 0
+    ? t('phonePair.refreshing')
+    : t('phonePair.refreshesIn', { seconds: codeSecondsLeft });
   const liveConnectedCount = sessions?.connectedCount ?? connectedCount;
   const sessionNow = sessions?.now ?? now;
   const sessionList = sessions?.sessions ?? [];
@@ -999,26 +1012,24 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
         <div className={styles.phonePairLayout} data-remote-enabled={remoteEnabled ? 'true' : 'false'}>
           {/* ── Left column: remote-control toggle + authorized device list ── */}
           <div className={styles.phonePairCol}>
-            <section className={styles.phonePairCard} aria-labelledby="phone-pair-killswitch-label">
-              <div className={styles.phonePairKillswitchRow}>
-                <div>
-                  <span className={styles.phonePairKillswitchLabel} id="phone-pair-killswitch-label">
-                    {t('phonePair.killswitch.label')}
-                  </span>
-                  <span className={styles.phonePairKillswitchHint}>
-                    {remoteEnabled
-                      ? t('phonePair.killswitch.onHint')
-                      : t('phonePair.killswitch.offHint')}
-                  </span>
-                </div>
-                <Toggle
-                  checked={remoteEnabled}
-                  disabled={togglingRemote}
-                  onChange={handleRemoteToggle}
-                  ariaLabelledBy="phone-pair-killswitch-label"
-                />
+            <div className={styles.phonePairKillswitchRow}>
+              <div>
+                <span className={styles.phonePairKillswitchLabel} id="phone-pair-killswitch-label">
+                  {t('phonePair.killswitch.label')}
+                </span>
+                <span className={styles.phonePairKillswitchHint}>
+                  {remoteEnabled
+                    ? t('phonePair.killswitch.onHint')
+                    : t('phonePair.killswitch.offHint')}
+                </span>
               </div>
-            </section>
+              <Toggle
+                checked={remoteEnabled}
+                disabled={togglingRemote}
+                onChange={handleRemoteToggle}
+                ariaLabelledBy="phone-pair-killswitch-label"
+              />
+            </div>
 
             <section className={styles.phonePairCard + ' ' + styles.phonePairSessionsPanel} aria-label={t('phonePair.ariaSessions')} data-disabled={remoteEnabled ? 'false' : 'true'}>
             <div className={styles.phonePairSessionsHeader}>
@@ -1131,7 +1142,9 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
                       <div className={styles.phonePairLoading}>{t('phonePair.loadingQr')}</div>
                     )}
                   </div>
-                  <div className={styles.phonePairMeta}>
+                  <div className={classNames(styles.phonePairTimer, {
+                    [styles.phonePairTimerFlash]: secondsLeft > 0 && secondsLeft <= 5,
+                  })}>
                     <span>{qrStatus}</span>
                   </div>
                 </>
@@ -1153,17 +1166,16 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
                     </button>
                   </div>
                 </div>
-              ) : pairCodeTerminal ? (
+              ) : pairCodeTerminal && pairCodeTerminal.kind !== 'expired' ? (
+                // Expired auto-refreshes (just like the QR), so no terminal
+                // panel for it - the next code is on its way. Denied /
+                // superseded / approved are still surfaced.
                 <div className={styles.phonePairCodeTerminal}>
                   <p className={styles.phonePairFlowHint}>{
                     pairCodeTerminal.kind === 'approved' ? t('phonePair.code.approved')
                     : pairCodeTerminal.kind === 'denied' ? t('phonePair.code.denied')
-                    : pairCodeTerminal.kind === 'expired' ? t('phonePair.code.expired')
                     : t('phonePair.code.superseded')
                   }</p>
-                  <button type="button" className={styles.phonePairCodeGenerate} disabled={pairCodeBusy} onClick={handleStartCode}>
-                    {t('phonePair.code.regenerate')}
-                  </button>
                 </div>
               ) : pairCode ? (
                 <div className={styles.phonePairCodeShown}>
@@ -1178,17 +1190,16 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
                       <span className={styles.phonePairCodeDigits}>{pairCode.code}</span>
                     </div>
                   </div>
-                  <div className={styles.phonePairMeta}>
-                    <span>{t('phonePair.code.expires', { seconds: Math.max(0, Math.ceil((pairCode.expiresAt - now) / 1000)) })}</span>
+                  <div className={classNames(styles.phonePairTimer, {
+                    [styles.phonePairTimerFlash]: codeSecondsLeft > 0 && codeSecondsLeft <= 5,
+                  })}>
+                    <span>{codeStatus}</span>
                   </div>
                 </div>
               ) : (
                 <div className={styles.phonePairCodeIdle}>
                   <p className={styles.phonePairFlowHint}>{t('phonePair.code.intro')}</p>
                   {pairCodeError && <p className={styles.phonePairCodeError}>{pairCodeError}</p>}
-                  <button type="button" className={styles.phonePairCodeGenerate} disabled={pairCodeBusy} onClick={handleStartCode}>
-                    {t('phonePair.code.start')}
-                  </button>
                 </div>
               )}
 
