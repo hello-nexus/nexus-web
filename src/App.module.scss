@@ -382,6 +382,146 @@
   line-height: 1.45;
 }
 
+.phonePairModeTabs {
+  display: inline-flex;
+  align-self: flex-start;
+  border-radius: var(--radius-sm);
+  background: var(--surface-low);
+  padding: 2px;
+  gap: 2px;
+  margin-bottom: 0.65rem;
+}
+
+.phonePairModeTab {
+  @include text-button;
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.32rem 0.75rem;
+  border-radius: calc(var(--radius-sm) - 2px);
+  color: var(--text-faded);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+
+  &:hover { color: var(--text-dim); }
+}
+
+.phonePairModeTabActive {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.phonePairCodePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-low);
+
+  button {
+    @include text-button;
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+    color: var(--text);
+    padding: 0.45rem 0.85rem;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    align-self: flex-start;
+
+    &:disabled { opacity: 0.55; cursor: progress; }
+  }
+
+  p { margin: 0; }
+}
+
+.phonePairCodeIdle,
+.phonePairCodeShown,
+.phonePairCodeTerminal,
+.phonePairCodeConfirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.phonePairCodeRows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+}
+
+.phonePairCodeFieldLabel {
+  @include text-button;
+  color: var(--text-faded);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.phonePairCodeHost {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  color: var(--text);
+}
+
+.phonePairCodeDigits {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 1.7rem;
+  letter-spacing: 0.18em;
+  color: var(--text);
+}
+
+.phonePairCodeWaiting {
+  @include text-button;
+  color: var(--text-faded);
+}
+
+.phonePairCodeExpires {
+  @include text-button;
+  color: var(--text-faded);
+  font-size: 0.78rem;
+}
+
+.phonePairCodeError {
+  @include text-button;
+  color: var(--accent-warn, #f87171);
+}
+
+.phonePairCodeSas {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 2.2rem;
+  letter-spacing: 0.22em;
+  color: var(--text);
+  text-align: center;
+  padding: 0.55rem 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+
+.phonePairCodeMeta {
+  @include text-button;
+  color: var(--text-faded);
+  text-align: center;
+}
+
+.phonePairCodeActions {
+  display: flex;
+  gap: 0.55rem;
+  justify-content: flex-end;
+}
+
+.phonePairCodeAllow {
+  background: var(--accent, #2563eb) !important;
+  color: white !important;
+  border-color: transparent !important;
+}
+
 .phonePairSessionsHeader {
   margin-bottom: 0.75rem;
 
