@@ -55,7 +55,7 @@ describe('widgetAvailableForSurface', () => {
     // Positive: every non-touch widget that declares a 2x4 size variant
     // is available on q60.
     for (const type of ['clock', 'monitoring', 'media', 'iframe', 'gallery',
-                        'screentime', 'cooling', 'devices', 'twitch']) {
+                        'screentime', 'cooling', 'twitch']) {
       const def = WIDGET_REGISTRY[type];
       expect(def, `missing widget type: ${type}`).toBeDefined();
       expect(def.meta.sizes, `${type} should declare 2x4 in sizes`).toContain('2x4');
@@ -74,6 +74,18 @@ describe('widgetAvailableForSurface', () => {
     // Still available on touch-capable surfaces.
     expect(widgetAvailableForSurface(displays.meta, 'y70')).toBe(true);
     expect(widgetAvailableForSurface(displays.meta, 'phone')).toBe(true);
+  });
+
+  it('excludes devices from q60 (touch-only pager + per-device taps)', () => {
+    const devices = WIDGET_REGISTRY.devices;
+    // devices widget pages through attached peripherals via tap; can't
+    // be driven without touch.
+    expect(devices.meta.touch).toBe('touch-only');
+    expect(widgetAvailableForSurface(devices.meta, 'q60')).toBe(false);
+    // Still available on touch-capable surfaces.
+    expect(widgetAvailableForSurface(devices.meta, 'y70')).toBe(true);
+    expect(widgetAvailableForSurface(devices.meta, 'phone')).toBe(true);
+    expect(widgetAvailableForSurface(devices.meta, 'desktop')).toBe(true);
   });
 
   it('makes the seeded dashboard widgets available on desktop', () => {

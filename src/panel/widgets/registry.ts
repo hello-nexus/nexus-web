@@ -195,12 +195,15 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'devices',
       i18nKey: 'panel.widget.devices',
       icon: Usb,
-      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
+      supportedSurfaces: ['y70', 'phone', 'desktop'],
       sizes: ['2x2', '2x4', '4x2', '4x4'],
       defaultSize: '2x2',
       supportsImmersive: { portrait: false, landscape: false },
       hasConfig: false,
-      touch: 'any',
+      // Pager arrows + per-device tap-through controls — needs touch to
+      // page between devices and configure them. Display-only surfaces
+      // (q60) get this excluded by the widgetAvailableForSurface gate.
+      touch: 'touch-only',
     },
     Component: DevicesWidget,
   },
