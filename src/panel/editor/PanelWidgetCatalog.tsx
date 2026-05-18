@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer, useState, type CSSProperties } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { SearchInput } from '../../components/SearchInput/SearchInput';
 import { useTranslation } from '../../lib/i18n';
@@ -23,6 +23,13 @@ export interface PanelWidgetCatalogProps {
   variant?: 'panel-sheet' | 'desktop-modal';
   aspect?: 'natural' | 'square';
   themeMode?: 'dark' | 'light';
+  // Inline CSS variables driving the panel theme (--panel-accent etc. and
+  // the full --accent family from buildPanelThemeVars). When the catalog
+  // renders inside the desktop chrome — e.g. the device-management modal —
+  // its surrounding stylesheet sets --accent to the desktop's accent, not
+  // the device's. Without this prop the search input + widget previews
+  // would highlight in the desktop's hue instead of the panel's.
+  themeStyle?: CSSProperties;
   className?: string;
   // Highlight the catalog card matching this widget type. Used by
   // single-widget surfaces (q-series) so the user can see which entry
@@ -38,6 +45,7 @@ export function PanelWidgetCatalog({
   variant = 'panel-sheet',
   aspect = 'natural',
   themeMode,
+  themeStyle,
   className,
   selectedWidgetType,
 }: PanelWidgetCatalogProps) {
@@ -89,7 +97,7 @@ export function PanelWidgetCatalog({
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={rootClass} data-theme={themeMode}>
+    <div className={rootClass} data-theme={themeMode} style={themeStyle}>
       {searchable && (
         <div className={styles.search}>
           <SearchInput
