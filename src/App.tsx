@@ -11,6 +11,7 @@ import { Button } from './components/Button/Button';
 import { ProfileDropdown } from './components/ProfileDropdown/ProfileDropdown';
 import { DeviceModal } from './components/DeviceModal/DeviceModal';
 import { ConfirmModal } from './components/ConfirmModal/ConfirmModal';
+import { Tabs, type TabDef } from './components/Tabs/Tabs';
 import { EditableText } from './components/Editable/EditableText';
 import { Toggle } from './components/Toggle/Toggle';
 import { Placeholder } from './components/views/Placeholder';
@@ -987,132 +988,39 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
           { count: offPairedCount },
         );
 
+  const pairTabs: TabDef[] = [
+    { key: 'qr', label: t('phonePair.tab.qr') },
+    { key: 'code', label: t('phonePair.tab.code') },
+  ];
+
   return (
     <>
-      <DeviceModal open={open} onClose={onClose} title={t('phonePair.title')} icon={<Smartphone size={18} />}>
-        <div className={styles.phonePairContent} data-remote-enabled={remoteEnabled ? 'true' : 'false'}>
-          <p className={styles.phonePairIntro}>
-            {t('phonePair.intro')}
-          </p>
-
-          <div className={styles.phonePairKillswitchRow}>
-            <div>
-              <span className={styles.phonePairKillswitchLabel} id="phone-pair-killswitch-label">
-                {t('phonePair.killswitch.label')}
-              </span>
-              <span className={styles.phonePairKillswitchHint}>
-                {remoteEnabled
-                  ? t('phonePair.killswitch.onHint')
-                  : t('phonePair.killswitch.offHint')}
-              </span>
-            </div>
-            <Toggle
-              checked={remoteEnabled}
-              disabled={togglingRemote}
-              onChange={handleRemoteToggle}
-              ariaLabelledBy="phone-pair-killswitch-label"
-            />
-          </div>
-
-          {remoteEnabled && (
-            <div className={styles.phonePairModeTabs} role="tablist" aria-label={t('phonePair.title')}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={pairMode === 'qr'}
-                className={classNames(styles.phonePairModeTab, { [styles.phonePairModeTabActive]: pairMode === 'qr' })}
-                onClick={() => setPairMode('qr')}
-              >{t('phonePair.tab.qr')}</button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={pairMode === 'code'}
-                className={classNames(styles.phonePairModeTab, { [styles.phonePairModeTabActive]: pairMode === 'code' })}
-                onClick={() => setPairMode('code')}
-              >{t('phonePair.tab.code')}</button>
-            </div>
-          )}
-
-          {pairMode === 'qr' && (
-            <section className={styles.phonePairQrPanel} aria-label={t('phonePair.ariaQr')} data-disabled={remoteEnabled ? 'false' : 'true'}>
-              <div className={styles.phonePairQrBox}>
-                {!remoteEnabled ? (
-                  <div className={styles.phonePairLoading}>{t('phonePair.killswitch.qrDisabled')}</div>
-                ) : qr?.qrDataUrl && !loading ? (
-                  <img src={qr.qrDataUrl} alt={t('phonePair.qrAlt')} />
-                ) : (
-                  <div className={styles.phonePairLoading}>{t('phonePair.loadingQr')}</div>
-                )}
+      <DeviceModal open={open} onClose={onClose} title={t('phonePair.title')} icon={<Smartphone size={18} />} wide>
+        <div className={styles.phonePairLayout} data-remote-enabled={remoteEnabled ? 'true' : 'false'}>
+          {/* ── Left column: remote-control toggle + authorized device list ── */}
+          <div className={styles.phonePairCol}>
+            <section className={styles.phonePairCard} aria-labelledby="phone-pair-killswitch-label">
+              <div className={styles.phonePairKillswitchRow}>
+                <div>
+                  <span className={styles.phonePairKillswitchLabel} id="phone-pair-killswitch-label">
+                    {t('phonePair.killswitch.label')}
+                  </span>
+                  <span className={styles.phonePairKillswitchHint}>
+                    {remoteEnabled
+                      ? t('phonePair.killswitch.onHint')
+                      : t('phonePair.killswitch.offHint')}
+                  </span>
+                </div>
+                <Toggle
+                  checked={remoteEnabled}
+                  disabled={togglingRemote}
+                  onChange={handleRemoteToggle}
+                  ariaLabelledBy="phone-pair-killswitch-label"
+                />
               </div>
-              <div className={styles.phonePairMeta}>
-                <span>{remoteEnabled ? qrStatus : t('phonePair.killswitch.qrPaused')}</span>
-              </div>
-              <p className={styles.phonePairSecurityNote}>
-                {t('phonePair.securityNote')}
-              </p>
             </section>
-          )}
 
-          {pairMode === 'code' && remoteEnabled && (
-            <section className={styles.phonePairCodePanel} aria-label={t('phonePair.tab.code')}>
-              {pairCodeRequest ? (
-                <div className={styles.phonePairCodeConfirm}>
-                  <h3>{t('phonePair.code.requestTitle', { device: pairCodeRequest.deviceLabel || t('phonePair.deviceFallback') })}</h3>
-                  <p>{t('phonePair.code.requestSubtitle')}</p>
-                  <div className={styles.phonePairCodeSas}>{pairCodeRequest.sas}</div>
-                  <div className={styles.phonePairCodeMeta}>{t('phonePair.code.requestFrom', { ip: pairCodeRequest.remoteAddress || t('phonePair.unknownIp') })}</div>
-                  <div className={styles.phonePairCodeActions}>
-                    <button type="button" disabled={pairCodeBusy} onClick={() => handleDecide(pairCodeRequest.requestId, false)}>
-                      {t('phonePair.code.deny')}
-                    </button>
-                    <button type="button" disabled={pairCodeBusy} className={styles.phonePairCodeAllow} onClick={() => handleDecide(pairCodeRequest.requestId, true)}>
-                      {t('phonePair.code.allow')}
-                    </button>
-                  </div>
-                </div>
-              ) : pairCodeTerminal ? (
-                <div className={styles.phonePairCodeTerminal}>
-                  <p>{
-                    pairCodeTerminal.kind === 'approved' ? t('phonePair.code.approved')
-                    : pairCodeTerminal.kind === 'denied' ? t('phonePair.code.denied')
-                    : pairCodeTerminal.kind === 'expired' ? t('phonePair.code.expired')
-                    : t('phonePair.code.superseded')
-                  }</p>
-                  <button type="button" disabled={pairCodeBusy} onClick={handleStartCode}>
-                    {t('phonePair.code.regenerate')}
-                  </button>
-                </div>
-              ) : pairCode ? (
-                <div className={styles.phonePairCodeShown}>
-                  <div className={styles.phonePairCodeRows}>
-                    <div>
-                      <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.hostLabel')}</span>
-                      <span className={styles.phonePairCodeHost}>{pairCode.host}:{pairCode.port}</span>
-                    </div>
-                    <div>
-                      <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.codeLabel')}</span>
-                      <span className={styles.phonePairCodeDigits}>{pairCode.code}</span>
-                    </div>
-                  </div>
-                  <p className={styles.phonePairCodeWaiting}>{t('phonePair.code.waiting')}</p>
-                  <p className={styles.phonePairCodeExpires}>{t('phonePair.code.expires', { seconds: Math.max(0, Math.ceil((pairCode.expiresAt - now) / 1000)) })}</p>
-                  <button type="button" disabled={pairCodeBusy} onClick={handleStartCode}>
-                    {t('phonePair.code.regenerate')}
-                  </button>
-                </div>
-              ) : (
-                <div className={styles.phonePairCodeIdle}>
-                  <p>{t('phonePair.code.intro')}</p>
-                  {pairCodeError && <p className={styles.phonePairCodeError}>{pairCodeError}</p>}
-                  <button type="button" disabled={pairCodeBusy} onClick={handleStartCode}>
-                    {t('phonePair.code.start')}
-                  </button>
-                </div>
-              )}
-            </section>
-          )}
-
-          <section className={styles.phonePairSessionsPanel} aria-label={t('phonePair.ariaSessions')} data-disabled={remoteEnabled ? 'false' : 'true'}>
+            <section className={styles.phonePairCard + ' ' + styles.phonePairSessionsPanel} aria-label={t('phonePair.ariaSessions')} data-disabled={remoteEnabled ? 'false' : 'true'}>
             <div className={styles.phonePairSessionsHeader}>
               <div>
                 <h3>{t('phonePair.authorizedDevices')}</h3>
@@ -1196,6 +1104,99 @@ function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledCh
               </div>
             )}
           </section>
+          </div>
+
+          {/* ── Right column: pairing flow (QR or Code), tabbed ────────── */}
+          <div className={styles.phonePairCol}>
+            <section className={styles.phonePairCard + ' ' + styles.phonePairFlowCard} aria-label={t('phonePair.title')}>
+              <Tabs
+                tabs={pairTabs}
+                activeKey={pairMode}
+                onChange={(key) => setPairMode(key as 'qr' | 'code')}
+                ariaLabel={t('phonePair.title')}
+                variant="pill"
+                disabled={!remoteEnabled}
+                className={styles.phonePairFlowTabs}
+              />
+
+              {!remoteEnabled ? (
+                <p className={styles.phonePairFlowHint}>{t('phonePair.killswitch.qrDisabled')}</p>
+              ) : pairMode === 'qr' ? (
+                <>
+                  <p className={styles.phonePairFlowHint}>{t('phonePair.intro')}</p>
+                  <div className={styles.phonePairQrBox}>
+                    {qr?.qrDataUrl && !loading ? (
+                      <img src={qr.qrDataUrl} alt={t('phonePair.qrAlt')} />
+                    ) : (
+                      <div className={styles.phonePairLoading}>{t('phonePair.loadingQr')}</div>
+                    )}
+                  </div>
+                  <div className={styles.phonePairMeta}>
+                    <span>{qrStatus}</span>
+                  </div>
+                </>
+              ) : pairCodeRequest ? (
+                <div className={styles.phonePairCodeConfirm}>
+                  <p className={styles.phonePairFlowHint}>{t('phonePair.code.requestSubtitle')}</p>
+                  <div className={styles.phonePairCodeSas}>{pairCodeRequest.sas}</div>
+                  <div className={styles.phonePairCodeMeta}>
+                    {t('phonePair.code.requestTitle', { device: pairCodeRequest.deviceLabel || t('phonePair.deviceFallback') })}
+                    {' · '}
+                    {t('phonePair.code.requestFrom', { ip: pairCodeRequest.remoteAddress || t('phonePair.unknownIp') })}
+                  </div>
+                  <div className={styles.phonePairCodeActions}>
+                    <button type="button" className={styles.phonePairCodeDeny} disabled={pairCodeBusy} onClick={() => handleDecide(pairCodeRequest.requestId, false)}>
+                      {t('phonePair.code.deny')}
+                    </button>
+                    <button type="button" disabled={pairCodeBusy} className={styles.phonePairCodeAllow} onClick={() => handleDecide(pairCodeRequest.requestId, true)}>
+                      {t('phonePair.code.allow')}
+                    </button>
+                  </div>
+                </div>
+              ) : pairCodeTerminal ? (
+                <div className={styles.phonePairCodeTerminal}>
+                  <p className={styles.phonePairFlowHint}>{
+                    pairCodeTerminal.kind === 'approved' ? t('phonePair.code.approved')
+                    : pairCodeTerminal.kind === 'denied' ? t('phonePair.code.denied')
+                    : pairCodeTerminal.kind === 'expired' ? t('phonePair.code.expired')
+                    : t('phonePair.code.superseded')
+                  }</p>
+                  <button type="button" className={styles.phonePairCodeGenerate} disabled={pairCodeBusy} onClick={handleStartCode}>
+                    {t('phonePair.code.regenerate')}
+                  </button>
+                </div>
+              ) : pairCode ? (
+                <div className={styles.phonePairCodeShown}>
+                  <p className={styles.phonePairFlowHint}>{t('phonePair.code.waiting')}</p>
+                  <div className={styles.phonePairCodeRows}>
+                    <div>
+                      <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.hostLabel')}</span>
+                      <span className={styles.phonePairCodeHost}>{pairCode.host}:{pairCode.port}</span>
+                    </div>
+                    <div>
+                      <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.codeLabel')}</span>
+                      <span className={styles.phonePairCodeDigits}>{pairCode.code}</span>
+                    </div>
+                  </div>
+                  <div className={styles.phonePairMeta}>
+                    <span>{t('phonePair.code.expires', { seconds: Math.max(0, Math.ceil((pairCode.expiresAt - now) / 1000)) })}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.phonePairCodeIdle}>
+                  <p className={styles.phonePairFlowHint}>{t('phonePair.code.intro')}</p>
+                  {pairCodeError && <p className={styles.phonePairCodeError}>{pairCodeError}</p>}
+                  <button type="button" className={styles.phonePairCodeGenerate} disabled={pairCodeBusy} onClick={handleStartCode}>
+                    {t('phonePair.code.start')}
+                  </button>
+                </div>
+              )}
+
+              {remoteEnabled && pairMode === 'qr' && (
+                <p className={styles.phonePairFlowFooter}>{t('phonePair.securityNote')}</p>
+              )}
+            </section>
+          </div>
         </div>
       </DeviceModal>
       <ConfirmModal
