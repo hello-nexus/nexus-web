@@ -682,7 +682,11 @@ export function PanelContent({
   // ---------- Pagination + dock state derived from layout ----------
   const dockEnabled = Boolean(layout.dock?.enabled);
   const dockSupported = surface !== 'desktop' && surfaceSupportsTouch(surface);
-  const editorDockSupported = surface === 'phone' || surface === 'desktop';
+  // Every touch-capable surface must hoist the focused widget above the
+  // editor's backdrop-blur scrim, otherwise the widget being edited disappears
+  // under the blur. q60 is display-only so the edit flow never engages there.
+  // See the .cellEditorDocked rules in PanelApp.module.scss.
+  const editorDockSupported = surfaceSupportsTouch(surface);
   const dockActive = dockSupported && dockEnabled;
   const isLandscape = useIsLandscape(surface);
   const capacity = useMemo<PaginateCapacity>(

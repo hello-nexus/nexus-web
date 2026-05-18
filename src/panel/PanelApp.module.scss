@@ -698,8 +698,7 @@
   --_s: var(--panel-widget-scale);
 }
 
-.panelRoot[data-surface='phone'] .cellEditorDocked,
-.panelRoot[data-surface='desktop'] .cellEditorDocked {
+.panelRoot:not([data-surface='q60']) .cellEditorDocked {
   position: fixed;
   // Above the safe-area scrim (z 140) so the focused widget reads sharp on
   // top of the backdrop blur. The editor sheet (z 230) sits above this so a
@@ -737,8 +736,7 @@
   will-change: transform;
 }
 
-.panelRoot[data-surface='phone'] .cellEditorDockClosing,
-.panelRoot[data-surface='desktop'] .cellEditorDockClosing {
+.panelRoot:not([data-surface='q60']) .cellEditorDockClosing {
   animation: widgetEditorDockOut var(--ease) ease-out both;
   pointer-events: none;
 }
