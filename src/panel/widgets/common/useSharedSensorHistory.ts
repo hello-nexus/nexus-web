@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
+  getFrameTick,
   getPanelSensorHist,
   pushPanelSensorSample,
+  subscribe,
   subscribePanelSensorKey,
+  unsubscribe,
   unsubscribePanelSensorKey,
 } from '../../../lib/monitoringStore';
 
@@ -12,16 +15,28 @@ import {
  * returns the SAME buffer - so re-mounting a PerfSlot in the immersive
  * view picks up the existing 60 s of samples instead of starting fresh.
  *
+ * The sample push is driven by the monitoring frameTick, not the sensor
+ * value. A run of identical readings (e.g. GPU temp pinned at 45 °C)
+ * must still advance the sparkline; gating on [key, value] silently
+ * dropped those frames and the line stopped ticking.
+ *
  * Subscription is per-key: only consumers of "cpu::CPU Total" wake on a
  * CPU push, so a GPU tile sitting next door doesn't re-render every time
  * the CPU sample lands.
  */
 export function useSharedSensorHistory(key: string, value: number): readonly number[] {
   const [, force] = useState(0);
+  const [tick, setTick] = useState(getFrameTick);
+
+  useEffect(() => {
+    const fn = () => setTick(getFrameTick());
+    subscribe(fn);
+    return () => unsubscribe(fn);
+  }, []);
 
   useEffect(() => {
     pushPanelSensorSample(key, value);
-  }, [key, value]);
+  }, [key, tick, value]);
 
   useEffect(() => {
     const fn = () => force(n => n + 1);

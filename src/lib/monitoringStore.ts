@@ -155,6 +155,12 @@ export function setSystemMemMb(mb: number) { systemMemMb = mb; }
 
 let ingestCount = 0;
 
+// Monotonic counter bumped on every monitoring frame. Consumers that need
+// to advance per-broadcast (sparkline buffers, etc.) depend on this instead
+// of the sensor value, so a stream of identical values still ticks.
+let frameTick = 0;
+export function getFrameTick() { return frameTick; }
+
 // Drop history entries whose `idleStreak` has reached STALE_AFTER_ZERO frames.
 // At ~1 Hz ingest this evicts processes that exited ~10 minutes ago, so a
 // long session doesn't accumulate a permanent entry for every transient
@@ -175,6 +181,7 @@ function pruneColors() {
 }
 
 export function ingestMonitoring(frame: MonitoringFrame) {
+  frameTick++;
   latestFrame = frame;
 
   // Overview sparklines
