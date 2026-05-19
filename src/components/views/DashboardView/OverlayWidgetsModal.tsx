@@ -11,11 +11,16 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './DesktopWidgetsModal.module.scss';
 
+// Subset of the nested `Preferences` payload returned by GET /preferences
+// (see api/profiles.ts). All overlay-related prefs live under the `overlay`
+// block; POST /preferences expects the same nesting.
 interface ServerPrefs {
-  overlayWidgetsEnabled?: boolean;
-  overlayWidgetScale?: number;
-  overlayWidgetOpacity?: number;
-  overlayWidgetsMonitor?: number;
+  overlay?: {
+    enabled?: boolean;
+    scale?: number;
+    opacity?: number;
+    monitor?: number;
+  };
 }
 
 interface OverlayWidgetsModalProps {
@@ -60,18 +65,19 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
       fetchService<ServerPrefs>('/preferences'),
     ]);
     setWidgets(list);
-    setEnabled(Boolean(prefs?.overlayWidgetsEnabled));
-    setScale(prefs?.overlayWidgetScale ?? SCALE_DEFAULT);
+    const overlay = prefs?.overlay;
+    setEnabled(Boolean(overlay?.enabled));
+    setScale(overlay?.scale ?? SCALE_DEFAULT);
     if (!isDraggingOpacityRef.current) {
-      setOpacity(typeof prefs?.overlayWidgetOpacity === 'number'
-        ? Math.round(prefs.overlayWidgetOpacity * 100)
+      setOpacity(typeof overlay?.opacity === 'number'
+        ? Math.round(overlay.opacity * 100)
         : OPACITY_DEFAULT);
     }
     // Legacy -1 (primary fallback sentinel) collapses to 0 for display
     // purposes - the user can pick any monitor in the dropdown and the
     // next POST writes a real index.
-    const persisted = typeof prefs?.overlayWidgetsMonitor === 'number'
-      ? prefs.overlayWidgetsMonitor : 0;
+    const persisted = typeof overlay?.monitor === 'number'
+      ? overlay.monitor : 0;
     setMonitor(persisted < 0 ? 0 : persisted);
     setLoaded(true);
   }, []);
@@ -87,13 +93,13 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
 
   const handleToggleEnabled = useCallback(async (next: boolean) => {
     setEnabled(next);
-    await postService('/preferences', { overlayWidgetsEnabled: next });
+    await postService('/preferences', { overlay: { enabled: next } });
   }, []);
 
   const handleScaleCommit = useCallback(async (next: number) => {
     const clamped = Math.round(Math.max(SCALE_MIN, Math.min(SCALE_MAX, next)));
     setScale(clamped);
-    await postService('/preferences', { overlayWidgetScale: clamped });
+    await postService('/preferences', { overlay: { scale: clamped } });
   }, []);
 
   // Live preview: stream opacity to the server during slider drag so the
@@ -114,7 +120,7 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
       const value = livePostPendingRef.current;
       livePostPendingRef.current = null;
       if (value === null) return;
-      void postService('/preferences', { overlayWidgetOpacity: value / 100 });
+      void postService('/preferences', { overlay: { opacity: value / 100 } });
     });
   }, []);
 
@@ -136,13 +142,13 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
       livePostPendingRef.current = null;
     }
     isDraggingOpacityRef.current = false;
-    await postService('/preferences', { overlayWidgetOpacity: clampedPct / 100 });
+    await postService('/preferences', { overlay: { opacity: clampedPct / 100 } });
   }, []);
 
   const handleMonitorChange = useCallback(async (value: string) => {
     const next = Number(value);
     setMonitor(next);
-    await postService('/preferences', { overlayWidgetsMonitor: next });
+    await postService('/preferences', { overlay: { monitor: next } });
   }, []);
 
   // Dropdown options: numbered monitors only, no "Primary" entry. We
@@ -198,7 +204,6 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
               <Toggle
                 checked={enabled}
                 onChange={handleToggleEnabled}
-                disabled={widgets.length === 0}
                 ariaLabel="Enable desktop widgets"
               />
             </div>

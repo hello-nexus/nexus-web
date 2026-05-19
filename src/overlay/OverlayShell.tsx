@@ -16,14 +16,20 @@ import { WidgetEditSheet } from '../panel/widgets/common/WidgetEditSheet';
 import { postToHost } from './hostBridge';
 import styles from './OverlayShell.module.scss';
 
-// Server-side prefs fields the desktop overlay consumes.
+// Server-side prefs fields the desktop overlay consumes. Mirrors the nested
+// `Preferences` shape from `api/profiles.ts` — only the subset the overlay
+// reads. The same nesting is required on POST.
 interface ServerPrefs {
-  accentColor?: string;
-  themeMode?: string;
-  overlayWidgetsAlwaysOnTop?: boolean;
-  overlayWidgetScale?: number;
-  overlayWidgetOpacity?: number;
-  overlayWidgetsMonitor?: number;
+  theme?: {
+    accentColor?: string;
+    themeMode?: string;
+  };
+  overlay?: {
+    alwaysOnTop?: boolean;
+    scale?: number;
+    opacity?: number;
+    monitor?: number;
+  };
 }
 
 function normalizeOpacity(raw: number | undefined): number {
@@ -154,29 +160,31 @@ export default function OverlayShell() {
   const refreshPrefs = useCallback(async () => {
     const prefs = await fetchService<ServerPrefs>('/preferences');
     if (!prefs) return;
-    if (typeof prefs.overlayWidgetsAlwaysOnTop === 'boolean') {
-      setAlwaysOnTop(prefs.overlayWidgetsAlwaysOnTop);
+    const overlay = prefs.overlay;
+    const theme = prefs.theme;
+    if (typeof overlay?.alwaysOnTop === 'boolean') {
+      setAlwaysOnTop(overlay.alwaysOnTop);
     }
-    if (typeof prefs.overlayWidgetScale === 'number') {
-      setScale(Math.max(50, Math.min(200, Math.round(prefs.overlayWidgetScale))));
+    if (typeof overlay?.scale === 'number') {
+      setScale(Math.max(50, Math.min(200, Math.round(overlay.scale))));
     }
-    setWidgetOpacity(normalizeOpacity(prefs.overlayWidgetOpacity));
-    if (prefs.accentColor) {
-      applyAccentColor(prefs.accentColor);
-      setAccentColor(prefs.accentColor);
+    setWidgetOpacity(normalizeOpacity(overlay?.opacity));
+    if (theme?.accentColor) {
+      applyAccentColor(theme.accentColor);
+      setAccentColor(theme.accentColor);
     }
-    if (prefs.themeMode) {
-      applyThemeMode(prefs.themeMode as ThemeMode);
-      setThemeModeState(prefs.themeMode as ThemeMode);
+    if (theme?.themeMode) {
+      applyThemeMode(theme.themeMode as ThemeMode);
+      setThemeModeState(theme.themeMode as ThemeMode);
     }
-    if (typeof prefs.overlayWidgetsMonitor === 'number'
-        && prefs.overlayWidgetsMonitor !== lastSentMonitorRef.current) {
+    if (typeof overlay?.monitor === 'number'
+        && overlay.monitor !== lastSentMonitorRef.current) {
       // Push the move to the host immediately via the same webMessage
       // bridge we use for setAlwaysOnTop. The host moves the existing
       // window (no teardown/respawn) and the prefs poll's 5 s slow path
       // becomes a no-op for this transition.
-      lastSentMonitorRef.current = prefs.overlayWidgetsMonitor;
-      postToHost({ type: 'setMonitor', value: prefs.overlayWidgetsMonitor });
+      lastSentMonitorRef.current = overlay.monitor;
+      postToHost({ type: 'setMonitor', value: overlay.monitor });
     }
   }, []);
 
@@ -302,7 +310,7 @@ export default function OverlayShell() {
     // flips immediately. POST /preferences in parallel for persistence;
     // the prefs WS broadcast that follows will be a no-op.
     postToHost({ type: 'setAlwaysOnTop', value: next });
-    await postService('/preferences', { overlayWidgetsAlwaysOnTop: next });
+    await postService('/preferences', { overlay: { alwaysOnTop: next } });
     setMenu(null);
   }, [alwaysOnTop]);
 
