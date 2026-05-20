@@ -5,6 +5,10 @@ import { useKeeb } from '../../../hooks/useKeeb';
 import { type KeebLayer, KEEB_LAYERS } from '../../../api/keeb';
 import { KeebKeyboard } from './KeebKeyboard';
 import { KeebSettingsView } from './KeebSettingsView';
+import { KeebKeyAssignmentView } from './KeebKeyAssignmentView';
+import { KeebRotaryView } from './KeebRotaryView';
+import { KeebMacroView } from './KeebMacroView';
+import { KeebTesterView } from './KeebTesterView';
 import styles from './KeebDeviceModal.module.scss';
 
 type Tab = 'key-assignment' | 'rotary' | 'macros' | 'tester' | 'settings';
@@ -34,11 +38,28 @@ export function KeebDeviceModal({ open, onClose }: KeebDeviceModalProps) {
   const [tab, setTab] = useState<Tab>('key-assignment');
   const keeb = useKeeb(open);
 
-  const onLayerChange = (next: KeebLayer) => keeb.setLayer(next);
+  // Per-tab UI state that doesn't belong in the hook:
+  // - `selected`: which physical key the user clicked, drives Key Assignment writes.
+  // - `wheel`: which rotary the user is editing, set via the wheel buttons in the keyboard render.
+  // - `rotary`/`sensitivity`: rotary state isn't on the GET /keeb/settings response yet,
+  //   so we keep a local optimistic copy until the backend exposes it.
+  const [selected, setSelected] = useState<{ x: number; y: number } | null>(null);
+  const [wheel, setWheel] = useState<'left' | 'right'>('left');
+  const [rotaryLeft, setRotaryLeft] = useState('VolumeAdjustment');
+  const [rotaryRight, setRotaryRight] = useState('ScrollY');
+  const [sensitivity, setSensitivity] = useState('Balanced');
+
+  const onLayerChange = (next: KeebLayer) => {
+    keeb.setLayer(next);
+    setSelected(null);
+  };
 
   const offlineCopy = keeb.state.isConnected
     ? undefined
     : 'Connect your Keeb TKL — the settings tab still works offline.';
+
+  const onKeyClick = tab === 'key-assignment' ? (x: number, y: number) => setSelected({ x, y }) : undefined;
+  const onWheelFocus = tab === 'rotary' ? (side: 'left' | 'right') => setWheel(side) : undefined;
 
   return (
     <DeviceModal
@@ -84,10 +105,11 @@ export function KeebDeviceModal({ open, onClose }: KeebDeviceModalProps) {
           <KeebKeyboard
             state={keeb.state}
             offlineCopy={tab !== 'settings' ? offlineCopy : undefined}
-            disabled={tab !== 'key-assignment'}
-            // selection + click handlers come in Phase 3 when the assignment
-            // categories grid lands underneath
-            onKeyClick={undefined}
+            disabled={tab !== 'key-assignment' && tab !== 'rotary'}
+            onKeyClick={onKeyClick}
+            selected={tab === 'key-assignment' ? selected : null}
+            onWheelFocus={onWheelFocus}
+            focusedWheel={tab === 'rotary' ? wheel : null}
           />
         </div>
 
@@ -101,19 +123,34 @@ export function KeebDeviceModal({ open, onClose }: KeebDeviceModalProps) {
             />
           )}
           {tab === 'key-assignment' && (
-            <div className={styles.tabPlaceholder}>
-              Key assignment categories land in the next pass. The keyboard
-              render above is wired to your layer state already.
-            </div>
+            <KeebKeyAssignmentView
+              selected={selected}
+              setKey={keeb.setKey}
+              resetLayer={keeb.resetLayer}
+            />
           )}
           {tab === 'rotary' && (
-            <div className={styles.tabPlaceholder}>Rotary assignment UI — coming in the next pass.</div>
+            <KeebRotaryView
+              wheel={wheel}
+              left={rotaryLeft}
+              right={rotaryRight}
+              sensitivity={sensitivity}
+              onSetRotary={async body => {
+                setRotaryLeft(body.left);
+                setRotaryRight(body.right);
+                await keeb.saveRotary(body);
+              }}
+              onSetSensitivity={async s => {
+                setSensitivity(s);
+                await keeb.saveRotarySensitivity(s);
+              }}
+            />
           )}
           {tab === 'macros' && (
-            <div className={styles.tabPlaceholder}>Macro recorder — coming in the next pass.</div>
+            <KeebMacroView open={open} />
           )}
           {tab === 'tester' && (
-            <div className={styles.tabPlaceholder}>Key tester — lands with the HID driver (needs live key events).</div>
+            <KeebTesterView open={open && tab === 'tester'} />
           )}
         </div>
       </div>

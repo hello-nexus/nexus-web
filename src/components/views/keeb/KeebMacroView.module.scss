@@ -1,0 +1,203 @@
+.container {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+  padding: 8px 16px 16px;
+  height: 100%;
+  min-height: 0;
+}
+
+.slots {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--panel-card-bg, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.06));
+  overflow-y: auto;
+}
+
+.slot {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim, rgba(255, 255, 255, 0.7));
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.slot:hover {
+  background: var(--panel-card-bg-hover, rgba(255, 255, 255, 0.06));
+  color: var(--text, #e8e8ec);
+}
+
+.slotActive {
+  background: var(--accent-bg, rgba(107, 138, 255, 0.15));
+  border-color: var(--accent, #6b8aff);
+  color: var(--text, #e8e8ec);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.editorHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--panel-card-bg, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.06));
+}
+
+.nameField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nameField > span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+}
+
+.nameInput {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.12));
+  background: var(--panel-bg, rgba(20, 20, 24, 0.5));
+  color: var(--text, #e8e8ec);
+  font-size: 13px;
+}
+
+.delayBlock {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.delayRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim, rgba(255, 255, 255, 0.7));
+  cursor: pointer;
+}
+
+.customInput {
+  width: 70px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.12));
+  background: var(--panel-bg, rgba(20, 20, 24, 0.5));
+  color: var(--text, #e8e8ec);
+  font-size: 12px;
+}
+
+.customInput:disabled {
+  opacity: 0.4;
+}
+
+.unit {
+  font-size: 11px;
+  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.12));
+  background: transparent;
+  color: var(--text, #e8e8ec);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 100ms ease, border-color 100ms ease;
+}
+
+.btn:hover {
+  background: var(--panel-card-bg-hover, rgba(255, 255, 255, 0.06));
+}
+
+.btnPrimary {
+  border-color: var(--accent, #6b8aff);
+  background: var(--accent-bg, rgba(107, 138, 255, 0.15));
+}
+
+.btnDanger {
+  border-color: #d04444;
+  background: rgba(208, 68, 68, 0.18);
+  color: #ffcaca;
+}
+
+.recordingList {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--panel-card-bg, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.06));
+  overflow-y: auto;
+}
+
+.empty {
+  margin: auto;
+  font-size: 12px;
+  color: var(--text-dim, rgba(255, 255, 255, 0.45));
+}
+
+.recordRow {
+  display: grid;
+  grid-template-columns: 1fr 80px 90px 24px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: var(--panel-bg, rgba(20, 20, 24, 0.4));
+  font-size: 12px;
+}
+
+.recordKey {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  color: var(--text, #e8e8ec);
+}
+
+.recordType {
+  color: var(--text-dim, rgba(255, 255, 255, 0.6));
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.recordDuration {
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.1));
+  background: transparent;
+  color: var(--text, #e8e8ec);
+  font-size: 12px;
+  text-align: right;
+}
