@@ -167,7 +167,7 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
   // Cross-window profile detection: every profile switch broadcasts on the
   // `prefs` topic, so we refetch the active profile when the topic fires
   // instead of polling fetchProfiles() every second. The preset-lock gate
-  // still applies — a mid-transition push from our own mutation would
+  // still applies - a mid-transition push from our own mutation would
   // otherwise repaint stale state.
   useTopicCallback('prefs', serviceOnline, () => {
     if (Date.now() < presetLockUntilRef.current) return;
@@ -178,6 +178,18 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
       activeCoolingProfileRef.current = next;
       refreshCoolingConfig();
     })();
+  });
+
+  // Anything that mutates the cooling config (per-fan Manual / BIOS, curve
+  // edits, wire-DnD, preset apply) lands a "cooling" topic push from the
+  // service. The widget already listens on this topic; the main view needs
+  // the same wiring or the preset chip stays selected on Silent/Balanced/
+  // Turbo even after the backend has derived ActivePreset=custom from the
+  // per-fan change. The preset-lock gate guards against optimistic-update
+  // races the same way it does for the prefs topic above.
+  useTopicCallback('cooling', serviceOnline, () => {
+    if (Date.now() < presetLockUntilRef.current) return;
+    refreshCoolingConfig();
   });
 
   // Keep the curve sources' temperature values live so the select labels and

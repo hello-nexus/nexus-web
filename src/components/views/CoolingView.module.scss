@@ -562,6 +562,24 @@
 .fanInNub.nubConnected::before {
   background: var(--accent);
 }
+// Invisible hit-area extension. The visible nub stays small (so the wire
+// gutter doesn't look crowded), but the click/touch target reaches well
+// outside the ring so the user can grab and drag without pixel-hunting.
+// Hits inside the extended box trigger pointerdown on the parent nub.
+//
+// Reach is capped so the outer half of the hit area never leaves the
+// gutter the parent scroller exposes via overflow-clip-margin: visible
+// nub half-width + ::after inset must equal that margin or hits past the
+// edge get clipped. Vertical reach assumes the nub's parent uses
+// overflow: visible (.curveCardHeader / .fanDutyBar today); changing
+// those to overflow: hidden would silently shrink the touch target.
+.curveOutNub::after,
+.fanInNub::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+}
 
 // Footer row for the per-type editor body. Holds the preset Reset button
 // (when applicable) alongside Remove. Left-aligned so the centered chevron
