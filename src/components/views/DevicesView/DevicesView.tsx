@@ -12,6 +12,7 @@ import { DevicesSkeleton } from '../PageSkeleton/PageSkeleton';
 import { SupportedDevicesModal } from '../../common/SupportedDevicesModal/SupportedDevicesModal';
 import { PanelDeviceModal } from '../../common/DeviceModal/PanelDeviceModal';
 import { PeripheralModal } from '../../common/DeviceModal/PeripheralModal';
+import { KeebDeviceModal } from '../keeb/KeebDeviceModal';
 import styles from './DevicesView.module.scss';
 
 interface DevicesViewProps {
@@ -33,6 +34,7 @@ export function DevicesView({ serviceOnline, connectionState, initialOpenKey, on
   const [modalOpen, setModalOpen] = useState(false);
   const [panelModalOpen, setPanelModalOpen] = useState(false);
   const [panelModalDevice, setPanelModalDevice] = useState<PanelDevice | null>(null);
+  const [keebModalOpen, setKeebModalOpen] = useState(false);
   const [peripheralModal, setPeripheralModal] = useState<Peripheral | null>(null);
   const consumedInitialKeyRef = useRef<string | null>(null);
 
@@ -55,6 +57,10 @@ export function DevicesView({ serviceOnline, connectionState, initialOpenKey, on
   const availableAvailable = serviceOnline || webhidAvailable;
 
   const handleCardClick = (device: UnifiedDevice) => {
+    if (device.curatedId === 'keeb') {
+      setKeebModalOpen(true);
+      return;
+    }
     if (device.panelDevice) {
       setPanelModalDevice(device.panelDevice);
       setPanelModalOpen(true);
@@ -167,6 +173,11 @@ export function DevicesView({ serviceOnline, connectionState, initialOpenKey, on
       <PeripheralModal
         peripheral={peripheralModal}
         onClose={() => setPeripheralModal(null)}
+      />
+
+      <KeebDeviceModal
+        open={keebModalOpen}
+        onClose={() => setKeebModalOpen(false)}
       />
     </section>
   );

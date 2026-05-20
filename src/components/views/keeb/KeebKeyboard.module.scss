@@ -1,0 +1,101 @@
+// Keeb keyboard render — fixed-pixel layout matching the legacy nexus app's
+// keeb modal, scaled into the viewport via `zoom` on the wrapper.
+
+.keyboard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 24px;
+  border-radius: 12px;
+  background: var(--panel-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.08));
+  width: fit-content;
+  user-select: none;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: flex-end;
+  min-height: 50px;
+}
+
+.key {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid var(--accent, #6b8aff);
+  background: var(--panel-bg, rgba(20, 20, 24, 0.85));
+  color: var(--text, #e8e8ec);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: background 100ms ease, border-color 100ms ease, transform 100ms ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.key:hover {
+  background: var(--panel-card-bg-hover, rgba(255, 255, 255, 0.08));
+}
+
+.keySelected {
+  border-color: var(--accent, #ff8a3d);
+  background: var(--accent-bg, rgba(255, 138, 61, 0.15));
+}
+
+.keyDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.wheels {
+  position: absolute;
+  top: 8px;
+  right: 24px;
+  display: flex;
+  gap: 12px;
+}
+
+.wheel {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--accent, #6b8aff);
+  background: var(--panel-card-bg, rgba(255, 255, 255, 0.04));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text-dim, rgba(255, 255, 255, 0.6));
+  cursor: pointer;
+  transition: border-color 100ms ease, transform 100ms ease;
+}
+
+.wheelFocused {
+  border-color: var(--accent, #ff8a3d);
+  transform: scale(1.05);
+}
+
+.offlineBanner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  z-index: 2;
+  pointer-events: none;
+  font-size: 14px;
+  color: var(--text-dim, rgba(255, 255, 255, 0.7));
+}
