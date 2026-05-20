@@ -433,10 +433,15 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 1rem;
-  padding: 0.18rem 0;
-  border-bottom: 1px dotted var(--border);
+  padding: 0.22rem 0.5rem;
+  border-radius: var(--radius-xs, 4px);
 
-  &:last-child { border-bottom: none; }
+  // Zebra striping in place of per-row separators — easier to follow
+  // long sensor lists horizontally without the visual noise of a dotted
+  // line on every row.
+  &:nth-child(odd) {
+    background: color-mix(in srgb, var(--text) 4%, transparent);
+  }
 }
 
 .detailRowLabel {
