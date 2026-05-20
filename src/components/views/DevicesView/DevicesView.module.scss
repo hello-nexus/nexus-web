@@ -10,8 +10,9 @@
   position: relative;
 }
 
-// Mirrors the `browseBottom` tertiary action in LightingView so the two
-// "browse supported devices" affordances read as the same control.
+// Tertiary "browse supported devices" affordance on the Devices view.
+// Lighting now exposes the same modal via the OpenRGB indicator at the
+// bottom of its device pane.
 .catalogBtn {
   position: absolute;
   top: 0;
