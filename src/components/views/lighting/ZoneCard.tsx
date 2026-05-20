@@ -1,4 +1,4 @@
-import { Settings, Power, Eye, Scan } from 'lucide-react';
+import { Settings, Power, Eye } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -18,10 +18,8 @@ export function ZoneCard({
   displayName,
   selected,
   indent,
-  frameHidden,
   onSelect,
   onTogglePower,
-  onToggleFrame,
   onOpenSettings,
 }: {
   device: LightingDevice;
@@ -30,11 +28,8 @@ export function ZoneCard({
   selected: boolean;
   /** True when this card is a zone child rendered under a motherboard group header. */
   indent: boolean;
-  /** Whether this device's rectangle is currently hidden on the canvas. */
-  frameHidden: boolean;
   onSelect: () => void;
   onTogglePower: () => void;
-  onToggleFrame: () => void;
   onOpenSettings: () => void;
 }) {
   const { t } = useTranslation();
@@ -99,16 +94,6 @@ export function ZoneCard({
                 </button>
                 <button
                   type="button"
-                  className={`${styles.deviceSettingsBtn} ${frameHidden ? styles.deviceFrameBtnHidden : ''}`}
-                  title={t(frameHidden ? 'lighting.devices.showFrame' : 'lighting.devices.hideFrame')}
-                  aria-label={t(frameHidden ? 'lighting.devices.showFrame' : 'lighting.devices.hideFrame')}
-                  aria-pressed={frameHidden}
-                  onClick={e => { e.stopPropagation(); onToggleFrame(); }}
-                >
-                  <Scan />
-                </button>
-                <button
-                  type="button"
                   className={styles.deviceSettingsBtn}
                   title={t('lighting.ledMap.settings')}
                   aria-label={t('lighting.ledMap.settings')}
@@ -122,7 +107,7 @@ export function ZoneCard({
               type="button"
               role="switch"
               aria-checked={device.ledsOn}
-              className={`${styles.devicePowerBtn} ${device.ledsOn ? styles.devicePowerBtnOn : ''}`}
+              className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
               title={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
               aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
               onClick={e => { e.stopPropagation(); onTogglePower(); }}

@@ -11,13 +11,11 @@ import styles from '../LightingView.module.scss';
  * under a collapsible header; each zone renders as its own card so the user
  * can configure + control each physical strip independently.
  */
-export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onTogglePower, onToggleFrameVisibility, hiddenFrameIds, lightingOff, onOpenSettings }: {
+export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onTogglePower, lightingOff, onOpenSettings }: {
   devices: LightingDevice[];
   selectedDeviceId: string | null;
   onSelectDevice: (id: string | null) => void;
   onTogglePower: (id: string) => void;
-  onToggleFrameVisibility: (id: string) => void;
-  hiddenFrameIds: Set<string>;
   /** Whether the lighting mode is 'none' (off). Swaps the empty message. */
   lightingOff: boolean;
   onOpenSettings: (id: string) => void;
@@ -62,10 +60,8 @@ export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onToggl
                   device={d}
                   selected={d.id === selectedDeviceId}
                   indent={false}
-                  frameHidden={hiddenFrameIds.has(d.id)}
                   onSelect={() => onSelectDevice(d.id === selectedDeviceId ? null : d.id)}
                   onTogglePower={() => onTogglePower(d.id)}
-                  onToggleFrame={() => onToggleFrameVisibility(d.id)}
                   onOpenSettings={() => onOpenSettings(d.id)}
                 />
               );
@@ -79,10 +75,8 @@ export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onToggl
                     displayName={stripParentPrefix(z.name, g.parentName)}
                     selected={z.id === selectedDeviceId}
                     indent={true}
-                    frameHidden={hiddenFrameIds.has(z.id)}
                     onSelect={() => onSelectDevice(z.id === selectedDeviceId ? null : z.id)}
                     onTogglePower={() => onTogglePower(z.id)}
-                    onToggleFrame={() => onToggleFrameVisibility(z.id)}
                     onOpenSettings={() => onOpenSettings(z.id)}
                   />
                 ))}

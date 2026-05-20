@@ -18,14 +18,36 @@ function OpenRgbGlyph({ size = 14 }: { size?: number }) {
   );
 }
 
-export function RgbStatusCard({ rgbRunning }: { rgbRunning: boolean }) {
+export function RgbStatusCard({ rgbRunning, onClick, title }: {
+  rgbRunning: boolean;
+  /** When provided, the card renders as a button (opens the supported-devices modal). */
+  onClick?: () => void;
+  title?: string;
+}) {
+  const status = rgbRunning ? 'OpenRGB running' : 'OpenRGB not running';
+  const dot = (
+    <span className={`${styles.statusDot} ${rgbRunning ? styles.statusDotOnline : styles.statusDotOffline}`} />
+  );
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        className={styles.statusCard}
+        onClick={onClick}
+        title={title}
+        aria-label={title ?? status}
+      >
+        <OpenRgbGlyph />
+        <span className={styles.statusBadgeLabel}>OpenRGB</span>
+        {dot}
+      </button>
+    );
+  }
   return (
-    <div className={styles.statusCard}
-      role="status"
-      aria-label={rgbRunning ? 'OpenRGB running' : 'OpenRGB not running'}>
+    <div className={styles.statusCard} role="status" aria-label={status}>
       <OpenRgbGlyph />
       <span className={styles.statusBadgeLabel}>OpenRGB</span>
-      <span className={`${styles.statusDot} ${rgbRunning ? styles.statusDotOnline : styles.statusDotOffline}`} />
+      {dot}
     </div>
   );
 }

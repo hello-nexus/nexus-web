@@ -82,14 +82,14 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
   const [effectTemplates, setEffectTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [staticColor, setStaticColor] = useState<string>('#ff0000');
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
-  const [hiddenFrameIds, setHiddenFrameIds] = useState<Set<string>>(() => new Set());
-  const toggleFrameVisibility = useCallback((id: string) => {
-    setHiddenFrameIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }, []);
+  // Canvas hides the rectangle for any device whose LEDs are turned off, so
+  // "off" reads visually the same as "no frame on canvas" without a separate
+  // hide/show frame toggle.
+  const hiddenFrameIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const d of devices) if (!d.ledsOn) set.add(d.id);
+    return set;
+  }, [devices]);
 
   // LED map editor - lifted here so both the canvas settings button and the
   // ZoneCard settings button can open it.
@@ -684,7 +684,6 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
         <div className={styles.topBarRight}>
           <div className={styles.statusCardSlot}>
             <GlobalBrightnessSlider serviceOnline={serviceOnline} />
-            <RgbStatusCard rgbRunning={rgb.running} />
           </div>
           <RightPaneTabs
             active={activeRightTab}
@@ -750,17 +749,17 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
                 selectedDeviceId={selectedDeviceId}
                 onSelectDevice={handleSelectDevice}
                 onTogglePower={handleTogglePower}
-                onToggleFrameVisibility={toggleFrameVisibility}
-                hiddenFrameIds={hiddenFrameIds}
                 lightingOff={mode === 'none'}
                 onOpenSettings={handleOpenSettings}
               />
               {mode !== 'none' && (
                 <RescanDevicesButton rgbRunning={rgb.running} scanning={rgb.scanning} />
               )}
-              <button type="button" className={styles.browseBottom} onClick={() => setCatalogOpen(true)}>
-                {t('devices.supported.browse')}
-              </button>
+              <RgbStatusCard
+                rgbRunning={rgb.running}
+                onClick={() => setCatalogOpen(true)}
+                title={t('devices.supported.browse')}
+              />
             </>
           ) : (
             <div className={styles.effectTabBody}>

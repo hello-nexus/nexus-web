@@ -15,7 +15,7 @@
 .topBar {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   column-gap: 1rem;
   // Extend past the app shell's right-pad so the right column lines up flush
   // with the right pane below.
@@ -33,17 +33,14 @@
   padding-bottom: 1rem;
 }
 
-// Row hosting the global brightness slider + OpenRGB badge. The right column is
-// only 240px so slider + badge actually overflow; with justify-content:flex-end
-// the badge anchors to the right edge and the slider pushes leftward by the
-// gap distance. Wider gap = slider visibly further from the badge. Both are
-// flex-shrink:0 so the gap translates to real space, not slider compression.
-// Nudged up a few pixels so the row sits flush with the top of the view header.
+// Row hosting the master brightness slider on the top-right of the page. The
+// OpenRGB indicator that used to share this row has moved to the bottom of the
+// device pane (clicking it opens the supported-devices modal in the same slot
+// where the old "browse supported devices" button used to sit).
 .statusCardSlot {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 3rem;
   margin-top: -4px;
 
   > * { flex-shrink: 0; }
@@ -68,7 +65,7 @@
 }
 
 .globalBrightnessTrack {
-  width: 80px;
+  width: 140px;
   flex-shrink: 0;
 }
 
@@ -84,9 +81,9 @@
 
 .body {
   display: grid;
-  // Device column set to 240px - matches the effect-thumbnail grid cell
-  // width below so devices and effects read as consistent column widths.
-  grid-template-columns: 1fr 240px;
+  // Device column set to 300px - matches CoolingView's right-pane width so
+  // the device list / effect tab reads at the same width as the fan list.
+  grid-template-columns: 1fr 300px;
   grid-template-rows: minmax(0, 1fr);
   flex: 1;
   min-height: 0;
@@ -768,23 +765,24 @@
 // ── Device Panel ────────────────────────────────────────────────────────────
 
 .devicePanel {
-  // Tighten the left inset so each device card has more width to show the
-  // zone name + LED-count editor + action buttons without wrapping.
-  padding: 0.5rem 1rem 0.5rem 0.5rem;
+  // Horizontal padding mirrors CoolingView's .fanPanel (0 1rem 0 2.5rem) so
+  // device cards land at the same on-screen width as cooling fan cards.
+  padding: 0.5rem 1rem 0.5rem 2.5rem;
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
 }
 
 // Bottom-of-panel labelled rescan. Sits between the scrollable device list
-// and the "browse supported devices" link so both footer actions read as a
-// pair. Same dashed-border pattern as browseBottom so they balance visually.
+// and the OpenRGB indicator (which doubles as the supported-devices
+// catalogue trigger) so both footer actions read as a pair. Same dashed-
+// border pattern as the indicator below so they balance visually.
 .rescanDevicesBtn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  margin: 0.4rem 1rem 0;
+  margin: 0.4rem 1rem 0 2.5rem;
   padding: 0.45rem 0.7rem;
   background: transparent;
   border: 1px solid var(--border);
@@ -807,17 +805,39 @@
   }
 }
 
+// Bottom-of-pane OpenRGB indicator. Renders as either a plain badge (status
+// only) or, when an onClick is provided, a button that opens the supported-
+// devices catalogue. Sits where the old "browse supported devices" link used
+// to live - same dashed footer treatment so it pairs with the rescan button
+// above it.
 .statusCard {
-  width: fit-content;
-  padding: 0.28rem 0.7rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  margin: 0.5rem 1rem 0.85rem 2.5rem;
+  padding: 0.4rem 0.7rem;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 0.75rem;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
   cursor: default;
-  color: var(--text-dim);
+  flex-shrink: 0;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+
+  // Button variant lights up on hover the same way the old browse-supported
+  // button did, so the affordance is unchanged.
+  &[type='button'] {
+    cursor: pointer;
+
+    &:hover {
+      color: var(--text);
+      border-color: var(--accent);
+      border-style: solid;
+      background: var(--accent-soft);
+    }
+  }
 }
 
 .statusBadgeLabel {
@@ -825,26 +845,6 @@
   font-weight: 600;
   color: var(--text);
   letter-spacing: 0.02em;
-}
-
-.browseBottom {
-  margin: 0.5rem 1rem 0.85rem;
-  padding: 0.4rem 0.6rem;
-  background: transparent;
-  border: 1px dashed var(--border-strong);
-  border-radius: 4px;
-  color: var(--text-dim);
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
-  flex-shrink: 0;
-
-  &:hover {
-    color: var(--text);
-    border-color: var(--accent);
-    border-style: solid;
-    background: var(--accent-soft);
-  }
 }
 
 .rescanIconSpinning {
@@ -966,43 +966,12 @@
   svg { width: 13px; height: 13px; }
 }
 
-.devicePowerBtn {
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-faded);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color var(--ease-fast), background var(--ease-fast);
-
-  &:hover {
-    color: var(--text);
-    background: var(--bg-card-hover);
-  }
-
-  svg { width: 13px; height: 13px; }
-}
-
-.devicePowerBtnOn {
-  color: var(--accent);
-
-  &:hover {
-    color: var(--accent-glow);
-    background: var(--accent-soft);
-  }
-}
-
-// Frame-hidden state: dim + faded so "no frame on canvas" reads at a glance.
-// Neutral when the frame is visible - matches the dormant look of the other
-// card action icons until hovered.
-.deviceFrameBtnHidden {
-  color: var(--text-faded);
-  opacity: 0.6;
+// Stays visible (overrides .deviceSettingsBtn's opacity:0) when the device is
+// off, so the user always sees a way to turn it back on without having to
+// hover the card. When the device is on the button uses the default
+// .deviceSettingsBtn fade-in-on-hover behaviour like every other icon.
+.devicePowerBtnPersistent {
+  opacity: 1;
 }
 
 .deviceName {
@@ -1122,6 +1091,10 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  // Match the devicePanel's 2.5rem left inset (children carry their own ~1rem
+  // horizontal padding, so the parent supplies the extra 1.5rem so the effect
+  // controls line up with the device cards' left edge).
+  padding-left: 1.5rem;
 }
 
 .effectControls {
