@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ComponentType, LazyExoticComponent } from 'react';
-import type { DashboardSectionNavigate } from '../PanelApp';
+import type { DashboardSectionNavigate } from '../panelLayoutHelpers';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
 
 export interface WidgetProps {

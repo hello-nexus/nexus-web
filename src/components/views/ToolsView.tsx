@@ -1,12 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import type { ConnectionState } from '../../hooks/useServiceStatus';
 import { fetchService } from '../../api/service';
 import { useTranslation } from '../../lib/i18n';
 import { ServiceRequired } from './ServiceRequired';
 import { GenericSkeleton } from './PageSkeleton/PageSkeleton';
-import { Card } from '../Card/Card';
-import { Button } from '../Button/Button';
-import { StorybookModal } from '../../storybook/StorybookModal';
+import { Card } from '../common/Card/Card';
+import { Button } from '../common/Button/Button';
+// Storybook is a dev-only debug surface and must NOT ship to production.
+// `import.meta.env.DEV` is a compile-time constant that Vite folds to
+// `false` in production; the conditional short-circuits, the lazy()
+// callback never executes, and rolldown drops the dynamic import as
+// dead code so the storybook chunk is omitted from prod builds.
+const StorybookModal = import.meta.env.DEV
+  ? lazy(() =>
+      import('../../storybook/StorybookModal').then(m => ({ default: m.StorybookModal })),
+    )
+  : null;
 import {
   formatPanelInches,
   getAllSimulatedPanels,
@@ -21,7 +30,7 @@ import {
 } from '../../lib/panelSimulation';
 import { FontDebugCard } from './FontDebugCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
-import { DeviceModal } from '../DeviceModal/DeviceModal';
+import { DeviceModal } from '../common/DeviceModal/DeviceModal';
 import styles from './ToolsView.module.scss';
 
 interface ToolsViewProps {
@@ -57,7 +66,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
       <h2 className={styles.title}>{t('tools.title')}</h2>
       <p className={styles.subtitle}>{t('tools.subtitle')}</p>
       <div className={styles.grid}>
-        <StorybookCard />
+        {import.meta.env.DEV && <StorybookCard />}
         <WidgetSdkCard />
         <InstallDefaultsCard />
         <PawnIoCard />
@@ -76,7 +85,11 @@ function StorybookCard() {
     <Card title={t('tools.storybook')}>
       <span className={styles.dim}>{t('tools.storybook.label')}</span>
       <Button tone="accent" size="sm" onClick={() => setOpen(true)}>{t('tools.storybook.open')}</Button>
-      <StorybookModal open={open} onClose={() => setOpen(false)} />
+      {open && StorybookModal && (
+        <Suspense fallback={null}>
+          <StorybookModal open={open} onClose={() => setOpen(false)} />
+        </Suspense>
+      )}
     </Card>
   );
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { EmptyState } from '../../../components/EmptyState/EmptyState';
+import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import styles from './PanelWidgetChrome.module.scss';
 
 type StatusTone = 'online' | 'away' | 'busy' | 'offline';

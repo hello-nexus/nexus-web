@@ -8,7 +8,7 @@ import { useMedia, controlMedia, type MediaSession } from '../../../hooks/useMed
 import { useSystemVolume } from '../../../hooks/useSystemVolume';
 import { fetchServiceBlob } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
-import { EmptyState } from '../../../components/EmptyState/EmptyState';
+import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import type { WidgetProps } from '../types';
 import { surfaceSupportsTouch } from '../../types';
 import { PanelMixerSlider } from '../common/PanelMixerSlider';

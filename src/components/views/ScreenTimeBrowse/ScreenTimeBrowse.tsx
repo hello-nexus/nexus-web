@@ -3,8 +3,8 @@ import { useTranslation } from '../../../lib/i18n';
 import * as monitoringStore from '../../../lib/monitoringStore';
 import { useScreenTime } from '../../../hooks/useScreenTime';
 import { fetchService } from '../../../api/service';
-import { DatePicker } from '../../DatePicker/DatePicker';
-import { Tabs } from '../../Tabs/Tabs';
+import { DatePicker } from '../../common/DatePicker/DatePicker';
+import { Tabs } from '../../common/Tabs/Tabs';
 import {
   deleteScreenTimeApp,
   useScreenTimeApp,

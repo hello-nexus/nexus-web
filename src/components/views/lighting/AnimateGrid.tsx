@@ -5,7 +5,7 @@ import {
   EFFECTS, EFFECT_CATEGORIES, categoryOf,
   type EffectCategory,
 } from '../../../types/lighting';
-import { EffectCard } from '../../EffectCard/EffectCard';
+import { EffectCard } from '../../common/EffectCard/EffectCard';
 import styles from '../LightingView.module.scss';
 
 type Filter = EffectCategory | 'all';

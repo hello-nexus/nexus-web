@@ -1,4 +1,4 @@
-import { Tabs } from '../../Tabs/Tabs';
+import { Tabs } from '../../common/Tabs/Tabs';
 import { useTranslation } from '../../../lib/i18n';
 import styles from '../LightingView.module.scss';
 

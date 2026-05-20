@@ -5,13 +5,13 @@ import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnified
 import { type Peripheral } from '../../../hooks/usePeripherals';
 import { useTranslation } from '../../../lib/i18n';
 import type { PanelDevice } from '../../../panel/panelDevices';
-import { ViewHeader } from '../../ViewHeader/ViewHeader';
-import { Button } from '../../Button/Button';
+import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
+import { Button } from '../../common/Button/Button';
 import { ServiceRequired } from '../ServiceRequired';
 import { DevicesSkeleton } from '../PageSkeleton/PageSkeleton';
-import { SupportedDevicesModal } from '../../SupportedDevicesModal/SupportedDevicesModal';
-import { PanelDeviceModal } from '../../DeviceModal/PanelDeviceModal';
-import { PeripheralModal } from '../../DeviceModal/PeripheralModal';
+import { SupportedDevicesModal } from '../../common/SupportedDevicesModal/SupportedDevicesModal';
+import { PanelDeviceModal } from '../../common/DeviceModal/PanelDeviceModal';
+import { PeripheralModal } from '../../common/DeviceModal/PeripheralModal';
 import styles from './DevicesView.module.scss';
 
 interface DevicesViewProps {

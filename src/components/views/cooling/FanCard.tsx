@@ -2,8 +2,8 @@ import { memo, useRef, useState } from 'react';
 import type { FanChannel } from '../../../api/cooling';
 import { useTranslation } from '../../../lib/i18n';
 import type { CurveDef, FanState } from '../../../types/cooling';
-import { EditableText } from '../../Editable/EditableText';
-import { Select } from '../../Select/Select';
+import { EditableText } from '../../common/Editable/EditableText';
+import { Select } from '../../common/Select/Select';
 import styles from '../CoolingView.module.scss';
 
 export interface FanCardDrag {

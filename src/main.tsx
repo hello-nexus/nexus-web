@@ -4,7 +4,7 @@ import './lib/polyfills';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import { ContextMenuManager } from './components/ContextMenu/ContextMenuManager';
+import { ContextMenuManager } from './components/common/ContextMenu/ContextMenuManager';
 import './styles/variables.scss';
 import './styles/global.scss';
 import { loadSettings, applyThemeMode, applyAccentColor, watchSystemTheme } from './lib/settings';

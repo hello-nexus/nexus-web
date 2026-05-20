@@ -6,9 +6,9 @@ import {
 import { fetchServiceBlob } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
 import type { LightingMode } from '../../../types/lighting';
-import { EffectCard } from '../../EffectCard/EffectCard';
-import { ConfirmModal } from '../../ConfirmModal/ConfirmModal';
-import { Select } from '../../Select/Select';
+import { EffectCard } from '../../common/EffectCard/EffectCard';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { Select } from '../../common/Select/Select';
 import { SCREEN_FILTERS, matchScreenFilter, screenFilterByKey, type ScreenFilterKey } from './screenFilters';
 import styles from '../LightingView.module.scss';
 

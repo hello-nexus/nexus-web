@@ -11,7 +11,7 @@ import { Trash2, X } from 'lucide-react';
 import { lookupWidget, sizesForSurface } from '../registry';
 import { SIZE_ICONS } from './SizeIcons';
 import { WidgetControlGroup } from './WidgetControlGroup';
-import { IconLabelButton } from '../../../components/IconLabelButton/IconLabelButton';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import {
   slotCountOptionsForSize,
   resolvedSlotCountForSize,

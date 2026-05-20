@@ -1,0 +1,147 @@
+@use '../../../styles/scrollbar' as *;
+
+.modal {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: min(480px, 100%);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  transition: width 250ms ease;
+}
+
+.modalWide {
+  width: calc(100vw - 4rem);
+  max-width: 1200px;
+  max-height: 90vh;
+}
+
+.modalLarge {
+  width: min(980px, calc(100vw - 4rem));
+  max-height: 90vh;
+}
+
+.modalFullscreen {
+  width: calc(100vw - 3rem);
+  height: calc(100vh - 3rem);
+  max-height: none;
+}
+
+.bodyWide {
+  flex-direction: row;
+  gap: 1.5rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bodyFullscreen {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1.25rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.icon {
+  display: flex;
+  color: var(--accent);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--ease);
+
+  &:hover { background: var(--bg-card-hover); }
+}
+
+.body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  @include scrollbar-visible;
+}
+
+// Reusable row layout for settings inside the modal body.
+// Each row: label on left, control on right.
+:global(.device-modal-row) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  min-height: 2.25rem;
+}
+
+:global(.device-modal-label) {
+  font-size: var(--type-body);
+  color: var(--text);
+}
+
+:global(.device-modal-hint) {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+}
+
+:global(.device-modal-section) {
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+:global(.device-modal-select) {
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: var(--type-small);
+  cursor: pointer;
+
+  &:focus { outline: 2px solid var(--accent-soft); }
+}

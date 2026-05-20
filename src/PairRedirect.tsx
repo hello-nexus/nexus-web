@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { APP_STORE_URL } from './lib/appStore';
+import { QosAppIcon } from './components/icons/QosAppIcon';
 
 const APP_LINK_PROBE_MS = 1500;
 const CUSTOM_SCHEME_PROBE_MS = 1500;
@@ -190,16 +191,7 @@ function Sub({ children, style }: { children: React.ReactNode; style?: React.CSS
 function Logo() {
   return (
     <div style={logoStyle}>
-      <svg width="36" height="36" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <rect x="6" y="4" width="20" height="24" rx="3" fill="currentColor" />
-        <rect x="2" y="9" width="5" height="2.5" rx="0.8" fill="currentColor" />
-        <rect x="2" y="14.75" width="5" height="2.5" rx="0.8" fill="currentColor" />
-        <rect x="2" y="20.5" width="5" height="2.5" rx="0.8" fill="currentColor" />
-        <rect x="25" y="9" width="5" height="2.5" rx="0.8" fill="currentColor" />
-        <rect x="25" y="14.75" width="5" height="2.5" rx="0.8" fill="currentColor" />
-        <rect x="25" y="20.5" width="5" height="2.5" rx="0.8" fill="currentColor" />
-        <path d="M18.5 7L10 17h5l-1.5 8L22 15h-5l1.5-8z" fill="#0a0a10" />
-      </svg>
+      <QosAppIcon size={36} />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 // PanelEmbeddedContent (dashboard) but feeds layout + theme + selection
 // from the parent via postMessage instead of usePanelLayout/usePanelTheme.
 
-import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBoundary';
 import { PanelContent } from '../PanelApp';
 import { useSimulatorLayoutState } from './useSimulatorLayoutState';
 

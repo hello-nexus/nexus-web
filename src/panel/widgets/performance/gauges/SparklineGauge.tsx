@@ -1,4 +1,4 @@
-import { Sparkline } from '../../../../components/Sparkline/Sparkline';
+import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { PERF_HISTORY_SAMPLES } from '../../common/useHistory';
 import { splitFormatted } from './format';
 import type { GaugeProps } from './types';

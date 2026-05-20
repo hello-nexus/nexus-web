@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState, type CSSProperties } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { SearchInput } from '../../components/SearchInput/SearchInput';
+import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { useTranslation } from '../../lib/i18n';
 import type { PanelSurface, PanelWidgetSize } from '../types';
 import { getCatalogEntries, pickerSizeFor, widgetAvailableForSurface } from '../widgets/registry';

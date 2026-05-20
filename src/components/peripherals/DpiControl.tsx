@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { commitDpi } from '../../lib/peripheralBackend';
 import type { Peripheral, DpiState } from '../../hooks/usePeripherals';
-import { Slider } from '../Slider/Slider';
+import { Slider } from '../common/Slider/Slider';
 import styles from './peripherals.module.scss';
 
 /*

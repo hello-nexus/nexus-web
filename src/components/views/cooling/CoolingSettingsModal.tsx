@@ -5,8 +5,8 @@ import { useTranslation } from '../../../lib/i18n';
 import {
   defaultCpuTempSensor, defaultGpuTempSensor, listTempSensors,
 } from '../../../lib/tempSensorResolver';
-import { Overlay } from '../../Overlay/Overlay';
-import { Select } from '../../Select/Select';
+import { Overlay } from '../../common/Overlay/Overlay';
+import { Select } from '../../common/Select/Select';
 import styles from './CoolingSettingsModal.module.scss';
 
 interface CoolingSettingsModalProps {

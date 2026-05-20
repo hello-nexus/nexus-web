@@ -4,7 +4,7 @@ import { useTranslation } from '../../lib/i18n';
 import type { ConnectionState } from '../../hooks/useServiceStatus';
 import { detectOS, isSafari, type DetectedOS } from '../../lib/platform';
 import { DOWNLOAD_URLS, ALL_DOWNLOADABLE_OS, type DownloadableOS } from '../../lib/downloads';
-import { ServiceLaunchButton } from '../ServiceLaunchButton/ServiceLaunchButton';
+import { ServiceLaunchButton } from '../common/ServiceLaunchButton/ServiceLaunchButton';
 import styles from './Placeholder.module.scss';
 
 interface ServiceRequiredProps {

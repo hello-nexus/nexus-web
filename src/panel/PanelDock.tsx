@@ -1,4 +1,4 @@
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { useTranslation } from '../lib/i18n';
 import { lookupWidget } from './widgets/registry';
 import { WidgetCellLabel } from './widgets/common/WidgetCellLabel';

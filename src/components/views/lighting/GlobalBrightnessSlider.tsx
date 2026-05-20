@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sun, SunDim } from 'lucide-react';
 import { fetchGlobalBrightness, setGlobalBrightness } from '../../../api/lighting';
-import { Slider } from '../../Slider/Slider';
+import { Slider } from '../../common/Slider/Slider';
 import { useThrottle } from '../../../hooks/cadence';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';

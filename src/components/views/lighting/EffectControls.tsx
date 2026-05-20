@@ -1,9 +1,9 @@
 import { memo } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { EFFECTS, type EffectState, type EffectTemplateBundle } from '../../../types/lighting';
-import { Slider } from '../../Slider/Slider';
-import { PaletteRing } from '../../PaletteRing/PaletteRing';
-import { EffectTemplateSelector } from '../../EffectTemplateSelector/EffectTemplateSelector';
+import { Slider } from '../../common/Slider/Slider';
+import { PaletteRing } from '../../common/PaletteRing/PaletteRing';
+import { EffectTemplateSelector } from '../../common/EffectTemplateSelector/EffectTemplateSelector';
 import styles from '../LightingView.module.scss';
 
 /**

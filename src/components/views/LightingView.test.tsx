@@ -65,7 +65,7 @@ vi.mock('../../api/lighting', async importOriginal => {
   };
 });
 
-vi.mock('../ViewHeader/ViewHeader', () => ({
+vi.mock('../common/ViewHeader/ViewHeader', () => ({
   ViewHeader: () => <div data-testid="view-header" />,
 }));
 
@@ -77,11 +77,11 @@ vi.mock('./PageSkeleton/PageSkeleton', () => ({
   LightingSkeleton: () => <div data-testid="lighting-skeleton" />,
 }));
 
-vi.mock('../DeviceCanvas/DeviceCanvas', () => ({
+vi.mock('../common/DeviceCanvas/DeviceCanvas', () => ({
   DeviceCanvas: () => <div data-testid="device-canvas" />,
 }));
 
-vi.mock('../SupportedDevicesModal/SupportedDevicesModal', () => ({
+vi.mock('../common/SupportedDevicesModal/SupportedDevicesModal', () => ({
   SupportedDevicesModal: () => null,
 }));
 

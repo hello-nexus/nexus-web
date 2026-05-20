@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sun, Monitor } from 'lucide-react';
 import { fetchDisplays, fetchDisplayBrightness, setDisplayBrightness, type Display } from '../../../api/displays';
-import { EmptyState } from '../../../components/EmptyState/EmptyState';
+import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { PanelMixerSlider } from '../common/PanelMixerSlider';
 import type { WidgetProps } from '../types';
 import styles from './DisplaysWidget.module.scss';

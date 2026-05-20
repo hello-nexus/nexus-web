@@ -1,7 +1,7 @@
 import { useTranslation } from '../../../lib/i18n';
 import { EFFECTS, type EffectState, type EffectTemplateBundle, type LightingMode } from '../../../types/lighting';
-import { PaletteRing } from '../../PaletteRing/PaletteRing';
-import { Slider } from '../../Slider/Slider';
+import { PaletteRing } from '../../common/PaletteRing/PaletteRing';
+import { Slider } from '../../common/Slider/Slider';
 import { EffectControls } from './EffectControls';
 import styles from '../LightingView.module.scss';
 

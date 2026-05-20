@@ -15,11 +15,11 @@ import type { ConnectionState } from '../../hooks/useServiceStatus';
 import { useTranslation } from '../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../lib/lightingModeIcons';
-import { ViewHeader } from '../ViewHeader/ViewHeader';
+import { ViewHeader } from '../common/ViewHeader/ViewHeader';
 import { ServiceRequired } from './ServiceRequired';
 import { LightingSkeleton } from './PageSkeleton/PageSkeleton';
-import { DeviceCanvas } from '../DeviceCanvas/DeviceCanvas';
-import { SupportedDevicesModal } from '../SupportedDevicesModal/SupportedDevicesModal';
+import { DeviceCanvas } from '../common/DeviceCanvas/DeviceCanvas';
+import { SupportedDevicesModal } from '../common/SupportedDevicesModal/SupportedDevicesModal';
 import { useUsbDevices } from '../../hooks/useUsbDevices';
 import {
   EFFECTS, MODES, defaultStateFor,

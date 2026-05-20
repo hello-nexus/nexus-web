@@ -5,12 +5,12 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { PanelEmbeddedContent } from '../../../panel/PanelApp';
-import { ViewHeader } from '../../ViewHeader/ViewHeader';
+import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { OverlayWidgetsModal } from './OverlayWidgetsModal';
 import { listOverlayWidgets } from '../../../api/overlay';
-import type { DashboardSectionNavigate } from '../../../panel/PanelApp';
+import type { DashboardSectionNavigate } from '../../../panel/panelLayoutHelpers';
 import styles from './DashboardView.module.scss';
 
 interface DashboardViewProps {

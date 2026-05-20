@@ -9,7 +9,7 @@ import { fetchService, postService } from '../api/service';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { sizesForSurface, WIDGET_REGISTRY } from '../panel/widgets/registry';
 import { normalizePanelWidgetSize, type PanelConfigValue, type PanelWidget, type PanelWidgetSize } from '../panel/types';
-import { buildEmbeddedPanelThemeVars } from '../panel/PanelApp';
+import { buildEmbeddedPanelThemeVars } from '../panel/panelTheme';
 import { applyAccentColor, applyThemeMode, type ThemeMode } from '../lib/settings';
 import { WidgetContextMenu } from '../panel/widgets/common/WidgetContextMenu';
 import { WidgetEditSheet } from '../panel/widgets/common/WidgetEditSheet';

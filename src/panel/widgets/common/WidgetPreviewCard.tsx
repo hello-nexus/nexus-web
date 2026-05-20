@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Boxes } from 'lucide-react';
-import { ErrorBoundary } from '../../../components/ErrorBoundary';
+import { ErrorBoundary } from '../../../components/common/ErrorBoundary/ErrorBoundary';
 import { lookupWidget } from '../registry';
 import { sizeToSpan } from '../../engine/grid';
 import { isMarketplaceType } from '../../../widgets/marketplaceRegistry';

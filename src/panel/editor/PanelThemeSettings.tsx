@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { EffectCard } from '../../components/EffectCard/EffectCard';
-import { EffectTemplateSelector } from '../../components/EffectTemplateSelector/EffectTemplateSelector';
-import { ColorPickerWithPresets } from '../../components/ColorPickerWithPresets/ColorPickerWithPresets';
-import { Slider } from '../../components/Slider/Slider';
-import { Tabs } from '../../components/Tabs/Tabs';
-import { Toggle } from '../../components/Toggle/Toggle';
+import { EffectCard } from '../../components/common/EffectCard/EffectCard';
+import { EffectTemplateSelector } from '../../components/common/EffectTemplateSelector/EffectTemplateSelector';
+import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
+import { Slider } from '../../components/common/Slider/Slider';
+import { Tabs } from '../../components/common/Tabs/Tabs';
+import { Toggle } from '../../components/common/Toggle/Toggle';
 import { fetchServiceBlob } from '../../api/service';
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';

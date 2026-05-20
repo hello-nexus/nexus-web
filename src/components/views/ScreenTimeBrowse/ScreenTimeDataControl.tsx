@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
-import { ConfirmModal } from '../../ConfirmModal/ConfirmModal';
-import { DatePicker } from '../../DatePicker/DatePicker';
-import { DeviceModal } from '../../DeviceModal/DeviceModal';
-import { Toggle } from '../../Toggle/Toggle';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { DatePicker } from '../../common/DatePicker/DatePicker';
+import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
+import { Toggle } from '../../common/Toggle/Toggle';
 import {
   deleteScreenTimeAll,
   deleteScreenTimeDay,

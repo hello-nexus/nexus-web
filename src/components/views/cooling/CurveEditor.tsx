@@ -3,11 +3,11 @@ import { Minus, TrendingUp, Activity, Combine, Trash2, RotateCcw, ChevronDown, C
 import type { CurvePoint, TemperatureSource } from '../../../api/cooling';
 import { useTranslation } from '../../../lib/i18n';
 import type { CurveDef, CurveType, MixFn } from '../../../types/cooling';
-import { EditableText } from '../../Editable/EditableText';
-import { HoverTooltip } from '../../HoverTooltip/HoverTooltip';
-import { Slider } from '../../Slider/Slider';
-import { RangeSlider } from '../../Slider/RangeSlider';
-import { Select } from '../../Select/Select';
+import { EditableText } from '../../common/Editable/EditableText';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
+import { Slider } from '../../common/Slider/Slider';
+import { RangeSlider } from '../../common/Slider/RangeSlider';
+import { Select } from '../../common/Select/Select';
 import { presetIconFor, isPresetCurveDirty } from './coolingPresets';
 import styles from '../CoolingView.module.scss';
 

@@ -1,44 +1,44 @@
 import { useRef, useState, type FC } from 'react';
 import { Monitor, Palette, Sparkles, X, Plus, Settings, Download } from 'lucide-react';
-import { ViewHeader } from '../components/ViewHeader/ViewHeader';
-import { Sparkline } from '../components/Sparkline/Sparkline';
-import { RankedList } from '../components/RankedList/RankedList';
-import { SensorCard } from '../components/SensorCard/SensorCard';
-import { Card } from '../components/Card/Card';
-import { InfoList, InfoRow } from '../components/InfoList/InfoList';
+import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
+import { Sparkline } from '../components/common/Sparkline/Sparkline';
+import { RankedList } from '../components/common/RankedList/RankedList';
+import { SensorCard } from '../components/common/SensorCard/SensorCard';
+import { Card } from '../components/common/Card/Card';
+import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
 import { BatteryBar } from '../components/peripherals/BatteryBar';
-import { Slider } from '../components/Slider/Slider';
-import { RangeSlider } from '../components/Slider/RangeSlider';
-import { EditableText } from '../components/Editable/EditableText';
-import { EditableNumber } from '../components/Editable/EditableNumber';
-import { HsvPicker } from '../components/HsvPicker/HsvPicker';
-import { PaletteRing } from '../components/PaletteRing/PaletteRing';
-import { PresetSwatch } from '../components/PresetSwatch/PresetSwatch';
-import { EffectTemplateSelector } from '../components/EffectTemplateSelector/EffectTemplateSelector';
-import { DeviceModal } from '../components/DeviceModal/DeviceModal';
-import { CardDeleteButton } from '../components/CardDeleteButton/CardDeleteButton';
-import { InfoTooltip } from '../components/InfoTooltip/InfoTooltip';
-import { HoverTooltip } from '../components/HoverTooltip/HoverTooltip';
-import { Popover } from '../components/Popover/Popover';
-import { DatePicker } from '../components/DatePicker/DatePicker';
-import { EffectCard } from '../components/EffectCard/EffectCard';
+import { Slider } from '../components/common/Slider/Slider';
+import { RangeSlider } from '../components/common/Slider/RangeSlider';
+import { EditableText } from '../components/common/Editable/EditableText';
+import { EditableNumber } from '../components/common/Editable/EditableNumber';
+import { HsvPicker } from '../components/common/HsvPicker/HsvPicker';
+import { PaletteRing } from '../components/common/PaletteRing/PaletteRing';
+import { PresetSwatch } from '../components/common/PresetSwatch/PresetSwatch';
+import { EffectTemplateSelector } from '../components/common/EffectTemplateSelector/EffectTemplateSelector';
+import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
+import { CardDeleteButton } from '../components/common/CardDeleteButton/CardDeleteButton';
+import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
+import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
+import { Popover } from '../components/common/Popover/Popover';
+import { DatePicker } from '../components/common/DatePicker/DatePicker';
+import { EffectCard } from '../components/common/EffectCard/EffectCard';
 import { EffectControls } from '../components/views/lighting/EffectControls';
-import { Tabs } from '../components/Tabs/Tabs';
-import { ConfirmModal } from '../components/ConfirmModal/ConfirmModal';
-import { PromptModal } from '../components/PromptModal/PromptModal';
-import { UsageBar } from '../components/UsageBar/UsageBar';
-import { CapacityBar } from '../components/CapacityBar/CapacityBar';
-import { StackedChart } from '../components/StackedChart/StackedChart';
-import { SupportedDevicesModal } from '../components/SupportedDevicesModal/SupportedDevicesModal';
-import { Overlay } from '../components/Overlay/Overlay';
-import { ColorPickerWithPresets } from '../components/ColorPickerWithPresets/ColorPickerWithPresets';
-import { SearchInput } from '../components/SearchInput/SearchInput';
-import { Toggle } from '../components/Toggle/Toggle';
-import { EmptyState } from '../components/EmptyState/EmptyState';
-import { Select } from '../components/Select/Select';
-import { IconLabelButton } from '../components/IconLabelButton/IconLabelButton';
-import { Button } from '../components/Button/Button';
-import { WidgetHeader } from '../components/WidgetHeader/WidgetHeader';
+import { Tabs } from '../components/common/Tabs/Tabs';
+import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
+import { PromptModal } from '../components/common/PromptModal/PromptModal';
+import { UsageBar } from '../components/common/UsageBar/UsageBar';
+import { CapacityBar } from '../components/common/CapacityBar/CapacityBar';
+import { StackedChart } from '../components/common/StackedChart/StackedChart';
+import { SupportedDevicesModal } from '../components/common/SupportedDevicesModal/SupportedDevicesModal';
+import { Overlay } from '../components/common/Overlay/Overlay';
+import { ColorPickerWithPresets } from '../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
+import { SearchInput } from '../components/common/SearchInput/SearchInput';
+import { Toggle } from '../components/common/Toggle/Toggle';
+import { EmptyState } from '../components/common/EmptyState/EmptyState';
+import { Select } from '../components/common/Select/Select';
+import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
+import { Button } from '../components/common/Button/Button';
+import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
 import { defaultStateFor, type EffectState, type EffectTemplateBundle } from '../types/lighting';
 import { buildDefaultTemplates } from '../types/lightingTemplates';
@@ -773,71 +773,71 @@ export const REGISTRY: StorybookEntry[] = [
   // ── Inputs ────────────────────────────────────────────────────────────
   {
     name: 'Slider (inline)', category: 'inputs',
-    filePath: 'src/components/Slider/Slider.tsx',
+    filePath: 'src/components/common/Slider/Slider.tsx',
     description: 'Inline label | track | value layout. Default orientation. Used by ScreenControls and any horizontal control row.', Preview: PreviewSliderInline,
   },
   {
     name: 'Slider (stacked, editable, zero marker)', category: 'inputs',
-    filePath: 'src/components/Slider/Slider.tsx',
+    filePath: 'src/components/common/Slider/Slider.tsx',
     description: 'Vertical layout with click-to-edit value and an optional tick at zero. Drives every animate-mode shader uniform in the Lighting drawer.', Preview: PreviewSliderStacked,
     notes: 'Click the value to type a precise number. Drag updates live; pointer release fires onCommit.',
   },
   {
     name: 'Slider (formatted)', category: 'inputs',
-    filePath: 'src/components/Slider/Slider.tsx',
+    filePath: 'src/components/common/Slider/Slider.tsx',
     description: 'Same Slider with a formatValue function for non-integer or unit-suffixed display. Used for response time, percent labels, etc.', Preview: PreviewSliderFormatted,
   },
   {
     name: 'Slider (showRange)', category: 'inputs',
-    filePath: 'src/components/Slider/Slider.tsx',
+    filePath: 'src/components/common/Slider/Slider.tsx',
     description: 'Stacked slider with min and max printed under the track. Used by DpiControl and any range-bound control where the user needs to see the bounds.', Preview: PreviewSliderRange,
   },
   {
     name: 'Slider (trackFill)', category: 'inputs',
-    filePath: 'src/components/Slider/Slider.tsx',
+    filePath: 'src/components/common/Slider/Slider.tsx',
     description: 'Slider with an accent fill painted from 0 up to the trackFill percent, emphasising "level" semantics. Used for monitor brightness (DisplaysWidget), Y70 brightness (Y70Modal), and the panel background opacity.', Preview: PreviewSliderTrackFill,
     notes: 'Set trackFill to the same numeric value as the slider value to draw a brightness/volume-style fill. Works in any orientation.',
   },
   {
     name: 'RangeSlider (temperature)', category: 'inputs',
-    filePath: 'src/components/Slider/RangeSlider.tsx',
+    filePath: 'src/components/common/Slider/RangeSlider.tsx',
     description: 'Dual-knob slider. Two thumbs with an accent band painted between them. Used in the cooling fan-curve linear band for temperature.', Preview: PreviewRangeSliderTemp,
     notes: 'minGap defaults to 10% of (max - min). Active knob clamps at the gap; the other knob is not pushed. Track-click-to-snap is disabled in dual-knob mode.',
   },
   {
     name: 'RangeSlider (speed)', category: 'inputs',
-    filePath: 'src/components/Slider/RangeSlider.tsx',
+    filePath: 'src/components/common/Slider/RangeSlider.tsx',
     description: 'Same RangeSlider primitive with a percent formatter. Used in the cooling fan-curve linear band for speed.', Preview: PreviewRangeSliderSpeed,
   },
   {
     name: 'SearchInput', category: 'inputs',
-    filePath: 'src/components/SearchInput/SearchInput.tsx',
+    filePath: 'src/components/common/SearchInput/SearchInput.tsx',
     description: 'Themed text input with a leading search icon and a clear button when non-empty. Replaces the duplicate inline implementations in SupportedDevicesModal, AppPicker, and the panel add-widget filter.', Preview: PreviewSearchInput,
   },
   {
     name: 'Toggle', category: 'inputs',
-    filePath: 'src/components/Toggle/Toggle.tsx',
+    filePath: 'src/components/common/Toggle/Toggle.tsx',
     description: 'Switch-style on/off toggle. 40x22 pill, 16x16 white knob, accent fill on checked. Replaces the duplicate device-modal-toggle global class, panel themeToggle, settings ToggleRow, and panel SettingsRow toggle.', Preview: PreviewToggle,
   },
   {
     name: 'Toggle (off)', category: 'inputs',
-    filePath: 'src/components/Toggle/Toggle.tsx',
+    filePath: 'src/components/common/Toggle/Toggle.tsx',
     description: 'Same Toggle primitive in the unchecked state.', Preview: PreviewToggleOff,
   },
   {
     name: 'Select', category: 'inputs',
-    filePath: 'src/components/Select/Select.tsx',
+    filePath: 'src/components/common/Select/Select.tsx',
     description: 'Themed wrapper around native <select>. Custom chevron via background gradient so dark and light themes both stay coherent. Pass options for flat lists or children for optgroups / styled options. Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
     notes: 'size="sm" for tighter contexts (panel performance settings).',
   },
   {
     name: 'IconLabelButton', category: 'inputs',
-    filePath: 'src/components/IconLabelButton/IconLabelButton.tsx',
+    filePath: 'src/components/common/IconLabelButton/IconLabelButton.tsx',
     description: 'Compact icon-over-label button with an active state and touch-up press handling. Used by panel widget size and monitoring design selectors.', Preview: PreviewIconLabelButton,
   },
   {
     name: 'Button', category: 'inputs',
-    filePath: 'src/components/Button/Button.tsx',
+    filePath: 'src/components/common/Button/Button.tsx',
     description: 'Canonical button. Replaces every ad-hoc button SCSS class across views. Three sizes (sm/md/lg) x four tones (neutral/accent/danger/ghost), optional pill shape, optional leading/trailing icon, optional loading + disabled states. Icon-only buttons render square automatically when no children are passed.',
     Preview: PreviewButtonMatrix,
     fullWidth: true,
@@ -847,70 +847,70 @@ export const REGISTRY: StorybookEntry[] = [
   // ── Editable text ─────────────────────────────────────────────────────
   {
     name: 'EditableText', category: 'editable',
-    filePath: 'src/components/Editable/EditableText.tsx',
+    filePath: 'src/components/common/Editable/EditableText.tsx',
     description: 'Click-to-edit string. Enter commits, Escape reverts, blur commits. 20 char default cap. Used by fan/curve rename and profile rename.', Preview: PreviewEditableText,
   },
   {
     name: 'EditableNumber', category: 'editable',
-    filePath: 'src/components/Editable/EditableNumber.tsx',
+    filePath: 'src/components/common/Editable/EditableNumber.tsx',
     description: 'Click-to-edit number, clamped to [min, max] and snapped to step. Composed inside Slider when `editable` is set; standalone for any tabular numeric edit.', Preview: PreviewEditableNumber,
   },
   {
     name: 'DatePicker', category: 'inputs',
-    filePath: 'src/components/DatePicker/DatePicker.tsx',
+    filePath: 'src/components/common/DatePicker/DatePicker.tsx',
     description: 'Themed date input - trigger + month-grid popup. Replaces native `<input type="date">` whose popup ignored app chrome. Used in Screen Time browse (day nav, custom-range clear). Respects min / max bounds.', Preview: PreviewDatePicker,
     notes: 'Click outside or Escape closes. "Today" button jumps to today if within bounds. Disabled cells are past / future out of range.',
   },
   {
     name: 'InfoTooltip', category: 'status',
-    filePath: 'src/components/InfoTooltip/InfoTooltip.tsx',
+    filePath: 'src/components/common/InfoTooltip/InfoTooltip.tsx',
     description: 'Subtle info affordance rendered next to section titles. Hover (pointer) or click (touch) reveals a one-sentence explanation in an elevated-surface tooltip matching the app chrome. Used by ViewHeader (via titleTooltip prop) and inline next to Cooling section h3s.', Preview: PreviewInfoTooltip,
     notes: 'Hover, or Tab into the icon, or click to toggle. Esc closes. Auto-positions via the `side` prop (top/bottom/left/right).',
   },
   {
     name: 'HoverTooltip', category: 'status',
-    filePath: 'src/components/HoverTooltip/HoverTooltip.tsx',
+    filePath: 'src/components/common/HoverTooltip/HoverTooltip.tsx',
     description: 'Instant hover tooltip that wraps any trigger element. Optional bold title line above a muted body line, portal\'d to document.body so curve-card overflow / scroll containers can\'t clip it. Companion to InfoTooltip - use this when the trigger is the surrounding content (chip button, icon-only control) rather than an (i) icon. Used by the cooling curve-type chips so each chip surfaces its description on hover with zero open delay.', Preview: PreviewHoverTooltip,
     notes: 'Opens on pointerenter and keyboard focus, closes on leave / blur. Tooltip itself is pointer-events: none so the trigger keeps ownership of the cursor. Pass `title` for the bold first line plus `body` for the description, or just `body` for a single-line variant.',
   },
   {
     name: 'Popover', category: 'modals',
-    filePath: 'src/components/Popover/Popover.tsx',
+    filePath: 'src/components/common/Popover/Popover.tsx',
     description: 'Inline-anchored floating panel. Consumer wraps trigger + Popover in a position:relative container and passes the wrapper as anchorRef; Popover handles click-outside dismiss, Escape, and corner-anchored placement (bottom-start, bottom-end, right-start, right-end, top-start, left-start). Used by the sidebar Status Shield (Connected / Limited mode) popover.',
     Preview: PreviewPopover,
     notes: 'Renders nothing when `open` is false. Place inside a positioned wrapper so the popover is positioned relative to it. Pass `placement` to control which corner sits next to the anchor.',
   },
   {
     name: 'CardDeleteButton', category: 'inputs',
-    filePath: 'src/components/CardDeleteButton/CardDeleteButton.tsx',
+    filePath: 'src/components/common/CardDeleteButton/CardDeleteButton.tsx',
     description: 'Shared circular X overlay for "delete this card" actions. Hover-reveal by default via a data-attribute the parent container opts into (`:hover [data-card-delete="hover"] { opacity: 1 }`). Used by lighting effect cards and media library thumbnails. Cooling curve cards now use a bottom-anchored "Remove curve" affordance instead so the top-right slot can hold the live output % chip + wire nub.', Preview: PreviewCardDeleteButton,
     notes: 'Hover the item row to reveal the X. Keyboard focus also reveals it. Set revealOnHover={false} for always-visible variants.',
   },
   {
     name: 'HsvPicker', category: 'editable',
-    filePath: 'src/components/HsvPicker/HsvPicker.tsx',
+    filePath: 'src/components/common/HsvPicker/HsvPicker.tsx',
     description: 'SV square + hue slider + hex input. Live preview during drag, commit on release. Used for the accent color picker; reusable for any color control.', Preview: PreviewHsvPicker,
   },
   {
     name: 'ColorPickerWithPresets', category: 'editable',
-    filePath: 'src/components/ColorPickerWithPresets/ColorPickerWithPresets.tsx',
+    filePath: 'src/components/common/ColorPickerWithPresets/ColorPickerWithPresets.tsx',
     description: 'Fixed 10-column swatch grid for theming surfaces (app accent, panel accent, panel background). Click commits immediately - the preset list is the entire palette, no free-form input.', Preview: PreviewColorPickerWithPresets,
     notes: 'Pass a 20-entry preset list to render two rows. Row 2 should be a vertically paired darker / more saturated sibling of row 1 by hue family; selected swatch gets an accent ring. Swatches stretch to 1/10 of the container width and cap at ~36px on desktop, so the grid fills phone-sheet widths edge-to-edge.',
   },
   {
     name: 'PaletteRing', category: 'editable',
-    filePath: 'src/components/PaletteRing/PaletteRing.tsx',
+    filePath: 'src/components/common/PaletteRing/PaletteRing.tsx',
     description: 'Radial hue + palette-width picker. Drag the arc body to rotate (hue), drag a handle to resize (colorize). Min arc span enforces a minimum palette width so mono-ish presets stay draggable. Used as the hero control in the Lighting animate drawer.', Preview: PreviewPaletteRing,
     notes: 'Colorize caps at 0.75 so even the tightest arc still shows a touch of palette variation.',
   },
   {
     name: 'PresetSwatch', category: 'status',
-    filePath: 'src/components/PresetSwatch/PresetSwatch.tsx',
+    filePath: 'src/components/common/PresetSwatch/PresetSwatch.tsx',
     description: 'CSS-only preview of a lighting preset slot. Stacks a fixed rainbow gradient + solid hue overlay (opacity = colorize), then re-applies saturation + contrast so previews track the shader post-process. Used by EffectTemplateSelector across desktop lighting, panel quick lighting, and panel theme backgrounds.', Preview: PreviewPresetSwatch,
   },
   {
     name: 'EffectTemplateSelector', category: 'inputs',
-    filePath: 'src/components/EffectTemplateSelector/EffectTemplateSelector.tsx',
+    filePath: 'src/components/common/EffectTemplateSelector/EffectTemplateSelector.tsx',
     description: 'Shared row of four animate-template buttons, each backed by PresetSwatch so hue, colorize, saturation, and contrast stay consistent across desktop lighting, panel quick lighting, and the panel theme background sheet.', Preview: PreviewEffectTemplateSelector,
     notes: 'Styling is driven by --effect-template-* custom properties so app and panel surfaces share markup without sharing chrome tokens.',
   },
@@ -924,22 +924,22 @@ export const REGISTRY: StorybookEntry[] = [
   // ── Cards / surfaces ──────────────────────────────────────────────────
   {
     name: 'Card', category: 'cards',
-    filePath: 'src/components/Card/Card.tsx',
+    filePath: 'src/components/common/Card/Card.tsx',
     description: 'Canonical card surface (background, border, radius, padding) with optional title / subtitle / actions header. Compose for any panel.', Preview: PreviewCard,
   },
   {
     name: 'SensorCard', category: 'cards',
-    filePath: 'src/components/SensorCard/SensorCard.tsx',
+    filePath: 'src/components/common/SensorCard/SensorCard.tsx',
     description: 'Sensor display: title + optional subtitle + name/value rows. Composes Card for the chrome.', Preview: PreviewSensorCard,
   },
   {
     name: 'InfoList / InfoRow', category: 'cards',
-    filePath: 'src/components/InfoList/InfoList.tsx',
+    filePath: 'src/components/common/InfoList/InfoList.tsx',
     description: 'Bounded widget of label/value rows. Use for compact device meta, status keys, or any vertical key/value listing. Tones: accent / good / warn / bad / dim.', Preview: PreviewInfoList,
   },
   {
     name: 'EffectCard', category: 'cards',
-    filePath: 'src/components/EffectCard/EffectCard.tsx',
+    filePath: 'src/components/common/EffectCard/EffectCard.tsx',
     description: 'Shared card for the Lighting view animate grid and media library grid. Thumbnail + centered label, with optional meta line (media duration) and hover-reveal delete X. Same footprint across both grids so shader and media cards line up visually.', Preview: PreviewEffectCard,
     notes: 'Pass asDiv when the card contains a nested button (CardDeleteButton) - nested buttons are invalid HTML. thumbUrl=null renders a shimmer skeleton.',
   },
@@ -947,30 +947,30 @@ export const REGISTRY: StorybookEntry[] = [
   // ── Modals ────────────────────────────────────────────────────────────
   {
     name: 'Overlay', category: 'modals',
-    filePath: 'src/components/Overlay/Overlay.tsx',
+    filePath: 'src/components/common/Overlay/Overlay.tsx',
     description: 'Canonical modal/sheet base. Owns the backdrop, escape-to-close, and click-outside dismiss; the consumer brings the surface chrome via className. Variants: dialog (centred), alert (alertdialog role + Enter-to-confirm), sheet (transparent backdrop for slide drawers).', Preview: PreviewOverlay,
     notes: 'DeviceModal, ConfirmModal, and SupportedDevicesModal compose Overlay - reach for those existing wrappers before using Overlay directly.',
   },
   {
     name: 'DeviceModal', category: 'modals',
-    filePath: 'src/components/DeviceModal/DeviceModal.tsx',
+    filePath: 'src/components/common/DeviceModal/DeviceModal.tsx',
     description: 'Reusable modal shell built on Overlay. Title + close button + standard escape/click-outside dismiss. wide / fullscreen variants.', Preview: PreviewDeviceModal,
   },
   {
     name: 'ConfirmModal', category: 'modals',
-    filePath: 'src/components/ConfirmModal/ConfirmModal.tsx',
+    filePath: 'src/components/common/ConfirmModal/ConfirmModal.tsx',
     description: 'Native-in-app confirmation modal with title + body + optional note + confirm/cancel actions. Esc cancels, Enter confirms, click-outside cancels. Cancel autofocused so destructive intent must be explicit. Used instead of window.confirm so the dialog matches app chrome.', Preview: PreviewConfirmModal,
     notes: 'destructive defaults to true (red confirm button). Pass destructive={false} for non-destructive confirmations like "save changes?".',
   },
   {
     name: 'PromptModal', category: 'modals',
-    filePath: 'src/components/PromptModal/PromptModal.tsx',
+    filePath: 'src/components/common/PromptModal/PromptModal.tsx',
     description: 'Native-in-app text-input modal. Replaces window.prompt with a themed dialog so the input experience is consistent across macOS / Linux / Windows (WKWebView, Edge kiosk, browsers all suppress or restyle native prompts). Autofocuses the input, Enter submits, Esc cancels, click-outside cancels. Supports a sync validator that displays its error inline and disables the submit button.', Preview: PreviewPromptModal,
     notes: 'Use the validate callback for live duplicate-name checks. The submit button is disabled while the value is empty or invalid, so the caller does not need to defensively re-validate.',
   },
   {
     name: 'SupportedDevicesModal', category: 'modals',
-    filePath: 'src/components/SupportedDevicesModal/SupportedDevicesModal.tsx',
+    filePath: 'src/components/common/SupportedDevicesModal/SupportedDevicesModal.tsx',
     description: 'Fullscreen device catalogue browser with search + pagination + highlight of currently-detected VID/PIDs. Used by Devices and Lighting views to surface the supported hardware list.', Preview: PreviewSupportedDevicesModal,
     notes: 'source="peripherals" | "lighting" selects which catalogue to load. Pass detectedVidPids to mark already-connected devices.',
   },
@@ -978,24 +978,24 @@ export const REGISTRY: StorybookEntry[] = [
   // ── Charts ────────────────────────────────────────────────────────────
   {
     name: 'Sparkline', category: 'charts',
-    filePath: 'src/components/Sparkline/Sparkline.tsx',
+    filePath: 'src/components/common/Sparkline/Sparkline.tsx',
     description: 'Tiny SVG sparkline. Auto-scales or accepts a fixed domain. Flat alpha fill (color, fillOpacity) plus optional separate strokeColor / strokeWidth. Pass sampleCount to lock a window length and left-pad shorter buffers. Used by Monitoring CPU/GPU/Network and panel widgets (SparklineGauge, LineGauge, CoolingWidget).', Preview: PreviewSparkline,
   },
   {
     name: 'RankedList', category: 'charts',
-    filePath: 'src/components/RankedList/RankedList.tsx',
+    filePath: 'src/components/common/RankedList/RankedList.tsx',
     description: 'Ranked items with colored bars. Used in Monitoring for process and per-app network ranking.', Preview: PreviewRankedList,
   },
   {
     name: 'StackedChart', category: 'charts',
-    filePath: 'src/components/StackedChart/StackedChart.tsx',
+    filePath: 'src/components/common/StackedChart/StackedChart.tsx',
     description: 'Reusable stacked-area time chart. Tracks container width via ResizeObserver; fixed pixel height. Used for CPU% + Memory MB panels in Monitoring. Accepts any number of SeriesEntry[] (name + colour + values).', Preview: PreviewStackedChart,
     notes: 'yMax=0 auto-scales. xSeconds sets the visible window (default 60s). Hover shows a crosshair + per-series values.',
   },
 
   {
     name: 'UsageBar', category: 'charts',
-    filePath: 'src/components/UsageBar/UsageBar.tsx:7',
+    filePath: 'src/components/common/UsageBar/UsageBar.tsx:7',
     description: 'Simple single-color usage bar. Accepts a 0-1 fraction and an optional color override. Used in the Monitoring dashboard for RAM and storage utilization.',
     Preview: () => (
       <div className={styles.previewBarStack}>
@@ -1009,7 +1009,7 @@ export const REGISTRY: StorybookEntry[] = [
 
   {
     name: 'CapacityBar', category: 'charts',
-    filePath: 'src/components/CapacityBar/CapacityBar.tsx:18',
+    filePath: 'src/components/common/CapacityBar/CapacityBar.tsx:18',
     description: 'Three-segment capacity bar: other usage (muted border-strong), accent slice (accent color), available (track background).',
     Preview: () => (
       <CapacityBar
@@ -1024,18 +1024,18 @@ export const REGISTRY: StorybookEntry[] = [
   // ── Navigation ────────────────────────────────────────────────────────
   {
     name: 'ViewHeader', category: 'navigation',
-    filePath: 'src/components/ViewHeader/ViewHeader.tsx',
+    filePath: 'src/components/common/ViewHeader/ViewHeader.tsx',
     description: 'Page heading + integrated tab bar. Canonical header for every primary view.', Preview: PreviewViewHeader,
   },
   {
     name: 'Tabs (underline)', category: 'navigation',
-    filePath: 'src/components/Tabs/Tabs.tsx',
+    filePath: 'src/components/common/Tabs/Tabs.tsx',
     description: 'Horizontal tab bar with accent underline on the active tab. Supports optional leading icons through TabDef.icon - when present, the active tab\'s icon is wrapped in a solid accent disc so the tabs read as mode pickers (Lighting modes, Cooling presets) rather than plain nav. Used inside ViewHeader for page-level mode tabs and standalone for secondary nav. Per-tab disable via TabDef.disabled.', Preview: PreviewTabs,
     notes: 'Pairs with ViewHeader - do not roll your own tab bars. Disabled tabs get opacity 0.4 + not-allowed cursor.',
   },
   {
     name: 'Tabs (pill)', category: 'navigation',
-    filePath: 'src/components/Tabs/Tabs.tsx',
+    filePath: 'src/components/common/Tabs/Tabs.tsx',
     description: 'Bordered segmented-group variant of the same Tabs primitive. One shared border around the whole bar, accent-soft fill on the active segment. Used for in-page secondary toggles (ScreenTime day/week/month/app). Set variant="pill" on Tabs to activate.', Preview: PreviewTabsPill,
     notes: 'Same component as the underline variant - pass variant="pill" to render this chrome.',
   },
@@ -1043,7 +1043,7 @@ export const REGISTRY: StorybookEntry[] = [
   // ── Status ────────────────────────────────────────────────────────────
   {
     name: 'EmptyState', category: 'status',
-    filePath: 'src/components/EmptyState/EmptyState.tsx',
+    filePath: 'src/components/common/EmptyState/EmptyState.tsx',
     description: 'Centered icon + title + optional hint + optional action. Used by panel widgets when their data source has no entries (no displays, no media playing) and by app views to convey "nothing here yet". Pass `compact` for tight panel widget contexts.', Preview: PreviewEmptyState,
   },
   {
@@ -1060,7 +1060,7 @@ export const REGISTRY: StorybookEntry[] = [
   // ── Panel kit ─────────────────────────────────────────────────────────
   {
     name: 'WidgetHeader', category: 'panel-kit',
-    filePath: 'src/components/WidgetHeader/WidgetHeader.tsx',
+    filePath: 'src/components/common/WidgetHeader/WidgetHeader.tsx',
     description: 'Shared panel widget header matching Monitoring cards.',
     Preview: PreviewWidgetHeader,
   },

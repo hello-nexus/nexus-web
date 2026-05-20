@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from '../lib/i18n';
-import { DeviceModal } from '../components/DeviceModal/DeviceModal';
+import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { REGISTRY, type StorybookCategory } from './registry';
 import { StorybookCard } from './StorybookCard';
 import styles from './StorybookModal.module.scss';

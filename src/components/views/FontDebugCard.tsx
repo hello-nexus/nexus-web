@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card } from '../Card/Card';
+import { Card } from '../common/Card/Card';
 import {
   DEBUG_FONTS,
   DEFAULT_FONT_ID,

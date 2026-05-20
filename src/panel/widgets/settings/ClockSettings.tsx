@@ -8,7 +8,7 @@ import {
   ScanLine,
   type LucideIcon,
 } from 'lucide-react';
-import { IconLabelButton } from '../../../components/IconLabelButton/IconLabelButton';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import type { WidgetSettingsProps } from '../types';
 import { CLOCK_DESIGNS } from '../clock/designs';
 import { SettingsRow, SettingsToggle, SettingsSection, SettingsSelect } from './SettingsRow';

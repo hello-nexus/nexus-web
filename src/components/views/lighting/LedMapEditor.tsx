@@ -9,9 +9,9 @@ import {
   type LedMapEntry, type LightingDevice,
 } from '../../../api/lighting';
 import { useTranslation } from '../../../lib/i18n';
-import { DeviceModal } from '../../DeviceModal/DeviceModal';
-import { ConfirmModal } from '../../ConfirmModal/ConfirmModal';
-import { Slider } from '../../Slider/Slider';
+import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { Slider } from '../../common/Slider/Slider';
 import { useThrottle } from '../../../hooks/cadence';
 import styles from './LedMapEditor.module.scss';
 

@@ -1,0 +1,646 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Smartphone, LogOut } from 'lucide-react';
+import classNames from 'classnames';
+import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
+import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
+import { Tabs, type TabDef } from '../components/common/Tabs/Tabs';
+import { EditableText } from '../components/common/Editable/EditableText';
+import { Toggle } from '../components/common/Toggle/Toggle';
+import {
+  fetchPanelPhonePairQr,
+  fetchPanelPhoneSessions,
+  renamePanelPhoneSession,
+  revokeAllPanelPhoneSessions,
+  revokePanelPhoneSession,
+  setPanelRemoteControlEnabled,
+  startPanelPhonePairCode,
+  decidePanelPhonePairCode,
+  type PanelPhonePairQr,
+  type PanelPhonePairCodeStart,
+  type PanelPhonePairCodeRequestFrame,
+  type PanelPhoneSessionsResponse,
+} from '../api/panel';
+import { useTopicCallback } from '../hooks/useMultiplexSocket';
+import { useTranslation } from '../lib/i18n';
+import styles from '../App.module.scss';
+
+type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
+
+function formatConnectedDevices(count: number, t: TranslateFn) {
+  return t(count === 1 ? 'phonePair.connectedDeviceOne' : 'phonePair.connectedDeviceOther', { count });
+}
+
+function formatRelativeTime(value: number, now: number, t: TranslateFn) {
+  if (!value) return t('phonePair.unknown');
+  const diff = Math.max(0, now - value);
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  if (diff < 30_000) return t('phonePair.timeJustNow');
+  if (diff < minute) return t('phonePair.timeLessThanMinuteAgo');
+  if (diff < hour) return t('phonePair.timeMinutesAgo', { count: Math.floor(diff / minute) });
+  if (diff < day) return t('phonePair.timeHoursAgo', { count: Math.floor(diff / hour) });
+  return t('phonePair.timeDaysAgo', { count: Math.floor(diff / day) });
+}
+
+function formatElapsedTime(value: number, now: number, t: TranslateFn) {
+  if (!value) return t('phonePair.unknown');
+  const diff = Math.max(0, now - value);
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  if (diff < minute) return t('phonePair.durationLessThanMinute');
+  if (diff < hour) return t('phonePair.durationMinutes', { count: Math.floor(diff / minute) });
+  if (diff < day) {
+    return t('phonePair.durationHoursMinutes', {
+      hours: Math.floor(diff / hour),
+      minutes: Math.floor((diff % hour) / minute),
+    });
+  }
+  return t('phonePair.durationDaysHours', {
+    days: Math.floor(diff / day),
+    hours: Math.floor((diff % day) / hour),
+  });
+}
+
+function formatDateTime(value: number, t: TranslateFn) {
+  if (!value) return t('phonePair.unknown');
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compact, onClick }: {
+  connectedCount: number;
+  remoteEnabled: boolean;
+  disabled: boolean;
+  compact: boolean;
+  onClick: () => void;
+}) {
+  const { t } = useTranslation();
+  const connected = connectedCount > 0;
+  // remoteEnabled === false beats connected-count: when the killswitch is OFF
+  // the dot becomes amber regardless of how many devices were previously paired,
+  // because none of them can reach the system right now.
+  const dotState: 'off' | 'paired' | 'connected' = !remoteEnabled
+    ? 'paired'
+    : connected ? 'connected' : 'off';
+  const countLabel = remoteEnabled
+    ? formatConnectedDevices(connectedCount, t)
+    : t('phonePair.killswitch.offLabel');
+  return (
+    <div className={classNames(styles.phonePairWrap, { [styles.phonePairWrapCompact]: compact })}>
+      <button
+        type="button"
+        className={classNames(styles.phonePairBtn, { [styles.phonePairBtnCompact]: compact })}
+        onClick={onClick}
+        disabled={disabled}
+        title={compact ? `${t('phonePair.title')} · ${countLabel}` : undefined}
+      >
+        <span className={styles.phonePairIcon}>
+          <Smartphone size={16} />
+          <span className={styles.phonePairDot} data-state={dotState} />
+        </span>
+        {!compact && (
+          <>
+            <span>{t('phonePair.title')}</span>
+            <span className={styles.phonePairState}>{countLabel}</span>
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
+export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEnabledChange, onClose }: {
+  open: boolean;
+  connectedCount: number;
+  remoteEnabled: boolean;
+  onRemoteEnabledChange: (next: boolean) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const [qr, setQr] = useState<PanelPhonePairQr | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [sessions, setSessions] = useState<PanelPhoneSessionsResponse | null>(null);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [confirmRemoveAllOpen, setConfirmRemoveAllOpen] = useState(false);
+  const [confirmDisableOpen, setConfirmDisableOpen] = useState(false);
+  const [togglingRemote, setTogglingRemote] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const [pairMode, setPairMode] = useState<'qr' | 'code'>('qr');
+  const [pairCode, setPairCode] = useState<PanelPhonePairCodeStart | null>(null);
+  const [pairCodeBusy, setPairCodeBusy] = useState(false);
+  const [pairCodeError, setPairCodeError] = useState<string | null>(null);
+  const [pairCodeRequest, setPairCodeRequest] = useState<PanelPhonePairCodeRequestFrame | null>(null);
+  const [pairCodeTerminal, setPairCodeTerminal] = useState<null | { kind: 'approved' | 'denied' | 'expired' | 'superseded' }>(null);
+  const refreshInFlightRef = useRef(false);
+  const sessionsInFlightRef = useRef(false);
+
+  const refresh = useCallback(() => {
+    if (refreshInFlightRef.current) return;
+    refreshInFlightRef.current = true;
+    setLoading(true);
+    fetchPanelPhonePairQr().then(next => {
+      setQr(next);
+      setNow(Date.now());
+    }).finally(() => {
+      refreshInFlightRef.current = false;
+      setLoading(false);
+    });
+  }, []);
+
+  const loadSessions = useCallback((showLoading = false) => {
+    if (sessionsInFlightRef.current) return;
+    sessionsInFlightRef.current = true;
+    if (showLoading) setSessionsLoading(true);
+    fetchPanelPhoneSessions().then(next => {
+      if (next) setSessions(next);
+    }).finally(() => {
+      sessionsInFlightRef.current = false;
+      if (showLoading) setSessionsLoading(false);
+    });
+  }, []);
+
+  const revokeSession = useCallback(async (id: string) => {
+    setRevokingId(id);
+    await revokePanelPhoneSession(id);
+    await fetchPanelPhoneSessions().then(next => {
+      if (next) setSessions(next);
+    });
+    setRevokingId(null);
+  }, []);
+
+  const renameSession = useCallback((id: string, name: string) => {
+    setRenamingId(id);
+    setSessions(current => current
+      ? {
+          ...current,
+          sessions: current.sessions.map(session =>
+            session.id === id ? { ...session, name } : session),
+        }
+      : current);
+    void renamePanelPhoneSession(id, name)
+      .finally(() => {
+        setRenamingId(null);
+        loadSessions(false);
+      });
+  }, [loadSessions]);
+
+  const revokeAllSessions = useCallback(() => {
+    setConfirmRemoveAllOpen(false);
+    setSessions(current => current
+      ? { ...current, authorizedCount: 0, sessions: [] }
+      : current);
+    void revokeAllPanelPhoneSessions()
+      .finally(() => loadSessions(false));
+  }, [loadSessions]);
+
+  const applyRemoteEnabled = useCallback(async (next: boolean) => {
+    // Optimistic flip: the toggle moves immediately. If the server
+    // rejects (401/403/network), snap back to the previous state. The
+    // old "wait for confirmation" path made the killswitch feel laggy
+    // because the visual didn't move until the round-trip + session
+    // refetch resolved.
+    onRemoteEnabledChange(next);
+    setTogglingRemote(true);
+    try {
+      const result = await setPanelRemoteControlEnabled(next);
+      if (result) {
+        // Server may snap to a different state under contention (another
+        // dashboard already toggled). Trust the server's reading.
+        if (result.enabled !== next) onRemoteEnabledChange(result.enabled);
+        // KickAllPhoneAsync ran synchronously on the server when next=false,
+        // so the connected count drops to 0 by the next sessions poll; pull
+        // it now for snappy UI.
+        loadSessions(false);
+      } else {
+        // Request failed (no body / non-OK status). Revert the optimistic
+        // flip so the toggle reflects the actual server state.
+        onRemoteEnabledChange(!next);
+      }
+    } catch {
+      onRemoteEnabledChange(!next);
+    } finally {
+      setTogglingRemote(false);
+    }
+  }, [loadSessions, onRemoteEnabledChange]);
+
+  const handleRemoteToggle = useCallback((next: boolean) => {
+    if (!next) {
+      setConfirmDisableOpen(true);
+      return;
+    }
+    void applyRemoteEnabled(true);
+  }, [applyRemoteEnabled]);
+
+  const confirmDisableRemote = useCallback(() => {
+    setConfirmDisableOpen(false);
+    void applyRemoteEnabled(false);
+  }, [applyRemoteEnabled]);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => {
+      if (remoteEnabled) refresh();
+      loadSessions(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [open, loadSessions, refresh, remoteEnabled]);
+
+  useEffect(() => {
+    if (open) return;
+    const timer = window.setTimeout(() => {
+      setConfirmRemoveAllOpen(false);
+      setConfirmDisableOpen(false);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setInterval(() => loadSessions(false), 3000);
+    return () => window.clearInterval(timer);
+  }, [loadSessions, open]);
+
+  useEffect(() => {
+    if (!open || !qr || !remoteEnabled) return;
+    const msUntilRefresh = Math.max(1000, qr.expiresAt - Date.now());
+    const timer = window.setTimeout(refresh, msUntilRefresh);
+    return () => window.clearTimeout(timer);
+  }, [open, qr, refresh, remoteEnabled]);
+
+  // Reset code state when modal closes or remote is disabled, so a reopen
+  // starts at the generate button and never inherits stale state.
+  useEffect(() => {
+    if (open && remoteEnabled) return;
+    setPairCode(null);
+    setPairCodeError(null);
+    setPairCodeRequest(null);
+    setPairCodeTerminal(null);
+    setPairMode('qr');
+  }, [open, remoteEnabled]);
+
+  const handleStartCode = useCallback(async () => {
+    setPairCodeBusy(true);
+    setPairCodeError(null);
+    setPairCodeTerminal(null);
+    setPairCodeRequest(null);
+    try {
+      const next = await startPanelPhonePairCode();
+      if (next) setPairCode(next);
+      else setPairCodeError(t('phonePair.code.errorStart'));
+    } finally {
+      setPairCodeBusy(false);
+    }
+  }, [t]);
+
+  // Auto-mint a code as soon as the user lands on the Code tab (or
+  // reopens the modal with Code already active). Mirrors the QR flow:
+  // the user shouldn't have to press a "generate" button.
+  useEffect(() => {
+    if (!open || !remoteEnabled || pairMode !== 'code') return;
+    if (pairCode || pairCodeRequest || pairCodeTerminal || pairCodeBusy) return;
+    handleStartCode();
+  }, [open, remoteEnabled, pairMode, pairCode, pairCodeRequest, pairCodeTerminal, pairCodeBusy, handleStartCode]);
+
+  // Auto-refresh on TTL expiry, identical to the QR refresh effect.
+  // Server enforces TTL too; this keeps the UI showing a usable code
+  // without requiring user input.
+  useEffect(() => {
+    if (!pairCode || pairCodeRequest || pairCodeTerminal) return;
+    const msUntilExpiry = Math.max(1000, pairCode.expiresAt - Date.now());
+    const timer = window.setTimeout(() => {
+      setPairCode(null);
+      handleStartCode();
+    }, msUntilExpiry);
+    return () => window.clearTimeout(timer);
+  }, [pairCode, pairCodeRequest, pairCodeTerminal, handleStartCode]);
+
+  const handleDecide = useCallback(async (requestId: string, approved: boolean) => {
+    setPairCodeBusy(true);
+    try {
+      const resp = await decidePanelPhonePairCode(requestId, approved);
+      if (!resp) {
+        setPairCodeError(t('phonePair.code.errorDecide'));
+        return;
+      }
+      if (resp.status === 'approved' || (approved && resp.status === 'waiting-phone')) {
+        setPairCodeTerminal({ kind: 'approved' });
+        setPairCodeRequest(null);
+        setPairCode(null);
+        loadSessions(false);
+      } else if (resp.status === 'denied' || !approved) {
+        setPairCodeTerminal({ kind: 'denied' });
+        setPairCodeRequest(null);
+        setPairCode(null);
+      } else if (resp.status === 'expired') {
+        setPairCodeTerminal({ kind: 'expired' });
+        setPairCodeRequest(null);
+        setPairCode(null);
+      } else if (resp.status === 'waiting-host') {
+        // Host approved but phone hasn't confirmed yet. Stay in the
+        // request panel so the user keeps comparing the SAS; the phone's
+        // next confirm will tip the state into approved.
+      }
+    } finally {
+      setPairCodeBusy(false);
+    }
+  }, [loadSessions, t]);
+
+  const codeTopicEnabled = open && remoteEnabled && pairMode === 'code';
+  useTopicCallback('panel/phone/pair-code/request', codeTopicEnabled, useCallback((data: unknown) => {
+    const frame = data as PanelPhonePairCodeRequestFrame;
+    if (!frame || typeof frame.kind !== 'string') return;
+    if (frame.kind === 'request') {
+      setPairCodeRequest(frame);
+      setPairCodeTerminal(null);
+    } else if (frame.kind === 'cancelled') {
+      // Only react if it's the request we're tracking.
+      setPairCodeRequest(curr => {
+        if (!curr || curr.requestId !== frame.requestId) return curr;
+        const reason = frame.reason;
+        if (reason === 'phone-denied') setPairCodeTerminal({ kind: 'denied' });
+        else if (reason === 'expired') setPairCodeTerminal({ kind: 'expired' });
+        else if (reason === 'host-started-new-code') setPairCodeTerminal({ kind: 'superseded' });
+        else setPairCodeTerminal({ kind: 'denied' });
+        return null;
+      });
+      setPairCode(curr => {
+        if (!curr) return curr;
+        // Code superseded server-side - clear the displayed code too.
+        if (frame.reason === 'host-started-new-code') return null;
+        return curr;
+      });
+    }
+  }, []));
+
+  if (!open) return null;
+
+  const secondsLeft = qr ? Math.max(0, Math.ceil((qr.expiresAt - now) / 1000)) : 0;
+  const codeSecondsLeft = pairCode ? Math.max(0, Math.ceil((pairCode.expiresAt - now) / 1000)) : 0;
+  const qrStatus = loading || secondsLeft <= 0
+    ? t('phonePair.refreshing')
+    : t('phonePair.refreshesIn', { seconds: secondsLeft });
+  const codeStatus = !pairCode || codeSecondsLeft <= 0
+    ? t('phonePair.refreshing')
+    : t('phonePair.refreshesIn', { seconds: codeSecondsLeft });
+  const liveConnectedCount = sessions?.connectedCount ?? connectedCount;
+  const sessionNow = sessions?.now ?? now;
+  const sessionList = sessions?.sessions ?? [];
+
+  // Off-state count: prefer authorizedCount (the server's view) so we don't
+  // render "0 devices paired" while sessions is still null on first open.
+  const offPairedCount = sessions?.authorizedCount ?? sessionList.length;
+  const sessionCountLabel = remoteEnabled
+    ? formatConnectedDevices(liveConnectedCount, t)
+    : sessions == null
+      ? t('phonePair.loadingSessions')
+      : t(
+          offPairedCount === 1
+            ? 'phonePair.killswitch.offSummaryOne'
+            : 'phonePair.killswitch.offSummaryOther',
+          { count: offPairedCount },
+        );
+
+  const pairTabs: TabDef[] = [
+    { key: 'qr', label: t('phonePair.tab.qr') },
+    { key: 'code', label: t('phonePair.tab.code') },
+  ];
+
+  return (
+    <>
+      <DeviceModal open={open} onClose={onClose} title={t('phonePair.title')} icon={<Smartphone size={18} />} wide>
+        <div className={styles.phonePairLayout} data-remote-enabled={remoteEnabled ? 'true' : 'false'}>
+          {/* ── Left column: remote-control toggle + authorized device list ── */}
+          <div className={styles.phonePairCol}>
+            <div className={styles.phonePairKillswitchRow}>
+              <div>
+                <span className={styles.phonePairKillswitchLabel} id="phone-pair-killswitch-label">
+                  {t('phonePair.killswitch.label')}
+                </span>
+                <span className={styles.phonePairKillswitchHint}>
+                  {remoteEnabled
+                    ? t('phonePair.killswitch.onHint')
+                    : t('phonePair.killswitch.offHint')}
+                </span>
+              </div>
+              <Toggle
+                checked={remoteEnabled}
+                disabled={togglingRemote}
+                onChange={handleRemoteToggle}
+                ariaLabelledBy="phone-pair-killswitch-label"
+              />
+            </div>
+
+            <section className={styles.phonePairCard + ' ' + styles.phonePairSessionsPanel} aria-label={t('phonePair.ariaSessions')} data-disabled={remoteEnabled ? 'false' : 'true'}>
+            <div className={styles.phonePairSessionsHeader}>
+              <div>
+                <h3>{t('phonePair.authorizedDevices')}</h3>
+                <span>{sessionCountLabel}</span>
+              </div>
+              <button
+                type="button"
+                className={styles.phonePairRevoke}
+                disabled={sessionList.length === 0}
+                onClick={() => setConfirmRemoveAllOpen(true)}
+              >
+                <LogOut size={14} />
+                {t('phonePair.removeAll')}
+              </button>
+            </div>
+
+            {sessionsLoading && sessionList.length === 0 ? (
+              <div className={styles.phonePairEmpty}>{t('phonePair.loadingSessions')}</div>
+            ) : sessionList.length === 0 ? (
+              <div className={styles.phonePairEmpty}>{t('phonePair.emptySessions')}</div>
+            ) : (
+              <div className={styles.phonePairSessionList}>
+                {sessionList.map(session => {
+                  const fallbackName = t('phonePair.deviceFallback');
+                  const deviceType = session.deviceType || '';
+                  const persistedName = session.name || '';
+                  const hasCustomName = Boolean(persistedName && persistedName !== fallbackName && persistedName !== deviceType);
+                  const sessionName = hasCustomName ? persistedName : deviceType || persistedName || fallbackName;
+                  const showDeviceType = Boolean(session.deviceType && session.deviceType !== sessionName);
+                  return (
+                    <div key={session.id} className={styles.phonePairSessionRow}>
+                      <span className={styles.phonePairSessionIcon}>
+                        <Smartphone size={15} />
+                      </span>
+                      <div className={styles.phonePairSessionMain}>
+                        <div className={styles.phonePairSessionTitleRow}>
+                          <EditableText
+                            value={sessionName}
+                            onCommit={name => renameSession(session.id, name)}
+                            maxLength={40}
+                            className={styles.phonePairSessionName}
+                            ariaLabel={t('phonePair.editDeviceName')}
+                          />
+                          <span
+                            className={classNames(styles.phonePairSessionBadge, {
+                              [styles.phonePairSessionBadgeActive]: remoteEnabled && session.recentlyActive,
+                              [styles.phonePairSessionBadgeDisabled]: !remoteEnabled,
+                            })}
+                          >
+                            {!remoteEnabled
+                              ? t('phonePair.killswitch.statusDisabled')
+                              : session.recentlyActive
+                                ? t('phonePair.statusRecentlyActive')
+                                : t('phonePair.statusPaired')}
+                          </span>
+                          {renamingId === session.id && (
+                            <span className={styles.phonePairSessionSaving}>{t('phonePair.saving')}</span>
+                          )}
+                        </div>
+                        <div className={styles.phonePairSessionMeta} title={session.userAgent || undefined}>
+                          {showDeviceType && <span>{deviceType}</span>}
+                          <span>{t('phonePair.lastSeen', { time: formatRelativeTime(session.lastSeenAt, sessionNow, t) })}</span>
+                          <span>{t('phonePair.pairedAt', { time: formatDateTime(session.createdAt, t) })}</span>
+                          <span>{t('phonePair.authorizedDuration', { duration: formatElapsedTime(session.createdAt, sessionNow, t) })}</span>
+                          <span>{session.remoteAddress || t('phonePair.unknownIp')}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className={classNames(styles.phonePairRevoke, styles.phonePairSessionRevoke)}
+                        disabled={revokingId === session.id}
+                        onClick={() => revokeSession(session.id)}
+                        aria-label={t('phonePair.removeSession', { name: sessionName })}
+                        title={t('phonePair.removeSession', { name: sessionName })}
+                      >
+                        <LogOut size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+          </div>
+
+          {/* ── Right column: pairing flow (QR or Code), tabbed ────────── */}
+          <div className={styles.phonePairCol}>
+            <section className={styles.phonePairCard + ' ' + styles.phonePairFlowCard} aria-label={t('phonePair.title')}>
+              <Tabs
+                tabs={pairTabs}
+                activeKey={pairMode}
+                onChange={(key) => setPairMode(key as 'qr' | 'code')}
+                ariaLabel={t('phonePair.title')}
+                variant="pill"
+                disabled={!remoteEnabled}
+                className={styles.phonePairFlowTabs}
+              />
+
+              {!remoteEnabled ? (
+                <p className={styles.phonePairFlowHint}>{t('phonePair.killswitch.qrDisabled')}</p>
+              ) : pairMode === 'qr' ? (
+                <>
+                  <p className={styles.phonePairFlowHint}>{t('phonePair.intro')}</p>
+                  <div className={styles.phonePairQrBox}>
+                    {qr?.qrDataUrl && !loading ? (
+                      <img src={qr.qrDataUrl} alt={t('phonePair.qrAlt')} />
+                    ) : (
+                      <div className={styles.phonePairLoading}>{t('phonePair.loadingQr')}</div>
+                    )}
+                  </div>
+                  <div className={classNames(styles.phonePairTimer, {
+                    [styles.phonePairTimerFlash]: secondsLeft > 0 && secondsLeft <= 5,
+                  })}>
+                    <span>{qrStatus}</span>
+                  </div>
+                </>
+              ) : pairCodeRequest ? (
+                <div className={styles.phonePairCodeConfirm}>
+                  <p className={styles.phonePairFlowHint}>{t('phonePair.code.requestSubtitle')}</p>
+                  <div className={styles.phonePairCodeSas}>{pairCodeRequest.sas}</div>
+                  <div className={styles.phonePairCodeMeta}>
+                    {t('phonePair.code.requestTitle', { device: pairCodeRequest.deviceLabel || t('phonePair.deviceFallback') })}
+                    {' · '}
+                    {t('phonePair.code.requestFrom', { ip: pairCodeRequest.remoteAddress || t('phonePair.unknownIp') })}
+                  </div>
+                  <div className={styles.phonePairCodeActions}>
+                    <button type="button" className={styles.phonePairCodeDeny} disabled={pairCodeBusy} onClick={() => handleDecide(pairCodeRequest.requestId, false)}>
+                      {t('phonePair.code.deny')}
+                    </button>
+                    <button type="button" disabled={pairCodeBusy} className={styles.phonePairCodeAllow} onClick={() => handleDecide(pairCodeRequest.requestId, true)}>
+                      {t('phonePair.code.allow')}
+                    </button>
+                  </div>
+                </div>
+              ) : pairCodeTerminal && pairCodeTerminal.kind !== 'expired' ? (
+                // Expired auto-refreshes (just like the QR), so no terminal
+                // panel for it - the next code is on its way. Denied /
+                // superseded / approved are still surfaced.
+                <div className={styles.phonePairCodeTerminal}>
+                  <p className={styles.phonePairFlowHint}>{
+                    pairCodeTerminal.kind === 'approved' ? t('phonePair.code.approved')
+                    : pairCodeTerminal.kind === 'denied' ? t('phonePair.code.denied')
+                    : t('phonePair.code.superseded')
+                  }</p>
+                </div>
+              ) : pairCode ? (
+                <div className={styles.phonePairCodeShown}>
+                  <p className={styles.phonePairFlowHint}>{t('phonePair.code.waiting')}</p>
+                  <div className={styles.phonePairCodeRows}>
+                    <div>
+                      <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.hostLabel')}</span>
+                      <span className={styles.phonePairCodeHost}>{pairCode.host}:{pairCode.port}</span>
+                    </div>
+                    <div>
+                      <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.codeLabel')}</span>
+                      <span className={styles.phonePairCodeDigits}>{pairCode.code}</span>
+                    </div>
+                  </div>
+                  <div className={classNames(styles.phonePairTimer, {
+                    [styles.phonePairTimerFlash]: codeSecondsLeft > 0 && codeSecondsLeft <= 5,
+                  })}>
+                    <span>{codeStatus}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.phonePairCodeIdle}>
+                  <p className={styles.phonePairFlowHint}>{t('phonePair.code.intro')}</p>
+                  {pairCodeError && <p className={styles.phonePairCodeError}>{pairCodeError}</p>}
+                </div>
+              )}
+
+              {remoteEnabled && pairMode === 'qr' && (
+                <p className={styles.phonePairFlowFooter}>{t('phonePair.securityNote')}</p>
+              )}
+            </section>
+          </div>
+        </div>
+      </DeviceModal>
+      <ConfirmModal
+        open={confirmRemoveAllOpen}
+        title={t('phonePair.confirmRemoveAllTitle')}
+        message={t('phonePair.confirmRemoveAllMessage')}
+        note={t('phonePair.confirmRemoveAllNote')}
+        confirmLabel={t('phonePair.removeAll')}
+        onConfirm={revokeAllSessions}
+        onCancel={() => setConfirmRemoveAllOpen(false)}
+      />
+      <ConfirmModal
+        open={confirmDisableOpen}
+        title={t('phonePair.killswitch.confirmTitle')}
+        message={t('phonePair.killswitch.confirmMessage')}
+        note={t('phonePair.killswitch.confirmNote')}
+        confirmLabel={t('phonePair.killswitch.confirmAction')}
+        onConfirm={confirmDisableRemote}
+        onCancel={() => setConfirmDisableOpen(false)}
+      />
+    </>
+  );
+}

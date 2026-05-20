@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { fetchService, fetchServiceBlob } from '../../../api/service';
-import { SearchInput } from '../../../components/SearchInput/SearchInput';
+import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import styles from './AppPicker.module.scss';
 
 interface Shortcut {

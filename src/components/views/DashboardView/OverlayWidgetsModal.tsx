@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Trash2, X } from 'lucide-react';
-import { Overlay } from '../../Overlay/Overlay';
-import { Toggle } from '../../Toggle/Toggle';
-import { Slider } from '../../Slider/Slider';
-import { Select } from '../../Select/Select';
+import { Overlay } from '../../common/Overlay/Overlay';
+import { Toggle } from '../../common/Toggle/Toggle';
+import { Slider } from '../../common/Slider/Slider';
+import { Select } from '../../common/Select/Select';
 import { fetchService, postService } from '../../../api/service';
 import { listOverlayWidgets, deleteOverlayWidget, type OverlayWidgetDto } from '../../../api/overlay';
 import { WIDGET_REGISTRY } from '../../../panel/widgets/registry';

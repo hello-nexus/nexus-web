@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
-import { Toggle } from '../../../components/Toggle/Toggle';
-import { Select } from '../../../components/Select/Select';
+import { Toggle } from '../../../components/common/Toggle/Toggle';
+import { Select } from '../../../components/common/Select/Select';
 import styles from './SettingsRow.module.scss';
 
 interface SettingsRowProps {
