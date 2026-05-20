@@ -228,6 +228,20 @@ export const fetchPanelRemoteControlState = () =>
 export const setPanelRemoteControlEnabled = (enabled: boolean) =>
   postService<RemoteControlState>('/panel/phone/remote-control', { enabled });
 
+// Wi-Fi (mDNS) discoverability preference. AirDrop-style three-state. QR + manual
+// pair-code flows are unaffected; this only gates the iOS app's "find device on
+// Wi-Fi" capability.
+export interface PairBroadcastState {
+  mode: 'never' | 'always' | 'until';
+  untilUnixSeconds: number;
+}
+
+export const fetchPanelPairBroadcast = () =>
+  fetchService<PairBroadcastState>('/panel/phone/pair-broadcast');
+
+export const setPanelPairBroadcast = (mode: PairBroadcastState['mode'], untilUnixSeconds = 0) =>
+  postService<PairBroadcastState>('/panel/phone/pair-broadcast', { mode, untilUnixSeconds });
+
 export interface PanelHostNameResponse {
   machineName: string;
 }

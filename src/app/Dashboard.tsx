@@ -37,6 +37,7 @@ import {
   SidebarFooter,
 } from './sidebar';
 import { PairPhoneButton, PairPhoneModal } from './PairPhoneModal';
+import { IncomingPairModal } from './IncomingPairModal';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import styles from '../App.module.scss';
 
@@ -346,13 +347,6 @@ export function Dashboard() {
                 debugIcon={NAV_ICONS['tools']}
                 compact={compact}
               />
-              <PairPhoneModal
-                open={pairPhoneOpen}
-                connectedCount={serviceState.panel?.phoneSubscribers ?? 0}
-                remoteEnabled={remoteControlEnabled}
-                onRemoteEnabledChange={setRemoteControlEnabled}
-                onClose={() => setPairPhoneOpen(false)}
-              />
               <button
                 type="button"
                 className={styles.collapseEdge}
@@ -369,6 +363,20 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+        {/* Global incoming-pair prompt. Mounted at the layout root so the
+            numeric-comparison Allow/Deny lands on top of any section the
+            user is in, with no easy dismiss — must explicitly Allow or
+            Deny. Pair Remote (managing paired devices, generating a new
+            code/QR, toggling discoverability) stays in its own modal
+            below, opened from the sidebar button. */}
+        <IncomingPairModal />
+        <PairPhoneModal
+          open={pairPhoneOpen}
+          connectedCount={serviceState.panel?.phoneSubscribers ?? 0}
+          remoteEnabled={remoteControlEnabled}
+          onRemoteEnabledChange={setRemoteControlEnabled}
+          onClose={() => setPairPhoneOpen(false)}
+        />
       </div>
       </UiSettingsProvider>
     </MultiplexContext.Provider>

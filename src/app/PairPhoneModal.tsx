@@ -6,6 +6,7 @@ import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { Tabs, type TabDef } from '../components/common/Tabs/Tabs';
 import { EditableText } from '../components/common/Editable/EditableText';
 import { Toggle } from '../components/common/Toggle/Toggle';
+import { Select } from '../components/common/Select/Select';
 import {
   fetchPanelPhonePairQr,
   fetchPanelPhoneSessions,
@@ -14,13 +15,13 @@ import {
   revokePanelPhoneSession,
   setPanelRemoteControlEnabled,
   startPanelPhonePairCode,
-  decidePanelPhonePairCode,
+  fetchPanelPairBroadcast,
+  setPanelPairBroadcast,
   type PanelPhonePairQr,
   type PanelPhonePairCodeStart,
-  type PanelPhonePairCodeRequestFrame,
   type PanelPhoneSessionsResponse,
+  type PairBroadcastState,
 } from '../api/panel';
-import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import styles from '../App.module.scss';
 
@@ -137,8 +138,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   const [pairCode, setPairCode] = useState<PanelPhonePairCodeStart | null>(null);
   const [pairCodeBusy, setPairCodeBusy] = useState(false);
   const [pairCodeError, setPairCodeError] = useState<string | null>(null);
-  const [pairCodeRequest, setPairCodeRequest] = useState<PanelPhonePairCodeRequestFrame | null>(null);
-  const [pairCodeTerminal, setPairCodeTerminal] = useState<null | { kind: 'approved' | 'denied' | 'expired' | 'superseded' }>(null);
+  const [broadcast, setBroadcast] = useState<PairBroadcastState>({ mode: 'always', untilUnixSeconds: 0 });
   const refreshInFlightRef = useRef(false);
   const sessionsInFlightRef = useRef(false);
 
@@ -287,16 +287,12 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     if (open && remoteEnabled) return;
     setPairCode(null);
     setPairCodeError(null);
-    setPairCodeRequest(null);
-    setPairCodeTerminal(null);
     setPairMode('qr');
   }, [open, remoteEnabled]);
 
   const handleStartCode = useCallback(async () => {
     setPairCodeBusy(true);
     setPairCodeError(null);
-    setPairCodeTerminal(null);
-    setPairCodeRequest(null);
     try {
       const next = await startPanelPhonePairCode();
       if (next) setPairCode(next);
@@ -311,80 +307,37 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   // the user shouldn't have to press a "generate" button.
   useEffect(() => {
     if (!open || !remoteEnabled || pairMode !== 'code') return;
-    if (pairCode || pairCodeRequest || pairCodeTerminal || pairCodeBusy) return;
+    if (pairCode || pairCodeBusy) return;
     handleStartCode();
-  }, [open, remoteEnabled, pairMode, pairCode, pairCodeRequest, pairCodeTerminal, pairCodeBusy, handleStartCode]);
+  }, [open, remoteEnabled, pairMode, pairCode, pairCodeBusy, handleStartCode]);
 
   // Auto-refresh on TTL expiry, identical to the QR refresh effect.
   // Server enforces TTL too; this keeps the UI showing a usable code
   // without requiring user input.
   useEffect(() => {
-    if (!pairCode || pairCodeRequest || pairCodeTerminal) return;
+    if (!pairCode) return;
     const msUntilExpiry = Math.max(1000, pairCode.expiresAt - Date.now());
     const timer = window.setTimeout(() => {
       setPairCode(null);
       handleStartCode();
     }, msUntilExpiry);
     return () => window.clearTimeout(timer);
-  }, [pairCode, pairCodeRequest, pairCodeTerminal, handleStartCode]);
+  }, [pairCode, handleStartCode]);
 
-  const handleDecide = useCallback(async (requestId: string, approved: boolean) => {
-    setPairCodeBusy(true);
-    try {
-      const resp = await decidePanelPhonePairCode(requestId, approved);
-      if (!resp) {
-        setPairCodeError(t('phonePair.code.errorDecide'));
-        return;
-      }
-      if (resp.status === 'approved' || (approved && resp.status === 'waiting-phone')) {
-        setPairCodeTerminal({ kind: 'approved' });
-        setPairCodeRequest(null);
-        setPairCode(null);
-        loadSessions(false);
-      } else if (resp.status === 'denied' || !approved) {
-        setPairCodeTerminal({ kind: 'denied' });
-        setPairCodeRequest(null);
-        setPairCode(null);
-      } else if (resp.status === 'expired') {
-        setPairCodeTerminal({ kind: 'expired' });
-        setPairCodeRequest(null);
-        setPairCode(null);
-      } else if (resp.status === 'waiting-host') {
-        // Host approved but phone hasn't confirmed yet. Stay in the
-        // request panel so the user keeps comparing the SAS; the phone's
-        // next confirm will tip the state into approved.
-      }
-    } finally {
-      setPairCodeBusy(false);
-    }
-  }, [loadSessions, t]);
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetchPanelPairBroadcast().then(next => {
+      if (!cancelled && next) setBroadcast(next);
+    });
+    return () => { cancelled = true; };
+  }, [open]);
 
-  const codeTopicEnabled = open && remoteEnabled && pairMode === 'code';
-  useTopicCallback('panel/phone/pair-code/request', codeTopicEnabled, useCallback((data: unknown) => {
-    const frame = data as PanelPhonePairCodeRequestFrame;
-    if (!frame || typeof frame.kind !== 'string') return;
-    if (frame.kind === 'request') {
-      setPairCodeRequest(frame);
-      setPairCodeTerminal(null);
-    } else if (frame.kind === 'cancelled') {
-      // Only react if it's the request we're tracking.
-      setPairCodeRequest(curr => {
-        if (!curr || curr.requestId !== frame.requestId) return curr;
-        const reason = frame.reason;
-        if (reason === 'phone-denied') setPairCodeTerminal({ kind: 'denied' });
-        else if (reason === 'expired') setPairCodeTerminal({ kind: 'expired' });
-        else if (reason === 'host-started-new-code') setPairCodeTerminal({ kind: 'superseded' });
-        else setPairCodeTerminal({ kind: 'denied' });
-        return null;
-      });
-      setPairCode(curr => {
-        if (!curr) return curr;
-        // Code superseded server-side - clear the displayed code too.
-        if (frame.reason === 'host-started-new-code') return null;
-        return curr;
-      });
-    }
-  }, []));
+  const updateBroadcast = useCallback(async (mode: PairBroadcastState['mode']) => {
+    const until = mode === 'until' ? Math.floor(Date.now() / 1000) + 600 : 0;
+    const next = await setPanelPairBroadcast(mode, until);
+    if (next) setBroadcast(next);
+  }, []);
 
   if (!open) return null;
 
@@ -443,6 +396,9 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                 ariaLabelledBy="phone-pair-killswitch-label"
               />
             </div>
+
+            <PairBroadcastSelector value={broadcast} onChange={updateBroadcast} now={now} />
+
 
             <section className={styles.phonePairCard + ' ' + styles.phonePairSessionsPanel} aria-label={t('phonePair.ariaSessions')} data-disabled={remoteEnabled ? 'false' : 'true'}>
             <div className={styles.phonePairSessionsHeader}>
@@ -561,35 +517,6 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                     <span>{qrStatus}</span>
                   </div>
                 </>
-              ) : pairCodeRequest ? (
-                <div className={styles.phonePairCodeConfirm}>
-                  <p className={styles.phonePairFlowHint}>{t('phonePair.code.requestSubtitle')}</p>
-                  <div className={styles.phonePairCodeSas}>{pairCodeRequest.sas}</div>
-                  <div className={styles.phonePairCodeMeta}>
-                    {t('phonePair.code.requestTitle', { device: pairCodeRequest.deviceLabel || t('phonePair.deviceFallback') })}
-                    {' · '}
-                    {t('phonePair.code.requestFrom', { ip: pairCodeRequest.remoteAddress || t('phonePair.unknownIp') })}
-                  </div>
-                  <div className={styles.phonePairCodeActions}>
-                    <button type="button" className={styles.phonePairCodeDeny} disabled={pairCodeBusy} onClick={() => handleDecide(pairCodeRequest.requestId, false)}>
-                      {t('phonePair.code.deny')}
-                    </button>
-                    <button type="button" disabled={pairCodeBusy} className={styles.phonePairCodeAllow} onClick={() => handleDecide(pairCodeRequest.requestId, true)}>
-                      {t('phonePair.code.allow')}
-                    </button>
-                  </div>
-                </div>
-              ) : pairCodeTerminal && pairCodeTerminal.kind !== 'expired' ? (
-                // Expired auto-refreshes (just like the QR), so no terminal
-                // panel for it - the next code is on its way. Denied /
-                // superseded / approved are still surfaced.
-                <div className={styles.phonePairCodeTerminal}>
-                  <p className={styles.phonePairFlowHint}>{
-                    pairCodeTerminal.kind === 'approved' ? t('phonePair.code.approved')
-                    : pairCodeTerminal.kind === 'denied' ? t('phonePair.code.denied')
-                    : t('phonePair.code.superseded')
-                  }</p>
-                </div>
               ) : pairCode ? (
                 <div className={styles.phonePairCodeShown}>
                   <p className={styles.phonePairFlowHint}>{t('phonePair.code.waiting')}</p>
@@ -644,3 +571,52 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     </>
   );
 }
+
+/**
+ * AirDrop-style discoverability selector for the Wi-Fi (mDNS) pair flow.
+ * QR + manual pair-code flows are unaffected — this only gates whether the
+ * iOS companion app can see this host in its "find on Wi-Fi" list.
+ * Rendered with the workspace's standard <Select> component for visual
+ * consistency with every other dropdown in the dashboard.
+ */
+function PairBroadcastSelector({
+  value,
+  onChange,
+  now,
+}: {
+  value: PairBroadcastState;
+  onChange: (mode: PairBroadcastState['mode']) => void;
+  now: number;
+}) {
+  const { t } = useTranslation();
+  const expiresIn = value.mode === 'until'
+    ? Math.max(0, value.untilUnixSeconds * 1000 - now)
+    : 0;
+  const hint = value.mode === 'never'
+    ? t('phonePair.broadcast.hintNever')
+    : value.mode === 'always'
+      ? t('phonePair.broadcast.hintAlways')
+      : t('phonePair.broadcast.hintUntil', { seconds: Math.ceil(expiresIn / 1000) });
+
+  return (
+    <div className={styles.phonePairKillswitchRow}>
+      <div>
+        <span className={styles.phonePairKillswitchLabel}>
+          {t('phonePair.broadcast.label')}
+        </span>
+        <span className={styles.phonePairKillswitchHint}>{hint}</span>
+      </div>
+      <Select
+        value={value.mode}
+        onChange={(next) => onChange(next as PairBroadcastState['mode'])}
+        ariaLabel={t('phonePair.broadcast.label')}
+        options={[
+          { value: 'never', label: t('phonePair.broadcast.optNever') },
+          { value: 'always', label: t('phonePair.broadcast.optAlways') },
+          { value: 'until', label: t('phonePair.broadcast.optTen') },
+        ]}
+      />
+    </div>
+  );
+}
+
