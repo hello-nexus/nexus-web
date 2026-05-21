@@ -22,15 +22,13 @@
 // strips the OS caption, so we need a draggable strip across the top row
 // and reserved space for the custom caption buttons on the right. The page
 // title is intentionally allowed to render INTO the 32px drag strip area
-// (no top gutter on the main column) so it lines up with the Nexus logo
-// in the sidebar.
+// so it lines up with the Nexus logo in the sidebar - the main-column top
+// gutter is already supplied by the base .mainColumn rule below; the
+// Windows shell only needs the sidebar nudge to keep the brand row aligned
+// with the page title.
 .layoutWindowsApp {
-  .mainColumn {
-    padding-top: 16px;
-  }
-
-  // Sidebar shifts down by the same 6px the main column gained so the
-  // brand row stays aligned with the page title.
+  // Sidebar shifts down 6px so the brand row stays aligned with the
+  // page title which is sitting in the drag-strip region.
   .sidebarColumn {
     padding-top: 6px;
   }
@@ -328,7 +326,17 @@
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
-  transition: color var(--ease-fast);
+  // Reserve space when hidden (so the wordmark doesn't reflow on
+  // hover) and fade in only when the brand row is hovered. Pointer
+  // events stay on so the button is still clickable in the hover
+  // state.
+  opacity: 0;
+  transition: color var(--ease-fast), opacity var(--ease-fast);
+
+  .sidebarBrand:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
   // Clickable - opt out of the drag region inherited from .sidebarBrand.
   -webkit-app-region: no-drag;
   app-region: no-drag;
@@ -550,6 +558,11 @@
   margin: 0 auto;
   padding: 0;
   display: grid;
+  // Reset the parent's 2-column template (auto minmax(0, 1fr)) so the
+  // empty second column doesn't reserve space and shove the icon off-
+  // centre. The single auto column + place-items: center then sits the
+  // icon dead in the middle of the 36x36 square.
+  grid-template-columns: auto;
   place-items: center;
 }
 
@@ -1158,6 +1171,12 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  // Top gutter so the page title doesn't sit flush against the viewport
+  // edge. In the Qos Windows --app shell this same 16px lets the title
+  // float inside the 32px drag-strip region (the drag strip overlays on
+  // z-index:40); on the public website the gutter is just breathing
+  // room since there's no shell chrome above us.
+  padding-top: 16px;
 }
 
 .content {
