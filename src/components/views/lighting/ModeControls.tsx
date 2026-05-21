@@ -3,6 +3,15 @@ import {
   startStatic, fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect,
   type ScreenMonitor, type PostProcessSettings,
 } from '../../../api/lighting';
+import {
+  deleteMedia,
+  fetchMediaCurrent,
+  fetchMediaLibrary,
+  importMedia,
+  openMediaFolder,
+  playMedia,
+  type MediaItem,
+} from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
 import type { LightingMode } from '../../../types/lighting';
@@ -158,7 +167,7 @@ function ScreenControls({ screenPP, onScreenPPChange }: {
 
 function MediaControls() {
   const { t } = useTranslation();
-  const [items, setItems] = useState<import('../../../api/mediaLibrary').MediaItem[]>([]);
+  const [items, setItems] = useState<MediaItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -168,8 +177,8 @@ function MediaControls() {
 
   const refresh = async () => {
     const [lib, cur] = await Promise.all([
-      import('../../../api/mediaLibrary').then(m => m.fetchMediaLibrary()),
-      import('../../../api/mediaLibrary').then(m => m.fetchMediaCurrent()),
+      fetchMediaLibrary(),
+      fetchMediaCurrent(),
     ]);
     if (lib?.items) setItems(lib.items);
     if (cur?.mediaId) setActiveId(cur.mediaId);
@@ -239,7 +248,6 @@ function MediaControls() {
     setImporting(true);
     setImportingName(file.name);
     setImportError(null);
-    const { importMedia } = await import('../../../api/mediaLibrary');
     const result = await importMedia(file);
     setImporting(false);
     setImportingName(null);
@@ -250,7 +258,6 @@ function MediaControls() {
     } else {
       const newId = result.item.id;
       await refresh();
-      const { playMedia } = await import('../../../api/mediaLibrary');
       const ok = await playMedia(newId);
       if (ok) setActiveId(newId);
     }
@@ -258,13 +265,11 @@ function MediaControls() {
   };
 
   const handleOpenFolder = async () => {
-    const { openMediaFolder } = await import('../../../api/mediaLibrary');
     await openMediaFolder();
   };
 
   const handlePlay = async (id: string) => {
     if (id === activeId) return;
-    const { playMedia } = await import('../../../api/mediaLibrary');
     const ok = await playMedia(id);
     if (ok) setActiveId(id);
   };
@@ -272,7 +277,6 @@ function MediaControls() {
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
 
   const handleDelete = async (id: string) => {
-    const { deleteMedia } = await import('../../../api/mediaLibrary');
     const deleted = await deleteMedia(id);
     if (!deleted) {
       await refresh();

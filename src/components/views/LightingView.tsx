@@ -7,6 +7,7 @@ import {
   fetchCurrentSync,
   type LightingDevice, type LedMapEntry, type PostProcessSettings,
 } from '../../api/lighting';
+import { playCurrentOrFirstMedia } from '../../api/mediaLibrary';
 import { useLightingFrames } from '../../hooks/useLightingFrames';
 import { useLightingSync } from '../../hooks/useLightingSync';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
@@ -377,7 +378,7 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
       } else if (sync === 'screen') {
         await startScreenMirror(screenPP.saturation, screenPP.contrast, '', screenPP.hue, screenPP.colorize);
       } else if (sync === 'media' || sync === 'gif') {
-        await import('../../api/mediaLibrary').then(m => m.playCurrentOrFirstMedia());
+        await playCurrentOrFirstMedia();
       }
     })();
   }, [
@@ -634,7 +635,6 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
           await startScreenMirror(screenPP.saturation, screenPP.contrast, '', screenPP.hue, screenPP.colorize);
           break;
         case 'gif': {
-          const { playCurrentOrFirstMedia } = await import('../../api/mediaLibrary');
           await playCurrentOrFirstMedia();
           break;
         }
