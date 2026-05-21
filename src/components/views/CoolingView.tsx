@@ -990,16 +990,14 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
   if (!serviceOnline) {
     return (
       <div className={styles.cooling}>
-        <div className={styles.topBar}>
-          <ViewHeader
-            title={t('cooling.title')}
-            titleTooltip={t('cooling.title.tooltip')}
-            tabs={presetTabs}
-            activeTab={activePreset ?? undefined}
-            onTabChange={k => handlePresetChange(k)}
-            tabsDisabled
-          />
-        </div>
+        <ViewHeader
+          title={t('cooling.title')}
+          titleTooltip={t('cooling.title.tooltip')}
+          tabs={presetTabs}
+          activeTab={activePreset ?? undefined}
+          onTabChange={k => handlePresetChange(k)}
+          tabsDisabled
+        />
         <ServiceRequired state={connectionState} skeleton={<CoolingSkeleton />} />
       </div>
     );
@@ -1007,26 +1005,24 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
 
   return (
     <div className={styles.cooling}>
-      <div className={styles.topBar}>
-        <ViewHeader
-          title={t('cooling.title')}
-          titleTooltip={t('cooling.title.tooltip')}
-          tabs={presetTabs}
-          activeTab={activePreset ?? undefined}
-          onTabChange={k => handlePresetChange(k)}
-          tabActions={
-            <button
-              type="button"
-              className={styles.settingsBtn}
-              onClick={() => setSettingsOpen(true)}
-              aria-label={t('cooling.settings.open')}
-              title={t('cooling.settings.open')}
-            >
-              <Settings size={16} aria-hidden />
-            </button>
-          }
-        />
-      </div>
+      <ViewHeader
+        title={t('cooling.title')}
+        titleTooltip={t('cooling.title.tooltip')}
+        tabs={presetTabs}
+        activeTab={activePreset ?? undefined}
+        onTabChange={k => handlePresetChange(k)}
+        tabActions={
+          <button
+            type="button"
+            className={styles.settingsBtn}
+            onClick={() => setSettingsOpen(true)}
+            aria-label={t('cooling.settings.open')}
+            title={t('cooling.settings.open')}
+          >
+            <Settings size={16} aria-hidden />
+          </button>
+        }
+      />
 
       <CoolingSettingsModal
         open={settingsOpen}

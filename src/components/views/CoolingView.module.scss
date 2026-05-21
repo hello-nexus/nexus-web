@@ -8,38 +8,6 @@
   height: 100%;
 }
 
-// Top bar: title + preset tabs span the full row. Pulled past the app
-// shell content padding so the underline reaches the viewport edge. The
-// ::after pseudo paints one continuous separator at the tab-fold y so the
-// line reads as one unbroken bar across the page (the off-status banner
-// now lives inside the fan list, not the top bar, so no right-side cell
-// is reserved).
-.topBar {
-  position: relative;
-  margin-right: -1.25rem;
-
-  // Suppress the Tabs primitive's own border-bottom; replace it with a
-  // single ::after that paints the underline across the full top bar at
-  // the tab-fold y. One line total, viewport-wide, regardless of the
-  // off-status pill state.
-  nav { border-bottom: none; }
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    // Tracks the bottom of the Tabs nav inside the ViewHeader. ViewHeader's
-    // .viewHeaderTabs carries margin-bottom: 0.75rem, so the nav sits 0.75rem
-    // above the topBar's bottom edge. If that margin ever changes, this
-    // offset must follow.
-    bottom: 0.75rem;
-    height: 1px;
-    background: var(--border);
-    pointer-events: none;
-  }
-}
-
 // Notice banner that anchors the top of the fan list while the Off preset
 // is active. Accent-tinted to read as "this is why these fans aren't being
 // driven by the curves below" without taking the visual weight of a fan
@@ -60,11 +28,8 @@
 .offStatusLabel { letter-spacing: 0.02em; }
 
 // Gear icon in the top-right of the ViewHeader. Opens CoolingSettingsModal.
-// Mirrors the visual weight of FanCard icon buttons so the topBar stays
-// minimal — neutral until hovered, tinted on hover with no fill. The
-// trailing margin offsets the topBar's `margin-right: -1.25rem` (which lets
-// the underline reach the viewport edge) and adds extra inset so the gear
-// doesn't crowd the page edge.
+// Mirrors the visual weight of FanCard icon buttons — neutral until
+// hovered, tinted on hover with no fill.
 .settingsBtn {
   display: inline-flex;
   align-items: center;
@@ -72,7 +37,6 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  margin-right: 1.25rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: transparent;
