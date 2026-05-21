@@ -1,41 +1,16 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  padding: 16px;
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 10px;
-  background: var(--panel-card-bg, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.06));
-}
-
-.sectionTitle {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--text, #e8e8ec);
-}
-
-.sectionHint {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-dim, rgba(255, 255, 255, 0.55));
-  line-height: 1.4;
+  gap: 16px;
+  padding: 8px;
 }
 
 .row {
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: 120px 1fr;
   align-items: center;
   gap: 12px;
+  padding: 6px 0;
 }
 
 .rowLabel {
@@ -48,40 +23,9 @@
   justify-content: flex-start;
 }
 
-.buttonRow {
+.iconGroup {
   display: flex;
   gap: 6px;
-}
-
-.directionBtn {
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.12));
-  background: transparent;
-  color: var(--text, #e8e8ec);
-  cursor: pointer;
-  font-size: 16px;
-  transition: background 100ms ease, border-color 100ms ease;
-}
-
-.directionBtn:hover {
-  background: var(--panel-card-bg-hover, rgba(255, 255, 255, 0.06));
-}
-
-.directionBtnActive {
-  border-color: var(--accent, #6b8aff);
-  background: var(--accent-bg, rgba(107, 138, 255, 0.15));
-}
-
-.colorPicker {
-  width: 48px;
-  height: 32px;
-  border-radius: 6px;
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.12));
-  background: transparent;
-  cursor: pointer;
-  padding: 0;
 }
 
 .loading {

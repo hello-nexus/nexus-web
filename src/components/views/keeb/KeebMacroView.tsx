@@ -6,7 +6,15 @@ import {
   type KeebMacro,
   type MacroKey,
 } from '../../../api/keeb';
+import { Button } from '../../common/Button/Button';
+import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
+import { Tabs, type TabDef } from '../../common/Tabs/Tabs';
 import styles from './KeebMacroView.module.scss';
+
+const DELAY_MODE_TABS: readonly TabDef[] = [
+  { key: 'record', label: 'Record Delay' },
+  { key: 'custom', label: 'Custom Delay' },
+];
 
 const MACRO_COUNT = 16;
 type DelayMode = 'record' | 'custom';
@@ -173,14 +181,14 @@ export function KeebMacroView(_: KeebMacroViewProps) {
     <div className={styles.container}>
       <aside className={styles.slots} aria-label="Macro slots">
         {Array.from({ length: MACRO_COUNT }, (_, i) => (
-          <button
+          <IconLabelButton
             key={i}
-            type="button"
-            className={`${styles.slot} ${index === i ? styles.slotActive : ''}`}
-            onClick={() => setIndex(i)}
-          >
-            Macro {i + 1}
-          </button>
+            label={`Macro ${i + 1}`}
+            active={index === i}
+            ariaLabel={`Macro slot ${i + 1}`}
+            className={styles.slotBtn}
+            onPress={() => setIndex(i)}
+          />
         ))}
       </aside>
 
@@ -198,50 +206,48 @@ export function KeebMacroView(_: KeebMacroViewProps) {
           </label>
 
           <div className={styles.delayBlock}>
-            <label className={styles.delayRow}>
-              <input
-                type="radio"
-                checked={delayMode === 'record'}
-                onChange={() => setDelayMode('record')}
-              />
-              Record Delay
-            </label>
-            <label className={styles.delayRow}>
-              <input
-                type="radio"
-                checked={delayMode === 'custom'}
-                onChange={() => setDelayMode('custom')}
-              />
-              Custom Delay
-              <input
-                type="number"
-                min={10}
-                step={10}
-                value={customDelay}
-                disabled={delayMode !== 'custom'}
-                onChange={e => setCustomDelay(Math.max(10, Number(e.target.value) || 10))}
-                className={styles.customInput}
-                aria-label="Custom delay in milliseconds"
-              />
-              <span className={styles.unit}>ms</span>
-            </label>
+            <Tabs
+              tabs={DELAY_MODE_TABS}
+              activeKey={delayMode}
+              onChange={k => setDelayMode(k as DelayMode)}
+              variant="pill"
+              ariaLabel="Delay mode"
+            />
+            {delayMode === 'custom' && (
+              <div className={styles.delayRow}>
+                <input
+                  type="number"
+                  min={10}
+                  step={10}
+                  value={customDelay}
+                  onChange={e => setCustomDelay(Math.max(10, Number(e.target.value) || 10))}
+                  className={styles.customInput}
+                  aria-label="Custom delay in milliseconds"
+                />
+                <span className={styles.unit}>ms</span>
+              </div>
+            )}
           </div>
 
           <div className={styles.actions}>
             {recordings.length > 0 && !isRecording && (
-              <button type="button" className={styles.btn} onClick={() => void onClear()}>
-                <RefreshCw size={14} aria-hidden="true" />
+              <Button
+                size="sm"
+                tone="neutral"
+                icon={<RefreshCw size={14} aria-hidden="true" />}
+                onClick={() => void onClear()}
+              >
                 Clear
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
-              className={`${styles.btn} ${isRecording ? styles.btnDanger : styles.btnPrimary}`}
+            <Button
+              size="sm"
+              tone={isRecording ? 'danger' : 'accent'}
+              icon={isRecording ? <StopIcon size={14} aria-hidden="true" /> : <Circle size={14} aria-hidden="true" />}
               onClick={() => void onToggleRecord()}
             >
-              {isRecording ? <StopIcon size={14} aria-hidden="true" /> : <Circle size={14} aria-hidden="true" />}
               {isRecording ? 'Stop' : 'Start Recording'}
-            </button>
+            </Button>
           </div>
         </header>
 

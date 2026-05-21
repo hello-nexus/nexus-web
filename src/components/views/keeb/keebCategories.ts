@@ -14,12 +14,14 @@
 import type { KeyAssignmentMode } from '../../../api/keeb';
 
 export type KeebAssignmentCategory =
+  | 'Keyboard'
   | 'Mouse'
   | 'System & Apps'
   | 'Lighting & Profiles'
   | 'Macros';
 
 export const ASSIGNMENT_CATEGORIES: readonly KeebAssignmentCategory[] = [
+  'Keyboard',
   'Mouse',
   'System & Apps',
   'Lighting & Profiles',
@@ -76,9 +78,13 @@ const macros = (): AssignmentFunction[] => {
   return out;
 };
 
-/// Returns the categories tree consumed by `KeebKeyAssignmentView`.
+/// Returns the categories tree consumed by `KeebKeyAssignmentView`. The
+/// `Keyboard` category is handled separately by the view (it renders a
+/// second `KeebKeyboard` as a click-to-pick source instead of a tile grid),
+/// so it appears as an empty entry here just to satisfy the type.
 export function getAssignmentCategories(): AssignmentCategories {
   return {
+    Keyboard: [],
     Mouse: [
       {
         title: 'Mouse',

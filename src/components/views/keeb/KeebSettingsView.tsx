@@ -1,5 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from 'lucide-react';
 import type { KeebSettings, RGBA } from '../../../api/keeb';
+import { Card } from '../../common/Card/Card';
+import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
+import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
@@ -7,8 +11,14 @@ import styles from './KeebSettingsView.module.scss';
 
 const FW_EFFECTS = ['Static', 'Breathe', 'Rainbow', 'Wave', 'Flow', 'PingPong'];
 const FW_SPEEDS = ['Slow', 'LaidBack', 'Standard', 'Energetic', 'Rapid'];
-const FW_DIRECTIONS = ['LeftToRight', 'RightToLeft', 'TopToBottom', 'BottomToTop'];
 const KEY_REACTIVE_MODES = ['SingleKey', 'HorizontalLine', 'VerticalLine', 'Ripple'];
+
+const DIRECTIONS: { value: string; icon: ReactNode; aria: string }[] = [
+  { value: 'LeftToRight', icon: <ArrowRight size={16} aria-hidden="true" />, aria: 'Left to right' },
+  { value: 'RightToLeft', icon: <ArrowLeft size={16} aria-hidden="true" />, aria: 'Right to left' },
+  { value: 'TopToBottom', icon: <ArrowDown size={16} aria-hidden="true" />, aria: 'Top to bottom' },
+  { value: 'BottomToTop', icon: <ArrowUp size={16} aria-hidden="true" />, aria: 'Bottom to top' },
+];
 
 export interface KeebSettingsViewProps {
   settings: KeebSettings | null;
@@ -78,12 +88,7 @@ export function KeebSettingsView({
 
   return (
     <div className={styles.grid}>
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Firmware Lighting</h3>
-        <p className={styles.sectionHint}>
-          Applies on the keyboard itself when qos isn't actively driving the LEDs.
-        </p>
-
+      <Card title="Firmware Lighting" subtitle="Applies on the keyboard itself when qos isn't actively driving the LEDs.">
         <Row label="Effect">
           <Select
             value={local.animationMode}
@@ -93,7 +98,6 @@ export function KeebSettingsView({
             size="sm"
           />
         </Row>
-
         <Row label="Speed">
           <Select
             value={local.speed}
@@ -103,7 +107,6 @@ export function KeebSettingsView({
             size="sm"
           />
         </Row>
-
         <Row label="Brightness">
           <Slider
             min={0}
@@ -117,31 +120,23 @@ export function KeebSettingsView({
             formatValue={v => `${v}%`}
           />
         </Row>
-
         <Row label="Direction">
-          <div className={styles.buttonRow}>
-            {FW_DIRECTIONS.map(dir => (
-              <button
-                key={dir}
-                type="button"
-                className={`${styles.directionBtn} ${local.direction === dir ? styles.directionBtnActive : ''}`}
-                onClick={() => pushFw({ direction: dir })}
-                aria-pressed={local.direction === dir}
-                title={dir}
-              >
-                {dirGlyph(dir)}
-              </button>
+          <div className={styles.iconGroup}>
+            {DIRECTIONS.map(d => (
+              <IconLabelButton
+                key={d.value}
+                icon={d.icon}
+                active={local.direction === d.value}
+                ariaLabel={d.aria}
+                title={d.value}
+                onPress={() => pushFw({ direction: d.value })}
+              />
             ))}
           </div>
         </Row>
-      </section>
+      </Card>
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Passive Lighting</h3>
-        <p className={styles.sectionHint}>
-          Reacts to keypresses on top of (or as a mask over) the firmware effect.
-        </p>
-
+      <Card title="Passive Lighting" subtitle="Reacts to keypresses on top of (or as a mask over) the firmware effect.">
         <Row label="Type Reactive">
           <Toggle
             checked={local.keyReactive}
@@ -149,7 +144,6 @@ export function KeebSettingsView({
             ariaLabel="Type Reactive"
           />
         </Row>
-
         {local.keyReactive && (
           <>
             <Row label="Mask Effect">
@@ -169,21 +163,17 @@ export function KeebSettingsView({
               />
             </Row>
             <Row label="Color">
-              <ColorInput
-                value={local.keyReactiveColor}
-                onChange={c => pushPassive({ keyReactiveColor: c })}
+              <HsvPicker
+                value={rgbToHex(local.keyReactiveColor)}
+                onPreview={hex => setLocalField('keyReactiveColor', hexToRgba(hex, local.keyReactiveColor.a))}
+                onCommit={hex => pushPassive({ keyReactiveColor: hexToRgba(hex, local.keyReactiveColor.a) })}
               />
             </Row>
           </>
         )}
-      </section>
+      </Card>
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Game Mode</h3>
-        <p className={styles.sectionHint}>
-          Disable accidental escape-from-game keys at the firmware level.
-        </p>
-
+      <Card title="Game Mode" subtitle="Disable accidental escape-from-game keys at the firmware level.">
         <Row label="Disable ALT+F4">
           <Toggle checked={local.altF4Disabled} onChange={v => pushGameMode({ altF4Disabled: v })} ariaLabel="Disable ALT F4" />
         </Row>
@@ -196,40 +186,17 @@ export function KeebSettingsView({
         <Row label="Disable Windows Key">
           <Toggle checked={local.windowsKeyDisabled} onChange={v => pushGameMode({ windowsKeyDisabled: v })} ariaLabel="Disable Windows Key" />
         </Row>
-      </section>
+      </Card>
     </div>
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className={styles.row}>
       <span className={styles.rowLabel}>{label}</span>
       <span className={styles.rowControl}>{children}</span>
     </div>
-  );
-}
-
-function dirGlyph(dir: string): string {
-  switch (dir) {
-    case 'LeftToRight': return '→';
-    case 'RightToLeft': return '←';
-    case 'TopToBottom': return '↓';
-    case 'BottomToTop': return '↑';
-    default: return dir;
-  }
-}
-
-function ColorInput({ value, onChange }: { value: RGBA; onChange: (c: RGBA) => void }) {
-  const hex = rgbToHex(value);
-  return (
-    <input
-      type="color"
-      value={hex}
-      className={styles.colorPicker}
-      onChange={e => onChange(hexToRgba(e.target.value, value.a))}
-      aria-label="Reactive color"
-    />
   );
 }
 

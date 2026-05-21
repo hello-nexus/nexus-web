@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { SetRotaryWheelsBody } from '../../../api/keeb';
 import { getKeebRotaryFunctions } from '../../../api/keeb';
+import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { Select } from '../../common/Select/Select';
 import {
   ROTARY_SENSITIVITIES,
@@ -88,16 +89,14 @@ export function KeebRotaryView({
 
       <div className={styles.tiles}>
         {functions.map(fn => (
-          <button
+          <IconLabelButton
             key={fn}
-            type="button"
-            className={`${styles.tile} ${fallbackActive === fn ? styles.tileActive : ''}`}
+            label={fn.replace(/([A-Z])/g, ' $1').trim()}
+            active={fallbackActive === fn}
             title={getRotaryFunctionTooltip(fn)}
-            onClick={() => void handlePick(fn)}
-          >
-            <span className={styles.tileName}>{fn.replace(/([A-Z])/g, ' $1').trim()}</span>
-            <span className={styles.tileTooltip}>{getRotaryFunctionTooltip(fn)}</span>
-          </button>
+            ariaLabel={fn}
+            onPress={() => void handlePick(fn)}
+          />
         ))}
       </div>
     </div>

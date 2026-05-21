@@ -1,13 +1,19 @@
 // Keeb keyboard render — fixed-pixel layout matching the legacy nexus app's
-// keeb modal, scaled into the viewport via `zoom` on the wrapper.
+// keeb modal. Rows use a FIXED height (not min-height) so the numpad's tall
+// multi-row keys (KeypadPlus / KeypadEnter / KeypadEqual: 145px with
+// marginTop:80) overflow visually instead of stretching the row track.
+
+$key-height: 70px;
+$row-height: 74px; // legacy: $key-height + 4
+$wheel-size: 110px;
 
 .keyboard {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 16px 24px;
-  border-radius: 12px;
+  gap: 10px;
+  padding: 16px 25px;
+  border-radius: 40px;
   background: var(--panel-card-bg, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.08));
   width: fit-content;
@@ -17,31 +23,74 @@
 .row {
   display: flex;
   flex-direction: row;
-  gap: 6px;
-  align-items: flex-end;
-  min-height: 50px;
+  gap: 10px;
+  align-items: center;
+  height: $row-height;
+  width: 100%;
 }
 
+// Top row holds the two rotary wheels + the firmware-supplied RGB-cycle key.
+// Wheels need vertical space, so this row is taller than the others.
+.topRow {
+  height: $wheel-size;
+  justify-content: flex-start;
+  gap: 24px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+// Media-key row is shorter than standard rows because the media keys
+// themselves are 45px tall vs the standard 70px. Drop the row height to
+// match so the F-row directly underneath doesn't gain extra padding.
+.mediaRow {
+  height: 49px;
+}
+
+// Three visual key sizes, matched to the legacy nexus app:
+//   .key           - standard, 75x70 (alphabetic + nav + numpad + modifiers)
+//   .key.media     - row 1 media keys, 80x45 with rounded corners
+//   .key.middle    - row 0 col 0 (firmware mode-cycle key), 60x80 pill
+// The choice between them is positional, not modal: the renderer applies
+// classes based on (row, col), mirroring legacy `Key/index.tsx`.
+
 .key {
+  position: relative;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 50px;
-  height: 50px;
+  flex-shrink: 0;
+  width: 75px;
+  height: $key-height;
   padding: 4px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid var(--accent, #6b8aff);
   background: var(--panel-bg, rgba(20, 20, 24, 0.85));
   color: var(--text, #e8e8ec);
-  font-size: 11px;
-  font-weight: 500;
+  // Source size 75x70 scaled by the modal's `zoom` (0.55 main / 0.48 source).
+  // 28px reads cleanly at both zoom levels.
+  font-size: 28px;
+  font-weight: 600;
   text-align: center;
-  line-height: 1.1;
+  line-height: 1;
   cursor: pointer;
   transition: background 100ms ease, border-color 100ms ease, transform 100ms ease;
   overflow: hidden;
   white-space: nowrap;
+}
+
+.keyMedia {
+  width: 80px;
+  height: 45px;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
+.keyMiddle {
+  width: 60px;
+  height: 80px;
+  border-radius: 80px;
+  font-size: 18px;
 }
 
 .key:hover {
@@ -58,32 +107,34 @@
   cursor: not-allowed;
 }
 
-.wheels {
-  position: absolute;
-  top: 8px;
-  right: 24px;
-  display: flex;
-  gap: 12px;
-}
-
+// Rotary wheels: round, flank the RGB-cycle key on the top row. Larger
+// than regular keys so they read as something different on the keyboard
+// graphic — match the physical hardware's relative sizing.
 .wheel {
-  width: 44px;
-  height: 44px;
+  flex-shrink: 0;
+  width: $wheel-size;
+  height: $wheel-size;
   border-radius: 50%;
   border: 2px solid var(--accent, #6b8aff);
-  background: var(--panel-card-bg, rgba(255, 255, 255, 0.04));
+  background: var(--panel-bg, rgba(20, 20, 24, 0.85));
+  color: var(--text-dim, rgba(255, 255, 255, 0.7));
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  color: var(--text-dim, rgba(255, 255, 255, 0.6));
-  cursor: pointer;
-  transition: border-color 100ms ease, transform 100ms ease;
+  transition: border-color 100ms ease, background 100ms ease, transform 100ms ease;
 }
 
-.wheelFocused {
+.wheel:hover:not(:disabled) {
+  background: var(--panel-card-bg-hover, rgba(255, 255, 255, 0.08));
+}
+
+.wheelSelected {
   border-color: var(--accent, #ff8a3d);
-  transform: scale(1.05);
+  background: var(--accent-bg, rgba(255, 138, 61, 0.15));
+  color: var(--text, #e8e8ec);
 }
 
 .offlineBanner {

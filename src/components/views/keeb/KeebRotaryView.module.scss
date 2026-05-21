@@ -1,8 +1,8 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 8px 16px 16px;
+  gap: 12px;
+  padding: 8px 12px 12px;
 }
 
 .header {
@@ -25,7 +25,7 @@
 
 .wheelBadge {
   margin-left: auto;
-  padding: 8px 12px;
+  padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid var(--accent, #6b8aff);
   background: var(--accent-bg, rgba(107, 138, 255, 0.15));
@@ -39,42 +39,6 @@
 
 .tiles {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.tile {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 12px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.1));
-  background: var(--panel-card-bg, rgba(255, 255, 255, 0.03));
-  color: var(--text, #e8e8ec);
-  text-align: left;
-  cursor: pointer;
-  transition: background 100ms ease, border-color 100ms ease;
-  min-height: 64px;
-}
-
-.tile:hover {
-  background: var(--panel-card-bg-hover, rgba(255, 255, 255, 0.07));
-  border-color: var(--accent, #6b8aff);
-}
-
-.tileActive {
-  border-color: var(--accent, #6b8aff);
-  background: var(--accent-bg, rgba(107, 138, 255, 0.15));
-}
-
-.tileName {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.tileTooltip {
-  font-size: 11px;
-  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
 }

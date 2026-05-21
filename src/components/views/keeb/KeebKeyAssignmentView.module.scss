@@ -1,8 +1,8 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 8px 16px 16px;
+  gap: 12px;
+  padding: 8px 12px 12px;
 }
 
 .header {
@@ -10,61 +10,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-.categoryTabs {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.categoryTab {
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.12));
-  background: transparent;
-  color: var(--text-dim, rgba(255, 255, 255, 0.65));
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
-}
-
-.categoryTab:hover {
-  color: var(--text, #e8e8ec);
-  background: var(--panel-card-bg-hover, rgba(255, 255, 255, 0.06));
-}
-
-.categoryTabActive {
-  border-color: var(--accent, #6b8aff);
-  background: var(--accent-bg, rgba(107, 138, 255, 0.15));
-  color: var(--text, #e8e8ec);
-}
-
-.resetBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.12));
-  background: transparent;
-  color: var(--text-dim, rgba(255, 255, 255, 0.7));
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
-}
-
-.resetBtn:hover {
-  color: var(--text, #e8e8ec);
-  background: var(--panel-card-bg-hover, rgba(255, 255, 255, 0.06));
-}
-
-.resetBtnConfirm {
-  border-color: var(--accent, #ff8a3d);
-  background: var(--accent-bg, rgba(255, 138, 61, 0.15));
-  color: var(--text, #e8e8ec);
 }
 
 .hint {
@@ -80,32 +25,18 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.group {
-  display: flex;
-  flex-direction: column;
   gap: 12px;
-  padding: 14px;
-  border-radius: 10px;
-  background: var(--panel-card-bg, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.06));
 }
 
-.groupTitle {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text, #e8e8ec);
+.groupCard {
+  // Card supplies the chrome; we just need section spacing inside it.
+  gap: 12px;
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .sectionTitle {
@@ -122,24 +53,11 @@
   gap: 6px;
 }
 
-.tile {
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.1));
-  background: transparent;
-  color: var(--text, #e8e8ec);
-  font-size: 12px;
-  text-align: left;
-  cursor: pointer;
-  transition: background 100ms ease, border-color 100ms ease;
-}
-
-.tile:hover:not(:disabled) {
-  background: var(--accent-bg, rgba(107, 138, 255, 0.15));
-  border-color: var(--accent, #6b8aff);
-}
-
-.tile:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+// Source-keyboard stage (Keyboard category): a second KeebKeyboard render
+// sized smaller than the main one above, used as a click-to-pick picker.
+.sourceStage {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 0;
+  zoom: 0.48;
 }

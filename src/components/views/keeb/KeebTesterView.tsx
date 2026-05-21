@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { Keyboard, RefreshCw } from 'lucide-react';
+import { Button } from '../../common/Button/Button';
+import { Card } from '../../common/Card/Card';
+import { EmptyState } from '../../common/EmptyState/EmptyState';
+import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import styles from './KeebTesterView.module.scss';
 
 interface TouchEntry {
@@ -43,54 +47,44 @@ export function KeebTesterView({ open }: KeebTesterViewProps) {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <div>
-          <h3 className={styles.title}>Local Mode</h3>
-          <p className={styles.hint}>
-            Live key testing arrives with the HID driver — see Phase 7 of the keeb-support plan.
-            For now this listens to your browser's keydown events so the UI is still testable.
-          </p>
-        </div>
-        <button type="button" className={styles.resetBtn} onClick={onReset}>
-          <RefreshCw size={14} aria-hidden="true" />
-          Reset
-        </button>
-      </header>
+      <Card
+        title="Local Mode"
+        subtitle="Live key testing arrives with the HID driver. For now this listens to your browser's keydown events so the UI is testable."
+        actions={
+          <Button size="sm" tone="neutral" icon={<RefreshCw size={14} aria-hidden="true" />} onClick={onReset}>
+            Reset
+          </Button>
+        }
+      >
+        <InfoList>
+          <InfoRow label="Key" value={latest?.key ?? '—'} />
+          <InfoRow label="Keycode" value={latest?.keycode ?? '—'} />
+          <InfoRow
+            label="Time"
+            value={latest ? new Date(latest.timestamp).toLocaleTimeString() : '—'}
+          />
+        </InfoList>
+      </Card>
 
-      <section className={styles.latest} aria-label="Latest key">
-        <div className={styles.latestStat}>
-          <span className={styles.statValue}>{latest?.key ?? '—'}</span>
-          <span className={styles.statLabel}>Key</span>
-        </div>
-        <div className={styles.latestStat}>
-          <span className={styles.statValue}>{latest?.keycode ?? '—'}</span>
-          <span className={styles.statLabel}>Keycode</span>
-        </div>
-        <div className={styles.latestStat}>
-          <span className={styles.statValue}>
-            {latest ? new Date(latest.timestamp).toLocaleTimeString() : '—'}
-          </span>
-          <span className={styles.statLabel}>Timestamp</span>
-        </div>
-      </section>
-
-      <section className={styles.history} aria-label="Key history">
-        <header className={styles.historyHead}>
-          <span>Key</span>
-          <span>Keycode</span>
-          <span>Time</span>
-        </header>
-        {history.length === 0 && (
-          <p className={styles.empty}>Press any key to populate the history.</p>
+      <Card title="History">
+        {history.length === 0 ? (
+          <EmptyState
+            icon={<Keyboard size={24} aria-hidden="true" />}
+            title="Press any key to populate the history."
+            compact
+          />
+        ) : (
+          <InfoList>
+            {history.map(entry => (
+              <InfoRow
+                key={`${entry.timestamp}-${entry.key}`}
+                label={`${entry.key} (kc ${entry.keycode})`}
+                value={new Date(entry.timestamp).toLocaleTimeString()}
+              />
+            ))}
+          </InfoList>
         )}
-        {history.map(entry => (
-          <div key={`${entry.timestamp}-${entry.key}`} className={styles.historyRow}>
-            <span>{entry.key}</span>
-            <span>{entry.keycode}</span>
-            <span>{new Date(entry.timestamp).toLocaleTimeString()}</span>
-          </div>
-        ))}
-      </section>
+      </Card>
     </div>
   );
 }
