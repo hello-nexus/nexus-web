@@ -98,7 +98,13 @@ export function useUnifiedDevices(enabled: boolean) {
     const filteredPanels = panels.devices.filter(p =>
       !(p.connectionKind === 'external-browser' && p.status === 'paired')
     );
-    return buildUnifiedList(filteredPanels, devices.filter(d => d.connected), merged);
+    // Keeb is special: its modal has a fully-offline Settings tab and the
+    // user expects to be able to open it (configure firmware lighting, game
+    // mode, macros) even when the keyboard isn't physically attached. Every
+    // other curated device is hidden when not connected so the Available
+    // list doesn't fill up with placeholders.
+    const filteredCurated = devices.filter(d => d.connected || d.id === 'keeb');
+    return buildUnifiedList(filteredPanels, filteredCurated, merged);
   }, [panels.devices, devices, merged]);
 
   return {
