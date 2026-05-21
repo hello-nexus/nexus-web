@@ -43,7 +43,7 @@ export function Sidebar({
           {headerSlot}
         </div>
       )}
-      {!compact && <div className={styles.sectionLabel}>{sectionLabel}</div>}
+      {!compact && sectionLabel && <div className={styles.sectionLabel}>{sectionLabel}</div>}
       {items.map((item) => {
         // Dot lights up while any fan is software-controlled (curve or
         // manual). BIOS-only means the user has not taken manual control of

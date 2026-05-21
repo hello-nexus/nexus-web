@@ -4,6 +4,9 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  // Keep in lockstep with MinClientWidth in qos-overlay's DashboardWindow.cs
+  // - the OS-enforced minimum window width matches this so the layout
+  // is never asked to shrink below it (no horizontal scrollbar).
   min-width: 1000px;
   background: var(--bg);
   color: var(--text);
@@ -11,6 +14,166 @@
 
 .layoutCompact {
   min-width: 864px;
+}
+
+// Qos Windows --app shell: we host our own title bar inside the page so
+// the WebView2 can paint flush to the top edge of the window. The shell
+// strips the OS caption, so we need (1) a draggable strip across the top
+// row, (2) a 32px gutter so the view content doesn't slip under that
+// strip / under the custom caption buttons.
+.layoutWindowsApp {
+  position: relative;
+
+  .mainColumn {
+    // Push the main column's first row (page header + view-level top
+    // buttons) below the drag strip + caption buttons. Sidebar stays
+    // anchored at the very top because the brand row itself is the
+    // drag region for the left side.
+    padding-top: 32px;
+  }
+}
+
+// Absolutely-positioned 32px strip at the top of the main column. Sits
+// between the sidebar (which has its own drag region in .sidebarBrand)
+// and the caption buttons (138px reserved on the right). Pointer events
+// stay on so the browser can detect the drag start; the strip's only
+// child is itself, so there's nothing here for clicks to fall through to.
+.windowDragStrip {
+  position: absolute;
+  top: 0;
+  left: 200px; // right of the (expanded) sidebar - keep in lockstep with .sidebarColumn width
+  right: 138px; // left of the 3x46px caption buttons
+  height: 32px;
+  z-index: 40;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+// When the sidebar is collapsed, the drag strip starts further left so
+// the gap above the main content stays uninterrupted. Keep in lockstep
+// with .sidebarCompact width.
+.layoutCompact .windowDragStrip {
+  left: 64px;
+}
+
+// Some sections (anything outside my-computer) render no sidebar at
+// all - the drag strip's default left:200 would leave a 200px dead
+// zone at the top-left that can't drag the window. Flush-left here
+// so the whole top row is grabbable.
+.layoutNoSidebar .windowDragStrip {
+  left: 0;
+}
+
+// Resize strips - one along each edge of the window. They catch
+// mousedown and IPC the host (qos-overlay's DashboardWindow.cs), which
+// posts WM_NCLBUTTONDOWN(hit, lParam) to its own HWND so the OS takes
+// over the resize loop natively (no per-frame JS work).
+//
+// app-region: drag is intentionally NOT used here - IsNonClientRegionSupportEnabled
+// forwards app-region regions to WM_NCHITTEST but only honours HTCAPTION
+// (drag) on the response; resize HT codes are dropped. The mousedown +
+// PostMessage path is the canonical workaround Microsoft Store / Edge use.
+//
+// 6px wide invisible strip is enough for an unambiguous cursor target;
+// page UI has its own padding well outside this band.
+.windowResizeStrip {
+  position: absolute;
+  z-index: 60;
+  background: transparent;
+}
+
+.windowResizeStripLeft {
+  position: absolute;
+  z-index: 60;
+  background: transparent;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.windowResizeStripRight {
+  position: absolute;
+  z-index: 60;
+  background: transparent;
+  // Skip the top 32px so the caption buttons hit-test wins over the
+  // right resize edge in their corner.
+  top: 32px;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.windowResizeStripTop {
+  position: absolute;
+  z-index: 60;
+  background: transparent;
+  top: 0;
+  left: 0;
+  right: 138px;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.windowResizeStripBottom {
+  position: absolute;
+  z-index: 60;
+  background: transparent;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+// Corner strips - 12x12 squares so the user can grab the diagonal
+// resize cursor reliably. These are siblings of the edge strips at the
+// same z-index, but slightly higher up in DOM order so they win where
+// they overlap the edge strips.
+.windowResizeCornerTopLeft {
+  position: absolute;
+  z-index: 61;
+  background: transparent;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+}
+
+.windowResizeCornerTopRight {
+  position: absolute;
+  z-index: 61;
+  background: transparent;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nesw-resize;
+}
+
+.windowResizeCornerBottomLeft {
+  position: absolute;
+  z-index: 61;
+  background: transparent;
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nesw-resize;
+}
+
+.windowResizeCornerBottomRight {
+  position: absolute;
+  z-index: 61;
+  background: transparent;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
 }
 
 // ── Body row: sidebar + content side by side ────────────────────────────
@@ -92,6 +255,15 @@
   flex-shrink: 0;
 }
 
+// Custom-title-bar drag region for the sidebar brand row. Scoped to
+// .layoutWindowsApp (the qos-overlay shell) so iOS WKWebView doesn't
+// pick up the property and swallow scroll / text-selection on the
+// brand row in mobile contexts.
+.layoutWindowsApp .sidebarBrand {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
 .sidebarBrandCompact {
   justify-content: center;
   padding: 0;
@@ -111,6 +283,9 @@
   padding: 0;
   cursor: pointer;
   transition: transform var(--ease-fast);
+  // Clickable - opt out of the drag region inherited from .sidebarBrand.
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 
   &:hover {
     transform: scale(1.06);
@@ -151,6 +326,9 @@
   padding: 0;
   flex-shrink: 0;
   transition: color var(--ease-fast);
+  // Clickable - opt out of the drag region inherited from .sidebarBrand.
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 
   &:hover {
     color: var(--accent-glow);

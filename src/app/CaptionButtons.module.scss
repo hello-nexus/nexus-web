@@ -1,0 +1,65 @@
+// Win11-styled caption buttons. Renders 3 x 46x32 buttons stacked
+// horizontally in the top-right corner of the layout. The DWM-painted
+// system buttons are unavailable inside a WebView2 host because the child
+// HWND covers the parent's non-client area, so we paint them ourselves and
+// route clicks back to qos-overlay via window.chrome.webview.postMessage.
+
+.bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  height: 32px;
+  z-index: 50;
+  // Each button is interactive - exempt the bar from any inherited
+  // app-region: drag set on the layout root.
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+  user-select: none;
+}
+
+.btn {
+  width: 46px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: default;
+  outline: none;
+  padding: 0;
+  // Match Win11's quick hover-in / slower hover-out fade.
+  transition: background-color 100ms ease;
+
+  &:hover {
+    // Win11 dark-mode caption button hover: rgba(255,255,255,0.06).
+    // Light-mode would use rgba(0,0,0,0.0466) - the app is currently
+    // dark-mode-dominant, so the dark token wins. If light mode lands as
+    // a real surface, switch to a CSS var driven by prefers-color-scheme.
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &:active {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  svg {
+    display: block;
+    width: 10px;
+    height: 10px;
+  }
+}
+
+.close {
+  &:hover {
+    // Win11 close-button accent: #C42B1C with white glyph.
+    background: #c42b1c;
+    color: #ffffff;
+  }
+
+  &:active {
+    background: #b82d24;
+    color: #ffffff;
+  }
+}

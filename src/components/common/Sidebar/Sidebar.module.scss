@@ -20,7 +20,6 @@
   height: var(--sidebar-section-height);
   padding: 0 0.75rem;
   margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -47,7 +46,10 @@
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-dim);
-  font-size: var(--type-body);
+  // Step down from --type-body (16px) so the nav text sits a touch
+  // smaller; matches the visual weight of the labels in the sidebar
+  // brand row and the bottom-of-sidebar buttons.
+  font-size: var(--type-small);
   font-weight: var(--weight-body);
   cursor: pointer;
   transition: background var(--ease-fast), color var(--ease-fast);
