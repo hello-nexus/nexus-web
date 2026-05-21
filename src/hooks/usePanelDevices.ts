@@ -116,7 +116,6 @@ export function usePanelDevices(
         paired: t('phonePair.statusPaired'),
         recentlyActive: t('phonePair.statusRecentlyActive'),
         running: t('devices.panels.running'),
-        simulatedY70Name: t('devices.panels.simulatedY70Name'),
       },
     });
   }, [curatedDevices, phoneSessions, status, includeSimulatedY70, simulatedPanels, t]);
@@ -144,7 +143,6 @@ function buildPanelDevices({
     paired: string;
     recentlyActive: string;
     running: string;
-    simulatedY70Name: string;
   };
 }): PanelDevice[] {
   const devices: PanelDevice[] = [];
@@ -184,7 +182,14 @@ function buildPanelDevices({
     devices.push({
       id: `simulated:${panel.id}`,
       sourceId: panel.id,
-      name: panel.id === 'y70' ? labels.simulatedY70Name : panel.name,
+      // Use the panel's own name (e.g. "Y70 Touch") and let the subtitle
+      // ("Simulated test panel - …") + the modal title's "(Simulator)"
+      // suffix carry the simulator marker. Previously the y70 case had a
+      // localized "Y70 Touch (Simulated)" name that duplicated the marker —
+      // the card and modal both showed it, so the user saw "(Simulator)"
+      // twice. Aligning y70 with every other simulated panel removes the
+      // duplication.
+      name: panel.name,
       subtitle: `${labels.simulated} - ${panel.width}x${panel.height} @ ${panel.dpi} dpi - short ${formatPanelInches(physical.shortSideInches)} - ${capacity.columns}x${capacity.rows} grid`,
       status: 'online',
       statusLabel: labels.online,
