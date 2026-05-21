@@ -558,6 +558,11 @@
   margin: 0 auto;
   padding: 0;
   display: grid;
+  // Reset the parent's 2-column template (auto minmax(0, 1fr)) so the
+  // empty second column doesn't reserve space and shove the icon off-
+  // centre. The single auto column + place-items: center then sits the
+  // icon dead in the middle of the 36x36 square.
+  grid-template-columns: auto;
   place-items: center;
 }
 
