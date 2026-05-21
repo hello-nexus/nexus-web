@@ -641,7 +641,7 @@
   "phonePair.removeAll": "Tumunu kaldir",
   "phonePair.removeSession": "{name} erisimini kaldir",
   "phonePair.saving": "Kaydediliyor...",
-  "phonePair.securityNote": "Ayni cihazdan tekrar taramak yetkilendirmeyi yeniler. Kaldirilan cihazlar yeniden baglanmadan once yeni bir kod taramalidir.",
+  "phonePair.securityNote": "Ayni cihazdan tekrar eslestirmek yetkilendirmeyi yeniler. Kaldirilan cihazlar yeniden baglanmadan once tekrar eslestirilmelidir.",
   "phonePair.statusPaired": "Eslestirildi",
   "phonePair.statusRecentlyActive": "Son zamanlarda aktif",
   "phonePair.tab.code": "Code Pairing",

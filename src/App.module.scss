@@ -364,7 +364,7 @@
 }
 
 .phonePairFlowTabs {
-  align-self: flex-start;
+  align-self: center;
 }
 
 // One canonical "hint" style for every explanatory blurb across both
@@ -374,6 +374,16 @@
   margin: 0;
   color: var(--text-faded);
   line-height: 1.45;
+}
+
+// Reserved space where the inline tab hint used to sit. Keeps the
+// QR/Code square at the same vertical offset for both tabs without
+// duplicating placeholder copy.
+.phonePairHintSpacer {
+  @include text-button;
+  margin: 0;
+  line-height: 1.45;
+  min-height: 1.45em;
 }
 
 .phonePairFlowFooter {
@@ -449,6 +459,22 @@
   }
 }
 
+// Mirror of .phonePairQrBox dimensions so the Code tab reserves the same
+// square footprint as the QR. Avoids the layout jump when toggling tabs.
+.phonePairCodeBox {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-low, var(--bg-card));
+  border: 1px solid var(--border);
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  max-width: 320px;
+  align-self: center;
+}
+
 .phonePairLoading {
   @include text-button;
   color: #111827;
@@ -482,12 +508,16 @@
 .phonePairCodeRows {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 1rem;
+  width: 100%;
+  align-items: center;
+  text-align: center;
 
   > div {
     display: flex;
     flex-direction: column;
     gap: 0.18rem;
+    align-items: center;
   }
 }
 

@@ -641,7 +641,7 @@
   "phonePair.removeAll": "Remove all",
   "phonePair.removeSession": "Remove access for {name}",
   "phonePair.saving": "Saving...",
-  "phonePair.securityNote": "Scanning again from the same device refreshes its authorization. Removed devices must scan a fresh code before reconnecting.",
+  "phonePair.securityNote": "Pairing again from the same device refreshes its authorization. Removed devices must pair again before reconnecting.",
   "phonePair.statusPaired": "Paired",
   "phonePair.statusRecentlyActive": "Recently active",
   "phonePair.tab.code": "Code Pairing",

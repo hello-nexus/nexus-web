@@ -503,7 +503,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                 <p className={styles.phonePairFlowHint}>{t('phonePair.killswitch.qrDisabled')}</p>
               ) : pairMode === 'qr' ? (
                 <>
-                  <p className={styles.phonePairFlowHint}>{t('phonePair.intro')}</p>
+                  <div className={styles.phonePairHintSpacer} aria-hidden="true" />
                   <div className={styles.phonePairQrBox}>
                     {qr?.qrDataUrl && !loading ? (
                       <img src={qr.qrDataUrl} alt={t('phonePair.qrAlt')} />
@@ -517,33 +517,35 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                     <span>{qrStatus}</span>
                   </div>
                 </>
-              ) : pairCode ? (
-                <div className={styles.phonePairCodeShown}>
-                  <p className={styles.phonePairFlowHint}>{t('phonePair.code.waiting')}</p>
-                  <div className={styles.phonePairCodeRows}>
-                    <div>
-                      <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.hostLabel')}</span>
-                      <span className={styles.phonePairCodeHost}>{pairCode.host}:{pairCode.port}</span>
-                    </div>
-                    <div>
-                      <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.codeLabel')}</span>
-                      <span className={styles.phonePairCodeDigits}>{pairCode.code}</span>
-                    </div>
+              ) : (
+                <>
+                  <div className={styles.phonePairHintSpacer} aria-hidden="true" />
+                  <div className={styles.phonePairCodeBox}>
+                    {pairCode ? (
+                      <div className={styles.phonePairCodeRows}>
+                        <div>
+                          <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.hostLabel')}</span>
+                          <span className={styles.phonePairCodeHost}>{pairCode.host}:{pairCode.port}</span>
+                        </div>
+                        <div>
+                          <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.codeLabel')}</span>
+                          <span className={styles.phonePairCodeDigits}>{pairCode.code}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={styles.phonePairLoading}>{t('phonePair.refreshing')}</div>
+                    )}
                   </div>
+                  {pairCodeError && <p className={styles.phonePairCodeError}>{pairCodeError}</p>}
                   <div className={classNames(styles.phonePairTimer, {
                     [styles.phonePairTimerFlash]: codeSecondsLeft > 0 && codeSecondsLeft <= 5,
                   })}>
                     <span>{codeStatus}</span>
                   </div>
-                </div>
-              ) : (
-                <div className={styles.phonePairCodeIdle}>
-                  <p className={styles.phonePairFlowHint}>{t('phonePair.code.intro')}</p>
-                  {pairCodeError && <p className={styles.phonePairCodeError}>{pairCodeError}</p>}
-                </div>
+                </>
               )}
 
-              {remoteEnabled && pairMode === 'qr' && (
+              {remoteEnabled && (
                 <p className={styles.phonePairFlowFooter}>{t('phonePair.securityNote')}</p>
               )}
             </section>
