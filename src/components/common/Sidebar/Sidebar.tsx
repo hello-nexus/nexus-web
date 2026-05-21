@@ -66,11 +66,13 @@ export function Sidebar({
             onClick={() => onChange(item.key)}
             title={compact ? item.label : undefined}
           >
-            <span className={styles.icon}>{item.icon}</span>
+            <span className={styles.icon}>
+              {item.icon}
+              {showDot && (
+                <span className={classNames(styles.statusIndicator, { [styles.statusPulsing]: dotPulsing })} />
+              )}
+            </span>
             {!compact && <span className={styles.label}>{item.label}</span>}
-            {showDot && (
-              <span className={classNames(styles.statusIndicator, { [styles.statusPulsing]: dotPulsing })} />
-            )}
           </button>
         );
       })}

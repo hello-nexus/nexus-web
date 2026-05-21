@@ -210,12 +210,20 @@ export function Dashboard() {
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
   }, []);
-  // Auto-collapse wins over the user's expand preference: at narrow
-  // viewports the sidebar is always compact, even if the user previously
-  // expanded it. Manual *collapse* (manualOverride === true) is the only
-  // preference that persists across width changes - so the user can keep
-  // the sidebar compact on wide windows if they prefer the extra space.
-  const sidebarCompact = viewportNarrow || manualOverride === true;
+  // "Expanded while narrow" override is transient — it stops mattering the
+  // moment the viewport widens (auto would expand anyway), and clearing it
+  // here means the *next* narrow trip re-applies auto-collapse instead of
+  // sticking expanded forever. Manual *collapse* (override === true) is the
+  // only preference that persists across width changes, so a user who likes
+  // the compact sidebar on wide windows keeps it that way.
+  useEffect(() => {
+    if (!viewportNarrow && manualOverride === false) {
+      setManualOverride(null);
+    }
+  }, [viewportNarrow, manualOverride]);
+  // Manual override (true=collapsed, false=expanded) always wins over the
+  // viewport heuristic when set; null hands control back to auto-collapse.
+  const sidebarCompact = manualOverride !== null ? manualOverride : viewportNarrow;
   const compact = hasSidebar && sidebarCompact;
 
   // Bump on every offline -> online transition so the profile dropdown

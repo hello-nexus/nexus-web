@@ -83,15 +83,22 @@
   justify-content: center;
   width: 20px;
   flex-shrink: 0;
+  // Anchor for the live-state status dot pinned at the bottom-right of the
+  // icon glyph. Same placement in expanded + compact modes.
+  position: relative;
 }
 
 .statusIndicator {
-  margin-left: auto;
-  width: 7px;
-  height: 7px;
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--accent);
-  flex-shrink: 0;
+  // Thin ring against the sidebar surface so the dot reads as a separate
+  // glyph rather than blending into the icon strokes.
+  box-shadow: 0 0 0 1.5px var(--bg-elevated);
 
   &.statusPulsing {
     animation: statusPulse 1.2s ease-in-out infinite;
@@ -130,12 +137,4 @@
   padding: 0.6rem 0.75rem;
   width: 100%;
   gap: 0;
-
-  .statusIndicator {
-    position: absolute;
-    margin: 0;
-    top: 50%;
-    right: 2px;
-    transform: translateY(-50%);
-  }
 }
