@@ -8,8 +8,13 @@
   flex: 1;
 }
 
+// Keep the same top padding as .nav so the profile slot / menu items
+// don't shift vertically when the sidebar toggles compact. Only the
+// side padding stays at 0.5rem; the old `padding: 0 0.5rem` override
+// dropped the top inset and yanked everything below the brand row up
+// by 8px on collapse.
 .navCompact {
-  padding: 0 0.5rem;
+  padding: 0.5rem 0.5rem 0;
 }
 
 .serviceHeader {

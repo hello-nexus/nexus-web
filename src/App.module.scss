@@ -326,7 +326,17 @@
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
-  transition: color var(--ease-fast);
+  // Reserve space when hidden (so the wordmark doesn't reflow on
+  // hover) and fade in only when the brand row is hovered. Pointer
+  // events stay on so the button is still clickable in the hover
+  // state.
+  opacity: 0;
+  transition: color var(--ease-fast), opacity var(--ease-fast);
+
+  .sidebarBrand:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
   // Clickable - opt out of the drag region inherited from .sidebarBrand.
   -webkit-app-region: no-drag;
   app-region: no-drag;
