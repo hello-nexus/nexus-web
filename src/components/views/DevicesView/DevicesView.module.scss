@@ -32,7 +32,11 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  // Fixed 140px columns instead of `1fr` minmax — cards keep the same width
+  // as the window resizes; only the number of columns changes when the row
+  // can fit another. Avoids the rubber-banding effect where every card grows
+  // or shrinks together on each resize tick.
+  grid-template-columns: repeat(auto-fill, 140px);
   gap: 0.75rem;
   margin-top: 1rem;
 }

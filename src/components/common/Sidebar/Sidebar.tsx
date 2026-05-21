@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import classNames from 'classnames';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import styles from './Sidebar.module.scss';
 
@@ -55,7 +56,7 @@ export function Sidebar({
         const lightScanning = item.key === 'lighting' && serviceState.lighting?.scanning;
         const showDot = coolActive || coolCalibrating || lightActive || lightScanning;
         const dotPulsing = coolCalibrating || lightScanning;
-        return (
+        const button = (
           <button
             key={item.key}
             type="button"
@@ -64,7 +65,7 @@ export function Sidebar({
               [styles.itemCompact]: compact,
             })}
             onClick={() => onChange(item.key)}
-            title={compact ? item.label : undefined}
+            aria-label={compact ? item.label : undefined}
           >
             <span className={styles.icon}>
               {item.icon}
@@ -75,6 +76,11 @@ export function Sidebar({
             {!compact && <span className={styles.label}>{item.label}</span>}
           </button>
         );
+        return compact ? (
+          <HoverTooltip key={item.key} body={item.label} side="right">
+            {button}
+          </HoverTooltip>
+        ) : button;
       })}
       {extraItems && extraItems.length > 0 && (
         <div className={styles.extraGroup}>
@@ -85,23 +91,28 @@ export function Sidebar({
           )}
           {extraItems.map((item) => {
             if (item.href) {
-              return (
+              const link = (
                 <a
                   key={item.key}
                   href={item.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={classNames(styles.item, { [styles.itemCompact]: compact })}
-                  title={compact ? item.label : undefined}
+                  aria-label={compact ? item.label : undefined}
                 >
                   <span className={styles.icon}>{item.icon}</span>
                   {!compact && <span className={styles.label}>{item.label}</span>}
                   {!compact && <ExternalLink size={12} className={styles.externalIcon} />}
                 </a>
               );
+              return compact ? (
+                <HoverTooltip key={item.key} body={item.label} side="right">
+                  {link}
+                </HoverTooltip>
+              ) : link;
             }
             const isActive = item.key === extraActive;
-            return (
+            const button = (
               <button
                 key={item.key}
                 type="button"
@@ -110,12 +121,17 @@ export function Sidebar({
                   [styles.itemCompact]: compact,
                 })}
                 onClick={() => extraOnChange?.(item.key)}
-                title={compact ? item.label : undefined}
+                aria-label={compact ? item.label : undefined}
               >
                 <span className={styles.icon}>{item.icon}</span>
                 {!compact && <span className={styles.label}>{item.label}</span>}
               </button>
             );
+            return compact ? (
+              <HoverTooltip key={item.key} body={item.label} side="right">
+                {button}
+              </HoverTooltip>
+            ) : button;
           })}
         </div>
       )}

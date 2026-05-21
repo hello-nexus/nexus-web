@@ -254,7 +254,7 @@
   align-items: center;
   gap: 0.55rem;
   height: var(--sidebar-section-height);
-  padding: 0 0.75rem 0 1rem;
+  padding: 0 0.75rem 0 1.15rem;
   flex-shrink: 0;
 }
 
@@ -373,8 +373,13 @@
 }
 
 // One-shot fade/slide-in for the profile dropdown when the service comes
-// online. Triggered by a React key bump on the wrapper.
+// online. Triggered by a React key bump on the wrapper. width:100%+display:flex
+// so the wrapping .sidebarHeaderBox cascades full width down to the trigger
+// button (otherwise the slot is content-sized and the trigger's width:100%
+// only fills its own content, leaving a dead band of the bordered card).
 .connectedSlotAnimate {
+  width: 100%;
+  display: flex;
   animation: connected-slot-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -397,14 +402,22 @@
 .sidebarHeaderBox {
   width: 100%;
   display: flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 0.2rem 0.55rem;
+  align-items: stretch;
+  min-height: 36px;
+  // No padding here — the inner ProfileDropdown trigger button has its own
+  // padding and fills width:100% so the entire bordered card is the click
+  // target (no dead pixels in a padding band). NO overflow:hidden — the
+  // ProfileDropdown menu opens absolutely-positioned below this box; clipping
+  // it would swallow the entire menu.
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
   transition: border-color var(--ease-fast), background var(--ease-fast);
 
+  // Hover state lives on the button (.trigger:hover changes text color);
+  // mirror the border/background tint here so the card reads as one
+  // continuous affordance.
   &:hover {
     border-color: var(--border-strong);
     background: var(--bg-card-hover);
@@ -413,8 +426,7 @@
 
 .sidebarHeaderBoxCompact {
   justify-content: center;
-  padding: 0.15rem 0.25rem;
-  min-height: 32px;
+  min-height: 36px;
 }
 
 // ── Top-right debug-tools button (replaces the old sidebar footer slot).
