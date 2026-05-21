@@ -6,51 +6,10 @@
   height: 100%;
 }
 
-// Two-column top bar: the ViewHeader (title + mode tabs) grows on the left,
-// the right 240px column is reserved for the OpenRGB status chip on top and
-// the Devices / Effect selector on the bottom. Mode tabs stop at the grid
-// gap so they never run under the right column, and the Devices / Effect
-// underline sits at the same Y as the mode-tab line fold for one continuous
-// rule across the top bar.
-.topBar {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  column-gap: 1rem;
-  // Extend past the app shell's right-pad so the right column lines up flush
-  // with the right pane below.
-  margin-right: -1.25rem;
-  padding-right: 1.25rem;
-}
-
-.topBarRight {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: stretch;
-  // Same bottom offset as .viewHeaderTabs' margin-bottom so the selector's
-  // underline and the mode tabs' underline sit on the same horizontal line.
-  padding-bottom: 1rem;
-}
-
-// Row hosting the master brightness slider on the top-right of the page. The
-// OpenRGB indicator that used to share this row has moved to the bottom of the
-// device pane (clicking it opens the supported-devices modal in the same slot
-// where the old "browse supported devices" button used to sit).
-.statusCardSlot {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-top: -4px;
-
-  > * { flex-shrink: 0; }
-}
-
-// Compact icon-track-value layout for the global brightness slider. Sun glyph
-// stands in for the "Brightness" label so the whole control fits next to the
-// OpenRGB badge inside the 240px top-bar right column. min-width reserves the
-// row even before the first fetch resolves so the OpenRGB badge doesn't jump
-// in from the right while the slider hydrates.
+// Compact icon-track-value layout for the master brightness slider. Lives
+// in the ViewHeader's tabActions slot now (right-aligned at the same vertical
+// level as the lighting mode tabs). min-width reserves the row even before
+// the first fetch resolves so the underline doesn't jump while it hydrates.
 .globalBrightnessSlider {
   display: flex;
   align-items: center;
@@ -1053,21 +1012,28 @@
 }
 
 // ── Right-pane selector: Devices | Effect ─────────────────────────────────
-// Uses the shared <Tabs /> primitive under the hood so it matches the mode
-// tabs on the page header. The wrap nudges the selector a hair up from the
-// mode-tab line fold so the underlines don't collide visually.
+// Pill-variant segmented control sitting at the top of the right pane,
+// above the device list / effect controls. Matches the camera/code pair
+// switcher in the phone-pairing modal.
 
-// Wrap around the shared <Tabs /> primitive when it's used as the right-pane
-// selector. No extra margin - the .topBarRight padding-bottom already aligns
-// this bar's underline with the mode-tab line fold.
+// Header row that hosts the pill switcher at the top of the right pane.
+// Matches the .devicePanel left inset (2.5rem) so the pill aligns with the
+// device cards below.
+.rightPaneTabsHeader {
+  flex-shrink: 0;
+  padding: 0.25rem 1rem 0.6rem 2.5rem;
+}
+
 .rightPaneTabsWrap {
   display: flex;
 }
 
-// Push the selector to the right edge of its column so the two tabs (Devices,
-// Effect) hug the status card above them rather than floating in the middle.
 .rightPaneTabsWrap :global(nav) {
-  margin-left: auto;
+  width: 100%;
+}
+
+.rightPaneTabsWrap :global(button) {
+  flex: 1;
 }
 
 

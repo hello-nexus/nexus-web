@@ -34,7 +34,8 @@ import {
   ConnectedProfileSlot,
   NotConnectedBadge,
   SidebarConflictSlot,
-  SidebarFooter,
+  TopRightDebugButton,
+  PageVersionLabel,
 } from './sidebar';
 import { PairPhoneButton, PairPhoneModal } from './PairPhoneModal';
 import { IncomingPairModal } from './IncomingPairModal';
@@ -354,6 +355,12 @@ export function Dashboard() {
             <CaptionButtons />
           </>
         )}
+        <TopRightDebugButton
+          active={activeView === 'tools'}
+          onDebug={() => navigate('my-computer', 'tools')}
+          icon={NAV_ICONS['tools']}
+        />
+        <PageVersionLabel />
         {/* Body row: sidebar (my-computer only) + content */}
         <div className={styles.bodyRow}>
           {hasSidebar && (
@@ -371,18 +378,20 @@ export function Dashboard() {
                 sectionLabel=""
                 serviceState={serviceState}
                 headerSlot={
-                  online ? (
-                    <ConnectedProfileSlot connectEpoch={connectEpoch}>
-                      <ProfileDropdown
-                        profiles={profilesHook}
-                        onPreferencesChanged={handlePreferencesChanged}
-                        onNavigateSettings={handleNavigateSettings}
-                        compact={compact}
-                      />
-                    </ConnectedProfileSlot>
-                  ) : (
-                    <NotConnectedBadge state={status.state} t={t} compact={compact} />
-                  )
+                  <div className={classNames(styles.sidebarHeaderBox, { [styles.sidebarHeaderBoxCompact]: compact })}>
+                    {online ? (
+                      <ConnectedProfileSlot connectEpoch={connectEpoch}>
+                        <ProfileDropdown
+                          profiles={profilesHook}
+                          onPreferencesChanged={handlePreferencesChanged}
+                          onNavigateSettings={handleNavigateSettings}
+                          compact={compact}
+                        />
+                      </ConnectedProfileSlot>
+                    ) : (
+                      <NotConnectedBadge state={status.state} t={t} compact={compact} />
+                    )}
+                  </div>
                 }
                 compact={compact}
                 extraItems={portalNav}
@@ -398,12 +407,6 @@ export function Dashboard() {
                 onClick={() => setPairPhoneOpen(true)}
               />
               <SidebarConflictSlot serviceOnline={online} compact={compact} />
-              <SidebarFooter
-                active={activeView === 'tools'}
-                onDebug={() => navigate('my-computer', 'tools')}
-                debugIcon={NAV_ICONS['tools']}
-                compact={compact}
-              />
               <button
                 type="button"
                 className={styles.collapseEdge}

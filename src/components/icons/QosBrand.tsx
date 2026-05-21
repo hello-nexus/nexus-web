@@ -1,11 +1,14 @@
 export function QosWordmark({ height = 40 }: { height?: number }) {
   // Traced from the original JPG (full 1024 width, vertical crop only to drop
   // the bottom-right Gemini watermark). viewBox is tight around the letter
-  // content (~104..921 horizontally) so the wordmark sits flush-left in its
-  // container; preserveAspectRatio="xMinYMid meet" anchors it to the left.
+  // content (~104..921 horizontally). Fixed natural-aspect width so the visible
+  // logo size is governed by the height prop (was previously width="100%",
+  // which made `height` a no-op when the slot was narrower than the natural
+  // width).
+  const width = Math.round((height * 825) / 155);
   return (
     <svg
-      width="100%"
+      width={width}
       height={height}
       viewBox="100 215 825 155"
       preserveAspectRatio="xMinYMid meet"
@@ -13,6 +16,7 @@ export function QosWordmark({ height = 40 }: { height?: number }) {
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label="Nexus"
+      style={{ maxWidth: '100%', display: 'block' }}
     >
       <g transform="translate(0,600) scale(0.1,-0.1)">
         <path d="M5805 3787 c-34 -8 -76 -45 -275 -243 -154 -153 -243 -234 -256 -234 -14 0 -100 79 -250 229 -188 187 -237 231 -271 241 -59 18 -110 6 -150 -37 -28 -29 -33 -42 -33 -84 0 -28 6 -62 14 -77 8 -15 116 -128 240 -252 146 -145 226 -232 226 -245 0 -13 -87 -107 -245 -265 -274 -273 -281 -284 -250 -366 21 -54 66 -84 126 -84 25 0 56 8 71 18 15 10 133 122 263 250 161 159 241 232 256 232 15 0 92 -69 243 -218 262 -260 291 -282 356 -282 88 0 159 77 146 158 -6 32 -41 71 -266 293 -143 141 -260 262 -260 270 0 7 106 119 234 249 129 129 240 248 245 263 43 112 -46 212 -164 184z" />

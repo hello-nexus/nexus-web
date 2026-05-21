@@ -17,9 +17,13 @@
   z-index: 20;
   display: flex;
   align-items: center;
-  height: var(--sidebar-section-height);
+  // Negate the .nav wrapper's 0.5rem horizontal padding so this section
+  // stretches edge-to-edge of the sidebar column, matching the PairPhoneButton
+  // wrapper that lives outside .nav. Inner padding then matches
+  // .phonePairWrap so the bordered box inside lines up x-for-x with the
+  // pair-remote box below.
+  margin: 0 -0.5rem 0.5rem;
   padding: 0 0.75rem;
-  margin-bottom: 0.5rem;
   flex-shrink: 0;
 }
 

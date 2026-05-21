@@ -1,7 +1,6 @@
 import { type ReactNode } from 'react';
 import { PanelLeftClose } from 'lucide-react';
 import classNames from 'classnames';
-import { Button } from '../components/common/Button/Button';
 import { ConflictWarningBadge } from '../components/common/Sidebar/ConflictWarning';
 import { QosMark, QosWordmark } from '../components/icons/QosBrand';
 import { useUiSettings } from '../hooks/useUiSettings';
@@ -27,12 +26,12 @@ export function SidebarBrand({ compact, onToggleCompact, expandLabel, collapseLa
           title={expandLabel}
           aria-label={expandLabel}
         >
-          <QosMark size={24} />
+          <QosMark size={20} />
         </button>
       ) : (
         <>
           <span className={styles.sidebarBrandWordmark}>
-            <QosWordmark height={40} />
+            <QosWordmark height={20} />
           </span>
           <button
             type="button"
@@ -120,26 +119,30 @@ export function SidebarConflictSlot({ serviceOnline, compact }: {
   );
 }
 
-export function SidebarFooter({ active, onDebug, debugIcon, compact }: {
+// Top-right debug-tools button. Lives at the layout root next to the
+// caption buttons (Windows shell) or in the top-right corner of the
+// viewport on other platforms. Replaces the old bottom-of-sidebar
+// SidebarFooter slot.
+export function TopRightDebugButton({ active, onDebug, icon }: {
   active: boolean;
   onDebug: () => void;
-  debugIcon: ReactNode;
-  compact: boolean;
+  icon: ReactNode;
 }) {
   return (
-    <div className={classNames(styles.footer, { [styles.footerCompact]: compact })}>
-      <Button
-        type="button"
-        tone={active ? 'accent' : 'ghost'}
-        size="sm"
-        icon={debugIcon}
-        onClick={onDebug}
-        title="Tools"
-        aria-label="Tools"
-        aria-pressed={active}
-      />
-
-      {!compact && <span className={styles.version}>{__APP_VERSION__}</span>}
-    </div>
+    <button
+      type="button"
+      className={classNames(styles.topRightDebug, { [styles.topRightDebugActive]: active })}
+      onClick={onDebug}
+      title="Tools"
+      aria-label="Tools"
+      aria-pressed={active}
+    >
+      <span className={styles.topRightDebugIcon} aria-hidden>{icon}</span>
+    </button>
   );
+}
+
+// Tiny + faded version label pinned to the bottom-left of the layout.
+export function PageVersionLabel() {
+  return <span className={styles.pageVersion}>{__APP_VERSION__}</span>;
 }

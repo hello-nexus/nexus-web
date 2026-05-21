@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 .header {
   display: flex;
   flex-direction: column;
@@ -8,7 +10,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.4rem;
-  margin: 0 0 0.6rem;
+  margin: 0 0 0.5rem;
 }
 
 .titleCluster {
@@ -19,8 +21,7 @@
 }
 
 .title {
-  font-size: var(--type-heading);
-  font-weight: var(--weight-heading);
+  @include text-heading;
   color: var(--text);
   margin: 0;
   white-space: nowrap;
@@ -33,9 +34,35 @@
   gap: 0.5rem;
 }
 
+// Row wrapping the Tabs bar. Anchors the absolutely-positioned tabActions
+// overlay on the right (page-level right-aligned widget that sits at the
+// same vertical level as the tab buttons without compressing the bar).
+.tabsRow {
+  position: relative;
+}
+
 // Spacing below the shared <Tabs /> bar when it's used inside a ViewHeader.
 // Kept here (not in Tabs.module.scss) so views that embed Tabs elsewhere
 // (e.g. the Lighting right-pane selector) can control their own margins.
 .viewHeaderTabs {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+// Right-aligned overlay container at tabs-row level. Spans the full row
+// height (top: 0, bottom matches .viewHeaderTabs margin-bottom) and centers
+// its children vertically so they line up with the tab labels. The overlay
+// is pointer-transparent except on its children so a click that lands in
+// empty space between the slot and the rightmost tab still falls through
+// to the page underneath.
+.tabActions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: none;
+
+  > * { pointer-events: auto; }
 }

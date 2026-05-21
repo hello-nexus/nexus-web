@@ -30,10 +30,10 @@
     left: 0;
     right: 0;
     // Tracks the bottom of the Tabs nav inside the ViewHeader. ViewHeader's
-    // .viewHeaderTabs carries margin-bottom: 1rem, so the nav sits 1rem
+    // .viewHeaderTabs carries margin-bottom: 0.75rem, so the nav sits 0.75rem
     // above the topBar's bottom edge. If that margin ever changes, this
     // offset must follow.
-    bottom: 1rem;
+    bottom: 0.75rem;
     height: 1px;
     background: var(--border);
     pointer-events: none;
