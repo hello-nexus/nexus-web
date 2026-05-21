@@ -641,7 +641,7 @@
   "phonePair.removeAll": "Tout supprimer",
   "phonePair.removeSession": "Supprimer l'accès pour {name}",
   "phonePair.saving": "Enregistrement...",
-  "phonePair.securityNote": "Scanner à nouveau depuis le même appareil actualise son autorisation. Les appareils supprimés doivent scanner un nouveau code avant de se reconnecter.",
+  "phonePair.securityNote": "Coupler à nouveau depuis le même appareil actualise son autorisation. Les appareils supprimés doivent être à nouveau couplés avant de se reconnecter.",
   "phonePair.statusPaired": "Associé",
   "phonePair.statusRecentlyActive": "Actif récemment",
   "phonePair.tab.code": "Code Pairing",

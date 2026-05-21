@@ -102,14 +102,19 @@ export function DevicesView({ serviceOnline, connectionState, initialOpenKey, on
 
   return (
     <section className={styles.devices}>
-      <div className={styles.headerRow}>
-        <ViewHeader title={t('devices.title')} titleTooltip={t('devices.title.tooltip')} tabs={tabs} activeTab={tab} onTabChange={(k) => setTab(k as TabKey)} tabsDisabled={!serviceOnline && !webhidAvailable} />
-        {serviceOnline && availableActive && (
+      <ViewHeader
+        title={t('devices.title')}
+        titleTooltip={t('devices.title.tooltip')}
+        tabs={tabs}
+        activeTab={tab}
+        onTabChange={(k) => setTab(k as TabKey)}
+        tabsDisabled={!serviceOnline && !webhidAvailable}
+        tabActions={serviceOnline && availableActive ? (
           <button type="button" className={styles.catalogBtn} onClick={() => setModalOpen(true)}>
             {t('devices.supported.browse')}
           </button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {availableActive ? (
         !availableAvailable ? (

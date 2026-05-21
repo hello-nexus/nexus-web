@@ -6,17 +6,11 @@
   // old 1100 px cap made Devices look narrower than its neighbours.
 }
 
-.headerRow {
-  position: relative;
-}
-
-// Tertiary "browse supported devices" affordance on the Devices view.
-// Lighting now exposes the same modal via the OpenRGB indicator at the
-// bottom of its device pane.
+// Tertiary "browse supported devices" affordance on the Devices view, lives
+// in the ViewHeader's tabActions slot (right-aligned at tab level). Lighting
+// now exposes the same modal via the OpenRGB indicator at the bottom of its
+// device pane.
 .catalogBtn {
-  position: absolute;
-  top: 0;
-  right: 0;
   padding: 0.4rem 0.6rem;
   background: transparent;
   border: 1px dashed var(--border-strong);
@@ -38,7 +32,11 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  // Fixed 140px columns instead of `1fr` minmax — cards keep the same width
+  // as the window resizes; only the number of columns changes when the row
+  // can fit another. Avoids the rubber-banding effect where every card grows
+  // or shrinks together on each resize tick.
+  grid-template-columns: repeat(auto-fill, 140px);
   gap: 0.75rem;
   margin-top: 1rem;
 }

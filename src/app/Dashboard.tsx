@@ -34,16 +34,38 @@ import {
   ConnectedProfileSlot,
   NotConnectedBadge,
   SidebarConflictSlot,
-  SidebarFooter,
+  TopRightDebugButton,
+  PageVersionLabel,
 } from './sidebar';
 import { PairPhoneButton, PairPhoneModal } from './PairPhoneModal';
 import { IncomingPairModal } from './IncomingPairModal';
 import { useMonitoringStoreBridge } from './monitoringBridge';
+import { CaptionButtons } from './CaptionButtons';
+import { isWindowsAppShell, postResizeStart, QOS_RESIZE_EDGES, type QosResizeEdge } from './windowActions';
 import styles from '../App.module.scss';
 
 const PORTAL_URL = 'https://nexusqos.com';
 
 const BuilderView = lazy(() => import('../components/views/BuilderView'));
+
+// Catches mousedown on a window-edge strip and IPCs the shell, which
+// then posts WM_NCLBUTTONDOWN(hitCode) to its own HWND so the OS
+// resize-drag loop takes over. Preventing default + stopping prop is
+// what keeps the mousedown from racing the page's click handlers.
+function ResizeStrip({ className, edge }: { className: string; edge: QosResizeEdge }) {
+  return (
+    <div
+      className={className}
+      aria-hidden
+      onMouseDown={(e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        postResizeStart(edge);
+      }}
+    />
+  );
+}
 
 export function Dashboard() {
   const { section, view, subtab, componentId, fromCategory, navigate, setView, setSubtab, navigateToComponent } = useRoute();
@@ -173,16 +195,35 @@ export function Dashboard() {
       window.clearInterval(timer);
     };
   }, [online]);
+  // Auto-collapse threshold. Stays above the OS-enforced min window
+  // width (1000px - see MinClientWidth in qos-overlay's DashboardWindow.cs)
+  // so the sidebar still collapses before the user hits the hard floor;
+  // otherwise the user would never see auto-collapse fire on the
+  // Windows --app shell. Keep the matchMedia query and the useState
+  // seed value in lockstep.
   const [viewportNarrow, setViewportNarrow] = useState(() =>
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 999px)').matches,
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 1199px)').matches,
   );
   useEffect(() => {
-    const mql = window.matchMedia('(max-width: 999px)');
+    const mql = window.matchMedia('(max-width: 1199px)');
     const handler = (e: MediaQueryListEvent) => setViewportNarrow(e.matches);
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
   }, []);
-  const sidebarCompact = manualOverride ?? viewportNarrow;
+  // "Expanded while narrow" override is transient — it stops mattering the
+  // moment the viewport widens (auto would expand anyway), and clearing it
+  // here means the *next* narrow trip re-applies auto-collapse instead of
+  // sticking expanded forever. Manual *collapse* (override === true) is the
+  // only preference that persists across width changes, so a user who likes
+  // the compact sidebar on wide windows keeps it that way.
+  useEffect(() => {
+    if (!viewportNarrow && manualOverride === false) {
+      setManualOverride(null);
+    }
+  }, [viewportNarrow, manualOverride]);
+  // Manual override (true=collapsed, false=expanded) always wins over the
+  // viewport heuristic when set; null hands control back to auto-collapse.
+  const sidebarCompact = manualOverride !== null ? manualOverride : viewportNarrow;
   const compact = hasSidebar && sidebarCompact;
 
   // Bump on every offline -> online transition so the profile dropdown
@@ -295,8 +336,39 @@ export function Dashboard() {
         serviceOnline={online}
         activeProfileId={profilesHook.activeId}
       >
-      <div className={classNames(styles.layout, { [styles.layoutCompact]: compact })}>
+      <div className={classNames(styles.layout, {
+        [styles.layoutCompact]: compact,
+        [styles.layoutWindowsApp]: isWindowsAppShell(),
+        [styles.layoutNoSidebar]: !hasSidebar,
+      })}>
         <OpenInAppBanner />
+        {/* Qos Windows shell only: top drag strip + custom caption buttons.
+            The native system buttons can't paint here because the WebView2
+            child HWND covers the parent's non-client area; we route clicks
+            back to qos-overlay via window.chrome.webview.postMessage. */}
+        {isWindowsAppShell() && (
+          <>
+            <div className={styles.windowDragStrip} aria-hidden />
+            <ResizeStrip className={styles.windowResizeStripLeft} edge={QOS_RESIZE_EDGES.left} />
+            <ResizeStrip className={styles.windowResizeStripRight} edge={QOS_RESIZE_EDGES.right} />
+            <ResizeStrip className={styles.windowResizeStripTop} edge={QOS_RESIZE_EDGES.top} />
+            <ResizeStrip className={styles.windowResizeStripBottom} edge={QOS_RESIZE_EDGES.bottom} />
+            <ResizeStrip className={styles.windowResizeCornerTopLeft} edge={QOS_RESIZE_EDGES.topLeft} />
+            {/* No top-right corner strip - the caption buttons occupy
+                that corner. A 12x12 strip at z-index 61 would steal
+                the rightmost ~12px of the close button. Users can
+                still resize via the top edge or the right edge. */}
+            <ResizeStrip className={styles.windowResizeCornerBottomLeft} edge={QOS_RESIZE_EDGES.bottomLeft} />
+            <ResizeStrip className={styles.windowResizeCornerBottomRight} edge={QOS_RESIZE_EDGES.bottomRight} />
+            <CaptionButtons />
+          </>
+        )}
+        <TopRightDebugButton
+          active={activeView === 'tools'}
+          onDebug={() => navigate('my-computer', 'tools')}
+          icon={NAV_ICONS['tools']}
+        />
+        <PageVersionLabel />
         {/* Body row: sidebar (my-computer only) + content */}
         <div className={styles.bodyRow}>
           {hasSidebar && (
@@ -311,25 +383,27 @@ export function Dashboard() {
                 items={serviceNav}
                 active={serviceNavActive}
                 onChange={handleServiceNavChange}
-                sectionLabel={t('nav.section.my_computer')}
+                sectionLabel=""
                 serviceState={serviceState}
                 headerSlot={
-                  online ? (
-                    <ConnectedProfileSlot connectEpoch={connectEpoch}>
-                      <ProfileDropdown
-                        profiles={profilesHook}
-                        onPreferencesChanged={handlePreferencesChanged}
-                        onNavigateSettings={handleNavigateSettings}
-                        compact={compact}
-                      />
-                    </ConnectedProfileSlot>
-                  ) : (
-                    <NotConnectedBadge state={status.state} t={t} compact={compact} />
-                  )
+                  <div className={classNames(styles.sidebarHeaderBox, { [styles.sidebarHeaderBoxCompact]: compact })}>
+                    {online ? (
+                      <ConnectedProfileSlot connectEpoch={connectEpoch}>
+                        <ProfileDropdown
+                          profiles={profilesHook}
+                          onPreferencesChanged={handlePreferencesChanged}
+                          onNavigateSettings={handleNavigateSettings}
+                          compact={compact}
+                        />
+                      </ConnectedProfileSlot>
+                    ) : (
+                      <NotConnectedBadge state={status.state} t={t} compact={compact} />
+                    )}
+                  </div>
                 }
                 compact={compact}
                 extraItems={portalNav}
-                extraSectionLabel={t('nav.group.portal')}
+                extraSectionLabel=""
                 extraActive={portalNavActive}
                 extraOnChange={handlePortalNavChange}
               />
@@ -341,12 +415,6 @@ export function Dashboard() {
                 onClick={() => setPairPhoneOpen(true)}
               />
               <SidebarConflictSlot serviceOnline={online} compact={compact} />
-              <SidebarFooter
-                active={activeView === 'tools'}
-                onDebug={() => navigate('my-computer', 'tools')}
-                debugIcon={NAV_ICONS['tools']}
-                compact={compact}
-              />
               <button
                 type="button"
                 className={styles.collapseEdge}

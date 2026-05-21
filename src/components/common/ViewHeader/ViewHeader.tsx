@@ -12,9 +12,12 @@ interface ViewHeaderProps {
   /** Optional one-sentence explanation shown in a hover tooltip next to the title. */
   titleTooltip?: string;
   actions?: ReactNode;
+  /** Right-aligned widget at the same vertical level as the tabs. Overlaid via
+   *  absolute positioning so the tabs' underline bar stays full width. */
+  tabActions?: ReactNode;
 }
 
-export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, titleTooltip, actions }: ViewHeaderProps) {
+export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, titleTooltip, actions, tabActions }: ViewHeaderProps) {
   return (
     <header className={styles.header}>
       <div className={styles.titleRow}>
@@ -25,14 +28,17 @@ export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, 
         {actions && <div className={styles.actions}>{actions}</div>}
       </div>
       {tabs && tabs.length > 0 && (
-        <Tabs
-          tabs={tabs}
-          activeKey={activeTab ?? ''}
-          onChange={k => onTabChange?.(k)}
-          disabled={tabsDisabled}
-          className={styles.viewHeaderTabs}
-          ariaLabel={title}
-        />
+        <div className={styles.tabsRow}>
+          <Tabs
+            tabs={tabs}
+            activeKey={activeTab ?? ''}
+            onChange={k => onTabChange?.(k)}
+            disabled={tabsDisabled}
+            className={styles.viewHeaderTabs}
+            ariaLabel={title}
+          />
+          {tabActions && <div className={styles.tabActions}>{tabActions}</div>}
+        </div>
       )}
     </header>
   );

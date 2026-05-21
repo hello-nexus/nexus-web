@@ -641,7 +641,7 @@
   "phonePair.removeAll": "全部移除",
   "phonePair.removeSession": "移除 {name} 的存取權",
   "phonePair.saving": "正在儲存...",
-  "phonePair.securityNote": "同一裝置再次掃描會重新整理其授權。被移除的裝置必須先掃描新的代碼才能重新連線。",
+  "phonePair.securityNote": "從同一裝置再次配對會重新整理其授權。被移除的裝置必須先重新配對才能重新連線。",
   "phonePair.statusPaired": "已配對",
   "phonePair.statusRecentlyActive": "最近活躍",
   "phonePair.tab.code": "Code Pairing",

@@ -641,7 +641,7 @@
   "phonePair.removeAll": "Alle entfernen",
   "phonePair.removeSession": "Zugriff für {name} entfernen",
   "phonePair.saving": "Speichere...",
-  "phonePair.securityNote": "Ein erneuter Scan vom selben Gerät aktualisiert seine Autorisierung. Entfernte Geräte müssen vor der erneuten Verbindung einen neuen Code scannen.",
+  "phonePair.securityNote": "Ein erneutes Koppeln vom selben Gerät aktualisiert seine Autorisierung. Entfernte Geräte müssen vor der erneuten Verbindung erneut gekoppelt werden.",
   "phonePair.statusPaired": "Gekoppelt",
   "phonePair.statusRecentlyActive": "Kürzlich aktiv",
   "phonePair.tab.code": "Code Pairing",

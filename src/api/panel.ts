@@ -1,3 +1,4 @@
+import { getToken, handleUnauthorized } from './auth';
 import { deleteService, fetchService, postService, resolveHttp } from './service';
 import type { PanelLayout, PanelSurface } from '../panel/types';
 
@@ -68,7 +69,6 @@ export async function allocatePanelDeviceWithStatus(
   displayName?: string,
 ): Promise<PanelAllocResult> {
   try {
-    const { getToken } = await import('./auth');
     const token = await getToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -105,7 +105,6 @@ export type PanelDeviceFetchResult =
 // auto-persist loop when the kiosk holds an id the server no longer knows.
 export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDeviceFetchResult> {
   try {
-    const { getToken, handleUnauthorized } = await import('./auth');
     let token = await getToken();
     const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
     const buildInit = (): RequestInit => {
@@ -135,7 +134,6 @@ export type PanelDevicePatchResult =
 
 export async function patchPanelDeviceWithStatus(id: string, patch: PanelDevicePatch): Promise<PanelDevicePatchResult> {
   try {
-    const { getToken, handleUnauthorized } = await import('./auth');
     let token = await getToken();
     const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
     const buildInit = (): RequestInit => {

@@ -641,7 +641,7 @@
   "phonePair.removeAll": "すべて削除",
   "phonePair.removeSession": "{name} のアクセスを削除",
   "phonePair.saving": "保存中...",
-  "phonePair.securityNote": "同じデバイスから再度スキャンすると承認が更新されます。削除されたデバイスは、再接続する前に新しいコードをスキャンする必要があります。",
+  "phonePair.securityNote": "同じデバイスから再度ペアリングすると承認が更新されます。削除されたデバイスは、再接続する前に再度ペアリングする必要があります。",
   "phonePair.statusPaired": "ペアリング済み",
   "phonePair.statusRecentlyActive": "最近アクティブ",
   "phonePair.tab.code": "Code Pairing",

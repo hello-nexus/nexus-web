@@ -3,6 +3,7 @@ import { ChevronDown, Plus, Download, Upload, Settings, UserRound } from 'lucide
 import classNames from 'classnames';
 import { useTranslation } from '../../../lib/i18n';
 import { useClickOutside } from '../../../hooks/useClickOutside';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { PRESET_ACCENTS, loadSettings } from '../../../lib/settings';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import type { Preferences } from '../../../api/profiles';
@@ -97,29 +98,36 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
   const displayName = activeEntry?.name ?? t('profile.default');
   const initial = displayName.charAt(0).toUpperCase();
 
-  return (
-    <div className={classNames(styles.wrapper, { [styles.wrapperCompact]: compact })} ref={ref}>
+  // Single trigger button that fills the wrapper so the entire bordered
+  // .sidebarHeaderBox in Dashboard becomes the click target (was previously
+  // a small letterCircle in compact / inline trigger row in expanded, both
+  // leaving dead pixels around them inside the box).
+  const triggerButton = (
+    <button
+      type="button"
+      className={classNames(styles.trigger, { [styles.triggerCompact]: compact })}
+      onClick={() => setOpen(o => !o)}
+      aria-label={`${t('profile.label')}: ${displayName}`}
+    >
       {compact ? (
-        <button
-          type="button"
-          className={styles.letterCircle}
-          onClick={() => setOpen(o => !o)}
-          title={`${t('profile.label')}: ${displayName}`}
-        >
-          {initial}
-        </button>
+        <span className={styles.letterCircle}>{initial}</span>
       ) : (
-        <button
-          type="button"
-          className={styles.trigger}
-          onClick={() => setOpen(o => !o)}
-          aria-label={`${t('profile.label')}: ${displayName}`}
-        >
+        <>
           <UserRound size={14} className={styles.triggerIcon} aria-hidden />
           <span className={styles.triggerName}>{displayName}</span>
           <ChevronDown size={14} className={classNames(styles.chevron, { [styles.chevronOpen]: open })} />
-        </button>
+        </>
       )}
+    </button>
+  );
+
+  return (
+    <div className={classNames(styles.wrapper, { [styles.wrapperCompact]: compact })} ref={ref}>
+      {compact ? (
+        <HoverTooltip body={displayName} side="right" className={styles.triggerTooltipWrap}>
+          {triggerButton}
+        </HoverTooltip>
+      ) : triggerButton}
       {open && (
         <div className={classNames(styles.dropdown, { [styles.compactDropdown]: compact })}>
           <div className={styles.dropdownHeader}>{t('profile.header')}</div>

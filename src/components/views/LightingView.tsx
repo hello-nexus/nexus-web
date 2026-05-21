@@ -7,6 +7,7 @@ import {
   fetchCurrentSync,
   type LightingDevice, type LedMapEntry, type PostProcessSettings,
 } from '../../api/lighting';
+import { playCurrentOrFirstMedia } from '../../api/mediaLibrary';
 import { useLightingFrames } from '../../hooks/useLightingFrames';
 import { useLightingSync } from '../../hooks/useLightingSync';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
@@ -377,7 +378,7 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
       } else if (sync === 'screen') {
         await startScreenMirror(screenPP.saturation, screenPP.contrast, '', screenPP.hue, screenPP.colorize);
       } else if (sync === 'media' || sync === 'gif') {
-        await import('../../api/mediaLibrary').then(m => m.playCurrentOrFirstMedia());
+        await playCurrentOrFirstMedia();
       }
     })();
   }, [
@@ -634,7 +635,6 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
           await startScreenMirror(screenPP.saturation, screenPP.contrast, '', screenPP.hue, screenPP.colorize);
           break;
         case 'gif': {
-          const { playCurrentOrFirstMedia } = await import('../../api/mediaLibrary');
           await playCurrentOrFirstMedia();
           break;
         }
@@ -669,9 +669,7 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
   if (!serviceOnline) {
     return (
       <div className={styles.lighting}>
-        <div className={styles.topBar}>
-          <ViewHeader title={t('lighting.title')} titleTooltip={t('lighting.title.tooltip')} tabs={modeTabs} activeTab={synced ? mode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
-        </div>
+        <ViewHeader title={t('lighting.title')} titleTooltip={t('lighting.title.tooltip')} tabs={modeTabs} activeTab={synced ? mode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
         <ServiceRequired state={connectionState} skeleton={<LightingSkeleton />} />
       </div>
     );
@@ -679,20 +677,14 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
 
   return (
     <div className={styles.lighting}>
-      <div className={styles.topBar}>
-        <ViewHeader title={t('lighting.title')} titleTooltip={t('lighting.title.tooltip')} tabs={modeTabs} activeTab={synced ? mode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} />
-        <div className={styles.topBarRight}>
-          <div className={styles.statusCardSlot}>
-            <GlobalBrightnessSlider serviceOnline={serviceOnline} />
-          </div>
-          <RightPaneTabs
-            active={activeRightTab}
-            onSelect={setActiveRightTab}
-            pulseKey={effectPulseKey}
-            effectTabDisabled={effectTabDisabled}
-          />
-        </div>
-      </div>
+      <ViewHeader
+        title={t('lighting.title')}
+        titleTooltip={t('lighting.title.tooltip')}
+        tabs={modeTabs}
+        activeTab={synced ? mode : undefined}
+        onTabChange={k => handleModeChange(k as LightingMode)}
+        tabActions={<GlobalBrightnessSlider serviceOnline={serviceOnline} />}
+      />
       <SupportedDevicesModal
         open={catalogOpen}
         onClose={() => setCatalogOpen(false)}
@@ -742,6 +734,14 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
           )}
         </div>
         <div className={styles.rightPane}>
+          <div className={styles.rightPaneTabsHeader}>
+            <RightPaneTabs
+              active={activeRightTab}
+              onSelect={setActiveRightTab}
+              pulseKey={effectPulseKey}
+              effectTabDisabled={effectTabDisabled}
+            />
+          </div>
           {activeRightTab === 'devices' ? (
             <>
               <DevicePanel

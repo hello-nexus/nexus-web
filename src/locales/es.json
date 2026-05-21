@@ -641,7 +641,7 @@
   "phonePair.removeAll": "Eliminar todo",
   "phonePair.removeSession": "Eliminar acceso de {name}",
   "phonePair.saving": "Guardando...",
-  "phonePair.securityNote": "Escanear de nuevo desde el mismo dispositivo actualiza su autorización. Los dispositivos eliminados deben escanear un código nuevo antes de volver a conectarse.",
+  "phonePair.securityNote": "Emparejar de nuevo desde el mismo dispositivo actualiza su autorización. Los dispositivos eliminados deben emparejarse de nuevo antes de volver a conectarse.",
   "phonePair.statusPaired": "Emparejado",
   "phonePair.statusRecentlyActive": "Activo recientemente",
   "phonePair.tab.code": "Code Pairing",

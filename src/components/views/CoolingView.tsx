@@ -1014,7 +1014,7 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
           tabs={presetTabs}
           activeTab={activePreset ?? undefined}
           onTabChange={k => handlePresetChange(k)}
-          actions={
+          tabActions={
             <button
               type="button"
               className={styles.settingsBtn}

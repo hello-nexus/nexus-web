@@ -1,5 +1,19 @@
 .wrapper {
   position: relative;
+  width: 100%;
+  // Center the trigger button vertically inside the bordered sidebarHeaderBox
+  // when it stretches taller than the button's natural content height.
+  display: flex;
+  align-items: center;
+}
+
+// Forces the HoverTooltip's inline-flex span to fill the box so the
+// trigger button inside still spans 100%. Without this the wrap span
+// collapses to content width and the button stops being edge-to-edge.
+.triggerTooltipWrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .wrapperCompact {
@@ -7,25 +21,39 @@
   justify-content: center;
 }
 
+// Single trigger button fills the entire .sidebarHeaderBox in Dashboard so
+// clicks anywhere on the bordered card open the dropdown.
 .trigger {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  height: 32px;
-  padding: 0 0;
+  width: 100%;
+  padding: 0.35rem 0.55rem;
   border: none;
-  border-radius: 0;
+  border-radius: inherit;
   background: transparent;
   color: var(--text-dim);
   font-size: var(--type-small);
   font-weight: var(--weight-body);
+  font-family: inherit;
   cursor: pointer;
   transition: color var(--ease);
   white-space: nowrap;
+  text-align: left;
 
   &:hover {
     color: var(--text);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.triggerCompact {
+  justify-content: center;
+  padding: 0.25rem 0;
 }
 
 .triggerIcon {
@@ -34,26 +62,28 @@
 }
 
 .triggerName {
-  max-width: 120px;
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+// Now a styled span inside the trigger button (was its own button in compact
+// mode). Visual treatment unchanged; just no longer interactive itself.
 .letterCircle {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--bg-card);
   color: var(--accent-glow);
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
-  cursor: pointer;
   transition: border-color var(--ease), color var(--ease);
 
-  &:hover {
+  .trigger:hover & {
     border-color: var(--accent);
     color: var(--text);
   }
@@ -74,7 +104,7 @@
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-xl);
   overflow: hidden;
 }
 
@@ -84,13 +114,12 @@
 }
 
 .dropdownHeader {
-  padding: 0.55rem 0.75rem 0.3rem;
+  padding: 0.55rem 0.75rem 0.65rem;
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
   color: var(--text-faded);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
 }
 
 .profileList {

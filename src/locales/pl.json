@@ -641,7 +641,7 @@
   "phonePair.removeAll": "Usun wszystko",
   "phonePair.removeSession": "Usun dostep dla {name}",
   "phonePair.saving": "Zapisywanie...",
-  "phonePair.securityNote": "Ponowne skanowanie z tego samego urzadzenia odswieza jego autoryzacje. Usuniete urzadzenia musza zeskanowac nowy kod przed ponownym polaczeniem.",
+  "phonePair.securityNote": "Ponowne sparowanie z tego samego urzadzenia odswieza jego autoryzacje. Usuniete urzadzenia musza zostac sparowane ponownie przed ponownym polaczeniem.",
   "phonePair.statusPaired": "Sparowane",
   "phonePair.statusRecentlyActive": "Ostatnio aktywne",
   "phonePair.tab.code": "Code Pairing",

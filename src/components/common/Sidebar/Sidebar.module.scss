@@ -17,10 +17,13 @@
   z-index: 20;
   display: flex;
   align-items: center;
-  height: var(--sidebar-section-height);
+  // Negate the .nav wrapper's 0.5rem horizontal padding so this section
+  // stretches edge-to-edge of the sidebar column, matching the PairPhoneButton
+  // wrapper that lives outside .nav. Inner padding then matches
+  // .phonePairWrap so the bordered box inside lines up x-for-x with the
+  // pair-remote box below.
+  margin: 0 -0.5rem 0.5rem;
   padding: 0 0.75rem;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -47,7 +50,10 @@
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-dim);
-  font-size: var(--type-body);
+  // Step down from --type-body (16px) so the nav text sits a touch
+  // smaller; matches the visual weight of the labels in the sidebar
+  // brand row and the bottom-of-sidebar buttons.
+  font-size: var(--type-small);
   font-weight: var(--weight-body);
   cursor: pointer;
   transition: background var(--ease-fast), color var(--ease-fast);
@@ -77,15 +83,22 @@
   justify-content: center;
   width: 20px;
   flex-shrink: 0;
+  // Anchor for the live-state status dot pinned at the bottom-right of the
+  // icon glyph. Same placement in expanded + compact modes.
+  position: relative;
 }
 
 .statusIndicator {
-  margin-left: auto;
-  width: 7px;
-  height: 7px;
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--accent);
-  flex-shrink: 0;
+  // Thin ring against the sidebar surface so the dot reads as a separate
+  // glyph rather than blending into the icon strokes.
+  box-shadow: 0 0 0 1.5px var(--bg-elevated);
 
   &.statusPulsing {
     animation: statusPulse 1.2s ease-in-out infinite;
@@ -124,12 +137,4 @@
   padding: 0.6rem 0.75rem;
   width: 100%;
   gap: 0;
-
-  .statusIndicator {
-    position: absolute;
-    margin: 0;
-    top: 50%;
-    right: 2px;
-    transform: translateY(-50%);
-  }
 }
