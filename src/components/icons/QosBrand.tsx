@@ -1,10 +1,3 @@
-// Q glyph shared by both the wordmark and the standalone mark. The viewBox
-// dimensions and outer translate/scale differ between the two, but the path
-// coordinates fall in the same absolute space after that transform so the
-// glyph can be reused verbatim.
-const Q_GLYPH_PATH =
-  'M585 2340 c-298 -44 -518 -248 -571 -530 -23 -120 -15 -570 10 -650 39 -119 88 -202 166 -280 89 -89 163 -134 273 -169 l82 -25 600 -6 c386 -4 611 -10 630 -17 99 -35 179 -104 216 -188 16 -35 24 -81 29 -160 9 -130 31 -187 92 -240 47 -39 109 -63 191 -72 l58 -6 -3 909 -3 909 -28 81 c-31 95 -105 212 -166 267 -105 95 -246 158 -394 177 -84 11 -1108 11 -1182 0z m1233 -364 c73 -34 124 -86 161 -165 25 -54 26 -63 29 -273 3 -179 1 -227 -13 -274 -39 -135 -135 -219 -276 -244 -43 -7 -233 -10 -579 -8 -509 3 -516 3 -571 26 -72 29 -143 91 -174 151 -39 78 -48 151 -43 362 5 218 17 270 82 345 35 41 118 92 170 105 17 4 283 6 591 6 l560 -2 63 -29z';
-
 export function QosWordmark({ height = 40 }: { height?: number }) {
   // Traced from the original JPG (full 1024 width, vertical crop only to drop
   // the bottom-right Gemini watermark). viewBox is tight around the letter
@@ -34,9 +27,9 @@ export function QosWordmark({ height = 40 }: { height?: number }) {
 
 export function QosMark({ size = 24 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 236 235" fill="currentColor" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qos">
-      <g transform="translate(0,235) scale(0.1,-0.1)">
-        <path d={Q_GLYPH_PATH} />
+    <svg width={size} height={size} viewBox="104 221 155 141" fill="currentColor" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Nexus">
+      <g transform="translate(0,600) scale(0.1,-0.1)">
+        <path d="M1478 3774 c-172 -41 -322 -171 -390 -337 -45 -111 -49 -160 -46 -594 l3 -403 32 -32 c45 -44 85 -42 159 9 106 72 98 37 104 491 6 455 4 447 97 534 77 71 112 78 388 78 261 0 305 -8 371 -64 22 -18 53 -58 69 -87 l30 -54 5 -407 5 -406 24 -26 c43 -46 127 -97 159 -98 38 -1 80 25 92 58 6 15 10 205 9 457 0 485 -3 505 -71 628 -43 75 -129 161 -205 202 -108 58 -176 67 -492 66 -207 0 -302 -4 -343 -15z" />
       </g>
     </svg>
   );
