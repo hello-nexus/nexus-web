@@ -63,6 +63,28 @@ export function KeebKeyAssignmentView({
     await setKey({ x: selected.x, y: selected.y, func: cell.function, mode: cell.mode });
   };
 
+  // Highlight on the source keyboard reflects what the target is currently
+  // mapped to. Two-pass lookup:
+  //   1. Target's *current* function from live state (firmware-assigned).
+  //   2. Find that function's natural position on the source keyboard.
+  //      If the function isn't a default-layout key (e.g. Macro1, MouseLButton),
+  //      no source cell matches and nothing highlights.
+  // This is the "which physical key does this remap to right now" indicator.
+  const sourceSelected: KeebSelection = useMemo(() => {
+    if (!selected) return null;
+    const assigned = state.keys[selected.x]?.[selected.y];
+    const currentFn = assigned?.function
+      ?? sourceRows[selected.x]?.[selected.y]?.function;
+    if (!currentFn) return null;
+    for (let x = 0; x < sourceRows.length; x++) {
+      const row = sourceRows[x];
+      for (let y = 0; y < row.length; y++) {
+        if (row[y].function === currentFn) return { kind: 'key', x, y };
+      }
+    }
+    return null;
+  }, [selected, state.keys, sourceRows]);
+
   const onReset = async () => {
     if (!confirmReset) {
       setConfirmReset(true);
@@ -106,11 +128,14 @@ export function KeebKeyAssignmentView({
           <KeebKeyboard
             state={state}
             disabled={disabled}
-            // Source keyboard never displays selection (tracked on the main
-            // keyboard) and never exposes wheels (the rotary picker lives in
-            // its own view, gated by the wheel-selected branch above).
-            selected={null}
+            // Highlight reflects what the target is currently mapped to; a
+            // click on a different source key rebinds. Wheels are hidden
+            // because picking a wheel-as-source isn't a valid rebind here.
+            // useDefaults keeps the picker showing the printed-legend layout
+            // even after the firmware has been remapped.
+            selected={sourceSelected}
             hideWheels
+            useDefaults
             onSelect={onSourceSelect}
           />
         </div>

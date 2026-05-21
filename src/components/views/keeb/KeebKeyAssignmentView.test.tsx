@@ -117,6 +117,82 @@ describe('KeebKeyAssignmentView — Keyboard category (click-to-pick source keyb
   });
 });
 
+describe('KeebKeyAssignmentView — source keyboard highlight reflects current mapping', () => {
+  let setKey: ReturnType<typeof vi.fn>;
+  let resetLayer: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    setKey = vi.fn(async () => {});
+    resetLayer = vi.fn(async () => {});
+  });
+
+  function stateWithAssignment(x: number, y: number, fn: string): KeyboardState {
+    // Sparse keys array — only the target row needs to be populated for the
+    // highlight lookup.
+    const keys: KeyboardState['keys'] = Array.from({ length: 8 }, () => []);
+    keys[x] = [];
+    for (let i = 0; i <= y; i++) {
+      keys[x][i] = { mode: 'StandardKey', function: i === y ? fn : '', input: null };
+    }
+    return { ...defaultState(), keys };
+  }
+
+  it('with no selection, no source-keyboard cell is highlighted', () => {
+    render(<KeebKeyAssignmentView selected={null} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />);
+    // No `keySelected` class anywhere on the source keyboard.
+    const highlighted = document.body.querySelectorAll('button[class*="keySelected"]');
+    expect(highlighted.length).toBe(0);
+  });
+
+  it('selecting a target with its default mapping highlights that key on the source keyboard', () => {
+    // Target (5, 1) defaults to A. With no override, source A should highlight.
+    render(<KeebKeyAssignmentView selected={{ x: 5, y: 1 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />);
+    const a = document.body.querySelector('button[title="A"]') as HTMLButtonElement;
+    expect(a.className).toMatch(/keySelected/);
+  });
+
+  it('selecting a target that has been remapped highlights the *new* mapping on the source keyboard', () => {
+    // Target (5, 1) (the A cell) currently has Q assigned to it.
+    // Source A should NOT highlight; source Q should.
+    render(<KeebKeyAssignmentView selected={{ x: 5, y: 1 }} state={stateWithAssignment(5, 1, 'Q')} setKey={setKey} resetLayer={resetLayer} />);
+    const a = document.body.querySelector('button[title="A"]') as HTMLButtonElement;
+    const q = document.body.querySelector('button[title="Q"]') as HTMLButtonElement;
+    expect(a.className).not.toMatch(/keySelected/);
+    expect(q.className).toMatch(/keySelected/);
+  });
+
+  it('selecting a target mapped to a non-keyboard function (Macro1) highlights nothing on the source', () => {
+    render(<KeebKeyAssignmentView selected={{ x: 2, y: 5 }} state={stateWithAssignment(2, 5, 'Macro1')} setKey={setKey} resetLayer={resetLayer} />);
+    const highlighted = document.body.querySelectorAll('button[class*="keySelected"]');
+    expect(highlighted.length).toBe(0);
+  });
+
+  it('clicking a different source key while a remap is highlighted rebinds the target', () => {
+    // Target (5, 1) currently mapped to Q. User clicks Z on the source → setKey
+    // should be called with Z's StandardKey definition.
+    render(<KeebKeyAssignmentView selected={{ x: 5, y: 1 }} state={stateWithAssignment(5, 1, 'Q')} setKey={setKey} resetLayer={resetLayer} />);
+    const z = document.body.querySelector('button[title="Z"]') as HTMLButtonElement;
+    expect(z).not.toBeNull();
+    fireEvent.click(z);
+    expect(setKey).toHaveBeenCalledWith({ x: 5, y: 1, func: 'Z', mode: 'StandardKey' });
+  });
+
+  it('highlight updates when the user picks a different top-keyboard cell', () => {
+    const { rerender } = render(
+      <KeebKeyAssignmentView selected={{ x: 5, y: 1 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />,
+    );
+    // A is highlighted because (5,1) defaults to A.
+    expect((document.body.querySelector('button[title="A"]') as HTMLButtonElement).className).toMatch(/keySelected/);
+
+    // Switch target to (5, 2) → defaults to S.
+    rerender(
+      <KeebKeyAssignmentView selected={{ x: 5, y: 2 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />,
+    );
+    expect((document.body.querySelector('button[title="A"]') as HTMLButtonElement).className).not.toMatch(/keySelected/);
+    expect((document.body.querySelector('button[title="S"]') as HTMLButtonElement).className).toMatch(/keySelected/);
+  });
+});
+
 describe('KeebKeyAssignmentView — Reset Layer confirm flow', () => {
   let setKey: ReturnType<typeof vi.fn>;
   let resetLayer: ReturnType<typeof vi.fn>;

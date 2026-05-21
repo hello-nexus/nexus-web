@@ -122,6 +122,20 @@ describe('KeebKeyboard — render', () => {
     const buttons = container.querySelectorAll('button[title="Macro1"]');
     expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
+
+  it('with `useDefaults`, ignores state.keys assignments and renders the printed-legend layout', () => {
+    // Same override as the previous test, but `useDefaults` should make the
+    // rendered button title revert to F1 (the printed default at row 2 col 1).
+    const keys = Array.from({ length: 8 }, () => [] as { mode: string; function: string; input: number | null }[]);
+    keys[2] = [
+      { mode: 'StandardKey', function: 'Escape', input: null },
+      { mode: 'MacroKey', function: 'Macro1', input: 1 },
+    ];
+    const { container } = render(<KeebKeyboard state={buildState({ keys })} useDefaults />);
+    // F1 default should still render at (2, 1); the Macro1 override is suppressed.
+    expect(container.querySelector('button[title="F1"]')).not.toBeNull();
+    expect(container.querySelector('button[title="Macro1"]')).toBeNull();
+  });
 });
 
 describe('KeebKeyboard — selection', () => {

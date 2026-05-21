@@ -27,6 +27,14 @@ export interface KeebKeyboardProps {
    * onto the main keyboard's selection — wheels aren't a valid pick there.
    */
   hideWheels?: boolean;
+  /**
+   * Render every cell with its default (printed-legend) function and ignore
+   * `state.keys`. Used by the source keyboard inside Key Assignment so the
+   * picker keeps showing the physical-key layout even after the firmware
+   * has been remapped — otherwise rebinding becomes circular ("I remapped
+   * A→Q, now the A position shows Q, so how do I rebind back?").
+   */
+  useDefaults?: boolean;
 }
 
 /// Visual class for a (row, col) cell. Mirrors legacy nexus `Key/index.tsx`:
@@ -55,6 +63,7 @@ export function KeebKeyboard({
   offlineCopy,
   disabled,
   hideWheels,
+  useDefaults,
 }: KeebKeyboardProps) {
   const layout: KeebLayoutKind = state.layout === 'ISO' ? 'ISO' : 'ANSI';
   const rows = useMemo(() => getKeebLayoutRows(layout), [layout]);
@@ -63,7 +72,7 @@ export function KeebKeyboard({
   const rightWheelSelected = selected?.kind === 'wheel' && selected.side === 'right';
 
   const renderKey = (cell: { function: string; mode: string; style?: CSSProperties }, x: number, y: number, opts?: { stripAbsolute?: boolean }) => {
-    const assigned: KeebKey | undefined = state.keys[x]?.[y];
+    const assigned: KeebKey | undefined = useDefaults ? undefined : state.keys[x]?.[y];
     const func = assigned?.function || cell.function;
     const isSelected = selected?.kind === 'key' && selected.x === x && selected.y === y;
     const cls = [

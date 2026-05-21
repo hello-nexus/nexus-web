@@ -20,12 +20,12 @@ import {
   setKeebRotarySensitivity,
 } from '../api/keeb';
 
-/// State + setters used by the keeb modal. Polls /keeb/state every 5s while
-/// `enabled`; per-action setters re-fetch immediately on success so the UI
-/// reflects the post-write firmware state without waiting for the next poll.
+/// State + setters for the keeb modal.
 ///
-/// When the WebSocket `keeb` topic lands (Phase 1d in the spec) this hook
-/// switches to push-based updates with the same shape.
+/// Writes apply OPTIMISTICALLY: local state updates before the POST so the UI
+/// reflects the click instantly, even though the HID round-trip on the service
+/// can take several seconds. The POST then fires async; a background poll
+/// reconciles whenever there are no writes in flight.
 export interface UseKeebApi {
   state: KeyboardState;
   settings: KeebSettings | null;
@@ -52,14 +52,28 @@ const EMPTY_STATE: KeyboardState = {
 
 const POLL_MS = 5000;
 
+/// Apply a single SetLayerKeyBody to the keys grid by replacing one cell.
+/// Returns a new state with deep-cloned `keys` so React sees the change.
+function applyKeyOverride(prev: KeyboardState, body: SetLayerKeyBody): KeyboardState {
+  const keys = prev.keys.map(row => row.slice());
+  while (keys.length <= body.x) keys.push([]);
+  while (keys[body.x].length <= body.y) keys[body.x].push({ mode: 'StandardKey', function: '', input: null });
+  keys[body.x][body.y] = { mode: body.mode, function: body.func, input: body.input ?? null };
+  return { ...prev, keys };
+}
+
 export function useKeeb(enabled: boolean): UseKeebApi {
   const [layer, setLayerState] = useState<KeebLayer>(0);
   const [state, setState] = useState<KeyboardState>(EMPTY_STATE);
   const [settings, setSettings] = useState<KeebSettings | null>(null);
   const [loading, setLoading] = useState(false);
   const cancelledRef = useRef(false);
+  // Pending-writes counter. While > 0 the background poll skips state
+  // refresh so a stale firmware read doesn't clobber an optimistic update.
+  const pendingWritesRef = useRef(0);
 
   const fetchAll = useCallback(async (forLayer: KeebLayer) => {
+    if (pendingWritesRef.current > 0) return;
     setLoading(true);
     try {
       const [st, se] = await Promise.all([
@@ -67,6 +81,7 @@ export function useKeeb(enabled: boolean): UseKeebApi {
         getKeebSettings(),
       ]);
       if (cancelledRef.current) return;
+      if (pendingWritesRef.current > 0) return;
       if (st) setState(st);
       if (se) setSettings(se);
     } finally {
@@ -93,40 +108,64 @@ export function useKeeb(enabled: boolean): UseKeebApi {
     await fetchAll(layer);
   }, [fetchAll, layer]);
 
+  /// Optimistic + fire-and-forget. The cell flips immediately; the HID
+  /// write happens in the background. While the write is in flight the
+  /// background poll is suppressed so a stale read can't clobber the
+  /// optimistic state.
   const setKey = useCallback(async (body: SetLayerKeyBody) => {
-    const next = await setKeebLayerKey(layer, body);
-    if (next) setState(next);
+    setState(prev => applyKeyOverride(prev, body));
+    pendingWritesRef.current += 1;
+    try { await setKeebLayerKey(layer, body); }
+    finally { pendingWritesRef.current = Math.max(0, pendingWritesRef.current - 1); }
   }, [layer]);
 
   const resetLayer = useCallback(async () => {
-    const next = await resetKeebLayer(layer);
-    if (next) setState(next);
+    // Optimistically clear the layer's keys so the keyboard reverts to
+    // defaults immediately. The poll will reconcile when the firmware
+    // ack lands.
+    setState(prev => ({ ...prev, keys: [] }));
+    pendingWritesRef.current += 1;
+    try { await resetKeebLayer(layer); }
+    finally { pendingWritesRef.current = Math.max(0, pendingWritesRef.current - 1); }
   }, [layer]);
 
   const saveFirmwareLighting = useCallback(async (body: SetFirmwareLightingBody) => {
-    await setKeebFirmwareLighting(body);
-    const fresh = await getKeebSettings();
-    if (fresh) setSettings(fresh);
+    setSettings(prev => prev ? { ...prev, ...body } : prev);
+    pendingWritesRef.current += 1;
+    try { await setKeebFirmwareLighting(body); }
+    finally { pendingWritesRef.current = Math.max(0, pendingWritesRef.current - 1); }
   }, []);
 
   const savePassiveLighting = useCallback(async (body: SetPassiveLightingBody) => {
-    await setKeebPassiveLighting(body);
-    const fresh = await getKeebSettings();
-    if (fresh) setSettings(fresh);
+    setSettings(prev => prev ? { ...prev, ...body } : prev);
+    pendingWritesRef.current += 1;
+    try { await setKeebPassiveLighting(body); }
+    finally { pendingWritesRef.current = Math.max(0, pendingWritesRef.current - 1); }
   }, []);
 
   const saveGameMode = useCallback(async (body: SetGameModeBody) => {
-    await setKeebGameMode(body);
-    const fresh = await getKeebSettings();
-    if (fresh) setSettings(fresh);
+    setSettings(prev => prev ? {
+      ...prev,
+      altF4Disabled: body.altF4,
+      altTabDisabled: body.altTab,
+      shiftKeyDisabled: body.shiftTab,
+      windowsKeyDisabled: body.windowsKey,
+    } : prev);
+    pendingWritesRef.current += 1;
+    try { await setKeebGameMode(body); }
+    finally { pendingWritesRef.current = Math.max(0, pendingWritesRef.current - 1); }
   }, []);
 
   const saveRotary = useCallback(async (body: SetRotaryWheelsBody) => {
-    await setKeebRotary(body);
+    pendingWritesRef.current += 1;
+    try { await setKeebRotary(body); }
+    finally { pendingWritesRef.current = Math.max(0, pendingWritesRef.current - 1); }
   }, []);
 
   const saveRotarySensitivity = useCallback(async (s: string) => {
-    await setKeebRotarySensitivity(s);
+    pendingWritesRef.current += 1;
+    try { await setKeebRotarySensitivity(s); }
+    finally { pendingWritesRef.current = Math.max(0, pendingWritesRef.current - 1); }
   }, []);
 
   return {
