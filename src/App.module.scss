@@ -99,31 +99,36 @@
   top: 0;
   left: 0;
   bottom: 0;
-  width: 6px;
+  width: 8px;
   cursor: ew-resize;
 }
 
+// The right + top strips cover the FULL edge of the window — no
+// exclusion for caption buttons or drag strip. Native Windows lets you
+// grab the very top 4-6 px of a window even over the title bar, and
+// the very right edge from y:0 down. Bumped to z-index 2004 (above the
+// caption buttons' 2003) so the outermost few pixels are resize even
+// where chrome would otherwise win the hit-test. Increased thickness
+// to 8px for easier grabbing on high-DPI displays.
 .windowResizeStripRight {
   position: absolute;
-  z-index: 2001;
+  z-index: 2004;
   background: transparent;
-  // Skip the top 32px so the caption buttons hit-test wins over the
-  // right resize edge in their corner.
-  top: 32px;
+  top: 0;
   right: 0;
   bottom: 0;
-  width: 6px;
+  width: 8px;
   cursor: ew-resize;
 }
 
 .windowResizeStripTop {
   position: absolute;
-  z-index: 2001;
+  z-index: 2004;
   background: transparent;
   top: 0;
   left: 0;
-  right: 138px;
-  height: 6px;
+  right: 0;
+  height: 8px;
   cursor: ns-resize;
 }
 
@@ -134,7 +139,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 6px;
+  height: 8px;
   cursor: ns-resize;
 }
 
@@ -142,47 +147,54 @@
 // resize cursor reliably. These are siblings of the edge strips at the
 // same z-index, but slightly higher up in DOM order so they win where
 // they overlap the edge strips.
+// Corner strips: 18x18 squares so the diagonal resize cursor is
+// easy to grab (native Windows corners are ~10px but our user
+// reported the smaller targets felt unreliable). Top corners sit
+// above the caption buttons (z-index 2005 > 2003) so the very
+// corner of the window is always a diagonal resize even when the
+// OS-close button visually occupies the same pixels. The very edge
+// always wins on native Windows — we mirror that.
 .windowResizeCornerTopLeft {
   position: absolute;
-  z-index: 2002;
+  z-index: 2005;
   background: transparent;
   top: 0;
   left: 0;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   cursor: nwse-resize;
 }
 
 .windowResizeCornerTopRight {
   position: absolute;
-  z-index: 2002;
+  z-index: 2005;
   background: transparent;
   top: 0;
   right: 0;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   cursor: nesw-resize;
 }
 
 .windowResizeCornerBottomLeft {
   position: absolute;
-  z-index: 2002;
+  z-index: 2005;
   background: transparent;
   bottom: 0;
   left: 0;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   cursor: nesw-resize;
 }
 
 .windowResizeCornerBottomRight {
   position: absolute;
-  z-index: 2002;
+  z-index: 2005;
   background: transparent;
   bottom: 0;
   right: 0;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   cursor: nwse-resize;
 }
 
