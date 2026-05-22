@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { computeCurveSpeed } from '../../../components/views/cooling/CurveEditor';
+import { computeCurveSpeed } from './page/CurveEditor';
 import type { CurveDef, FanState } from '../../../types/cooling';
 import type { FanChannel, TemperatureSource } from '../../../api/cooling';
 import styles from './CoolingResponseChart.module.scss';

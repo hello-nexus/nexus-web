@@ -38,7 +38,7 @@ export function PanelDock({ widgets, surface, orientation }: PanelDockProps) {
       {visible.map(widget => {
         const def = lookupWidget(widget.type);
         if (!def) return null;
-        const Comp = def.Component;
+        const Comp = def.Widget;
         const label = t(def.meta.i18nKey) || widget.type;
         return (
           <ErrorBoundary key={widget.id} label={`dock:${widget.type}`}>

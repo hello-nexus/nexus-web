@@ -1,0 +1,1114 @@
+@use '../../../styles/scrollbar' as *;
+
+.lighting {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+// Compact icon-track-value layout for the master brightness slider. Lives
+// in the ViewHeader's tabActions slot now (right-aligned at the same vertical
+// level as the lighting mode tabs). min-width reserves the row even before
+// the first fetch resolves so the underline doesn't jump while it hydrates.
+.globalBrightnessSlider {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-dim);
+  min-width: 140px;
+}
+
+.globalBrightnessIcon {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.globalBrightnessTrack {
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.globalBrightnessValue {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 2.6em;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.body {
+  display: grid;
+  // Device column set to 300px - matches CoolingView's right-pane width so
+  // the device list / effect tab reads at the same width as the fan list.
+  grid-template-columns: 1fr 300px;
+  grid-template-rows: minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative; // anchor for the settings drawer (flush to page edge)
+  // App shell (.content) pads 1.25rem on the right. Cancel that on the body so
+  // the device list / drawer dock flush to the viewport edge.
+  margin-right: -1.25rem;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  // Left edge inherits the app shell `.content` left pad so this view aligns
+  // flush with Monitoring + Cooling. Only the right gap is added back so the
+  // widened devices column has breathing room before the right divider.
+  padding: 0 0.5rem 0 0;
+}
+
+.rightPane {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.canvasArea {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+.fullscreenBtn {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  // Sit above device frames (canvas SCSS uses up to z-index: 10 for hover /
+  // drag states on the rectangles). 20 keeps us out of modal territory (50+)
+  // while guaranteeing the button is always clickable.
+  z-index: 20;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--ease), color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+
+  .canvasArea:hover & { opacity: 1; }
+
+  &:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
+.musicReactiveBtn {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  z-index: 20;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast);
+
+  &:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
+.musicReactiveBtnOn {
+  color: var(--accent-text);
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow-shadow);
+
+  &:hover {
+    color: var(--accent-text);
+    background: var(--accent-glow);
+    border-color: var(--accent-glow);
+  }
+}
+
+.controls {
+  flex-shrink: 0;
+  padding: 0.75rem 0 0.25rem;
+}
+
+// ── Animate: effect grid + settings drawer ─────────────────────────────────
+
+.animateGridWrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.categoryChips {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.6rem 0.25rem 0.2rem;
+}
+
+.categoryChip {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+  text-transform: capitalize;
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+}
+
+.categoryChipActive {
+  color: var(--accent-glow);
+  background: var(--accent-soft);
+  border-color: var(--accent-glow-shadow);
+
+  &:hover {
+    color: var(--accent-glow);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+}
+
+.animateGrid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  // Compact thumbnail cell width - fits ~4-5 per row in the main pane so the
+  // grid reads as a browsable catalogue rather than a few oversized banners.
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  // Cards size to their natural content height; without these the grid
+  // would stretch each row (and each card inside it) to fill the
+  // remaining vertical space, which looks especially odd when a category
+  // filter leaves only one row of effects visible.
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 0.6rem;
+  padding: 0.75rem 0.25rem 1rem;
+  @include scrollbar-visible($thumb: var(--border-strong));
+}
+
+.effectCard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), background var(--ease-fast), transform 0.08s;
+
+  &:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  &.effectCardActive {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+}
+
+// Loading skeleton for the brief window between mount and the real
+// thumbnail BMP arriving from the service. Used to be a per-effect
+// hand-authored gradient, but the gradient set drifted out of date as
+// effects were added/removed/retuned. A neutral shimmer ages better.
+.effectThumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: linear-gradient(
+    100deg,
+    var(--bg-elevated) 0%,
+    var(--bg-card) 40%,
+    var(--bg-elevated) 80%
+  );
+  background-size: 200% 100%;
+  animation: effectThumbShimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes effectThumbShimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.effectThumbWrap {
+  position: relative;
+}
+
+.audioBadge {
+  position: absolute;
+  bottom: 0.3rem;
+  right: 0.3rem;
+  color: rgba(255, 255, 255, 0.7);
+  filter: drop-shadow(0 0 2px rgb(0 0 0 / var(--alpha-strong)));
+  pointer-events: none;
+}
+
+.effectThumbImg {
+  width: 100%;
+  aspect-ratio: 16 / 9; // matches the 160x90 capture, so no cropping
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  object-fit: cover;
+  display: block;
+  image-rendering: pixelated; // 160x90 source looks intentional rather than muddy
+}
+
+.effectLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.drawer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 220px; // matches the device-list column so the panel swap feels seamless
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 2;
+  animation: drawerSlideIn 0.22s ease-out;
+  box-shadow: -12px 0 28px -18px rgb(0 0 0 / var(--alpha-medium));
+}
+
+.drawerClosing {
+  animation: drawerSlideOut var(--ease) ease-in forwards;
+}
+
+@keyframes drawerSlideIn {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes drawerSlideOut {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(110%); opacity: 0; }
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.drawerTitle {
+  margin: 0;
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  text-transform: capitalize;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawerClose {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+
+  &:hover { background: var(--bg-card); color: var(--text); }
+}
+
+// Row of 4 preset swatch buttons under the drawer title. Each button's
+// background renders the colour mood of that slot: rainbow gradient
+// underneath, with a solid-hue overlay whose opacity equals the slot's
+// colorize value. No numbers, no text - the user identifies presets by
+// colour alone.
+.drawerTemplates {
+  --effect-template-gap: 0.35rem;
+  --effect-template-height: 32px;
+  --effect-template-radius: var(--radius-sm);
+  --effect-template-border: var(--border);
+  --effect-template-hover-border: var(--border-strong);
+  --effect-template-bg: var(--bg-card);
+  --effect-template-active-border: var(--accent);
+  --effect-template-active-shadow: 0 0 0 1px var(--accent), 0 0 8px var(--accent-glow-shadow);
+
+  padding: 0.65rem 1rem 0;
+  flex-shrink: 0;
+}
+
+// Wrapper that centres the PaletteRing at the top of the slider list.
+.paletteRingWrap {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+  padding-bottom: 0.25rem;
+}
+
+.drawerSliders {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 1.1rem 1.1rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+// Pinned-to-bottom footer holding the scoped Reset button. Stays visible
+// even when the slider list scrolls so the user can always undo edits to
+// the currently-selected preset without hunting.
+.drawerFooter {
+  flex-shrink: 0;
+  padding: 0.6rem 1rem 0.85rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+}
+
+.drawerReset {
+  min-width: 10rem;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: border-color var(--ease-fast), color var(--ease-fast), background var(--ease-fast), opacity var(--ease-fast);
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent-glow);
+    background: var(--accent-soft);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+    color: var(--text-faded);
+  }
+}
+
+// Settings row used by ScreenControls to lay two sliders side-by-side.
+.settingsBar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.35rem 0;
+}
+
+// Compact label is still used for the screen-mirror monitor picker.
+.compactLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+  min-width: 50px;
+}
+
+// ── Static color controls ───────────────────────────────────────────────────
+
+.staticBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.staticSwatches {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.staticSwatch {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  max-width: 56px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.08s, border-color var(--ease-fast), box-shadow var(--ease-fast);
+
+  &:hover { transform: translateY(-1px); border-color: var(--text); }
+}
+
+.staticSwatchActive {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent);
+}
+
+// The custom-colour button sits flush to the right of the presets and always
+// shows the current custom colour (or a rainbow placeholder if a preset is
+// active). Clicking anywhere on it opens the native colour picker.
+.customSwatch {
+  position: relative;
+  flex-shrink: 0;
+  width: 52px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  overflow: hidden;
+  background: conic-gradient(from 0deg, #ff3b3b, #ffb627, #ffee00, #39d353, #00b7ff, #5145ff, #c44cff, #ff3b3b);
+  transition: transform 0.08s, border-color var(--ease-fast), box-shadow var(--ease-fast);
+
+  &:hover { transform: translateY(-1px); border-color: var(--text); }
+}
+
+// Small inner dot that reveals the current custom colour over the rainbow.
+.customDot {
+  position: absolute;
+  inset: 6px;
+  border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-medium));
+  pointer-events: none;
+}
+
+.customRing {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+.customInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+.pathInput {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--type-small);
+  font-family: var(--font-mono);
+  min-width: 0;
+  &::placeholder { color: var(--text-faded); }
+}
+
+// ── Media Library ─────────────────────────────────────────────────────────
+.mediaSection { display: flex; flex-direction: column; gap: 0.75rem; min-height: 0; }
+.mediaHeader { display: flex; align-items: center; }
+.mediaHeader > .manageFolderBtn { margin-left: auto; }
+.importBtn {
+  padding: 0.45rem 0.95rem; border: 1px solid var(--accent); border-radius: var(--radius-sm);
+  background: var(--accent); color: var(--accent-text); font-size: var(--type-small);
+  font-weight: 600; cursor: pointer; transition: all var(--ease);
+  box-shadow: 0 0 0 0 var(--accent-glow-shadow);
+  &:hover:not(:disabled) { background: var(--accent-glow); border-color: var(--accent-glow); box-shadow: 0 2px 10px var(--accent-glow-shadow); }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+.manageFolderBtn {
+  padding: 0.35rem 0.55rem; border: none; background: transparent;
+  color: var(--text-faded); font-size: var(--type-small);
+  cursor: pointer; transition: color var(--ease-fast);
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  &:hover { color: var(--text); }
+}
+.manageFolderIcon {
+  flex-shrink: 0;
+  display: block;
+}
+.hiddenInput { display: none; }
+.mediaEmpty { color: var(--text-faded); font-size: var(--type-small); margin: 0; }
+.mediaError { color: var(--bad); font-size: var(--type-small); margin: 0; }
+
+.mediaGrid {
+  display: grid;
+  // Matches .animateGrid's cell width so shader cards and media cards
+  // render at the same size when the user flips modes.
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 0.6rem;
+  padding: 0.25rem 0.25rem 0.5rem;
+  overflow-y: auto;
+  min-height: 0;
+  @include scrollbar-visible($thumb: var(--border-strong));
+}
+
+.mediaMeta {
+  font-size: 0.62rem;
+  color: var(--text-faded);
+  font-family: var(--font-mono);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 0.15rem;
+}
+
+// Positioning slot for the shared CardDeleteButton over the thumbnail.
+// Visual treatment (size, shape, colors, hover reveal) lives in
+// src/components/CardDeleteButton/CardDeleteButton.module.scss so every
+// card-style X in the app looks and behaves the same.
+.mediaDeleteBtnSlot {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+}
+.effectCard:hover [data-card-delete='hover'],
+.effectCard:focus-within [data-card-delete='hover'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mediaImportingCard {
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.mediaSpinner {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 22px; height: 22px;
+  margin: -11px 0 0 -11px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: mediaSpin 0.75s linear infinite;
+}
+
+@keyframes mediaSpin {
+  to { transform: rotate(360deg); }
+}
+
+// Mirror controls
+.screenControls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filtersRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filterChips {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.filterChip {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: border-color var(--ease-fast) ease, background var(--ease-fast) ease, color var(--ease-fast) ease;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  &[data-active='true'] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-glow);
+  }
+}
+
+.monitorPicker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.monitorSelect {
+  flex: 1;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--type-small);
+  font-family: inherit;
+  min-width: 0;
+  cursor: pointer;
+
+  &:focus { outline: none; border-color: var(--accent); }
+  option { background: var(--bg-card); color: var(--text); }
+}
+
+.offMessage {
+  color: var(--text-faded);
+  font-size: var(--type-body);
+  text-align: center;
+  padding: 1rem 0;
+}
+
+// ── Device Panel ────────────────────────────────────────────────────────────
+
+.devicePanel {
+  // Horizontal padding mirrors CoolingView's .fanPanel (0 1rem 0 2.5rem) so
+  // device cards land at the same on-screen width as cooling fan cards.
+  padding: 0.5rem 1rem 0.5rem 2.5rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+// Bottom-of-panel labelled rescan. Sits between the scrollable device list
+// and the OpenRGB indicator (which doubles as the supported-devices
+// catalogue trigger) so both footer actions read as a pair. Same dashed-
+// border pattern as the indicator below so they balance visually.
+.rescanDevicesBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0.4rem 1rem 0 2.5rem;
+  padding: 0.45rem 0.7rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+}
+
+// Bottom-of-pane OpenRGB indicator. Renders as either a plain badge (status
+// only) or, when an onClick is provided, a button that opens the supported-
+// devices catalogue. Sits where the old "browse supported devices" link used
+// to live - same dashed footer treatment so it pairs with the rescan button
+// above it.
+.statusCard {
+  margin: 0.5rem 1rem 0.85rem 2.5rem;
+  padding: 0.4rem 0.7rem;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  cursor: default;
+  flex-shrink: 0;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+
+  // Button variant lights up on hover the same way the old browse-supported
+  // button did, so the affordance is unchanged.
+  &[type='button'] {
+    cursor: pointer;
+
+    &:hover {
+      color: var(--text);
+      border-color: var(--accent);
+      border-style: solid;
+      background: var(--accent-soft);
+    }
+  }
+}
+
+.statusBadgeLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.rescanIconSpinning {
+  display: inline-block;
+  animation: deviceRescanSpin 1.1s linear infinite;
+}
+
+@keyframes deviceRescanSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusDotOnline {
+  background: var(--good);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--good) 60%, transparent);
+}
+
+.statusDotOffline {
+  background: var(--bad);
+}
+
+.deviceEmpty {
+  font-size: var(--type-small);
+  color: var(--text-faded);
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.deviceList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.deviceCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    border-color: var(--border-strong);
+    .deviceSettingsBtn { opacity: 1; }
+  }
+
+  &.deviceCardSelected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    .deviceSettingsBtn { opacity: 1; }
+  }
+
+  &.deviceCardUnavailable {
+    cursor: not-allowed;
+    opacity: 0.55;
+    border-style: dashed;
+
+    &:hover { border-color: var(--border); }
+  }
+
+  // Dim the device name + meta when the toggle is off, so the card reads as
+  // "this device won't light up" at a glance. Toggle itself stays full opacity.
+  &.deviceCardPoweredOff {
+    .deviceName { color: var(--text-faded); }
+    .deviceMeta { opacity: 0.6; }
+  }
+}
+
+// Drag-and-drop visuals match the cooling cards: source fades to half, drop
+// target gets the dashed accent outline used by the widget rearrange chrome.
+.deviceCardDragging { opacity: 0.5; }
+.deviceCardDragOver {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+}
+
+// Second line of the device card: LED count text on the left, action icons
+// flush right. Sharing a single row trims ~1rem off the card height versus the
+// previous "icons absolute-positioned underneath" layout.
+.deviceMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  min-height: 20px;
+}
+
+.deviceCardActions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.deviceSettingsBtn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--ease-fast), color var(--ease-fast), background var(--ease-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  svg { width: 13px; height: 13px; }
+}
+
+// Stays visible (overrides .deviceSettingsBtn's opacity:0) when the device is
+// off, so the user always sees a way to turn it back on without having to
+// hover the card. When the device is on the button uses the default
+// .deviceSettingsBtn fade-in-on-hover behaviour like every other icon.
+.devicePowerBtnPersistent {
+  opacity: 1;
+}
+
+.deviceName {
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  color: var(--text);
+  line-height: 1.3;
+  // Wrap long zone names like "B850I AORUS PRO - Digital LED 1" onto multiple
+  // lines rather than truncating with an ellipsis - the card stretches down,
+  // the absolute-positioned action buttons stay anchored to the bottom-right.
+  word-break: break-word;
+}
+
+.deviceMeta {
+  font-size: 0.65rem;
+  color: var(--text-faded);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.deviceMetaIcon {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
+// Bold count prefix inside .deviceMeta. Matches the bolder number used for
+// motherboard zone LED counts so all device rows read the same way: solid
+// number followed by faded unit label.
+.deviceMetaCount {
+  color: var(--text);
+  font-weight: var(--weight-body);
+  font-size: 0.7rem;
+}
+
+.deviceMetaUnavailable {
+  font-size: 0.65rem;
+  color: var(--warn);
+  font-style: italic;
+}
+
+.motherboardGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.motherboardGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.2rem;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  font-weight: var(--weight-body);
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+
+  &:hover { color: var(--text); background: var(--bg-card-hover); }
+
+  svg { width: 13px; height: 13px; }
+}
+
+.motherboardGroupName {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.motherboardGroupChildren {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--border);
+  margin-left: 0.3rem;
+}
+
+.deviceCardZone {
+  /* Slight tint so the zone child reads as "part of the parent group" even
+     when scrolling past the motherboard header. */
+  background: var(--bg);
+}
+
+// ── Right-pane selector: Devices | Effect ─────────────────────────────────
+// Pill-variant segmented control sitting at the top of the right pane,
+// above the device list / effect controls. Matches the camera/code pair
+// switcher in the phone-pairing modal.
+
+// Header row that hosts the pill switcher at the top of the right pane.
+// Matches the .devicePanel left inset (2.5rem) so the pill aligns with the
+// device cards below.
+.rightPaneTabsHeader {
+  flex-shrink: 0;
+  padding: 0.25rem 1rem 0.6rem 2.5rem;
+}
+
+.rightPaneTabsWrap {
+  display: flex;
+}
+
+.rightPaneTabsWrap :global(nav) {
+  width: 100%;
+}
+
+.rightPaneTabsWrap :global(button) {
+  flex: 1;
+}
+
+
+// Short attention pulse on the Effect tab label when the user clicks a
+// shader while the Devices tab is active. The span re-mounts on each pulse
+// (key prop changes) so the animation runs from scratch.
+.rightPaneTabPulse {
+  display: inline-block;
+  animation: effectTabPulse 0.9s ease-out;
+}
+
+@keyframes effectTabPulse {
+  0%   { color: inherit; transform: scale(1); text-shadow: none; }
+  35%  { color: var(--accent-glow); transform: scale(1.06); text-shadow: 0 0 8px var(--accent-glow-shadow); }
+  100% { color: inherit; transform: scale(1); text-shadow: none; }
+}
+
+.effectTabBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  // Match the devicePanel's 2.5rem left inset (children carry their own ~1rem
+  // horizontal padding, so the parent supplies the extra 1.5rem so the effect
+  // controls line up with the device cards' left edge).
+  padding-left: 1.5rem;
+}
+
+.effectControls {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.effectTabEmpty {
+  color: var(--text-faded);
+  font-size: var(--type-small);
+  text-align: center;
+  padding: 2rem 1rem;
+  margin: 0;
+  line-height: 1.45;
+}
+
+// Effect name header on the right-pane Effect tab in animate mode. Media +
+// Screen Mirror skip this - their "effect" is the mode itself, not a named
+// shader from the library.
+.effectTabTitle {
+  margin: 0 1rem 0.25rem;
+  padding: 0;
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  text-transform: capitalize;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}

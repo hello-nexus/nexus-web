@@ -1,13 +1,14 @@
 import type { CollisionDetection } from '@dnd-kit/core';
 import { snapStride } from './engine/grid';
 import type { PanelLayout, PanelWidget } from './types';
-import { isPinnableAppKey, type PinnableAppKey } from '../app/sidebarAppKeys';
+import { isPinnableAppKey } from '../app/sidebarAppKeys';
 
-// A click on a dashboard widget tile navigates to the widget's app page
-// — same source of truth as the sidebar pin list. Adding a new app key
-// in sidebarAppKeys.ts automatically makes the corresponding widget
-// click-through; no change needed here.
-export type DashboardWidgetSection = PinnableAppKey;
+// A click on a dashboard widget tile navigates to the widget's app
+// page — same source of truth as the sidebar pin list (the App
+// registry, via manifest.Page). Adding a Page to a new app
+// automatically makes the corresponding widget click-through; no
+// change needed here.
+export type DashboardWidgetSection = string;
 
 export interface DashboardSectionNavigatePayload {
   // Optional deep-link key. Currently used by the devices widget to

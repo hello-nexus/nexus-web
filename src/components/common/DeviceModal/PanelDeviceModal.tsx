@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { ArrowLeft, Monitor, Trash2 } from 'lucide-react';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
-import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../../../panel/widgets/performance/perfSlots';
-import { SlotCountIcon } from '../../../panel/widgets/performance/SlotCountIcons';
+import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../../../panel/widgets/monitoring/perfSlots';
+import { SlotCountIcon } from '../../../panel/widgets/monitoring/SlotCountIcons';
 import { appendWidget, replaceWidget } from '../../../panel/engine/panelLayoutOps';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { isSingleWidgetSurface } from '../../../panel/types';
@@ -426,7 +426,7 @@ function InlineWidgetSettings({ widget, surface, themeStyle, themeMode = 'dark',
   const def = lookupWidget(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
   const sizes = def ? sizesForSurface(def.meta, surface) : [];
-  const Settings = def?.SettingsComponent;
+  const Settings = def?.Settings;
   const isMonitoringWidget = widget.type === 'monitoring';
   const slotCountOptions = isMonitoringWidget ? slotCountOptionsForSize(widget.size) : [];
   const slotCount = resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined);
@@ -510,7 +510,7 @@ function InlineWidgetSettings({ widget, surface, themeStyle, themeMode = 'dark',
 
       <div className={styles.inlineSettingsPreview}>
         {def && (() => {
-          const Comp = def.Component;
+          const Comp = def.Widget;
           const span = sizeToSpan(widget.size);
           const previewW = span.cols * 90 + (span.cols - 1) * 6;
           const previewH = span.rows * 90 + (span.rows - 1) * 6;

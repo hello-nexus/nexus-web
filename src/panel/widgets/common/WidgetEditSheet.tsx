@@ -15,8 +15,8 @@ import { IconLabelButton } from '../../../components/common/IconLabelButton/Icon
 import {
   slotCountOptionsForSize,
   resolvedSlotCountForSize,
-} from '../performance/perfSlots';
-import { SlotCountIcon } from '../performance/SlotCountIcons';
+} from '../monitoring/perfSlots';
+import { SlotCountIcon } from '../monitoring/SlotCountIcons';
 import type {
   PanelConfigValue,
   PanelSurface,
@@ -117,7 +117,7 @@ export function WidgetEditSheet({
   keepOpenOnTarget,
 }: WidgetEditSheetProps) {
   const def = lookupWidget(widget.type);
-  const Settings = def?.SettingsComponent;
+  const Settings = def?.Settings;
   const sizes = def ? sizesForSurface(def.meta, surface) : [];
   const isMonitoringWidget = widget.type === 'monitoring';
   const slotCountOptions = isMonitoringWidget ? slotCountOptionsForSize(widget.size) : [];

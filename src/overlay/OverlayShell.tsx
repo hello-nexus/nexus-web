@@ -415,7 +415,7 @@ export default function OverlayShell() {
           ? normalizePanelWidgetSize(entry.size) as PanelWidgetSize
           : '2x2';
         const resolvedMode = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-        const hasConfig = Boolean(def?.SettingsComponent);
+        const hasConfig = Boolean(def?.Settings);
         return (
           <WidgetContextMenu
             x={menu.x}
@@ -575,7 +575,7 @@ function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlo
   };
 
   if (!def) return null;
-  const Component = def.Component;
+  const Component = def.Widget;
 
   const widget: PanelWidget = {
     id: entry.id,

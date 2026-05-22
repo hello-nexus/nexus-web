@@ -20,7 +20,7 @@ import { PairPhoneButton } from './PairPhoneModal';
 import { SidebarContextMenu } from './SidebarContextMenu';
 import {
   DASHBOARD_APP_KEY,
-  SIDEBAR_APP_META,
+  getSidebarAppMeta,
   isPinnableAppKey,
   sanitizePinnedTail,
   type SidebarAppKey,
@@ -84,11 +84,11 @@ export function SidebarColumn({
   // server, so a stale or hand-edited preferences blob can't render gaps.
   const tail = sanitizePinnedTail(settings.pinnedSidebarApps);
   const keys: SidebarAppKey[] = [DASHBOARD_APP_KEY, ...tail];
-  const items = keys.map(key => ({
-    key,
-    label: t(SIDEBAR_APP_META[key].i18nKey),
-    icon: SIDEBAR_APP_META[key].icon,
-  }));
+  const items = keys.flatMap(key => {
+    const meta = getSidebarAppMeta(key);
+    if (!meta) return [];
+    return [{ key, label: t(meta.i18nKey), icon: meta.icon }];
+  });
 
   // Persist a reorder by writing the new tail back. The sanitizer in
   // useUiSettings drops any non-pinnable keys so a bad nextTail can never

@@ -27,7 +27,7 @@ import {
   matchScreenFilter,
   screenFilterByKey,
   type ScreenFilterKey,
-} from '../../../components/views/lighting/screenFilters';
+} from './page/screenFilters';
 import {
   EFFECTS,
   defaultStateFor,

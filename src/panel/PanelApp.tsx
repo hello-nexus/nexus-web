@@ -628,7 +628,7 @@ export function PanelContent({
       return;
     }
     const def = lookupWidget(w.type);
-    if (!def?.ImmersiveComponent) return;
+    if (!def?.Touch) return;
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
     if (!def.meta.supportsImmersive[orientationKey]) return;
     enterImmersive(w.id);
@@ -1458,7 +1458,7 @@ export function PanelContent({
         const def = lookupWidget(touch.ctxMenu.widget.type);
         if (!def) return null;
         const orientationKey = isLandscape ? 'landscape' : 'portrait';
-        const immersiveAvailable = Boolean(def.ImmersiveComponent)
+        const immersiveAvailable = Boolean(def.Touch)
           && def.meta.supportsImmersive[orientationKey];
         const ctxWidget = touch.ctxMenu.widget;
         const ctxPoint = { x: touch.ctxMenu.x, y: touch.ctxMenu.y };
@@ -1537,7 +1537,7 @@ export function PanelContent({
         const w = widgetById(immersiveWidgetId);
         if (!w) return null;
         const def = lookupWidget(w.type);
-        const Comp = def?.ImmersiveComponent;
+        const Comp = def?.Touch;
         if (!Comp) return null;
         // key forces a fresh mount each open/close cycle so any
         // internal state in the overlay (mountState, swipe offset)

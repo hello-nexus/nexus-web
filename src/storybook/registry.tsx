@@ -22,7 +22,7 @@ import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { Popover } from '../components/common/Popover/Popover';
 import { DatePicker } from '../components/common/DatePicker/DatePicker';
 import { EffectCard } from '../components/common/EffectCard/EffectCard';
-import { EffectControls } from '../components/views/lighting/EffectControls';
+import { EffectControls } from '../panel/widgets/lighting/page/EffectControls';
 import { Tabs } from '../components/common/Tabs/Tabs';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal/PromptModal';
@@ -48,7 +48,7 @@ import type { SeriesEntry } from '../hooks/useProcessMonitor';
 import { PanelMixerSliderPreview } from './PanelMixerSliderPreview';
 import { TextStyles } from './TextStyles';
 import { SurfaceStyles } from './SurfaceStyles';
-import { MicroBar } from '../panel/widgets/performance/MicroBar';
+import { MicroBar } from '../panel/widgets/monitoring/MicroBar';
 import styles from './StorybookModal.module.scss';
 
 /*
@@ -1066,7 +1066,7 @@ export const REGISTRY: StorybookEntry[] = [
   },
   {
     name: 'MicroBar', category: 'panel-kit',
-    filePath: 'src/panel/widgets/performance/MicroBar.tsx',
+    filePath: 'src/panel/widgets/monitoring/MicroBar.tsx',
     description: 'Single horizontal-progress row used by the Micro monitoring layout (count = 3 on 2x2 / 4x2). Label-left, value-right above a thin progress track. Stack 3 of these + a centered category/model label to compose the Micro tile.',
     Preview: PreviewMicroBars,
   },
@@ -1103,7 +1103,7 @@ export const REGISTRY: StorybookEntry[] = [
   },
   {
     name: 'SettingsRow / SettingsToggle / SettingsSelect / SettingsSection', category: 'panel-kit',
-    filePath: 'src/panel/widgets/settings/SettingsRow.tsx',
+    filePath: 'src/panel/widgets/common/SettingsRow/SettingsRow.tsx',
     description: 'Form-row primitives every panel widget settings pane composes. SettingsToggle wraps the canonical Toggle; SettingsSelect wraps Select. Section titles and a base SettingsRow handle layout.',
     notes: 'No live preview - the panel widget settings panes are widget-specific.',
   },

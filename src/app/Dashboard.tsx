@@ -4,15 +4,15 @@ import { Placeholder } from '../components/views/Placeholder';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ComponentDetailView } from '../components/views/ComponentDetailView';
 import { BenchmarkView } from '../components/views/BenchmarkView/BenchmarkView';
-import { CoolingView } from '../components/views/CoolingView';
+import { CoolingPage } from "../panel/widgets/cooling/CoolingPage";
 import { DashboardView } from '../components/views/DashboardView/DashboardView';
-import { MonitoringView } from '../components/views/MonitoringView/MonitoringView';
+import { MonitoringPage } from "../panel/widgets/monitoring/MonitoringPage";
 import { OpenInAppBanner } from '../components/common/OpenInAppBanner/OpenInAppBanner';
 import { ToolsView } from '../components/views/ToolsView';
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
-import { DevicesView } from '../components/views/DevicesView/DevicesView';
-import { LightingView } from '../components/views/LightingView';
-import { ClockApp } from '../panel/widgets/clock/ClockApp';
+import { DevicesPage } from "../panel/widgets/devices/DevicesPage";
+import { LightingPage } from "../panel/widgets/lighting/LightingPage";
+import { ClockPage } from "../panel/widgets/clock/ClockPage";
 import { loadMarketplaceWidgets } from '../widgets/marketplaceRegistry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
@@ -312,18 +312,18 @@ export function Dashboard() {
           }}
         />
       );
-      case 'monitoring': return <MonitoringView serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
-      case 'lighting':   return <LightingView serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
-      case 'cooling':    return <CoolingView serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
+      case 'monitoring': return <MonitoringPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
+      case 'lighting':   return <LightingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
+      case 'cooling':    return <CoolingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
       case 'devices':    return (
-        <DevicesView
+        <DevicesPage
           serviceOnline={online}
           connectionState={status.state}
           initialOpenKey={pendingDeviceKey}
           onInitialOpenConsumed={() => setPendingDeviceKey(null)}
         />
       );
-      case 'clock':      return <ClockApp />;
+      case 'clock':      return <ClockPage />;
       case 'tools':      return <ToolsView serviceOnline={online} connectionState={status.state} />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} profiles={profilesHook} />;
       default:           return <Placeholder title={activeView} />;

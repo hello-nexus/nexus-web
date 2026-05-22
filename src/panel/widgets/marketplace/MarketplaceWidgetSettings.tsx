@@ -5,7 +5,7 @@ import {
   SettingsSection,
   SettingsSelect,
   SettingsToggle,
-} from '../settings/SettingsRow';
+} from '../common/SettingsRow/SettingsRow';
 import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
 import {
   getMarketplaceListing,

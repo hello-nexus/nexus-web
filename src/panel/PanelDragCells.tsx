@@ -226,7 +226,7 @@ export function PanelTouchCell({
     );
   }
 
-  const Comp = def.Component;
+  const Comp = def.Widget;
   const labelText = t(def.meta.i18nKey) || widget.type;
   const wrapStyle = {
     gridColumn,
@@ -391,7 +391,7 @@ export function PanelDragOverlayCell({
   const def = lookupWidget(widget.type);
   const span = sizeToSpan(widget.size);
   if (!def) return null;
-  const Comp = def.Component;
+  const Comp = def.Widget;
   const labelText = t(def.meta.i18nKey) || widget.type;
   return (
     <div

@@ -5,8 +5,8 @@ import { sizeToSpan } from './engine/grid';
 import { lookupWidget, sizesForSurface } from './widgets/registry';
 import { SIZE_ICONS } from './widgets/common/SizeIcons';
 import { WidgetControlGroup } from './widgets/common/WidgetControlGroup';
-import { SlotCountIcon } from './widgets/performance/SlotCountIcons';
-import { slotCountOptionsForSize, resolvedSlotCountForSize } from './widgets/performance/perfSlots';
+import { SlotCountIcon } from './widgets/monitoring/SlotCountIcons';
+import { slotCountOptionsForSize, resolvedSlotCountForSize } from './widgets/monitoring/perfSlots';
 import { PanelWidgetCatalog } from './editor/PanelWidgetCatalog';
 import { PanelHostNameSetting } from './editor/PanelHostNameSetting';
 import { PanelThemeSettings, type ResolvedPanelThemeMode } from './editor/PanelThemeSettings';
@@ -103,7 +103,7 @@ export function PanelEditorSheet({
     : mode === 'settings' && editingWidget && def
     ? t(def.meta.i18nKey) || editingWidget.type
     : 'Add a widget';
-  const Settings = def?.SettingsComponent;
+  const Settings = def?.Settings;
   const isMonitoringWidget = editingWidget?.type === 'monitoring';
   const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface) : [];
   const slotCountOptions = editingWidget && isMonitoringWidget ? slotCountOptionsForSize(editingWidget.size) : [];

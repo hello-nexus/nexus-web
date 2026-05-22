@@ -87,7 +87,7 @@ export function WidgetPreviewCard({
   }, [innerW, innerH]);
 
   if (!def) return null;
-  const Comp = def.Component;
+  const Comp = def.Widget;
   const isMarketplace = isMarketplaceType(widgetType);
 
   const fakeWidget: PanelWidget = {

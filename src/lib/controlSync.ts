@@ -1,5 +1,5 @@
 import type { EffectState, LightingMode } from '../types/lighting';
-import type { CoolingPresetKey } from '../components/views/cooling/coolingPresets';
+import type { CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
 
 const CHANNEL_NAME = 'qos-control-sync';
 const WINDOW_EVENT = 'qos-control-sync';

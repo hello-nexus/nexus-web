@@ -3,12 +3,32 @@ import type { ComponentType, LazyExoticComponent } from 'react';
 import type { DashboardSectionNavigate } from '../panelLayoutHelpers';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
 
+// "App" is the conceptual unit — one per widget type. Each App has up
+// to four facets, three of them optional:
+//
+//   Widget   (required)  the tile that appears in the panel grid.
+//   Page     (optional)  the desktop SPA view that opens when the
+//                        user clicks the widget tile on the dashboard.
+//                        Apps with a Page are pinnable to the sidebar
+//                        and become clickable on the embedded panel.
+//   Touch    (optional)  the touch-friendly fullscreen presentation
+//                        shown on panel kiosks (Y70 / phone) when the
+//                        user enters fullscreen mode. Was called
+//                        "Immersive" — kept the menu copy, renamed
+//                        the field for clarity. Falls back to a
+//                        generic fullscreen Widget wrapper when
+//                        absent.
+//   Settings (optional)  the right-click edit sheet contents.
+//
+// The marketplace consumes this same shape (with a synthetic
+// AppManifest) so external apps register the same way as built-ins.
+
 export interface WidgetProps {
   widget: PanelWidget;
   surface?: PanelSurface;
   selectedSlot?: number;
   onSelectSlot?: (slot: number) => void;
-  // Provided by the immersive overlay so widgets can lay out their
+  // Provided by the touch overlay so widgets can lay out their
   // content into the same number of 4x4 cells per page as the panel
   // grid does. Undefined when rendered as a tile.
   immersiveGrid?: { columns: number; rows: number };
@@ -29,7 +49,15 @@ export interface WidgetSettingsProps {
   onSelectedSlotChange?: (slot: number) => void;
 }
 
-export interface WidgetMetadata {
+// Props passed to an App's desktop SPA Page. Each Page declares its
+// own bespoke prop shape (serviceOnline, serviceState, etc.) — the
+// manifest holds an opaque reference because rendering happens from
+// Dashboard.renderMyComputerView, which passes the right props per
+// case. The any-typing is intentional and gated to this slot.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AppPageComponent = ComponentType<any>;
+
+export interface AppMetadata {
   type: string;
   i18nKey: string;
   icon: LucideIcon;
@@ -40,6 +68,8 @@ export interface WidgetMetadata {
   // smallest sensible size from `sizes` is chosen (2x2, then 4x2, then 4x4).
   // Set explicitly for "detailed" widgets where 2x2 is too cramped.
   pickerSize?: PanelWidgetSize;
+  // Per-orientation flag for whether the touch fullscreen view is
+  // available. The menu entry is gated on (Touch != null) && this.
   supportsImmersive: { portrait: boolean; landscape: boolean };
   hasConfig: boolean;
   // Whether the widget *requires* a touch / pointer input modality. true
@@ -52,21 +82,27 @@ export interface WidgetMetadata {
 }
 
 // Initial sheet state derived from where the user invoked the edit flow.
-// Widgets that have sub-elements the user might want pre-selected (e.g.
+// Apps that have sub-elements the user might want pre-selected (e.g.
 // monitoring slots) implement `resolveInitialSelection` to translate a
 // viewport coordinate into the matching slot index.
 export interface WidgetEditInitialSelection {
   selectedSlot?: number;
 }
 
-export interface WidgetDef {
-  meta: WidgetMetadata;
-  Component: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
-  SettingsComponent?: ComponentType<WidgetSettingsProps> | LazyExoticComponent<ComponentType<WidgetSettingsProps>>;
-  // Optional fullscreen renderer surfaced via the widget context menu's
-  // "Immersive mode" entry. Only widgets that ship this AND that have
-  // `meta.supportsImmersive[currentOrientation]` true get the menu entry.
-  ImmersiveComponent?: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
+export interface AppManifest {
+  meta: AppMetadata;
+  // The widget tile — always present. Rendered in the panel grid.
+  Widget: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
+  // Optional desktop SPA "app page". Apps with a Page are
+  // automatically pinnable to the sidebar and become click-through
+  // on the dashboard panel.
+  Page?: AppPageComponent | LazyExoticComponent<AppPageComponent>;
+  // Optional touch-fullscreen view (was `ImmersiveComponent`). Only
+  // widgets that ship this AND that have `meta.supportsImmersive`
+  // true for the current orientation get the menu entry.
+  Touch?: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
+  // Optional right-click edit sheet contents.
+  Settings?: ComponentType<WidgetSettingsProps> | LazyExoticComponent<ComponentType<WidgetSettingsProps>>;
   // Translates the press / right-click coordinate that summoned the
   // context menu into initial edit-sheet state. Called only when the
   // edit flow has a captured point (context-menu and long-press paths);
