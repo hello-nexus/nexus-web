@@ -764,6 +764,8 @@
   "settings.windowsTray.label": "Mostra icona nell'area di notifica",
   "sidebar.collapse": "Comprimi barra laterale",
   "sidebar.expand": "Espandi barra laterale",
+  "sidebar.pin": "Pin to Sidebar",
+  "sidebar.unpin": "Unpin from sidebar",
   "status.checking": "Ricerca del servizio...",
   "status.launch": "Avvia",
   "status.launching": "Avvio in corso...",

@@ -764,6 +764,8 @@
   "settings.windowsTray.label": "Show icon in tray",
   "sidebar.collapse": "Collapse sidebar",
   "sidebar.expand": "Expand sidebar",
+  "sidebar.pin": "Pin to Sidebar",
+  "sidebar.unpin": "Unpin from sidebar",
   "status.checking": "Looking for service...",
   "status.launch": "Launch",
   "status.launching": "Launching...",

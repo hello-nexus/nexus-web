@@ -764,6 +764,8 @@
   "settings.windowsTray.label": "Mostrar ícono en la bandeja",
   "sidebar.collapse": "Contraer barra lateral",
   "sidebar.expand": "Expandir barra lateral",
+  "sidebar.pin": "Pin to Sidebar",
+  "sidebar.unpin": "Unpin from sidebar",
   "status.checking": "Buscando el servicio...",
   "status.launch": "Iniciar",
   "status.launching": "Iniciando...",

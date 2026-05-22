@@ -764,6 +764,8 @@
   "settings.windowsTray.label": "在托盘中显示图标",
   "sidebar.collapse": "折叠侧边栏",
   "sidebar.expand": "展开侧边栏",
+  "sidebar.pin": "Pin to Sidebar",
+  "sidebar.unpin": "Unpin from sidebar",
   "status.checking": "正在查找服务...",
   "status.launch": "启动",
   "status.launching": "正在启动...",

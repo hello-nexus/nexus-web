@@ -38,6 +38,11 @@ import { createOverlayWidget } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { useMultiplex, useTopic } from '../hooks/useMultiplexSocket';
 import { useServiceStatus } from '../hooks/useServiceStatus';
+import { useUiSettings } from '../hooks/useUiSettings';
+import {
+  isPinnableAppKey,
+  sanitizePinnedTail,
+} from '../app/sidebarApps';
 import { PanelOfflineOverlay } from './PanelOfflineOverlay';
 import { isInsecureBrowserPanel } from './PanelInsecureBanner';
 import { useTranslation } from '../lib/i18n';
@@ -240,6 +245,13 @@ export function PanelContent({
   const nativeSettings = useNativeSettingsBridge(kioskBehavior && surface === 'phone');
   const serviceStatus = useServiceStatus(kioskBehavior);
   const multiplex = useMultiplex();
+  // The widget context menu's "Pin to Sidebar" entry needs to know the
+  // current pinned-tail to gate the action (only pinnable types that
+  // aren't already pinned). Always inside a UiSettingsProvider because
+  // every PanelContent mount point (kiosk, embedded, simulator) wraps
+  // one — see PanelEntrypoint / Dashboard.
+  const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
+  const pinnedTail = sanitizePinnedTail(uiSettings.pinnedSidebarApps);
   const isOffline = kioskBehavior && (serviceStatus.state === 'offline' || serviceStatus.state === 'offline-installed');
   const rootRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -1402,6 +1414,14 @@ export function PanelContent({
         const desktopPinAvailable = embedded
           && surface === 'desktop'
           && def.meta.supportedSurfaces.includes('desktop');
+        // "Pin to Sidebar" is desktop-only and is only meaningful for
+        // widget types whose SPA view exists (PINNABLE_APP_KEYS). Hidden
+        // when the widget type is already in the user's tail.
+        const pinnableKey = isPinnableAppKey(ctxWidget.type) ? ctxWidget.type : null;
+        const sidebarPinAvailable = embedded
+          && surface === 'desktop'
+          && pinnableKey !== null
+          && !pinnedTail.includes(pinnableKey);
         return (
           <WidgetContextMenu
             x={ctxPoint.x}
@@ -1423,6 +1443,11 @@ export function PanelContent({
                 type: ctxWidget.type,
                 size: ctxWidget.size,
                 config: ctxWidget.config,
+              });
+            } : undefined}
+            onPinToSidebar={sidebarPinAvailable && pinnableKey ? () => {
+              updateUiSettings({
+                pinnedSidebarApps: [...pinnedTail, pinnableKey],
               });
             } : undefined}
             onClose={touch.closeCtxMenu}

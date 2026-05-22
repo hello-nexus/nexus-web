@@ -764,6 +764,8 @@
   "settings.windowsTray.label": "Simgeyi tepside goster",
   "sidebar.collapse": "Kenar cubugunu daralt",
   "sidebar.expand": "Kenar cubugunu genislet",
+  "sidebar.pin": "Pin to Sidebar",
+  "sidebar.unpin": "Unpin from sidebar",
   "status.checking": "Servis araniyor...",
   "status.launch": "Baslat",
   "status.launching": "Başlatılıyor...",

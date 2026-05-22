@@ -764,6 +764,8 @@
   "settings.windowsTray.label": "Symbol im Infobereich anzeigen",
   "sidebar.collapse": "Seitenleiste einklappen",
   "sidebar.expand": "Seitenleiste ausklappen",
+  "sidebar.pin": "Pin to Sidebar",
+  "sidebar.unpin": "Unpin from sidebar",
   "status.checking": "Dienst wird gesucht...",
   "status.launch": "Starten",
   "status.launching": "Wird gestartet...",

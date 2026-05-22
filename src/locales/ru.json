@@ -764,6 +764,8 @@
   "settings.windowsTray.label": "Показывать значок в трее",
   "sidebar.collapse": "Свернуть боковую панель",
   "sidebar.expand": "Развернуть боковую панель",
+  "sidebar.pin": "Pin to Sidebar",
+  "sidebar.unpin": "Unpin from sidebar",
   "status.checking": "Поиск сервиса...",
   "status.launch": "Запуск",
   "status.launching": "Запуск...",

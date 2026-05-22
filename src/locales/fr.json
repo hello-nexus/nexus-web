@@ -764,6 +764,8 @@
   "settings.windowsTray.label": "Afficher l’icône dans la zone de notification",
   "sidebar.collapse": "Réduire la barre latérale",
   "sidebar.expand": "Développer la barre latérale",
+  "sidebar.pin": "Pin to Sidebar",
+  "sidebar.unpin": "Unpin from sidebar",
   "status.checking": "Recherche du service...",
   "status.launch": "Lancer",
   "status.launching": "Lancement...",

@@ -764,6 +764,8 @@
   "settings.windowsTray.label": "トレイにアイコンを表示",
   "sidebar.collapse": "サイドバーを折りたたむ",
   "sidebar.expand": "サイドバーを展開",
+  "sidebar.pin": "Pin to Sidebar",
+  "sidebar.unpin": "Unpin from sidebar",
   "status.checking": "サービスを検索中...",
   "status.launch": "起動",
   "status.launching": "起動中...",

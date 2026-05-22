@@ -764,6 +764,8 @@
   "settings.windowsTray.label": "Pokaz ikone w zasobniku",
   "sidebar.collapse": "Zwin pasek boczny",
   "sidebar.expand": "Rozwin pasek boczny",
+  "sidebar.pin": "Pin to Sidebar",
+  "sidebar.unpin": "Unpin from sidebar",
   "status.checking": "Szukam uslugi...",
   "status.launch": "Uruchom",
   "status.launching": "Uruchamianie...",

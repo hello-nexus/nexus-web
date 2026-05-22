@@ -1,5 +1,6 @@
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import classNames from 'classnames';
+import { PinOff } from 'lucide-react';
 import { Sidebar } from '../components/common/Sidebar/Sidebar';
 import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDropdown';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
@@ -16,6 +17,7 @@ import {
   SidebarConflictSlot,
 } from './sidebar';
 import { PairPhoneButton } from './PairPhoneModal';
+import { SidebarContextMenu } from './SidebarContextMenu';
 import {
   DASHBOARD_APP_KEY,
   SIDEBAR_APP_META,
@@ -93,6 +95,19 @@ export function SidebarColumn({
     update({ pinnedSidebarApps: nextTailKeys });
   };
 
+  // Right-click context menu state. Held here so the menu portal can
+  // dismiss cleanly on outside click without each row tracking its own
+  // open state. Dashboard right-clicks are swallowed by the row but never
+  // open a menu — there's nothing pinnable to act on for the locked head.
+  const [ctxMenu, setCtxMenu] = useState<{ key: string; x: number; y: number } | null>(null);
+  const handleItemContextMenu = (key: string, event: React.MouseEvent) => {
+    if (key === DASHBOARD_APP_KEY) return;
+    setCtxMenu({ key, x: event.clientX, y: event.clientY });
+  };
+  const handleUnpin = (key: string) => {
+    update({ pinnedSidebarApps: tail.filter(k => k !== key) });
+  };
+
   return (
     <div className={classNames(styles.sidebarColumn, { [styles.sidebarCompact]: compact })}>
       <SidebarBrand
@@ -109,6 +124,7 @@ export function SidebarColumn({
         serviceState={serviceState}
         lockedHeadKey={DASHBOARD_APP_KEY}
         onTailReorder={handleTailReorder}
+        onItemContextMenu={handleItemContextMenu}
         headerSlot={
           <div className={classNames(styles.sidebarHeaderBox, { [styles.sidebarHeaderBoxCompact]: compact })}>
             {online ? (
@@ -147,6 +163,22 @@ export function SidebarColumn({
           aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')}
         />
       </HoverTooltip>
+      {ctxMenu && (
+        <SidebarContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          items={[
+            {
+              key: 'unpin',
+              label: t('sidebar.unpin'),
+              icon: <PinOff size={14} />,
+              danger: true,
+              onSelect: () => handleUnpin(ctxMenu.key),
+            },
+          ]}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
     </div>
   );
 }

@@ -26,6 +26,10 @@ interface WidgetContextMenuProps {
   // and we're invoked from the dashboard (not from a remote panel preview).
   // Pins a copy of the widget onto the floating desktop overlay.
   onAddToDesktop?: () => void;
+  // Optional — only shown when the widget is one of the pinnable desktop
+  // apps (matches PINNABLE_APP_KEYS in app/sidebarApps) AND isn't already
+  // pinned. Pins this widget's "app page" onto the desktop sidebar.
+  onPinToSidebar?: () => void;
   // Override for the danger button label. Defaults to "Remove"; the desktop
   // overlay passes "Unpin" since the widget is being detached from the
   // overlay rather than removed from the panel layout.
@@ -53,7 +57,7 @@ export function WidgetContextMenu({
   themeMode = 'dark',
   themeStyle,
   isRearranging,
-  onResize, onEdit, onRemove, onRearrange, onImmersive, onAddToDesktop, onClose,
+  onResize, onEdit, onRemove, onRearrange, onImmersive, onAddToDesktop, onPinToSidebar, onClose,
   removeLabel,
   alwaysOnTop,
   onToggleAlwaysOnTop,
@@ -204,6 +208,13 @@ export function WidgetContextMenu({
         <button type="button" className={styles.item} onClick={() => runAndClose(onAddToDesktop)}>
           <Monitor size={14} />
           <span>Add to desktop</span>
+        </button>
+      )}
+
+      {onPinToSidebar && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onPinToSidebar)}>
+          <Pin size={14} />
+          <span>Pin to Sidebar</span>
         </button>
       )}
 

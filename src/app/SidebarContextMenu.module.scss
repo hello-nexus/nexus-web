@@ -1,0 +1,74 @@
+// Lightweight right-click menu rendered at the cursor for the sidebar
+// pinned-apps list. Visually mirrors WidgetContextMenu so the desktop chrome
+// reads as one consistent treatment, but contains no size-grid or theme
+// handling — just a flat list of single-line actions.
+
+.menu {
+  position: fixed;
+  z-index: var(--z-popover);
+  min-width: 11rem;
+  padding: 0.25rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  transform-origin: var(--menu-origin-x, 12px) var(--menu-origin-y, 12px);
+  animation: menuIn var(--ease-fast) both;
+
+  &[data-state='closing'] {
+    animation: menuOut var(--ease-fast) both;
+    pointer-events: none;
+  }
+}
+
+@keyframes menuIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes menuOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.6rem;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--type-small);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+
+  &:disabled {
+    color: var(--text-faded);
+    cursor: default;
+    background: transparent;
+  }
+}
+
+.itemDanger {
+  color: var(--bad);
+
+  &:hover {
+    background: color-mix(in srgb, var(--bad) 12%, transparent);
+  }
+}
+
+.itemIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: currentColor;
+}

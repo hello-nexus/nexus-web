@@ -764,6 +764,8 @@
   "settings.windowsTray.label": "트레이에 아이콘 표시",
   "sidebar.collapse": "사이드바 접기",
   "sidebar.expand": "사이드바 펼치기",
+  "sidebar.pin": "Pin to Sidebar",
+  "sidebar.unpin": "Unpin from sidebar",
   "status.checking": "서비스를 찾는 중...",
   "status.launch": "실행",
   "status.launching": "시작 중...",
