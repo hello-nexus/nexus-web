@@ -19,10 +19,8 @@
   min-height: 0;
 }
 
-// Map slot: capped so a tall window doesn't blow the projection up
-// past readability. Equirectangular natural aspect is 2:1 so we honor
-// that, then clamp the width via max-width so the map can't dominate
-// the whole view on ultrawide displays.
+// Map sits in a capped-height slot so a tall window doesn't blow the
+// projection up past readability.
 .mapSlot {
   flex: 0 0 auto;
   width: 100%;
@@ -31,90 +29,7 @@
   justify-content: center;
 }
 
-.citiesPanel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.citiesHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 0.25rem;
-  flex: 0 0 auto;
-}
-
-.sectionLabel {
-  font-size: var(--type-small);
-  font-weight: var(--weight-heading);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-faded);
-}
-
-.addCityBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  appearance: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  color: var(--text);
-  padding: 0.35rem 0.7rem;
-  font-size: var(--type-small);
-  cursor: pointer;
-  transition: background var(--ease-fast);
-
-  &:hover { background: var(--bg-card-hover); }
-}
-
-.cityPicker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 0.75rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  flex: 0 0 auto;
-  max-height: 50%;
-  overflow-y: auto;
-}
-
-.cityPickerEmpty {
-  font-size: var(--type-small);
-  color: var(--text-faded);
-  padding: 0.25rem 0.5rem;
-}
-
-.cityChip {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  appearance: none;
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text);
-  padding: 0.35rem 0.65rem;
-  border-radius: 999px;
-  font-size: var(--type-small);
-  cursor: pointer;
-  transition: background var(--ease-fast), border-color var(--ease-fast);
-
-  &:hover {
-    background: var(--bg-card-hover);
-    border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
-  }
-}
-
-.cityChipName { font-weight: var(--weight-heading); }
-.cityChipCountry { color: var(--text-faded); font-size: 11px; }
-
-// City list scrolls independently — map and header stay fixed above.
+// City list scrolls independently — map stays fixed above.
 .cityList {
   display: flex;
   flex-direction: column;
@@ -122,26 +37,13 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  // Inset so a thin scrollbar doesn't crowd the cards' right edge.
   padding-right: 0.25rem;
 }
 
-.cityListEmpty {
-  text-align: center;
-  padding: 1.5rem;
-  color: var(--text-faded);
-  font-size: var(--type-small);
-}
-
-// ── City Card customisation ───────────────────────────────────────────
-// The cards themselves come from the canonical Card component; we tint
-// the background to read "day vs night vs local" without re-implementing
-// the chrome (border, padding, radius, hover).
+// City cards use the canonical Card component for chrome; this just
+// layers the day / night / local accents on top.
 
 .cityCard {
-  // Tighten the canonical card's vertical padding so a long city list
-  // doesn't push the user into a sea of whitespace. Same horizontal
-  // padding so they line up with everything else card-shaped.
   padding-top: 0.6rem;
   padding-bottom: 0.6rem;
 }
@@ -184,30 +86,8 @@
   padding: 0.1rem 0.45rem;
 }
 
-.cityCardActions {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
 .cityCardTime {
   font-size: var(--type-body);
   color: var(--text);
   font-variant-numeric: tabular-nums;
-}
-
-.cityCardRemove {
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: var(--text-faded);
-  padding: 0.3rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background var(--ease-fast), color var(--ease-fast);
-
-  &:hover {
-    background: var(--bg-card-hover);
-    color: var(--bad);
-  }
 }

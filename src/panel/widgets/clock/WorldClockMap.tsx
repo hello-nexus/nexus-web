@@ -115,7 +115,7 @@ export function WorldClockMap({ now, cities, highlightTz }: WorldClockMapProps) 
           const textAnchor = anchorRight ? 'end' : 'start';
           const label = formatLocalTime(now, city.tz);
           return (
-            <g key={city.id}>
+            <g key={city.tz}>
               {isLocal && (
                 <circle
                   cx={city.lon}
