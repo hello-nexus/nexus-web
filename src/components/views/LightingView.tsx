@@ -56,6 +56,15 @@ interface LightingViewProps {
 
 const DEFAULT_POST_PROCESS: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
 
+const RIGHT_PANE_TAB_KEY = 'lighting.rightPaneTab';
+function loadRightPaneTab(): RightPaneTab {
+  try {
+    const v = localStorage.getItem(RIGHT_PANE_TAB_KEY);
+    if (v === 'devices' || v === 'effect') return v;
+  } catch {}
+  return 'effect';
+}
+
 export function LightingView({ serviceOnline, serviceState, connectionState, activeProfileId }: LightingViewProps) {
   const { t } = useTranslation();
   const { mode, setMode, rawSync, setRawSync, synced } = useLightingSync(serviceOnline, activeProfileId);
@@ -85,12 +94,24 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   // Canvas hides the rectangle for any device whose LEDs are turned off, so
   // "off" reads visually the same as "no frame on canvas" without a separate
-  // hide/show frame toggle.
+  // hide/show frame toggle. Device frames are also hidden entirely when the
+  // right pane is showing the Effect tab - frames are a Devices-tab concern.
+  // Right-pane tab: 'effect' holds the post-process controls for animate /
+  // media / screen; 'devices' is the rescan + zone cards. Persisted across
+  // remounts so returning to the page restores the last selection.
+  const [activeRightTab, setActiveRightTab] = useState<RightPaneTab>(loadRightPaneTab);
+  useEffect(() => {
+    try { localStorage.setItem(RIGHT_PANE_TAB_KEY, activeRightTab); } catch {}
+  }, [activeRightTab]);
   const hiddenFrameIds = useMemo(() => {
     const set = new Set<string>();
+    if (activeRightTab === 'effect') {
+      for (const d of devices) set.add(d.id);
+      return set;
+    }
     for (const d of devices) if (!d.ledsOn) set.add(d.id);
     return set;
-  }, [devices]);
+  }, [devices, activeRightTab]);
 
   // LED map editor - lifted here so both the canvas settings button and the
   // ZoneCard settings button can open it.
@@ -114,9 +135,6 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
   const [musicReactive, setMusicReactiveState] = useState(false);
   const audioRef = useAudioState(musicReactive && mode === 'animate');
 
-  // Right-pane tab: 'devices' is the rescan + zone cards; 'effect' holds
-  // the post-process controls for animate / media / screen.
-  const [activeRightTab, setActiveRightTab] = useState<RightPaneTab>('devices');
   const [effectPulseKey, setEffectPulseKey] = useState(0);
 
   // Screen + Media share an identical post-process shape (hue, colorize,
