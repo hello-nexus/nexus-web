@@ -41,15 +41,16 @@
 // child is itself, so there's nothing here for clicks to fall through to.
 .windowDragStrip {
   position: absolute;
-  top: 0;
+  // Start 8px below the top edge so the top resize strip wins those
+  // 8 pixels. WebView2 processes `app-region: drag` ahead of DOM
+  // z-index, so a higher-z resize strip can't override the drag
+  // claim — the two regions have to be physically disjoint.
+  top: 8px;
   left: 200px; // right of the (expanded) sidebar - keep in lockstep with .sidebarColumn width
   right: 138px; // left of the 3x46px caption buttons
-  height: 32px;
+  height: 24px; // 32px title bar minus the 8px resize band on top
   // Above the modal backdrop (z-index 1000) so the title bar stays
-  // draggable while a modal is open. Drag strip occupies the center
-  // top 32px where modal content is benign (title text only) — the
-  // close button lives in the modal's top-right, outside this band
-  // (which already excludes the rightmost 138px for caption buttons).
+  // draggable while a modal is open.
   z-index: 2000;
   -webkit-app-region: drag;
   app-region: drag;
@@ -463,11 +464,18 @@
 // buttons (138px wide) hug right:0, so we offset the debug button by 12px
 // past them. On other platforms there are no caption buttons; the debug
 // button takes the corner instead.
+//
+// z-index 2010 sits ABOVE every piece of window chrome (drag strip 2000,
+// resize edges 2004, resize corners 2005, caption buttons 2003) so the
+// button intercepts hovers + clicks first. Without this the drag strip
+// (which extends right up to right:138) covers the debug button entirely
+// when the layout is in Windows-app shell mode — the button visually
+// renders but clicks fall through to drag-window.
 .topRightDebug {
   position: absolute;
   top: 4px;
   right: 12px;
-  z-index: 50;
+  z-index: 2010;
   // Interactive control inside a layout root that may carry app-region: drag.
   -webkit-app-region: no-drag;
   app-region: no-drag;
