@@ -1,6 +1,6 @@
 import {
-  createContext, useCallback, useContext, useMemo, useState,
-  type ReactNode,
+  createContext, useCallback, useContext, useMemo, useRef, useState,
+  type MutableRefObject, type ReactNode,
 } from 'react';
 
 /**
@@ -26,17 +26,28 @@ export interface CrossZoneDragValue {
    */
   draggingPinnableType: string | null;
   setDraggingPinnableType: (type: string | null) => void;
+  /**
+   * Ref to a drop-commit callback registered by the sidebar's drop target.
+   * Invoked by the panel's onDragEnd BEFORE clearing the drag state — this
+   * sidesteps a React 19 timing bug where the sidebar would unmount (and
+   * its document pointerup listener detach) inside dnd-kit's onDragEnd
+   * synchronous flush, before the native pointerup reached other document
+   * listeners. The handler reads the latest insertion index (continuously
+   * updated by pointermove during the drag) and pins if non-null.
+   */
+  dropHandlerRef: MutableRefObject<(() => void) | null>;
 }
 
 const CrossZoneDragContext = createContext<CrossZoneDragValue | null>(null);
 
 export function CrossZoneDragProvider({ children }: { children: ReactNode }) {
   const [draggingPinnableType, setDraggingPinnableType] = useState<string | null>(null);
+  const dropHandlerRef = useRef<(() => void) | null>(null);
   const setter = useCallback((type: string | null) => {
     setDraggingPinnableType(type);
   }, []);
   const value = useMemo<CrossZoneDragValue>(
-    () => ({ draggingPinnableType, setDraggingPinnableType: setter }),
+    () => ({ draggingPinnableType, setDraggingPinnableType: setter, dropHandlerRef }),
     [draggingPinnableType, setter],
   );
   return (
@@ -54,8 +65,13 @@ export function CrossZoneDragProvider({ children }: { children: ReactNode }) {
 export function useCrossZoneDrag(): CrossZoneDragValue {
   const ctx = useContext(CrossZoneDragContext);
   if (ctx) return ctx;
-  return {
-    draggingPinnableType: null,
-    setDraggingPinnableType: () => { /* no provider — drag-to-pin disabled */ },
-  };
+  // Stable shim ref so callers can safely mutate .current — the kiosk has
+  // no sidebar to pin to, so any writes here are no-ops by design.
+  return SHIM_VALUE;
 }
+
+const SHIM_VALUE: CrossZoneDragValue = {
+  draggingPinnableType: null,
+  setDraggingPinnableType: () => { /* no provider — drag-to-pin disabled */ },
+  dropHandlerRef: { current: null },
+};

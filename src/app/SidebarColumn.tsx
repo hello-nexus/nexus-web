@@ -222,6 +222,12 @@ function SidebarPinDropTarget({ onDrop }: SidebarPinDropTargetProps) {
   const onDropRef = useRef(onDrop);
   useEffect(() => { onDropRef.current = onDrop; }, [onDrop]);
 
+  // The panel's onDragEnd invokes this ref BEFORE clearing the drag
+  // state, so we can pin even when React 19 flushes the unmount
+  // synchronously inside dnd-kit's drag-end handler (which detaches our
+  // pointerup listener before the native event reaches it).
+  const { dropHandlerRef } = useCrossZoneDrag();
+
   useEffect(() => {
     const tailEl = document.querySelector<HTMLElement>('[data-sidebar-tail-scroll]');
     if (!tailEl) return;
@@ -267,20 +273,24 @@ function SidebarPinDropTarget({ onDrop }: SidebarPinDropTargetProps) {
       });
     };
 
-    const handleUp = () => {
+    // Register a synchronous drop committer the panel will invoke from
+    // its onDragEnd, BEFORE the drag-state cleanup unmounts us. Reads
+    // the latest insertion index that pointermove has been updating.
+    // The native pointerup listener path is unreliable under React 19 —
+    // setDraggingPinnableType(null) inside dnd-kit's onDragEnd flushes
+    // synchronously, unmounting this component and detaching its
+    // pointerup listener before the native event reaches it.
+    dropHandlerRef.current = () => {
       const idx = insertionIndexRef.current;
       if (idx !== null) onDropRef.current(idx);
-      insertionIndexRef.current = null;
-      setPosition(null);
     };
 
     document.addEventListener('pointermove', handleMove);
-    document.addEventListener('pointerup', handleUp);
     return () => {
+      dropHandlerRef.current = null;
       document.removeEventListener('pointermove', handleMove);
-      document.removeEventListener('pointerup', handleUp);
     };
-  }, []);
+  }, [dropHandlerRef]);
 
   if (!position) return null;
   return (

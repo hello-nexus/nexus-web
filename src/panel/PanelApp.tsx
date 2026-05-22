@@ -257,7 +257,7 @@ export function PanelContent({
   // only publish for pinnable types AND only on the embedded desktop
   // surface; everywhere else the value stays null and the sidebar's
   // pointer tracking never engages. See app/CrossZoneDrag.tsx.
-  const { setDraggingPinnableType } = useCrossZoneDrag();
+  const { setDraggingPinnableType, dropHandlerRef: sidebarDropHandlerRef } = useCrossZoneDrag();
   const isOffline = kioskBehavior && (serviceStatus.state === 'offline' || serviceStatus.state === 'offline-installed');
   const rootRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -1232,6 +1232,13 @@ export function PanelContent({
         // phantom page mid-flight and previewDrag could not resolve
         // the new-page id.
         const layoutForDrop = dragLayout;
+        // Invoke the sidebar's drop committer BEFORE clearing the
+        // drag state. React 19 flushes setDraggingPinnableType(null)
+        // synchronously inside this event handler, which unmounts
+        // SidebarPinDropTarget and detaches its document pointerup
+        // listener before pointerup propagates to it. So we commit the
+        // pin imperatively here while the sidebar's state is still live.
+        sidebarDropHandlerRef.current?.();
         currentOverIdRef.current = null;
         setActiveDragId(null);
         setDragArmedId(null);
