@@ -32,6 +32,16 @@
   max-height: none;
 }
 
+// Inside the Qos Windows shell, the top 32px of the window is occupied by
+// the custom caption strip (min/max/close + drag region, z-index 2003).
+// Push the fullscreen modal down so its header — and the X button inside —
+// clears the caption row instead of disappearing behind it.
+:global(body.qos-shell-windows-app) .modalFullscreen {
+  align-self: flex-start;
+  margin-top: 8px;
+  height: calc(100vh - 3rem - 8px);
+}
+
 .bodyWide {
   flex-direction: row;
   gap: 1.5rem;
@@ -94,34 +104,6 @@
   transition: background var(--ease);
 
   &:hover { background: var(--bg-card-hover); }
-}
-
-// Floating-close-button variant used by fullscreen modals. Portaled to
-// <body> with its own root-level stacking so it wins the hit-test over
-// the Windows-shell caption buttons (z-index 2003) and drag strip
-// (z-index 2000). Sits on the same 32px baseline as the caption buttons
-// (top:0, height:32px) and immediately left of the 138px caption gutter
-// with an 8px breathing gap. Square 32x32 to match the standard .closeBtn
-// dimensions; rendered borderless / flat so it reads as a sibling of the
-// Win11 caption row rather than a chrome island.
-.closeBtnFloating {
-  position: fixed;
-  top: 0;
-  right: calc(138px + 8px);
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: var(--radius);
-  background: none;
-  color: var(--text-dim);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background var(--ease);
-  z-index: var(--z-fullscreen);
-
-  &:hover { background: var(--bg-card-hover); color: var(--text); }
 }
 
 .body {

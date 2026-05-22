@@ -269,12 +269,16 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
   // Simulator badge: the dashboard page is identical for real hardware
   // and the LCD debug simulator (same controls, same data set), so the
   // only outward difference is a "(Simulator)" suffix on the modal title
-  // when no physical device is attached. The user explicitly asked for
-  // this on Q-series so they can tell at a glance whether the page is
-  // driving real hardware or the simulator.
+  // when no physical device is attached. Skip the suffix when the
+  // device's display name already conveys it — Y70's simulated label
+  // (devices.panels.simulatedY70Name) bakes the localized "(Simulated)"
+  // straight into the name, so we'd double up. Compare against the
+  // translated value so this works regardless of locale (the Latin
+  // substring "simulat" is absent from ja / zh / ko / ru / pl / tr).
   const isSimulated = device?.connectionKind === 'simulated';
   const baseTitle = device?.name ?? t('devices.y70.title');
-  const modalTitle = isSimulated ? `${baseTitle} (Simulator)` : baseTitle;
+  const nameAlreadyMarksSimulated = baseTitle === t('devices.panels.simulatedY70Name');
+  const modalTitle = isSimulated && !nameAlreadyMarksSimulated ? `${baseTitle} (Simulator)` : baseTitle;
 
   return (
     <DeviceModal
