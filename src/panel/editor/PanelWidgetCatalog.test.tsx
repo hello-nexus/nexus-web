@@ -8,36 +8,32 @@ vi.mock('../../lib/i18n', () => ({
 }));
 
 interface MockMeta {
-  supportedSurfaces: PanelSurface[];
   i18nKey: string;
   sizes: string[];
-  touch: 'touch-only' | 'any';
+  touch: boolean;
 }
 
 vi.mock('../widgets/registry', () => {
   const REGISTRY: Record<string, { meta: MockMeta }> = {
     clock: {
       meta: {
-        supportedSurfaces: ['phone', 'y70', 'q60'],
         i18nKey: 'panel.widget.clock',
         sizes: ['2x2'],
-        touch: 'any',
+        touch: false,
       },
     },
     snake: {
       meta: {
-        supportedSurfaces: ['phone', 'y70'],
         i18nKey: 'panel.widget.snake',
         sizes: ['4x4'],
-        touch: 'touch-only',
+        touch: true,
       },
     },
     media: {
       meta: {
-        supportedSurfaces: ['phone', 'y70', 'q60'],
         i18nKey: 'panel.widget.media',
         sizes: ['2x2'],
-        touch: 'any',
+        touch: false,
       },
     },
   };
@@ -49,8 +45,9 @@ vi.mock('../widgets/registry', () => {
     getCatalogEntries: () => Object.entries(REGISTRY),
     pickerSizeFor: () => '2x2',
     widgetAvailableForSurface: (meta: MockMeta, surface: PanelSurface) => {
-      if (!meta.supportedSurfaces.includes(surface)) return false;
-      if (meta.touch === 'touch-only' && surface === 'q60') return false;
+      // Mirror the runtime rule: touch-required widgets are hidden on the
+      // no-touch q60 surface; everything else is available.
+      if (meta.touch && surface === 'q60') return false;
       return true;
     },
   };

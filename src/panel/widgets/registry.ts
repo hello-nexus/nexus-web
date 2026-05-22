@@ -65,12 +65,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'clock',
       i18nKey: 'panel.widget.clock',
       icon: Clock,
-      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
       sizes: ['2x2', '2x4', '4x2', '4x4'],
       defaultSize: '4x2',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: true,
-      touch: 'any',
+      touch: false,
     },
     Component: ClockWidget,
     SettingsComponent: ClockSettings,
@@ -81,13 +80,12 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'monitoring',
       i18nKey: 'panel.widget.monitoring',
       icon: Activity,
-      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
       sizes: ['2x2', '2x4', '4x2', '4x4'],
       defaultSize: '4x4',
       pickerSize: '4x2',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: true,
-      touch: 'any',
+      touch: false,
     },
     Component: PerformanceWidget,
     SettingsComponent: PerformanceSettings,
@@ -121,12 +119,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'media',
       i18nKey: 'panel.widget.media',
       icon: Music,
-      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
       sizes: ['2x2', '2x4', '4x2'],
       defaultSize: '4x2',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: true,
-      touch: 'any',
+      touch: false,
     },
     Component: MediaWidget,
     ImmersiveComponent: MediaImmersive,
@@ -136,12 +133,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'screentime',
       i18nKey: 'panel.widget.screentime',
       icon: BarChart,
-      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
       sizes: ['2x2', '2x4', '4x2', '4x4'],
       defaultSize: '4x2',
       supportsImmersive: { portrait: true, landscape: false },
       hasConfig: true,
-      touch: 'any',
+      touch: false,
     },
     Component: ScreentimeWidget,
   },
@@ -150,12 +146,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'lighting',
       i18nKey: 'panel.widget.lighting',
       icon: Lightbulb,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
       sizes: ['2x2', '4x2', '4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: false,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: LightingWidget,
     ImmersiveComponent: LightingImmersive,
@@ -165,12 +160,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'obs',
       i18nKey: 'panel.widget.obs',
       icon: RadioTower,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
       sizes: ['2x2', '4x2', '4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: true,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: ObsWidget,
     SettingsComponent: ObsSettings,
@@ -180,12 +174,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'steam',
       i18nKey: 'panel.widget.steam',
       icon: Gamepad2,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
       sizes: ['4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: true,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: SteamWidget,
     SettingsComponent: SteamSettings,
@@ -195,12 +188,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'discord',
       i18nKey: 'panel.widget.discord',
       icon: MessageCircle,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
       sizes: ['4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: true,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: DiscordWidget,
     SettingsComponent: DiscordSettings,
@@ -210,12 +202,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'cooling',
       i18nKey: 'panel.widget.cooling',
       icon: Fan,
-      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
       sizes: ['2x2', '2x4', '4x2', '4x4'],
       defaultSize: '2x2',
       supportsImmersive: { portrait: true, landscape: false },
       hasConfig: false,
-      touch: 'any',
+      touch: false,
     },
     Component: CoolingWidget,
   },
@@ -224,7 +215,6 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'devices',
       i18nKey: 'panel.widget.devices',
       icon: Usb,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
       sizes: ['2x2', '2x4', '4x2', '4x4'],
       defaultSize: '2x2',
       supportsImmersive: { portrait: false, landscape: false },
@@ -232,7 +222,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       // Pager arrows + per-device tap-through controls — needs touch to
       // page between devices and configure them. Display-only surfaces
       // (q60) get this excluded by the widgetAvailableForSurface gate.
-      touch: 'touch-only',
+      touch: true,
     },
     Component: DevicesWidget,
   },
@@ -241,7 +231,6 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'displays',
       i18nKey: 'panel.widget.displays',
       icon: Monitor,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
       sizes: ['2x2', '4x2'],
       defaultSize: '4x2',
       supportsImmersive: { portrait: true, landscape: true },
@@ -249,7 +238,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       // Pointer-driven sliders (brightness, contrast) make this widget
       // touch-only — there's no read-only path. Display-only surfaces
       // (q60) get this excluded by the widgetAvailableForSurface gate.
-      touch: 'touch-only',
+      touch: true,
     },
     Component: DisplaysWidget,
   },
@@ -258,12 +247,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'timer',
       i18nKey: 'panel.widget.timer',
       icon: Hourglass,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
       sizes: ['2x2', '4x2'],
       defaultSize: '2x2',
       supportsImmersive: { portrait: false, landscape: false },
       hasConfig: false,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: TimerWidget,
   },
@@ -272,12 +260,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'stopwatch',
       i18nKey: 'panel.widget.stopwatch',
       icon: Watch,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
       sizes: ['2x2', '4x2'],
       defaultSize: '2x2',
       supportsImmersive: { portrait: false, landscape: false },
       hasConfig: false,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: StopwatchWidget,
   },
@@ -286,12 +273,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'calculator',
       i18nKey: 'panel.widget.calculator',
       icon: Calculator,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
       sizes: ['4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: false, landscape: false },
       hasConfig: false,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: CalculatorWidget,
   },
@@ -300,12 +286,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'iframe',
       i18nKey: 'panel.widget.iframe',
       icon: Globe,
-      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
       sizes: ['2x2', '2x4', '4x2', '4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: true,
-      touch: 'any',
+      touch: false,
     },
     Component: IFrameWidget,
     SettingsComponent: IFrameSettings,
@@ -315,12 +300,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'twitch',
       i18nKey: 'panel.widget.twitch',
       icon: Tv,
-      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
       sizes: ['2x4', '4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: true,
-      touch: 'any',
+      touch: false,
     },
     Component: TwitchChatWidget,
     SettingsComponent: TwitchSettings,
@@ -330,12 +314,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'macros',
       i18nKey: 'panel.widget.macros',
       icon: Zap,
-      supportedSurfaces: ['y70', 'phone', 'desktop'],
       sizes: ['1x1'],
       defaultSize: '1x1',
       supportsImmersive: { portrait: false, landscape: false },
       hasConfig: true,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: MacrosWidget,
     SettingsComponent: MacrosSettings,
@@ -345,12 +328,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'snake',
       i18nKey: 'panel.widget.snake',
       icon: Gamepad2,
-      supportedSurfaces: ['y70', 'phone'],
       sizes: ['1x1', '4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: false },
       hasConfig: false,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: SnakeWidget,
   },
@@ -359,12 +341,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'blocks',
       i18nKey: 'panel.widget.blocks',
       icon: Grid3X3,
-      supportedSurfaces: ['y70', 'phone'],
       sizes: ['1x1', '4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: false },
       hasConfig: false,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: BlocksWidget,
   },
@@ -373,12 +354,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'aquarium',
       i18nKey: 'panel.widget.aquarium',
       icon: Fish,
-      supportedSurfaces: ['y70', 'phone'],
       sizes: ['4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: false },
       hasConfig: false,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: AquariumWidget,
   },
@@ -387,12 +367,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'whiteboard',
       i18nKey: 'panel.widget.whiteboard',
       icon: PenLine,
-      supportedSurfaces: ['y70', 'phone'],
       sizes: ['4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: false,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: WhiteboardWidget,
   },
@@ -401,12 +380,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'emoji',
       i18nKey: 'panel.widget.emoji',
       icon: Smile,
-      supportedSurfaces: ['y70', 'phone'],
       sizes: ['4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: false },
       hasConfig: false,
-      touch: 'touch-only',
+      touch: true,
     },
     Component: EmojiWidget,
   },
@@ -415,38 +393,35 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
       type: 'gallery',
       i18nKey: 'panel.widget.gallery',
       icon: ImageIcon,
-      supportedSurfaces: ['y70', 'q60', 'phone', 'desktop'],
       sizes: ['1x1', '2x2', '2x4', '4x2', '4x4'],
       defaultSize: '4x4',
       supportsImmersive: { portrait: true, landscape: true },
       hasConfig: true,
-      touch: 'any',
+      touch: false,
     },
     Component: GalleryWidget,
     SettingsComponent: GallerySettings,
   },
 };
 
-// Whether a widget can appear on a given surface. Combines `supportedSurfaces`
-// (form-factor compatibility) with `touch` (input requirement). Touch-only
-// widgets are unavailable on touchless surfaces regardless of supportedSurfaces.
-//
-// Single-widget surfaces are derived from capabilities, not from an
-// explicit `supportedSurfaces` opt-in. The rule is: any widget that
-// declares the surface's locked size AND is compatible with the
-// surface's input modality is available. This keeps the catalog
-// complete without having to remember to add each single-widget
-// surface to every new widget's manifest.
+// Whether a widget can appear on a given surface. The decision is purely
+// capability-based: the widget's `touch` requirement vs the surface's input
+// modality, and the widget's `sizes` vs the surface's accepted sizes. No
+// per-widget surface allowlist — desktop (mouse), Y70 (touch), and phone
+// (touch) all expose a pointer and accept every widget whose sizes match.
+// Single-widget surfaces (Q60) lock to one size and additionally exclude
+// touch-required widgets since they have no pointer at all.
 export function widgetAvailableForSurface(meta: WidgetDef['meta'], surface: PanelSurface): boolean {
+  if (meta.touch && !surfaceSupportsTouch(surface)) return false;
   const single = singleWidgetSurfaceSize(surface);
   if (single !== undefined) {
-    if (meta.touch === 'touch-only' && !surfaceSupportsTouch(surface)) return false;
-    if (!meta.sizes.includes(single)) return false;
-    return true;
+    return meta.sizes.includes(single);
   }
-  if (!meta.supportedSurfaces.includes(surface)) return false;
-  if (meta.touch === 'touch-only' && !surfaceSupportsTouch(surface)) return false;
-  return true;
+  // Multi-widget surfaces accept the widget when it has at least one size
+  // that isn't reserved for a single-widget surface (i.e. an actual
+  // multi-widget size). A widget that only declares 2x4 would otherwise
+  // appear with zero placeable sizes on the desktop / Y70 catalog.
+  return meta.sizes.some(s => !SINGLE_WIDGET_SIZES.has(s));
 }
 
 export function lookupWidget(type: string): WidgetDef | undefined {
@@ -503,13 +478,12 @@ function makeMarketplaceWidgetDef(
       type: typeForMarketplace(id),
       i18nKey: label,
       icon: Boxes,
-      supportedSurfaces: ['desktop', 'phone', 'y70'],
       sizes: safeSizes,
       defaultSize,
       pickerSize: defaultSize,
       supportsImmersive: { portrait: false, landscape: false },
       hasConfig: true,
-      touch: 'any',
+      touch: false,
     },
     Component: MarketplaceWidget,
     SettingsComponent: MarketplaceWidgetSettings,
@@ -527,11 +501,10 @@ function makeMarketplaceWidgetDef(
 // non-reserved size on load.
 export function sizesForSurface(meta: WidgetDef['meta'], surface?: PanelSurface): PanelWidgetSize[] {
   if (!surface) return [...meta.sizes];
+  if (meta.touch && !surfaceSupportsTouch(surface)) return [];
   const single = singleWidgetSurfaceSize(surface);
   if (single !== undefined) {
-    if (!meta.sizes.includes(single)) return [];
-    if (meta.touch === 'touch-only' && !surfaceSupportsTouch(surface)) return [];
-    return [single];
+    return meta.sizes.includes(single) ? [single] : [];
   }
   return meta.sizes.filter(s => !SINGLE_WIDGET_SIZES.has(s));
 }

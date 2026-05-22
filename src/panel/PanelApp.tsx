@@ -1436,9 +1436,7 @@ export function PanelContent({
           && def.meta.supportsImmersive[orientationKey];
         const ctxWidget = touch.ctxMenu.widget;
         const ctxPoint = { x: touch.ctxMenu.x, y: touch.ctxMenu.y };
-        const desktopPinAvailable = embedded
-          && surface === 'desktop'
-          && def.meta.supportedSurfaces.includes('desktop');
+        const desktopPinAvailable = embedded && surface === 'desktop';
         // "Pin to Sidebar" is desktop-only and is only meaningful for
         // widget types whose SPA view exists (PINNABLE_APP_KEYS). Hidden
         // when the widget type is already in the user's tail.

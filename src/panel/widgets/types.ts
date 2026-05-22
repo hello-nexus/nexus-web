@@ -21,8 +21,6 @@ export interface WidgetProps {
   onConfigure?: () => void;
 }
 
-export type WidgetTouchSupport = 'touch-only' | 'any';
-
 export interface WidgetSettingsProps {
   widget: PanelWidget;
   onUpdate: (config: Record<string, PanelConfigValue>) => void;
@@ -35,7 +33,6 @@ export interface WidgetMetadata {
   type: string;
   i18nKey: string;
   icon: LucideIcon;
-  supportedSurfaces: PanelSurface[];
   sizes: PanelWidgetSize[];
   defaultSize: PanelWidgetSize;
   // Size used both for the add-widget preview tile and for the inserted
@@ -45,10 +42,13 @@ export interface WidgetMetadata {
   pickerSize?: PanelWidgetSize;
   supportsImmersive: { portrait: boolean; landscape: boolean };
   hasConfig: boolean;
-  // 'touch-only' = widget cannot be used on non-touch surfaces (Q-series).
-  // 'any' = widget works on all supported surfaces; widgets with surface-aware
-  // rendering (e.g. media) read `surface` from WidgetProps to adapt.
-  touch: WidgetTouchSupport;
+  // Whether the widget *requires* a touch / pointer input modality. true
+  // means it's hidden on display-only surfaces (currently Q60). false means
+  // it's available on every surface that can fit one of its `sizes` — desktop
+  // (mouse), Y70 (touch), and phone (touch) all qualify, since they have a
+  // pointer. Availability is computed from `touch` + `sizes` alone; there is
+  // no per-widget surface allowlist.
+  touch: boolean;
 }
 
 // Initial sheet state derived from where the user invoked the edit flow.

@@ -16,14 +16,14 @@ describe('surfaceSupportsTouch', () => {
 });
 
 describe('widgetAvailableForSurface', () => {
-  it('hides touch-only widgets on q60', () => {
+  it('hides touch-required widgets on q60', () => {
     const snake = WIDGET_REGISTRY.snake;
     expect(widgetAvailableForSurface(snake.meta, 'y70')).toBe(true);
     expect(widgetAvailableForSurface(snake.meta, 'phone')).toBe(true);
     expect(widgetAvailableForSurface(snake.meta, 'q60')).toBe(false);
   });
 
-  it('shows any-input widgets on every supported surface', () => {
+  it('shows non-touch widgets on every surface that fits a size', () => {
     const clock = WIDGET_REGISTRY.clock;
     expect(widgetAvailableForSurface(clock.meta, 'y70')).toBe(true);
     expect(widgetAvailableForSurface(clock.meta, 'q60')).toBe(true);
@@ -31,81 +31,66 @@ describe('widgetAvailableForSurface', () => {
     expect(widgetAvailableForSurface(clock.meta, 'desktop')).toBe(true);
   });
 
-  it('still respects supportedSurfaces for non-q60 surfaces', () => {
-    // y70 / phone / desktop still gate on the explicit supportedSurfaces
-    // list. Only q60 derives availability from capabilities.
-    const cooling = WIDGET_REGISTRY.cooling;
-    expect(widgetAvailableForSurface(cooling.meta, 'y70')).toBe(true);
-    expect(widgetAvailableForSurface(cooling.meta, 'desktop')).toBe(true);
-  });
-
-  it('keeps the media widget available on q60 (hybrid)', () => {
+  it('keeps the media widget available on q60 (declares 2x4 + non-touch)', () => {
     const media = WIDGET_REGISTRY.media;
-    expect(media.meta.touch).toBe('any');
-    expect(media.meta.supportedSurfaces).toContain('q60');
+    expect(media.meta.touch).toBe(false);
+    expect(media.meta.sizes).toContain('2x4');
     expect(widgetAvailableForSurface(media.meta, 'q60')).toBe(true);
   });
 
-  it('derives q60 availability from (has 2x4 size) AND (not touch-only)', () => {
-    // Per user spec 2026-05-18: "widgets in the q-series library should
-    // be filtered by 2x4 and no-touch". The filter ignores
-    // supportedSurfaces for q60 and uses capabilities instead so a new
+  it('derives q60 availability from (has 2x4 size) AND (not touch-required)', () => {
+    // Per user spec: "widgets in the q-series library should be filtered by
+    // 2x4 and no-touch". Availability falls out of capabilities so a new
     // non-touch widget with a 2x4 variant gets picked up automatically.
-
-    // Positive: every non-touch widget that declares a 2x4 size variant
-    // is available on q60.
     for (const type of ['clock', 'monitoring', 'media', 'iframe', 'gallery',
                         'screentime', 'cooling', 'twitch']) {
       const def = WIDGET_REGISTRY[type];
       expect(def, `missing widget type: ${type}`).toBeDefined();
       expect(def.meta.sizes, `${type} should declare 2x4 in sizes`).toContain('2x4');
-      expect(def.meta.touch, `${type} should not be touch-only`).not.toBe('touch-only');
+      expect(def.meta.touch, `${type} should be non-touch`).toBe(false);
       expect(widgetAvailableForSurface(def.meta, 'q60'),
         `${type} should be available on q60 (has 2x4 + non-touch)`).toBe(true);
     }
   });
 
-  it('excludes displays from q60 (touch-only sliders)', () => {
+  it('excludes displays from q60 (touch-required sliders)', () => {
     const displays = WIDGET_REGISTRY.displays;
-    // displays uses pointer-driven brightness / contrast sliders so it's
-    // touch-only despite being usable on multiple form factors.
-    expect(displays.meta.touch).toBe('touch-only');
+    expect(displays.meta.touch).toBe(true);
     expect(widgetAvailableForSurface(displays.meta, 'q60')).toBe(false);
-    // Still available on touch-capable surfaces.
     expect(widgetAvailableForSurface(displays.meta, 'y70')).toBe(true);
     expect(widgetAvailableForSurface(displays.meta, 'phone')).toBe(true);
+    expect(widgetAvailableForSurface(displays.meta, 'desktop')).toBe(true);
   });
 
-  it('excludes devices from q60 (touch-only pager + per-device taps)', () => {
+  it('excludes devices from q60 (touch-required pager + per-device taps)', () => {
     const devices = WIDGET_REGISTRY.devices;
-    // devices widget pages through attached peripherals via tap; can't
-    // be driven without touch.
-    expect(devices.meta.touch).toBe('touch-only');
+    expect(devices.meta.touch).toBe(true);
     expect(widgetAvailableForSurface(devices.meta, 'q60')).toBe(false);
-    // Still available on touch-capable surfaces.
     expect(widgetAvailableForSurface(devices.meta, 'y70')).toBe(true);
     expect(widgetAvailableForSurface(devices.meta, 'phone')).toBe(true);
     expect(widgetAvailableForSurface(devices.meta, 'desktop')).toBe(true);
   });
 
-  it('makes the seeded dashboard widgets available on desktop', () => {
-    for (const type of ['lighting', 'cooling', 'monitoring']) {
-      const def = WIDGET_REGISTRY[type];
-      expect(def, `missing widget type: ${type}`).toBeDefined();
-      expect(widgetAvailableForSurface(def.meta, 'desktop'), `${type} should be available on desktop`).toBe(true);
+  it('exposes every widget on the desktop dashboard (pointer + every multi-widget size)', () => {
+    // Desktop has a mouse (pointer-capable) and accepts every multi-widget
+    // size. Per the canonical rule, availability is determined by touch +
+    // sizes only — no per-widget surface allowlist — so every widget in the
+    // registry should be reachable from the desktop add-widget picker.
+    for (const [type, def] of Object.entries(WIDGET_REGISTRY)) {
+      expect(widgetAvailableForSurface(def.meta, 'desktop'),
+        `${type} should be available on desktop`).toBe(true);
     }
   });
 
-  it('leaves game and novelty widgets off the desktop dashboard catalog', () => {
-    for (const type of ['snake', 'blocks', 'aquarium', 'whiteboard', 'emoji']) {
-      const def = WIDGET_REGISTRY[type];
-      expect(def, `missing widget type: ${type}`).toBeDefined();
-      expect(widgetAvailableForSurface(def.meta, 'desktop'), `${type} should stay kiosk/phone-only`).toBe(false);
+  it('exposes every widget on Y70 (touch + every multi-widget size)', () => {
+    for (const [type, def] of Object.entries(WIDGET_REGISTRY)) {
+      expect(widgetAvailableForSurface(def.meta, 'y70'),
+        `${type} should be available on y70`).toBe(true);
     }
   });
 
-  it('classifies every issue-listed touch widget as touch-only', () => {
-    const expectedTouchOnly = [
+  it('classifies the canonical touch-required widgets as touch:true', () => {
+    const expectedTouch = [
       'lighting',
       'obs',
       'steam',
@@ -120,10 +105,10 @@ describe('widgetAvailableForSurface', () => {
       'whiteboard',
       'emoji',
     ];
-    for (const type of expectedTouchOnly) {
+    for (const type of expectedTouch) {
       const def = WIDGET_REGISTRY[type];
       expect(def, `missing widget type: ${type}`).toBeDefined();
-      expect(def.meta.touch, `${type} should be touch-only`).toBe('touch-only');
+      expect(def.meta.touch, `${type} should require touch`).toBe(true);
       expect(widgetAvailableForSurface(def.meta, 'q60'), `${type} must be unavailable on q60`).toBe(false);
     }
   });
@@ -151,11 +136,17 @@ describe('sizesForSurface', () => {
   });
 
   it('returns [] on a single-widget surface for widgets that lack the locked size', () => {
-    // calculator declares ['2x2', '4x4'] (no 2x4). On q60 there's no
-    // valid size, so the picker offers nothing.
+    // calculator declares ['4x4'] (no 2x4). On q60 there's no valid
+    // size, so the picker offers nothing.
     const calculator = WIDGET_REGISTRY.calculator;
     expect(calculator.meta.sizes).not.toContain('2x4');
     expect(sizesForSurface(calculator.meta, 'q60')).toEqual([]);
+  });
+
+  it('returns [] for touch-required widgets on q60 regardless of size', () => {
+    const lighting = WIDGET_REGISTRY.lighting;
+    expect(lighting.meta.touch).toBe(true);
+    expect(sizesForSurface(lighting.meta, 'q60')).toEqual([]);
   });
 
   it('returns the manifest sizes verbatim when no surface is passed', () => {
