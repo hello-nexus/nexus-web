@@ -216,12 +216,12 @@
   flex-direction: column;
   width: 200px;
   background: var(--bg-elevated);
-  // 16px top gutter matches the .mainColumn padding-top so the Nexus
-  // logo lines up with the page title bar in the web/browser version.
-  // The Windows --app shell overrides this below with a 6px nudge —
-  // there the page title floats inside the 32px drag strip, so a much
-  // smaller offset keeps the brand row visually aligned with it.
-  padding: 16px 0 0.75rem;
+  // 8px top gutter nudges the Nexus logo into rough vertical alignment
+  // with the page title bar in the web/browser version. The Windows
+  // --app shell overrides this below with a 6px nudge — there the page
+  // title floats inside the 32px drag strip, so a much smaller offset
+  // keeps the brand row visually aligned with it.
+  padding: 8px 0 0.75rem;
   flex-shrink: 0;
   transition: width var(--ease);
 }
