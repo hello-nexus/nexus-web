@@ -5,7 +5,7 @@ import OverlayShell from '../overlay/OverlayShell';
 import { inferSurfaceFromViewport } from '../panel/inferSurface';
 import {
   allocatePanelDeviceWithStatus,
-  patchPanelDevice,
+  patchPanelDeviceWithStatus,
   claimPanelPhonePairing,
 } from '../api/panel';
 import { storePhoneToken } from '../api/auth';
@@ -122,7 +122,6 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken }: {
   useEffect(() => {
     if (state !== 'allocating') return;
     let cancelled = false;
-    const cached = localStorage.getItem(PANEL_DEVICE_ID_KEY);
     const finish = (id: string) => {
       if (cancelled) return;
       localStorage.setItem(PANEL_DEVICE_ID_KEY, id);
@@ -131,18 +130,11 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken }: {
       window.history.replaceState(null, '', target);
       setState('ready');
     };
-    if (cached) {
-      // Trust the cache; if the server has forgotten this device the panel
-      // page will 404 the device fetch and PanelApp re-allocates from there.
-      // Patch capabilities with the current viewport so the dashboard sees
-      // up-to-date hardware dimensions even when we skip the allocate path.
-      if (viewportCapabilities) {
-        patchPanelDevice(cached, { capabilities: viewportCapabilities }).catch(() => {});
-      }
-      finish(cached);
-      return;
-    }
-    allocatePanelDeviceWithStatus(viewportCapabilities ?? { surface: inferredSurface }).then(result => {
+
+    const allocate = async () => {
+      const result = await allocatePanelDeviceWithStatus(
+        viewportCapabilities ?? { surface: inferredSurface },
+      );
       if (cancelled) return;
       if (result.ok) {
         finish(result.record.id);
@@ -155,7 +147,33 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken }: {
       setFailureKind(kind);
       setFailureDetail(result.status ? `HTTP ${result.status}` : 'Network error');
       setState('failed');
-    });
+    };
+
+    void (async () => {
+      const cached = localStorage.getItem(PANEL_DEVICE_ID_KEY);
+      if (!cached) {
+        await allocate();
+        return;
+      }
+      // Verify the cached device still exists server-side. A 404 means the
+      // record was dropped (profile wipe, session revoke that took the device
+      // with it, manual delete) and trusting the cache would mount the panel
+      // against a dead id - usePanelLayout would then 404 and fall back to a
+      // default layout that's empty when /defaults hasn't loaded yet. Use the
+      // patch as a touch + verify in one round-trip, carrying current
+      // viewport hints when we have them.
+      const patch = viewportCapabilities ? { capabilities: viewportCapabilities } : {};
+      const result = await patchPanelDeviceWithStatus(cached, patch);
+      if (cancelled) return;
+      if (!result.ok && result.status === 404) {
+        localStorage.removeItem(PANEL_DEVICE_ID_KEY);
+        await allocate();
+        return;
+      }
+      // ok || non-404 failure (network, transient 401): trust the cache. A
+      // blip shouldn't burn the device record and force a fresh allocate.
+      finish(cached);
+    })();
     return () => { cancelled = true; };
   }, [state, inferredSurface, viewportCapabilities, allocAttempt]);
 
