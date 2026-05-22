@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, ExternalLink, GripVertical, Maximize2, Monitor, Pin, Settings, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, GripVertical, Maximize2, Monitor, MonitorOff, Pin, PinOff, Settings, Trash2 } from 'lucide-react';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
 import type { PanelSurface, PanelWidgetSize } from '../../types';
@@ -26,10 +26,20 @@ interface WidgetContextMenuProps {
   // and we're invoked from the dashboard (not from a remote panel preview).
   // Pins a copy of the widget onto the floating desktop overlay.
   onAddToDesktop?: () => void;
+  // Inverse of onAddToDesktop — only shown when at least one overlay
+  // widget of this type already exists on the floating desktop. Click
+  // removes every instance of this type from the overlay (the symmetric
+  // "undo" of "Add to desktop"). Caller wires whichever of the two is
+  // appropriate for the current state; never both at once.
+  onRemoveFromDesktop?: () => void;
   // Optional — only shown when the widget is one of the pinnable desktop
   // apps (matches PINNABLE_APP_KEYS in app/sidebarApps) AND isn't already
   // pinned. Pins this widget's "app page" onto the desktop sidebar.
   onPinToSidebar?: () => void;
+  // Inverse of onPinToSidebar — only shown when the widget IS already
+  // pinned to the sidebar. Click removes the sidebar entry. Caller wires
+  // whichever of the two is appropriate; never both at once.
+  onUnpinFromSidebar?: () => void;
   // Override for the danger button label. Defaults to "Remove"; the desktop
   // overlay passes "Unpin" since the widget is being detached from the
   // overlay rather than removed from the panel layout.
@@ -57,7 +67,10 @@ export function WidgetContextMenu({
   themeMode = 'dark',
   themeStyle,
   isRearranging,
-  onResize, onEdit, onRemove, onRearrange, onImmersive, onAddToDesktop, onPinToSidebar, onClose,
+  onResize, onEdit, onRemove, onRearrange, onImmersive,
+  onAddToDesktop, onRemoveFromDesktop,
+  onPinToSidebar, onUnpinFromSidebar,
+  onClose,
   removeLabel,
   alwaysOnTop,
   onToggleAlwaysOnTop,
@@ -211,10 +224,24 @@ export function WidgetContextMenu({
         </button>
       )}
 
+      {onRemoveFromDesktop && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onRemoveFromDesktop)}>
+          <MonitorOff size={14} />
+          <span>Remove from desktop</span>
+        </button>
+      )}
+
       {onPinToSidebar && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onPinToSidebar)}>
           <Pin size={14} />
           <span>Pin to Sidebar</span>
+        </button>
+      )}
+
+      {onUnpinFromSidebar && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onUnpinFromSidebar)}>
+          <PinOff size={14} />
+          <span>Unpin from Sidebar</span>
         </button>
       )}
 

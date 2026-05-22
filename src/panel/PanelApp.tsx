@@ -34,9 +34,9 @@ import { PanelDock } from './PanelDock';
 import { PanelImmersiveOverlay } from './PanelImmersiveOverlay';
 import { lookupWidget, sizesForSurface, widgetAvailableForSurface } from './widgets/registry';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
-import { createOverlayWidget } from '../api/overlay';
+import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
-import { useMultiplex, useTopic } from '../hooks/useMultiplexSocket';
+import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useUiSettings } from '../hooks/useUiSettings';
 import {
@@ -258,6 +258,32 @@ export function PanelContent({
   // surface; everywhere else the value stays null and the sidebar's
   // pointer tracking never engages. See app/CrossZoneDrag.tsx.
   const { setDraggingPinnableType, dropHandlerRef: sidebarDropHandlerRef } = useCrossZoneDrag();
+
+  // Overlay widgets currently floating on the user's actual desktop.
+  // Tracked here so the context menu can flip "Add to desktop" /
+  // "Remove from desktop" depending on whether the dashboard widget's
+  // type already has an instance on the overlay. Only meaningful on
+  // the embedded desktop surface; everywhere else we skip the fetch.
+  const [overlayWidgets, setOverlayWidgets] = useState<{ id: string; type: string }[]>([]);
+  const overlayActive = embedded && surface === 'desktop';
+  useEffect(() => {
+    if (!overlayActive) return;
+    let cancelled = false;
+    void listOverlayWidgets().then(list => {
+      if (cancelled) return;
+      setOverlayWidgets(list.map(w => ({ id: w.id, type: w.type })));
+    });
+    return () => { cancelled = true; };
+  }, [overlayActive]);
+  // The 'prefs' topic broadcasts on every preferences mutation, and
+  // overlay widget create / delete writes go through the same store
+  // — refetch the list when that fires so add / remove from the
+  // overlay reflects back in the panel context menu immediately.
+  useTopicCallback('prefs', overlayActive, () => {
+    void listOverlayWidgets().then(list => {
+      setOverlayWidgets(list.map(w => ({ id: w.id, type: w.type })));
+    });
+  });
   const isOffline = kioskBehavior && (serviceStatus.state === 'offline' || serviceStatus.state === 'offline-installed');
   const rootRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -1436,15 +1462,26 @@ export function PanelContent({
           && def.meta.supportsImmersive[orientationKey];
         const ctxWidget = touch.ctxMenu.widget;
         const ctxPoint = { x: touch.ctxMenu.x, y: touch.ctxMenu.y };
-        const desktopPinAvailable = embedded && surface === 'desktop';
-        // "Pin to Sidebar" is desktop-only and is only meaningful for
-        // widget types whose SPA view exists (PINNABLE_APP_KEYS). Hidden
-        // when the widget type is already in the user's tail.
+        // Desktop overlay toggle: show "Add to desktop" when there's
+        // no overlay instance of this widget type yet, OR
+        // "Remove from desktop" when at least one exists. Click on
+        // remove deletes every instance of the type — symmetric undo
+        // of the add.
+        const onDesktopSurface = embedded && surface === 'desktop';
+        const overlayMatches = onDesktopSurface
+          ? overlayWidgets.filter(o => o.type === ctxWidget.type)
+          : [];
+        const desktopAddAvailable = onDesktopSurface && overlayMatches.length === 0;
+        const desktopRemoveAvailable = onDesktopSurface && overlayMatches.length > 0;
+
+        // Sidebar pin toggle: only valid for pinnable widget types
+        // (PINNABLE_APP_KEYS). Show "Pin to Sidebar" when not pinned;
+        // "Unpin from Sidebar" when pinned.
         const pinnableKey = isPinnableAppKey(ctxWidget.type) ? ctxWidget.type : null;
-        const sidebarPinAvailable = embedded
-          && surface === 'desktop'
-          && pinnableKey !== null
-          && !pinnedTail.includes(pinnableKey);
+        const sidebarPinnable = onDesktopSurface && pinnableKey !== null;
+        const alreadyPinned = sidebarPinnable && pinnedTail.includes(pinnableKey);
+        const pinAvailable = sidebarPinnable && !alreadyPinned;
+        const unpinAvailable = sidebarPinnable && alreadyPinned;
         return (
           <WidgetContextMenu
             x={ctxPoint.x}
@@ -1461,16 +1498,33 @@ export function PanelContent({
             onRemove={() => removeWidget(ctxWidget.id)}
             onRearrange={touch.toggleRearrange}
             onImmersive={!embedded && immersiveAvailable ? () => enterImmersive(ctxWidget.id) : undefined}
-            onAddToDesktop={desktopPinAvailable ? () => {
+            onAddToDesktop={desktopAddAvailable ? () => {
               void createOverlayWidget({
                 type: ctxWidget.type,
                 size: ctxWidget.size,
                 config: ctxWidget.config,
+              }).then(created => {
+                if (created) setOverlayWidgets(prev => [...prev, { id: created.id, type: created.type }]);
               });
             } : undefined}
-            onPinToSidebar={sidebarPinAvailable && pinnableKey ? () => {
+            onRemoveFromDesktop={desktopRemoveAvailable ? () => {
+              const removed = overlayMatches.map(o => o.id);
+              for (const id of removed) {
+                void deleteOverlayWidget(id);
+              }
+              // Optimistic local update so the next menu open already
+              // sees "Add to desktop" without waiting for the prefs
+              // topic round-trip.
+              setOverlayWidgets(prev => prev.filter(o => !removed.includes(o.id)));
+            } : undefined}
+            onPinToSidebar={pinAvailable && pinnableKey ? () => {
               updateUiSettings({
                 pinnedSidebarApps: [...pinnedTail, pinnableKey],
+              });
+            } : undefined}
+            onUnpinFromSidebar={unpinAvailable && pinnableKey ? () => {
+              updateUiSettings({
+                pinnedSidebarApps: pinnedTail.filter(k => k !== pinnableKey),
               });
             } : undefined}
             onClose={touch.closeCtxMenu}

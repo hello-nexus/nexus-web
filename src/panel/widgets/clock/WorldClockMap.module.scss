@@ -71,12 +71,30 @@
   stroke-width: 0.35;
 }
 
+.cityDotLocal {
+  fill: gold;
+  stroke: white;
+  stroke-width: 0.5;
+  filter: drop-shadow(0 0 1.2px gold);
+}
+
+.cityLocalGlow {
+  fill: gold;
+  opacity: 0.25;
+  filter: blur(0.6px);
+}
+
 .cityLabel {
   fill: var(--text);
   font-size: 3px;
   font-weight: var(--weight-heading);
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.7);
   pointer-events: none;
+}
+
+.cityLabelLocal {
+  fill: gold;
+  font-weight: var(--weight-heading);
 }
 
 .cityLabelTime {
