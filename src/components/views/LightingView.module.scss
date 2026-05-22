@@ -189,15 +189,14 @@
 }
 
 .categoryChipActive {
-  color: var(--accent-text);
-  border-color: var(--accent);
-  background: var(--accent);
-  box-shadow: 0 0 6px var(--accent-glow-shadow);
+  color: var(--accent-glow);
+  background: var(--accent-soft);
+  border-color: var(--accent-glow-shadow);
 
   &:hover {
-    color: var(--accent-text);
-    background: var(--accent-glow);
-    border-color: var(--accent-glow);
+    color: var(--accent-glow);
+    background: var(--accent-soft);
+    border-color: var(--accent);
   }
 }
 
