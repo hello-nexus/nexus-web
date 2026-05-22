@@ -50,10 +50,20 @@
   right: 138px; // left of the 3x46px caption buttons
   height: 24px; // 32px title bar minus the 8px resize band on top
   // Above the modal backdrop (z-index 1000) so the title bar stays
-  // draggable while a modal is open.
+  // draggable while no modal is open.
   z-index: 2000;
   -webkit-app-region: drag;
   app-region: drag;
+
+  // When any modal is open, neutralize the drag region so the only
+  // window-chrome interaction left is the native min/max/close
+  // caption buttons (which live in their own stylesheet and remain
+  // active by design).
+  :global(body:has([aria-modal="true"])) & {
+    pointer-events: none;
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
 }
 
 // When the sidebar is collapsed, the drag strip starts further left so
@@ -83,10 +93,10 @@
 //
 // 6px wide invisible strip is enough for an unambiguous cursor target;
 // page UI has its own padding well outside this band.
-// Resize strips intentionally sit above the modal backdrop (z-index 1000)
-// so resize gestures keep working while any modal is open. They're
-// transparent 6-12px slivers at the window edges; modals have inner
-// padding so no interactive content overlaps these bands.
+// Resize strips sit above the modal backdrop (z-index 1000) so resize
+// gestures work normally. When a modal is open, the body-level `:has`
+// rule at the bottom of this file disables all of them so only the
+// native min/max/close caption buttons remain interactive.
 .windowResizeStrip {
   position: absolute;
   z-index: 2001;
@@ -197,6 +207,23 @@
   width: 14px;
   height: 14px;
   cursor: nwse-resize;
+}
+
+// Modal-open suppression. Native min/max/close caption buttons (defined
+// in CaptionButtons.module.scss) are intentionally NOT in this list, so
+// the user can still operate the window while any modal is open.
+:global(body:has([aria-modal="true"])) {
+  .windowResizeStrip,
+  .windowResizeStripLeft,
+  .windowResizeStripRight,
+  .windowResizeStripTop,
+  .windowResizeStripBottom,
+  .windowResizeCornerTopLeft,
+  .windowResizeCornerTopRight,
+  .windowResizeCornerBottomLeft,
+  .windowResizeCornerBottomRight {
+    pointer-events: none;
+  }
 }
 
 // ── Body row: sidebar + content side by side ────────────────────────────
@@ -523,6 +550,13 @@
   &:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: -2px;
+  }
+
+  // Disable + fade when any modal is open. Only the native caption
+  // buttons (min/max/close) remain interactive during a modal.
+  :global(body:has([aria-modal="true"])) & {
+    pointer-events: none;
+    opacity: 0.35;
   }
 }
 
