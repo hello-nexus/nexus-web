@@ -1,6 +1,6 @@
 import { type LightingDevice } from '../../../api/lighting';
 import { useTranslation } from '../../../lib/i18n';
-import { ZoneCard } from './ZoneCard';
+import { ZoneCard, type ZoneCardDrag } from './ZoneCard';
 import { MotherboardGroup } from './MotherboardGroup';
 import styles from '../LightingView.module.scss';
 
@@ -11,7 +11,7 @@ import styles from '../LightingView.module.scss';
  * under a collapsible header; each zone renders as its own card so the user
  * can configure + control each physical strip independently.
  */
-export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onTogglePower, lightingOff, onOpenSettings }: {
+export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onTogglePower, lightingOff, onOpenSettings, dragFor }: {
   devices: LightingDevice[];
   selectedDeviceId: string | null;
   onSelectDevice: (id: string | null) => void;
@@ -19,6 +19,8 @@ export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onToggl
   /** Whether the lighting mode is 'none' (off). Swaps the empty message. */
   lightingOff: boolean;
   onOpenSettings: (id: string) => void;
+  /** Builds a per-card HTML5 drag handler. Returning null disables drag for that card. */
+  dragFor?: (deviceId: string) => ZoneCardDrag | null;
 }) {
   const { t } = useTranslation();
 
@@ -63,6 +65,7 @@ export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onToggl
                   onSelect={() => onSelectDevice(d.id === selectedDeviceId ? null : d.id)}
                   onTogglePower={() => onTogglePower(d.id)}
                   onOpenSettings={() => onOpenSettings(d.id)}
+                  drag={dragFor?.(d.id) ?? undefined}
                 />
               );
             }
@@ -78,6 +81,7 @@ export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onToggl
                     onSelect={() => onSelectDevice(z.id === selectedDeviceId ? null : z.id)}
                     onTogglePower={() => onTogglePower(z.id)}
                     onOpenSettings={() => onOpenSettings(z.id)}
+                    drag={dragFor?.(z.id) ?? undefined}
                   />
                 ))}
               </MotherboardGroup>

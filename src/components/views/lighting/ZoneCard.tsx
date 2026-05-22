@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Settings, Power, Eye } from 'lucide-react';
 import {
   identifyLightingDevice,
@@ -5,6 +6,16 @@ import {
 } from '../../../api/lighting';
 import { useTranslation } from '../../../lib/i18n';
 import styles from '../LightingView.module.scss';
+
+export interface ZoneCardDrag {
+  isDragging: boolean;
+  isDragOver: boolean;
+  onDragStart: () => void;
+  onDragOver: () => void;
+  onDragLeave: () => void;
+  onDrop: () => void;
+  onDragEnd: () => void;
+}
 
 /**
  * One card for either a whole OpenRGB device or a motherboard ARGB zone. The
@@ -21,6 +32,7 @@ export function ZoneCard({
   onSelect,
   onTogglePower,
   onOpenSettings,
+  drag,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -31,6 +43,8 @@ export function ZoneCard({
   onSelect: () => void;
   onTogglePower: () => void;
   onOpenSettings: () => void;
+  /** Optional HTML5 drag/drop wiring for reorderable lists. */
+  drag?: ZoneCardDrag;
 }) {
   const { t } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
@@ -49,15 +63,36 @@ export function ZoneCard({
 
   const ledLabel = device.ledCount === 1 ? 'LED' : 'LEDs';
 
+  const cardRef = useRef<HTMLDivElement>(null);
+  const interactiveSelector = 'button, input, select, textarea, [role="button"], [role="switch"]';
+
   return (
     <div
+      ref={cardRef}
       className={[
         styles.deviceCard,
         selected ? styles.deviceCardSelected : '',
         unavailable ? styles.deviceCardUnavailable : '',
         !unavailable && !device.ledsOn ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
+        drag?.isDragging ? styles.deviceCardDragging : '',
+        drag?.isDragOver ? styles.deviceCardDragOver : '',
       ].filter(Boolean).join(' ')}
+      draggable={!!drag && !unavailable}
+      onMouseDownCapture={drag ? (e) => {
+        const target = e.target as HTMLElement;
+        const interactive = !!target.closest(interactiveSelector);
+        if (cardRef.current) cardRef.current.draggable = !unavailable && !interactive;
+      } : undefined}
+      onDragStart={drag ? (e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest(interactiveSelector)) { e.preventDefault(); return; }
+        drag.onDragStart();
+      } : undefined}
+      onDragOver={drag ? (e) => { e.preventDefault(); drag.onDragOver(); } : undefined}
+      onDragLeave={drag ? drag.onDragLeave : undefined}
+      onDrop={drag ? drag.onDrop : undefined}
+      onDragEnd={drag ? drag.onDragEnd : undefined}
       onClick={() => { if (!unavailable) onSelect(); }}
       title={unavailable ? t('lighting.devices.detectionFailedTooltip') : undefined}
     >

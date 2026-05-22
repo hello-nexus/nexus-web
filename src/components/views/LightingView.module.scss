@@ -884,6 +884,14 @@
   }
 }
 
+// Drag-and-drop visuals match the cooling cards: source fades to half, drop
+// target gets the dashed accent outline used by the widget rearrange chrome.
+.deviceCardDragging { opacity: 0.5; }
+.deviceCardDragOver {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+}
+
 // Second line of the device card: LED count text on the left, action icons
 // flush right. Sharing a single row trims ~1rem off the card height versus the
 // previous "icons absolute-positioned underneath" layout.
