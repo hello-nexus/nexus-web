@@ -6,6 +6,7 @@ import type { AudioSnapshot } from '../../../hooks/useAudioState';
 import { useShaderRenderer } from '../../../hooks/useShaderRenderer';
 import { useTranslation } from '../../../lib/i18n';
 import type { EffectState } from '../../../types/lighting';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './DeviceCanvas.module.scss';
 
 interface DeviceCanvasProps {
@@ -211,15 +212,21 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedDeviceId,
             onPointerDown={e => startDrag(e, dev, 'move')}>
             <span className={styles.deviceLabel} style={{ transform: `rotate(${visualAngle}deg)` }}>{dev.name}</span>
             {onOpenSettings && dev.ledCount > 0 && (
-              <button type="button" className={styles.settingsBtn} title={t('lighting.ledMap.settings')} aria-label={t('lighting.ledMap.settings')}
-                onClick={e => { e.stopPropagation(); onOpenSettings(dev.id); }}>
-                <Settings size={11} />
-              </button>
+              <HoverTooltip body={t('lighting.ledMap.settings')} side="bottom">
+                <button type="button" className={styles.settingsBtn} aria-label={t('lighting.ledMap.settings')}
+                  onClick={e => { e.stopPropagation(); onOpenSettings(dev.id); }}>
+                  <Settings size={11} />
+                </button>
+              </HoverTooltip>
             )}
-            <button type="button" className={styles.maximizeBtn} title={t('lighting.devices.maximize')} aria-label={t('lighting.devices.maximize')}
-              onClick={e => { e.stopPropagation(); handleMaximize(dev); }}>□</button>
-            <button type="button" className={styles.rotateBtn} title={t('lighting.devices.rotate')} aria-label={t('lighting.devices.rotate')}
-              onClick={e => { e.stopPropagation(); handleRotate(dev); }}>⟳</button>
+            <HoverTooltip body={t('lighting.devices.maximize')} side="bottom">
+              <button type="button" className={styles.maximizeBtn} aria-label={t('lighting.devices.maximize')}
+                onClick={e => { e.stopPropagation(); handleMaximize(dev); }}>□</button>
+            </HoverTooltip>
+            <HoverTooltip body={t('lighting.devices.rotate')} side="bottom">
+              <button type="button" className={styles.rotateBtn} aria-label={t('lighting.devices.rotate')}
+                onClick={e => { e.stopPropagation(); handleRotate(dev); }}>⟳</button>
+            </HoverTooltip>
             <div className={styles.resizeHandle} onPointerDown={e => startDrag(e, dev, 'resize-br')} />
             {selected && selectedDeviceLeds && selectedDeviceLeds
               .filter(l => !l.disabled)

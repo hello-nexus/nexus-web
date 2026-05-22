@@ -3,6 +3,7 @@ import type { FanChannel } from '../../../api/cooling';
 import { useTranslation } from '../../../lib/i18n';
 import type { CurveDef, FanState } from '../../../types/cooling';
 import { EditableText } from '../../common/Editable/EditableText';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { Select } from '../../common/Select/Select';
 import styles from '../CoolingView.module.scss';
 
@@ -214,13 +215,14 @@ export const FanCard = memo(function FanCard({
                 responsiveness via the parent block; nothing to wire to on
                 an unresponsive channel. */}
             {onWirePointerDown && (
-              <div
-                ref={nubRef}
-                className={`${styles.fanInNub}${assignedCurveId ? ' ' + styles.nubConnected : ''}`}
-                title={t('cooling.wire.dragHint')}
-                aria-hidden="true"
-                onPointerDown={onWirePointerDown}
-              />
+              <HoverTooltip body={t('cooling.wire.dragHint')} side="top">
+                <div
+                  ref={nubRef}
+                  className={`${styles.fanInNub}${assignedCurveId ? ' ' + styles.nubConnected : ''}`}
+                  aria-hidden="true"
+                  onPointerDown={onWirePointerDown}
+                />
+              </HoverTooltip>
             )}
             {isManual ? (
               <>

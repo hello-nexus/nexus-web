@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Usb } from 'lucide-react';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
@@ -87,17 +88,17 @@ export function DevicesWidget({ widget, surface, onSectionNavigate }: WidgetProp
               ? (
                 isDesktopDashboard
                   ? (
-                    <button
-                      key={d.key}
-                      type="button"
-                      className={styles.tile}
-                      data-connected={d.connected ? 'true' : 'false'}
-                      onClick={() => openDevice(d)}
-                      aria-label={d.name}
-                      title={d.name}
-                    >
-                      <DeviceThumb device={d} />
-                    </button>
+                    <HoverTooltip key={d.key} body={d.name} side="top">
+                      <button
+                        type="button"
+                        className={styles.tile}
+                        data-connected={d.connected ? 'true' : 'false'}
+                        onClick={() => openDevice(d)}
+                        aria-label={d.name}
+                      >
+                        <DeviceThumb device={d} />
+                      </button>
+                    </HoverTooltip>
                   )
                   : (
                     <div

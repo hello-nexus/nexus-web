@@ -129,7 +129,7 @@
   border-radius: 10px;
   overflow: hidden;
   background: var(--panel-element-bg);
-  box-shadow: 0 4px 16px rgb(0 0 0 / var(--alpha-medium));
+  box-shadow: var(--shadow-md);
 }
 
 .art {

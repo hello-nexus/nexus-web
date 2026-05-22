@@ -30,8 +30,8 @@ export function RightPaneTabs({ active, onSelect, pulseKey, effectTabDisabled }:
   );
 
   const tabs = [
-    { key: 'devices', label: t('lighting.rightPane.devices') },
     { key: 'effect', label: effectLabel, disabled: effectTabDisabled },
+    { key: 'devices', label: t('lighting.rightPane.devices') },
   ];
 
   return (

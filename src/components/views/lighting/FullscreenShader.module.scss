@@ -91,6 +91,6 @@
 .navArrow {
   width: 56px;
   height: 56px;
-  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.9));
+  filter: drop-shadow(0 0 6px rgb(0 0 0 / var(--alpha-strong)));
   pointer-events: none;
 }

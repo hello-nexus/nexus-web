@@ -1,4 +1,5 @@
 import { type KeyboardEvent, type PointerEvent, type ReactNode, useRef } from 'react';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import styles from './PanelMixerSlider.module.scss';
 
 export interface PanelMixerSliderProps {
@@ -168,7 +169,13 @@ export function PanelMixerSlider({
       data-disabled={disabled ? 'true' : 'false'}
       data-panel-scrollable="true"
     >
-      {labelText && <div className={styles.label} title={labelText}>{labelText}</div>}
+      {/* Wrapped so the label's overflow-ellipsis truncation isn't silent —
+          hover restores the full string when the cell is too narrow. */}
+      {labelText && (
+        <HoverTooltip body={labelText} side="top">
+          <div className={styles.label}>{labelText}</div>
+        </HoverTooltip>
+      )}
       <div
         className={styles.hitbox}
         onPointerDown={handlePointerDown}

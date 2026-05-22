@@ -1,11 +1,13 @@
 import { type ReactNode } from 'react';
-import { PanelLeftClose } from 'lucide-react';
+import { PanelLeftClose, Unplug } from 'lucide-react';
 import classNames from 'classnames';
 import { ConflictWarningBadge } from '../components/common/Sidebar/ConflictWarning';
+import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { QosMark, QosWordmark } from '../components/icons/QosBrand';
 import { useUiSettings } from '../hooks/useUiSettings';
 import { useConflictApps } from '../hooks/useConflictApps';
 import type { ConnectionState } from '../hooks/useServiceStatus';
+import { useTranslation } from '../lib/i18n';
 import styles from '../App.module.scss';
 
 // ── Sidebar brand (logo + wordmark at top of sidebar) ───────────────────
@@ -19,29 +21,31 @@ export function SidebarBrand({ compact, onToggleCompact, expandLabel, collapseLa
   return (
     <div className={classNames(styles.sidebarBrand, { [styles.sidebarBrandCompact]: compact })}>
       {compact ? (
-        <button
-          type="button"
-          className={classNames(styles.sidebarBrandLogo, styles.sidebarBrandLogoBtn)}
-          onClick={onToggleCompact}
-          title={expandLabel}
-          aria-label={expandLabel}
-        >
-          <QosMark size={20} />
-        </button>
+        <HoverTooltip body={expandLabel} side="right">
+          <button
+            type="button"
+            className={classNames(styles.sidebarBrandLogo, styles.sidebarBrandLogoBtn)}
+            onClick={onToggleCompact}
+            aria-label={expandLabel}
+          >
+            <QosMark size={20} />
+          </button>
+        </HoverTooltip>
       ) : (
         <>
           <span className={styles.sidebarBrandWordmark}>
             <QosWordmark height={20} />
           </span>
-          <button
-            type="button"
-            className={styles.sidebarBrandCollapse}
-            onClick={onToggleCompact}
-            title={collapseLabel}
-            aria-label={collapseLabel}
-          >
-            <PanelLeftClose size={16} />
-          </button>
+          <HoverTooltip body={collapseLabel} side="right">
+            <button
+              type="button"
+              className={styles.sidebarBrandCollapse}
+              onClick={onToggleCompact}
+              aria-label={collapseLabel}
+            >
+              <PanelLeftClose size={16} />
+            </button>
+          </HoverTooltip>
         </>
       )}
     </div>
@@ -78,17 +82,21 @@ export function NotConnectedBadge({ state, t, compact }: {
     : t('status.offline');
   const isChecking = state === 'checking';
 
-  return (
+  const node = (
     <div
       className={classNames(styles.notConnected, { [styles.notConnectedCompact]: compact })}
-      title={compact ? label : undefined}
       role="status"
       aria-live="polite"
     >
-      <span className={classNames(styles.notConnectedDot, { [styles.notConnectedDotChecking]: isChecking })} aria-hidden />
+      <Unplug
+        size={14}
+        className={classNames(styles.notConnectedIcon, { [styles.notConnectedIconChecking]: isChecking })}
+        aria-hidden
+      />
       {!compact && <span className={styles.notConnectedLabel}>{label}</span>}
     </div>
   );
+  return compact ? <HoverTooltip body={label} side="right">{node}</HoverTooltip> : node;
 }
 
 // ── Sidebar footer (debug + version) ────────────────────────────────────────
@@ -128,17 +136,20 @@ export function TopRightDebugButton({ active, onDebug, icon }: {
   onDebug: () => void;
   icon: ReactNode;
 }) {
+  const { t } = useTranslation();
+  const label = t('tools.title');
   return (
-    <button
-      type="button"
-      className={classNames(styles.topRightDebug, { [styles.topRightDebugActive]: active })}
-      onClick={onDebug}
-      title="Tools"
-      aria-label="Tools"
-      aria-pressed={active}
-    >
-      <span className={styles.topRightDebugIcon} aria-hidden>{icon}</span>
-    </button>
+    <HoverTooltip body={label} side="bottom">
+      <button
+        type="button"
+        className={classNames(styles.topRightDebug, { [styles.topRightDebugActive]: active })}
+        onClick={onDebug}
+        aria-label={label}
+        aria-pressed={active}
+      >
+        <span className={styles.topRightDebugIcon} aria-hidden>{icon}</span>
+      </button>
+    </HoverTooltip>
   );
 }
 

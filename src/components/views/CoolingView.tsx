@@ -18,6 +18,7 @@ import { useTranslation } from '../../lib/i18n';
 import { useUiSettings } from '../../hooks/useUiSettings';
 import { publishControlSync, subscribeControlSync } from '../../lib/controlSync';
 import { ViewHeader } from '../common/ViewHeader/ViewHeader';
+import { HoverTooltip } from '../common/HoverTooltip/HoverTooltip';
 import { InfoTooltip } from '../common/InfoTooltip/InfoTooltip';
 import { ServiceRequired } from './ServiceRequired';
 import { CoolingSkeleton } from './PageSkeleton/PageSkeleton';
@@ -1012,15 +1013,16 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
         activeTab={activePreset ?? undefined}
         onTabChange={k => handlePresetChange(k)}
         tabActions={
-          <button
-            type="button"
-            className={styles.settingsBtn}
-            onClick={() => setSettingsOpen(true)}
-            aria-label={t('cooling.settings.open')}
-            title={t('cooling.settings.open')}
-          >
-            <Settings size={16} aria-hidden />
-          </button>
+          <HoverTooltip body={t('cooling.settings.open')} side="bottom">
+            <button
+              type="button"
+              className={styles.settingsBtn}
+              onClick={() => setSettingsOpen(true)}
+              aria-label={t('cooling.settings.open')}
+            >
+              <Settings size={16} aria-hidden />
+            </button>
+          </HoverTooltip>
         }
       />
 
@@ -1048,13 +1050,22 @@ export function CoolingView({ serviceOnline, serviceState, connectionState, acti
                   {t('cooling.sections.curves')}
                   <InfoTooltip message={t('cooling.sections.curves.tooltip')} side="bottom" />
                 </h3>
-                <button type="button" className={styles.addCurveBtn}
-                  onClick={addCurve}
-                  disabled={curves.length >= MAX_CURVES}
-                  title={curves.length >= MAX_CURVES ? t('cooling.curves.maxReached') : undefined}>
-                  <Plus size={14} aria-hidden />
-                  <span>{t('cooling.curves.add')}</span>
-                </button>
+                {curves.length >= MAX_CURVES ? (
+                  <HoverTooltip body={t('cooling.curves.maxReached')} side="left">
+                    <button type="button" className={styles.addCurveBtn}
+                      onClick={addCurve}
+                      disabled>
+                      <Plus size={14} aria-hidden />
+                      <span>{t('cooling.curves.add')}</span>
+                    </button>
+                  </HoverTooltip>
+                ) : (
+                  <button type="button" className={styles.addCurveBtn}
+                    onClick={addCurve}>
+                    <Plus size={14} aria-hidden />
+                    <span>{t('cooling.curves.add')}</span>
+                  </button>
+                )}
               </div>
               <div className={styles.curvesScroll}>
                 {curves.length === 0 ? (

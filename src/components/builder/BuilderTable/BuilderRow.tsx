@@ -8,6 +8,7 @@ import type { ComponentCategory, BuildSlotEntry, ComponentOption } from '../../.
 import { CATEGORY_LABELS } from '../../../types/builder';
 import { useTranslation } from '../../../lib/i18n';
 import { useClickOutside } from '../../../hooks/useClickOutside';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { getKeySpecs, resolveBuyUrl } from './builderRowHelpers';
 import styles from './BuilderTable.module.scss';
 
@@ -67,22 +68,23 @@ export function BuilderRow({ category, entry, onChoose, onRemove, isOwned, onTog
       <div className={styles.cellName}>
         {hasSelection ? (
           productHref ? (
-            <a
-              href={productHref}
-              className={styles.componentNameLink}
-              title={t('builder.openProductPage')}
-              onClick={e => {
-                // Let cmd/ctrl/middle/shift-click fall through to the browser
-                // so users can open the product page in a new tab. Plain left
-                // click: take over and navigate in-app via the router.
-                if (e.defaultPrevented) return;
-                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-                e.preventDefault();
-                onViewDetail(selection!);
-              }}
-            >
-              <span className={styles.componentNameText}>{selection!.title}</span>
-            </a>
+            <HoverTooltip body={t('builder.openProductPage')} side="top">
+              <a
+                href={productHref}
+                className={styles.componentNameLink}
+                onClick={e => {
+                  // Let cmd/ctrl/middle/shift-click fall through to the browser
+                  // so users can open the product page in a new tab. Plain left
+                  // click: take over and navigate in-app via the router.
+                  if (e.defaultPrevented) return;
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  onViewDetail(selection!);
+                }}
+              >
+                <span className={styles.componentNameText}>{selection!.title}</span>
+              </a>
+            </HoverTooltip>
           ) : (
             <span className={styles.componentName}>{selection!.title}</span>
           )
@@ -102,15 +104,16 @@ export function BuilderRow({ category, entry, onChoose, onRemove, isOwned, onTog
       <div className={styles.cellPrice}>
         {hasSelection && !isOwned && selection!.bestPrice != null && (
           buyUrl ? (
-            <a
-              href={buyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.componentPriceLink}
-              title={t('builder.buy')}
-            >
-              {formatPrice(selection!.bestPrice)}
-            </a>
+            <HoverTooltip body={t('builder.buy')} side="top">
+              <a
+                href={buyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.componentPriceLink}
+              >
+                {formatPrice(selection!.bestPrice)}
+              </a>
+            </HoverTooltip>
           ) : (
             <span className={styles.componentPrice}>{formatPrice(selection!.bestPrice)}</span>
           )
@@ -132,16 +135,17 @@ export function BuilderRow({ category, entry, onChoose, onRemove, isOwned, onTog
 
         {hasSelection && (
           <div ref={menuRef} className={styles.gearWrap}>
-            <button
-              type="button"
-              className={`${styles.iconBtn} ${menuOpen ? styles.iconBtnActive : ''}`}
-              onClick={() => setMenuOpen(o => !o)}
-              aria-label={t('builder.rowOptions')}
-              aria-expanded={menuOpen}
-              title={t('builder.rowOptions')}
-            >
-              <Settings size={14} />
-            </button>
+            <HoverTooltip body={t('builder.rowOptions')} side="top">
+              <button
+                type="button"
+                className={`${styles.iconBtn} ${menuOpen ? styles.iconBtnActive : ''}`}
+                onClick={() => setMenuOpen(o => !o)}
+                aria-label={t('builder.rowOptions')}
+                aria-expanded={menuOpen}
+              >
+                <Settings size={14} />
+              </button>
+            </HoverTooltip>
             {menuOpen && (
               <div className={styles.gearMenu} role="menu">
                 <label className={styles.gearMenuToggle} role="menuitem">
@@ -158,15 +162,16 @@ export function BuilderRow({ category, entry, onChoose, onRemove, isOwned, onTog
         )}
 
         {hasSelection && (
-          <button
-            type="button"
-            className={styles.iconBtn}
-            onClick={onRemove}
-            aria-label={t('builder.remove')}
-            title={t('builder.remove')}
-          >
-            <X size={14} />
-          </button>
+          <HoverTooltip body={t('builder.remove')} side="top">
+            <button
+              type="button"
+              className={styles.iconBtn}
+              onClick={onRemove}
+              aria-label={t('builder.remove')}
+            >
+              <X size={14} />
+            </button>
+          </HoverTooltip>
         )}
       </div>
     </div>

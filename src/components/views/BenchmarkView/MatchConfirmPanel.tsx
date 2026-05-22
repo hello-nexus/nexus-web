@@ -1,5 +1,6 @@
 import { useTranslation } from '../../../lib/i18n';
 import { ArrowRight } from 'lucide-react';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import type { MatchCandidate, MatchResponse } from '../../../types/benchmark';
 import styles from './BenchmarkView.module.scss';
 
@@ -41,22 +42,23 @@ export function MatchConfirmPanel({ matches, onConfirm }: Props) {
               {r.match ? (
                 <>
                   <div className={styles.matchTitle2}>{r.match.title}</div>
-                  <div
-                    className={`${styles.matchConfidence} ${
-                      r.match.confidence >= 0.75
-                        ? styles.confHigh
+                  <HoverTooltip body={`${Math.round(r.match.confidence * 100)}%`} side="top">
+                    <div
+                      className={`${styles.matchConfidence} ${
+                        r.match.confidence >= 0.75
+                          ? styles.confHigh
+                          : r.match.confidence >= 0.5
+                            ? styles.confMed
+                            : styles.confLow
+                      }`}
+                    >
+                      {r.match.confidence >= 0.75
+                        ? t('benchmark.match.high')
                         : r.match.confidence >= 0.5
-                          ? styles.confMed
-                          : styles.confLow
-                    }`}
-                    title={`${Math.round(r.match.confidence * 100)}%`}
-                  >
-                    {r.match.confidence >= 0.75
-                      ? t('benchmark.match.high')
-                      : r.match.confidence >= 0.5
-                        ? t('benchmark.match.medium')
-                        : t('benchmark.match.low')}
-                  </div>
+                          ? t('benchmark.match.medium')
+                          : t('benchmark.match.low')}
+                    </div>
+                  </HoverTooltip>
                 </>
               ) : (
                 <div className={styles.matchNone}>{t('benchmark.match.none')}</div>

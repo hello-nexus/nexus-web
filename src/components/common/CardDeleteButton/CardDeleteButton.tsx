@@ -1,10 +1,11 @@
 import { X } from 'lucide-react';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './CardDeleteButton.module.scss';
 
 interface CardDeleteButtonProps {
   onDelete: () => void;
   ariaLabel: string;
-  /** Title shown on native tooltip. Defaults to ariaLabel. */
+  /** Tooltip body shown on hover. Defaults to ariaLabel. */
   title?: string;
   /**
    * Hide the button until the parent `.card` is hovered / focused. When false
@@ -27,15 +28,16 @@ export function CardDeleteButton({
   onDelete, ariaLabel, title, revealOnHover = true, className,
 }: CardDeleteButtonProps) {
   return (
-    <button
-      type="button"
-      className={`${styles.root} ${className ?? ''}`}
-      aria-label={ariaLabel}
-      title={title ?? ariaLabel}
-      data-card-delete={revealOnHover ? 'hover' : 'always'}
-      onClick={e => { e.stopPropagation(); onDelete(); }}
-    >
-      <X size={12} strokeWidth={2.5} />
-    </button>
+    <HoverTooltip body={title ?? ariaLabel} side="top">
+      <button
+        type="button"
+        className={`${styles.root} ${className ?? ''}`}
+        aria-label={ariaLabel}
+        data-card-delete={revealOnHover ? 'hover' : 'always'}
+        onClick={e => { e.stopPropagation(); onDelete(); }}
+      >
+        <X size={12} strokeWidth={2.5} />
+      </button>
+    </HoverTooltip>
   );
 }

@@ -189,15 +189,14 @@
 }
 
 .categoryChipActive {
-  color: var(--accent-text);
-  border-color: var(--accent);
-  background: var(--accent);
-  box-shadow: 0 0 6px var(--accent-glow-shadow);
+  color: var(--accent-glow);
+  background: var(--accent-soft);
+  border-color: var(--accent-glow-shadow);
 
   &:hover {
-    color: var(--accent-text);
-    background: var(--accent-glow);
-    border-color: var(--accent-glow);
+    color: var(--accent-glow);
+    background: var(--accent-soft);
+    border-color: var(--accent);
   }
 }
 
@@ -825,7 +824,7 @@
 
 .statusDotOnline {
   background: var(--good);
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--good) 60%, transparent);
 }
 
 .statusDotOffline {
@@ -882,6 +881,14 @@
     .deviceName { color: var(--text-faded); }
     .deviceMeta { opacity: 0.6; }
   }
+}
+
+// Drag-and-drop visuals match the cooling cards: source fades to half, drop
+// target gets the dashed accent outline used by the widget rearrange chrome.
+.deviceCardDragging { opacity: 0.5; }
+.deviceCardDragOver {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
 }
 
 // Second line of the device card: LED count text on the left, action icons

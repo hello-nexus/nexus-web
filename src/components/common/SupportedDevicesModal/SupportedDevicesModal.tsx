@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { useSupportedDevices, type SupportedDevice, type SupportedSource } from '../../../hooks/useSupportedDevices';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { SearchInput } from '../SearchInput/SearchInput';
 import styles from './SupportedDevicesModal.module.scss';
 
@@ -120,10 +121,15 @@ export function SupportedDevicesModal({
 }
 
 function DeviceRow({ device, detected }: { device: SupportedDevice; detected: boolean }) {
+  const { t } = useTranslation();
   return (
     <tr className={detected ? styles.detected : ''}>
       <td className={styles.colStatus}>
-        {detected && <span className={styles.dot} title="connected" />}
+        {detected && (
+          <HoverTooltip body={t('supported.connected')} side="right">
+            <span className={styles.dot} aria-label={t('supported.connected')} />
+          </HoverTooltip>
+        )}
       </td>
       <td className={styles.brand}>{device.vendor}</td>
       <td className={styles.model}>{device.model}</td>

@@ -19,7 +19,7 @@
   // still falls through to the drag strip and the user can drag from
   // there; only the interactive children opt back in.
   position: relative;
-  z-index: 50;
+  z-index: var(--z-sticky);
   pointer-events: none;
 
   > * { pointer-events: auto; }

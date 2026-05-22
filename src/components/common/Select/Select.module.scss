@@ -1,3 +1,5 @@
+@use '../../../styles/interactions' as *;
+
 /* Themed wrapper for native <select>. The wrapper span positions a
    ChevronDown icon on the right edge so the dropdown affordance reads
    at a glance. The native popup still opens on click of the select
@@ -28,8 +30,7 @@
 
   &:focus,
   &:focus-visible {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
+    @include focus-glow-input;
   }
 
   &:disabled {

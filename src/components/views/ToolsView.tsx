@@ -6,16 +6,12 @@ import { ServiceRequired } from './ServiceRequired';
 import { GenericSkeleton } from './PageSkeleton/PageSkeleton';
 import { Card } from '../common/Card/Card';
 import { Button } from '../common/Button/Button';
-// Storybook is a dev-only debug surface and must NOT ship to production.
-// `import.meta.env.DEV` is a compile-time constant that Vite folds to
-// `false` in production; the conditional short-circuits, the lazy()
-// callback never executes, and rolldown drops the dynamic import as
-// dead code so the storybook chunk is omitted from prod builds.
-const StorybookModal = import.meta.env.DEV
-  ? lazy(() =>
-      import('../../storybook/StorybookModal').then(m => ({ default: m.StorybookModal })),
-    )
-  : null;
+// Storybook lives behind the debug Tools page in every build. Lazy so the
+// component-catalog chunk is split out and only fetched when the user
+// actually opens it - the rest of the app loads without paying for it.
+const StorybookModal = lazy(() =>
+  import('../../storybook/StorybookModal').then(m => ({ default: m.StorybookModal })),
+);
 import {
   formatPanelInches,
   getAllSimulatedPanels,
@@ -66,7 +62,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
       <h2 className={styles.title}>{t('tools.title')}</h2>
       <p className={styles.subtitle}>{t('tools.subtitle')}</p>
       <div className={styles.grid}>
-        {import.meta.env.DEV && <StorybookCard />}
+        <StorybookCard />
         <WidgetSdkCard />
         <InstallDefaultsCard />
         <PawnIoCard />
@@ -85,7 +81,7 @@ function StorybookCard() {
     <Card title={t('tools.storybook')}>
       <span className={styles.dim}>{t('tools.storybook.label')}</span>
       <Button tone="accent" size="sm" onClick={() => setOpen(true)}>{t('tools.storybook.open')}</Button>
-      {open && StorybookModal && (
+      {open && (
         <Suspense fallback={null}>
           <StorybookModal open={open} onClose={() => setOpen(false)} />
         </Suspense>

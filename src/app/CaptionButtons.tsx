@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
+import { useTranslation } from '../lib/i18n';
 import { QOS_WINDOW_ACTIONS, postWindowAction } from './windowActions';
 import styles from './CaptionButtons.module.scss';
 
@@ -35,6 +37,7 @@ const Close = () => (
 );
 
 export function CaptionButtons() {
+  const { t } = useTranslation();
   // The maximize <-> restore icon swap tracks the window's zoomed state.
   // We don't get a WebView2-side maximize event, so we infer from the
   // outerHeight delta: a maximized window matches the screen working area
@@ -54,35 +57,39 @@ export function CaptionButtons() {
     return () => window.removeEventListener('resize', measure);
   }, []);
 
+  const maxLabel = maximized ? t('app.window.restore') : t('app.window.maximize');
   return (
     <div className={styles.bar} aria-label="Window controls">
-      <button
-        type="button"
-        className={styles.btn}
-        onClick={() => postWindowAction(QOS_WINDOW_ACTIONS.minimize)}
-        aria-label="Minimize"
-        title="Minimize"
-      >
-        <Minimize />
-      </button>
-      <button
-        type="button"
-        className={styles.btn}
-        onClick={() => postWindowAction(QOS_WINDOW_ACTIONS.toggleMaximize)}
-        aria-label={maximized ? 'Restore' : 'Maximize'}
-        title={maximized ? 'Restore' : 'Maximize'}
-      >
-        {maximized ? <Restore /> : <Maximize />}
-      </button>
-      <button
-        type="button"
-        className={`${styles.btn} ${styles.close}`}
-        onClick={() => postWindowAction(QOS_WINDOW_ACTIONS.close)}
-        aria-label="Close"
-        title="Close"
-      >
-        <Close />
-      </button>
+      <HoverTooltip body={t('app.window.minimize')} side="bottom">
+        <button
+          type="button"
+          className={styles.btn}
+          onClick={() => postWindowAction(QOS_WINDOW_ACTIONS.minimize)}
+          aria-label={t('app.window.minimize')}
+        >
+          <Minimize />
+        </button>
+      </HoverTooltip>
+      <HoverTooltip body={maxLabel} side="bottom">
+        <button
+          type="button"
+          className={styles.btn}
+          onClick={() => postWindowAction(QOS_WINDOW_ACTIONS.toggleMaximize)}
+          aria-label={maxLabel}
+        >
+          {maximized ? <Restore /> : <Maximize />}
+        </button>
+      </HoverTooltip>
+      <HoverTooltip body={t('app.window.close')} side="bottom">
+        <button
+          type="button"
+          className={`${styles.btn} ${styles.close}`}
+          onClick={() => postWindowAction(QOS_WINDOW_ACTIONS.close)}
+          aria-label={t('app.window.close')}
+        >
+          <Close />
+        </button>
+      </HoverTooltip>
     </div>
   );
 }

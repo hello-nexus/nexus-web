@@ -394,12 +394,16 @@ export const CurveCard = memo(function CurveCard({
       <div className={styles.curveCardHeader}>
         <div className={styles.curveCardTitle}>
           {PresetIcon && (
-            <span className={styles.presetGlyph} aria-hidden="true" title={t('cooling.curve.presetLockedTooltip')}>
-              <PresetIcon size={14} />
-            </span>
+            <HoverTooltip body={t('cooling.curve.presetLockedTooltip')} side="bottom">
+              <span className={styles.presetGlyph} aria-hidden="true">
+                <PresetIcon size={14} />
+              </span>
+            </HoverTooltip>
           )}
           {isPreset ? (
-            <span className={styles.presetName} title={t('cooling.curve.presetLockedTooltip')}>{curve.name}</span>
+            <HoverTooltip body={t('cooling.curve.presetLockedTooltip')} side="bottom">
+              <span className={styles.presetName}>{curve.name}</span>
+            </HoverTooltip>
           ) : (
             <EditableText value={curve.name} onCommit={name => set({ name })} className={styles.editableName} />
           )}
@@ -424,22 +428,24 @@ export const CurveCard = memo(function CurveCard({
               );
             })}
           </div>
-          <span
-            className={styles.curveOutBadge}
-            title={t('cooling.curve.output')}
-            aria-label={`${t('cooling.curve.output')} ${output.toFixed(0)}%`}
-          >
-            {output.toFixed(0)}%
-          </span>
+          <HoverTooltip body={t('cooling.curve.output')} side="top">
+            <span
+              className={styles.curveOutBadge}
+              aria-label={`${t('cooling.curve.output')} ${output.toFixed(0)}%`}
+            >
+              {output.toFixed(0)}%
+            </span>
+          </HoverTooltip>
         </div>
 
-        <div
-          ref={nubRef}
-          className={`${styles.curveOutNub}${inUse ? ' ' + styles.nubConnected : ''}`}
-          title={t('cooling.wire.dragHint')}
-          aria-hidden="true"
-          onPointerDown={onWirePointerDown}
-        />
+        <HoverTooltip body={t('cooling.wire.dragHint')} side="top">
+          <div
+            ref={nubRef}
+            className={`${styles.curveOutNub}${inUse ? ' ' + styles.nubConnected : ''}`}
+            aria-hidden="true"
+            onPointerDown={onWirePointerDown}
+          />
+        </HoverTooltip>
       </div>
 
       {expanded && (
@@ -502,20 +508,22 @@ export const CurveCard = memo(function CurveCard({
 
         <div className={styles.curveCardFooterActions}>
           {isPreset && onResetPreset && (
-            <button type="button" className={styles.curveCardResetBtn}
-              onClick={e => { e.stopPropagation(); onResetPreset(); }}
-              disabled={!isPresetCurveDirty(curve)}
-              title={t('cooling.curves.resetToDefaults')}>
-              <RotateCcw size={12} aria-hidden />
-              <span>{t('cooling.curves.resetBtn')}</span>
-            </button>
+            <HoverTooltip body={t('cooling.curves.resetToDefaults')} side="top">
+              <button type="button" className={styles.curveCardResetBtn}
+                onClick={e => { e.stopPropagation(); onResetPreset(); }}
+                disabled={!isPresetCurveDirty(curve)}>
+                <RotateCcw size={12} aria-hidden />
+                <span>{t('cooling.curves.resetBtn')}</span>
+              </button>
+            </HoverTooltip>
           )}
-          <button type="button" className={styles.curveCardRemoveBtn}
-            onClick={e => { e.stopPropagation(); onDelete(); }}
-            title={t('cooling.curves.delete')}>
-            <Trash2 size={12} aria-hidden />
-            <span>{t('cooling.curves.removeBtn')}</span>
-          </button>
+          <HoverTooltip body={t('cooling.curves.delete')} side="top">
+            <button type="button" className={styles.curveCardRemoveBtn}
+              onClick={e => { e.stopPropagation(); onDelete(); }}>
+              <Trash2 size={12} aria-hidden />
+              <span>{t('cooling.curves.removeBtn')}</span>
+            </button>
+          </HoverTooltip>
         </div>
       </div>
       )}

@@ -42,11 +42,11 @@
   fill: #fff;
   stroke: none;
   cursor: grab;
-  filter: drop-shadow(0 0 2.5px rgba(0, 0, 0, 0.65));
-  transition: filter 120ms ease;
+  filter: drop-shadow(0 0 2.5px rgb(0 0 0 / var(--alpha-strong)));
+  transition: filter var(--ease-fast) ease;
 
   &:hover {
-    filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.7));
+    filter: drop-shadow(0 0 4px rgb(0 0 0 / var(--alpha-strong)));
   }
   &:active {
     cursor: grabbing;

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Boxes } from 'lucide-react';
 import { ErrorBoundary } from '../../../components/common/ErrorBoundary/ErrorBoundary';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
+import { useTranslation } from '../../../lib/i18n';
 import { lookupWidget } from '../registry';
 import { sizeToSpan } from '../../engine/grid';
 import { isMarketplaceType } from '../../../widgets/marketplaceRegistry';
@@ -56,6 +58,7 @@ export function WidgetPreviewCard({
   selected,
   onClick,
 }: WidgetPreviewCardProps) {
+  const { t } = useTranslation();
   const def = lookupWidget(widgetType);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(1);
@@ -155,13 +158,14 @@ export function WidgetPreviewCard({
           </div>
         </div>
         {isMarketplace && (
-          <span
-            className={styles.marketplaceBadge}
-            title="Marketplace widget"
-            aria-label="Marketplace widget"
-          >
-            <Boxes size={10} strokeWidth={2} />
-          </span>
+          <HoverTooltip body={t('panel.widget.marketplaceBadge')} side="top">
+            <span
+              className={styles.marketplaceBadge}
+              aria-label={t('panel.widget.marketplaceBadge')}
+            >
+              <Boxes size={10} strokeWidth={2} />
+            </span>
+          </HoverTooltip>
         )}
       </div>
       <WidgetCellLabel label={label} />

@@ -3,6 +3,7 @@ import { Anchor, Download, RotateCcw, Trash2, Upload } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { EditableText } from '../../common/Editable/EditableText';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { PromptModal } from '../../common/PromptModal/PromptModal';
 import { exportProfile, type Preferences, type ProfileCategory } from '../../../api/profiles';
 import { useProfileSharing, type UseProfilesResult } from '../../../hooks/useProfiles';
@@ -215,13 +216,12 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
                 </div>
                 <div className={styles.profileActions} onClick={(e) => e.stopPropagation()}>
                   {isPrimary ? (
-                    <span
-                      className={styles.profileBadgePrimary}
-                      title={t('settings.profiles.sharing.primaryBadgeTooltip')}
-                    >
-                      <Anchor size={11} />
-                      {t('settings.profiles.sharing.primary')}
-                    </span>
+                    <HoverTooltip body={t('settings.profiles.sharing.primaryBadgeTooltip')} side="top">
+                      <span className={styles.profileBadgePrimary}>
+                        <Anchor size={11} />
+                        {t('settings.profiles.sharing.primary')}
+                      </span>
+                    </HoverTooltip>
                   ) : (
                     <Button
                       type="button"

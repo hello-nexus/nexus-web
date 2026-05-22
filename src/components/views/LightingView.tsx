@@ -16,6 +16,7 @@ import type { ConnectionState } from '../../hooks/useServiceStatus';
 import { useTranslation } from '../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../lib/lightingModeIcons';
+import { HoverTooltip } from '../common/HoverTooltip/HoverTooltip';
 import { ViewHeader } from '../common/ViewHeader/ViewHeader';
 import { ServiceRequired } from './ServiceRequired';
 import { LightingSkeleton } from './PageSkeleton/PageSkeleton';
@@ -56,6 +57,26 @@ interface LightingViewProps {
 
 const DEFAULT_POST_PROCESS: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
 
+const RIGHT_PANE_TAB_KEY = 'lighting.rightPaneTab';
+function loadRightPaneTab(): RightPaneTab {
+  try {
+    const v = localStorage.getItem(RIGHT_PANE_TAB_KEY);
+    if (v === 'devices' || v === 'effect') return v;
+  } catch {}
+  return 'effect';
+}
+
+const DEVICE_ORDER_KEY = 'lighting.deviceOrder';
+function loadDeviceOrder(): string[] {
+  try {
+    const raw = localStorage.getItem(DEVICE_ORDER_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.every(v => typeof v === 'string')) return parsed;
+  } catch {}
+  return [];
+}
+
 export function LightingView({ serviceOnline, serviceState, connectionState, activeProfileId }: LightingViewProps) {
   const { t } = useTranslation();
   const { mode, setMode, rawSync, setRawSync, synced } = useLightingSync(serviceOnline, activeProfileId);
@@ -85,12 +106,24 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   // Canvas hides the rectangle for any device whose LEDs are turned off, so
   // "off" reads visually the same as "no frame on canvas" without a separate
-  // hide/show frame toggle.
+  // hide/show frame toggle. Device frames are also hidden entirely when the
+  // right pane is showing the Effect tab - frames are a Devices-tab concern.
+  // Right-pane tab: 'effect' holds the post-process controls for animate /
+  // media / screen; 'devices' is the rescan + zone cards. Persisted across
+  // remounts so returning to the page restores the last selection.
+  const [activeRightTab, setActiveRightTab] = useState<RightPaneTab>(loadRightPaneTab);
+  useEffect(() => {
+    try { localStorage.setItem(RIGHT_PANE_TAB_KEY, activeRightTab); } catch {}
+  }, [activeRightTab]);
   const hiddenFrameIds = useMemo(() => {
     const set = new Set<string>();
+    if (activeRightTab === 'effect') {
+      for (const d of devices) set.add(d.id);
+      return set;
+    }
     for (const d of devices) if (!d.ledsOn) set.add(d.id);
     return set;
-  }, [devices]);
+  }, [devices, activeRightTab]);
 
   // LED map editor - lifted here so both the canvas settings button and the
   // ZoneCard settings button can open it.
@@ -114,9 +147,6 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
   const [musicReactive, setMusicReactiveState] = useState(false);
   const audioRef = useAudioState(musicReactive && mode === 'animate');
 
-  // Right-pane tab: 'devices' is the rescan + zone cards; 'effect' holds
-  // the post-process controls for animate / media / screen.
-  const [activeRightTab, setActiveRightTab] = useState<RightPaneTab>('devices');
   const [effectPulseKey, setEffectPulseKey] = useState(0);
 
   // Screen + Media share an identical post-process shape (hue, colorize,
@@ -572,6 +602,74 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
     setDevices(prev => prev.map(d => d.id === id ? { ...d, ledsOn: nextOn } : d));
   }, []);
 
+  // Device list ordering: HTML5 drag/drop on ZoneCard, persisted to
+  // localStorage. Mirrors the fan-card reorder pattern, but local-only —
+  // device identity is per-machine, not per-profile.
+  const [deviceOrder, setDeviceOrder] = useState<string[]>(loadDeviceOrder);
+  useEffect(() => {
+    try { localStorage.setItem(DEVICE_ORDER_KEY, JSON.stringify(deviceOrder)); } catch {}
+  }, [deviceOrder]);
+  // Reconcile the saved order against the live devices list: drop ids for
+  // devices that no longer exist, append new ones. Without this, the saved
+  // order would accumulate dead ids across USB unplugs / OpenRGB rescans.
+  useEffect(() => {
+    if (devices.length === 0) return;
+    setDeviceOrder(prev => {
+      const ids = devices.map(d => d.id);
+      const kept = prev.filter(id => ids.includes(id));
+      for (const id of ids) if (!kept.includes(id)) kept.push(id);
+      return kept.length === prev.length && kept.every((id, i) => id === prev[i]) ? prev : kept;
+    });
+  }, [devices]);
+  const orderedDevices = useMemo(() => {
+    if (devices.length === 0) return devices;
+    if (deviceOrder.length === 0) return devices;
+    const byId = new Map(devices.map(d => [d.id, d]));
+    const out: LightingDevice[] = [];
+    const seen = new Set<string>();
+    for (const id of deviceOrder) {
+      const d = byId.get(id);
+      if (d) { out.push(d); seen.add(id); }
+    }
+    for (const d of devices) if (!seen.has(d.id)) out.push(d);
+    return out;
+  }, [devices, deviceOrder]);
+  const [dragDeviceId, setDragDeviceId] = useState<string | null>(null);
+  const [dragOverDeviceId, setDragOverDeviceId] = useState<string | null>(null);
+  const dropDeviceOn = useCallback((targetId: string) => {
+    if (!dragDeviceId || dragDeviceId === targetId) return;
+    setDeviceOrder(prev => {
+      // Seed the persisted order from the current rendered order so the
+      // first drop captures the natural service order before splicing.
+      const base = prev.length > 0
+        ? prev.filter(id => orderedDevices.some(d => d.id === id))
+        : orderedDevices.map(d => d.id);
+      const fromIdx = base.indexOf(dragDeviceId);
+      const toIdx = base.indexOf(targetId);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      const next = base.slice();
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      return next;
+    });
+  }, [dragDeviceId, orderedDevices]);
+  const dragForDevice = useCallback((id: string) => ({
+    isDragging: dragDeviceId === id,
+    isDragOver: dragOverDeviceId === id && dragDeviceId !== id,
+    onDragStart: () => setDragDeviceId(id),
+    onDragOver: () => setDragOverDeviceId(id),
+    onDragLeave: () => setDragOverDeviceId(null),
+    onDrop: () => {
+      dropDeviceOn(id);
+      setDragDeviceId(null);
+      setDragOverDeviceId(null);
+    },
+    onDragEnd: () => {
+      setDragDeviceId(null);
+      setDragOverDeviceId(null);
+    },
+  }), [dragDeviceId, dragOverDeviceId, dropDeviceOn]);
+
   const usb = useUsbDevices(serviceOnline);
   const detectedVidPids = useMemo(() => {
     const set = new Set<string>();
@@ -698,24 +796,28 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
             {mode === 'animate' && activeEffect && currentState && (
               <>
                 {EFFECTS.find(e => e.key === activeEffect)?.audio && (
-                  <button
-                    type="button"
-                    className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
-                    onClick={handleMusicReactiveToggle}
-                    title={t('lighting.musicReactive')}
-                  >
+                  <HoverTooltip body={t('lighting.musicReactive')} side="left">
+                    <button
+                      type="button"
+                      className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
+                      onClick={handleMusicReactiveToggle}
+                      aria-label={t('lighting.musicReactive')}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />
+                        <circle cx="10.5" cy="9.5" r="1.5" />
+                      </svg>
+                    </button>
+                  </HoverTooltip>
+                )}
+                <HoverTooltip body={t('lighting.fullscreen')} side="left">
+                  <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />
-                      <circle cx="10.5" cy="9.5" r="1.5" />
+                      <polyline points="9,1 13,1 13,5" /><polyline points="5,13 1,13 1,9" />
+                      <line x1="13" y1="1" x2="8.5" y2="5.5" /><line x1="1" y1="13" x2="5.5" y2="8.5" />
                     </svg>
                   </button>
-                )}
-                <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} title={t('lighting.fullscreen')}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9,1 13,1 13,5" /><polyline points="5,13 1,13 1,9" />
-                    <line x1="13" y1="1" x2="8.5" y2="5.5" /><line x1="1" y1="13" x2="5.5" y2="8.5" />
-                  </svg>
-                </button>
+                </HoverTooltip>
               </>
             )}
           </div>
@@ -745,12 +847,13 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
           {activeRightTab === 'devices' ? (
             <>
               <DevicePanel
-                devices={devices}
+                devices={orderedDevices}
                 selectedDeviceId={selectedDeviceId}
                 onSelectDevice={handleSelectDevice}
                 onTogglePower={handleTogglePower}
                 lightingOff={mode === 'none'}
                 onOpenSettings={handleOpenSettings}
+                dragFor={dragForDevice}
               />
               {mode !== 'none' && (
                 <RescanDevicesButton rgbRunning={rgb.running} scanning={rgb.scanning} />

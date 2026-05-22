@@ -1,10 +1,22 @@
+import { useRef } from 'react';
 import { Settings, Power, Eye } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
 } from '../../../api/lighting';
 import { useTranslation } from '../../../lib/i18n';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import styles from '../LightingView.module.scss';
+
+export interface ZoneCardDrag {
+  isDragging: boolean;
+  isDragOver: boolean;
+  onDragStart: () => void;
+  onDragOver: () => void;
+  onDragLeave: () => void;
+  onDrop: () => void;
+  onDragEnd: () => void;
+}
 
 /**
  * One card for either a whole OpenRGB device or a motherboard ARGB zone. The
@@ -21,6 +33,7 @@ export function ZoneCard({
   onSelect,
   onTogglePower,
   onOpenSettings,
+  drag,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -31,6 +44,8 @@ export function ZoneCard({
   onSelect: () => void;
   onTogglePower: () => void;
   onOpenSettings: () => void;
+  /** Optional HTML5 drag/drop wiring for reorderable lists. */
+  drag?: ZoneCardDrag;
 }) {
   const { t } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
@@ -49,15 +64,36 @@ export function ZoneCard({
 
   const ledLabel = device.ledCount === 1 ? 'LED' : 'LEDs';
 
+  const cardRef = useRef<HTMLDivElement>(null);
+  const interactiveSelector = 'button, input, select, textarea, [role="button"], [role="switch"]';
+
   return (
     <div
+      ref={cardRef}
       className={[
         styles.deviceCard,
         selected ? styles.deviceCardSelected : '',
         unavailable ? styles.deviceCardUnavailable : '',
         !unavailable && !device.ledsOn ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
+        drag?.isDragging ? styles.deviceCardDragging : '',
+        drag?.isDragOver ? styles.deviceCardDragOver : '',
       ].filter(Boolean).join(' ')}
+      draggable={!!drag && !unavailable}
+      onMouseDownCapture={drag ? (e) => {
+        const target = e.target as HTMLElement;
+        const interactive = !!target.closest(interactiveSelector);
+        if (cardRef.current) cardRef.current.draggable = !unavailable && !interactive;
+      } : undefined}
+      onDragStart={drag ? (e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest(interactiveSelector)) { e.preventDefault(); return; }
+        drag.onDragStart();
+      } : undefined}
+      onDragOver={drag ? (e) => { e.preventDefault(); drag.onDragOver(); } : undefined}
+      onDragLeave={drag ? drag.onDragLeave : undefined}
+      onDrop={drag ? drag.onDrop : undefined}
+      onDragEnd={drag ? drag.onDragEnd : undefined}
       onClick={() => { if (!unavailable) onSelect(); }}
       title={unavailable ? t('lighting.devices.detectionFailedTooltip') : undefined}
     >
@@ -68,12 +104,11 @@ export function ZoneCard({
             {t('lighting.devices.detectionFailed')}
           </span>
         ) : isZone && device.zoneType === 'single' && !resizable ? (
-          <span
-            className={styles.deviceMeta}
-            title={t('lighting.devices.zoneFixedTooltip')}
-          >
-            {t('lighting.devices.zoneFixed')}
-          </span>
+          <HoverTooltip body={t('lighting.devices.zoneFixedTooltip')} side="top">
+            <span className={styles.deviceMeta}>
+              {t('lighting.devices.zoneFixed')}
+            </span>
+          </HoverTooltip>
         ) : (
           <span className={styles.deviceMeta}>
             <span className={styles.deviceMetaCount}>{device.ledCount}</span> {ledLabel}
@@ -83,37 +118,40 @@ export function ZoneCard({
           <div className={styles.deviceCardActions}>
             {device.ledCount > 0 && (
               <>
-                <button
-                  type="button"
-                  className={styles.deviceSettingsBtn}
-                  title={t('lighting.devices.identify')}
-                  aria-label={t('lighting.devices.identify')}
-                  onClick={handleIdentify}
-                >
-                  <Eye />
-                </button>
-                <button
-                  type="button"
-                  className={styles.deviceSettingsBtn}
-                  title={t('lighting.ledMap.settings')}
-                  aria-label={t('lighting.ledMap.settings')}
-                  onClick={e => { e.stopPropagation(); onOpenSettings(); }}
-                >
-                  <Settings />
-                </button>
+                <HoverTooltip body={t('lighting.devices.identify')} side="top">
+                  <button
+                    type="button"
+                    className={styles.deviceSettingsBtn}
+                    aria-label={t('lighting.devices.identify')}
+                    onClick={handleIdentify}
+                  >
+                    <Eye />
+                  </button>
+                </HoverTooltip>
+                <HoverTooltip body={t('lighting.ledMap.settings')} side="top">
+                  <button
+                    type="button"
+                    className={styles.deviceSettingsBtn}
+                    aria-label={t('lighting.ledMap.settings')}
+                    onClick={e => { e.stopPropagation(); onOpenSettings(); }}
+                  >
+                    <Settings />
+                  </button>
+                </HoverTooltip>
               </>
             )}
+            <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
             <button
               type="button"
               role="switch"
               aria-checked={device.ledsOn}
               className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
-              title={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
               aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
               onClick={e => { e.stopPropagation(); onTogglePower(); }}
             >
               <Power />
             </button>
+            </HoverTooltip>
           </div>
         )}
       </div>

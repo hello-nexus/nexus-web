@@ -15,6 +15,8 @@ import {
   type SteamRecentGame,
   type SteamStatusResponse,
 } from '../../../api/steam';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
+import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import {
   PanelStatusDot,
@@ -32,6 +34,7 @@ const PROFILE_POLL_MS = 5_000;
 const LISTS_POLL_MS = 30_000;
 
 export function SteamWidget({ widget, onConfigure }: WidgetProps) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<SteamStatusResponse | null>(null);
   const [profile, setProfile] = useState<SteamPlayerSummary | null>(null);
   const [level, setLevel] = useState<number | null>(null);
@@ -160,32 +163,32 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
       </header>
 
       <PanelWidgetTabs ariaLabel="Steam widget views" compact={compact}>
-        <PanelWidgetTab active={activeTab === 'activity'} onClick={() => setActiveTab('activity')} icon={<Gamepad2 size={14} />} label="Activity" />
-        <PanelWidgetTab active={activeTab === 'playing'} onClick={() => setActiveTab('playing')} icon={<Play size={14} />} label="Playing" />
-        <PanelWidgetTab active={activeTab === 'friends'} onClick={() => setActiveTab('friends')} icon={<Users size={14} />} label="Friends" />
+        <PanelWidgetTab active={activeTab === 'activity'} onClick={() => setActiveTab('activity')} icon={<Gamepad2 size={14} />} label="Activity" tooltip="Activity" />
+        <PanelWidgetTab active={activeTab === 'playing'} onClick={() => setActiveTab('playing')} icon={<Play size={14} />} label="Playing" tooltip="Playing" />
+        <PanelWidgetTab active={activeTab === 'friends'} onClick={() => setActiveTab('friends')} icon={<Users size={14} />} label="Friends" tooltip="Friends" />
       </PanelWidgetTabs>
 
       <main className={styles.content}>
         {activeTab === 'activity' && (
           <div className={styles.list}>
             {visibleRecent.length > 0 ? visibleRecent.map(game => (
-              <button
-                key={game.appId}
-                type="button"
-                className={styles.gameRow}
-                onClick={() => { void launchSteam(game.appId); }}
-                title={`Launch ${game.name}`}
-              >
-                {game.iconHash ? (
-                  <img className={styles.gameIcon} src={steamIconUrl(game.appId, game.iconHash)} alt="" />
-                ) : (
-                  <span className={styles.gameIconFallback} />
-                )}
-                <span className={styles.rowTitle}>{game.name}</span>
-                <span className={styles.rowMeta}>{formatMinutes(game.playtime2Weeks)}</span>
-              </button>
+              <HoverTooltip key={game.appId} body={t('panel.steam.launch', { name: game.name })} side="top">
+                <button
+                  type="button"
+                  className={styles.gameRow}
+                  onClick={() => { void launchSteam(game.appId); }}
+                >
+                  {game.iconHash ? (
+                    <img className={styles.gameIcon} src={steamIconUrl(game.appId, game.iconHash)} alt="" />
+                  ) : (
+                    <span className={styles.gameIconFallback} />
+                  )}
+                  <span className={styles.rowTitle}>{game.name}</span>
+                  <span className={styles.rowMeta}>{formatMinutes(game.playtime2Weeks)}</span>
+                </button>
+              </HoverTooltip>
             )) : (
-              <PanelWidgetEmpty icon={<Gamepad2 size={22} />} title="No recent games" />
+              <PanelWidgetEmpty icon={<Gamepad2 size={22} />} title={t('panel.steam.empty')} />
             )}
           </div>
         )}
@@ -193,11 +196,11 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
         {activeTab === 'playing' && (
           currentGame ? (
             <div className={styles.playing}>
+              <HoverTooltip body={t('panel.steam.launch', { name: currentGame.name })} side="top">
               <button
                 type="button"
                 className={styles.bannerWrap}
                 onClick={() => { void launchSteam(currentGame.appId); }}
-                title={`Launch ${currentGame.name}`}
               >
                 {bannerError ? (
                   <div className={styles.bannerFallback} />
@@ -210,6 +213,7 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
                   />
                 )}
               </button>
+              </HoverTooltip>
               <div className={styles.playingName}>{currentGame.name}</div>
               <div className={styles.stats}>
                 <Stat label="Total" value={formatMinutes(ownedGames.find(g => g.appId === currentGame.appId)?.playtimeForever ?? 0)} />

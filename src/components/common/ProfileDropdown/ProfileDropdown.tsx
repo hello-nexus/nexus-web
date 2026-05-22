@@ -124,7 +124,7 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
   return (
     <div className={classNames(styles.wrapper, { [styles.wrapperCompact]: compact })} ref={ref}>
       {compact ? (
-        <HoverTooltip body={displayName} side="right" className={styles.triggerTooltipWrap}>
+        <HoverTooltip body={displayName} side="right">
           {triggerButton}
         </HoverTooltip>
       ) : triggerButton}

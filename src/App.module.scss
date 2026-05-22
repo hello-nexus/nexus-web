@@ -216,7 +216,12 @@
   flex-direction: column;
   width: 200px;
   background: var(--bg-elevated);
-  padding: 0 0 0.75rem;
+  // 8px top gutter nudges the Nexus logo into rough vertical alignment
+  // with the page title bar in the web/browser version. The Windows
+  // --app shell overrides this below with a 6px nudge — there the page
+  // title floats inside the 32px drag strip, so a much smaller offset
+  // keeps the brand row visually aligned with it.
+  padding: 8px 0 0.75rem;
   flex-shrink: 0;
   transition: width var(--ease);
 }
@@ -370,36 +375,42 @@
 
 // ── Not-connected badge (offline state of the sidebar header slot) ───────
 
+// Layout mirrors ProfileDropdown's .trigger so the offline state reads as
+// "DISCONNECT ICON [Not Connected]" with the same padding, gap, and font
+// the connected profile uses. Without the padding the icon hugs the left
+// edge of the bordered .sidebarHeaderBox and clips.
 .notConnected {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.45rem;
-  min-height: 32px;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.35rem 0.55rem;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  color: var(--text-dim);
   white-space: nowrap;
 }
 
 .notConnectedCompact {
   justify-content: center;
-  align-self: center;
-  width: 100%;
+  padding: 0.25rem 0;
 }
 
-.notConnectedDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--bad);
+.notConnectedIcon {
+  color: var(--bad);
   flex-shrink: 0;
 }
 
-.notConnectedDotChecking {
-  background: var(--warn);
+.notConnectedIconChecking {
+  color: var(--warn);
   animation: pulse 1.4s ease-in-out infinite;
 }
 
 .notConnectedLabel {
-  @include text-button;
-  color: var(--text-dim);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 // One-shot fade/slide-in for the profile dropdown when the service comes
@@ -614,21 +625,21 @@
   // Killswitch ON, devices connected.
   &[data-state='connected'] {
     background: var(--good);
-    box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 8px color-mix(in srgb, var(--good) 60%, transparent);
   }
 
   // Killswitch OFF, paired devices preserved but unreachable. Amber signals
   // "system is intentionally locked" without using the same red as errors.
   &[data-state='paired'] {
-    background: #f59e0b;
-    box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(245, 158, 11, 0.55);
+    background: var(--warn);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 8px color-mix(in srgb, var(--warn) 55%, transparent);
   }
 }
 
 // Legacy class kept for any consumer still toggling .phonePairDotOn.
 .phonePairDotOn {
   background: var(--good);
-  box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 8px color-mix(in srgb, var(--good) 60%, transparent);
 }
 
 .phonePairState {

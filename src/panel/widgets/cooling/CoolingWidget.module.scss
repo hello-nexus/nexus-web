@@ -1,3 +1,5 @@
+@use '../../../styles/interactions' as *;
+
 .cooling {
   display: flex;
   flex-direction: column;
@@ -32,6 +34,8 @@
   letter-spacing: 0.02em;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+
+  @include widget-button-hover;
 
   svg {
     width: 15px;

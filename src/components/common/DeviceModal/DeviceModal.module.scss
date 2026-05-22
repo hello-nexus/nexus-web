@@ -1,5 +1,6 @@
 @use '../../../styles/scrollbar' as *;
 @use '../../../styles/text' as *;
+@use '../../../styles/interactions' as *;
 
 .modal {
   background: var(--bg-elevated);
@@ -11,7 +12,7 @@
   flex-direction: column;
   overflow: hidden;
   box-shadow: var(--shadow-xl);
-  transition: width 250ms ease;
+  transition: width var(--ease-slow) ease;
 }
 
 .modalWide {
@@ -98,15 +99,17 @@
 // Floating-close-button variant used by fullscreen modals. Portaled to
 // <body> with its own root-level stacking so it wins the hit-test over
 // the Windows-shell caption buttons (z-index 2003) and drag strip
-// (z-index 2000). Positioned right of the 138px caption-button gutter
-// with a small breathing gap.
+// (z-index 2000). Sits on the same 32px baseline as the caption buttons
+// (top:0, height:32px) and immediately left of the 138px caption gutter
+// with an 8px breathing gap. Square 32x32 to match the standard .closeBtn
+// dimensions; rendered borderless / flat so it reads as a sibling of the
+// Win11 caption row rather than a chrome island.
 .closeBtnFloating {
   position: fixed;
   top: 0;
-  right: 146px;
-  width: 2rem;
-  height: 2rem;
-  margin-top: 4px;
+  right: calc(138px + 8px);
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: var(--radius);
   background: none;
@@ -116,7 +119,7 @@
   align-items: center;
   justify-content: center;
   transition: background var(--ease);
-  z-index: 2500;
+  z-index: var(--z-fullscreen);
 
   &:hover { background: var(--bg-card-hover); color: var(--text); }
 }
@@ -170,5 +173,7 @@
   font-size: var(--type-small);
   cursor: pointer;
 
-  &:focus { outline: 2px solid var(--accent-soft); }
+  &:focus-visible {
+    @include focus-glow-input;
+  }
 }

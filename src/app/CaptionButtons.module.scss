@@ -37,15 +37,15 @@
   transition: background-color 100ms ease;
 
   &:hover {
-    // Win11 dark-mode caption button hover: rgba(255,255,255,0.06).
-    // Light-mode would use rgba(0,0,0,0.0466) - the app is currently
-    // dark-mode-dominant, so the dark token wins. If light mode lands as
-    // a real surface, switch to a CSS var driven by prefers-color-scheme.
-    background: rgba(255, 255, 255, 0.06);
+    // Theme-aware Win11 caption hover tint. --text resolves to off-white in
+    // dark theme and near-black in light theme; mixing it at low alpha gives
+    // a subtle highlight in both. Matches Win11 dark (~6% white) and light
+    // (~5% black) caption button rest-on-hover.
+    background: color-mix(in srgb, var(--text) 8%, transparent);
   }
 
   &:active {
-    background: rgba(255, 255, 255, 0.04);
+    background: color-mix(in srgb, var(--text) 5%, transparent);
   }
 
   svg {

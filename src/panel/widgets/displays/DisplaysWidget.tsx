@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sun, Monitor } from 'lucide-react';
 import { fetchDisplays, fetchDisplayBrightness, setDisplayBrightness, type Display } from '../../../api/displays';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { PanelMixerSlider } from '../common/PanelMixerSlider';
 import type { WidgetProps } from '../types';
 import styles from './DisplaysWidget.module.scss';
@@ -205,11 +206,12 @@ function DisplayBrightnessSlider({
 }) {
   const supports = supportsBrightness(display);
   const off = brightness <= 0;
+  const tooltipBody = error || display.brightnessControl?.unsupportedReason || display.name;
   return (
+    <HoverTooltip body={tooltipBody} side="top">
     <div
       className={styles.sliderCell}
       data-supports={supports ? 'true' : 'false'}
-      title={error || display.brightnessControl?.unsupportedReason || display.name}
     >
       <PanelMixerSlider
         min={0}
@@ -232,6 +234,7 @@ function DisplayBrightnessSlider({
         className={styles.displaySlider}
       />
     </div>
+    </HoverTooltip>
   );
 }
 

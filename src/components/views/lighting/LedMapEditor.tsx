@@ -11,6 +11,7 @@ import {
 import { useTranslation } from '../../../lib/i18n';
 import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { Slider } from '../../common/Slider/Slider';
 import { useThrottle } from '../../../hooks/cadence';
 import styles from './LedMapEditor.module.scss';
@@ -1289,43 +1290,50 @@ export function LedMapEditor({ device, onClose }: Props) {
               <span className={styles.brightnessValue}>{brightness}%</span>
             </div>
             <div className={styles.spacer} />
-            <button
-              type="button"
-              className={styles.iconBtn}
-              onClick={handleSelectAll}
-              title={`${t('lighting.ledMap.selectAll')} (${isMac ? 'Cmd' : 'Ctrl'}+A)`}
-              aria-label={t('lighting.ledMap.selectAll')}
-            >
-              <CheckSquare size={15} />
-            </button>
-            <button
-              type="button"
-              className={styles.iconBtn}
-              onClick={() => setSelected(new Set())}
-              disabled={selected.size === 0}
-              title={`${t('lighting.ledMap.selectNone')} (Esc)`}
-              aria-label={t('lighting.ledMap.selectNone')}
-            >
-              <Square size={15} />
-            </button>
-            {hasDisabled && (
+            <HoverTooltip body={`${t('lighting.ledMap.selectAll')} (${isMac ? 'Cmd' : 'Ctrl'}+A)`} side="bottom">
               <button
                 type="button"
                 className={styles.iconBtn}
-                onClick={handleRestoreAll}
-                title={t('lighting.ledMap.restoreAll')}
-                aria-label={t('lighting.ledMap.restoreAll')}
+                onClick={handleSelectAll}
+                aria-label={t('lighting.ledMap.selectAll')}
               >
-                <RotateCcw size={15} />
+                <CheckSquare size={15} />
               </button>
+            </HoverTooltip>
+            <HoverTooltip body={`${t('lighting.ledMap.selectNone')} (Esc)`} side="bottom">
+              <button
+                type="button"
+                className={styles.iconBtn}
+                onClick={() => setSelected(new Set())}
+                disabled={selected.size === 0}
+                aria-label={t('lighting.ledMap.selectNone')}
+              >
+                <Square size={15} />
+              </button>
+            </HoverTooltip>
+            {hasDisabled && (
+              <HoverTooltip body={t('lighting.ledMap.restoreAll')} side="bottom">
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  onClick={handleRestoreAll}
+                  aria-label={t('lighting.ledMap.restoreAll')}
+                >
+                  <RotateCcw size={15} />
+                </button>
+              </HoverTooltip>
             )}
             <div className={styles.separator} />
-            <button type="button" className={styles.iconBtn} onClick={handleUndo} disabled={undoLen === 0} title={`${t('lighting.ledMap.undo')} (${isMac ? 'Cmd' : 'Ctrl'}+Z)`}>
-              <Undo2 size={15} />
-            </button>
-            <button type="button" className={styles.iconBtn} onClick={handleRedo} disabled={redoLen === 0} title={`${t('lighting.ledMap.redo')} (${isMac ? 'Cmd' : 'Ctrl'}+Shift+Z)`}>
-              <Redo2 size={15} />
-            </button>
+            <HoverTooltip body={`${t('lighting.ledMap.undo')} (${isMac ? 'Cmd' : 'Ctrl'}+Z)`} side="bottom">
+              <button type="button" className={styles.iconBtn} onClick={handleUndo} disabled={undoLen === 0} aria-label={t('lighting.ledMap.undo')}>
+                <Undo2 size={15} />
+              </button>
+            </HoverTooltip>
+            <HoverTooltip body={`${t('lighting.ledMap.redo')} (${isMac ? 'Cmd' : 'Ctrl'}+Shift+Z)`} side="bottom">
+              <button type="button" className={styles.iconBtn} onClick={handleRedo} disabled={redoLen === 0} aria-label={t('lighting.ledMap.redo')}>
+                <Redo2 size={15} />
+              </button>
+            </HoverTooltip>
             <button type="button" className={styles.btn} onClick={handleReset}>
               {t('lighting.ledMap.reset')}
             </button>
@@ -1442,84 +1450,92 @@ export function LedMapEditor({ device, onClose }: Props) {
               >
                 {selectionCanvasBounds && (
                   <>
-                    <button
-                      type="button"
-                      className={styles.selectionBtn}
-                      onClick={handleAlignHorizontal}
-                      title={t('lighting.ledMap.alignHorizontal')}
-                      aria-label={t('lighting.ledMap.alignHorizontal')}
-                    >
-                      <AlignHorizontalDistributeCenter size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.selectionBtn}
-                      onClick={handleAlignGrid}
-                      title={t('lighting.ledMap.alignGrid')}
-                      aria-label={t('lighting.ledMap.alignGrid')}
-                    >
-                      <Grid3x3 size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.selectionBtn}
-                      onClick={handleRotate90}
-                      title={t('lighting.ledMap.rotate90')}
-                      aria-label={t('lighting.ledMap.rotate90')}
-                    >
-                      <RotateCw size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.selectionBtn}
-                      onClick={handleFlipH}
-                      title={t('lighting.ledMap.flipH')}
-                      aria-label={t('lighting.ledMap.flipH')}
-                    >
-                      <FlipHorizontal2 size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.selectionBtn}
-                      onClick={handleFlipV}
-                      title={t('lighting.ledMap.flipV')}
-                      aria-label={t('lighting.ledMap.flipV')}
-                    >
-                      <FlipVertical2 size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.selectionBtn}
-                      onClick={handleResetSelected}
-                      title={t('lighting.ledMap.resetSelected')}
-                      aria-label={t('lighting.ledMap.resetSelected')}
-                    >
-                      <RotateCcw size={14} />
-                    </button>
+                    <HoverTooltip body={t('lighting.ledMap.alignHorizontal')} side="top">
+                      <button
+                        type="button"
+                        className={styles.selectionBtn}
+                        onClick={handleAlignHorizontal}
+                        aria-label={t('lighting.ledMap.alignHorizontal')}
+                      >
+                        <AlignHorizontalDistributeCenter size={14} />
+                      </button>
+                    </HoverTooltip>
+                    <HoverTooltip body={t('lighting.ledMap.alignGrid')} side="top">
+                      <button
+                        type="button"
+                        className={styles.selectionBtn}
+                        onClick={handleAlignGrid}
+                        aria-label={t('lighting.ledMap.alignGrid')}
+                      >
+                        <Grid3x3 size={14} />
+                      </button>
+                    </HoverTooltip>
+                    <HoverTooltip body={t('lighting.ledMap.rotate90')} side="top">
+                      <button
+                        type="button"
+                        className={styles.selectionBtn}
+                        onClick={handleRotate90}
+                        aria-label={t('lighting.ledMap.rotate90')}
+                      >
+                        <RotateCw size={14} />
+                      </button>
+                    </HoverTooltip>
+                    <HoverTooltip body={t('lighting.ledMap.flipH')} side="top">
+                      <button
+                        type="button"
+                        className={styles.selectionBtn}
+                        onClick={handleFlipH}
+                        aria-label={t('lighting.ledMap.flipH')}
+                      >
+                        <FlipHorizontal2 size={14} />
+                      </button>
+                    </HoverTooltip>
+                    <HoverTooltip body={t('lighting.ledMap.flipV')} side="top">
+                      <button
+                        type="button"
+                        className={styles.selectionBtn}
+                        onClick={handleFlipV}
+                        aria-label={t('lighting.ledMap.flipV')}
+                      >
+                        <FlipVertical2 size={14} />
+                      </button>
+                    </HoverTooltip>
+                    <HoverTooltip body={t('lighting.ledMap.resetSelected')} side="top">
+                      <button
+                        type="button"
+                        className={styles.selectionBtn}
+                        onClick={handleResetSelected}
+                        aria-label={t('lighting.ledMap.resetSelected')}
+                      >
+                        <RotateCcw size={14} />
+                      </button>
+                    </HoverTooltip>
                     <div className={styles.selectionBtnSeparator} />
                   </>
                 )}
                 {hasEnabledSelected && (
-                  <button
-                    type="button"
-                    className={`${styles.selectionBtn} ${styles.selectionBtnDanger}`}
-                    onClick={handleDeleteSelected}
-                    title={`${t('lighting.ledMap.delete')} (Del)`}
-                    aria-label={t('lighting.ledMap.delete')}
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <HoverTooltip body={`${t('lighting.ledMap.delete')} (Del)`} side="top">
+                    <button
+                      type="button"
+                      className={`${styles.selectionBtn} ${styles.selectionBtnDanger}`}
+                      onClick={handleDeleteSelected}
+                      aria-label={t('lighting.ledMap.delete')}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </HoverTooltip>
                 )}
                 {hasDisabledSelected && (
-                  <button
-                    type="button"
-                    className={styles.selectionBtn}
-                    onClick={handleRestoreSelected}
-                    title={t('lighting.ledMap.restore')}
-                    aria-label={t('lighting.ledMap.restore')}
-                  >
-                    <RotateCcw size={14} />
-                  </button>
+                  <HoverTooltip body={t('lighting.ledMap.restore')} side="top">
+                    <button
+                      type="button"
+                      className={styles.selectionBtn}
+                      onClick={handleRestoreSelected}
+                      aria-label={t('lighting.ledMap.restore')}
+                    >
+                      <RotateCcw size={14} />
+                    </button>
+                  </HoverTooltip>
                 )}
               </div>
             )}

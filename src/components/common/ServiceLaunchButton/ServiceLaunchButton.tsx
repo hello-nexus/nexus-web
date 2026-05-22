@@ -2,6 +2,7 @@ import { Loader2, ShieldCheck } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../../lib/i18n';
 import { triggerLaunch, useLaunchState } from '../../../hooks/useServiceLaunch';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './ServiceLaunchButton.module.scss';
 
 interface ServiceLaunchButtonProps {
@@ -16,13 +17,12 @@ export function ServiceLaunchButton({ className, iconOnly = false }: ServiceLaun
   const launching = useLaunchState();
   const label = t('status.launch');
   const launchingLabel = t('status.launching');
-  return (
+  const btn = (
     <button
       type="button"
       className={classNames(styles.button, { [styles.buttonIconOnly]: iconOnly }, className)}
       onClick={triggerLaunch}
       disabled={launching}
-      title={iconOnly ? (launching ? launchingLabel : label) : undefined}
       aria-label={launching ? launchingLabel : label}
     >
       <span className={classNames(styles.icon, { [styles.iconSpin]: launching })}>
@@ -33,4 +33,7 @@ export function ServiceLaunchButton({ className, iconOnly = false }: ServiceLaun
       )}
     </button>
   );
+  return iconOnly
+    ? <HoverTooltip body={launching ? launchingLabel : label} side="right">{btn}</HoverTooltip>
+    : btn;
 }

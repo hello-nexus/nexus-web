@@ -3,6 +3,7 @@ import { Smartphone, LogOut } from 'lucide-react';
 import classNames from 'classnames';
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
+import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { Tabs, type TabDef } from '../components/common/Tabs/Tabs';
 import { EditableText } from '../components/common/Editable/EditableText';
 import { Toggle } from '../components/common/Toggle/Toggle';
@@ -460,24 +461,37 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                             <span className={styles.phonePairSessionSaving}>{t('phonePair.saving')}</span>
                           )}
                         </div>
-                        <div className={styles.phonePairSessionMeta} title={session.userAgent || undefined}>
-                          {showDeviceType && <span>{deviceType}</span>}
-                          <span>{t('phonePair.lastSeen', { time: formatRelativeTime(session.lastSeenAt, sessionNow, t) })}</span>
-                          <span>{t('phonePair.pairedAt', { time: formatDateTime(session.createdAt, t) })}</span>
-                          <span>{t('phonePair.authorizedDuration', { duration: formatElapsedTime(session.createdAt, sessionNow, t) })}</span>
-                          <span>{session.remoteAddress || t('phonePair.unknownIp')}</span>
-                        </div>
+                        {session.userAgent ? (
+                          <HoverTooltip body={session.userAgent} side="bottom">
+                            <div className={styles.phonePairSessionMeta}>
+                              {showDeviceType && <span>{deviceType}</span>}
+                              <span>{t('phonePair.lastSeen', { time: formatRelativeTime(session.lastSeenAt, sessionNow, t) })}</span>
+                              <span>{t('phonePair.pairedAt', { time: formatDateTime(session.createdAt, t) })}</span>
+                              <span>{t('phonePair.authorizedDuration', { duration: formatElapsedTime(session.createdAt, sessionNow, t) })}</span>
+                              <span>{session.remoteAddress || t('phonePair.unknownIp')}</span>
+                            </div>
+                          </HoverTooltip>
+                        ) : (
+                          <div className={styles.phonePairSessionMeta}>
+                            {showDeviceType && <span>{deviceType}</span>}
+                            <span>{t('phonePair.lastSeen', { time: formatRelativeTime(session.lastSeenAt, sessionNow, t) })}</span>
+                            <span>{t('phonePair.pairedAt', { time: formatDateTime(session.createdAt, t) })}</span>
+                            <span>{t('phonePair.authorizedDuration', { duration: formatElapsedTime(session.createdAt, sessionNow, t) })}</span>
+                            <span>{session.remoteAddress || t('phonePair.unknownIp')}</span>
+                          </div>
+                        )}
                       </div>
-                      <button
-                        type="button"
-                        className={classNames(styles.phonePairRevoke, styles.phonePairSessionRevoke)}
-                        disabled={revokingId === session.id}
-                        onClick={() => revokeSession(session.id)}
-                        aria-label={t('phonePair.removeSession', { name: sessionName })}
-                        title={t('phonePair.removeSession', { name: sessionName })}
-                      >
-                        <LogOut size={14} />
-                      </button>
+                      <HoverTooltip body={t('phonePair.removeSession', { name: sessionName })} side="left">
+                        <button
+                          type="button"
+                          className={classNames(styles.phonePairRevoke, styles.phonePairSessionRevoke)}
+                          disabled={revokingId === session.id}
+                          onClick={() => revokeSession(session.id)}
+                          aria-label={t('phonePair.removeSession', { name: sessionName })}
+                        >
+                          <LogOut size={14} />
+                        </button>
+                      </HoverTooltip>
                     </div>
                   );
                 })}

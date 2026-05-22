@@ -1,10 +1,13 @@
 import { Play, Pause, RotateCcw } from 'lucide-react';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
+import { useTranslation } from '../../../lib/i18n';
 import { useStopwatch } from '../common/useStopwatch';
 import type { WidgetProps } from '../types';
 import { formatStopwatchElapsed } from './formatStopwatchElapsed';
 import styles from './StopwatchWidget.module.scss';
 
 export function StopwatchWidget({ widget }: WidgetProps) {
+  const { t } = useTranslation();
   const { elapsed, isRunning, start, stop, reset } = useStopwatch();
 
   const isWide = widget.size === '4x2' || widget.size === '4x4';
@@ -29,27 +32,29 @@ export function StopwatchWidget({ widget }: WidgetProps) {
         <span className={styles.fraction}>.{display.hundredths}</span>
       </div>
       <div className={styles.controls}>
-        <button
-          type="button"
-          className={`panel-chip ${styles.controlBtn}`}
-          onClick={() => reset()}
-          disabled={elapsed === 0 && !isRunning}
-          aria-label="Reset stopwatch"
-          title="Reset"
-        >
-          <RotateCcw size={16} />
-        </button>
-        <button
-          type="button"
-          className={`panel-chip ${styles.playBtn}`}
-          onClick={handleToggle}
-          data-active={isRunning ? 'true' : undefined}
-          aria-label={isRunning ? 'Pause stopwatch' : 'Start stopwatch'}
-          title={isRunning ? 'Pause' : 'Start'}
-        >
-          {isRunning ? <Pause size={16} /> : <Play size={16} />}
-          {isWide && <span>{isRunning ? 'Pause' : 'Start'}</span>}
-        </button>
+        <HoverTooltip body={t('panel.stopwatch.reset')} side="top">
+          <button
+            type="button"
+            className={`panel-chip ${styles.controlBtn}`}
+            onClick={() => reset()}
+            disabled={elapsed === 0 && !isRunning}
+            aria-label={t('panel.stopwatch.reset')}
+          >
+            <RotateCcw size={16} />
+          </button>
+        </HoverTooltip>
+        <HoverTooltip body={isRunning ? t('panel.stopwatch.pause') : t('panel.stopwatch.start')} side="top">
+          <button
+            type="button"
+            className={`panel-chip ${styles.playBtn}`}
+            onClick={handleToggle}
+            data-active={isRunning ? 'true' : undefined}
+            aria-label={isRunning ? t('panel.stopwatch.pause') : t('panel.stopwatch.start')}
+          >
+            {isRunning ? <Pause size={16} /> : <Play size={16} />}
+            {isWide && <span>{isRunning ? t('panel.stopwatch.pause') : t('panel.stopwatch.start')}</span>}
+          </button>
+        </HoverTooltip>
       </div>
     </div>
   );

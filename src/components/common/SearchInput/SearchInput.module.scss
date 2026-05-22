@@ -1,3 +1,5 @@
+@use '../../../styles/interactions' as *;
+
 /* Themed search input. Icon on the left, clear button on the right
    when the value is non-empty. Sized to fit inline alongside other
    form controls or as a full-width filter at the top of a list. */
@@ -31,8 +33,7 @@
 
   &:focus,
   &:focus-visible {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
+    @include focus-glow-input;
   }
 }
 
