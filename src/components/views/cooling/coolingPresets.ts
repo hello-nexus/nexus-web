@@ -33,7 +33,7 @@ export function isCoolingPresetKey(value: unknown): value is CoolingPresetKey {
 }
 
 /**
- * Map a special curve's `preset` flag (silent / balanced / performance) to
+ * Map a special curve's `preset` flag (silent / balanced / turbo) to
  * the icon used in the curve card. Returns null for user-authored curves.
  */
 export function presetIconFor(preset: string | null | undefined): LucideIcon | null {

@@ -166,11 +166,27 @@ export function CoolingResponseChart({
     gpuBadgeY = cpuBadgeY + BADGE_H + 1;
   }
 
+  const speedAtTemp = (t: number): number => {
+    const clamped = Math.max(TEMP_MIN, Math.min(TEMP_MAX, t));
+    const idx = (clamped - TEMP_MIN) / SAMPLE_STEP;
+    const i0 = Math.max(0, Math.min(samples.length - 1, Math.floor(idx)));
+    const i1 = Math.min(samples.length - 1, i0 + 1);
+    const f = idx - i0;
+    const a = samples[i0].speed;
+    const b = samples[i1].speed;
+    return a + (b - a) * f;
+  };
+
   const renderNotch = (x: number | null, temp: number | undefined, label: string, badgeY: number) => {
     if (x === null || typeof temp !== 'number') return null;
+    const curveY = speedToY(speedAtTemp(temp));
+    const lineTop = badgeY + BADGE_H;
     return (
       <g className={styles.notch}>
-        <line x1={x} y1={PAD.top} x2={x} y2={height - PAD.bottom} className={styles.notchLine} />
+        {curveY > lineTop && (
+          <line x1={x} y1={lineTop} x2={x} y2={curveY} className={styles.notchLine} />
+        )}
+        <circle cx={x} cy={curveY} r={2.5} className={styles.notchDot} />
         <rect x={x - BADGE_W / 2} y={badgeY} width={BADGE_W} height={BADGE_H} rx="2" className={styles.notchBadge} />
         <text x={x} y={badgeY + BADGE_H - 4} className={styles.notchText} textAnchor="middle">
           <tspan className={styles.notchLabel}>{label}</tspan>

@@ -64,7 +64,7 @@ vi.mock('../../../lib/i18n', () => ({
       'cooling.preset.off': 'Off',
       'cooling.preset.silent': 'Silent',
       'cooling.preset.balanced': 'Balanced',
-      "cooling.preset.turbo": 'Performance',
+      'cooling.preset.turbo': 'Turbo',
       'cooling.preset.custom': 'Custom',
       'cooling.label.cpu': 'CPU',
       'cooling.label.gpu': 'GPU',
@@ -117,7 +117,7 @@ describe('CoolingWidget', () => {
 
     expect(screen.getByRole('button', { name: 'Apply Silent cooling profile' })).toHaveTextContent('Silent');
     expect(screen.getByRole('button', { name: 'Apply Balanced cooling profile' })).toHaveTextContent('Balanced');
-    expect(screen.getByRole('button', { name: 'Apply Turbo cooling profile' })).toHaveTextContent('Performance');
+    expect(screen.getByRole('button', { name: 'Apply Turbo cooling profile' })).toHaveTextContent('Turbo');
 
     // Off + Custom dropped from the widget surface.
     expect(screen.queryByRole('button', { name: 'Apply Off cooling profile' })).not.toBeInTheDocument();
