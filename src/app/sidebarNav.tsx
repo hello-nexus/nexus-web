@@ -6,11 +6,17 @@ import {
 
 export const ICON_SIZE = 18;
 
+// Settings lives in the top-right action bar next to the debug button now;
+// keep the route ('my-computer/settings') wired so deep links resolve.
 export const SERVICE_NAV_KEYS = [
-  'dashboard', 'monitoring', 'lighting', 'cooling', 'devices', 'settings',
+  'dashboard', 'monitoring', 'lighting', 'cooling', 'devices',
 ] as const;
 
-export const PORTAL_NAV_KEYS = ['builder', 'benchmark', 'community'] as const;
+// Builder / Benchmark / Community sidebar entries are hidden for now; routes
+// still resolve so anyone with a bookmarked URL keeps working. Typed instead
+// of `[] as const` so downstream consumers see the original element union
+// rather than `never`.
+export const PORTAL_NAV_KEYS: readonly ('builder' | 'benchmark' | 'community')[] = [];
 
 export const NAV_ICONS: Record<string, ReactNode> = {
   dashboard:  <LayoutDashboard size={ICON_SIZE} />,

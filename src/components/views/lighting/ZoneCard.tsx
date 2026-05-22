@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Settings, Power, Eye } from 'lucide-react';
+import { Settings, Power, Eye, Lightbulb } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -62,8 +62,6 @@ export function ZoneCard({
     identifyLightingDevice(device.id, 2000).catch(() => { /* silent */ });
   };
 
-  const ledLabel = device.ledCount === 1 ? 'LED' : 'LEDs';
-
   const cardRef = useRef<HTMLDivElement>(null);
   const interactiveSelector = 'button, input, select, textarea, [role="button"], [role="switch"]';
 
@@ -111,7 +109,8 @@ export function ZoneCard({
           </HoverTooltip>
         ) : (
           <span className={styles.deviceMeta}>
-            <span className={styles.deviceMetaCount}>{device.ledCount}</span> {ledLabel}
+            <Lightbulb className={styles.deviceMetaIcon} aria-hidden="true" />
+            <span className={styles.deviceMetaCount}>{device.ledCount}</span>
           </span>
         )}
         {!unavailable && (

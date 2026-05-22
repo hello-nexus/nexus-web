@@ -35,20 +35,21 @@ describe('PRESET_ACCENTS', () => {
     expect(PRESET_ACCENTS).toHaveLength(20);
     expect(PRESET_ACCENTS[0]).toBe(DEFAULT_ACCENT);
     expect(PRESET_ACCENTS.slice(0, 10)).toEqual([
-      '#8b5cf6', '#a855f7', '#ec4899', '#ef4444',
-      '#f97316', '#f59e0b', '#22c55e', '#14b8a6',
-      '#06b6d4', '#3b82f6',
+      '#3b82f6', '#8b5cf6', '#a855f7', '#ec4899',
+      '#ef4444', '#f97316', '#f59e0b', '#22c55e',
+      '#14b8a6', '#06b6d4',
     ]);
     expect(PRESET_ACCENTS.slice(10)).toEqual([
-      '#6d28d9', '#9333ea', '#db2777', '#b91c1c',
-      '#c2410c', '#b45309', '#15803d', '#0f766e',
-      '#0e7490', '#1e3a8a',
+      '#1e3a8a', '#6d28d9', '#9333ea', '#db2777',
+      '#b91c1c', '#c2410c', '#b45309', '#15803d',
+      '#0f766e', '#0e7490',
     ]);
   });
 
-  it('includes a navy / deep blue and no yellow-green column', () => {
-    // Row 2 col 10 is the deep navy added per visual feedback.
-    expect(PRESET_ACCENTS[19]).toBe('#1e3a8a');
+  it('leads with blue / navy and has no yellow-green column', () => {
+    // Row 1 / row 2 col 0 are the blue pair — the new default.
+    expect(PRESET_ACCENTS[0]).toBe('#3b82f6');
+    expect(PRESET_ACCENTS[10]).toBe('#1e3a8a');
     // The previous lime / olive-lime column is gone.
     expect(PRESET_ACCENTS).not.toContain('#84cc16');
     expect(PRESET_ACCENTS).not.toContain('#4d7c0f');

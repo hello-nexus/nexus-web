@@ -954,6 +954,15 @@
 .deviceMeta {
   font-size: 0.65rem;
   color: var(--text-faded);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.deviceMetaIcon {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
 }
 
 // Bold count prefix inside .deviceMeta. Matches the bolder number used for

@@ -87,6 +87,7 @@ export function FullscreenShader({
       </button>
       <button
         type="button"
+        aria-label="Exit fullscreen"
         className={`${styles.closeBtn} ${closeVisible ? styles.closeBtnVisible : ''}`}
         onClick={() => document.exitFullscreen?.().catch(() => onClose())}
       >

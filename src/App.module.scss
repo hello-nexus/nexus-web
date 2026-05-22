@@ -482,49 +482,67 @@
 // (which extends right up to right:138) covers the debug button entirely
 // when the layout is in Windows-app shell mode — the button visually
 // renders but clicks fall through to drag-window.
-.topRightDebug {
+// Top-right action buttons (debug + settings). Sized + tinted to mimic Win11
+// caption buttons so the strip reads as one integrated chrome row when the
+// real caption buttons sit just to their right.
+//
+// z-index 2010 sits ABOVE every piece of window chrome (drag strip 2000,
+// resize edges 2004, resize corners 2005, caption buttons 2003) so the
+// buttons intercept hovers + clicks first. Without this the drag strip
+// (which extends right up to right:138) covers them entirely when the
+// layout is in Windows-app shell mode — buttons visually render but clicks
+// fall through to drag-window.
+.topRightAction {
   position: absolute;
-  top: 4px;
-  right: 12px;
+  top: 0;
   z-index: 2010;
   // Interactive control inside a layout root that may carry app-region: drag.
   -webkit-app-region: no-drag;
   app-region: no-drag;
-  width: 28px;
-  height: 28px;
+  width: 46px;
+  height: 32px;
   display: grid;
   place-items: center;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border: none;
   background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+  color: var(--text);
+  cursor: default;
+  padding: 0;
+  outline: none;
+  // Match Win11's quick hover-in / slower hover-out fade.
+  transition: background-color 100ms ease;
 
   &:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: var(--accent-soft);
+    background: color-mix(in srgb, var(--text) 8%, transparent);
+  }
+
+  &:active {
+    background: color-mix(in srgb, var(--text) 5%, transparent);
   }
 
   &:focus-visible {
     outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    outline-offset: -2px;
   }
 }
 
-.layoutWindowsApp .topRightDebug {
-  // 3 × 46px caption buttons + 12px breathing room.
-  right: calc(138px + 12px);
+.topRightActionActive {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+
+  &:hover {
+    background: color-mix(in srgb, var(--text) 16%, transparent);
+  }
 }
 
-.topRightDebugActive {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
+// Debug is the right-most action; sits where the lone debug button used to.
+.topRightDebug { right: 0; }
+.layoutWindowsApp .topRightDebug { right: 138px; }
 
-.topRightDebugIcon {
+// Settings sits immediately to the left of debug (one 46px slot further in).
+.topRightSettings { right: 46px; }
+.layoutWindowsApp .topRightSettings { right: calc(138px + 46px); }
+
+.topRightActionIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;

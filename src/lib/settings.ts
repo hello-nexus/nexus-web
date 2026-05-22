@@ -51,16 +51,17 @@ export type ThemeMode = (typeof THEME_MODES)[number];
 // Absolute-last-resort fallback for the first paint, before either
 // localStorage or the /defaults cache has anything useful. Must mirror
 // qos-service/data/install-defaults.json → theme.accentColor.
-export const DEFAULT_ACCENT = '#8b5cf6';
+export const DEFAULT_ACCENT = '#3b82f6';
 
 // Preset swatch grid shown in the settings picker. Two rows of ten span ten
-// distinct hue families - violet, purple, pink, red, orange, amber, green,
-// teal, cyan, blue. Row 1 is the primary choice; row 2 is the same hue family
-// pushed darker / more saturated. The previous yellow-green lime column was
-// dropped in favor of cyan + a navy row-2 deep blue.
+// distinct hue families - blue, violet, purple, pink, red, orange, amber,
+// green, teal, cyan. Row 1 is the primary choice; row 2 is the same hue
+// family pushed darker / more saturated. Blue leads the row so the default
+// accent is the first swatch in the grid.
 export const PRESET_ACCENTS = [
   // Row 1 - primary family choices
-  '#8b5cf6', // Violet (default)
+  '#3b82f6', // Blue (default)
+  '#8b5cf6', // Violet
   '#a855f7', // Purple
   '#ec4899', // Pink
   '#ef4444', // Red
@@ -69,8 +70,8 @@ export const PRESET_ACCENTS = [
   '#22c55e', // Green
   '#14b8a6', // Teal
   '#06b6d4', // Cyan
-  '#3b82f6', // Blue
   // Row 2 - deeper / more saturated siblings, paired by column
+  '#1e3a8a', // Navy
   '#6d28d9', // Deep violet
   '#9333ea', // Deep purple
   '#db2777', // Hot pink
@@ -80,7 +81,6 @@ export const PRESET_ACCENTS = [
   '#15803d', // Forest green
   '#0f766e', // Deep teal
   '#0e7490', // Deep cyan
-  '#1e3a8a', // Navy
 ] as const;
 
 // ── Types ────────────────────────────────────────────────────────────────────

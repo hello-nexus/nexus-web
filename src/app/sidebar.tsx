@@ -127,10 +127,10 @@ export function SidebarConflictSlot({ serviceOnline, compact }: {
   );
 }
 
-// Top-right debug-tools button. Lives at the layout root next to the
-// caption buttons (Windows shell) or in the top-right corner of the
-// viewport on other platforms. Replaces the old bottom-of-sidebar
-// SidebarFooter slot.
+// Top-right action buttons (debug + settings). Live at the layout root next
+// to the caption buttons (Windows shell) or in the top-right corner of the
+// viewport on other platforms. Styled to mimic Win11 caption buttons so the
+// row reads as one integrated chrome strip.
 export function TopRightDebugButton({ active, onDebug, icon }: {
   active: boolean;
   onDebug: () => void;
@@ -142,12 +142,34 @@ export function TopRightDebugButton({ active, onDebug, icon }: {
     <HoverTooltip body={label} side="bottom">
       <button
         type="button"
-        className={classNames(styles.topRightDebug, { [styles.topRightDebugActive]: active })}
+        className={classNames(styles.topRightAction, styles.topRightDebug, { [styles.topRightActionActive]: active })}
         onClick={onDebug}
         aria-label={label}
         aria-pressed={active}
       >
-        <span className={styles.topRightDebugIcon} aria-hidden>{icon}</span>
+        <span className={styles.topRightActionIcon} aria-hidden>{icon}</span>
+      </button>
+    </HoverTooltip>
+  );
+}
+
+export function TopRightSettingsButton({ active, onClick, icon }: {
+  active: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+}) {
+  const { t } = useTranslation();
+  const label = t('nav.settings');
+  return (
+    <HoverTooltip body={label} side="bottom">
+      <button
+        type="button"
+        className={classNames(styles.topRightAction, styles.topRightSettings, { [styles.topRightActionActive]: active })}
+        onClick={onClick}
+        aria-label={label}
+        aria-pressed={active}
+      >
+        <span className={styles.topRightActionIcon} aria-hidden>{icon}</span>
       </button>
     </HoverTooltip>
   );

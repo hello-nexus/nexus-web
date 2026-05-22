@@ -36,6 +36,7 @@ import {
   NotConnectedBadge,
   SidebarConflictSlot,
   TopRightDebugButton,
+  TopRightSettingsButton,
   PageVersionLabel,
 } from './sidebar';
 import { PairPhoneButton, PairPhoneModal } from './PairPhoneModal';
@@ -375,6 +376,11 @@ export function Dashboard() {
           active={activeView === 'tools'}
           onDebug={() => navigate('my-computer', 'tools')}
           icon={NAV_ICONS['tools']}
+        />
+        <TopRightSettingsButton
+          active={section === 'my-computer' && activeView === 'settings'}
+          onClick={handleNavigateSettings}
+          icon={NAV_ICONS['settings']}
         />
         <PageVersionLabel />
         {/* Body row: sidebar (my-computer only) + content */}
