@@ -45,7 +45,12 @@
   left: 200px; // right of the (expanded) sidebar - keep in lockstep with .sidebarColumn width
   right: 138px; // left of the 3x46px caption buttons
   height: 32px;
-  z-index: 40;
+  // Above the modal backdrop (z-index 1000) so the title bar stays
+  // draggable while a modal is open. Drag strip occupies the center
+  // top 32px where modal content is benign (title text only) — the
+  // close button lives in the modal's top-right, outside this band
+  // (which already excludes the rightmost 138px for caption buttons).
+  z-index: 2000;
   -webkit-app-region: drag;
   app-region: drag;
 }
@@ -77,15 +82,19 @@
 //
 // 6px wide invisible strip is enough for an unambiguous cursor target;
 // page UI has its own padding well outside this band.
+// Resize strips intentionally sit above the modal backdrop (z-index 1000)
+// so resize gestures keep working while any modal is open. They're
+// transparent 6-12px slivers at the window edges; modals have inner
+// padding so no interactive content overlaps these bands.
 .windowResizeStrip {
   position: absolute;
-  z-index: 60;
+  z-index: 2001;
   background: transparent;
 }
 
 .windowResizeStripLeft {
   position: absolute;
-  z-index: 60;
+  z-index: 2001;
   background: transparent;
   top: 0;
   left: 0;
@@ -96,7 +105,7 @@
 
 .windowResizeStripRight {
   position: absolute;
-  z-index: 60;
+  z-index: 2001;
   background: transparent;
   // Skip the top 32px so the caption buttons hit-test wins over the
   // right resize edge in their corner.
@@ -109,7 +118,7 @@
 
 .windowResizeStripTop {
   position: absolute;
-  z-index: 60;
+  z-index: 2001;
   background: transparent;
   top: 0;
   left: 0;
@@ -120,7 +129,7 @@
 
 .windowResizeStripBottom {
   position: absolute;
-  z-index: 60;
+  z-index: 2001;
   background: transparent;
   bottom: 0;
   left: 0;
@@ -135,7 +144,7 @@
 // they overlap the edge strips.
 .windowResizeCornerTopLeft {
   position: absolute;
-  z-index: 61;
+  z-index: 2002;
   background: transparent;
   top: 0;
   left: 0;
@@ -146,7 +155,7 @@
 
 .windowResizeCornerTopRight {
   position: absolute;
-  z-index: 61;
+  z-index: 2002;
   background: transparent;
   top: 0;
   right: 0;
@@ -157,7 +166,7 @@
 
 .windowResizeCornerBottomLeft {
   position: absolute;
-  z-index: 61;
+  z-index: 2002;
   background: transparent;
   bottom: 0;
   left: 0;
@@ -168,7 +177,7 @@
 
 .windowResizeCornerBottomRight {
   position: absolute;
-  z-index: 61;
+  z-index: 2002;
   background: transparent;
   bottom: 0;
   right: 0;

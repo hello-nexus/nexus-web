@@ -55,6 +55,23 @@
   flex-shrink: 0;
 }
 
+// Windows-app shell renders custom chrome above the modal backdrop so
+// the user can drag/resize/close the OS window while a modal is open:
+//   - Top 32px center: window-drag strip (z-index 2000) for OS-level move
+//   - Top-right 138x32: caption buttons (z-index 2003) for minimize/max/close
+//   - 6-12px edge strips: window resize (z-index 2001-2002)
+// All four sit ABOVE the modal backdrop (z-index 1000). The modal header
+// needs to push its own controls clear of these regions:
+//   - padding-top 2.5rem (40px) drops the title + close button below the
+//     32px drag strip → top half of the close button stops being eaten
+//     by drag-region hit-testing
+//   - padding-right 138px reserves the caption-button gutter so the close
+//     button doesn't sit underneath the OS Close.
+:global(body.qos-shell-windows-app) .header {
+  padding-top: 2.5rem;
+  padding-right: calc(138px + 1rem);
+}
+
 .titleRow {
   display: flex;
   align-items: center;
