@@ -11,7 +11,7 @@ export type MixFn = 'min' | 'max' | 'avg' | 'sum';
 
 /**
  * Marks the shared preset curve. When set, this curve is the single
- * Silent / Balanced / Performance curve attached to all fans whenever the
+ * Silent / Balanced / Turbo curve attached to all fans whenever the
  * matching preset is active. Independent of CurveType so a preset curve
  * can be Linear today and Graph tomorrow without losing its preset
  * identity.

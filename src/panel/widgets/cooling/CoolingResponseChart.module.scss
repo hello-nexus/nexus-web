@@ -51,6 +51,11 @@
   opacity: 0.85;
 }
 
+.notchDot {
+  fill: var(--accent-glow);
+  stroke: none;
+}
+
 .notchBadge {
   fill: var(--bg, var(--panel-bg));
   stroke: var(--accent-glow);
