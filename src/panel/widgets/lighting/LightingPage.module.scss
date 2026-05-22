@@ -8,14 +8,27 @@
 
 // Compact icon-track-value layout for the master brightness slider. Lives
 // in the ViewHeader's tabActions slot now (right-aligned at the same vertical
-// level as the lighting mode tabs). min-width reserves the row even before
-// the first fetch resolves so the underline doesn't jump while it hydrates.
+// level as the lighting mode tabs). Width is reserved (min/max) so the
+// underline doesn't jump while the value hydrates AND so the slider can't
+// blow past its slot and trigger horizontal overflow on the page.
 .globalBrightnessSlider {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   color: var(--text-dim);
-  min-width: 140px;
+  width: 200px;
+  max-width: 100%;
+  flex-shrink: 0;
+
+  // Slider's own `.root { width: 100% }` would otherwise win the cascade
+  // (single-class selectors, identical specificity → file order decides,
+  // and that order isn't stable across refactors). Anchor the inner track
+  // here as a descendant selector so it wins by specificity instead of by
+  // chunk order.
+  .globalBrightnessTrack {
+    width: 140px;
+    flex-shrink: 0;
+  }
 }
 
 .globalBrightnessIcon {
