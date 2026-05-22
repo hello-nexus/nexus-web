@@ -21,7 +21,11 @@ export function isPinnableAppKey(s: string): boolean {
 // new user sees in their sidebar before customising. Clock is in the
 // registry as pinnable, but deliberately omitted here so the default
 // tail stays four entries wide.
-export const DEFAULT_PINNED_TAIL: string[] = ['monitoring', 'lighting', 'cooling', 'devices'];
+// Devices isn't in the default tail any more — it doesn't have a
+// Page on its manifest (the Devices app is now a pure launcher
+// widget that drills into per-device pages). The sidebar's DEVICES
+// section is the dedicated surface for it.
+export const DEFAULT_PINNED_TAIL: string[] = ['monitoring', 'lighting', 'cooling'];
 
 // Normalize a tail array read from settings/server: drop unknown
 // keys (apps that no longer exist, or never did), dedupe while

@@ -63,12 +63,12 @@ describe('panelSimulation', () => {
     expect(tablet && getSimulatedPanelGridCapacity(tablet)).toMatchObject({ columns: 4 });
   });
 
-  it('uses the real Q60 LCD resolution and derives a 2x4 widget grid', () => {
+  it('uses the real Q60 resolution and derives a 2x4 widget grid', () => {
     const q60 = SIMULATED_PANEL_PRESETS.find(panel => panel.id === 'q60');
 
     expect(q60).toMatchObject({
       id: 'q60',
-      name: 'Q60 LCD',
+      name: 'Q60',
       surface: 'q60',
       width: 720,
       height: 1280,

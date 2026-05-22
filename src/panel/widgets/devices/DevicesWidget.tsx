@@ -7,13 +7,15 @@ import type { WidgetProps } from '../types';
 import styles from './DevicesWidget.module.scss';
 
 // Number of device thumbnails the widget renders per page at each
-// supported size. The thumbnail layout is square (2x2 = 1 tile, 4x2 =
-// 1x2 tiles, 4x4 = 2x2 tiles) so devices line up cleanly with the
-// widget's own footprint.
+// supported size. The widget is a pure launcher — each tile routes
+// straight into that device's page — so tiles are sized for "many
+// shortcuts visible at once" rather than "rich preview". The new
+// counts roughly halve the per-tile area vs the old layout so more
+// devices fit before pagination kicks in.
 const SLOTS_PER_PAGE: Record<string, number> = {
-  '2x2': 1,
-  '4x2': 2,
-  '4x4': 4,
+  '2x2': 4,   // 2x2 grid
+  '4x2': 8,   // 4x2 grid
+  '4x4': 16,  // 4x4 grid
 };
 
 export function DevicesWidget({ widget, surface, onSectionNavigate }: WidgetProps) {
@@ -82,7 +84,7 @@ export function DevicesWidget({ widget, surface, onSectionNavigate }: WidgetProp
   return (
     <div className={styles.devicesWidget} data-size={widget.size}>
       <div className={styles.thumbBox} data-slots={slotsPerPage}>
-        <div className={styles.tileGrid} data-cols={slotsPerPage === 4 ? 2 : slotsPerPage}>
+        <div className={styles.tileGrid} data-cols={slotsPerPage === 16 ? 4 : slotsPerPage === 8 ? 4 : 2}>
           {slots.map((d, idx) => (
             d
               ? (

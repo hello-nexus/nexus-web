@@ -84,11 +84,14 @@ button.tile {
   opacity: 0.35;
 }
 
+// Launcher tile icon — halved vs the old preview-style widget so more
+// devices fit per page. The widget is a pure launcher; each tile is a
+// shortcut, not a preview.
 .tileIcon {
   display: block;
   width: 56%;
-  max-width: 88px;
-  max-height: 88px;
+  max-width: 44px;
+  max-height: 44px;
   aspect-ratio: 1;
   flex-shrink: 1;
   background-color: var(--panel-text);
@@ -97,25 +100,20 @@ button.tile {
 }
 
 .tileLabel {
-  max-width: 90%;
+  max-width: 95%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 600 11px/1.1 var(--panel-font);
+  font: 600 9px/1.1 var(--panel-font);
   color: var(--panel-text);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-align: center;
 }
 
-// 2x2 makes the label slightly smaller so a long short-name like
-// "Fan Hub" still fits.
-.devicesWidget[data-size='2x2'] .tileLabel {
-  font-size: 10px;
-}
-
-// 4x4: roomier label.
+// 4x4 has room for slightly bigger text since the grid is 4 cols wide
+// and the tiles are still relatively spacious.
 .devicesWidget[data-size='4x4'] .tileLabel {
-  font-size: 12px;
+  font-size: 10px;
 }
 
 // Empty state - centred USB icon + caption, mirrors how the lighting

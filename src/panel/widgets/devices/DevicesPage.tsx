@@ -1,40 +1,32 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
-import { type Peripheral } from '../../../hooks/usePeripherals';
 import { useTranslation } from '../../../lib/i18n';
-import type { PanelDevice } from '../../../panel/panelDevices';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Button } from '../../../components/common/Button/Button';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DevicesSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
-import { PanelDeviceModal } from '../../../components/common/DeviceModal/PanelDeviceModal';
-import { PeripheralModal } from '../../../components/common/DeviceModal/PeripheralModal';
 import styles from './DevicesPage.module.scss';
 
 interface DevicesViewProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
-  // When set, on mount/update find the matching device in the unified
-  // Available list and auto-open its modal. The dashboard "Devices"
-  // widget hands the device's `key` here so the user lands directly on
-  // the management surface.
-  initialOpenKey?: string | null;
-  onInitialOpenConsumed?: () => void;
+  // Click handler for a device card. Dashboard wires this to
+  // `navigate('my-computer', 'device', deviceKey)` so the card flow
+  // matches the sidebar — clicking a device routes into its dedicated
+  // page (PanelDevicePage / PeripheralDevicePage) rather than opening
+  // a modal in place.
+  onDeviceSelect: (deviceKey: string) => void;
 }
 
 type TabKey = 'available' | 'connected';
 
-export function DevicesPage({ serviceOnline, connectionState, initialOpenKey, onInitialOpenConsumed }: DevicesViewProps) {
+export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: DevicesViewProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<TabKey>('available');
   const [modalOpen, setModalOpen] = useState(false);
-  const [panelModalOpen, setPanelModalOpen] = useState(false);
-  const [panelModalDevice, setPanelModalDevice] = useState<PanelDevice | null>(null);
-  const [peripheralModal, setPeripheralModal] = useState<Peripheral | null>(null);
-  const consumedInitialKeyRef = useRef<string | null>(null);
 
   const availableActive = tab === 'available';
   const { unified, merged, webhidAvailable, requestWebHid } = useUnifiedDevices(serviceOnline && availableActive);
@@ -53,41 +45,6 @@ export function DevicesPage({ serviceOnline, connectionState, initialOpenKey, on
   }, [allUsb.devices, merged]);
 
   const availableAvailable = serviceOnline || webhidAvailable;
-
-  const handleCardClick = (device: UnifiedDevice) => {
-    if (device.panelDevice) {
-      setPanelModalDevice(device.panelDevice);
-      setPanelModalOpen(true);
-    } else if (device.peripheral) {
-      setPeripheralModal(device.peripheral);
-    }
-  };
-
-  // Deep-link from the dashboard "Devices" widget: when an initialOpenKey
-  // arrives, find the matching device in the unified Available list and
-  // open its modal. The ref guard means we consume each distinct key only
-  // once even if the parent re-renders with the same value.
-  useEffect(() => {
-    // The consumed-key ref is what guarantees "open the modal exactly
-    // once per distinct key" even if the parent passes an inline
-    // onInitialOpenConsumed (new identity every render) or forgets to
-    // clear `initialOpenKey`. Reset when the parent does clear it so a
-    // subsequent navigation to the same device still fires.
-    if (!initialOpenKey) {
-      consumedInitialKeyRef.current = null;
-      return;
-    }
-    if (consumedInitialKeyRef.current === initialOpenKey) return;
-    if (!availableAvailable) return;
-    const match = unified.find(d => d.key === initialOpenKey);
-    if (!match) return;
-    consumedInitialKeyRef.current = initialOpenKey;
-    // setState-in-effect is intentional here — opening the modal is the
-    // entire purpose of this deep-link callback, not a derived render.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    handleCardClick(match);
-    onInitialOpenConsumed?.();
-  }, [initialOpenKey, unified, availableAvailable, onInitialOpenConsumed]);
 
   const tabs = [
     { key: 'available', label: t('devices.tabs.available') },
@@ -119,9 +76,6 @@ export function DevicesPage({ serviceOnline, connectionState, initialOpenKey, on
 
             {webhidAvailable && (
               <div className={styles.webhidToolbar}>
-                {/* DOM order: description first so screen readers hear what the
-                    button does before the button itself. CSS `order` flips
-                    the visual so the button still appears on the left. */}
                 <div className={styles.webhidCta}>
                   <strong>{t('peripheral.webhid.title')}</strong>
                   <span className={styles.webhidHint}>
@@ -139,7 +93,7 @@ export function DevicesPage({ serviceOnline, connectionState, initialOpenKey, on
             ) : (
               <div className={styles.grid}>
                 {unified.map(d => (
-                  <DeviceCard key={d.key} device={d} onClick={() => handleCardClick(d)} />
+                  <DeviceCard key={d.key} device={d} onClick={() => onDeviceSelect(d.key)} />
                 ))}
               </div>
             )}
@@ -158,20 +112,6 @@ export function DevicesPage({ serviceOnline, connectionState, initialOpenKey, on
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         detectedVidPids={detectedVidPids}
-      />
-
-      <PanelDeviceModal
-        open={panelModalOpen}
-        device={panelModalDevice}
-        onClose={() => {
-          setPanelModalOpen(false);
-          setPanelModalDevice(null);
-        }}
-      />
-
-      <PeripheralModal
-        peripheral={peripheralModal}
-        onClose={() => setPeripheralModal(null)}
       />
     </section>
   );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { ArrowLeft, Monitor, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
 import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../../../panel/widgets/monitoring/perfSlots';
@@ -16,17 +17,17 @@ import {
 } from '../../../api/panel';
 import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
-import { IconLabelButton } from '../IconLabelButton/IconLabelButton';
-import { Select } from '../Select/Select';
-import { Slider } from '../Slider/Slider';
-import { Toggle } from '../Toggle/Toggle';
+import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
+import { Select } from '../../common/Select/Select';
+import { Slider } from '../../common/Slider/Slider';
+import { Toggle } from '../../common/Toggle/Toggle';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/panelTheme';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
 import { lookupWidget, sizesForSurface } from '../../../panel/widgets/registry';
 import { sizeToSpan } from '../../../panel/engine/grid';
-import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary';
+import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
 import {
   type PanelLayout,
   type PanelSurface,
@@ -37,14 +38,11 @@ import {
 import type { PanelDevice } from '../../../panel/panelDevices';
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
 import { PanelWidgetCatalog } from '../../../panel/editor/PanelWidgetCatalog';
-import { DeviceModal } from './DeviceModal';
 import '../../../panel/styles/tokens.scss';
-import styles from './PanelDeviceModal.module.scss';
+import styles from './PanelDevicePage.module.scss';
 
-interface PanelDeviceModalProps {
-  open: boolean;
-  onClose: () => void;
-  device?: PanelDevice | null;
+interface PanelDevicePageProps {
+  device: PanelDevice;
 }
 
 interface BrightnessResponse { brightness: number }
@@ -70,7 +68,7 @@ function normalizeOrientation(value: string | undefined | null): Y70Orientation 
 
 type Tab = 'widgets' | 'theme' | 'settings';
 
-export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProps) {
+export function PanelDevicePage({ device }: PanelDevicePageProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('widgets');
   const [brightness, setBrightness] = useState(50);
@@ -281,13 +279,8 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
   const modalTitle = isSimulated && !nameAlreadyMarksSimulated ? `${baseTitle} (Simulator)` : baseTitle;
 
   return (
-    <DeviceModal
-      open={open}
-      onClose={() => { setTab('widgets'); onClose(); }}
-      title={modalTitle}
-      icon={<Monitor size={20} />}
-      fullscreen
-    >
+    <section className={styles.page}>
+      <ViewHeader title={modalTitle} />
       {!loaded ? (
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
       ) : (
@@ -408,7 +401,7 @@ export function PanelDeviceModal({ open, onClose, device }: PanelDeviceModalProp
           </div>
         </div>
       )}
-    </DeviceModal>
+    </section>
   );
 }
 

@@ -32,7 +32,14 @@ interface SidebarProps {
   items: readonly NavItem[];
   active: string;
   onChange: (key: string) => void;
+  // Text of the section header rendered above `items`. When
+  // `onSectionLabelClick` is also provided the header is a button —
+  // active state surfaces the same accent treatment a selected item
+  // gets, so the header reads as a first-class destination (today:
+  // APPS = the dashboard landing).
   sectionLabel: string;
+  onSectionLabelClick?: () => void;
+  sectionLabelActive?: boolean;
   serviceState: ServiceState;
   headerSlot?: ReactNode;
   compact?: boolean;
@@ -40,22 +47,14 @@ interface SidebarProps {
   extraSectionLabel?: string;
   extraActive?: string;
   extraOnChange?: (key: string) => void;
-  // Optional: key of the item that stays locked above a thin divider and
-  // is excluded from the sortable tail. Used to pin Dashboard in row 0.
-  // When omitted the entire list renders in document order (no sorting).
-  lockedHeadKey?: string;
-  // Fires with the next ordering of the *tail* (i.e. items minus the
-  // locked head) after the user finishes a drag-to-reorder. Only the
-  // tail's order is reported; the head's identity never moves. When
-  // omitted, items are non-sortable.
+  // Fires with the next ordering of `items` after a drag-reorder.
+  // When omitted, items are non-sortable.
   onTailReorder?: (nextTailKeys: string[]) => void;
   // Optional context-menu hook fired by a right-click on an item row.
-  // Receives the item key + the originating MouseEvent so the caller can
-  // anchor a menu at the cursor position.
   onItemContextMenu?: (key: string, event: React.MouseEvent) => void;
   // Optional content rendered inside the scrollable region after the
-  // sortable tail. Used by SidebarColumn to slot the DEVICES section
-  // below APPS so both share one scroll context.
+  // items. Used by SidebarColumn to slot the DEVICES section below
+  // APPS so both share one scroll context.
   afterTail?: ReactNode;
 }
 
@@ -148,18 +147,15 @@ function SortableRow(props: Omit<RowProps, 'sortableProps'>) {
 }
 
 export function Sidebar({
-  items, active, onChange, sectionLabel, serviceState,
+  items, active, onChange, sectionLabel, onSectionLabelClick, sectionLabelActive,
+  serviceState,
   headerSlot, compact = false,
   extraItems, extraSectionLabel, extraActive, extraOnChange,
-  lockedHeadKey, onTailReorder, onItemContextMenu,
+  onTailReorder, onItemContextMenu,
   afterTail,
 }: SidebarProps) {
-  // Split items into [head] + tail when a locked key is configured AND
-  // matches an actual entry. Falls back to "no split" gracefully so a
-  // stale config can never strand the user with an empty sidebar.
-  const head = lockedHeadKey ? items.find(i => i.key === lockedHeadKey) : undefined;
-  const tail = head ? items.filter(i => i.key !== head.key) : items;
-  const sortable = Boolean(head && onTailReorder);
+  const tail = items;
+  const sortable = Boolean(onTailReorder);
   const tailKeys = tail.map(i => i.key);
 
   // PointerSensor with a 5px activation distance lets a plain click fire
@@ -243,23 +239,20 @@ export function Sidebar({
           {headerSlot}
         </div>
       )}
-      {!compact && sectionLabel && <div className={styles.sectionLabel}>{sectionLabel}</div>}
-
-      {head && (
-        <>
-          <SidebarRow
-            item={head}
-            active={head.key === active}
-            compact={compact}
-            serviceState={serviceState}
-            onClick={() => onChange(head.key)}
-            onContextMenu={onItemContextMenu ? (e) => {
-              e.preventDefault();
-              onItemContextMenu(head.key, e);
-            } : undefined}
-          />
-          <div className={styles.lockedDivider} aria-hidden="true" />
-        </>
+      {!compact && sectionLabel && (
+        onSectionLabelClick ? (
+          <button
+            type="button"
+            className={classNames(styles.sectionLabel, styles.sectionLabelBtn, {
+              [styles.sectionLabelActive]: sectionLabelActive,
+            })}
+            onClick={onSectionLabelClick}
+          >
+            {sectionLabel}
+          </button>
+        ) : (
+          <div className={styles.sectionLabel}>{sectionLabel}</div>
+        )
       )}
 
       {sortable ? (

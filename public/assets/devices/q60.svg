@@ -1,14 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <!-- HYTE Q60: compact portrait LCD on a small stand. The body is a
-       slightly-rounded rectangle; the screen is an inset window with a
-       single widget tile on it; a neck + foot suggests the desk stand. -->
-  <rect x="14" y="6" width="20" height="30" rx="2" />
-  <!-- Inset screen window -->
-  <rect x="17" y="9" width="14" height="22" rx="1.2" />
-  <!-- Single widget tile centred on the screen -->
-  <rect x="19.5" y="14" width="9" height="12" rx="0.8" stroke-width="1" />
-  <!-- Stand neck -->
-  <line x1="24" y1="36" x2="24" y2="40" />
-  <!-- Stand base -->
-  <line x1="17" y1="40" x2="31" y2="40" />
+  <!-- Q60: a small portrait display on a stand. Single screen
+       rectangle, neck, base — no widget detail. Smaller silhouette
+       than the Y70 so the two read as different at a glance. -->
+  <rect x="17" y="10" width="14" height="22" rx="1.8" />
+  <line x1="24" y1="32" x2="24" y2="38" />
+  <line x1="19" y1="38" x2="29" y2="38" />
 </svg>

@@ -1,7 +1,6 @@
 import { Usb } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { DevicesWidget } from './DevicesWidget';
-import { DevicesPage } from './DevicesPage';
 
 export const devicesApp: AppManifest = {
   meta: {
@@ -18,5 +17,9 @@ export const devicesApp: AppManifest = {
     touch: true,
   },
   Widget: DevicesWidget,
-  Page: DevicesPage,
+  // No `Page` — the Devices app is now a pure launcher widget. The
+  // existing DevicesPage is still routed (it's the all-devices
+  // landing when the user clicks the sidebar's DEVICES header) but
+  // it's not surfaced as a sidebar-pinnable app any more. The widget
+  // tiles inside each route directly into their own device page.
 };

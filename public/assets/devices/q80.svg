@@ -1,14 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <!-- HYTE Q80: larger sibling of the Q60. Same desk-stand silhouette
-       but landscape instead of portrait, with a 2-tile widget row. -->
-  <rect x="6" y="10" width="36" height="22" rx="2" />
-  <!-- Inset screen window -->
-  <rect x="9" y="13" width="30" height="16" rx="1.2" />
-  <!-- Two widget tiles on the screen -->
-  <rect x="11.5" y="16" width="11" height="10" rx="0.8" stroke-width="1" />
-  <rect x="25.5" y="16" width="11" height="10" rx="0.8" stroke-width="1" />
-  <!-- Stand neck -->
-  <line x1="24" y1="32" x2="24" y2="38" />
-  <!-- Stand base -->
-  <line x1="16" y1="38" x2="32" y2="38" />
+  <!-- Q80: landscape display on a stand. Same minimal vocabulary as
+       the Q60 (screen + neck + base) but wider so the family
+       distinction reads at a glance. -->
+  <rect x="9" y="13" width="30" height="18" rx="1.8" />
+  <line x1="24" y1="31" x2="24" y2="37" />
+  <line x1="18" y1="37" x2="30" y2="37" />
 </svg>

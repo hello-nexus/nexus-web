@@ -24,7 +24,6 @@ import {
   getSidebarAppMeta,
   isPinnableAppKey,
   sanitizePinnedTail,
-  type SidebarAppKey,
 } from './sidebarApps';
 import { useCrossZoneDrag } from './CrossZoneDrag';
 import styles from '../App.module.scss';
@@ -93,12 +92,13 @@ export function SidebarColumn({
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
 
-  // The pinned sidebar is dashboard (locked) followed by the user-ordered
-  // tail. sanitizePinnedTail() drops unknown / duplicate keys read from the
-  // server, so a stale or hand-edited preferences blob can't render gaps.
+  // The sidebar's APPS section header IS the Dashboard entry — there's
+  // no separate "Dashboard" row anymore. The pinned-apps list below
+  // the header is just the user-ordered tail. sanitizePinnedTail()
+  // drops unknown / duplicate keys read from the server, so a stale or
+  // hand-edited preferences blob can't render gaps.
   const tail = sanitizePinnedTail(settings.pinnedSidebarApps);
-  const keys: SidebarAppKey[] = [DASHBOARD_APP_KEY, ...tail];
-  const items = keys.flatMap(key => {
+  const items = tail.flatMap(key => {
     const meta = getSidebarAppMeta(key);
     if (!meta) return [];
     return [{ key, label: t(meta.i18nKey), icon: meta.icon }];
@@ -113,11 +113,9 @@ export function SidebarColumn({
 
   // Right-click context menu state. Held here so the menu portal can
   // dismiss cleanly on outside click without each row tracking its own
-  // open state. Dashboard right-clicks are swallowed by the row but never
-  // open a menu — there's nothing pinnable to act on for the locked head.
+  // open state.
   const [ctxMenu, setCtxMenu] = useState<{ key: string; x: number; y: number } | null>(null);
   const handleItemContextMenu = (key: string, event: React.MouseEvent) => {
-    if (key === DASHBOARD_APP_KEY) return;
     setCtxMenu({ key, x: event.clientX, y: event.clientY });
   };
   const handleUnpin = (key: string) => {
@@ -149,8 +147,9 @@ export function SidebarColumn({
         active={serviceNavActive}
         onChange={onServiceNavChange}
         sectionLabel={compact ? '' : t('sidebar.section.apps')}
+        onSectionLabelClick={() => onServiceNavChange(DASHBOARD_APP_KEY)}
+        sectionLabelActive={serviceNavActive === DASHBOARD_APP_KEY}
         serviceState={serviceState}
-        lockedHeadKey={DASHBOARD_APP_KEY}
         onTailReorder={handleTailReorder}
         onItemContextMenu={handleItemContextMenu}
         headerSlot={

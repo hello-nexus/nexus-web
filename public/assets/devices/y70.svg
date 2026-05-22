@@ -1,16 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <!-- HYTE Y70 Touch case silhouette: tall tower with the front touchscreen
-       panel inset into the case face. The case is rendered as a tall rounded
-       rectangle; the screen reads as a slightly inset window with a few
-       widget tiles inside it. -->
-  <rect x="12" y="4" width="24" height="40" rx="2.5" />
-  <!-- Inset screen window -->
-  <rect x="15" y="8" width="18" height="22" rx="1.5" />
-  <!-- Widget silhouettes on the screen: two 1x1 tiles on top, one 2x1 below -->
-  <rect x="17" y="11" width="6" height="6" rx="0.8" stroke-width="1" />
-  <rect x="25" y="11" width="6" height="6" rx="0.8" stroke-width="1" />
-  <rect x="17" y="19" width="14" height="6" rx="0.8" stroke-width="1" />
-  <!-- Vent grille hint at the bottom of the case face -->
-  <line x1="17" y1="35" x2="31" y2="35" stroke-width="0.9" />
-  <line x1="17" y1="38" x2="31" y2="38" stroke-width="0.9" />
+  <!-- Y70 Touch: tall case silhouette with the touchscreen window
+       inset on the face. Two small widget tiles hint at the screen's
+       purpose without crowding the icon at sidebar-row size. -->
+  <rect x="13" y="4" width="22" height="40" rx="2.5" />
+  <rect x="16" y="10" width="16" height="20" rx="1.5" />
+  <rect x="18" y="13" width="5" height="5" rx="0.8" stroke-width="1" />
+  <rect x="25" y="13" width="5" height="5" rx="0.8" stroke-width="1" />
 </svg>

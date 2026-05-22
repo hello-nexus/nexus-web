@@ -54,7 +54,10 @@ const CURATED_ICONS: Record<string, string> = {
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
   y70: 'Y70',
-  qseries: 'Q-series',
+  // qseries deliberately omitted: the service reports the actual
+  // product name ("Q60" / "Q80") on the device record. Overriding
+  // here would collapse both to "Q-series" and lose the distinction
+  // the user wants surfaced.
   cnvs: 'Cnvs',
   keeb: 'Keeb',
   'fan-hub': 'Fan Hub',

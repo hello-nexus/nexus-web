@@ -68,7 +68,6 @@ function ResizeStrip({ className, edge }: { className: string; edge: QosResizeEd
 
 export function Dashboard() {
   const { section, view, subtab, componentId, fromCategory, navigate, setView, setSubtab, navigateToComponent } = useRoute();
-  const [pendingDeviceKey, setPendingDeviceKey] = useState<string | null>(null);
   const status = useServiceStatus();
   const online = status.state === 'online';
   const multiplex = useMultiplexConnection(online);
@@ -308,7 +307,13 @@ export function Dashboard() {
           serviceOnline={online}
           connectionState={status.state}
           onSectionNavigate={(target, payload) => {
-            if (target === 'devices' && payload?.deviceKey) setPendingDeviceKey(payload.deviceKey);
+            // The devices widget passes payload.deviceKey when a tile is tapped;
+            // route directly into that device's page instead of the all-devices
+            // landing.
+            if (target === 'devices' && payload?.deviceKey) {
+              navigate('my-computer', 'device', payload.deviceKey);
+              return;
+            }
             setView(target);
           }}
         />
@@ -320,8 +325,7 @@ export function Dashboard() {
         <DevicesPage
           serviceOnline={online}
           connectionState={status.state}
-          initialOpenKey={pendingDeviceKey}
-          onInitialOpenConsumed={() => setPendingDeviceKey(null)}
+          onDeviceSelect={k => navigate('my-computer', 'device', k)}
         />
       );
       case 'device':     return (

@@ -3,18 +3,24 @@ import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnified
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { ServiceRequired } from '../ServiceRequired';
 import { Placeholder } from '../Placeholder';
+import { PanelDevicePage } from './PanelDevicePage';
+import { PeripheralDevicePage } from './PeripheralDevicePage';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 
 /**
  * Routed device page. Resolves the device referenced by the URL's
- * `subtab` segment (i.e. /my-computer/device/<deviceKey>) and
- * dispatches to the kind-specific page body.
+ * `subtab` segment (i.e. /my-computer/device/<deviceKey>) via the
+ * shared `useUnifiedDevices` selector, then dispatches to the
+ * kind-specific page body:
  *
- * Phase A: only the resolver + chrome are in place. The body is a
- * placeholder while the existing PanelDeviceModal / PeripheralModal
- * surfaces are being converted from modal layouts to page layouts in
- * the next phase. Once those land here they'll be looked up by
- * device.kind.
+ *   panel       → PanelDevicePage     (Y70 / Q60 / Q80 / simulator)
+ *   peripheral  → PeripheralDevicePage (mice, keyboards, …)
+ *   curated     → falls through to "details coming" until each
+ *                  curated handler grows its own page.
+ *
+ * The previous flow opened these as fullscreen modals from
+ * DevicesPage; converting them to pages was the point of this
+ * refactor so the sidebar's DEVICES section can deep-link.
  */
 interface DevicePageProps {
   deviceKey: string;
@@ -34,21 +40,29 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
   }
 
   if (!device) {
-    // Either an in-flight enumeration (haven't fetched yet) OR a stale
-    // deep link to a device that's since been removed. Both render the
-    // same lightweight placeholder so the user isn't staring at chrome.
     return (
       <section>
         <ViewHeader title="Device" />
-        <Placeholder title="Loading device…" />
+        <Placeholder title="Device not found" />
       </section>
     );
   }
 
+  if (device.kind === 'panel' && device.panelDevice) {
+    return <PanelDevicePage device={device.panelDevice} />;
+  }
+
+  if (device.kind === 'peripheral' && device.peripheral) {
+    return <PeripheralDevicePage peripheral={device.peripheral} />;
+  }
+
+  // Curated devices the service knows about but don't yet have a
+  // bespoke page. Renders the device name + a hint so a sidebar deep
+  // link still lands on something readable.
   return (
     <section>
       <ViewHeader title={device.name} />
-      <Placeholder title={`${device.name} page coming next phase`} />
+      <Placeholder title={`No page yet for ${device.category}`} />
     </section>
   );
 }

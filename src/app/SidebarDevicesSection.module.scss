@@ -11,9 +11,11 @@
   margin-top: 1.25rem;
 }
 
-// Section header reuses the canonical .sectionLabel styling but is a
-// button so the row navigates to the all-devices landing page when
-// tapped. No icon (header-level), matches the existing APPS label.
+// Section header — a button so a click navigates to the all-devices
+// landing page. No icon (header-level), reads as the uppercase APPS
+// label until active; then it switches to the accent treatment a
+// selected app row gets so the user sees "I'm on the devices
+// landing" the same way they see "I'm on Cooling".
 .headerBtn {
   display: flex;
   align-items: center;
@@ -21,7 +23,9 @@
   appearance: none;
   border: none;
   background: transparent;
-  padding: 0.5rem 0.75rem 0.25rem;
+  padding: 0.6rem 0.75rem;
+  margin: 0.25rem 0 0.1rem;
+  border-radius: var(--radius-sm);
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
   color: var(--text-faded);
@@ -30,12 +34,20 @@
   cursor: pointer;
   width: 100%;
   text-align: left;
-  transition: color var(--ease-fast);
+  transition: background var(--ease-fast), color var(--ease-fast);
 
-  &:hover { color: var(--text); }
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
 }
 
-.headerActive { color: var(--text); }
+.headerActive {
+  background: var(--accent-soft);
+  color: var(--text);
+
+  &:hover { background: var(--accent-soft); }
+}
 
 .headerCompact {
   // In compact mode the label hides; the button collapses to a thin
@@ -99,28 +111,26 @@
   opacity: 0.55;
 }
 
+// Device icon slot. The SVG assets use stroke="currentColor", which
+// only works when the SVG is rendered inline in the host DOM. To get
+// the same color treatment that lucide icons (used by the app rows)
+// receive from currentColor, we render the SVG as a CSS mask over a
+// solid background-color — the rect filled by the mask IS the
+// surrounding text colour, including the .active accent override.
 .icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
   width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  color: var(--text-dim);
-}
-
-.iconGlyph {
-  // SVG asset rendered at the icon slot size. Filter-recolor the SVG
-  // strokes via currentColor would be ideal but the asset uses
-  // currentColor inline so simple <img> won't tint — accept the
-  // assets' as-shipped grey lines for now.
-  width: 18px;
-  height: 18px;
-  display: block;
-  // The device SVGs use `stroke="currentColor"` on inline icons; when
-  // rendered via <img> they fall back to black. Mute opacity so the
-  // assets read as part of the sidebar palette rather than as
-  // hard-edged black.
-  opacity: 0.85;
+  background-color: currentColor;
+  mask-image: var(--device-icon);
+  mask-size: 18px 18px;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-image: var(--device-icon);
+  -webkit-mask-size: 18px 18px;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
 }
 
 .label { white-space: nowrap; }

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Mouse, Keyboard, Headphones, Gamepad2, Monitor, Cpu, Usb } from 'lucide-react';
 import { fetchPeripheralDetail, type Peripheral } from '../../../hooks/usePeripherals';
 import { getWebHidPeripheral } from '../../../hooks/useWebHidPeripherals';
 import { useTranslation } from '../../../lib/i18n';
@@ -7,18 +6,9 @@ import { DpiControl } from '../../peripherals/DpiControl';
 import { PollingPicker } from '../../peripherals/PollingPicker';
 import { BatteryBar } from '../../peripherals/BatteryBar';
 import { SleepConfig } from '../../peripherals/SleepConfig';
-import { DeviceModal } from './DeviceModal';
-import { InfoList, InfoRow } from '../InfoList/InfoList';
-import styles from './PeripheralModal.module.scss';
-
-const CATEGORY_ICONS: Record<string, typeof Mouse> = {
-  mouse: Mouse,
-  keyboard: Keyboard,
-  headset: Headphones,
-  gamepad: Gamepad2,
-  display: Monitor,
-  controller: Cpu,
-};
+import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
+import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
+import styles from './PeripheralDevicePage.module.scss';
 
 async function snapshotWebHid(id: string, base: Peripheral): Promise<Peripheral | null> {
   const w = getWebHidPeripheral(id);
@@ -47,17 +37,15 @@ async function snapshotWebHid(id: string, base: Peripheral): Promise<Peripheral 
   }
 }
 
-interface PeripheralModalProps {
-  peripheral: Peripheral | null;
-  onClose: () => void;
+interface PeripheralDevicePageProps {
+  peripheral: Peripheral;
 }
 
-export function PeripheralModal({ peripheral, onClose }: PeripheralModalProps) {
+export function PeripheralDevicePage({ peripheral }: PeripheralDevicePageProps) {
   const { t } = useTranslation();
   const [detail, setDetail] = useState<Peripheral | null>(null);
 
   useEffect(() => {
-    if (!peripheral) { setDetail(null); return; }
     let cancelled = false;
     const poll = async () => {
       if (peripheral.source === 'webhid') {
@@ -73,10 +61,7 @@ export function PeripheralModal({ peripheral, onClose }: PeripheralModalProps) {
     return () => { cancelled = true; clearInterval(interval); };
   }, [peripheral]);
 
-  if (!peripheral) return null;
-
   const p = detail ?? peripheral;
-  const Icon = CATEGORY_ICONS[p.category] || Usb;
   const reload = async () => {
     if (peripheral.source === 'webhid') {
       const next = await snapshotWebHid(peripheral.id, peripheral);
@@ -90,12 +75,9 @@ export function PeripheralModal({ peripheral, onClose }: PeripheralModalProps) {
   const hasCaps = !!(p.battery || p.dpi || p.polling || p.sleep);
 
   return (
-    <DeviceModal
-      open
-      onClose={onClose}
-      title={p.name}
-      icon={<Icon size={20} />}
-    >
+    <section className={styles.page}>
+      <ViewHeader title={p.name} />
+
       <InfoList className={styles.info}>
         <InfoRow label={t('devices.peripheral.vendor')} value={p.vendor} />
         <InfoRow label={t('devices.peripheral.category')} value={p.category} capitalize />
@@ -131,6 +113,6 @@ export function PeripheralModal({ peripheral, onClose }: PeripheralModalProps) {
       {!hasCaps && p.capabilities.length === 0 && (
         <div className={styles.empty}>{t('peripheral.noCapabilities')}</div>
       )}
-    </DeviceModal>
+    </section>
   );
 }

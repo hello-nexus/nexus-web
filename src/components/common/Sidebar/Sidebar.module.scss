@@ -52,6 +52,33 @@
   text-transform: uppercase;
 }
 
+// Interactive variant — the section header itself routes somewhere
+// (APPS → dashboard, DEVICES → all-devices landing). Same chrome as
+// an item row when active so a selected header reads as a
+// first-class destination, not as decoration.
+.sectionLabelBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  margin: 0.25rem 0 0.1rem;
+  border-radius: var(--radius-sm);
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+}
+
+.sectionLabelActive {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
 .item {
   display: flex;
   align-items: center;

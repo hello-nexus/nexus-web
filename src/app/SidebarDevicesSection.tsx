@@ -90,14 +90,12 @@ export function SidebarDevicesSection({
               onClick={() => onSelect(device.key)}
               aria-label={compact ? device.shortName : undefined}
             >
-              <span className={styles.icon}>
-                <img
-                  src={device.iconSrc}
-                  alt=""
-                  aria-hidden
-                  className={styles.iconGlyph}
-                />
-              </span>
+              <span
+                className={styles.icon}
+                role="img"
+                aria-label={device.shortName}
+                style={{ ['--device-icon' as string]: `url(${device.iconSrc})` }}
+              />
               {!compact && (
                 <span className={styles.label}>{device.shortName}</span>
               )}

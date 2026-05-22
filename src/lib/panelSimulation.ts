@@ -35,7 +35,7 @@ export interface SimulatedPanelGridSizing {
 
 export const SIMULATED_PANEL_PRESETS: readonly SimulatedPanelDefinition[] = [
   { id: 'y70', name: 'Y70 Touch', surface: 'y70', width: 682, height: 2560, dpi: 337 },
-  { id: 'q60', name: 'Q60 LCD', surface: 'q60', width: 720, height: 1280, dpi: 220 },
+  { id: 'q60', name: 'Q60', surface: 'q60', width: 720, height: 1280, dpi: 220 },
   { id: 'phone', name: 'Phone Panel', surface: 'phone', width: 1206, height: 2622, dpi: 460 },
   { id: 'tablet', name: 'Tablet Panel', surface: 'phone', width: 1640, height: 2360, dpi: 264 },
 ];
