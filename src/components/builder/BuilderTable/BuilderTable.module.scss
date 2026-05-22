@@ -269,7 +269,7 @@ $grid-cols: 170px minmax(0, 2.2fr) minmax(0, 1.4fr) 6rem 10.5rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-md);
   padding: 0.3rem;
   display: flex;
   flex-direction: column;

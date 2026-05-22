@@ -52,7 +52,7 @@
   background: var(--panel-card-bg, var(--bg-card));
   border: 1px solid var(--panel-card-border, var(--border));
   padding: 26px 24px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
   align-items: center;

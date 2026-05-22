@@ -39,7 +39,7 @@
   height: 14px;
   border: 2px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-strong)), var(--shadow-sm);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -69,7 +69,7 @@
   height: 14px;
   border: 2px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-strong)), var(--shadow-sm);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -87,7 +87,7 @@
   text-transform: uppercase;
   outline: none;
   text-align: center;
-  transition: border-color 0.12s, background 0.12s;
+  transition: border-color var(--ease-fast), background var(--ease-fast);
 
   &:hover { border-color: var(--accent); }
   &:focus { border-color: var(--accent); }

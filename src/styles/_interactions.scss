@@ -22,6 +22,25 @@
   outline-offset: -2px;
 }
 
+// Text-input focus treatment. Border lights up to accent, soft accent halo
+// wraps it. Used for inputs where an outline would push siblings around or
+// clip past the parent surface (Select, SearchInput, etc.). Halo is 3px so
+// it reads as a glow rather than a hard outline.
+@mixin focus-glow-input {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+// Card-selection focus treatment. Same recipe as focus-glow-input but a
+// tighter 2px halo because selectable cards already carry a heavier visual
+// weight than form inputs. Used by EffectCard, EffectTemplateSelector and
+// any card-shaped picker.
+@mixin focus-glow-card {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
 // Pressed / active feedback. Tiny scale-down so the user feels the click on
 // touch surfaces and dense kiosk panels. Pair with a transition on transform
 // for the spring-back animation.
@@ -47,4 +66,24 @@
   transition: background-color var(--ease) ease,
               border-color var(--ease) ease,
               color var(--ease) ease;
+}
+
+// Canonical rollover for in-widget operable buttons (lighting/cooling
+// presets, steam game rows, device tiles, etc.). Neutral lift on hover
+// so it never collides with the accent-coloured `[data-active='true']`
+// toggle state. Background only — no box-shadow, no transform — so
+// hovering a widget never alters the surrounding card's dropshadow.
+@mixin widget-button-hover {
+  transition: background-color var(--ease-fast) ease,
+              border-color var(--ease-fast) ease,
+              color var(--ease-fast) ease;
+
+  &:hover:not(:disabled):not([data-active='true']) {
+    background: var(--panel-element-bg-hover);
+    color: var(--panel-text);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--panel-element-bg-active);
+  }
 }

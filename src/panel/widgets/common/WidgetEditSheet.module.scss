@@ -1,6 +1,6 @@
 .sheet {
   position: fixed;
-  z-index: 90;
+  z-index: var(--z-dropdown);
   width: min(440px, 92vw);
   max-height: min(640px, 88vh);
   display: flex;
@@ -10,7 +10,7 @@
   background: var(--panel-sheet-bg);
   backdrop-filter: blur(18px);
   border: 1px solid var(--panel-border);
-  box-shadow: 0 16px 56px rgb(0 0 0 / var(--alpha-medium));
+  box-shadow: var(--shadow-xl);
   font-family: var(--panel-font, inherit);
   color: var(--panel-text);
   // The desktop overlay root opts out of pointer events; this sheet is a

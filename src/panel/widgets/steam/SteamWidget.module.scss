@@ -1,4 +1,5 @@
 @use '../../../styles/text' as *;
+@use '../../../styles/interactions' as *;
 
 .header {
   display: flex;
@@ -105,12 +106,8 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
-  transition: background 120ms ease;
 
-  &:hover,
-  &:focus-visible {
-    background: var(--panel-element-bg-hover, var(--panel-accent-soft));
-  }
+  @include widget-button-hover;
 
   &:focus-visible {
     outline: 2px solid var(--panel-accent);
@@ -187,6 +184,15 @@
   border: 0;
   background: transparent;
   cursor: pointer;
+  transition: filter var(--ease-fast) ease;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+
+  &:active {
+    filter: brightness(0.94);
+  }
 
   &:focus-visible {
     outline: 2px solid var(--panel-accent);

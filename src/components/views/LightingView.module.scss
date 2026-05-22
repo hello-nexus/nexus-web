@@ -824,7 +824,7 @@
 
 .statusDotOnline {
   background: var(--good);
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--good) 60%, transparent);
 }
 
 .statusDotOffline {

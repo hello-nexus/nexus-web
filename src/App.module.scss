@@ -625,21 +625,21 @@
   // Killswitch ON, devices connected.
   &[data-state='connected'] {
     background: var(--good);
-    box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 8px color-mix(in srgb, var(--good) 60%, transparent);
   }
 
   // Killswitch OFF, paired devices preserved but unreachable. Amber signals
   // "system is intentionally locked" without using the same red as errors.
   &[data-state='paired'] {
-    background: #f59e0b;
-    box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(245, 158, 11, 0.55);
+    background: var(--warn);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 8px color-mix(in srgb, var(--warn) 55%, transparent);
   }
 }
 
 // Legacy class kept for any consumer still toggling .phonePairDotOn.
 .phonePairDotOn {
   background: var(--good);
-  box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 8px color-mix(in srgb, var(--good) 60%, transparent);
 }
 
 .phonePairState {
