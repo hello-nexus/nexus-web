@@ -73,7 +73,7 @@ export function SidebarColumn({
   onPairPhoneOpen,
 }: SidebarColumnProps) {
   const { t } = useTranslation();
-  const { settings } = useUiSettings();
+  const { settings, update } = useUiSettings();
 
   // The pinned sidebar is dashboard (locked) followed by the user-ordered
   // tail. sanitizePinnedTail() drops unknown / duplicate keys read from the
@@ -85,6 +85,13 @@ export function SidebarColumn({
     label: t(SIDEBAR_APP_META[key].i18nKey),
     icon: SIDEBAR_APP_META[key].icon,
   }));
+
+  // Persist a reorder by writing the new tail back. The sanitizer in
+  // useUiSettings drops any non-pinnable keys so a bad nextTail can never
+  // poison settings.
+  const handleTailReorder = (nextTailKeys: string[]) => {
+    update({ pinnedSidebarApps: nextTailKeys });
+  };
 
   return (
     <div className={classNames(styles.sidebarColumn, { [styles.sidebarCompact]: compact })}>
@@ -100,6 +107,8 @@ export function SidebarColumn({
         onChange={onServiceNavChange}
         sectionLabel=""
         serviceState={serviceState}
+        lockedHeadKey={DASHBOARD_APP_KEY}
+        onTailReorder={handleTailReorder}
         headerSlot={
           <div className={classNames(styles.sidebarHeaderBox, { [styles.sidebarHeaderBoxCompact]: compact })}>
             {online ? (
