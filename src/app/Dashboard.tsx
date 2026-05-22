@@ -176,6 +176,13 @@ export function Dashboard() {
   // Pair Remote killswitch state. Optimistic default of true matches the
   // service default so the dot color does not flicker before the first fetch.
   const [remoteControlEnabled, setRemoteControlEnabled] = useState(true);
+
+  // Mark <body> when running inside the Windows-app shell so portaled
+  // chrome (modals, popovers) can reserve the top-right 138px caption-
+  // button gutter without each consumer re-detecting the shell.
+  useEffect(() => {
+    document.body.classList.toggle('qos-shell-windows-app', isWindowsAppShell());
+  }, []);
   useEffect(() => {
     if (!online) return;
     let cancelled = false;
