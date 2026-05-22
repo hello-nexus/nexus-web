@@ -1,8 +1,13 @@
 import type { CollisionDetection } from '@dnd-kit/core';
 import { snapStride } from './engine/grid';
 import type { PanelLayout, PanelWidget } from './types';
+import { isPinnableAppKey, type PinnableAppKey } from '../app/sidebarAppKeys';
 
-export type DashboardWidgetSection = 'monitoring' | 'lighting' | 'cooling' | 'devices';
+// A click on a dashboard widget tile navigates to the widget's app page
+// — same source of truth as the sidebar pin list. Adding a new app key
+// in sidebarAppKeys.ts automatically makes the corresponding widget
+// click-through; no change needed here.
+export type DashboardWidgetSection = PinnableAppKey;
 
 export interface DashboardSectionNavigatePayload {
   // Optional deep-link key. Currently used by the devices widget to
@@ -13,10 +18,8 @@ export interface DashboardSectionNavigatePayload {
 export type DashboardSectionNavigate =
   (section: DashboardWidgetSection, payload?: DashboardSectionNavigatePayload) => void;
 
-export const DASHBOARD_CLICKTHROUGH_TYPES = new Set<string>(['monitoring', 'lighting', 'cooling', 'devices']);
-
 export function isDashboardClickthroughType(type: string): type is DashboardWidgetSection {
-  return DASHBOARD_CLICKTHROUGH_TYPES.has(type);
+  return isPinnableAppKey(type);
 }
 
 export interface DragTarget { pageId: string; col: number; row: number; }

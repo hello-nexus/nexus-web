@@ -1,0 +1,85 @@
+// Equirectangular world map with a day/night terminator overlay,
+// subsolar sun marker, and per-city pins. Visual style tries to read
+// like a section of a stylised globe — dim ocean, warm land, soft
+// curve of darkness sliding across as the Earth rotates.
+
+.wrap {
+  position: relative;
+  width: 100%;
+  // Equirectangular projection is 2:1. Lock the aspect so the map
+  // never gets squashed — cities would drift off their lat/lon.
+  aspect-ratio: 2 / 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+// Ocean is the SVG <rect> base; land is a layer of polygons on top.
+.ocean { fill: color-mix(in srgb, var(--accent-deep) 18%, var(--bg-elevated)); }
+.land  { fill: color-mix(in srgb, var(--accent) 22%, var(--bg-card-hover)); stroke: color-mix(in srgb, var(--accent) 35%, transparent); stroke-width: 0.18; }
+
+// Night overlay sits on top of land + ocean, dimming the unlit side.
+// Translucent so the continent shapes underneath stay visible.
+.night { fill: rgba(8, 12, 24, 0.55); }
+
+// Soft glow along the terminator line.
+.terminator {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 60%, white);
+  stroke-width: 0.35;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 1.5px color-mix(in srgb, var(--accent) 50%, transparent));
+  opacity: 0.7;
+}
+
+// Latitude / longitude reference lines. Faint so they read as map
+// chrome rather than competing with continents or cities.
+.grid {
+  stroke: color-mix(in srgb, var(--text-faded) 22%, transparent);
+  stroke-width: 0.12;
+  fill: none;
+}
+
+.sunGlow {
+  fill: gold;
+  opacity: 0.35;
+  filter: blur(0.5px);
+}
+
+.sun {
+  fill: gold;
+  filter: drop-shadow(0 0 1px rgba(255, 215, 0, 0.8));
+}
+
+.cityDot {
+  fill: color-mix(in srgb, var(--accent) 80%, white);
+  stroke: white;
+  stroke-width: 0.35;
+}
+
+.cityDotNight {
+  fill: color-mix(in srgb, var(--accent-deep) 80%, white);
+  stroke: color-mix(in srgb, white 70%, transparent);
+  stroke-width: 0.35;
+}
+
+.cityLabel {
+  fill: var(--text);
+  font-size: 3px;
+  font-weight: var(--weight-heading);
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
+.cityLabelTime {
+  fill: var(--text-dim);
+  font-size: 2.4px;
+}
