@@ -4,6 +4,7 @@ import * as monitoringStore from '../../../lib/monitoringStore';
 import { useScreenTime } from '../../../hooks/useScreenTime';
 import { fetchService } from '../../../api/service';
 import { DatePicker } from '../../common/DatePicker/DatePicker';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { Tabs } from '../../common/Tabs/Tabs';
 import {
   deleteScreenTimeApp,
@@ -133,13 +134,14 @@ function DayPanel({ date, setDate, onAppClick }: {
         </div>
         <div className={styles.hourlyChart}>
           {merged.hourlyMs.map((ms, h) => (
-            <button key={h} type="button"
-              className={selectedHour === h ? styles.hourBarActive : styles.hourBar}
-              onClick={() => setSelectedHour(selectedHour === h ? null : h)}
-              title={`${h}:00 - ${formatDuration(ms)}`}>
-              <div className={styles.hourBarFill}
-                style={{ height: `${Math.max(2, (ms / max) * 100)}%` }} />
-            </button>
+            <HoverTooltip key={h} title={`${h}:00`} body={formatDuration(ms)} side="top">
+              <button type="button"
+                className={selectedHour === h ? styles.hourBarActive : styles.hourBar}
+                onClick={() => setSelectedHour(selectedHour === h ? null : h)}>
+                <div className={styles.hourBarFill}
+                  style={{ height: `${Math.max(2, (ms / max) * 100)}%` }} />
+              </button>
+            </HoverTooltip>
           ))}
         </div>
         <div className={styles.hourlyAxis}>
@@ -196,13 +198,14 @@ function WeekPanel({ onPickDay, onPickApp }: {
         <div className={styles.cardTitle}>{t('monitoring.screentime.weekTitle')}</div>
         <div className={styles.weekChart}>
           {days.map(d => (
-            <button key={d.date} type="button" className={styles.weekBar}
-              onClick={() => onPickDay(d.date)}
-              title={`${d.date} - ${formatDuration(d.totalMs)}`}>
-              <div className={styles.weekBarFill}
-                style={{ height: `${Math.max(2, (d.totalMs / max) * 100)}%` }} />
-              <div className={styles.weekBarLabel}>{shortDayLabel(d.date)}</div>
-            </button>
+            <HoverTooltip key={d.date} title={d.date} body={formatDuration(d.totalMs)} side="top">
+              <button type="button" className={styles.weekBar}
+                onClick={() => onPickDay(d.date)}>
+                <div className={styles.weekBarFill}
+                  style={{ height: `${Math.max(2, (d.totalMs / max) * 100)}%` }} />
+                <div className={styles.weekBarLabel}>{shortDayLabel(d.date)}</div>
+              </button>
+            </HoverTooltip>
           ))}
         </div>
       </div>
@@ -237,12 +240,13 @@ function MonthPanel({ onPickDay }: { onPickDay: (d: string) => void }) {
           {days.map(d => {
             const ratio = d.totalMs / max;
             return (
-              <button key={d.date} type="button" className={styles.heatCell}
-                onClick={() => onPickDay(d.date)}
-                title={`${d.date} - ${formatDuration(d.totalMs)}`}
-                style={{ opacity: 0.15 + ratio * 0.85 }}>
-                <span className={styles.heatCellLabel}>{Number(d.date.slice(8))}</span>
-              </button>
+              <HoverTooltip key={d.date} title={d.date} body={formatDuration(d.totalMs)} side="top">
+                <button type="button" className={styles.heatCell}
+                  onClick={() => onPickDay(d.date)}
+                  style={{ opacity: 0.15 + ratio * 0.85 }}>
+                  <span className={styles.heatCellLabel}>{Number(d.date.slice(8))}</span>
+                </button>
+              </HoverTooltip>
             );
           })}
         </div>
@@ -320,11 +324,13 @@ function AppPanel({ name, onPickName, onBack }: {
         <div className={styles.cardTitle}>{t('monitoring.screentime.appLast7')}</div>
         <div className={styles.weekChart}>
           {filled.map(d => (
-            <div key={d.date} className={styles.weekBar} title={`${d.date} - ${formatDuration(d.totalMs)}`}>
-              <div className={styles.weekBarFill}
-                style={{ height: `${Math.max(2, (d.totalMs / max) * 100)}%` }} />
-              <div className={styles.weekBarLabel}>{shortDayLabel(d.date)}</div>
-            </div>
+            <HoverTooltip key={d.date} title={d.date} body={formatDuration(d.totalMs)} side="top">
+              <div className={styles.weekBar}>
+                <div className={styles.weekBarFill}
+                  style={{ height: `${Math.max(2, (d.totalMs / max) * 100)}%` }} />
+                <div className={styles.weekBarLabel}>{shortDayLabel(d.date)}</div>
+              </div>
+            </HoverTooltip>
           ))}
         </div>
       </div>

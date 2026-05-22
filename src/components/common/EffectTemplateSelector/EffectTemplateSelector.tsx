@@ -1,3 +1,4 @@
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { PresetSwatch } from '../PresetSwatch/PresetSwatch';
 import styles from './EffectTemplateSelector.module.scss';
 
@@ -42,26 +43,26 @@ export function EffectTemplateSelector({
         const selected = index === activeIndex;
         const label = `${buttonAriaLabelPrefix} ${index + 1}`;
         return (
-          <button
-            key={index}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            aria-label={label}
-            className={styles.button}
-            data-active={selected ? 'true' : 'false'}
-            onClick={() => onSelect(index)}
-            title={label}
-          >
-            <span className={styles.preview}>
-              <PresetSwatch
-                hue={slot.hue}
-                colorize={slot.colorize}
-                saturation={slot.saturation}
-                contrast={slot.contrast}
-              />
-            </span>
-          </button>
+          <HoverTooltip key={index} body={label} side="top">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              aria-label={label}
+              className={styles.button}
+              data-active={selected ? 'true' : 'false'}
+              onClick={() => onSelect(index)}
+            >
+              <span className={styles.preview}>
+                <PresetSwatch
+                  hue={slot.hue}
+                  colorize={slot.colorize}
+                  saturation={slot.saturation}
+                  contrast={slot.contrast}
+                />
+              </span>
+            </button>
+          </HoverTooltip>
         );
       })}
     </div>

@@ -17,6 +17,7 @@ import { useTranslation } from '../../../lib/i18n';
 import type { LightingMode } from '../../../types/lighting';
 import { EffectCard } from '../../common/EffectCard/EffectCard';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { Select } from '../../common/Select/Select';
 import { SCREEN_FILTERS, matchScreenFilter, screenFilterByKey, type ScreenFilterKey } from './screenFilters';
 import styles from '../LightingView.module.scss';
@@ -46,6 +47,7 @@ export const ModeControls = memo(function ModeControls({ mode, staticColor, onSt
 });
 
 function StaticControls({ color, onChange }: { color: string; onChange: (hex: string) => void }) {
+  const { t } = useTranslation();
   const applyColor = (hex: string) => {
     onChange(hex);
     startStatic(parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16));
@@ -62,11 +64,13 @@ function StaticControls({ color, onChange }: { color: string; onChange: (hex: st
             style={{ background: hex }} onClick={() => applyColor(hex)} aria-label={hex} />
         ))}
       </div>
-      <label className={`${styles.customSwatch} ${!isPreset ? styles.staticSwatchActive : ''}`} title="Custom colour">
-        <span className={styles.customRing} aria-hidden />
-        {!isPreset && <span className={styles.customDot} style={{ background: color }} aria-hidden />}
-        <input type="color" value={color} onChange={e => applyColor(e.target.value)} className={styles.customInput} />
-      </label>
+      <HoverTooltip body={t('lighting.customColor')} side="bottom">
+        <label className={`${styles.customSwatch} ${!isPreset ? styles.staticSwatchActive : ''}`} aria-label={t('lighting.customColor')}>
+          <span className={styles.customRing} aria-hidden />
+          {!isPreset && <span className={styles.customDot} style={{ background: color }} aria-hidden />}
+          <input type="color" value={color} onChange={e => applyColor(e.target.value)} className={styles.customInput} />
+        </label>
+      </HoverTooltip>
     </div>
   );
 }
@@ -313,17 +317,18 @@ function MediaControls() {
         <button type="button" className={styles.importBtn} onClick={() => fileRef.current?.click()} disabled={importing}>
           {importing ? t('lighting.controls.importing') : t('lighting.controls.import')}
         </button>
-        <button type="button" className={styles.manageFolderBtn} onClick={handleOpenFolder}
-          aria-label={t('lighting.controls.mediaManageFolder')}
-          title={t('lighting.controls.mediaManageFolder')}>
-          <svg className={styles.manageFolderIcon} width="14" height="14" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-            aria-hidden="true">
-            <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v2" />
-            <path d="m3 10 2.5 9.2A2 2 0 0 0 7.4 21h10.2a2 2 0 0 0 1.93-1.47L22 11H6.4a2 2 0 0 0-1.93 1.47Z" />
-          </svg>
-          <span>{t('lighting.controls.mediaManageFolder')}</span>
-        </button>
+        <HoverTooltip body={t('lighting.controls.mediaManageFolder')} side="bottom">
+          <button type="button" className={styles.manageFolderBtn} onClick={handleOpenFolder}
+            aria-label={t('lighting.controls.mediaManageFolder')}>
+            <svg className={styles.manageFolderIcon} width="14" height="14" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+              aria-hidden="true">
+              <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v2" />
+              <path d="m3 10 2.5 9.2A2 2 0 0 0 7.4 21h10.2a2 2 0 0 0 1.93-1.47L22 11H6.4a2 2 0 0 0-1.93 1.47Z" />
+            </svg>
+            <span>{t('lighting.controls.mediaManageFolder')}</span>
+          </button>
+        </HoverTooltip>
         <input ref={fileRef} type="file" className={styles.hiddenInput}
           accept="image/*,video/*,.gif" onChange={handleImport} />
       </div>

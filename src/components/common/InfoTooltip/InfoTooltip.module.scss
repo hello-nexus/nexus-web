@@ -1,3 +1,5 @@
+@use '../../../styles/interactions' as *;
+
 .root {
   position: relative;
   display: inline-flex;
@@ -21,34 +23,31 @@
 
   &:hover { color: var(--text-dim); }
   &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    @include focus-ring;
     color: var(--text-dim);
   }
 }
 
 // Rendered into a portal on document.body. position: fixed against the
-// viewport with top/left/transform set inline by the JS reposition logic;
-// keep visual styling here so themes apply uniformly.
+// viewport with top/left/transform set inline by the JS reposition logic.
+// Shares the body-only treatment with HoverTooltip so all hover hints
+// read with one voice.
 .tooltip {
   position: fixed;
-  z-index: 1050;
-  min-width: 220px;
-  max-width: 320px;
-  padding: 0.55rem 0.8rem;
+  z-index: var(--z-tooltip);
+  max-width: 260px;
+  padding: 0.5rem 0.7rem;
   background: var(--bg-elevated);
-  color: var(--text);
+  color: var(--text-dim);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-md);
   font-size: var(--type-small);
+  font-weight: var(--weight-body);
   line-height: 1.4;
-  white-space: normal;
-  text-align: left;
   letter-spacing: normal;
   text-transform: none;
-  font-weight: var(--weight-body);
-  // Mount/unmount handled by React; no opacity transition needed since
-  // there is no persistent DOM node to fade. If a fade is wanted later,
-  // wrap the portal in a CSSTransition or react-transition-group.
+  text-align: left;
+  white-space: normal;
+  user-select: none;
 }

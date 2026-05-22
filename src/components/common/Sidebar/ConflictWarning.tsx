@@ -5,6 +5,7 @@ import type { DetectedConflict } from '../../../api/conflicts';
 import { killConflict } from '../../../api/conflicts';
 import { Button } from '../Button/Button';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './ConflictWarning.module.scss';
 
@@ -38,27 +39,30 @@ export function ConflictWarningBadge({ conflicts, compact, onDismissForever }: C
 
   const label = t('conflicts.badge.label', { count });
 
+  const badgeBtn = (
+    <button
+      type="button"
+      className={classNames(styles.badge, { [styles.badgeCompact]: compact })}
+      onClick={() => setOpen(true)}
+      aria-label={label}
+    >
+      <span className={styles.icon}>
+        <AlertTriangle size={16} />
+      </span>
+      {!compact && (
+        <>
+          <span className={styles.text}>{t('conflicts.badge.text')}</span>
+          <span className={styles.count}>{count}</span>
+        </>
+      )}
+      {compact && <span className={styles.compactDot}>{count}</span>}
+    </button>
+  );
+
   return (
     <div className={classNames(styles.wrap, { [styles.wrapCompact]: compact })}>
       {count > 0 && (
-        <button
-          type="button"
-          className={classNames(styles.badge, { [styles.badgeCompact]: compact })}
-          onClick={() => setOpen(true)}
-          title={compact ? label : undefined}
-          aria-label={label}
-        >
-          <span className={styles.icon}>
-            <AlertTriangle size={16} />
-          </span>
-          {!compact && (
-            <>
-              <span className={styles.text}>{t('conflicts.badge.text')}</span>
-              <span className={styles.count}>{count}</span>
-            </>
-          )}
-          {compact && <span className={styles.compactDot}>{count}</span>}
-        </button>
+        compact ? <HoverTooltip body={label} side="right">{badgeBtn}</HoverTooltip> : badgeBtn
       )}
       <ConflictWarningModal
         open={open}

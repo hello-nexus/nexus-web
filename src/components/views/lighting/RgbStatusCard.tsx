@@ -1,3 +1,4 @@
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import styles from '../LightingView.module.scss';
 
 /**
@@ -29,12 +30,11 @@ export function RgbStatusCard({ rgbRunning, onClick, title }: {
     <span className={`${styles.statusDot} ${rgbRunning ? styles.statusDotOnline : styles.statusDotOffline}`} />
   );
   if (onClick) {
-    return (
+    const btn = (
       <button
         type="button"
         className={styles.statusCard}
         onClick={onClick}
-        title={title}
         aria-label={title ?? status}
       >
         <OpenRgbGlyph />
@@ -42,6 +42,7 @@ export function RgbStatusCard({ rgbRunning, onClick, title }: {
         {dot}
       </button>
     );
+    return title ? <HoverTooltip body={title} side="top">{btn}</HoverTooltip> : btn;
   }
   return (
     <div className={styles.statusCard} role="status" aria-label={status}>

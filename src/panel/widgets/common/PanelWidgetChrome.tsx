@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import styles from './PanelWidgetChrome.module.scss';
 
 type StatusTone = 'online' | 'away' | 'busy' | 'offline';
@@ -41,18 +42,23 @@ export function PanelWidgetTab({
   icon,
   label,
   onClick,
+  tooltip,
 }: {
   active: boolean;
   icon: ReactNode;
   label: string;
   onClick: () => void;
+  /** Optional hover tooltip. Useful when the tab row is rendered compact and
+   *  the inline label is hidden, or when the label alone is ambiguous. */
+  tooltip?: string;
 }) {
-  return (
-    <button type="button" className={styles.tab} data-active={active ? 'true' : 'false'} onClick={onClick}>
+  const btn = (
+    <button type="button" className={styles.tab} data-active={active ? 'true' : 'false'} onClick={onClick} aria-label={label}>
       {icon}
       <span className={styles.tabLabel}>{label}</span>
     </button>
   );
+  return tooltip ? <HoverTooltip body={tooltip} side="bottom">{btn}</HoverTooltip> : btn;
 }
 
 export function PanelWidgetSetup({

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { Check, ExternalLink, GripVertical, Maximize2, Monitor, Pin, Settings, Trash2 } from 'lucide-react';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
 import type { PanelSurface, PanelWidgetSize } from '../../types';
 import styles from './WidgetContextMenu.module.scss';
@@ -156,16 +157,16 @@ export function WidgetContextMenu({
               const Icon = SIZE_ICONS[size];
               const active = size === currentSize;
               return (
-                <button
-                  key={size}
-                  type="button"
-                  className={`${styles.sizeBtn} ${active ? styles.sizeBtnActive : ''}`}
-                  onClick={() => runAndClose(() => onResize(size))}
-                  aria-label={size}
-                  title={size}
-                >
-                  {Icon ? <Icon width={18} height={18} /> : size}
-                </button>
+                <HoverTooltip key={size} body={size} side="top">
+                  <button
+                    type="button"
+                    className={`${styles.sizeBtn} ${active ? styles.sizeBtnActive : ''}`}
+                    onClick={() => runAndClose(() => onResize(size))}
+                    aria-label={size}
+                  >
+                    {Icon ? <Icon width={18} height={18} /> : size}
+                  </button>
+                </HoverTooltip>
               );
             })}
           </div>

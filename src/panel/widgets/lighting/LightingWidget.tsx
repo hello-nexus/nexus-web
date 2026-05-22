@@ -328,7 +328,6 @@ export function LightingWidget({ widget }: WidgetProps) {
             data-active={widgetMode === item.key ? 'true' : 'false'}
             onClick={() => handleButton(item.key)}
             aria-label={t(item.labelKey)}
-            title={t(item.labelKey)}
           >
             <item.icon size={15} aria-hidden="true" />
             <span className={styles.modeButtonLabel}>{t(item.labelKey)}</span>

@@ -16,6 +16,7 @@ import {
   staticMaxForDevice,
 } from './PerformanceWidget';
 import { bareSensorLabel } from './sensorNames';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { MicroBar } from './MicroBar';
 import styles from './MicroMonitoringWidget.module.scss';
 
@@ -79,7 +80,9 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
           />
         ))}
       </div>
-      <div className={styles.bottomLabel} title={bottomLabel}>{bottomLabel}</div>
+      <HoverTooltip body={bottomLabel} side="top">
+        <div className={styles.bottomLabel}>{bottomLabel}</div>
+      </HoverTooltip>
     </div>
   );
 }

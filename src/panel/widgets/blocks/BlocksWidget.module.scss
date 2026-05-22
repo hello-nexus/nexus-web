@@ -146,7 +146,7 @@
 
 .cell {
   border-radius: 1px;
-  transition: background-color 60ms ease;
+  transition: background-color var(--ease-fast) ease;
 }
 
 .ghost {

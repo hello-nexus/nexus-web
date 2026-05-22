@@ -7,6 +7,7 @@ import { QosMark, QosWordmark } from '../components/icons/QosBrand';
 import { useUiSettings } from '../hooks/useUiSettings';
 import { useConflictApps } from '../hooks/useConflictApps';
 import type { ConnectionState } from '../hooks/useServiceStatus';
+import { useTranslation } from '../lib/i18n';
 import styles from '../App.module.scss';
 
 // ── Sidebar brand (logo + wordmark at top of sidebar) ───────────────────
@@ -135,13 +136,15 @@ export function TopRightDebugButton({ active, onDebug, icon }: {
   onDebug: () => void;
   icon: ReactNode;
 }) {
+  const { t } = useTranslation();
+  const label = t('tools.title');
   return (
-    <HoverTooltip body="Tools" side="bottom">
+    <HoverTooltip body={label} side="bottom">
       <button
         type="button"
         className={classNames(styles.topRightDebug, { [styles.topRightDebugActive]: active })}
         onClick={onDebug}
-        aria-label="Tools"
+        aria-label={label}
         aria-pressed={active}
       >
         <span className={styles.topRightDebugIcon} aria-hidden>{icon}</span>

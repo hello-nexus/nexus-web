@@ -19,7 +19,7 @@
 
 .serviceHeader {
   position: relative;
-  z-index: 20;
+  z-index: var(--z-floating);
   display: flex;
   align-items: center;
   // Negate the .nav wrapper's 0.5rem horizontal padding so this section

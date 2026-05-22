@@ -5,6 +5,7 @@ import {
   type LightingDevice,
 } from '../../../api/lighting';
 import { useTranslation } from '../../../lib/i18n';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import styles from '../LightingView.module.scss';
 
 export interface ZoneCardDrag {
@@ -103,12 +104,11 @@ export function ZoneCard({
             {t('lighting.devices.detectionFailed')}
           </span>
         ) : isZone && device.zoneType === 'single' && !resizable ? (
-          <span
-            className={styles.deviceMeta}
-            title={t('lighting.devices.zoneFixedTooltip')}
-          >
-            {t('lighting.devices.zoneFixed')}
-          </span>
+          <HoverTooltip body={t('lighting.devices.zoneFixedTooltip')} side="top">
+            <span className={styles.deviceMeta}>
+              {t('lighting.devices.zoneFixed')}
+            </span>
+          </HoverTooltip>
         ) : (
           <span className={styles.deviceMeta}>
             <span className={styles.deviceMetaCount}>{device.ledCount}</span> {ledLabel}
@@ -118,37 +118,40 @@ export function ZoneCard({
           <div className={styles.deviceCardActions}>
             {device.ledCount > 0 && (
               <>
-                <button
-                  type="button"
-                  className={styles.deviceSettingsBtn}
-                  title={t('lighting.devices.identify')}
-                  aria-label={t('lighting.devices.identify')}
-                  onClick={handleIdentify}
-                >
-                  <Eye />
-                </button>
-                <button
-                  type="button"
-                  className={styles.deviceSettingsBtn}
-                  title={t('lighting.ledMap.settings')}
-                  aria-label={t('lighting.ledMap.settings')}
-                  onClick={e => { e.stopPropagation(); onOpenSettings(); }}
-                >
-                  <Settings />
-                </button>
+                <HoverTooltip body={t('lighting.devices.identify')} side="top">
+                  <button
+                    type="button"
+                    className={styles.deviceSettingsBtn}
+                    aria-label={t('lighting.devices.identify')}
+                    onClick={handleIdentify}
+                  >
+                    <Eye />
+                  </button>
+                </HoverTooltip>
+                <HoverTooltip body={t('lighting.ledMap.settings')} side="top">
+                  <button
+                    type="button"
+                    className={styles.deviceSettingsBtn}
+                    aria-label={t('lighting.ledMap.settings')}
+                    onClick={e => { e.stopPropagation(); onOpenSettings(); }}
+                  >
+                    <Settings />
+                  </button>
+                </HoverTooltip>
               </>
             )}
+            <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
             <button
               type="button"
               role="switch"
               aria-checked={device.ledsOn}
               className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
-              title={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
               aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
               onClick={e => { e.stopPropagation(); onTogglePower(); }}
             >
               <Power />
             </button>
+            </HoverTooltip>
           </div>
         )}
       </div>

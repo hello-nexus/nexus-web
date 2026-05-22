@@ -1,3 +1,5 @@
+@use '../../../styles/interactions' as *;
+
 /* Switch-style toggle. Pill background fades from neutral to accent on
    checked; knob slides from left to right. Disabled fades and blocks
    interaction. */
@@ -24,8 +26,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--accent-soft);
-    outline-offset: 2px;
+    @include focus-ring;
   }
 }
 

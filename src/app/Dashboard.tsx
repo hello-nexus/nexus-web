@@ -4,6 +4,7 @@ import { Sidebar } from '../components/common/Sidebar/Sidebar';
 import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDropdown';
 import { Placeholder } from '../components/views/Placeholder';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
+import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { ComponentDetailView } from '../components/views/ComponentDetailView';
 import { BenchmarkView } from '../components/views/BenchmarkView/BenchmarkView';
 import { CoolingView } from '../components/views/CoolingView';
@@ -422,13 +423,14 @@ export function Dashboard() {
                 onClick={() => setPairPhoneOpen(true)}
               />
               <SidebarConflictSlot serviceOnline={online} compact={compact} />
-              <button
-                type="button"
-                className={styles.collapseEdge}
-                onClick={() => setManualOverride(!sidebarCompact)}
-                aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')}
-                title={compact ? t('sidebar.expand') : t('sidebar.collapse')}
-              />
+              <HoverTooltip body={compact ? t('sidebar.expand') : t('sidebar.collapse')} side="right">
+                <button
+                  type="button"
+                  className={styles.collapseEdge}
+                  onClick={() => setManualOverride(!sidebarCompact)}
+                  aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')}
+                />
+              </HoverTooltip>
             </div>
           )}
 

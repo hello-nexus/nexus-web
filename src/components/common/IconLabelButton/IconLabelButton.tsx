@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './IconLabelButton.module.scss';
 
 export interface IconLabelButtonProps {
@@ -47,14 +48,13 @@ export function IconLabelButton({
     }, 250);
   };
 
-  return (
+  const btn = (
     <button
       type={type}
       className={`${styles.button} ${className ?? ''}`}
       data-active={active ? 'true' : undefined}
       aria-pressed={active}
       aria-label={ariaLabel}
-      title={title}
       disabled={disabled}
       onPointerUp={event => {
         if (event.pointerType === 'mouse' && event.button !== 0) return;
@@ -74,4 +74,5 @@ export function IconLabelButton({
       {label != null && label !== '' && <span className={styles.label}>{label}</span>}
     </button>
   );
+  return title ? <HoverTooltip body={title} side="top">{btn}</HoverTooltip> : btn;
 }

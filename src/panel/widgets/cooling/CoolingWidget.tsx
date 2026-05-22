@@ -205,7 +205,6 @@ export function CoolingWidget({ widget }: WidgetProps) {
               data-active={active === p.key ? 'true' : 'false'}
               aria-pressed={active === p.key}
               aria-label={`Apply ${label} cooling profile`}
-              title={label}
             >
               <p.Icon aria-hidden="true" />
               <span className={styles.chipLabel}>{label}</span>

@@ -57,6 +57,27 @@ body {
   line-height: 1.5;
 }
 
+// Block text selection across the app chrome. UI labels, button text,
+// captions etc. shouldn't be selectable - this is a desktop app, not a
+// document. Re-enable selection on actual editable surfaces (inputs,
+// textareas, contenteditable) and anywhere a component explicitly opts
+// back in with the `selectable` class.
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+[contenteditable='true'],
+[contenteditable=''],
+.selectable {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+
 #root {
   min-height: 100vh;
 }

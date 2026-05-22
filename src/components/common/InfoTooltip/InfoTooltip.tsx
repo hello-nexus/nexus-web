@@ -39,6 +39,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
   const closeTimerRef = useRef<number | null>(null);
+  const openTimerRef = useRef<number | null>(null);
   const tooltipId = useId();
 
   const cancelPendingClose = () => {
@@ -47,10 +48,23 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
       closeTimerRef.current = null;
     }
   };
+  const cancelPendingOpen = () => {
+    if (openTimerRef.current !== null) {
+      window.clearTimeout(openTimerRef.current);
+      openTimerRef.current = null;
+    }
+  };
+  // Open delay so incidental cursor pass-through doesn't pop the tooltip.
+  // Matches HoverTooltip's OPEN_DELAY_MS so all hover tooltips feel uniform.
+  const scheduleOpen = () => {
+    cancelPendingOpen();
+    openTimerRef.current = window.setTimeout(() => { setOpen(true); openTimerRef.current = null; }, 300);
+  };
   // Grace period so cursor can travel from icon to portal'd tooltip across
   // the OFFSET gap without retriggering pointerleave and dismissing.
   const scheduleClose = () => {
     cancelPendingClose();
+    cancelPendingOpen();
     closeTimerRef.current = window.setTimeout(() => setOpen(false), 120);
   };
 
@@ -102,7 +116,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
     };
   }, [open]);
 
-  useEffect(() => () => cancelPendingClose(), []);
+  useEffect(() => () => { cancelPendingClose(); cancelPendingOpen(); }, []);
 
   const label = ariaLabel ?? t('infoTooltip.ariaLabel');
 
@@ -113,10 +127,10 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
         className={styles.trigger}
         aria-label={label}
         aria-describedby={tooltipId}
-        onClick={() => setOpen(v => !v)}
-        onPointerEnter={(e) => { if (e.pointerType !== 'touch') { cancelPendingClose(); setOpen(true); } }}
+        onClick={() => { cancelPendingOpen(); setOpen(v => !v); }}
+        onPointerEnter={(e) => { if (e.pointerType !== 'touch') { cancelPendingClose(); scheduleOpen(); } }}
         onPointerLeave={(e) => { if (e.pointerType !== 'touch') scheduleClose(); }}
-        onFocus={() => { cancelPendingClose(); setOpen(true); }}
+        onFocus={() => { cancelPendingClose(); cancelPendingOpen(); setOpen(true); }}
         onBlur={() => scheduleClose()}>
         <Info size={14} strokeWidth={1.8} aria-hidden />
       </button>

@@ -16,6 +16,7 @@ import type { ConnectionState } from '../../hooks/useServiceStatus';
 import { useTranslation } from '../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../lib/lightingModeIcons';
+import { HoverTooltip } from '../common/HoverTooltip/HoverTooltip';
 import { ViewHeader } from '../common/ViewHeader/ViewHeader';
 import { ServiceRequired } from './ServiceRequired';
 import { LightingSkeleton } from './PageSkeleton/PageSkeleton';
@@ -795,24 +796,28 @@ export function LightingView({ serviceOnline, serviceState, connectionState, act
             {mode === 'animate' && activeEffect && currentState && (
               <>
                 {EFFECTS.find(e => e.key === activeEffect)?.audio && (
-                  <button
-                    type="button"
-                    className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
-                    onClick={handleMusicReactiveToggle}
-                    title={t('lighting.musicReactive')}
-                  >
+                  <HoverTooltip body={t('lighting.musicReactive')} side="left">
+                    <button
+                      type="button"
+                      className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
+                      onClick={handleMusicReactiveToggle}
+                      aria-label={t('lighting.musicReactive')}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />
+                        <circle cx="10.5" cy="9.5" r="1.5" />
+                      </svg>
+                    </button>
+                  </HoverTooltip>
+                )}
+                <HoverTooltip body={t('lighting.fullscreen')} side="left">
+                  <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />
-                      <circle cx="10.5" cy="9.5" r="1.5" />
+                      <polyline points="9,1 13,1 13,5" /><polyline points="5,13 1,13 1,9" />
+                      <line x1="13" y1="1" x2="8.5" y2="5.5" /><line x1="1" y1="13" x2="5.5" y2="8.5" />
                     </svg>
                   </button>
-                )}
-                <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} title={t('lighting.fullscreen')}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9,1 13,1 13,5" /><polyline points="5,13 1,13 1,9" />
-                    <line x1="13" y1="1" x2="8.5" y2="5.5" /><line x1="1" y1="13" x2="5.5" y2="8.5" />
-                  </svg>
-                </button>
+                </HoverTooltip>
               </>
             )}
           </div>
