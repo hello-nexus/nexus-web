@@ -1,11 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Wider LCD screen -->
-  <rect x="6" y="8" width="36" height="22" rx="3" />
-  <!-- Inner screen area -->
-  <rect x="10" y="12" width="28" height="14" rx="1" />
-  <!-- Stand bracket -->
-  <path d="M20 30 L20 36 L16 40" />
-  <path d="M28 30 L28 36 L32 40" />
+  <!-- HYTE Q80: larger sibling of the Q60. Same desk-stand silhouette
+       but landscape instead of portrait, with a 2-tile widget row. -->
+  <rect x="6" y="10" width="36" height="22" rx="2" />
+  <!-- Inset screen window -->
+  <rect x="9" y="13" width="30" height="16" rx="1.2" />
+  <!-- Two widget tiles on the screen -->
+  <rect x="11.5" y="16" width="11" height="10" rx="0.8" stroke-width="1" />
+  <rect x="25.5" y="16" width="11" height="10" rx="0.8" stroke-width="1" />
+  <!-- Stand neck -->
+  <line x1="24" y1="32" x2="24" y2="38" />
   <!-- Stand base -->
-  <line x1="14" y1="40" x2="34" y2="40" />
+  <line x1="16" y1="38" x2="32" y2="38" />
 </svg>

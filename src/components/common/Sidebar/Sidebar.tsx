@@ -53,6 +53,10 @@ interface SidebarProps {
   // Receives the item key + the originating MouseEvent so the caller can
   // anchor a menu at the cursor position.
   onItemContextMenu?: (key: string, event: React.MouseEvent) => void;
+  // Optional content rendered inside the scrollable region after the
+  // sortable tail. Used by SidebarColumn to slot the DEVICES section
+  // below APPS so both share one scroll context.
+  afterTail?: ReactNode;
 }
 
 // Per-row status dot — same logic for sortable & locked rows.
@@ -148,6 +152,7 @@ export function Sidebar({
   headerSlot, compact = false,
   extraItems, extraSectionLabel, extraActive, extraOnChange,
   lockedHeadKey, onTailReorder, onItemContextMenu,
+  afterTail,
 }: SidebarProps) {
   // Split items into [head] + tail when a locked key is configured AND
   // matches an actual entry. Falls back to "no split" gracefully so a
@@ -258,14 +263,14 @@ export function Sidebar({
       )}
 
       {sortable ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={tailKeys} strategy={verticalListSortingStrategy}>
-            <div className={styles.tailScroll} data-sidebar-tail-scroll="true">
+        <div className={styles.tailScroll} data-sidebar-tail-scroll="true">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={tailKeys} strategy={verticalListSortingStrategy}>
               {tail.map((item) => (
                 <SortableRow
                   key={item.key}
@@ -280,9 +285,10 @@ export function Sidebar({
                   } : undefined}
                 />
               ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+            </SortableContext>
+          </DndContext>
+          {afterTail}
+        </div>
       ) : (
         <div className={styles.tailScroll}>
           {tail.map((item) => (
@@ -299,6 +305,7 @@ export function Sidebar({
               } : undefined}
             />
           ))}
+          {afterTail}
         </div>
       )}
 

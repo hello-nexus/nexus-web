@@ -18,6 +18,7 @@ import {
 } from './sidebar';
 import { PairPhoneButton } from './PairPhoneModal';
 import { SidebarContextMenu } from './SidebarContextMenu';
+import { SidebarDevicesSection } from './SidebarDevicesSection';
 import {
   DASHBOARD_APP_KEY,
   getSidebarAppMeta,
@@ -55,6 +56,15 @@ interface SidebarColumnProps {
   remoteControlEnabled: boolean;
   phoneSubscribers: number;
   onPairPhoneOpen: () => void;
+  // Device-page routing — surfaced from Dashboard so the sidebar's
+  // DEVICES section can both highlight the active device and navigate
+  // into a fresh device page on click.
+  activeDeviceKey: string;
+  onDeviceSelect: (deviceKey: string) => void;
+  // Click on the DEVICES section header routes here — the all-devices
+  // landing page. Dashboard maps this to the existing DevicesPage.
+  onDevicesHeaderClick: () => void;
+  devicesHeaderActive: boolean;
 }
 
 export function SidebarColumn({
@@ -75,6 +85,10 @@ export function SidebarColumn({
   remoteControlEnabled,
   phoneSubscribers,
   onPairPhoneOpen,
+  activeDeviceKey,
+  onDeviceSelect,
+  onDevicesHeaderClick,
+  devicesHeaderActive,
 }: SidebarColumnProps) {
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
@@ -134,7 +148,7 @@ export function SidebarColumn({
         items={items}
         active={serviceNavActive}
         onChange={onServiceNavChange}
-        sectionLabel=""
+        sectionLabel={compact ? '' : t('sidebar.section.apps')}
         serviceState={serviceState}
         lockedHeadKey={DASHBOARD_APP_KEY}
         onTailReorder={handleTailReorder}
@@ -160,6 +174,16 @@ export function SidebarColumn({
         extraSectionLabel=""
         extraActive={portalNavActive}
         extraOnChange={onPortalNavChange}
+        afterTail={
+          <SidebarDevicesSection
+            serviceOnline={online}
+            activeDeviceKey={activeDeviceKey}
+            compact={compact}
+            onSelect={onDeviceSelect}
+            onHeaderClick={onDevicesHeaderClick}
+            headerActive={devicesHeaderActive}
+          />
+        }
       />
       <PairPhoneButton
         connectedCount={phoneSubscribers}

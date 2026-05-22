@@ -11,6 +11,7 @@ import { OpenInAppBanner } from '../components/common/OpenInAppBanner/OpenInAppB
 import { ToolsView } from '../components/views/ToolsView';
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
 import { DevicesPage } from "../panel/widgets/devices/DevicesPage";
+import { DevicePage } from '../components/views/DevicePage/DevicePage';
 import { LightingPage } from "../panel/widgets/lighting/LightingPage";
 import { ClockPage } from "../panel/widgets/clock/ClockPage";
 import { loadMarketplaceWidgets } from '../widgets/marketplaceRegistry';
@@ -323,6 +324,13 @@ export function Dashboard() {
           onInitialOpenConsumed={() => setPendingDeviceKey(null)}
         />
       );
+      case 'device':     return (
+        <DevicePage
+          deviceKey={subtab ?? ''}
+          serviceOnline={online}
+          connectionState={status.state}
+        />
+      );
       case 'clock':      return <ClockPage />;
       case 'tools':      return <ToolsView serviceOnline={online} connectionState={status.state} />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} profiles={profilesHook} />;
@@ -396,6 +404,10 @@ export function Dashboard() {
               remoteControlEnabled={remoteControlEnabled}
               phoneSubscribers={serviceState.panel?.phoneSubscribers ?? 0}
               onPairPhoneOpen={() => setPairPhoneOpen(true)}
+              activeDeviceKey={section === 'my-computer' && activeView === 'device' ? (subtab ?? '') : ''}
+              onDeviceSelect={k => navigate('my-computer', 'device', k)}
+              onDevicesHeaderClick={() => navigate('my-computer', 'devices')}
+              devicesHeaderActive={section === 'my-computer' && activeView === 'devices'}
             />
           )}
 

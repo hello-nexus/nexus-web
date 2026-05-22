@@ -1,0 +1,126 @@
+// DEVICES section of the sidebar. Renders below the APPS list inside
+// the same scroll container; sits above the locked-bottom controls
+// (pair phone, conflict slot, collapse edge).
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  // Visual separation from APPS above. Anchors the "two sections"
+  // structure the user asked for.
+  margin-top: 1.25rem;
+}
+
+// Section header reuses the canonical .sectionLabel styling but is a
+// button so the row navigates to the all-devices landing page when
+// tapped. No icon (header-level), matches the existing APPS label.
+.headerBtn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 0.75rem 0.25rem;
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  color: var(--text-faded);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: color var(--ease-fast);
+
+  &:hover { color: var(--text); }
+}
+
+.headerActive { color: var(--text); }
+
+.headerCompact {
+  // In compact mode the label hides; the button collapses to a thin
+  // gap so the section is still distinguishable but the icon-only
+  // rows below dominate.
+  padding: 0.5rem 0;
+  min-height: 0.5rem;
+}
+
+.headerLabel { display: inline-block; }
+
+.empty {
+  padding: 0.5rem 0.75rem;
+  font-size: var(--type-small);
+  color: var(--text-faded);
+  font-style: italic;
+}
+
+// Per-device row. Same visual vocabulary as the APPS rows so the two
+// sections read as one sidebar.
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+  text-align: left;
+  width: 100%;
+  position: relative;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+
+  &.active {
+    background: var(--accent-soft);
+    color: var(--text);
+
+    .icon { color: var(--accent-glow); }
+  }
+}
+
+.itemCompact {
+  justify-content: center;
+  padding: 0.6rem 0.75rem;
+  width: 100%;
+  gap: 0;
+}
+
+.itemOffline {
+  // Slightly dimmer so disconnected devices read as inactive without
+  // hiding them entirely.
+  opacity: 0.55;
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.iconGlyph {
+  // SVG asset rendered at the icon slot size. Filter-recolor the SVG
+  // strokes via currentColor would be ideal but the asset uses
+  // currentColor inline so simple <img> won't tint — accept the
+  // assets' as-shipped grey lines for now.
+  width: 18px;
+  height: 18px;
+  display: block;
+  // The device SVGs use `stroke="currentColor"` on inline icons; when
+  // rendered via <img> they fall back to black. Mute opacity so the
+  // assets read as part of the sidebar palette rather than as
+  // hard-edged black.
+  opacity: 0.85;
+}
+
+.label { white-space: nowrap; }
