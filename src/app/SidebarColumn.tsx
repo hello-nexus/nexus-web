@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
 import { PinOff } from 'lucide-react';
 import { Sidebar } from '../components/common/Sidebar/Sidebar';
@@ -21,9 +21,11 @@ import { SidebarContextMenu } from './SidebarContextMenu';
 import {
   DASHBOARD_APP_KEY,
   SIDEBAR_APP_META,
+  isPinnableAppKey,
   sanitizePinnedTail,
   type SidebarAppKey,
 } from './sidebarApps';
+import { useCrossZoneDrag } from './CrossZoneDrag';
 import styles from '../App.module.scss';
 
 interface ExtraNavItem {
@@ -108,6 +110,18 @@ export function SidebarColumn({
     update({ pinnedSidebarApps: tail.filter(k => k !== key) });
   };
 
+  // Cross-zone drop from the dashboard panel. Published by PanelContent
+  // when a pinnable widget enters its drag state; null otherwise.
+  const { draggingPinnableType } = useCrossZoneDrag();
+  const handlePinDrop = (insertionIndex: number) => {
+    if (!draggingPinnableType || !isPinnableAppKey(draggingPinnableType)) return;
+    if (tail.includes(draggingPinnableType)) return;
+    const next = [...tail];
+    const idx = Math.max(0, Math.min(insertionIndex, next.length));
+    next.splice(idx, 0, draggingPinnableType);
+    update({ pinnedSidebarApps: next });
+  };
+
   return (
     <div className={classNames(styles.sidebarColumn, { [styles.sidebarCompact]: compact })}>
       <SidebarBrand
@@ -179,6 +193,101 @@ export function SidebarColumn({
           onClose={() => setCtxMenu(null)}
         />
       )}
+      {draggingPinnableType && (
+        <SidebarPinDropTarget onDrop={handlePinDrop} />
+      )}
     </div>
+  );
+}
+
+interface SidebarPinDropTargetProps {
+  onDrop: (insertionIndex: number) => void;
+}
+
+// Listens to the panel widget drag via document-level pointer events
+// while it's in flight (mounted only when CrossZoneDragContext publishes
+// a draggingPinnableType). Computes an insertion index from the cursor
+// position relative to the sidebar's tail-scroll region, renders an
+// insertion line at the corresponding viewport y, and pins the widget
+// on pointerup when the drop landed inside the tail. The panel's own
+// onDragEnd handles clearing its drag state — this overlay only acts on
+// the sidebar side.
+function SidebarPinDropTarget({ onDrop }: SidebarPinDropTargetProps) {
+  // `position` lives at fixed (viewport) coordinates so we can render the
+  // indicator anywhere the cursor lands inside the tail without nesting
+  // inside the Sidebar component itself. Null when the cursor is outside
+  // the tail rect; the indicator hides in that case.
+  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const insertionIndexRef = useRef<number | null>(null);
+  const onDropRef = useRef(onDrop);
+  useEffect(() => { onDropRef.current = onDrop; }, [onDrop]);
+
+  useEffect(() => {
+    const tailEl = document.querySelector<HTMLElement>('[data-sidebar-tail-scroll]');
+    if (!tailEl) return;
+
+    // Snapshot row rects once per drag. The tail isn't reordered while
+    // a panel drag is in flight, so the rects stay valid; this avoids a
+    // querySelectorAll on every pointermove.
+    const rowEls = Array.from(tailEl.querySelectorAll<HTMLElement>('[data-sidebar-row-key]'));
+    const rects = rowEls.map(el => el.getBoundingClientRect());
+    const tailRect = tailEl.getBoundingClientRect();
+
+    const handleMove = (e: PointerEvent) => {
+      const inside = e.clientX >= tailRect.left
+        && e.clientX <= tailRect.right
+        && e.clientY >= tailRect.top
+        && e.clientY <= tailRect.bottom;
+      if (!inside) {
+        insertionIndexRef.current = null;
+        setPosition(null);
+        return;
+      }
+      // Walk row rects: insertion index = count of rows whose midpoint
+      // sits above the cursor. The indicator y snaps to the boundary
+      // between the two rows the cursor falls between (or to the top /
+      // bottom of the tail when at an edge).
+      let idx = 0;
+      let lineY = tailRect.top;
+      for (let i = 0; i < rects.length; i++) {
+        const r = rects[i];
+        const mid = r.top + r.height / 2;
+        if (e.clientY < mid) {
+          lineY = r.top - 1;
+          break;
+        }
+        idx = i + 1;
+        lineY = r.bottom + 1;
+      }
+      insertionIndexRef.current = idx;
+      setPosition({
+        top: lineY,
+        left: tailRect.left + 8,
+        width: tailRect.width - 16,
+      });
+    };
+
+    const handleUp = () => {
+      const idx = insertionIndexRef.current;
+      if (idx !== null) onDropRef.current(idx);
+      insertionIndexRef.current = null;
+      setPosition(null);
+    };
+
+    document.addEventListener('pointermove', handleMove);
+    document.addEventListener('pointerup', handleUp);
+    return () => {
+      document.removeEventListener('pointermove', handleMove);
+      document.removeEventListener('pointerup', handleUp);
+    };
+  }, []);
+
+  if (!position) return null;
+  return (
+    <div
+      className={styles.sidebarPinIndicator}
+      style={{ top: position.top, left: position.left, width: position.width }}
+      aria-hidden="true"
+    />
   );
 }

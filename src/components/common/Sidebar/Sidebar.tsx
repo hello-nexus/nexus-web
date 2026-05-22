@@ -99,6 +99,7 @@ function SidebarRow({ item, active, compact, serviceState, onClick, onContextMen
       onContextMenu={onContextMenu}
       aria-label={compact ? item.label : undefined}
       style={sortableProps?.style}
+      data-sidebar-row-key={item.key}
       {...sortableProps?.attributes}
       {...sortableProps?.listeners}
     >
@@ -264,7 +265,7 @@ export function Sidebar({
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={tailKeys} strategy={verticalListSortingStrategy}>
-            <div className={styles.tailScroll}>
+            <div className={styles.tailScroll} data-sidebar-tail-scroll="true">
               {tail.map((item) => (
                 <SortableRow
                   key={item.key}

@@ -230,6 +230,20 @@
   width: 64px;
 }
 
+// Insertion indicator rendered by SidebarPinDropTarget during a cross-
+// zone drag from the dashboard panel. Position is set inline (fixed
+// coordinates relative to the viewport) by the JS that owns the
+// hit-test; the styles only describe the visual.
+.sidebarPinIndicator {
+  position: fixed;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+  pointer-events: none;
+  z-index: var(--z-popover);
+}
+
 // Right-edge collapse handle. No visible separator at rest - the sidebar
 // and main content read as a continuous surface. On hover/focus a 3px
 // accent line appears so the click target reads as actionable. Click

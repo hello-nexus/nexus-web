@@ -33,6 +33,7 @@ import {
   PageVersionLabel,
 } from './sidebar';
 import { SidebarColumn } from './SidebarColumn';
+import { CrossZoneDragProvider } from './CrossZoneDrag';
 import { PairPhoneModal } from './PairPhoneModal';
 import { IncomingPairModal } from './IncomingPairModal';
 import { useMonitoringStoreBridge } from './monitoringBridge';
@@ -333,6 +334,7 @@ export function Dashboard() {
         serviceOnline={online}
         activeProfileId={profilesHook.activeId}
       >
+      <CrossZoneDragProvider>
       <div className={classNames(styles.layout, {
         [styles.layoutCompact]: compact,
         [styles.layoutWindowsApp]: isWindowsAppShell(),
@@ -416,6 +418,7 @@ export function Dashboard() {
           onClose={() => setPairPhoneOpen(false)}
         />
       </div>
+      </CrossZoneDragProvider>
       </UiSettingsProvider>
     </MultiplexContext.Provider>
   );

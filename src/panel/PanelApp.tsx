@@ -43,6 +43,7 @@ import {
   isPinnableAppKey,
   sanitizePinnedTail,
 } from '../app/sidebarApps';
+import { useCrossZoneDrag } from '../app/CrossZoneDrag';
 import { PanelOfflineOverlay } from './PanelOfflineOverlay';
 import { isInsecureBrowserPanel } from './PanelInsecureBanner';
 import { useTranslation } from '../lib/i18n';
@@ -252,6 +253,11 @@ export function PanelContent({
   // one — see PanelEntrypoint / Dashboard.
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
   const pinnedTail = sanitizePinnedTail(uiSettings.pinnedSidebarApps);
+  // Side-channel signal for the sidebar to mount its drop target. We
+  // only publish for pinnable types AND only on the embedded desktop
+  // surface; everywhere else the value stays null and the sidebar's
+  // pointer tracking never engages. See app/CrossZoneDrag.tsx.
+  const { setDraggingPinnableType } = useCrossZoneDrag();
   const isOffline = kioskBehavior && (serviceStatus.state === 'offline' || serviceStatus.state === 'offline-installed');
   const rootRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -1177,7 +1183,17 @@ export function PanelContent({
     }
     dragGestureRef.current = { startX, startY, lastOverId: null };
     touch.handleDragStart();
-  }, [paginatedLayout, touch, widgetById]);
+    // Publish the drag to the sidebar for cross-zone pin pickup. Gated
+    // by surface so panel-kiosk drags never tickle the dashboard's
+    // pinned-apps state (the panel can't see a sidebar anyway, but the
+    // context provider may exist higher up via the simulator iframe).
+    // Also skip when the widget is already pinned — the drop would be a
+    // no-op and the indicator would confuse the user.
+    if (embedded && surface === 'desktop' && widget && isPinnableAppKey(widget.type)
+        && !pinnedTail.includes(widget.type)) {
+      setDraggingPinnableType(widget.type);
+    }
+  }, [paginatedLayout, touch, widgetById, embedded, surface, setDraggingPinnableType, pinnedTail]);
 
   return (
     <DndContext
@@ -1204,6 +1220,7 @@ export function PanelContent({
         dragGestureRef.current = { startX: 0, startY: 0, lastOverId: null };
         if (touch.rearranging) touch.toggleRearrange();
         touch.handleDragEnd();
+        setDraggingPinnableType(null);
       }}
       onDragEnd={event => {
         clearEdgeAdvance();
@@ -1224,6 +1241,7 @@ export function PanelContent({
         dragGestureRef.current = { startX: 0, startY: 0, lastOverId: null };
         if (touch.rearranging) touch.toggleRearrange();
         touch.handleDragEnd();
+        setDraggingPinnableType(null);
         if (!overId || activeId === overId) return;
         const activeWidget = widgetById(activeId);
         if (!activeWidget) return;
