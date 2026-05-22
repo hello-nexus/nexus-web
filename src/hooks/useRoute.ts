@@ -43,7 +43,7 @@ function parsePath(): Route {
   const fromCategory = new URLSearchParams(window.location.search).get('from');
 
   // Handle legacy flat routes (e.g. /monitoring, /cooling, /settings)
-  const SERVICE_VIEWS = ['dashboard', 'monitoring', 'lighting', 'cooling', 'devices', 'settings', 'tools'];
+  const SERVICE_VIEWS = ['dashboard', 'monitoring', 'lighting', 'cooling', 'devices', 'clock', 'settings', 'tools'];
   if (SERVICE_VIEWS.includes(rawSection)) {
     return {
       section: 'my-computer',

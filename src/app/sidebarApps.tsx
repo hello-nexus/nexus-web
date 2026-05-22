@@ -1,18 +1,18 @@
 import type { ReactNode } from 'react';
-import { Activity, Fan, LayoutDashboard, Lightbulb, Usb } from 'lucide-react';
+import { Activity, Clock, Fan, LayoutDashboard, Lightbulb, Usb } from 'lucide-react';
 import { ICON_SIZE } from './sidebarNav';
 
 // Canonical desktop "apps" — widgets whose SPA view already exists and that
 // can therefore be pinned in the sidebar. Dashboard is implicit (always at
-// row 0, immovable and unpinnable). The other four are user-pinnable and
-// reorderable through the sidebar UI.
+// row 0, immovable and unpinnable). The remaining entries are user-pinnable
+// and reorderable through the sidebar UI.
 //
 // Adding a new app here means:
 //   1. populate SIDEBAR_APP_META below with its icon + i18n label key,
 //   2. wire its case in Dashboard.renderMyComputerView,
 //   3. (optional) seed it into DEFAULT_PINNED_TAIL so a fresh profile
 //      sees it without the user having to pin manually.
-export const PINNABLE_APP_KEYS = ['monitoring', 'lighting', 'cooling', 'devices'] as const;
+export const PINNABLE_APP_KEYS = ['monitoring', 'lighting', 'cooling', 'devices', 'clock'] as const;
 export type PinnableAppKey = (typeof PINNABLE_APP_KEYS)[number];
 
 export const DASHBOARD_APP_KEY = 'dashboard' as const;
@@ -31,6 +31,7 @@ export const SIDEBAR_APP_META: Record<SidebarAppKey, SidebarAppMeta> = {
   lighting:   { icon: <Lightbulb size={ICON_SIZE} />,       i18nKey: 'nav.lighting' },
   cooling:    { icon: <Fan size={ICON_SIZE} />,             i18nKey: 'nav.cooling' },
   devices:    { icon: <Usb size={ICON_SIZE} />,             i18nKey: 'nav.devices' },
+  clock:      { icon: <Clock size={ICON_SIZE} />,           i18nKey: 'nav.clock' },
 };
 
 export function isPinnableAppKey(s: string): s is PinnableAppKey {

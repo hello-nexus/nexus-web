@@ -12,6 +12,7 @@ import { ToolsView } from '../components/views/ToolsView';
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
 import { DevicesView } from '../components/views/DevicesView/DevicesView';
 import { LightingView } from '../components/views/LightingView';
+import { ClockApp } from '../panel/widgets/clock/ClockApp';
 import { loadMarketplaceWidgets } from '../widgets/marketplaceRegistry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
@@ -322,6 +323,7 @@ export function Dashboard() {
           onInitialOpenConsumed={() => setPendingDeviceKey(null)}
         />
       );
+      case 'clock':      return <ClockApp />;
       case 'tools':      return <ToolsView serviceOnline={online} connectionState={status.state} />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} profiles={profilesHook} />;
       default:           return <Placeholder title={activeView} />;
