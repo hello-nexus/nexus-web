@@ -55,6 +55,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       monitoringDetailedCollapsed: ui.monitoringDetailedCollapsed,
       showMacStatusBarIcon: ui.showMacStatusBarIcon,
       showWindowsTrayIcon: ui.showWindowsTrayIcon,
+      pinnedSidebarApps: ui.pinnedSidebarApps,
     },
   }), [ui]);
 

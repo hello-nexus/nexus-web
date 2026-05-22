@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import classNames from 'classnames';
-import { Sidebar } from '../components/common/Sidebar/Sidebar';
-import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDropdown';
 import { Placeholder } from '../components/views/Placeholder';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
-import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { ComponentDetailView } from '../components/views/ComponentDetailView';
 import { BenchmarkView } from '../components/views/BenchmarkView/BenchmarkView';
 import { CoolingView } from '../components/views/CoolingView';
@@ -29,17 +26,14 @@ import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from '../li
 import type { Preferences } from '../api/profiles';
 import type { Language, ThemeMode } from '../lib/settings';
 import type { ComponentCategory, ComponentOption } from '../types/builder';
-import { NAV_ICONS, PORTAL_NAV_KEYS, SERVICE_NAV_KEYS } from './sidebarNav';
+import { NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
 import {
-  SidebarBrand,
-  ConnectedProfileSlot,
-  NotConnectedBadge,
-  SidebarConflictSlot,
   TopRightDebugButton,
   TopRightSettingsButton,
   PageVersionLabel,
 } from './sidebar';
-import { PairPhoneButton, PairPhoneModal } from './PairPhoneModal';
+import { SidebarColumn } from './SidebarColumn';
+import { PairPhoneModal } from './PairPhoneModal';
 import { IncomingPairModal } from './IncomingPairModal';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { CaptionButtons } from './CaptionButtons';
@@ -106,6 +100,7 @@ export function Dashboard() {
       monitoringDetailedCollapsed: prefs.monitoring?.detailedCollapsed,
       showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
       showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,
+      pinnedSidebarApps: prefs.ui?.pinnedSidebarApps,
     });
   }, [setLanguage]);
 
@@ -144,13 +139,6 @@ export function Dashboard() {
     }
     return sum;
   }, 0);
-
-  // Service nav items
-  const serviceNav = SERVICE_NAV_KEYS.map(key => ({
-    key,
-    label: t(`nav.${key}`),
-    icon: NAV_ICONS[key],
-  }));
 
   // Portal entries (System Builder / Benchmark / Community).
   // Service build: external <a> to nexusqos.com (new tab).
@@ -386,58 +374,25 @@ export function Dashboard() {
         {/* Body row: sidebar (my-computer only) + content */}
         <div className={styles.bodyRow}>
           {hasSidebar && (
-            <div className={classNames(styles.sidebarColumn, { [styles.sidebarCompact]: compact })}>
-              <SidebarBrand
-                compact={compact}
-                onToggleCompact={() => setManualOverride(!sidebarCompact)}
-                expandLabel={t('sidebar.expand')}
-                collapseLabel={t('sidebar.collapse')}
-              />
-              <Sidebar
-                items={serviceNav}
-                active={serviceNavActive}
-                onChange={handleServiceNavChange}
-                sectionLabel=""
-                serviceState={serviceState}
-                headerSlot={
-                  <div className={classNames(styles.sidebarHeaderBox, { [styles.sidebarHeaderBoxCompact]: compact })}>
-                    {online ? (
-                      <ConnectedProfileSlot connectEpoch={connectEpoch}>
-                        <ProfileDropdown
-                          profiles={profilesHook}
-                          onPreferencesChanged={handlePreferencesChanged}
-                          onNavigateSettings={handleNavigateSettings}
-                          compact={compact}
-                        />
-                      </ConnectedProfileSlot>
-                    ) : (
-                      <NotConnectedBadge state={status.state} t={t} compact={compact} />
-                    )}
-                  </div>
-                }
-                compact={compact}
-                extraItems={portalNav}
-                extraSectionLabel=""
-                extraActive={portalNavActive}
-                extraOnChange={handlePortalNavChange}
-              />
-              <PairPhoneButton
-                connectedCount={serviceState.panel?.phoneSubscribers ?? 0}
-                remoteEnabled={remoteControlEnabled}
-                disabled={!online}
-                compact={compact}
-                onClick={() => setPairPhoneOpen(true)}
-              />
-              <SidebarConflictSlot serviceOnline={online} compact={compact} />
-              <HoverTooltip body={compact ? t('sidebar.expand') : t('sidebar.collapse')} side="right">
-                <button
-                  type="button"
-                  className={styles.collapseEdge}
-                  onClick={() => setManualOverride(!sidebarCompact)}
-                  aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')}
-                />
-              </HoverTooltip>
-            </div>
+            <SidebarColumn
+              compact={compact}
+              onToggleCompact={() => setManualOverride(!sidebarCompact)}
+              online={online}
+              connectionState={status.state}
+              connectEpoch={connectEpoch}
+              serviceState={serviceState}
+              serviceNavActive={serviceNavActive}
+              onServiceNavChange={handleServiceNavChange}
+              portalNav={portalNav}
+              portalNavActive={portalNavActive}
+              onPortalNavChange={handlePortalNavChange}
+              profiles={profilesHook}
+              onPreferencesChanged={handlePreferencesChanged}
+              onNavigateSettings={handleNavigateSettings}
+              remoteControlEnabled={remoteControlEnabled}
+              phoneSubscribers={serviceState.panel?.phoneSubscribers ?? 0}
+              onPairPhoneOpen={() => setPairPhoneOpen(true)}
+            />
           )}
 
           <div className={styles.mainColumn}>

@@ -6,11 +6,9 @@ import {
 
 export const ICON_SIZE = 18;
 
-// Settings lives in the top-right action bar next to the debug button now;
-// keep the route ('my-computer/settings') wired so deep links resolve.
-export const SERVICE_NAV_KEYS = [
-  'dashboard', 'monitoring', 'lighting', 'cooling', 'devices',
-] as const;
+// The five pinnable apps (dashboard + monitoring/lighting/cooling/devices)
+// now live in `./sidebarApps`, since the sidebar builds its rows from the
+// user's pinned order rather than this hardcoded list.
 
 // Builder / Benchmark / Community sidebar entries are hidden for now; routes
 // still resolve so anyone with a bookmarked URL keeps working. Typed instead

@@ -14,6 +14,7 @@ import {
 } from '../api/profiles';
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
+import { sanitizePinnedTail } from '../app/sidebarApps';
 
 /**
  * Unified user-settings hook. Replaces the previous pattern where views called
@@ -55,6 +56,10 @@ export interface UiSettingsValue {
   // choice survives profile switches and is shared via the Dashboard category.
   preferredCpuTempSensorId: string;
   preferredGpuTempSensorId: string;
+  // Order of pinnable sidebar apps after the locked Dashboard row. See
+  // PINNABLE_APP_KEYS in app/sidebarApps.tsx. Server-mirrored under
+  // ui.pinnedSidebarApps.
+  pinnedSidebarApps: string[];
 }
 
 type Patch = Partial<UiSettingsValue>;
@@ -82,6 +87,7 @@ function fromQosSettings(src: QosSettings): UiSettingsValue {
     fanChannelOrder: [],
     preferredCpuTempSensorId: '',
     preferredGpuTempSensorId: '',
+    pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
   };
 }
 
@@ -97,6 +103,7 @@ function toQosSettings(src: UiSettingsValue): QosSettings {
       monitoringDetailedCollapsed: src.monitoringDetailedCollapsed,
       showMacStatusBarIcon: src.showMacStatusBarIcon,
       showWindowsTrayIcon: src.showWindowsTrayIcon,
+      pinnedSidebarApps: src.pinnedSidebarApps,
     },
   };
 }
@@ -124,7 +131,10 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuTempSensorId !== undefined) cooling.preferredGpuTempSensorId = patch.preferredGpuTempSensorId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  if (patch.disableConflictAlerts !== undefined) out.ui = { disableConflictAlerts: patch.disableConflictAlerts };
+  const ui: Partial<{ disableConflictAlerts: boolean; pinnedSidebarApps: string[] }> = {};
+  if (patch.disableConflictAlerts !== undefined) ui.disableConflictAlerts = patch.disableConflictAlerts;
+  if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
+  if (Object.keys(ui).length > 0) out.ui = ui;
   return out;
 }
 
@@ -142,6 +152,9 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     fanChannelOrder: server.cooling?.fanChannelOrder ?? base.fanChannelOrder,
     preferredCpuTempSensorId: server.cooling?.preferredCpuTempSensorId ?? '',
     preferredGpuTempSensorId: server.cooling?.preferredGpuTempSensorId ?? '',
+    pinnedSidebarApps: server.ui?.pinnedSidebarApps !== undefined
+      ? sanitizePinnedTail(server.ui.pinnedSidebarApps)
+      : base.pinnedSidebarApps,
   };
 }
 
@@ -248,6 +261,7 @@ export function UiSettingsProvider({
         monitoringDetailedCollapsed: prefs.monitoring?.detailedCollapsed,
         showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
         showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,
+        pinnedSidebarApps: prefs.ui?.pinnedSidebarApps,
       });
     }).catch(() => { /* best-effort */ });
   }, [serviceOnline, persistLocal, setLanguage, manageDom]);

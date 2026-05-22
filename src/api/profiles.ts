@@ -68,6 +68,10 @@ export interface CoolingPrefs {
 
 export interface UiPrefs {
   disableConflictAlerts: boolean;
+  // Order of the user's pinnable sidebar apps after the locked Dashboard
+  // row. Optional — older services return Preferences without this field;
+  // the client falls back to DEFAULT_PINNED_TAIL in that case.
+  pinnedSidebarApps?: string[];
 }
 
 // Nested preferences shape — same nesting on read (GET /preferences) and

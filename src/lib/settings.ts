@@ -95,6 +95,11 @@ export interface GeneralSettings {
   monitoringDetailedCollapsed: string[];
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
+  // Order of pinnable sidebar apps after the locked Dashboard row. Each
+  // entry is a PinnableAppKey ('monitoring' | 'lighting' | 'cooling' |
+  // 'devices'). Server-mirrored under ui.pinnedSidebarApps so it follows
+  // the profile.
+  pinnedSidebarApps: string[];
 }
 
 export interface QosSettings {
@@ -120,6 +125,7 @@ export function getDefaultSettings(): QosSettings {
       monitoringDetailedCollapsed: [],
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,
+      pinnedSidebarApps: ['monitoring', 'lighting', 'cooling', 'devices'],
     },
   };
 }
@@ -162,6 +168,7 @@ export function cachePreferencesLocally(prefs: {
   monitoringDetailedCollapsed?: string[];
   showMacStatusBarIcon?: boolean;
   showWindowsTrayIcon?: boolean;
+  pinnedSidebarApps?: string[];
 }): void {
   const current = loadSettings();
   if (prefs.language) current.general.language = prefs.language as Language;
@@ -172,6 +179,7 @@ export function cachePreferencesLocally(prefs: {
   if (prefs.monitoringDetailedCollapsed !== undefined) current.general.monitoringDetailedCollapsed = prefs.monitoringDetailedCollapsed;
   if (prefs.showMacStatusBarIcon !== undefined) current.general.showMacStatusBarIcon = prefs.showMacStatusBarIcon;
   if (prefs.showWindowsTrayIcon !== undefined) current.general.showWindowsTrayIcon = prefs.showWindowsTrayIcon;
+  if (prefs.pinnedSidebarApps !== undefined) current.general.pinnedSidebarApps = prefs.pinnedSidebarApps;
   saveSettings(current);
 }
 
