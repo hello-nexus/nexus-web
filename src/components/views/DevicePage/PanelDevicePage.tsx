@@ -281,6 +281,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   return (
     <section className={styles.page}>
       <ViewHeader title={modalTitle} />
+      <div className={styles.pageBody}>
       {!loaded ? (
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
       ) : (
@@ -401,6 +402,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
           </div>
         </div>
       )}
+      </div>
     </section>
   );
 }

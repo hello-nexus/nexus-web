@@ -73,6 +73,10 @@ app.get(['/download/mac', '/download/macos', '/downloads/mac', '/downloads/macos
 app.get(['/download/linux', '/downloads/linux'], (_req, res) => redirectToChooser(res));
 
 app.use(express.static(join(__dirname, 'dist'), { maxAge: '1d' }));
-app.get('/{*path}', (_req, res) => res.sendFile(join(__dirname, 'dist', 'index.html')));
+// Express 5 / send v1+ requires an explicit `root` option for sendFile,
+// otherwise absolute paths come back with a NotFoundError even when the
+// file exists. The SPA catchall was returning 404 for every deep link
+// (e.g. /my-computer/devices) without it.
+app.get('/{*path}', (_req, res) => res.sendFile('index.html', { root: join(__dirname, 'dist') }));
 
 app.listen(port, () => console.log(`qos-web on port ${port}`));

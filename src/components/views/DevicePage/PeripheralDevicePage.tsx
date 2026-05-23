@@ -77,7 +77,7 @@ export function PeripheralDevicePage({ peripheral }: PeripheralDevicePageProps) 
   return (
     <section className={styles.page}>
       <ViewHeader title={p.name} />
-
+      <div className={styles.pageBody}>
       <InfoList className={styles.info}>
         <InfoRow label={t('devices.peripheral.vendor')} value={p.vendor} />
         <InfoRow label={t('devices.peripheral.category')} value={p.category} capitalize />
@@ -113,6 +113,7 @@ export function PeripheralDevicePage({ peripheral }: PeripheralDevicePageProps) 
       {!hasCaps && p.capabilities.length === 0 && (
         <div className={styles.empty}>{t('peripheral.noCapabilities')}</div>
       )}
+      </div>
     </section>
   );
 }
