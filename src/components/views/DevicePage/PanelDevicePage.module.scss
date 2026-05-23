@@ -76,6 +76,12 @@
 .previewPane[data-surface='q60'],
 .previewPane[data-surface='q80'] {
   max-height: 500px;
+  // Center the capped preview vertically in the split-layout row.
+  // splitLayout has more vertical space than 500px, so without this
+  // the previewPane would stretch-align to the top by default and
+  // the iframe would sit at the top of the right column instead of
+  // visually balanced against the catalog on the left.
+  align-self: center;
 }
 
 // Wrapper the PanelEmbedFrame ResizeObserver measures. Mirrors the pane

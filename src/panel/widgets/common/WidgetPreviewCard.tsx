@@ -74,16 +74,10 @@ export function WidgetPreviewCard({
       const w = el.clientWidth;
       const h = el.clientHeight;
       if (w <= 0 || h <= 0) return;
-      // Fit by the tighter dimension, then shrink ~12% so the widget
-      // always reads as a thumbnail with breathing room rather than
-      // touching the card edges. Without this, cards whose aspect
-      // ratio matches their widget (e.g. Q-series' 2x4 widget in a
-      // 2x4 card) have the widget fill edge-to-edge and look heavier
-      // than mismatched cards (Y70's 4x2 widget in a square card).
-      // The constant is the same across all variants so every catalog
-      // — panel sheet, desktop modal, Q-series, Y70 — shows the same
-      // visual treatment.
-      const next = Math.min(w / innerW, h / innerH) * 0.88;
+      // Fit by the tighter dimension. With aspect-ratio matching the inner
+      // ratio, both match - this also handles the brief moment after layout
+      // when only one dimension is final.
+      const next = Math.min(w / innerW, h / innerH);
       if (next > 0 && Number.isFinite(next)) setScale(next);
     };
     update();

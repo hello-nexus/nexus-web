@@ -266,5 +266,21 @@ test('captures Y70 and Q60 device pages', async ({ page }) => {
       };
     });
     console.log('[q60 catalog debug]', JSON.stringify(debug, null, 2));
+
+    // Inspect the previewPane sizing.
+    const previewDbg = await page.evaluate(() => {
+      const pane = document.querySelector('[class*="previewPane"][data-surface="q60"]');
+      const rect = (pane as HTMLElement | null)?.getBoundingClientRect();
+      const cs = pane ? getComputedStyle(pane as HTMLElement) : null;
+      return {
+        hasPane: !!pane,
+        rectW: rect?.width,
+        rectH: rect?.height,
+        maxHeight: cs?.maxHeight,
+        alignSelf: cs?.alignSelf,
+        flex: cs?.flex,
+      };
+    });
+    console.log('[q60 preview debug]', JSON.stringify(previewDbg, null, 2));
   }
 });
