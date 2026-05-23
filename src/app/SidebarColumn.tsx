@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
-import { PinOff } from 'lucide-react';
+import { PinOff, LayoutDashboard, HardDrive } from 'lucide-react';
+import { ICON_SIZE } from './sidebarNav';
 import { Sidebar } from '../components/common/Sidebar/Sidebar';
 import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDropdown';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
@@ -146,7 +147,8 @@ export function SidebarColumn({
         items={items}
         active={serviceNavActive}
         onChange={onServiceNavChange}
-        sectionLabel={compact ? '' : t('sidebar.section.apps')}
+        sectionLabel={t('sidebar.section.apps')}
+        sectionLabelIcon={<LayoutDashboard size={ICON_SIZE} />}
         onSectionLabelClick={() => onServiceNavChange(DASHBOARD_APP_KEY)}
         sectionLabelActive={serviceNavActive === DASHBOARD_APP_KEY}
         serviceState={serviceState}
@@ -181,6 +183,7 @@ export function SidebarColumn({
             onSelect={onDeviceSelect}
             onHeaderClick={onDevicesHeaderClick}
             headerActive={devicesHeaderActive}
+            headerIcon={<HardDrive size={ICON_SIZE} />}
           />
         }
       />

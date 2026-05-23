@@ -52,20 +52,31 @@
   text-transform: uppercase;
 }
 
-// Interactive variant — the section header itself routes somewhere
-// (APPS → dashboard, DEVICES → all-devices landing). Same chrome as
-// an item row when active so a selected header reads as a
-// first-class destination, not as decoration.
-.sectionLabelBtn {
+// Interactive section header — the row itself routes somewhere
+// (APPS → dashboard, DEVICES → all-devices landing). Built as a
+// row with the same vertical metrics as an .item below so the
+// positions are stable across collapsed / expanded sidebars. In
+// compact mode the label hides but the icon row stays visible at
+// the same height — preserving the user's tap target and the
+// sidebar's vertical rhythm.
+.sectionHeader {
   appearance: none;
   border: none;
   background: transparent;
   cursor: pointer;
   width: 100%;
   text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
   padding: 0.6rem 0.75rem;
-  margin: 0.25rem 0 0.1rem;
+  margin: 0;
   border-radius: var(--radius-sm);
+  color: var(--text-faded);
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   transition: background var(--ease-fast), color var(--ease-fast);
 
   &:hover {
@@ -74,9 +85,32 @@
   }
 }
 
-.sectionLabelActive {
+.sectionHeaderCompactRow {
+  justify-content: center;
+  gap: 0;
+}
+
+.sectionHeaderActive {
   background: var(--accent-soft);
   color: var(--text);
+
+  &:hover { background: var(--accent-soft); }
+
+  .sectionHeaderIcon { color: var(--accent-glow); }
+}
+
+.sectionHeaderIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.sectionHeaderLabel {
+  display: inline-block;
 }
 
 .item {

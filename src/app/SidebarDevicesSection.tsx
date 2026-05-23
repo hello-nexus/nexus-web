@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import classNames from 'classnames';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
@@ -31,6 +31,10 @@ interface SidebarDevicesSectionProps {
   // SidebarColumn owns the exact destination.
   onHeaderClick: () => void;
   headerActive: boolean;
+  // Icon shown in the section header — always rendered (alongside the
+  // label in expanded mode, alone in compact mode) so the header is
+  // visible + tappable at the same row height regardless of state.
+  headerIcon: ReactNode;
 }
 
 export function SidebarDevicesSection({
@@ -40,6 +44,7 @@ export function SidebarDevicesSection({
   onSelect,
   onHeaderClick,
   headerActive,
+  headerIcon,
 }: SidebarDevicesSectionProps) {
   const { t } = useTranslation();
   const { unified } = useUnifiedDevices(serviceOnline);
@@ -61,12 +66,13 @@ export function SidebarDevicesSection({
         type="button"
         className={classNames(styles.headerBtn, {
           [styles.headerActive]: headerActive,
-          [styles.headerCompact]: compact,
+          [styles.headerCompactRow]: compact,
         })}
         onClick={onHeaderClick}
         aria-label={t('sidebar.section.devices')}
       >
-        {compact ? null : (
+        <span className={styles.headerIcon}>{headerIcon}</span>
+        {!compact && (
           <span className={styles.headerLabel}>{t('sidebar.section.devices')}</span>
         )}
       </button>

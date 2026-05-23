@@ -40,6 +40,12 @@ interface SidebarProps {
   sectionLabel: string;
   onSectionLabelClick?: () => void;
   sectionLabelActive?: boolean;
+  // Icon used by the section header. In compact mode it's the only
+  // glyph rendered (icon-only row); in expanded mode it sits next
+  // to the label. Keeps the header visible + tappable when the
+  // sidebar is collapsed so the user retains entry to the section
+  // (today: APPS routes to the dashboard).
+  sectionLabelIcon?: ReactNode;
   serviceState: ServiceState;
   headerSlot?: ReactNode;
   compact?: boolean;
@@ -147,7 +153,7 @@ function SortableRow(props: Omit<RowProps, 'sortableProps'>) {
 }
 
 export function Sidebar({
-  items, active, onChange, sectionLabel, onSectionLabelClick, sectionLabelActive,
+  items, active, onChange, sectionLabel, onSectionLabelClick, sectionLabelActive, sectionLabelIcon,
   serviceState,
   headerSlot, compact = false,
   extraItems, extraSectionLabel, extraActive, extraOnChange,
@@ -239,19 +245,26 @@ export function Sidebar({
           {headerSlot}
         </div>
       )}
-      {!compact && sectionLabel && (
+      {sectionLabel && (
         onSectionLabelClick ? (
           <button
             type="button"
-            className={classNames(styles.sectionLabel, styles.sectionLabelBtn, {
-              [styles.sectionLabelActive]: sectionLabelActive,
+            className={classNames(styles.sectionHeader, {
+              [styles.sectionHeaderCompactRow]: compact,
+              [styles.sectionHeaderActive]: sectionLabelActive,
             })}
             onClick={onSectionLabelClick}
+            aria-label={sectionLabel}
           >
-            {sectionLabel}
+            {sectionLabelIcon && <span className={styles.sectionHeaderIcon}>{sectionLabelIcon}</span>}
+            {!compact && <span className={styles.sectionHeaderLabel}>{sectionLabel}</span>}
           </button>
         ) : (
-          <div className={styles.sectionLabel}>{sectionLabel}</div>
+          // Non-interactive header — collapses out in compact mode (no
+          // affordance to tap, so no need to reserve the row). Today
+          // every consumer passes onSectionLabelClick, but keep the
+          // fallback for completeness.
+          !compact && <div className={styles.sectionLabel}>{sectionLabel}</div>
         )
       )}
 

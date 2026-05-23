@@ -11,20 +11,19 @@
   margin-top: 1.25rem;
 }
 
-// Section header — a button so a click navigates to the all-devices
-// landing page. No icon (header-level), reads as the uppercase APPS
-// label until active; then it switches to the accent treatment a
-// selected app row gets so the user sees "I'm on the devices
-// landing" the same way they see "I'm on Cooling".
+// Section header — a tappable row that routes to the all-devices
+// landing. Same row metrics as the .item below so the row heights
+// + positions stay stable regardless of collapsed / expanded.
 .headerBtn {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  gap: 0.65rem;
   appearance: none;
   border: none;
   background: transparent;
   padding: 0.6rem 0.75rem;
-  margin: 0.25rem 0 0.1rem;
+  margin: 0;
   border-radius: var(--radius-sm);
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
@@ -42,19 +41,28 @@
   }
 }
 
+.headerCompactRow {
+  justify-content: center;
+  gap: 0;
+}
+
 .headerActive {
   background: var(--accent-soft);
   color: var(--text);
 
   &:hover { background: var(--accent-soft); }
+
+  .headerIcon { color: var(--accent-glow); }
 }
 
-.headerCompact {
-  // In compact mode the label hides; the button collapses to a thin
-  // gap so the section is still distinguishable but the icon-only
-  // rows below dominate.
-  padding: 0.5rem 0;
-  min-height: 0.5rem;
+.headerIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--text-dim);
 }
 
 .headerLabel { display: inline-block; }
