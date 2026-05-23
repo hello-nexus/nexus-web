@@ -75,7 +75,11 @@
 // reserve a usable horizontal slot.
 .previewPane[data-surface='q60'],
 .previewPane[data-surface='q80'] {
-  max-height: 750px;
+  // Cap matches the Q-series CSS viewport height (1280 native / 1.5
+  // DPR ≈ 853 CSS px) so the preview never has to down-scale past
+  // native — the iframe renders at 1:1 when the page has room and
+  // shrinks only when the row is shorter than 853 px.
+  max-height: 853px;
   // Center the capped preview vertically in the split-layout row.
   // splitLayout has more vertical space than 500px, so without this
   // the previewPane would stretch-align to the top by default and
