@@ -11,58 +11,53 @@
   margin-top: 1.25rem;
 }
 
-// Section header — a tappable row that routes to the all-devices
-// landing. Same row metrics as the .item below so the row heights
-// + positions stay stable regardless of collapsed / expanded.
+// Section header — text + subtle underline. Treated as a heading,
+// not a device row. Compact mode collapses to the localized first
+// letter; expanded mode shows the full label. The underline anchors
+// the section so the header reads distinct from the tappable device
+// rows beneath it.
 .headerBtn {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.65rem;
   appearance: none;
-  border: none;
+  border: 0;
   background: transparent;
-  padding: 0.6rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   margin: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
   color: var(--text-faded);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
   width: 100%;
-  text-align: left;
-  transition: background var(--ease-fast), color var(--ease-fast);
+  transition: color var(--ease-fast);
+
+  .headerLabel {
+    display: inline-block;
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid var(--border);
+    transition: color var(--ease-fast), border-color var(--ease-fast);
+  }
 
   &:hover {
-    background: var(--bg-card-hover);
     color: var(--text);
+    .headerLabel { border-bottom-color: var(--border-strong); }
   }
 }
 
 .headerCompactRow {
   justify-content: center;
-  gap: 0;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .headerActive {
-  background: var(--accent-soft);
   color: var(--text);
-
-  &:hover { background: var(--accent-soft); }
-
-  .headerIcon { color: var(--accent-glow); }
-}
-
-.headerIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  color: var(--text-dim);
+  .headerLabel { border-bottom-color: var(--accent); }
+  &:hover .headerLabel { border-bottom-color: var(--accent); }
 }
 
 .headerLabel { display: inline-block; }

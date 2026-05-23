@@ -40,12 +40,6 @@ interface SidebarProps {
   sectionLabel: string;
   onSectionLabelClick?: () => void;
   sectionLabelActive?: boolean;
-  // Icon used by the section header. In compact mode it's the only
-  // glyph rendered (icon-only row); in expanded mode it sits next
-  // to the label. Keeps the header visible + tappable when the
-  // sidebar is collapsed so the user retains entry to the section
-  // (today: APPS routes to the dashboard).
-  sectionLabelIcon?: ReactNode;
   serviceState: ServiceState;
   headerSlot?: ReactNode;
   compact?: boolean;
@@ -153,7 +147,7 @@ function SortableRow(props: Omit<RowProps, 'sortableProps'>) {
 }
 
 export function Sidebar({
-  items, active, onChange, sectionLabel, onSectionLabelClick, sectionLabelActive, sectionLabelIcon,
+  items, active, onChange, sectionLabel, onSectionLabelClick, sectionLabelActive,
   serviceState,
   headerSlot, compact = false,
   extraItems, extraSectionLabel, extraActive, extraOnChange,
@@ -256,8 +250,15 @@ export function Sidebar({
             onClick={onSectionLabelClick}
             aria-label={sectionLabel}
           >
-            {sectionLabelIcon && <span className={styles.sectionHeaderIcon}>{sectionLabelIcon}</span>}
-            {!compact && <span className={styles.sectionHeaderLabel}>{sectionLabel}</span>}
+            {/* Compact mode shows just the localized first letter —
+                "A" for APPS in English, "Α" in Greek, "应" in Chinese,
+                etc. The expanded mode shows the full uppercase label.
+                Either way the underline pseudo-element below the row
+                visually anchors the section so the header reads as a
+                heading rather than another tappable device row. */}
+            <span className={styles.sectionHeaderLabel}>
+              {compact ? Array.from(sectionLabel)[0]?.toLocaleUpperCase() ?? '' : sectionLabel}
+            </span>
           </button>
         ) : (
           // Non-interactive header — collapses out in compact mode (no

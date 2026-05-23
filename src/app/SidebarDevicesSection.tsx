@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import classNames from 'classnames';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
@@ -31,10 +31,6 @@ interface SidebarDevicesSectionProps {
   // SidebarColumn owns the exact destination.
   onHeaderClick: () => void;
   headerActive: boolean;
-  // Icon shown in the section header — always rendered (alongside the
-  // label in expanded mode, alone in compact mode) so the header is
-  // visible + tappable at the same row height regardless of state.
-  headerIcon: ReactNode;
 }
 
 export function SidebarDevicesSection({
@@ -44,7 +40,6 @@ export function SidebarDevicesSection({
   onSelect,
   onHeaderClick,
   headerActive,
-  headerIcon,
 }: SidebarDevicesSectionProps) {
   const { t } = useTranslation();
   const { unified } = useUnifiedDevices(serviceOnline);
@@ -60,6 +55,7 @@ export function SidebarDevicesSection({
     });
   }, [unified]);
 
+  const label = t('sidebar.section.devices');
   return (
     <section className={styles.section}>
       <button
@@ -69,12 +65,16 @@ export function SidebarDevicesSection({
           [styles.headerCompactRow]: compact,
         })}
         onClick={onHeaderClick}
-        aria-label={t('sidebar.section.devices')}
+        aria-label={label}
       >
-        <span className={styles.headerIcon}>{headerIcon}</span>
-        {!compact && (
-          <span className={styles.headerLabel}>{t('sidebar.section.devices')}</span>
-        )}
+        {/* Compact: localized first letter (e.g. "D" for English
+            "Devices"). Expanded: full label. The .headerLabel CSS
+            paints a thin underline beneath whichever form renders so
+            the header reads as a section heading rather than another
+            tappable device row. */}
+        <span className={styles.headerLabel}>
+          {compact ? Array.from(label)[0]?.toLocaleUpperCase() ?? '' : label}
+        </span>
       </button>
 
       {sorted.length === 0 ? (

@@ -52,61 +52,57 @@
   text-transform: uppercase;
 }
 
-// Interactive section header — the row itself routes somewhere
-// (APPS → dashboard, DEVICES → all-devices landing). Built as a
-// row with the same vertical metrics as an .item below so the
-// positions are stable across collapsed / expanded sidebars. In
-// compact mode the label hides but the icon row stays visible at
-// the same height — preserving the user's tap target and the
-// sidebar's vertical rhythm.
+// Section header — the row itself routes somewhere (APPS →
+// dashboard, DEVICES → all-devices landing). Treated as a heading
+// rather than an item row: just text + a subtle underline. The
+// underline visually anchors the section without looking like
+// another device entry. Compact mode collapses to the localized
+// first letter so the header still reads as "this is the
+// section's destination".
 .sectionHeader {
   appearance: none;
-  border: none;
+  border: 0;
   background: transparent;
   cursor: pointer;
   width: 100%;
-  text-align: left;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.6rem 0.75rem;
+  justify-content: flex-start;
+  padding: 0.5rem 0.75rem;
   margin: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   color: var(--text-faded);
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: background var(--ease-fast), color var(--ease-fast);
+  transition: color var(--ease-fast);
+
+  // The subtle line under the label. Pseudo-element so the line
+  // hugs the label width and doesn't add another DOM node.
+  .sectionHeaderLabel {
+    display: inline-block;
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid var(--border);
+    transition: color var(--ease-fast), border-color var(--ease-fast);
+  }
 
   &:hover {
-    background: var(--bg-card-hover);
     color: var(--text);
+    .sectionHeaderLabel { border-bottom-color: var(--border-strong); }
   }
 }
 
 .sectionHeaderCompactRow {
   justify-content: center;
-  gap: 0;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .sectionHeaderActive {
-  background: var(--accent-soft);
   color: var(--text);
-
-  &:hover { background: var(--accent-soft); }
-
-  .sectionHeaderIcon { color: var(--accent-glow); }
-}
-
-.sectionHeaderIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  color: var(--text-dim);
+  .sectionHeaderLabel { border-bottom-color: var(--accent); }
+  &:hover .sectionHeaderLabel { border-bottom-color: var(--accent); }
 }
 
 .sectionHeaderLabel {

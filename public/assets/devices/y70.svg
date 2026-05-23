@@ -1,7 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Y70 Touch: simple tower-case silhouette with a single screen
-       window on the face. Stroke weight matched to lucide icons so
-       the device row reads at the same boldness as the app rows. -->
-  <rect x="13" y="4" width="22" height="40" rx="2.5" />
-  <rect x="17" y="10" width="14" height="22" rx="1.5" />
+  <!-- HYTE Y70 Touch: square-ish PC case (closer to a cube than a
+       traditional tower) with the portrait touchscreen mounted on
+       the front-right panel. Outer rect = case body, inset portrait
+       rect = the touchscreen on the front face. -->
+  <rect x="6" y="6" width="36" height="36" rx="3" />
+  <rect x="25" y="10" width="13" height="28" rx="1.5" />
 </svg>
