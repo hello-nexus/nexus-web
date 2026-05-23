@@ -27,13 +27,13 @@
   --text-dim: #a0a0a0;
   --text-faded: #6a6a6a;
 
-  // Accent — blue (fallback; runtime values come from applyAccentColor()
+  // Accent — deep blue (fallback; runtime values come from applyAccentColor()
   // which sets these same custom properties on <html>).
-  --accent: #3b82f6;
-  --accent-glow: #60a5fa;
-  --accent-deep: #1d4ed8;
-  --accent-soft: rgba(59, 130, 246, 0.12);
-  --accent-glow-shadow: rgba(59, 130, 246, 0.45);
+  --accent: #2563eb;
+  --accent-glow: #3b82f6;
+  --accent-deep: #1e3a8a;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --accent-glow-shadow: rgba(37, 99, 235, 0.45);
   --accent-text: #ffffff;
   --accent-glow-text: #000000;
   --accent-deep-text: #ffffff;
@@ -153,7 +153,7 @@
 
   --accent: #2563eb;
   --accent-glow: #3b82f6;
-  --accent-deep: #1e40af;
+  --accent-deep: #1e3a8a;
   --accent-soft: rgba(37, 99, 235, 0.1);
   --accent-glow-shadow: rgba(37, 99, 235, 0.35);
   --accent-text: #ffffff;

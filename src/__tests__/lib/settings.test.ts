@@ -35,24 +35,24 @@ describe('PRESET_ACCENTS', () => {
     expect(PRESET_ACCENTS).toHaveLength(20);
     expect(PRESET_ACCENTS[0]).toBe(DEFAULT_ACCENT);
     expect(PRESET_ACCENTS.slice(0, 10)).toEqual([
-      '#3b82f6', '#8b5cf6', '#a855f7', '#ec4899',
-      '#ef4444', '#f97316', '#f59e0b', '#22c55e',
-      '#14b8a6', '#06b6d4',
+      '#2563eb', '#3b82f6', '#8b5cf6', '#ec4899',
+      '#ef4444', '#f97316', '#f59e0b', '#16c963',
+      '#0bbfa9', '#06b6d4',
     ]);
     expect(PRESET_ACCENTS.slice(10)).toEqual([
-      '#1e3a8a', '#6d28d9', '#9333ea', '#db2777',
-      '#b91c1c', '#c2410c', '#b45309', '#15803d',
-      '#0f766e', '#0e7490',
+      '#3e63b8', '#5a85c6', '#8e83c0', '#b96b94',
+      '#bf6363', '#bd7958', '#bd8d42', '#5fa07e',
+      '#509995', '#4f9aab',
     ]);
   });
 
-  it('leads with blue / navy and has no yellow-green column', () => {
-    // Row 1 / row 2 col 0 are the blue pair — the new default.
-    expect(PRESET_ACCENTS[0]).toBe('#3b82f6');
-    expect(PRESET_ACCENTS[10]).toBe('#1e3a8a');
-    // The previous lime / olive-lime column is gone.
-    expect(PRESET_ACCENTS).not.toContain('#84cc16');
-    expect(PRESET_ACCENTS).not.toContain('#4d7c0f');
+  it('leads with deep blue and has no purple column', () => {
+    // Row 1 / row 2 col 0 are the deep-blue pair — the new default.
+    expect(PRESET_ACCENTS[0]).toBe('#2563eb');
+    expect(PRESET_ACCENTS[10]).toBe('#3e63b8');
+    // The previous purple column is gone.
+    expect(PRESET_ACCENTS).not.toContain('#a855f7');
+    expect(PRESET_ACCENTS).not.toContain('#9333ea');
   });
 });
 
@@ -87,34 +87,35 @@ describe('deriveAccentVars', () => {
     }
   });
 
-  it('enforces saturation floor - muted input gets boosted', () => {
-    // Gray-ish blue with S=30 should be boosted to S>=55
+  it('--accent is the user pick verbatim (no saturation floor)', () => {
+    // Gray-ish blue with S≈30 should land on --accent unchanged.
     const vars = deriveAccentVars('#6688aa', 'dark');
     const match = vars['--accent'].match(/hsl\([\d.]+, ([\d.]+)%/);
     expect(match).not.toBeNull();
-    expect(parseFloat(match![1])).toBeGreaterThanOrEqual(55);
+    expect(parseFloat(match![1])).toBeLessThan(55);
   });
 
-  it('dark mode lightness stays in [50, 66]', () => {
-    // Very dark input
+  it('--accent is the user pick verbatim (no lightness clamp)', () => {
+    // Very dark input — --accent stays dark, no clamp to 50.
     const varsDark = deriveAccentVars('#1a0033', 'dark');
     const matchDark = varsDark['--accent'].match(/hsl\([\d.]+, [\d.]+%, ([\d.]+)%/);
-    expect(parseFloat(matchDark![1])).toBeGreaterThanOrEqual(50);
+    expect(parseFloat(matchDark![1])).toBeLessThan(50);
 
-    // Very bright input
+    // Very bright input — --accent stays bright, no clamp to 66.
     const varsBright = deriveAccentVars('#eeccff', 'dark');
     const matchBright = varsBright['--accent'].match(/hsl\([\d.]+, [\d.]+%, ([\d.]+)%/);
-    expect(parseFloat(matchBright![1])).toBeLessThanOrEqual(66);
+    expect(parseFloat(matchBright![1])).toBeGreaterThan(66);
   });
 
-  it('light mode lightness stays in [40, 54]', () => {
-    const varsDark = deriveAccentVars('#1a0033', 'light');
-    const matchDark = varsDark['--accent'].match(/hsl\([\d.]+, [\d.]+%, ([\d.]+)%/);
-    expect(parseFloat(matchDark![1])).toBeGreaterThanOrEqual(40);
-
-    const varsBright = deriveAccentVars('#eeccff', 'light');
-    const matchBright = varsBright['--accent'].match(/hsl\([\d.]+, [\d.]+%, ([\d.]+)%/);
-    expect(parseFloat(matchBright![1])).toBeLessThanOrEqual(54);
+  it('--accent-glow / --accent-deep still respect derivation bands', () => {
+    // Even with an extreme pick, glow and deep stay usable.
+    const vars = deriveAccentVars('#1a0033', 'dark');
+    const glowL = parseFloat(vars['--accent-glow'].match(/hsl\([\d.]+, [\d.]+%, ([\d.]+)%/)![1]);
+    const deepL = parseFloat(vars['--accent-deep'].match(/hsl\([\d.]+, [\d.]+%, ([\d.]+)%/)![1]);
+    expect(glowL).toBeGreaterThanOrEqual(58);
+    expect(glowL).toBeLessThanOrEqual(80);
+    expect(deepL).toBeGreaterThanOrEqual(22);
+    expect(deepL).toBeLessThanOrEqual(50);
   });
 
   it('WCAG: bright yellow gets black text', () => {
