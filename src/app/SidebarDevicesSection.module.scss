@@ -11,11 +11,11 @@
   margin-top: 1.25rem;
 }
 
-// Section header — text + subtle underline. Treated as a heading,
-// not a device row. Compact mode collapses to the localized first
-// letter; expanded mode shows the full label. The underline anchors
-// the section so the header reads distinct from the tappable device
-// rows beneath it.
+// Section header — same item-row highlight chrome plus a full-width
+// horizontal divider so the header reads as a section heading on
+// top of acting as a clickable destination. See the matching rule
+// in Sidebar.module.scss (`.sectionHeader`) for the verbose
+// explanation.
 .headerBtn {
   display: flex;
   align-items: center;
@@ -25,7 +25,7 @@
   background: transparent;
   padding: 0.5rem 0.75rem;
   margin: 0;
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
   color: var(--text-faded);
@@ -33,34 +33,47 @@
   text-transform: uppercase;
   cursor: pointer;
   width: 100%;
-  transition: color var(--ease-fast);
+  position: relative;
+  transition: background var(--ease-fast), color var(--ease-fast);
 
-  .headerLabel {
-    display: inline-block;
-    padding-bottom: 0.2rem;
-    border-bottom: 1px solid var(--border);
-    transition: color var(--ease-fast), border-color var(--ease-fast);
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0.6rem;
+    right: 0.6rem;
+    bottom: 4px;
+    height: 1px;
+    background: var(--border);
+    transition: background var(--ease-fast);
   }
 
   &:hover {
+    background: var(--bg-card-hover);
     color: var(--text);
-    .headerLabel { border-bottom-color: var(--border-strong); }
+    &::after { background: var(--border-strong); }
   }
 }
 
 .headerCompactRow {
   justify-content: center;
-  padding-left: 0;
-  padding-right: 0;
+  &::after {
+    left: 0.4rem;
+    right: 0.4rem;
+  }
 }
 
 .headerActive {
+  background: var(--accent-soft);
   color: var(--text);
-  .headerLabel { border-bottom-color: var(--accent); }
-  &:hover .headerLabel { border-bottom-color: var(--accent); }
+  &:hover { background: var(--accent-soft); }
+  &::after { background: var(--accent); }
+  &:hover::after { background: var(--accent); }
 }
 
-.headerLabel { display: inline-block; }
+.headerLabel {
+  display: inline-block;
+  padding-bottom: 0.3rem;
+}
 
 .empty {
   padding: 0.5rem 0.75rem;

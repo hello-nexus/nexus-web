@@ -53,12 +53,13 @@
 }
 
 // Section header — the row itself routes somewhere (APPS →
-// dashboard, DEVICES → all-devices landing). Treated as a heading
-// rather than an item row: just text + a subtle underline. The
-// underline visually anchors the section without looking like
-// another device entry. Compact mode collapses to the localized
-// first letter so the header still reads as "this is the
-// section's destination".
+// dashboard, DEVICES → all-devices landing). Shares the item-row
+// chrome (rounded background highlight on hover, accent-soft on
+// active) so the selected-state treatment matches every other
+// sidebar entry. On top of that the row carries a full-width
+// horizontal divider line so it still reads as a section
+// heading, not a device row. Compact mode collapses the label to
+// the localized first letter but keeps the divider + tap target.
 .sectionHeader {
   appearance: none;
   border: 0;
@@ -70,43 +71,56 @@
   justify-content: flex-start;
   padding: 0.5rem 0.75rem;
   margin: 0;
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   color: var(--text-faded);
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: color var(--ease-fast);
+  position: relative;
+  transition: background var(--ease-fast), color var(--ease-fast);
 
-  // The subtle line under the label. Pseudo-element so the line
-  // hugs the label width and doesn't add another DOM node.
-  .sectionHeaderLabel {
-    display: inline-block;
-    padding-bottom: 0.2rem;
-    border-bottom: 1px solid var(--border);
-    transition: color var(--ease-fast), border-color var(--ease-fast);
+  // Full-width horizontal divider sitting just below the label
+  // baseline. Pseudo-element pinned inside the rounded background
+  // so the highlight rectangle on hover/active stretches across
+  // the row and the divider stretches with it.
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0.6rem;
+    right: 0.6rem;
+    bottom: 4px;
+    height: 1px;
+    background: var(--border);
+    transition: background var(--ease-fast);
   }
 
   &:hover {
+    background: var(--bg-card-hover);
     color: var(--text);
-    .sectionHeaderLabel { border-bottom-color: var(--border-strong); }
+    &::after { background: var(--border-strong); }
   }
 }
 
 .sectionHeaderCompactRow {
   justify-content: center;
-  padding-left: 0;
-  padding-right: 0;
+  &::after {
+    left: 0.4rem;
+    right: 0.4rem;
+  }
 }
 
 .sectionHeaderActive {
+  background: var(--accent-soft);
   color: var(--text);
-  .sectionHeaderLabel { border-bottom-color: var(--accent); }
-  &:hover .sectionHeaderLabel { border-bottom-color: var(--accent); }
+  &:hover { background: var(--accent-soft); }
+  &::after { background: var(--accent); }
+  &:hover::after { background: var(--accent); }
 }
 
 .sectionHeaderLabel {
   display: inline-block;
+  padding-bottom: 0.3rem;
 }
 
 .item {
