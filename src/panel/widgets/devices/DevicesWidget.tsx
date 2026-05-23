@@ -6,16 +6,15 @@ import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import styles from './DevicesWidget.module.scss';
 
-// Number of device thumbnails the widget renders per page at each
-// supported size. The widget is a pure launcher — each tile routes
-// straight into that device's page — so tiles are sized for "many
-// shortcuts visible at once" rather than "rich preview". The new
-// counts roughly halve the per-tile area vs the old layout so more
-// devices fit before pagination kicks in.
+// Per-page slot counts. Each "2x2 area" of the widget holds two
+// stacked wide-rectangle device tiles, so a 2x2 widget shows 2, a
+// 4x2 (two 2x2s side by side) shows 4, a 4x4 (four 2x2s) shows 8.
+// Tile aspect stays the same across sizes (≈2:1, wide rectangle)
+// so the visual rhythm is consistent.
 const SLOTS_PER_PAGE: Record<string, number> = {
-  '2x2': 4,   // 2x2 grid
-  '4x2': 8,   // 4x2 grid
-  '4x4': 16,  // 4x4 grid
+  '2x2': 2,   // 1 col × 2 rows
+  '4x2': 4,   // 2 cols × 2 rows
+  '4x4': 8,   // 2 cols × 4 rows
 };
 
 export function DevicesWidget({ widget, surface, onSectionNavigate }: WidgetProps) {
@@ -84,7 +83,7 @@ export function DevicesWidget({ widget, surface, onSectionNavigate }: WidgetProp
   return (
     <div className={styles.devicesWidget} data-size={widget.size}>
       <div className={styles.thumbBox} data-slots={slotsPerPage}>
-        <div className={styles.tileGrid} data-cols={slotsPerPage === 16 ? 4 : slotsPerPage === 8 ? 4 : 2}>
+        <div className={styles.tileGrid} data-cols={widget.size === '2x2' ? 1 : 2}>
           {slots.map((d, idx) => (
             d
               ? (
