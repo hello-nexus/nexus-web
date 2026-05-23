@@ -51,36 +51,36 @@ export type ThemeMode = (typeof THEME_MODES)[number];
 // Absolute-last-resort fallback for the first paint, before either
 // localStorage or the /defaults cache has anything useful. Must mirror
 // qos-service/data/install-defaults.json → theme.accentColor.
-export const DEFAULT_ACCENT = '#3b82f6';
+export const DEFAULT_ACCENT = '#2563eb';
 
-// Preset swatch grid shown in the settings picker. Two rows of ten span ten
-// distinct hue families - blue, violet, purple, pink, red, orange, amber,
-// green, teal, cyan. Row 1 is the primary choice; row 2 is the same hue
-// family pushed darker / more saturated. Blue leads the row so the default
-// accent is the first swatch in the grid.
+// Preset swatch grid shown in the settings picker. Two rows of ten, paired by
+// column. Row 1 is the primary saturated choice; row 2 is the same hue with
+// saturation pulled back and lightness dropped a touch (calmer + slightly
+// darker). Deep blue leads the row so the default accent is the first swatch
+// in the grid.
 export const PRESET_ACCENTS = [
-  // Row 1 - primary family choices
-  '#3b82f6', // Blue (default)
+  // Row 1 - primary family choices (uniformly rich)
+  '#2563eb', // Deep blue (default)
+  '#3b82f6', // Blue
   '#8b5cf6', // Violet
-  '#a855f7', // Purple
   '#ec4899', // Pink
   '#ef4444', // Red
   '#f97316', // Orange
   '#f59e0b', // Amber
-  '#22c55e', // Green
-  '#14b8a6', // Teal
+  '#16c963', // Green
+  '#0bbfa9', // Teal
   '#06b6d4', // Cyan
-  // Row 2 - deeper / more saturated siblings, paired by column
-  '#1e3a8a', // Navy
-  '#6d28d9', // Deep violet
-  '#9333ea', // Deep purple
-  '#db2777', // Hot pink
-  '#b91c1c', // Deep red
-  '#c2410c', // Burnt orange
-  '#b45309', // Deep amber
-  '#15803d', // Forest green
-  '#0f766e', // Deep teal
-  '#0e7490', // Deep cyan
+  // Row 2 - softer siblings (lower S, slightly darker L), paired by column
+  '#3e63b8', // Soft blue
+  '#5a85c6', // Soft sky
+  '#8e83c0', // Soft violet
+  '#b96b94', // Soft pink
+  '#bf6363', // Soft red
+  '#bd7958', // Soft orange
+  '#bd8d42', // Soft amber
+  '#5fa07e', // Soft green
+  '#509995', // Soft teal
+  '#4f9aab', // Soft cyan
 ] as const;
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -344,21 +344,25 @@ function needsDarkTextOnHsl(h: number, s: number, l: number): boolean {
 export function deriveAccentVars(hex: string, mode: 'dark' | 'light' = 'dark'): Record<string, string> {
   const safe = normalizeAccent(hex);
   const { h, s, l } = hexToHsl(safe);
-  const S = clamp(Math.max(s, 55));
-  const accentL = mode === 'dark' ? clamp(l, 50, 66) : clamp(l, 40, 54);
-  const glowL   = mode === 'dark' ? clamp(accentL + 10, 58, 80) : clamp(accentL + 8, 48, 68);
-  const deepL   = mode === 'dark' ? clamp(accentL - 16, 22, 50) : clamp(accentL - 20, 14, 40);
-  const deepS   = clamp(S + 5);
+
+  // --accent is the user's pick verbatim. No saturation floor, no lightness clamp.
+  // Glow / deep variants still derive from a bounded base so extreme picks
+  // (near-black, near-white) don't collapse into unusable shades.
+  const baseS = clamp(Math.max(s, 55));
+  const baseL = mode === 'dark' ? clamp(l, 50, 66) : clamp(l, 40, 54);
+  const glowL = mode === 'dark' ? clamp(baseL + 10, 58, 80) : clamp(baseL + 8, 48, 68);
+  const deepL = mode === 'dark' ? clamp(baseL - 16, 22, 50) : clamp(baseL - 20, 14, 40);
+  const deepS = clamp(baseS + 5);
   const softAlpha       = mode === 'dark' ? 0.14 : 0.12;
   const glowShadowAlpha = mode === 'dark' ? 0.45 : 0.35;
   return {
-    '--accent':             hslCss(h, S, accentL),
-    '--accent-glow':        hslCss(h, S, glowL),
+    '--accent':             hslCss(h, s, l),
+    '--accent-glow':        hslCss(h, baseS, glowL),
     '--accent-deep':        hslCss(h, deepS, deepL),
-    '--accent-soft':        hslCss(h, S, accentL, softAlpha),
-    '--accent-glow-shadow': hslCss(h, S, accentL, glowShadowAlpha),
-    '--accent-text':        needsDarkTextOnHsl(h, S, accentL) ? '#000000' : '#ffffff',
-    '--accent-glow-text':   needsDarkTextOnHsl(h, S, glowL)   ? '#000000' : '#ffffff',
+    '--accent-soft':        hslCss(h, s, l, softAlpha),
+    '--accent-glow-shadow': hslCss(h, s, l, glowShadowAlpha),
+    '--accent-text':        needsDarkTextOnHsl(h, s, l) ? '#000000' : '#ffffff',
+    '--accent-glow-text':   needsDarkTextOnHsl(h, baseS, glowL) ? '#000000' : '#ffffff',
     '--accent-deep-text':   needsDarkTextOnHsl(h, deepS, deepL) ? '#000000' : '#ffffff',
   };
 }
@@ -372,34 +376,31 @@ export function applyAccentColor(hex: string): void {
     : 'dark';
   const { h, s, l } = hexToHsl(safe);
 
-  // Saturation floor: muted picks still need to read as "a color" so the
-  // active tab underline and sidebar highlights don't blend into chrome.
-  const S = clamp(Math.max(s, 55));
-
-  // Lightness bands enforce contrast with white button text and with the
-  // theme background. Dark mode tolerates a brighter base; light mode needs
-  // a darker one for the same button pattern.
-  const accentL = effective === 'dark' ? clamp(l, 50, 66) : clamp(l, 40, 54);
-  const glowL   = effective === 'dark' ? clamp(accentL + 10, 58, 80) : clamp(accentL + 8, 48, 68);
-  const deepL   = effective === 'dark' ? clamp(accentL - 16, 22, 50) : clamp(accentL - 20, 14, 40);
-  const deepS   = clamp(S + 5);
+  // --accent is the user's pick verbatim. No saturation floor, no lightness clamp.
+  // Glow / deep variants still derive from a bounded base so extreme picks
+  // (near-black, near-white) don't collapse into unusable shades.
+  const baseS = clamp(Math.max(s, 55));
+  const baseL = effective === 'dark' ? clamp(l, 50, 66) : clamp(l, 40, 54);
+  const glowL = effective === 'dark' ? clamp(baseL + 10, 58, 80) : clamp(baseL + 8, 48, 68);
+  const deepL = effective === 'dark' ? clamp(baseL - 16, 22, 50) : clamp(baseL - 20, 14, 40);
+  const deepS = clamp(baseS + 5);
 
   const softAlpha       = effective === 'dark' ? 0.14 : 0.12;
   const glowShadowAlpha = effective === 'dark' ? 0.45 : 0.35;
 
   // Pick black-or-white text for each accent surface based on its luminance.
-  // Keeps text legible across the full hue range — dark violets keep white
-  // text; bright yellows/limes/cyans flip to black.
-  const accentText = needsDarkTextOnHsl(h, S, accentL) ? '#000000' : '#ffffff';
-  const glowText   = needsDarkTextOnHsl(h, S, glowL)   ? '#000000' : '#ffffff';
-  const deepText   = needsDarkTextOnHsl(h, deepS, deepL) ? '#000000' : '#ffffff';
+  // Keeps text legible across the full hue range — dark picks keep white text;
+  // bright yellows/limes/cyans flip to black.
+  const accentText = needsDarkTextOnHsl(h, s, l)             ? '#000000' : '#ffffff';
+  const glowText   = needsDarkTextOnHsl(h, baseS, glowL)     ? '#000000' : '#ffffff';
+  const deepText   = needsDarkTextOnHsl(h, deepS, deepL)     ? '#000000' : '#ffffff';
 
   const root = document.documentElement.style;
-  root.setProperty('--accent',             hslCss(h, S, accentL));
-  root.setProperty('--accent-glow',        hslCss(h, S, glowL));
+  root.setProperty('--accent',             hslCss(h, s, l));
+  root.setProperty('--accent-glow',        hslCss(h, baseS, glowL));
   root.setProperty('--accent-deep',        hslCss(h, deepS, deepL));
-  root.setProperty('--accent-soft',        hslCss(h, S, accentL, softAlpha));
-  root.setProperty('--accent-glow-shadow', hslCss(h, S, accentL, glowShadowAlpha));
+  root.setProperty('--accent-soft',        hslCss(h, s, l, softAlpha));
+  root.setProperty('--accent-glow-shadow', hslCss(h, s, l, glowShadowAlpha));
   root.setProperty('--accent-text',        accentText);
   root.setProperty('--accent-glow-text',   glowText);
   root.setProperty('--accent-deep-text',   deepText);
