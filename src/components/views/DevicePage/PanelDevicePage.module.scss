@@ -47,44 +47,31 @@
 }
 
 // Preview pane reserves a minimum horizontal slot so the panel
-// canvas never collapses to a sliver when the page chrome (sidebar,
-// view header, page padding) eats into available width. The modal
-// got this for free from its near-fullscreen body; the page version
-// has to spell it out so portrait panels read at a usable scale
-// even when the page is shorter than the modal was.
-//
-// The Y70's portrait panel (682×2560, ratio ≈0.27) is naturally
-// narrow and benefits from the full available height. The Q-series
-// panels (720×1280, ratio ≈0.56) are wider per-row and otherwise
-// claim too much horizontal space on tall pages — cap them so the
-// catalog on the left keeps its breathing room.
+// canvas never collapses to a sliver. CRUCIAL: `height: 100%`
+// forces a parent-determined cross-axis size; without it, the
+// pane sizes to the iframe's natural footprint, the iframe scales
+// to fill the pane, and the two reach equilibrium at the iframe's
+// initial scale (0.35) — content never grows. Stretching to the
+// row height first, then capping with max-height, breaks that
+// self-reference so the iframe can scale up to fill the slot.
 .previewPane {
   flex: 0 0 auto;
   min-width: 360px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-// Q-series panels are physically small devices (a desk-mounted LCD).
-// Capping the preview's height keeps the rendered canvas in proportion
-// to the actual device — without this the simulator iframe scales to
-// fill the page's available vertical space, making the preview look
-// like a tablet-sized panel and shrinking the widget content inside
-// it relative to the canvas. The pane's flex-grow/min-width still
-// reserve a usable horizontal slot.
+// Q-series panels are physically small devices. Cap matches the
+// Q-series CSS viewport height (1280 native / 1.5 DPR ≈ 853 CSS px)
+// so the preview never has to up-scale past native — the iframe
+// renders at most 1:1 against the panel runtime's design pixels.
+// `align-self: center` vertically centers the capped pane in the
+// taller splitLayout row.
 .previewPane[data-surface='q60'],
 .previewPane[data-surface='q80'] {
-  // Cap matches the Q-series CSS viewport height (1280 native / 1.5
-  // DPR ≈ 853 CSS px) so the preview never has to down-scale past
-  // native — the iframe renders at 1:1 when the page has room and
-  // shrinks only when the row is shorter than 853 px.
   max-height: 853px;
-  // Center the capped preview vertically in the split-layout row.
-  // splitLayout has more vertical space than 500px, so without this
-  // the previewPane would stretch-align to the top by default and
-  // the iframe would sit at the top of the right column instead of
-  // visually balanced against the catalog on the left.
   align-self: center;
 }
 
