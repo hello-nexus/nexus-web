@@ -1,0 +1,62 @@
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  // No top padding — tabs sit flush under the DeviceModal header band.
+  padding: 0 20px 20px;
+  min-height: 0;
+}
+
+// Tabs + layer chips share one row. The Tabs nav fills the left, layers
+// cluster right. The Tabs component owns the underline; suppress the
+// container's own border so we don't double up.
+.tabsRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabsFill {
+  flex: 1;
+  border-bottom: none;
+}
+
+// Keyboard render is ~1400px wide at source size. Scale via `zoom` so it
+// sits comfortably in the fullscreen modal at laptop widths.
+.keyboardStage {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+  zoom: 0.55;
+}
+
+.tabBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.layerChips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 6px 8px;
+}
+
+.layerChipsIcon {
+  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+  margin-right: 4px;
+}
+
+// Shorter + wider layer chips than the default IconLabelButton sizing.
+// The component exposes its dimensions as CSS variables, so we tune them
+// here for a header-band chip instead of redoing the markup.
+.layerChip {
+  --icon-label-button-height: 24px;
+  --icon-label-button-min-width: 44px;
+  --icon-label-button-padding-x: 12px;
+  --icon-label-button-padding-y: 2px;
+  --icon-label-label-size: 12px;
+}

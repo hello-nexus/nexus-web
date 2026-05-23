@@ -1,0 +1,63 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 12px 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hint {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--panel-card-bg, rgba(255, 255, 255, 0.03));
+  border: 1px dashed var(--panel-card-border, rgba(255, 255, 255, 0.1));
+  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+  font-size: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.groupCard {
+  // Card supplies the chrome; we just need section spacing inside it.
+  gap: 12px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+
+// Source-keyboard stage (Keyboard category): a second KeebKeyboard render
+// sized smaller than the main one above, used as a click-to-pick picker.
+.sourceStage {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 0;
+  zoom: 0.48;
+}

@@ -5,6 +5,7 @@ import { ServiceRequired } from '../ServiceRequired';
 import { Placeholder } from '../Placeholder';
 import { PanelDevicePage } from './PanelDevicePage';
 import { PeripheralDevicePage } from './PeripheralDevicePage';
+import { KeebDevicePage } from './KeebDevicePage';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 
 /**
@@ -64,6 +65,10 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
 
   if (device.kind === 'peripheral' && device.peripheral) {
     return <PeripheralDevicePage key={device.key} peripheral={device.peripheral} />;
+  }
+
+  if (device.curatedId === 'keeb') {
+    return <KeebDevicePage key={device.key} />;
   }
 
   // Curated devices the service knows about but don't yet have a

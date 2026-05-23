@@ -1,0 +1,143 @@
+.container {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+  padding: 8px 12px 12px;
+  height: 100%;
+  min-height: 0;
+}
+
+.slots {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--panel-card-bg, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.06));
+  overflow-y: auto;
+}
+
+.slotBtn {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.editorHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.nameField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-dim, rgba(255, 255, 255, 0.7));
+}
+
+.nameInput {
+  padding: 6px 10px;
+  min-width: 200px;
+  border-radius: 6px;
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.12));
+  background: transparent;
+  color: var(--text, #e8e8ec);
+  font-size: 13px;
+}
+
+.delayBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.delayRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.customInput {
+  width: 80px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.12));
+  background: transparent;
+  color: var(--text, #e8e8ec);
+  font-size: 12px;
+}
+
+.unit {
+  font-size: 11px;
+  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.recordingList {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--panel-card-bg, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.06));
+  overflow-y: auto;
+}
+
+.empty {
+  margin: auto;
+  font-size: 12px;
+  color: var(--text-dim, rgba(255, 255, 255, 0.45));
+}
+
+.recordRow {
+  display: grid;
+  grid-template-columns: 1fr 80px 90px 24px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: var(--panel-bg, rgba(20, 20, 24, 0.4));
+  font-size: 12px;
+}
+
+.recordKey {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  color: var(--text, #e8e8ec);
+}
+
+.recordType {
+  color: var(--text-dim, rgba(255, 255, 255, 0.6));
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.recordDuration {
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.1));
+  background: transparent;
+  color: var(--text, #e8e8ec);
+  font-size: 12px;
+  text-align: right;
+}

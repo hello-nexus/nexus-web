@@ -1,0 +1,36 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 8px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.rowLabel {
+  font-size: 13px;
+  color: var(--text-dim, rgba(255, 255, 255, 0.7));
+}
+
+.rowControl {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.iconGroup {
+  display: flex;
+  gap: 6px;
+}
+
+.loading {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+  font-size: 14px;
+}
