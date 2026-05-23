@@ -7,7 +7,6 @@ import {
   fetchSteamProfile,
   fetchSteamRecentGames,
   fetchSteamStatus,
-  launchSteam,
   type SteamAchievement,
   type SteamFriendSummary,
   type SteamOwnedGame,
@@ -15,7 +14,6 @@ import {
   type SteamRecentGame,
   type SteamStatusResponse,
 } from '../../../api/steam';
-import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import {
@@ -172,21 +170,20 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
         {activeTab === 'activity' && (
           <div className={styles.list}>
             {visibleRecent.length > 0 ? visibleRecent.map(game => (
-              <HoverTooltip key={game.appId} body={t('panel.steam.launch', { name: game.name })} side="top">
-                <button
-                  type="button"
-                  className={styles.gameRow}
-                  onClick={() => { void launchSteam(game.appId); }}
-                >
-                  {game.iconHash ? (
-                    <img className={styles.gameIcon} src={steamIconUrl(game.appId, game.iconHash)} alt="" />
-                  ) : (
-                    <span className={styles.gameIconFallback} />
-                  )}
-                  <span className={styles.rowTitle}>{game.name}</span>
-                  <span className={styles.rowMeta}>{formatMinutes(game.playtime2Weeks)}</span>
-                </button>
-              </HoverTooltip>
+              // Rows are non-interactive: clicking anywhere on the widget
+              // body (including a row) is meant to open the Steam page
+              // overlay via the panel's tap-to-immersive path. Wrapping
+              // them in a button would suppress that gesture and trap the
+              // click inside the widget.
+              <div key={game.appId} className={styles.gameRow}>
+                {game.iconHash ? (
+                  <img className={styles.gameIcon} src={steamIconUrl(game.appId, game.iconHash)} alt="" />
+                ) : (
+                  <span className={styles.gameIconFallback} />
+                )}
+                <span className={styles.rowTitle}>{game.name}</span>
+                <span className={styles.rowMeta}>{formatMinutes(game.playtime2Weeks)}</span>
+              </div>
             )) : (
               <PanelWidgetEmpty icon={<Gamepad2 size={22} />} title={t('panel.steam.empty')} />
             )}
@@ -196,12 +193,7 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
         {activeTab === 'playing' && (
           currentGame ? (
             <div className={styles.playing}>
-              <HoverTooltip body={t('panel.steam.launch', { name: currentGame.name })} side="top">
-              <button
-                type="button"
-                className={styles.bannerWrap}
-                onClick={() => { void launchSteam(currentGame.appId); }}
-              >
+              <div className={styles.bannerWrap}>
                 {bannerError ? (
                   <div className={styles.bannerFallback} />
                 ) : (
@@ -212,8 +204,7 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
                     onError={() => setBannerError(true)}
                   />
                 )}
-              </button>
-              </HoverTooltip>
+              </div>
               <div className={styles.playingName}>{currentGame.name}</div>
               <div className={styles.stats}>
                 <Stat label="Total" value={formatMinutes(ownedGames.find(g => g.appId === currentGame.appId)?.playtimeForever ?? 0)} />

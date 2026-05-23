@@ -14,6 +14,7 @@ import { DevicesPage } from "../panel/widgets/devices/DevicesPage";
 import { DevicePage } from '../components/views/DevicePage/DevicePage';
 import { LightingPage } from "../panel/widgets/lighting/LightingPage";
 import { ClockPage } from "../panel/widgets/clock/ClockPage";
+import { SteamPage } from "../panel/widgets/steam/SteamPage";
 import { loadMarketplaceWidgets } from '../widgets/marketplaceRegistry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
@@ -336,6 +337,7 @@ export function Dashboard() {
         />
       );
       case 'clock':      return <ClockPage />;
+      case 'steam':      return <SteamPage />;
       case 'tools':      return <ToolsView serviceOnline={online} connectionState={status.state} />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} profiles={profilesHook} />;
       default:           return <Placeholder title={activeView} />;

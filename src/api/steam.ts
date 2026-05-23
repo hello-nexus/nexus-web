@@ -79,6 +79,46 @@ export interface SteamAchievement {
   description?: string | null;
 }
 
+export interface SteamCurrentPlayers {
+  playerCount: number;
+}
+
+export interface SteamNewsItem {
+  gid: string;
+  title: string;
+  url: string;
+  author: string;
+  contents: string;
+  feedLabel: string;
+  date: number;
+  feedName: string;
+  feedType: number;
+  appId: number;
+}
+
+export interface SteamGlobalAchievement {
+  name: string;
+  percent: number;
+}
+
+export interface SteamUserStat {
+  name: string;
+  value: number;
+}
+
+export interface SteamAppDetails {
+  appId: number;
+  name: string;
+  headerImage: string;
+  shortDescription: string;
+  developers: string[];
+  publishers: string[];
+  genres: string[];
+  releaseDate: string;
+  isFree: boolean;
+  metacriticScore?: number | null;
+}
+
 export const fetchSteamConfig = () =>
   fetchService<SteamConfigResponse>('/api/steam/config');
 
@@ -102,6 +142,21 @@ export const fetchSteamFriends = () =>
 
 export const fetchSteamAchievements = (appId: number) =>
   fetchService<SteamAchievement[]>(`/api/steam/achievements/${appId}`);
+
+export const fetchSteamCurrentPlayers = (appId: number) =>
+  fetchService<SteamCurrentPlayers>(`/api/steam/current-players/${appId}`);
+
+export const fetchSteamNews = (appId: number, count = 5, maxLength = 300) =>
+  fetchService<SteamNewsItem[]>(`/api/steam/news/${appId}?count=${count}&maxLength=${maxLength}`);
+
+export const fetchSteamGlobalAchievements = (appId: number) =>
+  fetchService<SteamGlobalAchievement[]>(`/api/steam/global-achievements/${appId}`);
+
+export const fetchSteamUserStats = (appId: number) =>
+  fetchService<SteamUserStat[]>(`/api/steam/user-stats/${appId}`);
+
+export const fetchSteamAppDetails = (appId: number) =>
+  fetchService<SteamAppDetails>(`/api/steam/app-details/${appId}`);
 
 export const launchSteam = (appId?: number) =>
   postService(appId ? `/api/steam/launch?appId=${appId}` : '/api/steam/launch', {});
