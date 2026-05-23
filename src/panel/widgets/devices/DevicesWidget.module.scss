@@ -99,21 +99,26 @@ button.tile {
   -webkit-mask: var(--icon-url) center / contain no-repeat;
 }
 
+// Device name under the icon. Always rendered — even at the widget's
+// smallest 2x2 size the label is the primary affordance ("which
+// device is this?") so the user can tell tiles apart at a glance
+// without hovering. Sized to read clearly at the canonical tile
+// rhythm (≈230px wide × 115px tall on a 2x2 widget on Y70 / Q60).
 .tileLabel {
   max-width: 95%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 600 9px/1.1 var(--panel-font);
+  font: 600 var(--panel-widget-label-font-size, 12px) / 1.2 var(--panel-font);
   color: var(--panel-text);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   text-align: center;
 }
 
 // 4x4 has room for slightly bigger text since the grid is 4 cols wide
 // and the tiles are still relatively spacious.
 .devicesWidget[data-size='4x4'] .tileLabel {
-  font-size: 10px;
+  font-size: 13px;
 }
 
 // Empty state - centred USB icon + caption, mirrors how the lighting
