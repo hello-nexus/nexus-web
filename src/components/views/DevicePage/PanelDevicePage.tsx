@@ -387,6 +387,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                 onWidgetClicked={handleConfigureWidget}
                 onBackgroundClicked={() => setConfiguringWidget(null)}
                 canvasSize={liveCanvas ?? device?.previewSize}
+                canvasDpi={device?.previewDpi}
                 brightness={supportsDisplayControls ? brightness : 100}
                 screenOn={supportsDisplayControls ? screenOn : true}
                 showPanel={supportsAutoLaunch ? autoLaunch : true}

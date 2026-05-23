@@ -31,6 +31,14 @@ interface PanelEmbedFrameProps {
   onWidgetClicked: (widget: PanelWidget) => void;
   onBackgroundClicked: () => void;
   canvasSize?: { width: number; height: number };
+  // Device DPI. Used to convert native canvas dimensions into the
+  // CSS-pixel viewport the real device exposes to its WebView so the
+  // simulator iframe reproduces the same `--panel-cell-size` math
+  // (e.g. Q60 native 720x1280 @ DPI 240 → CSS viewport 480x853 with
+  // DPR 1.5). Without this conversion the hardcoded q60 cellScaler
+  // multiplier (--_s: 2.5, baked for a 480-wide CSS viewport)
+  // shrinks widget content by ~33% inside the simulator.
+  canvasDpi?: number;
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
@@ -38,6 +46,15 @@ interface PanelEmbedFrameProps {
 
 const DEFAULT_CANVAS_W = 682;
 const DEFAULT_CANVAS_H = 2560;
+
+// Per-surface device-pixel-ratio used to convert native canvas
+// dimensions into CSS-pixel iframe viewport sizes. Matches what the
+// real-hardware WebView reports as `window.devicePixelRatio`. Falls
+// back to deriving from DPI (Android density convention: 160 DPI = 1
+// DPR) when the surface isn't listed here.
+const SURFACE_DPR: Record<string, number> = {
+  q60: 1.5, // Android System WebView v83 on Q60 hardware
+};
 
 function findWidget(layout: PanelLayout, id: string): PanelWidget | undefined {
   for (const page of layout.pages) {
@@ -57,6 +74,7 @@ export function PanelEmbedFrame({
   onWidgetClicked,
   onBackgroundClicked,
   canvasSize,
+  canvasDpi,
   brightness,
   screenOn,
   showPanel,
@@ -72,12 +90,19 @@ export function PanelEmbedFrame({
   // animation. JSON.stringify is cheap on PanelLayout (small object) and
   // gives us structural equality.
   const lastSyncedLayoutSerializedRef = useRef<string | null>(null);
-  // Fit-to-container scale: the iframe is rendered at native canvas
-  // dimensions and transform-scaled so its visible footprint matches the
-  // available height. ResizeObserver keeps the scale current as the modal
-  // resizes.
-  const canvasW = canvasSize?.width ?? DEFAULT_CANVAS_W;
-  const canvasH = canvasSize?.height ?? DEFAULT_CANVAS_H;
+  // Fit-to-container scale: the iframe is rendered at CSS-pixel
+  // canvas dimensions (native / DPR) so the panel runtime inside the
+  // iframe sees the same viewport size as the real device's WebView.
+  // It's then transform-scaled to fit the parent's height — same
+  // visible footprint as before, but cell-size math inside the panel
+  // app now reproduces the hardware's value exactly, so hardcoded
+  // per-surface scaling tokens (e.g. Q60's --_s: 2.5 in
+  // PanelApp.module.scss) match what they were designed for.
+  const nativeW = canvasSize?.width ?? DEFAULT_CANVAS_W;
+  const nativeH = canvasSize?.height ?? DEFAULT_CANVAS_H;
+  const dpr = SURFACE_DPR[surface] ?? (canvasDpi ? canvasDpi / 160 : 1);
+  const canvasW = Math.round(nativeW / dpr);
+  const canvasH = Math.round(nativeH / dpr);
   const aspect = canvasW / canvasH;
   const [measured, setMeasured] = useState({
     w: canvasW * 0.35,
