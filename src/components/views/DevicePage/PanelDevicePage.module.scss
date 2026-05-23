@@ -75,7 +75,7 @@
 // reserve a usable horizontal slot.
 .previewPane[data-surface='q60'],
 .previewPane[data-surface='q80'] {
-  max-height: 500px;
+  max-height: 750px;
   // Center the capped preview vertically in the split-layout row.
   // splitLayout has more vertical space than 500px, so without this
   // the previewPane would stretch-align to the top by default and

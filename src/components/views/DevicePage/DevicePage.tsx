@@ -49,11 +49,21 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
   }
 
   if (device.kind === 'panel' && device.panelDevice) {
-    return <PanelDevicePage device={device.panelDevice} />;
+    // `key` forces a full unmount + remount when the user navigates
+    // from one panel device page to another (e.g. Q60 → Y70).
+    // Without it React reuses the same PanelDevicePage instance and
+    // the inner PanelEmbedFrame keeps its ResizeObserver-derived
+    // `measured` state, its post-handshake iframe content, and its
+    // canvasW/H derived from the previous device — so the new device
+    // page paints with the old device's scale + sizing until something
+    // else (page change → return) tears the tree down. Keying on the
+    // unified device key remounts cleanly so the iframe rebuilds
+    // against the new device's canvas/DPR from scratch.
+    return <PanelDevicePage key={device.key} device={device.panelDevice} />;
   }
 
   if (device.kind === 'peripheral' && device.peripheral) {
-    return <PeripheralDevicePage peripheral={device.peripheral} />;
+    return <PeripheralDevicePage key={device.key} peripheral={device.peripheral} />;
   }
 
   // Curated devices the service knows about but don't yet have a
