@@ -116,7 +116,7 @@ export function usePanelDevices(
         paired: t('phonePair.statusPaired'),
         recentlyActive: t('phonePair.statusRecentlyActive'),
         running: t('devices.panels.running'),
-        simulatedY70Name: t('devices.panels.simulatedY70Name'),
+        simulatedSuffix: t('devices.panels.simulatedSuffix'),
       },
     });
   }, [curatedDevices, phoneSessions, status, includeSimulatedY70, simulatedPanels, t]);
@@ -144,7 +144,7 @@ function buildPanelDevices({
     paired: string;
     recentlyActive: string;
     running: string;
-    simulatedY70Name: string;
+    simulatedSuffix: string;
   };
 }): PanelDevice[] {
   const devices: PanelDevice[] = [];
@@ -184,7 +184,10 @@ function buildPanelDevices({
     devices.push({
       id: `simulated:${panel.id}`,
       sourceId: panel.id,
-      name: panel.id === 'y70' ? labels.simulatedY70Name : panel.name,
+      // Bare device name — the localized "(Simulated)" suffix is
+      // applied at the page-title level (see PanelDevicePage), not
+      // here, so the sidebar entry stays compact ("Y70" / "Q60").
+      name: panel.name,
       subtitle: `${labels.simulated} - ${panel.width}x${panel.height} @ ${panel.dpi} dpi - short ${formatPanelInches(physical.shortSideInches)} - ${capacity.columns}x${capacity.rows} grid`,
       status: 'online',
       statusLabel: labels.online,

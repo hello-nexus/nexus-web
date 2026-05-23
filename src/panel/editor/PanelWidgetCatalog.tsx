@@ -97,7 +97,7 @@ export function PanelWidgetCatalog({
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={rootClass} data-theme={themeMode} style={themeStyle}>
+    <div className={rootClass} data-theme={themeMode} data-surface={surface} style={themeStyle}>
       {searchable && (
         <div className={styles.search}>
           <SearchInput

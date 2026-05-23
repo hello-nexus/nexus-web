@@ -248,5 +248,23 @@ test('captures Y70 and Q60 device pages', async ({ page }) => {
     await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
     await page.waitForTimeout(1500);
     await page.screenshot({ path: join(SCREENSHOT_DIR, '02-q60.png'), fullPage: false });
+
+    // Inspect a Q60 catalog card to confirm aspect-ratio applies.
+    const debug = await page.evaluate(() => {
+      const catalogRoot = document.querySelector('[data-surface="q60"]');
+      const firstCard = catalogRoot?.querySelector('[role="button"]');
+      const preview = firstCard?.querySelector('[class*="preview"]');
+      const cs = preview ? getComputedStyle(preview as HTMLElement) : null;
+      const rect = (preview as HTMLElement | null)?.getBoundingClientRect();
+      return {
+        hasCatalogRoot: !!catalogRoot,
+        firstCardLabel: firstCard?.getAttribute('aria-label'),
+        tileSpan: firstCard?.getAttribute('data-tile-span'),
+        previewAspectRatio: cs?.aspectRatio,
+        previewWidth: rect?.width,
+        previewHeight: rect?.height,
+      };
+    });
+    console.log('[q60 catalog debug]', JSON.stringify(debug, null, 2));
   }
 });

@@ -50,14 +50,25 @@
 // canvas never collapses to a sliver when the page chrome (sidebar,
 // view header, page padding) eats into available width. The modal
 // got this for free from its near-fullscreen body; the page version
-// has to spell it out so portrait panels (Y70 682x2560) read at
-// usable scale even when the page is shorter than the modal was.
+// has to spell it out so portrait panels read at a usable scale
+// even when the page is shorter than the modal was.
+//
+// The Y70's portrait panel (682×2560, ratio ≈0.27) is naturally
+// narrow and benefits from the full available height. The Q-series
+// panels (720×1280, ratio ≈0.56) are wider per-row and otherwise
+// claim too much horizontal space on tall pages — cap them so the
+// catalog on the left keeps its breathing room.
 .previewPane {
   flex: 0 0 auto;
   min-width: 360px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.previewPane[data-surface='q60'],
+.previewPane[data-surface='q80'] {
+  max-width: 380px;
 }
 
 // Wrapper the PanelEmbedFrame ResizeObserver measures. Mirrors the pane

@@ -1,8 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Q80: landscape display on a stand. Same minimal vocabulary as
-       the Q60 (screen + neck + base) but wider so the family
-       distinction reads at a glance. -->
-  <rect x="9" y="13" width="30" height="18" rx="1.8" />
-  <line x1="24" y1="31" x2="24" y2="37" />
-  <line x1="18" y1="37" x2="30" y2="37" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- HYTE Q80: landscape LCD on a small wedge stand. Same vocabulary
+       as the Q60 (body + chin + angled stand) but wider — the
+       family reads at a glance, distinct from the portrait Q60.
+       Stroke weight matches the lucide app icons used in the APPS
+       section above. -->
+  <rect x="6" y="11" width="36" height="22" rx="2.5" />
+  <path d="M16 38 L32 38 L29 33 L19 33 Z" />
 </svg>

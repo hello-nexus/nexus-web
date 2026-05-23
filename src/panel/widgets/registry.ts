@@ -179,8 +179,19 @@ export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurfac
 // Honors an explicit `pickerSize`; otherwise picks the smallest
 // sensible — 1x1 then 2x2 then 4x2 then 4x4 — so newly added widgets
 // stay compact.
+//
+// When the target surface is a single-widget surface (e.g. Q60 locked
+// to 2x4), `sizesForSurface` already collapses to just that one entry.
+// We short-circuit on that case so the locked size always wins,
+// regardless of whether it appears in the small-first priority list
+// — otherwise widgets fall through to meta.defaultSize, which is
+// almost always wrong for that surface (e.g. Clock's 4x2 default
+// rendering as a wide tile in a 2x4-locked catalog).
 export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface): PanelWidgetSize {
   const sizes = sizesForSurface(meta, surface);
+  if (surface && singleWidgetSurfaceSize(surface) && sizes.length > 0) {
+    return sizes[0];
+  }
   if (meta.pickerSize && sizes.includes(meta.pickerSize)) return meta.pickerSize;
   if (sizes.includes('1x1')) return '1x1';
   if (sizes.includes('2x2')) return '2x2';

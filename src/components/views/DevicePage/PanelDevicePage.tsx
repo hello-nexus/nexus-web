@@ -264,23 +264,22 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       : []),
   ];
 
-  // Simulator badge: the dashboard page is identical for real hardware
-  // and the LCD debug simulator (same controls, same data set), so the
-  // only outward difference is a "(Simulator)" suffix on the modal title
-  // when no physical device is attached. Skip the suffix when the
-  // device's display name already conveys it — Y70's simulated label
-  // (devices.panels.simulatedY70Name) bakes the localized "(Simulated)"
-  // straight into the name, so we'd double up. Compare against the
-  // translated value so this works regardless of locale (the Latin
-  // substring "simulat" is absent from ja / zh / ko / ru / pl / tr).
+  // Page title appends the localized "(Simulated)" suffix when the
+  // device is a simulator. usePanelDevices keeps device.name bare
+  // (so the sidebar entry stays compact: "Q60" / "Y70"), and the
+  // suffix is applied here uniformly for every simulated panel.
   const isSimulated = device?.connectionKind === 'simulated';
   const baseTitle = device?.name ?? t('devices.y70.title');
-  const nameAlreadyMarksSimulated = baseTitle === t('devices.panels.simulatedY70Name');
-  const modalTitle = isSimulated && !nameAlreadyMarksSimulated ? `${baseTitle} (Simulator)` : baseTitle;
+  const pageTitle = isSimulated ? `${baseTitle}${t('devices.panels.simulatedSuffix')}` : baseTitle;
 
   return (
     <section className={styles.page}>
-      <ViewHeader title={modalTitle} />
+      <ViewHeader
+        title={pageTitle}
+        tabs={configuringWidget ? undefined : tabs}
+        activeTab={activeTab}
+        onTabChange={(k) => setTab(k as Tab)}
+      />
       <div className={styles.pageBody}>
       {!loaded ? (
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
@@ -301,26 +300,20 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
               />
             ) : (
               <>
-                <nav className={styles.tabBar}>
-                  {tabs.map(({ key, label }) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={`${styles.tab} ${activeTab === key ? styles.tabActive : ''}`}
-                      onClick={() => setTab(key)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </nav>
-
                 <div className={styles.tabContent}>
                   {activeTab === 'widgets' && (
                     <PanelWidgetCatalog
                       surface={surface}
                       onAdd={handleAddWidget}
                       variant="desktop-modal"
-                      aspect="square"
+                      // Single-widget surfaces (Q60 / Q80) lock every
+                      // widget to one fixed size (2x4), so the cards
+                      // can use that aspect verbatim — gives the
+                      // catalog a tall, narrow tile that previews the
+                      // actual on-device shape. Multi-size surfaces
+                      // (Y70, phone, desktop) keep the square tile so
+                      // the catalog reads uniformly across mixed sizes.
+                      aspect={isSingleWidgetSurface(surface) ? 'natural' : 'square'}
                       themeMode={resolvedPanelThemeMode}
                       themeStyle={panelThemeVars}
                       className={styles.catalog}
@@ -382,7 +375,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
             )}
           </div>
 
-          <div className={styles.previewPane}>
+          <div className={styles.previewPane} data-surface={surface}>
             <div className={styles.previewStage}>
               <PanelEmbedFrame
                 surface={surface}
