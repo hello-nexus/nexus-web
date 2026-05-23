@@ -66,9 +66,16 @@
   justify-content: center;
 }
 
+// Q-series panels are physically small devices (a desk-mounted LCD).
+// Capping the preview's height keeps the rendered canvas in proportion
+// to the actual device — without this the simulator iframe scales to
+// fill the page's available vertical space, making the preview look
+// like a tablet-sized panel and shrinking the widget content inside
+// it relative to the canvas. The pane's flex-grow/min-width still
+// reserve a usable horizontal slot.
 .previewPane[data-surface='q60'],
 .previewPane[data-surface='q80'] {
-  max-width: 380px;
+  max-height: 500px;
 }
 
 // Wrapper the PanelEmbedFrame ResizeObserver measures. Mirrors the pane
