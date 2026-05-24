@@ -14,7 +14,7 @@ export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
  * may report more bundled widgets than this — the panel only shows the
  * allowlisted ones so the marketplace experience stays curated while the
  * declarative SDK is in beta. Widgets installed by the user but not in this
- * list still resolve via `lookupWidget` (so an already-placed widget keeps
+ * list still resolve via `lookupApp` (so an already-placed widget keeps
  * rendering) but won't appear as new options.
  */
 export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([

@@ -7,7 +7,7 @@ import {
 } from '../api/overlay';
 import { fetchService, postService } from '../api/service';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
-import { sizesForSurface, WIDGET_REGISTRY } from '../panel/widgets/registry';
+import { sizesForSurface, APP_REGISTRY } from '../panel/widgets/registry';
 import { normalizePanelWidgetSize, type PanelConfigValue, type PanelWidget, type PanelWidgetSize } from '../panel/types';
 import { buildEmbeddedPanelThemeVars } from '../panel/panelTheme';
 import { applyAccentColor, applyThemeMode, type ThemeMode } from '../lib/settings';
@@ -409,7 +409,7 @@ export default function OverlayShell() {
       })}
       {menu && (() => {
         const entry = menu.widgetId ? layout.find(w => w.id === menu.widgetId) : undefined;
-        const def = entry ? WIDGET_REGISTRY[entry.type] : undefined;
+        const def = entry ? APP_REGISTRY[entry.type] : undefined;
         const sizes = entry && def ? sizesForSurface(def.meta, 'desktop') : [];
         const currentSize = entry
           ? normalizePanelWidgetSize(entry.size) as PanelWidgetSize
@@ -441,7 +441,7 @@ export default function OverlayShell() {
       {editingWidgetId && (() => {
         const entry = layout.find(w => w.id === editingWidgetId);
         if (!entry) return null;
-        const def = WIDGET_REGISTRY[entry.type];
+        const def = APP_REGISTRY[entry.type];
         if (!def) return null;
         const widget: PanelWidget = {
           id: entry.id,
@@ -500,7 +500,7 @@ interface TileProps {
 }
 
 function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlot, onSelectSlot, onContextMenu, onDragMove, onDragEnd }: TileProps) {
-  const def = WIDGET_REGISTRY[entry.type];
+  const def = APP_REGISTRY[entry.type];
   const w = widthCells(entry.size);
   const h = heightCells(entry.size);
   // Max cell origin that still keeps the widget on-screen for this monitor.

@@ -113,14 +113,14 @@ export function Dashboard() {
   }, [setLanguage]);
 
   const handleNavigateSettings = useCallback(() => {
-    navigate('my-computer', 'settings', 'profiles');
+    navigate('system', 'settings', 'profiles');
   }, [navigate]);
 
   const handleServiceNavChange = useCallback((key: string) => {
-    if (section === 'my-computer') {
+    if (section === 'system') {
       setView(key);
     } else {
-      navigate('my-computer', key);
+      navigate('system', key);
     }
   }, [section, setView, navigate]);
 
@@ -158,16 +158,16 @@ export function Dashboard() {
     ...(__SERVICE_BUILD__ ? { href: `${PORTAL_URL}/${key}` } : {}),
   }));
 
-  // Active view within my-computer section
+  // Active view within the system section
   const activeView = view || 'dashboard';
 
-  // In service build the sidebar is only meaningful on my-computer (the
+  // In service build the sidebar is only meaningful on /system (the
   // PORTAL entries open nexusqos.com in a new tab and never change `section`
   // locally). In the full build sidebar must render on every section so users
   // landing on /builder, /benchmark, or /community still have nav.
-  const hasSidebar = !__SERVICE_BUILD__ || section === 'my-computer';
-  const serviceNavActive = section === 'my-computer' ? activeView : '';
-  const portalNavActive = section !== 'my-computer' ? section : '';
+  const hasSidebar = !__SERVICE_BUILD__ || section === 'system';
+  const serviceNavActive = section === 'system' ? activeView : '';
+  const portalNavActive = section !== 'system' ? section : '';
   // null = auto (follow viewport), true = user-collapsed, false = user-expanded
   const [manualOverride, setManualOverride] = useState<boolean | null>(null);
   const [pairPhoneOpen, setPairPhoneOpen] = useState(false);
@@ -254,8 +254,8 @@ export function Dashboard() {
   // ── Render main content based on section + view ────────────────────────
   const renderContent = () => {
     switch (section) {
-      case 'my-computer':
-        return renderMyComputerView();
+      case 'system':
+        return renderSystemView();
       case 'builder':
         // Component detail page
         if (view === 'component' && componentId) {
@@ -306,7 +306,7 @@ export function Dashboard() {
     }
   };
 
-  const renderMyComputerView = () => {
+  const renderSystemView = () => {
     switch (activeView) {
       case 'dashboard':  return (
         <DashboardView
@@ -317,7 +317,7 @@ export function Dashboard() {
             // route directly into that device's page instead of the all-devices
             // landing.
             if (target === 'devices' && payload?.deviceKey) {
-              navigate('my-computer', 'device', payload.deviceKey);
+              navigate('system', 'device', payload.deviceKey);
               return;
             }
             setView(target);
@@ -331,7 +331,7 @@ export function Dashboard() {
         <DevicesPage
           serviceOnline={online}
           connectionState={status.state}
-          onDeviceSelect={k => navigate('my-computer', 'device', k)}
+          onDeviceSelect={k => navigate('system', 'device', k)}
         />
       );
       case 'device':     return (
@@ -393,16 +393,16 @@ export function Dashboard() {
         )}
         <TopRightDebugButton
           active={activeView === 'tools'}
-          onDebug={() => navigate('my-computer', 'tools')}
+          onDebug={() => navigate('system', 'tools')}
           icon={NAV_ICONS['tools']}
         />
         <TopRightSettingsButton
-          active={section === 'my-computer' && activeView === 'settings'}
+          active={section === 'system' && activeView === 'settings'}
           onClick={handleNavigateSettings}
           icon={NAV_ICONS['settings']}
         />
         <PageVersionLabel />
-        {/* Body row: sidebar (my-computer only) + content */}
+        {/* Body row: sidebar (/system only) + content */}
         <div className={styles.bodyRow}>
           {hasSidebar && (
             <SidebarColumn
@@ -423,10 +423,10 @@ export function Dashboard() {
               remoteControlEnabled={remoteControlEnabled}
               phoneSubscribers={serviceState.panel?.phoneSubscribers ?? 0}
               onPairPhoneOpen={() => setPairPhoneOpen(true)}
-              activeDeviceKey={section === 'my-computer' && activeView === 'device' ? (subtab ?? '') : ''}
-              onDeviceSelect={k => navigate('my-computer', 'device', k)}
-              onDevicesHeaderClick={() => navigate('my-computer', 'devices')}
-              devicesHeaderActive={section === 'my-computer' && activeView === 'devices'}
+              activeDeviceKey={section === 'system' && activeView === 'device' ? (subtab ?? '') : ''}
+              onDeviceSelect={k => navigate('system', 'device', k)}
+              onDevicesHeaderClick={() => navigate('system', 'devices')}
+              devicesHeaderActive={section === 'system' && activeView === 'devices'}
             />
           )}
 

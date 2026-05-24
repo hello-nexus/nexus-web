@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Settings2, Trash2, X } from 'lucide-react';
 import { usePanelSheetSwipe } from './engine/usePanelSheetSwipe';
 import { sizeToSpan } from './engine/grid';
-import { lookupWidget, sizesForSurface } from './widgets/registry';
+import { lookupApp, sizesForSurface } from './widgets/registry';
 import { SIZE_ICONS } from './widgets/common/SizeIcons';
 import { WidgetControlGroup } from './widgets/common/WidgetControlGroup';
 import { SlotCountIcon } from './widgets/monitoring/SlotCountIcons';
@@ -97,7 +97,7 @@ export function PanelEditorSheet({
   onDockToggle: () => void;
 }) {
   const { t } = useTranslation();
-  const def = editingWidget ? lookupWidget(editingWidget.type) : undefined;
+  const def = editingWidget ? lookupApp(editingWidget.type) : undefined;
   const title = mode === 'panelSettings'
     ? 'Settings'
     : mode === 'settings' && editingWidget && def

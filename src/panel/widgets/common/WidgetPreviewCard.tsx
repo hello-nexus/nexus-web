@@ -3,7 +3,7 @@ import { Boxes } from 'lucide-react';
 import { ErrorBoundary } from '../../../components/common/ErrorBoundary/ErrorBoundary';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
-import { lookupWidget } from '../registry';
+import { lookupApp } from '../registry';
 import { sizeToSpan } from '../../engine/grid';
 import { isMarketplaceType } from '../../../widgets/marketplaceRegistry';
 import type { PanelWidget, PanelWidgetSize } from '../../types';
@@ -59,7 +59,7 @@ export function WidgetPreviewCard({
   onClick,
 }: WidgetPreviewCardProps) {
   const { t } = useTranslation();
-  const def = lookupWidget(widgetType);
+  const def = lookupApp(widgetType);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(1);
 

@@ -25,7 +25,7 @@ import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/panelTheme';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
-import { lookupWidget, sizesForSurface } from '../../../panel/widgets/registry';
+import { lookupApp, sizesForSurface } from '../../../panel/widgets/registry';
 import { sizeToSpan } from '../../../panel/engine/grid';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
 import {
@@ -416,7 +416,7 @@ interface InlineWidgetSettingsProps {
 
 function InlineWidgetSettings({ widget, surface, themeStyle, themeMode = 'dark', onBack, onUpdate, onResize, onRemove }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
-  const def = lookupWidget(widget.type);
+  const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
   const sizes = def ? sizesForSurface(def.meta, surface) : [];
   const Settings = def?.Settings;

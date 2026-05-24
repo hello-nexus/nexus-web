@@ -29,7 +29,6 @@ import { obsApp } from './obs';
 import { steamApp } from './steam';
 import { discordApp } from './discord';
 import { coolingApp } from './cooling';
-import { devicesApp } from './devices';
 import { displaysApp } from './displays';
 import { timerApp } from './timer';
 import { stopwatchApp } from './stopwatch';
@@ -58,7 +57,6 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   steam:      steamApp,
   discord:    discordApp,
   cooling:    coolingApp,
-  devices:    devicesApp,
   displays:   displaysApp,
   timer:      timerApp,
   stopwatch:  stopwatchApp,
@@ -200,10 +198,3 @@ export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface)
   return meta.defaultSize;
 }
 
-// ── Back-compat aliases ────────────────────────────────────────────────
-// External code may still reference the old names; these aliases keep
-// existing consumers working while the rename rolls out. New code
-// should import the new names directly.
-export const WIDGET_REGISTRY = APP_REGISTRY;
-export const lookupWidget = lookupApp;
-export const widgetAvailableForSurface = appAvailableForSurface;

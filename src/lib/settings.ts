@@ -125,7 +125,7 @@ export function getDefaultSettings(): QosSettings {
       monitoringDetailedCollapsed: [],
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,
-      pinnedSidebarApps: ['monitoring', 'lighting', 'cooling', 'devices'],
+      pinnedSidebarApps: ['monitoring', 'lighting', 'cooling'],
     },
   };
 }

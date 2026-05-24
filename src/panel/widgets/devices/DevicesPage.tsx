@@ -14,7 +14,7 @@ interface DevicesViewProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
   // Click handler for a device card. Dashboard wires this to
-  // `navigate('my-computer', 'device', deviceKey)` so the card flow
+  // `navigate('system', 'device', deviceKey)` so the card flow
   // matches the sidebar — clicking a device routes into its dedicated
   // page (PanelDevicePage / PeripheralDevicePage) rather than opening
   // a modal in place.

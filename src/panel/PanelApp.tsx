@@ -32,7 +32,7 @@ import { PanelPageIndicator } from './PanelPageIndicator';
 import { PanelActionsTray } from './PanelActionsTray';
 import { PanelDock } from './PanelDock';
 import { PanelImmersiveOverlay } from './PanelImmersiveOverlay';
-import { lookupWidget, sizesForSurface, widgetAvailableForSurface } from './widgets/registry';
+import { lookupApp, sizesForSurface, appAvailableForSurface } from './widgets/registry';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
@@ -534,9 +534,9 @@ export function PanelContent({
     id: page.id,
     widgets: page.widgets
       .filter(w => {
-        const def = lookupWidget(w.type);
+        const def = lookupApp(w.type);
         if (!def) return true;
-        return widgetAvailableForSurface(def.meta, surface);
+        return appAvailableForSurface(def.meta, surface);
       })
       .slice()
       // Render order is row-major over (col, row) so the focus walk
@@ -627,7 +627,7 @@ export function PanelContent({
       }
       return;
     }
-    const def = lookupWidget(w.type);
+    const def = lookupApp(w.type);
     if (!def?.Touch) return;
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
     if (!def.meta.supportsImmersive[orientationKey]) return;
@@ -939,7 +939,7 @@ export function PanelContent({
     // from where the context menu / right-click summoned the edit flow. Read
     // the DOM at the original press point before the dock animation has had
     // a chance to hoist the widget out of its grid position.
-    const def = lookupWidget(widget.type);
+    const def = lookupApp(widget.type);
     const initial = point && def?.resolveInitialSelection
       ? def.resolveInitialSelection({ point, widget })
       : undefined;
@@ -1455,7 +1455,7 @@ export function PanelContent({
       </div>
 
       {touch.ctxMenu && (() => {
-        const def = lookupWidget(touch.ctxMenu.widget.type);
+        const def = lookupApp(touch.ctxMenu.widget.type);
         if (!def) return null;
         const orientationKey = isLandscape ? 'landscape' : 'portrait';
         const immersiveAvailable = Boolean(def.Touch)
@@ -1536,7 +1536,7 @@ export function PanelContent({
         if (!immersiveWidgetId) return null;
         const w = widgetById(immersiveWidgetId);
         if (!w) return null;
-        const def = lookupWidget(w.type);
+        const def = lookupApp(w.type);
         const Comp = def?.Touch;
         if (!Comp) return null;
         // key forces a fresh mount each open/close cycle so any

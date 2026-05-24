@@ -4,7 +4,6 @@ import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import {
   formatPanelInches,
-  getSimulatedPanelDefinition,
   getSimulatedPanelGridCapacity,
   getSimulatedPanelPhysicalSize,
   type SimulatedPanelDefinition,
@@ -66,10 +65,8 @@ const WIDGET_PANEL_IDS = new Set(Object.keys(WIDGET_PANEL_PROFILES));
 export function usePanelDevices(
   enabled: boolean,
   {
-    includeSimulatedY70 = false,
     simulatedPanels = [],
   }: {
-    includeSimulatedY70?: boolean;
     simulatedPanels?: SimulatedPanelDefinition[];
   } = {},
 ) {
@@ -107,7 +104,6 @@ export function usePanelDevices(
       curatedDevices,
       phoneSessions,
       status,
-      includeSimulatedY70,
       simulatedPanels,
       labels: {
         simulated: t('devices.panels.simulated'),
@@ -119,7 +115,7 @@ export function usePanelDevices(
         simulatedSuffix: t('devices.panels.simulatedSuffix'),
       },
     });
-  }, [curatedDevices, phoneSessions, status, includeSimulatedY70, simulatedPanels, t]);
+  }, [curatedDevices, phoneSessions, status, simulatedPanels, t]);
 
   return { devices, loading };
 }
@@ -128,14 +124,12 @@ function buildPanelDevices({
   curatedDevices,
   phoneSessions,
   status,
-  includeSimulatedY70,
   simulatedPanels,
   labels,
 }: {
   curatedDevices: DeviceListItem[];
   phoneSessions: PanelPhoneSession[];
   status: PanelStatus | null;
-  includeSimulatedY70: boolean;
   simulatedPanels: SimulatedPanelDefinition[];
   labels: {
     simulated: string;
@@ -149,9 +143,7 @@ function buildPanelDevices({
 }): PanelDevice[] {
   const devices: PanelDevice[] = [];
   const connectedWidgetPanels = curatedDevices.filter(d => d.connected && d.category === 'display' && WIDGET_PANEL_IDS.has(d.id));
-  const simulatedDefinitions = includeSimulatedY70 && !simulatedPanels.some(panel => panel.id === 'y70')
-    ? [...simulatedPanels, getSimulatedPanelDefinition('y70')].filter((panel): panel is SimulatedPanelDefinition => !!panel)
-    : simulatedPanels;
+  const simulatedDefinitions = simulatedPanels;
 
   for (const device of connectedWidgetPanels) {
     const profile = WIDGET_PANEL_PROFILES[device.id];

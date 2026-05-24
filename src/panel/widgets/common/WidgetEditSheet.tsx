@@ -8,7 +8,7 @@ import {
   type CSSProperties,
 } from 'react';
 import { Trash2, X } from 'lucide-react';
-import { lookupWidget, sizesForSurface } from '../registry';
+import { lookupApp, sizesForSurface } from '../registry';
 import { SIZE_ICONS } from './SizeIcons';
 import { WidgetControlGroup } from './WidgetControlGroup';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
@@ -116,7 +116,7 @@ export function WidgetEditSheet({
   onSelectedSlotChange: externalOnSelectedSlotChange,
   keepOpenOnTarget,
 }: WidgetEditSheetProps) {
-  const def = lookupWidget(widget.type);
+  const def = lookupApp(widget.type);
   const Settings = def?.Settings;
   const sizes = def ? sizesForSurface(def.meta, surface) : [];
   const isMonitoringWidget = widget.type === 'monitoring';

@@ -53,7 +53,13 @@ const CURATED_ICONS: Record<string, string> = {
 };
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
-  y70: 'Y70',
+  // Real connected Y70 of any variant is just "Y70 Touch" — the
+  // user doesn't need to see resolution class on a hardware row.
+  // Simulator entries carry the 2.5K / 4K suffix; see the
+  // SIMULATED_PANEL_PRESETS in panelSimulation.ts and the
+  // simulated-vs-real branch in buildUnifiedList below.
+  y70: 'Y70 Touch',
+  'y70-4k': 'Y70 Touch',
   // qseries deliberately omitted: the service reports the actual
   // product name ("Q60" / "Q80") on the device record. Overriding
   // here would collapse both to "Q-series" and lose the distinction
@@ -77,10 +83,11 @@ export function useUnifiedDevices(enabled: boolean) {
   const devices = useDevices(enabled);
   const peripherals = usePeripherals(enabled);
   const webhid = useWebHidPeripherals(enabled);
-  const panels = usePanelDevices(enabled, {
-    simulatedPanels,
-    includeSimulatedY70: true,
-  });
+  // Y70 follows the same rules as Q60 / every other panel: it
+  // appears in the list only if (a) physically connected to this
+  // host, or (b) the user has activated its simulator (in which
+  // case it'll be in `simulatedPanels`). No always-on phantom.
+  const panels = usePanelDevices(enabled, { simulatedPanels });
 
   const merged: Peripheral[] = useMemo(() => {
     const servicePeripherals = peripherals.peripherals.map(p => ({ ...p, source: 'service' as const }));
@@ -123,9 +130,18 @@ function buildUnifiedList(
   for (const p of panelDevices) {
     if (p.sourceId) claimedCuratedIds.add(p.sourceId);
     const sourceId = p.sourceId;
+    // Real connected panels go through CURATED_SHORT_NAMES so the
+    // sidebar shows a normalized hardware label ("Y70 Touch")
+    // regardless of which variant is attached. Simulator entries
+    // keep their preset name verbatim so the resolution-class suffix
+    // ("Y70 Touch 2.5K" / "Y70 Touch 4K") stays visible.
+    const isSimulated = p.connectionKind === 'simulated';
+    const shortName = isSimulated
+      ? p.name
+      : (sourceId && CURATED_SHORT_NAMES[sourceId]) || p.name;
     list.push({
       key: `panel-${p.id}`,
-      shortName: (sourceId && CURATED_SHORT_NAMES[sourceId]) || p.name,
+      shortName,
       name: p.name,
       subtitle: p.subtitle,
       category: 'display',

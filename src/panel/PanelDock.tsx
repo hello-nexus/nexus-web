@@ -1,6 +1,6 @@
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { useTranslation } from '../lib/i18n';
-import { lookupWidget } from './widgets/registry';
+import { lookupApp } from './widgets/registry';
 import { WidgetCellLabel } from './widgets/common/WidgetCellLabel';
 import type { PanelSurface, PanelWidget } from './types';
 import styles from './PanelDock.module.scss';
@@ -36,7 +36,7 @@ export function PanelDock({ widgets, surface, orientation }: PanelDockProps) {
       aria-label="Dock"
     >
       {visible.map(widget => {
-        const def = lookupWidget(widget.type);
+        const def = lookupApp(widget.type);
         if (!def) return null;
         const Comp = def.Widget;
         const label = t(def.meta.i18nKey) || widget.type;

@@ -10,7 +10,7 @@ import {
   type PanelWidget,
   type PanelWidgetSize,
 } from '../types';
-import { lookupWidget, sizesForSurface, widgetAvailableForSurface } from '../widgets/registry';
+import { lookupApp, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
 import { defaultDockForMissingSurface, defaultLayoutForSurface } from './defaultLayout';
 import { broadcastLayoutChanged, onLayoutChanged } from './panelSync';
 import { sizeToSpan } from './grid';
@@ -60,7 +60,7 @@ function reconcileWidgetsAgainstRegistry(
   surface: PanelSurface,
 ): PanelWidget[] {
   return widgets.flatMap((widget): PanelWidget[] => {
-    const def = lookupWidget(widget.type);
+    const def = lookupApp(widget.type);
     if (!def) {
       // Marketplace widget rectangles can stick around in the layout
       // through one of two windows:
@@ -85,7 +85,7 @@ function reconcileWidgetsAgainstRegistry(
       }
       return [];
     }
-    if (!widgetAvailableForSurface(def.meta, surface)) return [];
+    if (!appAvailableForSurface(def.meta, surface)) return [];
     const surfaceSize = normalizePanelWidgetSizeForSurface(widget.size, surface);
     const allowed = sizesForSurface(def.meta, surface);
     const finalSize = nearestAllowedSize(surfaceSize, allowed, def.meta.defaultSize);
@@ -107,33 +107,21 @@ interface UsePanelLayoutResult {
   setLayout: (next: PanelLayout) => void;
 }
 
-// Default columns per surface for the schema-1 -> schema-2 migration.
-// The persisted shape never recorded a column count - the runtime
-// inferred one from physical size. Picking a stable default per
-// surface lets us synthesize (col, row) once on read; subsequent
-// runs see schema-2 fields and skip the migration.
-const SCHEMA_MIGRATION_COLS: Record<PanelSurface, number> = {
+// Default column count per surface used by the overlap-reflow path
+// when reconcileWidgetsAgainstRegistry snaps a widget's size and
+// introduces overlap with siblings.
+const SURFACE_COLS: Record<PanelSurface, number> = {
   y70: 4,
   phone: 4,
   q60: 2,
   desktop: 8,
 };
 
-interface LegacyWidgetShape {
-  position?: number;
-  positionHorizontal?: number;
-}
-
-function migrateLegacyPage(widgets: PanelWidget[], cols: number): PanelWidget[] {
-  const sorted = widgets.slice().sort((a, b) => {
-    const ap = (a as PanelWidget & LegacyWidgetShape).position ?? 0;
-    const bp = (b as PanelWidget & LegacyWidgetShape).position ?? 0;
-    return ap - bp;
-  });
+function repackPage(widgets: PanelWidget[], cols: number): PanelWidget[] {
   let cursorRow = 0;
   let cursorCol = 0;
   let currentRowMaxSpan = 0;
-  return sorted.map(widget => {
+  return widgets.map(widget => {
     const span = sizeToSpan(widget.size);
     const colSpan = Math.max(1, Math.min(span.cols, cols));
     const rowSpan = Math.max(1, span.rows);
@@ -169,45 +157,12 @@ function pageHasOverlap(widgets: readonly PanelWidget[], cols: number): boolean 
   return false;
 }
 
-function widgetsOverlap(layout: PanelLayout, cols: number): boolean {
-  return layout.pages.some(page => pageHasOverlap(page.widgets, cols));
-}
-
 function pagesHaveOverlap(pages: readonly PanelPage[], cols: number): boolean {
   return pages.some(page => pageHasOverlap(page.widgets, cols));
 }
 
-function migrateLayoutSchema(layout: PanelLayout, surface: PanelSurface): PanelLayout {
-  // Re-flow when EITHER:
-  //  - The layout is older than schema 2 (no col/row stored), OR
-  //  - Widgets overlap each other.
-  //
-  // The overlap branch repairs corrupted state left over from an
-  // earlier bug: when the web read a schema-1 record, the C# DTO
-  // defaulted Col/Row to 0 for every widget; the migration trigger
-  // accepted those zeros as "already migrated" and only bumped
-  // layoutSchemaVersion to 2 without re-flowing. Layouts saved
-  // through that path have version=2 and every widget at (0, 0),
-  // visually stacked on top of each other. Detecting any overlap
-  // forces a fresh row-major re-flow regardless of version.
-  const cols = SCHEMA_MIGRATION_COLS[surface] ?? 4;
-  const version = typeof layout.layoutSchemaVersion === 'number' ? layout.layoutSchemaVersion : 0;
-  if (version >= 2 && !widgetsOverlap(layout, cols)) return layout;
-  const pages: PanelPage[] = layout.pages.map(page => ({
-    ...page,
-    widgets: migrateLegacyPage(page.widgets, cols),
-  }));
-  return {
-    ...layout,
-    layoutSchemaVersion: 2,
-    pages,
-  };
-}
-
 export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface): PanelLayout {
-  const migrated = migrateLayoutSchema(layout, surface);
-  const layoutWithoutLegacyDensity = { ...migrated } as PanelLayout & { gridDensity?: unknown };
-  delete layoutWithoutLegacyDensity.gridDensity;
+  const migrated = layout;
   // Surfaces that ship with a default dock (currently Y70 only) get one
   // injected when no dock state has been persisted yet. Once the user
   // toggles the dock — even to `enabled: false` — that decision sticks
@@ -223,9 +178,9 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface)
         widgets: sourceDock.widgets.filter(widget => {
           if (widget.size !== '1x1') return false;
           if (REMOVED_WIDGET_TYPES.has(widget.type)) return false;
-          const def = lookupWidget(widget.type);
+          const def = lookupApp(widget.type);
           if (!def) return false;
-          return widgetAvailableForSurface(def.meta, surface);
+          return appAvailableForSurface(def.meta, surface);
         }),
       }
     : undefined;
@@ -238,16 +193,14 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface)
   }));
 
   // Reconcile may have snapped a widget's size (e.g. 2x4 → 4x2 on a
-  // multi-widget surface), which can introduce overlap with siblings
-  // that the earlier migrate pass didn't see because it ran against
-  // pre-snap sizes. Detect post-snap overlap and re-flow row-major in
-  // place using the same packing migrate uses, so the UI never lands
-  // on overlapping widgets that lock out subsequent edits.
-  const reflowCols = SCHEMA_MIGRATION_COLS[surface] ?? 4;
+  // multi-widget surface), which can introduce overlap with siblings.
+  // Detect post-snap overlap and re-pack row-major in place so the UI
+  // never lands on overlapping widgets that lock out subsequent edits.
+  const reflowCols = SURFACE_COLS[surface] ?? 4;
   const reflowedPages = pagesHaveOverlap(reconciledPages, reflowCols)
     ? reconciledPages.map(page => ({
         ...page,
-        widgets: migrateLegacyPage(page.widgets, reflowCols),
+        widgets: repackPage(page.widgets, reflowCols),
       }))
     : reconciledPages;
 
@@ -267,7 +220,7 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface)
   }
 
   return {
-    ...layoutWithoutLegacyDensity,
+    ...migrated,
     surface,
     ...(dock ? { dock } : {}),
     pages: finalPages,

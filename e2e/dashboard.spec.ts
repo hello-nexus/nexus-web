@@ -174,7 +174,7 @@ test('dashboard seeds panel widgets, adds a widget, and supports mouse drag reor
   const savedPreferencePatches: unknown[] = [];
   await mockService(page, savedPreferencePatches);
 
-  await page.goto('/my-computer/dashboard');
+  await page.goto('/system/dashboard');
   await page.locator('[data-panel-widget-id]').first().waitFor({ timeout: 15_000 });
 
   await expect(page.getByRole('button', { name: 'Dashboard' })).toHaveClass(/active/);
@@ -220,7 +220,7 @@ test('dashboard edit drawer keeps the active widget visible beside the sheet', a
   const savedPreferencePatches: unknown[] = [];
   await mockService(page, savedPreferencePatches);
 
-  await page.goto('/my-computer/dashboard');
+  await page.goto('/system/dashboard');
   await page.locator('[data-panel-widget-id]').first().waitFor({ timeout: 15_000 });
 
   const ids = await activeWidgetIds(page);

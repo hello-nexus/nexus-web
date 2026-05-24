@@ -38,13 +38,13 @@ vi.mock('../widgets/registry', () => {
     },
   };
   return {
-    WIDGET_REGISTRY: REGISTRY,
+    APP_REGISTRY: REGISTRY,
     // Mirror the real `getCatalogEntries` which the catalog now uses to
     // walk both built-in and marketplace entries; tests don't exercise
     // marketplace registration so the second list stays empty.
     getCatalogEntries: () => Object.entries(REGISTRY),
     pickerSizeFor: () => '2x2',
-    widgetAvailableForSurface: (meta: MockMeta, surface: PanelSurface) => {
+    appAvailableForSurface: (meta: MockMeta, surface: PanelSurface) => {
       // Mirror the runtime rule: touch-required widgets are hidden on the
       // no-touch q60 surface; everything else is available.
       if (meta.touch && surface === 'q60') return false;

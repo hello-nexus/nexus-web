@@ -3,7 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { useTranslation } from '../../lib/i18n';
 import type { PanelSurface, PanelWidgetSize } from '../types';
-import { getCatalogEntries, pickerSizeFor, widgetAvailableForSurface } from '../widgets/registry';
+import { getCatalogEntries, pickerSizeFor, appAvailableForSurface } from '../widgets/registry';
 import {
   isMarketplaceIdEnabled,
   isMarketplaceRegistryStale,
@@ -66,10 +66,10 @@ export function PanelWidgetCatalog({
 
   // Filter: only show built-ins + the allowlisted marketplace widgets. The
   // marketplace registry may surface more bundled widgets than this allowlist
-  // (so already-placed instances still render via lookupWidget), but the
+  // (so already-placed instances still render via lookupApp), but the
   // Add-a-Widget picker stays curated while the declarative SDK is in beta.
   const entries = getCatalogEntries().filter(([type, def]) => {
-    if (!widgetAvailableForSurface(def.meta, surface)) return false;
+    if (!appAvailableForSurface(def.meta, surface)) return false;
     if (isMarketplaceType(type)) {
       const id = marketplaceIdFromType(type);
       return id !== null && isMarketplaceIdEnabled(id);

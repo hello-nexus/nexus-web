@@ -73,7 +73,7 @@
   left: 64px;
 }
 
-// Some sections (anything outside my-computer) render no sidebar at
+// Some sections (anything outside /system) render no sidebar at
 // all - the drag strip's default left:200 would leave a 200px dead
 // zone at the top-left that can't drag the window. Flush-left here
 // so the whole top row is grabbable.

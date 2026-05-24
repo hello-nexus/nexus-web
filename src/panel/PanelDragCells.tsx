@@ -3,7 +3,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import type { CSSProperties } from 'react';
 import { sizeToSpan } from './engine/grid';
-import { lookupWidget } from './widgets/registry';
+import { lookupApp } from './widgets/registry';
 import { WidgetCellLabel } from './widgets/common/WidgetCellLabel';
 import { useTranslation } from '../lib/i18n';
 import type { PanelLayout, PanelSurface, PanelWidget } from './types';
@@ -154,7 +154,7 @@ export function PanelTouchCell({
   onConfigureWidget?: (widget: PanelWidget) => void;
 }) {
   const { t } = useTranslation();
-  const def = lookupWidget(widget.type);
+  const def = lookupApp(widget.type);
   const span = sizeToSpan(widget.size);
   // dnd-kit must already be tracking pointerdowns when the long-press
   // fires; otherwise a hold + drag gesture has no chance to convert into
@@ -388,7 +388,7 @@ export function PanelDragOverlayCell({
   fixedHeight?: number;
 }) {
   const { t } = useTranslation();
-  const def = lookupWidget(widget.type);
+  const def = lookupApp(widget.type);
   const span = sizeToSpan(widget.size);
   if (!def) return null;
   const Comp = def.Widget;

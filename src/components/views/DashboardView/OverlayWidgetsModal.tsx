@@ -6,7 +6,7 @@ import { Slider } from '../../common/Slider/Slider';
 import { Select } from '../../common/Select/Select';
 import { fetchService, postService } from '../../../api/service';
 import { listOverlayWidgets, deleteOverlayWidget, type OverlayWidgetDto } from '../../../api/overlay';
-import { WIDGET_REGISTRY } from '../../../panel/widgets/registry';
+import { APP_REGISTRY } from '../../../panel/widgets/registry';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './DesktopWidgetsModal.module.scss';
@@ -178,7 +178,7 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
   }, [widgets]);
 
   const widgetRows = useMemo(() => widgets.map(entry => {
-    const def = WIDGET_REGISTRY[entry.type];
+    const def = APP_REGISTRY[entry.type];
     const Icon = def?.meta.icon;
     const i18nKey = def?.meta.i18nKey;
     const label = i18nKey ? t(i18nKey) : entry.type;

@@ -10,7 +10,7 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
 
 /**
  * Routed device page. Resolves the device referenced by the URL's
- * `subtab` segment (i.e. /my-computer/device/<deviceKey>) via the
+ * `subtab` segment (i.e. /system/device/<deviceKey>) via the
  * shared `useUnifiedDevices` selector, then dispatches to the
  * kind-specific page body:
  *

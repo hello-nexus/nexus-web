@@ -237,7 +237,7 @@ test('captures Y70 and Q60 device pages', async ({ page }) => {
     await page.screenshot({ path: join(SCREENSHOT_DIR, '01-y70.png'), fullPage: false });
   } else {
     console.warn('Y70 sidebar entry not visible — falling back to URL nav.');
-    await page.goto('/my-computer/devices');
+    await page.goto('/system/devices');
     await page.waitForTimeout(500);
     await page.screenshot({ path: join(SCREENSHOT_DIR, '01-devices-landing.png'), fullPage: false });
   }

@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  * Three-level path routing: /section/view/subtab
  *
  * Routes:
- *   /                          → redirect to /my-computer/dashboard
- *   /my-computer               → redirect to /my-computer/dashboard
- *   /my-computer/:view         → MonitoringView, LightingView, etc.
- *   /my-computer/:view/:subtab → e.g. /my-computer/monitoring/cpu
+ *   /                          → redirect to /system/dashboard
+ *   /system                    → redirect to /system/dashboard
+ *   /system/:view              → MonitoringView, LightingView, etc.
+ *   /system/:view/:subtab      → e.g. /system/monitoring/cpu
  *   /builder                   → Builder table view
  *   /builder/:category         → Builder with that category's picker open
  *   /benchmark                 → Placeholder
@@ -15,7 +15,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  *   /touch                     → panel kiosk entrypoint (handled before this hook)
  */
 
-export type Section = 'my-computer' | 'builder' | 'benchmark' | 'community';
+export type Section = 'system' | 'builder' | 'benchmark' | 'community';
 
 interface Route {
   section: Section;
@@ -27,11 +27,11 @@ interface Route {
   fromCategory: string | null;
 }
 
-const DEFAULT_SECTION: Section = 'my-computer';
+const DEFAULT_SECTION: Section = 'system';
 const DEFAULT_VIEW = 'dashboard';
 const DEFAULT_MONITORING_SUBTAB = 'overview';
 
-const VALID_SECTIONS: readonly string[] = ['my-computer', 'builder', 'benchmark', 'community'];
+const VALID_SECTIONS: readonly string[] = ['system', 'builder', 'benchmark', 'community'];
 
 function isSection(s: string): s is Section {
   return VALID_SECTIONS.includes(s);
@@ -46,7 +46,7 @@ function parsePath(): Route {
   const SERVICE_VIEWS = ['dashboard', 'monitoring', 'lighting', 'cooling', 'devices', 'device', 'clock', 'settings', 'tools'];
   if (SERVICE_VIEWS.includes(rawSection)) {
     return {
-      section: 'my-computer',
+      section: 'system',
       view: rawSection,
       subtab: parts[1] || null,
       componentId: null,

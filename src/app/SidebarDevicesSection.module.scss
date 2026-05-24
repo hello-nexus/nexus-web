@@ -150,3 +150,13 @@
 }
 
 .label { white-space: nowrap; }
+
+// Small flask icon sitting after the device name to flag it as a
+// simulator entry rather than a real connected panel. Dim by default
+// so it reads as supplementary metadata, not a primary control.
+.simulatedBadge {
+  flex-shrink: 0;
+  margin-left: 0.35rem;
+  color: var(--text-faded);
+  opacity: 0.85;
+}

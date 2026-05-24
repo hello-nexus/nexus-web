@@ -34,7 +34,14 @@ export interface SimulatedPanelGridSizing {
 }
 
 export const SIMULATED_PANEL_PRESETS: readonly SimulatedPanelDefinition[] = [
-  { id: 'y70', name: 'Y70 Touch', surface: 'y70', width: 682, height: 2560, dpi: 337 },
+  // Two Y70 touch panel variants. The simulator names carry the
+  // resolution class so the user can tell them apart in the sidebar
+  // and the panel picker. A REAL connected Y70 of either variant is
+  // labeled just "Y70 Touch" (see CURATED_SHORT_NAMES in
+  // useUnifiedDevices) — the resolution suffix is a simulator-only
+  // disambiguation.
+  { id: 'y70',    name: 'Y70 Touch 2.5K', surface: 'y70', width: 682,  height: 2560, dpi: 337 },
+  { id: 'y70-4k', name: 'Y70 Touch 4K',   surface: 'y70', width: 1100, height: 3840, dpi: 283 },
   { id: 'q60', name: 'Q60', surface: 'q60', width: 720, height: 1280, dpi: 220 },
   { id: 'phone', name: 'Phone Panel', surface: 'phone', width: 1206, height: 2622, dpi: 460 },
   { id: 'tablet', name: 'Tablet Panel', surface: 'phone', width: 1640, height: 2360, dpi: 264 },

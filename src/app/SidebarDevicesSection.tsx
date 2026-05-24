@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import classNames from 'classnames';
+import { FlaskConical } from 'lucide-react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { useTranslation } from '../lib/i18n';
@@ -84,6 +85,10 @@ export function SidebarDevicesSection({
       ) : (
         sorted.map(device => {
           const isActive = device.key === activeDeviceKey;
+          const isSimulated = device.panelDevice?.connectionKind === 'simulated';
+          const tooltip = isSimulated
+            ? `${device.shortName} (${t('devices.panels.simulated')})`
+            : device.shortName;
           const row = (
             <button
               key={device.key}
@@ -94,7 +99,7 @@ export function SidebarDevicesSection({
                 [styles.itemOffline]: !device.connected,
               })}
               onClick={() => onSelect(device.key)}
-              aria-label={compact ? device.shortName : undefined}
+              aria-label={compact ? tooltip : undefined}
             >
               <span
                 className={styles.icon}
@@ -103,12 +108,21 @@ export function SidebarDevicesSection({
                 style={{ ['--device-icon' as string]: `url(${device.iconSrc})` }}
               />
               {!compact && (
-                <span className={styles.label}>{device.shortName}</span>
+                <>
+                  <span className={styles.label}>{device.shortName}</span>
+                  {isSimulated && (
+                    <FlaskConical
+                      size={12}
+                      className={styles.simulatedBadge}
+                      aria-label={t('devices.panels.simulated')}
+                    />
+                  )}
+                </>
               )}
             </button>
           );
           return compact ? (
-            <HoverTooltip key={device.key} body={device.shortName} side="right">{row}</HoverTooltip>
+            <HoverTooltip key={device.key} body={tooltip} side="right">{row}</HoverTooltip>
           ) : row;
         })
       )}

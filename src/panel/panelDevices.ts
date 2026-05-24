@@ -42,12 +42,15 @@ export const PANEL_MONITOR_ICON = '/assets/devices/device.svg';
 // each panel with its own silhouette — Q60 should not look like
 // Y70. Falls back to PANEL_DEVICE_ICON for unknown source ids.
 export const PANEL_FAMILY_ICONS: Readonly<Record<string, string>> = {
-  y70:     '/assets/devices/y70.svg',
-  q60:     '/assets/devices/q60.svg',
-  q80:     '/assets/devices/q80.svg',
+  y70:      '/assets/devices/y70.svg',
+  // Y70 Touch 4K (original wider-resolution panel) shares the
+  // Y70 silhouette — same case, same screen aperture.
+  'y70-4k': '/assets/devices/y70.svg',
+  q60:      '/assets/devices/q60.svg',
+  q80:      '/assets/devices/q80.svg',
   // Q-series handler enumerates Q60 + Q80 under one id; the Q60
   // silhouette doubles as the family default for connected panels.
-  qseries: '/assets/devices/q60.svg',
+  qseries:  '/assets/devices/q60.svg',
 };
 
 export function panelIconForSource(sourceId: string): string {
