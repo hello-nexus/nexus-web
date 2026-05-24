@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react';
+import classNames from 'classnames';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { Tabs, type TabDef } from '../Tabs/Tabs';
+import { useNavHistory } from '../../../hooks/useNavHistory';
 import styles from './ViewHeader.module.scss';
 
 interface ViewHeaderProps {
@@ -18,12 +22,16 @@ interface ViewHeaderProps {
 }
 
 export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, titleTooltip, actions, tabActions }: ViewHeaderProps) {
+  const nav = useNavHistory();
   return (
     <header className={styles.header}>
       <div className={styles.titleRow}>
-        <div className={styles.titleCluster}>
-          <h1 className={styles.title}>{title}</h1>
-          {titleTooltip && <InfoTooltip message={titleTooltip} side="bottom" />}
+        <div className={styles.leftGroup}>
+          {nav && <NavArrows nav={nav} />}
+          <div className={styles.titleCluster}>
+            <h1 className={styles.title}>{title}</h1>
+            {titleTooltip && <InfoTooltip message={titleTooltip} side="bottom" />}
+          </div>
         </div>
         {actions && <div className={styles.actions}>{actions}</div>}
       </div>
@@ -41,5 +49,35 @@ export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, 
         </div>
       )}
     </header>
+  );
+}
+
+function NavArrows({ nav }: { nav: NonNullable<ReturnType<typeof useNavHistory>> }) {
+  const { canGoBack, canGoForward, goBack, goForward } = nav;
+  return (
+    <div className={styles.navArrows}>
+      <HoverTooltip body="Back" side="bottom">
+        <button
+          type="button"
+          className={classNames(styles.navArrow, { [styles.navArrowDisabled]: !canGoBack })}
+          onClick={goBack}
+          disabled={!canGoBack}
+          aria-label="Back"
+        >
+          <ChevronLeft size={14} aria-hidden />
+        </button>
+      </HoverTooltip>
+      <HoverTooltip body="Forward" side="bottom">
+        <button
+          type="button"
+          className={classNames(styles.navArrow, { [styles.navArrowDisabled]: !canGoForward })}
+          onClick={goForward}
+          disabled={!canGoForward}
+          aria-label="Forward"
+        >
+          <ChevronRight size={14} aria-hidden />
+        </button>
+      </HoverTooltip>
+    </div>
   );
 }

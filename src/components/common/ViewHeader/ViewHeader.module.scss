@@ -11,18 +11,37 @@
   justify-content: space-between;
   gap: 0.4rem;
   margin: 0 0 0.5rem;
-  // Float above the qos-overlay shell's 32px drag strip (z-index:40 in
-  // App.module.scss .windowDragStrip) so clicks on the page title and
-  // its (i) tooltip register on those elements instead of being eaten
-  // by the drag handler. The row itself is pointer-events: none so the
-  // empty gap between the title cluster and the right-aligned actions
-  // still falls through to the drag strip and the user can drag from
-  // there; only the interactive children opt back in.
+  // Float above the qos-overlay shell's drag strip (z-index 2000 in
+  // App.module.scss .windowDragStrip) so hover + clicks on the page
+  // title, its (i) tooltip, and the back/forward arrows register on
+  // those elements instead of being eaten by the drag handler. The
+  // top-right caption-adjacent action buttons use z-index 2010 for
+  // the same reason; keep this in lockstep with that.
+  // The row itself is pointer-events: none so the empty gap between
+  // the title cluster and the right-aligned actions still falls
+  // through to the drag strip and the user can drag from there; only
+  // the interactive children opt back in.
   position: relative;
-  z-index: var(--z-sticky);
+  z-index: 2010;
   pointer-events: none;
 
   > * { pointer-events: auto; }
+}
+
+// Title + arrows are the interactive zone on the left of the title row.
+// Carve out of the qos-overlay shell's drag region (App.module.scss
+// .windowDragStrip carries app-region: drag at z-index 2000). WebView2
+// processes app-region at the OS hit-test level BEFORE DOM stacking, so
+// the titleRow z-index 2010 alone is not enough — we also need no-drag
+// here so hover and clicks reach the (i) tooltip and arrows instead of
+// being claimed by the window-move handler.
+.leftGroup {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 .titleCluster {
@@ -30,6 +49,63 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
+}
+
+// Browser-style back/forward chevrons. Three visible states:
+//   on        - enabled rest (low-contrast glyph, no background)
+//   highlight - hover over an enabled button (Win11-style tint)
+//   off       - disabled (faded, no pointer events)
+//
+// Pulled into the content gutter (negative margin-left) so the arrows sit
+// closer to the sidebar/content boundary instead of indenting alongside
+// the page title.
+.navArrows {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: -0.5rem;
+  margin-right: 0.15rem;
+}
+
+.navArrow {
+  width: 20px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 100ms ease, color 100ms ease, opacity 100ms ease;
+  // Belt-and-braces: also tag the buttons themselves no-drag in case a
+  // future change reorders them out from under .leftGroup.
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--text) 8%, transparent);
+  }
+
+  &:active:not(:disabled) {
+    background: color-mix(in srgb, var(--text) 12%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  svg {
+    display: block;
+  }
+}
+
+.navArrowDisabled {
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 .title {
@@ -44,6 +120,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  // Mirror .leftGroup — opt the right-side action buttons out of the
+  // shell's drag region so they receive hover/click directly.
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 // Row wrapping the Tabs bar. Anchors the absolutely-positioned tabActions
