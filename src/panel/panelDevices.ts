@@ -36,3 +36,20 @@ export interface PanelDevice {
 
 export const PANEL_DEVICE_ICON = '/assets/devices/y70.svg';
 export const PANEL_MONITOR_ICON = '/assets/devices/device.svg';
+
+// Per-panel-family icon. Used by usePanelDevices to populate
+// PanelDevice.iconSrc so the sidebar's DEVICES section renders
+// each panel with its own silhouette — Q60 should not look like
+// Y70. Falls back to PANEL_DEVICE_ICON for unknown source ids.
+export const PANEL_FAMILY_ICONS: Readonly<Record<string, string>> = {
+  y70:     '/assets/devices/y70.svg',
+  q60:     '/assets/devices/q60.svg',
+  q80:     '/assets/devices/q80.svg',
+  // Q-series handler enumerates Q60 + Q80 under one id; the Q60
+  // silhouette doubles as the family default for connected panels.
+  qseries: '/assets/devices/q60.svg',
+};
+
+export function panelIconForSource(sourceId: string): string {
+  return PANEL_FAMILY_ICONS[sourceId] ?? PANEL_DEVICE_ICON;
+}

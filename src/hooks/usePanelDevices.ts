@@ -11,7 +11,7 @@ import {
 } from '../lib/panelSimulation';
 import { useDevices, type DeviceListItem } from './useDevices';
 import {
-  PANEL_DEVICE_ICON,
+  panelIconForSource,
   PANEL_MONITOR_ICON,
   type PanelDevice,
   type PanelDeviceCapabilities,
@@ -171,7 +171,7 @@ function buildPanelDevices({
       runtimeSurface: profile.surface,
       previewSize: { width: profile.width, height: profile.height },
       previewDpi: profile.dpi,
-      iconSrc: PANEL_DEVICE_ICON,
+      iconSrc: panelIconForSource(device.id),
       capabilities: isY70 ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES,
       modalKind: isY70 ? 'y70-compat' : 'panel-editor',
     });
@@ -197,7 +197,7 @@ function buildPanelDevices({
       runtimeSurface: panel.surface,
       previewSize: { width: panel.width, height: panel.height },
       previewDpi: panel.dpi,
-      iconSrc: PANEL_DEVICE_ICON,
+      iconSrc: panelIconForSource(panel.id),
       capabilities: panel.surface === 'y70' ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES,
       modalKind: panel.surface === 'y70' ? 'y70-compat' : 'panel-editor',
     });
