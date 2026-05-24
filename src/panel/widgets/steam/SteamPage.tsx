@@ -41,17 +41,17 @@ const NEWS_BATCH_LIMIT = 6;
 
 // Tile grid layout constants. Tile width is the *minimum* column width;
 // the actual width is `(container - gaps) / cols` so the row fills
-// evenly. Aspect is the canonical capsule_231x87 ratio — the rest of
-// the virtualization math assumes the image renders at this aspect.
+// evenly. Aspect comes from header.jpg (460x215) — the one Steam art
+// asset every app ships, so all tiles render at the same size with
+// no fallback letterboxing.
 const TILE_MIN_WIDTH_PX = 200;
 const TILE_GAP_PX = 14;
 const TILE_META_HEIGHT_PX = 44;
-const TILE_IMAGE_ASPECT_H_OVER_W = 87 / 231;
+const TILE_IMAGE_ASPECT_H_OVER_W = 215 / 460;
 // Strict "only what's visible": don't render tiles outside the viewport.
-// With OVERSCAN_ROWS=0 the browser never starts fetching capsule images
+// With OVERSCAN_ROWS=0 the browser never starts fetching header images
 // for off-screen tiles — the only network requests in flight at any
-// moment are for the tiles actually visible (plus the one-time
-// fallback to header.jpg for games whose capsule_231x87 doesn't exist).
+// moment are for the tiles actually visible.
 const OVERSCAN_ROWS = 0;
 
 const SORT_OPTIONS = [
@@ -302,7 +302,7 @@ function EntryView({
             <div className={styles.nowPlaying}>
               <img
                 className={styles.nowPlayingBanner}
-                src={steamCapsuleUrl(currentGame.appId)}
+                src={steamHeaderUrl(currentGame.appId)}
                 alt=""
               />
               <div className={styles.nowPlayingName}>{currentGame.name}</div>
@@ -377,10 +377,9 @@ function EntryView({
  *
  * Layout is driven by a ResizeObserver on the scroller so column count
  * and tile width recompute when the window or right rail width
- * changes. Image aspect (capsule_231x87 = 231/87) is baked into the
- * row-height math; if a game's capsule serves at a slightly different
- * aspect, the tile uses object-fit: contain to letterbox rather than
- * crop, so the math stays stable.
+ * changes. Image aspect (header.jpg = 460/215) is baked into the
+ * row-height math; the tile's CSS aspect matches the image source
+ * so there's no per-tile size variance from cover/contain choices.
  */
 function VirtualizedLibrary({
   games,
@@ -492,13 +491,15 @@ function VirtualizedLibrary({
 }
 
 /**
- * Per-tile component. Owns the image-fallback state so React unmounts
- * it cleanly when the tile scrolls off (keyed by appId). The previous
- * implementation mutated `dataset` + inline `style` on the DOM node;
- * that left stale state attached if React reused a node for a new
- * appId. Per-tile component state resets on key change — no leakage.
+ * Per-tile component. Owns the image-failed state so React unmounts
+ * it cleanly when the tile scrolls off (keyed by appId). Per-tile
+ * component state resets on key change — no leakage across recycled
+ * DOM nodes.
+ *
+ * Uses header.jpg for the art: it's the one asset every Steam app
+ * ships, so there's no fallback URL needed and no per-tile aspect
+ * variance. Tiles render identically.
  */
-type TileImgState = 'primary' | 'fallback' | 'hidden';
 function GameTile({
   game,
   onOpen,
@@ -506,8 +507,7 @@ function GameTile({
   game: SteamOwnedGame;
   onOpen: (appId: number, name: string) => void;
 }) {
-  const [imgState, setImgState] = useState<TileImgState>('primary');
-  const src = imgState === 'fallback' ? steamHeaderUrl(game.appId) : steamCapsuleUrl(game.appId);
+  const [failed, setFailed] = useState(false);
   return (
     <button
       type="button"
@@ -515,18 +515,18 @@ function GameTile({
       onClick={() => onOpen(game.appId, game.name)}
       title={game.name}
     >
-      {imgState === 'hidden' ? (
+      {failed ? (
         <div className={styles.gameTileArt} aria-hidden="true" />
       ) : (
         <img
           className={styles.gameTileArt}
-          src={src}
-          width={231}
-          height={87}
+          src={steamHeaderUrl(game.appId)}
+          width={460}
+          height={215}
           alt=""
           loading="lazy"
           decoding="async"
-          onError={() => setImgState(prev => (prev === 'primary' ? 'fallback' : 'hidden'))}
+          onError={() => setFailed(true)}
         />
       )}
       <div className={styles.gameTileMeta}>
@@ -820,15 +820,11 @@ function personaStatusLabel(state: number | undefined) {
   }
 }
 
-// Small landscape capsule (231x87). Universal across every Steam app,
-// rectangular, and rendered at native aspect by the tile so the image
-// fills exactly with no cropping. Same URL is used for library tiles
-// and the Now Playing banner so the two card formats are visually
-// identical (same aspect, same source, just different sizes).
-function steamCapsuleUrl(appId: number) {
-  return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/capsule_231x87.jpg`;
-}
-
+// Single source for the rectangular landscape game art. header.jpg
+// (460x215, ~2.14:1) ships with every Steam app, so no fallback URL
+// is needed and every tile / banner renders at the same aspect. The
+// CSS aspect-ratio on .gameTileArt and .nowPlayingBanner matches
+// this exactly so no cropping or letterboxing happens.
 function steamHeaderUrl(appId: number) {
   return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`;
 }
