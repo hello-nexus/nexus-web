@@ -171,10 +171,9 @@ $dot-offline: var(--panel-text-faint);
   position: absolute;
   inset: 0 0 auto 0;
   display: grid;
-  // Tiles are a fixed pixel width — left-align so resizing the
-  // viewport just shows more or fewer columns rather than
-  // stretching every card.
-  justify-content: start;
+  // Columns are minmax(0, 1fr) so every card in a row is the same
+  // width and the row fills the available container width. The grid
+  // justifies to the container — no right gutter.
   // gridTemplateColumns + column/row gap come from inline style so they
   // can change per resize without re-parsing CSS.
   will-change: transform;

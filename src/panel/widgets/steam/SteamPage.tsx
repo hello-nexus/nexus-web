@@ -479,11 +479,14 @@ function VirtualizedLibrary({
           className={styles.librarySlice}
           style={{
             transform: `translateY(${offsetY}px)`,
-            // Fixed-pixel columns — cards never scale to fill the
-            // container. Excess horizontal space sits as a gutter on
-            // the right (justify-content: start in CSS); the grid
-            // just packs as many same-size cards per row as fit.
-            gridTemplateColumns: `repeat(${layout.cols}, ${TILE_WIDTH_PX}px)`,
+            // `minmax(0, 1fr)` — all columns equal, all stretch
+            // uniformly to fill the row (justify-to-width). The
+            // `0` minimum (vs `auto`) prevents long game names from
+            // pushing their column past the equal-share. Every card
+            // in a row is the same width; resizing the panel
+            // re-flows all cards together, never one independent
+            // of the rest.
+            gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
             columnGap: TILE_GAP_PX,
             rowGap: TILE_GAP_PX,
           }}
@@ -651,6 +654,14 @@ function DrillView({
 
       <section className={styles.drillHero}>
         <img
+          // key={appId} forces React to mount a fresh <img> for each
+          // game instead of reusing the previous DOM node. Without
+          // this, switching between games kept the same <img>; the
+          // browser dropped the old image's intrinsic dimensions
+          // while the new src loaded and the element briefly had
+          // zero natural size, which read as "scrunched" inside the
+          // aspect-ratio container.
+          key={appId}
           className={styles.drillHeroArt}
           // Always use the well-known CDN header for the hero. Earlier
           // we swapped to `details.headerImage` once the Storefront API
@@ -658,6 +669,8 @@ function DrillView({
           // can fail to load — and our onError handler then hid the
           // image. The CDN URL is stable across every game.
           src={steamHeaderUrl(appId)}
+          width={460}
+          height={215}
           alt=""
         />
         <div className={styles.drillHeroOverlay}>
