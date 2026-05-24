@@ -382,16 +382,19 @@ $dot-offline: var(--panel-text-faint);
 
 .drillHero {
   position: relative;
+  width: 100%;
+  // Explicit max-width keeps the hero proportional on very wide
+  // viewports without interacting badly with align-items: stretch +
+  // aspect-ratio (an earlier max-width-only version collapsed the
+  // hero in some flex-column widths and the image never paid out).
+  // The matched aspect-ratio (460x215 = header.jpg native) keeps
+  // the image's object-fit: cover from doing any actual cropping.
+  max-width: 720px;
+  aspect-ratio: 460 / 215;
   border-radius: 16px;
   overflow: hidden;
   background: var(--panel-element-bg);
-  // header.jpg is 460x215 — aspect 2.14:1. Match that exactly so the
-  // image fills the hero without any zoom-and-crop. No max-height:
-  // a max-height cap would force the aspect to break in wider drill
-  // columns and re-introduce the cover-crop the matched aspect
-  // exists to avoid. Cap width instead if the hero gets too big.
-  aspect-ratio: 460 / 215;
-  max-width: 560px;
+  align-self: flex-start;
 }
 
 .drillHeroArt {

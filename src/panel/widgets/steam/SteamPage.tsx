@@ -476,7 +476,13 @@ function VirtualizedLibrary({
           className={styles.librarySlice}
           style={{
             transform: `translateY(${offsetY}px)`,
-            gridTemplateColumns: `repeat(${layout.cols}, 1fr)`,
+            // minmax(0, 1fr) — NOT plain `1fr` — so columns stay
+            // strictly equal-width even when a long game name
+            // would otherwise push its column past its `1fr` share
+            // via the implicit `auto` minimum. Without this the
+            // first/last columns visibly squish whenever any tile's
+            // name doesn't fit.
+            gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
             columnGap: TILE_GAP_PX,
             rowGap: TILE_GAP_PX,
           }}
