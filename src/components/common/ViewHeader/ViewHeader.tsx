@@ -7,6 +7,11 @@ import { Tabs, type TabDef } from '../Tabs/Tabs';
 import { useNavHistory } from '../../../hooks/useNavHistory';
 import styles from './ViewHeader.module.scss';
 
+// Feature flag: render the chevron back/forward buttons. Off for now —
+// useRoute's history mirror still runs (mouse side-buttons + URL stay
+// in sync), only the UI is hidden. Flip to true to show the arrows.
+const SHOW_NAV_ARROWS = false;
+
 interface ViewHeaderProps {
   title: string;
   tabs?: readonly TabDef[];
@@ -26,8 +31,13 @@ export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, 
   return (
     <header className={styles.header}>
       <div className={styles.titleRow}>
+        {/* leftGroup wraps the title cluster unconditionally so the
+            -webkit-app-region: no-drag carve-out on .leftGroup keeps
+            covering the (i) tooltip and h1 even when arrows are off.
+            With one child the flex wrapper is visually transparent —
+            title sits in the same position as the pre-arrows layout. */}
         <div className={styles.leftGroup}>
-          {nav && <NavArrows nav={nav} />}
+          {SHOW_NAV_ARROWS && nav && <NavArrows nav={nav} />}
           <div className={styles.titleCluster}>
             <h1 className={styles.title}>{title}</h1>
             {titleTooltip && <InfoTooltip message={titleTooltip} side="bottom" />}
