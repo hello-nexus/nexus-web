@@ -39,15 +39,16 @@ const LISTS_POLL_MS = 30_000;
 const DRILL_LIVE_POLL_MS = 30_000;
 const NEWS_BATCH_LIMIT = 6;
 
-// Tile grid layout constants. Tile width is the *minimum* column width;
-// the actual width is `(container - gaps) / cols` so the row fills
-// evenly. Aspect comes from header.jpg (460x215) — the one Steam art
-// asset every app ships, so all tiles render at the same size with
-// no fallback letterboxing.
-const TILE_MIN_WIDTH_PX = 200;
+// Tile grid layout constants. Tile width is FIXED in pixels — the
+// grid doesn't scale individual cards to fit the container; it just
+// fits as many fixed-size columns as will go. Every card renders at
+// exactly the same dimensions regardless of viewport width.
+// Aspect comes from Steam's capsule_231x87 (231x87 = ~2.66:1) — the
+// rectangular landscape capsule everyone wanted.
+const TILE_WIDTH_PX = 220;
 const TILE_GAP_PX = 14;
 const TILE_META_HEIGHT_PX = 44;
-const TILE_IMAGE_ASPECT_H_OVER_W = 215 / 460;
+const TILE_IMAGE_ASPECT_H_OVER_W = 87 / 231;
 // Strict "only what's visible": don't render tiles outside the viewport.
 // With OVERSCAN_ROWS=0 the browser never starts fetching header images
 // for off-screen tiles — the only network requests in flight at any
@@ -302,7 +303,7 @@ function EntryView({
             <div className={styles.nowPlaying}>
               <img
                 className={styles.nowPlayingBanner}
-                src={steamHeaderUrl(currentGame.appId)}
+                src={steamCapsuleUrl(currentGame.appId)}
                 alt=""
               />
               <div className={styles.nowPlayingName}>{currentGame.name}</div>
@@ -447,9 +448,11 @@ function VirtualizedLibrary({
         endRow: 0,
       };
     }
-    const cols = Math.max(1, Math.floor((w + TILE_GAP_PX) / (TILE_MIN_WIDTH_PX + TILE_GAP_PX)));
-    const tileWidth = (w - (cols - 1) * TILE_GAP_PX) / cols;
-    const imageHeight = tileWidth * TILE_IMAGE_ASPECT_H_OVER_W;
+    const cols = Math.max(1, Math.floor((w + TILE_GAP_PX) / (TILE_WIDTH_PX + TILE_GAP_PX)));
+    // Tile is a fixed pixel size — never scales with container. Row
+    // height is fixed too, so the virtualization math is stable and
+    // doesn't shift when the window resizes.
+    const imageHeight = TILE_WIDTH_PX * TILE_IMAGE_ASPECT_H_OVER_W;
     const rowHeight = imageHeight + TILE_META_HEIGHT_PX + TILE_GAP_PX;
     const rowCount = Math.ceil(games.length / cols);
     const totalHeight = Math.max(0, rowCount * rowHeight - TILE_GAP_PX);
@@ -476,13 +479,11 @@ function VirtualizedLibrary({
           className={styles.librarySlice}
           style={{
             transform: `translateY(${offsetY}px)`,
-            // minmax(0, 1fr) — NOT plain `1fr` — so columns stay
-            // strictly equal-width even when a long game name
-            // would otherwise push its column past its `1fr` share
-            // via the implicit `auto` minimum. Without this the
-            // first/last columns visibly squish whenever any tile's
-            // name doesn't fit.
-            gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
+            // Fixed-pixel columns — cards never scale to fill the
+            // container. Excess horizontal space sits as a gutter on
+            // the right (justify-content: start in CSS); the grid
+            // just packs as many same-size cards per row as fit.
+            gridTemplateColumns: `repeat(${layout.cols}, ${TILE_WIDTH_PX}px)`,
             columnGap: TILE_GAP_PX,
             rowGap: TILE_GAP_PX,
           }}
@@ -502,9 +503,11 @@ function VirtualizedLibrary({
  * component state resets on key change — no leakage across recycled
  * DOM nodes.
  *
- * Uses header.jpg for the art: it's the one asset every Steam app
- * ships, so there's no fallback URL needed and no per-tile aspect
- * variance. Tiles render identically.
+ * On capsule_231x87 404 the tile shows a styled empty placeholder
+ * of the same dimensions. We deliberately do NOT fall back to a
+ * second URL — falling back to a different-aspect image would
+ * letterbox inside the 231/87 box and the tile would visibly differ
+ * from its neighbours.
  */
 function GameTile({
   game,
@@ -526,9 +529,9 @@ function GameTile({
       ) : (
         <img
           className={styles.gameTileArt}
-          src={steamHeaderUrl(game.appId)}
-          width={460}
-          height={215}
+          src={steamCapsuleUrl(game.appId)}
+          width={231}
+          height={87}
           alt=""
           loading="lazy"
           decoding="async"
@@ -826,11 +829,17 @@ function personaStatusLabel(state: number | undefined) {
   }
 }
 
-// Single source for the rectangular landscape game art. header.jpg
-// (460x215, ~2.14:1) ships with every Steam app, so no fallback URL
-// is needed and every tile / banner renders at the same aspect. The
-// CSS aspect-ratio on .gameTileArt and .nowPlayingBanner matches
-// this exactly so no cropping or letterboxing happens.
+// Small rectangular capsule (231x87, ~2.66:1). When a tile's capsule
+// 404s the tile shows an empty placeholder of the same dimensions —
+// we deliberately do NOT fall back to a wider URL like header.jpg
+// because that would letterbox inside the 231/87 frame and make the
+// tile look smaller than its neighbours.
+function steamCapsuleUrl(appId: number) {
+  return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/capsule_231x87.jpg`;
+}
+
+// Larger landscape header used for the drill hero where the bigger
+// image reads better.
 function steamHeaderUrl(appId: number) {
   return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`;
 }

@@ -171,6 +171,10 @@ $dot-offline: var(--panel-text-faint);
   position: absolute;
   inset: 0 0 auto 0;
   display: grid;
+  // Tiles are a fixed pixel width — left-align so resizing the
+  // viewport just shows more or fewer columns rather than
+  // stretching every card.
+  justify-content: start;
   // gridTemplateColumns + column/row gap come from inline style so they
   // can change per resize without re-parsing CSS.
   will-change: transform;
@@ -208,12 +212,10 @@ $dot-offline: var(--panel-text-faint);
 .gameTileArt {
   display: block;
   width: 100%;
-  // header.jpg is 460x215 — match it. With every tile sourcing the
-  // same URL at the same aspect, every card renders identically
-  // regardless of which game it represents. `object-fit: cover` is
-  // a no-op when the aspect matches but defends against Steam
-  // serving a hair-off file (no letterbox, no per-tile size drift).
-  aspect-ratio: 460 / 215;
+  // capsule_231x87 is 231x87 — match it exactly. `object-fit: cover`
+  // with matched aspect is a no-op (no crop in the common case);
+  // defends against Steam serving a hair-off capsule.
+  aspect-ratio: 231 / 87;
   object-fit: cover;
   background: var(--panel-element-bg);
   border-radius: 12px 12px 0 0;
@@ -263,9 +265,9 @@ $dot-offline: var(--panel-text-faint);
 
 .nowPlayingBanner {
   width: 100%;
-  // Same source + aspect as the library tile (header.jpg) so the
+  // Same source + aspect as the library tile (capsule_231x87) so the
   // banner and the library tiles share one visual language.
-  aspect-ratio: 460 / 215;
+  aspect-ratio: 231 / 87;
   object-fit: cover;
   border-radius: 10px;
   background: var(--panel-element-bg);
