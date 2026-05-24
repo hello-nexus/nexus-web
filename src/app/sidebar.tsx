@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { PanelLeftClose, Unplug } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PanelLeftClose, Unplug } from 'lucide-react';
 import classNames from 'classnames';
 import { ConflictWarningBadge } from '../components/common/Sidebar/ConflictWarning';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
@@ -148,6 +148,35 @@ export function TopRightDebugButton({ active, onDebug, icon }: {
         aria-pressed={active}
       >
         <span className={styles.topRightActionIcon} aria-hidden>{icon}</span>
+      </button>
+    </HoverTooltip>
+  );
+}
+
+// Browser-style back/forward chevrons pinned to the top-right strip, sitting
+// to the left of the settings button with a small gap so they read as their
+// own cluster. Desktop-app build only — see the __SERVICE_BUILD__ gate at
+// the Dashboard render site.
+export function TopRightNavButton({ direction, disabled, onClick }: {
+  direction: 'back' | 'forward';
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const label = direction === 'back' ? 'Back' : 'Forward';
+  const Icon = direction === 'back' ? ChevronLeft : ChevronRight;
+  const positionClass = direction === 'back' ? styles.topRightNavBack : styles.topRightNavForward;
+  return (
+    <HoverTooltip body={label} side="bottom">
+      <button
+        type="button"
+        className={classNames(styles.topRightAction, positionClass)}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={label}
+      >
+        <span className={styles.topRightActionIcon} aria-hidden>
+          <Icon size={14} />
+        </span>
       </button>
     </HoverTooltip>
   );

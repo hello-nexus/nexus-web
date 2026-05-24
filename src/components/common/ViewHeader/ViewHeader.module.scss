@@ -51,63 +51,6 @@
   gap: 0.4rem;
 }
 
-// Browser-style back/forward chevrons. Three visible states:
-//   on        - enabled rest (low-contrast glyph, no background)
-//   highlight - hover over an enabled button (Win11-style tint)
-//   off       - disabled (faded, no pointer events)
-//
-// Pulled into the content gutter (negative margin-left) so the arrows sit
-// closer to the sidebar/content boundary instead of indenting alongside
-// the page title.
-.navArrows {
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
-  margin-left: -0.5rem;
-  margin-right: 0.15rem;
-}
-
-.navArrow {
-  width: 20px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text);
-  padding: 0;
-  cursor: pointer;
-  outline: none;
-  transition: background-color 100ms ease, color 100ms ease, opacity 100ms ease;
-  // Belt-and-braces: also tag the buttons themselves no-drag in case a
-  // future change reorders them out from under .leftGroup.
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-
-  &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--text) 8%, transparent);
-  }
-
-  &:active:not(:disabled) {
-    background: color-mix(in srgb, var(--text) 12%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
-  }
-
-  svg {
-    display: block;
-  }
-}
-
-.navArrowDisabled {
-  opacity: 0.35;
-  pointer-events: none;
-}
-
 .title {
   @include text-heading;
   color: var(--text);

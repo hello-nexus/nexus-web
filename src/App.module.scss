@@ -572,6 +572,11 @@
     pointer-events: none;
     opacity: 0.35;
   }
+
+  &:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
 }
 
 .topRightActionActive {
@@ -589,6 +594,14 @@
 // Settings sits immediately to the left of debug (one 46px slot further in).
 .topRightSettings { right: 46px; }
 .layoutWindowsApp .topRightSettings { right: calc(138px + 46px); }
+
+// Back/forward chevrons sit further left, with a 16px gap from the settings
+// button so they read as a separate cluster from the chrome icons. Settings'
+// left edge is at 92px from the viewport right (46px right + 46px width).
+.topRightNavForward { right: calc(92px + 16px); }
+.topRightNavBack { right: calc(92px + 16px + 46px); }
+.layoutWindowsApp .topRightNavForward { right: calc(138px + 92px + 16px); }
+.layoutWindowsApp .topRightNavBack { right: calc(138px + 92px + 16px + 46px); }
 
 .topRightActionIcon {
   display: inline-flex;

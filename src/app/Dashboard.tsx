@@ -33,6 +33,7 @@ import type { ComponentCategory, ComponentOption } from '../types/builder';
 import { NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
 import {
   TopRightDebugButton,
+  TopRightNavButton,
   TopRightSettingsButton,
   PageVersionLabel,
 } from './sidebar';
@@ -382,6 +383,14 @@ export function Dashboard() {
             <ResizeStrip className={styles.windowResizeCornerBottomLeft} edge={QOS_RESIZE_EDGES.bottomLeft} />
             <ResizeStrip className={styles.windowResizeCornerBottomRight} edge={QOS_RESIZE_EDGES.bottomRight} />
             <CaptionButtons />
+          </>
+        )}
+        {/* Browser-style back/forward chevrons. Desktop-app build only —
+            the website never renders them. */}
+        {__SERVICE_BUILD__ && (
+          <>
+            <TopRightNavButton direction="back" disabled={!canGoBack} onClick={goBack} />
+            <TopRightNavButton direction="forward" disabled={!canGoForward} onClick={goForward} />
           </>
         )}
         <TopRightDebugButton
