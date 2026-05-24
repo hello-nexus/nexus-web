@@ -20,7 +20,6 @@ import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
 import { useProfiles } from '../hooks/useProfiles';
 import { useRoute } from '../hooks/useRoute';
-import { NavHistoryProvider } from '../hooks/useNavHistory';
 import { useBuilder } from '../hooks/useBuilder';
 import { fetchPanelRemoteControlState } from '../api/panel';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
@@ -357,7 +356,6 @@ export function Dashboard() {
         activeProfileId={profilesHook.activeId}
       >
       <CrossZoneDragProvider>
-      <NavHistoryProvider value={{ canGoBack, canGoForward, goBack, goForward }}>
       <div className={classNames(styles.layout, {
         [styles.layoutCompact]: compact,
         [styles.layoutWindowsApp]: isWindowsAppShell(),
@@ -453,7 +451,6 @@ export function Dashboard() {
           onClose={() => setPairPhoneOpen(false)}
         />
       </div>
-      </NavHistoryProvider>
       </CrossZoneDragProvider>
       </UiSettingsProvider>
     </MultiplexContext.Provider>
