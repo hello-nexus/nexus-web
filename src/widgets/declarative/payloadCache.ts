@@ -6,7 +6,7 @@
 // of the same widget on a dashboard share the same upstream data, and the
 // cache is the worker's last publish, not anything instance-specific.
 
-const KEY_PREFIX = 'qos.widget.payload.v1.';
+const KEY_PREFIX = 'nexus.widget.payload.v1.';
 const MAX_PAYLOAD_BYTES = 256 * 1024; // 256 KiB per widget cap
 
 export function loadCachedWorkerPayload(widgetId: string): Record<string, unknown> | null {

@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  // Keep in lockstep with MinClientWidth in qos-overlay's DashboardWindow.cs
+  // Keep in lockstep with MinClientWidth in nexus-overlay's DashboardWindow.cs
   // - the OS-enforced minimum window width matches this so the layout
   // is never asked to shrink below it (no horizontal scrollbar).
   min-width: 1000px;
@@ -17,7 +17,7 @@
   min-width: 864px;
 }
 
-// Qos Windows --app shell: we host our own title bar inside the page so
+// Nexus Windows --app shell: we host our own title bar inside the page so
 // the WebView2 can paint flush to the top edge of the window. The shell
 // strips the OS caption, so we need a draggable strip across the top row
 // and reserved space for the custom caption buttons on the right. The page
@@ -82,7 +82,7 @@
 }
 
 // Resize strips - one along each edge of the window. They catch
-// mousedown and IPC the host (qos-overlay's DashboardWindow.cs), which
+// mousedown and IPC the host (nexus-overlay's DashboardWindow.cs), which
 // posts WM_NCLBUTTONDOWN(hit, lParam) to its own HWND so the OS takes
 // over the resize loop natively (no per-frame JS work).
 //
@@ -325,7 +325,7 @@
 }
 
 // Custom-title-bar drag region for the sidebar brand row. Scoped to
-// .layoutWindowsApp (the qos-overlay shell) so iOS WKWebView doesn't
+// .layoutWindowsApp (the nexus-overlay shell) so iOS WKWebView doesn't
 // pick up the property and swallow scroll / text-selection on the
 // brand row in mobile contexts.
 .layoutWindowsApp .sidebarBrand {
@@ -1291,7 +1291,7 @@
   min-width: 0;
   min-height: 0;
   // Top gutter so the page title doesn't sit flush against the viewport
-  // edge. In the Qos Windows --app shell this same 16px lets the title
+  // edge. In the Nexus Windows --app shell this same 16px lets the title
   // float inside the 32px drag-strip region (the drag strip overlays on
   // z-index:40); on the public website the gutter is just breathing
   // room since there's no shell chrome above us.

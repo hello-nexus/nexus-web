@@ -1,6 +1,6 @@
-// Thin client for the remote qos-api (NestJS, default http://localhost:3000
+// Thin client for the remote nexus-api (NestJS, default http://localhost:3000
 // in dev, https://nexusqos.com/api in production). Separate from service.ts
-// which talks to the local qos-service on :9400.
+// which talks to the local nexus-service on :9400.
 
 import type { MatchResponse } from '../types/benchmark';
 
@@ -71,7 +71,7 @@ export async function submitBenchmark(
 
 /** Stable per-browser device id stored in localStorage. Generated lazily. */
 export function getDeviceId(): string {
-  const key = 'qos_benchmark_device_id';
+  const key = 'nexus_benchmark_device_id';
   let id = localStorage.getItem(key);
   if (id && id.length >= 16) return id;
   const bytes = new Uint8Array(32);

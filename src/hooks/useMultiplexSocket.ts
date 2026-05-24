@@ -19,7 +19,7 @@ export interface MultiplexContextValue {
   unsubscribe: (topic: string, listener: (data: unknown) => void) => void;
   connected: boolean;
   /**
-   * True when the Qos service has disabled Pair Remote (killswitch off).
+   * True when the Nexus service has disabled Pair Remote (killswitch off).
    * Phone clients in this state can't open the WS or call protected REST
    * routes - render an explicit "disabled by host" surface and skip any
    * UI that depends on live data. Cleared automatically when the host

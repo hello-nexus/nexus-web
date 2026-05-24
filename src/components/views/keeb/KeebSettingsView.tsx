@@ -88,7 +88,7 @@ export function KeebSettingsView({
 
   return (
     <div className={styles.grid}>
-      <Card title="Firmware Lighting" subtitle="Applies on the keyboard itself when qos isn't actively driving the LEDs.">
+      <Card title="Firmware Lighting" subtitle="Applies on the keyboard itself when nexus isn't actively driving the LEDs.">
         <Row label="Effect">
           <Select
             value={local.animationMode}

@@ -10,7 +10,7 @@ import type { WidgetInstalledListing } from './types';
 export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
 
 /**
- * Marketplace widgets that surface in the Add-a-Widget picker. The qos-service
+ * Marketplace widgets that surface in the Add-a-Widget picker. The nexus-service
  * may report more bundled widgets than this — the panel only shows the
  * allowlisted ones so the marketplace experience stays curated while the
  * declarative SDK is in beta. Widgets installed by the user but not in this
@@ -73,7 +73,7 @@ export function hasMarketplaceLoadedOnce(): boolean {
 }
 
 /**
- * Refresh the cache from the qos-service. Coalesces concurrent calls into
+ * Refresh the cache from the nexus-service. Coalesces concurrent calls into
  * one in-flight request and re-fires the listener set after success.
  * Failures leave the previous cache intact so the dashboard doesn't lose
  * its widget list on a transient blip.

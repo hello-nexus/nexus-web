@@ -1,5 +1,5 @@
 // Canonical shape for the panel widget engine. Mirrors
-// qos-service/Models/Panel/PanelLayoutDto.cs. Keep in sync.
+// nexus-service/Models/Panel/PanelLayoutDto.cs. Keep in sync.
 
 export const PANEL_WIDGET_SIZES = ['1x1', '2x2', '2x4', '4x2', '4x4'] as const;
 export type PanelWidgetSize = typeof PANEL_WIDGET_SIZES[number];

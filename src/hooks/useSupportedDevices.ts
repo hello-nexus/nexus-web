@@ -1,4 +1,4 @@
-// Static catalog of devices Qos knows about (available + planned + experimental).
+// Static catalog of devices Nexus knows about (available + planned + experimental).
 // Fetched once per modal open, filtered client-side for search/pagination.
 import { useEffect, useState } from 'react';
 import { fetchService } from '../api/service';

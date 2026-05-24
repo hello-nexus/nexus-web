@@ -216,14 +216,14 @@ function PanelEntrypointFailure({ kind, detail, isPhone, onRetry }: {
   if (kind === 'auth') {
     headline = isPhone ? 'Pair this phone first' : 'This panel needs to be authorized';
     body = isPhone
-      ? 'On your PC, open the Qos dashboard, tap "Pair Phone" in the sidebar, and scan the QR code with this phone. Then tap Retry below.'
-      : 'Open this URL with a service token (?token=...), or load it from the local machine where qos-service is running.';
+      ? 'On your PC, open the Nexus dashboard, tap "Pair Phone" in the sidebar, and scan the QR code with this phone. Then tap Retry below.'
+      : 'Open this URL with a service token (?token=...), or load it from the local machine where nexus-service is running.';
   } else if (kind === 'pair-expired') {
     headline = 'Pairing expired';
-    body = 'Generate a new QR from the Qos dashboard ("Pair Phone") and scan it again.';
+    body = 'Generate a new QR from the Nexus dashboard ("Pair Phone") and scan it again.';
   } else {
     headline = 'Could not reach the service';
-    body = 'Check that qos-service is running, then retry.';
+    body = 'Check that nexus-service is running, then retry.';
   }
 
   return (

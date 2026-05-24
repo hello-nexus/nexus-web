@@ -11,7 +11,7 @@ export interface PanelStatus {
 
 // Per-device record: identity (deviceId), persisted layout, optional
 // per-device theme overrides, last-reported capabilities. Mirrors
-// qos-service Models/Panel/PanelDeviceDto.cs.
+// nexus-service Models/Panel/PanelDeviceDto.cs.
 export interface PanelDeviceCapabilitiesDto {
   surface?: PanelSurface;
   grid?: string;

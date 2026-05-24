@@ -1,8 +1,8 @@
 // Cross-platform bridge between OverlayShell and the native widget host.
-// The Windows host is qos-overlay.exe (WebView2): listens via
-// `window.chrome.webview`. The macOS host is qos-service itself
+// The Windows host is nexus-overlay.exe (WebView2): listens via
+// `window.chrome.webview`. The macOS host is nexus-service itself
 // (in-process WKWebView + AppKit): listens via
-// `window.webkit.messageHandlers.qosOverlay`.
+// `window.webkit.messageHandlers.nexusOverlay`.
 //
 // WebView2 accepts structured payloads (postMessage takes any object).
 // WKWebView's WKScriptMessageHandler receives the body verbatim - we
@@ -26,7 +26,7 @@ interface WKMessageHandler { postMessage(payload: unknown): void }
 // an incompatible-extend error on those locally-typed Window subtypes.
 interface OverlayBridgeWindow {
   chrome?: { webview?: WebView2Bridge };
-  webkit?: { messageHandlers?: { qosOverlay?: WKMessageHandler } };
+  webkit?: { messageHandlers?: { nexusOverlay?: WKMessageHandler } };
 }
 
 export function postToHost(msg: HostMessage): void {
@@ -36,7 +36,7 @@ export function postToHost(msg: HostMessage): void {
     win.postMessage(msg);
     return;
   }
-  const mac = w.webkit?.messageHandlers?.qosOverlay;
+  const mac = w.webkit?.messageHandlers?.nexusOverlay;
   if (mac) {
     mac.postMessage(JSON.stringify(msg));
     return;

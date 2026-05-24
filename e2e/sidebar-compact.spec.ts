@@ -5,9 +5,9 @@ const SCREENSHOT_DIR = join(process.cwd(), '..', '.deep-build', 'screenshots');
 
 async function setupMock(page: Page) {
   await page.addInitScript(() => {
-    localStorage.setItem('qos_token', 'test-token');
-    localStorage.setItem('qos_simulated_panel_ids', JSON.stringify(['y70', 'q60']));
-    localStorage.setItem('qos_simulate_y70', '1');
+    localStorage.setItem('nexus_token', 'test-token');
+    localStorage.setItem('nexus_simulated_panel_ids', JSON.stringify(['y70', 'q60']));
+    localStorage.setItem('nexus_simulate_y70', '1');
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: (q: string) => {
@@ -20,7 +20,7 @@ async function setupMock(page: Page) {
   await page.route('**/sw.js', r => r.fulfill({ status: 404 }));
   await page.route('http://localhost:9400/**', async r => {
     const path = new URL(r.request().url()).pathname;
-    if (path === '/ping') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ service: 'qos', version: 'test', initialized: true, platform: 'macos' }) });
+    if (path === '/ping') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ service: 'nexus', version: 'test', initialized: true, platform: 'macos' }) });
     if (path === '/pair') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ token: 'test-token' }) });
     if (path === '/profiles') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ profiles: [{ id: 'default', name: 'Default', createdAt: '', updatedAt: '' }], activeId: 'default' }) });
     if (path === '/preferences') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ theme: { language: 'en', themeMode: 'dark', accentColor: '#3b82f6' }, panel: { autoLaunch: true, themeSyncWithDesktop: true, themeMode: 'dark', accentSyncWithDesktop: true, backgroundMode: 'solid', backgroundEffect: 'none', backgroundTemplate: 0, backgroundOpacity: 1, widgetOpacity: 1, widgetLabels: true }, overlay: { enabled: false, alwaysOnTop: false, scale: 1, opacity: 1, monitor: 0, layout: [] }, monitoring: { showAverage: true, showMacStatusBarIcon: true, showWindowsTrayIcon: true, detailedCollapsed: [] }, cooling: {}, ui: { disableConflictAlerts: false, pinnedSidebarApps: ['monitoring','lighting','cooling'] } }) });

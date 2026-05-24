@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Drives the qos-web dashboard against a live qos-service instance and
+// Drives the nexus-web dashboard against a live nexus-service instance and
 // reports a small set of render/memory metrics over a fixed window.
 // Used to compare before/after a React perf change.
 //

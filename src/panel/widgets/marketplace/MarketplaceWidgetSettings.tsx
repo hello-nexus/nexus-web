@@ -47,9 +47,9 @@ const DEBOUNCE_MS = 200;
  * flexibility - iOS-style locked layout. Phase 4+ may relax for advanced
  * setting types.
  *
- * Storage is via `WidgetSettingsBridge` (qos-service settings doc), NOT
- * `widget.config` - the Tier 2 worker reads values via `qos.settings.get()`,
- * and the bridge's `qos.settings.changed` notification re-runs the widget.
+ * Storage is via `WidgetSettingsBridge` (nexus-service settings doc), NOT
+ * `widget.config` - the Tier 2 worker reads values via `nexus.settings.get()`,
+ * and the bridge's `nexus.settings.changed` notification re-runs the widget.
  */
 export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
   const id = marketplaceIdFromType(widget.type) ?? '';

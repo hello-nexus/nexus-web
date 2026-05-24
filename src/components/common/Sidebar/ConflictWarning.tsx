@@ -15,7 +15,7 @@ interface ConflictWarningProps {
   /**
    * Persist the "don't show conflict warnings" preference. Called when the
    * user ticks the "Don't show this again" checkbox inside the modal.
-   * The parent owns the preference (it lives in QosSettings.Ui), so the
+   * The parent owns the preference (it lives in NexusSettings.Ui), so the
    * badge stays purely presentational.
    */
   onDismissForever: () => void;

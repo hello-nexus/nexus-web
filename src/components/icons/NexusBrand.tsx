@@ -1,4 +1,4 @@
-export function QosWordmark({ height = 40 }: { height?: number }) {
+export function NexusWordmark({ height = 40 }: { height?: number }) {
   // Traced from the original JPG (full 1024 width, vertical crop only to drop
   // the bottom-right Gemini watermark). viewBox is tight around the letter
   // content (~104..921 horizontally). Fixed natural-aspect width so the visible
@@ -29,7 +29,7 @@ export function QosWordmark({ height = 40 }: { height?: number }) {
   );
 }
 
-export function QosMark({ size = 24 }: { size?: number }) {
+export function NexusMark({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="104 221 155 141" fill="currentColor" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Nexus">
       <g transform="translate(0,600) scale(0.1,-0.1)">

@@ -20,7 +20,7 @@ export type WidgetSettingsListener = (values: Record<string, unknown>) => void;
 /**
  * Lazy-loaded, cached settings document with a subscriber list. One instance
  * per widget surfaced by the dashboard. The Tier 2 worker host (read via
- * `qos.settings.get()`) and the in-host React settings form (read + patch)
+ * `nexus.settings.get()`) and the in-host React settings form (read + patch)
  * both talk to this.
  */
 export class WidgetSettingsBridge {

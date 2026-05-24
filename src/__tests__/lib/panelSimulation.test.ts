@@ -108,11 +108,11 @@ describe('panelSimulation', () => {
   });
 
   it('ignores malformed connected-panel storage', () => {
-    localStorage.setItem('qos_simulated_panel_ids', JSON.stringify({ y70: true }));
+    localStorage.setItem('nexus_simulated_panel_ids', JSON.stringify({ y70: true }));
 
     expect(getConnectedSimulatedPanelIds()).toEqual([]);
 
-    localStorage.setItem('qos_simulated_panel_ids', JSON.stringify('q60'));
+    localStorage.setItem('nexus_simulated_panel_ids', JSON.stringify('q60'));
 
     expect(getConnectedSimulatedPanelIds()).toEqual([]);
   });

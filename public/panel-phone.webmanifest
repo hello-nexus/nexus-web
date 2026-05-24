@@ -1,7 +1,7 @@
 {
-  "name": "Qos Panel",
+  "name": "Nexus Panel",
   "short_name": "Panel",
-  "description": "Qos phone panel",
+  "description": "Nexus phone panel",
   "id": "/panel/phone",
   "start_url": "/panel/phone",
   "scope": "/panel/",

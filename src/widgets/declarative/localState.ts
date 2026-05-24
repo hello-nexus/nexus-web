@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { evaluateBinding, type BindingContext } from './bindings';
 
-const KEY_PREFIX = 'qos.widget.local.v1.';
+const KEY_PREFIX = 'nexus.widget.local.v1.';
 const KEY = (widgetId: string, instanceId: string) => `${KEY_PREFIX}${widgetId}::${instanceId}`;
 
 export type WidgetLocalState = Record<string, unknown>;

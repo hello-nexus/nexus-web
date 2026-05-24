@@ -4,8 +4,8 @@
 
 import { resolveHttp } from './service';
 
-const TOKEN_KEY = 'qos_token';
-const PHONE_TOKEN_KEY = 'qos_phone_token';
+const TOKEN_KEY = 'nexus_token';
+const PHONE_TOKEN_KEY = 'nexus_phone_token';
 
 let cached: string | null = null;
 let pairingPromise: Promise<string> | null = null;

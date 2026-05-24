@@ -1,7 +1,7 @@
-// 32x32 stylised Qos device-with-cables icon. Used in the PairRedirect
+// 32x32 stylised Nexus device-with-cables icon. Used in the PairRedirect
 // landing page and the OpenInAppBanner; centralised here so the artwork has
 // one source of truth.
-export function QosAppIcon({ size = 32, boltFill = '#0a0a10' }: { size?: number; boltFill?: string }) {
+export function NexusAppIcon({ size = 32, boltFill = '#0a0a10' }: { size?: number; boltFill?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <rect x="6" y="4" width="20" height="24" rx="3" fill="currentColor" />

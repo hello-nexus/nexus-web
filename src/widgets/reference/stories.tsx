@@ -840,7 +840,7 @@ export const DATA_SOURCES_CHEATSHEET = [
   {
     name: 'worker',
     shape: '{ "worker": "myPayloadKey" }',
-    doc: 'Passthrough from the Tier 2 worker. Requires capabilities.code = "worker" and a worker.js that calls qos.publish({ myPayloadKey: ... }). Authors write arbitrary JS for data prep, but rendering stays declarative.',
+    doc: 'Passthrough from the Tier 2 worker. Requires capabilities.code = "worker" and a worker.js that calls nexus.publish({ myPayloadKey: ... }). Authors write arbitrary JS for data prep, but rendering stays declarative.',
   },
   {
     name: 'clock',
@@ -884,12 +884,12 @@ export const CAPABILITIES_CHEATSHEET = [
   {
     name: 'dispatch',
     type: 'string[]',
-    doc: 'Host-action allowlist. ["displays.setBrightness"] lets the widget call that action via slider.onCommit / qos.dispatch() / host data source. Server enforces the allowlist before invoking.',
+    doc: 'Host-action allowlist. ["displays.setBrightness"] lets the widget call that action via slider.onCommit / nexus.dispatch() / host data source. Server enforces the allowlist before invoking.',
   },
 ];
 
-/** Registered host actions surface — populated by Qos itself. Each handler
- *  lives in qos-service/src/Widgets/WidgetActions/*.cs and is wired into
+/** Registered host actions surface — populated by Nexus itself. Each handler
+ *  lives in nexus-service/src/Widgets/WidgetActions/*.cs and is wired into
  *  the WidgetActionRegistry at startup. Widgets opt in via capabilities.dispatch. */
 export const DISPATCH_ACTIONS_CHEATSHEET = [
   {
@@ -907,9 +907,9 @@ export const DISPATCH_ACTIONS_CHEATSHEET = [
 ];
 
 /** Manifest schema reference. Each key here is part of the top-level
- *  qos.widget/2 envelope. */
+ *  nexus.widget/2 envelope. */
 export const MANIFEST_CHEATSHEET = [
-  { key: 'schema', doc: 'Must be `"qos.widget/2"`.' },
+  { key: 'schema', doc: 'Must be `"nexus.widget/2"`.' },
   { key: 'id', doc: 'Reverse-DNS, lowercase alphanumerics + `-` `.`. Must match the widget folder name.' },
   { key: 'name / version / description / author', doc: 'Marketplace listing metadata. version is semver-like.' },
   { key: 'icon', doc: 'Bundle-relative SVG/PNG used as the marketplace + Add-Widget card icon.' },

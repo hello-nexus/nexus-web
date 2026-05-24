@@ -44,7 +44,7 @@ export function WidgetReferenceWrapper() {
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <header className={styles.brand}>
-          <span className={styles.brandLabel}>Qos Widget SDK</span>
+          <span className={styles.brandLabel}>Nexus Widget SDK</span>
           <span className={styles.brandSub}>declarative reference</span>
         </header>
         <nav className={styles.tabsScroll}>
@@ -160,7 +160,7 @@ function BindingsDoc() {
         <p className={styles.docDesc}>
           String values in any prop can contain <code>{'{expression}'}</code> templates.
           Expressions are pure: no side effects, no statements, no loops. The full grammar
-          is in <code>qos-web/src/widgets/declarative/bindings.ts</code>.
+          is in <code>nexus-web/src/widgets/declarative/bindings.ts</code>.
         </p>
       </header>
 
@@ -240,7 +240,7 @@ function DispatchDoc() {
           The host validates <code>action</code> against the widget's
           <code> capabilities.dispatch </code> allowlist, then routes to a registered handler.
           Slider <code>onCommit</code>, the <code>host</code> data source, and any future
-          <code> qos.dispatch()</code> worker call all flow through here.
+          <code> nexus.dispatch()</code> worker call all flow through here.
         </p>
       </header>
       {DISPATCH_ACTIONS_CHEATSHEET.map((a) => (
@@ -271,7 +271,7 @@ function ManifestDoc() {
         <h1 className={styles.docTitle}>Manifest schema</h1>
         <p className={styles.docDesc}>
           Each widget ships a <code>manifest.json</code> at the bundle root. The host loads
-          it on install and validates against <code>qos.widget/2</code>. Top-level keys:
+          it on install and validates against <code>nexus.widget/2</code>. Top-level keys:
         </p>
       </header>
       <DocList items={MANIFEST_CHEATSHEET.map((m) => ({ key: m.key, value: m.doc }))} />

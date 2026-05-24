@@ -3,7 +3,7 @@ import type { PanelSurface } from './types';
 import { PHONE_WIDGET_REFERENCE_CELL, readSafeAreaInsets } from './panelGrid';
 import styles from './PanelApp.module.scss';
 
-export const PHONE_PANEL_PWA_KEY = 'qos_phone_panel_pwa';
+export const PHONE_PANEL_PWA_KEY = 'nexus_phone_panel_pwa';
 
 export function usePhonePanelManifest(enabled: boolean) {
   useEffect(() => {
@@ -16,10 +16,10 @@ export function usePhonePanelManifest(enabled: boolean) {
 
     const appleTitle = document.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-title"]');
     const previousAppleTitle = appleTitle?.getAttribute('content');
-    if (appleTitle) appleTitle.content = 'Qos Panel';
+    if (appleTitle) appleTitle.content = 'Nexus Panel';
 
     const title = document.title;
-    document.title = 'Qos Panel';
+    document.title = 'Nexus Panel';
 
     return () => {
       if (manifest && previousManifest) manifest.href = previousManifest;

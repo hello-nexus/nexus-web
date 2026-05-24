@@ -1,7 +1,7 @@
 // Tier 2 worker host. Spawns a module Web Worker per widget instance whose
-// manifest declares `capabilities.code === "worker"`, installs the qos.*
+// manifest declares `capabilities.code === "worker"`, installs the nexus.*
 // surface on the worker side, proxies network through the host's
-// /widgets-api/proxy endpoint, and listens for `qos.publish` to feed the
+// /widgets-api/proxy endpoint, and listens for `nexus.publish` to feed the
 // declarative renderer.
 //
 // Multi-file workers: the host POSTs to /widgets-api/installed/{id}/code-session
@@ -76,14 +76,14 @@ export function spawnWidgetWorker(opts: WorkerOptions): WidgetWorkerHandle {
     }
     if (disposed) return;
 
-    // 2. Compose a module-mode boot Blob. The boot script installs qos.*
+    // 2. Compose a module-mode boot Blob. The boot script installs nexus.*
     //    and kills privileged globals, then dynamic-imports the author
     //    entry under the session URL. Sibling imports inside the entry
     //    inherit the session prefix automatically.
     const entryUrl = new URL(`${session.baseUrl}/worker.js`, window.location.origin).toString();
     const composed = `${workerBootScript()}
 import(${JSON.stringify(entryUrl)}).catch(function (err) {
-  self.postMessage({ type: 'qos.error', message: String(err && err.message || err) });
+  self.postMessage({ type: 'nexus.error', message: String(err && err.message || err) });
 });
 `;
     const blob = new Blob([composed], { type: 'application/javascript' });
@@ -112,30 +112,30 @@ import(${JSON.stringify(entryUrl)}).catch(function (err) {
 
       const inbound = msg as RpcInbound;
       switch (inbound.type) {
-        case 'qos.publish': {
+        case 'nexus.publish': {
           const payload = inbound.payload as Record<string, unknown> | undefined;
           lastPublishAt = Date.now();
           if (payload) opts.onPublish(payload);
           break;
         }
-        case 'qos.log': {
+        case 'nexus.log': {
           const p = inbound.payload as { level?: string; message?: string; data?: unknown } | undefined;
           opts.onLog?.(p?.level ?? 'info', p?.message ?? '', p?.data);
           break;
         }
-        case 'qos.net.fetch': {
+        case 'nexus.net.fetch': {
           void handleNetFetch(inbound, worker!, opts);
           break;
         }
-        case 'qos.sensors.read': {
+        case 'nexus.sensors.read': {
           const p = inbound.payload as { id?: string } | undefined;
           const result = readSensor(p?.id ?? '');
           if (inbound.id !== undefined && worker) {
-            worker.postMessage({ type: 'qos.reply', id: inbound.id, result });
+            worker.postMessage({ type: 'nexus.reply', id: inbound.id, result });
           }
           break;
         }
-        case 'qos.sensors.subscribe': {
+        case 'nexus.sensors.subscribe': {
           const p = inbound.payload as { pattern?: string; subscriptionId?: number } | undefined;
           if (p?.subscriptionId && p?.pattern) {
             sensorSubscribers.set(p.subscriptionId, {
@@ -147,7 +147,7 @@ import(${JSON.stringify(entryUrl)}).catch(function (err) {
           }
           break;
         }
-        case 'qos.sensors.unsubscribe': {
+        case 'nexus.sensors.unsubscribe': {
           const p = inbound.payload as { subscriptionId?: number } | undefined;
           if (p?.subscriptionId) sensorSubscribers.delete(p.subscriptionId);
           break;
@@ -162,7 +162,7 @@ import(${JSON.stringify(entryUrl)}).catch(function (err) {
     // Initial bootstrap: tell the worker its initial settings + sensor
     // catalog seed (so authors can read settings synchronously).
     worker.postMessage({
-      type: 'qos.welcome',
+      type: 'nexus.welcome',
       payload: {
         widgetId: opts.widgetId,
         netFetch: opts.netFetchAllowlist,
@@ -172,10 +172,10 @@ import(${JSON.stringify(entryUrl)}).catch(function (err) {
 
     handle.pushSettings = (values) => {
       pendingSettings = values;
-      worker?.postMessage({ type: 'qos.settings.changed', payload: values });
+      worker?.postMessage({ type: 'nexus.settings.changed', payload: values });
     };
     handle.refresh = () => {
-      worker?.postMessage({ type: 'qos.refresh' });
+      worker?.postMessage({ type: 'nexus.refresh' });
     };
 
     // Fan out monitoring frames to subscribed worker patterns.
@@ -214,7 +214,7 @@ import(${JSON.stringify(entryUrl)}).catch(function (err) {
     for (const reading of flat) {
       for (const [subId, sub] of sensorSubscribers) {
         if (sub.regex.test(reading.id)) {
-          w.postMessage({ type: 'qos.sensors.reading', payload: { subscriptionId: subId, reading } });
+          w.postMessage({ type: 'nexus.sensors.reading', payload: { subscriptionId: subId, reading } });
         }
       }
     }
@@ -347,8 +347,8 @@ async function handleNetFetch(msg: RpcInbound, worker: Worker, opts: WorkerOptio
       }
     }
     const payload = await res.json();
-    worker.postMessage({ type: 'qos.reply', id: msg.id, result: payload });
+    worker.postMessage({ type: 'nexus.reply', id: msg.id, result: payload });
   } catch (err) {
-    worker.postMessage({ type: 'qos.reply', id: msg.id, error: { code: -32001, message: String(err) } });
+    worker.postMessage({ type: 'nexus.reply', id: msg.id, error: { code: -32001, message: String(err) } });
   }
 }

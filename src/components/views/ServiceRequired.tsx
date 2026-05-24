@@ -23,7 +23,7 @@ export function ServiceRequired({ state = 'offline', skeleton }: ServiceRequired
   const alternateOS = ALL_DOWNLOADABLE_OS.filter((os) => os !== primaryOS);
   // Show the download CTA whenever the service isn't reachable, not only
   // for first-time visitors. Someone whose localStorage flag says they
-  // installed Qos before (so state is 'offline-installed') might be on a
+  // installed Nexus before (so state is 'offline-installed') might be on a
   // different machine where they don't actually have it - they still need
   // a download link. Different label for the two cases keeps the UX honest.
   const showDownload = state === 'offline' || state === 'offline-installed';
@@ -58,7 +58,7 @@ export function ServiceRequired({ state = 'offline', skeleton }: ServiceRequired
             </div>
           )}
 
-          {/* Launch button only makes sense when qos:// can plausibly
+          {/* Launch button only makes sense when nexus:// can plausibly
               route to a running installer - Safari blocks custom-scheme
               handlers on https origins, so suppressing the button while the
               Safari note is shown keeps the UI from promising an action that

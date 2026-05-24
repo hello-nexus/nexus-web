@@ -415,7 +415,7 @@ export const TEMPLATE_COUNT = 4;
 
 /** Per-effect slot store. One of `slots[selected]` is the state currently */
 /** driving the engine; the other 3 are off-screen variations the user can */
-/** switch to instantly. All 4 round-trip through QosSettings. */
+/** switch to instantly. All 4 round-trip through NexusSettings. */
 export interface EffectTemplateBundle {
   selected: number;
   slots: EffectState[];

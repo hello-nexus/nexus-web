@@ -14,7 +14,7 @@ FAIL=0
 pass() { ((PASS++)); echo "  ✓ $1"; }
 fail() { ((FAIL++)); echo "  ✗ $1"; }
 
-echo "=== Qos Settings E2E Tests ==="
+echo "=== Nexus Settings E2E Tests ==="
 echo "Base: $BASE"
 echo ""
 

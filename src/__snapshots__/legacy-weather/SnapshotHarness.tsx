@@ -76,7 +76,7 @@ const SETTINGS = { showCondition: true, showLocation: true, showDetails: true, u
 
 export function SnapshotHarness() {
   // The renderer requests widget assets at /widgets-api/installed/<id>/asset/...
-  // The harness runs against the static vite preview server with no qos-service
+  // The harness runs against the static vite preview server with no nexus-service
   // backing, so we route those requests to the public/snapshot-assets/ tree
   // where each widget's bundled SVG / image lives.
   installHarnessAssetRedirect();

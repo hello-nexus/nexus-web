@@ -23,7 +23,7 @@ export function DeviceModal({ open, onClose, title, icon, large, wide, fullscree
   const surfaceClass = `${styles.modal} ${variantClass}`.trim();
 
   // The fullscreen variant's top margin (DeviceModal.module.scss) pushes
-  // the modal below the 32px Windows caption strip in the Qos shell, so
+  // the modal below the 32px Windows caption strip in the Nexus shell, so
   // the inline header X is no longer obscured by the caption buttons.
   return (
     <Overlay open={open} onClose={onClose} variant="dialog" className={surfaceClass} ariaLabel={title}>

@@ -28,7 +28,7 @@ export interface DeclarativeWidgetProps {
 /**
  * Top-level renderer for a declarative marketplace widget. Wires up:
  *
- *   1. The settings bridge (persisted on qos-service).
+ *   1. The settings bridge (persisted on nexus-service).
  *   2. The data resolver (sensor + REST + worker passthrough).
  *   3. The optional Tier 2 Worker host when the manifest declares it.
  *   4. The view-tree walker.
@@ -103,7 +103,7 @@ export function DeclarativeWidget({ listing, size, instanceId }: DeclarativeWidg
   }, [wantsWorker, listing.id, JSON.stringify(listing.capabilities['net.fetch'] ?? [])]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Push settings into the worker whenever they change so authors can
-  // react via qos.settings.onChange.
+  // react via nexus.settings.onChange.
   useEffect(() => {
     workerRef.current?.pushSettings(settingsValues);
   }, [settingsValues]);

@@ -1,12 +1,12 @@
-// Qos Web service worker — offline shell cache.
+// Nexus Web service worker — offline shell cache.
 // Strategy: precache the app shell on install; serve hashed /assets/* cache-first;
 // for navigations, try network and fall back to cached index.html.
 // Bump CACHE_VERSION on every deploy to invalidate stale shells.
 //
-// IMPORTANT: never intercept localhost — the local Qos service must hit the
+// IMPORTANT: never intercept localhost — the local Nexus service must hit the
 // network directly so the SPA can detect it going up/down in real time.
 
-const CACHE_VERSION = 'qos-web-v131-panel-html-theme';
+const CACHE_VERSION = 'nexus-web-v131-panel-html-theme';
 const SHELL_URLS = ['/', '/index.html', '/favicon.svg', '/icons.svg', '/manifest.webmanifest', '/panel-phone.webmanifest', '/fonts/lexend/lexend-latin.woff2'];
 
 self.addEventListener('install', (event) => {
@@ -38,7 +38,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // Never intercept the local Qos service — it must hit the network directly.
+  // Never intercept the local Nexus service — it must hit the network directly.
   if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.localhost')) {
     return;
   }

@@ -50,7 +50,7 @@ export type ThemeMode = (typeof THEME_MODES)[number];
 // per-theme in applyAccentColor().
 // Absolute-last-resort fallback for the first paint, before either
 // localStorage or the /defaults cache has anything useful. Must mirror
-// qos-service/data/install-defaults.json → theme.accentColor.
+// nexus-service/data/install-defaults.json → theme.accentColor.
 export const DEFAULT_ACCENT = '#2563eb';
 
 // Preset swatch grid shown in the settings picker. Two rows of ten, paired by
@@ -102,7 +102,7 @@ export interface GeneralSettings {
   pinnedSidebarApps: string[];
 }
 
-export interface QosSettings {
+export interface NexusSettings {
   general: GeneralSettings;
 }
 
@@ -110,10 +110,10 @@ export interface QosSettings {
 
 // First-paint defaults — used only when localStorage is empty AND the
 // /defaults cache hasn't loaded yet. The canonical values for every field
-// here live in qos-service/data/install-defaults.json (theme.* and
+// here live in nexus-service/data/install-defaults.json (theme.* and
 // monitoring.*); keep them in sync until the cache-aware bootstrap can
 // take over this read too.
-export function getDefaultSettings(): QosSettings {
+export function getDefaultSettings(): NexusSettings {
   return {
     general: {
       language: 'en',
@@ -132,7 +132,7 @@ export function getDefaultSettings(): QosSettings {
 
 // ── Persistence ──────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'qos_settings';
+const STORAGE_KEY = 'nexus_settings';
 
 const HEX6_RE = /^#[0-9a-f]{6}$/i;
 
@@ -142,13 +142,13 @@ function normalizeAccent(candidate: unknown): string {
     : DEFAULT_ACCENT;
 }
 
-export function loadSettings(): QosSettings {
+export function loadSettings(): NexusSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       const defaults = getDefaultSettings();
-      const merged: QosSettings = {
+      const merged: NexusSettings = {
         general: { ...defaults.general, ...parsed.general },
       };
       merged.general.accentColor = normalizeAccent(merged.general.accentColor);
@@ -158,7 +158,7 @@ export function loadSettings(): QosSettings {
   return getDefaultSettings();
 }
 
-export function saveSettings(settings: QosSettings): void {
+export function saveSettings(settings: NexusSettings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 

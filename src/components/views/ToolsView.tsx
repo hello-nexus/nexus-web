@@ -149,7 +149,7 @@ function PawnIoCard() {
 // every section's current JSON inline with its own Copy button. Each Copy
 // puts the matching `"key": <value>` fragment on the clipboard so the user
 // can find-and-replace the corresponding block in
-// qos-service/data/install-defaults.json.
+// nexus-service/data/install-defaults.json.
 //
 // "dashboard" is a virtual row that maps to panel.layouts.desktop (the
 // install-defaults file nests it; users think of it as its own thing).
@@ -160,7 +160,7 @@ function InstallDefaultsCard() {
     <Card title="Install defaults">
       <span className={styles.dim}>
         Open the snapshot, copy any section's current values, and paste over the matching
-        block in <code>qos-service/data/install-defaults.json</code> to make them the new defaults.
+        block in <code>nexus-service/data/install-defaults.json</code> to make them the new defaults.
       </span>
       <Button tone="accent" size="sm" onClick={() => setOpen(true)}>Open snapshot</Button>
       <InstallDefaultsModal open={open} onClose={() => setOpen(false)} />
@@ -213,7 +213,7 @@ function InstallDefaultsModal({ open, onClose }: { open: boolean; onClose: () =>
       <div className={styles.installDefaultsModal}>
         <p className={styles.dim}>
           Copy any section's values and paste over the matching block in
-          <code> qos-service/data/install-defaults.json</code> to make them the new defaults.
+          <code> nexus-service/data/install-defaults.json</code> to make them the new defaults.
         </p>
         <div className={styles.installDefaultsTabs} role="tablist">
           <button type="button" role="tab" aria-selected={tab === 'current'}

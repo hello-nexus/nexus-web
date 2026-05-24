@@ -32,11 +32,11 @@
   max-height: none;
 }
 
-// Inside the Qos Windows shell, the top 32px of the window is occupied by
+// Inside the Nexus Windows shell, the top 32px of the window is occupied by
 // the custom caption strip (min/max/close + drag region, z-index 2003).
 // Push the fullscreen modal down so its header — and the X button inside —
 // clears the caption row instead of disappearing behind it.
-:global(body.qos-shell-windows-app) .modalFullscreen {
+:global(body.nexus-shell-windows-app) .modalFullscreen {
   align-self: flex-start;
   margin-top: 8px;
   height: calc(100vh - 3rem - 8px);

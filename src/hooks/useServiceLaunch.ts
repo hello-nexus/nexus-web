@@ -46,13 +46,13 @@ export function triggerLaunch(): void {
   try {
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
-    iframe.src = 'qos://start-admin';
+    iframe.src = 'nexus://start-admin';
     document.body.appendChild(iframe);
     window.setTimeout(() => {
       try { iframe.remove(); } catch { /* ignore */ }
     }, 200);
   } catch {
-    window.location.href = 'qos://start-admin';
+    window.location.href = 'nexus://start-admin';
   }
 }
 

@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 
 // Bumping the version invalidates older "dismissed" state, e.g. after the app
 // ships to the App Store and we want to re-pitch users who dismissed during dev.
-const DISMISS_KEY = 'qos_open_in_app_banner_dismissed_v1';
+const DISMISS_KEY = 'nexus_open_in_app_banner_dismissed_v1';
 
 /**
  * Top banner shown on nexusqos.com when the visitor is on an iPhone/iPad.
  * Tapping "Open" navigates to the `nexusqos://` custom scheme, which iOS
- * hands off to the Qos app when installed. If the app is not installed,
+ * hands off to the Nexus app when installed. If the app is not installed,
  * Safari silently does nothing (no error toast); the banner stays put so
  * the user can dismiss or ignore it.
  *
@@ -61,7 +61,7 @@ export function OpenInAppBanner() {
   };
 
   return (
-    <div style={banner} role="region" aria-label="Qos app for iPhone">
+    <div style={banner} role="region" aria-label="Nexus app for iPhone">
       <button type="button" style={dismissBtn} onClick={dismiss} aria-label="Dismiss">
         <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
           <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -80,8 +80,8 @@ export function OpenInAppBanner() {
         </svg>
       </div>
       <div style={text}>
-        <div style={title}>Qos for iPhone</div>
-        <div style={sub}>Open this page in the Qos app.</div>
+        <div style={title}>Nexus for iPhone</div>
+        <div style={sub}>Open this page in the Nexus app.</div>
       </div>
       <button type="button" style={openBtn} onClick={openInApp}>
         Open

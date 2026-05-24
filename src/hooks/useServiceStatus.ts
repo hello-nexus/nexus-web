@@ -18,7 +18,7 @@ export interface ServiceStatus {
 
 const POLL_INTERVAL_MS = 5_000;
 const POLL_INTERVAL_LAUNCHING_MS = 500;
-const INSTALLED_KEY = 'qos_installed';
+const INSTALLED_KEY = 'nexus_installed';
 
 export function useServiceStatus(enabled = true): ServiceStatus {
   const [state, setState] = useState<ConnectionState>('checking');

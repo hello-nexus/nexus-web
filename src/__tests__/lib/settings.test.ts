@@ -161,7 +161,7 @@ describe('loadSettings / saveSettings', () => {
   });
 
   it('merges partial saved data with defaults', () => {
-    localStorage.setItem('qos_settings', JSON.stringify({
+    localStorage.setItem('nexus_settings', JSON.stringify({
       general: { language: 'de' },
     }));
     const loaded = loadSettings();
@@ -172,7 +172,7 @@ describe('loadSettings / saveSettings', () => {
   it('silently drops legacy `performance` shape from persisted storage', () => {
     // Older builds persisted { general: {...}, performance: {...} }. loadSettings
     // no longer reads `.performance` so the stale key is simply ignored.
-    localStorage.setItem('qos_settings', JSON.stringify({
+    localStorage.setItem('nexus_settings', JSON.stringify({
       general: { language: 'it' },
       performance: { widgetPollingRate: 5000, rgbOutputResolution: '1/4', rgbFpsCap: '60' },
     }));
@@ -183,7 +183,7 @@ describe('loadSettings / saveSettings', () => {
   });
 
   it('normalizes invalid accent color to default', () => {
-    localStorage.setItem('qos_settings', JSON.stringify({
+    localStorage.setItem('nexus_settings', JSON.stringify({
       general: { accentColor: 'garbage' },
     }));
     const loaded = loadSettings();
@@ -191,7 +191,7 @@ describe('loadSettings / saveSettings', () => {
   });
 
   it('handles corrupt JSON gracefully', () => {
-    localStorage.setItem('qos_settings', '{broken json');
+    localStorage.setItem('nexus_settings', '{broken json');
     const loaded = loadSettings();
     expect(loaded).toEqual(getDefaultSettings());
   });

@@ -89,7 +89,7 @@ async function ensureMultiplePages() {
   // widgets to drag between. If only 1 page exists, post additional
   // widgets via the existing layout API.
   const id = await page.evaluate(() =>
-    localStorage.getItem('panel-device-id') ?? localStorage.getItem('qos_panel_device_id'),
+    localStorage.getItem('panel-device-id') ?? localStorage.getItem('nexus_panel_device_id'),
   );
   if (!id) return false;
   const layout = await page.evaluate(async (devId) => {
@@ -172,7 +172,7 @@ async function scenarioTapOpensImmersive() {
   // Pick the first widget whose type has an immersive component.
   // Read the live layout from the server to know which is which.
   const id = await page.evaluate(() =>
-    localStorage.getItem('panel-device-id') ?? localStorage.getItem('qos_panel_device_id'),
+    localStorage.getItem('panel-device-id') ?? localStorage.getItem('nexus_panel_device_id'),
   );
   let target = null;
   if (id) {
@@ -354,7 +354,7 @@ async function scenarioCrossPageDrop() {
   await page.waitForSelector('[data-panel-widget-id]', { timeout: 15000 });
   await page.waitForTimeout(2000);
   const id = await page.evaluate(() =>
-    localStorage.getItem('panel-device-id') ?? localStorage.getItem('qos_panel_device_id'),
+    localStorage.getItem('panel-device-id') ?? localStorage.getItem('nexus_panel_device_id'),
   );
   if (!id) { record('cross-page-drop', false, 'no device id'); return; }
   const layoutBefore = await page.evaluate(async (devId) => {
@@ -478,7 +478,7 @@ async function scenarioCrossPageShiftFeedback() {
   await page.waitForSelector('[data-panel-widget-id]', { timeout: 15000 });
   await page.waitForTimeout(2000);
   const id = await page.evaluate(() =>
-    localStorage.getItem('panel-device-id') ?? localStorage.getItem('qos_panel_device_id'),
+    localStorage.getItem('panel-device-id') ?? localStorage.getItem('nexus_panel_device_id'),
   );
   if (!id) { record('cross-page-shift-feedback', false, 'no device id'); return; }
   const layout = await page.evaluate(async (devId) => {
@@ -649,7 +649,7 @@ async function scenarioSamePageDropReorder() {
   await page.waitForSelector('[data-panel-widget-id]', { timeout: 15000 });
   await page.waitForTimeout(2500);
   const id = await page.evaluate(() =>
-    localStorage.getItem('panel-device-id') ?? localStorage.getItem('qos_panel_device_id'),
+    localStorage.getItem('panel-device-id') ?? localStorage.getItem('nexus_panel_device_id'),
   );
   if (!id) { record('same-page-drop-reorder', false, 'no device id'); return; }
   const layoutBefore = await page.evaluate(async (devId) => {

@@ -8,7 +8,7 @@
 // view's grid below the keyboard render.
 //
 // `name`, `keyFunction`, `mode`, `input` mirror the firmware contract;
-// `KeyAssignmentMode` strings match qos-service's `KeyAssignmentMode`
+// `KeyAssignmentMode` strings match nexus-service's `KeyAssignmentMode`
 // DTO.
 
 import type { KeyAssignmentMode } from '../../../api/keeb';

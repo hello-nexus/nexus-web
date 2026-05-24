@@ -8,7 +8,7 @@ import {
   type ProfileEntry, type Preferences, type ProfileCategory, type SharingConfig,
 } from '../api/profiles';
 
-const ORDER_KEY = 'qos_profile_order';
+const ORDER_KEY = 'nexus_profile_order';
 
 function loadOrder(): string[] {
   try { return JSON.parse(localStorage.getItem(ORDER_KEY) || '[]'); }

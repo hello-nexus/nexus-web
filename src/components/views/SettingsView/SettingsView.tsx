@@ -7,7 +7,7 @@ import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import type { Preferences } from '../../../api/profiles';
 import { useTranslation } from '../../../lib/i18n';
 import { useUiSettings } from '../../../hooks/useUiSettings';
-import type { QosSettings } from '../../../lib/settings';
+import type { NexusSettings } from '../../../lib/settings';
 import { GeneralTab } from './GeneralTab';
 import { ThemeTab } from './ThemeTab';
 import { ProfilesTab } from './ProfilesTab';
@@ -42,9 +42,9 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
   const tab: SettingsTab = urlTab && VALID_TABS.includes(urlTab as SettingsTab)
     ? urlTab as SettingsTab : 'general';
 
-  // View the unified settings through the legacy `QosSettings` shape so
+  // View the unified settings through the legacy `NexusSettings` shape so
   // the tab components don't need their own rewrite in this pass.
-  const settings = useMemo<QosSettings>(() => ({
+  const settings = useMemo<NexusSettings>(() => ({
     general: {
       language: ui.language,
       themeMode: ui.themeMode,
@@ -65,7 +65,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
     { key: 'profiles', label: t('settings.tab.profiles') },
   ];
 
-  const updateGeneral = useCallback((patch: Partial<QosSettings['general']>) => {
+  const updateGeneral = useCallback((patch: Partial<NexusSettings['general']>) => {
     updateUi(patch);
   }, [updateUi]);
 

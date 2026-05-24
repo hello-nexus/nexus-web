@@ -263,12 +263,12 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
 }
 
 type NativeHapticsWindow = Window & {
-  qosNative?: {
+  nexusNative?: {
     haptic?: (style?: string) => void;
   };
   webkit?: {
     messageHandlers?: {
-      qosNativeHaptics?: {
+      nexusNativeHaptics?: {
         postMessage?: (message: unknown) => void;
       };
     };
@@ -277,12 +277,12 @@ type NativeHapticsWindow = Window & {
 
 function triggerContextMenuHaptic() {
   const nativeWindow = window as NativeHapticsWindow;
-  if (typeof nativeWindow.qosNative?.haptic === 'function') {
-    nativeWindow.qosNative.haptic('medium');
+  if (typeof nativeWindow.nexusNative?.haptic === 'function') {
+    nativeWindow.nexusNative.haptic('medium');
     return;
   }
-  if (typeof nativeWindow.webkit?.messageHandlers?.qosNativeHaptics?.postMessage === 'function') {
-    nativeWindow.webkit.messageHandlers.qosNativeHaptics.postMessage('medium');
+  if (typeof nativeWindow.webkit?.messageHandlers?.nexusNativeHaptics?.postMessage === 'function') {
+    nativeWindow.webkit.messageHandlers.nexusNativeHaptics.postMessage('medium');
     return;
   }
   navigator.vibrate?.(10);

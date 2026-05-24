@@ -6,14 +6,14 @@ test.describe('/r/pair landing page', () => {
     await expect(page.getByText('Invalid pairing link')).toBeVisible();
   });
 
-  test('with a complete pairing link, transitions from "Opening Qos..." to the choice screen', async ({ page }) => {
+  test('with a complete pairing link, transitions from "Opening Nexus..." to the choice screen', async ({ page }) => {
     await page.goto('/r/pair?host=192.168.1.50&port=9443&pair=TESTTOKEN&fp=abc');
 
     // Initial probe stage waits ~1.5s for iOS to take over the URL.
-    await expect(page.getByText('Opening Qos...')).toBeVisible();
+    await expect(page.getByText('Opening Nexus...')).toBeVisible();
 
     // After the probe window, the SPA flips to the install/continue screen.
-    await expect(page.getByText('Pair phone with Qos')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Pair phone with Nexus')).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('link', { name: /install the app/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /continue in browser/i })).toBeVisible();
   });

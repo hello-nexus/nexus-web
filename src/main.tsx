@@ -53,7 +53,7 @@ if (
     navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((registration) => {
       registration.update().catch(() => { /* best-effort */ });
     }).catch((err) => {
-      console.warn('[qos-web] service worker registration failed:', err);
+      console.warn('[nexus-web] service worker registration failed:', err);
     });
   }, { once: true });
 }

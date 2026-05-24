@@ -9,7 +9,7 @@ import { getInstallDefaults } from '../../api/installDefaultsCache';
 // return an empty-widgets layout so the SPA renders something; the next
 // /preferences round-trip replaces it with the persisted state anyway.
 //
-// Canonical values live in qos-service/data/install-defaults.json under
+// Canonical values live in nexus-service/data/install-defaults.json under
 // panel.layouts.{desktop,y70,phone,q60}.
 
 // iOS-springboard-style dock samples. Only Y70 ships with the dock

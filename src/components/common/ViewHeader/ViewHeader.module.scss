@@ -11,7 +11,7 @@
   justify-content: space-between;
   gap: 0.4rem;
   margin: 0 0 0.5rem;
-  // Float above the qos-overlay shell's drag strip (z-index 2000 in
+  // Float above the nexus-overlay shell's drag strip (z-index 2000 in
   // App.module.scss .windowDragStrip) so hover + clicks on the page
   // title, its (i) tooltip, and the back/forward arrows register on
   // those elements instead of being eaten by the drag handler. The
@@ -29,7 +29,7 @@
 }
 
 // Title + arrows are the interactive zone on the left of the title row.
-// Carve out of the qos-overlay shell's drag region (App.module.scss
+// Carve out of the nexus-overlay shell's drag region (App.module.scss
 // .windowDragStrip carries app-region: drag at z-index 2000). WebView2
 // processes app-region at the OS hit-test level BEFORE DOM stacking, so
 // the titleRow z-index 2010 alone is not enough — we also need no-drag

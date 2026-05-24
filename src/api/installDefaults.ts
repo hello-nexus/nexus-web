@@ -1,9 +1,9 @@
 // Install-time defaults API. The service serves two endpoints from the same
 // JSON shape:
 //   - /defaults — the canonical, embedded values straight from
-//     qos-service/data/install-defaults.json
+//     nexus-service/data/install-defaults.json
 //   - /defaults/snapshot — every field projected from the current running
-//     QosSettings. Pasting this output back to the AI lets it rewrite
+//     NexusSettings. Pasting this output back to the AI lets it rewrite
 //     install-defaults.json from the user's live config.
 
 import { fetchService } from './service';

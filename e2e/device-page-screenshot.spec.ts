@@ -29,11 +29,11 @@ interface PanelDeviceDto {
 
 async function mockService(page: Page) {
   await page.addInitScript(() => {
-    localStorage.setItem('qos_token', 'test-token');
+    localStorage.setItem('nexus_token', 'test-token');
     // Connect the simulated Y70 + Q60 panels so they appear in the
     // unified device list without needing actual hardware.
-    localStorage.setItem('qos_simulated_panel_ids', JSON.stringify(['y70', 'q60']));
-    localStorage.setItem('qos_simulate_y70', '1');
+    localStorage.setItem('nexus_simulated_panel_ids', JSON.stringify(['y70', 'q60']));
+    localStorage.setItem('nexus_simulate_y70', '1');
     if ('serviceWorker' in navigator) {
       Object.defineProperty(navigator, 'serviceWorker', {
         configurable: true,
@@ -65,7 +65,7 @@ async function mockService(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ service: 'qos', version: 'test', initialized: true, platform: 'macos' }),
+        body: JSON.stringify({ service: 'nexus', version: 'test', initialized: true, platform: 'macos' }),
       });
       return;
     }

@@ -23,7 +23,7 @@ app.get('/.well-known/apple-app-site-association', (_req, res) => {
 });
 
 // Public installer download redirects. The actual binaries live in
-// nexusqos/qos-releases (a separate public repo); these routes 302 to
+// nexusqos/nexus-releases (a separate public repo); these routes 302 to
 // GitHub's `latest/download/<asset>` alias so the URLs we hand out from
 // nexusqos.com / marketing material never need to change when we cut a
 // new version. `Cache-Control: no-store` prevents Cloudflare (in front of
@@ -33,10 +33,10 @@ app.get('/.well-known/apple-app-site-association', (_req, res) => {
 // Linux is intentionally absent: there's no Linux build published yet, so
 // Linux UAs and any /download/linux hit fall through to the SPA, which
 // shows the chooser with a "coming soon" affordance instead of a 404.
-const RELEASES_BASE = 'https://github.com/nexusqos/qos-releases/releases/latest/download';
+const RELEASES_BASE = 'https://github.com/nexusqos/nexus-releases/releases/latest/download';
 const DOWNLOAD_ASSETS = {
-  windows: 'Qos-Setup.exe',
-  macos: 'Qos.dmg',
+  windows: 'Nexus-Setup.exe',
+  macos: 'Nexus.dmg',
 };
 
 function detectOSFromUA(ua) {
@@ -79,4 +79,4 @@ app.use(express.static(join(__dirname, 'dist'), { maxAge: '1d' }));
 // (e.g. /my-computer/devices) without it.
 app.get('/{*path}', (_req, res) => res.sendFile('index.html', { root: join(__dirname, 'dist') }));
 
-app.listen(port, () => console.log(`qos-web on port ${port}`));
+app.listen(port, () => console.log(`nexus-web on port ${port}`));

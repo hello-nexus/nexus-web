@@ -8,13 +8,13 @@ import { fetchService, postService } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
 import {
   LANGUAGE_FLAGS, LANGUAGE_LABELS, LANGUAGES,
-  type Language, type QosSettings,
+  type Language, type NexusSettings,
 } from '../../../lib/settings';
 import styles from './SettingsView.module.scss';
 
 export interface GeneralTabProps {
-  settings: QosSettings;
-  updateGeneral: (patch: Partial<QosSettings['general']>) => void;
+  settings: NexusSettings;
+  updateGeneral: (patch: Partial<NexusSettings['general']>) => void;
   serviceOnline: boolean;
   platform: string;
 }
@@ -27,7 +27,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   const [stopping, setStopping] = useState(false);
   const [screenTimeOpen, setScreenTimeOpen] = useState(false);
 
-  // Hydrate "Start Qos at system startup" from the SCM-backed endpoint on
+  // Hydrate "Start Nexus at system startup" from the SCM-backed endpoint on
   // mount. The state is independent of the per-user "Show in tray" flag.
   useEffect(() => {
     if (!serviceOnline || platform !== 'windows') return;
@@ -125,7 +125,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         </div>
         <a
           className={styles.rowButton}
-          href="https://github.com/nexusqos/qos-service/issues"
+          href="https://github.com/nexusqos/nexus-service/issues"
           target="_blank"
           rel="noopener noreferrer"
         >

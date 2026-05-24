@@ -5,7 +5,7 @@ import {
 import {
   loadSettings, saveSettings, cachePreferencesLocally,
   applyThemeMode, applyAccentColor,
-  type QosSettings, type ThemeMode, type Language,
+  type NexusSettings, type ThemeMode, type Language,
 } from '../lib/settings';
 import {
   fetchPreferences, savePreferences,
@@ -73,7 +73,7 @@ interface UiSettingsContextValue {
 
 const UiSettingsContext = createContext<UiSettingsContextValue | null>(null);
 
-function fromQosSettings(src: QosSettings): UiSettingsValue {
+function fromQosSettings(src: NexusSettings): UiSettingsValue {
   return {
     startOnLogin: src.general.startOnLogin,
     language: src.general.language,
@@ -91,7 +91,7 @@ function fromQosSettings(src: QosSettings): UiSettingsValue {
   };
 }
 
-function toQosSettings(src: UiSettingsValue): QosSettings {
+function toQosSettings(src: UiSettingsValue): NexusSettings {
   return {
     general: {
       language: src.language,

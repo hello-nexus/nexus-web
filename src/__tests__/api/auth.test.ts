@@ -37,7 +37,7 @@ describe('getToken', () => {
   });
 
   it('reads token from localStorage if present', async () => {
-    localStorage.setItem('qos_token', 'stored-token');
+    localStorage.setItem('nexus_token', 'stored-token');
     const spy = mockPairResponse('new-token');
     const token = await getToken();
     expect(token).toBe('stored-token');
@@ -47,7 +47,7 @@ describe('getToken', () => {
   it('persists token to localStorage after pairing', async () => {
     mockPairResponse('persist-me');
     await getToken();
-    expect(localStorage.getItem('qos_token')).toBe('persist-me');
+    expect(localStorage.getItem('nexus_token')).toBe('persist-me');
   });
 
   it('returns empty string on network failure', async () => {
@@ -70,13 +70,13 @@ describe('handleUnauthorized', () => {
   it('clears cached token and re-pairs', async () => {
     mockPairResponse('old-token');
     await getToken();
-    expect(localStorage.getItem('qos_token')).toBe('old-token');
+    expect(localStorage.getItem('nexus_token')).toBe('old-token');
 
     vi.restoreAllMocks();
     mockPairResponse('new-token');
     const token = await handleUnauthorized();
     expect(token).toBe('new-token');
-    expect(localStorage.getItem('qos_token')).toBe('new-token');
+    expect(localStorage.getItem('nexus_token')).toBe('new-token');
   });
 });
 
@@ -85,6 +85,6 @@ describe('clearToken', () => {
     mockPairResponse('to-clear');
     await getToken();
     clearToken();
-    expect(localStorage.getItem('qos_token')).toBeNull();
+    expect(localStorage.getItem('nexus_token')).toBeNull();
   });
 });

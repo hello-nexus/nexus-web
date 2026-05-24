@@ -8,10 +8,10 @@
 // backdrop, and we want the picker to win uniformly across all panel
 // scopes.
 
-const STYLE_ID = 'qos-debug-font-style';
-const LINK_ID = 'qos-debug-font-link';
-const PREVIEW_LINK_ID = 'qos-debug-font-preview-link';
-const STORAGE_KEY = 'qos_debug_font';
+const STYLE_ID = 'nexus-debug-font-style';
+const LINK_ID = 'nexus-debug-font-link';
+const PREVIEW_LINK_ID = 'nexus-debug-font-preview-link';
+const STORAGE_KEY = 'nexus_debug_font';
 
 export interface DebugFontDef {
   id: string;

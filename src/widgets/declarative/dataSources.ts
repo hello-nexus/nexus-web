@@ -40,7 +40,7 @@ export type ResolvedDataValue =
   | boolean
   | null;
 
-/** Shared monitoring-frame walker matching the qos-service id normalisation
+/** Shared monitoring-frame walker matching the nexus-service id normalisation
  *  scheme: `<family>.<host-id-with-dots>.<sensor-id-with-dots>`. */
 function normaliseSensorId(family: string, raw: string): string {
   const cleaned = raw

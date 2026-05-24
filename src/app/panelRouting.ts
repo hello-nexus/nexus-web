@@ -1,5 +1,5 @@
-export const PANEL_DEVICE_ID_KEY = 'qos_panel_device_id';
-export const PHONE_PANEL_PWA_KEY = 'qos_phone_panel_pwa';
+export const PANEL_DEVICE_ID_KEY = 'nexus_panel_device_id';
+export const PHONE_PANEL_PWA_KEY = 'nexus_phone_panel_pwa';
 export const RESERVED_PANEL_PATH_SEGMENTS = new Set(['phone', 'q60', 'devices']);
 
 export function shouldForcePhonePanelRoute() {

@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, PanelLeftClose, Unplug } from 'lucide-react'
 import classNames from 'classnames';
 import { ConflictWarningBadge } from '../components/common/Sidebar/ConflictWarning';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
-import { QosMark, QosWordmark } from '../components/icons/QosBrand';
+import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { useUiSettings } from '../hooks/useUiSettings';
 import { useConflictApps } from '../hooks/useConflictApps';
 import type { ConnectionState } from '../hooks/useServiceStatus';
@@ -28,13 +28,13 @@ export function SidebarBrand({ compact, onToggleCompact, expandLabel, collapseLa
             onClick={onToggleCompact}
             aria-label={expandLabel}
           >
-            <QosMark size={20} />
+            <NexusMark size={20} />
           </button>
         </HoverTooltip>
       ) : (
         <>
           <span className={styles.sidebarBrandWordmark}>
-            <QosWordmark height={20} />
+            <NexusWordmark height={20} />
           </span>
           <HoverTooltip body={collapseLabel} side="right">
             <button

@@ -56,7 +56,7 @@ export interface StartBenchmarkResponse {
   error?: string;
 }
 
-/** A match candidate returned by the qos-api fuzzy matcher. */
+/** A match candidate returned by the nexus-api fuzzy matcher. */
 export interface MatchCandidate {
   id: string;
   title: string;

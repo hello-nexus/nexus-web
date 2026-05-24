@@ -5,7 +5,7 @@
 //
 // Run: npx playwright test e2e/weather-snapshot.spec.ts
 //
-// Outputs land under: qos-web/.snapshots/weather/<variant>-<size>.png
+// Outputs land under: nexus-web/.snapshots/weather/<variant>-<size>.png
 
 import { test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';

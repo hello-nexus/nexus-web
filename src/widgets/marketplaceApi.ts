@@ -1,4 +1,4 @@
-// Marketplace HTTP client for the dashboard. Calls qos-service's
+// Marketplace HTTP client for the dashboard. Calls nexus-service's
 // /widgets-api/available + /widgets-api/install + /widgets-api/uninstall.
 
 import { fetchService, postService } from '../api/service';

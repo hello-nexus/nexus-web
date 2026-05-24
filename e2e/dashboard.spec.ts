@@ -17,7 +17,7 @@ async function mockService(page: Page, savedPreferencePatches: unknown[]) {
   };
 
   await page.addInitScript(() => {
-    localStorage.setItem('qos_token', 'test-token');
+    localStorage.setItem('nexus_token', 'test-token');
     if ('serviceWorker' in navigator) {
       Object.defineProperty(navigator, 'serviceWorker', {
         configurable: true,
@@ -34,7 +34,7 @@ async function mockService(page: Page, savedPreferencePatches: unknown[]) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ service: 'qos', version: 'test', initialized: true, platform: 'macos' }),
+        body: JSON.stringify({ service: 'nexus', version: 'test', initialized: true, platform: 'macos' }),
       });
       return;
     }

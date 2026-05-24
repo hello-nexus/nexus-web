@@ -4,13 +4,13 @@ import { useTranslation } from '../../../lib/i18n';
 import {
   PRESET_ACCENTS, THEME_MODES,
   applyAccentColor, applyThemeMode, watchSystemTheme,
-  type QosSettings, type ThemeMode,
+  type NexusSettings, type ThemeMode,
 } from '../../../lib/settings';
 import styles from './SettingsView.module.scss';
 
 export interface ThemeTabProps {
-  settings: QosSettings;
-  updateGeneral: (patch: Partial<QosSettings['general']>) => void;
+  settings: NexusSettings;
+  updateGeneral: (patch: Partial<NexusSettings['general']>) => void;
 }
 
 export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {

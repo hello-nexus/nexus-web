@@ -18,7 +18,7 @@ import { Dashboard } from './app/Dashboard';
 function consumeUrlToken(params: URLSearchParams) {
   const urlToken = params.get('token');
   if (!urlToken) return;
-  localStorage.setItem('qos_token', urlToken);
+  localStorage.setItem('nexus_token', urlToken);
   params.delete('token');
   const query = params.toString();
   window.history.replaceState(
@@ -40,7 +40,7 @@ export default function App() {
   const path = window.location.pathname;
 
   // /r/pair is the Universal Link target on nexusqos.com. iOS opens the
-  // Qos app directly when installed; otherwise this landing page
+  // Nexus app directly when installed; otherwise this landing page
   // offers App Store + LAN-redirect fallbacks.
   if (path === '/r/pair') {
     return <PairRedirect />;
@@ -69,7 +69,7 @@ export default function App() {
     );
   }
 
-  // /overlay is hosted by qos-overlay.exe (transparent layered window
+  // /overlay is hosted by nexus-overlay.exe (transparent layered window
   // per monitor). Loads with ?monitor=N&token=... so each overlay renders
   // its own slice of the shared overlayLayout.
   if (path === '/overlay') {

@@ -1,6 +1,6 @@
 import { fetchService, postService } from './service';
 
-// ────────── Wire types (mirror qos-service KeebDtos.cs) ──────────
+// ────────── Wire types (mirror nexus-service KeebDtos.cs) ──────────
 
 export type KeebLayout = 'ANSI' | 'ISO';
 export type KeebLayer = 0 | 1 | 2 | 3;

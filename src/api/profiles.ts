@@ -14,7 +14,7 @@ export interface ProfileEntry {
 }
 
 // Shared between install-defaults and the live profile. Mirror of the C#
-// POCOs in qos-service/src/Persistence/SharedSettings.cs.
+// POCOs in nexus-service/src/Persistence/SharedSettings.cs.
 
 export interface ThemeSettings {
   language: string;
@@ -170,7 +170,7 @@ export async function exportProfile(id: string, name: string): Promise<void> {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `qos-${safeName}.json`;
+    a.download = `nexus-${safeName}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

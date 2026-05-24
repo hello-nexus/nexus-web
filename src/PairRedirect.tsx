@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { APP_STORE_URL } from './lib/appStore';
-import { QosAppIcon } from './components/icons/QosAppIcon';
+import { NexusAppIcon } from './components/icons/NexusAppIcon';
 
 const APP_LINK_PROBE_MS = 1500;
 const CUSTOM_SCHEME_PROBE_MS = 1500;
 
 /**
  * Tiny landing page rendered when a phone scans the pairing QR but the
- * Qos iOS app is not installed (or the user is on Android / a desktop).
+ * Nexus iOS app is not installed (or the user is on Android / a desktop).
  *
  * The QR encodes a Universal Link of the form
  *   https://nexusqos.com/r/pair?host=192.168.x.x&port=9443&pair=TOKEN&fp=SPKI_HASH
@@ -17,7 +17,7 @@ const CUSTOM_SCHEME_PROBE_MS = 1500;
  * If not installed, this page lets the user either install the app (App Store)
  * or continue in the mobile browser, redirected to the LAN URL the QR encoded.
  *
- * The "Open in Qos app" button is a manual fallback: if the user landed here
+ * The "Open in Nexus app" button is a manual fallback: if the user landed here
  * despite having the app installed (Chrome on iOS, in-app browser, AASA cache
  * miss), tapping it navigates to `nexusqos://r/pair?...` via the registered
  * custom URL scheme. We use a visibility-change probe to detect whether the
@@ -50,7 +50,7 @@ export function PairRedirect() {
   //   1. Page goes hidden before the timeout: the OS handed off to the app.
   //      Clear the timer; if Safari later regains focus (user returned from
   //      the app), bounce back to 'choose' so they're not stuck on
-  //      "Opening Qos app..." forever.
+  //      "Opening Nexus app..." forever.
   //   2. Page stays visible past the timeout: the scheme isn't registered,
   //      so the app probably isn't installed; show 'app-missing' fallbacks.
   useEffect(() => {
@@ -104,7 +104,7 @@ export function PairRedirect() {
   if (stage === 'loading') {
     return (
       <Frame>
-        <Title>Opening Qos...</Title>
+        <Title>Opening Nexus...</Title>
         <Sub>If the app is installed, it will take over in a moment.</Sub>
       </Frame>
     );
@@ -113,7 +113,7 @@ export function PairRedirect() {
   if (stage === 'opening-app') {
     return (
       <Frame>
-        <Title>Opening Qos app...</Title>
+        <Title>Opening Nexus app...</Title>
         <Sub>If nothing happens, the app isn't installed on this device.</Sub>
       </Frame>
     );
@@ -134,16 +134,16 @@ export function PairRedirect() {
 
   return (
     <Frame>
-      <Title>Pair phone with Qos</Title>
+      <Title>Pair phone with Nexus</Title>
       <Sub>
         {appMissing
-          ? "The Qos app doesn't seem to be installed on this device."
+          ? "The Nexus app doesn't seem to be installed on this device."
           : 'Choose how you want to continue.'}
       </Sub>
 
       {!appMissing && (
         <button type="button" style={btnPrimary} onClick={openInApp}>
-          Open in Qos app
+          Open in Nexus app
         </button>
       )}
 
@@ -163,7 +163,7 @@ export function PairRedirect() {
       </a>
 
       <Sub style={{ marginTop: 24, fontSize: 12 }}>
-        Browser fallback only works on a trusted home network. The Qos app uses end-to-end encryption.
+        Browser fallback only works on a trusted home network. The Nexus app uses end-to-end encryption.
       </Sub>
     </Frame>
   );
@@ -191,7 +191,7 @@ function Sub({ children, style }: { children: React.ReactNode; style?: React.CSS
 function Logo() {
   return (
     <div style={logoStyle}>
-      <QosAppIcon size={36} />
+      <NexusAppIcon size={36} />
     </div>
   );
 }

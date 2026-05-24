@@ -1,6 +1,6 @@
-// TypeScript shapes mirroring the qos.widget/2 declarative manifest +
+// TypeScript shapes mirroring the nexus.widget/2 declarative manifest +
 // `/widgets-api/installed` listing wire shape. The host runtime in
-// qos-service is the source of truth; see `plans/widget-sdk.md`.
+// nexus-service is the source of truth; see `plans/widget-sdk.md`.
 
 export interface WidgetManifestAuthor {
   name?: string;

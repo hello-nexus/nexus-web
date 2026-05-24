@@ -5,7 +5,7 @@ import { useBenchmark } from '../../../hooks/useBenchmark';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
-import { getDeviceId, matchComponents, submitBenchmark } from '../../../api/qosApi';
+import { getDeviceId, matchComponents, submitBenchmark } from '../../../api/nexusApi';
 import type { ComponentOption, ComponentCategory } from '../../../types/builder';
 import type { MatchCandidate, MatchResponse, DetectedByCategory } from '../../../types/benchmark';
 import { BenchmarkProgress } from './BenchmarkProgress';

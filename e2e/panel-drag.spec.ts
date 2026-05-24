@@ -88,7 +88,7 @@ async function gotoPanel(page: Page, seedRecord?: object) {
   await page.route('**/ping', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({ service: 'qos', version: 'test', initialized: true, platform: 'macos' }),
+    body: JSON.stringify({ service: 'nexus', version: 'test', initialized: true, platform: 'macos' }),
   }));
   await page.goto(`/panel/${DEVICE_ID}`);
   // Wait for the load + first paint of widgets, then settle so the

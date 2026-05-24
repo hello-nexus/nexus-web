@@ -3,12 +3,12 @@
 //
 //   1. Remove every privileged global the worker could otherwise use to
 //      reach the network or persist state outside the host's rails.
-//   2. Install the typed `qos.*` API. Each call routes through the host
+//   2. Install the typed `nexus.*` API. Each call routes through the host
 //      via postMessage; the host applies the policy (allowlist, rate
 //      limit, watchdog) and replies.
-//   3. Wait for `qos.welcome` from the host (carries widgetId + settings
-//      snapshot + net.fetch allowlist) before resolving `qos.ready`, so
-//      the author entry's `qos.ready.then(...)` only fires once the
+//   3. Wait for `nexus.welcome` from the host (carries widgetId + settings
+//      snapshot + net.fetch allowlist) before resolving `nexus.ready`, so
+//      the author entry's `nexus.ready.then(...)` only fires once the
 //      runtime is fully configured.
 //
 // The script is delivered as a string concatenated into the Blob the
@@ -26,7 +26,7 @@ const WORKER_BOOT = `
 
 // Strip privileged globals. The worker can still author with vanilla JS
 // (Promises, Math, JSON, setTimeout, structuredClone) but cannot reach
-// the network, persist state, or signal cross-tab except through qos.*.
+// the network, persist state, or signal cross-tab except through nexus.*.
 const _killed = [
   // Network primitives.
   "fetch", "WebSocket", "XMLHttpRequest", "EventSource", "importScripts",
@@ -76,7 +76,7 @@ function _rpc(type, payload) {
 self.addEventListener("message", (ev) => {
   const msg = ev.data || {};
   switch (msg.type) {
-    case "qos.welcome": {
+    case "nexus.welcome": {
       const p = msg.payload || {};
       _widgetId = p.widgetId || "";
       _netFetchAllow = p.netFetch || [];
@@ -84,23 +84,23 @@ self.addEventListener("message", (ev) => {
       _readyResolve();
       break;
     }
-    case "qos.settings.changed": {
+    case "nexus.settings.changed": {
       _settings = Object.freeze(Object.assign({}, msg.payload || {}));
       for (const cb of _settingsListeners) { try { cb(_settings); } catch (_) {} }
       break;
     }
-    case "qos.refresh": {
+    case "nexus.refresh": {
       // Host asked us to re-run the most recent every() body once.
-      if (typeof _lastEveryCb === "function") { try { _lastEveryCb(); } catch (e) { _post("qos.log", { level: "error", message: String(e && e.message || e) }); } }
+      if (typeof _lastEveryCb === "function") { try { _lastEveryCb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); } }
       break;
     }
-    case "qos.sensors.reading": {
+    case "nexus.sensors.reading": {
       const p = msg.payload || {};
       const cb = _sensorSubs.get(p.subscriptionId);
       if (cb) { try { cb(p.reading); } catch (_) {} }
       break;
     }
-    case "qos.reply": {
+    case "nexus.reply": {
       const slot = _pending.get(msg.id);
       if (slot) {
         _pending.delete(msg.id);
@@ -109,8 +109,8 @@ self.addEventListener("message", (ev) => {
       }
       break;
     }
-    case "qos.error": {
-      _post("qos.log", { level: "error", message: msg.message || "worker error" });
+    case "nexus.error": {
+      _post("nexus.log", { level: "error", message: msg.message || "worker error" });
       break;
     }
   }
@@ -127,11 +127,11 @@ function _parseCadence(c) {
   return Math.max(30000, ms);
 }
 
-const qos = {
+const nexus = {
   ready: _ready,
-  log(level, message, data) { _post("qos.log", { level, message, data }); },
-  publish(payload) { _post("qos.publish", payload); },
-  refresh() { _post("qos.publish", { __refresh_marker__: Date.now() }); if (typeof _lastEveryCb === "function") try { _lastEveryCb(); } catch (_) {} },
+  log(level, message, data) { _post("nexus.log", { level, message, data }); },
+  publish(payload) { _post("nexus.publish", payload); },
+  refresh() { _post("nexus.publish", { __refresh_marker__: Date.now() }); if (typeof _lastEveryCb === "function") try { _lastEveryCb(); } catch (_) {} },
 
   settings: {
     get current() { return _settings; },
@@ -147,15 +147,15 @@ const qos = {
   },
 
   sensors: {
-    read(id) { return _rpc("qos.sensors.read", { id }); },
+    read(id) { return _rpc("nexus.sensors.read", { id }); },
     subscribe(pattern, cb) {
       if (typeof cb !== "function") return Promise.resolve(() => {});
       const id = _subId++;
       _sensorSubs.set(id, cb);
-      _post("qos.sensors.subscribe", { pattern, subscriptionId: id });
+      _post("nexus.sensors.subscribe", { pattern, subscriptionId: id });
       return Promise.resolve(() => {
         _sensorSubs.delete(id);
-        _post("qos.sensors.unsubscribe", { subscriptionId: id });
+        _post("nexus.sensors.unsubscribe", { subscriptionId: id });
       });
     },
   },
@@ -163,7 +163,7 @@ const qos = {
   net: {
     fetch(url, init) {
       const opts = init || {};
-      return _rpc("qos.net.fetch", {
+      return _rpc("nexus.net.fetch", {
         url: String(url),
         method: (opts.method || "GET").toUpperCase(),
         headers: opts.headers || {},
@@ -189,21 +189,21 @@ const qos = {
       if (typeof cb !== "function") return () => {};
       const ms = _parseCadence(cadence);
       _lastEveryCb = cb;
-      try { cb(); } catch (e) { _post("qos.log", { level: "error", message: String(e && e.message || e) }); }
+      try { cb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); }
       const handle = setInterval(() => {
-        try { cb(); } catch (e) { _post("qos.log", { level: "error", message: String(e && e.message || e) }); }
+        try { cb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); }
       }, ms);
       return () => { clearInterval(handle); _lastEveryCb = null; };
     },
     timeout(ms, cb) {
       if (typeof cb !== "function") return () => {};
       const handle = setTimeout(() => {
-        try { cb(); } catch (e) { _post("qos.log", { level: "error", message: String(e && e.message || e) }); }
+        try { cb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); }
       }, Math.max(0, ms | 0));
       return () => clearTimeout(handle);
     },
   },
 };
 
-Object.defineProperty(self, "qos", { value: qos, configurable: false, writable: false });
+Object.defineProperty(self, "nexus", { value: nexus, configurable: false, writable: false });
 `;

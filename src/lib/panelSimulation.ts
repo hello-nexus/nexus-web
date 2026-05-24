@@ -6,10 +6,10 @@ import {
   type PanelGridCapacity,
 } from '../panel/engine/grid';
 
-const SIMULATE_Y70_KEY = 'qos_simulate_y70';
-const SIMULATED_PANEL_IDS_KEY = 'qos_simulated_panel_ids';
-const SIMULATED_PANEL_CUSTOM_KEY = 'qos_simulated_panel_custom';
-const SIMULATED_PANEL_GRID_SIZING_KEY = 'qos_simulated_panel_grid_sizing';
+const SIMULATE_Y70_KEY = 'nexus_simulate_y70';
+const SIMULATED_PANEL_IDS_KEY = 'nexus_simulated_panel_ids';
+const SIMULATED_PANEL_CUSTOM_KEY = 'nexus_simulated_panel_custom';
+const SIMULATED_PANEL_GRID_SIZING_KEY = 'nexus_simulated_panel_grid_sizing';
 
 export const PANEL_SIMULATION_CHANGED_EVENT = 'y70-simulate-changed';
 

@@ -42,7 +42,7 @@ import { PairPhoneModal } from './PairPhoneModal';
 import { IncomingPairModal } from './IncomingPairModal';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { CaptionButtons } from './CaptionButtons';
-import { isWindowsAppShell, postResizeStart, QOS_RESIZE_EDGES, type QosResizeEdge } from './windowActions';
+import { isWindowsAppShell, postResizeStart, QOS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
 import styles from '../App.module.scss';
 
 const PORTAL_URL = 'https://nexusqos.com';
@@ -53,7 +53,7 @@ const BuilderView = lazy(() => import('../components/views/BuilderView'));
 // then posts WM_NCLBUTTONDOWN(hitCode) to its own HWND so the OS
 // resize-drag loop takes over. Preventing default + stopping prop is
 // what keeps the mousedown from racing the page's click handlers.
-function ResizeStrip({ className, edge }: { className: string; edge: QosResizeEdge }) {
+function ResizeStrip({ className, edge }: { className: string; edge: NexusResizeEdge }) {
   return (
     <div
       className={className}
@@ -179,7 +179,7 @@ export function Dashboard() {
   // chrome (modals, popovers) can reserve the top-right 138px caption-
   // button gutter without each consumer re-detecting the shell.
   useEffect(() => {
-    document.body.classList.toggle('qos-shell-windows-app', isWindowsAppShell());
+    document.body.classList.toggle('nexus-shell-windows-app', isWindowsAppShell());
   }, []);
   useEffect(() => {
     if (!online) return;
@@ -201,7 +201,7 @@ export function Dashboard() {
     };
   }, [online]);
   // Auto-collapse threshold. Stays above the OS-enforced min window
-  // width (1000px - see MinClientWidth in qos-overlay's DashboardWindow.cs)
+  // width (1000px - see MinClientWidth in nexus-overlay's DashboardWindow.cs)
   // so the sidebar still collapses before the user hits the hard floor;
   // otherwise the user would never see auto-collapse fire on the
   // Windows --app shell. Keep the matchMedia query and the useState
@@ -362,10 +362,10 @@ export function Dashboard() {
         [styles.layoutNoSidebar]: !hasSidebar,
       })}>
         <OpenInAppBanner />
-        {/* Qos Windows shell only: top drag strip + custom caption buttons.
+        {/* Nexus Windows shell only: top drag strip + custom caption buttons.
             The native system buttons can't paint here because the WebView2
             child HWND covers the parent's non-client area; we route clicks
-            back to qos-overlay via window.chrome.webview.postMessage. */}
+            back to nexus-overlay via window.chrome.webview.postMessage. */}
         {isWindowsAppShell() && (
           <>
             <div className={styles.windowDragStrip} aria-hidden />

@@ -1,8 +1,8 @@
 import type { EffectState, LightingMode } from '../types/lighting';
 import type { CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
 
-const CHANNEL_NAME = 'qos-control-sync';
-const WINDOW_EVENT = 'qos-control-sync';
+const CHANNEL_NAME = 'nexus-control-sync';
+const WINDOW_EVENT = 'nexus-control-sync';
 
 export type ControlSyncEvent =
   | {

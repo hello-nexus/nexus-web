@@ -4,4 +4,4 @@
 // stand-in until the real App Store listing exists. Update the literal
 // here when the app is published; both call sites resolve via this
 // constant.
-export const APP_STORE_URL = 'https://apps.apple.com/app/qos/id0000000000';
+export const APP_STORE_URL = 'https://apps.apple.com/app/nexus/id0000000000';

@@ -2,7 +2,7 @@
 // horizontally in the top-right corner of the layout. The DWM-painted
 // system buttons are unavailable inside a WebView2 host because the child
 // HWND covers the parent's non-client area, so we paint them ourselves and
-// route clicks back to qos-overlay via window.chrome.webview.postMessage.
+// route clicks back to nexus-overlay via window.chrome.webview.postMessage.
 
 .bar {
   position: absolute;

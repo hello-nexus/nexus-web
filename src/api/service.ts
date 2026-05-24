@@ -1,4 +1,4 @@
-// Thin client for the local Qos service (qos-service).
+// Thin client for the local Nexus service (nexus-service).
 // Override host/port via Vite env vars VITE_SERVICE_HOST / VITE_SERVICE_PORT.
 // All authenticated calls include the Bearer token obtained via /pair.
 

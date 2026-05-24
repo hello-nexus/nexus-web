@@ -6,7 +6,7 @@
         "components": [
           {
             "/": "/r/**",
-            "comment": "All Qos redirect routes (pair flow, future deep-links)"
+            "comment": "All Nexus redirect routes (pair flow, future deep-links)"
           }
         ]
       }

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
 interface NativeSettingsWindow extends Window {
-  qosNative?: {
+  nexusNative?: {
     openSettings?: () => void;
   };
   webkit?: {
     messageHandlers?: {
-      qosNativeSettings?: {
+      nexusNativeSettings?: {
         postMessage?: (message: string) => void;
       };
     };
@@ -15,8 +15,8 @@ interface NativeSettingsWindow extends Window {
 
 export function hasNativeSettingsBridge() {
   const nativeWindow = window as NativeSettingsWindow;
-  return typeof nativeWindow.qosNative?.openSettings === 'function'
-    || typeof nativeWindow.webkit?.messageHandlers?.qosNativeSettings?.postMessage === 'function';
+  return typeof nativeWindow.nexusNative?.openSettings === 'function'
+    || typeof nativeWindow.webkit?.messageHandlers?.nexusNativeSettings?.postMessage === 'function';
 }
 
 export function useNativeSettingsBridge(enabled: boolean) {
@@ -27,17 +27,17 @@ export function useNativeSettingsBridge(enabled: boolean) {
 
     const update = () => setAvailable(hasNativeSettingsBridge());
     update();
-    window.addEventListener('qos:native-ready', update);
-    return () => window.removeEventListener('qos:native-ready', update);
+    window.addEventListener('nexus:native-ready', update);
+    return () => window.removeEventListener('nexus:native-ready', update);
   }, [enabled]);
 
   const open = useCallback(() => {
     const nativeWindow = window as NativeSettingsWindow;
-    if (typeof nativeWindow.qosNative?.openSettings === 'function') {
-      nativeWindow.qosNative.openSettings();
+    if (typeof nativeWindow.nexusNative?.openSettings === 'function') {
+      nativeWindow.nexusNative.openSettings();
       return;
     }
-    nativeWindow.webkit?.messageHandlers?.qosNativeSettings?.postMessage?.('open');
+    nativeWindow.webkit?.messageHandlers?.nexusNativeSettings?.postMessage?.('open');
   }, []);
 
   return { available: enabled && available, open };

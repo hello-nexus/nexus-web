@@ -1,5 +1,5 @@
 // useReducer-based build state management.
-// Persists to localStorage key `qos_builder_current` on every change.
+// Persists to localStorage key `nexus_builder_current` on every change.
 // Restores from localStorage on mount.
 
 import { useReducer, useEffect, useMemo } from 'react';
@@ -10,7 +10,7 @@ import type {
 import { checkCompatibility } from '../lib/compatibility';
 import { estimateWattage } from '../lib/wattage';
 
-const STORAGE_KEY = 'qos_builder_current';
+const STORAGE_KEY = 'nexus_builder_current';
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 
