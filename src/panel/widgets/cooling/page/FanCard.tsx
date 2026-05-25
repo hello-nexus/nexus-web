@@ -27,8 +27,22 @@ export interface FanCardDrag {
  * and hides the duty bar, dropdown and wire nub - nothing here can drive
  * the channel until the hardware comes back.
  */
+/**
+ * Hub-level cooling mode reflected back to a fan card. NP50 + MiniHub fans
+ * surface a "live" hub mode that overrides per-fan softwareControl:
+ *   - 'motherboard': hub passes PWM through from the motherboard. Reads as
+ *      BIOS on every fan on that hub.
+ *   - 'firmware'   : NP50 only. Hub plays its EEPROM static-speed setpoint.
+ *      Reads as a new "FW Control" option on every NP50 fan.
+ *   - 'software'   : Nexus drives. Fall through to per-fan state.
+ * Motherboard fans (no deviceId) leave this undefined and behave exactly
+ * as before.
+ */
+export type FanCardHubMode = 'software' | 'motherboard' | 'firmware';
+
 export const FanCard = memo(function FanCard({
   channel, state, curves, calibrating, compact, canCreateCurve = true, highlighted,
+  hubMode, hubSupportsFirmware,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
   onSetMode, onCreateCurve, onRename, onSpeedChange, drag,
 }: {
@@ -44,6 +58,13 @@ export const FanCard = memo(function FanCard({
    *  wire path. Tracks the same condition as the wire-layer highlight so
    *  the connected pair lights up together. */
   highlighted?: boolean;
+  /** When set, overrides the per-fan softwareControl-derived modeValue. See
+   *  FanCardHubMode for semantics. Undefined for motherboard fans. */
+  hubMode?: FanCardHubMode;
+  /** True for NP50 fans (the hub has an EEPROM "Static" mode). Adds the
+   *  "FW Control" dropdown option. MiniHub fans get only BIOS / Manual /
+   *  curves. */
+  hubSupportsFirmware?: boolean;
   /** Ref handed to the input nub so the wire SVG can read its bbox. */
   nubRef?: (el: HTMLDivElement | null) => void;
   /** Ref handed to the card root so the wire DnD hit-test can treat the
@@ -65,8 +86,17 @@ export const FanCard = memo(function FanCard({
   const dutyPct = Math.max(0, Math.min(100, channel.dutyPercent));
   const swEnabled = state?.softwareControl ?? false;
   const assignedCurveId = state?.curveId ?? '';
-  const isManual = swEnabled && !assignedCurveId;
-  const modeValue = !swEnabled ? 'bios' : (assignedCurveId || 'manual');
+  // When the hub is in motherboard or firmware mode, the per-fan
+  // softwareControl flag is meaningless — the hub takes over for every
+  // fan on it. Surface that in the dropdown so the user sees the same
+  // mode on every fan in the same group.
+  const hubOverrideMode =
+    hubMode === 'motherboard' ? 'bios'
+    : hubMode === 'firmware'  ? 'fw'
+    : null;
+  const isManual = swEnabled && !assignedCurveId && hubOverrideMode === null;
+  const modeValue = hubOverrideMode
+    ?? (!swEnabled ? 'bios' : (assignedCurveId || 'manual'));
   // Hardware-level disconnect (no tach, no controllable duty). When true the
   // card collapses to a single "Disconnected" marker; the dropdown and duty
   // bar disappear because nothing the user does here will drive the channel.
@@ -250,6 +280,9 @@ export const FanCard = memo(function FanCard({
             ariaLabel={t('cooling.card.mode')}
           >
             <option value="bios">{t('cooling.card.bios')}</option>
+            {hubSupportsFirmware && (
+              <option value="fw">{t('cooling.card.firmware')}</option>
+            )}
             <option value="manual">{t('cooling.card.manual')}</option>
             {curves.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             {canCreateCurve && (

@@ -139,6 +139,29 @@
   font-variant-numeric: tabular-nums;
 }
 
+// The Disconnected group renders as a button so the whole header strip is
+// clickable to expand. Same shape as the other group headers; just nukes
+// the default button chrome.
+.disconnectedHeader {
+  width: 100%;
+  background: none;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  &:hover .deviceGroupName {
+    color: rgba(255, 255, 255, 0.9);
+  }
+}
+.disconnectedChevron {
+  display: inline-block;
+  width: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.75rem;
+}
+
 .fanList {
   display: flex;
   flex-direction: column;
@@ -324,7 +347,61 @@
   background: var(--bg);
   &:hover { background: var(--bg); }
 }
-.fanGridDisabled { pointer-events: none; }
+.fanGridDisabled {
+  pointer-events: none;
+  opacity: 0.35;
+  filter: saturate(0.4);
+  transition: opacity 0.18s ease;
+}
+
+// Positioning context for the calibration overlay so it sits over the fan
+// list (which has its own overflow-y scrolling). Wraps the actual .fanList
+// div without changing its existing layout.
+.fanListWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.calibrationOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 11, 14, 0.55);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius);
+  pointer-events: auto;
+}
+
+.calibrationOverlayInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1.25rem 1.75rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: rgba(20, 22, 28, 0.85);
+  color: var(--text);
+  text-align: center;
+}
+
+.calibrationOverlayTitle {
+  font-weight: var(--weight-heading);
+  font-size: var(--type-body);
+}
+
+.calibrationOverlayHint {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  max-width: 16rem;
+  line-height: 1.4;
+}
 
 .fanRpmReadout {
   margin-left: auto;

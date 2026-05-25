@@ -22,7 +22,20 @@ import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverToolt
 import { InfoTooltip } from '../../../components/common/InfoTooltip/InfoTooltip';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
-import { FanCard } from './page/FanCard';
+import { FanCard, type FanCardHubMode } from './page/FanCard';
+import {
+  getNp50ConnectionState,
+  np50HubModeFromName,
+  NP50_LIVE_MODE_MOTHERBOARD,
+  NP50_LIVE_MODE_SOFTWARE,
+  NP50_LIVE_MODE_STATIC,
+  setNp50LiveCoolingMode,
+} from '../../../api/np50';
+import {
+  MINIHUB_LIVE_MODE_MOTHERBOARD,
+  MINIHUB_LIVE_MODE_SOFTWARE,
+  setMiniHubLiveCoolingMode,
+} from '../../../api/minihub';
 import { CurveCard, computeCurveSpeed } from './page/CurveEditor';
 import { CoolingTrendChart } from './page/CoolingTrendChart';
 import { CoolingSettingsModal } from './page/CoolingSettingsModal';
@@ -56,6 +69,16 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // real state arrives - the accent disc on the active tab makes that flash
   // visible.
   const [activePreset, setActivePreset] = useState<CoolingPresetKey | null>(null);
+  // Per-hub live cooling mode keyed by FanChannel.deviceId (e.g.
+  // 'np50:1A2B3C', 'minihub:XYZ'). NP50 can report its own mode; MiniHub
+  // can't, so we cache what we last set. Drives the per-fan dropdown
+  // display and the auto-switch behaviour when the user picks BIOS / FW /
+  // Manual on any one fan of a hub.
+  const [hubModes, setHubModes] = useState<Record<string, FanCardHubMode>>({});
+  // Disconnected fans live in a collapsible group at the bottom of the fan
+  // list. Default closed so a calibration-flagged-unresponsive fan doesn't
+  // visually dominate the section.
+  const [disconnectedExpanded, setDisconnectedExpanded] = useState(false);
   const activeCoolingProfileRef = useRef('');
   // After an optimistic preset change (user click or Off-guard) we lock the
   // displayed preset for a short window so a stale `/cooling/profiles` poll or
@@ -154,6 +177,28 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   useEffect(() => {
     refreshCoolingConfig();
   }, [refreshCoolingConfig, activeProfileId]);
+
+  // Seed hubModes from whatever the NP50 hub currently reports. Only NP50
+  // exposes a read endpoint for its cooling mode; MiniHub stays at 'software'
+  // until the user picks BIOS on one of its fans, which is the same default
+  // assumption the curve engine makes anyway. Re-runs when an NP50 fan
+  // appears so a hot-plug doesn't leave the dropdown blank.
+  const hasNp50Fan = useMemo(
+    () => channels.some(c => c.deviceId?.startsWith('np50:')),
+    [channels],
+  );
+  useEffect(() => {
+    if (!serviceOnline || !hasNp50Fan) return;
+    let cancelled = false;
+    (async () => {
+      const state = await getNp50ConnectionState();
+      if (cancelled || !state?.deviceId) return;
+      const kind = np50HubModeFromName(state.coolingMode);
+      if (!kind) return;
+      setHubModes(prev => ({ ...prev, [state.deviceId]: kind }));
+    })();
+    return () => { cancelled = true; };
+  }, [serviceOnline, hasNp50Fan]);
 
   useEffect(() => subscribeControlSync(event => {
     if (event.domain !== 'cooling') return;
@@ -353,16 +398,54 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   }, [curves, sources, fanStates, pushCurves]);
 
   // BIOS = release control; 'manual' = software control, no curve; curve id =
-  // bind that curve. Keeps the full transition atomic.
+  // bind that curve; 'fw' = NP50 only, switches the whole hub to its EEPROM
+  // Static mode. Keeps the full transition atomic.
+  //
+  // For external-hub fans (NP50 / MiniHub) the per-fan dropdown also drives
+  // the *hub* cooling mode: BIOS flips the hub to Motherboard passthrough,
+  // FW Control flips an NP50 to Static, and Manual/Curve guarantees the hub
+  // is in Software so Nexus can actually drive frames into it. This auto-
+  // switch matches how the hardware works — there's a single cooling mode
+  // byte per hub, not per fan.
   const setFanMode = useCallback(async (fanId: string, value: string) => {
-    const wasSw = fanStates[fanId]?.softwareControl ?? false;
+    const channel = channels.find(c => c.id === fanId);
+    const deviceId = channel?.deviceId ?? null;
+    const isNp50 = !!deviceId && deviceId.startsWith('np50:');
+    const isMiniHub = !!deviceId && deviceId.startsWith('minihub:');
+
+    if (value === 'fw' && isNp50 && deviceId) {
+      await setNp50LiveCoolingMode(NP50_LIVE_MODE_STATIC);
+      setHubModes(prev => ({ ...prev, [deviceId]: 'firmware' }));
+      return;
+    }
+
     if (value === 'bios') {
-      // BIOS Control is the one fan-control change that is allowed in Off.
+      if (isNp50 && deviceId) {
+        await setNp50LiveCoolingMode(NP50_LIVE_MODE_MOTHERBOARD);
+        setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
+      } else if (isMiniHub && deviceId) {
+        await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_MOTHERBOARD);
+        setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
+      }
+      const wasSw = fanStates[fanId]?.softwareControl ?? false;
       if (wasSw) await toggleSoftwareControl(fanId, false);
       return;
     }
+
+    // 'manual' or a curve id — the hub must be in Software for the curve
+    // engine to actually push duty cycles in. Only issue the hub write when
+    // the hub isn't already in Software; the cooling-mode endpoint is
+    // idempotent but skipping the call avoids USB chatter on every BIOS->
+    // Manual transition.
+    if (deviceId && hubModes[deviceId] && hubModes[deviceId] !== 'software') {
+      if (isNp50) await setNp50LiveCoolingMode(NP50_LIVE_MODE_SOFTWARE);
+      else if (isMiniHub) await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_SOFTWARE);
+      setHubModes(prev => ({ ...prev, [deviceId]: 'software' }));
+    }
+
     await exitOffToCustomIfNeeded();
     const targetCurveId = value === 'manual' ? null : value;
+    const wasSw = fanStates[fanId]?.softwareControl ?? false;
     if (!wasSw) {
       const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: targetCurveId } };
       setFanStates(nextStates);
@@ -373,7 +456,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     } else {
       await assignCurve(fanId, targetCurveId);
     }
-  }, [fanStates, curves, pushCurves, toggleSoftwareControl, assignCurve, exitOffToCustomIfNeeded]);
+  }, [channels, fanStates, curves, hubModes, pushCurves, toggleSoftwareControl, assignCurve, exitOffToCustomIfNeeded]);
 
   // Move a curve binding from one fan to another in a single transaction.
   // Used by the wire DnD when the user picks up a wire from one fan and
@@ -1138,22 +1221,43 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               </div>
             )}
 
-            <div className={`${styles.fanList} ${calibrating ? styles.fanGridDisabled : ''}`}>
+            <div className={styles.fanListWrap}>
+              {calibrating && (
+                <div className={styles.calibrationOverlay} role="status" aria-live="polite">
+                  <div className={styles.calibrationOverlayInner}>
+                    <div className={styles.calibrationSpinner} />
+                    <div className={styles.calibrationOverlayTitle}>
+                      {t('cooling.calibrate.running').split('-')[0].trim()}
+                    </div>
+                    <div className={styles.calibrationOverlayHint}>
+                      {t('cooling.calibrate.locked')}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div
+                /* `inert` is the modern way to lock a subtree from every input
+                   path (mouse, keyboard, AT focus). Falls back to the
+                   pointer-events override below for older browsers; together
+                   they make "calibration in progress" actually undefeatable. */
+                {...(calibrating ? { inert: '' as unknown as undefined } : {})}
+                aria-hidden={calibrating || undefined}
+                className={`${styles.fanList} ${calibrating ? styles.fanGridDisabled : ''}`}
+              >
               {offStatusCard}
               {(() => {
                 // Group channels by deviceId so external USB hubs (NP50,
                 // future devices) render with a header + their child fans
                 // beneath. Motherboard fans (no deviceId) render flat at
                 // the top so users with no hub see the exact UI they
-                // always had. Disconnected (Unresponsive) fans sort to the
-                // bottom of each group so live fans are above the dead ones.
-                const sorted = [...orderedChannels].sort((a, b) => {
-                  const aDead = a.classification === 'Unresponsive' ? 1 : 0;
-                  const bDead = b.classification === 'Unresponsive' ? 1 : 0;
-                  return aDead - bDead;
-                });
+                // always had. Disconnected (Unresponsive) fans are pulled
+                // out of their device groups and rendered in a single
+                // collapsible category at the very bottom — they don't
+                // belong inline with live fans where they add visual noise.
+                const disconnected = orderedChannels.filter(c => c.classification === 'Unresponsive');
+                const live = orderedChannels.filter(c => c.classification !== 'Unresponsive');
                 const groups = new Map<string | null, FanChannel[]>();
-                for (const ch of sorted) {
+                for (const ch of live) {
                   const key = ch.deviceId || null;
                   if (!groups.has(key)) groups.set(key, []);
                   groups.get(key)!.push(ch);
@@ -1164,6 +1268,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                     compact
                     canCreateCurve={curves.length < MAX_CURVES}
                     highlighted={highlightedFanIds.has(ch.id) && ch.classification !== 'Unresponsive'}
+                    hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
+                    hubSupportsFirmware={ch.deviceId?.startsWith('np50:')}
                     nubRef={el => setFanNub(ch.id, el)}
                     cardRef={el => setFanCard(ch.id, el)}
                     onWirePointerDown={onFanNubPointerDown(ch.id)}
@@ -1197,7 +1303,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k).sort();
                 for (const key of deviceKeys) {
                   const list = groups.get(key)!;
-                  const deviceName = key.startsWith('np50:') ? 'HYTE NP50' : key;
+                  const deviceName =
+                    key.startsWith('np50:') ? 'HYTE NP50'
+                    : key.startsWith('minihub:') ? 'iBUYPOWER MiniHub'
+                    : key;
                   blocks.push(
                     <div key={`${key}-hdr`} className={styles.deviceGroupHeader}>
                       <span className={styles.deviceGroupName}>{deviceName}</span>
@@ -1206,8 +1315,33 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   );
                   for (const ch of list) blocks.push(renderFan(ch));
                 }
+                if (disconnected.length > 0) {
+                  blocks.push(
+                    <button
+                      type="button"
+                      key="disconnected-hdr"
+                      className={`${styles.deviceGroupHeader} ${styles.disconnectedHeader}`}
+                      aria-expanded={disconnectedExpanded}
+                      onClick={() => setDisconnectedExpanded(v => !v)}
+                    >
+                      <span className={styles.deviceGroupName}>
+                        <span className={styles.disconnectedChevron} aria-hidden>
+                          {disconnectedExpanded ? '▾' : '▸'}
+                        </span>
+                        {' '}Disconnected
+                      </span>
+                      <span className={styles.deviceGroupCount}>
+                        {disconnected.length} fan{disconnected.length === 1 ? '' : 's'}
+                      </span>
+                    </button>
+                  );
+                  if (disconnectedExpanded) {
+                    for (const ch of disconnected) blocks.push(renderFan(ch));
+                  }
+                }
                 return blocks;
               })()}
+              </div>
             </div>
 
             <div className={styles.fanPanelFooter}>
