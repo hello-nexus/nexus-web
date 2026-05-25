@@ -20,6 +20,11 @@ export interface FanChannel {
   // channel lives on a USB hub like NP50. Drives device-grouped rendering on
   // the cooling page.
   deviceId?: string | null;     // e.g. "np50:1A2B3C"
+  // User-facing product name surfaced by the service (e.g. "HYTE NP50"
+  // or "iBUYPOWER MiniHub"). Same string for every channel on the same
+  // device — used as the device-group header label on the cooling page
+  // so the panel never has to invent a name from the raw deviceId.
+  deviceName?: string | null;
   portLabel?: string | null;    // e.g. "Port 1" | "Legacy 4-pin"
   fanModel?: string | null;     // e.g. "LS30" | "LS10" | "FP12"
   orientation?: string | null;  // "Back" | "Down" | "Up" | "Front"

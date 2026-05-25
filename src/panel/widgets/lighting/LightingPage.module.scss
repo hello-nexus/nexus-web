@@ -1034,6 +1034,12 @@
   margin-left: 0.3rem;
 }
 
+.deviceCardZone {
+  /* Slight tint so the zone child reads as "part of the parent group" even
+     when scrolling past the motherboard header. */
+  background: var(--bg);
+}
+
 // ── Right-pane selector: Devices | Effect ─────────────────────────────────
 // Pill-variant segmented control sitting at the top of the right pane,
 // above the device list / effect controls. Matches the camera/code pair
