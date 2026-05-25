@@ -326,6 +326,145 @@
 }
 .fanGridDisabled { pointer-events: none; }
 
+// ── Calibration lock (bug 4) ──────────────────────────────────────────────
+// While the cycle runs the user shouldn't be able to nudge fan modes,
+// rename, drag wires, or change setpoints. We layer a translucent shield
+// over the fan list, dim its content, AND set `inert` on the underlying
+// container so keyboard + AT routing also stops at the shield. The
+// shield carries its own copy of the spinner + status text so the user
+// always sees the cycle is in flight without having to scroll.
+.fanListWrap {
+  position: relative;
+  // Stretch to fill the aside vertically so the lock overlay covers
+  // every fan row. Without this the wrap collapses to the content
+  // height and the overlay only covers visible cards, letting clicks
+  // through to cards scrolled off-screen.
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+.calibrationLock {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  text-align: center;
+  background: rgba(8, 9, 14, 0.72);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius);
+  // Sit on top of the device-group headers but UNDER the wire SVG (which
+  // is on z-index 10 already). The shield is purely UX feedback; wires
+  // are inert.
+  pointer-events: auto;
+  // Soft fade-in on calibration start so the surface doesn't pop.
+  animation: lockFadeIn 0.18s ease;
+}
+@keyframes lockFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.calibrationLockTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+.calibrationLockHelp {
+  max-width: 32ch;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+// Fan list under the lock fades to mark it as inactive.
+.fanListLocked { opacity: 0.35; filter: saturate(0.6); }
+
+// ── Disconnected fans bottom group (bug 5) ────────────────────────────────
+// One collapsible block, default closed, at the very bottom of the fan
+// list. Replaces the per-device-group "dead fan inline at the bottom"
+// rendering which was visually noisy on rigs with several unresponsive
+// fans across multiple hubs.
+.disconnectedGroup {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 0.5rem;
+}
+.disconnectedHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--ease);
+  &:hover { background: rgba(255, 255, 255, 0.04); }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+}
+.disconnectedChevron {
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.15s ease;
+}
+.disconnectedChevronOpen { transform: rotate(90deg); }
+.disconnectedCount {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faded);
+}
+.disconnectedBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.35rem 0 0.25rem;
+}
+// Compact one-liner per disconnected fan: name + which device it lives
+// on. We don't render a full FanCard here — there's nothing the user
+// can do until the fan reports a tach again, so a row is enough.
+.disconnectedRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+.disconnectedRowName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.disconnectedRowDevice {
+  font-size: 0.7rem;
+  color: var(--text-faded);
+  font-variant-numeric: tabular-nums;
+}
+
 .fanRpmReadout {
   margin-left: auto;
   display: inline-flex;

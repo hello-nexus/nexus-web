@@ -1,5 +1,20 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Gauge, Plus, Power, Settings } from 'lucide-react';
+import { ChevronRight, Gauge, Plus, Power, Settings } from 'lucide-react';
+import {
+  getNp50ConnectionState,
+  np50HubModeFromName,
+  setNp50LiveCoolingMode,
+  NP50_LIVE_MODE_MOTHERBOARD,
+  NP50_LIVE_MODE_SOFTWARE,
+  NP50_LIVE_MODE_STATIC,
+  type Np50HubModeKind,
+} from '../../../api/np50';
+import {
+  setMiniHubLiveCoolingMode,
+  MINIHUB_LIVE_MODE_MOTHERBOARD,
+  MINIHUB_LIVE_MODE_SOFTWARE,
+  type MiniHubModeKind,
+} from '../../../api/minihub';
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
   setFanSpeed, releaseFanAuto, saveCurves, renameFan,
@@ -71,6 +86,22 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, settings.preferredCpuTempSensorId);
   const gpuTemp = resolveGpuTempSensor(sensors.gpu, settings.preferredGpuTempSensorId);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // ── Hub-mode tracking (bug 1 UI side) ────────────────────────────────────
+  // Per-deviceId live cooling mode kind. Populated by polling the device's
+  // connection-state endpoint on a coarse cadence (the cooling-mode is
+  // hub-wide, not per-channel, and changes only when the user picks a
+  // non-Manual / non-curve option on a hub fan). Drives FanCard's
+  // `hubMode` so every fan on a BIOS-pinned NP50 shows BIOS — and so we
+  // don't bother displaying per-fan dropdown values that the hub has
+  // already overridden firmware-side.
+  type HubKind = Np50HubModeKind | MiniHubModeKind;
+  const [hubModes, setHubModes] = useState<Record<string, HubKind>>({});
+
+  // Disconnected (Unresponsive) fans collapse into a single bottom group.
+  // Default closed: users rarely care about a fan they can't drive. Open
+  // state is intentionally local — no need to persist this across sessions.
+  const [disconnectedOpen, setDisconnectedOpen] = useState(false);
 
   const refreshCoolingConfig = useCallback(async () => {
     if (!serviceOnline) return;
@@ -222,6 +253,26 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     });
   }, [curveCalcs]);
 
+  // Poll the NP50 connection-state endpoint on a coarse cadence (~3 s) so
+  // FanCard's hubMode prop reflects whatever the hub is actually in. Single
+  // hub for now; once the service supports multiple, this becomes a fan-out
+  // over each connected NP50. MiniHub has no read-back command — we cache
+  // hubModes locally on PUT instead.
+  useEffect(() => {
+    if (!serviceOnline) return;
+    let cancelled = false;
+    const tick = async () => {
+      const conn = await getNp50ConnectionState();
+      if (cancelled || !conn || !conn.connected || !conn.deviceId) return;
+      const kind = np50HubModeFromName(conn.coolingMode);
+      if (!kind) return;
+      setHubModes(prev => prev[conn.deviceId] === kind ? prev : { ...prev, [conn.deviceId]: kind });
+    };
+    void tick();
+    const id = window.setInterval(tick, 3000);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [serviceOnline]);
+
   useEffect(() => {
     if (!realtimeData?.coolingComponents) return;
     const map = new Map<string, { rpm: number; speed: number }>();
@@ -352,9 +403,79 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return id;
   }, [curves, sources, fanStates, pushCurves]);
 
+  // Push a hub-mode change. Updates the optimistic cache so FanCard's
+  // hubMode prop reflects the pick before the next /devices/np50 poll
+  // returns, then fires the PUT. Returns true if a hub-wide write was
+  // issued (the fan-state path can short-circuit).
+  const setHubMode = useCallback(async (deviceId: string, kind: HubKind): Promise<boolean> => {
+    if (deviceId.startsWith('np50:')) {
+      setHubModes(prev => ({ ...prev, [deviceId]: kind as Np50HubModeKind }));
+      const mode =
+        kind === 'motherboard' ? NP50_LIVE_MODE_MOTHERBOARD
+        : kind === 'firmware'  ? NP50_LIVE_MODE_STATIC
+        : NP50_LIVE_MODE_SOFTWARE;
+      await setNp50LiveCoolingMode(mode);
+      return true;
+    }
+    if (deviceId.startsWith('minihub:')) {
+      // MiniHub has no firmware-static mode; collapse 'firmware' -> motherboard
+      // so the dropdown's enabled options stay consistent if a future build
+      // ever leaks the FW option onto a MiniHub fan.
+      const mhKind: MiniHubModeKind = kind === 'software' ? 'software' : 'motherboard';
+      setHubModes(prev => ({ ...prev, [deviceId]: mhKind }));
+      const mode = mhKind === 'software' ? MINIHUB_LIVE_MODE_SOFTWARE : MINIHUB_LIVE_MODE_MOTHERBOARD;
+      await setMiniHubLiveCoolingMode(mode);
+      return true;
+    }
+    return false;
+  }, []);
+
   // BIOS = release control; 'manual' = software control, no curve; curve id =
   // bind that curve. Keeps the full transition atomic.
+  //
+  // Hub-fan branch (bug 1 UI side): when the channel belongs to an external
+  // hub (NP50 / MiniHub) we first issue a hub-wide cooling-mode write.
+  //   - BIOS pick → hub goes Motherboard. Skip the per-fan release because
+  //     the firmware now owns PWM and our cached duty stops mattering.
+  //   - FW pick   → hub goes Static (NP50 only). Same skip.
+  //   - Manual / curve → hub goes Software and we then run the normal
+  //     per-fan flow so the curve engine can drive PWM.
   const setFanMode = useCallback(async (fanId: string, value: string) => {
+    const channel = channels.find(c => c.id === fanId);
+    const hubId = channel?.deviceId;
+    if (hubId) {
+      if (value === 'bios') {
+        await setHubMode(hubId, 'motherboard');
+        // Mirror the soft-state cleanup that toggleSoftwareControl would
+        // do, but without releasing the channel (the hub is now in its
+        // own mode and the curve engine's pinned-mode guard will stop
+        // touching the channel on the next tick).
+        if (fanStates[fanId]?.softwareControl) {
+          setFanStates(prev => {
+            const next = { ...prev };
+            delete next[fanId];
+            return next;
+          });
+        }
+        return;
+      }
+      if (value === 'fw') {
+        await setHubMode(hubId, 'firmware');
+        if (fanStates[fanId]?.softwareControl) {
+          setFanStates(prev => {
+            const next = { ...prev };
+            delete next[fanId];
+            return next;
+          });
+        }
+        return;
+      }
+      // Manual or curve binding — make sure the hub is in Software mode
+      // before the per-fan flow tries to write PWM.
+      await setHubMode(hubId, 'software');
+      // Fall through to the standard path below.
+    }
+
     const wasSw = fanStates[fanId]?.softwareControl ?? false;
     if (value === 'bios') {
       // BIOS Control is the one fan-control change that is allowed in Off.
@@ -373,7 +494,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     } else {
       await assignCurve(fanId, targetCurveId);
     }
-  }, [fanStates, curves, pushCurves, toggleSoftwareControl, assignCurve, exitOffToCustomIfNeeded]);
+  }, [channels, fanStates, curves, pushCurves, toggleSoftwareControl, assignCurve, exitOffToCustomIfNeeded, setHubMode]);
 
   // Move a curve binding from one fan to another in a single transaction.
   // Used by the wire DnD when the user picks up a wire from one fan and
@@ -1110,14 +1231,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           </div>
 
           <aside className={styles.fanPanel}>
-            {calibrating && (
-              <div className={styles.calibrationBanner}>
-                <div className={styles.calibrationSpinner} />
-                <span>{t('cooling.calibrate.running')}</span>
-              </div>
-            )}
-
-            {calibrationResults && (
+            {calibrationResults && !calibrating && (
               <div className={styles.calibrationResults}>
                 <div className={styles.calibrationResultsHeader}>
                   <span>{t('cooling.calibrate.done')}</span>
@@ -1138,32 +1252,62 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               </div>
             )}
 
-            <div className={`${styles.fanList} ${calibrating ? styles.fanGridDisabled : ''}`}>
+            {/* Wrap the fan list so the calibration lock overlay can sit on
+                top of every row, including those scrolled off-screen, and
+                so React's `inert` attribute on the inner list prevents
+                pointer + AT + keyboard focus from reaching anything below
+                during calibration. */}
+            <div className={styles.fanListWrap}>
+              <div
+                className={`${styles.fanList} ${calibrating ? `${styles.fanGridDisabled} ${styles.fanListLocked}` : ''}`}
+                // `inert` is a real HTML attribute that blocks pointer +
+                // keyboard + AT focus on the subtree. The supported-types
+                // version here uses a boolean — passing `true` while
+                // calibrating is enough to lock the entire fan list down.
+                inert={calibrating || undefined}
+                aria-hidden={calibrating || undefined}
+              >
               {offStatusCard}
               {(() => {
-                // Group channels by deviceId so external USB hubs (NP50,
-                // future devices) render with a header + their child fans
-                // beneath. Motherboard fans (no deviceId) render flat at
-                // the top so users with no hub see the exact UI they
-                // always had. Disconnected (Unresponsive) fans sort to the
-                // bottom of each group so live fans are above the dead ones.
-                const sorted = [...orderedChannels].sort((a, b) => {
-                  const aDead = a.classification === 'Unresponsive' ? 1 : 0;
-                  const bDead = b.classification === 'Unresponsive' ? 1 : 0;
-                  return aDead - bDead;
-                });
+                // Pull every Unresponsive fan out of the per-device groups
+                // first — they render in a single collapsible block at the
+                // very bottom of the list (bug 5). Each remaining live fan
+                // groups by deviceId so external hubs (NP50 / MiniHub /
+                // future) render with a labelled header above their fans.
+                const live: FanChannel[] = [];
+                const dead: FanChannel[] = [];
+                for (const ch of orderedChannels) {
+                  (ch.classification === 'Unresponsive' ? dead : live).push(ch);
+                }
                 const groups = new Map<string | null, FanChannel[]>();
-                for (const ch of sorted) {
+                for (const ch of live) {
                   const key = ch.deviceId || null;
                   if (!groups.has(key)) groups.set(key, []);
                   groups.get(key)!.push(ch);
                 }
-                const renderFan = (ch: FanChannel) => (
+                // Bug 2: friendly product names for each known external hub.
+                // The service surfaces these via FanChannel.deviceName when
+                // the channel was contributed by a hub provider, so prefer
+                // that string and fall back to id-prefix matching only when
+                // the field is empty (older snapshots).
+                const labelFor = (key: string, list: FanChannel[]): string => {
+                  const fromService = list.find(c => !!c.deviceName)?.deviceName;
+                  if (fromService) return fromService;
+                  if (key.startsWith('np50:')) return 'HYTE NP50';
+                  if (key.startsWith('minihub:')) return 'iBUYPOWER MiniHub';
+                  return key;
+                };
+                const renderFan = (ch: FanChannel) => {
+                  const hub = ch.deviceId ? hubModes[ch.deviceId] : undefined;
+                  const isNp50 = !!ch.deviceId && ch.deviceId.startsWith('np50:');
+                  return (
                   <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
                     calibrating={calibrating}
                     compact
                     canCreateCurve={curves.length < MAX_CURVES}
                     highlighted={highlightedFanIds.has(ch.id) && ch.classification !== 'Unresponsive'}
+                    hubMode={hub}
+                    hubSupportsFirmware={isNp50}
                     nubRef={el => setFanNub(ch.id, el)}
                     cardRef={el => setFanCard(ch.id, el)}
                     onWirePointerDown={onFanNubPointerDown(ch.id)}
@@ -1188,16 +1332,17 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                         setDragOverFanId(null);
                       },
                     }} />
-                );
+                  );
+                };
                 const blocks: ReactNode[] = [];
                 // Motherboard / GPU fans first (existing UI shape).
                 const mobo = groups.get(null);
                 if (mobo) for (const ch of mobo) blocks.push(renderFan(ch));
-                // Then one labeled group per external device, in stable order.
+                // Then one labelled group per external hub, in stable order.
                 const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k).sort();
                 for (const key of deviceKeys) {
                   const list = groups.get(key)!;
-                  const deviceName = key.startsWith('np50:') ? 'HYTE NP50' : key;
+                  const deviceName = labelFor(key, list);
                   blocks.push(
                     <div key={`${key}-hdr`} className={styles.deviceGroupHeader}>
                       <span className={styles.deviceGroupName}>{deviceName}</span>
@@ -1206,8 +1351,55 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   );
                   for (const ch of list) blocks.push(renderFan(ch));
                 }
+                // Bug 5: a single collapsible bottom block for every dead
+                // fan across every hub. Empty when nothing is dead so users
+                // who never calibrated or never had a bad fan don't see it.
+                if (dead.length > 0) {
+                  const deviceLabel = (deviceId: string | null | undefined): string => {
+                    if (!deviceId) return 'Motherboard';
+                    if (deviceId.startsWith('np50:')) return 'HYTE NP50';
+                    if (deviceId.startsWith('minihub:')) return 'iBUYPOWER MiniHub';
+                    return deviceId;
+                  };
+                  blocks.push(
+                    <div key="disconnected-group" className={styles.disconnectedGroup}>
+                      <button
+                        type="button"
+                        className={styles.disconnectedHeader}
+                        aria-expanded={disconnectedOpen}
+                        onClick={() => setDisconnectedOpen(o => !o)}
+                      >
+                        <span className={`${styles.disconnectedChevron} ${disconnectedOpen ? styles.disconnectedChevronOpen : ''}`}>
+                          <ChevronRight size={14} aria-hidden />
+                        </span>
+                        <span>{t('cooling.calibrate.class.unresponsive')}</span>
+                        <span className={styles.disconnectedCount}>{dead.length}</span>
+                      </button>
+                      {disconnectedOpen && (
+                        <div className={styles.disconnectedBody}>
+                          {dead.map(ch => (
+                            <div key={ch.id} className={styles.disconnectedRow}>
+                              <span className={styles.disconnectedRowName}>{ch.name}</span>
+                              <span className={styles.disconnectedRowDevice}>{deviceLabel(ch.deviceId)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
                 return blocks;
               })()}
+              </div>
+              {calibrating && (
+                <div className={styles.calibrationLock} role="status" aria-live="polite">
+                  <div className={styles.calibrationLockTitle}>
+                    <div className={styles.calibrationSpinner} />
+                    <span>{t('cooling.calibrate.inProgress')}</span>
+                  </div>
+                  <p className={styles.calibrationLockHelp}>{t('cooling.calibrate.lockedHelp')}</p>
+                </div>
+              )}
             </div>
 
             <div className={styles.fanPanelFooter}>
