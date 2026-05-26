@@ -108,6 +108,11 @@ export function WidgetContextMenu({
     if (ny + rect.height > window.innerHeight - safeInsets.bottom) ny = window.innerHeight - rect.height - safeInsets.bottom;
     if (nx < safeInsets.left) nx = safeInsets.left;
     if (ny < safeInsets.top) ny = safeInsets.top;
+    // Measure-then-position pattern: useLayoutEffect reads the rendered
+    // menu rect and commits the clamped coordinates before paint so the
+    // user never sees the menu in its initial off-screen position. This
+    // is the canonical case for setState inside a layout effect.
+     
     setPos({ x: nx, y: ny });
     setOrigin({
       x: clamp(x - nx, 16, rect.width - 16),

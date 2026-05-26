@@ -64,6 +64,10 @@ export function useTopic<T>(topic: string, enabled = true): T | null {
 
   useEffect(() => {
     if (!ctx || !enabled) {
+      // Drop any stale frame when the topic disables. This is the standard
+      // "follow external system" pattern - we're clearing local state to
+      // reflect that the upstream subscription no longer exists.
+       
       setData(null);
       return;
     }
@@ -145,6 +149,11 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
   // upgrade would just be 403-rejected anyway; switch to slow-polling the
   // public state endpoint until the host re-enables, then resume.
   const connectRef = useRef<() => void>(() => {});
+  // Self-reference indirection: the disabled-polling setTimeout below calls
+  // handleDisconnect recursively; routing through a ref keeps the linter's
+  // TDZ check happy without changing call timing (the timeout fires long
+  // after the useCallback body completes).
+  const handleDisconnectRef = useRef<() => Promise<void>>(async () => {});
   const handleDisconnect = useCallback(async () => {
     if (!mountedRef.current) return;
     try {
@@ -164,7 +173,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
           reconnectTimer.current = setTimeout(() => {
             if (!mountedRef.current) return;
             setNextAttemptAt(null);
-            void handleDisconnect();
+            void handleDisconnectRef.current();
           }, REMOTE_DISABLED_POLL_MS);
           return;
         }
@@ -185,6 +194,10 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     }
     scheduleReconnect(() => connectRef.current());
   }, [scheduleReconnect]);
+
+  useEffect(() => {
+    handleDisconnectRef.current = handleDisconnect;
+  }, [handleDisconnect]);
 
   const connect = useCallback(async () => {
     close();
@@ -267,9 +280,15 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     mountedRef.current = true;
     if (enabled) {
       backoffStepRef.current = 0;
+      // connect() opens the WS; the setState calls inside (setConnected,
+      // setNextAttemptAt) only fire after async resolution / events, so
+      // they don't actually cascade-render within this effect body.
+       
       connect();
     } else {
       backoffStepRef.current = 0;
+      // Tearing down on disable is a sync external-system update; the
+      // setState calls reflect that the socket is now closed.
       setConnected(false);
       setNextAttemptAt(null);
       close();

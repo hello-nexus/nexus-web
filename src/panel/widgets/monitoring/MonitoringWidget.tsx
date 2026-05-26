@@ -1,3 +1,8 @@
+// resolveSensor/labelForDevice/staticMaxForDevice/percentForSensor are the
+// pure helpers MonitoringWidget and PerfSlot use. They live next to the
+// widget because they're not consumed elsewhere; extracting to a sibling
+// module would just be ceremony.
+ 
 import { useMemo } from 'react';
 import { useSensors } from '../../../hooks/useSensors';
 import type { HardwareSensor } from '../../../hooks/useSensors';

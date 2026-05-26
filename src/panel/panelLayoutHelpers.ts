@@ -47,7 +47,9 @@ export interface DragGestureState {
 // every callback unconditionally, so we hand back a no-op for each to keep
 // the call sites typed without registering listeners that could fire on a
 // stray simulated pointer.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match React.MouseEventHandler
 const noopMouseHandler = (_e: React.MouseEvent) => { /* no-op on Q60 */ };
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match React.PointerEventHandler
 const noopPointerHandler = (_e: React.PointerEvent) => { /* no-op on Q60 */ };
 export { noopMouseHandler, noopPointerHandler };
 export const noopCellPointers = {

@@ -14,7 +14,6 @@
 //     "color": "currentColor"  // color token or CSS literal
 //   }
 
-import { useCallback } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import type { WidgetView } from '../../types';
 import { bind, bindColor, bindNumber, type RenderContext } from '../renderer';
@@ -34,13 +33,15 @@ export function Stepper({ view, ctx }: MeterProps) {
 
   const current = clampToRange(toNumber(ctx.local?.[key]), min, max);
 
-  const mutate = useCallback((delta: number) => {
+  // Not memoised: the chevron buttons aren't memo'd children, so wrapping
+  // this in useCallback would add bookkeeping without saving a render.
+  const mutate = (delta: number) => {
     if (!key || !ctx.onLocalUpdate) return;
     const span = max - min + 1;
     const raw = current + delta;
     const wrapped = ((raw - min) % span + span) % span + min;
     ctx.onLocalUpdate({ [key]: wrapped }, ctx);
-  }, [key, ctx, current, min, max]);
+  };
 
   const displayValue = pad > 0 ? String(current).padStart(pad, '0') : String(current);
 

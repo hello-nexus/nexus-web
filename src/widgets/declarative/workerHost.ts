@@ -58,7 +58,7 @@ export function spawnWidgetWorker(opts: WorkerOptions): WidgetWorkerHandle {
   let worker: Worker | null = null;
   let disposed = false;
   let blobUrlToRevoke: string | null = null;
-  let nextRpcId = 1;
+  const nextRpcId = 1;
   const pending = new Map<number, (value: unknown, error?: { code: number; message: string }) => void>();
   const sensorSubscribers = new Map<number, { pattern: string; regex: RegExp }>();
   let watchdog: ReturnType<typeof setInterval> | null = null;

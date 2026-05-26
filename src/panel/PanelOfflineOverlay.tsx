@@ -33,6 +33,11 @@ function useCountdownSeconds(target: number | null): number | null {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (target == null) return;
+    // Resync `now` immediately when `target` changes so the displayed
+    // countdown reflects the new deadline without waiting up to 250 ms
+    // for the first interval tick. Without this the user sees the old
+    // remaining time momentarily after each reconnect attempt is scheduled.
+     
     setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(id);

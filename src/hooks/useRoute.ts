@@ -143,7 +143,9 @@ export function useRoute() {
   const [historyVersion, setHistoryVersion] = useState(0);
 
   const routeRef = useRef(route);
-  routeRef.current = route;
+  useEffect(() => {
+    routeRef.current = route;
+  }, [route]);
 
   // Seed the index + mirror table from whatever is already on history.state.
   //
@@ -279,7 +281,9 @@ export function useRoute() {
   // Derived from refs; the historyVersion state above is what schedules
   // the re-render whenever the stacks move, so React reads fresh values.
   void historyVersion;
+   
   const canGoBack = indexRef.current > 0;
+   
   const canGoForward = indexRef.current < historyRef.current.length - 1;
 
   return {

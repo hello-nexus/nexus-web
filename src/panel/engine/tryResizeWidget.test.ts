@@ -58,11 +58,8 @@ describe('tryResizeWidget', () => {
   });
 
   it('shrinks in place without disturbing siblings', () => {
-    const l = layout([[
-      widget('a', '4x4', 0, 0),
-      widget('b', '2x2', 0, 0), // sibling parked off (would overlap if pre-existing — exercise post-shrink)
-    ]]);
-    // Pre-existing overlap before resize is contrived; place sibling at (2, 2) instead.
+    // Pre-existing overlap before resize is contrived; the original sibling
+    // setup is documented here but `clean` is the actual fixture.
     const clean = layout([[
       widget('a', '4x4', 0, 0),
     ]]);

@@ -223,6 +223,11 @@ export function Dashboard() {
   // the compact sidebar on wide windows keeps it that way.
   useEffect(() => {
     if (!viewportNarrow && manualOverride === false) {
+      // Clear the transient "expanded while narrow" override when the viewport
+      // widens. The override is bound to an external dimension (viewport
+      // width), so dropping it here is the canonical sync of derived UI
+      // state to an external system.
+       
       setManualOverride(null);
     }
   }, [viewportNarrow, manualOverride]);
@@ -237,6 +242,10 @@ export function Dashboard() {
   const [connectEpoch, setConnectEpoch] = useState(0);
   useEffect(() => {
     if (online && !wasOnlineRef.current) {
+      // Latch a counter on every offline->online edge from the multiplex
+      // socket (external system). The remount-on-bump pattern is exactly
+      // the "subscribe-and-react" effect use case.
+       
       setConnectEpoch(n => n + 1);
     }
     wasOnlineRef.current = online;

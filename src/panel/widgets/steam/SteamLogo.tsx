@@ -23,8 +23,13 @@ export const SteamLogo: LucideIcon = forwardRef<SVGSVGElement, LucideProps>(func
   {
     size = 24,
     color = 'currentColor',
+    // strokeWidth / absoluteStrokeWidth pulled off so they don't reach the
+    // <svg>; this is a fill-based glyph and stroke props would warp it. The
+    // destructuring is the discard mechanism — we don't read them anywhere.
+    /* eslint-disable @typescript-eslint/no-unused-vars */
     strokeWidth: _strokeWidth,
     absoluteStrokeWidth: _absoluteStrokeWidth,
+    /* eslint-enable @typescript-eslint/no-unused-vars */
     ...rest
   },
   ref,

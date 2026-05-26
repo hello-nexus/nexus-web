@@ -32,6 +32,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
   // through this hook now. No fetchPreferences/savePreferences in this file.
   const { settings: ui, update: updateUi } = useUiSettings();
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- prop signature matches ProfilesTab's onPreferencesChanged callback
   const onPreferencesChanged = useCallback((_prefs: Preferences) => {
     // Kept for ProfilesTab compatibility. The UiSettingsProvider already
     // reloads + re-applies theme/accent/language on profile switch, so this

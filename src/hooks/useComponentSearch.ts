@@ -32,6 +32,10 @@ export function useComponentSearch(
     abortRef.current = ctrl;
     const seq = ++seqRef.current;
 
+    // Effect synchronizes with an external system (REST catalog search).
+    // setLoading(true) is the canonical "request started" indicator for
+    // that external call; not derivable from props.
+     
     setLoading(true);
     searchCatalog(category, params)
       .then(data => {

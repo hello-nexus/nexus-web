@@ -741,7 +741,7 @@ export function PanelContent({
     setEditorDockMotion(null);
   }, []);
 
-  /* eslint-disable react-hooks/preserve-manual-memoization */
+   
   const closeSheet = useCallback(() => {
     if (!sheetMode) return;
     const closingWidget = editingWidgetId && editingWidgetSize
@@ -770,7 +770,7 @@ export function PanelContent({
     });
     closeTimerRef.current = window.setTimeout(finishSheetClose, EDITOR_EXIT_MS);
   }, [clearCloseTimer, editingWidgetId, editingWidgetSize, editorDockSupported, finishSheetClose, sheetMode, surface]);
-  /* eslint-enable react-hooks/preserve-manual-memoization */
+   
 
   const openSheet = useCallback((mode: SheetMode) => {
     clearCloseTimer();
@@ -1091,7 +1091,12 @@ export function PanelContent({
   // -1 when the cursor is over an empty-cell droppable, since those
   // are not in the SortableContext items list).
   const currentOverIdRef = useRef<string | null>(null);
+  // dnd-kit invokes the collision detection function later (on pointer move
+  // during a drag), so the refs are read outside render via the closure. The
+  // useMemo body itself never dereferences `.current` - only the returned
+  // function does, at the point of use.
   const panelCollisionDetection = useMemo(
+     
     () => buildPanelCollisionDetection(dragGestureRef, activePageIndexRef),
     [],
   );

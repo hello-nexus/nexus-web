@@ -123,10 +123,19 @@ function AppRow({ app, selected, onSelect }: {
   );
 }
 
+// Two existing consumers (MacrosWidget, AppPicker.test) import useAppIcon
+// from this module path; moving the hook to a sibling file would force
+// changes outside the scope of this lint pass, so we keep it here and
+// accept the loss of fast-refresh for AppPicker's component edits.
+ 
 export function useAppIcon(appId: string | undefined): string | null {
   const [iconUrl, setIconUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    // Synchronise local icon state to the incoming appId prop. The reset
+    // paths intentionally clear `iconUrl` so a stale icon from the
+    // previous appId doesn't flash before the new blob resolves.
+     
     if (!appId) { setIconUrl(null); return; }
     setIconUrl(null);
     let revoke = '';

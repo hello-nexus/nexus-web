@@ -103,6 +103,11 @@ export function LightingWidget({ widget }: WidgetProps) {
   }, []);
 
   useEffect(() => {
+    // hydrate() fetches initial lighting state from the service over HTTP;
+    // the setState calls inside happen asynchronously after fetches resolve
+    // (not synchronously during the effect body), so this is the canonical
+    // "subscribe to external system" pattern despite the lint heuristic.
+     
     hydrate();
   }, [hydrate]);
   useTopicCallback('lighting', true, hydrate);
@@ -141,6 +146,9 @@ export function LightingWidget({ widget }: WidgetProps) {
 
   useEffect(() => {
     if (compact || mode !== 'gif') return;
+    // refreshMedia() awaits HTTP fetches before updating state; setState only
+    // runs once the network responses resolve, not synchronously in the effect.
+     
     refreshMedia();
   }, [compact, mode, refreshMedia]);
 

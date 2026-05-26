@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { ComponentCategory, ComponentOption, Build, CompatibilityIssue, WattageEstimate } from '../../types/builder';
+import type { BuilderAction, ComponentCategory, ComponentOption, Build, CompatibilityIssue, WattageEstimate } from '../../types/builder';
 import { useTranslation } from '../../lib/i18n';
 import { BuilderTable } from '../builder/BuilderTable/BuilderTable';
 import { ComponentPicker } from '../builder/ComponentPicker/ComponentPicker';
@@ -11,7 +11,7 @@ import styles from './BuilderView.module.scss';
 interface BuilderViewProps {
   category: ComponentCategory | null;
   build: Build;
-  dispatch: React.Dispatch<any>;
+  dispatch: React.Dispatch<BuilderAction>;
   issues: CompatibilityIssue[];
   wattage: WattageEstimate;
   totalPrice: number;

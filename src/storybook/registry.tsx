@@ -1,3 +1,9 @@
+// Storybook registry intentionally bundles many Preview* components alongside
+// the REGISTRY data array. Splitting each preview into its own file just to
+// satisfy the fast-refresh rule would create dozens of tiny files used only
+// by this index. Component HMR isn't a goal for storybook entries — page
+// reload on edit is acceptable here.
+ 
 import { useRef, useState, type FC } from 'react';
 import { Monitor, Palette, Sparkles, X, Plus, Settings, Download } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';

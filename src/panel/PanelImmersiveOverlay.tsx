@@ -41,6 +41,10 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
         clearTimeout(exitTimer.current);
         exitTimer.current = null;
       }
+      // Mount transition is driven by the external `open` prop crossing into
+      // true; nothing else in render can synchronously derive 'mounted' from
+      // 'unmounted' / 'exiting' without losing the cancel-pending-exit step.
+       
       setMountState('mounted');
     } else if (!open && mountState === 'mounted') {
       beginExit();
@@ -82,6 +86,10 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
   // enter animation. Hooks must run before the conditional return below.
   const [didEnter, setDidEnter] = useState(false);
   useEffect(() => {
+    // Track whether the user has started a swipe so the [data-entered]
+    // attribute toggle suppresses the keyframe replay on snap-back. Latching
+    // didEnter to true is the canonical "external-event → flag" effect.
+     
     if (swipe.state !== 'idle') setDidEnter(true);
   }, [swipe.state]);
   useEffect(() => {

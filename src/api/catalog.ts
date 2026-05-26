@@ -17,6 +17,10 @@ export interface FilterOption {
 }
 
 export interface CatalogSearchResult {
+  // items are full ComponentOption rows shaped by the service; declared loose
+  // here because src/api/* must not depend on src/types/* (this module is
+  // imported by the shared catalog client).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   items: any[];
   total: number;
   page: number;
@@ -68,6 +72,7 @@ export async function searchCatalog(
   return res.json();
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- ComponentOption import would create a layering cycle
 export async function fetchComponent(category: string, id: string): Promise<any> {
   const res = await fetch(`${API_BASE}/catalog/${category}/${encodeURIComponent(id)}`);
   if (!res.ok) throw new Error(`Component fetch failed: ${res.status}`);

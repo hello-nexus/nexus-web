@@ -46,6 +46,11 @@ export function SidebarContextMenu({ x, y, items, onClose }: SidebarContextMenuP
     if (ny + rect.height > window.innerHeight - pad) ny = window.innerHeight - rect.height - pad;
     if (nx < pad) nx = pad;
     if (ny < pad) ny = pad;
+    // Legitimate measurement-after-render pattern: we need the rendered rect
+    // to clamp into the viewport. Computing in useMemo would require knowing
+    // rect.width/height ahead of paint, which we don't have. The follow-up
+    // render is one cheap layout pass.
+     
     setPos({ x: nx, y: ny });
     const cx = clamp(x - nx, 8, rect.width - 8);
     const cy = clamp(y - ny, 8, rect.height - 8);

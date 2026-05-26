@@ -56,7 +56,7 @@ export function BuilderRow({ category, entry, onChoose, onRemove, isOwned, onTog
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(menuRef, () => setMenuOpen(false), menuOpen);
-  const closeMenuAfter = useCallback((fn: () => void) => () => { fn(); setMenuOpen(false); }, []);
+  const closeMenuAfter = useCallback((fn: () => void) => () => { fn(); setMenuOpen(false); }, [setMenuOpen]);
 
   return (
     <div className={styles.row}>

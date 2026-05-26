@@ -96,6 +96,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedDeviceId,
     return () => ro.disconnect();
   }, [containerRef]);
   const selectedDeviceIdRef = useRef(selectedDeviceId);
+  // Latest-ref pattern: startDrag needs the current selection at pointer-
+  // down time to seed tapRef. Writing in an effect would lag by one paint
+  // and break the cycle-through-stack tap behaviour.
+   
   selectedDeviceIdRef.current = selectedDeviceId;
   // Captures selection state at pointer-down so pointer-up can cycle through the stack
   // relative to what was selected before the tap, not after startDrag overwrites it.
@@ -194,6 +198,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedDeviceId,
     <div className={styles.overlayLayer}
       onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}
       onPointerDown={handleOverlayPointerDown}>
+      {/* visualAngleRef is the device-side rotation accumulator (handleRotate
+          adds 90 each call). It's stored in a ref + paired with forceRender
+          so we can read the unwrapped angle (for smooth visual rotation
+          through the 360° boundary) without triggering a render storm. */}
+      { }
       {devices.map(dev => {
         const selected = dev.id === selectedDeviceId;
         const visualAngle = visualAngleRef.current.get(dev.id) ?? (dev.canvasRotation ?? 0);
@@ -251,6 +260,10 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
   const containerRef = useRef<HTMLDivElement>(null);
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const shaderStateRef = useRef(shaderState ?? null);
+  // Latest-ref pattern: the shader renderer reads the ref every animation
+  // frame; updating in an effect would lag by one paint and cause visible
+  // tearing on parameter changes (palette/speed/etc).
+   
   shaderStateRef.current = shaderState ?? null;
   const { ready } = useShaderRenderer(glCanvasRef, shaderEffect ?? null, shaderStateRef, audioRef);
   const visibleDevices = hiddenFrameIds && hiddenFrameIds.size > 0

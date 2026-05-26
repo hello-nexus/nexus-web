@@ -26,6 +26,7 @@ function makeFrame(overrides: Record<string, unknown> = {}) {
     },
     gpu: [{ sensors: [{ id: 'gpu-load', value: 55 }] }],
     ...overrides,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock typing
   } as any;
 }
 

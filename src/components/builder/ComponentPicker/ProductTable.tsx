@@ -1,3 +1,7 @@
+// getColumnsForCategory ships next to ProductTable because it returns the
+// column shape ProductTable consumes; both are imported together by
+// ComponentPicker and would just be re-imported from a sibling otherwise.
+ 
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import type { ComponentCategory, ComponentOption } from '../../../types/builder';
 import { useTranslation } from '../../../lib/i18n';

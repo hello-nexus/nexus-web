@@ -1,3 +1,9 @@
+// Declarative widget renderer + binding helpers live together: the bind*
+// utilities are tightly coupled to RenderContext and used by every meter.
+// Splitting them out just to satisfy fast-refresh would create a one-import
+// file that nothing else consumes. Loss of HMR for UnknownMeter is fine
+// (it's an authoring-time fallback only).
+ 
 import type { ReactNode } from 'react';
 import type { WidgetView } from '../types';
 import { evaluateBinding, resolvePath } from './bindings';

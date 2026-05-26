@@ -1,3 +1,7 @@
+// installContextMenuSuppressor is the side-effect-free worker that the
+// ContextMenuManager mount uses; tests import it directly. One file is the
+// natural unit of testable behaviour here.
+ 
 import { useEffect } from 'react';
 
 // Kills the browser's default right-click menu for the whole app. This is the

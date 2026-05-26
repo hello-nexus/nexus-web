@@ -1,3 +1,7 @@
+// useUiSettings and useTempSensorPrefs are hook exports bound to the
+// UiSettingsContext defined in this file; splitting them out would just
+// create a one-liner re-export module imported from every settings consumer.
+ 
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
   type ReactNode,

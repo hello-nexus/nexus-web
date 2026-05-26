@@ -1,3 +1,7 @@
+// CrossZoneDragProvider + the useCrossZoneDrag hook share one context object
+// defined in this file; splitting the consumer hook into a sibling module
+// would just be ceremony.
+ 
 import {
   createContext, useCallback, useContext, useMemo, useRef, useState,
   type MutableRefObject, type ReactNode,

@@ -36,6 +36,13 @@ export interface ComponentOption {
   imageUrl: string | null;
   bestPrice: number | null;
   retailers: RetailerListing[];
+  // Specs are heterogeneous across categories (number for tdp, string for
+  // socket, string[] for sockets, etc) and consumed by category-specific
+  // column getters / formatters. Modeling each category's specs as a
+  // discriminated union would propagate large refactors across the builder
+  // codebase for no runtime benefit; keep as `any` so existing arithmetic
+  // and string ops typecheck.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   specs: Record<string, any>;
 }
 
@@ -75,3 +82,16 @@ export interface WattageEstimate {
   recommendedPsu: number;
   headroom: number | null;
 }
+
+// Mirrors the BuilderAction union defined in src/hooks/useBuilder.ts. Kept
+// here so consumers that only need the dispatch shape don't have to import
+// from the hook module (avoiding a circular dep and the `any` escape hatch).
+export type BuilderAction =
+  | { type: 'SELECT_COMPONENT'; category: ComponentCategory; index: number; component: ComponentOption; retailer?: string }
+  | { type: 'REMOVE_COMPONENT'; category: ComponentCategory; index: number }
+  | { type: 'ADD_SLOT'; category: ComponentCategory }
+  | { type: 'REMOVE_SLOT'; category: ComponentCategory; index: number }
+  | { type: 'TOGGLE_OWNED'; category: ComponentCategory }
+  | { type: 'LOAD_BUILD'; build: Build }
+  | { type: 'LOAD_OWNED_HARDWARE'; detected: Partial<Record<ComponentCategory, ComponentOption[]>> }
+  | { type: 'CLEAR' };

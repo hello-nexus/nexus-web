@@ -39,6 +39,9 @@ export function useShaderRenderer(
     const canvas = canvasRef.current;
     if (!canvas) return;
     const gl = canvas.getContext('webgl2', { antialias: false, alpha: false });
+    // External system bail-out: WebGL2 context creation is the canonical
+    // imperative platform-API check this effect exists to perform.
+     
     if (!gl) { setError('WebGL2 not supported'); return; }
     glRef.current = gl;
 
@@ -69,6 +72,10 @@ export function useShaderRenderer(
     const gl = glRef.current;
     if (!gl || !effect) {
       cancelAnimationFrame(rafRef.current);
+      // Reset external-resource-derived flags when the effect (or GL ctx) is
+      // torn down. setState here clears UI that was tracking a now-gone
+      // subscription; canonical effect cleanup, not a cascading render bug.
+       
       setReady(false);
       setLoading(false);
       setError(null);

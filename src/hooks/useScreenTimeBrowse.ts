@@ -48,6 +48,7 @@ export function useScreenTimeDay(date: string) {
     setData(r ?? { ...EMPTY_DAY, date });
     setLoading(false);
   }, [date]);
+   
   useEffect(() => { reload(); }, [reload]);
   return { data, loading, reload };
 }
@@ -61,6 +62,7 @@ export function useScreenTimeRange(from: string, to: string) {
     setData(r ?? []);
     setLoading(false);
   }, [from, to]);
+   
   useEffect(() => { reload(); }, [reload]);
   return { data, loading, reload };
 }
@@ -78,6 +80,7 @@ export function useScreenTimeApp(name: string, from: string, to: string) {
     setData(r);
     setLoading(false);
   }, [name, from, to]);
+   
   useEffect(() => { reload(); }, [reload]);
   return { data, loading, reload };
 }
@@ -86,6 +89,7 @@ export function useScreenTimeHour(date: string, hour: number | null) {
   const [data, setData] = useState<{ name: string; totalMs: number }[]>([]);
   useEffect(() => {
     if (hour === null) {
+       
       setData([]);
       return;
     }

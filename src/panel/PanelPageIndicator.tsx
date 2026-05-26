@@ -16,6 +16,11 @@ export function PanelPageIndicator({ total, active, visibilityToken, className }
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    // Reset visibility on every token/page change so a fresh fade cycle
+    // starts; the timeout below then fades back out. Setting state in the
+    // effect body is the intended "subscribe to external trigger" pattern
+    // here - we synchronise a transient visual cue to swipe/page events.
+     
     setVisible(true);
     const handle = window.setTimeout(() => setVisible(false), FADE_HOLD_MS);
     return () => window.clearTimeout(handle);

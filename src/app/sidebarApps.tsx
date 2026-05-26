@@ -1,3 +1,7 @@
+// File is .tsx because getSidebarAppMeta returns JSX via createElement, but
+// the public surface is helpers + re-exports rather than a component. Fast
+// refresh has nothing to refresh here.
+ 
 import { type ReactNode, createElement } from 'react';
 import { LayoutDashboard } from 'lucide-react';
 import { ICON_SIZE } from './sidebarNav';

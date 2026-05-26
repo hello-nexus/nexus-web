@@ -82,6 +82,10 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     else setCoords({ top: r.top + r.height / 2, left: r.left - OFFSET });
   };
 
+  // reposition is intentionally not a dep: it reads refs / closes over `side`
+  // which IS in the dep list, and re-creating it each render would just
+  // re-fire the effect needlessly.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => { if (open) reposition(); }, [open, side]);
   useEffect(() => {
     if (!open) return;
@@ -92,6 +96,8 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
       window.removeEventListener('scroll', handler, true);
       window.removeEventListener('resize', handler);
     };
+    // reposition reads refs only; stable for the open lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   if (!isValidElement(children)) {
@@ -104,9 +110,14 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
   const childProps = child.props;
 
   // Chain our handlers behind the child's existing handlers so custom click /
-  // focus logic on the wrapped element still fires.
+  // focus logic on the wrapped element still fires. Event type intentionally
+  // `any` — the helper is variant over pointer/focus event types and the
+  // caller side passes the correctly-typed listener; a discriminated generic
+  // would require duplicating each handler kind.
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const chain = <T extends (e: any) => void>(theirs: T | undefined, ours: T): T =>
     ((e: any) => { theirs?.(e); ours(e); }) as T;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   // Forward our ref AND any ref the caller already had on the child. React 19
   // keeps refs as a regular `ref` prop; older versions tucked it onto the

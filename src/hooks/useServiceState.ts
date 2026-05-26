@@ -70,6 +70,10 @@ export function useServiceState(
 
   useEffect(() => {
     if (!enabled) {
+      // Reset cached external-service state when the consumer disables the
+      // hook (e.g. service goes offline). Canonical "subscribe / unsubscribe"
+      // teardown - the value is derived from the external system going away.
+       
       setState({ cooling: null, lighting: null, panel: null });
       return;
     }
@@ -132,6 +136,10 @@ export function useServiceState(
   const prevConnected = useRef(connected);
   useEffect(() => {
     if (enabled && !prevConnected.current && connected) {
+      // Reconnect catch-up: refetch the canonical status endpoints. setState
+      // happens asynchronously after the HTTP fetches resolve, not within
+      // this effect body. Canonical external-system synchronisation.
+       
       void refetchCooling();
       void refetchLighting();
       void refetchPanel();

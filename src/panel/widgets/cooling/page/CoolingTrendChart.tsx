@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { FanChannel } from '../../../../api/cooling';
 import { useTranslation } from '../../../../lib/i18n';
 import { PERF_HISTORY_SAMPLES, useHistory } from '../../../../panel/widgets/common/useHistory';
@@ -92,7 +92,12 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
   const xStep = n > 1 ? chartW / (n - 1) : 0;
 
   const baseY = PAD.top + chartH;
-  const yFor = (value: number) => baseY - (Math.max(0, value) / stackMax) * chartH;
+  // Inlined helper used by both path useMemos. Kept here as a const so the
+  // compiler treats the same expression identically across both blocks.
+  const yFor = useCallback(
+    (value: number) => baseY - (Math.max(0, value) / stackMax) * chartH,
+    [baseY, stackMax, chartH],
+  );
 
   // Bottom layer (CPU): filled-area between y=cpu and y=baseline; top edge
   // is the CPU line.
@@ -108,7 +113,7 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
     const firstX = PAD.left.toFixed(1);
     const fill = `${line} L${lastX},${baseY.toFixed(1)} L${firstX},${baseY.toFixed(1)} Z`;
     return { line, fill };
-  }, [cpuPadded, xStep, stackMax, baseY, chartH]);
+  }, [cpuPadded, xStep, baseY, yFor]);
 
   // Top layer (GPU): stacked above CPU. Filled-area runs between
   // y=cpu+gpu (top) and y=cpu (bottom) so it sits on top of the CPU layer
@@ -127,7 +132,7 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
     const line = `M${topPts.join(' L')}`;
     const fill = `M${topPts.join(' L')} L${botPts.join(' L')} Z`;
     return { line, fill };
-  }, [gpuPadded, cpuPadded, xStep, stackMax, baseY]);
+  }, [gpuPadded, cpuPadded, xStep, yFor]);
 
   const fanLine = useMemo(() => {
     if (fanPadded.length === 0) return '';

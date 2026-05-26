@@ -79,7 +79,7 @@ function reconcileWidgetsAgainstRegistry(
         if (id && getMarketplaceListing(id)) return [widget];
         // Stale id — purge silently. The layout writer will persist the
         // cleaned shape on the next debounced flush.
-        // eslint-disable-next-line no-console
+         
         console.info(`[panel-layout] dropping orphaned marketplace widget: ${widget.type}`);
         return [];
       }

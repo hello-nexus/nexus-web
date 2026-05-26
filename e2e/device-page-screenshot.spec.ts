@@ -19,6 +19,9 @@ test.use({
   viewport: { width: 1600, height: 1000 },
 });
 
+// PanelDeviceDto mirrors the panel service DTO; left here as living
+// documentation of the response shape the test exercises end-to-end.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface PanelDeviceDto {
   id: string;
   sourceId?: string;

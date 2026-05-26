@@ -20,9 +20,13 @@ export function PanelHostNameSetting({ machineName, onCommit }: PanelHostNameSet
 
   // Sync to the latest server-resolved value, but only when the input is
   // not focused. Without the focus guard, a watchdog refresh mid-typing
-  // would replace the user's draft with the previous server value.
+  // would replace the user's draft with the previous server value. The
+  // guard reads document.activeElement (an external DOM source), so the
+  // effect genuinely synchronizes with external state rather than
+  // deriving a value from props.
   useEffect(() => {
     if (document.activeElement === inputRef.current) return;
+     
     setDraft(machineName);
   }, [machineName]);
 

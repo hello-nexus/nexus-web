@@ -70,7 +70,11 @@ export function KeebKeyAssignmentView({
   //      If the function isn't a default-layout key (e.g. Macro1, MouseLButton),
   //      no source cell matches and nothing highlights.
   // This is the "which physical key does this remap to right now" indicator.
-  const sourceSelected: KeebSelection = useMemo(() => {
+  // React Compiler auto-memoizes the IIFE below based on the values it reads;
+  // an explicit useMemo here triggered react-hooks/preserve-manual-memoization
+  // because the compiler's inferred deps differed from the source list. Same
+  // referential-stability guarantee, fewer ceremony lines.
+  const sourceSelected: KeebSelection = (() => {
     if (!selected) return null;
     const assigned = state.keys[selected.x]?.[selected.y];
     const currentFn = assigned?.function
@@ -83,7 +87,7 @@ export function KeebKeyAssignmentView({
       }
     }
     return null;
-  }, [selected, state.keys, sourceRows]);
+  })();
 
   const onReset = async () => {
     if (!confirmReset) {

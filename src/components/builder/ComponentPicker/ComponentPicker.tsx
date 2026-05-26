@@ -60,7 +60,10 @@ export function ComponentPicker({ category, onSelect, onClose, onViewDetail }: C
     setPage(1);
   }, [sortKey]);
 
-  // Reset to page 1 when filters or search change
+  // Reset to page 1 when filters or search change. Could be folded into the
+  // setSearch/setFilters callsites but those live in child components — the
+  // effect keeps the policy colocated with pagination state here.
+   
   useEffect(() => { setPage(1); }, [search, filters]);
 
   // Convert API filter options to the format ComponentFilters expects

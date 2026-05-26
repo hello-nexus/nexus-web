@@ -178,8 +178,15 @@ export function WidgetEditSheet({
           x: clamp((vw - w) / 2, SAFE, Math.max(SAFE, vw - w - SAFE)),
           y: clamp((vh - h) / 2, SAFE, Math.max(SAFE, vh - h - SAFE)),
         };
+    // Measure-then-position pattern: useLayoutEffect reads the sheet's
+    // rendered size and commits the clamped coordinates before paint so
+    // the user never sees the sheet flash in an unpositioned spot.
     setPos(next);
     onBoundsChangeRef.current?.({ x: next.x, y: next.y, w, h });
+    // anchorKey is the structural digest of anchorRect; depending on the
+    // object reference would re-run for every parent re-render even when
+    // the rect is unchanged, which would clobber the user's view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchorKey]);
 
   useEffect(() => () => { onBoundsChangeRef.current?.(null); }, []);

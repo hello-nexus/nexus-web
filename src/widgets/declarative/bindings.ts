@@ -80,7 +80,7 @@ function tokenize(src: string): Token[] {
     }
     if (/[a-zA-Z_$]/.test(c)) {
       const start = i;
-      while (i < src.length && /[a-zA-Z0-9_$.\-]/.test(src[i])) i++;
+      while (i < src.length && /[a-zA-Z0-9_$.-]/.test(src[i])) i++;
       const ident = src.slice(start, i);
       if (ident === 'true' || ident === 'false') {
         tokens.push({ kind: 'ident', value: ident });

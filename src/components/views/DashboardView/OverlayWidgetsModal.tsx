@@ -84,6 +84,9 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
 
   useEffect(() => {
     if (!open) return;
+    // Fetch fresh list each time the modal opens. Standard data-loading
+    // pattern; `refresh` writes state via its captured setters.
+     
     void refresh();
   }, [open, refresh]);
 

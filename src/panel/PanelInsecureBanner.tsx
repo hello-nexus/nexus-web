@@ -1,3 +1,7 @@
+// isInsecureBrowserPanel lives next to the banner it gates: callers (PanelApp)
+// import both to make the decision + render in one place. Splitting them
+// would create a one-line predicate file imported only once.
+ 
 import { ShieldAlert } from 'lucide-react';
 import { useTranslation } from '../lib/i18n';
 import { APP_STORE_URL } from '../lib/appStore';

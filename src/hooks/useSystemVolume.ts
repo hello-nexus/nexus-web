@@ -41,6 +41,12 @@ export function useSystemVolume(enabled: boolean, pollMs = 1000) {
 
   const live = useTopic<SystemVolumeState>('volume', enabled);
 
+  // Self-referential callback: pumpVolumeWrites schedules itself via setTimeout
+  // and re-invokes from postService().finally. Route both recursive call sites
+  // through a ref so the lint rule's "accessed before declared" sees a stable
+  // ref read, while preserving the live-coalesce timing (single function
+  // identity, no re-creation on render).
+  const pumpRef = useRef<() => void>(() => {});
   const pumpVolumeWrites = useCallback(() => {
     const write = volumeWrite.current;
     if (write.inFlight || write.queued == null) return;
@@ -53,7 +59,7 @@ export function useSystemVolume(enabled: boolean, pollMs = 1000) {
     const elapsed = Date.now() - write.lastStartedAt;
     const delay = Math.max(0, LIVE_VOLUME_WRITE_INTERVAL_MS - elapsed);
     if (delay > 0) {
-      write.timer = setTimeout(pumpVolumeWrites, delay);
+      write.timer = setTimeout(() => pumpRef.current(), delay);
       return;
     }
 
@@ -64,13 +70,22 @@ export function useSystemVolume(enabled: boolean, pollMs = 1000) {
 
     void postService('/system/volume', { volume: nextVolume }).finally(() => {
       write.inFlight = false;
-      pumpVolumeWrites();
+      pumpRef.current();
     });
   }, []);
+  // Keep the ref pointing at the latest callback. Identity is stable since the
+  // useCallback has no deps, so this effectively runs once.
+  useEffect(() => {
+    pumpRef.current = pumpVolumeWrites;
+  }, [pumpVolumeWrites]);
 
   useEffect(() => {
     if (!live) return;
     if (Date.now() < localOverrideUntil.current) return;
+    // Mirror multiplex topic into local state. The local-override window
+    // (set by previewVolume/commitVolume) intentionally suppresses these
+    // updates so a slider drag isn't snapped back by a stale broadcast.
+     
     setState({
       supported: !!live.supported,
       volume: typeof live.volume === 'number' ? live.volume : 0,

@@ -104,6 +104,12 @@ export function TextStyles() {
         caps: cs.textTransform === 'uppercase',
       };
     }
+    // Probe-then-publish: the effect reads getComputedStyle off live DOM
+    // probes (an external system) and lifts the resolved spec into state
+    // so the table can render the actual mixin output. Setting state in
+    // this effect is the canonical shape for snapshotting platform
+    // values into React.
+     
     setComputed(next);
   }, [onPanel]);
 

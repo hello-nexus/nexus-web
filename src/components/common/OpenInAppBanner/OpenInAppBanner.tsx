@@ -46,6 +46,10 @@ export function OpenInAppBanner() {
       || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
     if (standalone) return;
 
+    // Banner gating depends on host / UA / standalone / localStorage — all of
+    // which read window globals, so the visibility decision can only be made
+    // post-mount. setState in effect is the right primitive for this.
+     
     setVisible(true);
   }, []);
 

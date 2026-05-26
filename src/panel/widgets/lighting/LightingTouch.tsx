@@ -110,6 +110,11 @@ function useImmersiveAnimateState(): ImmersiveControlsState | null {
 
   const bundle = templates[active];
   const baseState = bundle?.slots[bundle.selected] ?? defaultStateFor(active);
+  // Ref-backed staged state intentionally bypasses React's render cycle on
+  // slider drag (each tick would otherwise re-render the whole immersive
+  // grid); we manually `force` a render after mutation. The ref reads below
+  // are stable per-render since onChange writes the ref + forces synchronously.
+   
   const liveState = stagedRef.current ?? baseState;
 
   const onChange = useCallback((patch: Partial<EffectState>, commit?: boolean) => {
@@ -165,6 +170,7 @@ function useImmersiveAnimateState(): ImmersiveControlsState | null {
     effect: active,
     state: liveState,
     bundle,
+     
     canReset: stagedRef.current !== null,
     onTemplateSelect,
     onChange,
