@@ -339,6 +339,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
                       onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
                       onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
+                      hideWidgetLabelsToggle={singleWidget}
                     />
                   )}
                   {activeTab === 'settings' && (

@@ -36,6 +36,9 @@ export function useIsLandscape(surface: PanelSurface): boolean {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (surface !== 'phone') {
+      // Reset to portrait baseline when leaving the phone surface so a
+      // previously-latched landscape value doesn't persist on Y70/Q60.
+       
       setIsLandscape(false);
       return;
     }

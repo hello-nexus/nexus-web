@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
 import type { EffectState, EffectTemplateBundle } from '../../../../types/lighting';
 import { useShaderRenderer } from '../../../../hooks/useShaderRenderer';
@@ -27,9 +27,14 @@ export function FullscreenShader({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef(state);
-  stateRef.current = state;
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  // Sync mutable refs synchronously (pre-paint) so the WebGL render loop and
+  // fullscreenchange handler always read the latest props without re-creating
+  // the renderer subscription on every state tick.
+  useLayoutEffect(() => {
+    stateRef.current = state;
+    onCloseRef.current = onClose;
+  });
 
   const { loading, error } = useShaderRenderer(canvasRef, effect, stateRef, audioRef);
 

@@ -18,6 +18,11 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
   const [liveAccent, setLiveAccent] = useState(settings.general.accentColor);
 
   useEffect(() => {
+    // Sync local "live preview" state when the persisted settings change
+    // from elsewhere (sidebar profile switch, settings sync, etc). Can't be
+    // derived because the color picker also writes liveAccent locally
+    // during a drag-preview gesture without committing to settings yet.
+     
     setLiveAccent(settings.general.accentColor);
   }, [settings.general.accentColor]);
 

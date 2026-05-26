@@ -31,7 +31,8 @@ function formatResult(n: number): string {
   return exp.length <= MAX_DIGITS ? exp : exp.slice(0, MAX_DIGITS);
 }
 
-// Calculator is 4x4 only, so no size variants needed
+// Calculator is 4x4 only, so no size variants needed.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match WidgetProps for the registry
 export function CalculatorWidget(_props: WidgetProps) {
   const [operand, setOperand] = useState('0');
   const [operator, setOperator] = useState<string | null>(null);

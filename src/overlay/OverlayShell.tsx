@@ -106,7 +106,7 @@ function reportLayoutWithPopover(
 }
 
 export default function OverlayShell() {
-  const { monitor } = useMemo(readMonitorParams, []);
+  const { monitor } = useMemo(() => readMonitorParams(), []);
   const [scale, setScale] = useState(100);
   const scaleFactor = useMemo(() => scale / 100, [scale]);
   const cellPx = useMemo(() => Math.round(BASE_CELL_PX * scaleFactor), [scaleFactor]);
@@ -226,6 +226,12 @@ export default function OverlayShell() {
       // wallpaper, so this takes visible effect immediately.
       '--panel-card-bg-opacity': `${Math.round(widgetOpacity * 100)}%`,
     } as CSSProperties;
+    // themeMode itself isn't read in the body (we re-read data-theme from
+    // the DOM, which applyThemeMode has already updated), but it IS the
+    // signal that the resolved attribute may have changed and the memo
+    // must recompute. Removing the dep would stale the panel-card tokens
+    // after a theme switch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- themeMode triggers re-read of the DOM data-theme attribute applyThemeMode just wrote
   }, [accentColor, themeMode, widgetOpacity]);
 
   // Single-monitor model: render every widget regardless of its

@@ -75,7 +75,7 @@ async function postDispatch(widgetId: string, action: string, args: Record<strin
   if (!res.ok) {
     // Soft fail. The slider's optimistic state stays; the next data tick
     // will reconcile if the server-side rejected.
-    // eslint-disable-next-line no-console
+     
     console.warn(`[widget:${widgetId}] dispatch '${action}' failed: ${res.status}`);
   }
 }

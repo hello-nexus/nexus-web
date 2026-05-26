@@ -41,16 +41,23 @@ export function Slider({ view, ctx }: MeterProps) {
   // isn't dragging; once they touch the slider, local state takes over
   // until the next bound value lands matching the committed target.
   const [local, setLocal] = useState(boundValue);
-  const draggingRef = useRef(false);
+  const [dragging, setDragging] = useState(false);
+  // Mirror of `dragging` used purely as a sync de-dupe guard for the
+  // onPointerUp / onPointerCancel / onTouchEnd trio (touch devices fire
+  // both touchEnd and pointerUp; without a sync flag we'd commit twice).
+  const draggingGuardRef = useRef(false);
   const lastCommittedRef = useRef(boundValue);
   useEffect(() => {
     // Sync to upstream when not dragging AND the upstream value matches
     // what we last committed (server confirmed). This avoids snapping
-    // back mid-drag if a polled data source races the commit.
-    if (!draggingRef.current && Math.abs(boundValue - lastCommittedRef.current) < 0.5) {
+    // back mid-drag if a polled data source races the commit. The
+    // setLocal here is the standard "follow external system" pattern -
+    // boundValue is the external (polled / pushed) source of truth.
+    if (!dragging && Math.abs(boundValue - lastCommittedRef.current) < 0.5) {
+       
       setLocal(boundValue);
     }
-  }, [boundValue]);
+  }, [boundValue, dragging]);
 
   const dispatchChange = useCallback((rawValue: number, kind: 'change' | 'commit') => {
     const spec = (kind === 'commit' ? view.onCommit : view.onChange) as WidgetAction | undefined;
@@ -66,7 +73,8 @@ export function Slider({ view, ctx }: MeterProps) {
 
   const onPointerDown = () => {
     if (disabled) return;
-    draggingRef.current = true;
+    draggingGuardRef.current = true;
+    setDragging(true);
   };
   const onInput: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const v = Number(e.target.value);
@@ -74,8 +82,9 @@ export function Slider({ view, ctx }: MeterProps) {
     dispatchChange(v, 'change');
   };
   const onPointerUp = () => {
-    if (!draggingRef.current) return;
-    draggingRef.current = false;
+    if (!draggingGuardRef.current) return;
+    draggingGuardRef.current = false;
+    setDragging(false);
     lastCommittedRef.current = local;
     dispatchChange(local, 'commit');
   };
@@ -92,7 +101,7 @@ export function Slider({ view, ctx }: MeterProps) {
         onPointerDown={onPointerDown}
         onInput={onInput}
         onPointerUp={onPointerUp}
-        dragging={draggingRef.current}
+        dragging={dragging}
       />
     );
   }
@@ -116,7 +125,7 @@ export function Slider({ view, ctx }: MeterProps) {
           background: color,
           borderRadius: 999,
           opacity: disabled ? 0.35 : 1,
-          transition: draggingRef.current ? 'none' : 'width 220ms cubic-bezier(0.3,0,0.2,1)',
+          transition: dragging ? 'none' : 'width 220ms cubic-bezier(0.3,0,0.2,1)',
         }} />
       </div>
       <input

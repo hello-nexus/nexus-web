@@ -3,7 +3,7 @@ import { ArrowLeft, ExternalLink } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../lib/i18n';
 import { CATEGORY_LABELS } from '../../types/builder';
-import type { ComponentCategory, ComponentOption } from '../../types/builder';
+import type { BuilderAction, ComponentCategory, ComponentOption } from '../../types/builder';
 import styles from './ComponentDetailView.module.scss';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
@@ -11,7 +11,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 interface ComponentDetailViewProps {
   componentId: string;
   category?: ComponentCategory;
-  dispatch: React.Dispatch<any>;
+  dispatch: React.Dispatch<BuilderAction>;
   onBack: () => void;
 }
 
@@ -42,6 +42,9 @@ export function ComponentDetailView({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Fetch on mount + when route params change. setLoading + async fetch +
+    // setComponent is the standard data-loading pattern; can't be a useMemo.
+     
     setLoading(true);
     // Try fetching from the specified category, or search all categories
     const cats = category ? [category] : ['cpu', 'gpu', 'motherboard', 'ram', 'storage', 'psu', 'cooler', 'case', 'monitor'];

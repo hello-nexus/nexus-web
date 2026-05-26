@@ -188,6 +188,11 @@ function MediaControls() {
     if (cur?.mediaId) setActiveId(cur.mediaId);
   };
 
+  // Initial load: pull library + currently playing media from the service
+  // on mount. `refresh()` resolves a Promise and seeds items/activeId via
+  // setState, which is the canonical "subscribe to external system"
+  // pattern - the effect lifts service responses into React state.
+   
   useEffect(() => { refresh(); }, []);
 
   useEffect(() => {

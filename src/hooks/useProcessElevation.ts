@@ -35,6 +35,10 @@ export function useProcessElevation(serviceOnline: boolean): ProcessElevationHoo
     let cancelled = false;
 
     if (!serviceOnline) {
+      // External state (service connectivity) drives this branch; reset
+      // to the unavailable shape so a later reconnect transitions
+      // through 'checking' again.
+       
       setStateBase({ state: 'unavailable', elevation: null });
       return () => { cancelled = true; };
     }

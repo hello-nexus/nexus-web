@@ -23,6 +23,11 @@ export function useConflictApps(enabled: boolean): DetectedConflict[] {
 
   useEffect(() => {
     if (!enabled) {
+      // Clear the seed when the consumer disables this hook so a later
+      // re-enable starts from a clean slate instead of replaying the
+      // last frame. External state (the conflicts feed) is what drives
+      // the value here, so this is a legitimate external sync.
+       
       setSeed(null);
       return;
     }

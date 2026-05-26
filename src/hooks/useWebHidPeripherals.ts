@@ -118,6 +118,10 @@ export function useWebHidPeripherals(enabled: boolean): WebHidPeripheralState {
     mountedRef.current = true;
     if (!enabled || !available) return;
 
+    // Initial snapshot of granted WebHID devices; subsequent updates
+    // arrive via the navigator.hid connect/disconnect listeners and the
+    // 10s periodic refresh below.
+     
     refresh();
 
     // WebHID fires connect/disconnect when a granted device plugs or unplugs.

@@ -46,10 +46,16 @@ export function useWidgetLocalState({
     }
   });
   // Keep defaults reactive: if the manifest's default bag changes, merge
-  // in the new keys without overwriting user-mutated values.
+  // in the new keys without overwriting user-mutated values. The setState
+  // here is the only correct way to fold an external (manifest) change into
+  // user-mutable state without clobbering it; computing during render would
+  // either redo the merge every render or require restructuring callers.
+  // `defaults` is intentionally not in the dep array - we key off the stable
+  // defaultsKey hash to detect real changes rather than identity churn.
   useEffect(() => {
     setStateInternal((prev) => ({ ...(defaults ?? {}), ...prev }));
-  }, [defaultsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultsKey]);
 
   const update = useCallback((patch: WidgetLocalState) => {
     setStateInternal((prev) => {
@@ -91,6 +97,11 @@ export function useLocalUpdate(
   update: (patch: WidgetLocalState) => void,
 ): (args: Record<string, unknown>, ctx: BindingContext) => void {
   const ref = useRef(update);
+  // Sync the latest update fn into the ref so the returned callback stays
+  // stable (empty deps) while always invoking the freshest closure. Writing
+  // the ref during render is the standard "latest ref" pattern; updating in
+  // an effect would lag by one paint and miss synchronous Button onClicks.
+   
   ref.current = update;
   return useCallback((args, ctx) => {
     ref.current(resolveLocalUpdateArgs(args, ctx));

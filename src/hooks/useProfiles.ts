@@ -59,6 +59,10 @@ export function useProfiles(enabled: boolean): UseProfilesResult {
 
   useEffect(() => {
     if (!enabled) return;
+    // Loading flag is the UI side of the HTTP fetch this effect subscribes
+    // to. Flipping it to true gates the spinner, then refresh() resolves
+    // and the finally toggles it off. Canonical "subscribe + sync" use.
+     
     setLoading(true);
     refresh().finally(() => setLoading(false));
   }, [enabled, refresh]);
@@ -145,6 +149,9 @@ export function useProfileSharing(enabled: boolean): UseProfileSharingResult {
 
   useEffect(() => {
     if (!enabled) return;
+    // See useProfiles above: setLoading(true) is the UI side of the HTTP
+    // fetch this effect kicks off; canonical subscribe + sync pattern.
+     
     setLoading(true);
     refresh().finally(() => setLoading(false));
   }, [enabled, refresh]);

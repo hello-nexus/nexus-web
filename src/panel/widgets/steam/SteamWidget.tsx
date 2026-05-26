@@ -103,6 +103,11 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
     }
     if (trackedAppId.current !== currentGame.appId) {
       trackedAppId.current = currentGame.appId;
+      // Auto-switch to the Playing tab and reset banner state when the
+      // active game changes. This is a one-shot reaction to an external
+      // event (Steam profile poll says a new game started), not a derived
+      // value, so setState in the effect is intentional.
+       
       setActiveTab('playing');
       setBannerError(false);
     }
@@ -111,6 +116,9 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
   useEffect(() => {
     let cancelled = false;
     if (!currentGame) {
+      // Clear stale achievements when leaving a game. The list is async-
+      // loaded below so we can't compute it during render.
+       
       setAchievements([]);
       return;
     }

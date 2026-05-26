@@ -272,7 +272,6 @@ test.describe('panel widget drag (iOS-style)', () => {
     // started; our system must too. Verifies that the displaced
     // neighbour snaps home when the cursor returns to the source.
     await page.evaluate(async ([sx, sy, mx, my]) => {
-      const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
       // We rely on the same CDP-based touch we use for the basic
       // drag, but split into out + back legs by chaining touchMove
       // events ourselves.

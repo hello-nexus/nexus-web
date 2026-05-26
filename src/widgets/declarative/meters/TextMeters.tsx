@@ -49,7 +49,10 @@ function textStyle(view: WidgetView, ctx: RenderContext, defaults: CSSProperties
     ...defaults,
     color,
     fontSize: fontSizeValue ?? defaults.fontSize,
-    fontWeight: weight ? (WEIGHT_MAP[weight] ?? Number(weight) ?? 400) : defaults.fontWeight,
+    // Number(weight) returns NaN for non-numeric input (never nullish), so
+    // fall through with `||` to coerce NaN -> 400 default. Preserves the
+    // semantic "WEIGHT_MAP keyword | numeric string | fallback".
+    fontWeight: weight ? (WEIGHT_MAP[weight] ?? (Number(weight) || 400)) : defaults.fontWeight,
     fontFamily,
     textAlign: align as CSSProperties['textAlign'],
     fontVariantNumeric: tabular ? 'tabular-nums' : defaults.fontVariantNumeric,

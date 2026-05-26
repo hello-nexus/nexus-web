@@ -53,11 +53,11 @@ export function useLightingFrames(): LightingFrameState {
         l.frames++;
       };
       socket.onclose = () => { if (!cancelled) { setState(p => ({ ...p, connected: false })); if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } reconnectTimer = setTimeout(connect, 2000); } };
-      socket.onerror = () => { try { socket?.close(); } catch {} };
+      socket.onerror = () => { try { socket?.close(); } catch { /* socket already closed/torn down */ } };
     };
 
     connect();
-    return () => { cancelled = true; try { socket?.close(); } catch {} if (reconnectTimer !== null) clearTimeout(reconnectTimer); if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
+    return () => { cancelled = true; try { socket?.close(); } catch { /* socket already closed/torn down */ } if (reconnectTimer !== null) clearTimeout(reconnectTimer); if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
   }, []);
 
   return state;

@@ -31,6 +31,7 @@ export function DragTargetHighlight({
   overIdRef: { current: string | null };
 }) {
   void overIdSignal;
+   
   const overId = overIdRef.current;
   if (!overId) return null;
   // Find active widget for its size.
@@ -61,6 +62,7 @@ export function DragTargetHighlight({
       if (w) { targetPageId = p.id; targetCol = w.col; targetRow = w.row; break; }
     }
   }
+   
   if (targetPageId !== pageId) return null;
   if (!Number.isFinite(targetCol) || !Number.isFinite(targetRow)) return null;
   if (targetCol < 0 || targetRow < 0) return null;

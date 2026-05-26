@@ -89,6 +89,9 @@ export function usePanelDevices(
 
   useEffect(() => {
     if (!enabled) return;
+    // Initial REST seed for panel status + phone sessions; push updates
+    // arrive via the `panel/device` topic below.
+     
     void refresh();
   }, [enabled, refresh]);
 

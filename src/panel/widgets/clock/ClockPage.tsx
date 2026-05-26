@@ -26,7 +26,7 @@ import styles from './ClockPage.module.scss';
  */
 export function ClockPage() {
   const { t } = useTranslation();
-  const localTz = useMemo(resolveLocalTz, []);
+  const localTz = useMemo(() => resolveLocalTz(), []);
   const [now, setNow] = useState(() => new Date());
 
   // Tick once per UTC minute aligned to the wall-clock minute. That's

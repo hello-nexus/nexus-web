@@ -14,7 +14,7 @@ const CONTEXT_MENU_TRIGGER_MS = LONG_PRESS_MS - CONTEXT_MENU_IN_MS;
 // Time at which the context menu opens. Exported so the host's
 // dnd-kit PointerSensor can match its delay activation to the same
 // instant - drag arms the moment the menu appears, never sooner.
-// eslint-disable-next-line react-refresh/only-export-components
+ 
 export const PANEL_CONTEXT_MENU_TRIGGER_MS = CONTEXT_MENU_TRIGGER_MS;
 const PANEL_SCROLLABLE_SELECTOR = '[data-panel-scrollable="true"]';
 // Elements that handle their own click (a widget's mode button, slider,

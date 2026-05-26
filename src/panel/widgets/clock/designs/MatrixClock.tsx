@@ -18,8 +18,10 @@ function useScrambleChar(target: string): { display: string; settling: boolean }
     if (target === prevRef.current) return;
     prevRef.current = target;
 
-    // Don't scramble non-digit characters
+    // Don't scramble non-digit characters - snap directly to the final
+    // glyph so colons and spaces don't flicker through random chars.
     if (target === ':' || target === ' ') {
+       
       setDisplay(target);
       return;
     }

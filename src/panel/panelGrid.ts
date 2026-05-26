@@ -87,7 +87,10 @@ export function useRuntimePanelGrid(
   rootRef?: RefObject<HTMLElement | null>,
   simulator = false,
 ): PanelGridCapacity {
-  const [metrics, setMetrics] = useState(() => readRuntimePanelGrid(surface, rootRef?.current ?? null, simulator));
+  // Initialise from the surface without touching `rootRef` so we don't
+  // read a ref during render. The effect below immediately re-reads with
+  // the mounted root and replaces this value on the first paint.
+  const [metrics, setMetrics] = useState(() => readRuntimePanelGrid(surface, null, simulator));
 
   useEffect(() => {
     const update = () => setMetrics(readRuntimePanelGrid(surface, rootRef?.current ?? null, simulator));

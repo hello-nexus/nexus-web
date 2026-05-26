@@ -160,9 +160,14 @@ export function BlocksWidget({ widget }: WidgetProps) {
   const [level, setLevel] = useState(1);
   const [lastScore, setLastScore] = useState(0);
   const [renderTick, setRenderTick] = useState(0);
+  // State mirrors of the live ref values, refreshed by syncState. Reading
+  // refs during render is a React 19 anti-pattern; refs stay the in-tick
+  // source of truth, state is the render snapshot.
+  const [currentPiece, setCurrentPiece] = useState<Piece | null>(null);
+  const [nextIdx, setNextIdx] = useState<number>(() => randomPieceIdx());
 
   const currentRef = useRef<Piece | null>(null);
-  const nextIdxRef = useRef(randomPieceIdx());
+  const nextIdxRef = useRef<number>(nextIdx);
   const boardRef = useRef<Board>(createEmptyBoard());
   const scoreRef = useRef(0);
   const linesRef = useRef(0);
@@ -180,6 +185,8 @@ export function BlocksWidget({ widget }: WidgetProps) {
     setScore(scoreRef.current);
     setLines(linesRef.current);
     setLevel(levelRef.current);
+    setCurrentPiece(currentRef.current);
+    setNextIdx(nextIdxRef.current);
     setRenderTick(t => t + 1);
   }, []);
 
@@ -381,8 +388,8 @@ export function BlocksWidget({ widget }: WidgetProps) {
         <div className={styles.startScreen}>
           <div className={styles.title}>Game Over</div>
           <div className={styles.statLine}>Score: {lastScore}</div>
-          <div className={styles.statLine}>Lines: {linesRef.current}</div>
-          <div className={styles.statLine}>Level: {levelRef.current}</div>
+          <div className={styles.statLine}>Lines: {lines}</div>
+          <div className={styles.statLine}>Level: {level}</div>
           <button type="button" className={`panel-chip ${styles.startBtn}`} onClick={startGame}>
             Play Again
           </button>
@@ -391,15 +398,15 @@ export function BlocksWidget({ widget }: WidgetProps) {
     );
   }
 
-  // Playing - render board
-  const current = currentRef.current;
+  // Playing - render board. Read from state (mirrored by syncState) not refs.
+  const current = currentPiece;
   const currentShape = current ? getShape(current) : null;
   const currentColor = current ? PIECE_DEFS[current.defIdx].color : null;
-  const ghost = current ? ghostY(boardRef.current, current) : 0;
+  const ghost = current ? ghostY(board, current) : 0;
 
   // Build next piece preview shape
-  const nextShape = PIECE_DEFS[nextIdxRef.current].rotations[0];
-  const nextColor = PIECE_DEFS[nextIdxRef.current].color;
+  const nextShape = PIECE_DEFS[nextIdx].rotations[0];
+  const nextColor = PIECE_DEFS[nextIdx].color;
 
   return (
     <div

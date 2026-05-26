@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
 import { useShaderRenderer } from '../hooks/useShaderRenderer';
 import {
   normalizePanelBackgroundEffect,
@@ -18,10 +18,16 @@ interface PanelBackgroundShaderProps {
 
 export function PanelBackgroundShader({ effect, template, opacity }: PanelBackgroundShaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stateRef = useRef(panelBackgroundState(effect, template));
   const normalizedEffect = normalizePanelBackgroundEffect(effect);
   const normalizedTemplate = normalizePanelBackgroundTemplate(template);
-  stateRef.current = panelBackgroundState(normalizedEffect, normalizedTemplate);
+  // The shader's render loop reads stateRef.current on every frame, so
+  // pushing the new value via an effect is fine — the next animation
+  // frame picks it up. Initialize with the same normalized inputs so
+  // the very first frame doesn't render against stale state.
+  const stateRef = useRef(panelBackgroundState(normalizedEffect, normalizedTemplate));
+  useEffect(() => {
+    stateRef.current = panelBackgroundState(normalizedEffect, normalizedTemplate);
+  }, [normalizedEffect, normalizedTemplate]);
   const { ready, error } = useShaderRenderer(
     canvasRef,
     normalizedEffect,

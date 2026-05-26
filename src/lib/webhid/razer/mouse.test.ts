@@ -27,6 +27,7 @@ function mockHidDevice(opts: {
         : new Uint8Array((data as ArrayBufferView).buffer, (data as ArrayBufferView).byteOffset, (data as ArrayBufferView).byteLength);
       sent.push(arr.slice());
     }),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- mock signature mirrors WebHID API
     receiveFeatureReport: vi.fn(async (_reportId: number) => {
       const last = sent[sent.length - 1];
       const replyPayload = opts.reply ? opts.reply(last) : new Uint8Array(90);

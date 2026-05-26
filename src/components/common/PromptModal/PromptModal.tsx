@@ -51,6 +51,10 @@ export function PromptModal({
 
   useEffect(() => {
     if (!open) return;
+    // Reset form state when the modal transitions from closed -> open. The
+    // caller may pass a new initialValue between open cycles; we can't
+    // useMemo this because the user then types into `value`.
+     
     setValue(initialValue);
     setError(null);
     // Defer focus to the next frame so the Overlay surface has mounted.

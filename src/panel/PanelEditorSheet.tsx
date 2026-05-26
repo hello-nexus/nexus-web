@@ -150,6 +150,11 @@ export function PanelEditorSheet({
   // starts dragging, before [data-drag] ever toggles back off.
   const [didEnter, setDidEnter] = useState(false);
   useEffect(() => {
+    // The swipe state is driven by external pointer input; flipping the
+    // entry latch when the user first touches the sheet (before the
+    // 320ms timer fires) is a sync to that external gesture stream,
+    // not a derivable value.
+     
     if (swipe.state !== 'idle') setDidEnter(true);
   }, [swipe.state]);
   useEffect(() => {

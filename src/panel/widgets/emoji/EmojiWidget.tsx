@@ -14,7 +14,8 @@ const CATEGORIES: Record<string, { icon: string; emojis: string[] }> = {
 
 const CATEGORY_KEYS = Object.keys(CATEGORIES);
 
-export function EmojiWidget({ widget: _widget }: WidgetProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match WidgetProps for the registry
+export function EmojiWidget(_props: WidgetProps) {
   const [activeCategory, setActiveCategory] = useState(CATEGORY_KEYS[0]);
   const [toast, setToast] = useState(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);

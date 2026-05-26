@@ -62,7 +62,7 @@ function loadRightPaneTab(): RightPaneTab {
   try {
     const v = localStorage.getItem(RIGHT_PANE_TAB_KEY);
     if (v === 'devices' || v === 'effect') return v;
-  } catch {}
+  } catch { /* localStorage unavailable; fall through to default */ }
   return 'effect';
 }
 
@@ -73,7 +73,7 @@ function loadDeviceOrder(): string[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.every(v => typeof v === 'string')) return parsed;
-  } catch {}
+  } catch { /* localStorage / JSON parse failed; fall through to empty */ }
   return [];
 }
 
@@ -113,7 +113,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // remounts so returning to the page restores the last selection.
   const [activeRightTab, setActiveRightTab] = useState<RightPaneTab>(loadRightPaneTab);
   useEffect(() => {
-    try { localStorage.setItem(RIGHT_PANE_TAB_KEY, activeRightTab); } catch {}
+    try { localStorage.setItem(RIGHT_PANE_TAB_KEY, activeRightTab); } catch { /* persist best-effort */ }
   }, [activeRightTab]);
   const hiddenFrameIds = useMemo(() => {
     const set = new Set<string>();
@@ -357,6 +357,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Push-driven refresh: every /lighting/* mutation publishes a 'lighting'
   // frame on the multiplex hub. Each branch refetches the resource it owns.
   useTopicCallback('lighting', serviceOnline, () => {
+    // refreshDevices is declared further down; this callback only fires after
+    // mount once the closure binding is initialized, so the "declared later"
+    // static check is safe to disable.
+     
     void refreshDevices();
     if (mode === 'static') {
       fetchStaticColor().then(data => {
@@ -607,7 +611,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // device identity is per-machine, not per-profile.
   const [deviceOrder, setDeviceOrder] = useState<string[]>(loadDeviceOrder);
   useEffect(() => {
-    try { localStorage.setItem(DEVICE_ORDER_KEY, JSON.stringify(deviceOrder)); } catch {}
+    try { localStorage.setItem(DEVICE_ORDER_KEY, JSON.stringify(deviceOrder)); } catch { /* persist best-effort */ }
   }, [deviceOrder]);
   // Reconcile the saved order against the live devices list: drop ids for
   // devices that no longer exist, append new ones. Without this, the saved

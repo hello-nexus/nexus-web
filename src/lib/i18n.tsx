@@ -1,6 +1,11 @@
 // Lightweight i18n - no dependencies.
 // Uses React context to provide a t() function that looks up keys from JSON translation files.
 // Supports interpolation: t('key', { name: 'World' }) -> "Hello, {name}" -> "Hello, World"
+//
+// useTranslation is co-located with the provider because the hook binds to
+// the context defined in this file; splitting the export would just create
+// a one-liner re-export module imported from every i18n consumer.
+ 
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import type { Language } from './settings';

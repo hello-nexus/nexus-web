@@ -58,7 +58,7 @@ import {
   type PanelWidget,
   type PanelWidgetSize,
 } from './types';
-import { surfaceSupportsTouch } from './types';
+import { isSingleWidgetSurface, surfaceSupportsTouch } from './types';
 import { inferSurfaceFromViewport } from './inferSurface';
 import { PanelBackgroundShader } from './PanelBackgroundShader';
 import { resolvePanelBackground } from './panelBackground';
@@ -224,7 +224,14 @@ export function PanelContent({
   // read panelTheme.theme. Without this, the iframe would render the
   // default-state theme until usePanelTheme's first fetch resolved
   // (and on the simulator that fetch never runs at all).
-  const effectiveTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
+  // Single-widget surfaces (q-series) force widget labels off so the single
+  // tile fills the available canvas without the label footer eating ~14px.
+  // The persisted theme stays untouched — flip is render-time only.
+  const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
+  const effectiveTheme = useMemo(
+    () => isSingleWidgetSurface(surface) ? { ...baseTheme, widgetLabels: false } : baseTheme,
+    [baseTheme, surface],
+  );
   usePanelLanguageSync(kioskBehavior);
   const effectiveThemeMode = effectiveTheme.themeSyncWithDesktop
     ? effectiveTheme.appThemeMode
@@ -734,7 +741,7 @@ export function PanelContent({
     setEditorDockMotion(null);
   }, []);
 
-  /* eslint-disable react-hooks/preserve-manual-memoization */
+   
   const closeSheet = useCallback(() => {
     if (!sheetMode) return;
     const closingWidget = editingWidgetId && editingWidgetSize
@@ -763,7 +770,7 @@ export function PanelContent({
     });
     closeTimerRef.current = window.setTimeout(finishSheetClose, EDITOR_EXIT_MS);
   }, [clearCloseTimer, editingWidgetId, editingWidgetSize, editorDockSupported, finishSheetClose, sheetMode, surface]);
-  /* eslint-enable react-hooks/preserve-manual-memoization */
+   
 
   const openSheet = useCallback((mode: SheetMode) => {
     clearCloseTimer();
@@ -1084,7 +1091,12 @@ export function PanelContent({
   // -1 when the cursor is over an empty-cell droppable, since those
   // are not in the SortableContext items list).
   const currentOverIdRef = useRef<string | null>(null);
+  // dnd-kit invokes the collision detection function later (on pointer move
+  // during a drag), so the refs are read outside render via the closure. The
+  // useMemo body itself never dereferences `.current` - only the returned
+  // function does, at the point of use.
   const panelCollisionDetection = useMemo(
+     
     () => buildPanelCollisionDetection(dragGestureRef, activePageIndexRef),
     [],
   );

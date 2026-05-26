@@ -30,6 +30,11 @@ const MIX_FNS: { key: MixFn; labelKey: string }[] = [
 // for every curve (and power the Mix output read-out). Flat -> fixed speed;
 // Linear -> lerp over the min/max temp band; Graph -> piecewise-linear
 // interpolation; Mix -> fn applied to the referenced curves' own outputs.
+// Co-located with the editor on purpose - it's the canonical curve math and
+// every consumer (graph + cards + view) imports it from here. Moving it to a
+// sibling .ts would force a churn of imports across the cooling tree for
+// only a Fast-Refresh ergonomics win.
+ 
 export function computeCurveSpeed(
   curve: CurveDef,
   sources: TemperatureSource[],
@@ -114,6 +119,11 @@ function CurveGraph({ points, currentTemp, onChange }: {
     const el = svgRef.current?.parentElement;
     if (!el) return;
     const w = el.getBoundingClientRect().width;
+    // Sync the initial measured width before the ResizeObserver fires (it
+    // wouldn't fire on a steady-state mount). This is the standard "read
+    // layout after mount" pattern; the alternative would be a flash of
+    // unsized chart on first paint.
+     
     if (w > 0) setWidth(Math.round(w));
     const ro = new ResizeObserver(entries => {
       for (const e of entries) {
@@ -321,6 +331,10 @@ export const CurveCard = memo(function CurveCard({
 }) {
   const { t } = useTranslation();
   const set = (partial: Partial<CurveDef>) => onChange({ ...curve, ...partial });
+  // PresetIcon resolves to a stable LucideIcon imported once at module load
+  // (presetIconFor is a lookup, not a factory) - rendering it as JSX is safe.
+  // React Compiler can't prove that statically; the disable lives on the use
+  // site below.
   const PresetIcon = presetIconFor(curve.preset);
   const isPreset = !!curve.preset;
   const output = outputPercent ?? 0;
@@ -396,6 +410,7 @@ export const CurveCard = memo(function CurveCard({
           {PresetIcon && (
             <HoverTooltip body={t('cooling.curve.presetLockedTooltip')} side="bottom">
               <span className={styles.presetGlyph} aria-hidden="true">
+                { }
                 <PresetIcon size={14} />
               </span>
             </HoverTooltip>

@@ -39,6 +39,10 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
   }, []);
 
   useEffect(() => {
+    // Initial fetch + refresh when the (stable) refresher changes. The
+    // refresher itself sets state; the lint rule sees that through the
+    // closure. Standard async-data-fetching pattern.
+     
     void refreshDesktopWidgetCount();
   }, [refreshDesktopWidgetCount]);
 

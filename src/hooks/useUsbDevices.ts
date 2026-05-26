@@ -35,6 +35,9 @@ export function useUsbDevices(enabled: boolean) {
   useEffect(() => {
     mountedRef.current = true;
     if (!enabled) return;
+    // Initial REST seed for the USB device list; subsequent updates
+    // arrive via the multiplex `devices` topic subscribed below.
+     
     refresh();
     return () => {
       mountedRef.current = false;

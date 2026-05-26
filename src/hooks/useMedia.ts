@@ -39,6 +39,10 @@ export function useMedia(enabled: boolean, pollingRateMs = 2000): MediaState {
 
   useEffect(() => {
     mounted.current = true;
+    // When disabled, clear sessions and stop polling. The hook's value
+    // is fed by an external poll, so this is a legitimate external
+    // teardown rather than a derivable value.
+     
     if (!enabled) { setState({ sessions: {}, loading: false }); return () => { mounted.current = false; }; }
 
     let timer: ReturnType<typeof setTimeout>;

@@ -1,3 +1,7 @@
+// getSafeEmbedUrl is the URL allowlist the iframe widget enforces. Lives in
+// the same file as the widget itself because it's the only consumer, and the
+// security check is easier to audit when it sits next to the iframe markup.
+ 
 import { Globe } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';

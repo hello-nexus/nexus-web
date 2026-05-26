@@ -238,7 +238,7 @@ function InstallDefaultsTabBody({ doc, tab }: { doc: InstallDefaultsDocument; ta
 
   const formatFragment = (key: string, value: unknown) => {
     const wrapped = JSON.stringify({ [key]: value }, null, 2);
-    return wrapped.replace(/^\{\n/, '').replace(/\n\}$/, '').replace(/^  /gm, '');
+    return wrapped.replace(/^\{\n/, '').replace(/\n\}$/, '').replace(/^ {2}/gm, '');
   };
 
   const copy = (id: string, text: string) => {

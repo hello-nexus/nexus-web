@@ -85,7 +85,14 @@ export function CoolingResponseChart({
 
   useEffect(() => {
     const el = fanReadoutRef.current;
-    if (!el) { setFanReadoutWidth(0); return; }
+    if (!el) {
+      // When the FANS readout pill is hidden (avgDuty undefined), reset
+      // the cached width so the notch-layout math doesn't keep clearing
+      // space for a pill that isn't there. This is a state-resync to
+      // an externally controlled visibility flag.
+       
+      setFanReadoutWidth(0); return;
+    }
     const measure = () => setFanReadoutWidth(Math.ceil(el.getBoundingClientRect().width));
     measure();
     if (typeof ResizeObserver === 'undefined') return;

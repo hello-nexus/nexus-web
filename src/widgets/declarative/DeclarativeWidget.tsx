@@ -89,7 +89,7 @@ export function DeclarativeWidget({ listing, size, instanceId }: DeclarativeWidg
         return next;
       }),
       onLog: (level, message, data) => {
-        // eslint-disable-next-line no-console
+         
         console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](
           `[widget:${listing.id}]`, message, data ?? '',
         );
