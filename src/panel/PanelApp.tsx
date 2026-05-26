@@ -1622,6 +1622,7 @@ export function PanelContent({
           nativeBridgeAvailable={nativeSettings.available}
           nextAttemptAt={multiplex?.nextAttemptAt ?? null}
           remoteDisabled={multiplex?.remoteDisabled ?? false}
+          sessionRevoked={multiplex?.sessionRevoked ?? false}
           onRetry={handleRetry}
           onOpenNativePairing={nativeSettings.open}
         />

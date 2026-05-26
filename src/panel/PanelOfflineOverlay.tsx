@@ -20,6 +20,14 @@ interface PanelOfflineOverlayProps {
    * "service offline" copy.
    */
   remoteDisabled: boolean;
+  /**
+   * True when this specific phone session was removed by the host
+   * (single-device revoke). Terminal - the only action is to re-pair.
+   * Trumps both connection state and remoteDisabled because re-pairing is
+   * the only path forward; auto-polling for the host to "turn it back on"
+   * would never succeed.
+   */
+  sessionRevoked: boolean;
   onRetry: () => void;
   onOpenNativePairing: () => void;
 }
@@ -55,6 +63,7 @@ export function PanelOfflineOverlay({
   nativeBridgeAvailable,
   nextAttemptAt,
   remoteDisabled,
+  sessionRevoked,
   onRetry,
   onOpenNativePairing,
 }: PanelOfflineOverlayProps) {
@@ -69,6 +78,35 @@ export function PanelOfflineOverlay({
   // WebView. Returning null here makes the transition seamless: panel
   // straight to OEM splash, no intermediate state.
   if (surface === 'q60') return null;
+
+  if (sessionRevoked) {
+    // Host removed this device from the paired list. No retry / no auto-poll
+    // - the session is gone and the only path back is re-pairing. Surface a
+    // single, hard "Pair again" link so the user reaches /r/pair in one tap.
+    return (
+      <div
+        className={`panel-root ${styles.overlay}`}
+        data-theme={resolvedThemeMode}
+        data-surface={surface}
+        style={themeStyle}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="panel-offline-title"
+      >
+        <div className={`panel-card ${styles.card}`}>
+          <div className={styles.lockIcon} aria-hidden="true"><Lock size={28} /></div>
+          <h2 id="panel-offline-title" className={styles.title}>{t('connection.sessionRevoked.title')}</h2>
+          <p className={styles.message}>{t('connection.sessionRevoked.message')}</p>
+          <div className={styles.actions}>
+            <a className={styles.primaryButton} href={NEW_DEVICE_HREF}>
+              <QrCode size={15} />
+              <span>{t('connection.sessionRevoked.pairAgain')}</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (remoteDisabled) {
     // Host disabled Pair Remote. Hook is already slow-polling for re-enable,
