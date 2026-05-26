@@ -58,6 +58,9 @@ export interface PanelThemeSettingsProps {
   onWidgetOpacityPreview: (opacity: number) => void;
   onWidgetOpacityCommit: (opacity: number) => void;
   onWidgetLabelsCommit: (enabled: boolean) => void;
+  /** Hide the widget-labels toggle entirely. Single-widget surfaces (q-series)
+   * lock labels off, so there's nothing for the user to choose. */
+  hideWidgetLabelsToggle?: boolean;
 }
 
 type AnimationFilter = EffectCategory | 'all';
@@ -85,6 +88,7 @@ export function PanelThemeSettings({
   onWidgetOpacityPreview,
   onWidgetOpacityCommit,
   onWidgetLabelsCommit,
+  hideWidgetLabelsToggle = false,
 }: PanelThemeSettingsProps) {
   const { t } = useTranslation();
   const label = (key: string, fallback: string) => {
@@ -205,14 +209,16 @@ export function PanelThemeSettings({
 
       <div className={styles.themeSection}>
         <div className={styles.themeSectionTitle}>{label('panel.settings.widgets', 'Widgets')}</div>
-        <div className={styles.themeToggleRow}>
-          <span>{label('panel.settings.widgetLabels', 'Widget labels')}</span>
-          <Toggle
-            checked={theme.widgetLabels}
-            onChange={onWidgetLabelsCommit}
-            ariaLabel={label('panel.settings.widgetLabels', 'Widget labels')}
-          />
-        </div>
+        {!hideWidgetLabelsToggle && (
+          <div className={styles.themeToggleRow}>
+            <span>{label('panel.settings.widgetLabels', 'Widget labels')}</span>
+            <Toggle
+              checked={theme.widgetLabels}
+              onChange={onWidgetLabelsCommit}
+              ariaLabel={label('panel.settings.widgetLabels', 'Widget labels')}
+            />
+          </div>
+        )}
         <Slider
           orientation="stacked"
           label={label('panel.settings.widgetOpacity', 'Widget opacity')}

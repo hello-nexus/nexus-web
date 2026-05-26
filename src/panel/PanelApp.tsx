@@ -58,7 +58,7 @@ import {
   type PanelWidget,
   type PanelWidgetSize,
 } from './types';
-import { surfaceSupportsTouch } from './types';
+import { isSingleWidgetSurface, surfaceSupportsTouch } from './types';
 import { inferSurfaceFromViewport } from './inferSurface';
 import { PanelBackgroundShader } from './PanelBackgroundShader';
 import { resolvePanelBackground } from './panelBackground';
@@ -224,7 +224,14 @@ export function PanelContent({
   // read panelTheme.theme. Without this, the iframe would render the
   // default-state theme until usePanelTheme's first fetch resolved
   // (and on the simulator that fetch never runs at all).
-  const effectiveTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
+  // Single-widget surfaces (q-series) force widget labels off so the single
+  // tile fills the available canvas without the label footer eating ~14px.
+  // The persisted theme stays untouched — flip is render-time only.
+  const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
+  const effectiveTheme = useMemo(
+    () => isSingleWidgetSurface(surface) ? { ...baseTheme, widgetLabels: false } : baseTheme,
+    [baseTheme, surface],
+  );
   usePanelLanguageSync(kioskBehavior);
   const effectiveThemeMode = effectiveTheme.themeSyncWithDesktop
     ? effectiveTheme.appThemeMode
