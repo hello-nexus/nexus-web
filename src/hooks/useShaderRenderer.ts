@@ -202,7 +202,7 @@ export function useShaderRenderer(
       };
       rafRef.current = requestAnimationFrame(render);
     });
-  }, [effect, canvasRef, stateRef, options?.maxDevicePixelRatio]);
+  }, [effect, canvasRef, stateRef, options?.maxDevicePixelRatio, audioRef]);
 
   return { ready, loading, error };
 }
