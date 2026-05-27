@@ -39,6 +39,14 @@
   pointer-events: auto;
 }
 
+.marquee {
+  position: absolute;
+  border: 1px dashed var(--accent);
+  background: var(--accent-soft);
+  pointer-events: none;
+  z-index: 9;
+}
+
 .device {
   position: absolute;
   border: 1.5px solid rgb(255 255 255 / var(--alpha-medium));

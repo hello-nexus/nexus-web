@@ -997,6 +997,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+
+  // Reveal the group power button on hover, mirroring the per-card affordance.
+  // Persistent-when-off behaviour is handled by .devicePowerBtnPersistent on
+  // the button itself; this rule only governs the on-state hover-fade.
+  &:hover .deviceSettingsBtn { opacity: 1; }
 }
 
 .motherboardGroupHeader {
@@ -1004,6 +1009,19 @@
   align-items: center;
   gap: 0.3rem;
   padding: 0.3rem 0.2rem;
+  border-radius: var(--radius-sm);
+
+  &:hover { background: var(--bg-card-hover); }
+}
+
+// Chevron + parent-name clickable area. Sibling of the group power button so
+// neither lives inside the other (button-in-button isn't valid HTML).
+.motherboardGroupToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   color: var(--text-dim);
@@ -1011,9 +1029,9 @@
   font-weight: var(--weight-body);
   text-align: left;
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  padding: 0;
 
-  &:hover { color: var(--text); background: var(--bg-card-hover); }
+  &:hover { color: var(--text); }
 
   svg { width: 13px; height: 13px; }
 }

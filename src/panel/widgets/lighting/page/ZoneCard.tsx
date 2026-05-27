@@ -41,7 +41,9 @@ export function ZoneCard({
   selected: boolean;
   /** True when this card is a zone child rendered under a motherboard group header. */
   indent: boolean;
-  onSelect: () => void;
+  /** Receives the shift modifier so the caller can implement shift+click
+   *  multi-select on the panel without ZoneCard owning a Set. */
+  onSelect: (shiftKey: boolean) => void;
   onTogglePower: () => void;
   onOpenSettings: () => void;
   /** Optional HTML5 drag/drop wiring for reorderable lists. */
@@ -92,7 +94,7 @@ export function ZoneCard({
       onDragLeave={drag ? drag.onDragLeave : undefined}
       onDrop={drag ? drag.onDrop : undefined}
       onDragEnd={drag ? drag.onDragEnd : undefined}
-      onClick={() => { if (!unavailable) onSelect(); }}
+      onClick={e => { if (!unavailable) onSelect(e.shiftKey); }}
       title={unavailable ? t('lighting.devices.detectionFailedTooltip') : undefined}
     >
       <span className={styles.deviceName}>{displayName ?? device.name}</span>

@@ -94,9 +94,20 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [devices, setDevices] = useState<LightingDevice[]>([]);
   const deviceDraggingRef = useRef(false);
   const handleDragActiveChange = useCallback((active: boolean) => { deviceDraggingRef.current = active; }, []);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  // Multi-selection on the canvas + right-side device panel. The set drives
+  // visual highlighting on both surfaces; `primaryDeviceId` is the single
+  // device used for LED-dot rendering on the canvas and for the LED-map
+  // fetch effect below (only one device's positions are visualised at a
+  // time, even when several are selected for group drag).
+  const [selectedDeviceIds, setSelectedDeviceIds] = useState<Set<string>>(() => new Set());
+  const [primaryDeviceId, setPrimaryDeviceId] = useState<string | null>(null);
   const handleSelectDevice = useCallback((id: string | null) => {
-    setSelectedDeviceId(id);
+    setSelectedDeviceIds(id ? new Set([id]) : new Set());
+    setPrimaryDeviceId(id);
+  }, []);
+  const handleSetSelection = useCallback((ids: Set<string>, primary: string | null) => {
+    setSelectedDeviceIds(ids);
+    setPrimaryDeviceId(primary);
   }, []);
   const [catalogOpen, setCatalogOpen] = useState(false);
 
@@ -135,14 +146,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // so the canvas can show small dots indicating where each active LED is.
   const [selectedDeviceLeds, setSelectedDeviceLeds] = useState<LedMapEntry[] | null>(null);
   useEffect(() => {
-    if (!selectedDeviceId) { setSelectedDeviceLeds(null); return; }
+    if (!primaryDeviceId) { setSelectedDeviceLeds(null); return; }
     setSelectedDeviceLeds(null);
     let cancelled = false;
-    fetchLedMap(selectedDeviceId).then(data => {
+    fetchLedMap(primaryDeviceId).then(data => {
       if (!cancelled && data) setSelectedDeviceLeds(data.leds);
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [selectedDeviceId, editingDeviceId, activeProfileId]);
+  }, [primaryDeviceId, editingDeviceId, activeProfileId]);
 
   const [musicReactive, setMusicReactiveState] = useState(false);
   const audioRef = useAudioState(musicReactive && mode === 'animate');
@@ -598,12 +609,24 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const devicesRef = useRef<LightingDevice[]>([]);
   devicesRef.current = devices;
+  // Per-zone toggle. Sister-callback to handleSetPower below: this flips the
+  // *current* state of one device, while handleSetPower writes an absolute
+  // on/off. We need both because a "turn the whole motherboard group off"
+  // click that called handleTogglePower per zone would re-enable any
+  // already-off zone in a partially-lit group.
   const handleTogglePower = useCallback((id: string) => {
     const current = devicesRef.current.find(d => d.id === id);
     if (!current) return;
     const nextOn = !current.ledsOn;
     setLightingDevicePower(id, nextOn).catch(() => { /* 3s poll reconciles */ });
     setDevices(prev => prev.map(d => d.id === id ? { ...d, ledsOn: nextOn } : d));
+  }, []);
+  // Absolute setter (vs. toggle). Group-header switches need this to set every
+  // child zone to the same state — a per-zone toggle would flip already-off
+  // zones back on when only some of the group were lit.
+  const handleSetPower = useCallback((id: string, on: boolean) => {
+    setLightingDevicePower(id, on).catch(() => { /* 3s poll reconciles */ });
+    setDevices(prev => prev.map(d => d.id === id ? { ...d, ledsOn: on } : d));
   }, []);
 
   // Device list ordering: HTML5 drag/drop on ZoneCard, persisted to
@@ -796,7 +819,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       <div className={styles.body}>
         <div className={styles.main}>
           <div className={styles.canvasArea}>
-            <DeviceCanvas devices={devices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedDeviceId={selectedDeviceId} onSelectDevice={handleSelectDevice} shaderEffect={mode === 'animate' ? activeEffect : null} shaderState={mode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
+            <DeviceCanvas devices={devices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={mode === 'animate' ? activeEffect : null} shaderState={mode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
             {mode === 'animate' && activeEffect && currentState && (
               <>
                 {EFFECTS.find(e => e.key === activeEffect)?.audio && (
@@ -852,9 +875,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <>
               <DevicePanel
                 devices={orderedDevices}
-                selectedDeviceId={selectedDeviceId}
+                selectedIds={selectedDeviceIds}
                 onSelectDevice={handleSelectDevice}
+                onSetSelection={handleSetSelection}
                 onTogglePower={handleTogglePower}
+                onSetPower={handleSetPower}
                 lightingOff={mode === 'none'}
                 onOpenSettings={handleOpenSettings}
                 dragFor={dragForDevice}
