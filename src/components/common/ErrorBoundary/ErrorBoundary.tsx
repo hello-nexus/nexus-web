@@ -3,14 +3,34 @@ import { Component, type ReactNode } from 'react';
 interface Props {
   children: ReactNode;
   label?: string;
+  /**
+   * Opaque value that, when it changes between renders, clears any caught
+   * error so the boundary re-renders its children fresh. Use this instead
+   * of `<ErrorBoundary key={...}>` for route-driven resets: a `key` change
+   * forces a hard remount of the whole subtree, which unmounts any Suspense
+   * boundary inside and defeats `startTransition`'s "keep prior UI visible
+   * during chunk load" behavior. `resetKey` updates props in place, so the
+   * boundary instance is stable across navigations.
+   */
+  resetKey?: string | number | null;
 }
-interface State { error: Error | null }
+interface State { error: Error | null; lastResetKey: string | number | null | undefined }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null, lastResetKey: undefined };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { error };
+  }
+
+  static getDerivedStateFromProps(nextProps: Props, prevState: State): Partial<State> | null {
+    if (prevState.lastResetKey === undefined) {
+      return { lastResetKey: nextProps.resetKey ?? null };
+    }
+    if (nextProps.resetKey !== prevState.lastResetKey) {
+      return { error: null, lastResetKey: nextProps.resetKey ?? null };
+    }
+    return null;
   }
 
   componentDidCatch(error: Error, info: { componentStack?: string }) {

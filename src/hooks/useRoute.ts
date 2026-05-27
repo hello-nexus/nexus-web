@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, startTransition } from 'react';
 
 /**
  * Three-level path routing: /section/view/subtab
@@ -195,8 +195,15 @@ export function useRoute() {
       if (stateIdx != null) {
         indexRef.current = stateIdx;
       }
-      setRoute(target);
+      // setHistoryVersion synchronous BEFORE the transition so canGoBack /
+      // canGoForward reflect the new index immediately. setRoute in a
+      // transition so lazy Page chunks loading on back/forward don't
+      // unmount the current view (Suspense fallback={null} would flash
+      // blank otherwise). Same ordering as commit() — keep them symmetric
+      // or React 18 may batch the sync update with the transition and
+      // partially defeat the "keep prior UI visible" benefit.
       setHistoryVersion(v => v + 1);
+      startTransition(() => setRoute(target));
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
@@ -221,7 +228,11 @@ export function useRoute() {
     } else {
       historyRef.current[indexRef.current] = next;
     }
-    setRoute(next);
+    // setRoute in a transition so a lazy Page chunk loading under Suspense
+    // keeps the previous view visible (no blank flash from fallback={null})
+    // until the new view is fully ready. URL + history are already updated
+    // synchronously above so back/forward and address-bar remain correct.
+    startTransition(() => setRoute(next));
   }, []);
 
   const navigate = useCallback((section: Section, view?: string | null, subtab?: string | null) => {

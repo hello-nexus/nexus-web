@@ -4,16 +4,19 @@ import { Placeholder } from '../components/views/Placeholder';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ComponentDetailView } from '../components/views/ComponentDetailView';
 import { BenchmarkView } from '../components/views/BenchmarkView/BenchmarkView';
-import { CoolingPage } from "../panel/widgets/cooling/CoolingPage";
 import { DashboardView } from '../components/views/DashboardView/DashboardView';
-import { MonitoringPage } from "../panel/widgets/monitoring/MonitoringPage";
 import { OpenInAppBanner } from '../components/common/OpenInAppBanner/OpenInAppBanner';
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
-import { DevicesPage } from "../panel/widgets/devices/DevicesPage";
 import { DevicePage } from '../components/views/DevicePage/DevicePage';
-import { LightingPage } from "../panel/widgets/lighting/LightingPage";
-import { ClockPage } from "../panel/widgets/clock/ClockPage";
-import { SteamPage } from "../panel/widgets/steam/SteamPage";
+// Widget Pages are code-split: the dashboard only loads the immersive view
+// when the user navigates into it. Cuts ~500KB off the main bundle so the
+// iOS panel (which never renders any Page) doesn't ship them at all.
+const CoolingPage = lazy(() => import('../panel/widgets/cooling/CoolingPage').then(m => ({ default: m.CoolingPage })));
+const MonitoringPage = lazy(() => import('../panel/widgets/monitoring/MonitoringPage').then(m => ({ default: m.MonitoringPage })));
+const DevicesPage = lazy(() => import('../panel/widgets/devices/DevicesPage').then(m => ({ default: m.DevicesPage })));
+const LightingPage = lazy(() => import('../panel/widgets/lighting/LightingPage').then(m => ({ default: m.LightingPage })));
+const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
+const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
 import { loadMarketplaceWidgets } from '../widgets/marketplaceRegistry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
@@ -178,6 +181,32 @@ export function Dashboard() {
   // button gutter without each consumer re-detecting the shell.
   useEffect(() => {
     document.body.classList.toggle('nexus-shell-windows-app', isWindowsAppShell());
+  }, []);
+  // Idle-time prefetch of the four most-used Page chunks (cooling, lighting,
+  // monitoring, devices) plus the shared registry chunk they all pull in.
+  // Fires once after first render, on idle, so the dashboard shell paints
+  // immediately and the user finds these Pages already warmed when they
+  // navigate. Lives in Dashboard.tsx (not PanelEntrypoint.tsx) so the
+  // panel/iPhone never runs this code — Pages aren't reachable on panel
+  // surfaces and shouldn't be downloaded there.
+  useEffect(() => {
+    const preload = () => {
+      void import('../panel/widgets/cooling/CoolingPage');
+      void import('../panel/widgets/lighting/LightingPage');
+      void import('../panel/widgets/monitoring/MonitoringPage');
+      void import('../panel/widgets/devices/DevicesPage');
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      // timeout: ensure the callback runs within 2s even if the main
+      // thread stays busy; without it idle-callback can be delayed
+      // indefinitely on a slow box and the user-visible benefit evaporates.
+      const id = window.requestIdleCallback(preload, { timeout: 2000 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    // Safari + older WebView2 lack requestIdleCallback; fall back to a
+    // post-interactive timeout that's still well past first paint.
+    const t = window.setTimeout(preload, 1500);
+    return () => window.clearTimeout(t);
   }, []);
   useEffect(() => {
     if (!online) return;
@@ -433,7 +462,17 @@ export function Dashboard() {
 
           <div className={styles.mainColumn}>
             <div className={styles.content}>
-              <ErrorBoundary key={`${section}/${view}`}>{renderContent()}</ErrorBoundary>
+              {/*
+                resetKey (not key) so the boundary instance is stable across
+                navigations — a key change would hard-unmount the Suspense
+                below it and defeat startTransition's "keep prior UI visible
+                while the next chunk loads" behavior, producing a one-frame
+                blank flash on every nav. resetKey clears caught errors when
+                the route changes without remounting the tree.
+              */}
+              <ErrorBoundary resetKey={`${section}/${view}`}>
+                <Suspense fallback={null}>{renderContent()}</Suspense>
+              </ErrorBoundary>
             </div>
           </div>
         </div>

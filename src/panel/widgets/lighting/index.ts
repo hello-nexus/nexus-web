@@ -1,9 +1,14 @@
+import { lazy } from 'react';
 import { Lightbulb } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { LightingWidget } from './LightingWidget';
-import { LightingPage } from './LightingPage';
 import { LightingTouch } from './LightingTouch';
 import { AdvancedModeSettings } from '../common/AdvancedModeSettings';
+
+// Code-split: Page only loads when the dashboard navigates into the
+// immersive view. Widget + Touch stay eager so panel cells render
+// synchronously and the panel bundle never fetches Page bytes at all.
+const LightingPage = lazy(() => import('./LightingPage').then(m => ({ default: m.LightingPage })));
 
 export const lightingApp: AppManifest = {
   meta: {

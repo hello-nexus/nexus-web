@@ -1,9 +1,14 @@
+import { lazy } from 'react';
 import { Activity } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { MonitoringWidget } from './MonitoringWidget';
-import { MonitoringPage } from './MonitoringPage';
 import { MonitoringTouch } from './MonitoringTouch';
 import { MonitoringSettings } from './MonitoringSettings';
+
+// Code-split: Page only loads when the dashboard navigates into the
+// immersive view. Widget + Touch stay eager so panel cells render
+// synchronously and the panel bundle never fetches Page bytes at all.
+const MonitoringPage = lazy(() => import('./MonitoringPage').then(m => ({ default: m.MonitoringPage })));
 
 export const monitoringApp: AppManifest = {
   meta: {

@@ -1,9 +1,14 @@
+import { lazy } from 'react';
 import type { AppManifest } from '../types';
 import { makeWidgetTouchView } from '../common/WidgetTouchView';
 import { SteamLogo } from './SteamLogo';
-import { SteamPage } from './SteamPage';
 import { SteamSettings } from './SteamSettings';
 import { SteamWidget } from './SteamWidget';
+
+// Code-split: Page only loads when the dashboard navigates into the
+// immersive view. Widget + Touch stay eager so panel cells render
+// synchronously and the panel bundle never fetches Page bytes at all.
+const SteamPage = lazy(() => import('./SteamPage').then(m => ({ default: m.SteamPage })));
 
 export const steamApp: AppManifest = {
   meta: {

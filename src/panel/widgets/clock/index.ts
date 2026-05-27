@@ -1,9 +1,14 @@
+import { lazy } from 'react';
 import { Clock } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { ClockWidget } from './ClockWidget';
-import { ClockPage } from './ClockPage';
 import { ClockSettings } from './ClockSettings';
 import { makeWidgetTouchView } from '../common/WidgetTouchView';
+
+// Code-split: Page only loads when the dashboard navigates into the
+// immersive view. Widget + Touch stay eager so panel cells render
+// synchronously and the panel bundle never fetches Page bytes at all.
+const ClockPage = lazy(() => import('./ClockPage').then(m => ({ default: m.ClockPage })));
 
 export const clockApp: AppManifest = {
   meta: {
