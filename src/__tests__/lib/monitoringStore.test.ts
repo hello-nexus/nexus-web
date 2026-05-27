@@ -87,9 +87,9 @@ describe('Other calculation', () => {
     expect(other!.current).toBe(10);
   });
 
-  it('Other memory with systemMemMb=0 does not produce negative', () => {
-    store.setSystemMemMb(0);
+  it('Other memory with no Memory Used sensor does not produce negative', () => {
     store.ingestMonitoring(makeFrame({
+      memory: null,
       processes: {
         totalCpu: 10,
         totalMemoryPercent: 80,
@@ -104,9 +104,10 @@ describe('Other calculation', () => {
     expect(other!.current).toBeGreaterThanOrEqual(0);
   });
 
-  it('Other memory with known systemMemMb', () => {
-    store.setSystemMemMb(16000);
+  it('Other memory with Memory Used sensor', () => {
+    // Memory Used = 8 GB → totalUsedMb = 8192; topMemSum = 2000; Other = 6192.
     store.ingestMonitoring(makeFrame({
+      memory: { sensors: [{ id: 'mem/used', name: 'Memory Used', value: 8, theoreticalMaximum: 16 }] },
       processes: {
         totalCpu: 10,
         totalMemoryPercent: 50,
@@ -117,8 +118,7 @@ describe('Other calculation', () => {
     }));
     const data = store.getProcessData();
     const other = data.memSeries.find(s => s.name === 'Other');
-    // totalUsedMb = 50% of 16000 = 8000, topMemSum = 2000, Other = 6000
-    expect(other!.current).toBe(6000);
+    expect(other!.current).toBe(6192);
   });
 });
 

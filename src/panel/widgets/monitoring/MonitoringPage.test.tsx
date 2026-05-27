@@ -22,7 +22,7 @@ vi.mock('../../../hooks/useProcessMonitor', () => ({
     memSeries: [],
     sampleCount: 0,
     totalCpu: 0,
-    systemMemMb: 0,
+    totalMemMb: 0,
   }),
 }));
 

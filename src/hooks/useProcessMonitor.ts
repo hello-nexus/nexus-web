@@ -15,7 +15,6 @@ export interface MonitorData {
   sampleCount: number;
   totalCpu: number;
   totalMemMb: number;
-  systemMemMb: number;
 }
 
 export function useProcessMonitor(): MonitorData {

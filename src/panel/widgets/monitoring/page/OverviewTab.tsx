@@ -60,8 +60,14 @@ export function OverviewTab({ frame, hist, onNavigate }: {
   const gpuParts = gpuLoad ? formatPercentParts(gpuLoad.value) : null;
   const memUsedSensor = memorySensors.find(s => s.name === 'Memory Used');
   const memPctFromUsage = memUsage ? Math.round(memUsage.value) : 0;
-  const totalMemGb = frame?.memoryTotal ? frame.memoryTotal.replace(/ GB$/, '') : '?';
-  const totalMemMb = parseFloat(totalMemGb) * 1024;
+  // theoreticalMaximum (GB) ships on the Memory Used sensor itself — single
+  // source of truth, no separate /system/memory/total fetch or frame.memoryTotal
+  // parse. Fall back to the frame's string only for older services.
+  const totalMemGbFromSensor = memUsedSensor?.theoreticalMaximum ?? 0;
+  const totalMemGb = totalMemGbFromSensor > 0
+    ? totalMemGbFromSensor.toFixed(0)
+    : frame?.memoryTotal ? frame.memoryTotal.replace(/ GB$/, '') : '?';
+  const totalMemMb = (totalMemGbFromSensor || parseFloat(totalMemGb)) * 1024;
   const usedMemMb = memUsedSensor ? memUsedSensor.value * 1024 : (hist.mem[hist.mem.length - 1] ?? 0);
   const memPct = totalMemMb > 0 ? Math.round((usedMemMb / totalMemMb) * 100) : memPctFromUsage;
   const displayMemPct = formatMemoryPercent(memPct || memPctFromUsage);

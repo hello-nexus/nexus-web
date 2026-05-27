@@ -19,10 +19,9 @@ function padLeft(arr: readonly number[]): number[] {
   return out;
 }
 
-export function MemoryTab({ memSeries, sensors, systemMemMb, showAverage, onToggle }: {
+export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
   memSeries: ReturnType<typeof useProcessMonitor>['memSeries'];
   sensors: SensorState;
-  systemMemMb: number;
   showAverage: boolean;
   onToggle: () => void;
 }) {
@@ -30,9 +29,10 @@ export function MemoryTab({ memSeries, sensors, systemMemMb, showAverage, onTogg
 
   // LHM "Memory Used" reports GB; convert to MB so the chart's MB→GB axis
   // formatter (kicks in at yMax≥1024) lines up with the per-process units used
-  // in the ranked list below.
+  // in the ranked list below. `theoreticalMaximum` carries installed RAM in GB.
   const memUsedSensor = sensors.memory.find(s => s.name === 'Memory Used');
   const usedMb = memUsedSensor ? memUsedSensor.value * 1024 : 0;
+  const totalMb = memUsedSensor?.theoreticalMaximum ? memUsedSensor.theoreticalMaximum * 1024 : 0;
   const history = useSharedSensorHistory('memory::Memory Used MB', usedMb);
 
   const series = useMemo(() => {
@@ -55,15 +55,15 @@ export function MemoryTab({ memSeries, sensors, systemMemMb, showAverage, onTogg
     <>
       <StackedChart
         title={t('monitoring.mem.title.plain')}
-        titleRight={systemMemMb > 0 ? (
+        titleRight={totalMb > 0 ? (
           <div className={styles.chartStat}>
             <span className={styles.chartStatValue}>{usedGb}</span>
-            <span className={styles.chartStatUnit}>{`/ ${(systemMemMb / 1024).toFixed(0)} GB`}</span>
+            <span className={styles.chartStatUnit}>{`/ ${(totalMb / 1024).toFixed(0)} GB`}</span>
           </div>
         ) : undefined}
         series={series}
         sampleCount={SAMPLE_COUNT}
-        yMax={systemMemMb > 0 ? systemMemMb : undefined}
+        yMax={totalMb > 0 ? totalMb : undefined}
         yUnit="MB"
         xSeconds={60}
       />

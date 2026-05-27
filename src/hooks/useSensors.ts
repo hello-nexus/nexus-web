@@ -8,6 +8,9 @@ export interface HardwareSensor {
   value: number;
   units: string;
   formatted: string;
+  /** Capacity ceiling in the same units as `value` (e.g. installed RAM in GB
+   *  on a `Memory Used` sensor). 0 / absent = no objective max, scale auto. */
+  theoreticalMaximum?: number;
   parent: { id: string; name: string };
 }
 

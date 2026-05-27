@@ -35,7 +35,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
 
   const { t } = useTranslation();
   const monitoringFrame = useMonitoringFrame();
-  const { cpuSeries, memSeries, systemMemMb } = useProcessMonitor();
+  const { cpuSeries, memSeries } = useProcessMonitor();
   const network = useNetworkMonitor();
   const sensors = useSensors(serviceOnline);
   const overviewHist = monitoringStore.getOverviewHist();
@@ -73,7 +73,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
         <OverviewTab frame={monitoringFrame} hist={overviewHist} onNavigate={onTabChange} />
       );
       case 'cpu': return <CpuTab cpuSeries={cpuSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;
-      case 'memory': return <MemoryTab memSeries={memSeries} sensors={sensors} systemMemMb={systemMemMb} showAverage={showAverage} onToggle={toggleMode} />;
+      case 'memory': return <MemoryTab memSeries={memSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;
       case 'network': return <NetworkTab network={network} showAverage={showAverage} onToggle={toggleMode} />;
       case 'screentime': return <ScreenTimeBrowse key={browseRefresh} onManageData={() => setDataControlOpen(true)} />;
       case 'detailed': return <DetailedTab sensors={sensors} />;

@@ -91,10 +91,6 @@ async function mockService(page: Page, savedPreferencePatches: unknown[]) {
       });
       return;
     }
-    if (path === '/system/memory/total') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ msg: '32 GB' }) });
-      return;
-    }
     await route.fulfill({ status: 404, body: '' });
   });
 }

@@ -44,7 +44,6 @@ const cpuHist = new Map<string, HistEntry>();
 const memHist = new Map<string, HistEntry>();
 let otherCpuHist: number[] = [];
 let totalMemUsedHist: number[] = [];
-let systemMemMb = 0;
 
 // ── Network history ──────────────────────────────────────────────────────
 
@@ -161,8 +160,6 @@ export function unsubscribePanelSensorKey(key: string, fn: () => void) {
 
 // ── Ingest ───────────────────────────────────────────────────────────────
 
-export function setSystemMemMb(mb: number) { systemMemMb = mb; }
-
 let ingestCount = 0;
 
 // Monotonic counter bumped on every monitoring frame. Consumers that need
@@ -200,12 +197,13 @@ export function ingestMonitoring(frame: MonitoringFrame) {
   const gpuSensors = frame.gpu?.[0]?.sensors ?? [];
   const gpuLoad = gpuSensors.find(s => s.id.includes('load'));
   // totalUsedMb = actual system memory used (kernel + cached + every process,
-  // not just the top-25 the service streams). Tracked once here so the overview
-  // RAM card and the memory chart's "Other" gap agree with the MemoryTab title.
+  // not just the top-25 the service streams). `Memory Used` sensor's value
+  // (GB) is the single source of truth — same frame, no separate REST fetch
+  // or global. Fall back to summing the per-process snapshot only when no
+  // sensor is present (older service, or memory hardware not yet enumerated).
+  const memUsedSensor = frame.memory?.sensors.find(s => s.name === 'Memory Used');
   const procsMemSum = procs?.processes.reduce((s, p) => s + p.memoryMb, 0) ?? 0;
-  const totalUsedMb = procs && systemMemMb > 0
-    ? (procs.totalMemoryPercent / 100) * systemMemMb
-    : procsMemSum;
+  const totalUsedMb = memUsedSensor ? memUsedSensor.value * 1024 : procsMemSum;
   push60(overviewHist.cpu, procs?.totalCpu ?? 0);
   push60(overviewHist.gpu, gpuLoad?.value ?? 0);
   push60(overviewHist.mem, totalUsedMb);
@@ -322,7 +320,6 @@ export function getProcessData() {
     sampleCount: MAX_SAMPLES,
     totalCpu: procs?.totalCpu ?? 0,
     totalMemMb: procs?.processes.reduce((s, p) => s + p.memoryMb, 0) ?? 0,
-    systemMemMb,
   };
 }
 
