@@ -1,7 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { FanChannel } from '../../../../api/cooling';
 import { useTranslation } from '../../../../lib/i18n';
-import { PERF_HISTORY_SAMPLES } from '../../../../panel/widgets/common/useHistory';
+import { PERF_HISTORY_SAMPLES } from '../../../../panel/widgets/common/panelHistoryConfig';
 import { useTopicHistory } from '../../../../panel/widgets/common/useTopicHistory';
 import {
   FAN_MIN_DOMAIN_MAX,
