@@ -11,10 +11,11 @@ import type { NexusSettings } from '../../../lib/settings';
 import { GeneralTab } from './GeneralTab';
 import { ThemeTab } from './ThemeTab';
 import { ProfilesTab } from './ProfilesTab';
+import { ToolsView } from '../ToolsView';
 import styles from './SettingsView.module.scss';
 
-type SettingsTab = 'general' | 'theme' | 'profiles';
-const VALID_TABS: SettingsTab[] = ['general', 'theme', 'profiles'];
+type SettingsTab = 'general' | 'theme' | 'profiles' | 'tools';
+const VALID_TABS: SettingsTab[] = ['general', 'theme', 'profiles', 'tools'];
 
 interface SettingsViewProps {
   serviceOnline: boolean;
@@ -64,6 +65,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
     { key: 'general', label: t('settings.general') },
     { key: 'theme', label: t('settings.theme') },
     { key: 'profiles', label: t('settings.tab.profiles') },
+    { key: 'tools', label: t('settings.tab.tools') },
   ];
 
   const updateGeneral = useCallback((patch: Partial<NexusSettings['general']>) => {
@@ -92,6 +94,8 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
         return <ThemeTab settings={settings} updateGeneral={updateGeneral} />;
       case 'profiles':
         return <ProfilesTab profiles={profilesHook} onPreferencesChanged={onPreferencesChanged} />;
+      case 'tools':
+        return <ToolsView serviceOnline={serviceOnline} connectionState={connectionState} />;
       default:
         return null;
     }

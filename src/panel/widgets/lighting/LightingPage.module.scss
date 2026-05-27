@@ -6,6 +6,36 @@
   height: 100%;
 }
 
+// Sliders icon in the top-right of the ViewHeader. Opens LightingSettingsModal.
+// Visual weight matches the cooling page's settingsBtn so the two surfaces
+// read as siblings — neutral until hovered, accent-tinted on hover.
+.settingsBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+
+  &:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+}
+
 // Compact icon-track-value layout for the master brightness slider. Lives
 // in the ViewHeader's tabActions slot now (right-aligned at the same vertical
 // level as the lighting mode tabs). Width is reserved (min/max) so the

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import {
   startStatic, startAnimate, startScreenMirror, stopLighting,
   fetchLightingDevices, fetchAnimateSettings, fetchStaticColor, saveAnimateTemplates,
@@ -35,7 +36,7 @@ import { DevicePanel } from './page/DevicePanel';
 import { LedMapEditor } from './page/LedMapEditor';
 import { RescanDevicesButton } from './page/RescanDevicesButton';
 import { RgbStatusCard } from './page/RgbStatusCard';
-import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
+import { LightingSettingsModal } from './page/LightingSettingsModal';
 import { RightPaneTabs, type RightPaneTab } from './page/RightPaneTabs';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
@@ -94,6 +95,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [devices, setDevices] = useState<LightingDevice[]>([]);
   const deviceDraggingRef = useRef(false);
   const handleDragActiveChange = useCallback((active: boolean) => { deviceDraggingRef.current = active; }, []);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   // Multi-selection on the canvas + right-side device panel. The set drives
   // visual highlighting on both surfaces; `primaryDeviceId` is the single
   // device used for LED-dot rendering on the canvas and for the LED-map
@@ -808,7 +810,23 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         tabs={modeTabs}
         activeTab={synced ? mode : undefined}
         onTabChange={k => handleModeChange(k as LightingMode)}
-        tabActions={<GlobalBrightnessSlider serviceOnline={serviceOnline} />}
+        tabActions={
+          <HoverTooltip body={t('lighting.settings.open')} side="bottom">
+            <button
+              type="button"
+              className={styles.settingsBtn}
+              onClick={() => setSettingsOpen(true)}
+              aria-label={t('lighting.settings.open')}
+            >
+              <SlidersHorizontal size={16} aria-hidden />
+            </button>
+          </HoverTooltip>
+        }
+      />
+      <LightingSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        serviceOnline={serviceOnline}
       />
       <SupportedDevicesModal
         open={catalogOpen}

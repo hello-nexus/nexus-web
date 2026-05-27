@@ -235,6 +235,13 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         }
       }
       setMarquee({ ...marquee, curX: p.x, curY: p.y, moved, hits });
+      // Push live preview to parent so the right-side device panel
+      // highlights in lockstep. Primary stays pinned to whatever it was
+      // pre-drag so LED dots don't flicker and the LED-map fetch effect
+      // (deps include primaryDeviceId but not selectedDeviceIds) stays
+      // quiet during the drag.
+      const effective = marquee.additive ? new Set([...marquee.preIds, ...hits]) : hits;
+      onSetSelection(effective, primaryDeviceIdRef.current);
       return;
     }
     if (!drag) return;
@@ -281,7 +288,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       dev.canvasH = Math.max(60, Math.min(CH - PAD - dev.canvasY, drag.origH + dy));
     }
     forceRender(n => n + 1);
-  }, [drag, marquee, devices, toCanvas]);
+  }, [drag, marquee, devices, toCanvas, onSetSelection]);
 
   const handlePointerUp = useCallback(() => {
     if (marquee) {
@@ -376,7 +383,14 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       hits: new Set(),
       moved: false,
     });
-  }, [toCanvas, selectedIds, onDragActiveChange]);
+    // Non-additive marquee should clear the prior selection immediately so
+    // both the canvas and the right-side panel reflect the "starting fresh"
+    // state on the very first frame. Additive (shift) keeps the prior set
+    // visible — the user is refining, not replacing.
+    if (!e.shiftKey && selectedIds.size > 0) {
+      onSetSelection(new Set(), null);
+    }
+  }, [toCanvas, selectedIds, onDragActiveChange, onSetSelection]);
 
   // Pointer-up off the overlay layer also needs to clean up drag state.
   // Wrap handlePointerUp so the marquee branch resets the drag-active flag
@@ -407,12 +421,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
           through the 360° boundary) without triggering a render storm. */}
       { }
       {devices.map(dev => {
-        // While the marquee is dragging, show its live preview instead of the
-        // committed selection. Additive mode keeps the previous set lit too;
-        // replace mode shows only what's currently inside the rect.
-        const selected = marquee
-          ? (marquee.additive ? (marquee.preIds.has(dev.id) || marquee.hits.has(dev.id)) : marquee.hits.has(dev.id))
-          : selectedIds.has(dev.id);
+        // selectedIds is kept in sync with the live marquee preview by
+        // handlePointerMove, so no marquee-specific branch is needed here.
+        const selected = selectedIds.has(dev.id);
         const isPrimary = dev.id === primaryDeviceId;
         const visualAngle = visualAngleRef.current.get(dev.id) ?? (dev.canvasRotation ?? 0);
         const rot = ((dev.canvasRotation ?? 0) % 360 + 360) % 360;

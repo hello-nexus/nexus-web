@@ -200,6 +200,14 @@ export const fetchLightingDevices = () =>
 export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h: number, rotation: number = 0) =>
   postService('/devices/lighting-devices/layout', { id, x, y, w, h, rotation });
 
+// Clears every persisted device-frame layout so each card snaps back to its
+// provider-computed default position/size/rotation on the next GetAll. The
+// service broadcasts a lighting topic frame after the clear so connected
+// clients refetch immediately. Used by the lighting settings modal's
+// "reset all positions" affordance.
+export const resetDeviceLayouts = () =>
+  deleteService('/devices/lighting-devices/layouts');
+
 export const setLightingDevicePower = (id: string, on: boolean) =>
   postService('/devices/lighting-devices/power', { id, on });
 
