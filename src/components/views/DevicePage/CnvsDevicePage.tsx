@@ -23,6 +23,19 @@ import styles from './CnvsDevicePage.module.scss';
  *                     which matches HYTE 2.0's UI exactly.
  *   - playWhenPCOff:  literal — keep LEDs lit while the PC is powered off.
  * Optimistic update + revert-on-failure, matching the old client.
+ *
+ * TODO(cnvs-fw-gate): Both toggles map to the firmware's `FF DC 07`
+ * command, which was only introduced in CNVS firmware **v1.0.2.1**
+ * (per `hyte-refs/hyte-documents/firmware-protocol/CNVS/stm32-commands.md`
+ * §3 — "Work with firmware update from v1.0.2.1/v1.0.2.2"). On units
+ * running an older firmware the device silently accepts the bytes and
+ * does nothing — the on-wire write succeeds but no setting changes
+ * and the boot animation keeps playing. HYTE's own Nexus 2.0 does NOT
+ * gate the UI; we should be better and disable both rows (with a hint
+ * "Requires CNVS firmware 1.0.2.1+") when the firmware-version probe
+ * reports a lower version. The service already reads + logs the FW
+ * version on connect via `CnvsConnectionWorker`; the API just needs to
+ * surface it on `GetCnvsSettings` so this component can branch on it.
  */
 export function CnvsDevicePage() {
   const [settings, setSettings] = useState<CnvsSettings | null>(null);
