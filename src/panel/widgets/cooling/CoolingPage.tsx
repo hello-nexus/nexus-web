@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ChevronRight, Gauge, Plus, Power, Settings } from 'lucide-react';
+import { ChevronRight, Gauge, Plus, Power, SlidersHorizontal } from 'lucide-react';
 import {
   getNp50ConnectionState,
   np50HubModeFromName,
@@ -1141,7 +1141,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               onClick={() => setSettingsOpen(true)}
               aria-label={t('cooling.settings.open')}
             >
-              <Settings size={16} aria-hidden />
+              <SlidersHorizontal size={16} aria-hidden />
             </button>
           </HoverTooltip>
         }

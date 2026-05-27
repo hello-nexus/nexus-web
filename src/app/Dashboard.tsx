@@ -8,7 +8,6 @@ import { CoolingPage } from "../panel/widgets/cooling/CoolingPage";
 import { DashboardView } from '../components/views/DashboardView/DashboardView';
 import { MonitoringPage } from "../panel/widgets/monitoring/MonitoringPage";
 import { OpenInAppBanner } from '../components/common/OpenInAppBanner/OpenInAppBanner';
-import { ToolsView } from '../components/views/ToolsView';
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
 import { DevicesPage } from "../panel/widgets/devices/DevicesPage";
 import { DevicePage } from '../components/views/DevicePage/DevicePage';
@@ -31,7 +30,6 @@ import type { Language, ThemeMode } from '../lib/settings';
 import type { ComponentCategory, ComponentOption } from '../types/builder';
 import { NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
 import {
-  TopRightDebugButton,
   TopRightNavButton,
   TopRightSettingsButton,
   PageVersionLabel,
@@ -352,7 +350,6 @@ export function Dashboard() {
       );
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
-      case 'tools':      return <ToolsView serviceOnline={online} connectionState={status.state} />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} profiles={profilesHook} />;
       default:           return <Placeholder title={activeView} />;
     }
@@ -400,11 +397,6 @@ export function Dashboard() {
             <TopRightNavButton direction="forward" disabled={!canGoForward} onClick={goForward} />
           </>
         )}
-        <TopRightDebugButton
-          active={activeView === 'tools'}
-          onDebug={() => navigate('system', 'tools')}
-          icon={NAV_ICONS['tools']}
-        />
         <TopRightSettingsButton
           active={section === 'system' && activeView === 'settings'}
           onClick={handleNavigateSettings}

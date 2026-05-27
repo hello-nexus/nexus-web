@@ -127,31 +127,10 @@ export function SidebarConflictSlot({ serviceOnline, compact }: {
   );
 }
 
-// Top-right action buttons (debug + settings). Live at the layout root next
-// to the caption buttons (Windows shell) or in the top-right corner of the
-// viewport on other platforms. Styled to mimic Win11 caption buttons so the
-// row reads as one integrated chrome strip.
-export function TopRightDebugButton({ active, onDebug, icon }: {
-  active: boolean;
-  onDebug: () => void;
-  icon: ReactNode;
-}) {
-  const { t } = useTranslation();
-  const label = t('tools.title');
-  return (
-    <HoverTooltip body={label} side="bottom">
-      <button
-        type="button"
-        className={classNames(styles.topRightAction, styles.topRightDebug, { [styles.topRightActionActive]: active })}
-        onClick={onDebug}
-        aria-label={label}
-        aria-pressed={active}
-      >
-        <span className={styles.topRightActionIcon} aria-hidden>{icon}</span>
-      </button>
-    </HoverTooltip>
-  );
-}
+// Top-right action buttons (settings). Live at the layout root next to the
+// caption buttons (Windows shell) or in the top-right corner of the viewport
+// on other platforms. Styled to mimic Win11 caption buttons so the row reads
+// as one integrated chrome strip.
 
 // Browser-style back/forward chevrons pinned to the top-right strip, sitting
 // to the left of the settings button with a small gap so they read as their

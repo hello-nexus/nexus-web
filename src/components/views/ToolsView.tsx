@@ -40,18 +40,15 @@ interface PawnIoStatus {
 }
 
 /*
- * Internal Debug Tools page. Not shipped to end users; the Sidebar exposes
- * this behind the debug gear. Cards here are diagnostics + developer
- * utilities only - no public-facing features.
+ * Internal Debug Tools page. Now rendered as the "Dev tools" tab inside the
+ * Settings page (no longer a standalone top-bar route), so the tab label
+ * itself supplies the page heading — this view starts straight at the card
+ * grid. Cards here are diagnostics + developer utilities only.
  */
 export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
-  const { t } = useTranslation();
-
   if (!serviceOnline) {
     return (
       <div className={styles.tools}>
-        <h2 className={styles.title}>{t('tools.title')}</h2>
-        <p className={styles.subtitle}>{t('tools.subtitle')}</p>
         <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
       </div>
     );
@@ -59,8 +56,6 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
 
   return (
     <div className={styles.tools}>
-      <h2 className={styles.title}>{t('tools.title')}</h2>
-      <p className={styles.subtitle}>{t('tools.subtitle')}</p>
       <div className={styles.grid}>
         <StorybookCard />
         <WidgetSdkCard />
@@ -322,7 +317,7 @@ function PanelSimulatorCard() {
   };
 
   return (
-    <Card title="Panel test devices" className={styles.wide}>
+    <Card title="Panel test devices">
       <span className={styles.dim}>Fake-connect panel targets for local screenshots, videos, and touch/editor testing.</span>
       <div className={styles.simTuningRow}>
         <label className={styles.tuningField}>

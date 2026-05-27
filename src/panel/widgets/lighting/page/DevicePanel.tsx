@@ -11,11 +11,18 @@ import styles from '../LightingPage.module.scss';
  * under a collapsible header; each zone renders as its own card so the user
  * can configure + control each physical strip independently.
  */
-export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onTogglePower, lightingOff, onOpenSettings, dragFor }: {
+export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, dragFor }: {
   devices: LightingDevice[];
-  selectedDeviceId: string | null;
+  /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
+  selectedIds: Set<string>;
+  /** Single-replace click: clears the set and selects only this id (or null to clear). */
   onSelectDevice: (id: string | null) => void;
+  /** Bulk set: shift+click on a row toggles membership without clobbering the rest. */
+  onSetSelection: (ids: Set<string>, primary: string | null) => void;
   onTogglePower: (id: string) => void;
+  /** Absolute set (vs. toggle). Used by the motherboard group header so a
+   *  "turn all off" click can't accidentally re-enable any already-off zone. */
+  onSetPower: (id: string, on: boolean) => void;
   /** Whether the lighting mode is 'none' (off). Swaps the empty message. */
   lightingOff: boolean;
   onOpenSettings: (id: string) => void;
@@ -47,6 +54,33 @@ export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onToggl
     }
   }
 
+  // Single shift-aware click handler so both single cards and motherboard zones
+  // share the exact same selection semantics as the canvas: plain click =
+  // single-replace, shift+click = toggle this id's membership in the set.
+  const handleZoneSelect = (id: string, shiftKey: boolean) => {
+    if (shiftKey) {
+      const next = new Set(selectedIds);
+      if (next.has(id)) {
+        next.delete(id);
+        // Removed primary: pick the topmost remaining id (last in the device
+        // list) so LED dots track to a visible frame. Same rule the canvas
+        // uses on shift+click toggle — keeping both surfaces in sync.
+        let nextPrimary: string | null = null;
+        for (let i = devices.length - 1; i >= 0; i--) {
+          if (next.has(devices[i].id)) { nextPrimary = devices[i].id; break; }
+        }
+        onSetSelection(next, nextPrimary);
+      } else {
+        next.add(id);
+        onSetSelection(next, id);
+      }
+      return;
+    }
+    // Plain click: clicking the only-selected device toggles it off; otherwise
+    // it replaces the selection. Matches the previous single-toggle behaviour.
+    onSelectDevice(selectedIds.size === 1 && selectedIds.has(id) ? null : id);
+  };
+
   return (
     <aside className={styles.devicePanel}>
       {devices.length === 0 ? (
@@ -60,25 +94,39 @@ export function DevicePanel({ devices, selectedDeviceId, onSelectDevice, onToggl
                 <ZoneCard
                   key={d.id}
                   device={d}
-                  selected={d.id === selectedDeviceId}
+                  selected={selectedIds.has(d.id)}
                   indent={false}
-                  onSelect={() => onSelectDevice(d.id === selectedDeviceId ? null : d.id)}
+                  onSelect={shiftKey => handleZoneSelect(d.id, shiftKey)}
                   onTogglePower={() => onTogglePower(d.id)}
                   onOpenSettings={() => onOpenSettings(d.id)}
                   drag={dragFor?.(d.id) ?? undefined}
                 />
               );
             }
+            // Group is "on" iff any zone is on. Clicking the header switch
+            // flips every zone to !groupOn — an absolute set, not a per-zone
+            // toggle (which would flip already-off zones back on when the
+            // group was partially lit).
+            const groupOn = g.zones.some(z => z.ledsOn);
+            const handleToggleGroup = () => {
+              const target = !groupOn;
+              for (const z of g.zones) onSetPower(z.id, target);
+            };
             return (
-              <MotherboardGroup key={g.parentId + '-' + i} parentName={g.parentName}>
+              <MotherboardGroup
+                key={g.parentId + '-' + i}
+                parentName={g.parentName}
+                groupOn={groupOn}
+                onTogglePower={handleToggleGroup}
+              >
                 {g.zones.map(z => (
                   <ZoneCard
                     key={z.id}
                     device={z}
                     displayName={stripParentPrefix(z.name, g.parentName)}
-                    selected={z.id === selectedDeviceId}
+                    selected={selectedIds.has(z.id)}
                     indent={true}
-                    onSelect={() => onSelectDevice(z.id === selectedDeviceId ? null : z.id)}
+                    onSelect={shiftKey => handleZoneSelect(z.id, shiftKey)}
                     onTogglePower={() => onTogglePower(z.id)}
                     onOpenSettings={() => onOpenSettings(z.id)}
                     drag={dragFor?.(z.id) ?? undefined}

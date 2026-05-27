@@ -1,34 +1,20 @@
 @use '../../styles/text' as *;
 
-/* Debug Tools page. Card chrome lives on the shared Card primitive; this
-   file owns the page layout and the kv/btn affordances inside cards. The
-   surrounding App `.content` shell already supplies `padding: 1rem 1.25rem`
-   — every other view (Monitoring, Devices, Lighting, …) renders flush
-   inside that, so this page must too. */
+/* Debug Tools page. Now rendered as a tab inside the Settings page, so the
+   layout matches the rest of the settings tabs: a single column constrained
+   to var(--page-content-max), one card per row. Card chrome lives on the
+   shared Card primitive; this file owns the page layout + kv/btn
+   affordances inside cards. */
 .tools {
   display: flex;
   flex-direction: column;
-}
-
-.title {
-  @include text-heading;
-  margin: 0;
-}
-
-.subtitle {
-  @include text-body;
-  color: var(--text-dim);
-  margin: 0.25rem 0 1.5rem;
+  max-width: var(--page-content-max);
 }
 
 .grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
-}
-
-.wide {
-  grid-column: span 2;
 }
 
 .kv {
@@ -157,10 +143,6 @@
 }
 
 @media (max-width: 720px) {
-  .wide {
-    grid-column: span 1;
-  }
-
   .customControls {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   }
