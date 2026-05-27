@@ -12,10 +12,16 @@ import styles from './CnvsDevicePage.module.scss';
 /**
  * Routed page for the HYTE CNVS canvas LEDs. Mirrors the two firmware
  * toggles from Nexus 2.0's CnvsSettings modal:
- *   - playAnimation:  inverted in the UI as "Disable connection animation"
- *                     because the firmware bit is "play animation = true";
- *                     the user-facing question reads the opposite way.
- *   - playWhenPCOff:  keep LEDs lit while the PC is powered off.
+ *   - playAnimation:  misleading field name. In HYTE's reference
+ *                     CNVSBaseController this is wired to
+ *                     `_turnOffStartupAnimation` with the comment
+ *                     "true: turn off start up animation". So `true`
+ *                     means the boot animation is SUPPRESSED, not that
+ *                     it plays. The toggle therefore binds directly to
+ *                     the field with the label "Disable connection
+ *                     animation" — toggle on = animation suppressed —
+ *                     which matches HYTE 2.0's UI exactly.
+ *   - playWhenPCOff:  literal — keep LEDs lit while the PC is powered off.
  * Optimistic update + revert-on-failure, matching the old client.
  */
 export function CnvsDevicePage() {
@@ -70,10 +76,8 @@ export function CnvsDevicePage() {
             <SettingRow
               label="Disable connection animation"
               hint="Skip the firmware boot animation when the CNVS connects to this PC."
-              // Service field is named playAnimation (true = animation plays).
-              // The user-facing question is "disable it?" — so we invert.
-              checked={!settings.playAnimation}
-              onChange={(disabled) => commit({ ...settings, playAnimation: !disabled })} />
+              checked={settings.playAnimation}
+              onChange={(disabled) => commit({ ...settings, playAnimation: disabled })} />
 
             <SettingRow
               label="Keep LEDs on when PC is off"
