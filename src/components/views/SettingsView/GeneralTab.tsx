@@ -88,6 +88,13 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         onChange={() => updateGeneral({ disableConflictAlerts: !settings.general.disableConflictAlerts })}
       />
 
+      <ToggleRow
+        label={t('settings.advancedWidgets.label')}
+        description={t('settings.advancedWidgets.description')}
+        checked={settings.general.widgetAdvancedMode}
+        onChange={() => updateGeneral({ widgetAdvancedMode: !settings.general.widgetAdvancedMode })}
+      />
+
       {platform === 'macos' && (
         <ToggleRow
           label={t('settings.macStatusBar.label')}

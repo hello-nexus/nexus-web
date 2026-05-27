@@ -58,6 +58,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       showMacStatusBarIcon: ui.showMacStatusBarIcon,
       showWindowsTrayIcon: ui.showWindowsTrayIcon,
       pinnedSidebarApps: ui.pinnedSidebarApps,
+      widgetAdvancedMode: ui.widgetAdvancedMode,
     },
   }), [ui]);
 

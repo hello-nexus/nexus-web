@@ -3,6 +3,7 @@ import type { AppManifest } from '../types';
 import { LightingWidget } from './LightingWidget';
 import { LightingPage } from './LightingPage';
 import { LightingTouch } from './LightingTouch';
+import { AdvancedModeSettings } from '../common/AdvancedModeSettings';
 
 export const lightingApp: AppManifest = {
   meta: {
@@ -12,10 +13,11 @@ export const lightingApp: AppManifest = {
     sizes: ['2x2', '4x2', '4x4'],
     defaultSize: '4x4',
     supportsImmersive: { portrait: true, landscape: true },
-    hasConfig: false,
+    hasConfig: true,
     touch: true,
   },
   Widget: LightingWidget,
   Page: LightingPage,
   Touch: LightingTouch,
+  Settings: AdvancedModeSettings,
 };

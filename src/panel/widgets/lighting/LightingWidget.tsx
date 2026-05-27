@@ -36,6 +36,8 @@ import {
   type LightingMode,
 } from '../../../types/lighting';
 import { buildAllDefaultTemplates, mergeTemplates } from '../../../types/lightingTemplates';
+import { useUiSettings } from '../../../hooks/useUiSettings';
+import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
@@ -61,6 +63,8 @@ const WIDGET_BUTTONS: { key: WidgetMode; icon: LucideIcon; labelKey: string }[] 
 
 export function LightingWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
+  const { settings: ui } = useUiSettings();
+  const simpleMode = !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
   const [mode, setMode] = useState<LightingMode>('none');
   const [activeEffect, setActiveEffect] = useState('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>(buildAllDefaultTemplates);
@@ -230,6 +234,21 @@ export function LightingWidget({ widget }: WidgetProps) {
     applyEffect(next.key, resolveEffectState(next.key, templates));
   }, [activeEffect, applyEffect, templates]);
 
+  // Simple-mode arrow handler. From inside an animation, behaves like
+  // cycleAnimate. From any non-animate state (static / screen mirror /
+  // gif / off), the first press jumps into the animation list: right
+  // arrow lands on the first effect, left arrow lands on the last
+  // effect (i.e. the cycle's wrap-around starting position).
+  const enterOrCycleAnimate = useCallback((delta: number) => {
+    if (mode === 'animate') {
+      cycleAnimate(delta);
+      return;
+    }
+    const targetIdx = delta > 0 ? 0 : EFFECTS.length - 1;
+    const next = EFFECTS[targetIdx];
+    applyEffect(next.key, resolveEffectState(next.key, templates));
+  }, [mode, cycleAnimate, applyEffect, templates]);
+
   const cycleStatic = useCallback((delta: number) => {
     const lower = staticColor.toLowerCase();
     const idx = STATIC_COLORS.findIndex(c => c.hex.toLowerCase() === lower);
@@ -265,14 +284,20 @@ export function LightingWidget({ widget }: WidgetProps) {
   };
 
   const view = useMemo<SingleView>(() => {
+    // Arrow handlers depend on simple-mode: in simple mode every
+    // mode's prev/next jumps into / stays in the animation cycle (per
+    // user spec — arrows ALWAYS cycle animations, never colors / filters).
+    const prev = simpleMode ? () => enterOrCycleAnimate(-1) : undefined;
+    const next = simpleMode ? () => enterOrCycleAnimate(1)  : undefined;
+
     if (mode === 'animate') {
       const effect = EFFECTS.find(e => e.key === activeEffect) ?? EFFECTS[0];
       return {
         kind: 'thumb',
         thumbUrl: thumbs[effect.key] ?? null,
         label: t(effect.labelKey),
-        onPrev: () => cycleAnimate(-1),
-        onNext: () => cycleAnimate(1),
+        onPrev: prev ?? (() => cycleAnimate(-1)),
+        onNext: next ?? (() => cycleAnimate(1)),
       };
     }
     if (mode === 'static') {
@@ -282,8 +307,8 @@ export function LightingWidget({ widget }: WidgetProps) {
         kind: 'color',
         color: staticColor,
         label: preset?.label ?? staticColor.toUpperCase(),
-        onPrev: () => cycleStatic(-1),
-        onNext: () => cycleStatic(1),
+        onPrev: prev ?? (() => cycleStatic(-1)),
+        onNext: next ?? (() => cycleStatic(1)),
       };
     }
     if (mode === 'screen') {
@@ -292,29 +317,45 @@ export function LightingWidget({ widget }: WidgetProps) {
         kind: 'icon',
         icon: Monitor,
         label: t(def.i18nKey),
-        onPrev: () => cycleFilter(-1),
-        onNext: () => cycleFilter(1),
+        onPrev: prev ?? (() => cycleFilter(-1)),
+        onNext: next ?? (() => cycleFilter(1)),
       };
     }
     if (mode === 'gif') {
       const item = mediaItems.find(m => m.id === activeMediaId) ?? mediaItems[0];
       if (!item) {
-        return { kind: 'message', message: t('lighting.controls.noMedia'), label: t('lighting.mode.gif') };
+        return { kind: 'message', message: t('lighting.controls.noMedia'), label: t('lighting.mode.gif'), onPrev: prev, onNext: next };
       }
       return {
         kind: 'thumb',
         thumbUrl: mediaThumbs[item.id] ?? null,
         label: item.name.replace(/\.[^.]+$/, ''),
+        onPrev: prev,
+        onNext: next,
       };
     }
-    return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off') };
-  }, [mode, activeEffect, thumbs, t, staticColor, filter, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, cycleStatic, cycleFilter]);
+    // mode === 'none' (off). In simple mode we still show arrows so
+    // the first press enters the animation cycle.
+    return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off'), onPrev: prev, onNext: next };
+  }, [mode, activeEffect, thumbs, t, staticColor, filter, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, cycleStatic, cycleFilter, simpleMode, enterOrCycleAnimate]);
 
   const widgetMode: WidgetMode | null =
     mode === 'animate' ? 'animate'
     : mode === 'static' ? 'static'
     : mode === 'screen' ? 'screen'
     : null;
+
+  // Simple mode: same UX at every size — center icon/label + arrows, no
+  // mode-buttons row. Per user spec the arrows cycle through animations
+  // regardless of current mode (cycleStatic / cycleFilter are skipped),
+  // wired in the `view` builder above via simpleMode-aware onPrev/onNext.
+  if (simpleMode) {
+    return (
+      <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-simple="true">
+        <SingleItemView view={view} t={t} showArrows />
+      </div>
+    );
+  }
 
   if (compact) {
     return (
@@ -350,21 +391,44 @@ type SingleView =
   | { kind: 'thumb'; thumbUrl: string | null; label: string; onPrev?: () => void; onNext?: () => void }
   | { kind: 'color'; color: string;          label: string; onPrev?: () => void; onNext?: () => void }
   | { kind: 'icon';  icon: LucideIcon;       label: string; onPrev?: () => void; onNext?: () => void }
-  | { kind: 'message'; message: string;      label: string };
+  | { kind: 'message'; message: string;      label: string; onPrev?: () => void; onNext?: () => void };
 
 function SingleItemView({ view, t, showArrows }: { view: SingleView; t: (key: string) => string; showArrows: boolean }) {
+  const arrowsRendered = showArrows && !!view.onPrev && !!view.onNext;
   if (view.kind === 'message') {
     return (
       <div className={styles.thumbBox}>
         <span className={styles.thumb}>
           <span className={styles.thumbIconWrap}>
             <Lightbulb className={styles.thumbIcon} aria-hidden="true" />
+            <span className={styles.thumbCaption}>{view.label}</span>
           </span>
         </span>
+        {arrowsRendered && (
+          <>
+            <button
+              type="button"
+              className={styles.arrowBtn}
+              data-side="prev"
+              onClick={view.onPrev}
+              aria-label={t('lighting.panel.prev')}
+            >
+              <ChevronLeft />
+            </button>
+            <button
+              type="button"
+              className={styles.arrowBtn}
+              data-side="next"
+              onClick={view.onNext}
+              aria-label={t('lighting.panel.next')}
+            >
+              <ChevronRight />
+            </button>
+          </>
+        )}
       </div>
     );
   }
-  const arrowsRendered = showArrows && !!view.onPrev && !!view.onNext;
   return (
     <div className={styles.thumbBox}>
       <span className={styles.thumb}>

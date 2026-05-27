@@ -218,6 +218,21 @@
   }
 }
 
+// 2x2 in simple mode: arrows DO render at this size (the entire point
+// of simple mode), so shrink their hit-target and chevron a touch so
+// they fit alongside the small thumbnail without clobbering it.
+.lighting[data-size='2x2'][data-simple='true'] {
+  .arrowBtn {
+    width: 32px;
+    height: 32px;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
 @keyframes thumbShimmer {
   0% {
     background-position: 100% 0;

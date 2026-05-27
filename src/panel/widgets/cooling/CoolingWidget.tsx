@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Fan } from 'lucide-react';
 import {
   applyProfile, fetchProfiles,
   fetchCurves, fetchFanChannels, fetchTemperatureSources,
   type FanChannel, type TemperatureSource,
 } from '../../../api/cooling';
 import { useSensors } from '../../../hooks/useSensors';
-import { useTempSensorPrefs } from '../../../hooks/useUiSettings';
+import { useTempSensorPrefs, useUiSettings } from '../../../hooks/useUiSettings';
+import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
+import { SignalBarsIcon } from './SignalBarsIcon';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSensorResolver';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './page/coolingPresets';
+import { setCachedCoolingActivePreset } from './coolingCache';
 import { MicroBar } from '../monitoring/MicroBar';
 import type { GaugeProps } from '../monitoring/gauges/types';
 import type { CurveDef, CurveType, FanState, MixFn, CurvePreset } from '../../../types/cooling';
@@ -28,6 +32,8 @@ interface CoolingSlot {
 
 export function CoolingWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
+  const { settings: ui } = useUiSettings();
+  const simpleMode = !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
   const [active, setActive] = useState<CoolingPresetKey>('custom');
   const [curves, setCurves] = useState<CurveDef[]>([]);
   const [fanStates, setFanStates] = useState<Record<string, FanState>>({});
@@ -73,10 +79,26 @@ export function CoolingWidget({ widget }: WidgetProps) {
     return list;
   }, [cpuTemp, gpuTemp, avgDuty, hasFans, t]);
 
+  // Optimistic-lock window — see CoolingPage's identical pattern. When the
+  // user clicks a preset, we set this to `now + WINDOW_MS` so the next few
+  // server pushes (a stale `cooling` topic or another surface's
+  // control-sync event) don't snap the UI back to the previous value while
+  // the new applyProfile is still in flight. 1500 ms matches CoolingPage.
+  const presetLockUntilRef = useRef(0);
+  const PRESET_LOCK_MS = 1500;
+
   const refreshProfiles = useCallback(() => {
     fetchProfiles().then(data => {
       if (!data) return;
-      if (data.active && isCoolingPresetKey(data.active)) setActive(data.active);
+      if (Date.now() < presetLockUntilRef.current) return; // honour the lock
+      if (data.active && isCoolingPresetKey(data.active)) {
+        setActive(data.active);
+        // Mirror the freshly-fetched active preset into the page's
+        // localStorage cache so a subsequent navigation to /cooling
+        // paints the right tab + preset state on first frame instead of
+        // a stale value from the last time the page itself ran.
+        setCachedCoolingActivePreset(data.active);
+      }
     }).catch(() => { /* best-effort */ });
   }, []);
 
@@ -149,13 +171,26 @@ export function CoolingWidget({ widget }: WidgetProps) {
 
   useEffect(() => subscribeControlSync(event => {
     if (event.domain !== 'cooling') return;
+    if (Date.now() < presetLockUntilRef.current) return; // honour the lock
     const next = event.activePreset ?? event.activeProfile;
-    if (next && isCoolingPresetKey(next)) setActive(next);
+    if (next && isCoolingPresetKey(next)) {
+      setActive(next);
+      setCachedCoolingActivePreset(next);
+    }
   }), []);
 
   const apply = (key: CoolingPresetKey) => {
+    // Lock first so any topic/control-sync push triggered by *this* write
+    // (or a still-in-flight previous write) can't revert the optimistic
+    // setActive below.
+    presetLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
     setActive(key);
     publishControlSync({ domain: 'cooling', activePreset: key });
+    // Seed the page's cache immediately so a fresh navigation to the
+    // cooling page paints the right active tab on its first frame, the
+    // same way the lighting widget's optimistic state shows up the
+    // moment the page mounts.
+    setCachedCoolingActivePreset(key);
     applyProfile(key).catch(() => { /* best-effort */ });
   };
 
@@ -163,6 +198,70 @@ export function CoolingWidget({ widget }: WidgetProps) {
     () => COOLING_PRESETS.filter(p => WIDGET_PRESET_KEYS.includes(p.key)),
     [],
   );
+
+  // Simple mode handlers: arrows cycle ONLY silent/balanced/turbo.
+  // Center always shows the current `active` state — could be one of
+  // those three, or 'custom' / 'off'. First press from a non-cycle
+  // state jumps to the first item in the cycle direction: right →
+  // silent, left → turbo (per user spec).
+  const cyclePreset = useCallback((delta: number) => {
+    const idx = WIDGET_PRESET_KEYS.indexOf(active as CoolingPresetKey);
+    let nextIdx: number;
+    if (idx < 0) {
+      nextIdx = delta > 0 ? 0 : WIDGET_PRESET_KEYS.length - 1;
+    } else {
+      nextIdx = (idx + delta + WIDGET_PRESET_KEYS.length) % WIDGET_PRESET_KEYS.length;
+    }
+    apply(WIDGET_PRESET_KEYS[nextIdx]);
+  }, [active, apply]);
+
+  if (simpleMode) {
+    // Identical layout at every size: fan-with-signal-bars icon centered,
+    // current-mode label below, prev/next arrows on either side.
+    const level: 1 | 2 | 3 | null =
+      active === 'silent' ? 1
+      : active === 'balanced' ? 2
+      : active === 'turbo' ? 3
+      : null;
+    const labelKey =
+      active === 'silent' ? 'cooling.preset.silent'
+      : active === 'balanced' ? 'cooling.preset.balanced'
+      : active === 'turbo' ? 'cooling.preset.turbo'
+      : active === 'off' ? 'cooling.preset.off'
+      : 'cooling.preset.custom';
+    const showLabel = widget.size !== '2x2';
+    return (
+      <div className={styles.cooling} data-size={widget.size} data-simple="true">
+        <div className={styles.simpleStage}>
+          <button
+            type="button"
+            className={styles.simpleArrow}
+            data-side="prev"
+            onClick={() => cyclePreset(-1)}
+            aria-label={t('cooling.panel.prev')}
+          >
+            <ChevronLeft />
+          </button>
+          <div className={styles.simpleCenter}>
+            <div className={`${styles.simpleIconGroup} ${level ? '' : styles.simpleIconMuted}`}>
+              <Fan size={56} aria-hidden className={styles.simpleFan} />
+              <SignalBarsIcon level={level ?? 1} size={56} className={styles.simpleBars} />
+            </div>
+            {showLabel && <span className={styles.simpleLabel}>{t(labelKey)}</span>}
+          </div>
+          <button
+            type="button"
+            className={styles.simpleArrow}
+            data-side="next"
+            onClick={() => cyclePreset(1)}
+            aria-label={t('cooling.panel.next')}
+          >
+            <ChevronRight />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (compact) {
     return (

@@ -64,6 +64,11 @@ export interface UiSettingsValue {
   // PINNABLE_APP_KEYS in app/sidebarApps.tsx. Server-mirrored under
   // ui.pinnedSidebarApps.
   pinnedSidebarApps: string[];
+  // When true, lighting + cooling widgets show the rich UI (chart, chips,
+  // mode buttons). Default false — the compact center-icon+arrows layout
+  // is the default at every size. Per-widget config.advancedMode can
+  // override this for a single widget instance.
+  widgetAdvancedMode: boolean;
 }
 
 type Patch = Partial<UiSettingsValue>;
@@ -92,6 +97,7 @@ function fromQosSettings(src: NexusSettings): UiSettingsValue {
     preferredCpuTempSensorId: '',
     preferredGpuTempSensorId: '',
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
+    widgetAdvancedMode: src.general.widgetAdvancedMode,
   };
 }
 
@@ -108,6 +114,7 @@ function toQosSettings(src: UiSettingsValue): NexusSettings {
       showMacStatusBarIcon: src.showMacStatusBarIcon,
       showWindowsTrayIcon: src.showWindowsTrayIcon,
       pinnedSidebarApps: src.pinnedSidebarApps,
+      widgetAdvancedMode: src.widgetAdvancedMode,
     },
   };
 }

@@ -100,6 +100,13 @@ export interface GeneralSettings {
   // 'devices'). Server-mirrored under ui.pinnedSidebarApps so it follows
   // the profile.
   pinnedSidebarApps: string[];
+  // When true, lighting + cooling widgets render the full controls
+  // (animation/mirror/static buttons on lighting, response chart +
+  // silent/balanced/turbo chips on cooling). Defaults false — the
+  // glanceable single-icon-with-arrows layout is the design default;
+  // power users flip this on to expose the richer surface. Client-only
+  // today — not threaded through the server preferences pipeline yet.
+  widgetAdvancedMode: boolean;
 }
 
 export interface NexusSettings {
@@ -126,6 +133,7 @@ export function getDefaultSettings(): NexusSettings {
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,
       pinnedSidebarApps: ['monitoring', 'lighting', 'cooling'],
+      widgetAdvancedMode: false,
     },
   };
 }

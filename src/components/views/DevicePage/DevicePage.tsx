@@ -7,7 +7,6 @@ import { PanelDevicePage } from './PanelDevicePage';
 import { PeripheralDevicePage } from './PeripheralDevicePage';
 import { KeebDevicePage } from './KeebDevicePage';
 import { Np50DevicePage } from './Np50DevicePage';
-import { CnvsDevicePage } from './CnvsDevicePage';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 
 /**
@@ -75,10 +74,6 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
 
   if (device.curatedId === 'np50') {
     return <Np50DevicePage key={device.key} />;
-  }
-
-  if (device.curatedId === 'cnvs') {
-    return <CnvsDevicePage key={device.key} />;
   }
 
   // Curated devices the service knows about but don't yet have a

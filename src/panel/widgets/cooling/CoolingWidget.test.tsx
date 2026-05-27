@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { CoolingWidget } from './CoolingWidget';
 
@@ -48,9 +48,14 @@ vi.mock('../../../hooks/useSensors', () => ({
   useSensors: () => sensorFixture.current,
 }));
 
+const mockUiSettings = vi.hoisted(() => ({
+  preferredCpuTempSensorId: '',
+  preferredGpuTempSensorId: '',
+  widgetAdvancedMode: true,
+}));
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({
-    settings: { preferredCpuTempSensorId: '', preferredGpuTempSensorId: '' },
+    settings: mockUiSettings,
     update: vi.fn(),
     reload: vi.fn(),
   }),
@@ -69,6 +74,8 @@ vi.mock('../../../lib/i18n', () => ({
       'cooling.label.cpu': 'CPU',
       'cooling.label.gpu': 'GPU',
       'cooling.label.fan': 'FAN',
+      'cooling.panel.prev': 'Previous fan profile',
+      'cooling.panel.next': 'Next fan profile',
     }[key] ?? key),
   }),
 }));
@@ -140,6 +147,43 @@ describe('CoolingWidget', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Apply Balanced cooling profile' }).getAttribute('data-active')).toBe('true');
+    });
+  });
+
+  describe('simple mode', () => {
+    beforeEach(() => { mockUiSettings.widgetAdvancedMode = false; });
+    afterEach(() => { mockUiSettings.widgetAdvancedMode = true; });
+
+    it('2x2 renders arrows only — no label, no MicroBars, no chips', async () => {
+      render(<CoolingWidget widget={coolingWidget('2x2')} />);
+      await waitFor(() => expect(screen.getByLabelText('Previous fan profile')).toBeInTheDocument());
+      expect(screen.getByLabelText('Next fan profile')).toBeInTheDocument();
+      // Label is intentionally hidden at 2x2 — fan-bars icon alone carries the state.
+      expect(screen.queryByText('Balanced')).not.toBeInTheDocument();
+      // No rich-mode surfaces.
+      expect(screen.queryByText('CPU')).not.toBeInTheDocument();
+      expect(screen.queryByText('GPU')).not.toBeInTheDocument();
+      expect(screen.queryByText('FAN')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Apply Silent cooling profile' })).not.toBeInTheDocument();
+    });
+
+    it('4x2 renders arrows + preset label', async () => {
+      render(<CoolingWidget widget={coolingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
+      expect(screen.getByLabelText('Previous fan profile')).toBeInTheDocument();
+      expect(screen.getByLabelText('Next fan profile')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Apply Silent cooling profile' })).not.toBeInTheDocument();
+    });
+
+    it('per-widget config.advancedMode=true overrides the global default and shows the rich UI', async () => {
+      // Even with the global default OFF (simple), an explicit per-widget
+      // advancedMode=true override takes precedence — the rich 2x2
+      // (MicroBars) renders instead.
+      const w = { ...coolingWidget('2x2'), config: { advancedMode: true } };
+      render(<CoolingWidget widget={w} />);
+      await waitFor(() => expect(screen.getByText('CPU')).toBeInTheDocument());
+      expect(screen.getByText('GPU')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Previous fan profile')).not.toBeInTheDocument();
     });
   });
 

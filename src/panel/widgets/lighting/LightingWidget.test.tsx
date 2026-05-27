@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { LightingWidget } from './LightingWidget';
 
@@ -56,6 +56,14 @@ vi.mock('../../../lib/i18n', () => ({
   }),
 }));
 
+// Default to advanced (rich) mode in these tests — the existing assertions
+// describe the rich UI's surface (mode buttons + per-mode arrows). The
+// new simple-mode default has its own dedicated test block below.
+const mockUiSettings = vi.hoisted(() => ({ widgetAdvancedMode: true }));
+vi.mock('../../../hooks/useUiSettings', () => ({
+  useUiSettings: () => ({ settings: mockUiSettings, update: vi.fn(), reload: vi.fn() }),
+}));
+
 function lightingWidget(size: PanelWidget['size']): PanelWidget {
   return {
     id: `lighting-${size}`,
@@ -105,5 +113,26 @@ describe('LightingWidget', () => {
     });
     expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('false');
     expect(screen.getByRole('button', { name: 'Mirror' }).getAttribute('data-active')).toBe('false');
+  });
+
+  describe('simple mode', () => {
+    beforeEach(() => { mockUiSettings.widgetAdvancedMode = false; });
+    afterEach(() => { mockUiSettings.widgetAdvancedMode = true; });
+
+    it('renders arrows at 2x2 and drops the mode buttons', async () => {
+      render(<LightingWidget widget={lightingWidget('2x2')} />);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument());
+      expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Animation' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Mirror' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Static' })).not.toBeInTheDocument();
+    });
+
+    it('renders arrows at 4x2 and drops the mode buttons', async () => {
+      render(<LightingWidget widget={lightingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument());
+      expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Animation' })).not.toBeInTheDocument();
+    });
   });
 });
