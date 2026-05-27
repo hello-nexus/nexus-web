@@ -64,7 +64,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   // product name ("Q60" / "Q80") on the device record. Overriding
   // here would collapse both to "Q-series" and lose the distinction
   // the user wants surfaced.
-  cnvs: 'Cnvs',
+  cnvs: 'CNVS',
   keeb: 'Keeb',
   'fan-hub': 'Fan Hub',
 };
