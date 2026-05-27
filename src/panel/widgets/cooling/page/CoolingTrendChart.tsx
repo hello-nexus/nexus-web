@@ -1,7 +1,8 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { FanChannel } from '../../../../api/cooling';
 import { useTranslation } from '../../../../lib/i18n';
-import { PERF_HISTORY_SAMPLES, useHistory } from '../../../../panel/widgets/common/useHistory';
+import { PERF_HISTORY_SAMPLES } from '../../../../panel/widgets/common/useHistory';
+import { useTopicHistory } from '../../../../panel/widgets/common/useTopicHistory';
 import {
   FAN_MIN_DOMAIN_MAX,
   averageFanRpm, fanDomainMax,
@@ -54,9 +55,12 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
   const hasFans = fanValues.length > 0;
   const fanValue = averageFanRpm(fanValues);
 
-  const cpuHistory = useHistory(cpuTempValue ?? Number.NaN, PERF_HISTORY_SAMPLES);
-  const gpuHistory = useHistory(gpuTempValue ?? Number.NaN, PERF_HISTORY_SAMPLES);
-  const fanHistory = useHistory(hasFans ? fanValue : Number.NaN, PERF_HISTORY_SAMPLES);
+  // Each series advances exactly once per broadcast of its source topic.
+  // No client-side timing, no value dedup — the backend's broadcast cadence
+  // is the only thing that drives the chart.
+  const cpuHistory = useTopicHistory('cpu', cpuTempValue ?? Number.NaN, PERF_HISTORY_SAMPLES);
+  const gpuHistory = useTopicHistory('gpu', gpuTempValue ?? Number.NaN, PERF_HISTORY_SAMPLES);
+  const fanHistory = useTopicHistory('cooling-realtime', hasFans ? fanValue : Number.NaN, PERF_HISTORY_SAMPLES);
   const fanMax = hasFans ? fanDomainMax(fanHistory, fanValue) : FAN_MIN_DOMAIN_MAX;
 
   const n = PERF_HISTORY_SAMPLES;
