@@ -3,6 +3,7 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useDevices, type DeviceListItem } from '../../../hooks/useDevices';
+import { useSystemSpecs, type SystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useTranslation } from '../../../lib/i18n';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Button } from '../../../components/common/Button/Button';
@@ -22,7 +23,7 @@ interface DevicesViewProps {
   onDeviceSelect: (deviceKey: string) => void;
 }
 
-type TabKey = 'available' | 'connected' | 'firmware';
+type TabKey = 'available' | 'connected' | 'firmware' | 'specs';
 
 export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: DevicesViewProps) {
   const { t } = useTranslation();
@@ -34,6 +35,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: 
   const usb = useUsbDevices(serviceOnline && tab === 'connected');
   const allUsb = useUsbDevices(serviceOnline);
   const firmwareDevices = useDevices(serviceOnline && tab === 'firmware');
+  const systemSpecs = useSystemSpecs(serviceOnline && tab === 'specs');
 
   const detectedVidPids = useMemo(() => {
     const set = new Set<string>();
@@ -52,6 +54,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: 
     { key: 'available', label: t('devices.tabs.available') },
     { key: 'connected', label: t('devices.tabs.connected') },
     { key: 'firmware', label: t('devices.tabs.firmware') },
+    { key: 'specs', label: t('devices.tabs.specs') },
   ] as const;
 
   return (
@@ -107,6 +110,12 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: 
           <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
         ) : (
           <FirmwarePanel devices={firmwareDevices} />
+        )
+      ) : tab === 'specs' ? (
+        !serviceOnline ? (
+          <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
+        ) : (
+          <SpecsPanel specs={systemSpecs.specs} />
         )
       ) : !serviceOnline ? (
         <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
@@ -197,6 +206,78 @@ function FirmwarePanel({ devices }: FirmwarePanelProps) {
           </table>
         </div>
       )}
+    </>
+  );
+}
+
+interface SpecsPanelProps {
+  specs: SystemSpecs | null;
+}
+
+// Build the row list once per render. Order matches the user's mental model
+// ("identity → OS → core silicon → memory → storage → display → audio →
+// network"), which also reads cleanly when copied to chat / spec sheets.
+function specRows(specs: SystemSpecs, t: (k: string) => string) {
+  return [
+    { label: t('devices.specs.row.pcName'), value: specs.pcName },
+    { label: t('devices.specs.row.osBuild'), value: specs.osBuild },
+    { label: t('devices.specs.row.processor'), value: specs.processor },
+    { label: t('devices.specs.row.motherboard'), value: specs.motherboard },
+    { label: t('devices.specs.row.memory'), value: specs.memory },
+    { label: t('devices.specs.row.storage'), value: specs.storage },
+    { label: t('devices.specs.row.graphicsCard'), value: specs.graphicsCard },
+    { label: t('devices.specs.row.monitor'), value: specs.monitor },
+    { label: t('devices.specs.row.soundCard'), value: specs.soundCard },
+    { label: t('devices.specs.row.networkCard'), value: specs.networkCard },
+  ];
+}
+
+function SpecsPanel({ specs }: SpecsPanelProps) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  // Render a stable placeholder list while the first fetch is in flight so the
+  // tab doesn't collapse / reflow when the data arrives.
+  const rows = specs
+    ? specRows(specs, t)
+    : Array.from({ length: 10 }, () => ({ label: '', value: '' }));
+
+  const onCopy = async () => {
+    if (!specs) return;
+    const text = specRows(specs, t)
+      .map(r => `${r.label}: ${r.value || '—'}`)
+      .join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Browsers without async clipboard (older WebViews on the panel side)
+      // fall back to selecting nothing — no need to surface an error here,
+      // the toast just won't appear.
+    }
+  };
+
+  return (
+    <>
+      <p className={styles.explainer}>{t('devices.specs.description')}</p>
+      <div className={styles.specsToolbar}>
+        <Button type="button" tone="accent" size="sm" onClick={onCopy} disabled={!specs}>
+          {copied ? t('devices.specs.copied') : t('devices.specs.copy')}
+        </Button>
+      </div>
+      <div className={styles.specsCard}>
+        <dl className={styles.specsList}>
+          {rows.map((row, i) => (
+            <div key={i} className={styles.specsRow}>
+              <dt className={styles.specsLabel}>{row.label || ' '}</dt>
+              <dd className={styles.specsValue}>
+                {specs ? (row.value || '—') : ' '}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
     </>
   );
 }

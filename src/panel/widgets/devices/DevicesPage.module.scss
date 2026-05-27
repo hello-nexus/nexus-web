@@ -288,3 +288,63 @@
   font-family: var(--font-mono);
   color: var(--text-dim);
 }
+
+// --- System Specs ---
+
+// Toolbar above the specs card: Copy + Refresh, left-aligned to match the
+// USB tab's refresh-button placement so the visual rhythm stays consistent.
+.specsToolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+// Cap the card width so the spec sheet reads as a compact summary — the same
+// "shareable card" feel as a pasted gist. On narrow viewports it shrinks
+// naturally via max-width: 100%.
+.specsCard {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  padding: 0.4rem 0.9rem;
+  max-width: 640px;
+}
+
+.specsList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.specsRow {
+  display: grid;
+  // Labels need ~140px to fit "Graphics Card" without wrapping; value takes
+  // the rest. `min-content` would clip long rig names so we hold a fixed
+  // label column.
+  grid-template-columns: 140px 1fr;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.specsLabel {
+  @include text-label;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.specsValue {
+  @include text-body;
+  color: var(--text);
+  margin: 0;
+  // Long rig names ("AMD Ryzen 9 7950X3D 16-Core Processor") still need to
+  // wrap on narrow widths; allow breaks anywhere inside.
+  overflow-wrap: anywhere;
+}
