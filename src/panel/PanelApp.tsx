@@ -1078,7 +1078,7 @@ export function PanelContent({
         return Math.min(count - 1, prev + 1);
       });
     }, EDGE_ADVANCE_DWELL_MS);
-  }, [clearEdgeAdvance, touch]);
+  }, [clearEdgeAdvance, touch, EDGE_ADVANCE_DWELL_MS]);
   // Gesture refs for the collision detector: PANEL_DRAG_START_THRESHOLD_PX
   // is gated off the cursor's distance from this anchor, so we capture
   // wherever dnd-kit thinks the press began. lastOverId provides
@@ -1622,6 +1622,7 @@ export function PanelContent({
           nativeBridgeAvailable={nativeSettings.available}
           nextAttemptAt={multiplex?.nextAttemptAt ?? null}
           remoteDisabled={multiplex?.remoteDisabled ?? false}
+          sessionRevoked={multiplex?.sessionRevoked ?? false}
           onRetry={handleRetry}
           onOpenNativePairing={nativeSettings.open}
         />

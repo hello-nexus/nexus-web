@@ -136,7 +136,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       setLoaded(true);
     }).catch(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
-  }, [open, surface, supportsDisplayControls]);
+  }, [surface, supportsDisplayControls]);
 
   const pushBrightness = (value: number) => {
     setBrightness(value);

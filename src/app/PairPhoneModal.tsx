@@ -133,7 +133,11 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [confirmRemoveAllOpen, setConfirmRemoveAllOpen] = useState(false);
   const [confirmDisableOpen, setConfirmDisableOpen] = useState(false);
-  const [togglingRemote, setTogglingRemote] = useState(false);
+  // Guards against double-trigger from the modal while the POST is in flight,
+  // but does NOT disable the Toggle visual (Toggle's :disabled drops opacity
+  // to 0.5 without a transition, which makes the post-confirm flip read as
+  // "fading" instead of a crisp ON->OFF flip).
+  const togglingRemoteRef = useRef(false);
   const [now, setNow] = useState(() => Date.now());
   const [pairMode, setPairMode] = useState<'qr' | 'code'>('qr');
   const [pairCode, setPairCode] = useState<PanelPhonePairCodeStart | null>(null);
@@ -208,8 +212,9 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     // old "wait for confirmation" path made the killswitch feel laggy
     // because the visual didn't move until the round-trip + session
     // refetch resolved.
+    if (togglingRemoteRef.current) return;
+    togglingRemoteRef.current = true;
     onRemoteEnabledChange(next);
-    setTogglingRemote(true);
     try {
       const result = await setPanelRemoteControlEnabled(next);
       if (result) {
@@ -228,7 +233,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     } catch {
       onRemoteEnabledChange(!next);
     } finally {
-      setTogglingRemote(false);
+      togglingRemoteRef.current = false;
     }
   }, [loadSessions, onRemoteEnabledChange]);
 
@@ -392,7 +397,6 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
               </div>
               <Toggle
                 checked={remoteEnabled}
-                disabled={togglingRemote}
                 onChange={handleRemoteToggle}
                 ariaLabelledBy="phone-pair-killswitch-label"
               />

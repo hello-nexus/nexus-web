@@ -270,8 +270,8 @@ function AppPanel({ name, onPickName, onBack }: {
   const fromIso = addDays(today, -6);
   const { data: history } = useScreenTimeApp(name, fromIso, today);
 
-  const days = history?.daily ?? [];
-  const filled = useMemo(() => fillRange(fromIso, today, days), [fromIso, today, days]);
+  const daily = history?.daily;
+  const filled = useMemo(() => fillRange(fromIso, today, daily ?? []), [fromIso, today, daily]);
 
   if (!name) {
     return (

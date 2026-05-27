@@ -26,6 +26,14 @@ export interface MultiplexContextValue {
    * turns the killswitch back on.
    */
   remoteDisabled: boolean;
+  /**
+   * True when this specific phone session has been removed from the host's
+   * paired-devices list (server closed the WS with code 1008 "revoked" while
+   * the killswitch is still ON). Terminal for the current session - the only
+   * way back is to re-pair, so the overlay surfaces a "Pair again" link and
+   * we stop the reconnect loop.
+   */
+  sessionRevoked: boolean;
   reconnect: () => void;
   /** Wall-clock ms when the next scheduled reconnect attempt will fire, or null if a connect is in flight or the socket is open. */
   nextAttemptAt: number | null;
@@ -36,6 +44,10 @@ export const MultiplexContext = createContext<MultiplexContextValue | null>(null
 const RECONNECT_MIN_MS = 5000;
 const RECONNECT_MAX_MS = 60000;
 const REMOTE_DISABLED_POLL_MS = 5000;
+// WebSocketCloseStatus.PolicyViolation in the service's SubscribedClient.
+// CloseRevokedAsync. Distinguishes a server-initiated kick (killswitch or
+// single-device revoke) from generic transport drops (1006, 1011, etc.).
+const WS_CLOSE_REVOKED = 1008;
 // Hard ceiling on a single multiplex frame. The largest legitimate topic
 // today is the 1Hz monitoring composite, which clocks in well under 512KB
 // even with topN process + network lists at their cap. Anything bigger is
@@ -117,8 +129,10 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
   const pendingSubsRef = useRef<Set<string>>(new Set());
   const backoffStepRef = useRef(0);
   const remoteDisabledRef = useRef(false);
+  const sessionRevokedRef = useRef(false);
   const [connected, setConnected] = useState(false);
   const [remoteDisabled, setRemoteDisabled] = useState(false);
+  const [sessionRevoked, setSessionRevoked] = useState(false);
   const [nextAttemptAt, setNextAttemptAt] = useState<number | null>(null);
 
   const close = useCallback(() => {
@@ -153,9 +167,15 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
   // handleDisconnect recursively; routing through a ref keeps the linter's
   // TDZ check happy without changing call timing (the timeout fires long
   // after the useCallback body completes).
-  const handleDisconnectRef = useRef<() => Promise<void>>(async () => {});
-  const handleDisconnect = useCallback(async () => {
+  const handleDisconnectRef = useRef<(code?: number) => Promise<void>>(async () => {});
+  // closeCode: numeric WebSocket close status reported by the browser. The
+  // service uses 1008 PolicyViolation with reason "revoked" both for
+  // killswitch-off (kick all) and single-device revoke; once we've ruled out
+  // the killswitch, a 1008 close means *this* session was specifically
+  // removed and the only way back is to re-pair.
+  const handleDisconnect = useCallback(async (closeCode?: number) => {
     if (!mountedRef.current) return;
+    let killswitchEnabled: boolean | null = null;
     try {
       const res = await fetch(resolveHttp('/panel/phone/remote-control'), { cache: 'no-store' });
       // The mount check after every await is load-bearing: an unmount during
@@ -165,7 +185,8 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
       if (res.ok) {
         const body = await res.json() as { enabled?: boolean };
         if (!mountedRef.current) return;
-        if (body.enabled === false) {
+        killswitchEnabled = body.enabled !== false;
+        if (!killswitchEnabled) {
           remoteDisabledRef.current = true;
           setRemoteDisabled(true);
           clearTimeout(reconnectTimer.current);
@@ -178,8 +199,24 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
           return;
         }
       }
-    } catch { /* network glitch - fall through to normal backoff */ }
+    } catch { /* network glitch - killswitchEnabled stays null */ }
     if (!mountedRef.current) return;
+
+    // Server closed us with PolicyViolation and the killswitch is either ON
+    // (definitely a single-device revoke - KickPhoneSessionsAsync ran
+    // against our session id) or we couldn't reach the public state
+    // endpoint to confirm. Default to revoked in both cases: the alternative
+    // is the auth-failure reconnect loop with no UI surface, which is the
+    // exact bug this branch exists to prevent. If we guessed wrong (network
+    // glitch + transport 1008), the manual retry in reconnect() clears the
+    // flag and tries fresh.
+    if (closeCode === WS_CLOSE_REVOKED && killswitchEnabled !== false) {
+      sessionRevokedRef.current = true;
+      setSessionRevoked(true);
+      clearTimeout(reconnectTimer.current);
+      setNextAttemptAt(null);
+      return;
+    }
 
     // Killswitch is on (or endpoint unreachable). If we were locked out,
     // clear that state and reconnect immediately; otherwise normal backoff.
@@ -215,6 +252,10 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
           remoteDisabledRef.current = false;
           setRemoteDisabled(false);
         }
+        if (sessionRevokedRef.current) {
+          sessionRevokedRef.current = false;
+          setSessionRevoked(false);
+        }
         setConnected(true);
         // Re-send all active subscriptions on reconnect.
         const activeTopics = Array.from(topicsRef.current.keys());
@@ -244,9 +285,9 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
         } catch { /* malformed frame */ }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         setConnected(false);
-        void handleDisconnect();
+        void handleDisconnect(event.code);
       };
 
       ws.onerror = () => ws.close();
@@ -272,6 +313,14 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     if (remoteDisabledRef.current) {
       void handleDisconnect();
       return;
+    }
+    // Manual retry from a revoked session: clear the terminal flag so a
+    // successful upgrade (e.g. the user re-paired in another tab and the
+    // cookie is now valid) drops the overlay. If auth still fails the next
+    // onclose will set it again.
+    if (sessionRevokedRef.current) {
+      sessionRevokedRef.current = false;
+      setSessionRevoked(false);
     }
     connect();
   }, [connect, enabled, handleDisconnect]);
@@ -339,8 +388,8 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
   return useMemo<MultiplexContextValue | null>(
     () => enabled
-      ? { subscribe, unsubscribe, connected, remoteDisabled, reconnect, nextAttemptAt }
+      ? { subscribe, unsubscribe, connected, remoteDisabled, sessionRevoked, reconnect, nextAttemptAt }
       : null,
-    [enabled, subscribe, unsubscribe, connected, remoteDisabled, reconnect, nextAttemptAt],
+    [enabled, subscribe, unsubscribe, connected, remoteDisabled, sessionRevoked, reconnect, nextAttemptAt],
   );
 }

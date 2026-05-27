@@ -55,7 +55,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
   const atLimit = profiles.profiles.length >= 5;
 
   const primaryId = sharing.config?.primaryProfileId ?? profiles.activeId;
-  const sharedCats = sharing.config?.sharedCategories ?? [];
+  const sharedCats = useMemo(() => sharing.config?.sharedCategories ?? [], [sharing.config]);
   const onlyOneProfile = profiles.profiles.length <= 1;
 
   const handleConfirm = useCallback(async () => {
@@ -124,7 +124,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
       confirmLabel: t('settings.profiles.reset.action'),
       destructive: true,
     };
-  }, [confirmTarget, sharing.config, sharedCats, t]);
+  }, [confirmTarget, sharedCats, t]);
 
   return (
     <div className={styles.tabPanel}>
