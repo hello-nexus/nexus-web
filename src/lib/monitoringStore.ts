@@ -43,7 +43,7 @@ interface HistEntry { color: string; values: number[]; idleStreak: number }
 const cpuHist = new Map<string, HistEntry>();
 const memHist = new Map<string, HistEntry>();
 let otherCpuHist: number[] = [];
-let otherMemHist: number[] = [];
+let totalMemUsedHist: number[] = [];
 let systemMemMb = 0;
 
 // ── Network history ──────────────────────────────────────────────────────
@@ -69,8 +69,18 @@ const overviewHist = {
 // call - if no caller ever pushes, the map stays empty (no allocations).
 
 const panelSensorHist = new Map<string, number[]>();
+// Last frameTick that pushed for each key. Dedupes the case where multiple
+// `useSharedSensorHistory` consumers share a key (e.g. the dashboard widget
+// AND a monitoring page tab both display `cpu::CPU Total`) — each consumer's
+// useEffect fires on the same tick, but only the first call lands a sample.
+// Without this the buffer fills at N× the real rate per mounted consumer and
+// the visible 60 s window shrinks to 60/N seconds.
+const panelSensorLastTick = new Map<string, number>();
 
 export function pushPanelSensorSample(key: string, value: number) {
+  const tick = frameTick;
+  if (panelSensorLastTick.get(key) === tick) return;
+  panelSensorLastTick.set(key, tick);
   // CRITICAL: produce a NEW array reference each push. Sparkline +
   // other gauge consumers useMemo on [values, ...] - mutating the same
   // array in place leaves the reference unchanged and the memoized
@@ -189,11 +199,23 @@ export function ingestMonitoring(frame: MonitoringFrame) {
   const net = frame.network;
   const gpuSensors = frame.gpu?.[0]?.sensors ?? [];
   const gpuLoad = gpuSensors.find(s => s.id.includes('load'));
+  // totalUsedMb = actual system memory used (kernel + cached + every process,
+  // not just the top-25 the service streams). Tracked once here so the overview
+  // RAM card and the memory chart's "Other" gap agree with the MemoryTab title.
+  const procsMemSum = procs?.processes.reduce((s, p) => s + p.memoryMb, 0) ?? 0;
+  const totalUsedMb = procs && systemMemMb > 0
+    ? (procs.totalMemoryPercent / 100) * systemMemMb
+    : procsMemSum;
   push60(overviewHist.cpu, procs?.totalCpu ?? 0);
   push60(overviewHist.gpu, gpuLoad?.value ?? 0);
-  push60(overviewHist.mem, procs?.processes.reduce((s, p) => s + p.memoryMb, 0) ?? 0);
+  push60(overviewHist.mem, totalUsedMb);
   push60(overviewHist.netDown, net?.entries.reduce((s, e) => s + e.rateIn, 0) ?? 0);
   push60(overviewHist.netUp, net?.entries.reduce((s, e) => s + e.rateOut, 0) ?? 0);
+  // Keep totalMemUsedHist un-rounded so the chart's Other gap computation
+  // (totalUsedMb − sum(unrounded per-process values)) doesn't sporadically
+  // clamp to 0 when the top sum slightly exceeds a rounded total.
+  totalMemUsedHist.push(totalUsedMb);
+  if (totalMemUsedHist.length > MAX_SAMPLES) totalMemUsedHist = totalMemUsedHist.slice(-MAX_SAMPLES);
 
   // Process history — aggregate by name first so duplicate process names
   // (Windows doesn't group by name like macOS) push exactly one value per frame.
@@ -221,11 +243,6 @@ export function ingestMonitoring(frame: MonitoringFrame) {
 
     otherCpuHist.push(Math.round(Math.max(0, procs.totalCpu - topCpuSum) * 10) / 10);
     if (otherCpuHist.length > MAX_SAMPLES) otherCpuHist = otherCpuHist.slice(-MAX_SAMPLES);
-
-    const topMemSum = procs.processes.reduce((s, p) => s + p.memoryMb, 0);
-    const totalUsedMb = systemMemMb > 0 ? (procs.totalMemoryPercent / 100) * systemMemMb : topMemSum;
-    otherMemHist.push(Math.round(Math.max(0, totalUsedMb - topMemSum)));
-    if (otherMemHist.length > MAX_SAMPLES) otherMemHist = otherMemHist.slice(-MAX_SAMPLES);
   }
   // Runs unconditionally — entries absent this frame get idleStreak bumped
   // toward STALE_AFTER_ZERO. If `grouped` is empty (null/empty-procs frame),
@@ -280,12 +297,23 @@ export function getProcessData() {
 
   const memSeries = buildSeries(memHist, procs?.processes ?? [], 'memoryMb', TOP_PROCS);
 
-  const otherMemVals = padLeft(otherMemHist);
-  const otherMemAvg = otherMemHist.length > 0
-    ? otherMemHist.reduce((a, b) => a + b, 0) / otherMemHist.length : 0;
+  // "Other" closes the gap between total system memory used and the stacked
+  // top-N. Computing it from the actually-rendered series (rather than from
+  // the raw 25-proc snapshot) keeps the chart top aligned with totalUsedMb;
+  // otherwise names ranked >TOP_PROCS get subtracted but never drawn, so the
+  // stack visibly undershoots the displayed `usedMb` total.
+  const totalMemPadded = padLeft(totalMemUsedHist);
+  const topMemSums = new Array<number>(MAX_SAMPLES).fill(0);
+  for (const s of memSeries) {
+    for (let i = 0; i < MAX_SAMPLES; i++) topMemSums[i] += s.values[i];
+  }
+  const otherMemVals = totalMemPadded.map((tot, i) => Math.max(0, Math.round(tot - topMemSums[i])));
+  const otherMemAvg = otherMemVals.reduce((a, b) => a + b, 0) / otherMemVals.length;
+  const topCurrentSum = memSeries.reduce((sum, s) => sum + s.current, 0);
+  const totalUsedNow = totalMemUsedHist[totalMemUsedHist.length - 1] ?? 0;
   memSeries.push({
     name: 'Other', color: OTHER_COLOR, values: otherMemVals,
-    current: otherMemHist[otherMemHist.length - 1] ?? 0,
+    current: Math.max(0, Math.round(totalUsedNow - topCurrentSum)),
     avg: Math.round(otherMemAvg),
   });
 

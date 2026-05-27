@@ -48,13 +48,21 @@ export function OverviewTab({ frame, hist, onNavigate }: {
   const netDownHistory = padTo60(hist.netDown);
   const netUpHistory = padTo60(hist.netUp);
 
-  const displayCpu = totalCpu > 0 ? totalCpu : cpuHistory[cpuHistory.length - 1] ?? 0;
+  // Source CPU/Memory from the same LHM sensors the monitoring widget reads,
+  // so the overview card and the per-tab chart show identical values. The
+  // `hist`/`totalCpu` props are still consumed by the sparklines below.
+  const cpuTotalSensor = frame?.cpu?.sensors?.find(s => s.name === 'CPU Total');
+  const cpuFromSensor = cpuTotalSensor?.value ?? 0;
+  const displayCpu = cpuFromSensor > 0 ? cpuFromSensor
+    : totalCpu > 0 ? totalCpu
+    : cpuHistory[cpuHistory.length - 1] ?? 0;
   const cpuParts = formatPercentParts(displayCpu);
   const gpuParts = gpuLoad ? formatPercentParts(gpuLoad.value) : null;
-  const usedMemMb = hist.mem[hist.mem.length - 1] ?? 0;
+  const memUsedSensor = memorySensors.find(s => s.name === 'Memory Used');
   const memPctFromUsage = memUsage ? Math.round(memUsage.value) : 0;
   const totalMemGb = frame?.memoryTotal ? frame.memoryTotal.replace(/ GB$/, '') : '?';
   const totalMemMb = parseFloat(totalMemGb) * 1024;
+  const usedMemMb = memUsedSensor ? memUsedSensor.value * 1024 : (hist.mem[hist.mem.length - 1] ?? 0);
   const memPct = totalMemMb > 0 ? Math.round((usedMemMb / totalMemMb) * 100) : memPctFromUsage;
   const displayMemPct = formatMemoryPercent(memPct || memPctFromUsage);
   const usedMemGb = (usedMemMb / 1024).toFixed(1);

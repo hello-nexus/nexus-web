@@ -1,10 +1,34 @@
+import { useMemo } from 'react';
 import type { NetworkData } from '../../../../hooks/useNetworkMonitor';
 import { useTranslation } from '../../../../lib/i18n';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
+import { useSharedSensorHistory } from '../../common/useSharedSensorHistory';
 import { RankedToggle } from './parts';
 import { formatDataSize, formatRate, formatRateParts } from './shared';
 import styles from '../MonitoringPage.module.scss';
+
+const SAMPLE_COUNT = 60;
+
+function padLeft(arr: readonly number[]): number[] {
+  if (arr.length >= SAMPLE_COUNT) return arr.slice(-SAMPLE_COUNT);
+  const out = new Array<number>(SAMPLE_COUNT).fill(0);
+  const offset = SAMPLE_COUNT - arr.length;
+  for (let i = 0; i < arr.length; i++) out[offset + i] = arr[i];
+  return out;
+}
+
+function niceNetworkCeiling(value: number): number {
+  if (!isFinite(value) || value <= 0) return 1;
+  const exponent = Math.floor(Math.log10(value));
+  const magnitude = 10 ** exponent;
+  const normalized = value / magnitude;
+  const step = normalized <= 1 ? 1
+    : normalized <= 2 ? 2
+    : normalized <= 5 ? 5
+    : 10;
+  return step * magnitude;
+}
 
 export function NetworkTab({ network, showAverage, onToggle }: {
   network: NetworkData;
@@ -13,8 +37,31 @@ export function NetworkTab({ network, showAverage, onToggle }: {
 }) {
   const { t } = useTranslation();
 
-  const entryRanked = [...network.entries].sort((a, b) => b.rateTotal - a.rateTotal);
+  // Chart series tracks the Network Total sensor (B/s → KB/s for the chart's
+  // KB/s→MB/s formatter). Per-process series stays in the ranked list below.
+  const totalKBs = network.totalRate / 1024;
+  const history = useSharedSensorHistory('network::Network Total KBs', totalKBs);
 
+  const series = useMemo(() => {
+    const values = padLeft(history);
+    const sum = history.reduce((a, b) => a + b, 0);
+    return [{
+      name: 'Network Total',
+      color: '#10b981',
+      values,
+      current: totalKBs,
+      avg: history.length > 0 ? sum / history.length : 0,
+    }];
+  }, [history, totalKBs]);
+
+  // Match the chart's auto-scale to the panel's NETWORK_SENSOR_TOTAL gauge so
+  // a quiet network still draws a usable y-axis (≥1 KB/s minimum ceiling).
+  const yMax = useMemo(() => {
+    const peak = Math.max(1, totalKBs, ...history);
+    return niceNetworkCeiling(peak);
+  }, [history, totalKBs]);
+
+  const entryRanked = [...network.entries].sort((a, b) => b.rateTotal - a.rateTotal);
   const items = showAverage
     ? [...network.series]
         .sort((a, b) => {
@@ -48,8 +95,9 @@ export function NetworkTab({ network, showAverage, onToggle }: {
             </div>
           </>
         }
-        series={network.series}
-        sampleCount={network.sampleCount}
+        series={series}
+        sampleCount={SAMPLE_COUNT}
+        yMax={yMax}
         yUnit="KB/s"
         xSeconds={60}
       />
