@@ -12,41 +12,42 @@ import styles from '../App.module.scss';
 
 // ── Sidebar brand (logo + wordmark at top of sidebar) ───────────────────
 
-export function SidebarBrand({ compact, onToggleCompact, expandLabel, collapseLabel }: {
+export function SidebarBrand({ compact, onLogoClick, onToggleCompact, logoLabel, collapseLabel }: {
   compact: boolean;
+  onLogoClick: () => void;
   onToggleCompact: () => void;
-  expandLabel: string;
+  logoLabel: string;
   collapseLabel: string;
 }) {
+  // The brand logo (mark when compact, mark+wordmark when expanded) is a
+  // click target that navigates to the Apps landing — it never toggles the
+  // sidebar's compact state. Collapse/expand is handled by the right-edge
+  // strip (.collapseEdge) and the inline collapse button below.
   return (
-    <div className={classNames(styles.sidebarBrand, { [styles.sidebarBrandCompact]: compact })}>
-      {compact ? (
-        <HoverTooltip body={expandLabel} side="right">
+    <div className={styles.sidebarBrand}>
+      <HoverTooltip body={logoLabel} side="right">
+        <button
+          type="button"
+          className={classNames(styles.sidebarBrandLogo, styles.sidebarBrandLogoBtn, {
+            [styles.sidebarBrandLogoBtnWide]: !compact,
+          })}
+          onClick={onLogoClick}
+          aria-label={logoLabel}
+        >
+          {compact ? <NexusMark size={28} /> : <NexusWordmark height={28} />}
+        </button>
+      </HoverTooltip>
+      {!compact && (
+        <HoverTooltip body={collapseLabel} side="right">
           <button
             type="button"
-            className={classNames(styles.sidebarBrandLogo, styles.sidebarBrandLogoBtn)}
+            className={styles.sidebarBrandCollapse}
             onClick={onToggleCompact}
-            aria-label={expandLabel}
+            aria-label={collapseLabel}
           >
-            <NexusMark size={20} />
+            <PanelLeftClose size={16} />
           </button>
         </HoverTooltip>
-      ) : (
-        <>
-          <span className={styles.sidebarBrandWordmark}>
-            <NexusWordmark height={20} />
-          </span>
-          <HoverTooltip body={collapseLabel} side="right">
-            <button
-              type="button"
-              className={styles.sidebarBrandCollapse}
-              onClick={onToggleCompact}
-              aria-label={collapseLabel}
-            >
-              <PanelLeftClose size={16} />
-            </button>
-          </HoverTooltip>
-        </>
       )}
     </div>
   );

@@ -138,8 +138,9 @@ export function SidebarColumn({
     <div className={classNames(styles.sidebarColumn, { [styles.sidebarCompact]: compact })}>
       <SidebarBrand
         compact={compact}
+        onLogoClick={() => onServiceNavChange(DASHBOARD_APP_KEY)}
         onToggleCompact={onToggleCompact}
-        expandLabel={t('sidebar.expand')}
+        logoLabel={t('sidebar.section.apps')}
         collapseLabel={t('sidebar.collapse')}
       />
       <Sidebar
