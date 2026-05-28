@@ -248,7 +248,9 @@
   // --app shell overrides this below with a 6px nudge — there the page
   // title floats inside the 32px drag strip, so a much smaller offset
   // keeps the brand row visually aligned with it.
-  padding: 8px 0 0.75rem;
+  // Bottom padding lifts the pair-remote box clear of the absolutely-pinned
+  // version label in the bottom-left corner so the two don't crowd.
+  padding: 8px 0 1.5rem;
   flex-shrink: 0;
   transition: width var(--ease);
 }
@@ -345,7 +347,9 @@
 .sidebarBrandLogo {
   display: flex;
   align-items: center;
-  justify-content: center;
+  // Left-align so the always-rendered wordmark anchors at the mark and the
+  // compact clip reveals from the left.
+  justify-content: flex-start;
   color: var(--text);
   flex-shrink: 0;
 }
@@ -355,13 +359,21 @@
   background: transparent;
   padding: 0;
   cursor: pointer;
-  transition: transform var(--ease-fast);
+  overflow: hidden;
+  // No hover-scale; the logo is a static navigation target, not a collapse
+  // affordance.
+  transition: opacity var(--ease-fast);
   // Clickable - opt out of the drag region inherited from .sidebarBrand.
   -webkit-app-region: no-drag;
   app-region: no-drag;
 
+  // Pin the glyph at its natural size. Collapsed renders the compact mark;
+  // expanding swaps to the wordmark, which then reveals via the widening
+  // button + overflow:hidden clip rather than scaling up to fit.
+  svg { flex-shrink: 0; }
+
   &:hover {
-    transform: scale(1.06);
+    opacity: 0.85;
   }
 
   &:focus-visible {
@@ -371,21 +383,11 @@
   }
 }
 
-// Wide variant — used when the sidebar is expanded and the button wraps the
-// full mark+wordmark lockup. The button takes the leading flex slot (where
-// the wordmark span used to live) so the collapse button still sits at the
-// row's right edge. Hover-scale is dropped here because zooming a wide
-// element against the overflow:hidden boundary clips awkwardly.
+// Expanded: the button takes the leading flex slot so the collapse button
+// still sits at the row's right edge; the wordmark reveals as it widens.
 .sidebarBrandLogoBtnWide {
   flex: 1 1 auto;
   min-width: 0;
-  justify-content: flex-start;
-  overflow: hidden;
-
-  &:hover {
-    transform: none;
-    opacity: 0.85;
-  }
 }
 
 .sidebarBrandCollapse {
@@ -407,10 +409,10 @@
   opacity: 0;
   transition: color var(--ease-fast), opacity var(--ease-fast);
 
-  // Reveal the inline collapse button on brand-row hover OR when the
-  // sibling right-edge strip is hovered (they trigger the same toggle, so
-  // hovering either reads as engaging both).
-  .sidebarBrand:hover &,
+  // Reveal the inline collapse button only when it (or the sibling right-edge
+  // strip) is hovered/focused — NOT on logo/brand-row hover, since clicking
+  // the logo navigates to the dashboard and no longer collapses the sidebar.
+  &:hover,
   &:focus-visible,
   .sidebarColumn:has(.collapseEdge:hover) & {
     opacity: 1;
@@ -444,8 +446,8 @@
 }
 
 .notConnectedCompact {
-  justify-content: center;
-  padding: 0.25rem 0;
+  justify-content: flex-start;
+  padding: 0.25rem 0.55rem;
 }
 
 .notConnectedIcon {
@@ -518,7 +520,7 @@
 }
 
 .sidebarHeaderBoxCompact {
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 36px;
 }
 
@@ -626,15 +628,16 @@
 // Tiny + faded version stamp pinned to the bottom-left of the layout.
 .pageVersion {
   position: absolute;
-  left: 8px;
-  bottom: 4px;
+  left: 12px;
+  bottom: 8px;
   z-index: 30;
   font-family: var(--font-mono);
-  font-size: 9px;
+  // Small enough that "vNN alpha" fits the 64px collapsed rail without clipping.
+  font-size: 8px;
   line-height: 1;
   letter-spacing: 0.04em;
-  color: var(--text-faded);
-  opacity: 0.5;
+  color: var(--text-dim);
+  opacity: 0.7;
   pointer-events: none;
   user-select: none;
 }
@@ -644,10 +647,6 @@
 .phonePairWrap {
   margin-top: auto;
   padding: 0.55rem 0.75rem 0.4rem;
-}
-
-.phonePairWrapCompact {
-  padding: 0.55rem 0 0.35rem;
 }
 
 .phonePairBtn {
@@ -677,21 +676,6 @@
     opacity: 0.45;
     cursor: not-allowed;
   }
-}
-
-.phonePairBtnCompact {
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
-  margin: 0 auto;
-  padding: 0;
-  display: grid;
-  // Reset the parent's 2-column template (auto minmax(0, 1fr)) so the
-  // empty second column doesn't reserve space and shove the icon off-
-  // centre. The single auto column + place-items: center then sits the
-  // icon dead in the middle of the 36x36 square.
-  grid-template-columns: auto;
-  place-items: center;
 }
 
 .phonePairIcon {

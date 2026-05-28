@@ -94,10 +94,10 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
     ? formatConnectedDevices(connectedCount, t)
     : t('phonePair.killswitch.offLabel');
   return (
-    <div className={classNames(styles.phonePairWrap, { [styles.phonePairWrapCompact]: compact })}>
+    <div className={styles.phonePairWrap}>
       <button
         type="button"
-        className={classNames(styles.phonePairBtn, { [styles.phonePairBtnCompact]: compact })}
+        className={styles.phonePairBtn}
         onClick={onClick}
         disabled={disabled}
         title={compact ? `${t('phonePair.title')} · ${countLabel}` : undefined}
