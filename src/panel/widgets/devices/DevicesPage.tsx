@@ -3,6 +3,7 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useFirmwareStatus, type FirmwareStatusItem } from '../../../hooks/useFirmwareStatus';
+import { useFlashStatus, type FlashStatus } from '../../../hooks/useFlashStatus';
 import { useSystemSpecs, type SystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useTranslation } from '../../../lib/i18n';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
@@ -229,6 +230,11 @@ const FW_FALLBACK_ICON = '/assets/devices/device.svg';
 // brick a device — see plans/firmware-flasher-tooling.md.
 function FirmwarePanel({ items }: FirmwarePanelProps) {
   const { t } = useTranslation();
+  const { status, startFlash } = useFlashStatus(true);
+  // Dev-only version picker (re-flash / downgrade). Hidden in prod; a dev
+  // enables it once via localStorage.setItem('nexus.devFlash','1').
+  const dev = typeof window !== 'undefined' && window.localStorage.getItem('nexus.devFlash') === '1';
+  const anyFlashing = !!status?.active;
 
   return (
     <>
@@ -247,7 +253,14 @@ function FirmwarePanel({ items }: FirmwarePanelProps) {
             </thead>
             <tbody>
               {items.map(d => (
-                <FirmwareRow key={d.deviceType} item={d} />
+                <FirmwareRow
+                  key={d.deviceType}
+                  item={d}
+                  status={status}
+                  anyFlashing={anyFlashing}
+                  dev={dev}
+                  onFlash={startFlash}
+                />
               ))}
             </tbody>
           </table>
@@ -257,9 +270,25 @@ function FirmwarePanel({ items }: FirmwarePanelProps) {
   );
 }
 
-function FirmwareRow({ item }: { item: FirmwareStatusItem }) {
+interface FirmwareRowProps {
+  item: FirmwareStatusItem;
+  status: FlashStatus | null;
+  anyFlashing: boolean;
+  dev: boolean;
+  onFlash: (deviceType: string, version: string) => void | Promise<void>;
+}
+
+function FirmwareRow({ item, status, anyFlashing, dev, onFlash }: FirmwareRowProps) {
   const { t } = useTranslation();
   const icon = FW_ICONS[item.deviceType] ?? FW_FALLBACK_ICON;
+  const [sel, setSel] = useState(item.availableVersion || item.availableVersions[0] || '');
+
+  // This row's device is the one the flasher is touching (or just finished).
+  const mine = status != null
+    && status.deviceType === item.firmwareType
+    && status.phase !== 'idle'
+    && (status.active || status.phase === 'done' || status.phase === 'failed');
+
   return (
     <tr>
       <td className={styles.usbName}>
@@ -275,11 +304,39 @@ function FirmwareRow({ item }: { item: FirmwareStatusItem }) {
       </td>
       <td className={styles.mono}>{item.currentVersion || '—'}</td>
       <td>
-        {item.updateAvailable ? (
+        {mine ? (
+          <FlashProgress status={status!} />
+        ) : dev ? (
+          <span className={styles.fwUpdateRow}>
+            <select
+              className={styles.fwVersionSelect}
+              value={sel}
+              onChange={e => setSel(e.target.value)}
+              disabled={anyFlashing}
+            >
+              {item.availableVersions.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+            <Button
+              type="button"
+              tone="accent"
+              size="sm"
+              disabled={anyFlashing || !sel}
+              onClick={() => onFlash(item.firmwareType, sel)}
+            >
+              {t('devices.firmware.flash')}
+            </Button>
+          </span>
+        ) : item.updateAvailable ? (
           <span className={styles.fwUpdateRow}>
             <span className={styles.fwUpdateBadge}>{t('devices.firmware.status.updateAvailable')}</span>
             <span className={styles.mono}>{item.availableVersion}</span>
-            <Button type="button" tone="accent" size="sm" disabled title={t('devices.firmware.install.comingSoon')}>
+            <Button
+              type="button"
+              tone="accent"
+              size="sm"
+              disabled={anyFlashing}
+              onClick={() => onFlash(item.firmwareType, item.availableVersion)}
+            >
               {t('devices.firmware.install')}
             </Button>
           </span>
@@ -293,6 +350,24 @@ function FirmwareRow({ item }: { item: FirmwareStatusItem }) {
         )}
       </td>
     </tr>
+  );
+}
+
+function FlashProgress({ status }: { status: FlashStatus }) {
+  const { t } = useTranslation();
+  if (status.phase === 'failed') {
+    return <span className={styles.fwFailed}>{status.error || t('devices.firmware.flash.failed')}</span>;
+  }
+  if (status.phase === 'done') {
+    return <span className={styles.fwUpToDate}>{status.message || t('devices.firmware.status.upToDate')}</span>;
+  }
+  return (
+    <span className={styles.fwProgress}>
+      <span className={styles.fwProgressBar}>
+        <span className={styles.fwProgressFill} style={{ width: `${status.percent}%` }} />
+      </span>
+      <span className={styles.fwProgressMsg}>{status.message} ({status.percent}%)</span>
+    </span>
   );
 }
 

@@ -3,12 +3,14 @@ import { fetchService } from '../api/service';
 import { useTopicCallback } from './useMultiplexSocket';
 
 export interface FirmwareStatusItem {
-  deviceType: string;
+  deviceType: string;       // handler id — identity + icon key
+  firmwareType: string;     // catalog key (connected variant) — pass to the flash endpoint
   name: string;
   category: string;
   currentVersion: string;
   availableVersion: string;
   updateAvailable: boolean;
+  availableVersions: string[];  // all bundled versions (dev version picker / downgrade)
 }
 
 // Backs the Firmware Updates page. Reports, per connected supported device,

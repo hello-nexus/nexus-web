@@ -349,6 +349,50 @@
   -webkit-mask-position: center;
 }
 
+// Dev-only version picker.
+.fwVersionSelect {
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+// In-progress flash: thin bar + message, shown inline in the Status cell.
+.fwProgress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.fwProgressBar {
+  position: relative;
+  width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.fwProgressFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+  transition: width var(--ease);
+}
+
+.fwProgressMsg {
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.fwFailed {
+  color: var(--danger, #e5484d);
+  font-weight: 600;
+}
+
 // --- System Specs ---
 
 // Toolbar above the specs card: Copy + Refresh, left-aligned to match the

@@ -5,6 +5,7 @@ import { Select } from '../../common/Select/Select';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
 import { fetchService, postService } from '../../../api/service';
+import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
 import {
   LANGUAGE_FLAGS, LANGUAGE_LABELS, LANGUAGES,
@@ -26,6 +27,11 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [screenTimeOpen, setScreenTimeOpen] = useState(false);
+  // Block shutdown while a firmware flash is running — stopping the service
+  // mid-flash would strand the device in the DFU bootloader. (The service also
+  // refuses /service/stop during a flash; this just reflects it in the UI.)
+  const { status: flashStatus } = useFlashStatus(serviceOnline);
+  const flashing = !!flashStatus?.active;
 
   // Hydrate "Start Nexus at system startup" from the SCM-backed endpoint on
   // mount. The state is independent of the per-user "Show in tray" flag.
@@ -147,14 +153,16 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         <div className={styles.row}>
           <div className={styles.rowInfo}>
             <span className={styles.rowLabel}>{t('settings.shutDown.label')}</span>
-            <span className={styles.rowDesc}>{t('settings.shutDown.description')}</span>
+            <span className={styles.rowDesc}>
+              {flashing ? t('settings.shutDown.flashBlocked') : t('settings.shutDown.description')}
+            </span>
           </div>
           <Button
             type="button"
             tone="danger"
             size="sm"
             onClick={() => setStopConfirmOpen(true)}
-            disabled={!serviceOnline || stopping}
+            disabled={!serviceOnline || stopping || flashing}
           >
             {t('settings.shutDown.button')}
           </Button>
