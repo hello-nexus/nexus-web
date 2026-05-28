@@ -212,11 +212,21 @@ interface FirmwarePanelProps {
   items: FirmwareStatusItem[];
 }
 
+// Device glyphs keyed by the firmware status deviceType (= IDeviceHandler.Id).
+const FW_ICONS: Record<string, string> = {
+  cnvs: '/assets/devices/cnvs.svg',
+  qseries: '/assets/devices/q60.svg',
+  y70: '/assets/devices/y70.svg',
+  'fan-hub': '/assets/devices/fan-hub.svg',
+  np50: '/assets/devices/fan-hub.svg',
+};
+const FW_FALLBACK_ICON = '/assets/devices/device.svg';
+
 // Centralized firmware-update surface. Lists each connected supported device
-// with the version it's running vs the newest version bundled in this build
-// (served by /devices/firmware/status). The Install action is intentionally
-// gated until the dfu-util flasher lands and is hardware-verified — an
-// unverified DFU flash can brick a device — see plans/firmware-flasher-tooling.md.
+// with the version it's running; the available/bundled version is surfaced in
+// the Status column. The Install action is intentionally gated until the
+// dfu-util flasher lands and is hardware-verified — an unverified DFU flash can
+// brick a device — see plans/firmware-flasher-tooling.md.
 function FirmwarePanel({ items }: FirmwarePanelProps) {
   const { t } = useTranslation();
 
@@ -227,12 +237,11 @@ function FirmwarePanel({ items }: FirmwarePanelProps) {
         <div className={styles.empty}>{t('devices.firmware.empty')}</div>
       ) : (
         <div className={styles.usbTableWrap}>
-          <table className={styles.usbTable}>
+          <table className={`${styles.usbTable} ${styles.fwTable}`}>
             <thead>
               <tr>
                 <th>{t('devices.firmware.column.device')}</th>
                 <th>{t('devices.firmware.column.current')}</th>
-                <th>{t('devices.firmware.column.available')}</th>
                 <th>{t('devices.firmware.column.status')}</th>
               </tr>
             </thead>
@@ -250,21 +259,35 @@ function FirmwarePanel({ items }: FirmwarePanelProps) {
 
 function FirmwareRow({ item }: { item: FirmwareStatusItem }) {
   const { t } = useTranslation();
+  const icon = FW_ICONS[item.deviceType] ?? FW_FALLBACK_ICON;
   return (
     <tr>
-      <td className={styles.usbName}>{item.name}</td>
+      <td className={styles.usbName}>
+        <span className={styles.fwDeviceCell}>
+          <span
+            className={styles.fwDeviceIcon}
+            role="img"
+            aria-label={item.deviceType}
+            style={{ ['--icon-url' as string]: `url(${icon})` }}
+          />
+          <span>{item.name}</span>
+        </span>
+      </td>
       <td className={styles.mono}>{item.currentVersion || '—'}</td>
-      <td className={styles.mono}>{item.availableVersion || '—'}</td>
       <td>
         {item.updateAvailable ? (
           <span className={styles.fwUpdateRow}>
             <span className={styles.fwUpdateBadge}>{t('devices.firmware.status.updateAvailable')}</span>
+            <span className={styles.mono}>{item.availableVersion}</span>
             <Button type="button" tone="accent" size="sm" disabled title={t('devices.firmware.install.comingSoon')}>
               {t('devices.firmware.install')}
             </Button>
           </span>
         ) : item.currentVersion ? (
-          <span className={styles.fwUpToDate}>{t('devices.firmware.status.upToDate')}</span>
+          <span className={styles.fwUpToDate}>
+            {t('devices.firmware.status.upToDate')}
+            <span className={styles.fwUpToDateVer}> ({item.availableVersion})</span>
+          </span>
         ) : (
           t('devices.firmware.status.unknown')
         )}

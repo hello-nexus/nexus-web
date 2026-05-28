@@ -313,6 +313,42 @@
   color: var(--text-dim);
 }
 
+.fwUpToDateVer {
+  color: var(--text-faint, var(--text-dim));
+  opacity: 0.7;
+}
+
+// Firmware Updates table: roomier rows than the dense USB diagnostics table.
+.fwTable {
+  th,
+  td {
+    padding: 0.7rem 1rem;
+  }
+}
+
+// Device cell: glyph to the left of the name.
+.fwDeviceCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.fwDeviceIcon {
+  display: block;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  background-color: var(--text);
+  mask-image: var(--icon-url);
+  -webkit-mask-image: var(--icon-url);
+  mask-size: contain;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-position: center;
+}
+
 // --- System Specs ---
 
 // Toolbar above the specs card: Copy + Refresh, left-aligned to match the
