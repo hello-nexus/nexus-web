@@ -179,7 +179,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
     }
   }), []);
 
-  const apply = (key: CoolingPresetKey) => {
+  const apply = useCallback((key: CoolingPresetKey) => {
     // Lock first so any topic/control-sync push triggered by *this* write
     // (or a still-in-flight previous write) can't revert the optimistic
     // setActive below.
@@ -192,7 +192,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
     // moment the page mounts.
     setCachedCoolingActivePreset(key);
     applyProfile(key).catch(() => { /* best-effort */ });
-  };
+  }, []);
 
   const widgetPresets = useMemo(
     () => COOLING_PRESETS.filter(p => WIDGET_PRESET_KEYS.includes(p.key)),
