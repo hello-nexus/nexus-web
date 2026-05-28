@@ -4,9 +4,8 @@ import {
   getNp50ConnectionState,
   np50HubModeFromName,
   setNp50LiveCoolingMode,
-  NP50_LIVE_MODE_MOTHERBOARD,
+  setNp50FirmwareControl,
   NP50_LIVE_MODE_SOFTWARE,
-  NP50_LIVE_MODE_STATIC,
 } from '../../../api/np50';
 import {
   setMiniHubLiveCoolingMode,
@@ -448,17 +447,23 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const isNp50 = !!deviceId && deviceId.startsWith('np50:');
     const isMiniHub = !!deviceId && deviceId.startsWith('minihub:');
 
-    if (value === 'fw' && isNp50 && deviceId) {
-      await setNp50LiveCoolingMode(NP50_LIVE_MODE_STATIC);
+    // NP50 has no motherboard "BIOS" hand-off of its own, so both 'fw' and the
+    // 'bios' value the wire-disconnect gesture emits mean "hand the hub back to
+    // firmware control" (Static @ device-page % or Motherboard PWM — the
+    // service reads the EEPROM defaults to decide). Release the fan first — the
+    // backend flips the hub to motherboard once its last software channel is
+    // released — then re-pin firmware so we end in the device-page standalone
+    // mode rather than motherboard.
+    if ((value === 'fw' || value === 'bios') && isNp50 && deviceId) {
+      const wasSw = fanStates[fanId]?.softwareControl ?? false;
+      if (wasSw) await toggleSoftwareControl(fanId, false);
+      await setNp50FirmwareControl();
       setHubModes(prev => ({ ...prev, [deviceId]: 'firmware' }));
       return;
     }
 
     if (value === 'bios') {
-      if (isNp50 && deviceId) {
-        await setNp50LiveCoolingMode(NP50_LIVE_MODE_MOTHERBOARD);
-        setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
-      } else if (isMiniHub && deviceId) {
+      if (isMiniHub && deviceId) {
         await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_MOTHERBOARD);
         setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
       }

@@ -85,6 +85,15 @@ export function setNp50LiveCoolingMode(mode: Np50LiveMode): Promise<unknown | nu
   return putService('/devices/np50/cooling-mode', { mode });
 }
 
+// "FW Control": hand the fans to the firmware's standalone behaviour
+// configured on the device page (Static @ stored % or Motherboard PWM). The
+// service reads the EEPROM defaults and picks the matching live mode, so the
+// cooling page doesn't need to know the setpoint. This is the NP50's off /
+// hand-back setting — it has no motherboard "BIOS" hand-off of its own.
+export function setNp50FirmwareControl(): Promise<unknown | null> {
+  return putService('/devices/np50/firmware-control', {});
+}
+
 // Slim view of /devices/np50 — only the bits the cooling-page mode dropdown
 // needs. The hub state carries much more (per-port fan list, RPM, AmpScale
 // warnings), but the dropdown only cares about whether the device is online
@@ -128,9 +137,10 @@ export function np50LiveModeFromName(name: Np50ConnectionState['coolingMode']): 
 }
 
 // ── Hub-mode kind used by the cooling page to drive per-fan dropdown display.
-// Maps cleanly onto the FanCard's existing `bios` / `manual` / curve modes:
-// 'motherboard' surfaces as 'bios', 'firmware' as 'fw', 'software' falls
-// through to the per-fan softwareControl + curve binding.
+// The NP50 has no motherboard "BIOS" hand-off of its own, so FanCard surfaces
+// both hub takeovers ('motherboard' and 'firmware') as 'fw' (FW Control) — the
+// device page decides whether firmware runs Static or Motherboard underneath.
+// 'software' falls through to the per-fan softwareControl + curve binding.
 export type Np50HubModeKind = 'software' | 'motherboard' | 'firmware';
 
 export function np50HubModeFromName(name: Np50ConnectionState['coolingMode']): Np50HubModeKind | null {
