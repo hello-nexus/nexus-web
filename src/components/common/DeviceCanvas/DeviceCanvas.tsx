@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Settings, Eye, Maximize2, RotateCw } from 'lucide-react';
+import { Settings, Eye, Maximize2, Minimize2, RotateCw, RotateCcw } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
@@ -347,20 +347,45 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     onSelectDevice(stack[idx + 1].id); // step one level deeper
   }, [drag, marquee, devices, onSelectDevice, onSetSelection, onDragActiveChange]);
 
-  const handleRotate = useCallback((dev: LightingDevice) => {
+  const handleRotate = useCallback((dev: LightingDevice, dir: 1 | -1) => {
     const prevVisual = visualAngleRef.current.get(dev.id) ?? (dev.canvasRotation ?? 0);
-    const nextVisual = prevVisual + 90;
+    const nextVisual = prevVisual + dir * 90;
     visualAngleRef.current.set(dev.id, nextVisual);
     dev.canvasRotation = ((nextVisual % 360) + 360) % 360;
+
+    // Rotate the whole box footprint, not just the label: each 90° step swaps
+    // width and height about the frame's center (two steps = 180° swaps back to
+    // the original footprint, which is correct). The LED dots remap off
+    // canvasRotation below, so they follow the reoriented box.
+    const cx = dev.canvasX + dev.canvasW / 2;
+    const cy = dev.canvasY + dev.canvasH / 2;
+    let w = dev.canvasH;
+    let h = dev.canvasW;
+    // If the reoriented box no longer fits the padded canvas, scale it down
+    // uniformly so it does (preserves the rotated footprint's aspect ratio).
+    const fit = Math.min(1, (CW - 2 * PAD) / w, (CH - 2 * PAD) / h);
+    w *= fit;
+    h *= fit;
+    dev.canvasW = w;
+    dev.canvasH = h;
+    // Keep the same center, then clamp fully inside the padded canvas.
+    dev.canvasX = Math.max(PAD, Math.min(CW - PAD - w, cx - w / 2));
+    dev.canvasY = Math.max(PAD, Math.min(CH - PAD - h, cy - h / 2));
+
     saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation);
     forceRender(n => n + 1);
   }, []);
 
+  // A frame counts as "maximized" when it fills the padded canvas. Geometric
+  // (not a stored flag) so a manual resize/move drops it out of the maximized
+  // state and the menu offers Maximize again instead of Minimize.
+  const isMaximized = useCallback((dev: LightingDevice) =>
+    dev.canvasX <= PAD + 0.5 && dev.canvasY <= PAD + 0.5
+    && dev.canvasX + dev.canvasW >= CW - PAD - 0.5
+    && dev.canvasY + dev.canvasH >= CH - PAD - 0.5, []);
+
   const handleMaximize = useCallback((dev: LightingDevice) => {
-    const isMax = dev.canvasX <= PAD + 0.5 && dev.canvasY <= PAD + 0.5
-      && dev.canvasX + dev.canvasW >= CW - PAD - 0.5
-      && dev.canvasY + dev.canvasH >= CH - PAD - 0.5;
-    if (isMax) {
+    if (isMaximized(dev)) {
       dev.canvasX = CW / 2 - 60;
       dev.canvasY = CH / 2 - 15;
       dev.canvasW = 120;
@@ -373,7 +398,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     }
     saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation ?? 0);
     forceRender(n => n + 1);
-  }, []);
+  }, [isMaximized]);
 
   const handleFrameContextMenu = useCallback((e: React.MouseEvent, dev: LightingDevice) => {
     e.preventDefault();
@@ -487,13 +512,20 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
             onSelect: () => onOpenSettings(dev.id),
           });
         }
+        const maxed = isMaximized(dev);
         items.push({
-          key: 'maximize', icon: <Maximize2 size={14} />, label: t('lighting.devices.maximize'),
+          key: 'maximize',
+          icon: maxed ? <Minimize2 size={14} /> : <Maximize2 size={14} />,
+          label: maxed ? t('lighting.devices.minimize') : t('lighting.devices.maximize'),
           onSelect: () => handleMaximize(dev),
         });
         items.push({
-          key: 'rotate', icon: <RotateCw size={14} />, label: t('lighting.devices.rotate'),
-          onSelect: () => handleRotate(dev),
+          key: 'rotate-cw', icon: <RotateCw size={14} />, label: t('lighting.devices.rotateCw'),
+          onSelect: () => handleRotate(dev, 1),
+        });
+        items.push({
+          key: 'rotate-ccw', icon: <RotateCcw size={14} />, label: t('lighting.devices.rotateCcw'),
+          onSelect: () => handleRotate(dev, -1),
         });
         return (
           <DeviceContextMenu

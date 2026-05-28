@@ -86,17 +86,23 @@ export const FanCard = memo(function FanCard({
   const dutyPct = Math.max(0, Math.min(100, channel.dutyPercent));
   const swEnabled = state?.softwareControl ?? false;
   const assignedCurveId = state?.curveId ?? '';
+  // The hub's "off" / hand-off mode. A USB hub with firmware control (NP50)
+  // has no motherboard "BIOS" hand-off of its own — firmware control IS its
+  // off setting — so we surface 'fw' where other devices show 'bios'.
+  const offMode = hubSupportsFirmware ? 'fw' : 'bios';
   // When the hub is in motherboard or firmware mode, the per-fan
   // softwareControl flag is meaningless — the hub takes over for every
   // fan on it. Surface that in the dropdown so the user sees the same
-  // mode on every fan in the same group.
+  // mode on every fan in the same group. For a firmware-control hub both
+  // hub takeovers read as 'fw' (the device page decides whether firmware
+  // runs Static or Motherboard underneath).
   const hubOverrideMode =
-    hubMode === 'motherboard' ? 'bios'
+    hubMode === 'motherboard' ? offMode
     : hubMode === 'firmware'  ? 'fw'
     : null;
   const isManual = swEnabled && !assignedCurveId && hubOverrideMode === null;
   const modeValue = hubOverrideMode
-    ?? (!swEnabled ? 'bios' : (assignedCurveId || 'manual'));
+    ?? (!swEnabled ? offMode : (assignedCurveId || 'manual'));
   // Hardware-level disconnect (no tach, no controllable duty). When true the
   // card collapses to a single "Disconnected" marker; the dropdown and duty
   // bar disappear because nothing the user does here will drive the channel.
@@ -279,9 +285,13 @@ export const FanCard = memo(function FanCard({
             }}
             ariaLabel={t('cooling.card.mode')}
           >
-            <option value="bios">{t('cooling.card.bios')}</option>
-            {hubSupportsFirmware && (
+            {/* A firmware-control hub (NP50) has no BIOS/motherboard hand-off
+                of its own, so FW Control takes the place of BIOS as the off
+                setting. Everything else keeps BIOS. */}
+            {hubSupportsFirmware ? (
               <option value="fw">{t('cooling.card.firmware')}</option>
+            ) : (
+              <option value="bios">{t('cooling.card.bios')}</option>
             )}
             <option value="manual">{t('cooling.card.manual')}</option>
             {curves.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

@@ -148,3 +148,12 @@
   animation: none;
 }
 
+// On the desktop device-canvas surface the panel hover token
+// (--panel-element-bg-hover → --border) is nearly invisible against the
+// sheet background, so entries showed no highlight on hover. Promote it to
+// the desktop card-hover token here only; the in-panel menu keeps the
+// panel token where --border reads fine against the panel chrome.
+.menu[data-surface='desktop'] {
+  --panel-element-bg-hover: var(--bg-card-hover);
+}
+
