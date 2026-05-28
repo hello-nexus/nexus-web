@@ -483,7 +483,6 @@
   "monitoring.detailed.group.voltage": "Voltage",
   "monitoring.detailed.memory": "Memoria",
   "monitoring.detailed.nic": "Network Adapter",
-  "monitoring.detailed.nvme": "Storage Drive",
   "monitoring.detailed.psu": "Power Supply",
   "monitoring.detailed.storage": "Armazenamento",
   "monitoring.detailed.system": "Sistema",

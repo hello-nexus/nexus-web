@@ -483,7 +483,6 @@
   "monitoring.detailed.group.voltage": "Voltage",
   "monitoring.detailed.memory": "記憶體",
   "monitoring.detailed.nic": "Network Adapter",
-  "monitoring.detailed.nvme": "Storage Drive",
   "monitoring.detailed.psu": "Power Supply",
   "monitoring.detailed.storage": "儲存空間",
   "monitoring.detailed.system": "系統",
