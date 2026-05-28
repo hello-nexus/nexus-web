@@ -109,10 +109,17 @@ export function staticMaxForDevice(device: DeviceKey, sensorName?: string): numb
 
 export function percentForSensor(device: DeviceKey, sensor: HardwareSensor | undefined, maxValue: number): number {
   if (!sensor) return 0;
+  // Prefer the sensor's own ceiling when present. Memory Used / VRAM Used on
+  // Windows LHM are Data sensors in GB (not %), and the service now ships
+  // installed capacity as `theoreticalMaximum`; without this branch the gauge
+  // treats 9.76 GB as 9.76% on a 32 GB box.
+  if (sensor.theoreticalMaximum && sensor.theoreticalMaximum > 0) {
+    return Math.max(0, Math.min(100, (sensor.value / sensor.theoreticalMaximum) * 100));
+  }
   if (device === 'fan' || device === 'network' || device === 'fps') {
     return Math.min(100, (sensor.value / maxValue) * 100);
   }
-  // Load and memory sensors already report 0-100 percent
+  // Load sensors already report 0-100 percent.
   return Math.max(0, Math.min(100, sensor.value));
 }
 
@@ -208,9 +215,10 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, devic
   // shows the existing history immediately.
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;
   const history = useSharedSensorHistory(sensorKey, rawValue) as number[];
+  const sensorMax = sensor?.theoreticalMaximum && sensor.theoreticalMaximum > 0 ? sensor.theoreticalMaximum : 0;
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
-    : staticMaxForDevice(device, sensor?.name);
+    : sensorMax || staticMaxForDevice(device, sensor?.name);
   const value = percentForSensor(device, sensor, maxValue);
   const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name);
   // Stabilize tuple reference so the Sparkline path-memo keys on bound values, not array identity.
