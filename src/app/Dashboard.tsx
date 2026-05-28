@@ -43,7 +43,7 @@ import { PairPhoneModal } from './PairPhoneModal';
 import { IncomingPairModal } from './IncomingPairModal';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { CaptionButtons } from './CaptionButtons';
-import { isWindowsAppShell, postResizeStart, QOS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
+import { isWindowsAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
 import styles from '../App.module.scss';
 
 const PORTAL_URL = 'https://nexusqos.com';
@@ -404,17 +404,17 @@ export function Dashboard() {
         {isWindowsAppShell() && (
           <>
             <div className={styles.windowDragStrip} aria-hidden />
-            <ResizeStrip className={styles.windowResizeStripLeft} edge={QOS_RESIZE_EDGES.left} />
-            <ResizeStrip className={styles.windowResizeStripRight} edge={QOS_RESIZE_EDGES.right} />
-            <ResizeStrip className={styles.windowResizeStripTop} edge={QOS_RESIZE_EDGES.top} />
-            <ResizeStrip className={styles.windowResizeStripBottom} edge={QOS_RESIZE_EDGES.bottom} />
-            <ResizeStrip className={styles.windowResizeCornerTopLeft} edge={QOS_RESIZE_EDGES.topLeft} />
+            <ResizeStrip className={styles.windowResizeStripLeft} edge={NEXUS_RESIZE_EDGES.left} />
+            <ResizeStrip className={styles.windowResizeStripRight} edge={NEXUS_RESIZE_EDGES.right} />
+            <ResizeStrip className={styles.windowResizeStripTop} edge={NEXUS_RESIZE_EDGES.top} />
+            <ResizeStrip className={styles.windowResizeStripBottom} edge={NEXUS_RESIZE_EDGES.bottom} />
+            <ResizeStrip className={styles.windowResizeCornerTopLeft} edge={NEXUS_RESIZE_EDGES.topLeft} />
             {/* No top-right corner strip - the caption buttons occupy
                 that corner. A 12x12 strip at z-index 61 would steal
                 the rightmost ~12px of the close button. Users can
                 still resize via the top edge or the right edge. */}
-            <ResizeStrip className={styles.windowResizeCornerBottomLeft} edge={QOS_RESIZE_EDGES.bottomLeft} />
-            <ResizeStrip className={styles.windowResizeCornerBottomRight} edge={QOS_RESIZE_EDGES.bottomRight} />
+            <ResizeStrip className={styles.windowResizeCornerBottomLeft} edge={NEXUS_RESIZE_EDGES.bottomLeft} />
+            <ResizeStrip className={styles.windowResizeCornerBottomRight} edge={NEXUS_RESIZE_EDGES.bottomRight} />
             <CaptionButtons />
           </>
         )}

@@ -913,7 +913,7 @@ export const MANIFEST_CHEATSHEET = [
   { key: 'id', doc: 'Reverse-DNS, lowercase alphanumerics + `-` `.`. Must match the widget folder name.' },
   { key: 'name / version / description / author', doc: 'Marketplace listing metadata. version is semver-like.' },
   { key: 'icon', doc: 'Bundle-relative SVG/PNG used as the marketplace + Add-Widget card icon.' },
-  { key: 'min_qos_version', doc: 'Refuse to load if host is older.' },
+  { key: 'min_nexus_version', doc: 'Refuse to load if host is older.' },
   { key: 'surfaces', doc: 'Where the widget runs: ["dashboard"], or include "phone".' },
   { key: 'sizes', doc: '["2x2", "4x2", "4x4"] — authorised sizes only.' },
   { key: 'default_size', doc: 'Initial drop-from-catalog size.' },
