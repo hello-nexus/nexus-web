@@ -55,7 +55,7 @@
 }
 
 .headerCompactRow {
-  justify-content: center;
+  justify-content: flex-start;
   &::after {
     left: 0.4rem;
     right: 0.4rem;
@@ -73,6 +73,9 @@
 .headerLabel {
   display: inline-block;
   padding-bottom: 0.3rem;
+  // Indent so the single collapsed letter reads as centred in the narrow
+  // rail; on the label (not the header) so the underline stays put.
+  padding-left: 0.5rem;
 }
 
 .empty {
@@ -115,7 +118,9 @@
 }
 
 .itemCompact {
-  justify-content: center;
+  // Match the APPS list: left-aligned icons hold their position through the
+  // collapse/expand width animation rather than sliding in from the centre.
+  justify-content: flex-start;
   padding: 0.6rem 0.75rem;
   width: 100%;
   gap: 0;

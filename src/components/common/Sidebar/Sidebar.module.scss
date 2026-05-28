@@ -39,8 +39,9 @@
 }
 
 .serviceHeaderCompact {
-  justify-content: center;
-  padding: 0 0.5rem;
+  // Inherit the expanded horizontal padding (0 0.75rem) so the profile block's
+  // inset stays identical whether collapsed or expanded.
+  justify-content: flex-start;
 }
 
 .sectionLabel {
@@ -103,7 +104,7 @@
 }
 
 .sectionHeaderCompactRow {
-  justify-content: center;
+  justify-content: flex-start;
   &::after {
     left: 0.4rem;
     right: 0.4rem;
@@ -121,6 +122,10 @@
 .sectionHeaderLabel {
   display: inline-block;
   padding-bottom: 0.3rem;
+  // Indent the label so the single collapsed letter reads as centred in the
+  // narrow rail. Lives on the label (not the header) so the underline
+  // pseudo-element stays put. Retained when expanded for a stable position.
+  padding-left: 0.5rem;
 }
 
 .item {
@@ -256,7 +261,10 @@
 }
 
 .itemCompact {
-  justify-content: center;
+  // Keep icons left-aligned (same as expanded) so they hold their exact
+  // horizontal position through the collapse/expand width animation instead
+  // of sliding in from the centre of the still-wide row.
+  justify-content: flex-start;
   padding: 0.6rem 0.75rem;
   width: 100%;
   gap: 0;

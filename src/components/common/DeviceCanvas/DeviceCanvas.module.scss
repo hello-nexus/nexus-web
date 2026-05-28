@@ -64,13 +64,13 @@
 
   &:hover {
     border-color: rgba(255, 255, 255, 0.8);
-    .rotateBtn, .maximizeBtn, .settingsBtn, .resizeHandle { opacity: 1; }
+    .resizeHandle { opacity: 1; }
   }
 
   &.selected {
     border-color: var(--accent);
     z-index: 8;
-    .rotateBtn, .maximizeBtn, .settingsBtn, .resizeHandle { opacity: 1; }
+    .resizeHandle { opacity: 1; }
   }
 
   &.dragging {
@@ -78,7 +78,7 @@
     border-color: var(--accent-glow);
     box-shadow: 0 0 12px var(--accent-glow-shadow);
     z-index: 10;
-    .rotateBtn, .maximizeBtn, .settingsBtn, .resizeHandle { opacity: 1; }
+    .resizeHandle { opacity: 1; }
   }
 }
 
@@ -93,70 +93,6 @@
   pointer-events: none;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
   font-weight: 500;
-}
-
-.rotateBtn {
-  position: absolute;
-  top: -11px;
-  right: 52px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: rgba(0,0,0,0.65);
-  color: rgba(255,255,255,0.75);
-  font-size: 0.75rem;
-  line-height: 1;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  opacity: 0;
-  transition: opacity var(--ease-fast);
-  z-index: 5;
-  padding: 0;
-  &:hover { background: var(--accent); color: var(--accent-text); }
-}
-
-.maximizeBtn {
-  position: absolute;
-  top: -11px;
-  right: 27px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: rgba(0,0,0,0.65);
-  color: rgba(255,255,255,0.75);
-  font-size: 0.85rem;
-  line-height: 1;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  opacity: 0;
-  transition: opacity var(--ease-fast);
-  z-index: 5;
-  padding: 0;
-  &:hover { background: var(--accent); color: var(--accent-text); }
-}
-
-.settingsBtn {
-  position: absolute;
-  top: -11px;
-  right: 2px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: rgba(0,0,0,0.65);
-  color: rgba(255,255,255,0.75);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  opacity: 0;
-  transition: opacity var(--ease-fast);
-  z-index: 5;
-  padding: 0;
-  &:hover { background: var(--accent); color: var(--accent-text); }
 }
 
 .ledDot {

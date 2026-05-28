@@ -186,5 +186,5 @@ export function TopRightSettingsButton({ active, onClick, icon }: {
 
 // Tiny + faded version label pinned to the bottom-left of the layout.
 export function PageVersionLabel() {
-  return <span className={styles.pageVersion}>{__APP_VERSION__}</span>;
+  return <span className={styles.pageVersion}>{__APP_VERSION__} alpha</span>;
 }

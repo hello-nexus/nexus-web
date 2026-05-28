@@ -1,12 +1,12 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Eye, Maximize2, RotateCw } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
-import { saveDeviceLayout } from '../../../api/lighting';
+import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
 import { useShaderRenderer } from '../../../hooks/useShaderRenderer';
 import { useTranslation } from '../../../lib/i18n';
 import type { EffectState } from '../../../types/lighting';
-import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
+import { DeviceContextMenu, type DeviceMenuItem } from './DeviceContextMenu';
 import styles from './DeviceCanvas.module.scss';
 
 interface DeviceCanvasProps {
@@ -119,6 +119,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     moved: boolean;
   } | null>(null);
   const [, forceRender] = useState(0);
+  // Right-click context menu anchored at the click point. Opening it never
+  // changes the selection — a right-click is not a left-click.
+  const [ctxMenu, setCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const visualAngleRef = useRef<Map<string, number>>(new Map());
   const containerSizeRef = useRef({ w: 675, h: 380 });
   useEffect(() => {
@@ -167,6 +170,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   }, [containerRef]);
 
   const startDrag = useCallback((e: React.PointerEvent, dev: LightingDevice, mode: DragMode) => {
+    if (e.button !== 0) return; // right/middle click never starts a drag
     e.preventDefault(); e.stopPropagation();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     tapRef.current = { prevPrimary: primaryDeviceIdRef.current, moved: false };
@@ -191,6 +195,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   // Shift+click on a frame: toggle membership without starting a drag. Plain
   // click on a frame still falls through to startDrag.
   const handleFramePointerDown = useCallback((e: React.PointerEvent, dev: LightingDevice) => {
+    if (e.button !== 0) return; // right-click is handled by onContextMenu, not selection
     if (e.shiftKey) {
       e.preventDefault(); e.stopPropagation();
       const next = new Set(selectedIds);
@@ -370,8 +375,15 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     forceRender(n => n + 1);
   }, []);
 
+  const handleFrameContextMenu = useCallback((e: React.MouseEvent, dev: LightingDevice) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ id: dev.id, x: e.clientX, y: e.clientY });
+  }, []);
+
   const handleOverlayPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.target !== e.currentTarget) return; // device frames handle their own pointer-down
+    if (e.button !== 0) return; // right-click must not start a marquee or clear selection
     e.preventDefault();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     onDragActiveChange?.(true);
@@ -414,7 +426,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   return (
     <div className={styles.overlayLayer}
       onPointerMove={handlePointerMove} onPointerUp={handlePointerUpWithMarquee}
-      onPointerDown={handleOverlayPointerDown}>
+      onPointerDown={handleOverlayPointerDown}
+      onContextMenu={e => e.preventDefault()}>
       {/* visualAngleRef is the device-side rotation accumulator (handleRotate
           adds 90 each call). It's stored in a ref + paired with forceRender
           so we can read the unwrapped angle (for smooth visual rotation
@@ -438,24 +451,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
               width: `${(dev.canvasW / CW) * 100}%`, height: `${(dev.canvasH / CH) * 100}%`,
               backgroundPosition: `${bgX}px ${bgY}px`,
             }}
-            onPointerDown={e => handleFramePointerDown(e, dev)}>
+            onPointerDown={e => handleFramePointerDown(e, dev)}
+            onContextMenu={e => handleFrameContextMenu(e, dev)}>
             <span className={styles.deviceLabel} style={{ transform: `rotate(${visualAngle}deg)` }}>{dev.name}</span>
-            {onOpenSettings && dev.ledCount > 0 && (
-              <HoverTooltip body={t('lighting.ledMap.settings')} side="bottom">
-                <button type="button" className={styles.settingsBtn} aria-label={t('lighting.ledMap.settings')}
-                  onClick={e => { e.stopPropagation(); onOpenSettings(dev.id); }}>
-                  <Settings size={11} />
-                </button>
-              </HoverTooltip>
-            )}
-            <HoverTooltip body={t('lighting.devices.maximize')} side="bottom">
-              <button type="button" className={styles.maximizeBtn} aria-label={t('lighting.devices.maximize')}
-                onClick={e => { e.stopPropagation(); handleMaximize(dev); }}>□</button>
-            </HoverTooltip>
-            <HoverTooltip body={t('lighting.devices.rotate')} side="bottom">
-              <button type="button" className={styles.rotateBtn} aria-label={t('lighting.devices.rotate')}
-                onClick={e => { e.stopPropagation(); handleRotate(dev); }}>⟳</button>
-            </HoverTooltip>
             <div className={styles.resizeHandle} onPointerDown={e => startDrag(e, dev, 'resize-br')} />
             {isPrimary && selectedDeviceLeds && selectedDeviceLeds
               .filter(l => !l.disabled)
@@ -473,6 +471,39 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         );
       })}
       {marqueeRect && <div className={styles.marquee} style={marqueeRect} />}
+      {ctxMenu && (() => {
+        const dev = devices.find(d => d.id === ctxMenu.id);
+        if (!dev) return null;
+        const items: DeviceMenuItem[] = [];
+        if (dev.ledCount > 0) {
+          items.push({
+            key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'),
+            onSelect: () => { identifyLightingDevice(dev.id, 2000).catch(() => { /* silent */ }); },
+          });
+        }
+        if (onOpenSettings && dev.ledCount > 0) {
+          items.push({
+            key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
+            onSelect: () => onOpenSettings(dev.id),
+          });
+        }
+        items.push({
+          key: 'maximize', icon: <Maximize2 size={14} />, label: t('lighting.devices.maximize'),
+          onSelect: () => handleMaximize(dev),
+        });
+        items.push({
+          key: 'rotate', icon: <RotateCw size={14} />, label: t('lighting.devices.rotate'),
+          onSelect: () => handleRotate(dev),
+        });
+        return (
+          <DeviceContextMenu
+            key={`${ctxMenu.id}:${ctxMenu.x}:${ctxMenu.y}`}
+            x={ctxMenu.x} y={ctxMenu.y}
+            items={items}
+            onClose={() => setCtxMenu(null)}
+          />
+        );
+      })()}
     </div>
   );
 });
