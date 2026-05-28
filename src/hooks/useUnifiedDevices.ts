@@ -66,7 +66,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   // the user wants surfaced.
   cnvs: 'CNVS',
   keeb: 'Keeb',
-  'fan-hub': 'Fan Hub',
+  'fan-hub': 'iBUYPOWER MiniHub',
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';
