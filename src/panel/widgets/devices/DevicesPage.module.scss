@@ -295,6 +295,24 @@
   color: var(--text-dim);
 }
 
+// --- Firmware Updates status cell ---
+
+.fwUpdateRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.fwUpdateBadge {
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fwUpToDate {
+  color: var(--text-dim);
+}
+
 // --- System Specs ---
 
 // Toolbar above the specs card: Copy + Refresh, left-aligned to match the

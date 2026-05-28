@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
-import { useDevices, type DeviceListItem } from '../../../hooks/useDevices';
+import { useFirmwareStatus, type FirmwareStatusItem } from '../../../hooks/useFirmwareStatus';
 import { useSystemSpecs, type SystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useTranslation } from '../../../lib/i18n';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
@@ -37,7 +37,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: 
   // Single USB subscription, reused for both the catalog "detected" highlight
   // and the Connected Devices modal — no second socket subscription.
   const allUsb = useUsbDevices(serviceOnline);
-  const firmwareDevices = useDevices(serviceOnline && tab === 'firmware');
+  const firmwareItems = useFirmwareStatus(serviceOnline && tab === 'firmware');
   const systemSpecs = useSystemSpecs(serviceOnline && tab === 'specs');
 
   const detectedVidPids = useMemo(() => {
@@ -116,7 +116,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: 
         !serviceOnline ? (
           <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
         ) : (
-          <FirmwarePanel devices={firmwareDevices} />
+          <FirmwarePanel items={firmwareItems} />
         )
       ) : !serviceOnline ? (
         <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
@@ -194,22 +194,21 @@ function DeviceCard({ device, onClick }: { device: UnifiedDevice; onClick: () =>
 }
 
 interface FirmwarePanelProps {
-  devices: DeviceListItem[];
+  items: FirmwareStatusItem[];
 }
 
-// Centralized firmware-update surface. v1 is read-only: lists every
-// Nexus-supported device that reports a firmware version. Per-device
-// flashing lands here once `plans/firmware-flasher-tooling.md` ships;
-// the section already lives in its final spot so users know where to
-// look for it.
-function FirmwarePanel({ devices }: FirmwarePanelProps) {
+// Centralized firmware-update surface. Lists each connected supported device
+// with the version it's running vs the newest version bundled in this build
+// (served by /devices/firmware/status). The Install action is intentionally
+// gated until the dfu-util flasher lands and is hardware-verified — an
+// unverified DFU flash can brick a device — see plans/firmware-flasher-tooling.md.
+function FirmwarePanel({ items }: FirmwarePanelProps) {
   const { t } = useTranslation();
-  const reporting = devices.filter(d => d.connected && d.firmwareVersion);
 
   return (
     <>
       <p className={styles.explainer}>{t('devices.firmware.description')}</p>
-      {reporting.length === 0 ? (
+      {items.length === 0 ? (
         <div className={styles.empty}>{t('devices.firmware.empty')}</div>
       ) : (
         <div className={styles.usbTableWrap}>
@@ -218,22 +217,44 @@ function FirmwarePanel({ devices }: FirmwarePanelProps) {
               <tr>
                 <th>{t('devices.firmware.column.device')}</th>
                 <th>{t('devices.firmware.column.current')}</th>
+                <th>{t('devices.firmware.column.available')}</th>
                 <th>{t('devices.firmware.column.status')}</th>
               </tr>
             </thead>
             <tbody>
-              {reporting.map(d => (
-                <tr key={d.id}>
-                  <td className={styles.usbName}>{d.name}</td>
-                  <td className={styles.mono}>{d.firmwareVersion}</td>
-                  <td>{t('devices.firmware.status.checkLater')}</td>
-                </tr>
+              {items.map(d => (
+                <FirmwareRow key={d.deviceType} item={d} />
               ))}
             </tbody>
           </table>
         </div>
       )}
     </>
+  );
+}
+
+function FirmwareRow({ item }: { item: FirmwareStatusItem }) {
+  const { t } = useTranslation();
+  return (
+    <tr>
+      <td className={styles.usbName}>{item.name}</td>
+      <td className={styles.mono}>{item.currentVersion || '—'}</td>
+      <td className={styles.mono}>{item.availableVersion || '—'}</td>
+      <td>
+        {item.updateAvailable ? (
+          <span className={styles.fwUpdateRow}>
+            <span className={styles.fwUpdateBadge}>{t('devices.firmware.status.updateAvailable')}</span>
+            <Button type="button" tone="accent" size="sm" disabled title={t('devices.firmware.install.comingSoon')}>
+              {t('devices.firmware.install')}
+            </Button>
+          </span>
+        ) : item.currentVersion ? (
+          <span className={styles.fwUpToDate}>{t('devices.firmware.status.upToDate')}</span>
+        ) : (
+          t('devices.firmware.status.unknown')
+        )}
+      </td>
+    </tr>
   );
 }
 
