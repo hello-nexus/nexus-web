@@ -4,19 +4,19 @@
 // file is the single source of truth for both ends; keep it in lockstep
 // with HandleWindowAction in nexus-overlay/src/DashboardWindow.cs.
 
-export const QOS_WINDOW_ACTIONS = {
+export const NEXUS_WINDOW_ACTIONS = {
   minimize: 'nexus:window-minimize',
   toggleMaximize: 'nexus:window-toggle-maximize',
   close: 'nexus:window-close',
 } as const;
 
-export type NexusWindowAction = (typeof QOS_WINDOW_ACTIONS)[keyof typeof QOS_WINDOW_ACTIONS];
+export type NexusWindowAction = (typeof NEXUS_WINDOW_ACTIONS)[keyof typeof NEXUS_WINDOW_ACTIONS];
 
 // Resize edges. The shell maps each value to the matching HTLEFT /
 // HTRIGHT / HTTOP / HTBOTTOM / corner code and posts WM_NCLBUTTONDOWN
 // so the OS native resize loop takes over. Keep in lockstep with the
 // switch in HandleWindowAction in nexus-overlay/src/DashboardWindow.cs.
-export const QOS_RESIZE_EDGES = {
+export const NEXUS_RESIZE_EDGES = {
   left: 'nexus:resize-left',
   right: 'nexus:resize-right',
   top: 'nexus:resize-top',
@@ -27,7 +27,7 @@ export const QOS_RESIZE_EDGES = {
   bottomRight: 'nexus:resize-bottom-right',
 } as const;
 
-export type NexusResizeEdge = (typeof QOS_RESIZE_EDGES)[keyof typeof QOS_RESIZE_EDGES];
+export type NexusResizeEdge = (typeof NEXUS_RESIZE_EDGES)[keyof typeof NEXUS_RESIZE_EDGES];
 
 interface NexusShellWebView {
   postMessage?: (msg: unknown) => void;

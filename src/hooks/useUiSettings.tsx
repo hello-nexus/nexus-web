@@ -82,7 +82,7 @@ interface UiSettingsContextValue {
 
 const UiSettingsContext = createContext<UiSettingsContextValue | null>(null);
 
-function fromQosSettings(src: NexusSettings): UiSettingsValue {
+function fromNexusSettings(src: NexusSettings): UiSettingsValue {
   return {
     startOnLogin: src.general.startOnLogin,
     language: src.general.language,
@@ -101,7 +101,7 @@ function fromQosSettings(src: NexusSettings): UiSettingsValue {
   };
 }
 
-function toQosSettings(src: UiSettingsValue): NexusSettings {
+function toNexusSettings(src: UiSettingsValue): NexusSettings {
   return {
     general: {
       language: src.language,
@@ -196,13 +196,13 @@ export function UiSettingsProvider({
   const { setLanguage } = useTranslation();
   // Synchronous seed from localStorage keeps the first render flash-free.
   const [settings, setSettings] = useState<UiSettingsValue>(() =>
-    fromQosSettings(loadSettings()),
+    fromNexusSettings(loadSettings()),
   );
 
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const persistLocal = useCallback((next: UiSettingsValue) => {
-    saveSettings(toQosSettings(next));
+    saveSettings(toNexusSettings(next));
   }, []);
 
   const scheduleServerWrite = useCallback((patch: Patch) => {

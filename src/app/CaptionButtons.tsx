@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../lib/i18n';
-import { QOS_WINDOW_ACTIONS, postWindowAction } from './windowActions';
+import { NEXUS_WINDOW_ACTIONS, postWindowAction } from './windowActions';
 import styles from './CaptionButtons.module.scss';
 
 // SVG glyphs sized to a 10x10 viewBox, centered inside each 46x32 button.
@@ -64,7 +64,7 @@ export function CaptionButtons() {
         <button
           type="button"
           className={styles.btn}
-          onClick={() => postWindowAction(QOS_WINDOW_ACTIONS.minimize)}
+          onClick={() => postWindowAction(NEXUS_WINDOW_ACTIONS.minimize)}
           aria-label={t('app.window.minimize')}
         >
           <Minimize />
@@ -74,7 +74,7 @@ export function CaptionButtons() {
         <button
           type="button"
           className={styles.btn}
-          onClick={() => postWindowAction(QOS_WINDOW_ACTIONS.toggleMaximize)}
+          onClick={() => postWindowAction(NEXUS_WINDOW_ACTIONS.toggleMaximize)}
           aria-label={maxLabel}
         >
           {maximized ? <Restore /> : <Maximize />}
@@ -84,7 +84,7 @@ export function CaptionButtons() {
         <button
           type="button"
           className={`${styles.btn} ${styles.close}`}
-          onClick={() => postWindowAction(QOS_WINDOW_ACTIONS.close)}
+          onClick={() => postWindowAction(NEXUS_WINDOW_ACTIONS.close)}
           aria-label={t('app.window.close')}
         >
           <Close />
