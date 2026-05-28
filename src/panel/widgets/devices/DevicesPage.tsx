@@ -86,8 +86,6 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: 
           <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
         ) : (
           <>
-            <p className={styles.explainer}>{t('devices.available.description')}</p>
-
             {webhidAvailable && (
               <div className={styles.webhidToolbar}>
                 <div className={styles.webhidCta}>
@@ -238,7 +236,6 @@ function FirmwarePanel({ items }: FirmwarePanelProps) {
 
   return (
     <>
-      <p className={styles.explainer}>{t('devices.firmware.description')}</p>
       {items.length === 0 ? (
         <div className={styles.empty}>{t('devices.firmware.empty')}</div>
       ) : (
@@ -289,15 +286,27 @@ function FirmwareRow({ item, status, anyFlashing, dev, onFlash }: FirmwareRowPro
   const [sel, setSel] = useState(0);
   const chosen = images[sel] ?? images[0];
 
-  // Only show progress while a flash is actually running. A terminal "done"
-  // must NOT mask the row — once done, the row reverts to the (now-refreshed)
-  // update-available / up-to-date status. A terminal "failed" surfaces as a
-  // note above the controls so it's visible but retryable.
-  const matches = status != null && status.deviceType === item.firmwareType;
+  // A flash matches this row if it targets the connected variant or any sibling
+  // image this device can flash (dev cross-branch picker).
+  const matches = status != null && (
+    status.deviceType === item.firmwareType ||
+    item.devImages.some(img => img.firmwareType === status.deviceType)
+  );
   const flashing = !!status?.active && matches;
   const lastError = (!status?.active && matches && status?.phase === 'failed')
     ? (status?.error || t('devices.firmware.flash.failed'))
     : '';
+
+  // Just-flashed bridge. Between a successful flash completing and the firmware
+  // status refreshing (the device re-enumerates → `devices` topic refetch), the
+  // cached item still reports the OLD version. Without this, the row would flash
+  // the stale "update available" prompt again before settling on "up to date".
+  // While we wait, trust the verified flash result: show the written version as
+  // installed and suppress the update prompt.
+  const awaitingRefresh = matches && !status?.active
+    && status?.phase === 'done' && !!status?.success
+    && item.currentVersion !== status.version;
+  const installedVersion = awaitingRefresh ? status!.version : item.currentVersion;
 
   return (
     <tr>
@@ -312,7 +321,7 @@ function FirmwareRow({ item, status, anyFlashing, dev, onFlash }: FirmwareRowPro
           <span>{item.name}</span>
         </span>
       </td>
-      <td className={styles.mono}>{item.currentVersion || '—'}</td>
+      <td className={styles.mono}>{installedVersion || '—'}</td>
       <td>
         {flashing ? (
           <FlashProgress status={status!} />
@@ -343,7 +352,7 @@ function FirmwareRow({ item, status, anyFlashing, dev, onFlash }: FirmwareRowPro
                   {t('devices.firmware.flash')}
                 </Button>
               </span>
-            ) : item.updateAvailable ? (
+            ) : item.updateAvailable && !awaitingRefresh ? (
               <span className={styles.fwUpdateRow}>
                 <span className={styles.fwUpdateBadge}>{t('devices.firmware.status.updateAvailable')}</span>
                 <span className={styles.mono}>{item.availableVersion}</span>
@@ -357,10 +366,9 @@ function FirmwareRow({ item, status, anyFlashing, dev, onFlash }: FirmwareRowPro
                   {t('devices.firmware.install')}
                 </Button>
               </span>
-            ) : item.currentVersion ? (
+            ) : installedVersion ? (
               <span className={styles.fwUpToDate}>
                 {t('devices.firmware.status.upToDate')}
-                <span className={styles.fwUpToDateVer}> ({item.availableVersion})</span>
               </span>
             ) : (
               t('devices.firmware.status.unknown')
@@ -433,7 +441,6 @@ function SpecsPanel({ specs }: SpecsPanelProps) {
 
   return (
     <>
-      <p className={styles.explainer}>{t('devices.specs.description')}</p>
       <div className={styles.specsToolbar}>
         <Button type="button" tone="accent" size="sm" onClick={onCopy} disabled={!specs}>
           {copied ? t('devices.specs.copied') : t('devices.specs.copy')}

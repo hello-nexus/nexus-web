@@ -313,11 +313,6 @@
   color: var(--text-dim);
 }
 
-.fwUpToDateVer {
-  color: var(--text-faint, var(--text-dim));
-  opacity: 0.7;
-}
-
 // Firmware Updates table: roomier rows than the dense USB diagnostics table.
 .fwTable {
   th,
