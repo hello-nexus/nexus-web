@@ -221,17 +221,20 @@ const FW_ICONS: Record<string, string> = {
 };
 const FW_FALLBACK_ICON = '/assets/devices/device.svg';
 
+// Gates the dev-only firmware version picker (re-flash / downgrade /
+// cross-branch). __DEV_TOOLS__ is a build define (DEV_TOOLS=1) and
+// import.meta.env.DEV covers the dev server — both are statically false in a
+// release build, so esbuild dead-code-eliminates the brick-capable picker.
+const DEV_TOOLS = import.meta.env.DEV || __DEV_TOOLS__;
+
 // Centralized firmware-update surface. Lists each connected supported device
 // with the version it's running; the available/bundled version is surfaced in
-// the Status column. The Install action is intentionally gated until the
-// dfu-util flasher lands and is hardware-verified — an unverified DFU flash can
-// brick a device — see plans/firmware-flasher-tooling.md.
+// the Status column. The Install action flashes the latest bundled image via
+// the dfu-util flasher; downgrade / cross-branch re-flashing lives behind
+// DEV_TOOLS (see above) and is absent from release builds.
 function FirmwarePanel({ items }: FirmwarePanelProps) {
   const { t } = useTranslation();
   const { status, startFlash } = useFlashStatus(true);
-  // Dev-only version picker (re-flash / downgrade). Hidden in prod; a dev
-  // enables it once via localStorage.setItem('nexus.devFlash','1').
-  const dev = typeof window !== 'undefined' && window.localStorage.getItem('nexus.devFlash') === '1';
   const anyFlashing = !!status?.active;
 
   return (
@@ -255,7 +258,6 @@ function FirmwarePanel({ items }: FirmwarePanelProps) {
                   item={d}
                   status={status}
                   anyFlashing={anyFlashing}
-                  dev={dev}
                   onFlash={startFlash}
                 />
               ))}
@@ -271,11 +273,10 @@ interface FirmwareRowProps {
   item: FirmwareStatusItem;
   status: FlashStatus | null;
   anyFlashing: boolean;
-  dev: boolean;
   onFlash: (deviceType: string, version: string) => void | Promise<void>;
 }
 
-function FirmwareRow({ item, status, anyFlashing, dev, onFlash }: FirmwareRowProps) {
+function FirmwareRow({ item, status, anyFlashing, onFlash }: FirmwareRowProps) {
   const { t } = useTranslation();
   const icon = FW_ICONS[item.deviceType] ?? FW_FALLBACK_ICON;
 
@@ -328,7 +329,7 @@ function FirmwareRow({ item, status, anyFlashing, dev, onFlash }: FirmwareRowPro
         ) : (
           <>
             {lastError && <div className={styles.fwFailed}>{lastError}</div>}
-            {dev ? (
+            {DEV_TOOLS ? (
               <span className={styles.fwUpdateRow}>
                 <select
                   className={styles.fwVersionSelect}
