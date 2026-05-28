@@ -156,7 +156,7 @@ interface ConnectedDevicesModalProps {
 function ConnectedDevicesModal({ open, onClose, devices, loading, onRefresh }: ConnectedDevicesModalProps) {
   const { t } = useTranslation();
   return (
-    <DeviceModal open={open} onClose={onClose} fullscreen title={t('devices.connected.browse')}>
+    <DeviceModal open={open} onClose={onClose} fit title={t('devices.connected.browse')}>
       <p className={styles.explainer}>{t('devices.connected.description')}</p>
       <UsbPanel devices={devices} loading={loading} onRefresh={onRefresh} />
     </DeviceModal>
@@ -281,13 +281,23 @@ interface FirmwareRowProps {
 function FirmwareRow({ item, status, anyFlashing, dev, onFlash }: FirmwareRowProps) {
   const { t } = useTranslation();
   const icon = FW_ICONS[item.deviceType] ?? FW_FALLBACK_ICON;
-  const [sel, setSel] = useState(item.availableVersion || item.availableVersions[0] || '');
 
-  // This row's device is the one the flasher is touching (or just finished).
-  const mine = status != null
-    && status.deviceType === item.firmwareType
-    && status.phase !== 'idle'
-    && (status.active || status.phase === 'done' || status.phase === 'failed');
+  // Dev cross-branch picker: index into all images this device can flash.
+  const images = item.devImages.length > 0
+    ? item.devImages
+    : item.availableVersions.map(v => ({ firmwareType: item.firmwareType, version: v }));
+  const [sel, setSel] = useState(0);
+  const chosen = images[sel] ?? images[0];
+
+  // Only show progress while a flash is actually running. A terminal "done"
+  // must NOT mask the row — once done, the row reverts to the (now-refreshed)
+  // update-available / up-to-date status. A terminal "failed" surfaces as a
+  // note above the controls so it's visible but retryable.
+  const matches = status != null && status.deviceType === item.firmwareType;
+  const flashing = !!status?.active && matches;
+  const lastError = (!status?.active && matches && status?.phase === 'failed')
+    ? (status?.error || t('devices.firmware.flash.failed'))
+    : '';
 
   return (
     <tr>
@@ -304,49 +314,58 @@ function FirmwareRow({ item, status, anyFlashing, dev, onFlash }: FirmwareRowPro
       </td>
       <td className={styles.mono}>{item.currentVersion || '—'}</td>
       <td>
-        {mine ? (
+        {flashing ? (
           <FlashProgress status={status!} />
-        ) : dev ? (
-          <span className={styles.fwUpdateRow}>
-            <select
-              className={styles.fwVersionSelect}
-              value={sel}
-              onChange={e => setSel(e.target.value)}
-              disabled={anyFlashing}
-            >
-              {item.availableVersions.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
-            <Button
-              type="button"
-              tone="accent"
-              size="sm"
-              disabled={anyFlashing || !sel}
-              onClick={() => onFlash(item.firmwareType, sel)}
-            >
-              {t('devices.firmware.flash')}
-            </Button>
-          </span>
-        ) : item.updateAvailable ? (
-          <span className={styles.fwUpdateRow}>
-            <span className={styles.fwUpdateBadge}>{t('devices.firmware.status.updateAvailable')}</span>
-            <span className={styles.mono}>{item.availableVersion}</span>
-            <Button
-              type="button"
-              tone="accent"
-              size="sm"
-              disabled={anyFlashing}
-              onClick={() => onFlash(item.firmwareType, item.availableVersion)}
-            >
-              {t('devices.firmware.install')}
-            </Button>
-          </span>
-        ) : item.currentVersion ? (
-          <span className={styles.fwUpToDate}>
-            {t('devices.firmware.status.upToDate')}
-            <span className={styles.fwUpToDateVer}> ({item.availableVersion})</span>
-          </span>
         ) : (
-          t('devices.firmware.status.unknown')
+          <>
+            {lastError && <div className={styles.fwFailed}>{lastError}</div>}
+            {dev ? (
+              <span className={styles.fwUpdateRow}>
+                <select
+                  className={styles.fwVersionSelect}
+                  value={sel}
+                  onChange={e => setSel(Number(e.target.value))}
+                  disabled={anyFlashing}
+                >
+                  {images.map((img, i) => (
+                    <option key={img.firmwareType + img.version} value={i}>
+                      {img.version}{img.firmwareType !== item.firmwareType ? ` (${img.firmwareType})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  tone="accent"
+                  size="sm"
+                  disabled={anyFlashing || !chosen}
+                  onClick={() => chosen && onFlash(chosen.firmwareType, chosen.version)}
+                >
+                  {t('devices.firmware.flash')}
+                </Button>
+              </span>
+            ) : item.updateAvailable ? (
+              <span className={styles.fwUpdateRow}>
+                <span className={styles.fwUpdateBadge}>{t('devices.firmware.status.updateAvailable')}</span>
+                <span className={styles.mono}>{item.availableVersion}</span>
+                <Button
+                  type="button"
+                  tone="accent"
+                  size="sm"
+                  disabled={anyFlashing}
+                  onClick={() => onFlash(item.firmwareType, item.availableVersion)}
+                >
+                  {t('devices.firmware.install')}
+                </Button>
+              </span>
+            ) : item.currentVersion ? (
+              <span className={styles.fwUpToDate}>
+                {t('devices.firmware.status.upToDate')}
+                <span className={styles.fwUpToDateVer}> ({item.availableVersion})</span>
+              </span>
+            ) : (
+              t('devices.firmware.status.unknown')
+            )}
+          </>
         )}
       </td>
     </tr>
@@ -354,13 +373,6 @@ function FirmwareRow({ item, status, anyFlashing, dev, onFlash }: FirmwareRowPro
 }
 
 function FlashProgress({ status }: { status: FlashStatus }) {
-  const { t } = useTranslation();
-  if (status.phase === 'failed') {
-    return <span className={styles.fwFailed}>{status.error || t('devices.firmware.flash.failed')}</span>;
-  }
-  if (status.phase === 'done') {
-    return <span className={styles.fwUpToDate}>{status.message || t('devices.firmware.status.upToDate')}</span>;
-  }
   return (
     <span className={styles.fwProgress}>
       <span className={styles.fwProgressBar}>

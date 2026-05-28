@@ -21,6 +21,15 @@
   max-height: 90vh;
 }
 
+// Hugs its content (e.g. the Connected Devices USB table) rather than a fixed
+// width, capped so it never exceeds the viewport.
+.modalFit {
+  width: fit-content;
+  min-width: min(360px, 100%);
+  max-width: calc(100vw - 4rem);
+  max-height: 85vh;
+}
+
 .modalLarge {
   width: min(980px, calc(100vw - 4rem));
   max-height: 90vh;

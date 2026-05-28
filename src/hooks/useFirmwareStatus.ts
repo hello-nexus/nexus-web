@@ -2,6 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchService } from '../api/service';
 import { useTopicCallback } from './useMultiplexSocket';
 
+export interface FlashableImage {
+  firmwareType: string;   // catalog key for this image (pass to the flash endpoint)
+  version: string;
+}
+
 export interface FirmwareStatusItem {
   deviceType: string;       // handler id — identity + icon key
   firmwareType: string;     // catalog key (connected variant) — pass to the flash endpoint
@@ -10,7 +15,8 @@ export interface FirmwareStatusItem {
   currentVersion: string;
   availableVersion: string;
   updateAvailable: boolean;
-  availableVersions: string[];  // all bundled versions (dev version picker / downgrade)
+  availableVersions: string[];  // connected variant's bundled versions
+  devImages: FlashableImage[];  // all images the device can flash (incl. sibling variants) — dev picker
 }
 
 // Backs the Firmware Updates page. Reports, per connected supported device,

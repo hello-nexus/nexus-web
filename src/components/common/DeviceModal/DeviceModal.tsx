@@ -11,14 +11,17 @@ interface DeviceModalProps {
   large?: boolean;
   wide?: boolean;
   fullscreen?: boolean;
+  /** Hug the content width instead of a fixed width — for small tables/lists. */
+  fit?: boolean;
   headerRight?: ReactNode;
   children: ReactNode;
 }
 
-export function DeviceModal({ open, onClose, title, icon, large, wide, fullscreen, headerRight, children }: DeviceModalProps) {
+export function DeviceModal({ open, onClose, title, icon, large, wide, fullscreen, fit, headerRight, children }: DeviceModalProps) {
   const variantClass = fullscreen ? styles.modalFullscreen
     : wide ? styles.modalWide
     : large ? styles.modalLarge
+    : fit ? styles.modalFit
     : '';
   const surfaceClass = `${styles.modal} ${variantClass}`.trim();
 
