@@ -29,6 +29,13 @@ export interface UnifiedDevice {
   curatedId?: string;
   peripheral?: Peripheral;
   panelDevice?: PanelDevice;
+  // Whether this device has its own settings page. Drives both the sidebar
+  // DEVICES section (only navigable devices get a row) and whether the
+  // Devices-list card is clickable. Devices whose controls live on shared
+  // pages instead of a dedicated one (e.g. the MiniHub — fans on Cooling,
+  // ARGB on Lighting) are non-navigable so we don't deep-link into an empty
+  // "no page yet" placeholder.
+  navigable: boolean;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -70,6 +77,13 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';
+
+// Curated devices the service detects but that have no dedicated settings
+// page — their controls live on shared pages. Keep them in the device list
+// (status/firmware) but don't give them a sidebar row or a clickable card
+// that would land on the empty "no page yet" placeholder.
+//   fan-hub (iBUYPOWER MiniHub): fans → Cooling page, ARGB → Lighting page.
+const CURATED_WITHOUT_PAGE = new Set<string>(['fan-hub']);
 
 export function useUnifiedDevices(enabled: boolean) {
   const [simulatedPanels, setSimulatedPanels] = useState(() => getConnectedSimulatedPanels());
@@ -150,6 +164,7 @@ function buildUnifiedList(
       kind: 'panel',
       panelDevice: p,
       curatedId: sourceId,
+      navigable: true,
     });
   }
 
@@ -166,6 +181,7 @@ function buildUnifiedList(
       firmwareVersion: d.firmwareVersion || undefined,
       kind: 'curated',
       curatedId: d.id,
+      navigable: !CURATED_WITHOUT_PAGE.has(d.id),
     });
   }
 
@@ -180,6 +196,7 @@ function buildUnifiedList(
       connected: true,
       kind: 'peripheral',
       peripheral: p,
+      navigable: true,
     });
   }
 

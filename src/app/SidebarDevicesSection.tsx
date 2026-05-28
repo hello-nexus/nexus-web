@@ -47,9 +47,11 @@ export function SidebarDevicesSection({
 
   // Stable, deterministic order: connected first, then by category, then by
   // short name. Avoids reshuffles on transient disconnects within the
-  // /devices polling cadence.
+  // /devices polling cadence. Only navigable devices (those with their own
+  // settings page) get a sidebar row — e.g. the MiniHub is controlled from
+  // Cooling/Lighting, so it has no page and shouldn't deep-link to an empty one.
   const sorted = useMemo(() => {
-    return [...unified].sort((a, b) => {
+    return unified.filter(d => d.navigable).sort((a, b) => {
       if (a.connected !== b.connected) return a.connected ? -1 : 1;
       if (a.category !== b.category) return a.category.localeCompare(b.category);
       return a.shortName.localeCompare(b.shortName);

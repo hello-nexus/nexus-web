@@ -163,14 +163,8 @@ function ConnectedDevicesModal({ open, onClose, devices, loading, onRefresh }: C
 }
 
 function DeviceCard({ device, onClick }: { device: UnifiedDevice; onClick: () => void }) {
-  return (
-    <div
-      className={`${styles.card} ${device.connected ? styles.connected : styles.disconnected}`}
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => { if (e.key === 'Enter') onClick(); }}
-    >
+  const body = (
+    <>
       <div className={styles.cardIcon}>
         <span
           className={styles.cardIconGlyph}
@@ -189,6 +183,27 @@ function DeviceCard({ device, onClick }: { device: UnifiedDevice; onClick: () =>
           </span>
         </span>
       </div>
+    </>
+  );
+
+  const stateClass = device.connected ? styles.connected : styles.disconnected;
+
+  // Non-navigable devices (e.g. the MiniHub — controlled from Cooling/Lighting,
+  // no dedicated page) render as a static status card: shown for visibility,
+  // but not a button that deep-links into an empty page.
+  if (!device.navigable) {
+    return <div className={`${styles.card} ${styles.staticCard} ${stateClass}`}>{body}</div>;
+  }
+
+  return (
+    <div
+      className={`${styles.card} ${stateClass}`}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => { if (e.key === 'Enter') onClick(); }}
+    >
+      {body}
     </div>
   );
 }
