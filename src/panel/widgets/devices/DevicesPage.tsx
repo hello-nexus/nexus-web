@@ -10,6 +10,7 @@ import { Button } from '../../../components/common/Button/Button';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DevicesSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
+import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
 import styles from './DevicesPage.module.scss';
 
 interface DevicesViewProps {
@@ -23,16 +24,18 @@ interface DevicesViewProps {
   onDeviceSelect: (deviceKey: string) => void;
 }
 
-type TabKey = 'available' | 'connected' | 'firmware' | 'specs';
+type TabKey = 'available' | 'firmware' | 'specs';
 
 export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: DevicesViewProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<TabKey>('available');
-  const [modalOpen, setModalOpen] = useState(false);
+  const [supportedModalOpen, setSupportedModalOpen] = useState(false);
+  const [connectedModalOpen, setConnectedModalOpen] = useState(false);
 
   const availableActive = tab === 'available';
   const { unified, merged, webhidAvailable, requestWebHid } = useUnifiedDevices(serviceOnline && availableActive);
-  const usb = useUsbDevices(serviceOnline && tab === 'connected');
+  // Single USB subscription, reused for both the catalog "detected" highlight
+  // and the Connected Devices modal — no second socket subscription.
   const allUsb = useUsbDevices(serviceOnline);
   const firmwareDevices = useDevices(serviceOnline && tab === 'firmware');
   const systemSpecs = useSystemSpecs(serviceOnline && tab === 'specs');
@@ -52,7 +55,6 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: 
 
   const tabs = [
     { key: 'available', label: t('devices.tabs.available') },
-    { key: 'connected', label: t('devices.tabs.connected') },
     { key: 'firmware', label: t('devices.tabs.firmware') },
     { key: 'specs', label: t('devices.tabs.specs') },
   ] as const;
@@ -66,10 +68,15 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: 
         activeTab={tab}
         onTabChange={(k) => setTab(k as TabKey)}
         tabsDisabled={!serviceOnline && !webhidAvailable}
-        tabActions={serviceOnline && availableActive ? (
-          <button type="button" className={styles.catalogBtn} onClick={() => setModalOpen(true)}>
-            {t('devices.supported.browse')}
-          </button>
+        tabActions={serviceOnline ? (
+          <div className={styles.headerActions}>
+            <button type="button" className={styles.catalogBtn} onClick={() => setSupportedModalOpen(true)}>
+              {t('devices.supported.browse')}
+            </button>
+            <button type="button" className={styles.catalogBtn} onClick={() => setConnectedModalOpen(true)}>
+              {t('devices.connected.browse')}
+            </button>
+          </div>
         ) : undefined}
       />
 
@@ -111,27 +118,47 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: 
         ) : (
           <FirmwarePanel devices={firmwareDevices} />
         )
-      ) : tab === 'specs' ? (
-        !serviceOnline ? (
-          <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
-        ) : (
-          <SpecsPanel specs={systemSpecs.specs} />
-        )
       ) : !serviceOnline ? (
         <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
       ) : (
-        <>
-          <p className={styles.explainer}>{t('devices.connected.description')}</p>
-          <UsbPanel devices={usb.devices} loading={usb.loading} onRefresh={usb.refresh} />
-        </>
+        <SpecsPanel specs={systemSpecs.specs} />
       )}
 
       <SupportedDevicesModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={supportedModalOpen}
+        onClose={() => setSupportedModalOpen(false)}
         detectedVidPids={detectedVidPids}
       />
+
+      <ConnectedDevicesModal
+        open={connectedModalOpen}
+        onClose={() => setConnectedModalOpen(false)}
+        devices={allUsb.devices}
+        loading={allUsb.loading}
+        onRefresh={allUsb.refresh}
+      />
     </section>
+  );
+}
+
+interface ConnectedDevicesModalProps {
+  open: boolean;
+  onClose: () => void;
+  devices: UsbDeviceDetail[];
+  loading: boolean;
+  onRefresh: () => void;
+}
+
+// Every USB device currently attached to this PC, including ones without
+// Nexus support. Lives behind a header button (not a tab) since it's a
+// diagnostics surface, not part of the primary device flow.
+function ConnectedDevicesModal({ open, onClose, devices, loading, onRefresh }: ConnectedDevicesModalProps) {
+  const { t } = useTranslation();
+  return (
+    <DeviceModal open={open} onClose={onClose} fullscreen title={t('devices.connected.browse')}>
+      <p className={styles.explainer}>{t('devices.connected.description')}</p>
+      <UsbPanel devices={devices} loading={loading} onRefresh={onRefresh} />
+    </DeviceModal>
   );
 }
 

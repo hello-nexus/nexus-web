@@ -10,6 +10,12 @@
 // in the ViewHeader's tabActions slot (right-aligned at tab level). Lighting
 // now exposes the same modal via the OpenRGB indicator at the bottom of its
 // device pane.
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .catalogBtn {
   padding: 0.4rem 0.6rem;
   background: transparent;
