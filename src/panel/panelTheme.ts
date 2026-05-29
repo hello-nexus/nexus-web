@@ -5,7 +5,8 @@ import {
   DEFAULT_ACCENT, LANGUAGES, THEME_MODES, deriveAccentVars, resolveTheme,
   type Language, type ThemeMode,
 } from '../lib/settings';
-import { fetchPreferences, savePreferences } from '../api/profiles';
+import { fetchPreferences } from '../api/profiles';
+import { fetchPanelDevice, patchPanelDevice, type PanelDevicePatch } from '../api/panel';
 import { broadcastLayoutChanged, onLayoutChanged } from './engine/panelSync';
 import {
   DEFAULT_PANEL_BACKGROUND_EFFECT,
@@ -138,7 +139,13 @@ export function usePanelLanguageSync(enabled = true) {
   }, [enabled, syncLanguage]);
 }
 
-export function usePanelTheme(enabled = true, persist = true) {
+// Panel theme/visual settings are PER-PANEL: they live on the device record
+// (/panel/devices/{deviceId}), the same place as the widget layout — NOT in
+// the shared `prefs.panel`. `deviceId` selects which panel's settings to
+// read/write, so editing the Q60 never touches the Y70. The only cross-surface
+// link is the desktop app theme (`prefs.theme`), used as the sync source for
+// theme-mode + accent when this panel's sync toggles are on.
+export function usePanelTheme(deviceId: string | null | undefined, enabled = true, persist = true) {
   const [theme, setTheme] = useState<PanelThemeState>({
     appThemeMode: 'system',
     themeSyncWithDesktop: true,
@@ -165,54 +172,67 @@ export function usePanelTheme(enabled = true, persist = true) {
 
   const fetchTheme = useCallback(() => {
     if (!enabled) return;
-    fetchPreferences().then(prefs => {
+    Promise.all([
+      fetchPreferences(),
+      deviceId ? fetchPanelDevice(deviceId).catch(() => null) : Promise.resolve(null),
+    ]).then(([prefs, record]) => {
+      // `t` = desktop app theme (the sync source). `r` = this panel's own
+      // per-device theme. Absent record fields fall back to built-in defaults
+      // via the normalize* helpers — no migration of the legacy shared values.
       const t = prefs?.theme;
-      const p = prefs?.panel;
+      const r = record;
       setTheme({
         appThemeMode: normalizePanelThemeMode(t?.themeMode),
-        themeSyncWithDesktop: normalizePanelDesktopSync(p?.themeSyncWithDesktop),
-        themeMode: normalizePanelThemeMode(p?.themeMode),
+        themeSyncWithDesktop: normalizePanelDesktopSync(r?.themeSyncWithDesktop),
+        themeMode: normalizePanelThemeMode(r?.themeMode),
         appAccentColor: t?.accentColor || DEFAULT_ACCENT,
-        accentSyncWithDesktop: normalizePanelDesktopSync(p?.accentSyncWithDesktop),
-        accentColor: p?.accentColor ?? '',
-        backgroundColor: p?.backgroundColor ?? '',
-        backgroundColorLight: p?.backgroundColorLight ?? '',
-        backgroundMode: normalizePanelBackgroundMode(p?.backgroundMode),
-        backgroundEffect: normalizePanelBackgroundEffect(p?.backgroundEffect),
-        backgroundTemplate: normalizePanelBackgroundTemplate(p?.backgroundTemplate),
-        backgroundOpacity: normalizePanelBackgroundOpacity(p?.backgroundOpacity),
-        widgetOpacity: normalizePanelWidgetOpacity(p?.widgetOpacity),
-        widgetLabels: normalizePanelWidgetLabels(p?.widgetLabels),
+        accentSyncWithDesktop: normalizePanelDesktopSync(r?.accentSyncWithDesktop),
+        accentColor: r?.accentColor ?? '',
+        backgroundColor: r?.backgroundColor ?? '',
+        backgroundColorLight: r?.backgroundColorLight ?? '',
+        backgroundMode: normalizePanelBackgroundMode(r?.backgroundMode),
+        backgroundEffect: normalizePanelBackgroundEffect(r?.backgroundEffect),
+        backgroundTemplate: normalizePanelBackgroundTemplate(r?.backgroundTemplate),
+        backgroundOpacity: normalizePanelBackgroundOpacity(r?.backgroundOpacity),
+        widgetOpacity: normalizePanelWidgetOpacity(r?.widgetOpacity),
+        widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
       });
     }).catch(() => { /* keep local theme */ });
-  }, [enabled]);
+  }, [enabled, deviceId]);
 
   useEffect(() => {
     if (!enabled) return undefined;
     fetchTheme();
     return onLayoutChanged(fetchTheme);
   }, [enabled, fetchTheme]);
-  // Cross-device prefs push: any /preferences mutation publishes 'prefs'.
+  // Desktop app-theme push (the sync source) re-runs the fetch...
   useTopicCallback('prefs', enabled, fetchTheme);
+  // ...as does a change to THIS panel's own device record (e.g. the dashboard
+  // editor patching the theme while the kiosk is live). Filter to our id.
+  useTopicCallback('panel/device', enabled, (raw) => {
+    const frame = raw as { deviceId?: string } | null;
+    if (frame?.deviceId === deviceId) fetchTheme();
+  });
 
-  // `persist=false` (e.g. simulator test devices) keeps every change
-  // local-only - the preview reacts but no /preferences write is made.
-  const persistPatch = useCallback((patch: Parameters<typeof savePreferences>[0]) => {
-    if (!persist) return;
-    savePreferences(patch)
+  // `persist=false` (e.g. simulator test devices) or a missing deviceId keeps
+  // every change local-only - the preview reacts but no write is made. Writes
+  // go to THIS panel's device record so they never touch another surface.
+  const persistPatch = useCallback((patch: PanelDevicePatch) => {
+    if (!persist || !deviceId) return;
+    patchPanelDevice(deviceId, patch)
       .then(() => broadcastLayoutChanged())
       .catch(() => {});
-  }, [persist]);
+  }, [persist, deviceId]);
 
   const commitThemeSync = useCallback((synced: boolean) => {
     setTheme(prev => ({ ...prev, themeSyncWithDesktop: synced }));
-    persistPatch({ panel: { themeSyncWithDesktop: synced } });
+    persistPatch({ themeSyncWithDesktop: synced });
   }, [persistPatch]);
 
   const commitThemeMode = useCallback((mode: ThemeMode) => {
     const nextMode = normalizePanelThemeMode(mode);
     setTheme(prev => ({ ...prev, themeMode: nextMode }));
-    persistPatch({ panel: { themeMode: nextMode } });
+    persistPatch({ themeMode: nextMode });
   }, [persistPatch]);
 
   const commitAccentSync = useCallback((synced: boolean) => {
@@ -226,16 +246,14 @@ export function usePanelTheme(enabled = true, persist = true) {
       accentColor: !synced && !prev.accentColor ? prev.appAccentColor || DEFAULT_ACCENT : prev.accentColor,
     }));
     persistPatch({
-      panel: {
-        accentSyncWithDesktop: synced,
-        ...(!synced ? { accentColor: nextAccent || DEFAULT_ACCENT } : {}),
-      },
+      accentSyncWithDesktop: synced,
+      ...(!synced ? { accentColor: nextAccent || DEFAULT_ACCENT } : {}),
     });
   }, [persistPatch]);
 
   const commitAccent = useCallback((hex: string) => {
     setTheme(prev => ({ ...prev, accentColor: hex }));
-    persistPatch({ panel: { accentColor: hex } });
+    persistPatch({ accentColor: hex });
   }, [persistPatch]);
 
   const commitBackground = useCallback((hex: string) => {
@@ -244,42 +262,42 @@ export function usePanelTheme(enabled = true, persist = true) {
     // the same value for both since no counterpart can be derived.
     const { dark, light } = panelBackgroundPair(hex);
     setTheme(prev => ({ ...prev, backgroundColor: dark, backgroundColorLight: light }));
-    persistPatch({ panel: { backgroundColor: dark, backgroundColorLight: light } });
+    persistPatch({ backgroundColor: dark, backgroundColorLight: light });
   }, [persistPatch]);
 
   const commitBackgroundMode = useCallback((mode: PanelBackgroundMode) => {
     setTheme(prev => ({ ...prev, backgroundMode: mode }));
-    persistPatch({ panel: { backgroundMode: mode } });
+    persistPatch({ backgroundMode: mode });
   }, [persistPatch]);
 
   const commitBackgroundEffect = useCallback((effect: string) => {
     const nextEffect = normalizePanelBackgroundEffect(effect);
     setTheme(prev => ({ ...prev, backgroundEffect: nextEffect }));
-    persistPatch({ panel: { backgroundEffect: nextEffect } });
+    persistPatch({ backgroundEffect: nextEffect });
   }, [persistPatch]);
 
   const commitBackgroundTemplate = useCallback((template: number) => {
     const nextTemplate = normalizePanelBackgroundTemplate(template);
     setTheme(prev => ({ ...prev, backgroundTemplate: nextTemplate }));
-    persistPatch({ panel: { backgroundTemplate: nextTemplate } });
+    persistPatch({ backgroundTemplate: nextTemplate });
   }, [persistPatch]);
 
   const commitBackgroundOpacity = useCallback((opacity: number) => {
     const nextOpacity = normalizePanelBackgroundOpacity(opacity);
     setTheme(prev => ({ ...prev, backgroundOpacity: nextOpacity }));
-    persistPatch({ panel: { backgroundOpacity: nextOpacity } });
+    persistPatch({ backgroundOpacity: nextOpacity });
   }, [persistPatch]);
 
   const commitWidgetOpacity = useCallback((opacity: number) => {
     const nextOpacity = normalizePanelWidgetOpacity(opacity);
     setTheme(prev => ({ ...prev, widgetOpacity: nextOpacity }));
-    persistPatch({ panel: { widgetOpacity: nextOpacity } });
+    persistPatch({ widgetOpacity: nextOpacity });
   }, [persistPatch]);
 
   const commitWidgetLabels = useCallback((enabled: boolean) => {
     const next = normalizePanelWidgetLabels(enabled);
     setTheme(prev => ({ ...prev, widgetLabels: next }));
-    persistPatch({ panel: { widgetLabels: next } });
+    persistPatch({ widgetLabels: next });
   }, [persistPatch]);
 
   return {

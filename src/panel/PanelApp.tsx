@@ -174,13 +174,14 @@ function PanelKioskContent({ deviceId, surface }: { deviceId: string; surface: P
   const layoutState = usePanelLayout(deviceId, surface);
   return (
     <ErrorBoundary label="Panel">
-      <PanelContent surface={surface} layoutState={layoutState} />
+      <PanelContent surface={surface} deviceId={deviceId} layoutState={layoutState} />
     </ErrorBoundary>
   );
 }
 
 export function PanelContent({
   surface,
+  deviceId,
   layoutState,
   embedded = false,
   simulator = false,
@@ -194,6 +195,7 @@ export function PanelContent({
   onSectionNavigate,
 }: {
   surface: PanelSurface;
+  deviceId?: string;
   layoutState: PanelLayoutState;
   embedded?: boolean;
   simulator?: boolean;
@@ -217,7 +219,7 @@ export function PanelContent({
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
   const { layout, loaded, setLayout } = layoutState;
-  const panelTheme = usePanelTheme(kioskBehavior);
+  const panelTheme = usePanelTheme(deviceId ?? null, kioskBehavior);
   // Simulator gets its theme from the parent via postMessage, so the
   // local fetch path stays disabled and `effectiveTheme` swaps in the
   // parent-supplied PanelThemeState wherever the live runtime would
