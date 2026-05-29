@@ -438,6 +438,15 @@
 // padding to breathe.
 .panelRoot[data-surface='q60'] .cellScaler {
   --_s: 2.5;
+  // Q60 cells are non-square (cell-size ~236 wide vs row-size ~203 tall),
+  // and --panel-content-scale = min(cell, row) collapses --_content to the
+  // shorter (height) axis. The base cellScaler then sizes its content box
+  // from that single value, so content renders ~414px wide inside a 480px
+  // card — a centered ~33px left/right gap that reads as a border, and any
+  // widget (gallery, etc.) paints narrower than its card. Size the content
+  // box per-axis from the real cell dimensions so it fills the full card.
+  --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
+  --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
 }
 
 .panelRoot[data-surface='desktop'] {
