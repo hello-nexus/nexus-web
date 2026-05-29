@@ -42,13 +42,17 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
   const [artAsset, setArtAsset] = useState<MediaArtAsset>({ key: '', signature: '', url: '' });
   const showControls = surface ? surfaceSupportsTouch(surface) : true;
   const compact = widget.size === '2x2';
-  const volumeBridge = useSystemVolume(showControls && !compact);
+  const tall = widget.size === '2x4';
+  // Tall (2x4) is a portrait now-playing card with art on top, metadata
+  // and controls centered below — no room for the persistent volume
+  // mixer rail without crowding the layout.
+  const volumeBridge = useSystemVolume(showControls && !compact && !tall);
   const { state: volume, previewVolume, commitVolume, setMuted } = volumeBridge;
 
   const active = pickActive(sessions);
   const activeKey = active?.key ?? '';
   const artSignature = mediaArtSignature(active?.session);
-  const showVolume = showControls && !compact && volume.supported;
+  const showVolume = showControls && !compact && !tall && volume.supported;
   const artUrl = artAsset.key === activeKey && artAsset.signature === artSignature ? artAsset.url : '';
 
   useEffect(() => {
@@ -79,7 +83,6 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
     controlMedia(active.key, action).catch(() => {});
   };
 
-  const tall = widget.size === '2x4';
   if (!active) {
     return (
       <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${tall ? styles.tall : ''} ${showControls ? '' : styles.statusOnly}`}>
