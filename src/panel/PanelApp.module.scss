@@ -376,11 +376,11 @@
   --panel-page-padding-left: 8px;
   --panel-card-radius: var(--radius-lg);
   --panel-cell-size: calc((100vw - 2 * var(--panel-page-padding) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
-  --panel-row-size: calc((100dvh - 2 * var(--panel-page-padding) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
+  --panel-row-size: calc((100vh - 2 * var(--panel-page-padding) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
   --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
   width: 100vw;
-  height: 100dvh;
-  min-height: 100dvh;
+  height: 100vh;
+  min-height: 100vh;
   padding: 0;
   overflow: hidden;
 }
@@ -392,12 +392,13 @@
 
 .panelRoot[data-surface='q60'] .grid {
   // Fill the page height and let rows divide that height equally
-  // (`1fr` per row). The previous height-from-calc-of-100dvh approach
-  // assumed 100dvh on the Q60 WebView matches the visible viewport,
-  // but on chromium 83 + Android System WebView 100dvh resolves to
-  // the layout viewport and excludes safe areas / chrome we don't
-  // actually have, so rows ended up smaller than expected and both
-  // widgets bunched at the top quarter of the screen.
+  // (`1fr` per row). The height flows down from the surface root, which
+  // is sized with 100vh — NOT 100dvh. The Q60 ships Android System
+  // WebView v83 (Chrome 83); dynamic-viewport units (dvh/svh/lvh) only
+  // landed in Chrome 108, so 100dvh on this WebView doesn't resolve to
+  // the visible kiosk viewport — the root came up shorter than the
+  // screen and both widgets bunched into the top quarter. 100vh is the
+  // full chromeless WebView height and is honored on Chrome 83.
   height: 100%;
   grid-template-rows: repeat(var(--panel-rows), 1fr);
   grid-auto-rows: 1fr;
@@ -898,7 +899,10 @@
   --panel-gap: 8px;
   --panel-page-padding: 8px;
   --panel-cell-size: calc((100vw - 2 * var(--panel-page-padding) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
-  --panel-row-size: calc((100dvh - 2 * var(--panel-page-padding) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
+  // 100vh, not 100dvh: the Q60 editor backdrop shares the live grid's
+  // Chrome-83 WebView, where dynamic-viewport units (Chrome 108+) don't
+  // resolve to the visible viewport — keep in lockstep with the q60 grid root.
+  --panel-row-size: calc((100vh - 2 * var(--panel-page-padding) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
   --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
 }
 
