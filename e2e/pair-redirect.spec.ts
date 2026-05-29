@@ -6,33 +6,19 @@ test.describe('/r/pair landing page', () => {
     await expect(page.getByText('Invalid pairing link')).toBeVisible();
   });
 
-  test('with a complete pairing link, transitions from "Opening Nexus..." to the choice screen', async ({ page }) => {
-    await page.goto('/r/pair?host=192.168.1.50&port=9443&pair=TESTTOKEN&fp=abc');
-
-    // Initial probe stage waits ~1.5s for iOS to take over the URL.
-    await expect(page.getByText('Opening Nexus...')).toBeVisible();
-
-    // After the probe window, the SPA flips to the install/continue screen.
-    await expect(page.getByText('Pair phone with Nexus')).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole('link', { name: /install the app/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /continue in browser/i })).toBeVisible();
-  });
-
-  test('"Continue in browser" navigates to the plain-HTTP LAN URL on httpPort', async ({ page, context }) => {
-    // Intercept any nav to the LAN host so the test doesn't hang waiting for
-    // a 30s TCP timeout, and capture the URL the SPA tried to navigate to.
+  test('with a complete pairing link, auto-redirects to the plain-HTTP LAN URL on httpPort', async ({ page, context }) => {
+    // Intercept any nav to the LAN host so the test doesn't hang waiting for a
+    // 30s TCP timeout, and capture the URL the SPA redirected to.
     const navAttempts: string[] = [];
     await context.route('http://192.168.1.50:9400/**', async (route) => {
       navAttempts.push(route.request().url());
       await route.fulfill({ status: 200, contentType: 'text/plain', body: 'intercepted' });
     });
 
-    await page.goto('/r/pair?host=192.168.1.50&port=9443&httpPort=9400&pair=TESTTOKEN');
+    // The chooser is bypassed: with a valid link the page redirects straight to
+    // the browser panel, no "open in app vs. browser" prompt.
+    await page.goto('/r/pair?host=192.168.1.50&port=9443&httpPort=9400&pair=TESTTOKEN', { waitUntil: 'commit' });
 
-    const continueBtn = page.getByRole('button', { name: /continue in browser/i });
-    await expect(continueBtn).toBeVisible({ timeout: 10_000 });
-
-    await continueBtn.click();
     await expect.poll(() => navAttempts.length, { timeout: 10_000 }).toBeGreaterThan(0);
 
     const target = navAttempts[navAttempts.length - 1];
@@ -41,21 +27,16 @@ test.describe('/r/pair landing page', () => {
     expect(target).toContain('pair=TESTTOKEN');
   });
 
-  test('Continue in browser falls back to port 9400 when the QR predates httpPort', async ({ page, context }) => {
+  test('auto-redirect falls back to port 9400 when the QR predates httpPort', async ({ page, context }) => {
     const navAttempts: string[] = [];
     await context.route('http://192.168.1.50:9400/**', async (route) => {
       navAttempts.push(route.request().url());
       await route.fulfill({ status: 200, contentType: 'text/plain', body: 'intercepted' });
     });
 
-    await page.goto('/r/pair?host=192.168.1.50&port=9443&pair=TESTTOKEN');
+    await page.goto('/r/pair?host=192.168.1.50&port=9443&pair=TESTTOKEN', { waitUntil: 'commit' });
 
-    const continueBtn = page.getByRole('button', { name: /continue in browser/i });
-    await expect(continueBtn).toBeVisible({ timeout: 10_000 });
-
-    await continueBtn.click();
     await expect.poll(() => navAttempts.length, { timeout: 10_000 }).toBeGreaterThan(0);
-
     expect(navAttempts[navAttempts.length - 1]).toContain('192.168.1.50:9400/panel/phone');
   });
 });
