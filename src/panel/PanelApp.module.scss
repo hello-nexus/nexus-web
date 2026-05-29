@@ -336,6 +336,14 @@
   // makes the rendering scaling-aware on the kiosk AND keeps the simulator
   // iframe faithful at whatever canvas size the kiosk reports.
   --panel-cell-size: calc((100vw - (var(--panel-columns) - 1) * var(--panel-gap, 10px)) / var(--panel-columns));
+  // Y70 widgets run full-bleed horizontally: no left/right page padding and
+  // no per-card horizontal margin, so the 4-column grid spans the entire
+  // viewport width. Keep 8px top/bottom so the first/last row still breathes.
+  --panel-widget-card-margin-x: 0px;
+  --panel-page-padding-top: 8px;
+  --panel-page-padding-right: 0px;
+  --panel-page-padding-bottom: 8px;
+  --panel-page-padding-left: 0px;
 }
 
 .panelRoot[data-surface='phone'] {
@@ -494,10 +502,13 @@
     --panel-gap: 8px;
     --panel-page-padding: 8px;
     --panel-page-padding-top: 8px;
-    --panel-page-padding-right: 8px;
+    // Full-bleed left/right (matches the y70 surface block): widgets reach
+    // the screen edges so the 4-column grid uses the full viewport width.
+    --panel-page-padding-right: 0px;
     --panel-page-padding-bottom: 8px;
-    --panel-page-padding-left: 8px;
-    --panel-cell-size: calc((100vw - 2 * var(--panel-page-padding) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
+    --panel-page-padding-left: 0px;
+    --panel-widget-card-margin-x: 0px;
+    --panel-cell-size: calc((100vw - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
   }
 }
 
