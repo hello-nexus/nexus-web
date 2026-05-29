@@ -121,13 +121,13 @@ export const MODES: { key: LightingMode; labelKey: string }[] = [
 ];
 
 // Simple fills share three tweaks: gradient boldness (0 = flat solid colour,
-// max = strong dark->light ramp), noise amount (0 = clean, max = strong soft
-// cloudy wash), and the gradient's rotation in degrees (0 = vertical). One
-// shared array since every simple colour is the same shader; it's read-only
-// so sharing the reference is safe.
+// max = strong dark->light ramp), wave amount (0 = still, max = a gentle wave
+// flowing along the gradient direction), and the gradient's rotation in degrees
+// (0 = vertical). One shared array since every simple colour is the same
+// shader; it's read-only so sharing the reference is safe.
 const SIMPLE_PARAMS: EffectParamDef[] = [
   { name: 'u_gradient', label: 'Gradient', min: 0, max: 1,   step: 0.02, defaultValue: 0.6 },
-  { name: 'u_noise',    label: 'Noise',    min: 0, max: 1,   step: 0.02, defaultValue: 0.55 },
+  { name: 'u_wave',     label: 'Wave',     min: 0, max: 1,   step: 0.02, defaultValue: 0.5 },
   { name: 'u_rotation', label: 'Rotation', min: 0, max: 360, step: 5,    defaultValue: 0 },
 ];
 
