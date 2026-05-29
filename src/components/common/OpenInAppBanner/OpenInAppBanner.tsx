@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { NexusMark } from '../../icons/NexusBrand';
 
 // Bumping the version invalidates older "dismissed" state, e.g. after the app
 // ships to the App Store and we want to re-pitch users who dismissed during dev.
@@ -72,16 +73,7 @@ export function OpenInAppBanner() {
         </svg>
       </button>
       <div style={icon} aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-          <rect x="6" y="4" width="20" height="24" rx="3" fill="currentColor" />
-          <rect x="2" y="9" width="5" height="2.5" rx="0.8" fill="currentColor" />
-          <rect x="2" y="14.75" width="5" height="2.5" rx="0.8" fill="currentColor" />
-          <rect x="2" y="20.5" width="5" height="2.5" rx="0.8" fill="currentColor" />
-          <rect x="25" y="9" width="5" height="2.5" rx="0.8" fill="currentColor" />
-          <rect x="25" y="14.75" width="5" height="2.5" rx="0.8" fill="currentColor" />
-          <rect x="25" y="20.5" width="5" height="2.5" rx="0.8" fill="currentColor" />
-          <path d="M18.5 7L10 17h5l-1.5 8L22 15h-5l1.5-8z" fill="#0a0a10" />
-        </svg>
+        <NexusMark size={22} />
       </div>
       <div style={text}>
         <div style={title}>Nexus for iPhone</div>
@@ -102,10 +94,10 @@ const banner: React.CSSProperties = {
   alignItems: 'center',
   gap: 12,
   padding: '10px 14px 10px 36px',
-  background: '#111118',
-  borderBottom: '1px solid #2c2c36',
-  color: '#f4f4f5',
-  fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  background: 'var(--bg-elevated)',
+  borderBottom: '1px solid var(--border)',
+  color: 'var(--text)',
+  fontFamily: 'var(--font-sans)',
 };
 
 const dismissBtn: React.CSSProperties = {
@@ -120,8 +112,8 @@ const dismissBtn: React.CSSProperties = {
   justifyContent: 'center',
   background: 'transparent',
   border: 'none',
-  borderRadius: 6,
-  color: '#a0a0b0',
+  borderRadius: 'var(--radius-sm)',
+  color: 'var(--text-dim)',
   cursor: 'pointer',
 };
 
@@ -131,9 +123,9 @@ const icon: React.CSSProperties = {
   justifyContent: 'center',
   width: 34,
   height: 34,
-  borderRadius: 8,
-  background: '#1c1c26',
-  color: '#f4f4f5',
+  borderRadius: 'var(--radius-sm)',
+  background: 'var(--bg-card)',
+  color: 'var(--text)',
   flexShrink: 0,
 };
 
@@ -150,14 +142,14 @@ const title: React.CSSProperties = {
 
 const sub: React.CSSProperties = {
   fontSize: 12,
-  color: '#a0a0b0',
+  color: 'var(--text-dim)',
 };
 
 const openBtn: React.CSSProperties = {
   padding: '8px 14px',
-  borderRadius: 8,
-  background: '#7c6ef8',
-  color: '#fff',
+  borderRadius: 'var(--radius-sm)',
+  background: 'var(--accent)',
+  color: 'var(--accent-text)',
   border: 'none',
   fontWeight: 600,
   fontSize: 13,

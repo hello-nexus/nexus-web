@@ -94,7 +94,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   // brightness, orientation, screen-on, and auto-launch all read/write the
   // service's persisted state. Swapping a real Y70 in for the simulator (or
   // vice versa) picks up exactly the same configuration.
-  const panelTheme = usePanelTheme();
+  const panelTheme = usePanelTheme(editingDeviceId);
   const theme = panelTheme.theme;
   const effectiveThemeMode = theme.themeSyncWithDesktop ? theme.appThemeMode : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
