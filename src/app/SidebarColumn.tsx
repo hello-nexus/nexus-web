@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
 import { PinOff } from 'lucide-react';
-import { Sidebar } from '../components/common/Sidebar/Sidebar';
+import { Sidebar, SidebarNavButton } from '../components/common/Sidebar/Sidebar';
 import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDropdown';
+import { NAV_ICONS } from './sidebarNav';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useUiSettings } from '../hooks/useUiSettings';
 import type { ServiceState } from '../hooks/useServiceState';
@@ -52,6 +53,7 @@ interface SidebarColumnProps {
   profiles: UseProfilesResult;
   onPreferencesChanged: (prefs: Preferences) => void;
   onNavigateSettings: () => void;
+  settingsActive: boolean;
   remoteControlEnabled: boolean;
   phoneSubscribers: number;
   onPairPhoneOpen: () => void;
@@ -81,6 +83,7 @@ export function SidebarColumn({
   profiles,
   onPreferencesChanged,
   onNavigateSettings,
+  settingsActive,
   remoteControlEnabled,
   phoneSubscribers,
   onPairPhoneOpen,
@@ -185,6 +188,15 @@ export function SidebarColumn({
           />
         }
       />
+      <div className={styles.sidebarSettingsItem}>
+        <SidebarNavButton
+          icon={NAV_ICONS.settings}
+          label={t('nav.settings')}
+          active={settingsActive}
+          compact={compact}
+          onClick={onNavigateSettings}
+        />
+      </div>
       <PairPhoneButton
         connectedCount={phoneSubscribers}
         remoteEnabled={remoteControlEnabled}

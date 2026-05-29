@@ -120,6 +120,35 @@ function SidebarRow({ item, active, compact, serviceState, onClick, onContextMen
   ) : button;
 }
 
+// Standalone nav button reusing the exact item-row chrome (icon + label,
+// hover/active highlight, compact tooltip). Used for one-off entries outside
+// the sortable apps list — e.g. the bottom-pinned Settings button in the
+// sidebar column — so they read identically to the nav rows above.
+export function SidebarNavButton({ icon, label, active, compact, onClick }: {
+  icon: ReactNode;
+  label: string;
+  active: boolean;
+  compact: boolean;
+  onClick: () => void;
+}) {
+  const button = (
+    <button
+      type="button"
+      className={classNames(styles.item, {
+        [styles.active]: active,
+        [styles.itemCompact]: compact,
+      })}
+      onClick={onClick}
+      aria-label={compact ? label : undefined}
+      aria-pressed={active}
+    >
+      <span className={styles.icon}>{icon}</span>
+      {!compact && <span className={styles.label}>{label}</span>}
+    </button>
+  );
+  return compact ? <HoverTooltip body={label} side="right">{button}</HoverTooltip> : button;
+}
+
 function SortableRow(props: Omit<RowProps, 'sortableProps'>) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: props.item.key });

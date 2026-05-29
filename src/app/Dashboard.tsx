@@ -34,7 +34,6 @@ import type { ComponentCategory, ComponentOption } from '../types/builder';
 import { NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
 import {
   TopRightNavButton,
-  TopRightSettingsButton,
   PageVersionLabel,
 } from './sidebar';
 import { SidebarColumn } from './SidebarColumn';
@@ -426,11 +425,6 @@ export function Dashboard() {
             <TopRightNavButton direction="forward" disabled={!canGoForward} onClick={goForward} />
           </>
         )}
-        <TopRightSettingsButton
-          active={section === 'system' && activeView === 'settings'}
-          onClick={handleNavigateSettings}
-          icon={NAV_ICONS['settings']}
-        />
         <PageVersionLabel />
         {/* Body row: sidebar (/system only) + content */}
         <div className={styles.bodyRow}>
@@ -450,6 +444,7 @@ export function Dashboard() {
               profiles={profilesHook}
               onPreferencesChanged={handlePreferencesChanged}
               onNavigateSettings={handleNavigateSettings}
+              settingsActive={section === 'system' && activeView === 'settings'}
               remoteControlEnabled={remoteControlEnabled}
               phoneSubscribers={serviceState.panel?.phoneSubscribers ?? 0}
               onPairPhoneOpen={() => setPairPhoneOpen(true)}

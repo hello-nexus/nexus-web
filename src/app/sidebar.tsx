@@ -7,7 +7,6 @@ import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { useUiSettings } from '../hooks/useUiSettings';
 import { useConflictApps } from '../hooks/useConflictApps';
 import type { ConnectionState } from '../hooks/useServiceStatus';
-import { useTranslation } from '../lib/i18n';
 import styles from '../App.module.scss';
 
 // ── Sidebar brand (logo + wordmark at top of sidebar) ───────────────────
@@ -157,28 +156,6 @@ export function TopRightNavButton({ direction, disabled, onClick }: {
         <span className={styles.topRightActionIcon} aria-hidden>
           <Icon size={14} />
         </span>
-      </button>
-    </HoverTooltip>
-  );
-}
-
-export function TopRightSettingsButton({ active, onClick, icon }: {
-  active: boolean;
-  onClick: () => void;
-  icon: ReactNode;
-}) {
-  const { t } = useTranslation();
-  const label = t('nav.settings');
-  return (
-    <HoverTooltip body={label} side="bottom">
-      <button
-        type="button"
-        className={classNames(styles.topRightAction, styles.topRightSettings, { [styles.topRightActionActive]: active })}
-        onClick={onClick}
-        aria-label={label}
-        aria-pressed={active}
-      >
-        <span className={styles.topRightActionIcon} aria-hidden>{icon}</span>
       </button>
     </HoverTooltip>
   );

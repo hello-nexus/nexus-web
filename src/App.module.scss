@@ -644,6 +644,14 @@
 
 // ── Sidebar footer ───────────────────────────────────────────────────────
 
+// Bottom-pinned Settings entry. The nav above has flex:1 so it fills and
+// anchors this cluster to the bottom; the 0.5rem side inset matches the
+// .nav wrapper so the row lines up x-for-x with the apps/devices nav rows.
+.sidebarSettingsItem {
+  flex-shrink: 0;
+  padding: 0 0.5rem;
+}
+
 .phonePairWrap {
   margin-top: auto;
   padding: 0.55rem 0.75rem 0.4rem;
