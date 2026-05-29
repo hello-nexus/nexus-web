@@ -1320,6 +1320,8 @@ export function PanelContent({
         data-surface={surface}
         data-background-mode={embedded ? 'solid' : effectiveTheme.backgroundMode}
         data-show-widget-labels={effectiveTheme.widgetLabels ? 'true' : 'false'}
+        data-widget-blur={effectiveTheme.widgetBlur ? 'true' : 'false'}
+        data-widget-opaque={effectiveTheme.widgetOpacity >= 1 ? 'true' : undefined}
         data-context-menu-open={contextMenuWidgetId ? 'true' : undefined}
         data-editing={surface === 'phone' && sheetMode === 'settings' ? 'true' : undefined}
         data-connection-intro={connectionIntroHost ? 'active' : undefined}
@@ -1601,6 +1603,7 @@ export function PanelContent({
           onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
+          onThemeWidgetBlurCommit={panelTheme.commitWidgetBlur}
           machineName={machineName}
           onMachineNameCommit={onMachineNameCommit}
           onAdd={addWidget}

@@ -55,6 +55,11 @@ import { PanelMixerSliderPreview } from './PanelMixerSliderPreview';
 import { TextStyles } from './TextStyles';
 import { SurfaceStyles } from './SurfaceStyles';
 import { MicroBar } from '../panel/widgets/monitoring/MicroBar';
+import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
+// Side-effect: pulls the global `.panel-root { --panel-*: … }` token rules into
+// the Storybook bundle so the panel-scoped preview below resolves its vars.
+// Idempotent — PanelDevicePage imports the same sheet.
+import '../panel/styles/tokens.scss';
 import styles from './StorybookModal.module.scss';
 
 /*
@@ -773,6 +778,42 @@ function PreviewMicroBars() {
   );
 }
 
+function PreviewPanelThemeSettings() {
+  const [theme, setTheme] = useState<PanelThemeSettingsState>({
+    appThemeMode: 'dark', themeSyncWithDesktop: false, themeMode: 'dark',
+    appAccentColor: '#8b5cf6', accentSyncWithDesktop: false, accentColor: '#8b5cf6',
+    backgroundColor: '', backgroundColorLight: '',
+    // Solid keeps the (thumbnail-fetching) animation picker out of the preview.
+    backgroundMode: 'solid', backgroundEffect: 'aurora', backgroundTemplate: 0,
+    backgroundOpacity: 0.4, widgetOpacity: 1, widgetLabels: true, widgetBlur: true,
+  });
+  const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
+  return (
+    <div className="panel-root" style={{ width: 340, maxWidth: '100%' }}>
+      <PanelThemeSettings
+        theme={theme}
+        resolvedThemeMode="dark"
+        onThemeSyncCommit={v => set({ themeSyncWithDesktop: v })}
+        onThemeModeCommit={m => set({ themeMode: m })}
+        onAccentSyncCommit={v => set({ accentSyncWithDesktop: v })}
+        onAccentPreview={hex => set({ accentColor: hex })}
+        onAccentCommit={hex => set({ accentColor: hex })}
+        onBackgroundPreview={hex => set({ backgroundColor: hex })}
+        onBackgroundCommit={hex => set({ backgroundColor: hex })}
+        onBackgroundModeCommit={mode => set({ backgroundMode: mode })}
+        onBackgroundEffectCommit={fx => set({ backgroundEffect: fx })}
+        onBackgroundTemplateCommit={n => set({ backgroundTemplate: n })}
+        onBackgroundOpacityPreview={o => set({ backgroundOpacity: o })}
+        onBackgroundOpacityCommit={o => set({ backgroundOpacity: o })}
+        onWidgetOpacityPreview={o => set({ widgetOpacity: o })}
+        onWidgetOpacityCommit={o => set({ widgetOpacity: o })}
+        onWidgetLabelsCommit={v => set({ widgetLabels: v })}
+        onWidgetBlurCommit={v => set({ widgetBlur: v })}
+      />
+    </div>
+  );
+}
+
 /* ── Registry ────────────────────────────────────────────────────────────── */
 
 export const REGISTRY: StorybookEntry[] = [
@@ -1127,5 +1168,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/common/SettingsRow/SettingsRow.tsx',
     description: 'Form-row primitives every panel widget settings pane composes. SettingsToggle wraps the canonical Toggle; SettingsSelect wraps Select. Section titles and a base SettingsRow handle layout.',
     notes: 'No live preview - the panel widget settings panes are widget-specific.',
+  },
+  {
+    name: 'PanelThemeSettings', category: 'panel-kit',
+    filePath: 'src/panel/editor/PanelThemeSettings.tsx',
+    description: 'Per-panel theme editor (Widgets / Theme / Accent / Background) shown in the Y70 touch editor sheet and the dashboard device Settings tab. Section headers match the Y70 device Settings (.device-modal-section): uppercase, --type-small / --weight-heading, with a full-width rule underneath.',
+    Preview: PreviewPanelThemeSettings,
+    notes: 'Preview is in solid background mode; switching to Animations hits the live thumbnail service, so the grid is empty in Storybook.',
   },
 ];

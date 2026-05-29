@@ -628,8 +628,26 @@
     filter 140ms ease-out;
 }
 
-.panelRoot[data-background-mode='shader'] .cell {
-  backdrop-filter: blur(10px);
+// Frosted-glass widget blur, toggled by the widget settings (data-widget-blur).
+// Only meaningful over the animated background — a blurred solid colour is
+// identical to the solid colour — so it's gated to shader mode, leaving solid
+// panels with no backdrop pass to recompute on swipe. Hard radius, never
+// animated: tweening backdrop-filter re-runs an uncacheable gaussian every
+// frame and janks on the panel SoCs.
+//
+// Write ONLY the unprefixed property: lightningcss autoprefixes it to emit
+// both `backdrop-filter` AND `-webkit-backdrop-filter`. Hand-writing the
+// `-webkit-` form makes lightningcss drop the unprefixed one as "redundant",
+// which then renders nothing on Blink (WebView2 / Android WebView) — Blink
+// does NOT recognise `-webkit-backdrop-filter`. The prefixed form is only
+// for iOS WKWebView, and the autoprefixer adds it.
+//
+// `:not([data-widget-opaque='true'])` skips the pass when the card is fully
+// opaque (100% widget opacity): the blurred backdrop would be 100% hidden
+// behind the card surface, so there's nothing to see and no reason to pay
+// for it. The toggle setting is unchanged — this is a pure render-time skip.
+.panelRoot[data-widget-blur='true'][data-background-mode='shader']:not([data-widget-opaque='true']) .cell {
+  backdrop-filter: blur(16px);
 }
 
 .panelRoot[data-surface='phone'] .cell {

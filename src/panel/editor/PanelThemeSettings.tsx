@@ -39,6 +39,7 @@ export interface PanelThemeSettingsState {
   backgroundOpacity: number;
   widgetOpacity: number;
   widgetLabels: boolean;
+  widgetBlur: boolean;
 }
 
 export interface PanelThemeSettingsProps {
@@ -59,6 +60,7 @@ export interface PanelThemeSettingsProps {
   onWidgetOpacityPreview: (opacity: number) => void;
   onWidgetOpacityCommit: (opacity: number) => void;
   onWidgetLabelsCommit: (enabled: boolean) => void;
+  onWidgetBlurCommit: (enabled: boolean) => void;
   /** Hide the widget-labels toggle entirely. Single-widget surfaces (q-series)
    * lock labels off, so there's nothing for the user to choose. */
   hideWidgetLabelsToggle?: boolean;
@@ -89,6 +91,7 @@ export function PanelThemeSettings({
   onWidgetOpacityPreview,
   onWidgetOpacityCommit,
   onWidgetLabelsCommit,
+  onWidgetBlurCommit,
   hideWidgetLabelsToggle = false,
 }: PanelThemeSettingsProps) {
   const { t } = useTranslation();
@@ -116,6 +119,14 @@ export function PanelThemeSettings({
             />
           </div>
         )}
+        <div className={styles.themeToggleRow}>
+          <span>{label('panel.settings.widgetBlur', 'Widget blur')}</span>
+          <Toggle
+            checked={theme.widgetBlur}
+            onChange={onWidgetBlurCommit}
+            ariaLabel={label('panel.settings.widgetBlur', 'Widget blur')}
+          />
+        </div>
         <Slider
           orientation="stacked"
           label={label('panel.settings.widgetOpacity', 'Widget opacity')}

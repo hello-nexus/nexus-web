@@ -15,6 +15,7 @@ export const DEFAULT_PANEL_BACKGROUND_TEMPLATE = 0;
 export const DEFAULT_PANEL_BACKGROUND_OPACITY = 0.4;
 export const DEFAULT_PANEL_WIDGET_OPACITY = 1;
 export const DEFAULT_PANEL_WIDGET_LABELS = true;
+export const DEFAULT_PANEL_WIDGET_BLUR = true;
 
 export const PANEL_BACKGROUND_EFFECTS: EffectDef[] = EFFECTS.filter(effect => !effect.audio);
 
@@ -119,6 +120,11 @@ export function normalizePanelWidgetOpacity(value: number | null | undefined): n
 
 export function normalizePanelWidgetLabels(value: boolean | null | undefined): boolean {
   if (typeof value !== 'boolean') return DEFAULT_PANEL_WIDGET_LABELS;
+  return value;
+}
+
+export function normalizePanelWidgetBlur(value: boolean | null | undefined): boolean {
+  if (typeof value !== 'boolean') return DEFAULT_PANEL_WIDGET_BLUR;
   return value;
 }
 

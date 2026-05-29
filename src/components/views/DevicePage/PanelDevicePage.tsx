@@ -343,6 +343,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
                       onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
                       onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
+                      onWidgetBlurCommit={panelTheme.commitWidgetBlur}
                       hideWidgetLabelsToggle={singleWidget}
                     />
                   )}

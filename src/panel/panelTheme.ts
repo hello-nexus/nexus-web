@@ -12,12 +12,14 @@ import {
   DEFAULT_PANEL_BACKGROUND_EFFECT,
   DEFAULT_PANEL_BACKGROUND_OPACITY,
   DEFAULT_PANEL_BACKGROUND_TEMPLATE,
+  DEFAULT_PANEL_WIDGET_BLUR,
   DEFAULT_PANEL_WIDGET_LABELS,
   DEFAULT_PANEL_WIDGET_OPACITY,
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
   normalizePanelBackgroundTemplate,
+  normalizePanelWidgetBlur,
   normalizePanelWidgetLabels,
   normalizePanelWidgetOpacity,
   panelBackgroundPair,
@@ -161,6 +163,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     backgroundOpacity: DEFAULT_PANEL_BACKGROUND_OPACITY,
     widgetOpacity: DEFAULT_PANEL_WIDGET_OPACITY,
     widgetLabels: DEFAULT_PANEL_WIDGET_LABELS,
+    widgetBlur: DEFAULT_PANEL_WIDGET_BLUR,
   });
   const resolvedMode = useResolvedPanelThemeMode(
     theme.themeSyncWithDesktop ? theme.appThemeMode : theme.themeMode,
@@ -196,6 +199,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         backgroundOpacity: normalizePanelBackgroundOpacity(r?.backgroundOpacity),
         widgetOpacity: normalizePanelWidgetOpacity(r?.widgetOpacity),
         widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
+        widgetBlur: normalizePanelWidgetBlur(r?.widgetBlur),
       });
     }).catch(() => { /* keep local theme */ });
   }, [enabled, deviceId]);
@@ -300,6 +304,12 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     persistPatch({ widgetLabels: next });
   }, [persistPatch]);
 
+  const commitWidgetBlur = useCallback((enabled: boolean) => {
+    const next = normalizePanelWidgetBlur(enabled);
+    setTheme(prev => ({ ...prev, widgetBlur: next }));
+    persistPatch({ widgetBlur: next });
+  }, [persistPatch]);
+
   return {
     theme,
     commitThemeSync,
@@ -325,5 +335,6 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     )),
     commitWidgetOpacity,
     commitWidgetLabels,
+    commitWidgetBlur,
   };
 }

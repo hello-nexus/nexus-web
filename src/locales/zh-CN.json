@@ -583,6 +583,7 @@
   "panel.settings.syncWithDesktop": "与桌面同步",
   "panel.settings.title": "标题",
   "panel.settings.url": "URL",
+  "panel.settings.widgetBlur": "小组件模糊",
   "panel.settings.widgetLabels": "小组件标签",
   "panel.settings.widgetOpacity": "小组件不透明度",
   "panel.settings.widgets": "小组件",

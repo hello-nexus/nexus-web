@@ -47,6 +47,7 @@ export function PanelEditorSheet({
   onThemeWidgetOpacityPreview,
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
+  onThemeWidgetBlurCommit,
   machineName,
   onMachineNameCommit,
   onAdd,
@@ -84,6 +85,7 @@ export function PanelEditorSheet({
   onThemeWidgetOpacityPreview: (opacity: number) => void;
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
+  onThemeWidgetBlurCommit: (enabled: boolean) => void;
   machineName: string;
   onMachineNameCommit: (next: string) => void;
   onAdd: (type: string, size: PanelWidgetSize) => void;
@@ -316,6 +318,7 @@ export function PanelEditorSheet({
               onWidgetOpacityPreview={onThemeWidgetOpacityPreview}
               onWidgetOpacityCommit={onThemeWidgetOpacityCommit}
               onWidgetLabelsCommit={onThemeWidgetLabelsCommit}
+              onWidgetBlurCommit={onThemeWidgetBlurCommit}
             />
           </div>
         )}

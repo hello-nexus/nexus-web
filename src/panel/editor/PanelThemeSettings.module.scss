@@ -10,13 +10,26 @@
   gap: 10px;
 }
 
+// Matches the Y70 device Settings section header (`.device-modal-section`):
+// uppercase, --type-small / --weight-heading, 0.08em tracking, with a full-
+// width rule underneath.
+//
+// Tokens MUST fall back to the app globals (--text-dim / --border): this pane
+// renders in the dashboard device-Settings tab WITHOUT a `.panel-root`
+// ancestor, so the panel aliases (--panel-text-muted / --panel-border) are
+// undefined there — and an undefined custom prop makes `color`/`border-bottom`
+// invalid, which is why the line and colour silently vanished. The fallback
+// resolves to --text-dim/--border in the dashboard (identical to
+// .device-modal-section, so they match side by side) and to the theme-aware
+// panel aliases inside the kiosk, where `.panel-root` defines them.
 .themeSectionTitle {
-  color: var(--panel-text-faint);
-  font-size: 10px;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 0;
+  color: var(--panel-text-muted, var(--text-dim));
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--panel-border, var(--border));
 }
 
 .themeModeTabs,

@@ -37,6 +37,7 @@ export interface PanelDeviceRecord {
   backgroundOpacity?: number;
   widgetOpacity?: number;
   widgetLabels?: boolean;
+  widgetBlur?: boolean;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   firstSeenAt: number;
@@ -57,6 +58,7 @@ export interface PanelDevicePatch {
   backgroundOpacity?: number;
   widgetOpacity?: number;
   widgetLabels?: boolean;
+  widgetBlur?: boolean;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   capabilities?: PanelDeviceCapabilitiesDto;
