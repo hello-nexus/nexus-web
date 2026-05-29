@@ -377,14 +377,14 @@
   --panel-columns: 2;
   --panel-rows: 4;
   --panel-gap: 8px;
-  --panel-page-padding: 8px;
-  --panel-page-padding-top: 8px;
-  // Edge-to-edge horizontally: the Q60 viewport is slightly wider than two
-  // square cells, so any left/right page padding or card margin-x reads as a
-  // border. Zero both so the 2-column grid spans the full screen width (top/
-  // bottom padding stays). cell-size drops the horizontal-padding term to match.
+  // Fully edge-to-edge: the Q60 is a single-widget immersive surface, so any
+  // page padding or card margin reads as a border. Zero all four sides + the
+  // card margin so the widget fills the entire screen. The row-size + cell-size
+  // calcs below drop the padding terms to match (no inset to subtract).
+  --panel-page-padding: 0px;
+  --panel-page-padding-top: 0px;
   --panel-page-padding-right: 0px;
-  --panel-page-padding-bottom: 8px;
+  --panel-page-padding-bottom: 0px;
   --panel-page-padding-left: 0px;
   --panel-widget-card-margin-x: 0px;
   --panel-card-radius: var(--radius-lg);
