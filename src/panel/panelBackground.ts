@@ -6,6 +6,7 @@ import {
   type EffectState,
 } from '../types/lighting';
 import { buildDefaultTemplates } from '../types/lightingTemplates';
+import { getInstallDefaults } from '../api/installDefaultsCache';
 
 export type PanelBackgroundMode = 'solid' | 'shader';
 export type PanelResolvedTheme = 'dark' | 'light';
@@ -13,9 +14,22 @@ export type PanelResolvedTheme = 'dark' | 'light';
 export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'aurora';
 export const DEFAULT_PANEL_BACKGROUND_TEMPLATE = 0;
 export const DEFAULT_PANEL_BACKGROUND_OPACITY = 0.4;
-export const DEFAULT_PANEL_WIDGET_OPACITY = 1;
-export const DEFAULT_PANEL_WIDGET_LABELS = true;
-export const DEFAULT_PANEL_WIDGET_BLUR = true;
+// Widget-surface defaults are mastered by the service: they live in
+// nexus-service/data/install-defaults.json (panel.*) and are served at
+// /defaults into the install-defaults cache. Read them through the cache so
+// there is one source of truth — the same pattern defaultLayout.ts uses for
+// layout defaults. The literals below are ONLY the sub-100ms bootstrap-race
+// fallback (the window before the cache fills) and must match the JSON.
+const WIDGET_OPACITY_FALLBACK = 1;
+const WIDGET_LABELS_FALLBACK = true;
+const WIDGET_BLUR_FALLBACK = true;
+
+export const defaultPanelWidgetOpacity = (): number =>
+  getInstallDefaults()?.panel.widgetOpacity ?? WIDGET_OPACITY_FALLBACK;
+export const defaultPanelWidgetLabels = (): boolean =>
+  getInstallDefaults()?.panel.widgetLabels ?? WIDGET_LABELS_FALLBACK;
+export const defaultPanelWidgetBlur = (): boolean =>
+  getInstallDefaults()?.panel.widgetBlur ?? WIDGET_BLUR_FALLBACK;
 
 export const PANEL_BACKGROUND_EFFECTS: EffectDef[] = EFFECTS.filter(effect => !effect.audio);
 
@@ -114,17 +128,17 @@ export function normalizePanelBackgroundOpacity(value: number | null | undefined
 }
 
 export function normalizePanelWidgetOpacity(value: number | null | undefined): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_PANEL_WIDGET_OPACITY;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return defaultPanelWidgetOpacity();
   return Math.min(Math.max(value, 0), 1);
 }
 
 export function normalizePanelWidgetLabels(value: boolean | null | undefined): boolean {
-  if (typeof value !== 'boolean') return DEFAULT_PANEL_WIDGET_LABELS;
+  if (typeof value !== 'boolean') return defaultPanelWidgetLabels();
   return value;
 }
 
 export function normalizePanelWidgetBlur(value: boolean | null | undefined): boolean {
-  if (typeof value !== 'boolean') return DEFAULT_PANEL_WIDGET_BLUR;
+  if (typeof value !== 'boolean') return defaultPanelWidgetBlur();
   return value;
 }
 
