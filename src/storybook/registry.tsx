@@ -525,16 +525,31 @@ function PreviewEffectControls() {
 }
 
 function PreviewEffectCard() {
-  const [active, setActive] = useState<'shader' | 'media' | null>('shader');
+  const [active, setActive] = useState<'overlayA' | 'overlayB' | 'media' | null>('overlayA');
   return (
     <div className={styles.previewStack}>
+      {/* Overlay layout: the shared card used by both the lighting shader
+          browser AND the panel Theme animation picker - full-bleed thumbnail
+          with the label drawn over the lower third. */}
       <div className={styles.previewGridTwo}>
         <EffectCard
-          label="Rainbow"
+          overlay
+          label="Aurora"
           thumbUrl={null}
-          active={active === 'shader'}
-          onClick={() => setActive('shader')}
+          active={active === 'overlayA'}
+          onClick={() => setActive('overlayA')}
         />
+        <EffectCard
+          overlay
+          label="Orange"
+          thumbUrl={null}
+          active={active === 'overlayB'}
+          onClick={() => setActive('overlayB')}
+        />
+      </div>
+      {/* Default (caption-below) layout: the media library grid, with a meta
+          line + hover-reveal delete. Same component, different props. */}
+      <div className={styles.previewGridTwo}>
         <EffectCard
           asDiv
           label="Galaxy loop"
@@ -946,8 +961,8 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'EffectCard', category: 'cards',
     filePath: 'src/components/common/EffectCard/EffectCard.tsx',
-    description: 'Shared card for the Lighting view animate grid and media library grid. Thumbnail + centered label, with optional meta line (media duration) and hover-reveal delete X. Same footprint across both grids so shader and media cards line up visually.', Preview: PreviewEffectCard,
-    notes: 'Pass asDiv when the card contains a nested button (CardDeleteButton) - nested buttons are invalid HTML. thumbUrl=null renders a shimmer skeleton.',
+    description: 'The one shared thumbnail card: lighting shader browser, panel Theme animation picker, and media library all use it. overlay=true gives a full-bleed thumbnail with the label stroked over the lower third (both shader pickers); default layout is thumbnail-above-caption with optional meta line + hover-reveal delete X (media library).', Preview: PreviewEffectCard,
+    notes: 'Pass overlay for the full-bleed label-on-thumbnail shader-picker layout. Pass asDiv when the card contains a nested button (CardDeleteButton) - nested buttons are invalid HTML. thumbUrl=null renders a shimmer skeleton.',
   },
 
   // ── Modals ────────────────────────────────────────────────────────────

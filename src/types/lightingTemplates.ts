@@ -32,12 +32,13 @@ const COOL_MONO: Feel = { hue: 0.62, colorize: 0.75, speed: 30, saturation: 1.00
 const GREEN_MONO: Feel = { hue: 0.35, colorize: 0.75, speed: 65, saturation: 1.10, contrast: 1.05, intensity: 1 };
 
 // ── Simple solid-colour fills ──────────────────────────────────────────────
-// Each "simple" effect is the same cheap solid-fill shader; the colour comes
+// Each "simple" effect is the same cheap noise-fill shader; the colour comes
 // entirely from the post-process tint. The 4 template slots are all the SAME
-// base hue, varied only slightly: a balanced default, a punchy oversaturated
-// take, a soft desaturated one, and a richly-saturated slight-hue-shift - so
-// e.g. "Simple Orange" stays fundamentally orange across all four. colorize=1
-// (full tint) and a slow speed keep the fill near-solid and gentle.
+// base hue, varied only slightly in hue/saturation (a balanced default, a
+// punchy oversaturated take, a soft desaturated one, and a richly-saturated
+// slight-hue-shift) but with WIDELY different speeds so the four presets read
+// as distinct motion - e.g. "Simple Orange" stays orange across all four
+// while ranging from near-still to fast drift. colorize=1 = full tint.
 const SIMPLE_HUES: Record<string, number> = {
   simplered:    0.00,
   simpleorange: 0.05,
@@ -51,26 +52,17 @@ const SIMPLE_HUES: Record<string, number> = {
 
 const norm1 = (h: number): number => ((h % 1) + 1) % 1;
 const simpleColorFeels = (hue: number): [Feel, Feel, Feel, Feel] => {
-  const base = (h: number, saturation: number, contrast = 1.0): Feel =>
-    ({ hue: norm1(h), colorize: 1, speed: 28, saturation, contrast, intensity: 1 });
+  const base = (h: number, saturation: number, speed: number, contrast = 1.0): Feel =>
+    ({ hue: norm1(h), colorize: 1, speed, saturation, contrast, intensity: 1 });
   return [
-    base(hue,         1.10),        // balanced default
-    base(hue + 0.015, 1.70, 1.05),  // highly saturated
-    base(hue - 0.020, 0.55),        // desaturated
-    base(hue + 0.030, 1.35),        // rich, slight hue offset
+    base(hue,         1.10, 30),        // balanced default - moderate drift
+    base(hue + 0.015, 1.70, 75, 1.05),  // highly saturated - fast
+    base(hue - 0.020, 0.55, 12),        // desaturated - near-still
+    base(hue + 0.030, 1.35, 100),       // rich, slight hue offset - fastest
   ];
 };
-// White is special: hue is meaningless, so vary by saturation only (pure /
-// faintly warm / faintly cool / barely tinted) to stay "fundamentally white".
-const SIMPLE_WHITE_FEELS: [Feel, Feel, Feel, Feel] = [
-  { hue: 0.00, colorize: 1, speed: 28, saturation: 0.00, contrast: 1.00, intensity: 1 },
-  { hue: 0.08, colorize: 1, speed: 28, saturation: 0.14, contrast: 1.00, intensity: 1 },
-  { hue: 0.58, colorize: 1, speed: 28, saturation: 0.14, contrast: 1.00, intensity: 1 },
-  { hue: 0.00, colorize: 1, speed: 28, saturation: 0.06, contrast: 1.00, intensity: 1 },
-];
 
 function simpleFeelsFor(key: string): [Feel, Feel, Feel, Feel] | null {
-  if (key === 'simplewhite') return SIMPLE_WHITE_FEELS;
   const hue = SIMPLE_HUES[key];
   return hue === undefined ? null : simpleColorFeels(hue);
 }

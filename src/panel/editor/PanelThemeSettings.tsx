@@ -306,6 +306,7 @@ function PanelAnimationPicker({
         {visible.map(fx => (
           <div key={fx.key} className={styles.animationCardFrame}>
             <EffectCard
+              overlay
               dataEffectKey={fx.key}
               label={t(fx.labelKey)}
               thumbUrl={thumbs[fx.key] ?? null}

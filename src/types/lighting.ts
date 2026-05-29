@@ -49,7 +49,7 @@ export const EFFECT_CATEGORIES: EffectCategory[] = [
 // feels - see SIMPLE_COLORS / buildDefaultTemplates in lightingTemplates.ts.
 export const SIMPLE_EFFECT_KEYS = [
   'simplered', 'simpleorange', 'simpleyellow', 'simplegreen', 'simplecyan',
-  'simpleblue', 'simpleviolet', 'simplepink', 'simplewhite',
+  'simpleblue', 'simpleviolet', 'simplepink',
 ] as const;
 
 export interface EffectDef {
@@ -76,7 +76,7 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   // Simple solid-colour fills (replace the old static mode).
   simplered: 'simple', simpleorange: 'simple', simpleyellow: 'simple',
   simplegreen: 'simple', simplecyan: 'simple', simpleblue: 'simple',
-  simpleviolet: 'simple', simplepink: 'simple', simplewhite: 'simple',
+  simpleviolet: 'simple', simplepink: 'simple',
   // Audio-reactive set.
   spectrumbars: 'audio', spectrumradial: 'audio', scope: 'audio',
   basspulse: 'audio', beatstrobe: 'audio', harmonicstar: 'audio',
@@ -131,7 +131,6 @@ export const EFFECTS: EffectDef[] = [
   { key: 'simpleblue',   labelKey: 'lighting.controls.simpleblue',   params: [] },
   { key: 'simpleviolet', labelKey: 'lighting.controls.simpleviolet', params: [] },
   { key: 'simplepink',   labelKey: 'lighting.controls.simplepink',   params: [] },
-  { key: 'simplewhite',  labelKey: 'lighting.controls.simplewhite',  params: [] },
   { key: 'plasma',       labelKey: 'lighting.controls.plasma',       params: [
       { name: 'u_warp', label: 'Warp',  min: 0,   max: 2,   step: 0.05, defaultValue: 1 },
       { name: 'u_zoom', label: 'Zoom',  min: 0.5, max: 3,   step: 0.05, defaultValue: 1 },

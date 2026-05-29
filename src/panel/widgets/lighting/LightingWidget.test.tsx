@@ -16,6 +16,7 @@ vi.mock('../../../api/lighting', () => ({
 vi.mock('../../../api/mediaLibrary', () => ({
   fetchMediaCurrent: vi.fn(() => Promise.resolve(null)),
   fetchMediaLibrary: vi.fn(() => Promise.resolve([])),
+  playCurrentOrFirstMedia: vi.fn(() => Promise.resolve(true)),
 }));
 
 vi.mock('../../../api/service', () => ({
@@ -84,20 +85,20 @@ describe('LightingWidget', () => {
     expect(screen.queryByRole('button', { name: 'Mirror' })).not.toBeInTheDocument();
   });
 
-  it('renders 4x2 with two labelled mode buttons + L/R arrows', async () => {
+  it('renders 4x2 with three labelled mode buttons (Animation / Media / Mirror) + L/R arrows', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Animation' })).toBeInTheDocument());
 
+    expect(screen.getByRole('button', { name: 'Media' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mirror' })).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
 
-    // No 'Off', 'Media', or 'Static' buttons - Off/Media were dropped in the
-    // widget redesign and Static was removed with the static mode entirely.
+    // No 'Off' or 'Static' buttons - Off isn't a widget surface and Static was
+    // removed with the static mode entirely.
     expect(screen.queryByRole('button', { name: 'Off' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Media' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Static' })).not.toBeInTheDocument();
   });
 

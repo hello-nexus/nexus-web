@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Lightbulb, Monitor, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Film, Lightbulb, Monitor, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
   fetchAnimateSettings,
@@ -13,6 +13,7 @@ import {
 import {
   fetchMediaCurrent,
   fetchMediaLibrary,
+  playCurrentOrFirstMedia,
   type MediaItem,
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
@@ -39,10 +40,11 @@ import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
-type WidgetMode = 'animate' | 'screen';
+type WidgetMode = 'animate' | 'gif' | 'screen';
 
 const WIDGET_BUTTONS: { key: WidgetMode; icon: LucideIcon; labelKey: string }[] = [
   { key: 'animate', icon: Sparkles, labelKey: 'lighting.mode.animate' },
+  { key: 'gif',     icon: Film,     labelKey: 'lighting.mode.gif'     },
   { key: 'screen',  icon: Monitor,  labelKey: 'lighting.mode.screen'  },
 ];
 
@@ -236,8 +238,16 @@ export function LightingWidget({ widget }: WidgetProps) {
     applyMirrorFilter(filter);
   }, [applyMirrorFilter, filter]);
 
+  const onMediaButton = useCallback(async () => {
+    setMode('gif');
+    setMusicReactive(false).catch(() => { /* best-effort */ });
+    await playCurrentOrFirstMedia();
+    publishLighting('gif', 'gif');
+  }, [publishLighting]);
+
   const handleButton = (k: WidgetMode) => {
     if (k === 'animate') onAnimateButton();
+    else if (k === 'gif') onMediaButton();
     else if (k === 'screen') onMirrorButton();
   };
 
@@ -288,6 +298,7 @@ export function LightingWidget({ widget }: WidgetProps) {
 
   const widgetMode: WidgetMode | null =
     mode === 'animate' ? 'animate'
+    : mode === 'gif' ? 'gif'
     : mode === 'screen' ? 'screen'
     : null;
 
