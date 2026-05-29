@@ -371,11 +371,16 @@
   --panel-gap: 8px;
   --panel-page-padding: 8px;
   --panel-page-padding-top: 8px;
-  --panel-page-padding-right: 8px;
+  // Edge-to-edge horizontally: the Q60 viewport is slightly wider than two
+  // square cells, so any left/right page padding or card margin-x reads as a
+  // border. Zero both so the 2-column grid spans the full screen width (top/
+  // bottom padding stays). cell-size drops the horizontal-padding term to match.
+  --panel-page-padding-right: 0px;
   --panel-page-padding-bottom: 8px;
-  --panel-page-padding-left: 8px;
+  --panel-page-padding-left: 0px;
+  --panel-widget-card-margin-x: 0px;
   --panel-card-radius: var(--radius-lg);
-  --panel-cell-size: calc((100vw - 2 * var(--panel-page-padding) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
+  --panel-cell-size: calc((100vw - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
   --panel-row-size: calc((100vh - 2 * var(--panel-page-padding) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
   --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
   width: 100vw;
