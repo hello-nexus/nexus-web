@@ -31,6 +31,7 @@ export interface MonitoringSettings {
 
 export interface PanelSettings {
   autoLaunch: boolean;
+  reserveMonitor: boolean;
   themeSyncWithDesktop: boolean;
   themeMode: string;
   accentSyncWithDesktop: boolean;

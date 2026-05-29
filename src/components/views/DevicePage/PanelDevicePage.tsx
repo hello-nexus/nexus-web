@@ -75,6 +75,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   const [orientation, setOrientation] = useState<Y70Orientation>('Landscape');
   const [screenOn, setScreenOn] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState(false);
+  const [reserveMonitor, setReserveMonitor] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [layout, setLayout] = useState<PanelLayout>(() => defaultLayoutForSurface('y70'));
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
@@ -132,7 +133,10 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
       const savedLayout = match?.layout ?? defaultLayoutForSurface(surface);
       setLayout(normalizePanelLayout(savedLayout, surface));
-      if (prefs) setAutoLaunch(prefs.panel?.autoLaunch ?? false);
+      if (prefs) {
+        setAutoLaunch(prefs.panel?.autoLaunch ?? false);
+        setReserveMonitor(prefs.panel?.reserveMonitor ?? true);
+      }
       setLoaded(true);
     }).catch(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
@@ -367,6 +371,13 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                         if (!supportsAutoLaunch) return;
                         savePreferences({ panel: { autoLaunch: next } }).catch(() => {});
                       }}
+                      reserveMonitor={reserveMonitor}
+                      onReserveMonitorToggle={() => {
+                        const next = !reserveMonitor;
+                        setReserveMonitor(next);
+                        if (!supportsAutoLaunch) return;
+                        savePreferences({ panel: { reserveMonitor: next } }).catch(() => {});
+                      }}
                       showDisplayControls={supportsDisplayControls}
                       showAutoLaunch={supportsAutoLaunch}
                     />
@@ -559,6 +570,8 @@ interface SettingsPanelProps {
   onScreenToggle: () => void;
   autoLaunch: boolean;
   onAutoLaunchToggle: () => void;
+  reserveMonitor: boolean;
+  onReserveMonitorToggle: () => void;
   showDisplayControls: boolean;
   showAutoLaunch: boolean;
 }
@@ -568,6 +581,7 @@ function SettingsPanel({
   orientation, onOrientation, orientationOptions,
   screenOn, onScreenToggle,
   autoLaunch, onAutoLaunchToggle,
+  reserveMonitor, onReserveMonitorToggle,
   showDisplayControls,
   showAutoLaunch,
 }: SettingsPanelProps) {
@@ -631,6 +645,16 @@ function SettingsPanel({
             <div className="device-modal-hint">{t('devices.y70.panelAutoLaunchHint')}</div>
           </div>
           <Toggle checked={autoLaunch} onChange={onAutoLaunchToggle} ariaLabel={t('devices.y70.panelAutoLaunch')} />
+        </div>
+      )}
+
+      {showAutoLaunch && (
+        <div className="device-modal-row">
+          <div>
+            <div className="device-modal-label">{t('devices.y70.reserveMonitor')}</div>
+            <div className="device-modal-hint">{t('devices.y70.reserveMonitorHint')}</div>
+          </div>
+          <Toggle checked={reserveMonitor} onChange={onReserveMonitorToggle} ariaLabel={t('devices.y70.reserveMonitor')} />
         </div>
       )}
     </div>
