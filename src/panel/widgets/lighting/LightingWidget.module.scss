@@ -13,23 +13,23 @@
   color: var(--panel-text);
 }
 
-// Thumbnail fills the available space - bottom-anchored label was removed
-// so the preview gets the full widget height. The negative side margin
-// extends the preview edge-to-edge across the card chrome.
+// Thumbnail fills the widget flush: negative margins cancel the card padding
+// so the preview reaches the top and side edges (the mode-button row, when
+// present, keeps the bottom gap). No-button layouts (2x2 / simple) go fully
+// edge-to-edge - see the size/simple overrides below.
 .thumbBox {
   position: relative;
   flex: 1;
   min-height: 0;
-  margin: 0 -12px;
+  margin: -12px -12px 0;
   display: block;
 }
 
 .thumb {
   position: absolute;
-  inset: 0 8px;
+  inset: 0;
   display: block;
   overflow: hidden;
-  border-radius: var(--panel-element-radius);
   background: var(--panel-element-bg);
 
   img {
@@ -42,10 +42,28 @@
   }
 }
 
-.thumbSwatch {
+// Selected-style label drawn over the lower third of the preview. Sized to
+// match the cooling widget's Silent/Balanced label (700 16px), stroked +
+// shadowed so it stays legible over any effect frame.
+.thumbLabel {
   position: absolute;
-  inset: 0;
-  display: block;
+  left: 10px;
+  right: 10px;
+  bottom: 12%;
+  text-align: center;
+  font: 700 16px/1.1 var(--panel-font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow:
+    0 1px 3px rgb(0 0 0 / 0.9),
+    0 0 6px rgb(0 0 0 / 0.7);
+  -webkit-text-stroke: 0.6px rgb(0 0 0 / 0.85);
+  paint-order: stroke fill;
 }
 
 .thumbIconWrap {
@@ -202,19 +220,20 @@
   }
 }
 
+// No mode-button layouts (simple mode at any size) go fully edge-to-edge:
+// the preview owns every pixel including the bottom edge.
+.lighting[data-simple='true'] .thumbBox {
+  margin: -12px;
+}
+
 // 2x2: thumbnail fills the whole widget, same chrome as 4x2 but without
-// the mode buttons. No arrows, no label - the widget is a glanceable
-// preview of the active mode.
+// the mode buttons - so it's full-bleed on all four sides.
 .lighting[data-size='2x2'] {
   padding: 10px;
   gap: 0;
 
   .thumbBox {
-    margin: 0 -10px;
-  }
-
-  .thumb {
-    inset: 0 6px;
+    margin: -10px;
   }
 }
 

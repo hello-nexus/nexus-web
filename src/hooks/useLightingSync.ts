@@ -3,7 +3,7 @@ import { fetchCurrentSync } from '../api/lighting';
 import { subscribeControlSync } from '../lib/controlSync';
 import { useTopicCallback } from './useMultiplexSocket';
 
-export type LightingMode = 'static' | 'animate' | 'screen' | 'gif' | 'none';
+export type LightingMode = 'animate' | 'screen' | 'gif' | 'none';
 
 /**
  * Fetches the current lighting sync state on mount and returns it.
@@ -77,7 +77,6 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
 
 function normalizeSync(sync: string): LightingMode {
   if (sync === 'none' || !sync) return 'none';
-  if (sync === 'static') return 'static';
   if (sync === 'screen' || sync.includes('mirror')) return 'screen';
   if (sync === 'gif' || sync.includes('gif') || sync.includes('media')) return 'gif';
   return 'animate';

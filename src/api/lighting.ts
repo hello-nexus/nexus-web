@@ -31,9 +31,6 @@ export const fetchCurrentSync = () =>
 
 // --- Effect activation ---
 
-export const startStatic = (r: number, g: number, b: number) =>
-  postService('/lighting/static/headless-start', { color: { r, g, b, a: 1.0 } });
-
 export interface AnimateEffectState {
   speed: number;
   intensity: number;
@@ -60,11 +57,6 @@ export const fetchAnimateSettings = () =>
 
 export const saveAnimateTemplates = (templates: Record<string, AnimateEffectTemplateBundle>) =>
   postService('/lighting/animate/templates', { templates });
-
-export interface StaticColorSettings { r: number; g: number; b: number; }
-
-export const fetchStaticColor = () =>
-  fetchService<StaticColorSettings>('/lighting/static/settings');
 
 export const startAnimate = (
   effect: string,

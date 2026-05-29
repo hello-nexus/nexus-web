@@ -100,7 +100,7 @@ function useImmersiveAnimateState(): ImmersiveControlsState | null {
     }
     setTemplates(next);
     const rawSync = sync?.sync || 'none';
-    setMode(rawSync === 'static' ? 'static' : (rawSync === 'screen' ? 'screen' : (rawSync === 'media' ? 'gif' : (rawSync === 'none' ? 'none' : 'animate'))));
+    setMode(rawSync === 'screen' ? 'screen' : (rawSync === 'media' ? 'gif' : (rawSync === 'none' ? 'none' : 'animate')));
     if (EFFECTS.some(e => e.key === rawSync)) setActive(rawSync);
     else if (animate?.effect) setActive(animate.effect);
   }, []);

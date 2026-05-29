@@ -10,7 +10,6 @@ export type ControlSyncEvent =
       mode?: LightingMode;
       rawSync?: string;
       effect?: string;
-      staticColor?: string;
       templateIndex?: number;
       effectState?: EffectState;
       revision?: number;

@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Lightbulb, Monitor, Sparkles, Palette } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lightbulb, Monitor, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
   fetchAnimateSettings,
   fetchCurrentSync,
   fetchScreenEffect,
-  fetchStaticColor,
   setMusicReactive,
   setScreenEffect,
   startAnimate,
   startScreenMirror,
-  startStatic,
 } from '../../../api/lighting';
 import {
   fetchMediaCurrent,
@@ -41,24 +39,11 @@ import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
-const STATIC_COLORS = [
-  { hex: '#ff0000', label: 'Red' },
-  { hex: '#ff7a00', label: 'Orange' },
-  { hex: '#ffe800', label: 'Yellow' },
-  { hex: '#00ff2a', label: 'Green' },
-  { hex: '#00c8ff', label: 'Cyan' },
-  { hex: '#0033ff', label: 'Blue' },
-  { hex: '#8b5cf6', label: 'Violet' },
-  { hex: '#ff3bc0', label: 'Pink' },
-  { hex: '#ffffff', label: 'White' },
-];
-
-type WidgetMode = 'animate' | 'screen' | 'static';
+type WidgetMode = 'animate' | 'screen';
 
 const WIDGET_BUTTONS: { key: WidgetMode; icon: LucideIcon; labelKey: string }[] = [
   { key: 'animate', icon: Sparkles, labelKey: 'lighting.mode.animate' },
   { key: 'screen',  icon: Monitor,  labelKey: 'lighting.mode.screen'  },
-  { key: 'static',  icon: Palette,  labelKey: 'lighting.mode.static'  },
 ];
 
 export function LightingWidget({ widget }: WidgetProps) {
@@ -68,7 +53,6 @@ export function LightingWidget({ widget }: WidgetProps) {
   const [mode, setMode] = useState<LightingMode>('none');
   const [activeEffect, setActiveEffect] = useState('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>(buildAllDefaultTemplates);
-  const [staticColor, setStaticColor] = useState('#ff0000');
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
@@ -78,10 +62,9 @@ export function LightingWidget({ widget }: WidgetProps) {
   const compact = widget.size === '2x2';
 
   const hydrate = useCallback(async () => {
-    const [sync, animate, color, screen] = await Promise.all([
+    const [sync, animate, screen] = await Promise.all([
       fetchCurrentSync(),
       fetchAnimateSettings(),
-      fetchStaticColor(),
       fetchScreenEffect(),
     ]);
 
@@ -99,9 +82,6 @@ export function LightingWidget({ widget }: WidgetProps) {
       : animate?.effect || 'rainbow';
     setActiveEffect(nextEffect);
 
-    if (color) {
-      setStaticColor(rgbToHex(color.r, color.g, color.b));
-    }
     setMode(resolveMode(rawSync));
     setFilter(matchScreenFilter(screen) ?? DEFAULT_SCREEN_FILTER);
   }, []);
@@ -208,15 +188,6 @@ export function LightingWidget({ widget }: WidgetProps) {
     publishLighting('animate', effectKey, { effect: effectKey, templateIndex, effectState: next });
   }, [publishLighting, templates]);
 
-  const applyStatic = useCallback(async (hex: string) => {
-    setStaticColor(hex);
-    setMode('static');
-    setMusicReactive(false).catch(() => { /* best-effort */ });
-    const rgb = hexToRgb(hex);
-    await startStatic(rgb.r, rgb.g, rgb.b);
-    publishLighting('static', 'static', { staticColor: hex });
-  }, [publishLighting]);
-
   const applyMirrorFilter = useCallback(async (key: ScreenFilterKey) => {
     const def = screenFilterByKey(key);
     setFilter(key);
@@ -235,10 +206,10 @@ export function LightingWidget({ widget }: WidgetProps) {
   }, [activeEffect, applyEffect, templates]);
 
   // Simple-mode arrow handler. From inside an animation, behaves like
-  // cycleAnimate. From any non-animate state (static / screen mirror /
-  // gif / off), the first press jumps into the animation list: right
-  // arrow lands on the first effect, left arrow lands on the last
-  // effect (i.e. the cycle's wrap-around starting position).
+  // cycleAnimate. From any non-animate state (screen mirror / gif / off),
+  // the first press jumps into the animation list: right arrow lands on
+  // the first effect, left arrow lands on the last effect (i.e. the
+  // cycle's wrap-around starting position).
   const enterOrCycleAnimate = useCallback((delta: number) => {
     if (mode === 'animate') {
       cycleAnimate(delta);
@@ -248,14 +219,6 @@ export function LightingWidget({ widget }: WidgetProps) {
     const next = EFFECTS[targetIdx];
     applyEffect(next.key, resolveEffectState(next.key, templates));
   }, [mode, cycleAnimate, applyEffect, templates]);
-
-  const cycleStatic = useCallback((delta: number) => {
-    const lower = staticColor.toLowerCase();
-    const idx = STATIC_COLORS.findIndex(c => c.hex.toLowerCase() === lower);
-    const base = idx < 0 ? 0 : idx;
-    const nextIdx = (base + delta + STATIC_COLORS.length) % STATIC_COLORS.length;
-    applyStatic(STATIC_COLORS[nextIdx].hex);
-  }, [applyStatic, staticColor]);
 
   const cycleFilter = useCallback((delta: number) => {
     const idx = SCREEN_FILTERS.findIndex(f => f.key === filter);
@@ -273,20 +236,15 @@ export function LightingWidget({ widget }: WidgetProps) {
     applyMirrorFilter(filter);
   }, [applyMirrorFilter, filter]);
 
-  const onStaticButton = useCallback(() => {
-    applyStatic(staticColor);
-  }, [applyStatic, staticColor]);
-
   const handleButton = (k: WidgetMode) => {
     if (k === 'animate') onAnimateButton();
     else if (k === 'screen') onMirrorButton();
-    else if (k === 'static') onStaticButton();
   };
 
   const view = useMemo<SingleView>(() => {
     // Arrow handlers depend on simple-mode: in simple mode every
     // mode's prev/next jumps into / stays in the animation cycle (per
-    // user spec — arrows ALWAYS cycle animations, never colors / filters).
+    // user spec — arrows ALWAYS cycle animations, never filters).
     const prev = simpleMode ? () => enterOrCycleAnimate(-1) : undefined;
     const next = simpleMode ? () => enterOrCycleAnimate(1)  : undefined;
 
@@ -298,17 +256,6 @@ export function LightingWidget({ widget }: WidgetProps) {
         label: t(effect.labelKey),
         onPrev: prev ?? (() => cycleAnimate(-1)),
         onNext: next ?? (() => cycleAnimate(1)),
-      };
-    }
-    if (mode === 'static') {
-      const lower = staticColor.toLowerCase();
-      const preset = STATIC_COLORS.find(c => c.hex.toLowerCase() === lower);
-      return {
-        kind: 'color',
-        color: staticColor,
-        label: preset?.label ?? staticColor.toUpperCase(),
-        onPrev: prev ?? (() => cycleStatic(-1)),
-        onNext: next ?? (() => cycleStatic(1)),
       };
     }
     if (mode === 'screen') {
@@ -337,11 +284,10 @@ export function LightingWidget({ widget }: WidgetProps) {
     // mode === 'none' (off). In simple mode we still show arrows so
     // the first press enters the animation cycle.
     return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off'), onPrev: prev, onNext: next };
-  }, [mode, activeEffect, thumbs, t, staticColor, filter, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, cycleStatic, cycleFilter, simpleMode, enterOrCycleAnimate]);
+  }, [mode, activeEffect, thumbs, t, filter, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, cycleFilter, simpleMode, enterOrCycleAnimate]);
 
   const widgetMode: WidgetMode | null =
     mode === 'animate' ? 'animate'
-    : mode === 'static' ? 'static'
     : mode === 'screen' ? 'screen'
     : null;
 
@@ -389,7 +335,6 @@ export function LightingWidget({ widget }: WidgetProps) {
 
 type SingleView =
   | { kind: 'thumb'; thumbUrl: string | null; label: string; onPrev?: () => void; onNext?: () => void }
-  | { kind: 'color'; color: string;          label: string; onPrev?: () => void; onNext?: () => void }
   | { kind: 'icon';  icon: LucideIcon;       label: string; onPrev?: () => void; onNext?: () => void }
   | { kind: 'message'; message: string;      label: string; onPrev?: () => void; onNext?: () => void };
 
@@ -432,7 +377,6 @@ function SingleItemView({ view, t, showArrows }: { view: SingleView; t: (key: st
   return (
     <div className={styles.thumbBox}>
       <span className={styles.thumb}>
-        {view.kind === 'color' && <span className={styles.thumbSwatch} style={{ background: view.color }} />}
         {view.kind === 'icon' && (
           <span className={styles.thumbIconWrap}>
             <view.icon className={styles.thumbIcon} aria-hidden="true" />
@@ -441,7 +385,12 @@ function SingleItemView({ view, t, showArrows }: { view: SingleView; t: (key: st
         )}
         {view.kind === 'thumb' && (
           view.thumbUrl
-            ? <img src={view.thumbUrl} alt="" draggable={false} />
+            ? (
+              <>
+                <img src={view.thumbUrl} alt="" draggable={false} />
+                <span className={styles.thumbLabel}>{view.label}</span>
+              </>
+            )
             : <span className={styles.thumbSkeleton} />
         )}
       </span>
@@ -490,26 +439,9 @@ function resolveEffectState(
 
 function resolveMode(sync: string): LightingMode {
   if (!sync || sync === 'none') return 'none';
-  if (sync === 'static') return 'static';
   if (sync === 'screen' || sync.includes('mirror')) return 'screen';
   if (sync === 'gif' || sync.includes('media')) return 'gif';
   return 'animate';
-}
-
-function hexToRgb(hex: string) {
-  const value = hex.replace('#', '');
-  const n = Number.parseInt(value.length === 3
-    ? value.split('').map(ch => ch + ch).join('')
-    : value, 16);
-  return {
-    r: (n >> 16) & 255,
-    g: (n >> 8) & 255,
-    b: n & 255,
-  };
-}
-
-function rgbToHex(r: number, g: number, b: number) {
-  return `#${[r, g, b].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('')}`;
 }
 
 export default LightingWidget;

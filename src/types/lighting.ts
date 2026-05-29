@@ -26,6 +26,7 @@ export interface EffectParamDef {
 }
 
 export type EffectCategory =
+  | 'simple'
   | 'audio'
   | 'cosmic'
   | 'energy'
@@ -33,13 +34,23 @@ export type EffectCategory =
   | 'geometric'
   | 'pattern';
 
-// Five categories rather than seven: "atmospheric" merged into the
-// neighbouring families it visually belongs to (mood pieces are mostly
-// pattern-driven), and "energy" + electric effects stay as their own
-// family because they read so distinctively from the rest.
+// "simple" leads: dead-cheap near-solid colour fills (the replacement for the
+// old static mode). The rest: "atmospheric" merged into the neighbouring
+// families it visually belongs to (mood pieces are mostly pattern-driven),
+// and "energy" + electric effects stay as their own family because they read
+// so distinctively from the rest.
 export const EFFECT_CATEGORIES: EffectCategory[] = [
-  'audio', 'cosmic', 'energy', 'organic', 'geometric', 'pattern',
+  'simple', 'audio', 'cosmic', 'energy', 'organic', 'geometric', 'pattern',
 ];
+
+// The "simple" family: one cheap solid-fill shader (simple.frag) reused for
+// every colour. The colour is driven entirely by the post-process tint
+// (hue / colorize / saturation), so each entry differs only by its template
+// feels - see SIMPLE_COLORS / buildDefaultTemplates in lightingTemplates.ts.
+export const SIMPLE_EFFECT_KEYS = [
+  'simplered', 'simpleorange', 'simpleyellow', 'simplegreen', 'simplecyan',
+  'simpleblue', 'simpleviolet', 'simplepink', 'simplewhite',
+] as const;
 
 export interface EffectDef {
   key: string;
@@ -62,6 +73,10 @@ export function categoryOf(key: string): EffectCategory {
 // anything also tagged audio"). When borderline (e.g. starpath could be
 // either cosmic or atmospheric), pick the dominant visual character.
 export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
+  // Simple solid-colour fills (replace the old static mode).
+  simplered: 'simple', simpleorange: 'simple', simpleyellow: 'simple',
+  simplegreen: 'simple', simplecyan: 'simple', simpleblue: 'simple',
+  simpleviolet: 'simple', simplepink: 'simple', simplewhite: 'simple',
   // Audio-reactive set.
   spectrumbars: 'audio', spectrumradial: 'audio', scope: 'audio',
   basspulse: 'audio', beatstrobe: 'audio', harmonicstar: 'audio',
@@ -103,10 +118,20 @@ export const MODES: { key: LightingMode; labelKey: string }[] = [
   { key: 'animate', labelKey: 'lighting.mode.animate' },
   { key: 'gif', labelKey: 'lighting.mode.gif' },
   { key: 'screen', labelKey: 'lighting.mode.screen' },
-  { key: 'static', labelKey: 'lighting.mode.static' },
 ];
 
 export const EFFECTS: EffectDef[] = [
+  // Simple solid-colour fills lead the list. No per-effect params - the
+  // colour lives entirely in the template feels (hue / colorize / saturation).
+  { key: 'simplered',    labelKey: 'lighting.controls.simplered',    params: [] },
+  { key: 'simpleorange', labelKey: 'lighting.controls.simpleorange', params: [] },
+  { key: 'simpleyellow', labelKey: 'lighting.controls.simpleyellow', params: [] },
+  { key: 'simplegreen',  labelKey: 'lighting.controls.simplegreen',  params: [] },
+  { key: 'simplecyan',   labelKey: 'lighting.controls.simplecyan',   params: [] },
+  { key: 'simpleblue',   labelKey: 'lighting.controls.simpleblue',   params: [] },
+  { key: 'simpleviolet', labelKey: 'lighting.controls.simpleviolet', params: [] },
+  { key: 'simplepink',   labelKey: 'lighting.controls.simplepink',   params: [] },
+  { key: 'simplewhite',  labelKey: 'lighting.controls.simplewhite',  params: [] },
   { key: 'plasma',       labelKey: 'lighting.controls.plasma',       params: [
       { name: 'u_warp', label: 'Warp',  min: 0,   max: 2,   step: 0.05, defaultValue: 1 },
       { name: 'u_zoom', label: 'Zoom',  min: 0.5, max: 3,   step: 0.05, defaultValue: 1 },

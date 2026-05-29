@@ -248,9 +248,9 @@
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  // Compact thumbnail cell width - fits ~4-5 per row in the main pane so the
+  // Compact thumbnail cell width - smaller cells fit more per row so the
   // grid reads as a browsable catalogue rather than a few oversized banners.
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
   // Cards size to their natural content height; without these the grid
   // would stretch each row (and each card inside it) to fill the
   // remaining vertical space, which looks especially odd when a category
@@ -501,90 +501,6 @@
   color: var(--text-dim);
   white-space: nowrap;
   min-width: 50px;
-}
-
-// ── Static color controls ───────────────────────────────────────────────────
-
-.staticBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 0 0.5rem;
-  flex-wrap: nowrap;
-}
-
-.staticSwatches {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.staticSwatch {
-  flex: 1;
-  min-width: 0;
-  height: 36px;
-  max-width: 56px;
-  border-radius: var(--radius-sm);
-  border: 2px solid var(--border);
-  cursor: pointer;
-  padding: 0;
-  transition: transform 0.08s, border-color var(--ease-fast), box-shadow var(--ease-fast);
-
-  &:hover { transform: translateY(-1px); border-color: var(--text); }
-}
-
-.staticSwatchActive {
-  border-color: var(--text);
-  box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent);
-}
-
-// The custom-colour button sits flush to the right of the presets and always
-// shows the current custom colour (or a rainbow placeholder if a preset is
-// active). Clicking anywhere on it opens the native colour picker.
-.customSwatch {
-  position: relative;
-  flex-shrink: 0;
-  width: 52px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  border: 2px solid var(--border);
-  cursor: pointer;
-  overflow: hidden;
-  background: conic-gradient(from 0deg, #ff3b3b, #ffb627, #ffee00, #39d353, #00b7ff, #5145ff, #c44cff, #ff3b3b);
-  transition: transform 0.08s, border-color var(--ease-fast), box-shadow var(--ease-fast);
-
-  &:hover { transform: translateY(-1px); border-color: var(--text); }
-}
-
-// Small inner dot that reveals the current custom colour over the rainbow.
-.customDot {
-  position: absolute;
-  inset: 6px;
-  border-radius: 4px;
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-medium));
-  pointer-events: none;
-}
-
-.customRing {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-sm);
-  pointer-events: none;
-}
-
-.customInput {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  border: none;
-  padding: 0;
 }
 
 .pathInput {

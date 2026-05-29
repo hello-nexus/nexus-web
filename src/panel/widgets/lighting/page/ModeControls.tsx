@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import {
-  startStatic, fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect,
+  fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect,
   type ScreenMonitor, type PostProcessSettings,
 } from '../../../../api/lighting';
 import {
@@ -27,53 +27,21 @@ import styles from '../LightingPage.module.scss';
  * on animate mode. Animate is handled separately because it uses a full grid
  * + the Effect-tab inspector on the right. Colour post-process (hue, colorize,
  * saturation, contrast) for Media and Mirror also lives in the Effect tab,
- * so this file only handles what sits UNDER the canvas: static swatches,
- * mirror monitor picker + filter presets, media library, off message.
+ * so this file only handles what sits UNDER the canvas: mirror monitor picker
+ * + filter presets, media library, off message.
  */
-export const ModeControls = memo(function ModeControls({ mode, staticColor, onStaticChange, screenPP, onScreenPPChange }: {
+export const ModeControls = memo(function ModeControls({ mode, screenPP, onScreenPPChange }: {
   mode: LightingMode;
-  staticColor: string;
-  onStaticChange: (hex: string) => void;
   screenPP: PostProcessSettings;
   onScreenPPChange: (pp: PostProcessSettings) => void;
 }) {
   switch (mode) {
-    case 'static': return <StaticControls color={staticColor} onChange={onStaticChange} />;
     case 'animate': return null;
     case 'screen': return <ScreenControls screenPP={screenPP} onScreenPPChange={onScreenPPChange} />;
     case 'gif': return <MediaControls />;
     case 'none': return <OffControls />;
   }
 });
-
-function StaticControls({ color, onChange }: { color: string; onChange: (hex: string) => void }) {
-  const { t } = useTranslation();
-  const applyColor = (hex: string) => {
-    onChange(hex);
-    startStatic(parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16));
-  };
-  const presets = ['#ff0000', '#ff7a00', '#ffe800', '#00ff2a', '#00c8ff', '#0033ff', '#8b5cf6', '#ff3bc0', '#ffffff'];
-  const isPreset = presets.includes(color.toLowerCase());
-
-  return (
-    <div className={styles.staticBar}>
-      <div className={styles.staticSwatches}>
-        {presets.map(hex => (
-          <button key={hex} type="button"
-            className={`${styles.staticSwatch} ${hex.toLowerCase() === color.toLowerCase() ? styles.staticSwatchActive : ''}`}
-            style={{ background: hex }} onClick={() => applyColor(hex)} aria-label={hex} />
-        ))}
-      </div>
-      <HoverTooltip body={t('lighting.customColor')} side="bottom">
-        <label className={`${styles.customSwatch} ${!isPreset ? styles.staticSwatchActive : ''}`} aria-label={t('lighting.customColor')}>
-          <span className={styles.customRing} aria-hidden />
-          {!isPreset && <span className={styles.customDot} style={{ background: color }} aria-hidden />}
-          <input type="color" value={color} onChange={e => applyColor(e.target.value)} className={styles.customInput} />
-        </label>
-      </HoverTooltip>
-    </div>
-  );
-}
 
 function ScreenControls({ screenPP, onScreenPPChange }: {
   screenPP: PostProcessSettings;

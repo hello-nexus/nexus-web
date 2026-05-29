@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import {
-  startStatic, startAnimate, startScreenMirror, stopLighting,
-  fetchLightingDevices, fetchAnimateSettings, fetchStaticColor, saveAnimateTemplates,
+  startAnimate, startScreenMirror, stopLighting,
+  fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync,
@@ -115,7 +115,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const [activeEffect, setActiveEffect] = useState<string>('');
   const [effectTemplates, setEffectTemplates] = useState<Record<string, EffectTemplateBundle>>({});
-  const [staticColor, setStaticColor] = useState<string>('#ff0000');
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   // Canvas hides the rectangle for any device whose LEDs are turned off, so
   // "off" reads visually the same as "no frame on canvas" without a separate
@@ -254,7 +253,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   useEffect(() => subscribeControlSync(event => {
     if (event.domain !== 'lighting') return;
-    if (event.staticColor) setStaticColor(event.staticColor);
     if (event.effect) {
       applyExternalEffectState(event.effect, event.effectState, event.templateIndex);
     }
@@ -272,14 +270,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     Promise.all([
       safe(fetchCurrentSync()),
       safe(fetchAnimateSettings()),
-      safe(fetchStaticColor()),
       safe(fetchMusicReactive()),
       safe(fetchScreenEffect()),
       safe(fetchMediaEffect()),
     ]).then(([
       currentSync,
       animateSettings,
-      staticSettings,
       musicSettings,
       screenEffect,
       mediaEffect,
@@ -291,9 +287,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
       if (animateSettings) {
         hydrateAnimateSettings(animateSettings);
-      }
-      if (staticSettings) {
-        setStaticColor(colorToHex(staticSettings.r, staticSettings.g, staticSettings.b));
       }
       if (musicSettings) {
         setMusicReactiveState(!!musicSettings.enabled);
@@ -323,11 +316,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       fetchMusicReactive().then(data => {
         if (!cancelled && data) setMusicReactiveState(!!data.enabled);
       });
-    } else if (rawSync === 'static') {
-      fetchStaticColor().then(data => {
-        if (cancelled || !data) return;
-        setStaticColor(colorToHex(data.r, data.g, data.b));
-      });
     } else if (rawSync === 'screen') {
       fetchScreenEffect().then(data => {
         if (!cancelled && data) setScreenPP(normalizePP(data));
@@ -340,19 +328,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
     return () => { cancelled = true; };
   }, [serviceOnline, rawSync, hydrateAnimateSettings]);
-
-  // Static-mode color: refetch on initial entry; cross-device updates ride
-  // the multiplex 'lighting' topic (see useTopicCallback below). The prior
-  // 1s setInterval is gone now that mutations push.
-  useEffect(() => {
-    if (!serviceOnline || mode !== 'static') return;
-    let cancelled = false;
-    fetchStaticColor().then(data => {
-      if (cancelled || !data) return;
-      setStaticColor(colorToHex(data.r, data.g, data.b));
-    });
-    return () => { cancelled = true; };
-  }, [serviceOnline, mode]);
 
   // Animate-mode templates: same shape - one fetch on entry, multiplex push
   // for the rest. Local edits still ignore pushes for the
@@ -375,12 +350,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     // static check is safe to disable.
      
     void refreshDevices();
-    if (mode === 'static') {
-      fetchStaticColor().then(data => {
-        if (!data) return;
-        setStaticColor(colorToHex(data.r, data.g, data.b));
-      });
-    } else if (mode === 'animate') {
+    if (mode === 'animate') {
       if (Date.now() < localAnimateEditUntilRef.current) return;
       fetchAnimateSettings().then(data => {
         if (!data) return;
@@ -412,13 +382,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (!sync || sync === 'none') { return; }
     restartedProfileRef.current = key;
     (async () => {
-      if (sync === 'static') {
-        const hex = staticColor;
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        await startStatic(r, g, b);
-      } else if (EFFECTS.some(e => e.key === sync)) {
+      if (EFFECTS.some(e => e.key === sync)) {
         const state = stateFor(sync);
         await startAnimate(sync, state.speed, state.intensity, state.hue,
           state.colorize, state.saturation, state.contrast, state.params, false);
@@ -432,7 +396,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     serviceOnline,
     activeProfileKey,
     loadedProfileLighting,
-    staticColor,
     stateFor,
     screenPP.saturation,
     screenPP.contrast,
@@ -743,13 +706,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setMode(m);
     try {
       switch (m) {
-        case 'static': {
-          const r = parseInt(staticColor.slice(1, 3), 16);
-          const g = parseInt(staticColor.slice(3, 5), 16);
-          const b = parseInt(staticColor.slice(5, 7), 16);
-          await startStatic(r, g, b);
-          break;
-        }
         case 'animate': {
           const key = activeEffect || (EFFECTS.some(e => e.key === rawSync) ? rawSync : 'rainbow');
           setActiveEffect(key);
@@ -768,30 +724,20 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         case 'none': await stopLighting(); break;
       }
       if (m !== 'animate') {
-        publishControlSync({
-          domain: 'lighting',
-          mode: m,
-          rawSync: m,
-          staticColor: m === 'static' ? staticColor : undefined,
-        });
+        publishControlSync({ domain: 'lighting', mode: m, rawSync: m });
       }
     } catch { /* best-effort; backend state becomes source of truth */ }
-  }, [staticColor, activeEffect, rawSync, setMode, screenPP, stateFor]);
-
-  const handleStaticColorChange = useCallback((hex: string) => {
-    setStaticColor(hex);
-    publishControlSync({ domain: 'lighting', mode: 'static', rawSync: 'static', staticColor: hex });
-  }, []);
+  }, [activeEffect, rawSync, setMode, screenPP, stateFor]);
 
   const modeTabs = MODES.map(m => {
     const Icon = LIGHTING_MODE_ICONS[m.key];
     return { key: m.key, label: t(m.labelKey), icon: <Icon size={14} /> };
   });
 
-  // Effect tab is only meaningful for animate / media / screen. Static + off
-  // render an empty-state string; the tab header marks it disabled so the
-  // user doesn't feel invited to click into nothing.
-  const effectTabDisabled = mode === 'static' || mode === 'none';
+  // Effect tab is only meaningful for animate / media / screen. Off renders
+  // an empty-state string; the tab header marks it disabled so the user
+  // doesn't feel invited to click into nothing.
+  const effectTabDisabled = mode === 'none';
 
   if (!serviceOnline) {
     return (
@@ -872,8 +818,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <div className={styles.controls}>
               <ModeControls
                 mode={mode}
-                staticColor={staticColor}
-                onStaticChange={handleStaticColorChange}
                 screenPP={screenPP}
                 onScreenPPChange={setScreenPP}
               />
@@ -967,15 +911,8 @@ function normalizePP(s: PostProcessSettings | null | undefined): PostProcessStat
   };
 }
 
-function colorToHex(r: number, g: number, b: number): string {
-  return '#' + [r, g, b]
-    .map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0'))
-    .join('');
-}
-
 function modeForSync(sync: string): LightingMode {
   if (sync === 'none' || !sync) return 'none';
-  if (sync === 'static') return 'static';
   if (sync === 'screen' || sync.includes('mirror')) return 'screen';
   if (sync === 'gif' || sync.includes('media')) return 'gif';
   return 'animate';

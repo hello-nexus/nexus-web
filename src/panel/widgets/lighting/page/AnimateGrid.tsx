@@ -89,6 +89,7 @@ export function AnimateGrid({ effect, onSelect }: {
         {visible.map(fx => (
           <EffectCard
             key={fx.key}
+            overlay
             dataEffectKey={fx.key}
             label={t(fx.labelKey)}
             thumbUrl={thumbs[fx.key] ?? null}

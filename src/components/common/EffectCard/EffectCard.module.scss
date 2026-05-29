@@ -38,6 +38,49 @@
   &:hover { border-color: var(--accent); }
 }
 
+// Overlay layout (shader browser): the screenshot IS the card, with the
+// label drawn on top. No padding / caption row - the image fills edge to
+// edge and the card clips it to the rounded corners.
+.cardOverlay {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+
+  .thumbWrap {
+    width: 100%;
+    height: 100%;
+  }
+
+  .thumbImg,
+  .thumbSkeleton {
+    border: 0;
+    border-radius: 0;
+    height: 100%;
+  }
+}
+
+// Stroked + shadowed caption sitting in the lower third of the card so it
+// reads clearly over any screenshot - white fill, dark outline, drop shadow.
+.labelOverlay {
+  position: absolute;
+  left: 0.35rem;
+  right: 0.35rem;
+  bottom: 12%;
+  text-align: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.8rem;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  text-transform: capitalize;
+  pointer-events: none;
+  text-shadow:
+    0 1px 3px rgb(0 0 0 / 0.9),
+    0 0 6px rgb(0 0 0 / 0.7);
+  -webkit-text-stroke: 0.6px rgb(0 0 0 / 0.85);
+  paint-order: stroke fill;
+}
+
 .thumbWrap {
   position: relative;
 }

@@ -5,14 +5,12 @@ import { LightingWidget } from './LightingWidget';
 
 vi.mock('../../../api/lighting', () => ({
   fetchAnimateSettings: vi.fn(() => Promise.resolve({ effect: 'rainbow', templates: {} })),
-  fetchCurrentSync: vi.fn(() => Promise.resolve({ sync: 'static' })),
+  fetchCurrentSync: vi.fn(() => Promise.resolve({ sync: 'rainbow' })),
   fetchScreenEffect: vi.fn(() => Promise.resolve({ hue: 0, colorize: 0, saturation: 1, contrast: 1, flipX: false, flipY: false })),
-  fetchStaticColor: vi.fn(() => Promise.resolve({ r: 255, g: 0, b: 0 })),
   setMusicReactive: vi.fn(() => Promise.resolve()),
   setScreenEffect: vi.fn(() => Promise.resolve()),
   startAnimate: vi.fn(() => Promise.resolve()),
   startScreenMirror: vi.fn(() => Promise.resolve()),
-  startStatic: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('../../../api/mediaLibrary', () => ({
@@ -40,7 +38,6 @@ vi.mock('../../../lib/i18n', () => ({
       'lighting.mode.animate': 'Animation',
       'lighting.mode.gif': 'Media',
       'lighting.mode.screen': 'Mirror',
-      'lighting.mode.static': 'Static',
       'lighting.panel.prev': 'Previous',
       'lighting.panel.next': 'Next',
       'lighting.panel.screenActive': 'Mirror is active',
@@ -85,33 +82,31 @@ describe('LightingWidget', () => {
     expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Animation' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Mirror' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Static' })).not.toBeInTheDocument();
   });
 
-  it('renders 4x2 with three labelled mode buttons + L/R arrows', async () => {
+  it('renders 4x2 with two labelled mode buttons + L/R arrows', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Animation' })).toBeInTheDocument());
 
     expect(screen.getByRole('button', { name: 'Mirror' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Static' })).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
 
-    // No 'Off' or 'Media' buttons - these were intentionally dropped from
-    // the widget surface in the 3-button redesign.
+    // No 'Off', 'Media', or 'Static' buttons - Off/Media were dropped in the
+    // widget redesign and Static was removed with the static mode entirely.
     expect(screen.queryByRole('button', { name: 'Off' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Media' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Static' })).not.toBeInTheDocument();
   });
 
   it('marks the active mode button using data-active', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
     await waitFor(() => {
-      const staticBtn = screen.getByRole('button', { name: 'Static' });
-      expect(staticBtn.getAttribute('data-active')).toBe('true');
+      const animateBtn = screen.getByRole('button', { name: 'Animation' });
+      expect(animateBtn.getAttribute('data-active')).toBe('true');
     });
-    expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('false');
     expect(screen.getByRole('button', { name: 'Mirror' }).getAttribute('data-active')).toBe('false');
   });
 

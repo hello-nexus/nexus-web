@@ -26,14 +26,21 @@ interface EffectCardProps {
   ariaLabel?: string;
   /** Optional data attribute, used by AnimateGrid for auto-scroll-to-selected. */
   dataEffectKey?: string;
+  /**
+   * Overlay layout: the thumbnail fills the whole card edge-to-edge and the
+   * label is drawn on top of it (lower third, stroked + shadowed so it stays
+   * legible over any screenshot). Used by the shader browser. Off by default
+   * so the media library keeps its image-above-caption layout.
+   */
+  overlay?: boolean;
 }
 
 export function EffectCard({
   label, thumbUrl, active, onClick,
   audio, meta, onDelete, deleteAriaLabel,
-  asDiv, thumbOverlay, ariaLabel, dataEffectKey,
+  asDiv, thumbOverlay, ariaLabel, dataEffectKey, overlay,
 }: EffectCardProps) {
-  const className = `${styles.card} ${active ? styles.cardActive : ''}`;
+  const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''}`;
   const inner = (
     <>
       <div className={styles.thumbWrap}>
@@ -54,9 +61,10 @@ export function EffectCard({
             ariaLabel={deleteAriaLabel ?? 'Delete'}
           />
         )}
+        {overlay && <span className={styles.labelOverlay}>{label}</span>}
       </div>
-      <span className={styles.label}>{label}</span>
-      {meta !== undefined && <span className={styles.meta}>{meta}</span>}
+      {!overlay && <span className={styles.label}>{label}</span>}
+      {!overlay && meta !== undefined && <span className={styles.meta}>{meta}</span>}
     </>
   );
 

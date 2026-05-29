@@ -31,6 +31,50 @@ const WARM_MONO: Feel = { hue: 0.08, colorize: 0.75, speed: 85, saturation: 1.10
 const COOL_MONO: Feel = { hue: 0.62, colorize: 0.75, speed: 30, saturation: 1.00, contrast: 1.00, intensity: 1 };
 const GREEN_MONO: Feel = { hue: 0.35, colorize: 0.75, speed: 65, saturation: 1.10, contrast: 1.05, intensity: 1 };
 
+// ── Simple solid-colour fills ──────────────────────────────────────────────
+// Each "simple" effect is the same cheap solid-fill shader; the colour comes
+// entirely from the post-process tint. The 4 template slots are all the SAME
+// base hue, varied only slightly: a balanced default, a punchy oversaturated
+// take, a soft desaturated one, and a richly-saturated slight-hue-shift - so
+// e.g. "Simple Orange" stays fundamentally orange across all four. colorize=1
+// (full tint) and a slow speed keep the fill near-solid and gentle.
+const SIMPLE_HUES: Record<string, number> = {
+  simplered:    0.00,
+  simpleorange: 0.05,
+  simpleyellow: 0.14,
+  simplegreen:  0.33,
+  simplecyan:   0.50,
+  simpleblue:   0.62,
+  simpleviolet: 0.75,
+  simplepink:   0.92,
+};
+
+const norm1 = (h: number): number => ((h % 1) + 1) % 1;
+const simpleColorFeels = (hue: number): [Feel, Feel, Feel, Feel] => {
+  const base = (h: number, saturation: number, contrast = 1.0): Feel =>
+    ({ hue: norm1(h), colorize: 1, speed: 28, saturation, contrast, intensity: 1 });
+  return [
+    base(hue,         1.10),        // balanced default
+    base(hue + 0.015, 1.70, 1.05),  // highly saturated
+    base(hue - 0.020, 0.55),        // desaturated
+    base(hue + 0.030, 1.35),        // rich, slight hue offset
+  ];
+};
+// White is special: hue is meaningless, so vary by saturation only (pure /
+// faintly warm / faintly cool / barely tinted) to stay "fundamentally white".
+const SIMPLE_WHITE_FEELS: [Feel, Feel, Feel, Feel] = [
+  { hue: 0.00, colorize: 1, speed: 28, saturation: 0.00, contrast: 1.00, intensity: 1 },
+  { hue: 0.08, colorize: 1, speed: 28, saturation: 0.14, contrast: 1.00, intensity: 1 },
+  { hue: 0.58, colorize: 1, speed: 28, saturation: 0.14, contrast: 1.00, intensity: 1 },
+  { hue: 0.00, colorize: 1, speed: 28, saturation: 0.06, contrast: 1.00, intensity: 1 },
+];
+
+function simpleFeelsFor(key: string): [Feel, Feel, Feel, Feel] | null {
+  if (key === 'simplewhite') return SIMPLE_WHITE_FEELS;
+  const hue = SIMPLE_HUES[key];
+  return hue === undefined ? null : simpleColorFeels(hue);
+}
+
 function isRainbowSignature(f: Feel): boolean {
   return Math.abs(f.hue) < 1e-4 && Math.abs(f.colorize) < 1e-4;
 }
@@ -505,7 +549,9 @@ export function buildDefaultTemplates(effectKey: string): EffectTemplateBundle {
   const baseParams = defaultParamsFor(effectKey);
   const variations = PARAM_VARIATIONS[effectKey];
   const signature = SIGNATURES[effectKey] ?? RAINBOW;
-  const feels = feelsForSignature(signature);
+  // Simple fills carry their own 4 same-colour feels; everything else derives
+  // its slots from the signature (rainbow / warm / cool / green logic).
+  const feels = simpleFeelsFor(effectKey) ?? feelsForSignature(signature);
   const slots: EffectState[] = feels.map((feel, i) => {
     const overrides = variations?.[i] ?? {};
     return {
