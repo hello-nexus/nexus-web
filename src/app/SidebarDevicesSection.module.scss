@@ -145,11 +145,15 @@
   flex-shrink: 0;
   background-color: currentColor;
   mask-image: var(--device-icon);
-  mask-size: 18px 18px;
+  // `contain` (matching the DevicesPage glyphs) fits the whole 48-unit
+  // viewBox into the box, so the art fills it the way the lucide app icons
+  // fill theirs. The old fixed 18px size left the tall/narrow panel
+  // silhouettes (Y70, Q60) reading noticeably smaller than the app rows.
+  mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;
   -webkit-mask-image: var(--device-icon);
-  -webkit-mask-size: 18px 18px;
+  -webkit-mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
 }

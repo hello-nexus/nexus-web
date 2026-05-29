@@ -1,5 +1,6 @@
 import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { tooltipOpenDelay, notifyTooltipOpen, notifyTooltipClose } from '../tooltipDelay';
 import styles from './HoverTooltip.module.scss';
 
 interface HoverTooltipProps {
@@ -16,10 +17,9 @@ interface HoverTooltipProps {
 }
 
 const OFFSET = 8;
-// Pointer must rest on the trigger for this long before the tooltip opens.
-// Stops incidental cursor pass-through from flashing tooltips on every
-// element the user crosses. Matches native browser title delay feel.
-const OPEN_DELAY_MS = 300;
+// The pointer-rest delay before opening lives in ../tooltipDelay as a shared
+// "scan mode" coordinator: a lone hover pays the full delay, but scanning
+// across a cluster of tooltips opens each one instantly. See tooltipOpenDelay.
 
 const TRANSFORM_PER_SIDE: Record<NonNullable<HoverTooltipProps['side']>, string> = {
   bottom: 'translateX(-50%)',
@@ -56,6 +56,11 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const openTimerRef = useRef<number | null>(null);
+  // Whether THIS tooltip actually became visible. The shared scan-mode
+  // coordinator must only see a close for a tooltip that really opened —
+  // an incidental pass-through that's cancelled before the delay elapses
+  // must not re-arm the scan window, or it would never lapse back.
+  const openedRef = useRef(false);
   const tooltipId = useId();
 
   const cancelPendingOpen = () => {
@@ -66,11 +71,26 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
   };
   const scheduleOpen = () => {
     cancelPendingOpen();
-    openTimerRef.current = window.setTimeout(() => { setOpen(true); openTimerRef.current = null; }, OPEN_DELAY_MS);
+    openTimerRef.current = window.setTimeout(() => {
+      setOpen(true);
+      openedRef.current = true;
+      notifyTooltipOpen();
+      openTimerRef.current = null;
+    }, tooltipOpenDelay());
   };
-  const close = () => { cancelPendingOpen(); setOpen(false); };
+  const close = () => {
+    cancelPendingOpen();
+    setOpen(false);
+    if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
+  };
 
-  useEffect(() => () => cancelPendingOpen(), []);
+  // On unmount, release scan mode if this tooltip was still open — otherwise
+  // `scanning` stays latched in the shared coordinator with no timer to lapse
+  // it, and the next casual hover would open instantly instead of delaying.
+  useEffect(() => () => {
+    cancelPendingOpen();
+    if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
+  }, []);
 
   const reposition = () => {
     const el = triggerRef.current;
@@ -141,7 +161,7 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     }),
     // Keyboard focus opens immediately - keyboard users have committed to
     // the element by tabbing to it, the delay would just feel sluggish.
-    onFocus: chain(childProps.onFocus, () => { cancelPendingOpen(); setOpen(true); }),
+    onFocus: chain(childProps.onFocus, () => { cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen(); }),
     onBlur: chain(childProps.onBlur, () => close()),
     'aria-describedby': open ? tooltipId : childProps['aria-describedby'],
   });

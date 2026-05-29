@@ -108,7 +108,7 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
         </span>
         {!compact && (
           <>
-            <span>{t('phonePair.title')}</span>
+            <span className={styles.phonePairTitle}>{t('phonePair.title')}</span>
             <span className={styles.phonePairState}>{countLabel}</span>
           </>
         )}

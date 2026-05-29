@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { tooltipOpenDelay, notifyTooltipOpen, notifyTooltipClose } from '../tooltipDelay';
 import styles from './InfoTooltip.module.scss';
 
 interface InfoTooltipProps {
@@ -40,6 +41,10 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
   const tooltipRef = useRef<HTMLSpanElement>(null);
   const closeTimerRef = useRef<number | null>(null);
   const openTimerRef = useRef<number | null>(null);
+  // Whether this tooltip actually became visible — so the shared scan-mode
+  // coordinator only sees a close for a tooltip that really opened (an
+  // incidental cancelled hover must not re-arm the scan window).
+  const openedRef = useRef(false);
   const tooltipId = useId();
 
   const cancelPendingClose = () => {
@@ -55,17 +60,26 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
     }
   };
   // Open delay so incidental cursor pass-through doesn't pop the tooltip.
-  // Matches HoverTooltip's OPEN_DELAY_MS so all hover tooltips feel uniform.
+  // Shares ../tooltipDelay's "scan mode" with HoverTooltip so all hover
+  // tooltips feel uniform and scanning across them opens each one instantly.
   const scheduleOpen = () => {
     cancelPendingOpen();
-    openTimerRef.current = window.setTimeout(() => { setOpen(true); openTimerRef.current = null; }, 300);
+    openTimerRef.current = window.setTimeout(() => {
+      setOpen(true);
+      openedRef.current = true;
+      notifyTooltipOpen();
+      openTimerRef.current = null;
+    }, tooltipOpenDelay());
   };
   // Grace period so cursor can travel from icon to portal'd tooltip across
   // the OFFSET gap without retriggering pointerleave and dismissing.
   const scheduleClose = () => {
     cancelPendingClose();
     cancelPendingOpen();
-    closeTimerRef.current = window.setTimeout(() => setOpen(false), 120);
+    closeTimerRef.current = window.setTimeout(() => {
+      setOpen(false);
+      if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
+    }, 120);
   };
 
   useLayoutEffect(() => {
@@ -101,12 +115,17 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
       if (rootRef.current?.contains(target)) return;
       if (tooltipRef.current?.contains(target)) return;
       setOpen(false);
+      if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
     };
     const onKey = (e: KeyboardEvent) => {
       // stopPropagation so dismissing an open tooltip inside a modal does
       // not also close the modal (ConfirmModal / SupportedDevicesModal
       // register their own Esc handlers on window).
-      if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); }
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setOpen(false);
+        if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
+      }
     };
     document.addEventListener('mousedown', onDocPointer);
     window.addEventListener('keydown', onKey);
@@ -116,7 +135,13 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
     };
   }, [open]);
 
-  useEffect(() => () => { cancelPendingClose(); cancelPendingOpen(); }, []);
+  // On unmount, release scan mode if this tooltip was still open — otherwise
+  // `scanning` stays latched with no timer to lapse it.
+  useEffect(() => () => {
+    cancelPendingClose();
+    cancelPendingOpen();
+    if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
+  }, []);
 
   const label = ariaLabel ?? t('infoTooltip.ariaLabel');
 
@@ -127,10 +152,16 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
         className={styles.trigger}
         aria-label={label}
         aria-describedby={tooltipId}
-        onClick={() => { cancelPendingOpen(); setOpen(v => !v); }}
+        onClick={() => {
+          cancelPendingOpen();
+          const next = !open;
+          if (next) { openedRef.current = true; notifyTooltipOpen(); }
+          else if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
+          setOpen(next);
+        }}
         onPointerEnter={(e) => { if (e.pointerType !== 'touch') { cancelPendingClose(); scheduleOpen(); } }}
         onPointerLeave={(e) => { if (e.pointerType !== 'touch') scheduleClose(); }}
-        onFocus={() => { cancelPendingClose(); cancelPendingOpen(); setOpen(true); }}
+        onFocus={() => { cancelPendingClose(); cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen(); }}
         onBlur={() => scheduleClose()}>
         <Info size={14} strokeWidth={1.8} aria-hidden />
       </button>

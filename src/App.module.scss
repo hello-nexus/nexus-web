@@ -722,6 +722,17 @@
   box-shadow: 0 0 0 2px var(--bg), 0 0 8px color-mix(in srgb, var(--good) 60%, transparent);
 }
 
+// Match the sidebar nav rows (`.item`): same step-down font size and body
+// weight so "Pair Remote" reads at the same scale as Monitoring / Settings
+// rather than the larger inherited body size. Color is inherited from the
+// button (--text-dim), which already matches the nav rows.
+.phonePairTitle {
+  grid-column: 2;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  line-height: 1.2;
+}
+
 .phonePairState {
   @include text-caption;
   grid-column: 2;

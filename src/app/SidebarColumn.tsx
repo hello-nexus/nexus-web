@@ -188,6 +188,13 @@ export function SidebarColumn({
           />
         }
       />
+      <PairPhoneButton
+        connectedCount={phoneSubscribers}
+        remoteEnabled={remoteControlEnabled}
+        disabled={!online}
+        compact={compact}
+        onClick={onPairPhoneOpen}
+      />
       <div className={styles.sidebarSettingsItem}>
         <SidebarNavButton
           icon={NAV_ICONS.settings}
@@ -197,13 +204,6 @@ export function SidebarColumn({
           onClick={onNavigateSettings}
         />
       </div>
-      <PairPhoneButton
-        connectedCount={phoneSubscribers}
-        remoteEnabled={remoteControlEnabled}
-        disabled={!online}
-        compact={compact}
-        onClick={onPairPhoneOpen}
-      />
       <SidebarConflictSlot serviceOnline={online} compact={compact} />
       <HoverTooltip body={compact ? t('sidebar.expand') : t('sidebar.collapse')} side="right">
         <button
