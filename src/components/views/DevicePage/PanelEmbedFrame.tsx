@@ -41,10 +41,18 @@ interface PanelEmbedFrameProps {
   canvasDpi?: number;
   // True when `canvasSize` is already in CSS pixels (the kiosk-reported
   // live viewport via capabilities.cssWidth/cssHeight) rather than native
-  // device pixels (the hardcoded per-surface profile). CSS-pixel canvases
-  // must NOT be divided by the device DPR again — they already are the
-  // viewport the WebView exposes. Native-pixel profiles still get the
-  // native→CSS DPR conversion below.
+  // device pixels (the hardcoded per-surface profile in usePanelDevices'
+  // WIDGET_PANEL_PROFILES). CSS-pixel canvases must NOT be divided by the
+  // device DPR again — they already ARE the viewport the WebView exposes.
+  // Only the native-pixel profile fallback gets the native→CSS /DPR below.
+  //
+  // Recurring trap: forgetting this renders the iframe at viewport/DPR
+  // (e.g. y70 734 / (337/160) ≈ 349px), which drops below the y70
+  // `@media (min-height:1500px)` breakpoint, so the panel paints with
+  // wrong gaps + an under-scaled cellScaler. Symptom is "the SIMULATOR
+  // iframe looks squished (side margins, big gaps, tiny widget content)
+  // while the ON-DEVICE panel is fine" — the fix lives here, NOT in
+  // PanelApp.module.scss. See .agents/rules/failure-log.md (2026-05-29).
   canvasIsCssPixels?: boolean;
   brightness: number;
   screenOn: boolean;
