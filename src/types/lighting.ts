@@ -120,17 +120,27 @@ export const MODES: { key: LightingMode; labelKey: string }[] = [
   { key: 'screen', labelKey: 'lighting.mode.screen' },
 ];
 
+// Simple fills share two tweaks: gradient boldness (0 = flat solid colour,
+// max = strong dark->light ramp) and the gradient's rotation in degrees
+// (0 = vertical). One shared array since every simple colour is the same
+// shader; it's read-only so sharing the reference is safe.
+const SIMPLE_PARAMS: EffectParamDef[] = [
+  { name: 'u_gradient', label: 'Gradient', min: 0, max: 1,   step: 0.02, defaultValue: 0.6 },
+  { name: 'u_rotation', label: 'Rotation', min: 0, max: 360, step: 5,    defaultValue: 0 },
+];
+
 export const EFFECTS: EffectDef[] = [
-  // Simple solid-colour fills lead the list. No per-effect params - the
-  // colour lives entirely in the template feels (hue / colorize / saturation).
-  { key: 'simplered',    labelKey: 'lighting.controls.simplered',    params: [] },
-  { key: 'simpleorange', labelKey: 'lighting.controls.simpleorange', params: [] },
-  { key: 'simpleyellow', labelKey: 'lighting.controls.simpleyellow', params: [] },
-  { key: 'simplegreen',  labelKey: 'lighting.controls.simplegreen',  params: [] },
-  { key: 'simplecyan',   labelKey: 'lighting.controls.simplecyan',   params: [] },
-  { key: 'simpleblue',   labelKey: 'lighting.controls.simpleblue',   params: [] },
-  { key: 'simpleviolet', labelKey: 'lighting.controls.simpleviolet', params: [] },
-  { key: 'simplepink',   labelKey: 'lighting.controls.simplepink',   params: [] },
+  // Simple solid-colour fills lead the list. A vertical gradient (boldness +
+  // rotation) is the only per-effect tweak; hue / saturation / speed come from
+  // the template feels.
+  { key: 'simplered',    labelKey: 'lighting.controls.simplered',    params: SIMPLE_PARAMS },
+  { key: 'simpleorange', labelKey: 'lighting.controls.simpleorange', params: SIMPLE_PARAMS },
+  { key: 'simpleyellow', labelKey: 'lighting.controls.simpleyellow', params: SIMPLE_PARAMS },
+  { key: 'simplegreen',  labelKey: 'lighting.controls.simplegreen',  params: SIMPLE_PARAMS },
+  { key: 'simplecyan',   labelKey: 'lighting.controls.simplecyan',   params: SIMPLE_PARAMS },
+  { key: 'simpleblue',   labelKey: 'lighting.controls.simpleblue',   params: SIMPLE_PARAMS },
+  { key: 'simpleviolet', labelKey: 'lighting.controls.simpleviolet', params: SIMPLE_PARAMS },
+  { key: 'simplepink',   labelKey: 'lighting.controls.simplepink',   params: SIMPLE_PARAMS },
   { key: 'plasma',       labelKey: 'lighting.controls.plasma',       params: [
       { name: 'u_warp', label: 'Warp',  min: 0,   max: 2,   step: 0.05, defaultValue: 1 },
       { name: 'u_zoom', label: 'Zoom',  min: 0.5, max: 3,   step: 0.05, defaultValue: 1 },

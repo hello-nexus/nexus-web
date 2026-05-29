@@ -104,6 +104,36 @@ export function PanelThemeSettings({
   return (
     <div className={styles.themePanel}>
       <div className={styles.themeSection}>
+        <div className={styles.themeSectionTitle}>{label('panel.settings.widgets', 'Widgets')}</div>
+        {!hideWidgetLabelsToggle && (
+          <div className={styles.themeToggleRow}>
+            <span>{label('panel.settings.widgetLabels', 'Widget labels')}</span>
+            <Toggle
+              checked={theme.widgetLabels}
+              onChange={onWidgetLabelsCommit}
+              ariaLabel={label('panel.settings.widgetLabels', 'Widget labels')}
+            />
+          </div>
+        )}
+        <Slider
+          orientation="stacked"
+          label={label('panel.settings.widgetOpacity', 'Widget opacity')}
+          value={widgetOpacityPercent}
+          min={0}
+          max={100}
+          step={1}
+          trackFill={widgetOpacityPercent}
+          formatValue={v => `${v}%`}
+          onChange={(v, commit) => {
+            const next = v / 100;
+            if (commit) onWidgetOpacityCommit(next);
+            else onWidgetOpacityPreview(next);
+          }}
+          onCommit={v => onWidgetOpacityCommit(v / 100)}
+        />
+      </div>
+
+      <div className={styles.themeSection}>
         <div className={styles.themeSectionTitle}>{t('settings.theme') || 'Theme'}</div>
         <div className={styles.themeToggleRow}>
           <span>{syncWithDesktopLabel}</span>
@@ -173,11 +203,7 @@ export function PanelThemeSettings({
           />
         ) : (
           <div className={styles.backgroundShaderControls}>
-            <PanelAnimationPicker
-              effect={backgroundEffect}
-              onSelect={onBackgroundEffectCommit}
-            />
-
+            {/* Preset (colour template) picker at the top of the block. */}
             <EffectTemplateSelector
               className={styles.backgroundTemplateRow}
               slots={Array.from({ length: 4 }, (_, index) => panelBackgroundState(backgroundEffect, index))}
@@ -187,6 +213,7 @@ export function PanelThemeSettings({
               buttonAriaLabelPrefix={label('panel.settings.animationTemplate', 'Animation template')}
             />
 
+            {/* Opacity sits just above the category chips. */}
             <Slider
               orientation="stacked"
               label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
@@ -203,38 +230,14 @@ export function PanelThemeSettings({
               }}
               onCommit={v => onBackgroundOpacityCommit(v / 100)}
             />
-          </div>
-        )}
-      </div>
 
-      <div className={styles.themeSection}>
-        <div className={styles.themeSectionTitle}>{label('panel.settings.widgets', 'Widgets')}</div>
-        {!hideWidgetLabelsToggle && (
-          <div className={styles.themeToggleRow}>
-            <span>{label('panel.settings.widgetLabels', 'Widget labels')}</span>
-            <Toggle
-              checked={theme.widgetLabels}
-              onChange={onWidgetLabelsCommit}
-              ariaLabel={label('panel.settings.widgetLabels', 'Widget labels')}
+            {/* Category chips + the vertical-scrolling animation grid. */}
+            <PanelAnimationPicker
+              effect={backgroundEffect}
+              onSelect={onBackgroundEffectCommit}
             />
           </div>
         )}
-        <Slider
-          orientation="stacked"
-          label={label('panel.settings.widgetOpacity', 'Widget opacity')}
-          value={widgetOpacityPercent}
-          min={0}
-          max={100}
-          step={1}
-          trackFill={widgetOpacityPercent}
-          formatValue={v => `${v}%`}
-          onChange={(v, commit) => {
-            const next = v / 100;
-            if (commit) onWidgetOpacityCommit(next);
-            else onWidgetOpacityPreview(next);
-          }}
-          onCommit={v => onWidgetOpacityCommit(v / 100)}
-        />
       </div>
     </div>
   );
@@ -283,10 +286,7 @@ function PanelAnimationPicker({
 
   return (
     <div className={styles.animationPicker}>
-      <div className={styles.animationPickerHeader}>
-        <span>{label('panel.settings.animations', 'Animations')}</span>
-      </div>
-      <div className={styles.animationCategoryChips} data-panel-scrollable="true">
+      <div className={styles.animationCategoryChips}>
         {PANEL_ANIMATION_FILTERS.map(item => (
           <button
             key={item}
