@@ -6,6 +6,20 @@ export async function lightingOutputUrl(): Promise<string> {
   return resolveAuthWs('/lighting/output');
 }
 
+// --- Effect thumbnails ---
+
+// The service renders effect thumbnails on demand and serves them with a
+// long (24h) browser cache header, so clients don't refetch 60 BMPs on every
+// page load. When the effect SHADERS change, the rendered thumbnail changes
+// too — bump this token so every client refetches the fresh screenshot once
+// (the new URL is a cache miss), then re-caches it. Increment on any shader
+// edit that alters how an effect looks.
+export const EFFECT_THUMB_VERSION = 2;
+
+/** Path to an effect's preview thumbnail, cache-busted by EFFECT_THUMB_VERSION. */
+export const effectThumbnailPath = (key: string) =>
+  `/lighting/effects/${encodeURIComponent(key)}/thumbnail.bmp?v=${EFFECT_THUMB_VERSION}`;
+
 // --- Shader source (for client-side WebGL rendering) ---
 
 export interface ShaderSource { frag: string; }

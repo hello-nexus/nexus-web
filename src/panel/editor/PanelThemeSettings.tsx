@@ -6,6 +6,7 @@ import { Slider } from '../../components/common/Slider/Slider';
 import { Tabs } from '../../components/common/Tabs/Tabs';
 import { Toggle } from '../../components/common/Toggle/Toggle';
 import { fetchServiceBlob } from '../../api/service';
+import { effectThumbnailPath } from '../../api/lighting';
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import { EFFECT_CATEGORIES, categoryOf, type EffectCategory } from '../../types/lighting';
@@ -263,7 +264,7 @@ function PanelAnimationPicker({
     const urls: string[] = [];
     (async () => {
       for (const fx of PANEL_BACKGROUND_EFFECTS) {
-        const blob = await fetchServiceBlob(`/lighting/effects/${fx.key}/thumbnail.bmp`);
+        const blob = await fetchServiceBlob(effectThumbnailPath(fx.key));
         if (cancelled) return;
         if (!blob) continue;
         const url = URL.createObjectURL(blob);

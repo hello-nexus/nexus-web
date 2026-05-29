@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchServiceBlob } from '../../../../api/service';
+import { effectThumbnailPath } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import {
   EFFECTS, EFFECT_CATEGORIES, categoryOf,
@@ -51,7 +52,7 @@ export function AnimateGrid({ effect, onSelect }: {
     const urls: string[] = [];
     (async () => {
       for (const fx of EFFECTS) {
-        const blob = await fetchServiceBlob(`/lighting/effects/${fx.key}/thumbnail.bmp`);
+        const blob = await fetchServiceBlob(effectThumbnailPath(fx.key));
         if (cancelled) return;
         if (blob) {
           const url = URL.createObjectURL(blob);

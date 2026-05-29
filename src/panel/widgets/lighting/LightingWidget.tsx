@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Film, Lightbulb, Monitor, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
+  effectThumbnailPath,
   fetchAnimateSettings,
   fetchCurrentSync,
   fetchScreenEffect,
@@ -106,7 +107,7 @@ export function LightingWidget({ widget }: WidgetProps) {
     if (!activeEffect || thumbsRef.current[activeEffect]) return;
     let cancelled = false;
     (async () => {
-      const blob = await fetchServiceBlob(`/lighting/effects/${activeEffect}/thumbnail.bmp`);
+      const blob = await fetchServiceBlob(effectThumbnailPath(activeEffect));
       if (cancelled || !blob) return;
       if (thumbsRef.current[activeEffect]) return;
       const url = URL.createObjectURL(blob);
