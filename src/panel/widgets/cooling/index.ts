@@ -18,7 +18,7 @@ export const coolingApp: AppManifest = {
     defaultSize: '2x2',
     supportsImmersive: { portrait: true, landscape: false },
     hasConfig: true,
-    touch: false,
+    touch: true,
   },
   Widget: CoolingWidget,
   Page: CoolingPage,

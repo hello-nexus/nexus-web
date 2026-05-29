@@ -43,7 +43,7 @@ describe('appAvailableForSurface', () => {
     // 2x4 and no-touch". Availability falls out of capabilities so a new
     // non-touch widget with a 2x4 variant gets picked up automatically.
     for (const type of ['clock', 'monitoring', 'media', 'iframe', 'gallery',
-                        'screentime', 'cooling', 'twitch']) {
+                        'screentime', 'twitch']) {
       const def = APP_REGISTRY[type];
       expect(def, `missing widget type: ${type}`).toBeDefined();
       expect(def.meta.sizes, `${type} should declare 2x4 in sizes`).toContain('2x4');
@@ -89,6 +89,7 @@ describe('appAvailableForSurface', () => {
       'timer',
       'stopwatch',
       'calculator',
+      'cooling',
       'macros',
       'snake',
       'blocks',
