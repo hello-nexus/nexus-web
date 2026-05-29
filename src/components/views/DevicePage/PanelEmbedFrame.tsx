@@ -39,6 +39,13 @@ interface PanelEmbedFrameProps {
   // multiplier (--_s: 2.5, baked for a 480-wide CSS viewport)
   // shrinks widget content by ~33% inside the simulator.
   canvasDpi?: number;
+  // True when `canvasSize` is already in CSS pixels (the kiosk-reported
+  // live viewport via capabilities.cssWidth/cssHeight) rather than native
+  // device pixels (the hardcoded per-surface profile). CSS-pixel canvases
+  // must NOT be divided by the device DPR again — they already are the
+  // viewport the WebView exposes. Native-pixel profiles still get the
+  // native→CSS DPR conversion below.
+  canvasIsCssPixels?: boolean;
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
@@ -75,6 +82,7 @@ export function PanelEmbedFrame({
   onBackgroundClicked,
   canvasSize,
   canvasDpi,
+  canvasIsCssPixels,
   brightness,
   screenOn,
   showPanel,
@@ -100,7 +108,10 @@ export function PanelEmbedFrame({
   // PanelApp.module.scss) match what they were designed for.
   const nativeW = canvasSize?.width ?? DEFAULT_CANVAS_W;
   const nativeH = canvasSize?.height ?? DEFAULT_CANVAS_H;
-  const dpr = SURFACE_DPR[surface] ?? (canvasDpi ? canvasDpi / 160 : 1);
+  // CSS-pixel canvases (live kiosk viewport) are used as-is; native-pixel
+  // profiles convert native→CSS via the device DPR so the iframe reproduces
+  // the WebView's real --panel-cell-size math.
+  const dpr = canvasIsCssPixels ? 1 : (SURFACE_DPR[surface] ?? (canvasDpi ? canvasDpi / 160 : 1));
   const canvasW = Math.round(nativeW / dpr);
   const canvasH = Math.round(nativeH / dpr);
   const aspect = canvasW / canvasH;
