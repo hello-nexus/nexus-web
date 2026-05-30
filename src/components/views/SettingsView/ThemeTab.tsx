@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ColorPickerWithPresets } from '../../common/ColorPickerWithPresets/ColorPickerWithPresets';
+import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { useTranslation } from '../../../lib/i18n';
 import {
   PRESET_ACCENTS, THEME_MODES,
@@ -45,8 +46,7 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
 
   return (
     <div className={styles.tabPanel}>
-      <div className={styles.row}>
-        <span className={styles.rowLabel}>{t('settings.theme')}</span>
+      <SettingRow label={t('settings.theme')}>
         <div className={styles.themeOptions}>
           {THEME_MODES.map(mode => (
             <label key={mode} className={styles.themeOption}>
@@ -62,7 +62,7 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
             </label>
           ))}
         </div>
-      </div>
+      </SettingRow>
 
       <div className={styles.accentSection}>
         <span className={styles.rowLabel}>{t('settings.accent')}</span>

@@ -1098,14 +1098,7 @@
   gap: 10px;
 }
 
-.dockSectionTitle {
-  color: var(--panel-text-faint);
-  font-size: 10px;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
+// Dock header now uses the shared <SectionHeader> component.
 
 .dockToggleRow {
   display: flex;

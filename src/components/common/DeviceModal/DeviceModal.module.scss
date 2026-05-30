@@ -145,15 +145,9 @@
   margin-top: 0.15rem;
 }
 
-:global(.device-modal-section) {
-  font-size: var(--type-small);
-  font-weight: var(--weight-heading);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid var(--border);
-}
+// Section headers use the shared <SectionHeader> component
+// (components/common/SectionHeader) — the old global .device-modal-section
+// style was folded into it so there is a single definition.
 
 :global(.device-modal-select) {
   padding: 0.35rem 0.6rem;

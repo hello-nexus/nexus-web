@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../common/Button/Button';
-import { Toggle } from '../../common/Toggle/Toggle';
-import { Select } from '../../common/Select/Select';
+import { SettingRow, SettingToggle, SettingSelect } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
 import { fetchService, postService } from '../../../api/service';
@@ -70,7 +69,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
   return (
     <div className={styles.tabPanel}>
-      <SelectRow
+      <SettingSelect
         label={t('settings.language')}
         value={settings.general.language}
         options={LANGUAGES.map(l => ({ value: l, label: `${LANGUAGE_FLAGS[l]}  ${LANGUAGE_LABELS[l]}` }))}
@@ -78,7 +77,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
       />
 
       {platform === 'windows' && autoStart !== null && (
-        <ToggleRow
+        <SettingToggle
           label={t('settings.systemStartup.label')}
           description={t('settings.systemStartup.description')}
           checked={autoStart}
@@ -87,14 +86,14 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         />
       )}
 
-      <ToggleRow
+      <SettingToggle
         label={t('settings.alerts.label')}
         description={t('settings.alerts.description')}
         checked={settings.general.disableConflictAlerts}
         onChange={() => updateGeneral({ disableConflictAlerts: !settings.general.disableConflictAlerts })}
       />
 
-      <ToggleRow
+      <SettingToggle
         label={t('settings.advancedWidgets.label')}
         description={t('settings.advancedWidgets.description')}
         checked={settings.general.widgetAdvancedMode}
@@ -102,7 +101,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
       />
 
       {platform === 'macos' && (
-        <ToggleRow
+        <SettingToggle
           label={t('settings.macStatusBar.label')}
           description={t('settings.macStatusBar.description')}
           checked={settings.general.showMacStatusBarIcon}
@@ -111,7 +110,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
       )}
 
       {platform === 'windows' && (
-        <ToggleRow
+        <SettingToggle
           label={t('settings.windowsTray.label')}
           description={t('settings.windowsTray.description')}
           checked={settings.general.showWindowsTrayIcon}
@@ -119,11 +118,10 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         />
       )}
 
-      <div className={styles.row}>
-        <div className={styles.rowInfo}>
-          <span className={styles.rowLabel}>{t('settings.screentime.title')}</span>
-          <span className={styles.rowDesc}>{t('settings.screentime.trackingDesc')}</span>
-        </div>
+      <SettingRow
+        label={t('settings.screentime.title')}
+        description={t('settings.screentime.trackingDesc')}
+      >
         <Button
           type="button"
           tone="neutral"
@@ -133,12 +131,9 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         >
           {t('settings.screentime.openButton')}
         </Button>
-      </div>
+      </SettingRow>
 
-      <div className={styles.row}>
-        <div className={styles.rowInfo}>
-          <span className={styles.rowLabel}>{t('settings.feedback')}</span>
-        </div>
+      <SettingRow label={t('settings.feedback')}>
         <a
           className={styles.rowButton}
           href="https://github.com/nexusqos/nexus-service/issues"
@@ -147,16 +142,13 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         >
           {t('settings.feedback.report')}
         </a>
-      </div>
+      </SettingRow>
 
       {platform === 'windows' && (
-        <div className={styles.row}>
-          <div className={styles.rowInfo}>
-            <span className={styles.rowLabel}>{t('settings.shutDown.label')}</span>
-            <span className={styles.rowDesc}>
-              {flashing ? t('settings.shutDown.flashBlocked') : t('settings.shutDown.description')}
-            </span>
-          </div>
+        <SettingRow
+          label={t('settings.shutDown.label')}
+          description={flashing ? t('settings.shutDown.flashBlocked') : t('settings.shutDown.description')}
+        >
           <Button
             type="button"
             tone="danger"
@@ -166,7 +158,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           >
             {t('settings.shutDown.button')}
           </Button>
-        </div>
+        </SettingRow>
       )}
 
       <ConfirmModal
@@ -188,34 +180,3 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   );
 }
 
-function ToggleRow({ label, description, checked, onChange, disabled }: {
-  label: string;
-  description?: string;
-  checked: boolean;
-  onChange: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <label className={`${styles.row} ${disabled ? styles.disabled : ''}`}>
-      <div className={styles.rowInfo}>
-        <span className={styles.rowLabel}>{label}</span>
-        {description && <span className={styles.rowDesc}>{description}</span>}
-      </div>
-      <Toggle checked={checked} onChange={onChange} disabled={disabled} ariaLabel={label} />
-    </label>
-  );
-}
-
-function SelectRow({ label, value, options, onChange }: {
-  label?: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className={styles.row}>
-      {label && <span className={styles.rowLabel}>{label}</span>}
-      <Select value={value} onChange={onChange} options={options} ariaLabel={label} />
-    </div>
-  );
-}

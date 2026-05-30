@@ -11,6 +11,7 @@ import { PanelWidgetCatalog } from './editor/PanelWidgetCatalog';
 import { PanelHostNameSetting } from './editor/PanelHostNameSetting';
 import { PanelThemeSettings, type ResolvedPanelThemeMode } from './editor/PanelThemeSettings';
 import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
+import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 import { Toggle } from '../components/common/Toggle/Toggle';
 import { useTranslation } from '../lib/i18n';
 import type { ThemeMode } from '../lib/settings';
@@ -287,7 +288,7 @@ export function PanelEditorSheet({
             />
             {dockSupported && (
               <div className={styles.dockSection}>
-                <div className={styles.dockSectionTitle}>Dock</div>
+                <SectionHeader>Dock</SectionHeader>
                 <div className={styles.dockToggleRow}>
                   <span className={styles.dockToggleHint}>
                     Pin up to 4 shortcuts that stay visible across pages.

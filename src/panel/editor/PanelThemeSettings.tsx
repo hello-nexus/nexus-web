@@ -4,7 +4,8 @@ import { EffectTemplateSelector } from '../../components/common/EffectTemplateSe
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { Slider } from '../../components/common/Slider/Slider';
 import { Tabs } from '../../components/common/Tabs/Tabs';
-import { Toggle } from '../../components/common/Toggle/Toggle';
+import { SectionHeader } from '../../components/common/SectionHeader/SectionHeader';
+import { SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { fetchServiceBlob } from '../../api/service';
 import { effectThumbnailPath } from '../../api/lighting';
 import { useTranslation } from '../../lib/i18n';
@@ -108,25 +109,19 @@ export function PanelThemeSettings({
   return (
     <div className={styles.themePanel}>
       <div className={styles.themeSection}>
-        <div className={styles.themeSectionTitle}>{label('panel.settings.widgets', 'Widgets')}</div>
+        <SectionHeader>{label('panel.settings.widgets', 'Widgets')}</SectionHeader>
         {!hideWidgetLabelsToggle && (
-          <div className={styles.themeToggleRow}>
-            <span>{label('panel.settings.widgetLabels', 'Widget labels')}</span>
-            <Toggle
-              checked={theme.widgetLabels}
-              onChange={onWidgetLabelsCommit}
-              ariaLabel={label('panel.settings.widgetLabels', 'Widget labels')}
-            />
-          </div>
-        )}
-        <div className={styles.themeToggleRow}>
-          <span>{label('panel.settings.widgetBlur', 'Widget blur')}</span>
-          <Toggle
-            checked={theme.widgetBlur}
-            onChange={onWidgetBlurCommit}
-            ariaLabel={label('panel.settings.widgetBlur', 'Widget blur')}
+          <SettingToggle
+            label={label('panel.settings.widgetLabels', 'Widget labels')}
+            checked={theme.widgetLabels}
+            onChange={onWidgetLabelsCommit}
           />
-        </div>
+        )}
+        <SettingToggle
+          label={label('panel.settings.widgetBlur', 'Widget blur')}
+          checked={theme.widgetBlur}
+          onChange={onWidgetBlurCommit}
+        />
         <Slider
           orientation="stacked"
           label={label('panel.settings.widgetOpacity', 'Widget opacity')}
@@ -146,15 +141,12 @@ export function PanelThemeSettings({
       </div>
 
       <div className={styles.themeSection}>
-        <div className={styles.themeSectionTitle}>{t('settings.theme') || 'Theme'}</div>
-        <div className={styles.themeToggleRow}>
-          <span>{syncWithDesktopLabel}</span>
-          <Toggle
-            checked={theme.themeSyncWithDesktop}
-            onChange={onThemeSyncCommit}
-            ariaLabel={syncWithDesktopLabel}
-          />
-        </div>
+        <SectionHeader>{t('settings.theme') || 'Theme'}</SectionHeader>
+        <SettingToggle
+          label={syncWithDesktopLabel}
+          checked={theme.themeSyncWithDesktop}
+          onChange={onThemeSyncCommit}
+        />
         {!theme.themeSyncWithDesktop && (
           <Tabs
             variant="pill"
@@ -171,15 +163,12 @@ export function PanelThemeSettings({
       </div>
 
       <div className={styles.themeSection}>
-        <div className={styles.themeSectionTitle}>{t('devices.y70.theme.accent') || 'Accent Color'}</div>
-        <div className={styles.themeToggleRow}>
-          <span>{syncWithDesktopLabel}</span>
-          <Toggle
-            checked={theme.accentSyncWithDesktop}
-            onChange={onAccentSyncCommit}
-            ariaLabel={syncWithDesktopLabel}
-          />
-        </div>
+        <SectionHeader>{t('devices.y70.theme.accent') || 'Accent Color'}</SectionHeader>
+        <SettingToggle
+          label={syncWithDesktopLabel}
+          checked={theme.accentSyncWithDesktop}
+          onChange={onAccentSyncCommit}
+        />
         {!theme.accentSyncWithDesktop && (
           <ColorPickerWithPresets
             value={theme.accentColor || theme.appAccentColor}
@@ -192,7 +181,7 @@ export function PanelThemeSettings({
       </div>
 
       <div className={styles.themeSection}>
-        <div className={styles.themeSectionTitle}>{t('devices.y70.theme.background') || 'Background'}</div>
+        <SectionHeader>{t('devices.y70.theme.background') || 'Background'}</SectionHeader>
         <Tabs
           variant="pill"
           tabs={[

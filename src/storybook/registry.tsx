@@ -56,6 +56,7 @@ import { TextStyles } from './TextStyles';
 import { SurfaceStyles } from './SurfaceStyles';
 import { MicroBar } from '../panel/widgets/monitoring/MicroBar';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
+import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 // Side-effect: pulls the global `.panel-root { --panel-*: … }` token rules into
 // the Storybook bundle so the panel-scoped preview below resolves its vars.
 // Idempotent — PanelDevicePage imports the same sheet.
@@ -778,6 +779,21 @@ function PreviewMicroBars() {
   );
 }
 
+function PreviewSectionHeader() {
+  return (
+    <div className="panel-root" style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <SectionHeader>Widgets</SectionHeader>
+        <div style={{ color: 'var(--panel-text)', fontSize: 13 }}>Widget labels · blur · opacity</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <SectionHeader>Theme</SectionHeader>
+        <div style={{ color: 'var(--panel-text)', fontSize: 13 }}>Sync with desktop</div>
+      </div>
+    </div>
+  );
+}
+
 function PreviewPanelThemeSettings() {
   const [theme, setTheme] = useState<PanelThemeSettingsState>({
     appThemeMode: 'dark', themeSyncWithDesktop: false, themeMode: 'dark',
@@ -1168,6 +1184,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/common/SettingsRow/SettingsRow.tsx',
     description: 'Form-row primitives every panel widget settings pane composes. SettingsToggle wraps the canonical Toggle; SettingsSelect wraps Select. Section titles and a base SettingsRow handle layout.',
     notes: 'No live preview - the panel widget settings panes are widget-specific.',
+  },
+  {
+    name: 'SectionHeader', category: 'panel-kit',
+    filePath: 'src/components/common/SectionHeader/SectionHeader.tsx',
+    description: 'Canonical settings section header: uppercase label + full-width rule. The single header every settings section uses (panel editor sheet, widget settings panes, device Settings tab) so they read identically. Token fallbacks (--panel-* → --text-dim/--border) keep it correct inside .panel-root and on the dashboard. Replaced the per-pane bespoke headers and the former global .device-modal-section.',
+    Preview: PreviewSectionHeader,
   },
   {
     name: 'PanelThemeSettings', category: 'panel-kit',

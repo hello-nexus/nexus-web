@@ -1,25 +1,6 @@
 @use '../../../../styles/text' as *;
 
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 32px;
-}
-
-.label {
-  @include text-button;
-  color: var(--panel-text-muted);
-  white-space: nowrap;
-}
-
-.control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+// .row / .label / .control now live in the canonical components/common/SettingRow.
 
 .section {
   display: flex;
@@ -27,11 +8,8 @@
   gap: 10px;
 }
 
-.sectionTitle {
-  @include text-label;
-  color: var(--panel-text-faint);
-  margin-top: 4px;
-}
+// Section header now uses the shared <SectionHeader> component
+// (components/common/SectionHeader); .sectionTitle was removed.
 
 .input {
   @include text-button;

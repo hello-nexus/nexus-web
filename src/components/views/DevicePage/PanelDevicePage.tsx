@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
+import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
 import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../../../panel/widgets/monitoring/perfSlots';
@@ -593,7 +594,7 @@ function SettingsPanel({
     <div className={styles.settingsContent}>
       {showDisplayControls && (
         <>
-          <div className="device-modal-section">{t('devices.y70.display')}</div>
+          <SectionHeader>{t('devices.y70.display')}</SectionHeader>
 
           <div className="device-modal-row">
             <div className="device-modal-label">{t('devices.y70.brightness')}</div>
@@ -637,7 +638,7 @@ function SettingsPanel({
       )}
 
       {showAutoLaunch && (
-        <div className="device-modal-section" style={{ marginTop: showDisplayControls ? 8 : 0 }}>{t('devices.y70.panel')}</div>
+        <SectionHeader style={{ marginTop: showDisplayControls ? 8 : 0 }}>{t('devices.y70.panel')}</SectionHeader>
       )}
 
       {showAutoLaunch && (

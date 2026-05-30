@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { SectionHeader } from '../../components/common/SectionHeader/SectionHeader';
 import styles from './PanelHostNameSetting.module.scss';
 
 interface PanelHostNameSettingProps {
@@ -41,10 +42,11 @@ export function PanelHostNameSetting({ machineName, onCommit }: PanelHostNameSet
 
   return (
     <div className={styles.section}>
-      <label className={styles.title} htmlFor="panel-host-name-input">Computer name</label>
+      <SectionHeader>Computer name</SectionHeader>
       <input
         ref={inputRef}
         id="panel-host-name-input"
+        aria-label="Computer name"
         className={styles.input}
         type="text"
         value={draft}

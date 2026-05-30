@@ -1,0 +1,13 @@
+// Canonical settings section header — see SectionHeader.tsx. Mirrors the
+// device-modal `.device-modal-section` declarations; the --panel-* aliases
+// resolve inside .panel-root (kiosk) and fall back to the app globals in the
+// dashboard, so the same header reads identically in both contexts.
+.sectionHeader {
+  color: var(--panel-text-muted, var(--text-dim));
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--panel-border, var(--border));
+}

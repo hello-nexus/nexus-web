@@ -1,62 +1,23 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
-import { Toggle } from '../../../../components/common/Toggle/Toggle';
-import { Select } from '../../../../components/common/Select/Select';
+import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
 import styles from './SettingsRow.module.scss';
 
-interface SettingsRowProps {
-  label: string;
-  children: ReactNode;
-}
+// The settings row / toggle / select now come from the canonical shared
+// component (components/common/SettingRow) so the panel widget settings render
+// identically to the main Settings pages. Re-exported under the panel names so
+// the existing widget-settings imports keep working. Only the panel-specific
+// form utilities below (section wrapper, text input, action buttons, saved /
+// hint chips) live here now.
+export {
+  SettingRow as SettingsRow,
+  SettingToggle as SettingsToggle,
+  SettingSelect as SettingsSelect,
+} from '../../../../components/common/SettingRow/SettingRow';
 
-export function SettingsRow({ label, children }: SettingsRowProps) {
-  return (
-    <div className={styles.row}>
-      <label className={styles.label}>{label}</label>
-      <div className={styles.control}>{children}</div>
-    </div>
-  );
-}
-
-interface SettingsToggleProps {
-  label: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}
-
-export function SettingsToggle({ label, checked, onChange }: SettingsToggleProps) {
-  return (
-    <div className={styles.row}>
-      <label className={styles.label}>{label}</label>
-      <Toggle checked={checked} onChange={onChange} ariaLabel={label} />
-    </div>
-  );
-}
-
-interface SettingsSelectProps {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}
-
-export function SettingsSelect({ label, value, options, onChange }: SettingsSelectProps) {
-  return (
-    <div className={styles.row}>
-      <label className={styles.label}>{label}</label>
-      <Select value={value} onChange={onChange} options={options} ariaLabel={label} />
-    </div>
-  );
-}
-
-interface SettingsSectionProps {
-  title: string;
-  children: ReactNode;
-}
-
-export function SettingsSection({ title, children }: SettingsSectionProps) {
+export function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className={styles.section}>
-      <div className={styles.sectionTitle}>{title}</div>
+      <SectionHeader>{title}</SectionHeader>
       {children}
     </div>
   );

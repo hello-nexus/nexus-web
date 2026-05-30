@@ -1,0 +1,83 @@
+import type { ReactNode } from 'react';
+import { Toggle } from '../Toggle/Toggle';
+import { Select } from '../Select/Select';
+import styles from './SettingRow.module.scss';
+
+/**
+ * Canonical settings row: a label (+ optional description) on the left and a
+ * control on the right (no per-row divider — the rule belongs under section
+ * headers, via SectionHeader). This is THE settings row for
+ * the whole app — the main Settings pages, the lighting/keeb pages, the panel
+ * editor sheet, the panel Theme page, and the device Settings tab all use it,
+ * so they read identically. It replaced the per-view inline rows
+ * (SettingsView `ToggleRow`/`SelectRow`, KeebSettingsView `Row`), the panel
+ * fork (`panel/widgets/common/SettingsRow`), and the global `device-modal-row`.
+ *
+ * Tokens fall back to the app globals (`--text`/`--border`/`--text-faded`) so
+ * the row themes correctly both inside `.panel-root` (kiosk, where the
+ * `--panel-*` aliases are defined and carry the per-device theme) and outside
+ * it (the desktop dashboard).
+ */
+export function SettingRow({
+  label,
+  description,
+  children,
+  disabled,
+}: {
+  label?: string;
+  description?: ReactNode;
+  children: ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <div className={disabled ? `${styles.row} ${styles.disabled}` : styles.row}>
+      {(label || description) && (
+        <div className={styles.info}>
+          {label && <span className={styles.label}>{label}</span>}
+          {description && <span className={styles.desc}>{description}</span>}
+        </div>
+      )}
+      <div className={styles.control}>{children}</div>
+    </div>
+  );
+}
+
+export function SettingToggle({
+  label,
+  description,
+  checked,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  description?: ReactNode;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <SettingRow label={label} description={description} disabled={disabled}>
+      <Toggle checked={checked} onChange={onChange} disabled={disabled} ariaLabel={label} />
+    </SettingRow>
+  );
+}
+
+export function SettingSelect({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  label?: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <SettingRow label={label}>
+      <Select value={value} onChange={onChange} options={options} ariaLabel={label} disabled={disabled} size="sm" />
+    </SettingRow>
+  );
+}
