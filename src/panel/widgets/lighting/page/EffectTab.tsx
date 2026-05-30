@@ -3,6 +3,7 @@ import { EFFECTS, type EffectState, type EffectTemplateBundle, type LightingMode
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { EffectControls } from './EffectControls';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -109,13 +110,14 @@ export function EffectTab({
           />
         </div>
         <div className={styles.drawerFooter}>
-          <button
-            type="button"
-            className={styles.drawerReset}
-            onClick={onPostProcessReset}
-            disabled={ppIsIdentity}
-            title={ppIsIdentity ? t('lighting.controls.resetAlready') : t('lighting.controls.reset')}
-          >{t('lighting.controls.reset')}</button>
+          <HoverTooltip body={ppIsIdentity ? t('lighting.controls.resetAlready') : t('lighting.controls.reset')} side="top">
+            <button
+              type="button"
+              className={styles.drawerReset}
+              onClick={onPostProcessReset}
+              disabled={ppIsIdentity}
+            >{t('lighting.controls.reset')}</button>
+          </HoverTooltip>
         </div>
       </div>
     );

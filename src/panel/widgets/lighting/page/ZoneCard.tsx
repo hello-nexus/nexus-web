@@ -67,7 +67,7 @@ export function ZoneCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const interactiveSelector = 'button, input, select, textarea, [role="button"], [role="switch"]';
 
-  return (
+  const card = (
     <div
       ref={cardRef}
       className={[
@@ -95,7 +95,6 @@ export function ZoneCard({
       onDrop={drag ? drag.onDrop : undefined}
       onDragEnd={drag ? drag.onDragEnd : undefined}
       onClick={e => { if (!unavailable) onSelect(e.shiftKey); }}
-      title={unavailable ? t('lighting.devices.detectionFailedTooltip') : undefined}
     >
       <span className={styles.deviceName}>{displayName ?? device.name}</span>
       <div className={styles.deviceMetaRow}>
@@ -158,4 +157,9 @@ export function ZoneCard({
       </div>
     </div>
   );
+  // Only failed/zero-LED zones get an explanatory tooltip; configurable zones
+  // are interactive and need no hover label.
+  return unavailable
+    ? <HoverTooltip body={t('lighting.devices.detectionFailedTooltip')} side="top">{card}</HoverTooltip>
+    : card;
 }

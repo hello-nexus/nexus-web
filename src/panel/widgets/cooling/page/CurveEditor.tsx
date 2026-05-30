@@ -546,15 +546,16 @@ export const CurveCard = memo(function CurveCard({
       {/* Chevron at bottom-center toggles expansion. Card body clicks only
           expand; collapse is the chevron's job (or selecting another curve
           via the single-expansion invariant up in CoolingView). */}
-      <button
-        type="button"
-        className={styles.curveCardChevron}
-        onClick={e => { e.stopPropagation(); if (expanded) onCollapse(); else onExpand(); }}
-        aria-label={expanded ? t('cooling.curves.collapse') : t('cooling.curves.expand')}
-        title={expanded ? t('cooling.curves.collapse') : t('cooling.curves.expand')}
-      >
-        {expanded ? <ChevronUp size={18} aria-hidden /> : <ChevronDown size={18} aria-hidden />}
-      </button>
+      <HoverTooltip body={expanded ? t('cooling.curves.collapse') : t('cooling.curves.expand')} side="top">
+        <button
+          type="button"
+          className={styles.curveCardChevron}
+          onClick={e => { e.stopPropagation(); if (expanded) onCollapse(); else onExpand(); }}
+          aria-label={expanded ? t('cooling.curves.collapse') : t('cooling.curves.expand')}
+        >
+          {expanded ? <ChevronUp size={18} aria-hidden /> : <ChevronDown size={18} aria-hidden />}
+        </button>
+      </HoverTooltip>
     </div>
   );
 });

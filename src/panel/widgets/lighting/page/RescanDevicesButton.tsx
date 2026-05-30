@@ -43,7 +43,6 @@ export function RescanDevicesButton({ rgbRunning, scanning }: {
       className={styles.rescanDevicesBtn}
       onClick={handleClick}
       disabled={disabled}
-      title={t(labelKey)}
     >
       <RefreshCw size={14} className={busy ? styles.rescanIconSpinning : undefined} aria-hidden />
       <span>{t(labelKey)}</span>

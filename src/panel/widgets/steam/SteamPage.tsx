@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Newspaper, Play, Users } from 'lucide-react';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import {
   fetchSteamAchievements,
   fetchSteamAppDetails,
@@ -521,31 +522,32 @@ function GameTile({
 }) {
   const [failed, setFailed] = useState(false);
   return (
-    <button
-      type="button"
-      className={styles.gameTile}
-      onClick={() => onOpen(game.appId, game.name)}
-      title={game.name}
-    >
-      {failed ? (
-        <div className={styles.gameTileArt} aria-hidden="true" />
-      ) : (
-        <img
-          className={styles.gameTileArt}
-          src={steamCapsuleUrl(game.appId)}
-          width={231}
-          height={87}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          onError={() => setFailed(true)}
-        />
-      )}
-      <div className={styles.gameTileMeta}>
-        <div className={styles.gameTileName}>{game.name}</div>
-        <div className={styles.gameTileSub}>{formatMinutes(game.playtimeForever)}</div>
-      </div>
-    </button>
+    <HoverTooltip body={game.name} side="top">
+      <button
+        type="button"
+        className={styles.gameTile}
+        onClick={() => onOpen(game.appId, game.name)}
+      >
+        {failed ? (
+          <div className={styles.gameTileArt} aria-hidden="true" />
+        ) : (
+          <img
+            className={styles.gameTileArt}
+            src={steamCapsuleUrl(game.appId)}
+            width={231}
+            height={87}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailed(true)}
+          />
+        )}
+        <div className={styles.gameTileMeta}>
+          <div className={styles.gameTileName}>{game.name}</div>
+          <div className={styles.gameTileSub}>{formatMinutes(game.playtimeForever)}</div>
+        </div>
+      </button>
+    </HoverTooltip>
   );
 }
 
@@ -739,10 +741,12 @@ function DrillView({
                     </div>
                     <div className={styles.achievementRight}>
                       {a.rarity !== null && (
-                        <div className={styles.rarityBar} title={`${a.rarity.toFixed(1)}% of players have this`}>
-                          <div className={styles.rarityFill} style={{ width: `${Math.min(100, Math.max(2, a.rarity))}%` }} />
-                          <span className={styles.rarityText}>{a.rarity.toFixed(0)}%</span>
-                        </div>
+                        <HoverTooltip body={`${a.rarity.toFixed(1)}% of players have this`} side="top">
+                          <div className={styles.rarityBar}>
+                            <div className={styles.rarityFill} style={{ width: `${Math.min(100, Math.max(2, a.rarity))}%` }} />
+                            <span className={styles.rarityText}>{a.rarity.toFixed(0)}%</span>
+                          </div>
+                        </HoverTooltip>
                       )}
                       {a.achieved === 1 && a.unlockTime > 0 && (
                         <span className={styles.unlockTime}>{formatDate(a.unlockTime)}</span>

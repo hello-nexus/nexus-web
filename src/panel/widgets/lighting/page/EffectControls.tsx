@@ -4,6 +4,7 @@ import { EFFECTS, type EffectState, type EffectTemplateBundle } from '../../../.
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { EffectTemplateSelector } from '../../../../components/common/EffectTemplateSelector/EffectTemplateSelector';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -72,16 +73,20 @@ export const EffectControls = memo(function EffectControls({
         })}
       </div>
       <div className={styles.drawerFooter}>
-        <button
-          type="button"
-          className={styles.drawerReset}
-          onClick={onReset}
-          disabled={!canReset}
-          aria-label={`${t('lighting.controls.reset')} preset ${selected + 1}`}
-          title={canReset
+        <HoverTooltip
+          body={canReset
             ? `${t('lighting.controls.reset')} preset ${selected + 1}`
             : `Preset ${selected + 1} is unchanged`}
-        >{t('lighting.controls.reset')}</button>
+          side="top"
+        >
+          <button
+            type="button"
+            className={styles.drawerReset}
+            onClick={onReset}
+            disabled={!canReset}
+            aria-label={`${t('lighting.controls.reset')} preset ${selected + 1}`}
+          >{t('lighting.controls.reset')}</button>
+        </HoverTooltip>
       </div>
     </div>
   );

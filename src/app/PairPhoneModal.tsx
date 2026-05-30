@@ -93,26 +93,33 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
   const countLabel = remoteEnabled
     ? formatConnectedDevices(connectedCount, t)
     : t('phonePair.killswitch.offLabel');
+  const btn = (
+    <button
+      type="button"
+      className={styles.phonePairBtn}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={compact ? `${t('phonePair.title')} · ${countLabel}` : undefined}
+    >
+      <span className={styles.phonePairIcon}>
+        <Smartphone size={16} />
+        <span className={styles.phonePairDot} data-state={dotState} />
+      </span>
+      {!compact && (
+        <>
+          <span className={styles.phonePairTitle}>{t('phonePair.title')}</span>
+          <span className={styles.phonePairState}>{countLabel}</span>
+        </>
+      )}
+    </button>
+  );
+  // Only the compact (icon-only) form needs a tooltip; the expanded form
+  // already shows the title + state inline.
   return (
     <div className={styles.phonePairWrap}>
-      <button
-        type="button"
-        className={styles.phonePairBtn}
-        onClick={onClick}
-        disabled={disabled}
-        title={compact ? `${t('phonePair.title')} · ${countLabel}` : undefined}
-      >
-        <span className={styles.phonePairIcon}>
-          <Smartphone size={16} />
-          <span className={styles.phonePairDot} data-state={dotState} />
-        </span>
-        {!compact && (
-          <>
-            <span className={styles.phonePairTitle}>{t('phonePair.title')}</span>
-            <span className={styles.phonePairState}>{countLabel}</span>
-          </>
-        )}
-      </button>
+      {compact
+        ? <HoverTooltip body={`${t('phonePair.title')} · ${countLabel}`}>{btn}</HoverTooltip>
+        : btn}
     </div>
   );
 }

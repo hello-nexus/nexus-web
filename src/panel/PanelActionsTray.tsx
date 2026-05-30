@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Plus, QrCode, Settings2 } from 'lucide-react';
 import { usePanelTraySwipe } from './engine/usePanelTraySwipe';
+import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import styles from './PanelActionsTray.module.scss';
 
 interface PanelActionsTrayProps {
@@ -121,16 +122,17 @@ export function PanelActionsTray({
           </button>
         )}
         {pairAvailable && onPair && (
-          <button
-            type="button"
-            className={`${styles.actionButton} ${styles.actionButtonCompact}`}
-            onClick={() => { onPair(); onClose(); }}
-            aria-label="Pairing"
-            title="Pairing"
-          >
-            <QrCode size={17} />
-            <span>Pairing</span>
-          </button>
+          <HoverTooltip body="Pairing" side="top">
+            <button
+              type="button"
+              className={`${styles.actionButton} ${styles.actionButtonCompact}`}
+              onClick={() => { onPair(); onClose(); }}
+              aria-label="Pairing"
+            >
+              <QrCode size={17} />
+              <span>Pairing</span>
+            </button>
+          </HoverTooltip>
         )}
         </div>
       </aside>

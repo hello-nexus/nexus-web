@@ -110,7 +110,6 @@ function ScreenControls({ screenPP, onScreenPPChange }: {
               data-active={activeFilter === f.key ? 'true' : 'false'}
               onClick={() => applyFilter(f.key)}
               aria-pressed={activeFilter === f.key}
-              title={t(f.i18nKey)}
             >
               {t(f.i18nKey)}
             </button>

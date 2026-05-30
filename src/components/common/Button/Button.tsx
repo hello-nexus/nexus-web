@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import classNames from 'classnames';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './Button.module.scss';
 
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -42,12 +43,13 @@ export function Button({
   className,
   children,
   type = 'button',
+  title,
   ...rest
 }: ButtonProps) {
   const isIconOnly = !children && Boolean(icon || iconTrailing);
   const isDisabled = disabled || loading;
 
-  return (
+  const btn = (
     <button
       type={type}
       disabled={isDisabled}
@@ -69,4 +71,10 @@ export function Button({
       {!loading && iconTrailing && <span className={styles.iconTrailing}>{iconTrailing}</span>}
     </button>
   );
+
+  // Route `title` through the custom HoverTooltip rather than the native browser
+  // tooltip, matching IconLabelButton / RgbStatusCard. Icon-only buttons are the
+  // typical case (the label lives in the tooltip), but any caller passing
+  // `title` gets the styled tooltip for free.
+  return title ? <HoverTooltip body={title}>{btn}</HoverTooltip> : btn;
 }
