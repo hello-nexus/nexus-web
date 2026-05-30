@@ -21,7 +21,7 @@ export const DEFAULT_PANEL_BACKGROUND_OPACITY = 0.4;
 // layout defaults. The literals below are ONLY the sub-100ms bootstrap-race
 // fallback (the window before the cache fills) and must match the JSON.
 const WIDGET_OPACITY_FALLBACK = 1;
-const WIDGET_LABELS_FALLBACK = true;
+const WIDGET_LABELS_FALLBACK = false;
 const WIDGET_BLUR_FALLBACK = true;
 
 export const defaultPanelWidgetOpacity = (): number =>
