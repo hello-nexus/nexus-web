@@ -896,7 +896,7 @@ export const DISPATCH_ACTIONS_CHEATSHEET = [
     name: 'displays.list',
     args: '{ }',
     returns: '{ hint, displays: [{ id, name, capabilities, brightnessControl: { supported, current, status, … } }] }',
-    doc: 'Enumerate connected monitors + their brightness control capabilities. Pair with `host` data source for live polling. Used by com.nexusqos.displays.',
+    doc: 'Enumerate connected monitors + their brightness control capabilities. Pair with `host` data source for live polling. Used by com.hellonexus.displays.',
   },
   {
     name: 'displays.setBrightness',

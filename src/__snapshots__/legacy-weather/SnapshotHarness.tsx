@@ -1,6 +1,6 @@
 // Snapshot harness for visual-parity work on the weather widget. The legacy
 // WeatherWidget was retired and replaced by the bundled marketplace widget
-// `com.nexusqos.weather`; this harness keeps a frozen copy of the original
+// `com.hellonexus.weather`; this harness keeps a frozen copy of the original
 // alongside the declarative version so we can keep iterating on the manifest
 // without diverging from the legacy look.
 //
@@ -150,7 +150,7 @@ function WeatherHarness() {
                       data: { weather: DECLARATIVE_PAYLOAD },
                       settings: SETTINGS,
                       size: { width: w, height: h },
-                      widgetId: 'com.nexusqos.weather',
+                      widgetId: 'com.hellonexus.weather',
                     })}
                   </div>
                 </div>

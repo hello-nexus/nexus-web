@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const AASA_PATH = '/.well-known/apple-app-site-association';
 const TEAM_ID = '8ZFCKY2SQ9';
-const BUNDLE_ID = 'com.nexusqos.panel';
+const BUNDLE_ID = 'com.hellonexus.panel';
 
 test.describe('apple-app-site-association', () => {
   test('serves the AASA file as JSON, not the SPA shell', async ({ request }) => {

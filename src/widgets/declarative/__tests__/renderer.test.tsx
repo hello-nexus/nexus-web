@@ -7,7 +7,7 @@ const ctx = {
   data: { temp: { value: 42, formatted: '42°C', name: 'CPU Package' } },
   settings: { color: '#ff8800', warnTemp: 80, criticalTemp: 95 },
   size: { width: 200, height: 200 },
-  widgetId: 'com.nexusqos.test',
+  widgetId: 'com.hellonexus.test',
 };
 
 describe('declarative renderer', () => {

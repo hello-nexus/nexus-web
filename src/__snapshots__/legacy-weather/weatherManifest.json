@@ -1,6 +1,6 @@
 {
   "schema": "nexus.widget/2",
-  "id": "com.nexusqos.weather",
+  "id": "com.hellonexus.weather",
   "name": "Weather",
   "version": "2.2.0",
   "description": "Current conditions + hourly strip + 5-day forecast. Tier 2 worker calls OpenMeteo through nexus.net.fetch and publishes parsed payload to the declarative view.",

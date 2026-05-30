@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["8ZFCKY2SQ9.com.nexusqos.panel"],
+        "appIDs": ["8ZFCKY2SQ9.com.hellonexus.panel"],
         "components": [
           {
             "/": "/r/**",

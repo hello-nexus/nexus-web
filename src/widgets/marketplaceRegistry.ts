@@ -18,8 +18,8 @@ export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
  * rendering) but won't appear as new options.
  */
 export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
-  'com.nexusqos.weather',
-  'com.nexusqos.screentime',
+  'com.hellonexus.weather',
+  'com.hellonexus.screentime',
 ]);
 
 export function isMarketplaceIdEnabled(id: string): boolean {

@@ -71,7 +71,7 @@ function reconcileWidgetsAgainstRegistry(
       //      placeholder until the listing lands.
       //   2. Post-load: the registry HAS loaded but the listing for this
       //      id is missing — the widget was uninstalled (or renamed, e.g.
-      //      com.nexus.* → com.nexusqos.*). Drop it from the layout so the
+      //      com.nexus.* → com.hellonexus.*). Drop it from the layout so the
       //      panel doesn't show an "unknown:" cell forever.
       if (isMarketplaceType(widget.type)) {
         if (!hasMarketplaceLoadedOnce()) return [widget];
