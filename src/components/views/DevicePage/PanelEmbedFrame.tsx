@@ -69,6 +69,16 @@ const DEFAULT_CANVAS_H = 2560;
 // DPR) when the surface isn't listed here.
 const SURFACE_DPR: Record<string, number> = {
   q60: 1.5, // Android System WebView v83 on Q60 hardware
+  // Y70 runs Edge on Windows, so its WebView DPR is the Windows display
+  // scaling (150% on the bench Y70 → 1.5), NOT the panel's physical DPI.
+  // The DPI-derived fallback over-divides the simulated profile
+  // (337/160≈2.1, 283/160≈1.77), shrinking the 2.5K panel to ~324×1216 —
+  // below the y70 @media(min-height:1500px) breakpoint, which fell back to
+  // small gaps + side margins + an under-scaled cellScaler. At 1.5 the 2.5K
+  // sim renders 455×1707 and the 4K 733×2560 (matching the live device's
+  // 734×2560), both above the breakpoint. A real connected Y70 uses
+  // canvasIsCssPixels (liveCanvas) and never reaches this map.
+  y70: 1.5,
 };
 
 function findWidget(layout: PanelLayout, id: string): PanelWidget | undefined {
