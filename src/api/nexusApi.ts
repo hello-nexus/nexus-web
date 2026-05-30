@@ -1,5 +1,5 @@
 // Thin client for the remote nexus-api (NestJS, default http://localhost:3000
-// in dev, https://nexusqos.com/api in production). Separate from service.ts
+// in dev, https://hellonexus.com/api in production). Separate from service.ts
 // which talks to the local nexus-service on :9400.
 
 import type { MatchResponse } from '../types/benchmark';

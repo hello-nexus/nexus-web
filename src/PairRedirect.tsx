@@ -5,7 +5,7 @@ import { NexusMark } from './components/icons/NexusBrand';
  * Landing page rendered when a phone scans the pairing QR.
  *
  * The QR encodes a Universal Link of the form
- *   https://nexusqos.com/r/pair?host=192.168.x.x&port=9443&pair=TOKEN&fp=SPKI_HASH
+ *   https://hellonexus.com/r/pair?host=192.168.x.x&port=9443&pair=TOKEN&fp=SPKI_HASH
  *
  * If the Nexus iOS app is installed, iOS intercepts the Universal Link via
  * `application(_:continue:userActivity:)` and opens the app before this
@@ -14,7 +14,7 @@ import { NexusMark } from './components/icons/NexusBrand';
  * chooser entirely and send the user straight to the LAN browser panel.
  *
  * Simple-for-now: no "open in app vs. browser" prompt. We deliberately do not
- * auto-fire the `nexusqos://` custom scheme here — when the app isn't installed
+ * auto-fire the `hellonexus://` custom scheme here — when the app isn't installed
  * iOS Safari pops a "Cannot Open Page" error dialog for an unregistered scheme,
  * which is worse than the silent redirect. The Universal Link above already
  * provides the dialog-free automatic app handoff. This whole flow is meant to

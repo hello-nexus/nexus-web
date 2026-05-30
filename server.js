@@ -25,9 +25,9 @@ app.get('/.well-known/apple-app-site-association', (_req, res) => {
 // Public installer download redirects. The actual binaries live in
 // nexusqos/nexus-releases (a separate public repo); these routes 302 to
 // GitHub's `latest/download/<asset>` alias so the URLs we hand out from
-// nexusqos.com / marketing material never need to change when we cut a
+// hellonexus.com / marketing material never need to change when we cut a
 // new version. `Cache-Control: no-store` prevents Cloudflare (in front of
-// nexusqos.com) from pinning a stale Location header if the asset map is
+// hellonexus.com) from pinning a stale Location header if the asset map is
 // edited - the binary itself is on GitHub and out of scope here.
 //
 // Linux is intentionally absent: there's no Linux build published yet, so

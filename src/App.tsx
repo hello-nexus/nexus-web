@@ -39,7 +39,7 @@ export default function App() {
 
   const path = window.location.pathname;
 
-  // /r/pair is the Universal Link target on nexusqos.com. iOS opens the
+  // /r/pair is the Universal Link target on hellonexus.com. iOS opens the
   // Nexus app directly when installed; otherwise this landing page
   // offers App Store + LAN-redirect fallbacks.
   if (path === '/r/pair') {

@@ -14,7 +14,7 @@ const locationProtocol = typeof window !== 'undefined' ? window.location.protoco
 const isServedFromService = locationPort === DEFAULT_SERVICE_PORT || locationPort === DEFAULT_HTTPS_PORT;
 
 // If the SPA is served from the service itself, keep the same origin/protocol.
-// If served from Vite or nexusqos.com, fall back to the local HTTP service.
+// If served from Vite or hellonexus.com, fall back to the local HTTP service.
 const SERVICE_PROTOCOL = import.meta.env.VITE_SERVICE_PROTOCOL
   || (isServedFromService ? locationProtocol : 'http:');
 const SERVICE_HOST = import.meta.env.VITE_SERVICE_HOST

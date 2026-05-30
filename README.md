@@ -1,6 +1,6 @@
 # nexus-web
 
-React + TypeScript + Vite dashboard for [Nexus](https://nexusqos.com). The same
+React + TypeScript + Vite dashboard for [Nexus](https://hellonexus.com). The same
 bundle is shipped two ways:
 
 - **Standalone web app** — served via the bundled Node server (`npm start`)

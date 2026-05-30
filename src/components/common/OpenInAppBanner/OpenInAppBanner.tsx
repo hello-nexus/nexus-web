@@ -6,14 +6,14 @@ import { NexusMark } from '../../icons/NexusBrand';
 const DISMISS_KEY = 'nexus_open_in_app_banner_dismissed_v1';
 
 /**
- * Top banner shown on nexusqos.com when the visitor is on an iPhone/iPad.
- * Tapping "Open" navigates to the `nexusqos://` custom scheme, which iOS
+ * Top banner shown on hellonexus.com when the visitor is on an iPhone/iPad.
+ * Tapping "Open" navigates to the `hellonexus://` custom scheme, which iOS
  * hands off to the Nexus app when installed. If the app is not installed,
  * Safari silently does nothing (no error toast); the banner stays put so
  * the user can dismiss or ignore it.
  *
  * Self-gates so it never renders inside the iOS app's WKWebView (the app
- * loads `https://<lan-ip>:9443/panel/phone`, not nexusqos.com), on /r/*
+ * loads `https://<lan-ip>:9443/panel/phone`, not hellonexus.com), on /r/*
  * routes (PairRedirect owns that flow), or on /panel/phone (that path IS
  * the app's home, no reason to re-pitch).
  */
@@ -25,7 +25,7 @@ export function OpenInAppBanner() {
     if (localStorage.getItem(DISMISS_KEY) === '1') return;
 
     const host = window.location.hostname;
-    const isProdHost = host === 'nexusqos.com' || host === 'www.nexusqos.com';
+    const isProdHost = host === 'hellonexus.com' || host === 'www.hellonexus.com';
     if (!isProdHost) return;
 
     const path = window.location.pathname;
@@ -57,7 +57,7 @@ export function OpenInAppBanner() {
   if (!visible) return null;
 
   const openInApp = () => {
-    window.location.href = 'nexusqos://open';
+    window.location.href = 'hellonexus://open';
   };
 
   const dismiss = () => {

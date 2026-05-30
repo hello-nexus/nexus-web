@@ -45,7 +45,7 @@ import { CaptionButtons } from './CaptionButtons';
 import { isWindowsAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
 import styles from '../App.module.scss';
 
-const PORTAL_URL = 'https://nexusqos.com';
+const PORTAL_URL = 'https://hellonexus.com';
 
 const BuilderView = lazy(() => import('../components/views/BuilderView'));
 
@@ -149,8 +149,8 @@ export function Dashboard() {
   }, 0);
 
   // Portal entries (System Builder / Benchmark / Community).
-  // Service build: external <a> to nexusqos.com (new tab).
-  // Full build: in-app navigate (entries are real SPA routes on nexusqos.com).
+  // Service build: external <a> to hellonexus.com (new tab).
+  // Full build: in-app navigate (entries are real SPA routes on hellonexus.com).
   const portalNav = PORTAL_NAV_KEYS.map(key => ({
     key,
     label: t(`nav.section.${key}`),
@@ -162,7 +162,7 @@ export function Dashboard() {
   const activeView = view || 'dashboard';
 
   // In service build the sidebar is only meaningful on /system (the
-  // PORTAL entries open nexusqos.com in a new tab and never change `section`
+  // PORTAL entries open hellonexus.com in a new tab and never change `section`
   // locally). In the full build sidebar must render on every section so users
   // landing on /builder, /benchmark, or /community still have nav.
   const hasSidebar = !__SERVICE_BUILD__ || section === 'system';
