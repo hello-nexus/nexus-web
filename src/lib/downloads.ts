@@ -1,6 +1,6 @@
 import type { DetectedOS } from './platform';
 
-const RELEASES_BASE = 'https://github.com/nexusqos/nexus-releases/releases/latest/download';
+const RELEASES_BASE = 'https://github.com/hello-nexus/nexus-releases/releases/latest/download';
 
 export type DownloadableOS = Exclude<DetectedOS, 'unknown'>;
 

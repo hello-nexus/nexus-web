@@ -136,7 +136,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
       <SettingRow label={t('settings.feedback')}>
         <a
           className={styles.rowButton}
-          href="https://github.com/nexusqos/nexus-service/issues"
+          href="https://github.com/hello-nexus/nexus-service/issues"
           target="_blank"
           rel="noopener noreferrer"
         >
