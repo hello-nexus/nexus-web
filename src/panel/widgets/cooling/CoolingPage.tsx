@@ -1402,7 +1402,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               tweaks). */}
           <svg
             ref={layerRef}
-            className={`${styles.wireLayer}${wireDrag.kind !== 'idle' ? ' ' + styles.wireLayerActive : ''}`}
+            className={`${styles.wireLayer}${wireDrag.kind !== 'idle' ? ' ' + styles.wireLayerActive : ''}${calibrating ? ' ' + styles.wireLayerHidden : ''}`}
             aria-hidden
           >
             {wireEndpoints

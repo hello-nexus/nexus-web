@@ -347,10 +347,11 @@
   background: var(--bg);
   &:hover { background: var(--bg); }
 }
+// While calibrating, the fan grid is fully hidden (not just dimmed) so only
+// the calibration overlay shows — no fan nodes, no half-visible cards.
 .fanGridDisabled {
   pointer-events: none;
-  opacity: 0.35;
-  filter: saturate(0.4);
+  opacity: 0;
   transition: opacity 0.18s ease;
 }
 
@@ -1211,6 +1212,12 @@
 }
 .wireLayerActive {
   pointer-events: auto;
+}
+// During calibration the curve↔fan wires would dangle above the overlay
+// (which only covers the fan list, not the curves). Hide the whole layer so
+// no wire nodes show while calibrating.
+.wireLayerHidden {
+  display: none;
 }
 
 // Committed wire path. The dasharray is set to the path's own length so the
