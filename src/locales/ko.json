@@ -301,6 +301,7 @@
   "lighting.controls.bubbles": "비누방울",
   "lighting.controls.bursts": "버스트",
   "lighting.controls.caustics": "코스틱",
+  "lighting.controls.changeScreen": "화면 변경",
   "lighting.controls.chromaspiral": "크로마 나선",
   "lighting.controls.circuit": "회로",
   "lighting.controls.contrast": "대비",

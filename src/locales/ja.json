@@ -301,6 +301,7 @@
   "lighting.controls.bubbles": "シャボン玉",
   "lighting.controls.bursts": "バースト",
   "lighting.controls.caustics": "コースティクス",
+  "lighting.controls.changeScreen": "画面を変更",
   "lighting.controls.chromaspiral": "クロマスパイラル",
   "lighting.controls.circuit": "回路",
   "lighting.controls.contrast": "コントラスト",

@@ -150,10 +150,17 @@ export interface ScreenMonitor {
 export interface ScreenSyncOptions {
   effects: string[];
   monitors: ScreenMonitor[];
+  // 'app' = pick a monitor from the list; 'system' = the OS picker chooses
+  // (Linux/Wayland), so show a "Change screen" action instead of a dropdown.
+  selectionMode?: 'app' | 'system';
 }
 
 export const fetchScreenMonitors = () =>
   fetchService<ScreenSyncOptions>('/lighting/screen/monitors');
+
+// Re-open the OS screen picker to change the mirrored screen (Wayland).
+export const reselectScreen = () =>
+  postService('/lighting/screen/reselect', {});
 
 export const startGif = (path: string, speed = 50, mode = 'Loop') =>
   postService('/lighting/gif/headless-start', {

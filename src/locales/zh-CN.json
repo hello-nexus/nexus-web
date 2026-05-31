@@ -301,6 +301,7 @@
   "lighting.controls.bubbles": "泡泡",
   "lighting.controls.bursts": "爆发",
   "lighting.controls.caustics": "水波光",
+  "lighting.controls.changeScreen": "切换屏幕",
   "lighting.controls.chromaspiral": "彩色螺旋",
   "lighting.controls.circuit": "电路",
   "lighting.controls.contrast": "对比度",

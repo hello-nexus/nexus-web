@@ -301,6 +301,7 @@
   "lighting.controls.bubbles": "Bubbles",
   "lighting.controls.bursts": "Bursts",
   "lighting.controls.caustics": "Caustics",
+  "lighting.controls.changeScreen": "Change screen",
   "lighting.controls.chromaspiral": "Chroma Spiral",
   "lighting.controls.circuit": "Circuit",
   "lighting.controls.contrast": "Contrast",

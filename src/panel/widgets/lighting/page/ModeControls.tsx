@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import {
-  fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect,
+  fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect, reselectScreen,
   type ScreenMonitor, type PostProcessSettings,
 } from '../../../../api/lighting';
 import {
@@ -50,9 +50,11 @@ function ScreenControls({ screenPP, onScreenPPChange }: {
   const { t } = useTranslation();
   const [monitors, setMonitors] = useState<ScreenMonitor[]>([]);
   const [selectedMonitor, setSelectedMonitor] = useState('');
+  const [selectionMode, setSelectionMode] = useState<'app' | 'system'>('app');
 
   useEffect(() => {
     fetchScreenMonitors().then(data => {
+      if (data?.selectionMode) setSelectionMode(data.selectionMode);
       if (data?.monitors?.length) {
         setMonitors(data.monitors);
         setSelectedMonitor(data.monitors[0].id);
@@ -118,19 +120,30 @@ function ScreenControls({ screenPP, onScreenPPChange }: {
       </div>
       <div className={styles.monitorPicker}>
         <span className={styles.compactLabel}>{t('lighting.controls.monitor')}</span>
-        <Select
-          className={styles.monitorSelect}
-          value={selectedMonitor}
-          onChange={handleMonitorChange}
-          ariaLabel={t('lighting.controls.monitor')}
-          disabled={monitors.length === 0}
-        >
-          {monitors.length === 0
-            ? <option value="">{t('lighting.controls.noMonitors')}</option>
-            : monitors.map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-        </Select>
+        {selectionMode === 'system' ? (
+          // Wayland: the OS owns screen selection, so re-open its picker.
+          <button
+            type="button"
+            className={styles.filterChip}
+            onClick={() => { reselectScreen().catch(() => {}); }}
+          >
+            {t('lighting.controls.changeScreen')}
+          </button>
+        ) : (
+          <Select
+            className={styles.monitorSelect}
+            value={selectedMonitor}
+            onChange={handleMonitorChange}
+            ariaLabel={t('lighting.controls.monitor')}
+            disabled={monitors.length === 0}
+          >
+            {monitors.length === 0
+              ? <option value="">{t('lighting.controls.noMonitors')}</option>
+              : monitors.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+          </Select>
+        )}
       </div>
     </div>
   );
