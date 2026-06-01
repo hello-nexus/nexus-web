@@ -34,6 +34,22 @@ function formatConnectedDevices(count: number, t: TranslateFn) {
   return t(count === 1 ? 'phonePair.connectedDeviceOne' : 'phonePair.connectedDeviceOther', { count });
 }
 
+/**
+ * Decide whether a NEW device just paired, given the previous and next sets of
+ * authorized session ids. Fires only on a genuine growth (an id present in
+ * `next` that was not in `prev`) — never on the first observation (prev null),
+ * never on a pure revoke/decrease, and never when the membership is unchanged.
+ * The pair QR/code are single-use tokens, so a new authorization means the
+ * on-screen token has been consumed and must be re-minted.
+ */
+export function hasNewPairedSession(prev: ReadonlySet<string> | null, next: ReadonlySet<string>): boolean {
+  if (prev === null) return false;
+  for (const id of next) {
+    if (!prev.has(id)) return true;
+  }
+  return false;
+}
+
 function formatRelativeTime(value: number, now: number, t: TranslateFn) {
   if (!value) return t('phonePair.unknown');
   const diff = Math.max(0, now - value);
@@ -137,6 +153,10 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   const [broadcast, setBroadcast] = useState<PairBroadcastState>({ mode: 'always', untilUnixSeconds: 0 });
   const refreshInFlightRef = useRef(false);
   const sessionsInFlightRef = useRef(false);
+  // Set of authorized session ids observed on the previous sessions poll. Used
+  // to detect when a NEW device pairs so we can re-mint the single-use QR/code.
+  // null until the first poll resolves so the initial load never counts as new.
+  const prevSessionIdsRef = useRef<ReadonlySet<string> | null>(null);
 
   const refresh = useCallback(() => {
     if (refreshInFlightRef.current) return;
@@ -341,6 +361,29 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     }, msUntilExpiry);
     return () => window.clearTimeout(timer);
   }, [pairCode, handleStartCode]);
+
+  // Re-mint the single-use QR + manual code whenever a NEW device pairs.
+  // Detected off the existing sessions poll: when an authorized session id
+  // appears that wasn't in the previous poll, the on-screen QR/code token was
+  // just consumed, so refresh both to keep a fresh token ready for the next
+  // device. Guarded so it only fires on a genuine increase (not first load,
+  // not a revoke/decrease) and only while open with remote control enabled.
+  // Additive to the TTL refresh above — neither replaces the other.
+  useEffect(() => {
+    if (!open || !remoteEnabled) {
+      prevSessionIdsRef.current = null;
+      return;
+    }
+    if (!sessions) return;
+    const nextIds = new Set(sessions.sessions.map(s => s.id));
+    const isNew = hasNewPairedSession(prevSessionIdsRef.current, nextIds);
+    prevSessionIdsRef.current = nextIds;
+    if (isNew) {
+      refresh();
+      setPairCode(null);
+      void handleStartCode();
+    }
+  }, [open, remoteEnabled, sessions, refresh, handleStartCode]);
 
   useEffect(() => {
     if (!open) return;
