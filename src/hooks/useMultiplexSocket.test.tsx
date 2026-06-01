@@ -6,6 +6,7 @@ vi.mock('../api/service', () => ({
   resolveAuthWs: vi.fn(async (path: string) => `ws://test.local${path}`),
   resolveHttp: vi.fn((path: string) => `http://test.local${path}`),
   resolveRelayWs: vi.fn(() => 'wss://relay.test.local/relay'),
+  setActiveTransport: vi.fn(),
 }));
 
 vi.mock('../api/auth', () => ({

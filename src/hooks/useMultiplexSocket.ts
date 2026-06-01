@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { resolveAuthWs, resolveHttp, resolveRelayWs } from '../api/service';
+import { resolveAuthWs, resolveHttp, resolveRelayWs, setActiveTransport } from '../api/service';
 import { getToken } from '../api/auth';
 import { RelayChannel } from './relayChannel';
 
@@ -283,6 +283,9 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     transport.onopen = () => {
       onOpen?.();
       setTransport(kind);
+      // Publish the live transport to the REST fetch layer so off-LAN (relay)
+      // calls tunnel over the relay while LAN calls stay direct (see service.ts).
+      setActiveTransport(kind);
       backoffStepRef.current = 0;
       if (remoteDisabledRef.current) {
         remoteDisabledRef.current = false;
@@ -324,6 +327,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     transport.onclose = (event) => {
       setConnected(false);
       setTransport(null);
+      setActiveTransport(null);
       onClose(event.code);
     };
 
@@ -393,6 +397,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     } catch {
       setConnected(false);
       setTransport(null);
+      setActiveTransport(null);
       void handleDisconnect();
     }
   }, [close, enabled, handleDisconnect, tryRelay, wireTransport]);
@@ -441,6 +446,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
       // setState calls reflect that the socket is now closed.
       setConnected(false);
       setTransport(null);
+      setActiveTransport(null);
       setNextAttemptAt(null);
       close();
     }

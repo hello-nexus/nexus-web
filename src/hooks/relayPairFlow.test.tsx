@@ -94,6 +94,7 @@ vi.mock('../api/service', () => ({
   resolveRelayWs: () => 'wss://relay.test/relay',
   resolveAuthWs: async (path: string) => `ws://test.local${path}`,
   resolveHttp: (path: string) => `http://test.local${path}`,
+  setActiveTransport: () => {},
 }));
 
 // Runtime transport uses the mocked relay channel; the pair claim uses the raw

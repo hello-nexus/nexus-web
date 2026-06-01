@@ -24,6 +24,7 @@
 const ROOT_INFO = 'nexus-relay-root-v1';
 const PAIRROOT_INFO = 'nexus-relay-pairroot-v1';
 const RENDEZVOUS_INFO = 'nexus-relay-rendezvous-v1';
+const HTTP_RENDEZVOUS_INFO = 'nexus-relay-http-rendezvous-v1';
 const AEAD_INFO = 'nexus-relay-aead-v1';
 
 const NONCE_LEN = 12;
@@ -76,6 +77,21 @@ export async function derivePairRoot(pairToken: string): Promise<Uint8Array> {
 /** rid = base64url-nopad(HKDF(IKM=relayRoot, salt=∅, info="nexus-relay-rendezvous-v1", L=16)). */
 export async function deriveRid(relayRoot: Uint8Array): Promise<string> {
   const raw = await hkdf(relayRoot, new Uint8Array(0), RENDEZVOUS_INFO, 16);
+  return base64UrlNoPad(raw);
+}
+
+/**
+ * rid_http = base64url-nopad(HKDF(IKM=relayRoot, salt=∅, info="nexus-relay-http-rendezvous-v1", L=16)).
+ *
+ * The rendezvous id for the SECOND relay channel per session — the REST tunnel
+ * (Phase 2 REST-over-relay) that carries the panel's HTTP calls (device list,
+ * layout, controls) when off-LAN. Derived from the SAME relayRoot as the
+ * runtime rid (deriveRid), but a distinct HKDF info string means the two never
+ * collide, so the proven runtime `/ws` channel and the HTTP tunnel rendezvous
+ * independently. Interops byte-for-byte with the .NET RelayCrypto.DeriveHttpRid.
+ */
+export async function deriveHttpRid(relayRoot: Uint8Array): Promise<string> {
+  const raw = await hkdf(relayRoot, new Uint8Array(0), HTTP_RENDEZVOUS_INFO, 16);
   return base64UrlNoPad(raw);
 }
 

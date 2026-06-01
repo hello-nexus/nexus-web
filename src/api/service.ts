@@ -3,6 +3,7 @@
 // All authenticated calls include the Bearer token obtained via /pair.
 
 import { getToken, handleUnauthorized } from './auth';
+import { relayFetch, type RelayHttpMethod } from './relayHttp';
 
 const DEFAULT_SERVICE_PORT = '9400';
 const DEFAULT_HTTPS_PORT = '9443';
@@ -45,6 +46,25 @@ export function resolveRelayWs(): string {
   return RELAY_URL;
 }
 
+// Which transport the panel's live multiplex connection runs over. Set by
+// useMultiplexSocket (its only writer) whenever the active transport changes:
+// 'lan' for the direct /ws socket, 'relay' for the cloud RelayChannel fallback,
+// null while disconnected. The fetch layer reads it to decide whether REST
+// calls go directly to the local service (LAN) or tunnel over the relay. A
+// module-level signal keeps the fetch helpers' signatures unchanged — callers
+// stay oblivious to which transport is live.
+let activeTransport: 'lan' | 'relay' | null = null;
+
+/**
+ * Publish the live multiplex transport so the REST fetch layer can route
+ * accordingly. Called only by useMultiplexSocket as the connection opens /
+ * closes. Off-LAN (transport === 'relay') REST calls tunnel over the relay;
+ * otherwise they hit the local service directly (the unchanged LAN path).
+ */
+export function setActiveTransport(transport: 'lan' | 'relay' | null): void {
+  activeTransport = transport;
+}
+
 /** Resolve a WS URL with the auth token as a query parameter. */
 export async function resolveAuthWs(path: string): Promise<string> {
   const token = await getToken();
@@ -68,6 +88,15 @@ interface RequestOptions {
 }
 
 async function authFetch(path: string, opts: RequestOptions = {}): Promise<Response | null> {
+  // Off-LAN: the panel is connected via the cloud relay, so the local service
+  // HTTP endpoint is unreachable. Tunnel the call over the relay HTTP channel
+  // instead. The tunnel is already authenticated as this phone session
+  // server-side, so no bearer is sent. Transparent to callers: a Response-like
+  // object is synthesized so fetchService/.json() etc. work unchanged.
+  if (activeTransport === 'relay') {
+    return relayAuthFetch(path, opts);
+  }
+
   try {
     const token = await getToken();
     const headers: Record<string, string> = {};
@@ -97,6 +126,34 @@ async function authFetch(path: string, opts: RequestOptions = {}): Promise<Respo
   } catch {
     return null;
   }
+}
+
+// Run an authFetch-equivalent request over the relay HTTP tunnel. The PC
+// dispatches it authorized as this relay session's phone session (no bearer
+// needed). Returns the same Response|null contract as the LAN path: null on a
+// non-2xx status or any transport failure, so every existing caller behaves
+// identically off-LAN.
+async function relayAuthFetch(path: string, opts: RequestOptions): Promise<Response | null> {
+  try {
+    const token = await getToken();
+    const method = (opts.method ?? 'GET') as RelayHttpMethod;
+    const hasBody = opts.body !== undefined;
+    const body = hasBody ? JSON.stringify(opts.body) : null;
+    const contentType = hasBody ? 'application/json' : null;
+    const res = await relayFetch(token, resolveRelayWs(), method, path, body, contentType);
+    if (res.status < 200 || res.status >= 300) return null;
+    return toResponse(res.status, res.body, res.contentType);
+  } catch {
+    return null;
+  }
+}
+
+// Build a real Response from a relay tunnel result so callers can use
+// .json()/.blob()/.text() exactly as they would for a window.fetch response.
+function toResponse(status: number, body: string, contentType: string | null): Response {
+  const headers: Record<string, string> = {};
+  if (contentType) headers['Content-Type'] = contentType;
+  return new Response(body, { status, headers });
 }
 
 export async function fetchService<T>(path: string): Promise<T | null> {

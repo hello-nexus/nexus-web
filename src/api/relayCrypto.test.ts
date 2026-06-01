@@ -4,6 +4,7 @@ import {
   DIR_HOST_TO_CLIENT,
   deriveAeadBytes,
   deriveAeadKey,
+  deriveHttpRid,
   derivePairRoot,
   deriveRelayRoot,
   deriveRid,
@@ -19,6 +20,10 @@ const KAT = {
   token: 'test-session-token-0123456789',
   relayRoot: '36557d360330aad63010a257c870deb9f57c19d222ea630a9a204889eb435270',
   rid: 'E5HaHgqqZJGdG5QZQR_LTQ',
+  // rid_http = the REST-over-relay rendezvous id off the SAME relayRoot via the
+  // distinct "nexus-relay-http-rendezvous-v1" info string. Distinct from the
+  // runtime rid above so the /ws channel and the HTTP tunnel never collide.
+  ridHttp: '0jI7tzgoE89ewOpZng6rlA',
   connSalt: '000102030405060708090a0b0c0d0e0f',
   aeadKey: '2af213994553c206b634442d19b45b796710fd2e69efc060a9c10de16bb29e5f',
   plaintext: '{"t":"ping","d":1}',
@@ -47,6 +52,12 @@ describe('relayCrypto known-answer vectors', () => {
   it('derives the rendezvous id (base64url-nopad)', async () => {
     const root = await deriveRelayRoot(KAT.token);
     expect(await deriveRid(root)).toBe(KAT.rid);
+  });
+
+  it('derives the HTTP-tunnel rendezvous id (rid_http) distinct from the runtime rid', async () => {
+    const root = await deriveRelayRoot(KAT.token);
+    expect(await deriveHttpRid(root)).toBe(KAT.ridHttp);
+    expect(await deriveHttpRid(root)).not.toBe(KAT.rid);
   });
 
   it('seals {"t":"ping","d":1} to the exact frame (nonce || ciphertext || tag)', async () => {
