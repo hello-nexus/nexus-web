@@ -126,6 +126,13 @@ export function PairRedirect() {
       // off-LAN navigation silently failed to commit.
       const fallback = window.setTimeout(() => {
         if (cancelled) return;
+        // The Tier-1 direct nav never committed (PC off-LAN/unreachable), so a
+        // top-level navigation to the unreachable PC is still pending. Abort it
+        // BEFORE starting the relay claim: on WebKit a hung in-flight navigation
+        // interferes with the relay WS path (the close of the post-claim relay
+        // channel races the stuck nav). On the LAN-reachable case the direct nav
+        // already committed and this page unloaded, so this code never runs.
+        try { window.stop(); } catch { /* not supported / nothing to stop */ }
         setPhase({ state: 'relay' });
         void pairOverRelayClaim(pair, deriveDeviceName()).then((result) => {
           if (cancelled) return;

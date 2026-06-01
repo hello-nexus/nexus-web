@@ -302,6 +302,16 @@ export async function pairOverRelay(url: string, pairToken: string, deviceName: 
 
     let peerUp = false;
     let settled = false;
+    // Once a BINARY claim-reply frame has arrived, the claim is authoritative:
+    // the PC answered (and, post-claim, immediately consumes the single-use
+    // token and unregisters rid_pair, which makes the relay peer-down/close the
+    // channel as NORMAL cleanup). On WebKit that close can win the race against
+    // the async WebCrypto open() of the just-received reply, so a close/error/
+    // peer-down arriving AFTER a reply frame MUST NOT reject — the in-flight
+    // decrypt of the received frame is the source of truth. Reject paths are
+    // guarded by this flag; only the no-reply cases (no peer-up, timeout,
+    // genuine error before any reply) still reject.
+    let responseReceived = false;
     const timer = setTimeout(() => fail(new Error('relay pair timeout')), RELAY_PAIR_TIMEOUT_MS);
 
     const cleanup = () => {
@@ -318,11 +328,21 @@ export async function pairOverRelay(url: string, pairToken: string, deviceName: 
       cleanup();
       resolve(result);
     };
-    const fail = (err: Error) => {
+    // Reject the claim outright (used for genuine errors of the reply frame
+    // itself — bad tag, wrong direction, unparseable reply — which are real
+    // failures regardless of the close race).
+    const abort = (err: Error) => {
       if (settled) return;
       settled = true;
       cleanup();
       reject(err);
+    };
+    const fail = (err: Error) => {
+      // A reply frame already arrived ⇒ the claim is being resolved from that
+      // frame's decrypt; a subsequent close/error/peer-down is normal post-claim
+      // cleanup and must not turn a successful claim into a failure.
+      if (responseReceived) return;
+      abort(err);
     };
 
     socket.onopen = () => {
@@ -370,23 +390,31 @@ export async function pairOverRelay(url: string, pairToken: string, deviceName: 
       }
       const frameBytes = e.data instanceof ArrayBuffer ? new Uint8Array(e.data) : null;
       if (!frameBytes) { fail(new Error('malformed relay frame')); return; }
+      // A BINARY frame IS the claim reply: mark it received NOW, synchronously,
+      // before the async open() resolves. From here on the claim is settled by
+      // this frame's decrypt — any close/error/peer-down the PC's post-claim
+      // cleanup triggers is ignored (the fail() guard above), and the in-flight
+      // open() is never aborted.
+      responseReceived = true;
       let opened;
       try {
         opened = await openFrame(claimKey, frameBytes);
       } catch {
         // Tag-verify failure ⇒ forged/tampered reply ⇒ abort per the contract.
-        fail(new Error('claim reply tag verify failed'));
+        // This is a genuine failure of the received frame, so it rejects even
+        // though responseReceived is set (it is NOT the post-claim close race).
+        abort(new Error('claim reply tag verify failed'));
         return;
       }
-      if (opened.dir !== DIR_HOST_TO_CLIENT) { fail(new Error('claim reply wrong direction')); return; }
+      if (opened.dir !== DIR_HOST_TO_CLIENT) { abort(new Error('claim reply wrong direction')); return; }
       let reply: SealedClaimReply;
-      try { reply = JSON.parse(opened.plaintext) as SealedClaimReply; } catch { fail(new Error('claim reply not JSON')); return; }
+      try { reply = JSON.parse(opened.plaintext) as SealedClaimReply; } catch { abort(new Error('claim reply not JSON')); return; }
       if (reply.type === 'claim-ok' && reply.sessionToken) {
         succeed({ ok: true, sessionToken: reply.sessionToken, machineName: reply.machineName, spki: reply.spki });
       } else if (reply.type === 'claim-err') {
         succeed({ ok: false, error: reply.error || 'pair rejected' });
       } else {
-        fail(new Error('unexpected claim reply'));
+        abort(new Error('unexpected claim reply'));
       }
     };
   });
