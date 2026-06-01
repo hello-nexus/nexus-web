@@ -83,6 +83,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         initialDeviceId={null}
         isPhonePair={false}
         pairToken={null}
+        pairDeviceId={null}
       />,
     );
 
@@ -112,6 +113,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         initialDeviceId={null}
         isPhonePair={false}
         pairToken={null}
+        pairDeviceId={null}
       />,
     );
 
@@ -136,6 +138,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         initialDeviceId={null}
         isPhonePair={false}
         pairToken={null}
+        pairDeviceId={null}
       />,
     );
 
@@ -159,6 +162,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         initialDeviceId={null}
         isPhonePair={false}
         pairToken={null}
+        pairDeviceId={null}
       />,
     );
 

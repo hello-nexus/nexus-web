@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { NexusMark } from './components/icons/NexusBrand';
 import { pairOverInternet, pairOverRelayClaim, type InternetPairResult } from './api/internetPairing';
 import { isRemoteOrigin } from './api/service';
+import { getDeviceId } from './api/deviceId';
 import { PHONE_PANEL_PWA_KEY } from './app/panelRouting';
 
 /**
@@ -95,7 +96,10 @@ export function PairRedirect() {
     started.current = true;
 
     // The direct-LAN panel URL: plain HTTP, the service's HTTP port (9400).
-    const directUrl = `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}`;
+    // Carry the stable per-device id so the PC-served panel's same-origin claim
+    // sends the SAME deviceId it would have over the relay — a QR scan dedups to
+    // one authorized-device session whether it ends up LAN-direct or relay.
+    const directUrl = `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}&deviceId=${encodeURIComponent(getDeviceId())}`;
 
     // Settle the relay outcome (shared by both origins' relay paths). The relay
     // session token is stored under this origin, so render the panel over the

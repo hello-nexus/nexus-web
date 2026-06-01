@@ -113,6 +113,7 @@ export default function App() {
           initialDeviceId={explicitDeviceId}
           isPhonePair={isPhonePair}
           pairToken={params.get('pair')}
+          pairDeviceId={params.get('deviceId')}
         />
       </I18nProvider>
     );

@@ -33,6 +33,7 @@ import { resolveRelayWs } from './service';
 import { claimPanelPhonePairingLan } from './panel';
 import { pairOverRelay } from '../hooks/relayChannel';
 import { storePhoneToken } from './auth';
+import { getDeviceId } from './deviceId';
 
 // How long to wait for the LAN claim before declaring the PC LAN-unreachable
 // and falling through to the relay. Short on purpose: when off-LAN the request
@@ -154,7 +155,10 @@ export async function pairOverRelayClaim(
   deviceName: string,
 ): Promise<InternetPairResult> {
   try {
-    const result = await pairOverRelay(resolveRelayWs(), pairToken, deviceName);
+    // Send the stable per-device id alongside the name so the PC dedups a
+    // re-pair of this same browser (replaces its session) rather than creating
+    // a duplicate authorized device.
+    const result = await pairOverRelay(resolveRelayWs(), pairToken, deviceName, getDeviceId());
     if (result.ok) {
       // Persist under the hellonexus.com origin so the panel — and a later
       // reopen of hellonexus.com — reconnects over the relay using this token.

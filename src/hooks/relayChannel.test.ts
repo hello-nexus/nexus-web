@@ -123,7 +123,7 @@ describe('pairOverRelay — post-claim close race (WebKit)', () => {
   it('resolves the claim from a received reply frame even if close arrives first', async () => {
     globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
 
-    const promise = pairOverRelay(RELAY_URL, PAIR_TOKEN, 'iPhone');
+    const promise = pairOverRelay(RELAY_URL, PAIR_TOKEN, 'iPhone', 'device-uuid-1');
     const ws = await awaitSocket();
     expect(ws).toBeTruthy();
 
@@ -152,7 +152,7 @@ describe('pairOverRelay — post-claim close race (WebKit)', () => {
   it('rejects when the channel closes BEFORE any reply frame is received', async () => {
     globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
 
-    const promise = pairOverRelay(RELAY_URL, PAIR_TOKEN, 'iPhone');
+    const promise = pairOverRelay(RELAY_URL, PAIR_TOKEN, 'iPhone', 'device-uuid-1');
     const ws = await awaitSocket();
 
     driveToAwaitingReply(ws);
@@ -169,7 +169,7 @@ describe('pairOverRelay — post-claim close race (WebKit)', () => {
   it('rejects a claim-err reply (host refused) — not treated as success', async () => {
     globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
 
-    const promise = pairOverRelay(RELAY_URL, PAIR_TOKEN, 'iPhone');
+    const promise = pairOverRelay(RELAY_URL, PAIR_TOKEN, 'iPhone', 'device-uuid-1');
     const ws = await awaitSocket();
 
     const connSalt = driveToAwaitingReply(ws);
@@ -186,7 +186,7 @@ describe('pairOverRelay — post-claim close race (WebKit)', () => {
   it('rejects a tampered reply frame even after responseReceived is set', async () => {
     globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
 
-    const promise = pairOverRelay(RELAY_URL, PAIR_TOKEN, 'iPhone');
+    const promise = pairOverRelay(RELAY_URL, PAIR_TOKEN, 'iPhone', 'device-uuid-1');
     const ws = await awaitSocket();
 
     const connSalt = driveToAwaitingReply(ws);

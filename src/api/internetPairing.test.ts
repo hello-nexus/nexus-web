@@ -24,6 +24,7 @@ interface RelayCapture {
   rid: string;
   salt: string;
   deviceName: string;
+  deviceId: string;
 }
 
 const PAIR_TOKEN = 'PAIRTOK-abcdef0123456789';
@@ -72,7 +73,7 @@ class MockRelaySocket {
     if (typeof data === 'string') {
       // Client hello: capture rid + salt, then play the host side.
       const hello = JSON.parse(data) as { rid: string; salt: string };
-      captured = { rid: hello.rid, salt: hello.salt, deviceName: '' };
+      captured = { rid: hello.rid, salt: hello.salt, deviceName: '', deviceId: '' };
       if (behavior === 'no-peer-up') return; // host never shows up
       // Emit peer-up to the client.
       setTimeout(() => {
@@ -90,9 +91,10 @@ class MockRelaySocket {
     const key = await deriveAeadKey(pairRoot, connSalt);
     const opened = await openFrame(key, frame);
     expect(opened.dir).toBe(DIR_CLIENT_TO_HOST);
-    const claim = JSON.parse(opened.plaintext) as { type: string; deviceName: string };
+    const claim = JSON.parse(opened.plaintext) as { type: string; deviceName: string; deviceId: string };
     expect(claim.type).toBe('claim');
     captured!.deviceName = claim.deviceName;
+    captured!.deviceId = claim.deviceId;
 
     const reply = behavior === 'claim-err'
       ? JSON.stringify({ type: 'claim-err', error: 'pair token expired' })
@@ -132,6 +134,10 @@ vi.mock('./service', () => ({
 
 import { pairOverInternet, pairOverRelayClaim, LAN_CLAIM_TIMEOUT_MS } from './internetPairing';
 
+// A fixed, pre-seeded stable device id so the relay claim's deviceId is
+// deterministic and we can assert the exact value the PC receives for dedup.
+const SEEDED_DEVICE_ID = 'seeded-device-uuid-0001';
+
 beforeEach(() => {
   behavior = 'claim-ok';
   captured = null;
@@ -139,6 +145,8 @@ beforeEach(() => {
   remoteOrigin = false;
   lanClaimMock.mockReset();
   storePhoneTokenMock.mockReset();
+  localStorage.clear();
+  localStorage.setItem('nexus.deviceId', SEEDED_DEVICE_ID);
   vi.stubGlobal('WebSocket', MockRelaySocket as unknown as typeof WebSocket);
 });
 
@@ -196,6 +204,9 @@ describe('pairOverInternet — relay fallback', () => {
     expect(relaySockets[0].url).toBe('wss://relay.test/relay');
     expect(captured?.rid).toBe(RID_PAIR);
     expect(captured?.deviceName).toBe('iPhone 15');
+    // The sealed claim carries the stable per-device id so the PC dedups a
+    // re-pair of this same browser instead of minting a duplicate session.
+    expect(captured?.deviceId).toBe(SEEDED_DEVICE_ID);
     // The session token was persisted under the (hellonexus.com) origin so the
     // runtime relay transport reconnects with it.
     expect(storePhoneTokenMock).toHaveBeenCalledWith('SESS-relay-9999');
@@ -246,6 +257,7 @@ describe('pairOverRelayClaim — TIER 2 relay-only path (no LAN fetch)', () => {
     expect(relaySockets[0].url).toBe('wss://relay.test/relay');
     expect(captured?.rid).toBe(RID_PAIR);
     expect(captured?.deviceName).toBe('iPhone 15');
+    expect(captured?.deviceId).toBe(SEEDED_DEVICE_ID);
     expect(storePhoneTokenMock).toHaveBeenCalledWith('SESS-relay-9999');
   });
 

@@ -357,17 +357,20 @@ export interface PanelPhonePairCodeRequestFrame {
   reason: PanelPhonePairCodeCancelReason | '';
 }
 
-export async function claimPanelPhonePairing(pairToken: string): Promise<PanelPhoneClaimResponse | null> {
+export async function claimPanelPhonePairing(pairToken: string, deviceId: string): Promise<PanelPhoneClaimResponse | null> {
   // resolveHttp points at http://localhost on a remote origin. The remote pair
   // flow claims over the relay (pairOverInternet) and lands on /panel/phone
   // WITHOUT a ?pair= token, so this localhost claim only ever runs on the
   // service-served origin; fail closed off-origin rather than fire it.
   if (isRemoteOrigin) return null;
   try {
+    // `deviceId` is the stable per-device id (carried from the LAN-direct
+    // redirect's ?deviceId=, else this origin's own id) so the service dedups a
+    // re-pair of the same device instead of minting a duplicate session.
     const res = await fetch(resolveHttp('/panel/phone/claim'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pairToken }),
+      body: JSON.stringify({ pairToken, deviceId }),
     });
     if (!res.ok) {
       try { return (await res.json()) as PanelPhoneClaimResponse; }

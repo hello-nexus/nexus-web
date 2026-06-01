@@ -273,9 +273,11 @@ interface SealedClaimReply {
  *   1. derive pairRoot from the pair token, rid_pair via deriveRid, and the
  *      claim AEAD key via deriveAeadKey(pairRoot, freshConnSalt);
  *   2. open the relay WSS and send the client hello with rid_pair + connSalt;
- *   3. on peer-up, send ONE sealed frame {"type":"claim","deviceName":<name>}
- *      (dir=client→host); possession of the token is proven by the PC's
- *      successful AEAD decrypt under the pair-derived key;
+ *   3. on peer-up, send ONE sealed frame {"type":"claim","deviceName":<name>,
+ *      "deviceId":<id>} (dir=client→host); possession of the token is proven by
+ *      the PC's successful AEAD decrypt under the pair-derived key. `deviceId` is
+ *      a stable per-device id so the PC dedups a re-pair of the same device
+ *      (replaces its session) instead of minting a duplicate;
  *   4. await ONE sealed reply {"type":"claim-ok",sessionToken,machineName,spki}
  *      (or {"type":"claim-err",error}); resolve and close.
  *
@@ -284,7 +286,7 @@ interface SealedClaimReply {
  * single-shot lifecycle. Rejects on any transport/handshake/crypto failure so
  * the caller can fall back (e.g. to a "generate a fresh QR" surface).
  */
-export async function pairOverRelay(url: string, pairToken: string, deviceName: string): Promise<RelayClaimResult> {
+export async function pairOverRelay(url: string, pairToken: string, deviceName: string, deviceId: string): Promise<RelayClaimResult> {
   const pairRoot = await derivePairRoot(pairToken);
   const ridPair = await deriveRid(pairRoot);
   const connSalt = crypto.getRandomValues(new Uint8Array(16));
@@ -371,7 +373,7 @@ export async function pairOverRelay(url: string, pairToken: string, deviceName: 
         if (ctrl.e !== 'peer-up') { fail(new Error(`relay control: ${ctrl.e ?? 'unknown'}`)); return; }
         peerUp = true;
         try {
-          const claim = JSON.stringify({ type: 'claim', deviceName });
+          const claim = JSON.stringify({ type: 'claim', deviceName, deviceId });
           const frame = await seal(claimKey, DIR_CLIENT_TO_HOST, 0, claim);
           const out = new ArrayBuffer(frame.byteLength);
           new Uint8Array(out).set(frame);
