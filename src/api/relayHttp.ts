@@ -15,7 +15,8 @@
 // Tunnel protocol (sealed frames over rid_http; dir client→PC = 2, PC→client = 1):
 //   request:  {"id":N,"method":"GET|POST|PUT|DELETE|PATCH","path":"/panel/…",
 //              "body":<string|null>,"contentType":<string|null>}
-//   response: {"id":N,"status":N,"body":"<string>","contentType":<string|null>}
+//   response: {"id":N,"status":N,"body":"<string>","contentType":<string|null>,
+//              "base64":<bool>}  // base64=true ⇒ body is base64 bytes (binary-safe)
 // Requests multiplex by a monotonic id; responses match back by that id. The
 // PC dispatches each request authorized as this relay session's phone session
 // (the tunnel is already authenticated server-side), so NO bearer is sent.
@@ -46,6 +47,8 @@ export interface RelayResponse {
   status: number;
   body: string;
   contentType: string | null;
+  /** True when `body` is base64-encoded bytes (binary response) vs raw text. */
+  base64: boolean;
 }
 
 export type RelayHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -56,6 +59,7 @@ interface SealedHttpResponse {
   status?: number;
   body?: string;
   contentType?: string | null;
+  base64?: boolean;
 }
 
 interface PendingRequest {
@@ -204,6 +208,7 @@ class RelayHttpTunnel {
       status: typeof resp.status === 'number' ? resp.status : 0,
       body: typeof resp.body === 'string' ? resp.body : '',
       contentType: resp.contentType ?? null,
+      base64: resp.base64 === true,
     });
   }
 

@@ -204,7 +204,7 @@ async function relayAuthFetch(path: string, opts: RequestOptions): Promise<Respo
     const contentType = hasBody ? 'application/json' : null;
     const res = await relayFetch(token, resolveRelayWs(), method, path, body, contentType);
     if (res.status < 200 || res.status >= 300) return null;
-    return toResponse(res.status, res.body, res.contentType);
+    return toResponse(res.status, res.body, res.contentType, res.base64);
   } catch {
     return null;
   }
@@ -212,10 +212,24 @@ async function relayAuthFetch(path: string, opts: RequestOptions): Promise<Respo
 
 // Build a real Response from a relay tunnel result so callers can use
 // .json()/.blob()/.text() exactly as they would for a window.fetch response.
-function toResponse(status: number, body: string, contentType: string | null): Response {
+// A binary response (thumbnails, icons) arrives base64-encoded so its bytes
+// survive the tunnel's UTF-8 JSON channel; decode it back to the exact bytes
+// before constructing the Response so .blob() yields a valid image.
+function toResponse(status: number, body: string, contentType: string | null, base64: boolean): Response {
   const headers: Record<string, string> = {};
   if (contentType) headers['Content-Type'] = contentType;
+  if (base64) return new Response(base64ToBytes(body), { status, headers });
   return new Response(body, { status, headers });
+}
+
+// Returns a plain ArrayBuffer (not a typed-array view) so the value is an
+// unambiguous BodyInit for new Response() under the DOM lib's typings.
+function base64ToBytes(b64: string): ArrayBuffer {
+  const binary = atob(b64);
+  const buffer = new ArrayBuffer(binary.length);
+  const view = new Uint8Array(buffer);
+  for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i);
+  return buffer;
 }
 
 /**
@@ -237,7 +251,7 @@ export async function relayRequestWithStatus(
     const payload = hasBody ? JSON.stringify(body) : null;
     const contentType = hasBody ? 'application/json' : null;
     const res = await relayFetch(token, resolveRelayWs(), method, path, payload, contentType);
-    return { response: toResponse(res.status, res.body, res.contentType), status: res.status };
+    return { response: toResponse(res.status, res.body, res.contentType, res.base64), status: res.status };
   } catch {
     return { response: null, status: 0 };
   }

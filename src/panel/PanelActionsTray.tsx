@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { Plus, Settings2 } from 'lucide-react';
+import { Plus, QrCode, Settings2 } from 'lucide-react';
 import { usePanelTraySwipe } from './engine/usePanelTraySwipe';
 import { isNativeApp } from './panelNativeBridge';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
@@ -130,6 +130,7 @@ export function PanelActionsTray({
               onClick={() => { onPair(); onClose(); }}
               aria-label="Pairing"
             >
+              <QrCode size={17} />
               <span>Pairing</span>
             </button>
           </HoverTooltip>
