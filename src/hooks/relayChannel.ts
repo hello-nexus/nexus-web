@@ -24,6 +24,7 @@ import {
   DIR_HOST_TO_CLIENT,
   base64UrlNoPad,
   deriveAeadKey,
+  derivePairRoot,
   deriveRelayRoot,
   deriveRid,
   open as openFrame,
@@ -228,4 +229,165 @@ export class RelayChannel {
     }
     this.onclose?.(evt);
   }
+}
+
+// How long to wait for the relay's peer-up + the sealed claim reply during a
+// pair-over-relay handshake before giving up. Slightly longer than the runtime
+// peer-up timeout: the host reconciles a fresh pair-rid host link on demand
+// (relay+remote on), and the PC also has to mint a session token before it can
+// answer, so the round-trip is heavier than a runtime peer-up alone.
+export const RELAY_PAIR_TIMEOUT_MS = 12000;
+
+/** A successful relay claim: the PC minted a session token for this phone. */
+export interface RelayClaimOk {
+  ok: true;
+  sessionToken: string;
+  machineName?: string;
+  spki?: string;
+}
+
+/** A failed relay claim (host reachable but refused: expired token, etc.). */
+export interface RelayClaimErr {
+  ok: false;
+  error: string;
+}
+
+export type RelayClaimResult = RelayClaimOk | RelayClaimErr;
+
+// Wire shape of the single sealed reply the PC sends back over the pair-rid
+// relay link: either a claim-ok carrying the new session token + host identity,
+// or a claim-err carrying a human-readable reason.
+interface SealedClaimReply {
+  type?: string;
+  sessionToken?: string;
+  machineName?: string;
+  spki?: string;
+  error?: string;
+}
+
+/**
+ * Pair a brand-new phone over the cloud relay (Phase 1 internet pairing).
+ *
+ * Unlike RelayChannel (a long-lived runtime transport keyed off a SESSION
+ * token), this is a one-shot request/response keyed off the QR `pair` token:
+ *   1. derive pairRoot from the pair token, rid_pair via deriveRid, and the
+ *      claim AEAD key via deriveAeadKey(pairRoot, freshConnSalt);
+ *   2. open the relay WSS and send the client hello with rid_pair + connSalt;
+ *   3. on peer-up, send ONE sealed frame {"type":"claim","deviceName":<name>}
+ *      (dir=client→host); possession of the token is proven by the PC's
+ *      successful AEAD decrypt under the pair-derived key;
+ *   4. await ONE sealed reply {"type":"claim-ok",sessionToken,machineName,spki}
+ *      (or {"type":"claim-err",error}); resolve and close.
+ *
+ * Reuses the exact seal/open crypto + relay wire protocol as the runtime
+ * transport; the only difference is the pre-pair derivation and the
+ * single-shot lifecycle. Rejects on any transport/handshake/crypto failure so
+ * the caller can fall back (e.g. to a "generate a fresh QR" surface).
+ */
+export async function pairOverRelay(url: string, pairToken: string, deviceName: string): Promise<RelayClaimResult> {
+  const pairRoot = await derivePairRoot(pairToken);
+  const ridPair = await deriveRid(pairRoot);
+  const connSalt = crypto.getRandomValues(new Uint8Array(16));
+  const claimKey = await deriveAeadKey(pairRoot, connSalt);
+
+  return new Promise<RelayClaimResult>((resolve, reject) => {
+    let socket: WebSocket;
+    try {
+      socket = new WebSocket(url);
+    } catch (err) {
+      reject(err instanceof Error ? err : new Error('relay open failed'));
+      return;
+    }
+    socket.binaryType = 'arraybuffer';
+
+    let peerUp = false;
+    let settled = false;
+    const timer = setTimeout(() => fail(new Error('relay pair timeout')), RELAY_PAIR_TIMEOUT_MS);
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
+      try { socket.close(); } catch { /* already closing */ }
+    };
+    const succeed = (result: RelayClaimResult) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(result);
+    };
+    const fail = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(err);
+    };
+
+    socket.onopen = () => {
+      const hello = JSON.stringify({ v: 1, role: 'client', rid: ridPair, salt: base64UrlNoPad(connSalt) });
+      try {
+        socket.send(hello);
+      } catch {
+        fail(new Error('relay hello send failed'));
+      }
+    };
+
+    socket.onmessage = (e) => { void handleMessage(e); };
+
+    socket.onerror = () => fail(new Error('relay socket error'));
+    socket.onclose = () => fail(new Error('relay closed before claim reply'));
+
+    const handleMessage = async (e: MessageEvent): Promise<void> => {
+      if (settled) return;
+      if (!peerUp) {
+        // Pre-peer-up: the only expected message is the relay's TEXT control
+        // frame. {"e":"peer-up"} means the PC's pair-rid host link is present;
+        // send the sealed claim. Anything else (peer-down, no host) fails.
+        if (typeof e.data !== 'string') { fail(new Error('unexpected binary before peer-up')); return; }
+        let ctrl: { e?: string };
+        try { ctrl = JSON.parse(e.data) as { e?: string }; } catch { fail(new Error('bad relay control frame')); return; }
+        if (ctrl.e !== 'peer-up') { fail(new Error(`relay control: ${ctrl.e ?? 'unknown'}`)); return; }
+        peerUp = true;
+        try {
+          const claim = JSON.stringify({ type: 'claim', deviceName });
+          const frame = await seal(claimKey, DIR_CLIENT_TO_HOST, 0, claim);
+          const out = new ArrayBuffer(frame.byteLength);
+          new Uint8Array(out).set(frame);
+          socket.send(out);
+        } catch {
+          fail(new Error('claim seal/send failed'));
+        }
+        return;
+      }
+
+      // After peer-up: TEXT is a relay control frame (peer-down); BINARY is the
+      // single sealed claim reply from the PC.
+      if (typeof e.data === 'string') {
+        fail(new Error('relay peer-down before claim reply'));
+        return;
+      }
+      const frameBytes = e.data instanceof ArrayBuffer ? new Uint8Array(e.data) : null;
+      if (!frameBytes) { fail(new Error('malformed relay frame')); return; }
+      let opened;
+      try {
+        opened = await openFrame(claimKey, frameBytes);
+      } catch {
+        // Tag-verify failure ⇒ forged/tampered reply ⇒ abort per the contract.
+        fail(new Error('claim reply tag verify failed'));
+        return;
+      }
+      if (opened.dir !== DIR_HOST_TO_CLIENT) { fail(new Error('claim reply wrong direction')); return; }
+      let reply: SealedClaimReply;
+      try { reply = JSON.parse(opened.plaintext) as SealedClaimReply; } catch { fail(new Error('claim reply not JSON')); return; }
+      if (reply.type === 'claim-ok' && reply.sessionToken) {
+        succeed({ ok: true, sessionToken: reply.sessionToken, machineName: reply.machineName, spki: reply.spki });
+      } else if (reply.type === 'claim-err') {
+        succeed({ ok: false, error: reply.error || 'pair rejected' });
+      } else {
+        fail(new Error('unexpected claim reply'));
+      }
+    };
+  });
 }

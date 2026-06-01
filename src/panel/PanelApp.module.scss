@@ -187,6 +187,36 @@
   white-space: nowrap;
 }
 
+.connectionIntroRelayIcon {
+  flex: 0 0 auto;
+  align-self: center;
+  color: currentColor;
+}
+
+// Persistent corner badge shown whenever the live connection is running
+// over the cloud relay instead of the direct LAN socket. Matches the
+// connection-intro tray's accent treatment so the relay state reads as part
+// of the same connection-status language.
+.relayBadge {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--panel-accent);
+  border-radius: var(--radius-pill);
+  background: var(--panel-accent-soft);
+  color: var(--panel-accent-glow);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(20px) saturate(0.95);
+  -webkit-backdrop-filter: blur(20px) saturate(0.95);
+  pointer-events: none;
+}
+
 .panelRoot[data-theme='light'] .connectionIntroTray {
   // Light-mode override: --shadow-xl uses pure black at --alpha-medium
   // which reads way too heavy on a white surface. Keep the original

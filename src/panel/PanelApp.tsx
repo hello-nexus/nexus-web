@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { SatelliteDish } from 'lucide-react';
 import {
   DndContext, DragOverlay, MeasuringStrategy, PointerSensor,
   useSensor, useSensors,
@@ -658,6 +659,14 @@ export function PanelContent({
   const connectionIntroLabel = (() => {
     const label = t('panel.connectedTo');
     return label === 'panel.connectedTo' ? 'Connected to' : label;
+  })();
+  // The live connection is running over the cloud relay (not the direct LAN
+  // /ws socket). Surface a satellite badge so the user knows traffic is going
+  // through the relay; LAN connections show nothing extra.
+  const relayConnected = Boolean(multiplex?.connected && multiplex.transport === 'relay');
+  const relayModeLabel = (() => {
+    const label = t('connection.relayMode');
+    return label === 'connection.relayMode' ? 'Connected via cloud relay' : label;
   })();
 
   // Long-press on the empty panel background opens the actions tray, mirroring
@@ -1461,10 +1470,27 @@ export function PanelContent({
               <>
                 <div className={styles.connectionIntroBackdrop} aria-hidden="true" />
                 <div className={styles.connectionIntroTray} role="status" aria-live="polite">
+                  {relayConnected && (
+                    <SatelliteDish
+                      size={15}
+                      className={styles.connectionIntroRelayIcon}
+                      aria-label={relayModeLabel}
+                    />
+                  )}
                   <span className={styles.connectionIntroLabel}>{connectionIntroLabel}</span>
                   <span className={styles.connectionIntroName}>{connectionIntroHost}</span>
                 </div>
               </>
+            )}
+            {kioskBehavior && !connectionIntroHost && relayConnected && (
+              <div
+                className={styles.relayBadge}
+                role="status"
+                aria-label={relayModeLabel}
+                title={relayModeLabel}
+              >
+                <SatelliteDish size={15} aria-hidden="true" />
+              </div>
             )}
           </>
         )}

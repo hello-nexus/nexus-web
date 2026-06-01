@@ -133,6 +133,7 @@
   "connection.lost.reconnectingIn": "Повторное подключение через {seconds}...",
   "connection.lost.retry": "Повторить",
   "connection.lost.title": "Соединение с вашей системой потеряно",
+  "connection.relayMode": "Подключено через облачный релей",
   "connection.remoteDisabled.checking": "Ожидание повторного включения хостом...",
   "connection.remoteDisabled.checkingIn": "Повторная проверка через {seconds}...",
   "connection.remoteDisabled.message": "Хост отключил Pair Remote, поэтому эта панель сейчас не может связаться с системой.",

@@ -133,6 +133,7 @@
   "connection.lost.reconnectingIn": "{seconds} içinde yeniden bağlanılıyor...",
   "connection.lost.retry": "Yeniden dene",
   "connection.lost.title": "Sisteminizle bağlantı kesildi",
+  "connection.relayMode": "Bulut aktarımı üzerinden bağlandı",
   "connection.remoteDisabled.checking": "Host'un yeniden acmasi bekleniyor...",
   "connection.remoteDisabled.checkingIn": "{seconds} saniye sonra yeniden denenecek...",
   "connection.remoteDisabled.message": "Host Pair Remote'u kapatti, bu nedenle bu panel su anda sisteme ulasamiyor.",

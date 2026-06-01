@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Smartphone, LogOut } from 'lucide-react';
+import { Smartphone, LogOut, SatelliteDish } from 'lucide-react';
 import classNames from 'classnames';
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
@@ -446,6 +446,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
             <div className={styles.phonePairKillswitchRow}>
               <div>
                 <span className={styles.phonePairKillswitchLabel} id="phone-pair-relay-label">
+                  <SatelliteDish size={14} className={styles.phonePairRelayIcon} aria-hidden="true" />
                   {t('phonePair.relay.label')}
                 </span>
                 <span className={styles.phonePairKillswitchHint}>

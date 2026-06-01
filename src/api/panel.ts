@@ -346,3 +346,34 @@ export async function claimPanelPhonePairing(pairToken: string): Promise<PanelPh
     return null;
   }
 }
+
+/**
+ * LAN claim against the PC's plain-HTTP listener taken straight from the QR
+ * (`host`:`httpPort`), NOT resolveHttp() — which on hellonexus.com points at
+ * localhost. Used as the fast-path probe in the internet-pairing flow: when
+ * the phone shares the LAN with the PC this succeeds in a few ms; off-LAN it
+ * times out via `signal` and the caller falls through to the relay claim.
+ */
+export async function claimPanelPhonePairingLan(
+  host: string,
+  httpPort: string,
+  pairToken: string,
+  signal?: AbortSignal,
+): Promise<PanelPhoneClaimResponse | null> {
+  try {
+    const res = await fetch(`http://${host}:${httpPort}/panel/phone/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pairToken }),
+      signal,
+    });
+    if (!res.ok) {
+      try { return (await res.json()) as PanelPhoneClaimResponse; }
+      catch { return null; }
+    }
+    return (await res.json()) as PanelPhoneClaimResponse;
+  } catch {
+    // Aborted (timeout) or unreachable host both land here ⇒ LAN unavailable.
+    return null;
+  }
+}

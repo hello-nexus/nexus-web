@@ -133,6 +133,7 @@
   "connection.lost.reconnectingIn": "Reconnexion dans {seconds}...",
   "connection.lost.retry": "Réessayer",
   "connection.lost.title": "Connexion à votre système perdue",
+  "connection.relayMode": "Connecté via le relais cloud",
   "connection.remoteDisabled.checking": "Vérification de la réactivation par l'hôte...",
   "connection.remoteDisabled.checkingIn": "Nouvelle vérification dans {seconds}...",
   "connection.remoteDisabled.message": "L'hôte a désactivé Pair Remote, ce panneau ne peut donc pas atteindre le système pour l'instant.",

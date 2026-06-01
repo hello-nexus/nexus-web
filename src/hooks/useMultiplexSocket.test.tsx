@@ -171,6 +171,8 @@ describe('useMultiplexConnection reconnect schedule', () => {
       lastWs.triggerOpen();
     });
     expect(result.current?.connected).toBe(true);
+    // A direct /ws open reports the LAN transport.
+    expect(result.current?.transport).toBe('lan');
 
     const beforeReset = FakeWebSocket.instances.length;
     await act(async () => {
@@ -178,6 +180,8 @@ describe('useMultiplexConnection reconnect schedule', () => {
       await flushRelayDetour();
     });
     expect(result.current?.connected).toBe(false);
+    // Transport clears to null once the socket closes.
+    expect(result.current?.transport).toBe(null);
     await act(async () => {
       vi.advanceTimersByTime(4999);
       await Promise.resolve();
@@ -287,6 +291,8 @@ describe('useMultiplexConnection relay fallback', () => {
     });
     expect(FakeRelayChannel.instances.length).toBe(1);
     expect(result.current?.connected).toBe(true);
+    // The open connection runs over the relay, so transport reports 'relay'.
+    expect(result.current?.transport).toBe('relay');
 
     // A multiplex frame arriving over the relay reaches topic subscribers.
     const received: unknown[] = [];

@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   DIR_CLIENT_TO_HOST,
   DIR_HOST_TO_CLIENT,
+  deriveAeadBytes,
   deriveAeadKey,
+  derivePairRoot,
   deriveRelayRoot,
   deriveRid,
   open,
@@ -67,6 +69,47 @@ describe('relayCrypto known-answer vectors', () => {
     expect(opened.dir).toBe(DIR_HOST_TO_CLIENT);
     expect(opened.counter).toBe(0);
     expect(opened.plaintext).toBe(KAT.plaintext);
+  });
+});
+
+// Pre-pair known-answer vectors (Phase 1 internet pairing for brand-new
+// phones). The pair root is keyed off the QR `pair` token via a distinct
+// HKDF info string; rid_pair and the claim AEAD key then reuse the same
+// deriveRid / deriveAeadKey as the runtime session. These lock byte-for-byte
+// interop with the .NET host-side RelayCrypto.DerivePairRoot.
+const PAIR_KAT = {
+  pairToken: 'PAIRTOK-abcdef0123456789',
+  pairRoot: 'c0927b2211eef59afdcaf397ac8e97a9e966a1cfcd23c201d882724dd83361ad',
+  ridPair: '0BwEM0g8zmt-2llFkxrdrw',
+  connSalt: '000102030405060708090a0b0c0d0e0f',
+  claimKey: '0a195060337f3a6dbd4ade2d600cefb7decae749d5596d78a6d2b777261f1cbf',
+};
+
+describe('relayCrypto pair (pre-pair) known-answer vectors', () => {
+  it('derives the pair root from the QR pair token', async () => {
+    const root = await derivePairRoot(PAIR_KAT.pairToken);
+    expect(hex(root)).toBe(PAIR_KAT.pairRoot);
+  });
+
+  it('derives rid_pair via deriveRid (reuses the rendezvous derivation)', async () => {
+    const root = await derivePairRoot(PAIR_KAT.pairToken);
+    expect(await deriveRid(root)).toBe(PAIR_KAT.ridPair);
+  });
+
+  it('derives the claim AEAD key bytes via the connSalt', async () => {
+    const root = await derivePairRoot(PAIR_KAT.pairToken);
+    const raw = await deriveAeadBytes(root, fromHex(PAIR_KAT.connSalt));
+    expect(hex(raw)).toBe(PAIR_KAT.claimKey);
+  });
+
+  it('seals/opens a claim frame under the derived claim key', async () => {
+    const root = await derivePairRoot(PAIR_KAT.pairToken);
+    const key = await deriveAeadKey(root, fromHex(PAIR_KAT.connSalt));
+    const claim = '{"type":"claim","deviceName":"iPhone"}';
+    const frame = await seal(key, DIR_CLIENT_TO_HOST, 0, claim);
+    const opened = await open(key, frame);
+    expect(opened.dir).toBe(DIR_CLIENT_TO_HOST);
+    expect(opened.plaintext).toBe(claim);
   });
 });
 

@@ -38,6 +38,14 @@ export interface MultiplexContextValue {
   unsubscribe: (topic: string, listener: (data: unknown) => void) => void;
   connected: boolean;
   /**
+   * Which transport the currently-open connection runs over: 'lan' for the
+   * direct /ws WebSocket, 'relay' for the cloud RelayChannel fallback, or
+   * null while disconnected. Driven off whichever transport actually opened
+   * (set in its onopen, cleared on close), so the UI can surface a relay-mode
+   * indicator without inferring it from connection failures.
+   */
+  transport: 'lan' | 'relay' | null;
+  /**
    * True when the Nexus service has disabled Pair Remote (killswitch off).
    * Phone clients in this state can't open the WS or call protected REST
    * routes - render an explicit "disabled by host" surface and skip any
@@ -155,6 +163,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
   const remoteDisabledRef = useRef(false);
   const sessionRevokedRef = useRef(false);
   const [connected, setConnected] = useState(false);
+  const [transport, setTransport] = useState<'lan' | 'relay' | null>(null);
   const [remoteDisabled, setRemoteDisabled] = useState(false);
   const [sessionRevoked, setSessionRevoked] = useState(false);
   const [nextAttemptAt, setNextAttemptAt] = useState<number | null>(null);
@@ -267,11 +276,13 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
   // caller can decide between relay fallback and the normal backoff path.
   const wireTransport = useCallback((
     transport: MultiplexTransport,
+    kind: 'lan' | 'relay',
     onClose: (code: number) => void,
     onOpen?: () => void,
   ) => {
     transport.onopen = () => {
       onOpen?.();
+      setTransport(kind);
       backoffStepRef.current = 0;
       if (remoteDisabledRef.current) {
         remoteDisabledRef.current = false;
@@ -312,6 +323,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
     transport.onclose = (event) => {
       setConnected(false);
+      setTransport(null);
       onClose(event.code);
     };
 
@@ -335,6 +347,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     // re-attempt relay; on relay close, return to the normal backoff path.
     wireTransport(
       channel,
+      'relay',
       () => { void handleDisconnect(); },
       () => { relayTriedRef.current = false; },
     );
@@ -360,6 +373,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
       wireTransport(
         ws,
+        'lan',
         (code) => {
           // LAN socket closed before it ever opened, and not the 1008
           // killswitch-revoke ⇒ the LAN path is unreachable. Try the relay
@@ -378,6 +392,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
       );
     } catch {
       setConnected(false);
+      setTransport(null);
       void handleDisconnect();
     }
   }, [close, enabled, handleDisconnect, tryRelay, wireTransport]);
@@ -425,6 +440,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
       // Tearing down on disable is a sync external-system update; the
       // setState calls reflect that the socket is now closed.
       setConnected(false);
+      setTransport(null);
       setNextAttemptAt(null);
       close();
     }
@@ -474,8 +490,8 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
   return useMemo<MultiplexContextValue | null>(
     () => enabled
-      ? { subscribe, unsubscribe, connected, remoteDisabled, sessionRevoked, reconnect, nextAttemptAt }
+      ? { subscribe, unsubscribe, connected, transport, remoteDisabled, sessionRevoked, reconnect, nextAttemptAt }
       : null,
-    [enabled, subscribe, unsubscribe, connected, remoteDisabled, sessionRevoked, reconnect, nextAttemptAt],
+    [enabled, subscribe, unsubscribe, connected, transport, remoteDisabled, sessionRevoked, reconnect, nextAttemptAt],
   );
 }

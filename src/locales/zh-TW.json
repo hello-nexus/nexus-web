@@ -133,6 +133,7 @@
   "connection.lost.reconnectingIn": "{seconds} 後重新連線...",
   "connection.lost.retry": "立即重試",
   "connection.lost.title": "已中斷與您系統的連線",
+  "connection.relayMode": "已透過雲端中繼連線",
   "connection.remoteDisabled.checking": "正在檢查主機是否重新開啟...",
   "connection.remoteDisabled.checkingIn": "{seconds} 秒後重新檢查...",
   "connection.remoteDisabled.message": "主機已關閉 Pair Remote，因此此面板暫時無法存取系統。",

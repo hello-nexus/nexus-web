@@ -133,6 +133,7 @@
   "connection.lost.reconnectingIn": "Reconnecting in {seconds}...",
   "connection.lost.retry": "Retry now",
   "connection.lost.title": "Lost connection to your system",
+  "connection.relayMode": "Connected via cloud relay",
   "connection.remoteDisabled.checking": "Checking for the host to turn it back on...",
   "connection.remoteDisabled.checkingIn": "Re-checking in {seconds}...",
   "connection.remoteDisabled.message": "The host has turned off Pair Remote, so this panel cannot reach the system right now.",

@@ -22,6 +22,7 @@
 //   the (dir, counter) nonce space never repeats.
 
 const ROOT_INFO = 'nexus-relay-root-v1';
+const PAIRROOT_INFO = 'nexus-relay-pairroot-v1';
 const RENDEZVOUS_INFO = 'nexus-relay-rendezvous-v1';
 const AEAD_INFO = 'nexus-relay-aead-v1';
 
@@ -57,15 +58,35 @@ export async function deriveRelayRoot(token: string): Promise<Uint8Array> {
   return hkdf(textEncoder.encode(token), new Uint8Array(0), ROOT_INFO, 32);
 }
 
+/**
+ * pairRoot = HKDF(IKM=utf8(pairToken), salt=∅, info="nexus-relay-pairroot-v1", L=32).
+ *
+ * The pre-pair analogue of deriveRelayRoot: keyed off the QR `pair` token
+ * instead of a session token. A brand-new phone derives this from the scanned
+ * QR, then feeds it through the SAME deriveRid/deriveAeadKey as a session root
+ * to rendezvous with the PC over the relay and run a single sealed claim. The
+ * distinct `info` string means a pair root and a session root for the same
+ * input bytes never collide on an rid. Interops byte-for-byte with the .NET
+ * RelayCrypto.DerivePairRoot on the host side.
+ */
+export async function derivePairRoot(pairToken: string): Promise<Uint8Array> {
+  return hkdf(textEncoder.encode(pairToken), new Uint8Array(0), PAIRROOT_INFO, 32);
+}
+
 /** rid = base64url-nopad(HKDF(IKM=relayRoot, salt=∅, info="nexus-relay-rendezvous-v1", L=16)). */
 export async function deriveRid(relayRoot: Uint8Array): Promise<string> {
   const raw = await hkdf(relayRoot, new Uint8Array(0), RENDEZVOUS_INFO, 16);
   return base64UrlNoPad(raw);
 }
 
+/** Raw aeadKey HKDF output: HKDF(IKM=root, salt=connSalt, info="nexus-relay-aead-v1", L=32). */
+export async function deriveAeadBytes(root: Uint8Array, connSalt: Uint8Array): Promise<Uint8Array> {
+  return hkdf(root, connSalt, AEAD_INFO, 32);
+}
+
 /** aeadKey = HKDF(IKM=relayRoot, salt=connSalt, info="nexus-relay-aead-v1", L=32), imported for AES-GCM. */
 export async function deriveAeadKey(relayRoot: Uint8Array, connSalt: Uint8Array): Promise<CryptoKey> {
-  const raw = await hkdf(relayRoot, connSalt, AEAD_INFO, 32);
+  const raw = await deriveAeadBytes(relayRoot, connSalt);
   return crypto.subtle.importKey('raw', toArrayBuffer(raw), 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
 

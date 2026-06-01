@@ -1184,6 +1184,16 @@
   color: var(--text);
 }
 
+// Satellite glyph next to the "Cloud relay" label — shared iconography with
+// the live panel's relay-mode indicator so the relay feature reads the same
+// in both places. Aligned inline with the label text.
+.phonePairRelayIcon {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 6px;
+  color: var(--text-faded);
+}
+
 .phonePairKillswitchHint {
   @include text-caption;
   color: var(--text-faded);

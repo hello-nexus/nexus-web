@@ -133,6 +133,7 @@
   "connection.lost.reconnectingIn": "{seconds} 后重新连接...",
   "connection.lost.retry": "立即重试",
   "connection.lost.title": "已断开与您系统的连接",
+  "connection.relayMode": "已通过云中继连接",
   "connection.remoteDisabled.checking": "正在检查主机是否重新开启...",
   "connection.remoteDisabled.checkingIn": "{seconds} 秒后重新检查...",
   "connection.remoteDisabled.message": "主机已关闭 Pair Remote，因此此面板暂时无法访问系统。",

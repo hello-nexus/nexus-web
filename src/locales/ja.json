@@ -133,6 +133,7 @@
   "connection.lost.reconnectingIn": "{seconds} 後に再接続します...",
   "connection.lost.retry": "再試行",
   "connection.lost.title": "システムへの接続が失われました",
+  "connection.relayMode": "クラウドリレー経由で接続",
   "connection.remoteDisabled.checking": "ホストが再びオンにするのを確認中...",
   "connection.remoteDisabled.checkingIn": "{seconds}秒後に再確認...",
   "connection.remoteDisabled.message": "ホストが Pair Remote をオフにしたため、このパネルから現在システムに接続できません。",
