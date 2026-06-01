@@ -50,7 +50,11 @@ const EMPTY_STATE: KeyboardState = {
   keys: [],
 };
 
-const POLL_MS = 5000;
+// Settings/state poll. The service serves these from persisted state (no HID
+// round-trip), so a tight interval is cheap — it keeps the panel in step with
+// device-initiated changes (e.g. the rotary middle button cycling the firmware
+// effect, which the service mirrors into settings) within ~1.5 s.
+const POLL_MS = 1500;
 
 /// Apply a single SetLayerKeyBody to the keys grid by replacing one cell.
 /// Returns a new state with deep-cloned `keys` so React sees the change.
