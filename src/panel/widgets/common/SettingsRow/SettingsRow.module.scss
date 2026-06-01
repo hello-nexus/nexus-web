@@ -1,6 +1,6 @@
 @use '../../../../styles/text' as *;
 
-// .row / .label / .control now live in the canonical components/common/SettingRow.
+// .row / .label / .control live in the canonical components/common/SettingRow.
 
 .section {
   display: flex;
@@ -8,8 +8,8 @@
   gap: 10px;
 }
 
-// Section header now uses the shared <SectionHeader> component
-// (components/common/SectionHeader); .sectionTitle was removed.
+// Section header uses the shared <SectionHeader> component
+// (components/common/SectionHeader).
 
 .input {
   @include text-button;

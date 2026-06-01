@@ -128,12 +128,10 @@ interface PanelLayoutState {
 
 
 export default function PanelApp({ deviceId }: { deviceId: string }) {
-  // Resolve the device record once on mount; the surface classification
-  // stamped on the record (via inferSurfaceFromViewport at allocation
-  // time) drives widget filtering. If the record is missing on the
-  // server (cached id but server forgot - cleared profile etc.), the
-  // panel still mounts with a viewport-inferred surface so the user
-  // is not stuck on a blank page.
+  // Resolve the device record once on mount; the surface stamped on it
+  // drives widget filtering. If the record is missing on the server (cleared
+  // profile etc.), fall back to a viewport-inferred surface so the panel
+  // still mounts instead of showing a blank page.
   const [resolvedSurface, setResolvedSurface] = useState<PanelSurface | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -209,11 +207,10 @@ export function PanelContent({
   appAccentColor?: string;
   onSectionNavigate?: DashboardSectionNavigate;
 }) {
-  // Simulator runs alongside the iframe parent, which owns kiosk-only
-  // chrome (offline overlay, viewport lock, page-scroll lock, native
-  // bridges, language sync, watchdog). The simulator iframe must not
-  // duplicate any of those - the parent already provides them, and a
-  // second viewport lock would fight the parent's window scroll.
+  // The iframe parent owns kiosk-only chrome (offline overlay, viewport lock,
+  // page-scroll lock, native bridges, language sync, watchdog). The simulator
+  // iframe must not duplicate them — a second viewport lock fights the
+  // parent's window scroll.
   const kioskBehavior = !embedded && !simulator;
   usePanelViewportLock(kioskBehavior);
   usePanelPageScrollLock(kioskBehavior);
@@ -221,15 +218,12 @@ export function PanelContent({
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
   const { layout, loaded, setLayout } = layoutState;
   const panelTheme = usePanelTheme(deviceId ?? null, kioskBehavior);
-  // Simulator gets its theme from the parent via postMessage, so the
-  // local fetch path stays disabled and `effectiveTheme` swaps in the
-  // parent-supplied PanelThemeState wherever the live runtime would
-  // read panelTheme.theme. Without this, the iframe would render the
-  // default-state theme until usePanelTheme's first fetch resolved
-  // (and on the simulator that fetch never runs at all).
-  // Single-widget surfaces (q-series) force widget labels off so the single
-  // tile fills the available canvas without the label footer eating ~14px.
-  // The persisted theme stays untouched — flip is render-time only.
+  // Simulator gets its theme from the parent via postMessage (local fetch
+  // stays disabled), so effectiveTheme uses the parent-supplied state
+  // wherever the runtime would read panelTheme.theme; otherwise the iframe
+  // shows the default theme (its fetch never runs).
+  // Single-widget surfaces (q-series) force labels off so the tile fills the
+  // canvas (no ~14px label footer). Render-time flip; persisted theme intact.
   const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
   const effectiveTheme = useMemo(
     () => isSingleWidgetSurface(surface) ? { ...baseTheme, widgetLabels: false } : baseTheme,
@@ -244,11 +238,10 @@ export function PanelContent({
   const resolvedThemeMode = simulator && simulatorThemeMode
     ? simulatorThemeMode
     : embedded ? desktopResolvedThemeMode : panelResolvedThemeMode;
-  // Standalone phone / kiosk panel owns the whole tab - mirror its resolved
-  // theme to <html> so iOS Safari paints its chrome (URL bar, overscroll,
-  // scrollbars) via the matching `color-scheme` rule and `<meta theme-color>`.
-  // Skipped when embedded inside the desktop dashboard, where the desktop
-  // already drives html theme via applyThemeMode.
+  // Standalone phone/kiosk owns the tab — mirror its resolved theme to <html>
+  // so iOS Safari paints chrome (URL bar, overscroll, scrollbars) via the
+  // matching color-scheme + <meta theme-color>. Skipped when embedded (the
+  // desktop already drives html theme via applyThemeMode).
   useEffect(() => {
     if (embedded || simulator) return;
     applyHtmlChromeTheme(resolvedThemeMode);
@@ -256,24 +249,20 @@ export function PanelContent({
   const nativeSettings = useNativeSettingsBridge(kioskBehavior && surface === 'phone');
   const serviceStatus = useServiceStatus(kioskBehavior);
   const multiplex = useMultiplex();
-  // The widget context menu's "Pin to Sidebar" entry needs to know the
-  // current pinned-tail to gate the action (only pinnable types that
-  // aren't already pinned). Always inside a UiSettingsProvider because
-  // every PanelContent mount point (kiosk, embedded, simulator) wraps
-  // one — see PanelEntrypoint / Dashboard.
+  // The context menu's "Pin to Sidebar" gates on the current pinned-tail
+  // (only pinnable types not already pinned). Always inside a
+  // UiSettingsProvider — every PanelContent mount wraps one (see
+  // PanelEntrypoint / Dashboard).
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
   const pinnedTail = sanitizePinnedTail(uiSettings.pinnedSidebarApps);
-  // Side-channel signal for the sidebar to mount its drop target. We
-  // only publish for pinnable types AND only on the embedded desktop
-  // surface; everywhere else the value stays null and the sidebar's
-  // pointer tracking never engages. See app/CrossZoneDrag.tsx.
+  // Side-channel signal for the sidebar to mount its drop target. Published
+  // only for pinnable types on the embedded desktop surface; elsewhere it
+  // stays null so sidebar pointer tracking never engages. See CrossZoneDrag.
   const { setDraggingPinnableType, dropHandlerRef: sidebarDropHandlerRef } = useCrossZoneDrag();
 
-  // Overlay widgets currently floating on the user's actual desktop.
-  // Tracked here so the context menu can flip "Add to desktop" /
-  // "Remove from desktop" depending on whether the dashboard widget's
-  // type already has an instance on the overlay. Only meaningful on
-  // the embedded desktop surface; everywhere else we skip the fetch.
+  // Overlay widgets floating on the desktop, tracked so the context menu can
+  // flip "Add to desktop" / "Remove from desktop" by whether this widget type
+  // already has an overlay instance. Only fetched on the embedded desktop.
   const [overlayWidgets, setOverlayWidgets] = useState<{ id: string; type: string }[]>([]);
   const overlayActive = embedded && surface === 'desktop';
   useEffect(() => {
@@ -285,10 +274,8 @@ export function PanelContent({
     });
     return () => { cancelled = true; };
   }, [overlayActive]);
-  // The 'prefs' topic broadcasts on every preferences mutation, and
-  // overlay widget create / delete writes go through the same store
-  // — refetch the list when that fires so add / remove from the
-  // overlay reflects back in the panel context menu immediately.
+  // Overlay create/delete writes broadcast on the 'prefs' topic; refetch on
+  // it so add/remove reflects in the context menu immediately.
   useTopicCallback('prefs', overlayActive, () => {
     void listOverlayWidgets().then(list => {
       setOverlayWidgets(list.map(w => ({ id: w.id, type: w.type })));
@@ -304,11 +291,9 @@ export function PanelContent({
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
   const [editorDockMotion, setEditorDockMotion] = useState<EditorDockMotion | null>(null);
-  // Widgets that just had an action rejected (e.g. resize couldn't fit
-  // anywhere, even across pages). Drives a brief shake/flash on the
-  // cell so the user understands why the change didn't land. The
-  // animation auto-clears via a timer; the keyset is plural so multiple
-  // simultaneous rejections each get their own play.
+  // Widgets whose last action was rejected (e.g. resize didn't fit anywhere).
+  // Drives a brief shake/flash on the cell, auto-cleared by a timer. Plural
+  // keyset so simultaneous rejections each play.
   const [flashedWidgets, setFlashedWidgets] = useState<ReadonlySet<string>>(() => new Set());
   const flashTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const triggerFlash = useCallback((widgetId: string) => {
@@ -337,20 +322,16 @@ export function PanelContent({
     timers.clear();
   }, []);
   const [connectionIntroHost, setConnectionIntroHost] = useState<string | null>(null);
-  // Portal target for the editor-docked cell. The pager track applies a
-  // `transform` for any non-active page, which traps `position: fixed`
-  // descendants inside the (offscreen) track and makes the docked cell
-  // disappear when editing a widget on page 2+. Render via portal into
-  // this stable, untransformed container at the panel-root level so the
-  // docked cell anchors to the viewport regardless of which page hosts
-  // the source widget.
+  // Portal target for the editor-docked cell. The pager track's transform on
+  // non-active pages traps `position: fixed` descendants, hiding the docked
+  // cell when editing a widget on page 2+. Portal into this untransformed
+  // panel-root container so the cell anchors to the viewport on any page.
   const [editorDockPortalEl, setEditorDockPortalEl] = useState<HTMLDivElement | null>(null);
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const [trayOpen, setTrayOpen] = useState(false);
   const { t } = useTranslation();
-  // Host PC display name shown in the tray. On the kiosk the watchdog
-  // (3s ping) keeps it fresh; on phone surfaces (no watchdog) we fire
-  // a single ping on mount to seed it.
+  // Host PC display name in the tray. Kiosk watchdog (3s ping) keeps it fresh;
+  // phone (no watchdog) seeds it with one ping on mount.
   const [machineName, setMachineName] = useState<string>('');
   const phoneSeed = kioskBehavior && surface === 'phone';
   useEffect(() => {
@@ -372,9 +353,8 @@ export function PanelContent({
     if (next) setMachineName(next);
   }, [serviceStatus.ping?.machineName]);
   const onMachineNameCommit = useCallback((next: string) => {
-    // Optimistic local update so the tray header changes immediately;
-    // the next ping will overwrite with the server's normalised value
-    // (trim, dedup whitespace, fall back to OS name if cleared).
+    // Optimistic update; the next ping overwrites with the server's
+    // normalised value (trim, dedup whitespace, OS-name fallback if cleared).
     setMachineName(next);
     setPanelHostName(next).then(res => {
       if (res?.machineName) setMachineName(res.machineName);
@@ -382,9 +362,8 @@ export function PanelContent({
   }, []);
   const lastCatalogSignalRef = useRef(openCatalogSignal);
   const [immersiveWidgetId, setImmersiveWidgetId] = useState<string | null>(null);
-  // Bumped each time immersive opens so the overlay's React key
-  // changes between sessions even when the same widget is re-opened
-  // - prevents any stale internal state from blocking re-entry.
+  // Bumped on each immersive open so the overlay's React key changes between
+  // sessions for the same widget, clearing stale state that blocks re-entry.
   const [immersiveOpenCounter, setImmersiveOpenCounter] = useState(0);
   const enterImmersive = useCallback((widgetId: string) => {
     setImmersiveOpenCounter(n => n + 1);
@@ -415,8 +394,8 @@ export function PanelContent({
     styles.cellResizeMotion,
     WIDGET_RESIZE_MOTION_MS,
   );
-  // Selection guard runs in simulator too: text-select would fight drag
-  // gestures inside the iframe just like on a real touch surface.
+  // Selection guard runs in simulator too: text-select fights drag gestures
+  // inside the iframe like on a real touch surface.
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   usePhoneContentScale(surface === 'phone' && loaded, rootRef);
   const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator);
@@ -461,10 +440,9 @@ export function PanelContent({
   // ---------- Pagination + dock state derived from layout ----------
   const dockEnabled = Boolean(layout.dock?.enabled);
   const dockSupported = surface !== 'desktop' && surfaceSupportsTouch(surface);
-  // Every touch-capable surface must hoist the focused widget above the
-  // editor's backdrop-blur scrim, otherwise the widget being edited disappears
-  // under the blur. q60 is display-only so the edit flow never engages there.
-  // See the .cellEditorDocked rules in PanelApp.module.scss.
+  // Touch surfaces hoist the focused widget above the editor's backdrop-blur
+  // scrim, else the edited widget disappears under the blur. q60 is
+  // display-only so editing never engages. See .cellEditorDocked rules.
   const editorDockSupported = surfaceSupportsTouch(surface);
   const dockActive = dockSupported && dockEnabled;
   const isLandscape = useIsLandscape(surface);
@@ -479,58 +457,43 @@ export function PanelContent({
     [runtimeGrid.columns, runtimeGrid.rows, dockActive, isLandscape, surface],
   );
 
-  // Two-stage drag state declared early so the layout derivations
-  // below (dragLayout, allFiltered, etc.) can fold the drag-only
-  // phantom page into the rendered shape.
-  //   dragArmedId: set the moment dnd-kit's delay activation
-  //                completes (the long-press has matured into a
-  //                "ready to drag" gesture). Used to disable
-  //                competing gestures (tray-swipe, page-swipe).
-  //   activeDragId: set the moment the user actually starts moving
-  //                 past activation. Drives the visual overlay
-  //                 clone + the source-cell hide.
-  //   dragExtraPageId: phantom trailing page rendered alongside
-  //                    committed pages so the user can drag onto a
-  //                    new (empty) page without creating it first.
-  //                    Persisted only if a widget actually lands on
-  //                    it; cleared on dragEnd / dragCancel.
+  // Two-stage drag state, declared early so dragLayout/allFiltered can fold
+  // the phantom page into the rendered shape.
+  //   dragArmedId: set when dnd-kit's delay activation completes (long-press
+  //                matured to "ready to drag"). Disables competing gestures
+  //                (tray-swipe, page-swipe).
+  //   activeDragId: set when the user starts moving past activation. Drives
+  //                 the overlay clone + source-cell hide.
+  //   dragExtraPageId: phantom trailing page so the user can drag onto a new
+  //                    empty page without creating it first. Persisted only
+  //                    if a widget lands on it; cleared on dragEnd/dragCancel.
   const [dragArmedId, setDragArmedId] = useState<string | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragExtraPageId, setDragExtraPageId] = useState<string | null>(null);
 
-  // Re-paginate the persisted layout to match current capacity. Persists
-  // the new shape via setLayout (debounced, idempotent via reference
-  // equality short-circuit in repaginatePanelLayout).
-  // repaginatePanelLayout returns the SAME layout reference when the
-  // pages already match the requested capacity (byte-equal). That
-  // reference equality is load-bearing: without it, the persistence
-  // useEffect below would call setLayout on every render, the next
-  // render would compute a fresh paginated reference, the effect would
-  // fire again, and the panel would melt into a render loop (which
-  // also looks like the WebSocket "loses connection after a single
-  // frame" symptom because the React tree never settles).
+  // Re-paginate the persisted layout to current capacity, persisting via
+  // setLayout. repaginatePanelLayout returns the SAME reference when pages
+  // already match (byte-equal). That reference equality is load-bearing:
+  // without it the persistence effect below calls setLayout every render,
+  // the next render computes a fresh reference, the effect re-fires, and the
+  // panel render-loops (presents as the WebSocket "loses connection after
+  // one frame" symptom — the React tree never settles).
   const paginatedLayout = useMemo(
     () => repaginatePanelLayout(layout, capacity),
     [layout, capacity],
   );
   useEffect(() => {
-    // CRITICAL: only auto-persist the re-paginated shape AFTER the
-    // server fetch has populated `layout`. Before `loaded`, `layout`
-    // is the local fallback default from usePanelLayout's useState
-    // initializer. Re-paginating that default and POSTing it would
-    // race the in-flight fetch and overwrite the user's saved edits
-    // with the default-paginated layout. Wait for `loaded` so we
-    // only ever auto-persist a paginated version of what the server
-    // actually has.
+    // CRITICAL: only auto-persist after the server fetch populates `layout`.
+    // Before `loaded`, `layout` is the local fallback default; persisting a
+    // re-paginated default would race the in-flight fetch and overwrite the
+    // user's saved edits.
     if (!loaded) return;
     if (paginatedLayout !== layout) setLayout(paginatedLayout);
   }, [paginatedLayout, layout, setLayout, loaded]);
 
-  // Layout used by the renderer + drag pipeline. During a drag we
-  // append a phantom empty page (if room within MAX_PANEL_PAGES) so
-  // the user can drop onto a brand-new page without first creating
-  // one. Outside drag, equals paginatedLayout exactly so persistence
-  // is unaffected.
+  // Layout for the renderer + drag pipeline. During a drag, appends a phantom
+  // empty page (if under MAX_PANEL_PAGES) so the user can drop onto a new
+  // page. Outside drag, equals paginatedLayout so persistence is unaffected.
   const dragLayout = useMemo<PanelLayout>(() => {
     if (!activeDragId || !dragExtraPageId) return paginatedLayout;
     if (paginatedLayout.pages.length >= MAX_PANEL_PAGES) return paginatedLayout;
@@ -549,45 +512,38 @@ export function PanelContent({
         return appAvailableForSurface(def.meta, surface);
       })
       .slice()
-      // Render order is row-major over (col, row) so the focus walk
-      // and DOM order match what the user sees, but each widget is
-      // grid-positioned via inline style, not by source order.
+      // Row-major (col, row) sort so the focus walk and DOM order match the
+      // visual layout; placement itself is via inline style, not source order.
       .sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col),
   })), [dragLayout.pages, surface]);
 
-  // Flat list of all visible widget ids across pages. Drives a SINGLE
-  // SortableContext that wraps every page so dnd-kit's per-context
-  // hover detection works ACROSS pages.
+  // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
+  // every page so dnd-kit's hover detection works across pages.
   const allFlatIds = useMemo(() => allFiltered.flatMap(p => p.widgets.map(w => w.id)), [allFiltered]);
   const pageCount = Math.max(1, allFiltered.length);
-  // dnd-kit's SortableContext memoizes its strategy output by
-  // [strategy, rects, activeIndex, overIndex, index]. Our over is
-  // always a NON-sortable empty-cell droppable, so overIndex stays
-  // at -1 forever and the memo doesn't reliably re-fire as the user
-  // drags. Use a no-op strategy instead and project widgets via
-  // React state below.
+  // SortableContext memoizes its strategy by [strategy, rects, activeIndex,
+  // overIndex, index]. Our over is always a non-sortable empty-cell droppable,
+  // so overIndex stays -1 and the memo doesn't reliably re-fire. Use a no-op
+  // strategy and project widgets via React state below.
   const projectedLayoutStrategy = useMemo<SortingStrategy>(() => () => null, []);
   const [activePageIndex, setActivePageIndex] = useState(0);
   useEffect(() => {
     if (activePageIndex > pageCount - 1) setActivePageIndex(pageCount - 1);
   }, [activePageIndex, pageCount]);
-  // Read in dnd handlers (edge-advance) without restarting the
-  // pointermove subscription on every page change.
+  // Read in dnd handlers (edge-advance) without restarting the pointermove
+  // subscription on every page change.
   const pageCountRef = useRef(pageCount);
   useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
-  // Active page index, mirrored into a ref so the custom collision
-  // detector (built once via useMemo) can read it without rebuilding.
-  // The detector locks the snap target to this page only - the pager's
-  // edge-advance dwell handles cross-page navigation, the snap math
-  // never picks a cell on a different page just because the dragged
-  // widget's translated rect happens to be over there.
+  // Active page index mirrored to a ref so the once-built collision detector
+  // reads it without rebuilding. The detector locks the snap target to this
+  // page; the pager's edge-advance dwell handles cross-page navigation, so
+  // the snap never picks a cell on another page from a drifting rect.
   const activePageIndexRef = useRef(activePageIndex);
   useEffect(() => { activePageIndexRef.current = activePageIndex; }, [activePageIndex]);
-  // Frozen snapshot of the dragged cell's pixel size + the panel's
-  // runtime CSS vars at drag start. Captured ONCE in onDragStart and
-  // reused every overlay render so the floating clone never re-measures
-  // mid-drag. Re-measuring would pick up post-pager-translate or
-  // post-resize values and the clone scale would jitter 1-2 seconds in.
+  // Frozen snapshot of the dragged cell's pixel size + runtime CSS vars at
+  // drag start. Captured once in onDragStart and reused every overlay render
+  // so the clone never re-measures mid-drag (which would pick up
+  // post-pager-translate / post-resize values and jitter the clone scale).
   type DragSnapshot = {
     id: string;
     width: number;
@@ -597,11 +553,9 @@ export function PanelContent({
     gap: string;
   };
   const [dragSnapshot, setDragSnapshot] = useState<DragSnapshot | null>(null);
-  // Holds snapshot data captured at dnd-kit's onDragStart but NOT yet
-  // promoted to the rendered state. Promotion happens on the first
-  // onDragMove so the user sees no "lift" effect until they actually
-  // start moving the finger - holding for the menu alone shows only
-  // the menu, never the drag overlay.
+  // Snapshot captured at onDragStart but not yet promoted to rendered state.
+  // Promotes on the first onDragMove so a long-press for the menu (no
+  // movement) shows only the menu, never the lift/overlay.
   const pendingDragRef = useRef<DragSnapshot | null>(null);
 
   const dockWidgets = paginatedLayout.dock?.widgets ?? [];
@@ -617,11 +571,10 @@ export function PanelContent({
 
   const editingWidget = editingWidgetId ? widgetById(editingWidgetId) ?? null : null;
   const editingWidgetSize = editingWidget?.size;
-  // The QR pairing tray is for adding another device to a paired desktop,
-  // which only makes sense from the native app or the bundled-localhost
-  // dashboard. The browser-fallback panel (plain HTTP from a non-loopback
-  // host) is itself the "no app installed" path - exposing a pair QR there
-  // is confusing and reaches a feature the browser path can't deliver.
+  // QR pairing adds another device to a paired desktop, valid only from the
+  // native app or bundled-localhost dashboard. The browser-fallback panel
+  // (plain HTTP, non-loopback host) is the "no app installed" path and can't
+  // deliver pairing, so don't expose the QR there.
   const nativePairingAvailable =
     !isInsecureBrowserPanel() && (surface === 'phone' || nativeSettings.available);
 
@@ -669,11 +622,10 @@ export function PanelContent({
     return label === 'connection.relayMode' ? 'Connected via cloud relay' : label;
   })();
 
-  // Long-press on the empty panel background opens the actions tray, mirroring
-  // the long-press-to-context-menu gesture on widgets. Only fires on kiosk-mode
-  // surfaces (when the tray itself is rendered), only when not already in a
-  // sheet / immersive / drag state, and only when the press target wasn't
-  // inside a widget or interactive element.
+  // Long-press on the empty background opens the actions tray (mirrors the
+  // widget long-press-to-menu). Kiosk surfaces only, not while in a sheet /
+  // immersive / drag state, and only when the press misses widgets and
+  // interactive elements.
   const backgroundLongPress = useLongPress(() => setTrayOpen(true), PANEL_CONTEXT_MENU_TRIGGER_MS);
   const backgroundPressBlocked = !kioskBehavior
     || !surfaceSupportsTouch(surface)
@@ -687,10 +639,9 @@ export function PanelContent({
   const handleBackgroundPointerDown = useCallback((e: React.PointerEvent) => {
     if (backgroundPressBlocked) return;
     if (!(e.target instanceof Element)) return;
-    // Skip if the press landed on a widget, an interactive control, the bottom
-    // tray itself, the page indicator, or any element that handles its own
-    // press. The widget's own long-press (context menu) and the tray's swipe
-    // handler keep their gestures intact.
+    // Skip presses on a widget, interactive control, the tray, the page
+    // indicator, or anything that handles its own press, so the widget
+    // long-press and tray swipe keep their gestures.
     if (
       e.target.closest('[data-panel-widget-id]')
       || e.target.closest('button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"]')
@@ -698,10 +649,9 @@ export function PanelContent({
     ) return;
     backgroundLongPress.onPointerDown(e);
   }, [backgroundPressBlocked, backgroundLongPress]);
-  // Mouse right-click on the empty background is the desktop equivalent of
-  // the touch long-press: same gating, same outcome (opens the bottom tray).
-  // Suppresses the browser's native menu when it would otherwise fire on the
-  // panel surface.
+  // Right-click on the empty background is the desktop equivalent of the touch
+  // long-press: same gating, opens the tray. Suppresses the browser's native
+  // menu on the panel surface.
   const handleBackgroundContextMenu = useCallback((e: React.MouseEvent) => {
     if (backgroundPressBlocked) return;
     if (!(e.target instanceof Element)) return;
@@ -802,11 +752,9 @@ export function PanelContent({
 
   useEffect(() => () => clearCloseTimer(), [clearCloseTimer]);
 
-  // While the panel is offline, the editor / add-widget / context-menu sheets
-  // can't act on anything; tear them down so connectivity recovery doesn't
-  // resume mid-transition. Depending on the closeCtxMenu identity (a stable
-  // useCallback from usePanelTouchMode) avoids re-firing on every render of
-  // the touch state machine.
+  // While offline, tear down the editor / add-widget / context-menu sheets so
+  // recovery doesn't resume mid-transition. Depend on closeCtxMenu's identity
+  // (stable useCallback) to avoid re-firing on every touch-state render.
   const touchCloseCtxMenu = touch.closeCtxMenu;
   const hasCtxMenu = Boolean(touch.ctxMenu);
   useEffect(() => {
@@ -826,11 +774,9 @@ export function PanelContent({
     return () => window.clearTimeout(handle);
   }, [isOffline, clearCloseTimer, clearConnectionIntro, hasCtxMenu, touchCloseCtxMenu]);
 
-  // iOS swipes from the bottom edge to background the app. The trailing
-  // events occasionally commit the actions tray, so it's already open
-  // when the user returns. Close on hide (and pagehide as a belt-and-
-  // braces signal for iOS Safari) rather than on restore so there's no
-  // flash of the menu on return.
+  // The iOS bottom-edge backgrounding swipe sometimes commits the tray, so
+  // it's open on return. Close on hide (plus pagehide for iOS Safari) rather
+  // than on restore so the menu doesn't flash on return.
   useEffect(() => {
     const closeOnHide = () => {
       if (document.visibilityState !== 'hidden') return;
@@ -850,11 +796,9 @@ export function PanelContent({
     multiplex?.reconnect();
   }, [serviceStatus, multiplex]);
 
-  // Scroll the most recently inserted widget into view once the sheet has
-  // finished animating closed. Snaps the active page to the page that
-  // contains it. The actual scrollIntoView is a no-op for cells already
-  // visible inside the pager, but keeps drag-resize / context-menu
-  // animations centred consistently.
+  // Scroll the most recently inserted widget into view after the sheet closes,
+  // snapping the active page to its page. A no-op for cells already visible,
+  // but keeps drag-resize / context-menu animations centred.
   useEffect(() => {
     if (!pendingScrollId) return;
     if (sheetMode) return;
@@ -908,11 +852,9 @@ export function PanelContent({
     const current = widgetById(widgetId);
     if (!current || current.size === size) return;
 
-    // Try to fit the new size with siblings cascading across pages
-    // (creating new ones up to MAX_PANEL_PAGES). If even that fails the
-    // displaced widgets have nowhere to go, so the resize is rejected
-    // outright and the user gets a flash on the widget instead of a
-    // silent layout corruption.
+    // Fit the new size by cascading siblings across pages (up to
+    // MAX_PANEL_PAGES). If displaced widgets have nowhere to go, reject the
+    // resize and flash the widget rather than corrupt the layout silently.
     const next = tryResizeWidget(paginatedLayout, widgetId, size, capacity, MAX_PANEL_PAGES);
     if (!next) {
       triggerFlash(widgetId);
@@ -953,10 +895,9 @@ export function PanelContent({
       sourceRect,
     });
     setSheetClosing(false);
-    // Resolve initial sheet state (e.g. which monitoring slot is selected)
-    // from where the context menu / right-click summoned the edit flow. Read
-    // the DOM at the original press point before the dock animation has had
-    // a chance to hoist the widget out of its grid position.
+    // Resolve initial sheet state (e.g. selected monitoring slot) from the
+    // press point that summoned the edit flow, reading the DOM before the
+    // dock animation hoists the widget out of its grid position.
     const def = lookupApp(widget.type);
     const initial = point && def?.resolveInitialSelection
       ? def.resolveInitialSelection({ point, widget })
@@ -981,10 +922,9 @@ export function PanelContent({
       });
     };
 
-    // Recompute on every editingWidget change (size picker in the edit drawer
-    // updates widget.size, which arrives here as a new editingWidget reference)
-    // so the dock cell tracks the new span instead of staying frozen at the
-    // dimensions captured when the editor first opened.
+    // Recompute on every editingWidget change (the size picker updates
+    // widget.size → new editingWidget reference) so the dock cell tracks the
+    // new span instead of freezing at the dimensions from editor-open.
     updateEditorDockMotion();
 
     const viewport = window.visualViewport;
@@ -998,20 +938,16 @@ export function PanelContent({
     };
   }, [editingWidget, editorDockSupported, sheetMode, surface]);
 
-  // Delay-based activation matched to the context-menu trigger: drag
-  // ARMS at the same instant the menu opens. iOS-style: hold to lift,
-  // THEN drag. Tolerance:8 cancels the arming if the user moves past
-  // 8px before the delay completes - so a quick horizontal swipe (the
-  // pager engages at 8px too) takes the gesture instead of latching a
-  // drag. Movement before the menu = navigation, never drag.
-  // Note: arming != lifting. We defer the visual overlay (activeDragId,
-  // dragSnapshot, source-cell hide) until the FIRST onDragMove so a
-  // user who long-presses, gets the menu, then releases without
-  // moving sees only the menu, never any "lift" effect.
-  // Simulator uses distance activation so the user can drag a widget by
-  // pressing-and-moving without first long-pressing into rearrange mode
-  // like a real touch device. Tap still works for "open settings" because
-  // it triggers no movement.
+  // Delay-based activation matched to the context-menu trigger: drag arms
+  // when the menu opens (iOS-style hold-to-lift, then drag). tolerance:8
+  // cancels arming if the user moves past 8px before the delay, so a quick
+  // horizontal swipe (pager engages at 8px) wins. Movement before the menu =
+  // navigation, never drag.
+  // Arming != lifting: defer the visual overlay (activeDragId, dragSnapshot,
+  // source-cell hide) to the first onDragMove, so long-press-then-release
+  // shows only the menu, no lift.
+  // Simulator uses distance activation so a press-and-move drags without a
+  // long-press first; tap still opens settings (no movement).
   const desktopActivation = surface === 'desktop' || simulator;
   const sensors = useSensors(
     useSensor(
@@ -1022,11 +958,9 @@ export function PanelContent({
     ),
   );
 
-  // Auto-advance the pager when the user dwells the dragged widget
-  // near the left/right edge. iOS-style page-turn assist: enter the
-  // edge zone, hold ~600ms, the pager advances. Re-arming requires
-  // leaving the edge zone and re-entering, so the user can park near
-  // an edge briefly without runaway page churn.
+  // Auto-advance the pager when the dragged widget dwells near the left/right
+  // edge (~600ms in the edge zone). Re-arming requires leaving and re-entering
+  // the zone, so parking near an edge doesn't churn pages.
   const EDGE_ADVANCE_PX = 64;
   const EDGE_ADVANCE_DWELL_MS = PANEL_EDGE_ADVANCE_DWELL_MS;
   const edgeAdvanceRef = useRef<{
@@ -1041,13 +975,11 @@ export function PanelContent({
     edgeAdvanceRef.current.side = null;
   }, []);
   const handleDndDragMove = useCallback((event: DragMoveEvent) => {
-    // Drag visuals (lift, source-cell hide, menu dismiss) only engage
-    // once the user has moved past PANEL_DRAG_START_THRESHOLD_PX from
-    // the long-press anchor. Mirrors the same floor the collision
-    // detector applies (see buildPanelCollisionDetection); both must
-    // arm together so visuals and over resolution stay in sync. Below
-    // threshold = "menu only" so a small finger jiggle right after the
-    // long-press does not accidentally launch a drag.
+    // Drag visuals (lift, source-cell hide, menu dismiss) engage only past
+    // PANEL_DRAG_START_THRESHOLD_PX from the long-press anchor. Mirrors the
+    // collision detector's floor (see buildPanelCollisionDetection); both arm
+    // together so visuals and over resolution stay in sync. Below threshold =
+    // menu only, so a finger jiggle after long-press can't launch a drag.
     const movedPastThreshold =
       event.delta.x * event.delta.x + event.delta.y * event.delta.y
       >= PANEL_DRAG_START_THRESHOLD_PX * PANEL_DRAG_START_THRESHOLD_PX;
@@ -1076,13 +1008,11 @@ export function PanelContent({
     if (!desiredSide) return;
     edgeAdvanceRef.current.timer = window.setTimeout(() => {
       edgeAdvanceRef.current.timer = null;
-      // Leave `side` latched: the next onDragMove with the cursor
-      // still in this edge band short-circuits via desiredSide === side.
-      // clearEdgeAdvance() unlatches when the cursor leaves the band
-      // or the drag ends. Without this, the pager would advance one
-      // page every dwell interval until the user lifted off the edge.
-      // Clamp at the ends is intentional - side stays latched even on
-      // a no-op clamp so the user can keep pressing without re-arming.
+      // Leave `side` latched: the next onDragMove in this band short-circuits
+      // via desiredSide === side. clearEdgeAdvance() unlatches when the cursor
+      // leaves the band or the drag ends — else the pager advances one page
+      // per dwell until lift-off. side stays latched on a no-op end-clamp so
+      // the user can keep pressing without re-arming.
       setActivePageIndex(prev => {
         const count = pageCountRef.current;
         if (desiredSide === 'left') return Math.max(0, prev - 1);
@@ -1090,32 +1020,27 @@ export function PanelContent({
       });
     }, EDGE_ADVANCE_DWELL_MS);
   }, [clearEdgeAdvance, touch, EDGE_ADVANCE_DWELL_MS]);
-  // Gesture refs for the collision detector: PANEL_DRAG_START_THRESHOLD_PX
-  // is gated off the cursor's distance from this anchor, so we capture
-  // wherever dnd-kit thinks the press began. lastOverId provides
-  // hysteresis - the over only flips when the cursor clearly leaves
-  // the previous over's hysteresis band.
+  // Gesture refs for the collision detector. startX/Y is dnd-kit's press
+  // origin, against which PANEL_DRAG_START_THRESHOLD_PX is gated. lastOverId
+  // gives hysteresis — the over flips only when the cursor leaves the band.
   const dragGestureRef = useRef<DragGestureState>({ startX: 0, startY: 0, lastOverId: null });
-  // Live `over` droppable id, updated each onDragOver. The drag
-  // projection strategy reads this so it can compute the iOS make-
-  // room preview without depending on dnd-kit's overIndex (which is
-  // -1 when the cursor is over an empty-cell droppable, since those
-  // are not in the SortableContext items list).
+  // Live `over` droppable id, updated each onDragOver. The projection strategy
+  // reads this to compute the make-room preview without dnd-kit's overIndex
+  // (which is -1 over an empty-cell droppable — those aren't SortableContext
+  // items).
   const currentOverIdRef = useRef<string | null>(null);
-  // dnd-kit invokes the collision detection function later (on pointer move
-  // during a drag), so the refs are read outside render via the closure. The
-  // useMemo body itself never dereferences `.current` - only the returned
-  // function does, at the point of use.
+  // dnd-kit invokes the collision detector later (on pointer move), so the
+  // refs are read via the closure. The useMemo body never dereferences
+  // `.current` — only the returned function does, at call time.
   const panelCollisionDetection = useMemo(
      
     () => buildPanelCollisionDetection(dragGestureRef, activePageIndexRef),
     [],
   );
 
-  // Tick that increments whenever the over target changes. The
-  // highlight overlay reads from currentOverIdRef but needs a render
-  // signal to repaint - we don't want a state setter on the hot
-  // pointer-move path because the strategy uses the ref directly.
+  // Tick incremented when the over target changes. The highlight overlay
+  // reads currentOverIdRef but needs a render signal to repaint, kept off the
+  // hot pointer-move path (the strategy uses the ref directly).
   const [overIdTick, setOverIdTick] = useState(0);
   const handleDndDragOver = useCallback((event: DragOverEvent) => {
     const next = event.over ? String(event.over.id) : null;
@@ -1125,14 +1050,12 @@ export function PanelContent({
     }
   }, []);
 
-  // Drag preview layout: recomputed every time the over target moves
-  // to a new cell. Each cell reads its own (col, row) from this and
-  // animates from its committed position to the preview position via
-  // an inline transform. This is what produces the "make-room"
-  // feel - widgets whose rects overlap the dragged widget cascade
-  // into the next free aligned cell while the drag is in flight,
-  // then commit on drop. Bypasses dnd-kit's SortableContext strategy
-  // which doesn't re-fire reliably with non-sortable empty droppables.
+  // Drag preview layout, recomputed when the over target moves to a new cell.
+  // Each cell reads its (col, row) and animates from committed to preview
+  // position via inline transform — the "make-room" feel: widgets overlapping
+  // the dragged one cascade to the next free aligned cell mid-drag, committing
+  // on drop. Bypasses dnd-kit's SortableContext strategy, which doesn't
+  // re-fire reliably with non-sortable empty droppables.
   const [previewLayout, setPreviewLayout] = useState<PanelLayout | null>(null);
   useEffect(() => {
     if (!activeDragId) { setPreviewLayout(null); return; }
@@ -1140,8 +1063,8 @@ export function PanelContent({
     if (!overId) { setPreviewLayout(null); return; }
     const active = widgetById(activeDragId);
     if (!active) { setPreviewLayout(null); return; }
-    // Use dragLayout (with phantom trailing page) so previewDrag can
-    // resolve the new-page id when the user is hovering over it.
+    // Use dragLayout (with phantom trailing page) so previewDrag resolves the
+    // new-page id when the user hovers over it.
     const target = parseDragTarget(overId, dragLayout, active);
     if (!target) { setPreviewLayout(null); return; }
     const preview = previewDrag(
@@ -1157,10 +1080,9 @@ export function PanelContent({
 
   const handleDndDragStart = useCallback((event: DragStartEvent) => {
     const id = String(event.active.id);
-    // Prime the over to the active's home cell so the highlight is
-    // visible from t=0. onDragOver only fires when over CHANGES, so
-    // without priming, the user sees no highlight until they cross a
-    // cell boundary.
+    // Prime the over to the active's home cell so the highlight shows from
+    // t=0. onDragOver fires only on over CHANGE, so without priming there's no
+    // highlight until the cursor crosses a cell boundary.
     const widget = widgetById(id);
     const pageId = paginatedLayout.pages.find(p => p.widgets.some(w => w.id === id))?.id;
     if (widget && pageId) {
@@ -1168,17 +1090,13 @@ export function PanelContent({
       currentOverIdRef.current = seed;
       setOverIdTick(n => n + 1);
     }
-    // Mint a phantom trailing page so the user can drag onto a new
-    // empty page if room is available. Skipped when:
-    //  - Dashboard (single-page surface; phantom would let the user
-    //    create a new page via drag and we removed that capability).
-    //  - At MAX_PANEL_PAGES already.
-    //  - The existing last page is empty (free trailing page exists).
-    //  - The active widget's source page has only the active widget
-    //    on it. Allowing the phantom there means the user moves the
-    //    single widget across, leaving the source page empty and the
-    //    new page with one widget - a net no-op page count, which
-    //    isn't what "create a new page" should mean.
+    // Mint a phantom trailing page so the user can drag onto a new empty page.
+    // Skipped when:
+    //  - Dashboard (single-page surface).
+    //  - Already at MAX_PANEL_PAGES.
+    //  - The last page is empty (free trailing page exists).
+    //  - The source page holds only the active widget: moving it across leaves
+    //    the source empty and the new page with one — a net no-op page count.
     const dashboardSinglePage = embedded && surface === 'desktop';
     if (!dashboardSinglePage && paginatedLayout.pages.length < MAX_PANEL_PAGES) {
       const lastPage = paginatedLayout.pages[paginatedLayout.pages.length - 1];
@@ -1188,9 +1106,8 @@ export function PanelContent({
         setDragExtraPageId(createUuid());
       }
     }
-    // Mark the drag as armed immediately so competing gestures
-    // (tray-swipe, page-swipe) get gated off before the user's first
-    // motion. Overlay visuals stay deferred to onDragMove.
+    // Arm the drag immediately so competing gestures (tray-swipe, page-swipe)
+    // gate off before the first motion. Overlay visuals stay on onDragMove.
     setDragArmedId(id);
     const source = rootRef.current?.querySelector<HTMLElement>(`[data-panel-widget-id="${id}"]`);
     const layoutW = source?.offsetWidth ?? 0;
@@ -1214,11 +1131,9 @@ export function PanelContent({
     } else {
       pendingDragRef.current = null;
     }
-    // Capture the press anchor so the collision detector can apply
-    // its minimum-movement floor. activatorEvent is the original
-    // pointerdown that armed the drag - using its coords means a
-    // sub-threshold finger jiggle after the long-press will not
-    // shuffle anything.
+    // Capture the press anchor for the collision detector's minimum-movement
+    // floor. activatorEvent is the original arming pointerdown, so a
+    // sub-threshold finger jiggle after long-press shuffles nothing.
     const ae = event.activatorEvent as PointerEvent | MouseEvent | TouchEvent;
     let startX = 0;
     let startY = 0;
@@ -1232,12 +1147,10 @@ export function PanelContent({
     }
     dragGestureRef.current = { startX, startY, lastOverId: null };
     touch.handleDragStart();
-    // Publish the drag to the sidebar for cross-zone pin pickup. Gated
-    // by surface so panel-kiosk drags never tickle the dashboard's
-    // pinned-apps state (the panel can't see a sidebar anyway, but the
-    // context provider may exist higher up via the simulator iframe).
-    // Also skip when the widget is already pinned — the drop would be a
-    // no-op and the indicator would confuse the user.
+    // Publish the drag to the sidebar for cross-zone pin pickup. Surface-gated
+    // so panel-kiosk drags don't touch the dashboard's pinned-apps state (the
+    // context provider may exist above via the simulator iframe). Skipped when
+    // already pinned (the drop would be a no-op).
     if (embedded && surface === 'desktop' && widget && isPinnableAppKey(widget.type)
         && !pinnedTail.includes(widget.type)) {
       setDraggingPinnableType(widget.type);
@@ -1248,12 +1161,10 @@ export function PanelContent({
     <DndContext
       sensors={sensors}
       collisionDetection={panelCollisionDetection}
-      // Re-measure droppables on every render while dragging. Without
-      // this, dnd-kit caches drop targets at drag-start and the
-      // pager's auto-advance would translate the active page's cells
-      // to new viewport positions that dnd-kit still believes sit
-      // where they were at drag-start - drops on a new page would
-      // either miss or land on the wrong widget.
+      // Re-measure droppables every render while dragging. Otherwise dnd-kit
+      // caches drop targets at drag-start, and the pager's auto-advance moves
+      // cells to new viewport positions dnd-kit thinks are unchanged — drops
+      // on a new page miss or land on the wrong widget.
       measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       onDragStart={handleDndDragStart}
       onDragMove={handleDndDragMove}
@@ -1275,18 +1186,15 @@ export function PanelContent({
         clearEdgeAdvance();
         const activeId = String(event.active.id);
         const overId = event.over ? String(event.over.id) : null;
-        // Capture the current dragLayout BEFORE clearing the phantom
-        // page state. dragLayout is what previewDrag knows about; if
-        // we cleared dragExtraPageId first, dragLayout would lose the
-        // phantom page mid-flight and previewDrag could not resolve
-        // the new-page id.
+        // Capture dragLayout BEFORE clearing phantom-page state. dragLayout is
+        // what previewDrag knows; clearing dragExtraPageId first drops the
+        // phantom page mid-flight so previewDrag can't resolve the new-page id.
         const layoutForDrop = dragLayout;
-        // Invoke the sidebar's drop committer BEFORE clearing the
-        // drag state. React 19 flushes setDraggingPinnableType(null)
-        // synchronously inside this event handler, which unmounts
-        // SidebarPinDropTarget and detaches its document pointerup
-        // listener before pointerup propagates to it. So we commit the
-        // pin imperatively here while the sidebar's state is still live.
+        // Invoke the sidebar's drop committer BEFORE clearing drag state.
+        // React 19 flushes setDraggingPinnableType(null) synchronously here,
+        // unmounting SidebarPinDropTarget and detaching its pointerup listener
+        // before pointerup reaches it; commit the pin imperatively while the
+        // sidebar state is still live.
         sidebarDropHandlerRef.current?.();
         currentOverIdRef.current = null;
         setActiveDragId(null);
@@ -1314,10 +1222,8 @@ export function PanelContent({
         if (!preview) return;
         // No-op short-circuit: drop at source cell on the same page.
         if (preview === layoutForDrop) return;
-        // Drop the phantom page if the user did NOT actually land on
-        // it - we don't want an empty trailing page persisted just
-        // because it was rendered during the drag. Trim trailing
-        // empty pages but keep at least one.
+        // Trim trailing empty pages (keep at least one) so the drag-rendered
+        // phantom page isn't persisted unless a widget landed on it.
         const trimmed = trimTrailingEmptyPages(preview);
         setLayout(trimmed);
       }}
@@ -1337,9 +1243,8 @@ export function PanelContent({
         data-simulator-selected={simulator && simulatorSelectedWidgetId ? simulatorSelectedWidgetId : undefined}
         style={panelRootStyle}
         onClick={simulator ? (e) => {
-          // Background click: bubbles to the panel-root only when the
-          // event passed through every empty area without being stopped.
-          // Forward to the parent so it closes its settings pane.
+          // Reaches panel-root only when the click passed through empty area
+          // unstopped. Forward to the parent to close its settings pane.
           if (e.target === e.currentTarget) onSimulatorBackgroundClicked?.();
         } : undefined}
         onPointerDown={handleBackgroundPointerDown}
@@ -1397,10 +1302,9 @@ export function PanelContent({
                               onContextMenu={surfaceSupportsTouch(surface) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               onRearrangeTap={surfaceSupportsTouch(surface) ? touch.handleRearrangeTap : noopMouseHandler}
                               cellPointers={surfaceSupportsTouch(surface) ? touch.bindCellPointers(w) : noopCellPointers}
-                              // Non-touch simulator surfaces (Q-series) can't reach onCellTap
-                              // through the pointer/long-press pipeline. Wire a plain click
-                              // so the user can tap the rendered widget in the device-page
-                              // iframe to open its edit sheet.
+                              // Non-touch sim surfaces (Q-series) can't reach
+                              // onCellTap via the pointer pipeline; a plain
+                              // click opens the edit sheet from an iframe tap.
                               onSimulatorClick={simulator && !surfaceSupportsTouch(surface) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
                               previewLayout={previewLayout}
                               anyDragging={Boolean(activeDragId)}
@@ -1504,11 +1408,9 @@ export function PanelContent({
           && def.meta.supportsImmersive[orientationKey];
         const ctxWidget = touch.ctxMenu.widget;
         const ctxPoint = { x: touch.ctxMenu.x, y: touch.ctxMenu.y };
-        // Desktop overlay toggle: show "Add to desktop" when there's
-        // no overlay instance of this widget type yet, OR
-        // "Remove from desktop" when at least one exists. Click on
-        // remove deletes every instance of the type — symmetric undo
-        // of the add.
+        // Desktop overlay toggle: "Add to desktop" when no overlay instance of
+        // this type exists, else "Remove from desktop". Remove deletes every
+        // instance of the type.
         const onDesktopSurface = embedded && surface === 'desktop';
         const overlayMatches = onDesktopSurface
           ? overlayWidgets.filter(o => o.type === ctxWidget.type)
@@ -1516,9 +1418,8 @@ export function PanelContent({
         const desktopAddAvailable = onDesktopSurface && overlayMatches.length === 0;
         const desktopRemoveAvailable = onDesktopSurface && overlayMatches.length > 0;
 
-        // Sidebar pin toggle: only valid for pinnable widget types
-        // (PINNABLE_APP_KEYS). Show "Pin to Sidebar" when not pinned;
-        // "Unpin from Sidebar" when pinned.
+        // Sidebar pin toggle, only for pinnable types (isPinnableAppKey):
+        // "Pin to Sidebar" when not pinned, "Unpin from Sidebar" when pinned.
         const pinnableKey = isPinnableAppKey(ctxWidget.type) ? ctxWidget.type : null;
         const sidebarPinnable = onDesktopSurface && pinnableKey !== null;
         const alreadyPinned = sidebarPinnable && pinnedTail.includes(pinnableKey);
@@ -1554,9 +1455,8 @@ export function PanelContent({
               for (const id of removed) {
                 void deleteOverlayWidget(id);
               }
-              // Optimistic local update so the next menu open already
-              // sees "Add to desktop" without waiting for the prefs
-              // topic round-trip.
+              // Optimistic update so the next menu open shows "Add to desktop"
+              // without waiting for the prefs topic round-trip.
               setOverlayWidgets(prev => prev.filter(o => !removed.includes(o.id)));
             } : undefined}
             onPinToSidebar={pinAvailable && pinnableKey ? () => {
@@ -1581,9 +1481,8 @@ export function PanelContent({
         const def = lookupApp(w.type);
         const Comp = def?.Touch;
         if (!Comp) return null;
-        // key forces a fresh mount each open/close cycle so any
-        // internal state in the overlay (mountState, swipe offset)
-        // never carries over from a previous session.
+        // key forces a fresh mount each open/close so overlay internal state
+        // (mountState, swipe offset) never carries across sessions.
         return (
           <PanelImmersiveOverlay
             key={`${immersiveWidgetId}-${immersiveOpenCounter}`}
@@ -1671,14 +1570,12 @@ export function PanelContent({
             '--panel-row-size': dragSnapshot.cellSize,
             '--panel-widget-scale': dragSnapshot.widgetScale,
             '--panel-gap': dragSnapshot.gap,
-            // panelRootStyle paints the panel surface bg on the wrapper.
-            // The DragOverlay is portaled to body, so a solid wrapper bg
-            // would render the floating clone as an opaque rectangle
-            // sitting on top of the panel - the clone's translucent
-            // .panel-card and its backdrop-filter are then layered over
-            // a flat color instead of the actual surface (with shader,
-            // gradient, etc.) showing through. Force transparent so the
-            // clone reads identically to the in-grid cell.
+            // panelRootStyle paints the surface bg on the wrapper, but the
+            // DragOverlay is portaled to body — a solid wrapper bg makes the
+            // clone an opaque rectangle, layering its translucent .panel-card
+            // and backdrop-filter over flat colour instead of the real surface
+            // (shader, gradient). Force transparent so the clone matches the
+            // in-grid cell.
             background: 'transparent',
             '--panel-background-solid': 'transparent',
           } as CSSProperties;

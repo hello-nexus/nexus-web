@@ -41,11 +41,9 @@ export function useSystemVolume(enabled: boolean, pollMs = 1000) {
 
   const live = useTopic<SystemVolumeState>('volume', enabled);
 
-  // Self-referential callback: pumpVolumeWrites schedules itself via setTimeout
-  // and re-invokes from postService().finally. Route both recursive call sites
-  // through a ref so the lint rule's "accessed before declared" sees a stable
-  // ref read, while preserving the live-coalesce timing (single function
-  // identity, no re-creation on render).
+  // pumpVolumeWrites schedules itself via setTimeout and re-invokes from
+  // postService().finally. Both recursive call sites route through a ref to
+  // keep one stable function identity (no re-creation on render).
   const pumpRef = useRef<() => void>(() => {});
   const pumpVolumeWrites = useCallback(() => {
     const write = volumeWrite.current;
@@ -73,8 +71,6 @@ export function useSystemVolume(enabled: boolean, pollMs = 1000) {
       pumpRef.current();
     });
   }, []);
-  // Keep the ref pointing at the latest callback. Identity is stable since the
-  // useCallback has no deps, so this effectively runs once.
   useEffect(() => {
     pumpRef.current = pumpVolumeWrites;
   }, [pumpVolumeWrites]);
@@ -83,9 +79,8 @@ export function useSystemVolume(enabled: boolean, pollMs = 1000) {
     if (!live) return;
     if (Date.now() < localOverrideUntil.current) return;
     // Mirror multiplex topic into local state. The local-override window
-    // (set by previewVolume/commitVolume) intentionally suppresses these
-    // updates so a slider drag isn't snapped back by a stale broadcast.
-     
+    // (set by previewVolume/commitVolume) suppresses these updates so a
+    // slider drag isn't snapped back by a stale broadcast.
     setState({
       supported: !!live.supported,
       volume: typeof live.volume === 'number' ? live.volume : 0,

@@ -82,9 +82,9 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
 }) {
   const { t } = useTranslation();
   const connected = connectedCount > 0;
-  // remoteEnabled === false beats connected-count: when the killswitch is OFF
-  // the dot becomes amber regardless of how many devices were previously paired,
-  // because none of them can reach the system right now.
+  // remoteEnabled === false beats connected-count: with the killswitch OFF
+  // the dot is amber regardless of paired count, since none can reach the
+  // system.
   const dotState: 'off' | 'paired' | 'connected' = !remoteEnabled
     ? 'paired'
     : connected ? 'connected' : 'off';
@@ -229,11 +229,8 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   }, [loadSessions]);
 
   const applyRemoteEnabled = useCallback(async (next: boolean) => {
-    // Optimistic flip: the toggle moves immediately. If the server
-    // rejects (401/403/network), snap back to the previous state. The
-    // old "wait for confirmation" path made the killswitch feel laggy
-    // because the visual didn't move until the round-trip + session
-    // refetch resolved.
+    // Optimistic flip: the toggle moves immediately, then snaps back if the
+    // server rejects (401/403/network).
     if (togglingRemoteRef.current) return;
     togglingRemoteRef.current = true;
     onRemoteEnabledChange(next);
@@ -244,8 +241,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
         // dashboard already toggled). Trust the server's reading.
         if (result.enabled !== next) onRemoteEnabledChange(result.enabled);
         // KickAllPhoneAsync ran synchronously on the server when next=false,
-        // so the connected count drops to 0 by the next sessions poll; pull
-        // it now for snappy UI.
+        // so the connected count is already 0; pull it now.
         loadSessions(false);
       } else {
         // Request failed (no body / non-OK status). Revert the optimistic
@@ -351,9 +347,8 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     }
   }, [t]);
 
-  // Auto-mint a code as soon as the user lands on the Code tab (or
-  // reopens the modal with Code already active). Mirrors the QR flow:
-  // the user shouldn't have to press a "generate" button.
+  // Auto-mint a code on landing on the Code tab (or reopening with Code
+  // active), mirroring the QR flow.
   useEffect(() => {
     if (!open || !remoteEnabled || pairMode !== 'code') return;
     if (pairCode || pairCodeBusy) return;
@@ -734,8 +729,6 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
  * AirDrop-style discoverability selector for the Wi-Fi (mDNS) pair flow.
  * QR + manual pair-code flows are unaffected — this only gates whether the
  * iOS companion app can see this host in its "find on Wi-Fi" list.
- * Rendered with the workspace's standard <Select> component for visual
- * consistency with every other dropdown in the dashboard.
  */
 function PairBroadcastSelector({
   value,

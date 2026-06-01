@@ -31,12 +31,10 @@ export { SERIES_COLORS, OTHER_COLOR, colorFor };
 
 // ── Process history ──────────────────────────────────────────────────────
 //
-// `idleStreak` counts consecutive frames where this entry pushed a zero.
-// We can't infer "how long ago did this process exit?" from `values` alone —
-// the array is trimmed to MAX_SAMPLES, so a 60-sample tail of zeros could
-// mean "exited 1 minute ago" or "exited 10 minutes ago." The counter lets
-// evictStaleHistEntries drop entries that have been idle long enough without
-// needing to widen the sample window.
+// `idleStreak` counts consecutive frames this entry pushed a zero. `values`
+// is trimmed to MAX_SAMPLES so a 60-sample tail of zeros can't say how long
+// ago a process exited; the counter lets evictStaleHistEntries drop
+// long-idle entries without widening the sample window.
 
 interface HistEntry { color: string; values: number[]; idleStreak: number }
 
@@ -61,40 +59,31 @@ const overviewHist = {
 
 // ── Per-sensor history (panel performance widget) ────────────────────────
 //
-// Singleton 60-sample ring buffers keyed by `${device}::${sensorName}`.
-// PerfSlot in the panel performance widget reads from this so the same
-// sensor's history is shared across the tile + immersive views (no
-// reset on tap-to-immersive). Buffers grow on every pushPanelSensorSample
-// call - if no caller ever pushes, the map stays empty (no allocations).
+// Singleton 60-sample ring buffers keyed by `${device}::${sensorName}`,
+// shared across the tile + immersive views (no reset on tap-to-immersive).
+// Buffers grow only on pushPanelSensorSample; the map stays empty otherwise.
 
 const panelSensorHist = new Map<string, number[]>();
-// Last frameTick that pushed for each key. Dedupes the case where multiple
-// `useSharedSensorHistory` consumers share a key (e.g. the dashboard widget
-// AND a monitoring page tab both display `cpu::CPU Total`) — each consumer's
-// useEffect fires on the same tick, but only the first call lands a sample.
-// Without this the buffer fills at N× the real rate per mounted consumer and
-// the visible 60 s window shrinks to 60/N seconds.
+// Last frameTick that pushed for each key. Dedupes multiple
+// `useSharedSensorHistory` consumers sharing a key (e.g. dashboard widget
+// AND a monitoring tab both showing `cpu::CPU Total`): their useEffects fire
+// on the same tick but only the first lands a sample. Without this the
+// buffer fills at N× rate and the 60s window shrinks to 60/N seconds.
 const panelSensorLastTick = new Map<string, number>();
 
 export function pushPanelSensorSample(key: string, value: number) {
   const tick = frameTick;
   if (panelSensorLastTick.get(key) === tick) return;
   panelSensorLastTick.set(key, tick);
-  // CRITICAL: produce a NEW array reference each push. Sparkline +
-  // other gauge consumers useMemo on [values, ...] - mutating the same
-  // array in place leaves the reference unchanged and the memoized
-  // chart never recomputes (the canonical "monitoringStore mutates
-  // in place; never memo on consumers" footgun). Allocating a fresh
-  // array per push keeps the reference fresh and is cheap at 60-sample
-  // buffers.
+  // Produce a NEW array reference each push. Sparkline + gauge consumers
+  // useMemo on [values, ...]; mutating in place leaves the reference
+  // unchanged so the memoized chart never recomputes.
   const prev = panelSensorHist.get(key) ?? EMPTY_HIST;
   const next = prev.length >= MAX_SAMPLES
     ? prev.slice(prev.length - MAX_SAMPLES + 1).concat(value)
     : [...prev, value];
   panelSensorHist.set(key, next);
-  // Wake only consumers of this specific key. Cross-slot pushes (e.g. CPU
-  // tile pushing while GPU tile is mounted) no longer wake every panel
-  // sensor consumer in the tree.
+  // Wake only consumers of this key, not every panel sensor consumer.
   notifyKey(key);
 }
 
@@ -196,11 +185,10 @@ export function ingestMonitoring(frame: MonitoringFrame) {
   const net = frame.network;
   const gpuSensors = frame.gpu?.[0]?.sensors ?? [];
   const gpuLoad = gpuSensors.find(s => s.id.includes('load'));
-  // totalUsedMb = actual system memory used (kernel + cached + every process,
-  // not just the top-25 the service streams). `Memory Used` sensor's value
-  // (GB) is the single source of truth — same frame, no separate REST fetch
-  // or global. Fall back to summing the per-process snapshot only when no
-  // sensor is present (older service, or memory hardware not yet enumerated).
+  // totalUsedMb = total system memory used (kernel + cached + every process,
+  // not just the streamed top-25). Source is the `Memory Used` sensor (GB)
+  // from this frame. Fall back to summing the per-process snapshot only when
+  // no sensor is present (older service, or memory hardware not enumerated).
   const memUsedSensor = frame.memory?.sensors.find(s => s.name === 'Memory Used');
   const procsMemSum = procs?.processes.reduce((s, p) => s + p.memoryMb, 0) ?? 0;
   const totalUsedMb = memUsedSensor ? memUsedSensor.value * 1024 : procsMemSum;

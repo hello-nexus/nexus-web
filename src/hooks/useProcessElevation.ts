@@ -11,9 +11,9 @@ export type ProcessElevationHookState =
   | { state: 'ready'; elevation: ProcessElevationResponse; relaunch: () => Promise<ProcessElevationRelaunchResult | null> }
   | { state: 'unavailable'; elevation: null; relaunch: () => Promise<ProcessElevationRelaunchResult | null> };
 
-// Re-poll cadence for elevation: the value rarely changes, but we want the UI
-// to catch the transition shortly after the user accepts the UAC prompt and
-// the elevated child binds the port.
+// Re-poll cadence for elevation. The value rarely changes; this catches the
+// transition shortly after the user accepts the UAC prompt and the elevated
+// child binds the port.
 const POLL_INTERVAL_MS = 5_000;
 
 export function useProcessElevation(serviceOnline: boolean): ProcessElevationHookState {
@@ -35,10 +35,8 @@ export function useProcessElevation(serviceOnline: boolean): ProcessElevationHoo
     let cancelled = false;
 
     if (!serviceOnline) {
-      // External state (service connectivity) drives this branch; reset
-      // to the unavailable shape so a later reconnect transitions
+      // Reset to the unavailable shape so a later reconnect transitions
       // through 'checking' again.
-       
       setStateBase({ state: 'unavailable', elevation: null });
       return () => { cancelled = true; };
     }

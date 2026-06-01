@@ -6,10 +6,9 @@ interface PanelImmersiveOverlayProps {
   open: boolean;
   onExit: () => void;
   children: ReactNode;
-  // Pass the same theme + accent CSS variables the panel root has so
-  // descendants (button data-active states, accent borders, etc.)
-  // resolve correctly. The overlay is portaled outside the panel root
-  // and would otherwise inherit none of them.
+  // Same theme + accent CSS vars as the panel root, so descendants (button
+  // data-active, accent borders) resolve. The overlay is portaled outside the
+  // panel root and would otherwise inherit none.
   themeStyle?: CSSProperties;
   themeMode?: 'dark' | 'light';
   surface?: string;
@@ -41,9 +40,9 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
         clearTimeout(exitTimer.current);
         exitTimer.current = null;
       }
-      // Mount transition is driven by the external `open` prop crossing into
-      // true; nothing else in render can synchronously derive 'mounted' from
-      // 'unmounted' / 'exiting' without losing the cancel-pending-exit step.
+      // Mount transition is driven by `open` crossing into true; render can't
+      // derive 'mounted' from 'unmounted' / 'exiting' without losing the
+      // cancel-pending-exit step.
        
       setMountState('mounted');
     } else if (!open && mountState === 'mounted') {
@@ -55,9 +54,8 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
     if (exitTimer.current) clearTimeout(exitTimer.current);
   }, []);
 
-  // Swipe DOWN to dismiss, mirroring the editor sheet (catalog /
-  // settings) gesture. Bottom-edge swipe-up is reserved on iOS for the
-  // home indicator, so we never trigger close from there.
+  // Swipe DOWN to dismiss, mirroring the editor sheet. Bottom-edge swipe-up is
+  // the iOS home indicator, so never close from there.
   const swipe = usePanelSheetSwipe({
     enabled: mountState === 'mounted',
     sheetRef: overlayRef,
@@ -72,23 +70,19 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
         beginExit();
       }
     };
-    // Capture phase so we win over any other ESC handler (e.g. the
-    // editor sheet's). Without capture, the order depends on
-    // registration timing and the immersive overlay can't always
-    // claim the key reliably.
+    // Capture phase to win over other ESC handlers (e.g. the editor sheet's);
+    // without it, order depends on registration timing.
     document.addEventListener('keydown', handler, true);
     return () => document.removeEventListener('keydown', handler, true);
   }, [mountState, beginExit]);
 
-  // Mirror the editor sheet's [data-entered] pattern: once the entry has
-  // played (or as soon as a swipe gesture starts), suppress the keyframe
-  // so removing [data-drag] at the end of a snap-back doesn't replay the
-  // enter animation. Hooks must run before the conditional return below.
+  // [data-entered] pattern: once the entry plays (or a swipe starts), suppress
+  // the keyframe so removing [data-drag] on snap-back doesn't replay the enter
+  // animation. Hooks must run before the conditional return below.
   const [didEnter, setDidEnter] = useState(false);
   useEffect(() => {
-    // Track whether the user has started a swipe so the [data-entered]
-    // attribute toggle suppresses the keyframe replay on snap-back. Latching
-    // didEnter to true is the canonical "external-event → flag" effect.
+    // Latch didEnter when a swipe starts so [data-entered] suppresses the
+    // keyframe replay on snap-back.
      
     if (swipe.state !== 'idle') setDidEnter(true);
   }, [swipe.state]);
@@ -104,9 +98,8 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
     ? undefined
     : ({ transform: `translateY(${swipe.offset}px)` } as CSSProperties);
 
-  // Merge theme tokens onto the overlay root so descendants resolve
-  // accent + text colours that would otherwise be missing because the
-  // overlay is portaled outside .panelRoot.
+  // Merge theme tokens onto the overlay root so descendants resolve accent +
+  // text colours (the overlay is portaled outside .panelRoot).
   const composedStyle: CSSProperties = { ...(themeStyle ?? {}), ...(dragTransform ?? {}) };
 
   return (
@@ -127,10 +120,10 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
         type="button"
         className={styles.exitHint}
         onClick={beginExit}
-        // Marks this element so usePanelSheetSwipe.isSheetSwipeControlTarget
-        // skips arming the drag when the touch lands here. Without this the
-        // swipe handler engages on tap, then onClick races the snap-back and
-        // the overlay can get stuck partway down on Y70 WebView2.
+        // Marks this so usePanelSheetSwipe.isSheetSwipeControlTarget skips
+        // arming the drag on a touch here. Else the swipe engages on tap,
+        // onClick races the snap-back, and the overlay sticks partway down
+        // on Y70 WebView2.
         data-panel-no-sheet-swipe="true"
         aria-label="Close immersive view"
       />

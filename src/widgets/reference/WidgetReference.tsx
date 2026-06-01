@@ -1,9 +1,7 @@
-// Storybook-style reference for the declarative widget SDK. Routed at
-// /widget-reference and surfaced from the Debug Tools menu. The tabs
-// enumerate every public surface — meters, bindings, data sources,
-// capabilities, dispatch actions, manifest schema — so an internal
-// reviewer or a third-party widget author can navigate the whole SDK
-// without reading source.
+// Storybook-style reference for the declarative widget SDK, routed at
+// /widget-reference (from the Debug Tools menu). Tabs enumerate every public
+// surface: meters, bindings, data sources, capabilities, dispatch actions,
+// manifest schema.
 
 import { useMemo, useState } from 'react';
 import { renderView } from '../declarative/renderer';

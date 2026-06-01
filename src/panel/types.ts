@@ -5,18 +5,15 @@ export const PANEL_WIDGET_SIZES = ['1x1', '2x2', '2x4', '4x2', '4x4'] as const;
 export type PanelWidgetSize = typeof PANEL_WIDGET_SIZES[number];
 export type PanelSurface = 'y70' | 'q60' | 'phone' | 'desktop';
 
-// Single source of truth for whether a panel surface accepts direct pointer
-// input. Q60 is display-only; desktop, phone, and Y70 all support interactive
-// widget controls even though desktop uses a mouse rather than touch.
+// Whether a surface accepts direct pointer input. Q60 is display-only;
+// desktop, phone, Y70 support interactive widget controls (desktop via mouse).
 export function surfaceSupportsTouch(surface: PanelSurface): boolean {
   return surface !== 'q60';
 }
 
-// Surfaces that host exactly one widget at a time, each locked to a
-// single fixed widget size. Adding a new such surface = adding an entry
-// here; nothing else in the codebase should branch on a literal surface
-// name. The Q-series LCD is the original example: 240x800-ish portrait
-// strip with no touch and no room for a second tile.
+// Surfaces hosting one widget at a fixed size. Add a surface by adding an
+// entry here; nothing else should branch on a literal surface name. Q-series
+// LCD: ~240x800 portrait strip, no touch, room for one tile.
 export const SINGLE_WIDGET_SURFACE_SIZE: Readonly<Partial<Record<PanelSurface, PanelWidgetSize>>> = {
   q60: '2x4',
 };
@@ -29,9 +26,9 @@ export function isSingleWidgetSurface(surface: PanelSurface): boolean {
   return singleWidgetSurfaceSize(surface) !== undefined;
 }
 
-// Sizes reserved for single-widget surfaces. Multi-widget surfaces hide
-// these from the size picker and snap any persisted widget at one of
-// these sizes to the nearest non-reserved size on reconcile.
+// Sizes reserved for single-widget surfaces. Multi-widget surfaces hide them
+// from the size picker and snap persisted widgets to the nearest non-reserved
+// size on reconcile.
 export const SINGLE_WIDGET_SIZES: ReadonlySet<PanelWidgetSize> = new Set(
   Object.values(SINGLE_WIDGET_SURFACE_SIZE).filter(
     (s): s is PanelWidgetSize => s !== undefined,
@@ -55,10 +52,8 @@ export function normalizePanelWidgetSizeForSurface(
 }
 
 /**
- * Per-widget config value on the wire. Raw JSON — widgets read scalars
- * (`string` / `number` / `boolean`) directly or structured shapes (arrays,
- * objects) declared by the widget itself. Same shape native panel widgets
- * and marketplace widgets share.
+ * Per-widget config value on the wire (raw JSON). Widgets read scalars or
+ * declared structured shapes. Shared by native and marketplace widgets.
  */
 export type PanelConfigValue =
   | string
@@ -72,10 +67,9 @@ export interface PanelWidget {
   id: string;
   type: string;
   size: PanelWidgetSize;
-  // Top-left cell of this widget's rect on its page grid. (col, row)
-  // is the canonical placement: gaps between widgets are allowed and
-  // are NEVER auto-filled. The renderer reads these directly; nothing
-  // walks a flat order to compute placement.
+  // Top-left cell of the widget's rect on its page grid; canonical placement.
+  // Gaps are allowed and NEVER auto-filled. The renderer reads these directly,
+  // not a flat order.
   col: number;
   row: number;
   isImmersive?: boolean;

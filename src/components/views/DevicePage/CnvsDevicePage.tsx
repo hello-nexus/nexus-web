@@ -10,32 +10,27 @@ import {
 import styles from './CnvsDevicePage.module.scss';
 
 /**
- * Routed page for the HYTE CNVS canvas LEDs. Mirrors the two firmware
- * toggles from Nexus 2.0's CnvsSettings modal:
+ * Routed page for the HYTE CNVS canvas LEDs. Two firmware toggles:
  *   - playAnimation:  misleading field name. In HYTE's reference
- *                     CNVSBaseController this is wired to
- *                     `_turnOffStartupAnimation` with the comment
- *                     "true: turn off start up animation". So `true`
- *                     means the boot animation is SUPPRESSED, not that
- *                     it plays. The toggle therefore binds directly to
- *                     the field with the label "Disable connection
- *                     animation" — toggle on = animation suppressed —
- *                     which matches HYTE 2.0's UI exactly.
+ *                     CNVSBaseController it's wired to
+ *                     `_turnOffStartupAnimation` ("true: turn off start
+ *                     up animation"), so `true` SUPPRESSES the boot
+ *                     animation. The toggle binds to the field under the
+ *                     label "Disable connection animation" — on =
+ *                     animation suppressed.
  *   - playWhenPCOff:  literal — keep LEDs lit while the PC is powered off.
- * Optimistic update + revert-on-failure, matching the old client.
+ * Optimistic update + revert-on-failure.
  *
  * TODO(cnvs-fw-gate): Both toggles map to the firmware's `FF DC 07`
- * command, which was only introduced in CNVS firmware **v1.0.2.1**
- * (per `hyte-refs/hyte-documents/firmware-protocol/CNVS/stm32-commands.md`
- * §3 — "Work with firmware update from v1.0.2.1/v1.0.2.2"). On units
- * running an older firmware the device silently accepts the bytes and
- * does nothing — the on-wire write succeeds but no setting changes
- * and the boot animation keeps playing. HYTE's own Nexus 2.0 does NOT
- * gate the UI; we should be better and disable both rows (with a hint
+ * command, introduced in CNVS firmware **v1.0.2.1** (per
+ * `hyte-refs/hyte-documents/firmware-protocol/CNVS/stm32-commands.md`
+ * §3 — "Work with firmware update from v1.0.2.1/v1.0.2.2"). On older
+ * firmware the device silently accepts the bytes and does nothing — the
+ * write succeeds but no setting changes. Disable both rows (with a hint
  * "Requires CNVS firmware 1.0.2.1+") when the firmware-version probe
- * reports a lower version. The service already reads + logs the FW
- * version on connect via `CnvsConnectionWorker`; the API just needs to
- * surface it on `GetCnvsSettings` so this component can branch on it.
+ * reports a lower version. The service already reads + logs the FW version
+ * on connect via `CnvsConnectionWorker`; the API needs to surface it on
+ * `GetCnvsSettings` so this component can branch on it.
  */
 export function CnvsDevicePage() {
   const [settings, setSettings] = useState<CnvsSettings | null>(null);

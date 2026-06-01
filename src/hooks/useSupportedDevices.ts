@@ -25,8 +25,6 @@ export function useSupportedDevices(enabled: boolean, source: SupportedSource = 
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    // Effect synchronizes with an external REST endpoint; the loading
-    // flag tracks the lifecycle of that external call.
      
     setLoading(true);
     const path = source === 'lighting' ? '/peripherals/lighting-supported' : '/peripherals/supported';

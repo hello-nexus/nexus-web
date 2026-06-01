@@ -6,9 +6,8 @@ import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBounda
 import { PanelContent } from '../PanelApp';
 import { useSimulatorLayoutState } from './useSimulatorLayoutState';
 
-// Brightness is mapped to a capped dim overlay so changes are visible
-// without ever fully hiding content — a real screen at low brightness
-// is still readable. Screen-off goes fully opaque.
+// Brightness maps to a capped dim overlay so changes show without fully
+// hiding content (a dim screen is still readable). Screen-off is fully opaque.
 const MAX_BRIGHTNESS_DIM = 0.6;
 
 export function PanelSimulatorContent() {

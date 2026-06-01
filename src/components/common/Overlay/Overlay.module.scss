@@ -31,10 +31,8 @@
 }
 
 .surface {
-  /* Intentionally minimal: no width, height, background, border, or
-     shadow. The consumer brings its own surface chrome via className so
-     existing modal sizes (large, wide, fullscreen) keep working without
-     fighting CSS module specificity. */
+  /* No width, height, background, border, or shadow. The consumer brings its
+     own surface chrome via className (modal sizes large, wide, fullscreen). */
   display: flex;
   flex-direction: column;
 }

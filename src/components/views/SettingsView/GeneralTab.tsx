@@ -27,8 +27,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   const [stopping, setStopping] = useState(false);
   const [screenTimeOpen, setScreenTimeOpen] = useState(false);
   // Block shutdown while a firmware flash is running — stopping the service
-  // mid-flash would strand the device in the DFU bootloader. (The service also
-  // refuses /service/stop during a flash; this just reflects it in the UI.)
+  // mid-flash would strand the device in the DFU bootloader. (The service
+  // also refuses /service/stop during a flash; this mirrors it in the UI.)
   const { status: flashStatus } = useFlashStatus(serviceOnline);
   const flashing = !!flashStatus?.active;
 
@@ -37,8 +37,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   useEffect(() => {
     if (!serviceOnline || platform !== 'windows') return;
     let cancelled = false;
-    // Hydrate auto-start flag from the service on mount/online-flip. Standard
-    // async-load pattern; can't be folded into useMemo.
+    // Runs on mount/online-flip; can't be folded into useMemo.
      
     setAutoStartLoading(true);
     fetchService<{ autoStart: boolean }>('/service/startup-mode').then(data => {

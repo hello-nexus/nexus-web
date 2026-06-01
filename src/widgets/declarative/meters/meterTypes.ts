@@ -3,9 +3,9 @@
 //   2. Add a renderer file under ./meters/
 //   3. Register in `renderer.tsx` switch
 //
-// The view object is intentionally loose - `WidgetView` from `../../types`
-// declares only `type: string` plus arbitrary keys. Each meter file declares
-// its own narrow Props type and the renderer narrows by `view.type`.
+// The view object is loose: `WidgetView` declares `type: string` plus
+// arbitrary keys. Each meter file declares its own narrow Props type; the
+// renderer narrows by `view.type`.
 
 export const METER_KINDS = [
   // Layout
@@ -36,9 +36,8 @@ export const METER_KINDS = [
   'slider',
   'button',
   'stepper',
-  // Performance-gauge family. Each one is a self-contained visual
-  // primitive that accepts value + formatted + label and renders one
-  // style — the monitoring widget picks per-slot via `settings.slotN_design`.
+  // Performance-gauge family: each takes value + formatted + label and renders
+  // one style; the monitoring widget picks per-slot via settings.slotN_design.
   'water-level',
   'thermometer',
   'number-fill',

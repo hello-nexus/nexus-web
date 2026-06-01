@@ -1,6 +1,5 @@
-// Shared time-format helpers for clock designs (LED, Dots, Rolling, Matrix,
-// SplitFlap). Each design renders a different visual but all need the same
-// "HH:MM[:SS]" string and an "AM"/"PM" suffix when 12-hour mode is on.
+// Shared time-format helpers for clock designs: "HH:MM[:SS]" string
+// plus an "AM"/"PM" suffix in 12-hour mode.
 
 export function formatTime(
   now: Date,

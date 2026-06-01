@@ -9,10 +9,10 @@ interface TextStyleSpec {
   use: string;
 }
 
-// The mixin in `_text.scss` is the source of truth for actual values. Below is
-// just descriptive metadata (name + use case); numeric specs are read at
-// runtime from the rendered sample via `getComputedStyle` so the table can
-// never silently drift from the mixin.
+// The mixin in `_text.scss` is the source of truth for values. Below is
+// descriptive metadata (name + use case); numeric specs are read at runtime
+// from the rendered sample via `getComputedStyle` so the table can't drift
+// from the mixin.
 const STYLES: TextStyleSpec[] = [
   { name: 'Display', mixin: 'text-display', className: styles.display, family: 'sans', use: 'Hero numbers, biggest values' },
   { name: 'Heading', mixin: 'text-heading', className: styles.heading, family: 'sans', use: 'Page / modal / card titles, section headers' },
@@ -104,12 +104,8 @@ export function TextStyles() {
         caps: cs.textTransform === 'uppercase',
       };
     }
-    // Probe-then-publish: the effect reads getComputedStyle off live DOM
-    // probes (an external system) and lifts the resolved spec into state
-    // so the table can render the actual mixin output. Setting state in
-    // this effect is the canonical shape for snapshotting platform
-    // values into React.
-     
+    // Read getComputedStyle off the DOM probes and lift the resolved spec
+    // into state so the table renders the actual mixin output.
     setComputed(next);
   }, [onPanel]);
 

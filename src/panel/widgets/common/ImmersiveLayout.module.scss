@@ -19,17 +19,14 @@
   height: 100%;
   display: flex;
   gap: var(--panel-gap, 8px);
-  // Single source of truth for immersive page padding. Per-widget
-  // immersive components (lighting, media, monitoring) inherit this -
-  // they MUST NOT add their own outer padding.
+  // Immersive page padding. Per-widget immersive components (lighting,
+  // media, monitoring) inherit this and MUST NOT add their own outer pad.
   padding: 12px;
   box-sizing: border-box;
   min-height: 0;
 }
 
-// Portrait: stack cells vertically, each cell takes its share of the
-// height. With 1 cell + center, top + bottom padding makes it look
-// centred on a tall page.
+// Portrait: stack cells vertically, each taking its share of the height.
 .layout[data-orientation='portrait'] {
   flex-direction: column;
 }
@@ -52,9 +49,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  // Cells render edge to edge inside the immersive overlay; the
-  // background card chrome belongs to the widget's own content if
-  // wanted (most immersive content goes chromeless).
+  // Cells render edge to edge; card chrome is the widget content's own.
 }
 
 // When centred (one cell on a multi-cell page), don't expand the cell

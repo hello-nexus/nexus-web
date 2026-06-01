@@ -193,10 +193,9 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
   const network = useNetworkMonitor(usesNetwork);
   const networkSensors = buildNetworkSensors(network);
 
-  // When the user lands in Micro mode the dedicated `micro_*` keyspace might
-  // be uninitialised (first time) or hold a sensor name that does not exist
-  // for the current device (after a device switch). Normalize lazily so the
-  // pane shows real picks. Multi-sensor `slot{N}_*` keys are never touched.
+  // In Micro mode the `micro_*` keyspace may be uninitialised (first time) or
+  // hold a sensor name absent for the current device (after a device switch).
+  // Normalize lazily so the pane shows real picks. `slot{N}_*` keys untouched.
   useEffect(() => {
     if (!isMicro) return;
     const patch = microNormalizationPatch(widget, sensors, networkSensors, count);

@@ -34,32 +34,27 @@ interface WidgetEditSheetProps {
   themeStyle?: CSSProperties;
   title?: string;
   // The widget tile's on-screen rect (CSS pixels). The sheet positions
-  // itself adjacent to this rect (right/left/below/above) without
-  // clipping the viewport. Optional - when omitted, the sheet falls back
-  // to the viewport center.
+  // itself adjacent to it (right/left/below/above) without clipping the
+  // viewport. When omitted, falls back to viewport center.
   anchorRect?: AnchorRect;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
   onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
   onRemove: (widgetId: string) => void;
   onClose: () => void;
   // Reports the sheet's rendered viewport rect, then `null` on unmount.
-  // The desktop overlay uses this to drive its host-side hit-test region
-  // so only the sheet receives clicks - the rest of the screen stays
-  // fully see-through and click-through.
+  // The desktop overlay drives its host-side hit-test region from this so
+  // only the sheet receives clicks; the rest stays click-through.
   onBoundsChange?: (rect: AnchorRect | null) => void;
   // Externally-controlled selected slot for monitoring widgets. When
-  // provided, the sheet wires the value into the Settings component AND
-  // routes user changes back through onSelectedSlotChange so the parent
-  // can also pass the same value to the live widget tile - which is what
-  // surfaces the dotted-border slot picker on the widget itself. When
-  // omitted, the sheet manages slot selection internally (legacy path
-  // used by surfaces that don't render the live widget independently).
+  // provided, the sheet wires the value into Settings and routes user
+  // changes back via onSelectedSlotChange so the parent can pass the same
+  // value to the live widget tile (surfacing its dotted-border slot picker).
+  // When omitted, the sheet manages slot selection internally.
   selectedSlot?: number;
   onSelectedSlotChange?: (slot: number) => void;
-  // Lets the parent extend the click-outside dismissal so clicks on
-  // related external surfaces (e.g. the live widget tile being edited
-  // on the desktop overlay) don't close the sheet. Clicks elsewhere
-  // still dismiss as usual.
+  // Extends click-outside dismissal: clicks on related external surfaces
+  // (e.g. the live widget tile being edited on the desktop overlay) don't
+  // close the sheet. Clicks elsewhere still dismiss.
   keepOpenOnTarget?: (target: EventTarget | null) => boolean;
 }
 
@@ -127,11 +122,10 @@ export function WidgetEditSheet({
   const [internalSelectedSlot, setInternalSelectedSlot] = useState(0);
   const slotControlled = externalSelectedSlot !== undefined;
   const selectedMonitoringSlot = slotControlled ? externalSelectedSlot : internalSelectedSlot;
-  // A latest-value ref keeps the controlled-path updater honest when the
-  // setter is invoked twice in the same frame (e.g. resize + slotCount in
-  // quick succession). Without it, the second call would compute against
-  // a render-time snapshot of `selectedMonitoringSlot` and clobber the
-  // first update. Mirrors the functional-update guarantee of useState.
+  // Latest-value ref for the controlled-path updater when the setter fires
+  // twice in one frame (e.g. resize + slotCount). Without it the second call
+  // computes against a render-time snapshot and clobbers the first update.
+  // Mirrors the functional-update guarantee of useState.
   const slotRef = useRef(selectedMonitoringSlot);
   useEffect(() => { slotRef.current = selectedMonitoringSlot; }, [selectedMonitoringSlot]);
   const setSelectedMonitoringSlot = useCallback(
@@ -178,14 +172,13 @@ export function WidgetEditSheet({
           x: clamp((vw - w) / 2, SAFE, Math.max(SAFE, vw - w - SAFE)),
           y: clamp((vh - h) / 2, SAFE, Math.max(SAFE, vh - h - SAFE)),
         };
-    // Measure-then-position pattern: useLayoutEffect reads the sheet's
-    // rendered size and commits the clamped coordinates before paint so
-    // the user never sees the sheet flash in an unpositioned spot.
+    // Measure-then-position: useLayoutEffect reads the rendered size and
+    // commits clamped coordinates before paint, so no unpositioned flash.
     setPos(next);
     onBoundsChangeRef.current?.({ x: next.x, y: next.y, w, h });
     // anchorKey is the structural digest of anchorRect; depending on the
-    // object reference would re-run for every parent re-render even when
-    // the rect is unchanged, which would clobber the user's view.
+    // object reference would re-run on every parent re-render even when the
+    // rect is unchanged, repositioning the sheet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchorKey]);
 
@@ -194,8 +187,7 @@ export function WidgetEditSheet({
   const keepOpenOnTargetRef = useRef(keepOpenOnTarget);
   useEffect(() => { keepOpenOnTargetRef.current = keepOpenOnTarget; }, [keepOpenOnTarget]);
 
-  // Outside-click and Escape dismiss. Sheet content is allowed to receive
-  // clicks normally - we only close when the click lands outside.
+  // Outside-click and Escape dismiss; close only when the click lands outside.
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
       const el = sheetRef.current;
@@ -260,11 +252,8 @@ export function WidgetEditSheet({
         </button>
       </header>
 
-      {/* The actions row always renders so the user can delete the widget;
-          the size + slot pickers inside only render when there's more than
-          one option to choose from. Hiding the entire row when sizes.length
-          == 1 used to swallow the delete button (e.g. for a 1x1 macros
-          widget). */}
+      {/* Actions row always renders (holds the delete button); the size +
+          slot pickers inside only render when there's more than one option. */}
       <div className={styles.actions}>
         <div className={styles.controlPicker}>
           {sizes.length > 1 && (

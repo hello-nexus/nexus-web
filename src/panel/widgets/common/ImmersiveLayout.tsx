@@ -12,13 +12,13 @@ interface ImmersiveLayoutProps {
   // the same number of 4x4 cells per page as the panel grid does.
   gridColumns: number;
   gridRows: number;
-  // How many 4x4 cells should occupy one immersive page. Defaults to
-  // the panel grid's natural fit:
+  // How many 4x4 cells occupy one immersive page. Defaults to the panel
+  // grid's fit:
   //   4 cols x 8 rows  -> 2 (stacked vertically)
   //   8 cols x 4 rows  -> 2 (side by side)
   //   4 cols x 14 rows -> 3 (Y70 portrait)
   cellsPerPage?: number;
-  // Centers cells on the page when fewer cells than capacity. Default true.
+  // Centers cells when fewer cells than capacity. Default true.
   center?: boolean;
 }
 
@@ -44,14 +44,13 @@ export function ImmersiveLayout({
 
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Single-page fast path: no pager chrome, just lay out the cells.
+  // Single page: no pager chrome.
   if (pages.length <= 1) {
     return <ImmersivePage cells={pages[0].cells} orientation={orientation} fitPerPage={fitPerPage} center={center} />;
   }
 
-  // Multi-page: horizontal swipe between pages, dot indicator at the
-  // bottom. Same gesture vocabulary as the main panel pager so users
-  // navigate the immersive view exactly like they navigate pages.
+  // Multi-page: horizontal swipe between pages, dot indicator at bottom.
+  // Same gesture vocabulary as the main panel pager.
   return (
     <div className={styles.pagerContainer}>
       <PanelPager
@@ -96,8 +95,7 @@ function ImmersivePage({
 
 /**
  * Wraps each cell with consistent padding so per-widget immersive
- * components don't need to program their own padding. Single source
- * of truth - any visual tweak to immersive cell chrome lands here.
+ * components don't program their own.
  */
 export function ImmersiveCell({ children }: { children: ReactNode }) {
   return <div className={styles.cell}>{children}</div>;

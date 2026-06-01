@@ -168,9 +168,8 @@ $grid-cols: 170px minmax(0, 2.2fr) minmax(0, 1.4fr) 6rem 10.5rem;
   white-space: nowrap;
 }
 
-// Price is a retailer deep-link - same "checkout intent" as the Buy button.
-// Underline on hover to signal clickability without making the default state
-// look like a generic link.
+// Price is a retailer deep-link. Underline on hover only, so the default
+// state doesn't read as a generic link.
 .componentPriceLink {
   text-decoration: none;
 
@@ -244,8 +243,8 @@ $grid-cols: 170px minmax(0, 2.2fr) minmax(0, 1.4fr) 6rem 10.5rem;
   }
 }
 
-// When the gear menu is open, keep the gear looking "pressed" so the user
-// knows which button owns the open popover.
+// Gear looks "pressed" while its menu is open, marking which button owns
+// the open popover.
 .iconBtnActive {
   color: var(--accent);
   border-color: var(--accent);

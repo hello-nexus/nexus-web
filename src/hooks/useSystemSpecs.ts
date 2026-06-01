@@ -18,10 +18,8 @@ export interface UseSystemSpecs {
   specs: SystemSpecs | null;
 }
 
-// Module-scoped session cache so tab switches don't refetch. Specs are
-// effectively static at runtime (hostname, motherboard, GPU don't change
-// between renders), so painting a loading skeleton every time the user
-// revisits the tab is jarring — fetch once per session, never again.
+// Module-scoped session cache so tab switches don't refetch. Specs are static
+// at runtime (hostname, motherboard, GPU), so fetch once per session.
 let sessionSpecs: SystemSpecs | null = null;
 
 export function useSystemSpecs(enabled: boolean): UseSystemSpecs {

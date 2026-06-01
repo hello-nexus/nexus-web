@@ -46,10 +46,9 @@ export function BuilderRow({ category, entry, onChoose, onRemove, isOwned, onTog
   const selection = entry.selection;
   const hasSelection = selection != null;
   const buyUrl = selection ? resolveBuyUrl(selection, entry.selectedRetailer) : null;
-  // Portal product page route: /builder/component/<normalizedKey|id>. Built
-  // here so the <a> has a real href (so cmd+click opens in a new tab and
-  // right-click "Copy link" copies a useful URL), with an onClick that
-  // intercepts plain clicks to push history + render in-app.
+  // Portal product page route: /builder/component/<normalizedKey|id>. A real
+  // href lets cmd+click open a new tab and "Copy link" yield a useful URL;
+  // the onClick intercepts plain clicks to push history + render in-app.
   const productHref = selection ? `/builder/component/${encodeURIComponent(selection.normalizedKey || selection.id)}` : null;
   const keySpecs = selection ? getKeySpecs(category, selection) : [];
 

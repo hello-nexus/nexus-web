@@ -226,19 +226,16 @@ export default function OverlayShell() {
       // wallpaper, so this takes visible effect immediately.
       '--panel-card-bg-opacity': `${Math.round(widgetOpacity * 100)}%`,
     } as CSSProperties;
-    // themeMode itself isn't read in the body (we re-read data-theme from
-    // the DOM, which applyThemeMode has already updated), but it IS the
-    // signal that the resolved attribute may have changed and the memo
-    // must recompute. Removing the dep would stale the panel-card tokens
-    // after a theme switch.
+    // themeMode isn't read in the body (we re-read data-theme from the DOM),
+    // but it's the signal that the resolved attribute changed, so the memo
+    // must keep it as a dep or the panel-card tokens stale after a switch.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- themeMode triggers re-read of the DOM data-theme attribute applyThemeMode just wrote
   }, [accentColor, themeMode, widgetOpacity]);
 
-  // Single-monitor model: render every widget regardless of its
-  // legacy `monitor` field. The overlay process now runs on exactly
-  // one user-chosen monitor (set via the modal dropdown); the per-widget
-  // monitor index is vestigial data that we don't filter on anymore.
-  // Keeps existing layouts visible after a monitor switch.
+  // Single-monitor model: render every widget regardless of its legacy
+  // `monitor` field. The process runs on one user-chosen monitor, so the
+  // per-widget index is unused; not filtering keeps layouts visible after
+  // a monitor switch.
   void monitor; // suppresses unused-binding lint; still read above for URL parsing
   const monitorWidgets = layout;
 
@@ -278,10 +275,9 @@ export default function OverlayShell() {
       : entry);
   }, [monitorWidgets, dragOverride]);
 
-  // Compute the rect that the host should make hit-testable for each widget.
-  // We use the visible (inset) rect rather than the full cell footprint so
-  // there's a real input gap between widgets - clicks in the gap fall through
-  // to the desktop instead of into a widget you didn't aim at.
+  // Rect the host should make hit-testable per widget: the visible (inset)
+  // rect, not the full cell, so clicks in the gap between widgets fall
+  // through to the desktop.
   const rafRef = useRef<number | null>(null);
   useEffect(() => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -381,10 +377,8 @@ export default function OverlayShell() {
   }, [editingWidgetId]);
 
   // Mirror data-theme on the .panel-root container so panel-card token
-  // overrides (`.panel-root[data-theme='light']`) resolve correctly. Other
-  // panel surfaces (PanelApp, WidgetEditSheet, etc) already do this; the
-  // overlay shell historically relied on documentElement's data-theme,
-  // which doesn't reach panel-card scoped tokens.
+  // overrides (`.panel-root[data-theme='light']`) resolve; documentElement's
+  // data-theme doesn't reach panel-card scoped tokens.
   const resolvedThemeAttr = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
 
   if (loading) return <div className={`panel-root ${styles.root}`} aria-hidden style={themeStyle} />;
@@ -527,12 +521,10 @@ function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlo
     onContextMenu(event.clientX, event.clientY);
   };
 
-  // Drag from anywhere on the widget. Movement-threshold gating means a
-  // pointerdown that stays within DRAG_THRESHOLD_PX falls through to inner
-  // widget controls (calculator buttons, sliders) as a normal click.
-  // Once the threshold is crossed we capture the pointer to the widget
-  // container so subsequent moves come to us regardless of which inner
-  // element the cursor is over.
+  // Drag from anywhere on the widget. A pointerdown within DRAG_THRESHOLD_PX
+  // falls through to inner controls (calculator buttons, sliders) as a click.
+  // Past the threshold, capture the pointer to the container so subsequent
+  // moves arrive regardless of which inner element is under the cursor.
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const startX = event.clientX;
@@ -603,13 +595,12 @@ function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlo
     >
       <div
         className={styles.widgetBody}
-        // CSS `zoom` is non-standard but supported in Chromium (which is
-        // the only renderer for both the dashboard and the desktop overlay).
-        // It scales every descendant pixel uniformly, including widgets that
-        // hardcode font sizes / paddings instead of reading
-        // --panel-cell-size. The container is already sized at cellPx
-        // (which equals BASE_CELL_PX * contentZoom), so the body's zoomed
-        // content lines up exactly.
+        // CSS `zoom` is non-standard but supported in Chromium (the only
+        // renderer for the dashboard and the desktop overlay). It scales
+        // every descendant pixel uniformly, including widgets that hardcode
+        // font sizes / paddings instead of reading --panel-cell-size. The
+        // container is already sized at cellPx (BASE_CELL_PX * contentZoom),
+        // so the zoomed body lines up.
         style={{ zoom: contentZoom }}
       >
         <Suspense fallback={null}>

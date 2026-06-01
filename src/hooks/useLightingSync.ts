@@ -9,11 +9,11 @@ export type LightingMode = 'animate' | 'screen' | 'gif' | 'none';
  * Fetches the current lighting sync state on mount and returns it.
  * The mode is one of the effect names the service reports via GET /lighting/current.
  *
- * Cross-device updates (e.g. phone changes effect, desktop reflects the change)
- * arrive via the multiplex `lighting` topic - every /lighting/* mutation on
- * the service publishes a frame, this hook refetches on receive. The
- * BroadcastChannel `subscribeControlSync` path stays as the same-browser
- * fast path (zero round trip for editor preview within one tab tree).
+ * Cross-device updates (phone changes effect, desktop reflects it) arrive via
+ * the multiplex `lighting` topic: every /lighting/* mutation publishes a
+ * frame and this hook refetches on receive. The BroadcastChannel
+ * `subscribeControlSync` path is the same-browser fast path (zero round trip
+ * for editor preview within one tab tree).
  */
 export function useLightingSync(enabled: boolean, refreshKey?: string) {
   const [mode, setMode] = useState<LightingMode>('none');
@@ -61,7 +61,7 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
   }, [enabled, refreshKey]);
 
   // Push-driven refresh: every /lighting/* mutation publishes a 'lighting'
-  // frame on the multiplex hub. Replaces the prior 1s setInterval poll.
+  // frame on the multiplex hub, no polling.
   useTopicCallback('lighting', enabled, () => {
     fetchCurrentSync().then(data => {
       if (data?.sync) {

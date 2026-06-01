@@ -99,9 +99,8 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
     ? theme.appAccentColor
     : theme.accentColor || theme.appAccentColor;
   const accentVars = deriveAccentVars(accentColor || DEFAULT_ACCENT, resolvedThemeMode);
-  // Widget surface alpha. Replaces the implicit shader-mode softening with a
-  // user-controlled slider; .panel-card in tokens.scss applies the alpha via
-  // color-mix so only the background fades, not the contents.
+  // Widget surface alpha (user-controlled). .panel-card in tokens.scss applies
+  // it via color-mix so only the background fades, not the contents.
   const widgetOpacityPct = Math.round(normalizePanelWidgetOpacity(theme.widgetOpacity) * 100);
   const vars: Record<string, string> = {
     ...accentVars,
@@ -116,8 +115,8 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
 }
 
 // Panel browsers (kiosk Edge, iOS WKWebView, other tabs) have their own
-// localStorage; without this fetch they'd never see the desktop app's
-// language choice. Mirrors the fetch-and-apply shape of usePanelTheme.
+// localStorage; this fetch surfaces the desktop app's language choice.
+// Mirrors usePanelTheme's fetch-and-apply shape.
 export function usePanelLanguageSync(enabled = true) {
   const { language, setLanguage } = useTranslation();
   const languageRef = useRef(language);
@@ -141,12 +140,11 @@ export function usePanelLanguageSync(enabled = true) {
   }, [enabled, syncLanguage]);
 }
 
-// Panel theme/visual settings are PER-PANEL: they live on the device record
-// (/panel/devices/{deviceId}), the same place as the widget layout — NOT in
-// the shared `prefs.panel`. `deviceId` selects which panel's settings to
-// read/write, so editing the Q60 never touches the Y70. The only cross-surface
-// link is the desktop app theme (`prefs.theme`), used as the sync source for
-// theme-mode + accent when this panel's sync toggles are on.
+// Panel theme/visual settings are PER-PANEL on the device record
+// (/panel/devices/{deviceId}), alongside the widget layout — NOT in shared
+// `prefs.panel`. `deviceId` selects which panel's settings, so editing the Q60
+// never touches the Y70. The only cross-surface link is the desktop app theme
+// (`prefs.theme`), the sync source for theme-mode + accent when sync is on.
 export function usePanelTheme(deviceId: string | null | undefined, enabled = true, persist = true) {
   const [theme, setTheme] = useState<PanelThemeState>({
     appThemeMode: 'system',
@@ -179,9 +177,8 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
       fetchPreferences(),
       deviceId ? fetchPanelDevice(deviceId).catch(() => null) : Promise.resolve(null),
     ]).then(([prefs, record]) => {
-      // `t` = desktop app theme (the sync source). `r` = this panel's own
-      // per-device theme. Absent record fields fall back to built-in defaults
-      // via the normalize* helpers — no migration of the legacy shared values.
+      // `t` = desktop app theme (sync source); `r` = this panel's per-device
+      // theme. Absent record fields fall back to defaults via normalize*.
       const t = prefs?.theme;
       const r = record;
       setTheme({
@@ -218,9 +215,9 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     if (frame?.deviceId === deviceId) fetchTheme();
   });
 
-  // `persist=false` (e.g. simulator test devices) or a missing deviceId keeps
-  // every change local-only - the preview reacts but no write is made. Writes
-  // go to THIS panel's device record so they never touch another surface.
+  // `persist=false` (e.g. simulator) or a missing deviceId keeps changes
+  // local-only (preview reacts, no write). Writes go to THIS panel's device
+  // record only.
   const persistPatch = useCallback((patch: PanelDevicePatch) => {
     if (!persist || !deviceId) return;
     patchPanelDevice(deviceId, patch)
@@ -261,9 +258,8 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
   }, [persistPatch]);
 
   const commitBackground = useCallback((hex: string) => {
-    // Always set both theme slots from the same column so dark/light stay
-    // paired in the picked hue family. Custom (non-preset) hex falls back to
-    // the same value for both since no counterpart can be derived.
+    // Set both slots from the same column so dark/light stay in the picked hue
+    // family; custom hex uses the same value for both (no counterpart).
     const { dark, light } = panelBackgroundPair(hex);
     setTheme(prev => ({ ...prev, backgroundColor: dark, backgroundColorLight: light }));
     persistPatch({ backgroundColor: dark, backgroundColorLight: light });

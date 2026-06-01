@@ -3,9 +3,8 @@ import type { ChangeEvent } from 'react';
 import styles from './Select.module.scss';
 
 /**
- * Themed wrapper around native `<select>`. Wraps the native element in
- * a relative span so we can overlay a lucide ChevronDown icon on the
- * right edge - far more legible than a CSS-painted chevron, and the
+ * Themed wrapper around native `<select>`. Wraps the native element in a
+ * relative span to overlay a lucide ChevronDown icon on the right edge; the
  * native popup still opens on click.
  *
  * Use `options` for simple flat lists; pass `children` directly when

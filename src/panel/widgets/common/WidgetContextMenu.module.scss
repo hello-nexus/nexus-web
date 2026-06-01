@@ -1,11 +1,10 @@
 .menu {
   position: fixed;
   z-index: var(--z-dropdown);
-  // The desktop overlay root opts every descendant out of pointer events
-  // (it's a click-through window) and lets each .widget opt in. The menu
-  // is a sibling of the widgets, not a child, so it must opt in itself
-  // or pointer events fall through to the widget beneath, putting the
-  // drag cursor on the menu and dropping clicks on the size buttons.
+  // The desktop overlay root (click-through window) opts every descendant
+  // out of pointer events and lets each .widget opt in. The menu is a
+  // sibling of the widgets, so it must opt in itself or events fall through
+  // to the widget beneath (drag cursor on the menu, dropped button clicks).
   pointer-events: auto;
   cursor: default;
   transform-origin: var(--menu-origin-x, 18px) var(--menu-origin-y, 18px);

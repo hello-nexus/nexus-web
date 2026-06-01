@@ -37,9 +37,9 @@ export interface KeebKeyboardProps {
   useDefaults?: boolean;
 }
 
-/// Visual class for a (row, col) cell. Mirrors legacy nexus `Key/index.tsx`:
-/// row 0 col 0 is the firmware mode-cycle key (pill), row 1 is the media
-/// strip (wide-short rounded), everything else is the standard 75×70 key.
+/// Visual class for a (row, col) cell: row 0 col 0 is the firmware mode-cycle
+/// key (pill), row 1 is the media strip (wide-short rounded), everything else
+/// is the standard 75×70 key.
 function keyVariant(row: number, col: number): string {
   if (row === 0 && col === 0) return styles.keyMiddle;
   if (row === 1) return styles.keyMedia;
@@ -50,9 +50,8 @@ function keyVariant(row: number, col: number): string {
 /// assigned to that physical key on the active layer — falling back to the
 /// printed legend when the firmware has the default mapping (or when offline).
 ///
-/// The fixed-pixel layout matches the legacy nexus app's keeb modal exactly,
-/// so muscle memory transfers; CSS `zoom` on the wrapper scales it to the
-/// available viewport.
+/// The fixed-pixel layout matches the legacy keeb modal verbatim; CSS `zoom`
+/// on the wrapper scales it to the available viewport.
 ///
 /// Row 0 is special: it carries the two rotary wheel buttons flanking the
 /// firmware-supplied RGB-effect-cycle key, mirroring the physical Keeb TKL.

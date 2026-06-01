@@ -67,12 +67,9 @@ describe('panel background presets', () => {
     expect(resolvePanelBackground('#1e3a8a', '', 'light')).toBe('#93c5fd');
     expect(resolvePanelBackground('', '#93c5fd', 'dark')).toBe('#1e3a8a');
 
-    // Even when the user previously stored an unrelated value in the other slot,
-    // the resolver derives from the dark seed and ignores the stale light pick.
-    // Row 2 deep purple paired with stale row 2 amber - light resolves from the
-    // purple seed, not the orange.
+    // Row 2 deep purple (#581c87) paired with a stale amber light pick: the
+    // resolver derives from the dark seed, ignoring the stale light value.
     expect(resolvePanelBackground('#581c87', '#fdba74', 'light')).toBe('#d8b4fe');
-    // And dark still resolves to itself.
     expect(resolvePanelBackground('#581c87', '#fdba74', 'dark')).toBe('#581c87');
   });
 

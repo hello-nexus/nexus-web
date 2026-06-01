@@ -14,10 +14,8 @@
   background: var(--bg);
 }
 
-// Row of page-level action buttons (Add widget, Desktop Widgets) sitting
-// directly under the page title, left-aligned. Matches the standard adopted
-// across views (right-aligned at tab level is reserved for one-off icon
-// affordances; left-aligned multi-button rows hang here).
+// Row of page-level action buttons (Add widget, Desktop Widgets) under the
+// page title, left-aligned.
 .headerActions {
   display: flex;
   align-items: center;

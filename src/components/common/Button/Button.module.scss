@@ -51,8 +51,8 @@
   padding: 0 var(--space-xl);
 }
 
-// Icon-only sizes are square: width = height = size token. Padding zero so
-// the icon centers perfectly.
+// Icon-only sizes are square: width = height = size token; padding zero to
+// center the icon.
 .iconOnly {
   padding: 0;
 
@@ -63,7 +63,7 @@
 
 // ── Tone ──────────────────────────────────────────────────────────────────
 
-// Neutral: bordered + transparent bg. Default look. Hovers to a lifted card
+// Neutral (default): bordered + transparent bg. Hovers to a lifted card
 // background and full-strength text color.
 .tone-neutral {
   background: transparent;
@@ -77,7 +77,7 @@
   }
 }
 
-// Accent: filled with the user's accent color. Primary CTA.
+// Accent: filled with the user's accent color.
 .tone-accent {
   background: var(--accent);
   border-color: var(--accent);
@@ -100,9 +100,8 @@
   }
 }
 
-// Ghost: no border, no bg, just colored text. Hovers to a card background.
-// Use for tertiary actions where a bordered button would visually compete
-// with adjacent primary chrome.
+// Ghost: no border, no bg, colored text. Hovers to a card background. For
+// tertiary actions where a bordered button would compete with adjacent chrome.
 .tone-ghost {
   background: transparent;
   border-color: transparent;
@@ -128,8 +127,8 @@
   align-items: center;
   flex-shrink: 0;
 
-  // Lucide icons size 16/20/24 - normalize to a height that matches the
-  // text rung. Width:auto keeps any non-square icon aspect ratio.
+  // Normalize icon height to the text line-box; width:auto keeps non-square
+  // icon aspect ratio.
   svg {
     width: 1em;
     height: 1em;

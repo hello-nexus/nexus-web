@@ -1,9 +1,8 @@
-// tokens.scss is imported as a global side-effect in PanelApp.tsx, NOT via
-// @use here, because @use from a .module.scss causes Vite to hash the
-// imported class names (panel-root, panel-card, panel-chip) which breaks the
-// raw className="panel-root" references in JSX. The scrollbar @use below is
-// safe because _scrollbar.scss contains only @mixin declarations (no class
-// selectors), so nothing gets hashed.
+// tokens.scss is imported as a global side-effect in PanelApp.tsx, NOT @use
+// here: @use from a .module.scss makes Vite hash the imported class names
+// (panel-root, panel-card, panel-chip), breaking raw className="panel-root"
+// in JSX. The scrollbar @use below is safe — _scrollbar.scss is mixin-only
+// (no class selectors), so nothing gets hashed.
 
 @use '../styles/scrollbar' as *;
 @use '../styles/text' as *;
@@ -17,13 +16,11 @@
   // Outer insets on the cell card itself (visible card box).
   --panel-widget-card-margin-x: 6px;
   --panel-widget-card-bottom-gap: 4px;
-  // Inner padding INSIDE the cell card, between the card edge and the
-  // widget contents. 0 means contents reach the rounded edge directly;
-  // raise to add uniform breathing room on top/right/bottom/left.
+  // Inner padding between the card edge and widget contents. 0 = contents
+  // reach the rounded edge; raise for uniform breathing room on all sides.
   --panel-widget-card-inner-pad: 0px;
-  // iOS-style kiosk surfaces use a larger absolute corner radius so the
-  // big cells read as proportionally rounded as the smaller desktop
-  // dashboard cells (which use var(--radius)=10px and stay at it).
+  // Kiosk surfaces use a larger corner radius so big cells read as
+  // proportionally rounded as the smaller desktop cells (--radius=10px).
   --panel-card-radius: var(--radius-lg);
   &[data-show-widget-labels='false'] {
     --panel-widget-label-strip: 0px;
@@ -36,11 +33,10 @@
   background: var(--panel-background-solid);
   color: var(--panel-text);
   position: relative;
-  // No padding here - the pager runs full-bleed so per-page content
-  // can shadow into the safe-area zone without the pager's overflow:
-  // hidden boundary clipping the shadow. Each .page applies its own
-  // padding (see PanelPager.module.scss) so widget content stays
-  // inside the safe area visually while shadows extend cleanly.
+  // No padding here: the pager runs full-bleed so per-page widget shadows
+  // extend into the safe-area zone without the pager's overflow:hidden
+  // clipping them. Each .page applies its own padding (see PanelPager)
+  // to keep widget content inside the safe area.
   padding: 0;
   box-sizing: border-box;
   overflow: hidden;
@@ -218,11 +214,9 @@
 }
 
 .panelRoot[data-theme='light'] .connectionIntroTray {
-  // Light-mode override: --shadow-xl uses pure black at --alpha-medium
-  // which reads way too heavy on a white surface. Keep the original
-  // 18px/44px geometry and slate-900 / 16% mix - the one carve-out
-  // outside the canonical --shadow-* tier. (No --alpha-soft rung exists
-  // for 0.16; introduce one if a second consumer ever needs it.)
+  // Light-mode override: --shadow-xl's pure black at --alpha-medium is too
+  // heavy on white. Use slate-900 / 16% with the 18px/44px geometry. The
+  // one carve-out outside the --shadow-* tier (no --alpha-soft rung at 0.16).
   box-shadow: 0 18px 44px rgba(15, 23, 42, 0.16);
 }
 
@@ -257,17 +251,16 @@
   }
 }
 
-// Grid with explicit 4-column layout. Uses `minmax(0, 1fr)` so cells can
-// shrink below their content width when the viewport is narrower than
-// 4 × cell-size + 3 × gap (happens on the Y70 portrait panel).
+// 4-column grid. `minmax(0, 1fr)` lets cells shrink below content width when
+// the viewport is narrower than 4 × cell-size + 3 × gap (Y70 portrait).
 .grid {
   display: grid;
   grid-template-columns: repeat(var(--panel-columns), minmax(0, 1fr));
   grid-auto-rows: var(--panel-row-size, var(--panel-cell-size, 172px));
-  // grid-auto-flow defaults to `row` (no dense backfill). Visual order
-  // matches flat order, which the projected-layout strategy and
-  // paginate() rely on. Do NOT set `dense` here - later small widgets
-  // would slide into earlier gaps and break drag-and-drop predictability.
+  // grid-auto-flow stays `row` (no dense backfill): visual order must match
+  // flat order, which the projected-layout strategy and paginate() rely on.
+  // Do NOT set `dense` — later small widgets would slide into earlier gaps
+  // and break drag-and-drop predictability.
   gap: var(--panel-gap, 10px);
   width: 100%;
 }
@@ -289,17 +282,16 @@
   flex-direction: column;
 }
 
-// Hosts the editor-docked widget cell rendered via portal. Lives at the
-// panel-root level - i.e. outside the pager track - so the docked
-// cell's `position: fixed` anchors to the viewport even when the active
-// page is page 2+ (where the track has a transform that would otherwise
+// Hosts the portaled editor-docked widget cell. Lives at panel-root level,
+// outside the pager track, so the cell's `position: fixed` anchors to the
+// viewport even on page 2+ (where the track's transform would otherwise
 // trap fixed descendants).
 .editorDockPortal {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  // Children (the docked cell) opt back into pointer events via their
-  // own rules; this wrapper just provides an untransformed anchor.
+  // The docked cell opts back into pointer events; this wrapper is only an
+  // untransformed anchor.
 }
 .editorDockPortal > * {
   pointer-events: auto;
@@ -359,11 +351,10 @@
 }
 
 .panelRoot[data-surface='y70'] {
-  // Without this the cellScaler falls back to a hardcoded 172px reference
-  // for --_content, so widget contents render at "172px-cell scale" even
-  // when the actual fluid 1fr cell is wider (e.g. ~268px on Y70 hardware at
-  // 100% Windows scaling, vs ~176px at 150%). Tracking the real cell width
-  // makes the rendering scaling-aware on the kiosk AND keeps the simulator
+  // Track the real cell width so the cellScaler doesn't fall back to its
+  // hardcoded 172px --_content reference and render contents at that scale
+  // when the fluid 1fr cell is actually wider (~268px on Y70 at 100% Windows
+  // scaling, ~176px at 150%). Keeps the kiosk scaling-aware and the simulator
   // iframe faithful at whatever canvas size the kiosk reports.
   --panel-cell-size: calc((100vw - (var(--panel-columns) - 1) * var(--panel-gap, 10px)) / var(--panel-columns));
   // Y70 widgets run full-bleed horizontally: no left/right page padding and
@@ -395,9 +386,9 @@
   --panel-cell-size: calc((100vw - var(--panel-safe-left) - var(--panel-safe-right) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
   min-height: 100dvh;
   height: 100dvh;
-  // Padding lives inside each .page now (see PanelPager), so the pager's
-  // overflow boundary sits at the actual surface edge and widget shadows
-  // can extend into the safe-area zone without being clipped.
+  // Padding lives inside each .page (see PanelPager) so the pager's overflow
+  // boundary sits at the surface edge and widget shadows reach the safe-area
+  // zone unclipped.
   padding: 0;
   touch-action: none;
   overscroll-behavior: auto;
@@ -434,14 +425,12 @@
 }
 
 .panelRoot[data-surface='q60'] .grid {
-  // Fill the page height and let rows divide that height equally
-  // (`1fr` per row). The height flows down from the surface root, which
-  // is sized with 100vh — NOT 100dvh. The Q60 ships Android System
-  // WebView v83 (Chrome 83); dynamic-viewport units (dvh/svh/lvh) only
-  // landed in Chrome 108, so 100dvh on this WebView doesn't resolve to
-  // the visible kiosk viewport — the root came up shorter than the
-  // screen and both widgets bunched into the top quarter. 100vh is the
-  // full chromeless WebView height and is honored on Chrome 83.
+  // Fill the page height, rows split it equally (`1fr` each). Height flows
+  // from the surface root, sized with 100vh — NOT 100dvh. The Q60 ships
+  // Android System WebView v83 (Chrome 83); dynamic-viewport units
+  // (dvh/svh/lvh) landed in Chrome 108, so 100dvh here doesn't resolve to the
+  // visible viewport (root comes up short, widgets bunch in the top quarter).
+  // 100vh is the full chromeless WebView height, honored on Chrome 83.
   height: 100%;
   grid-template-rows: repeat(var(--panel-rows), 1fr);
   grid-auto-rows: 1fr;
@@ -453,28 +442,23 @@
 
 // Q60 widget content scale.
 //
-// The default cellScaler uses `tan(atan2(--_content, 90px))` to express
-// "cell-size / 90px" as a unit-less number for `transform: scale()`. CSS
-// trig functions only landed in Chrome 111 (March 2023); the Q60 ships
-// Android System WebView v83 (Chrome 83, June 2020) which doesn't parse
-// them, so `--_s` resolves invalid, the scale transform falls back to 1,
-// and widget contents render at design-pixel size — visually about 40 %
-// of what Y70/phone show.
+// The default cellScaler uses `tan(atan2(--_content, 90px))` for
+// "cell-size / 90px" as a unitless `transform: scale()`. CSS trig functions
+// landed in Chrome 111 (March 2023); the Q60 ships Android System WebView
+// v83 (Chrome 83) which can't parse them, so `--_s` resolves invalid, scale
+// falls back to 1, and contents render at design-pixel size (~40% of
+// Y70/phone). Hardcode the scale instead.
 //
-// Hardcode the scale here. Q60 hardware is fixed at 720x1280 @ density
-// 240 (dpr 1.5), so the CSS viewport is 480x853 and `--panel-cell-size`
-// is always (480 - 16 - 8) / 2 = 228 CSS px → 228 / 90 ≈ 2.53. Use 2.5
-// flat to leave 1 % overhead for the rounded card border + inner
-// padding to breathe.
+// Q60 is fixed at 720x1280 @ density 240 (dpr 1.5), so the CSS viewport is
+// 480x853 and `--panel-cell-size` is (480 - 16 - 8) / 2 = 228 CSS px →
+// 228 / 90 ≈ 2.53. Use 2.5 flat to leave 1% for the card border + inner pad.
 .panelRoot[data-surface='q60'] .cellScaler {
   --_s: 2.5;
-  // Q60 cells are non-square (cell-size ~236 wide vs row-size ~203 tall),
-  // and --panel-content-scale = min(cell, row) collapses --_content to the
-  // shorter (height) axis. The base cellScaler then sizes its content box
-  // from that single value, so content renders ~414px wide inside a 480px
-  // card — a centered ~33px left/right gap that reads as a border, and any
-  // widget (gallery, etc.) paints narrower than its card. Size the content
-  // box per-axis from the real cell dimensions so it fills the full card.
+  // Q60 cells are non-square (~236 wide vs ~203 tall) and
+  // --panel-content-scale = min(cell, row) collapses --_content to the
+  // shorter axis, so the base cellScaler renders content ~414px wide in a
+  // 480px card (a ~33px gap reading as a border). Size the content box
+  // per-axis from the real cell dimensions so it fills the card.
   --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
   --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
 }
@@ -569,20 +553,18 @@
   align-items: stretch;
   min-width: 0;
   min-height: 0;
-  // The dnd-kit transition + transform are applied inline; this default
-  // covers the un-tracked case so the press feedback on the underlying
-  // cell does not jitter the wrapper. Opacity + filter transitions match
-  // the values that lived on .cell pre-wrap so the context-menu dim
-  // (which now applies to the wrapper) still cross-fades smoothly.
+  // dnd-kit applies its transition + transform inline; this default covers
+  // the untracked case so press feedback on the cell doesn't jitter the
+  // wrapper. Opacity + filter transitions cross-fade the context-menu dim
+  // applied to the wrapper.
   transition:
     transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
     opacity 140ms ease-out,
     filter 140ms ease-out;
 }
 
-// When the inner cell is portaled into the editor-dock layer, the wrapper
-// remains in the grid as an empty placeholder. Hide the label so a stray
-// title does not appear under nothing.
+// When the cell is portaled into the editor-dock layer the wrapper stays in
+// the grid as an empty placeholder; hide its label so no stray title shows.
 .cellWrap[data-cell-state='docked'] > .cellLabelStrip {
   visibility: hidden;
 }
@@ -607,17 +589,15 @@
     0
     var(--panel-widget-card-margin-x, 0px)
     var(--panel-widget-card-bottom-gap, 0px);
-  // touch-action: none on the cell so a long-press + vertical drag is
-  // not hijacked by the browser's pan-y scroll gesture. Without this,
-  // the second pointermove arrives as pointercancel and dnd-kit's
-  // drag never commits. Widget scroll panes opt back into pan-y via
-  // [data-panel-scrollable="true"].
+  // touch-action: none so a long-press + vertical drag isn't hijacked by
+  // the browser's pan-y scroll (which fires pointercancel on the second
+  // pointermove and kills dnd-kit's drag). Scroll panes opt back into
+  // pan-y via [data-panel-scrollable="true"].
   touch-action: none;
-  // iOS WKWebView aggressively triggers the text-selection magnifier
-  // and the long-press callout (Look Up, Share, Copy) on any held
-  // touch over text content. Suppressing both at the cell boundary
-  // (and on every descendant) keeps the long-press belonging to OUR
-  // context-menu / drag pipeline instead of iOS's.
+  // iOS WKWebView triggers the text-selection magnifier and long-press
+  // callout (Look Up, Share, Copy) on held touch over text. Suppress both
+  // at the cell boundary (and every descendant) so the long-press stays
+  // owned by our context-menu / drag pipeline.
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -638,16 +618,14 @@
 }
 
 
-// Two-class specificity so the global `.panel-card` rule in tokens.scss (which
-// declares `transition: background-color 300ms` and is loaded later in the
-// cascade) does not blow away the transform transition via shorthand reset.
-// `background-color` is preserved here so the cell still cross-fades on theme
-// switches.
+// Two-class specificity so the global `.panel-card` rule in tokens.scss
+// (`transition: background-color 300ms`, loaded later) doesn't shorthand-reset
+// the transform transition. background-color is kept so the cell still
+// cross-fades on theme switches.
 //
-// :not() exclusions: cells in those states have transforms driven elsewhere
-// (dnd-kit inline styles for rearrange, CSS @keyframes for dock in/out). If
-// the transition fires concurrently with those, the transform value is being
-// targeted by two systems and the result reads as a glitch / repeated tween.
+// :not() exclusions: those states have transforms driven elsewhere (dnd-kit
+// inline for rearrange, @keyframes for dock in/out). Running this transition
+// concurrently targets the transform from two systems and glitches.
 .panelRoot .cell:not(.cellRearranging):not(.cellEditorDocked):not(.cellEditorDockClosing):not(.cellResizeMotion) {
   transition:
     transform var(--panel-press-duration) cubic-bezier(0.32, 0.72, 0, 1),
@@ -658,24 +636,20 @@
     filter 140ms ease-out;
 }
 
-// Frosted-glass widget blur, toggled by the widget settings (data-widget-blur).
-// Only meaningful over the animated background — a blurred solid colour is
-// identical to the solid colour — so it's gated to shader mode, leaving solid
-// panels with no backdrop pass to recompute on swipe. Hard radius, never
-// animated: tweening backdrop-filter re-runs an uncacheable gaussian every
-// frame and janks on the panel SoCs.
+// Frosted-glass widget blur (data-widget-blur). Gated to shader mode: over a
+// solid colour a blurred backdrop is identical to the colour, so solid panels
+// skip the pass. Hard radius, never animated — tweening backdrop-filter
+// re-runs an uncacheable gaussian every frame and janks on the panel SoCs.
 //
 // Write ONLY the unprefixed property: lightningcss autoprefixes it to emit
 // both `backdrop-filter` AND `-webkit-backdrop-filter`. Hand-writing the
 // `-webkit-` form makes lightningcss drop the unprefixed one as "redundant",
-// which then renders nothing on Blink (WebView2 / Android WebView) — Blink
-// does NOT recognise `-webkit-backdrop-filter`. The prefixed form is only
-// for iOS WKWebView, and the autoprefixer adds it.
+// which renders nothing on Blink (WebView2 / Android WebView) — Blink does
+// NOT recognise `-webkit-backdrop-filter`. The prefix is iOS WKWebView only.
 //
-// `:not([data-widget-opaque='true'])` skips the pass when the card is fully
-// opaque (100% widget opacity): the blurred backdrop would be 100% hidden
-// behind the card surface, so there's nothing to see and no reason to pay
-// for it. The toggle setting is unchanged — this is a pure render-time skip.
+// `:not([data-widget-opaque='true'])` skips the pass at 100% widget opacity:
+// the blurred backdrop is fully hidden behind the card, so there's nothing
+// to render. Render-time skip only; the toggle setting is unchanged.
 .panelRoot[data-widget-blur='true'][data-background-mode='shader']:not([data-widget-opaque='true']) .cell {
   backdrop-filter: blur(16px);
 }
@@ -717,18 +691,17 @@
 }
 
 // Dashboard clickthrough widgets (monitoring / lighting / cooling): a click
-// jumps to the matching sidebar section instead of opening immersive. The
-// cell gets a hover highlight (background + border) so it reads as a
-// tappable shortcut. The card dropshadow is intentionally NOT touched on
-// hover - only drag/drop alters widget shadows. Pointer-only so phone /
-// y70 surfaces never end up with sticky-touch hover state.
+// jumps to the matching sidebar section instead of opening immersive. Hover
+// highlight (background + border) marks it as a shortcut; the dropshadow is
+// NOT touched on hover (only drag/drop alters widget shadows). Pointer-only
+// so phone / y70 never get sticky-touch hover state.
 .cellWrap[data-clickthrough='true'] {
   cursor: pointer;
 }
 
 @media (hover: hover) {
-  // Transition on the base so hover-in and hover-out both fade.
-  // (Putting it inside :hover only animates the rollback.)
+  // Transition on the base so hover-in and hover-out both fade (inside
+  // :hover only animates the rollback).
   .cellWrap[data-clickthrough='true'] .cell {
     transition: background-color var(--ease-fast) ease, border-color var(--ease-fast) ease;
   }
@@ -757,18 +730,16 @@
   }
 }
 
-// Scale widget content so text/icons fill the same proportion of the cell
-// regardless of cell size. Reference: 90px per grid unit (matches the editor
-// preview in InlineWidgetSettings). tan(atan2(a,b)) computes a/b as unitless.
+// Scale widget content so text/icons fill the same proportion of the cell at
+// any cell size. Reference: 90px per grid unit (matches InlineWidgetSettings'
+// editor preview). tan(atan2(a,b)) computes a/b as unitless.
 //
-// The cellScaler now fills the cell card's actual visible rectangle minus
-// a static inner padding on all four sides. The scale `--_s` stays uniform
-// (based on the cell-size reference) so children inside still render at
-// 1:1 aspect - what changes is the cellScaler's RECT shape: it matches
-// the card aspect, so widget flex/grid layouts get to spread their
-// internal elements (e.g. lighting buttons) into the wider rectangle
-// without any axis distortion. Inner padding is the SAME absolute pixels
-// on top/right/bottom/left, every widget size.
+// Fills the card's visible rectangle minus a static inner padding on all
+// sides. `--_s` stays uniform (cell-size reference) so children render at
+// 1:1 aspect; what changes is the scaler's RECT shape, which matches the
+// card aspect so widget flex/grid layouts spread into the wider rectangle
+// without axis distortion. Inner padding is the same absolute px on all
+// sides at every widget size.
 .cellScaler {
   --_content: var(--panel-content-scale, var(--panel-cell-size, 172px));
   --_cols: var(--panel-span-cols, 1);
@@ -815,9 +786,8 @@
   min-height: 0;
   transform-origin: top left;
   animation: widgetEditorDockIn var(--ease) ease-out both;
-  // When the user picks a new size from the edit drawer's size picker, the
-  // CSS dock variables update and the cell smoothly retargets the new span
-  // (matching the transition you get from the rearrange context menu).
+  // Picking a new size in the edit drawer updates the dock CSS vars; the
+  // cell retargets the new span (matching the rearrange context menu).
   transition:
     width 220ms cubic-bezier(0.32, 0.72, 0, 1),
     height 220ms cubic-bezier(0.32, 0.72, 0, 1),
@@ -974,7 +944,7 @@
   --panel-cell-size: calc((100vw - 2 * var(--panel-page-padding) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
   // 100vh, not 100dvh: the Q60 editor backdrop shares the live grid's
   // Chrome-83 WebView, where dynamic-viewport units (Chrome 108+) don't
-  // resolve to the visible viewport — keep in lockstep with the q60 grid root.
+  // resolve to the visible viewport — match the q60 grid root.
   --panel-row-size: calc((100vh - 2 * var(--panel-page-padding) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
   --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
 }
@@ -1008,17 +978,15 @@
 
 .editorBackdrop[data-state='closing'] {
   pointer-events: none;
-  // Match the sheet's close duration: if scrim faded faster (it was var(--ease)
-  // while the sheet animates 220-240ms), the sheet inherits opacity 0 from
-  // its DOM parent and the slide-out becomes invisible halfway through.
+  // Match the sheet's close duration: a faster scrim fade hands the sheet
+  // opacity 0 from its DOM parent and the slide-out goes invisible halfway.
   animation: scrimOut 240ms ease-out both;
 }
 
 .editorSheet {
   position: relative;
-  // Above the docked widget (z 200) so that on small screens, when the drawer
-  // is anchored at the 4x2 detent, it overlays the bottom of taller widgets
-  // instead of being covered by them. Below offline overlay (z 250).
+  // Above the docked widget (z 200) so on small screens the 4x2-detent drawer
+  // overlays the bottom of taller widgets. Below offline overlay (z 250).
   z-index: 230;
   width: min(380px, 88vw);
   max-width: 100vw;
@@ -1058,17 +1026,15 @@
   transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-// Once the entry keyframe has finished playing on initial mount, suppress
-// further animations so toggling [data-drag] (drag start/end) doesn't restart
-// the entry animation. The closing keyframe on [data-state='closing'] has
+// After the entry keyframe plays, suppress further animations so toggling
+// [data-drag] doesn't restart it. The [data-state='closing'] keyframe has
 // higher specificity and still wins for the X-button close path.
 .editorSheet[data-entered='true'] {
   animation: none;
 }
 
-// Small grabber pill at the top center of the sheet, signaling that it can
-// be swiped down. Only shown for bottom-anchored sheets (mobile/Y70 width)
-// where the swipe gesture is wired up.
+// Top-center grabber pill signaling swipe-down. Shown only for
+// bottom-anchored sheets (mobile/Y70 width) where the swipe is wired up.
 .editorSheetGrabber {
   display: none;
 }
@@ -1127,8 +1093,6 @@
   flex-direction: column;
   gap: 10px;
 }
-
-// Dock header now uses the shared <SectionHeader> component.
 
 .dockToggleRow {
   display: flex;
@@ -1265,9 +1229,8 @@
   to { transform: translateX(28px); opacity: 0; }
 }
 
-// Compose --panel-ui-zoom into the transform so Y70 (where the var is set
-// to cell-size/90) animates at scale, while other surfaces (where the var
-// is unset → fallback 1) see no change.
+// Compose --panel-ui-zoom into the transform so Y70 (var = cell-size/90)
+// animates at scale; other surfaces (var unset → 1) see no change.
 @keyframes sheetUp {
   from { transform: translateY(100%) scale(var(--panel-ui-zoom, 1)); }
   to { transform: translateY(0) scale(var(--panel-ui-zoom, 1)); }
@@ -1279,10 +1242,9 @@
 }
 
 @media (max-width: 900px) {
-  // Bottom-sheet layout is for the panel surfaces (phone / Y70 / Q60). The
-  // dashboard's embedded panel uses data-surface='desktop' and must keep its
-  // side-drawer layout at every width, so each rule below scopes itself out
-  // of that surface.
+  // Bottom-sheet layout for panel surfaces (phone / Y70 / Q60). The embedded
+  // desktop dashboard keeps its side-drawer at every width, so each rule
+  // below scopes out data-surface='desktop'.
   .editorBackdrop:not([data-surface='desktop']) {
     align-items: flex-end;
     justify-content: stretch;
@@ -1300,20 +1262,16 @@
     padding-top: 18px;
   }
 
-  // Monitor-attached panels (everything except phone + desktop):
-  // CSS width / max-height shrink by 1/s so the post-scale visual sheet
-  // fills the original target area. `margin-inline: auto` centers the
-  // shrunk layout box, and `bottom center` origin makes the scale grow
-  // symmetrically — without these the sheet's layout center sits at 25vw
-  // (flex-start of a half-width child) and scaling 2x pushes the visual
-  // off the left edge.
+  // Monitor-attached panels (not phone/desktop): width / max-height shrink
+  // by 1/s so the post-scale sheet fills the target area. margin-inline:
+  // auto centers the shrunk box and `bottom center` origin scales
+  // symmetrically — without them the layout center sits at 25vw
+  // (flex-start of a half-width child) and 2x scaling pushes it off-left.
   //
-  // Visual max-height: drawer rises up to a 3:1 height-to-width aspect
-  // (= 3 × viewport width), capped at 100dvh so it never exceeds the
-  // panel. On a tall portrait Y70 (~734 × 2560) that's ~2200 CSS px ≈
-  // 86dvh; on a near-square or wide viewport it caps at the screen
-  // height. Phone keeps the :not(desktop) rule's min(76dvh, 760px)
-  // since this override skips phone.
+  // Visual max-height: drawer rises to a 3:1 height-to-width aspect (3 ×
+  // viewport width), capped at 100dvh. On a tall portrait Y70 (~734 × 2560)
+  // that's ~2200 CSS px ≈ 86dvh; near-square/wide viewports cap at screen
+  // height. Phone keeps the :not(desktop) rule's min(76dvh, 760px).
   .editorBackdrop:not([data-surface='phone']):not([data-surface='desktop']) .editorSheet {
     width: calc(100% / var(--panel-ui-zoom, 1));
     max-height: calc(min(300vw, 100dvh) / var(--panel-ui-zoom, 1));
@@ -1339,10 +1297,9 @@
   }
 
   .editorBackdrop[data-surface='phone'][data-mode='settings'] .editorSheet {
-    // Pin the top edge at the 2-row (4x2) detent so the drawer always slides
-    // up to the same Y regardless of the widget being edited. Taller widgets
-    // (4x4) render at full size and are partially overlapped by the drawer,
-    // matching iOS modal-sheet behavior.
+    // Pin the top edge at the 2-row (4x2) detent so the drawer slides to the
+    // same Y for any widget. Taller widgets (4x4) render full size and are
+    // partially overlapped, matching iOS modal-sheet behavior.
     position: absolute;
     top: calc(max(8px, env(safe-area-inset-top)) + 2 * var(--panel-cell-size) + var(--panel-gap) + 24px);
     left: 0;
@@ -1451,24 +1408,22 @@
   &:active { cursor: grabbing; }
 }
 
-// Source cell while a drag overlay is floating its visual at the
-// cursor. Hidden so the user sees the slot it came from rather than
-// a duplicate. Pulse animation paused so the empty outline doesn't
-// distract.
+// Source cell while the drag overlay floats at the cursor: hidden so the
+// user sees the empty slot, not a duplicate. Pulse paused.
 .cellDragSource {
   opacity: 0;
   animation: none;
   pointer-events: none;
 }
 
-// Wrapper rendered inside @dnd-kit's DragOverlay (portaled to
-// document.body). Carries the panel-root context (theme tokens,
-// data-surface) so the floating clone matches the in-grid cell.
+// Wrapper inside @dnd-kit's DragOverlay (portaled to body). Carries the
+// panel-root context (theme tokens, data-surface) so the floating clone
+// matches the in-grid cell.
 .dragOverlayHost {
   display: inline-block;
   pointer-events: none;
-  // panel-root ships with width/height: 100vw/100vh which would push
-  // the overlay across the whole viewport. Reset to fit-content here.
+  // panel-root sets width/height 100vw/100vh, which would stretch the
+  // overlay across the viewport. Reset to fit-content.
   width: auto;
   height: auto;
   background: transparent;
@@ -1476,10 +1431,9 @@
 }
 
 .dragOverlayCell {
-  // Subtle lift via shadow only - DO NOT add a transform on the inner
-  // cell. The cellScaler already applies its own scale based on
-  // --panel-widget-scale, and a wrapper transform would compound with
-  // that (the overlay would render at scale^2 of the in-grid sibling).
+  // Lift via shadow only — DO NOT transform the inner cell. The cellScaler
+  // already scales by --panel-widget-scale, so a wrapper transform would
+  // compound to scale^2 of the in-grid sibling.
   cursor: grabbing;
 
   > .cell {
@@ -1497,8 +1451,7 @@
   background: rgba(60, 20, 20, 0.5);
 }
 
-// Debug banner across the top - shows viewport + widget count so we can
-// diagnose remotely. Small enough to not steal much vertical space.
+// Debug banner: viewport + widget count for remote diagnosis.
 .debugBanner {
   @include text-label;
   color: var(--panel-text-faint);

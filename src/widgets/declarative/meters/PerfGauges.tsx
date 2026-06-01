@@ -1,7 +1,6 @@
-// Performance-gauge meter family. Each entry is a self-contained
-// declarative meter that takes a numeric value (0-100 by default) plus
-// optional formatted text + label, and renders one of the visual styles
-// available to the monitoring widget. Authors pick a design by tag.
+// Performance-gauge meter family. Each meter takes a numeric value (0-100 by
+// default) plus optional formatted text + label and renders one monitoring
+// design, picked by tag.
 //
 // Common shape (all meters in this file accept these):
 //   value:      number 0-100 (the percent for visual fill)

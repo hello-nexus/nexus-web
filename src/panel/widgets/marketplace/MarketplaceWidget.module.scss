@@ -14,10 +14,7 @@
   // The panel grid owns drag / select / context-menu gestures on the
   // cell wrapper. iframes capture pointer events inside their document
   // by default, so without this the user can never long-press or drag
-  // a marketplace widget. Phase 4+ can add a manifest `interactive`
-  // flag to flip this for widgets that need pointer input - until then
-  // every marketplace widget is read-only display, consistent with the
-  // built-in cpu / clock / weather tiles.
+  // a marketplace widget. Marketplace widgets are read-only display.
   pointer-events: none;
 }
 

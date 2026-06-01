@@ -23,12 +23,11 @@ import { SCREEN_FILTERS, matchScreenFilter, screenFilterByKey, type ScreenFilter
 import styles from '../LightingPage.module.scss';
 
 /**
- * Mode-specific control rows rendered under the canvas when the user is NOT
- * on animate mode. Animate is handled separately because it uses a full grid
- * + the Effect-tab inspector on the right. Colour post-process (hue, colorize,
- * saturation, contrast) for Media and Mirror also lives in the Effect tab,
- * so this file only handles what sits UNDER the canvas: mirror monitor picker
- * + filter presets, media library, off message.
+ * Mode-specific control rows under the canvas for non-animate modes
+ * (animate uses a full grid + the Effect-tab inspector). Media/Mirror
+ * colour post-process lives in the Effect tab, so this handles only
+ * the under-canvas rows: mirror monitor picker + filter presets,
+ * media library, off message.
  */
 export const ModeControls = memo(function ModeControls({ mode, screenPP, onScreenPPChange }: {
   mode: LightingMode;
@@ -168,10 +167,8 @@ function MediaControls() {
     if (cur?.mediaId) setActiveId(cur.mediaId);
   };
 
-  // Initial load: pull library + currently playing media from the service
-  // on mount. `refresh()` resolves a Promise and seeds items/activeId via
-  // setState, which is the canonical "subscribe to external system"
-  // pattern - the effect lifts service responses into React state.
+  // Initial load: pull library + currently playing media on mount.
+  // refresh()'s setState runs after its Promise resolves.
    
   useEffect(() => { refresh(); }, []);
 

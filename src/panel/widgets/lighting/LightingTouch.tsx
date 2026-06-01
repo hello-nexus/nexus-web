@@ -20,21 +20,18 @@ import type { WidgetProps } from '../types';
 import styles from './LightingTouch.module.scss';
 
 /**
- * Fullscreen lighting controller. Two stacked sections, each meant to
- * read as a 4x2 cell of the immersive 4x4 grid:
+ * Fullscreen lighting controller. Two stacked sections, each a 4x2
+ * cell of the immersive 4x4 grid:
  *
- *  Top:    the existing 4x4 LightingWidget content (mode picker,
- *          effect carousel, templates) - same UI as the tile, just
- *          larger.
+ *  Top:    the 4x4 LightingWidget content (mode picker, effect
+ *          carousel, templates).
  *  Bottom: the desktop animate effect controls (palette ring + speed
  *          / saturation / contrast / intensity / per-effect-param
- *          sliders + reset). Hidden when the active mode isn't
- *          'animate' since the controls only apply to the animate
- *          mode.
+ *          sliders + reset). Hidden unless the active mode is 'animate'.
  *
- * Each section owns its own state subscription to /lighting/animate/*.
- * The multiplex 'lighting' topic broadcasts on every mutation so the
- * two sections stay in sync without sharing local state.
+ * Each section subscribes to /lighting/animate/* independently; the
+ * multiplex 'lighting' topic broadcasts on every mutation, so the two
+ * stay in sync without sharing local state.
  */
 export function LightingTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   const fullsizeWidget = useMemo(() => ({ ...widget, size: '4x4' as const }), [widget]);
@@ -110,10 +107,10 @@ function useImmersiveAnimateState(): ImmersiveControlsState | null {
 
   const bundle = templates[active];
   const baseState = bundle?.slots[bundle.selected] ?? defaultStateFor(active);
-  // Ref-backed staged state intentionally bypasses React's render cycle on
-  // slider drag (each tick would otherwise re-render the whole immersive
-  // grid); we manually `force` a render after mutation. The ref reads below
-  // are stable per-render since onChange writes the ref + forces synchronously.
+  // Ref-backed staged state bypasses the render cycle on slider drag
+  // (each tick would re-render the whole immersive grid); `force` a
+  // render after mutation. Ref reads below are stable per-render since
+  // onChange writes the ref + forces synchronously.
    
   const liveState = stagedRef.current ?? baseState;
 

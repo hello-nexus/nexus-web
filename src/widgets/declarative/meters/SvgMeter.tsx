@@ -53,11 +53,9 @@ export function SvgMeter({ view, ctx }: { view: WidgetView; ctx: RenderContext }
   // Cached at the module level keyed by URL.
   const svgPromise = useMemo(() => loadSvg(resolvedSrc), [resolvedSrc]);
 
-  // Counter bumped when the async SVG markup actually lands in the DOM.
-  // Bindings effect uses it as a dep so the first round of attribute writes
-  // happens after the SVG is mounted — without this, the initial render
-  // (which has no SVG yet) silently no-ops, and if the parent data is
-  // static (e.g. snapshot harness) the bindings never apply.
+  // Bumped when the async SVG markup lands in the DOM. The bindings effect
+  // deps on it so the first attribute writes run after mount; otherwise the
+  // initial render (no SVG yet) no-ops and static data never applies bindings.
   const [loadCount, setLoadCount] = useState(0);
 
   useEffect(() => {
@@ -131,17 +129,12 @@ function loadSvg(url: string): Promise<string> {
   return promise;
 }
 
-// Defense-in-depth: the host already sanitises on serve, but inlining is
-// risky enough that we re-check on the client. Strip <script>, on* event
-// handlers, foreignObject, and unknown protocols on href/xlink:href.
-//
-// This is intentionally conservative; we reject anything not on a small
-// allowed-elements list. Authors that need more should stay in their lane
-// (use the meter palette) or push for an explicit primitive.
+// Defense-in-depth re-check on the client (the host also sanitises on serve).
+// Strip <script>, on* handlers, foreignObject, and unknown protocols on
+// href/xlink:href. Reject any element not on the allowed-elements list.
 function sanitizeSvg(raw: string): string {
   if (!raw) return '';
-  // Use DOMParser to walk the tree. Workers don't have it but this code
-  // runs in the page context (main thread renderer).
+  // DOMParser to walk the tree (page context only — workers lack it).
   let doc: Document;
   try {
     doc = new DOMParser().parseFromString(raw, 'image/svg+xml');
@@ -171,8 +164,8 @@ function sanitizeNode(node: Element): void {
     node.remove();
     return;
   }
-  // Strip event handlers + risky attrs. Walk attributes via a copy because
-  // removing during iteration mutates the live list.
+  // Strip event handlers + risky attrs. Copy the list first — removing during
+  // iteration mutates the live one.
   for (const attr of Array.from(node.attributes)) {
     const name = attr.name.toLowerCase();
     if (name.startsWith('on')) {

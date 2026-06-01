@@ -43,9 +43,7 @@ const DEBOUNCE_MS = 200;
  * Settings drawer for marketplace widgets. Read-only schema → fixed-shape
  * controls. The widget never draws its own settings UI; the panel host owns
  * the chrome so configuring a marketplace widget is visually identical to
- * configuring any first-party widget. Manifest authors get ergonomics, not
- * flexibility - iOS-style locked layout. Phase 4+ may relax for advanced
- * setting types.
+ * configuring any first-party widget (iOS-style locked layout).
  *
  * Storage is via `WidgetSettingsBridge` (nexus-service settings doc), NOT
  * `widget.config` - the Tier 2 worker reads values via `nexus.settings.get()`,
@@ -70,8 +68,7 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
   }, [id]);
 
   // Load persisted values + subscribe to changes from anywhere else the
-  // settings might be edited (currently just here, but future surfaces
-  // can land without code changes).
+  // settings might be edited.
   useEffect(() => {
     if (!bridge) return;
     void bridge.load().then((v) => setValues(v));
@@ -201,9 +198,9 @@ function SettingControl({ entry, value, onChange }: ControlProps) {
     case 'rgb-profile':
     case 'string':
     default:
-      // sensor / rgb-profile share the string shape until the host picker
-      // components ship (Phase 6). Until then, the author can type the
-      // sensor id directly; defaults from the manifest work without input.
+      // sensor / rgb-profile have no dedicated picker yet: render the
+      // string input so the author types the id directly. Manifest
+      // defaults work without input.
       return (
         <SettingsRow label={label}>
           <input

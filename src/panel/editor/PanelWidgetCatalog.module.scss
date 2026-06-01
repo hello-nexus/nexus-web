@@ -36,11 +36,9 @@
   padding: 0.25rem;
 }
 
-// Single-widget surfaces (Q60 / Q80) render cards at the widget's
-// natural 2x4 aspect — portrait, tall and narrow. The default 180px
-// column min-width then makes each card ~180 × 360 which dominates
-// the catalog. Drop the floor + the max so 5–6 portrait tiles fit
-// per row instead.
+// Single-widget surfaces (Q60 / Q80) render cards at the 2x4 widget aspect
+// (tall, narrow). The default 180px column min-width makes each ~180 × 360,
+// dominating the catalog. Drop the floor + max so 5–6 tiles fit per row.
 .desktop[data-surface='q60'] .grid,
 .desktop[data-surface='q80'] .grid {
   grid-template-columns: repeat(auto-fill, minmax(120px, 160px));

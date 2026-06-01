@@ -43,7 +43,7 @@ export function ComponentDetailView({
 
   useEffect(() => {
     // Fetch on mount + when route params change. setLoading + async fetch +
-    // setComponent is the standard data-loading pattern; can't be a useMemo.
+    // setComponent runs as an effect; can't be a useMemo.
      
     setLoading(true);
     // Try fetching from the specified category, or search all categories
@@ -103,7 +103,6 @@ export function ComponentDetailView({
 
   const categoryLabel = CATEGORY_LABELS[component.specs?.category as ComponentCategory] ?? component.specs?.category ?? '';
 
-  // Build subtitle from key specs
   const subtitleParts: string[] = [];
   if (component.specs.socket) subtitleParts.push(String(component.specs.socket));
   if (component.specs.cores) subtitleParts.push(`${component.specs.cores} Cores`);
@@ -112,7 +111,6 @@ export function ComponentDetailView({
   if (component.specs.capacity) subtitleParts.push(`${component.specs.capacity} GB`);
   if (component.specs.wattage) subtitleParts.push(`${component.specs.wattage}W`);
 
-  // All specs as key-value pairs
   const specEntries = Object.entries(component.specs).filter(
     ([, v]) => v != null && v !== '',
   );

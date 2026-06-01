@@ -246,9 +246,8 @@ export function PaletteRing({
     const startedAtFull = initialSpan >= MAX_SPAN - SNAP_EPS;
 
     // Accumulate unwrapped delta across moves so long drags don't invert
-    // sign when the cursor crosses the wrap boundary. Earlier version
-    // recomputed delta from initialCursor each frame and couldn't pull
-    // the arc all the way from mono to full in one continuous drag.
+    // sign when the cursor crosses the wrap boundary (and so the arc can pull
+    // from mono to full in one continuous drag).
     let lastCursor = initialCursor;
     let delta = 0;
 

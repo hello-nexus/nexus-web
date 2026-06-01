@@ -35,8 +35,6 @@
 }
 
 // Coarse pointers (touch): always show the X since :hover is unreliable.
-// Users rely on long-press / swipe for delete on other controls, but our
-// curve + media cards are small; keeping the X visible is the safer UX.
 @media (pointer: coarse) {
   .root[data-card-delete='hover'] {
     opacity: 1;

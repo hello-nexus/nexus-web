@@ -19,7 +19,7 @@ export const PANEL_CONTEXT_MENU_TRIGGER_MS = CONTEXT_MENU_TRIGGER_MS;
 const PANEL_SCROLLABLE_SELECTOR = '[data-panel-scrollable="true"]';
 // Elements that handle their own click (a widget's mode button, slider,
 // etc.) - tapping one of these should fire its own action, not bubble
-// up to "tap-to-immersive". Matches the same convention React forms use.
+// up to "tap-to-immersive".
 const INTERACTIVE_SELECTOR = 'button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"]';
 
 function isNonPrimaryMouseButton(e: React.PointerEvent): boolean {
@@ -44,8 +44,8 @@ interface PanelTouchModeOpts {
  * Touch UI state machine for the panel: long-press to open context menu,
  * drag arms at the same instant. Reorder/resize/remove are NOT handled
  * here - PanelApp owns the layout mutations and feeds them through the
- * single flat-list path. This hook is now purely about disambiguating
- * tap / long-press / drag and tracking rearrange visuals.
+ * single flat-list path. This hook only disambiguates tap / long-press
+ * / drag and tracks rearrange visuals.
  */
 export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
   const [rearranging, setRearranging] = useState(false);

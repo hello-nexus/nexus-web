@@ -11,14 +11,12 @@ import styles from './IncomingPairModal.module.scss';
 /**
  * Global numeric-comparison prompt. Subscribes to the
  * `panel/phone/pair-code/request` WS topic at the dashboard root and pops
- * a focused mini modal — just the 6-digit pairing number plus Allow and
- * Deny — whenever a phone submits a code or initiates a Wi-Fi pair.
+ * a mini modal — the 6-digit pairing number plus Allow and Deny — whenever
+ * a phone submits a code or initiates a Wi-Fi pair.
  *
- * Decoupled from the Pair Remote modal on purpose: this needs to surface
- * regardless of which section the user is on, and it forces an explicit
- * Allow / Deny instead of letting the user dismiss the prompt and leave a
- * stranger's pair request hanging. No X button, no Esc dismiss, no
- * backdrop-click dismiss.
+ * Separate from the Pair Remote modal so it surfaces regardless of section,
+ * and forces an explicit Allow / Deny (no X / Esc / backdrop-click dismiss)
+ * rather than leaving a pair request hanging.
  */
 export function IncomingPairModal() {
   const { t } = useTranslation();

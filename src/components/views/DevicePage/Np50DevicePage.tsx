@@ -28,17 +28,14 @@ import styles from './Np50DevicePage.module.scss';
 /**
  * Routed page for the HYTE NP50. Exposes the two EEPROM-persisted
  * surfaces — default cooling behaviour + firmware-side LED animation —
- * that the cooling and lighting pages can't cleanly host because they
- * describe what the hub does when nexus ISN'T streaming (PC off, service
- * shut down, hub in BIOS).
+ * that describe what the hub does when nexus ISN'T streaming (PC off,
+ * service shut down, hub in BIOS).
  *
- * Connection model: the only authoritative "is the NP50 here?" answer
- * lives at `GET /devices/np50`. The two EEPROM reads can fail
- * transiently — most commonly with HTTP 409 mid-cooling-mode write, or
- * during the brief window before the heartbeat worker's first poll
- * completes — and we MUST NOT treat that as offline. Pinning the
- * placeholder to `connected === false` (never to a null EEPROM read)
- * is the whole of the offline-flash fix.
+ * Connection model: the authoritative "is the NP50 here?" answer lives at
+ * `GET /devices/np50`. The two EEPROM reads can fail transiently (HTTP 409
+ * mid-cooling-mode write, or before the heartbeat worker's first poll) and
+ * MUST NOT be treated as offline. The placeholder is pinned to
+ * `connected === false`, never to a null EEPROM read.
  */
 export function Np50DevicePage() {
   // Tri-state: 'unknown' = still loading, 'connected' = hub up,
@@ -59,8 +56,7 @@ export function Np50DevicePage() {
     if (!aliveRef.current) return;
     if (conn === null) {
       // Service unreachable. Don't change connection state; the parent
-      // ServiceRequired guard handles the no-service case at a higher
-      // level. We just bail without touching anything user-visible.
+      // ServiceRequired guard handles the no-service case.
       return;
     }
     if (!conn.connected) {
@@ -117,9 +113,9 @@ export function Np50DevicePage() {
     }
   }, []);
 
-  // Placeholder only renders when the service explicitly says the hub
-  // is gone. A transient EEPROM null or a "still loading" state never
-  // reaches this branch — bug 3 fix.
+  // Placeholder only renders when the service explicitly says the hub is
+  // gone. A transient EEPROM null or a "still loading" state never reaches
+  // this branch.
   if (connection === 'disconnected') {
     return (
       <div className={styles.page}>

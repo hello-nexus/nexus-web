@@ -17,10 +17,9 @@ export interface KeebTesterViewProps {
   open: boolean;
 }
 
-/// Key Tester tab body. The firmware-driven `keeb.tester` WebSocket
-/// topic isn't wired yet (Phase 7 in plans/keeb-support.md). Until then
-/// this runs in **Local Mode**: it listens to window keydown events so
-/// the table shape is testable without hardware.
+/// Key Tester tab body. The firmware-driven `keeb.tester` WebSocket topic
+/// isn't wired (Phase 7 in plans/keeb-support.md), so this runs in Local
+/// Mode: it listens to window keydown events, testable without hardware.
 export function KeebTesterView({ open }: KeebTesterViewProps) {
   const [history, setHistory] = useState<TouchEntry[]>([]);
 

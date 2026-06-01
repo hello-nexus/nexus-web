@@ -44,22 +44,18 @@ export const LANGUAGE_FLAGS: Record<Language, string> = {
 export const THEME_MODES = ['system', 'dark', 'light'] as const;
 export type ThemeMode = (typeof THEME_MODES)[number];
 
-// Accent color — user-selectable in Settings. Hex #rrggbb.
-// All other accent tokens (glow, deep, soft, glow-shadow, plus the
-// matching --accent-text variants) are derived from this single value
-// per-theme in applyAccentColor().
-// Absolute-last-resort fallback for the first paint, before either
-// localStorage or the /defaults cache has anything useful. Must mirror
+// Accent color — user-selectable in Settings, hex #rrggbb. Other accent
+// tokens (glow, deep, soft, glow-shadow, the --accent-text variants) derive
+// from it per-theme in applyAccentColor(). First-paint fallback before
+// localStorage or the /defaults cache loads. Must mirror
 // nexus-service/data/install-defaults.json → theme.accentColor.
 export const DEFAULT_ACCENT = '#2563eb';
 
-// Preset swatch grid shown in the settings picker. Two rows of ten, paired by
-// column. Row 1 is the primary saturated choice; row 2 is the same hue with
-// saturation pulled back and lightness dropped a touch (calmer + slightly
-// darker). Deep blue leads the row so the default accent is the first swatch
-// in the grid.
+// Preset swatch grid for the settings picker. Two rows of ten, paired by
+// column: row 1 is the saturated choice, row 2 is the same hue with lower
+// saturation and lightness. Deep blue (the default accent) leads.
 export const PRESET_ACCENTS = [
-  // Row 1 - primary family choices (uniformly rich)
+  // Row 1 - primary family choices
   '#2563eb', // Deep blue (default)
   '#3b82f6', // Blue
   '#8b5cf6', // Violet
@@ -70,7 +66,7 @@ export const PRESET_ACCENTS = [
   '#16c963', // Green
   '#0bbfa9', // Teal
   '#06b6d4', // Cyan
-  // Row 2 - softer siblings (lower S, slightly darker L), paired by column
+  // Row 2 - softer siblings (lower S, darker L), paired by column
   '#3e63b8', // Soft blue
   '#5a85c6', // Soft sky
   '#8e83c0', // Soft violet
@@ -102,10 +98,8 @@ export interface GeneralSettings {
   pinnedSidebarApps: string[];
   // When true, lighting + cooling widgets render the full controls
   // (animation/mirror/static buttons on lighting, response chart +
-  // silent/balanced/turbo chips on cooling). Defaults false — the
-  // glanceable single-icon-with-arrows layout is the design default;
-  // power users flip this on to expose the richer surface. Client-only
-  // today — not threaded through the server preferences pipeline yet.
+  // silent/balanced/turbo chips on cooling); default false (single-icon
+  // -with-arrows layout). Client-only, not in the server preferences pipeline.
   widgetAdvancedMode: boolean;
 }
 
@@ -116,10 +110,9 @@ export interface NexusSettings {
 // ── Defaults ─────────────────────────────────────────────────────────────────
 
 // First-paint defaults — used only when localStorage is empty AND the
-// /defaults cache hasn't loaded yet. The canonical values for every field
-// here live in nexus-service/data/install-defaults.json (theme.* and
-// monitoring.*); keep them in sync until the cache-aware bootstrap can
-// take over this read too.
+// /defaults cache hasn't loaded yet. Canonical values live in
+// nexus-service/data/install-defaults.json (theme.* and monitoring.*); keep
+// in sync.
 export function getDefaultSettings(): NexusSettings {
   return {
     general: {
@@ -218,9 +211,9 @@ const THEME_COLOR_LIGHT = '#f4f4f8';
  * page background. Caller passes an already-resolved 'dark' | 'light' value;
  * use applyThemeMode if you have a raw ThemeMode (incl. 'system'/'auto').
  *
- * Split out from applyThemeMode so surfaces with independent theme state
- * (e.g. the phone panel, which has its own panel-theme separate from the
- * desktop theme) can update html chrome without touching the desktop accent.
+ * Separate from applyThemeMode so surfaces with independent theme state
+ * (e.g. the phone panel) update html chrome without touching the desktop
+ * accent.
  */
 export function applyHtmlChromeTheme(resolved: 'dark' | 'light'): void {
   document.documentElement.setAttribute('data-theme', resolved);

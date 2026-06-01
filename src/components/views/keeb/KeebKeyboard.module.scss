@@ -46,12 +46,11 @@ $wheel-size: 110px;
   height: 49px;
 }
 
-// Three visual key sizes, matched to the legacy nexus app:
+// Three visual key sizes:
 //   .key           - standard, 75x70 (alphabetic + nav + numpad + modifiers)
 //   .key.media     - row 1 media keys, 80x45 with rounded corners
 //   .key.middle    - row 0 col 0 (firmware mode-cycle key), 60x80 pill
-// The choice between them is positional, not modal: the renderer applies
-// classes based on (row, col), mirroring legacy `Key/index.tsx`.
+// The renderer picks between them by (row, col), positionally not by mode.
 
 .key {
   position: relative;
@@ -68,7 +67,7 @@ $wheel-size: 110px;
   background: var(--panel-bg, rgba(20, 20, 24, 0.85));
   color: var(--text, #e8e8ec);
   // Source size 75x70 scaled by the modal's `zoom` (0.55 main / 0.48 source).
-  // 28px reads cleanly at both zoom levels.
+  // 28px is legible at both zoom levels.
   font-size: 28px;
   font-weight: 600;
   text-align: center;
@@ -107,9 +106,8 @@ $wheel-size: 110px;
   cursor: not-allowed;
 }
 
-// Rotary wheels: round, flank the RGB-cycle key on the top row. Larger
-// than regular keys so they read as something different on the keyboard
-// graphic — match the physical hardware's relative sizing.
+// Rotary wheels: round, flank the RGB-cycle key on the top row. Larger than
+// regular keys, matching the physical hardware's relative sizing.
 .wheel {
   flex-shrink: 0;
   width: $wheel-size;

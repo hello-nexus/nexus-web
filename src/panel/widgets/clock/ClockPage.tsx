@@ -9,29 +9,20 @@ import { WorldClockMap } from './WorldClockMap';
 import styles from './ClockPage.module.scss';
 
 /**
- * Desktop "app view" for the Clock widget. Two things:
- *
- *   • A day/night world map at the top — equirectangular projection,
- *     live solar terminator, subsolar sun marker, the curated city
- *     set marked as pins, the user's local timezone (if it maps to
- *     a catalog city) highlighted in gold.
- *
- *   • A scrollable list of city cards beneath, each showing the
- *     local weekday / time / UTC offset, tinted day vs night.
- *
- * Per-clock-widget customisation (design, format, etc.) lives in the
- * regular widget right-click context menu / edit sheet — same UX
- * vocabulary as every other app. This page deliberately carries no
- * customisation surface; it's the "Clocks" experience.
+ * Desktop app view for the Clock widget: a day/night world map
+ * (equirectangular, live terminator, subsolar marker, city pins,
+ * local tz highlighted in gold) over a scrollable list of city cards
+ * showing weekday / time / UTC offset, tinted day vs night.
+ * No customisation surface here; per-widget config lives in the
+ * widget edit sheet.
  */
 export function ClockPage() {
   const { t } = useTranslation();
   const localTz = useMemo(() => resolveLocalTz(), []);
   const [now, setNow] = useState(() => new Date());
 
-  // Tick once per UTC minute aligned to the wall-clock minute. That's
-  // the granularity the terminator visibly moves at AND the granularity
-  // city minute labels need; no per-second re-render needed.
+  // Tick once per minute, aligned to the wall-clock minute: the
+  // granularity both the terminator and the city minute labels need.
   useEffect(() => {
     const tick = () => setNow(new Date());
     const wait = 60_000 - (Date.now() % 60_000);

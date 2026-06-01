@@ -18,8 +18,8 @@
 
 .stacked {
   flex-direction: column;
-  // Vertical gap between the label-row and the track. Kept minimal so the
-  // value/label read as a caption directly above the bar.
+  // Small gap between the label-row and the track so the value/label read as
+  // a caption directly above the bar.
   gap: var(--slider-stack-gap, 0.05rem);
 }
 

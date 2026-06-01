@@ -1,5 +1,5 @@
 // Vendor-agnostic WebHID discovery. Works against every vendor registered via
-// registerWebHidVendor — today Razer, tomorrow Logitech / Corsair Bragi / QMK.
+// registerWebHidVendor.
 import './types';
 import './razer/index'; // side-effect: registers Razer
 import { requestDeviceFilters, tryWrapPeripheral, type WebHidPeripheral } from './peripheral';

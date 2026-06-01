@@ -11,10 +11,9 @@ const WEIGHT_MAP: Record<string, number> = {
 };
 
 function textStyle(view: WidgetView, ctx: RenderContext, defaults: CSSProperties): CSSProperties {
-  // `size` accepts a number (px) or a string ("2.6em", "1.6rem",
-  // "clamp(...)"). Number path goes through bindNumber; string path goes
-  // through bind so binding expressions still resolve. Strings pass to CSS
-  // verbatim — author owns the unit.
+  // `size` is a number (px) or a string ("2.6em", "clamp(...)"). Numbers go
+  // through bindNumber, strings through bind (binding expressions resolve);
+  // strings pass to CSS verbatim.
   const rawSize = bind(view.size, ctx);
   let fontSizeValue: number | string | undefined;
   if (typeof rawSize === 'number' && Number.isFinite(rawSize)) {
@@ -30,11 +29,9 @@ function textStyle(view: WidgetView, ctx: RenderContext, defaults: CSSProperties
   const opacity = bindNumber(view.opacity, ctx, NaN);
   const truncate = bindBoolean(view.truncate, ctx, false);
   const transform = bind(view.transform, ctx) as string | undefined;
-  // Author-bundled font name. Resolves to the widget-scoped family loaded
-  // by fontLoader; falls through to system font if the family hasn't
-  // loaded yet (no FOUT blocking). Authors can also pass `fontFamily` as
-  // a raw CSS family list (e.g. "monospace", "ui-serif, Georgia") to
-  // pick a system generic without bundling a font asset.
+  // `font` = author-bundled name → the widget-scoped family from fontLoader,
+  // falling through to system font until loaded (no FOUT block). `fontFamily`
+  // = a raw CSS family list for a system generic with no bundled asset.
   const font = bind(view.font, ctx) as string | undefined;
   const fontFamilyRaw = bind(view.fontFamily, ctx) as string | undefined;
   let fontFamily: CSSProperties['fontFamily'] = defaults.fontFamily;
@@ -49,9 +46,8 @@ function textStyle(view: WidgetView, ctx: RenderContext, defaults: CSSProperties
     ...defaults,
     color,
     fontSize: fontSizeValue ?? defaults.fontSize,
-    // Number(weight) returns NaN for non-numeric input (never nullish), so
-    // fall through with `||` to coerce NaN -> 400 default. Preserves the
-    // semantic "WEIGHT_MAP keyword | numeric string | fallback".
+    // Number(weight) is NaN for non-numeric input (never nullish), so `||`
+    // coerces NaN → 400. WEIGHT_MAP keyword | numeric string | 400.
     fontWeight: weight ? (WEIGHT_MAP[weight] ?? (Number(weight) || 400)) : defaults.fontWeight,
     fontFamily,
     textAlign: align as CSSProperties['textAlign'],
@@ -93,10 +89,9 @@ export function Text({ view, ctx }: MeterProps) {
 }
 
 export function Value({ view, ctx }: MeterProps) {
-  // Primary numeric display. Defaults: container-query scaling, tabular
-  // digits, tight letter-spacing. Optional `unit` renders as a smaller
-  // suffix; pre-format the number in the bound `text` rather than passing
-  // a separate format string.
+  // Primary numeric display: container-query scaling, tabular digits, tight
+  // letter-spacing. Optional `unit` renders as a smaller suffix; pre-format
+  // the number in `text` (no separate format string).
   const text = String(bind(view.text, ctx, '--') ?? '--');
   const unit = bind(view.unit, ctx) as string | undefined;
   return (

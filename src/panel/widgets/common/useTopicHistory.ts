@@ -4,14 +4,11 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 /**
  * Rolling history buffer driven by a multiplex topic's broadcast cadence.
  * Each received frame of <code>topic</code> extends the buffer by one
- * sample (the current <code>value</code>), with no value-identity dedup —
- * a stretch of identical readings still advances the buffer once per
- * backend broadcast.
+ * sample (the current <code>value</code>), with no value-identity dedup:
+ * a run of identical readings still advances the buffer once per broadcast.
  *
- * Use this for charts whose source is a single topic (cpu, gpu,
- * cooling-realtime, etc.) so the chart's tick rate matches the wire and
- * doesn't depend on React's primitive-prop equality or on a
- * cross-topic frameTick wrapper.
+ * For charts sourced from a single topic (cpu, gpu, cooling-realtime), so the
+ * tick rate matches the wire, not React primitive-prop equality.
  */
 export function useTopicHistory(topic: string, value: number, samples: number): number[] {
   // Write-only-in-render mutation: the ref is read inside the post-commit

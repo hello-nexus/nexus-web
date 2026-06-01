@@ -1,11 +1,7 @@
-// Visible label for each KeyFunction the keeb firmware understands. Ported
-// from nexus/src/renderer/shared/features/nexus/keeb/KeyFunctionsMappings.tsx
-// — same labels users have seen for years, kept identical so muscle memory
-// transfers. ANSI/ISO swap a few legend strings ("` ~" vs "` ¬", Enter shape,
-// etc).
+// Visible label for each KeyFunction the keeb firmware understands. ANSI/ISO
+// swap a few legend strings ("` ~" vs "` ¬", Enter shape, etc).
 //
-// Icon glyphs are rendered as lucide-react components rather than the legacy
-// FontAwesome bundle the old nexus app pulled in.
+// Icon glyphs are rendered as lucide-react components.
 
 import type { ReactNode } from 'react';
 import {

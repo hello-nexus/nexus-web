@@ -62,8 +62,8 @@ export interface PanelThemeSettingsProps {
   onWidgetOpacityCommit: (opacity: number) => void;
   onWidgetLabelsCommit: (enabled: boolean) => void;
   onWidgetBlurCommit: (enabled: boolean) => void;
-  /** Hide the widget-labels toggle entirely. Single-widget surfaces (q-series)
-   * lock labels off, so there's nothing for the user to choose. */
+  /** Hide the widget-labels toggle. Single-widget surfaces (q-series) lock
+   * labels off. */
   hideWidgetLabelsToggle?: boolean;
 }
 

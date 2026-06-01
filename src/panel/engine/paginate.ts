@@ -49,10 +49,7 @@ export function paginateCapacityForGrid(
   return { gridCols: gridColumns, pageRows: Math.max(1, gridRows - 1) };
 }
 
-/**
- * Returns true if widget `w`'s rect intersects the rect at (col, row)
- * with size (colSpan, rowSpan).
- */
+/** True if rects `a` and `b` intersect. */
 export function rectsOverlap(
   a: { col: number; row: number; colSpan: number; rowSpan: number },
   b: { col: number; row: number; colSpan: number; rowSpan: number },
@@ -136,8 +133,7 @@ export function repaginatePanelLayout(layout: PanelLayout, capacity: PaginateCap
 
 /**
  * Walks every page's widgets in canonical (col, row) row-major order.
- * Used for keyboard nav, reads, and migration helpers. Storage order
- * is no longer canonical; (col, row) is.
+ * (col, row) is canonical; storage order is not.
  */
 export function flattenPages(pages: PanelPage[]): PanelWidget[] {
   return pages.flatMap(page =>

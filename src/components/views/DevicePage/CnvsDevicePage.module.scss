@@ -1,6 +1,5 @@
 // CNVS device page chrome. Same .page / .pageBody contract every device
-// page uses (matches KeebDevicePage / Np50DevicePage / PeripheralDevicePage)
-// so it sits flush under the dashboard view header.
+// page uses, so it sits flush under the dashboard view header.
 
 .page {
   display: flex;

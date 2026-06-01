@@ -174,10 +174,9 @@ export function SnakeWidget({ widget }: WidgetProps) {
 
   // Build cell lookup set for fast rendering. Game state lives in refs to
   // avoid re-rendering on every tick (the interval mutates `snakeRef`
-  // and `foodRef` in place and then calls `setTick` to invalidate the
-  // tree). Reading the refs here during render is intentional: the
-  // explicit `tick` dependency above guarantees React re-runs render
-  // after every mutation, so the values we read are always in sync.
+  // and `foodRef` in place, then calls `setTick` to invalidate the tree).
+  // The `tick` dependency above re-runs render after every mutation, so
+  // the refs read here are always in sync.
   const snake = snakeRef.current;
   const food = foodRef.current;
 

@@ -9,8 +9,7 @@ interface CardDeleteButtonProps {
   title?: string;
   /**
    * Hide the button until the parent `.card` is hovered / focused. When false
-   * the button is always visible - useful on touch surfaces or in simple lists
-   * where a hover affordance is a discoverability hazard. Default true.
+   * the button is always visible (touch surfaces, simple lists). Default true.
    */
   revealOnHover?: boolean;
   /** Extra class for positioning (absolute top/right is the caller's job). */
@@ -18,11 +17,10 @@ interface CardDeleteButtonProps {
 }
 
 /**
- * Single source of truth for the "delete this card" X button, used on cooling
- * curve cards, media thumbnails, and any future card-shaped list item. The
- * parent enables hover-reveal by styling `:hover [data-card-delete]` in its
- * own SCSS module - the data attribute jumps module scope and keeps the
- * reveal rule close to the container that owns the hover surface.
+ * Shared "delete this card" X button (cooling curve cards, media thumbnails).
+ * The parent enables hover-reveal by styling `:hover [data-card-delete]` in
+ * its own SCSS module; the data attribute jumps module scope so the reveal
+ * rule lives on the container that owns the hover surface.
  */
 export function CardDeleteButton({
   onDelete, ariaLabel, title, revealOnHover = true, className,

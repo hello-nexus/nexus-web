@@ -18,12 +18,11 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
  *
  *   panel       → PanelDevicePage     (Y70 / Q60 / Q80 / simulator)
  *   peripheral  → PeripheralDevicePage (mice, keyboards, …)
- *   curated     → falls through to "details coming" until each
- *                  curated handler grows its own page.
+ *   curated     → its bespoke page (keeb / np50 / cnvs); any without one
+ *                  falls through to a name + "no page yet" placeholder.
  *
- * The previous flow opened these as fullscreen modals from
- * DevicesPage; converting them to pages was the point of this
- * refactor so the sidebar's DEVICES section can deep-link.
+ * Rendering these as pages (rather than fullscreen modals) lets the
+ * sidebar's DEVICES section deep-link to each device.
  */
 interface DevicePageProps {
   deviceKey: string;
@@ -52,16 +51,13 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
   }
 
   if (device.kind === 'panel' && device.panelDevice) {
-    // `key` forces a full unmount + remount when the user navigates
-    // from one panel device page to another (e.g. Q60 → Y70).
-    // Without it React reuses the same PanelDevicePage instance and
-    // the inner PanelEmbedFrame keeps its ResizeObserver-derived
-    // `measured` state, its post-handshake iframe content, and its
-    // canvasW/H derived from the previous device — so the new device
-    // page paints with the old device's scale + sizing until something
-    // else (page change → return) tears the tree down. Keying on the
-    // unified device key remounts cleanly so the iframe rebuilds
-    // against the new device's canvas/DPR from scratch.
+    // `key` forces unmount + remount when navigating between panel device
+    // pages (e.g. Q60 → Y70). Without it React reuses the same
+    // PanelDevicePage and PanelEmbedFrame keeps its ResizeObserver-derived
+    // `measured` state, post-handshake iframe content, and canvasW/H from
+    // the previous device, so the new page paints at the old device's
+    // scale until the tree is torn down. Remounting rebuilds the iframe
+    // against the new device's canvas/DPR.
     return <PanelDevicePage key={device.key} device={device.panelDevice} />;
   }
 
@@ -81,9 +77,8 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
     return <CnvsDevicePage key={device.key} />;
   }
 
-  // Curated devices the service knows about but don't yet have a
-  // bespoke page. Renders the device name + a hint so a sidebar deep
-  // link still lands on something readable.
+  // Curated devices with no bespoke page: render the name + a hint so a
+  // sidebar deep link still lands on something readable.
   return (
     <section>
       <ViewHeader title={device.name} />

@@ -3,28 +3,24 @@ import { SectionHeader } from '../../components/common/SectionHeader/SectionHead
 import styles from './PanelHostNameSetting.module.scss';
 
 interface PanelHostNameSettingProps {
-  // Currently resolved host name. Empty string while the initial /ping is
-  // in flight - the input shows a placeholder until it lands.
+  // Resolved host name. Empty while the initial /ping is in flight (input
+  // shows a placeholder).
   machineName: string;
   onCommit: (next: string) => void;
 }
 
 /**
- * Inline editor for the user-overridden host PC display name. Shows the
- * current resolved value, lets the user replace it, and commits on blur
- * or Enter. Empty input clears the override on the server, which falls
- * back to Environment.MachineName on the next read.
+ * Inline editor for the user-overridden host PC display name. Commits on blur
+ * or Enter. Empty input clears the override; the server then falls back to
+ * Environment.MachineName.
  */
 export function PanelHostNameSetting({ machineName, onCommit }: PanelHostNameSettingProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [draft, setDraft] = useState(machineName);
 
-  // Sync to the latest server-resolved value, but only when the input is
-  // not focused. Without the focus guard, a watchdog refresh mid-typing
-  // would replace the user's draft with the previous server value. The
-  // guard reads document.activeElement (an external DOM source), so the
-  // effect genuinely synchronizes with external state rather than
-  // deriving a value from props.
+  // Sync to the server-resolved value only when the input isn't focused.
+  // Without the focus guard, a watchdog refresh mid-typing would overwrite the
+  // draft with the previous server value.
   useEffect(() => {
     if (document.activeElement === inputRef.current) return;
      

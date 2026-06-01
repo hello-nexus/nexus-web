@@ -6,12 +6,10 @@ import styles from './SettingRow.module.scss';
 /**
  * Canonical settings row: a label (+ optional description) on the left and a
  * control on the right (no per-row divider — the rule belongs under section
- * headers, via SectionHeader). This is THE settings row for
- * the whole app — the main Settings pages, the lighting/keeb pages, the panel
- * editor sheet, the panel Theme page, and the device Settings tab all use it,
- * so they read identically. It replaced the per-view inline rows
- * (SettingsView `ToggleRow`/`SelectRow`, KeebSettingsView `Row`), the panel
- * fork (`panel/widgets/common/SettingsRow`), and the global `device-modal-row`.
+ * headers, via SectionHeader). The one settings row for the whole app (main
+ * Settings pages, lighting/keeb pages, panel editor sheet, panel Theme page,
+ * device Settings tab), so they read identically. The panel `SettingsRow` name
+ * re-exports this primitive.
  *
  * Tokens fall back to the app globals (`--text`/`--border`/`--text-faded`) so
  * the row themes correctly both inside `.panel-root` (kiosk, where the

@@ -29,8 +29,7 @@ export interface KeebSettingsViewProps {
 
 /// Settings tab: firmware lighting, passive (key-reactive) overlay, game mode.
 /// Every change writes through to the persistence layer immediately so the
-/// next service start picks them up; when the HID driver lands the same calls
-/// will reach the firmware in the same write.
+/// next service start picks them up.
 export function KeebSettingsView({
   settings,
   onSaveFirmwareLighting,

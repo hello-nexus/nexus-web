@@ -123,19 +123,18 @@ function applyRouteDefaults(route: Route): Route {
 }
 
 export function useRoute() {
-  // Initial route captured synchronously so SSR / first paint sees the right
-  // page. The effect below also stamps the canonical URL via replaceState if
-  // the address bar says something different.
+  // Initial route captured synchronously so first paint sees the right page.
+  // The effect below stamps the canonical URL via replaceState if the address
+  // bar differs.
   const [initialRoute] = useState(() => applyRouteDefaults(parsePath()));
   const [initialExpectedPath] = useState(() => routeToPath(initialRoute));
   const [route, setRoute] = useState<Route>(initialRoute);
 
-  // The browser's session history is the source of truth for back/forward.
-  // We mirror it in `historyRef` keyed by `state.idx` so popstate (mouse
-  // buttons or browser chrome) can resolve the destination Route in O(1).
-  // This is what keeps the arrow disabled-states in sync with the mouse:
-  // every navigation — ours or the browser's — funnels through the same
-  // index + Route table.
+  // Browser session history is the source of truth for back/forward.
+  // Mirrored in `historyRef` keyed by `state.idx` so popstate (mouse buttons
+  // or browser chrome) resolves the destination Route in O(1). Every
+  // navigation funnels through the same index + Route table, keeping the
+  // arrow disabled-states in sync with the mouse.
   const historyRef = useRef<Route[]>([initialRoute]);
   const indexRef = useRef(0);
   // Bumped on any stack mutation so consumers re-evaluate canGoBack/Forward
@@ -147,16 +146,13 @@ export function useRoute() {
     routeRef.current = route;
   }, [route]);
 
-  // Seed the index + mirror table from whatever is already on history.state.
-  //
-  // Two cases:
+  // Seed the index + mirror table from history.state.
   //  - Fresh load (no state.idx): stamp idx:0 onto the current entry.
   //  - Refresh / session-restore (state.idx is N): the browser still has
-  //    entries 0..N-1 in its session stack; we don't have Route objects
-  //    for them, but seeding indexRef = N keeps canGoBack/Forward and
-  //    pushState truncation in lockstep with the browser. Mouse-back to
-  //    one of those older entries falls through to parsePath() in the
-  //    popstate handler — the URL is still authoritative.
+  //    entries 0..N-1 but we lack Route objects for them; seeding
+  //    indexRef = N keeps canGoBack/Forward and pushState truncation aligned
+  //    with the browser. Mouse-back to an older entry falls through to
+  //    parsePath() in the popstate handler (URL is authoritative).
   //
   // The ref guard keeps this single-shot through React 18 concurrent
   // re-renders / StrictMode double-invoke.
@@ -195,13 +191,12 @@ export function useRoute() {
       if (stateIdx != null) {
         indexRef.current = stateIdx;
       }
-      // setHistoryVersion synchronous BEFORE the transition so canGoBack /
+      // setHistoryVersion synchronously BEFORE the transition so canGoBack /
       // canGoForward reflect the new index immediately. setRoute in a
-      // transition so lazy Page chunks loading on back/forward don't
-      // unmount the current view (Suspense fallback={null} would flash
-      // blank otherwise). Same ordering as commit() — keep them symmetric
-      // or React 18 may batch the sync update with the transition and
-      // partially defeat the "keep prior UI visible" benefit.
+      // transition so a lazy Page chunk on back/forward doesn't unmount the
+      // current view (Suspense fallback={null} would flash blank). Same
+      // ordering as commit(); keep symmetric or React 18 may batch the sync
+      // update with the transition and keep the prior UI from staying visible.
       setHistoryVersion(v => v + 1);
       startTransition(() => setRoute(target));
     };
@@ -209,12 +204,11 @@ export function useRoute() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // Shared commit for any forward navigation. pushState appends to the
-  // browser's session history; we mirror the entry in historyRef and
-  // truncate any forward entries (matching browser semantics: navigating
-  // after going back drops the forward chain). When the path is unchanged
-  // we still refresh the mirror slot so non-URL Route fields (e.g.
-  // fromCategory) don't go stale on a re-navigate to the same path.
+  // Shared commit for forward navigation. pushState appends to session
+  // history; mirror the entry in historyRef and truncate forward entries
+  // (browser semantics: navigating after going back drops the forward
+  // chain). On an unchanged path, still refresh the mirror slot so non-URL
+  // Route fields (e.g. fromCategory) don't go stale.
   const commit = useCallback((next: Route) => {
     const path = routeToPath(next);
     const currentPath = window.location.pathname + window.location.search;
@@ -228,10 +222,9 @@ export function useRoute() {
     } else {
       historyRef.current[indexRef.current] = next;
     }
-    // setRoute in a transition so a lazy Page chunk loading under Suspense
-    // keeps the previous view visible (no blank flash from fallback={null})
-    // until the new view is fully ready. URL + history are already updated
-    // synchronously above so back/forward and address-bar remain correct.
+    // setRoute in a transition so a lazy Page chunk under Suspense keeps the
+    // previous view visible (no blank flash from fallback={null}) until ready.
+    // URL + history are already updated synchronously above.
     startTransition(() => setRoute(next));
   }, []);
 
@@ -289,12 +282,10 @@ export function useRoute() {
     history.forward();
   }, []);
 
-  // Derived from refs; the historyVersion state above is what schedules
-  // the re-render whenever the stacks move, so React reads fresh values.
+  // Derived from refs; historyVersion schedules the re-render when the stacks
+  // move, so React reads fresh values.
   void historyVersion;
-   
   const canGoBack = indexRef.current > 0;
-   
   const canGoForward = indexRef.current < historyRef.current.length - 1;
 
   return {

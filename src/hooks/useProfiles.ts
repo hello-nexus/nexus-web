@@ -59,26 +59,21 @@ export function useProfiles(enabled: boolean): UseProfilesResult {
 
   useEffect(() => {
     if (!enabled) return;
-    // Loading flag is the UI side of the HTTP fetch this effect subscribes
-    // to. Flipping it to true gates the spinner, then refresh() resolves
-    // and the finally toggles it off. Canonical "subscribe + sync" use.
-     
     setLoading(true);
     refresh().finally(() => setLoading(false));
   }, [enabled, refresh]);
 
   const switchProfileFn = useCallback(async (id: string): Promise<Preferences | null> => {
-    // Optimistic: flip the active highlight in the UI immediately so the
-    // dropdown and settings list feel instant. The server call + manifest
-    // refresh continue in the background; if the call fails the refresh
-    // reverts the local state.
+    // Optimistic: flip the active highlight immediately. The server call +
+    // manifest refresh run in the background; on failure the refresh reverts
+    // local state.
     setActiveId(id);
     try {
       const resp = await apiSwitch(id);
       if (resp) {
         if (resp.switched && resp.switched !== id) setActiveId(resp.switched);
-        // Background refresh - manifest `updatedAt` etc. matter for the
-        // settings list ordering but not for the switch UX.
+        // Background refresh - manifest `updatedAt` etc. drive the settings
+        // list ordering, not the switch UX.
         refresh().catch(() => { /* best-effort */ });
         return resp.prefs;
       }
@@ -149,9 +144,6 @@ export function useProfileSharing(enabled: boolean): UseProfileSharingResult {
 
   useEffect(() => {
     if (!enabled) return;
-    // See useProfiles above: setLoading(true) is the UI side of the HTTP
-    // fetch this effect kicks off; canonical subscribe + sync pattern.
-     
     setLoading(true);
     refresh().finally(() => setLoading(false));
   }, [enabled, refresh]);

@@ -55,8 +55,8 @@ type Y70Orientation = (typeof Y70_ORIENTATIONS)[number];
 
 function normalizeOrientation(value: string | undefined | null): Y70Orientation {
   if (!value) return 'Landscape';
-  // Older builds persisted lowercase 'landscape' / 'portrait'. Normalize back
-  // to the Windows-style PascalCase values the backend now expects.
+  // Map legacy lowercase 'landscape' / 'portrait' to the Windows-style
+  // PascalCase values the backend expects.
   const lower = value.toLowerCase();
   if (lower === 'portrait') return 'Portrait';
   if (lower === 'landscapeflipped' || lower === 'landscape_flipped') return 'LandscapeFlipped';
@@ -91,20 +91,18 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   const supportsAutoLaunch = device?.capabilities.launchClose ?? surface === 'y70';
   const settingsAvailable = supportsDisplayControls || supportsAutoLaunch;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
-  // Simulator and real hardware share the same code path: theme, layout,
+  // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
-  // service's persisted state. Swapping a real Y70 in for the simulator (or
-  // vice versa) picks up exactly the same configuration.
+  // service's persisted state.
   const panelTheme = usePanelTheme(editingDeviceId);
   const theme = panelTheme.theme;
   const effectiveThemeMode = theme.themeSyncWithDesktop ? theme.appThemeMode : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
-  // CSS variables driving the panel theme (--panel-accent etc. and the full
-  // --accent family). The device modal lives in the desktop chrome where
-  // --accent is the desktop's accent, so any descendant that reaches for
-  // --accent (SearchInput, widget previews) would otherwise highlight in
-  // the wrong hue. Threading these vars into the catalog + widget preview
-  // wrappers below lets device-scoped content honor the panel accent.
+  // CSS variables driving the panel theme (--panel-accent and the full
+  // --accent family). This page lives in desktop chrome where --accent is
+  // the desktop accent, so descendants reaching for --accent (SearchInput,
+  // widget previews) would highlight in the wrong hue. Threading these vars
+  // into the catalog + widget preview wrappers below honors the panel accent.
   const panelThemeVars = useMemo(
     () => buildPanelThemeVars(theme, resolvedPanelThemeMode),
     [theme, resolvedPanelThemeMode],
@@ -189,9 +187,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   const handleAddWidget = useCallback((type: string, size: PanelWidgetSize) => {
     if (singleWidget) {
       // Single-widget surface (q-series): one widget at a time, fixed 2x4.
-      // Clicking the catalog tile that matches what's already on the
-      // device is a no-op — protects the existing config from being
-      // wiped by an accidental click.
+      // Clicking the catalog tile already on the device is a no-op.
       const current = layout.pages[0]?.widgets[0];
       if (current && current.type === type) return;
       const next: PanelWidget = {
@@ -312,12 +308,9 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       onAdd={handleAddWidget}
                       variant="desktop-modal"
                       // Single-widget surfaces (Q60 / Q80) lock every
-                      // widget to one fixed size (2x4), so the cards
-                      // can use that aspect verbatim — gives the
-                      // catalog a tall, narrow tile that previews the
-                      // actual on-device shape. Multi-size surfaces
-                      // (Y70, phone, desktop) keep the square tile so
-                      // the catalog reads uniformly across mixed sizes.
+                      // widget to 2x4, so cards use that aspect to preview
+                      // the on-device shape. Multi-size surfaces (Y70,
+                      // phone, desktop) keep the square tile.
                       aspect={isSingleWidgetSurface(surface) ? 'natural' : 'square'}
                       themeMode={resolvedPanelThemeMode}
                       themeStyle={panelThemeVars}

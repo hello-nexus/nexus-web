@@ -85,15 +85,12 @@ export function Dashboard() {
   const { build, dispatch, issues, wattage } = useBuilder();
 
   // Always-on monitoring: subscribe to composite frame + screentime at app
-  // level so the store keeps accumulating across tab switches. Users want
-  // sparklines and history to survive navigating away from Monitoring.
-  // The backend is cheap at this (CachingUsbEnumerator + de-LINQ'd
-  // ProcessMonitor) and drops cadence to 2 s by default.
+  // level so the store keeps accumulating (sparklines / history) across tab
+  // switches. Backend drops cadence to 2 s by default.
   useMonitoringStoreBridge(multiplex);
 
-  // NOTE: the UiSettingsProvider below now owns the server-preferences hydrate
-  // + cache + theme/accent apply. The legacy effect that did all three
-  // inline used to live here; removed to keep a single source of truth.
+  // The UiSettingsProvider below owns the server-preferences hydrate + cache +
+  // theme/accent apply — the single source of truth for all three.
 
   const handlePreferencesChanged = useCallback((prefs: Preferences) => {
     applyThemeMode(prefs.theme.themeMode as ThemeMode);
@@ -182,12 +179,10 @@ export function Dashboard() {
     document.body.classList.toggle('nexus-shell-windows-app', isWindowsAppShell());
   }, []);
   // Idle-time prefetch of the four most-used Page chunks (cooling, lighting,
-  // monitoring, devices) plus the shared registry chunk they all pull in.
-  // Fires once after first render, on idle, so the dashboard shell paints
-  // immediately and the user finds these Pages already warmed when they
-  // navigate. Lives in Dashboard.tsx (not PanelEntrypoint.tsx) so the
-  // panel/iPhone never runs this code — Pages aren't reachable on panel
-  // surfaces and shouldn't be downloaded there.
+  // monitoring, devices) plus the shared registry chunk they pull in. Fires
+  // once after first render so navigation finds them warmed. Lives here, not
+  // PanelEntrypoint.tsx, so the panel/iPhone (where Pages aren't reachable)
+  // never downloads them.
   useEffect(() => {
     const preload = () => {
       void import('../panel/widgets/cooling/CoolingPage');
@@ -196,9 +191,8 @@ export function Dashboard() {
       void import('../panel/widgets/devices/DevicesPage');
     };
     if (typeof window.requestIdleCallback === 'function') {
-      // timeout: ensure the callback runs within 2s even if the main
-      // thread stays busy; without it idle-callback can be delayed
-      // indefinitely on a slow box and the user-visible benefit evaporates.
+      // timeout: run within 2 s even if the main thread stays busy, since
+      // idle-callback can otherwise be deferred indefinitely on a slow box.
       const id = window.requestIdleCallback(preload, { timeout: 2000 });
       return () => window.cancelIdleCallback?.(id);
     }
@@ -217,9 +211,8 @@ export function Dashboard() {
       });
     };
     load();
-    // Keep the indicator honest even when another desktop window flips the
-    // killswitch. 10 s is gentle - the modal itself is the high-frequency
-    // surface, this only powers the sidebar dot color.
+    // Re-poll so the sidebar dot tracks the killswitch when another desktop
+    // window flips it. 10 s; the modal is the high-frequency surface.
     const timer = window.setInterval(load, 10_000);
     return () => {
       cancelled = true;
@@ -241,19 +234,12 @@ export function Dashboard() {
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
   }, []);
-  // "Expanded while narrow" override is transient — it stops mattering the
-  // moment the viewport widens (auto would expand anyway), and clearing it
-  // here means the *next* narrow trip re-applies auto-collapse instead of
-  // sticking expanded forever. Manual *collapse* (override === true) is the
-  // only preference that persists across width changes, so a user who likes
-  // the compact sidebar on wide windows keeps it that way.
+  // The "expanded while narrow" override (false) is transient: clear it when
+  // the viewport widens so the next narrow trip re-applies auto-collapse.
+  // Manual collapse (override === true) is the only preference that persists
+  // across width changes.
   useEffect(() => {
     if (!viewportNarrow && manualOverride === false) {
-      // Clear the transient "expanded while narrow" override when the viewport
-      // widens. The override is bound to an external dimension (viewport
-      // width), so dropping it here is the canonical sync of derived UI
-      // state to an external system.
-       
       setManualOverride(null);
     }
   }, [viewportNarrow, manualOverride]);
@@ -268,19 +254,13 @@ export function Dashboard() {
   const [connectEpoch, setConnectEpoch] = useState(0);
   useEffect(() => {
     if (online && !wasOnlineRef.current) {
-      // Latch a counter on every offline->online edge from the multiplex
-      // socket (external system). The remount-on-bump pattern is exactly
-      // the "subscribe-and-react" effect use case.
-       
       setConnectEpoch(n => n + 1);
     }
     wasOnlineRef.current = online;
   }, [online]);
 
-  // Prime the marketplace widget cache once the service is reachable so
-  // the panel registry can resolve `marketplace:<id>` widgets the first
-  // time a layout is reconciled. Refreshes are cheap (one /widgets-api
-  // listing call) and idempotent.
+  // Prime the marketplace widget cache once the service is reachable so the
+  // panel registry can resolve `marketplace:<id>` widgets on first reconcile.
   useEffect(() => {
     if (!online) return;
     void loadMarketplaceWidgets();
@@ -408,10 +388,8 @@ export function Dashboard() {
             <ResizeStrip className={styles.windowResizeStripTop} edge={NEXUS_RESIZE_EDGES.top} />
             <ResizeStrip className={styles.windowResizeStripBottom} edge={NEXUS_RESIZE_EDGES.bottom} />
             <ResizeStrip className={styles.windowResizeCornerTopLeft} edge={NEXUS_RESIZE_EDGES.topLeft} />
-            {/* No top-right corner strip - the caption buttons occupy
-                that corner. A 12x12 strip at z-index 61 would steal
-                the rightmost ~12px of the close button. Users can
-                still resize via the top edge or the right edge. */}
+            {/* No top-right corner strip: it would overlap the close button.
+                Resize via the top or right edge instead. */}
             <ResizeStrip className={styles.windowResizeCornerBottomLeft} edge={NEXUS_RESIZE_EDGES.bottomLeft} />
             <ResizeStrip className={styles.windowResizeCornerBottomRight} edge={NEXUS_RESIZE_EDGES.bottomRight} />
             <CaptionButtons />
@@ -471,12 +449,8 @@ export function Dashboard() {
             </div>
           </div>
         </div>
-        {/* Global incoming-pair prompt. Mounted at the layout root so the
-            numeric-comparison Allow/Deny lands on top of any section the
-            user is in, with no easy dismiss — must explicitly Allow or
-            Deny. Pair Remote (managing paired devices, generating a new
-            code/QR, toggling discoverability) stays in its own modal
-            below, opened from the sidebar button. */}
+        {/* Global incoming-pair prompt, at the layout root so it lands on top
+            of any section. Pair Remote stays in its own modal below. */}
         <IncomingPairModal />
         <PairPhoneModal
           open={pairPhoneOpen}

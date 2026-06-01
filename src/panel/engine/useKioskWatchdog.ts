@@ -6,9 +6,6 @@ import { pingService } from '../../api/service';
  * `failThreshold` consecutive failures. Handles force-kill, crash, or any
  * shutdown that bypasses the service's ApplicationStopping hook.
  *
- * Lifted from the original kiosk view so the panel keeps the same
- * crash-protection behaviour under the Edge kiosk.
- *
  * The optional `onPing` callback fires on every successful response so
  * consumers (e.g. the tray's "Connected to <PC>" header) can pick up
  * server-side changes (host display name override) without an extra

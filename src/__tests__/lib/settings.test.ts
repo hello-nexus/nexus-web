@@ -47,10 +47,9 @@ describe('PRESET_ACCENTS', () => {
   });
 
   it('leads with deep blue and has no purple column', () => {
-    // Row 1 / row 2 col 0 are the deep-blue pair — the new default.
+    // Row 1 / row 2 col 0 are the deep-blue pair.
     expect(PRESET_ACCENTS[0]).toBe('#2563eb');
     expect(PRESET_ACCENTS[10]).toBe('#3e63b8');
-    // The previous purple column is gone.
     expect(PRESET_ACCENTS).not.toContain('#a855f7');
     expect(PRESET_ACCENTS).not.toContain('#9333ea');
   });
@@ -170,15 +169,14 @@ describe('loadSettings / saveSettings', () => {
   });
 
   it('silently drops legacy `performance` shape from persisted storage', () => {
-    // Older builds persisted { general: {...}, performance: {...} }. loadSettings
-    // no longer reads `.performance` so the stale key is simply ignored.
+    // Legacy persisted shape { general, performance }; loadSettings ignores
+    // the `.performance` key.
     localStorage.setItem('nexus_settings', JSON.stringify({
       general: { language: 'it' },
       performance: { widgetPollingRate: 5000, rgbOutputResolution: '1/4', rgbFpsCap: '60' },
     }));
     const loaded = loadSettings();
     expect(loaded.general.language).toBe('it');
-    // No `performance` field on the returned shape; type doesn't exist.
     expect((loaded as Record<string, unknown>).performance).toBeUndefined();
   });
 

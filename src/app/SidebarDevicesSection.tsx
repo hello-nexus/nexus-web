@@ -11,13 +11,11 @@ import styles from './SidebarDevicesSection.module.scss';
  * device (panels, peripherals, curated hardware) the system knows
  * about, with a click navigating into that device's dedicated page.
  *
- * Wraps `useUnifiedDevices` — the same hook the DevicesPage and the
- * dashboard Devices widget consume, so a click here lands the user
- * on exactly the device they saw in either of those surfaces.
+ * Wraps `useUnifiedDevices` — the same hook DevicesPage and the dashboard
+ * Devices widget consume, so a click lands on the same device record.
  *
- * Empty state: a single hint row when no devices are connected. The
- * section header itself is always rendered so the user can scan the
- * sidebar's structure even without devices.
+ * Empty state: a single hint row when no devices are connected. The header
+ * always renders so the section structure is visible without devices.
  */
 interface SidebarDevicesSectionProps {
   serviceOnline: boolean;
@@ -76,11 +74,8 @@ export function SidebarDevicesSection({
         onClick={onHeaderClick}
         aria-label={label}
       >
-        {/* Compact: localized first letter (e.g. "D" for English
-            "Devices"). Expanded: full label. The .headerLabel CSS
-            paints a thin underline beneath whichever form renders so
-            the header reads as a section heading rather than another
-            tappable device row. */}
+        {/* Compact: localized first letter; expanded: full label. The
+            .headerLabel underline marks it as a section heading, not a row. */}
         <span className={styles.headerLabel}>
           {compact ? Array.from(label)[0]?.toLocaleUpperCase() ?? '' : label}
         </span>

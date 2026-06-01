@@ -17,10 +17,8 @@
 }
 
 .icon, .iconStill {
-  // Quiet, neutral loading mark. Sized via container queries so a 2x2
-  // gets a small mark and a 4x4 a slightly bigger one without per-size
-  // manifest overrides. Intentionally NOT accent-glow — the loading
-  // state is transient and shouldn't dominate the cell.
+  // Neutral loading mark, sized via container queries. NOT accent-glow — the
+  // loading state is transient.
   width: clamp(20px, 18cqi, 44px);
   height: clamp(20px, 18cqi, 44px);
   display: flex;
@@ -74,7 +72,6 @@
   50%      { opacity: 0.75; }
 }
 
-// Respect users who prefer reduced motion.
 @media (prefers-reduced-motion: reduce) {
   .icon {
     animation: none;

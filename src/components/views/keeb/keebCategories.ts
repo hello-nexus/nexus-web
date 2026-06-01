@@ -1,11 +1,8 @@
-// Key-assignment category catalog — ported from the legacy nexus app
-// (`renderer/shared/features/nexus/keeb/KeyAssignment/index.ts`).
-//
-// Shape:  category -> groups -> sections -> functions. The `Keyboard`
-// category is intentionally empty here because keyboard-to-keyboard
-// reassignment uses the keyboard render itself as a drag-source — see
-// the spec §4.4. The four remaining categories drive the assignment
-// view's grid below the keyboard render.
+// Key-assignment category catalog. Shape: category -> groups -> sections ->
+// functions. The `Keyboard` category is empty here because keyboard-to-keyboard
+// reassignment uses the keyboard render as a click-to-pick source (spec §4.4),
+// not a tile grid. The four remaining categories drive the assignment view's
+// grid below the keyboard render.
 //
 // `name`, `keyFunction`, `mode`, `input` mirror the firmware contract;
 // `KeyAssignmentMode` strings match nexus-service's `KeyAssignmentMode`
@@ -47,8 +44,8 @@ export interface AssignmentGroup {
 
 export type AssignmentCategories = Record<KeebAssignmentCategory, AssignmentGroup[]>;
 
-// Mirrors `getDefaultKeyInput` in the legacy file. Functions not in the
-// table have no `input` parameter (`null` / undefined at firmware level).
+// Functions not in this table have no `input` parameter (null/undefined at
+// firmware level).
 const DEFAULT_INPUTS: Record<string, number> = {
   MouseWheelUp: 1,
   MouseWheelDown: 1,
@@ -79,9 +76,8 @@ const macros = (): AssignmentFunction[] => {
 };
 
 /// Returns the categories tree consumed by `KeebKeyAssignmentView`. The
-/// `Keyboard` category is handled separately by the view (it renders a
-/// second `KeebKeyboard` as a click-to-pick source instead of a tile grid),
-/// so it appears as an empty entry here just to satisfy the type.
+/// `Keyboard` category is an empty entry; the view handles it separately by
+/// rendering a second `KeebKeyboard` as a click-to-pick source.
 export function getAssignmentCategories(): AssignmentCategories {
   return {
     Keyboard: [],
@@ -242,8 +238,7 @@ export function getAssignmentCategories(): AssignmentCategories {
   };
 }
 
-// Human-readable tooltip for each rotary function — ported from the
-// legacy `getRotaryFunctionTooltip`. Used by `KeebRotaryView`.
+// Human-readable tooltip for each rotary function. Used by `KeebRotaryView`.
 export function getRotaryFunctionTooltip(type: string): string {
   switch (type) {
     case 'VolumeAdjustment': return 'System Volume';

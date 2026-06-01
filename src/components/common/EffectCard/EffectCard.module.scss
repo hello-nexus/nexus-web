@@ -1,8 +1,8 @@
 @use '../../../styles/interactions' as *;
 
-// Shared card used by both the animate shader grid and the media library grid.
-// The two grids pass the same card width (via their grid-template-columns
-// minmax), so visually the cards line up side-by-side in consistent columns.
+// Shared card for the animate shader grid and the media library grid. Both
+// grids pass the same card width (via grid-template-columns minmax) so the
+// cards line up in consistent columns.
 
 .card {
   display: flex;
@@ -59,8 +59,8 @@
   }
 }
 
-// Stroked + shadowed caption sitting in the lower third of the card so it
-// reads clearly over any screenshot - white fill, dark outline, drop shadow.
+// Caption in the lower third: white fill, dark outline, drop shadow so it
+// stays legible over any screenshot.
 .labelOverlay {
   position: absolute;
   left: 0.35rem;

@@ -8,9 +8,8 @@
 //   ["key"]    - bracket field access (lets keys contain dots/spaces)
 //   [-1]       - last element / negative indexing
 //
-// Anything outside this subset returns undefined. The declarative format
-// is not the right place to ship a full JSONPath dialect; widgets that
-// need it can move to Tier 2 and parse with whatever library they want.
+// Anything outside this subset returns undefined; widgets needing a full
+// dialect move to Tier 2 and parse with their own library.
 
 // Defense-in-depth: refuse to walk into prototype-chain keys. See the matching
 // guard in bindings.ts for the rationale.

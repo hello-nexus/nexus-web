@@ -71,9 +71,8 @@ export type PanelAllocResult =
   | { ok: true; record: PanelDeviceRecord }
   | { ok: false; status: number };
 
-// Alloc variant that surfaces the HTTP status. Lets the panel entrypoint show
-// a "pair this phone" message on 401/403 and "service unreachable" on others,
-// instead of dead-ending with a generic "could not register" toast.
+// Alloc variant that surfaces the HTTP status, so the panel entrypoint shows
+// "pair this phone" on 401/403 and "service unreachable" on others.
 export async function allocatePanelDeviceWithStatus(
   capabilities?: PanelDeviceCapabilitiesDto,
   displayName?: string,
@@ -304,11 +303,10 @@ export interface PanelHostNameResponse {
 export const setPanelHostName = (name: string) =>
   postService<PanelHostNameResponse>('/panel/host-name', { name });
 
-// Manual pair-code flow (BT-SSP Numeric Comparison). Additive to the QR
-// flow; the dashboard generates a 6-digit code that the user types into
-// a phone (no camera needed). The phone POSTs the typed code and gets
-// back a SAS; the user visually compares SAS on both screens and both
-// sides press Allow / Confirm before a session token is issued.
+// Manual pair-code flow (BT-SSP Numeric Comparison), alongside the QR flow.
+// The dashboard generates a 6-digit code the user types into a phone (no
+// camera). The phone POSTs the code and gets a SAS; both sides visually
+// compare the SAS and press Allow / Confirm before a session token issues.
 
 export interface PanelPhonePairCodeStart {
   host: string;

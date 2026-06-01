@@ -188,7 +188,7 @@
   display: flex;
   align-items: center;
   cursor: pointer;
-  // Critical: don't let the panel scroller eat the horizontal drag.
+  // Keep the panel scroller from eating the horizontal drag.
   touch-action: none;
 
   &::before {

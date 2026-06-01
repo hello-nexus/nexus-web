@@ -21,16 +21,12 @@ export function ServiceRequired({ state = 'offline', skeleton }: ServiceRequired
   const detected: DetectedOS = useMemo(() => detectOS(), []);
   const primaryOS: DownloadableOS = detected === 'unknown' ? 'windows' : detected;
   const alternateOS = ALL_DOWNLOADABLE_OS.filter((os) => os !== primaryOS);
-  // Show the download CTA whenever the service isn't reachable, not only
-  // for first-time visitors. Someone whose localStorage flag says they
-  // installed Nexus before (so state is 'offline-installed') might be on a
-  // different machine where they don't actually have it - they still need
-  // a download link. Different label for the two cases keeps the UX honest.
+  // Show the download CTA whenever the service is unreachable, including
+  // 'offline-installed' (localStorage says installed but may be a different
+  // machine). The two states get different labels below.
   const showDownload = state === 'offline' || state === 'offline-installed';
-  // Default to the friendlier "don't have it yet?" phrasing - the
-  // reinstall variant is reserved strictly for the localStorage-says-
-  // installed-but-unreachable case so future state additions don't
-  // accidentally inherit a wrong label.
+  // Reinstall label only for 'offline-installed'; everything else gets the
+  // "don't have it yet?" label.
   const downloadLabelKey = state === 'offline-installed'
     ? 'service.required.needReinstall'
     : 'service.required.dontHaveIt';
@@ -58,11 +54,9 @@ export function ServiceRequired({ state = 'offline', skeleton }: ServiceRequired
             </div>
           )}
 
-          {/* Launch button only makes sense when nexus:// can plausibly
-              route to a running installer - Safari blocks custom-scheme
-              handlers on https origins, so suppressing the button while the
-              Safari note is shown keeps the UI from promising an action that
-              won't fire. */}
+          {/* Safari blocks custom-scheme handlers on https origins, so the
+              nexus:// launch button is suppressed whenever the Safari note
+              shows. */}
           {!showSafariNote && <ServiceLaunchButton />}
 
           {showDownload && (

@@ -27,9 +27,8 @@ export function CpuTab({ cpuSeries, sensors, showAverage, onToggle }: {
 }) {
   const { t } = useTranslation();
 
-  // No `?? sensors.cpu[0]` fallback: if 'CPU Total' isn't present we'd silently
-  // pick whichever sensor is first (could be a temperature in °C) and render it
-  // as a percentage. Better to show 0 than misleading data.
+  // No `?? sensors.cpu[0]` fallback: the first sensor could be a temperature
+  // in °C, which would render as a percentage. Show 0 when 'CPU Total' absent.
   const cpuTotalSensor = sensors.cpu.find(s => s.name === 'CPU Total');
   const cpuValue = cpuTotalSensor?.value ?? 0;
   const history = useSharedSensorHistory('cpu::CPU Total', cpuValue);

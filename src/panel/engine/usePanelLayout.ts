@@ -264,8 +264,8 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface): UsePane
       }
       // Other failures (network, 401 after re-pair) leave layout state
       // intact and let the next refetch retry. fetchPanelDeviceWithStatus
-      // never throws, so .catch is dead code; keep it as belt-and-suspenders
-      // against future refactors that surface exceptions.
+      // never throws today, so the .catch below only guards against a
+      // future refactor that surfaces exceptions.
       setLoaded(true);
     }).catch(() => {
       setLoaded(true);

@@ -54,15 +54,11 @@ export function useBenchmark(serviceOnline: boolean): UseBenchmarkResult {
     }
   }, [stopPolling]);
 
-  // When the WebSocket tells us the run is terminal, pull the final result.
-  // The effect is reacting to an external WS frame (progress) by issuing a
-  // REST fetch whose response will then update local state; this is a
-  // legitimate external-system sync, not a derivable value, so the
-  // set-state-in-effect rule does not apply.
+  // When the WebSocket tells us the run is terminal, pull the final result
+  // over REST.
   useEffect(() => {
     if (!progress || !runId) return;
     if (progress.state === 'complete' || progress.state === 'failed' || progress.state === 'cancelled') {
-       
       fetchResult(runId);
       if (progress.state === 'cancelled') setStatus('cancelled');
     }
@@ -83,8 +79,8 @@ export function useBenchmark(serviceOnline: boolean): UseBenchmarkResult {
     setRunId(res.runId);
     setStatus('running');
 
-    // Fallback poller -- if the WS frame is missed for any reason, pull
-    // status every 2 s so the UI doesn't stall forever.
+    // Fallback poller for a missed WS frame: pull status every 2 s so the UI
+    // doesn't stall.
     stopPolling();
     pollTimer.current = setInterval(async () => {
       const status = await fetchService<BenchmarkProgressFrame>(`/benchmark/status/${res.runId}`);

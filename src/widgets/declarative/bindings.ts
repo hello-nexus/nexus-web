@@ -1,20 +1,18 @@
-// Tiny binding + expression evaluator for the declarative widget format.
+// Binding + expression evaluator for the declarative widget format.
 //
-// What this supports (intentionally minimal):
+// Supports:
 //   - "{path}" interpolation inside strings: "{temp.formatted}".
 //   - Numeric literals, string literals, boolean literals.
 //   - Field access against a context object: foo.bar.baz.
 //   - Binary ops: + - * / %, ==, !=, <, <=, >, >=, &&, ||.
 //   - Conditional: if(cond, a, b).
 //
-// What this DOES NOT support:
+// Does NOT support:
 //   - Statements, loops, side effects, function definitions.
 //   - Property assignment.
-//   - Bare identifiers that aren't on the context (returns undefined).
+//   - Bare identifiers not on the context (returns undefined).
 //
-// The evaluator is intentionally small + readable; widget manifests are
-// supposed to be expressive but not Turing-complete. If an author needs
-// real logic they ship a Tier 2 `worker.js`.
+// Not Turing-complete; authors needing real logic ship a Tier 2 `worker.js`.
 
 export type BindingContext = Record<string, unknown>;
 
@@ -29,8 +27,7 @@ export function evaluateBinding(input: unknown, ctx: BindingContext): unknown {
   if (wholeMatch) {
     return safeEval(wholeMatch[1], ctx);
   }
-  // Otherwise treat the string as a template - interpolate each {...}
-  // segment as its string representation.
+  // Otherwise interpolate each {...} segment as its string representation.
   if (!input.includes('{')) return input;
   return input.replace(/\{([^{}]+)\}/g, (_, expr: string) => {
     const v = safeEval(expr, ctx);
@@ -347,9 +344,8 @@ function formatDurationMs(ms: number, mode: string): string {
   return `${pad(m)}:${pad(s)}`;
 }
 
-// WMO weather code → lucide icon name. Mirrors the original WeatherWidget
-// dispatch so authors get the same visual without re-encoding the table
-// in their manifest.
+// WMO weather code → lucide icon name, so authors get the standard mapping
+// without re-encoding the table in their manifest.
 function weatherIconName(code: unknown): string {
   if (typeof code !== 'number') return 'help-circle';
   if (code === 0 || code === 1) return 'sun';
@@ -364,10 +360,10 @@ function weatherIconName(code: unknown): string {
   return 'help-circle';
 }
 
-// Reject prototype-chain access. Defense-in-depth: the meter palette coerces
-// results through String()/Number() today, but a future meter that hands a
-// binding result to an attribute / event handler would let `__proto__.toString`
-// surface a function reference. Block at the resolver instead.
+// Reject prototype-chain access at the resolver. Defense-in-depth: the meter
+// palette coerces results via String()/Number(), but a meter handing a binding
+// result to an attribute / event handler could let `__proto__.toString`
+// surface a function reference.
 const FORBIDDEN_PATH_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
 
 export function resolvePath(path: string, ctx: BindingContext): unknown {

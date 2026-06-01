@@ -18,13 +18,9 @@ export function GalleryWidget({ widget }: WidgetProps) {
   const [fading, setFading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
-  // Reset index if urls change
   useEffect(() => {
-    // Synchronise slideshow indices to the upstream urls list. When the
-    // user edits the gallery config and the URL count changes, snap
-    // back to the first frame so we never index off the end and so any
-    // mid-transition fade is cleared. All three are bare resets - the
-    // intentional reset-on-key-change shape, not a feedback loop.
+    // On url-count change, reset to the first frame so we never index
+    // off the end, and clear any mid-transition fade.
      
     setActiveIndex(0);
     setShowIndex(0);

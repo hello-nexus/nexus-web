@@ -1,13 +1,8 @@
 /**
  * Per-widget "advanced mode" toggle, used by the lighting + cooling widgets.
  *
- * `widget.config.advancedMode` is an optional override: when set, it takes
- * precedence over the global `ui.widgetAdvancedMode` setting; when unset
- * (the default for a fresh widget), the widget falls back to the global
- * default. This gives each widget instance an override switch without
- * losing the system-wide preference.
- *
- * Stored as a boolean under the key `advancedMode` on the widget's config.
+ * `widget.config.advancedMode` (boolean) overrides the global
+ * `ui.widgetAdvancedMode`; when unset, falls back to the global default.
  * `true` = full rich UI (animation/mirror/static buttons on lighting;
  * chart + chips on cooling). `false` = the default glanceable
  * center-icon-with-arrows layout.
@@ -34,10 +29,7 @@ export function AdvancedModeSettings({ widget, onUpdate }: WidgetSettingsProps) 
 export default AdvancedModeSettings;
 
 /**
- * Helper for widgets that read the effective advanced-mode flag. Mirrors
- * the AdvancedModeSettings precedence: per-widget override beats the
- * global default. Use this inside the widget body so the cascade is
- * consistent.
+ * Effective advanced-mode flag: per-widget override beats the global default.
  */
 export function resolveAdvancedMode(
   widgetConfig: Record<string, unknown> | undefined,

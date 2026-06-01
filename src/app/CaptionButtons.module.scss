@@ -10,10 +10,8 @@
   right: 0;
   display: flex;
   height: 32px;
-  // Above the modal backdrop (z-index 1000) and above the window-resize
-  // corner strips (z-index 2002), so minimize/maximize/close stay live
-  // while any modal is open. The user expects the OS-window chrome to
-  // remain functional regardless of which app-level surface is on top.
+  // Above the modal backdrop (z-index 1000) and the window-resize corner
+  // strips (z-index 2002) so the caption buttons stay live over any modal.
   z-index: 2003;
   // Each button is interactive - exempt the bar from any inherited
   // app-region: drag set on the layout root.

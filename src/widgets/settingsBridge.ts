@@ -24,7 +24,7 @@ export type WidgetSettingsListener = (values: Record<string, unknown>) => void;
  * both talk to this.
  */
 export class WidgetSettingsBridge {
-  /** Placement id, NOT the marketplace widget type — config is per-instance now. */
+  /** Placement id, NOT the widget type — config is per-instance. */
   private readonly instanceId: string;
   private values: Record<string, unknown> = {};
   private loaded = false;

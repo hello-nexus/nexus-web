@@ -3,16 +3,14 @@ import { snapStride } from './engine/grid';
 import type { PanelLayout, PanelWidget } from './types';
 import { isPinnableAppKey } from '../app/sidebarAppKeys';
 
-// A click on a dashboard widget tile navigates to the widget's app
-// page — same source of truth as the sidebar pin list (the App
-// registry, via manifest.Page). Adding a Page to a new app
-// automatically makes the corresponding widget click-through; no
-// change needed here.
+// A click on a dashboard widget tile navigates to the widget's app page, keyed
+// off the App registry (manifest.Page) like the sidebar pin list. Adding a
+// Page to an app makes its widget click-through automatically.
 export type DashboardWidgetSection = string;
 
 export interface DashboardSectionNavigatePayload {
   // Optional deep-link key. Currently used by the devices widget to
-  // ask DevicesView to auto-open the modal for a specific device.
+  // ask DevicesPage to auto-open the modal for a specific device.
   deviceKey?: string;
 }
 
@@ -25,12 +23,9 @@ export function isDashboardClickthroughType(type: string): type is DashboardWidg
 
 export interface DragTarget { pageId: string; col: number; row: number; }
 
-// Cursor must move this many pixels from the long-press origin before
-// any other widget is allowed to shift out of the way. Without this
-// floor, the pager and dnd-kit fire onDragMove on the first sub-pixel
-// pointer jitter that follows the long-press, the strategy commits a
-// new over target, and surrounding widgets visibly twitch even though
-// the user has not "started" dragging yet.
+// Cursor must move this far from the long-press origin before any widget
+// shifts. Without the floor, sub-pixel jitter after the long-press fires
+// onDragMove, commits a new over target, and twitches surrounding widgets.
 export const PANEL_DRAG_START_THRESHOLD_PX = 12;
 
 export interface DragGestureState {
@@ -42,11 +37,9 @@ export interface DragGestureState {
   lastOverId: string | null;
 }
 
-// Inert touch handlers for surfaces that don't accept pointer input (Q60).
-// `cellPointers` is shaped like RN's PointerEvent bag and the cell wires
-// every callback unconditionally, so we hand back a no-op for each to keep
-// the call sites typed without registering listeners that could fire on a
-// stray simulated pointer.
+// Inert touch handlers for surfaces with no pointer input (Q60). The cell
+// wires every cellPointers callback unconditionally, so hand back no-ops to
+// keep call sites typed without listeners that could fire on a stray pointer.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match React.MouseEventHandler
 const noopMouseHandler = (_e: React.MouseEvent) => { /* no-op on Q60 */ };
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match React.PointerEventHandler
@@ -59,11 +52,10 @@ export const noopCellPointers = {
   onPointerCancel: noopPointerHandler,
 };
 
-// Resolves an over droppable id into the (col, row, pageId) the
-// active widget would land at if dropped now. Widget ids resolve to
-// the widget's own (col, row); empty-cell ids carry the cell coords
-// in the id itself. Returns null if the id can't be resolved (e.g.
-// a stale widget id from a previous render).
+// Resolves an over droppable id to the (col, row, pageId) the active widget
+// would land at. Widget ids resolve to the widget's own (col, row); empty-cell
+// ids carry the coords in the id. Returns null for an unresolvable id (e.g. a
+// stale widget id).
 export function parseDragTarget(
   overId: string,
   layout: PanelLayout,
@@ -97,10 +89,9 @@ export function findWidgetById(layout: PanelLayout, id: string): PanelWidget | u
   return undefined;
 }
 
-// Returns a copy of `layout` with trailing empty pages removed,
-// keeping at least one page so the renderer never has an empty
-// `pages` array. Used after a drop commits so the drag-only phantom
-// page doesn't get persisted unless a widget actually landed on it.
+// Copy of `layout` with trailing empty pages removed (keeping at least one).
+// Run after a drop so the drag-only phantom page isn't persisted unless a
+// widget landed on it.
 export function trimTrailingEmptyPages(layout: PanelLayout): PanelLayout {
   const pages = layout.pages.slice();
   while (pages.length > 1 && pages[pages.length - 1].widgets.length === 0) {
@@ -110,25 +101,21 @@ export function trimTrailingEmptyPages(layout: PanelLayout): PanelLayout {
   return { ...layout, pages };
 }
 
-// Reads the panel's cell + row + gap sizes in pixels. Works on every
-// surface because it measures a real widget cell's offsetWidth /
-// offsetHeight (which is the resolved CSS-computed size, NOT what
-// getBoundingClientRect would return after a transform). Falls back
-// to parsing --panel-cell-size for the (rare) initial-render case
-// when no widget is mounted yet. Single source of truth used by
-// both the drag collision detector and the per-cell preview
-// translation in PanelTouchCell - panel and dashboard share this.
+// Reads cell + row + gap sizes in px. Measures a real widget cell's
+// offsetWidth / offsetHeight (the CSS-computed size, ignoring transforms,
+// unlike getBoundingClientRect). Falls back to parsing --panel-cell-size when
+// no widget is mounted yet. Shared by the drag collision detector and the
+// per-cell preview translation (panel + dashboard).
 export function readCellMetrics(root: HTMLElement | null): { cellSize: number; rowSize: number; gap: number } | null {
   if (!root) return null;
   const rootStyle = window.getComputedStyle(root);
   const gapRaw = Number.parseFloat(rootStyle.getPropertyValue('--panel-gap'));
   const gap = Number.isFinite(gapRaw) ? gapRaw : 0;
 
-  // Preferred path: measure a real widget cell. data-panel-cell-*
-  // attributes give us its span so we can back out cellSize / rowSize.
-  // offsetWidth / offsetHeight ignore CSS transforms (the projection's
-  // translate doesn't change the layout box) so we always get the
-  // pristine grid track size, even mid-drag.
+  // Preferred path: measure a real widget cell. data-panel-cell-* attributes
+  // give its span to back out cellSize / rowSize. offsetWidth / offsetHeight
+  // ignore CSS transforms, so this is the pristine grid track size even
+  // mid-drag.
   const sample = root.querySelector<HTMLElement>(
     '[data-panel-widget-id][data-panel-cell-col-span][data-panel-cell-row-span]',
   );
@@ -149,11 +136,9 @@ export function readCellMetrics(root: HTMLElement | null): { cellSize: number; r
     }
   }
 
-  // Fallback: parse the CSS variable directly. This works on the
-  // dashboard where --panel-cell-size is set inline as a fixed pixel
-  // value, but FAILS on panel kiosk surfaces where the variable is a
-  // calc() expression - parseFloat returns NaN there. That is exactly
-  // why we prefer the DOM-measurement path above.
+  // Fallback: parse the CSS variable. Works on the dashboard (fixed px) but
+  // FAILS on kiosk surfaces where --panel-cell-size is a calc() expression
+  // (parseFloat returns NaN) — hence the DOM-measurement path above.
   const cellSize = Number.parseFloat(rootStyle.getPropertyValue('--panel-cell-size'));
   if (!Number.isFinite(cellSize) || cellSize <= 0) return null;
   const rowSizeRaw = Number.parseFloat(rootStyle.getPropertyValue('--panel-row-size'));
@@ -161,25 +146,20 @@ export function readCellMetrics(root: HTMLElement | null): { cellSize: number; r
   return { cellSize, rowSize, gap };
 }
 
-// Builds the panel collision detector. It must be a closure inside
-// PanelContent so it can read mutable refs for the long-press origin
-// and last-committed over id - those provide the threshold + hysteresis
-// that prevent the surrounding widgets from twitching back and forth.
+// Builds the collision detector. Must be a closure inside PanelContent to read
+// mutable refs (long-press origin, last-committed over id) for the threshold +
+// hysteresis that stop widgets twitching back and forth.
 //
-// The pager translates the entire track to switch pages, so dnd-kit's
-// cached droppable rects can lag behind the visible state. We compute
-// each cell's BASELINE rect (visual rect minus its current INTERPOLATED
-// transform via DOMMatrix) so the over selection is anchored to the
-// layout, not the in-flight CSS transition.
-// Builds a collision detector that reports the grid cell directly
-// under the dragged widget's projected top-left. We snap the widget's
-// VISUAL top-left to a (col, row) using the page's cell + gap metrics,
-// then return either the widget at that cell or the empty-cell
-// droppable. This is what iOS Springboard does: where you SEE the
-// widget is exactly where it would land. Pointer-coordinate "closest
-// by center" was biased toward whatever was nearest the finger,
-// which kept yanking the active onto adjacent widgets when the user
-// tried to land it in empty space.
+// The pager translates the whole track to switch pages, so dnd-kit's cached
+// rects can lag the visible state. Each cell's BASELINE rect (visual rect
+// minus its interpolated transform via DOMMatrix) anchors the over selection
+// to the layout, not the in-flight transition.
+//
+// Reports the cell under the dragged widget's projected top-left: snap the
+// VISUAL top-left to a (col, row) via the page's cell + gap metrics, return
+// the widget there or the empty-cell droppable (iOS Springboard: it lands
+// where you see it). "Closest by center" biased toward the finger and yanked
+// onto adjacent widgets when landing in empty space.
 export function buildPanelCollisionDetection(
   gestureRef: { current: DragGestureState },
   activePageIndexRef: { current: number },
@@ -208,19 +188,17 @@ export function buildPanelCollisionDetection(
     );
     const root = sourceCell?.closest<HTMLElement>('[data-surface]');
     if (!root) return [];
-    // Shared DOM-based cell metrics. Works on dashboard (fixed px)
-    // AND panel kiosk surfaces (calc() expression) - panel was
-    // broken before this because parseFloat('calc(...)') is NaN.
+    // Shared DOM-based cell metrics. Works on dashboard (fixed px) and kiosk
+    // surfaces (calc() expression, where parseFloat would be NaN).
     const metrics = readCellMetrics(root);
     if (!metrics) return [];
     const { cellSize, rowSize, gap } = metrics;
     const stride = cellSize + gap;
     const rowStride = rowSize + gap;
     const rootStyle = window.getComputedStyle(root);
-    // Snap rule: 1x1 lands on every cell, every multi-cell widget
-    // lands on 2-cell multiples (a 4x4 can sit at col 0 OR col 2).
-    // Read the active's span off the source cell so the snap is
-    // rendered accurately as the cursor moves.
+    // Snap rule: 1x1 lands on every cell; multi-cell widgets land on 2-cell
+    // multiples (a 4x4 sits at col 0 or 2). Read the active's span off the
+    // source cell so the snap tracks the cursor.
     const activeColSpan = Math.max(1,
       Number.parseInt(sourceCell?.getAttribute('data-panel-cell-col-span') ?? '1', 10) || 1,
     );
@@ -234,15 +212,12 @@ export function buildPanelCollisionDetection(
     const totalCols = Number.isFinite(totalColsRaw) && totalColsRaw > 0 ? totalColsRaw : 4;
     const totalRows = Number.isFinite(totalRowsRaw) && totalRowsRaw > 0 ? totalRowsRaw : 4;
 
-    // Always lock the snap target to the CURRENT active page. The
-    // pager's edge-advance dwell handles cross-page navigation;
-    // here we just clamp the snap into the current page's bounds.
-    // This means the highlight stays visible (and correct) even when
-    // the dragged widget's translated rect drifts off the viewport
-    // - a 4x4 widget grabbed near its center can have a top-left
-    // hundreds of pixels off the left edge on a phone surface, and
-    // the previous "find page containing translated.left" logic
-    // would fail to find any page and clear the highlight.
+    // Lock the snap target to the current active page (the pager's edge-advance
+    // dwell handles cross-page navigation), clamping the snap into its bounds.
+    // The highlight then stays correct even when the dragged rect drifts off
+    // the viewport — a center-grabbed 4x4 can have a top-left hundreds of px
+    // off the left edge on a phone surface, which "find page containing
+    // translated.left" couldn't resolve.
     const idx = activePageIndexRef.current;
     const pageEl = document.querySelector<HTMLElement>(`[data-panel-page-index="${idx}"]`);
     if (!pageEl) return [];
@@ -251,19 +226,17 @@ export function buildPanelCollisionDetection(
     const pageStyle = window.getComputedStyle(pageEl);
     const padLeft = Number.parseFloat(pageStyle.paddingLeft || '0') || 0;
     const padTop = Number.parseFloat(pageStyle.paddingTop || '0') || 0;
-    // Center-based snap: round the widget's top-left cell index to
-    // the nearest multiple of the snap stride. Math.round() puts the
-    // threshold at the half-stride boundary so the widget jumps once
-    // the user has moved it more than half a stride into the new slot.
+    // Center-based snap: round the top-left cell index to the nearest snap
+    // stride multiple. Math.round() puts the threshold at the half-stride
+    // boundary, so the widget jumps past half a stride into a new slot.
     const localX = translated.left - pageRect.left - padLeft;
     const localY = translated.top - pageRect.top - padTop;
     const continuousCol = localX / stride;
     const continuousRow = localY / rowStride;
     const snappedCol = Math.round(continuousCol / activeColStep) * activeColStep;
     const snappedRow = Math.round(continuousRow / activeRowStep) * activeRowStep;
-    // Clamp into the grid so the highlight stays visible even when
-    // the dragged widget is pushed past an edge. Max snap is the
-    // largest multiple-of-stride that keeps the rect inside the grid.
+    // Clamp into the grid so the highlight stays visible past an edge. Max
+    // snap is the largest stride multiple that keeps the rect inside the grid.
     const maxCol = Math.max(0, Math.floor((totalCols - activeColSpan) / activeColStep) * activeColStep);
     const maxRow = Math.max(0, Math.floor((totalRows - activeRowSpan) / activeRowStep) * activeRowStep);
     const col = Math.min(Math.max(0, snappedCol), maxCol);
@@ -272,11 +245,9 @@ export function buildPanelCollisionDetection(
     const pageId = pageEl.dataset.panelPageId;
     if (!pageId) return [];
 
-    // Always return the cell droppable at the snapped (col, row).
-    // Cell droppables render at every (col, row) during drag, so
-    // this lookup never fails for in-bounds positions and the
-    // highlight stays visible the entire time. previewDrag handles
-    // the "drop where you started" case via a no-op short-circuit.
+    // Return the cell droppable at the snapped (col, row). Cell droppables
+    // render at every (col, row) during drag, so this never fails for in-bounds
+    // positions. previewDrag handles "drop where you started" via a no-op.
     const emptyId = `empty:${pageId}:${col}:${row}`;
     const emptyContainer = droppableContainers.find(c => String(c.id) === emptyId);
     if (emptyContainer) {

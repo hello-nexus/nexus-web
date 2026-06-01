@@ -1,12 +1,11 @@
-// Dev-only debug font picker. Lives in Tools > Debug font and lets the
-// user audition chunky font candidates against the desktop chrome AND the
-// panel kiosk surface in lockstep. Choice persists in localStorage.
+// Dev-only debug font picker (Tools > Debug font). Auditions font candidates
+// against the desktop chrome and the panel kiosk surface. Choice persists in
+// localStorage.
 //
-// Override strategy: a single injected <style> element redefines
-// --font-sans on :root and --panel-font on .panel-root. !important is used
-// because PanelApp.module.scss also redeclares --panel-font on the editor
-// backdrop, and we want the picker to win uniformly across all panel
-// scopes.
+// A single injected <style> redefines --font-sans on :root and --panel-font
+// on .panel-root. !important because PanelApp.module.scss also redeclares
+// --panel-font on the editor backdrop, so the picker must win across all
+// panel scopes.
 
 const STYLE_ID = 'nexus-debug-font-style';
 const LINK_ID = 'nexus-debug-font-link';

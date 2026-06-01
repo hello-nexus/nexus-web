@@ -10,10 +10,6 @@
   gap: 10px;
 }
 
-// Section headers now use the shared <SectionHeader> component
-// (components/common/SectionHeader) so every settings section reads
-// identically — the old bespoke .themeSectionTitle was removed.
-
 .themeModeTabs,
 .backgroundModeTabs {
   display: grid;
@@ -31,9 +27,6 @@
 .backgroundModeTabs {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-
-// Toggle rows now use the shared <SettingsToggle> (SettingsRow) component so
-// their labels match the other settings rows — .themeToggleRow was removed.
 
 .backgroundShaderControls {
   display: flex;
@@ -87,8 +80,8 @@
   }
 }
 
-// Vertical-scrolling grid (was a 2-row horizontal scroller). Mirrors the
-// lighting page animate grid: auto-fill columns, vertical overflow.
+// Vertical-scrolling grid. Mirrors the lighting page animate grid:
+// auto-fill columns, vertical overflow.
 .animationScroller {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));

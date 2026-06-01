@@ -205,7 +205,6 @@ export function BlocksWidget({ widget }: WidgetProps) {
           clearedRows.push(r);
         }
       }
-      // Just apply the cleared board immediately
       boardRef.current = result.board;
       scoreRef.current += SCORE_TABLE[result.cleared] * levelRef.current;
       linesRef.current += result.cleared;
@@ -354,7 +353,7 @@ export function BlocksWidget({ widget }: WidgetProps) {
   // Suppress unused render tick warning
   void renderTick;
 
-  // Compact 1x1 - just show play button
+  // Compact 1x1 - play button only
   if (isCompact && phase === 'start') {
     return (
       <div className={styles.container}>

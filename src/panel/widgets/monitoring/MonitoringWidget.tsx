@@ -1,7 +1,5 @@
 // resolveSensor/labelForDevice/staticMaxForDevice/percentForSensor are the
-// pure helpers MonitoringWidget and PerfSlot use. They live next to the
-// widget because they're not consumed elsewhere; extracting to a sibling
-// module would just be ceremony.
+// pure helpers MonitoringWidget and PerfSlot use, not consumed elsewhere.
  
 import { useMemo } from 'react';
 import { useSensors } from '../../../hooks/useSensors';
@@ -28,14 +26,12 @@ interface TempSensorPrefs {
 }
 
 /**
- * Resolve a sensor from the sensor state given a device category and sensor name.
- * For fan, if no sensor name is specified, picks the first fan sensor.
+ * Resolve a sensor given a device category and sensor name. For fan with no
+ * sensor name, picks the first fan sensor.
  *
- * For CPU/GPU slots, when the slot's `sensorName` is the generic type flag
- * "Temperature", we defer to the global preferred-temp-sensor settings so the
- * widget agrees with the Cooling page, Monitoring dashboard, and Cooling
- * widget. An explicit named sensor (e.g. "CPU Package", "GPU Hot Spot") is
- * still respected as-is.
+ * For CPU/GPU slots, sensorName "Temperature" (the generic type flag) defers
+ * to the global preferred-temp-sensor setting; an explicit named sensor (e.g.
+ * "CPU Package", "GPU Hot Spot") is used as-is.
  */
 export function resolveSensor(
   sensors: ReturnType<typeof useSensors>,
@@ -103,16 +99,16 @@ export function staticMaxForDevice(device: DeviceKey, sensorName?: string): numb
   if (device === 'fan') return 2500;
   if (device === 'storage') return 100;
   if (device === 'fps') return sensorName === 'Frame Time' ? 50 : 240;
-  // Load/temperature/clock sensors - default percentage max
+  // Load/temperature/clock sensors: percentage max.
   return 100;
 }
 
 export function percentForSensor(device: DeviceKey, sensor: HardwareSensor | undefined, maxValue: number): number {
   if (!sensor) return 0;
   // Prefer the sensor's own ceiling when present. Memory Used / VRAM Used on
-  // Windows LHM are Data sensors in GB (not %), and the service now ships
-  // installed capacity as `theoreticalMaximum`; without this branch the gauge
-  // treats 9.76 GB as 9.76% on a 32 GB box.
+  // Windows LHM are Data sensors in GB (not %), with installed capacity in
+  // `theoreticalMaximum`; without this branch the gauge treats 9.76 GB as
+  // 9.76% on a 32 GB box.
   if (sensor.theoreticalMaximum && sensor.theoreticalMaximum > 0) {
     return Math.max(0, Math.min(100, (sensor.value / sensor.theoreticalMaximum) * 100));
   }
@@ -127,9 +123,9 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
   const count = resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined);
   const isMicro = isMicroLayout(widget.size, count);
 
-  // Compute slot configs for both modes - in Micro mode the loop reads stale
-  // slot{N}_* keys that the render path ignores, but the values are only used
-  // here to detect whether the lazy fps/network hooks need to subscribe.
+  // Slot configs for both modes. In Micro mode the slot{N}_* keys are read
+  // only to decide whether the lazy fps/network hooks need to subscribe; the
+  // render path ignores them.
   const slotConfigs = Array.from({ length: count }, (_, i) => ({
     device: ((widget.config?.[`slot${i}_device`] as DeviceKey | undefined) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu'),
     sensorName: ((widget.config?.[`slot${i}_sensor`] as string | undefined) ?? DEFAULT_SLOTS[i]?.sensor ?? ''),
@@ -143,9 +139,8 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
   const usesNetwork = isMicro
     ? microDevice === 'network'
     : slotConfigs.some(slot => slot.device === 'network');
-  // Hooks must be called unconditionally on every render - never inside a
-  // branch and never after an early return - or the hooks-order guard trips
-  // when the user toggles slot count between Micro (3/4) and multi (1/2/4).
+  // Call hooks unconditionally (no branch, no early return) or the hooks-order
+  // guard trips when slot count toggles between Micro (3/4) and multi (1/2/4).
   const sensors = useSensors(true);
   const fpsSensors = useFpsSensors(usesFps);
   const network = useNetworkMonitor(usesNetwork);
@@ -210,9 +205,8 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, devic
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor?.formatted ?? '-';
   const label = labelForDevice(device, effectiveSensorName);
-  // Shared key so the tile + immersive instance for the same sensor
-  // collaborate on one 60-sample buffer. Re-mounting in immersive
-  // shows the existing history immediately.
+  // Shared key so the tile + immersive instance for the same sensor share one
+  // 60-sample buffer; re-mounting in immersive shows existing history at once.
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;
   const history = useSharedSensorHistory(sensorKey, rawValue) as number[];
   const sensorMax = sensor?.theoreticalMaximum && sensor.theoreticalMaximum > 0 ? sensor.theoreticalMaximum : 0;
@@ -221,7 +215,8 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, devic
     : sensorMax || staticMaxForDevice(device, sensor?.name);
   const value = percentForSensor(device, sensor, maxValue);
   const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name);
-  // Stabilize tuple reference so the Sparkline path-memo keys on bound values, not array identity.
+  // Stable tuple reference so the Sparkline path-memo keys on bound values,
+  // not array identity.
   const historyDomain = useMemo<[number, number]>(() => [domainMin, domainMax], [domainMin, domainMax]);
 
   const GaugeComponent = GAUGE_DESIGNS[design] ?? GAUGE_DESIGNS.sparkline;

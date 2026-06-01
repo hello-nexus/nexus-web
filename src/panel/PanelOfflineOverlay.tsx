@@ -83,7 +83,7 @@ export function PanelOfflineOverlay({
   // the disconnect on its own /ping monitor and falls back to the OEM
   // rainbow-gradient "THICC Q60/Q80" splash. Showing this overlay first
   // flashes a useless card on screen for ~1 s before qshell unmounts the
-  // WebView. Returning null here makes the transition seamless: panel
+  // WebView. Returning null here removes the flash: panel
   // straight to OEM splash, no intermediate state.
   if (surface === 'q60') return null;
 

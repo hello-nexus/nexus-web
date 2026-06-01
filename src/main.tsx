@@ -40,7 +40,7 @@ if (
     location.hostname === 'localhost' ||
     location.hostname.endsWith('.localhost'))
 ) {
-  // Reload to pick up a new SW build ONLY on a genuine update — i.e. when a
+  // Reload to pick up a new SW build ONLY on a real update — i.e. when a
   // controller ALREADY exists and is later replaced. On a first visit there is
   // no controller yet, and the SW's initial activation also fires
   // controllerchange; reloading then restarts the page mid-session (e.g. during

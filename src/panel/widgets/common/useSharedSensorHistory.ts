@@ -12,17 +12,15 @@ import {
 /**
  * Per-sensor 60-sample history backed by the shared monitoringStore
  * singleton. Same key (e.g. `cpu::CPU Total`) read from any panel cell
- * returns the SAME buffer - so re-mounting a PerfSlot in the immersive
- * view picks up the existing 60 s of samples instead of starting fresh.
+ * returns the SAME buffer, so re-mounting a PerfSlot in the immersive
+ * view picks up the existing 60 s of samples.
  *
- * The sample push is driven by the monitoring frameTick, not the sensor
- * value. A run of identical readings (e.g. GPU temp pinned at 45 °C)
- * must still advance the sparkline; gating on [key, value] silently
- * dropped those frames and the line stopped ticking.
+ * Pushes are driven by the monitoring frameTick, not the sensor value: a
+ * run of identical readings (e.g. GPU temp pinned at 45 °C) must still
+ * advance the sparkline, and gating on [key, value] drops those frames.
  *
  * Subscription is per-key: only consumers of "cpu::CPU Total" wake on a
- * CPU push, so a GPU tile sitting next door doesn't re-render every time
- * the CPU sample lands.
+ * CPU push, so a GPU tile next door doesn't re-render on every CPU sample.
  */
 export function useSharedSensorHistory(key: string, value: number): readonly number[] {
   const [, force] = useState(0);

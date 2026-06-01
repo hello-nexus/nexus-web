@@ -3,7 +3,7 @@ const CHANNEL_NAME = 'panel-layout';
 /**
  * Notify all panel consumers (kiosk, editor preview, other tabs) that the
  * layout has changed. Each consumer's usePanelLayout will re-fetch
- * /preferences and re-render.
+ * /panel/devices/{deviceId} and re-render.
  */
 export function broadcastLayoutChanged(): void {
   try {

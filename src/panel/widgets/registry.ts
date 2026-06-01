@@ -18,8 +18,8 @@ import {
 } from '../types';
 
 // Per-app manifests live alongside the app's code. Each app folder
-// exports its AppManifest from its `index.ts`; this file just
-// aggregates them into the registry consumed by the panel engine.
+// exports its AppManifest from its `index.ts`; this file aggregates
+// them into the registry consumed by the panel engine.
 import { clockApp } from './clock';
 import { monitoringApp } from './monitoring';
 import { mediaApp } from './media';

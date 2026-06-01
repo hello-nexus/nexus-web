@@ -2,7 +2,7 @@ import type { CurvePoint } from '../api/cooling';
 
 /**
  * Shared cooling-view types. The same shapes are used by CurveEditor,
- * FanCard and the CoolingView composer; extracted here so each file has
+ * FanCard and the CoolingPage composer; extracted here so each file has
  * one import instead of pulling from the others.
  */
 
@@ -13,8 +13,7 @@ export type MixFn = 'min' | 'max' | 'avg' | 'sum';
  * Marks the shared preset curve. When set, this curve is the single
  * Silent / Balanced / Turbo curve attached to all fans whenever the
  * matching preset is active. Independent of CurveType so a preset curve
- * can be Linear today and Graph tomorrow without losing its preset
- * identity.
+ * can change its Type without losing its preset identity.
  */
 export type CurvePreset = 'silent' | 'balanced' | 'turbo';
 

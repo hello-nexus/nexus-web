@@ -1,7 +1,3 @@
-// emptyFilters() and hasActiveFilters() ship next to FilterState since both
-// helpers operate on that exact shape and are imported together with the
-// component in nearly every callsite.
- 
 import { useCallback } from 'react';
 import type { ComponentCategory } from '../../../types/builder';
 import type { FilterOption as ApiFilterOption } from '../../../api/catalog';

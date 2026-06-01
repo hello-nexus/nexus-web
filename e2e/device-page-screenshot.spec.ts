@@ -231,7 +231,7 @@ test('captures Y70 and Q60 device pages', async ({ page }) => {
 
   // The device row exposes the device shortName via aria-label
   // (compact mode) and via visible text (expanded). The locator uses
-  // both so the test is robust to layout mode shifts.
+  // both so the test works in either layout mode.
   const y70Btn = sidebar.locator('button[aria-label="Y70"], button:has-text("Y70")').first();
   if (await y70Btn.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await y70Btn.click();

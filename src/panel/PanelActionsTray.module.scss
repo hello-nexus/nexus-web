@@ -35,9 +35,8 @@
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
-  // Honor safe-area insets on every side - in landscape on a notched
-  // phone the buttons would otherwise punch out under the notch /
-  // rounded corners. max() ensures we still have a visual gutter on
+  // Safe-area insets on every side so landscape notched phones don't punch
+  // buttons under the notch / rounded corners. max() keeps a gutter on
   // devices with no inset.
   padding:
     10px
@@ -68,13 +67,11 @@
 
 
 // Monitor-attached panel chrome scaling via transform: scale. The kiosk
-// WebView2 ignores CSS `zoom` (IsZoomControlEnabled = false), so the same
-// algorithm the cellScaler uses for widgets (transform: scale(cell/90))
-// is applied here. Width is shrunk to 1/s so post-scale the tray spans
-// 100% of the viewport. translateY for the closed-state hide is scaled
-// to (100% × s) so the tray's full visual height is pushed off-screen.
-// Phone (paired) and desktop (dashboard) skip this since they don't
-// share the kiosk's display-scaling problem.
+// WebView2 ignores CSS `zoom` (IsZoomControlEnabled = false), so this uses
+// the cellScaler's widget algorithm (transform: scale(cell/90)). Width
+// shrinks to 1/s so post-scale the tray spans 100% of the viewport; the
+// closed-state translateY scales to (100% × s) to push the full visual
+// height off-screen. Phone and desktop skip this (no display-scaling).
 :global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']) .tray {
   right: auto;
   width: calc(100% / var(--panel-ui-zoom, 1));
@@ -104,8 +101,7 @@
   justify-content: flex-end;
 }
 
-// Desktop chrome already shows the host PC in the sidebar; the in-tray
-// label would be redundant there.
+// Desktop sidebar already shows the host PC; hide the in-tray label.
 :global(.panel-root)[data-surface='desktop'] .connectedTo {
   display: none;
 }
@@ -132,8 +128,7 @@
   border-color: var(--border-strong);
 }
 
-// "Connected to <PC>" header - sits above the action row inside the
-// tray so the user knows which machine the panel is bound to.
+// "Connected to <PC>" header above the action row.
 .connectedTo {
   display: flex;
   flex-direction: row;

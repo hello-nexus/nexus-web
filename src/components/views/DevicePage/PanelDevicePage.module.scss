@@ -2,14 +2,11 @@
 
 // --- Page chrome ---
 //
-// Page lives inside Dashboard's `.content` flex column. The section
-// itself becomes a flex column too so the body slot below the view
-// header fills the remaining vertical space — the old modal got that
-// behaviour from .modalFullscreen + .bodyFullscreen; here we recreate
-// it page-side so .splitLayout's `flex: 1` actually has something to
-// claim. Without this the page collapses to its intrinsic content
-// height and the preview pane renders at near-zero size, which is
-// the visual bug reported as "scale messed up".
+// Page lives inside Dashboard's `.content` flex column. The section is
+// a flex column too so the body slot below the view header fills the
+// remaining vertical space, giving .splitLayout's `flex: 1` something to
+// claim. Without it the page collapses to intrinsic content height and the
+// preview pane renders at near-zero size.
 
 .page {
   display: flex;
@@ -46,14 +43,12 @@
   overflow: hidden;
 }
 
-// Preview pane reserves a minimum horizontal slot so the panel
-// canvas never collapses to a sliver. CRUCIAL: `height: 100%`
-// forces a parent-determined cross-axis size; without it, the
-// pane sizes to the iframe's natural footprint, the iframe scales
-// to fill the pane, and the two reach equilibrium at the iframe's
-// initial scale (0.35) — content never grows. Stretching to the
-// row height first, then capping with max-height, breaks that
-// self-reference so the iframe can scale up to fill the slot.
+// Preview pane reserves a minimum horizontal slot so the panel canvas
+// never collapses to a sliver. `height: 100%` forces a parent-determined
+// cross-axis size; without it the pane sizes to the iframe's natural
+// footprint, the iframe scales to fill the pane, and the two settle at the
+// iframe's initial scale (0.35) — content never grows. Stretching to row
+// height first, then capping with max-height, breaks that self-reference.
 .previewPane {
   flex: 0 0 auto;
   min-width: 360px;
@@ -63,12 +58,10 @@
   justify-content: center;
 }
 
-// Q-series panels are physically small devices. Cap matches the
-// Q-series CSS viewport height (1280 native / 1.5 DPR ≈ 853 CSS px)
-// so the preview never has to up-scale past native — the iframe
-// renders at most 1:1 against the panel runtime's design pixels.
-// `align-self: center` vertically centers the capped pane in the
-// taller splitLayout row.
+// Cap matches the Q-series CSS viewport height (1280 native / 1.5 DPR ≈
+// 853 CSS px) so the preview never up-scales past native (at most 1:1
+// against the panel runtime's design pixels). `align-self: center` centers
+// the capped pane in the taller splitLayout row.
 .previewPane[data-surface='q60'],
 .previewPane[data-surface='q80'] {
   max-height: 560px;

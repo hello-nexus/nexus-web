@@ -30,8 +30,7 @@
 
 // Rendered into a portal on document.body. position: fixed against the
 // viewport with top/left/transform set inline by the JS reposition logic.
-// Shares the body-only treatment with HoverTooltip so all hover hints
-// read with one voice.
+// Shares the body-only treatment with HoverTooltip.
 .tooltip {
   position: fixed;
   z-index: var(--z-tooltip);

@@ -1,11 +1,10 @@
 // Lightweight i18n - no dependencies.
-// Uses React context to provide a t() function that looks up keys from JSON translation files.
+// React context provides a t() that looks up keys from JSON translation files.
 // Supports interpolation: t('key', { name: 'World' }) -> "Hello, {name}" -> "Hello, World"
 //
-// useTranslation is co-located with the provider because the hook binds to
-// the context defined in this file; splitting the export would just create
-// a one-liner re-export module imported from every i18n consumer.
- 
+// useTranslation is co-located with the provider; the hook binds to the
+// context defined in this file.
+
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import type { Language } from './settings';
@@ -33,13 +32,10 @@ function resolveModulePath(lang: Language): string {
 }
 
 /**
- * I18nProvider owns the language state. Consumers change it through
- * useTranslation().setLanguage(). Previously this was prop-drilled through
- * App -> Dashboard -> UiSettingsProvider via an onLanguageChange callback,
- * which produced a race where the provider's language prop lagged one render
- * behind the actual UI state on switch. Keeping the state local here means
- * the provider always re-renders first with the new language, and the async
- * locale-file load fires immediately.
+ * I18nProvider owns the language state; consumers change it through
+ * useTranslation().setLanguage(). Local state here means the provider
+ * re-renders first with the new language and the async locale-file load
+ * fires immediately, avoiding a one-render lag on switch.
  */
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => loadSettings().general.language);

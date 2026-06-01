@@ -1,7 +1,5 @@
-// Solar geometry — analytical sun position, day/night terminator, and
-// "is the sun up at this point?" hit-test. All formulas are the standard
-// astronomy approximations used by maritime almanacs (good to ~1° of
-// accuracy, way better than the visual resolution this drives).
+// Solar geometry: sun position, day/night terminator, daylight
+// hit-test. Standard almanac approximations, ~1° accuracy.
 
 const DEG = Math.PI / 180;
 
@@ -16,9 +14,7 @@ function dayOfYear(date: Date): number {
  * overhead at solar noon. Swings between roughly -23.45° (December
  * solstice) and +23.45° (June solstice). Equinoxes ≈ 0.
  *
- * Uses Cooper's approximation. Good enough for a world-clock map; the
- * actual NOAA solar position is a few hundred lines of orbital math
- * and gains us <0.5° here.
+ * Cooper's approximation; within <0.5° of full NOAA orbital math.
  */
 export function solarDeclination(date: Date): number {
   const n = dayOfYear(date);

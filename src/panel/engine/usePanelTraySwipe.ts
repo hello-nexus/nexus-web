@@ -9,9 +9,9 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
  *    widget keeps owning its vertical scroll (e.g. lighting carousel).
  *  - Defers to the page pager: only engages when the gesture is
  *    primarily vertical-upward (|dy| > |dx| AND dy < 0).
- *  - Ignores starts inside the iOS home-indicator handoff band. The
+ *  - Ignores starts inside the iOS home-indicator handoff band: the
  *    system steals these gestures to background the app, and the
- *    trailing-edge events were committing the tray on return. See
+ *    trailing-edge events on return commit the tray. See
  *    `bottomEdgeIgnorePx`.
  *
  * `onCommit` fires once the gesture crosses the commit threshold; the
@@ -117,8 +117,8 @@ export function usePanelTraySwipe({
       // dense with buttons / sliders / etc.
       const overScrollable = Boolean(target?.closest('[data-panel-scrollable="true"]'));
       // iOS home-indicator handoff band: the system claims swipe-ups
-      // that start here to background the app. We were committing the
-      // tray on the trailing-edge events when the user returned.
+      // that start here to background the app; the trailing-edge events
+      // on return would commit the tray.
       const viewportH = window.visualViewport?.height ?? window.innerHeight;
       const inBottomEdge = viewportH - t.clientY < bottomEdgeIgnoreRef.current;
       yielded = overScrollable || inBottomEdge;

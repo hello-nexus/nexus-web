@@ -28,11 +28,10 @@ export const monitoringApp: AppManifest = {
   Settings: MonitoringSettings,
   resolveInitialSelection: ({ point, widget }) => {
     // MonitoringWidget stamps `data-monitoring-slot-index` on each slot
-    // div/button (multi-slot layouts only; micro layouts have no per-slot
-    // selection). We can't use elementFromPoint here because the context
-    // menu is still mounted on top of the press point — it would shadow
-    // the bottom-row slots whenever the menu opens upward. Query the
-    // widget's slots directly and hit-test by bounding rect instead.
+    // div/button (multi-slot layouts only; micro has no per-slot selection).
+    // elementFromPoint fails here: the context menu still mounted over the
+    // press point shadows the bottom-row slots when it opens upward. Query
+    // the widget's slots directly and hit-test by bounding rect.
     if (typeof document === 'undefined') return undefined;
     const widgetEl = document.querySelector<HTMLElement>(
       `[data-panel-widget-id="${widget.id}"]`,

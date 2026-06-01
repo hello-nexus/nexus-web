@@ -1,13 +1,12 @@
-// iOS-springboard-style dock. Sits in the row (portrait) or column
-// (landscape) reserved for it by paginateCapacityForGrid. Slots use the
-// same --panel-cell-size / --panel-row-size as the page grid so 1x1 dock
-// icons line up exactly with 1x1 page widgets directly above (portrait)
-// or beside (landscape).
+// iOS-springboard dock in the row (portrait) or column (landscape) reserved
+// by paginateCapacityForGrid. Slots use the page grid's --panel-cell-size /
+// --panel-row-size so 1x1 dock icons line up with 1x1 page widgets above
+// (portrait) or beside (landscape).
 .dock {
   display: flex;
-  // <4 icons center themselves. The reserved row's full width still
-  // lives in the parent .panelDockPosition (which also justify-centers),
-  // so the dock can grow up to 4 cells without flexing past either edge.
+  // <4 icons center themselves. The reserved row's full width lives in the
+  // parent .panelDockPosition (also justify-centered), so the dock grows up
+  // to 4 cells without flexing past either edge.
   justify-content: center;
   align-items: center;
   gap: var(--panel-gap, 8px);
@@ -25,9 +24,8 @@
   flex-direction: column;
 }
 
-// Each slot is exactly one grid cell. .dockSlotWrap stacks the card +
-// label like .cellWrap does on the page grid, so widget content scales
-// identically to a 1x1 widget on the same surface.
+// Each slot is one grid cell. .dockSlotWrap stacks card + label like .cellWrap
+// does on the page grid, so widget content scales like a 1x1 widget.
 .dockSlotWrap {
   position: relative;
   width: var(--panel-cell-size);

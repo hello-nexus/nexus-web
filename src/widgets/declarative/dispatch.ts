@@ -1,13 +1,11 @@
-// Client side of the widget-action dispatch channel. Manifest meters
-// declare an `onChange` / `onCommit` spec; the renderer's interactive
-// meters (slider, eventually button) call dispatchWidgetAction which
-// POSTs to /widgets-api/dispatch. The host validates the action against
-// the widget's manifest capabilities.dispatch allowlist and routes to a
-// server-registered handler (displays.setBrightness, lighting.setMode, etc.)
+// Client side of the widget-action dispatch channel. Manifest meters declare
+// `onChange` / `onCommit`; interactive meters call dispatchWidgetAction, which
+// POSTs to /widgets-api/dispatch. The host validates against the manifest's
+// capabilities.dispatch allowlist and routes to a server-registered handler
+// (displays.setBrightness, lighting.setMode, etc.)
 //
-// Throttling: drag-style continuous events naturally fire many times per
-// second. The throttle key is `widgetId|action` so two distinct sliders
-// don't starve each other. Latest value wins.
+// Throttling: drag events fire many times/sec. The throttle key is
+// `widgetId|action` so two sliders don't starve each other. Latest value wins.
 
 import { resolveHttp } from '../../api/service';
 import { getToken, handleUnauthorized } from '../../api/auth';
@@ -73,8 +71,8 @@ async function postDispatch(widgetId: string, action: string, args: Record<strin
     if (refreshed) res = await doPost(refreshed);
   }
   if (!res.ok) {
-    // Soft fail. The slider's optimistic state stays; the next data tick
-    // will reconcile if the server-side rejected.
+    // Soft fail: keep the optimistic state; the next data tick reconciles if
+    // the server rejected.
      
     console.warn(`[widget:${widgetId}] dispatch '${action}' failed: ${res.status}`);
   }

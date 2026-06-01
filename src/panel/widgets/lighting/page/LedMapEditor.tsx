@@ -20,9 +20,8 @@ const isMac = /mac/i.test(navigator.userAgent);
 const DEFAULT_RATIO = 16 / 9;
 const RECT_PAD_PX = 10;
 const MAX_HISTORY = 50;
-// Fraction of the selected LEDs' bbox edge to pad on each side when running
-// a group op (align as strip / grid / rotate). Gives the LEDs breathing room
-// inside the selection so they don't end up sitting right on the edges.
+// Fraction of the selected LEDs' bbox edge to pad on each side for a
+// group op (align strip / grid / rotate), so LEDs don't sit on the edges.
 const SELECTION_BBOX_PAD_UV = 0.04;
 // Height (canvas %) of the parking row below the device frame where deleted
 // LEDs sit. Enough to show the LED circle + 1-indexed label comfortably.
@@ -882,10 +881,9 @@ export function LedMapEditor({ device, onClose }: Props) {
       if (l.v < minV) minV = l.v;
       if (l.v > maxV) maxV = l.v;
     }
-    // Pad the bbox outward so align-grid / align-strip have breathing room.
-    // The tight bbox of a sparse selection can be microscopic which forces
-    // aligned LEDs to pile up on top of each other; a small constant pad
-    // gives the operations enough width / height to actually spread out.
+    // Pad the bbox outward: a sparse selection's tight bbox can be
+    // microscopic, piling aligned LEDs on one point. A constant pad
+    // gives align-grid / align-strip room to spread.
     const p = SELECTION_BBOX_PAD_UV;
     return {
       minU: Math.max(0, minU - p),
@@ -962,8 +960,8 @@ export function LedMapEditor({ device, onClose }: Props) {
     pushUndo();
     setLeds(prev => prev.map(l => {
       if (!selected.has(l.index) || !l.disabled) return l;
-      // Restore to the default position so the re-enabled LED lands
-      // somewhere sensible even if its last custom u,v was nonsense.
+      // Restore the default position so the re-enabled LED lands at a
+      // valid spot regardless of its last custom u,v.
       const def = defs.find(d => d.index === l.index);
       return {
         ...l,

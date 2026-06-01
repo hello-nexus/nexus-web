@@ -33,8 +33,7 @@ export function ConflictWarningBadge({ conflicts, compact, onDismissForever }: C
   const [open, setOpen] = useState(false);
   const count = conflicts.length;
 
-  // Nothing to show: no badge and no open modal → render nothing so the
-  // sidebar footer collapses cleanly.
+  // No badge and no open modal → render nothing so the footer collapses.
   if (count === 0 && !open) return null;
 
   const label = t('conflicts.badge.label', { count });
@@ -89,9 +88,8 @@ type TranslateFn = (key: string, params?: Record<string, string | number>) => st
 const KNOWN_CATEGORIES = new Set(['lighting', 'cooling', 'peripherals', 'monitoring']);
 
 function translateCategory(t: TranslateFn, category: string): string {
-  // Any new category emitted by the service without a matching locale string
-  // falls back to the raw value so the UI degrades gracefully instead of
-  // showing "conflicts.category.foo".
+  // A category with no matching locale string falls back to the raw value
+  // instead of showing "conflicts.category.foo".
   if (KNOWN_CATEGORIES.has(category)) {
     return t(`conflicts.category.${category}`);
   }
@@ -117,9 +115,8 @@ function ConflictWarningModal({ open, conflicts, onClose, onDismissForever }: Co
   const handleDismissToggle = useCallback(() => {
     setDismissChecked(current => {
       const next = !current;
-      // Fire the preference write the moment the user ticks the box rather
-      // than waiting for them to close the modal — feels snappier and the
-      // badge disappears immediately as confirmation.
+      // Write the preference on tick (not on modal close) so the badge
+      // disappears immediately.
       if (next) onDismissForever();
       return next;
     });

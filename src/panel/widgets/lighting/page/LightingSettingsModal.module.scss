@@ -26,8 +26,7 @@
   line-height: 1.5;
 }
 
-// Same row-card shape as the cooling settings modal so the two dialogs read
-// like siblings: one labelled affordance per row, bordered + slightly lifted.
+// Same row-card shape as the cooling settings modal.
 .row {
   display: flex;
   align-items: center;
@@ -56,8 +55,7 @@
   color: var(--text-dim);
 }
 
-// The slider needs a min-width so the bare track has room. Tightened from
-// the inline-header default so it fits the row layout cleanly.
+// min-width gives the bare track room within the row layout.
 .brightnessControl {
   display: flex;
   align-items: center;

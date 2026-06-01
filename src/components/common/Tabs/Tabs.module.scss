@@ -43,11 +43,10 @@
       border-radius: 2px;
     }
 
-    // Icon emphasis: when a tab carries an icon it doubles as a "mode" picker
-    // (Lighting, Cooling). Solid accent disc — same fill recipe as the
-    // chip-active curve-type buttons in CurveEditor — makes the mode semantic
-    // legible at a glance. The disc is painted by a ::before pseudo so it can
-    // appear visually larger than the layout slot without growing the row.
+    // Icon tabs double as a "mode" picker (Lighting, Cooling): the active one
+    // gets a solid accent disc (same fill recipe as the chip-active curve-type
+    // buttons in CurveEditor). The disc is painted by a ::before pseudo so it
+    // can extend past the layout slot without growing the row.
     .tabIcon {
       color: var(--accent-text);
 

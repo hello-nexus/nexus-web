@@ -1,6 +1,5 @@
-// isInsecureBrowserPanel lives next to the banner it gates: callers (PanelApp)
-// import both to make the decision + render in one place. Splitting them
-// would create a one-line predicate file imported only once.
+// isInsecureBrowserPanel lives next to the banner it gates; PanelApp imports
+// both to decide + render in one place.
  
 import { ShieldAlert } from 'lucide-react';
 import { useTranslation } from '../lib/i18n';
@@ -8,11 +7,10 @@ import { APP_STORE_URL } from '../lib/appStore';
 import styles from './PanelInsecureBanner.module.scss';
 
 /**
- * Persistent strip shown when the panel surface was reached over plain HTTP
- * (the LAN browser fallback). The native iOS app and the HTTPS path don't
- * render this. Tells the user the connection isn't end-to-end encrypted and
- * points at the App Store; /r/pair would dead-end here because it requires
- * fresh pair params, which the panel page doesn't carry post-claim.
+ * Strip shown when the panel was reached over plain HTTP (the LAN browser
+ * fallback); not rendered on the native iOS app or HTTPS path. Points at the
+ * App Store rather than /r/pair, which needs fresh pair params the panel page
+ * doesn't carry post-claim.
  */
 export function PanelInsecureBanner({ installHref }: { installHref?: string }) {
   const { t } = useTranslation();

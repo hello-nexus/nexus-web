@@ -103,7 +103,7 @@
 
   // Control size scale (heights). Buttons, chips, inputs, status badges,
   // icon-only buttons all pick from this scale. Icon glyphs and avatars
-  // sit on the same scale so dense rows align cleanly.
+  // sit on the same scale so dense rows align.
   --size-sm: 28px;         // compact buttons, dense inputs, icon-only buttons
   --size-md: 36px;         // default buttons, default inputs, default avatars
   --size-lg: 44px;         // primary CTA buttons, kiosk surfaces

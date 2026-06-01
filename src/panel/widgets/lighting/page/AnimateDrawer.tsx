@@ -5,16 +5,14 @@ import { EffectControls } from './EffectControls';
 import styles from '../LightingPage.module.scss';
 
 /**
- * Slide-animated wrapper used by FullscreenShader to overlay the animate
- * effect controls on top of the fullscreen canvas. The right-pane variant
- * renders EffectControls directly inside a tab - no drawer shell, no slide
- * animation. Keeping the wrapper here means the fullscreen overlay stays
- * dismissible and mirrors the drawer behaviour the user is already used to.
+ * Slide-animated wrapper FullscreenShader uses to overlay the animate
+ * effect controls on the fullscreen canvas. (The right-pane variant
+ * renders EffectControls directly in a tab, no drawer shell.)
  *
- * Esc-to-close is wired inline rather than through Overlay because the
- * parent (FullscreenShader) owns the open / closing animation
- * lifecycle and uses onAnimationEnd to drive unmount, which doesn't
- * compose cleanly through Overlay's surface wrapper.
+ * Esc-to-close is wired inline rather than via Overlay: the parent
+ * (FullscreenShader) owns the open/closing animation lifecycle and
+ * drives unmount via onAnimationEnd, which doesn't compose through
+ * Overlay's surface wrapper.
  */
 export function AnimateDrawer({
   effect, state, bundle,

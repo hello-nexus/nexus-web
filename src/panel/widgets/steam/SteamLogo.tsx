@@ -2,30 +2,22 @@ import { forwardRef } from 'react';
 import type { LucideIcon, LucideProps } from 'lucide-react';
 
 /**
- * Official Steam logo (path data lifted from Wikimedia's
- * Steam_icon_logo.svg).
+ * Steam logo (path data from Wikimedia's Steam_icon_logo.svg).
  *
- * The source SVG draws the logo as two overlaid paths: an outer
- * gradient-filled silhouette (the "blue" shape) and the white logo
- * detail layered on top. Here we combine both into a single path
- * with fill-rule="evenodd" so the inner detail SUBTRACTS from the
- * silhouette, producing the iconic logo as transparent cutouts on
- * a single-color shape — like a monochrome stencil. The fill comes
- * from currentColor so the mark inherits theme color in the sidebar
- * pin, panel widget catalog, and any empty-state usage.
+ * The source's silhouette and detail paths are merged into one path
+ * with fill-rule="evenodd" so the detail subtracts from the
+ * silhouette (transparent cutouts on a single-color shape). Fill is
+ * currentColor so the mark inherits theme color.
  *
- * Typed as LucideIcon so it slots into AppMetadata.icon.
- *
- * stroke* / absoluteStrokeWidth props are accepted (for type
- * compatibility) but unused — this is a fill-based mark.
+ * Typed as LucideIcon so it slots into AppMetadata.icon. stroke* /
+ * absoluteStrokeWidth are accepted for type compat but unused.
  */
 export const SteamLogo: LucideIcon = forwardRef<SVGSVGElement, LucideProps>(function SteamLogo(
   {
     size = 24,
     color = 'currentColor',
-    // strokeWidth / absoluteStrokeWidth pulled off so they don't reach the
-    // <svg>; this is a fill-based glyph and stroke props would warp it. The
-    // destructuring is the discard mechanism — we don't read them anywhere.
+    // Discard strokeWidth / absoluteStrokeWidth so they don't reach the
+    // <svg>; stroke props would warp this fill-based glyph.
     /* eslint-disable @typescript-eslint/no-unused-vars */
     strokeWidth: _strokeWidth,
     absoluteStrokeWidth: _absoluteStrokeWidth,

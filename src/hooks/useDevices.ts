@@ -23,9 +23,7 @@ export function useDevices(enabled: boolean) {
     mountedRef.current = true;
     if (!enabled) return;
     // Initial REST seed for the device list; subsequent updates arrive
-    // via the `devices` topic below. This is an external-system fetch,
-    // not a derivable value.
-     
+    // via the `devices` topic below.
     void refresh();
     return () => {
       mountedRef.current = false;

@@ -14,13 +14,10 @@ import keebStyles from '../keeb/KeebDeviceModal.module.scss';
 import pageStyles from './KeebDevicePage.module.scss';
 
 /**
- * Routed page version of the keeb customisation surface — same body
- * the old `KeebDeviceModal` rendered, dropped into a standard
- * dashboard page chrome (ViewHeader + section) instead of an
- * overlay modal. The DevicePage dispatcher routes to this for the
- * curated `keeb` device. The original modal's local state (selected
- * key, rotary mode, sensitivity) + the useKeeb hook all carry over
- * unchanged; we only swap the outer chrome.
+ * Routed keeb customization page (ViewHeader + section chrome). The
+ * DevicePage dispatcher routes here for the curated `keeb` device. Holds
+ * the keeb body's local state (selected key, rotary mode, sensitivity)
+ * and the useKeeb hook.
  */
 type Tab = 'key-assignment' | 'macros' | 'tester' | 'settings';
 

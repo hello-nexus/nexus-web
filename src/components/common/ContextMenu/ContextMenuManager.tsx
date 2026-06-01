@@ -1,12 +1,10 @@
 // installContextMenuSuppressor is the side-effect-free worker that the
-// ContextMenuManager mount uses; tests import it directly. One file is the
-// natural unit of testable behaviour here.
+// ContextMenuManager mount uses; tests import it directly.
  
 import { useEffect } from 'react';
 
-// Kills the browser's default right-click menu for the whole app. This is the
-// hook-point for rendering our own menu later - for now nothing is drawn, so
-// right-click is simply swallowed.
+// Suppresses the browser's default right-click menu app-wide (nothing is
+// drawn in its place).
 //
 // Component-local onContextMenu handlers (e.g. the cooling CurveEditor point
 // delete) keep working: if they call preventDefault() on the React synthetic

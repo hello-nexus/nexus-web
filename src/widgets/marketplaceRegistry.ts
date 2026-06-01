@@ -10,12 +10,10 @@ import type { WidgetInstalledListing } from './types';
 export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
 
 /**
- * Marketplace widgets that surface in the Add-a-Widget picker. The nexus-service
- * may report more bundled widgets than this — the panel only shows the
- * allowlisted ones so the marketplace experience stays curated while the
- * declarative SDK is in beta. Widgets installed by the user but not in this
- * list still resolve via `lookupApp` (so an already-placed widget keeps
- * rendering) but won't appear as new options.
+ * Marketplace widgets shown in the Add-a-Widget picker. nexus-service may
+ * report more bundled widgets; the picker shows only the allowlisted ones to
+ * stay curated. Installed widgets not on the list still resolve via
+ * `lookupApp` (already-placed instances keep rendering) but aren't offered.
  */
 export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
   'com.hellonexus.weather',

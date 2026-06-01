@@ -1,9 +1,6 @@
-// World-clock catalog. A curated set spanning every major time zone
-// band, sized for a single quick-scan row beneath the day/night map.
-// Each entry carries the canonical IANA timezone identifier — that's
-// what Intl.DateTimeFormat consumes for DST-correct offsets.
-//
-// Not user-editable. If you want a city that isn't here, add it.
+// World-clock catalog spanning the major time zone bands. Each entry's
+// IANA tz id is what Intl.DateTimeFormat consumes for DST-correct
+// offsets. Not user-editable.
 
 export interface City {
   readonly name: string;

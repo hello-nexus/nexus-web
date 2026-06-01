@@ -22,9 +22,8 @@ const Maximize = () => (
 
 const Restore = () => (
   <svg viewBox="0 0 10 10" aria-hidden focusable="false">
-    {/* Win11 restore glyph: a 7x7 square in the back-bottom-left + a 7x7
-        square offset forward-top-right. The "L" cut where the squares
-        overlap is what visually reads as "stacked windows". */}
+    {/* Win11 restore glyph: two overlapping 7x7 squares (back-bottom-left +
+        forward-top-right) reading as stacked windows. */}
     <rect x="2.5" y="0.5" width="7" height="7" stroke="currentColor" strokeWidth="1" fill="none" />
     <rect x="0.5" y="2.5" width="7" height="7" stroke="currentColor" strokeWidth="1" fill="none" />
   </svg>

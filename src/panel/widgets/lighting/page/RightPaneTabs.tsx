@@ -5,12 +5,10 @@ import styles from '../LightingPage.module.scss';
 export type RightPaneTab = 'devices' | 'effect';
 
 /**
- * Devices | Effect selector for the right pane. Reuses the shared Tabs
- * primitive so it renders identically to the mode tabs on the page header:
- * a horizontal pair with a subtle accent underline on the active item, no
- * pill fills, no bold weight. Disabled state is per-tab (effectTabDisabled)
- * - the shared Tabs component only supports a single disabled flag, so we
- * inject styling at the container level for the disabled variant.
+ * Devices | Effect selector for the right pane, reusing the shared Tabs
+ * primitive so it matches the page-header mode tabs. The shared Tabs
+ * component only supports a single disabled flag, so the per-tab
+ * disabled state (effectTabDisabled) is styled at the container level.
  */
 export function RightPaneTabs({ active, onSelect, pulseKey, effectTabDisabled }: {
   active: RightPaneTab;

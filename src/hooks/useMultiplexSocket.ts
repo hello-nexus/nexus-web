@@ -91,7 +91,7 @@ const RELAY_DISABLED_POLL_MS = 5000;
 // CloseRevokedAsync. Distinguishes a server-initiated kick (killswitch or
 // single-device revoke) from generic transport drops (1006, 1011, etc.).
 const WS_CLOSE_REVOKED = 1008;
-// Hard ceiling on a single multiplex frame. The largest legitimate topic
+// Hard ceiling on a single multiplex frame. The largest valid topic
 // today is the 1Hz monitoring composite, which clocks in well under 512KB
 // even with topN process + network lists at their cap. Anything bigger is
 // either a server bug or a malformed frame — drop it before parse to

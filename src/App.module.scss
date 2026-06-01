@@ -154,13 +154,9 @@
   cursor: ns-resize;
 }
 
-// Corner strips - 12x12 squares so the user can grab the diagonal
-// resize cursor reliably. These are siblings of the edge strips at the
-// same z-index, but slightly higher up in DOM order so they win where
-// they overlap the edge strips.
-// Corner strips: 18x18 squares so the diagonal resize cursor is
-// easy to grab (native Windows corners are ~10px but our user
-// reported the smaller targets felt unreliable). Top corners sit
+// Corner strips: diagonal-resize grab targets. Native Windows corners are
+// ~10px but the smaller targets felt unreliable, so these run wider. Top
+// corners sit
 // above the caption buttons (z-index 2005 > 2003) so the very
 // corner of the window is always a diagonal resize even when the
 // OS-close button visually occupies the same pixels. The very edge
@@ -524,21 +520,9 @@
   min-height: 36px;
 }
 
-// ── Top-right debug-tools button (replaces the old sidebar footer slot).
-// Sits at the very top-right of the layout. On Windows shell the caption
-// buttons (138px wide) hug right:0, so we offset the debug button by 12px
-// past them. On other platforms there are no caption buttons; the debug
-// button takes the corner instead.
-//
-// z-index 2010 sits ABOVE every piece of window chrome (drag strip 2000,
-// resize edges 2004, resize corners 2005, caption buttons 2003) so the
-// button intercepts hovers + clicks first. Without this the drag strip
-// (which extends right up to right:138) covers the debug button entirely
-// when the layout is in Windows-app shell mode — the button visually
-// renders but clicks fall through to drag-window.
-// Top-right action buttons (debug + settings). Sized + tinted to mimic Win11
-// caption buttons so the strip reads as one integrated chrome row when the
-// real caption buttons sit just to their right.
+// Top-right action buttons (settings + nav chevrons). Sized + tinted to mimic
+// Win11 caption buttons so the strip reads as one integrated chrome row when
+// the real caption buttons sit just to their right.
 //
 // z-index 2010 sits ABOVE every piece of window chrome (drag strip 2000,
 // resize edges 2004, resize corners 2005, caption buttons 2003) so the
@@ -600,9 +584,7 @@
   }
 }
 
-// Settings is the right-most action. (Previously the debug icon sat here;
-// dev tools moved to a tab inside the Settings page so the chrome icon was
-// removed and Settings slid into the rightmost slot.)
+// Settings is the right-most action (dev tools live in a tab inside it).
 .topRightSettings { right: 0; }
 .layoutWindowsApp .topRightSettings { right: 138px; }
 

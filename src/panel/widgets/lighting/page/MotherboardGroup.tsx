@@ -5,15 +5,13 @@ import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTo
 import styles from '../LightingPage.module.scss';
 
 /**
- * Wraps a run of motherboard zone cards (one per ARGB header) under a single
- * collapsible header so the device list doesn't get visually overwhelmed when
- * a board has three or four headers. Header shows the parent OpenRGB device
- * name; clicking it toggles the zone list. Expanded by default.
+ * Wraps a run of motherboard zone cards (one per ARGB header) under one
+ * collapsible header showing the parent OpenRGB device name; clicking
+ * it toggles the zone list. Expanded by default.
  *
- * The header also carries a group power switch: it's "on" iff any child zone
- * is on, and clicking flips every zone to the opposite state. Same fade-on-
- * hover + persistent-when-off behaviour as the per-zone power button so the
- * group surface visually parrots its children.
+ * The header's group power switch is "on" iff any child zone is on, and
+ * clicking flips every zone to the opposite state. Same fade-on-hover +
+ * persistent-when-off behaviour as the per-zone power button.
  */
 export function MotherboardGroup({
   parentName,

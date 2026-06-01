@@ -40,9 +40,9 @@ export function Button({ view, ctx }: MeterProps) {
     window.setTimeout(() => setPressed(false), 140);
     const spec = view.onClick as ButtonClickSpec | undefined;
     if (!spec || typeof spec !== 'object') return;
-    // Client-side state mutation runs first; the host dispatch (if any)
-    // sees the post-mutation state. A button may declare either or both —
-    // e.g. set a `pending: true` local flag and fire a server action.
+    // Local mutation runs first so the host dispatch sees post-mutation state.
+    // A button may declare either or both (e.g. set `pending: true` + fire a
+    // server action).
     if (spec.localUpdate && ctx.onLocalUpdate) {
       ctx.onLocalUpdate(spec.localUpdate, ctx);
     }
@@ -58,7 +58,7 @@ export function Button({ view, ctx }: MeterProps) {
       onClick={onClick}
       aria-label={ariaLabel || undefined}
       style={{
-        // Stretch to fill parent — macros widget at 2x2 wants a full-card hit area.
+        // Fill the parent for a full-card hit area.
         flex: '1 1 0',
         width: '100%', height: '100%',
         minWidth: 0, minHeight: 0,

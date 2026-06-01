@@ -1,19 +1,13 @@
-// Universal empty / loading state for declarative widgets. Centered
-// pulsing widget icon + optional one-liner. Rendered by DeclarativeWidget
-// when no data source has produced its first value yet, or when the
-// widget explicitly published an _emptyState shape.
-//
-// The component reads its dimensions from the surrounding container
-// (DeclarativeWidget wraps every widget in `container-type: size`), so
-// the same component looks proportionate at 2x2 / 4x2 / 4x4 without
-// per-size manifest overrides.
+// Universal empty / loading state: centered pulsing icon + optional one-liner.
+// Rendered by DeclarativeWidget before the first data value, or when the widget
+// publishes an _emptyState shape. Sizes via its container (`container-type:
+// size`), proportionate at 2x2 / 4x2 / 4x4 without per-size overrides.
 
 import styles from './WidgetEmptyState.module.scss';
 
 export interface WidgetEmptyStateProps {
   iconUrl?: string | null;
-  /** Widget display name. Shown only on 4x2 and larger when no `primary`
-   *  is supplied — gives the user a hint about which card is loading. */
+  /** Widget display name. Shown on 4x2+ when no `primary` is supplied. */
   name?: string;
   /** Headline (e.g. "Loading…", "Location unknown"). */
   primary?: string;
@@ -32,8 +26,8 @@ export function WidgetEmptyState({
         {iconUrl ? (
           <img src={iconUrl} alt="" className={styles.iconImg} />
         ) : (
-          // Fallback glyph when the manifest didn't ship an icon. A subtle
-          // dot keeps the layout from collapsing.
+          // Fallback dot when the manifest shipped no icon; keeps the layout
+          // from collapsing.
           <div className={styles.iconStub} />
         )}
       </div>

@@ -1,10 +1,8 @@
 @use '../../../styles/interactions' as *;
 
-/* Themed wrapper for native <select>. The wrapper span positions a
-   ChevronDown icon on the right edge so the dropdown affordance reads
-   at a glance. The native popup still opens on click of the select
-   itself; the chevron is purely decorative (pointer-events: none) so
-   clicks fall through to the select. */
+/* Themed wrapper for native <select>. The wrapper span overlays a
+   ChevronDown icon on the right edge. The chevron is pointer-events: none
+   so clicks fall through and the native popup opens on the select. */
 
 .wrapper {
   position: relative;
@@ -62,10 +60,9 @@
   right: 0.4rem;
 }
 
-/* Ghost variant: no border, no background fill. The value reads as
-   plain text with just the chevron beside it. Use when the select
-   already sits inside a bordered card and the standard chrome reads as
-   a redundant box (cooling fan / curve rows). */
+/* Ghost variant: no border, no background fill — value as plain text with
+   the chevron beside it. For selects already inside a bordered card (cooling
+   fan / curve rows). */
 .ghost .select {
   background: transparent;
   border-color: transparent;

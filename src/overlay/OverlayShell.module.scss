@@ -1,5 +1,5 @@
 // Floating desktop widget shell. Hosted inside the per-monitor overlay
-// served by nexus-desktop.exe. Body and root must stay transparent so
+// served by nexus-overlay.exe. Body and root must stay transparent so
 // the desktop shows through.
 //
 // Widgets are placed at cell coordinates inset by `inset` pixels on each
@@ -30,10 +30,9 @@
   overflow: hidden;
   cursor: grab;
   user-select: none;
-  // Card dropshadow stripped: the host carves SetWindowRgn to widget rects
-  // so any shadow extending past the rect would render half-clipped against
-  // a hard edge. Skipping the lift entirely is cleaner than enlarging the
-  // carve and losing 30 px of click-through halo around each card.
+  // No card dropshadow: the host carves SetWindowRgn to widget rects, so a
+  // shadow past the rect clips against a hard edge. Enlarging the carve to
+  // fit it would lose the 30 px click-through halo around each card.
   box-shadow: none;
 
   &[data-dragging="true"] {

@@ -88,8 +88,7 @@ export function CoolingResponseChart({
     if (!el) {
       // When the FANS readout pill is hidden (avgDuty undefined), reset
       // the cached width so the notch-layout math doesn't keep clearing
-      // space for a pill that isn't there. This is a state-resync to
-      // an externally controlled visibility flag.
+      // space for a pill that isn't there.
        
       setFanReadoutWidth(0); return;
     }

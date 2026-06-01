@@ -14,12 +14,11 @@ export type PanelResolvedTheme = 'dark' | 'light';
 export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'aurora';
 export const DEFAULT_PANEL_BACKGROUND_TEMPLATE = 0;
 export const DEFAULT_PANEL_BACKGROUND_OPACITY = 0.4;
-// Widget-surface defaults are mastered by the service: they live in
-// nexus-service/data/install-defaults.json (panel.*) and are served at
-// /defaults into the install-defaults cache. Read them through the cache so
-// there is one source of truth — the same pattern defaultLayout.ts uses for
-// layout defaults. The literals below are ONLY the sub-100ms bootstrap-race
-// fallback (the window before the cache fills) and must match the JSON.
+// Widget-surface defaults are mastered by the service in
+// nexus-service/data/install-defaults.json (panel.*), served at /defaults into
+// the install-defaults cache. Read through the cache for one source of truth
+// (as defaultLayout.ts does). The literals below are only the bootstrap-race
+// fallback before the cache fills, and must match the JSON.
 const WIDGET_OPACITY_FALLBACK = 1;
 const WIDGET_LABELS_FALLBACK = false;
 const WIDGET_BLUR_FALLBACK = true;
@@ -33,14 +32,12 @@ export const defaultPanelWidgetBlur = (): boolean =>
 
 export const PANEL_BACKGROUND_EFFECTS: EffectDef[] = EFFECTS.filter(effect => !effect.audio);
 
-// Paired preset sets: index i in DARK is the dark counterpart of index i in LIGHT.
-// Two rows of ten across ten hue families - violet, purple, pink, red, orange,
-// amber, green, teal, cyan, blue. Row 1 is a clearly tinted darker / lighter
-// shade of the family; row 2 is much more colorful (deep saturated darks for
-// the dark theme, vivid pastels for the light theme). Columns line up with
-// PRESET_ACCENTS so a chosen accent has a matching background tone.
-// Column 0 is a neutral grayscale (default / "no tint"); columns 1-9
-// are tinted per the PRESET_ACCENTS hue families.
+// Paired preset sets: index i in DARK is the dark counterpart of index i in
+// LIGHT. Two rows of ten hue families (violet, purple, pink, red, orange,
+// amber, green, teal, cyan, blue). Row 1 is a tinted shade; row 2 is more
+// saturated (deep darks / vivid pastels). Columns align with PRESET_ACCENTS
+// so an accent has a matching background tone. Column 0 is neutral grayscale
+// (no tint); columns 1-9 are tinted per the PRESET_ACCENTS families.
 export const BG_PRESETS_DARK: readonly string[] = [
   '#0f0f0f', '#1f0d36', '#2c0d20', '#2c0d0d',
   '#2c1408', '#2a1607', '#082617', '#082621',
@@ -81,21 +78,19 @@ export function isPanelBackgroundPreset(hex: string): boolean {
   return findPresetIndex(hex) >= 0;
 }
 
-// Build the dark/light pair for a single picked color. For preset values both
-// theme slots resolve to the matching column so dark/light always stay in the
-// same hue family. For custom (non-preset) hex the same value is used for both
-// since we cannot derive a counterpart.
+// Build the dark/light pair for a picked color. Presets resolve both slots to
+// the matching column (same hue family); custom hex uses the same value for
+// both (no counterpart to derive).
 export function panelBackgroundPair(hex: string): { dark: string; light: string } {
   const idx = findPresetIndex(hex);
   if (idx >= 0) return { dark: BG_PRESETS_DARK[idx], light: BG_PRESETS_LIGHT[idx] };
   return { dark: hex, light: hex };
 }
 
-// Resolve the active background for the given theme. Always derives both
-// themes from the same column so toggling dark <-> light stays in the picked
-// hue family - a separately stored opposite-theme color is intentionally
-// ignored. Stale separately-stored data gets corrected on the next commit
-// because commitBackground writes both slots in lockstep.
+// Resolve the active background for the theme. Derives both slots from the
+// same column so dark <-> light stays in the picked hue family; a separately
+// stored opposite-theme color is ignored and corrected on the next commit
+// (commitBackground writes both slots in lockstep).
 export function resolvePanelBackground(
   dark: string | null | undefined,
   light: string | null | undefined,
