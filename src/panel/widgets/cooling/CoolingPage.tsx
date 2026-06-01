@@ -40,7 +40,7 @@ import { CoolingTrendChart } from './page/CoolingTrendChart';
 import { CoolingSettingsModal } from './page/CoolingSettingsModal';
 import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './page/coolingPresets';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
-import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSensorResolver';
+import { resolveCpuTempSensor, resolveGpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
 import { newCurve, type CurveDef, type CurvePreset, type CurveType, type FanState, type MixFn } from '../../../types/cooling';
 import styles from './CoolingPage.module.scss';
 
@@ -418,7 +418,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     if (curves.length >= MAX_CURVES) return '';
     const id = `curve-${Date.now()}`;
     const c = newCurve(id);
-    if (sources.length > 0) c.sourceId = sources[0].id;
+    // Default to the CPU temp (the sensor pinned in cooling settings), never
+    // sources[0] — on Linux that's often a motherboard SuperIO channel.
+    c.sourceId = defaultCurveSourceId(sources, cpuTemp?.id);
     // New curves go on top so a freshly-added curve is immediately visible
     // without scrolling down through existing ones.
     const next = [c, ...curves];
@@ -429,7 +431,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     setExpandedCurveId(id);
     pushCurves(next, fanStates);
     return id;
-  }, [curves, sources, fanStates, pushCurves]);
+  }, [curves, sources, fanStates, pushCurves, cpuTemp?.id]);
 
   // BIOS = release control; 'manual' = software control, no curve; curve id =
   // bind that curve; 'fw' = NP50 only, switches the whole hub to its EEPROM
@@ -529,7 +531,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     await exitOffToCustomIfNeeded();
     const id = `curve-${Date.now()}`;
     const c = newCurve(id);
-    if (sources.length > 0) c.sourceId = sources[0].id;
+    c.sourceId = defaultCurveSourceId(sources, cpuTemp?.id);
     const nextCurves = [c, ...curves];
     const wasSw = fanStates[fanId]?.softwareControl ?? false;
     const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: id } };
@@ -542,7 +544,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       const fans = await fetchFanChannels();
       if (fans?.channels) setChannels(fans.channels);
     }
-  }, [curves, sources, fanStates, pushCurves, exitOffToCustomIfNeeded]);
+  }, [curves, sources, fanStates, pushCurves, exitOffToCustomIfNeeded, cpuTemp?.id]);
 
   // Reset a preset curve (silent/balanced/turbo) back to defaults via
   // the service endpoint. Fan attachments are preserved server-side, so the

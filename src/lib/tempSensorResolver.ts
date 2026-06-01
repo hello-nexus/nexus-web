@@ -56,3 +56,38 @@ export function resolveGpuTempSensor(
 export function listTempSensors(list: readonly HardwareSensor[]): HardwareSensor[] {
   return list.filter(s => s.type === 'Temperature');
 }
+
+/** Minimal shape of a /cooling/sources entry needed to pick a default. */
+interface CurveSourceLike {
+  id: string;
+  name: string;
+  category: string;
+}
+
+/**
+ * Default temperature SOURCE id for a new or preset fan curve. Mirrors the
+ * service's FanProfiles.PreferredInput so the choice is identical on every
+ * platform (each reports a different CPU sensor, but all categorise it "CPU"):
+ *
+ *   1. The user's pinned CPU sensor, when its id is actually a cooling source
+ *      (future-proof / when the monitoring + cooling id spaces coincide).
+ *   2. A CPU-category source whose name mentions "Package" (Intel/LHM).
+ *   3. Any CPU-category source (e.g. Linux k10temp Tctl, mac CPU die).
+ *   4. First source — last resort so a curve is never left with no input.
+ *
+ * Critically NOT `sources[0]`, which on Linux is often a motherboard SuperIO
+ * channel (e.g. an unconnected it8696 header reading a -55°C sentinel).
+ */
+export function defaultCurveSourceId(
+  sources: readonly CurveSourceLike[],
+  preferredCpuSourceId = '',
+): string {
+  if (sources.length === 0) return '';
+  if (preferredCpuSourceId) {
+    const pinned = sources.find(s => s.id === preferredCpuSourceId);
+    if (pinned) return pinned.id;
+  }
+  const cpu = sources.filter(s => s.category === 'CPU');
+  const pkg = cpu.find(s => s.name.toLowerCase().includes('package'));
+  return (pkg ?? cpu[0] ?? sources[0]).id;
+}
