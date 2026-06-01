@@ -20,14 +20,12 @@ import styles from './Slider.module.scss';
  *   - zeroMarker  : if range straddles zero, draws a tick at 0 on the track
  *   - showRange   : prints min / max under the track (DPI-style)
  *   - formatValue : controls how the value is rendered (e.g. '1.5s', '800 DPI')
- *   - trackFill   : enable level-style accent fill inside the track.
- *                   - `true` auto-computes the fill from value/min/max.
- *                     When the range straddles zero (e.g. -100..100), the
- *                     fill paints from the centre outward toward the value;
- *                     otherwise it fills from the start.
- *                   - a number (0..100) explicitly sets the end percent in
- *                     start-fill mode (legacy contract preserved for
- *                     callers that pre-compute the percentage).
+ *   - trackFill   : the accent-fill track + bright (white-on-dark) thumb is
+ *                   ALWAYS painted now — it is the single slider style; there is
+ *                   no un-filled variant. By default the fill auto-computes from
+ *                   value/min/max (centre-out when the range straddles zero,
+ *                   e.g. -100..100). Pass a number (0..100) only to set the fill
+ *                   end explicitly when it differs from value/min/max.
  *
  * Callbacks:
  *   - onChange(v, commit?) fires for every range step AND for committed input edits.
@@ -67,29 +65,28 @@ export function Slider({
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showZero = zeroMarker && min < 0 && max > 0;
   const zeroPct = showZero ? ((0 - min) / (max - min)) * 100 : 0;
-  const fillEnabled = trackFill === true || typeof trackFill === 'number';
-  const isBipolar = fillEnabled && min < 0 && max > 0;
+  // The accent-fill track + bright (white-on-dark) thumb is the single slider
+  // style now — always painted. A numeric `trackFill` still sets the fill end
+  // explicitly for callers whose fill % differs from value/min/max; otherwise it
+  // auto-computes (centre-out when the range straddles zero).
+  const isBipolar = min < 0 && max > 0;
   const valuePct = ((value - min) / (max - min)) * 100;
   const clamp = (v: number) => Math.min(100, Math.max(0, v));
   let fillStartPct = 0;
-  let fillEndPct = 0;
-  if (fillEnabled) {
-    if (isBipolar) {
-      const centerPct = ((0 - min) / (max - min)) * 100;
-      fillStartPct = clamp(Math.min(centerPct, valuePct));
-      fillEndPct = clamp(Math.max(centerPct, valuePct));
-    } else if (typeof trackFill === 'number') {
-      fillEndPct = clamp(trackFill);
-    } else {
-      fillEndPct = clamp(valuePct);
-    }
+  let fillEndPct: number;
+  if (isBipolar) {
+    const centerPct = ((0 - min) / (max - min)) * 100;
+    fillStartPct = clamp(Math.min(centerPct, valuePct));
+    fillEndPct = clamp(Math.max(centerPct, valuePct));
+  } else if (typeof trackFill === 'number') {
+    fillEndPct = clamp(trackFill);
+  } else {
+    fillEndPct = clamp(valuePct);
   }
-  const trackStyle = fillEnabled
-    ? ({
-        '--slider-fill-start': `${fillStartPct}%`,
-        '--slider-fill-end': `${fillEndPct}%`,
-      } as CSSProperties)
-    : undefined;
+  const trackStyle = {
+    '--slider-fill-start': `${fillStartPct}%`,
+    '--slider-fill-end': `${fillEndPct}%`,
+  } as CSSProperties;
 
   useEffect(() => {
     latestInputValueRef.current = value;
@@ -134,7 +131,7 @@ export function Slider({
     <input type="range" min={min} max={max} step={step} value={value}
       disabled={disabled}
       aria-label={ariaLabel}
-      data-fill={fillEnabled ? '' : undefined}
+      data-fill=""
       style={trackStyle}
       onChange={e => handleChange(Number(e.target.value), false)}
       onPointerDown={onPointerDown}

@@ -604,22 +604,6 @@ function PreviewOverlay() {
   );
 }
 
-function PreviewSliderTrackFill() {
-  const [v, setV] = useState(72);
-  return (
-    <Slider
-      orientation="stacked"
-      label="Brightness"
-      value={v}
-      min={0}
-      max={100}
-      trackFill={v}
-      formatValue={x => `${x}%`}
-      onChange={setV}
-    />
-  );
-}
-
 function PreviewRangeSliderTemp() {
   const [v, setV] = useState<[number, number]>([35, 75]);
   return (
@@ -852,7 +836,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Slider (inline)', category: 'inputs',
     filePath: 'src/components/common/Slider/Slider.tsx',
-    description: 'Inline label | track | value layout. Default orientation. Used by ScreenControls and any horizontal control row.', Preview: PreviewSliderInline,
+    description: 'Inline label | track | value layout. Default orientation. Every slider now paints the accent fill track + bright (white-on-dark) thumb — there is no un-filled variant.', Preview: PreviewSliderInline,
   },
   {
     name: 'Slider (stacked, editable, zero marker)', category: 'inputs',
@@ -869,12 +853,6 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'Slider (showRange)', category: 'inputs',
     filePath: 'src/components/common/Slider/Slider.tsx',
     description: 'Stacked slider with min and max printed under the track. Used by DpiControl and any range-bound control where the user needs to see the bounds.', Preview: PreviewSliderRange,
-  },
-  {
-    name: 'Slider (trackFill)', category: 'inputs',
-    filePath: 'src/components/common/Slider/Slider.tsx',
-    description: 'Slider with an accent fill painted from 0 up to the trackFill percent, emphasising "level" semantics. Used for monitor brightness (DisplaysWidget), Y70 brightness (Y70Modal), and the panel background opacity.', Preview: PreviewSliderTrackFill,
-    notes: 'Set trackFill to the same numeric value as the slider value to draw a brightness/volume-style fill. Works in any orientation.',
   },
   {
     name: 'RangeSlider (temperature)', category: 'inputs',
