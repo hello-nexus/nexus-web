@@ -674,6 +674,7 @@
   "phonePair.killswitch.confirmMessage": "All connected remote control panels will be disconnected immediately.",
   "phonePair.killswitch.confirmNote": "Paired devices stay in your list and can resume when you turn this back on.",
   "phonePair.killswitch.confirmTitle": "Turn off remote control?",
+  "phonePair.connectionOptions": "Connection options",
   "phonePair.killswitch.label": "Allow remote control",
   "phonePair.killswitch.offHint": "Paired devices are kept but cannot reach this system until you turn it back on.",
   "phonePair.killswitch.offLabel": "Remote control off",

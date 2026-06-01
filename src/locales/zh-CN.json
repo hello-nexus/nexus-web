@@ -674,6 +674,7 @@
   "phonePair.killswitch.confirmMessage": "所有已连接的远程控制面板将立即断开连接。",
   "phonePair.killswitch.confirmNote": "已配对的设备保留在列表中，重新开启后会自动恢复连接。",
   "phonePair.killswitch.confirmTitle": "关闭远程控制？",
+  "phonePair.connectionOptions": "连接选项",
   "phonePair.killswitch.label": "允许远程控制",
   "phonePair.killswitch.offHint": "已配对的设备会保留，但在重新开启之前无法访问此系统。",
   "phonePair.killswitch.offLabel": "远程控制已关闭",

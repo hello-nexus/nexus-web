@@ -674,6 +674,7 @@
   "phonePair.killswitch.confirmMessage": "Tous les panneaux de commande à distance connectés seront déconnectés immédiatement.",
   "phonePair.killswitch.confirmNote": "Les appareils appairés restent dans la liste et se reconnectent automatiquement lorsque vous réactivez cette option.",
   "phonePair.killswitch.confirmTitle": "Désactiver la commande à distance ?",
+  "phonePair.connectionOptions": "Options de connexion",
   "phonePair.killswitch.label": "Autoriser la commande à distance",
   "phonePair.killswitch.offHint": "Les appareils appairés sont conservés mais ne peuvent pas joindre ce système tant que vous ne réactivez pas cette option.",
   "phonePair.killswitch.offLabel": "Commande à distance désactivée",

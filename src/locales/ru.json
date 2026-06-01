@@ -674,6 +674,7 @@
   "phonePair.killswitch.confirmMessage": "Все подключённые панели удалённого управления будут немедленно отключены.",
   "phonePair.killswitch.confirmNote": "Сопряжённые устройства остаются в списке и автоматически переподключатся после повторного включения.",
   "phonePair.killswitch.confirmTitle": "Выключить удалённое управление?",
+  "phonePair.connectionOptions": "Параметры подключения",
   "phonePair.killswitch.label": "Разрешить удалённое управление",
   "phonePair.killswitch.offHint": "Сопряжённые устройства сохраняются, но не могут связаться с системой, пока вы снова не включите эту опцию.",
   "phonePair.killswitch.offLabel": "Удалённое управление выключено",

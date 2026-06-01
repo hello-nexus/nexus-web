@@ -29,6 +29,15 @@
   color: var(--panel-text, var(--text));
 }
 
+// Optional accent glyph before the label text (e.g. the relay satellite).
+// Inline so it sits on the label's baseline without changing row layout.
+.labelIcon {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-right: 6px;
+  color: var(--accent);
+}
+
 .desc {
   @include text-button;
   color: var(--panel-text-faint, var(--text-faded));

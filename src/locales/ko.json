@@ -674,6 +674,7 @@
   "phonePair.killswitch.confirmMessage": "연결된 모든 원격 제어 패널이 즉시 연결 해제됩니다.",
   "phonePair.killswitch.confirmNote": "페어링된 기기는 목록에 남아 있으며 다시 켜면 자동으로 연결됩니다.",
   "phonePair.killswitch.confirmTitle": "원격 제어를 끌까요?",
+  "phonePair.connectionOptions": "연결 옵션",
   "phonePair.killswitch.label": "원격 제어 허용",
   "phonePair.killswitch.offHint": "페어링된 기기는 유지되지만 다시 켜기 전에는 이 시스템에 접근할 수 없습니다.",
   "phonePair.killswitch.offLabel": "원격 제어 꺼짐",

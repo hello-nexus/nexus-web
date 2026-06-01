@@ -674,6 +674,7 @@
   "phonePair.killswitch.confirmMessage": "所有已連線的遠端控制面板會立即中斷連線。",
   "phonePair.killswitch.confirmNote": "已配對的裝置會保留在清單中，重新開啟後會自動恢復連線。",
   "phonePair.killswitch.confirmTitle": "關閉遠端控制？",
+  "phonePair.connectionOptions": "連線選項",
   "phonePair.killswitch.label": "允許遠端控制",
   "phonePair.killswitch.offHint": "已配對的裝置會保留，但在重新開啟前無法存取此系統。",
   "phonePair.killswitch.offLabel": "遠端控制已關閉",

@@ -19,11 +19,14 @@ import styles from './SettingRow.module.scss';
 export function SettingRow({
   label,
   description,
+  icon,
   children,
   disabled,
 }: {
   label?: string;
   description?: ReactNode;
+  // Optional accent glyph rendered inline before the label text.
+  icon?: ReactNode;
   children: ReactNode;
   disabled?: boolean;
 }) {
@@ -31,7 +34,12 @@ export function SettingRow({
     <div className={disabled ? `${styles.row} ${styles.disabled}` : styles.row}>
       {(label || description) && (
         <div className={styles.info}>
-          {label && <span className={styles.label}>{label}</span>}
+          {label && (
+            <span className={styles.label}>
+              {icon && <span className={styles.labelIcon} aria-hidden="true">{icon}</span>}
+              {label}
+            </span>
+          )}
           {description && <span className={styles.desc}>{description}</span>}
         </div>
       )}
@@ -43,18 +51,20 @@ export function SettingRow({
 export function SettingToggle({
   label,
   description,
+  icon,
   checked,
   onChange,
   disabled,
 }: {
   label: string;
   description?: ReactNode;
+  icon?: ReactNode;
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
 }) {
   return (
-    <SettingRow label={label} description={description} disabled={disabled}>
+    <SettingRow label={label} description={description} icon={icon} disabled={disabled}>
       <Toggle checked={checked} onChange={onChange} disabled={disabled} ariaLabel={label} />
     </SettingRow>
   );

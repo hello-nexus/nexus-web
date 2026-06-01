@@ -674,6 +674,7 @@
   "phonePair.killswitch.confirmMessage": "接続中のすべてのリモートコントロールパネルがすぐに切断されます。",
   "phonePair.killswitch.confirmNote": "ペアリング済みデバイスはリストに残り、再びオンにすると自動的に接続を再開します。",
   "phonePair.killswitch.confirmTitle": "リモートコントロールをオフにしますか？",
+  "phonePair.connectionOptions": "接続オプション",
   "phonePair.killswitch.label": "リモートコントロールを許可",
   "phonePair.killswitch.offHint": "ペアリング済みデバイスは保持されますが、再度オンにするまでこのシステムに接続できません。",
   "phonePair.killswitch.offLabel": "リモートコントロール オフ",

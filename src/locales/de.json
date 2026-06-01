@@ -674,6 +674,7 @@
   "phonePair.killswitch.confirmMessage": "Alle verbundenen Fernsteuerungspanels werden sofort getrennt.",
   "phonePair.killswitch.confirmNote": "Gekoppelte Geräte bleiben in der Liste und verbinden sich automatisch wieder, sobald du dies erneut einschaltest.",
   "phonePair.killswitch.confirmTitle": "Fernsteuerung ausschalten?",
+  "phonePair.connectionOptions": "Verbindungsoptionen",
   "phonePair.killswitch.label": "Fernsteuerung zulassen",
   "phonePair.killswitch.offHint": "Gekoppelte Geräte bleiben erhalten, können dieses System aber nicht erreichen, bis du es wieder einschaltest.",
   "phonePair.killswitch.offLabel": "Fernsteuerung aus",

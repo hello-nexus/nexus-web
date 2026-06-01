@@ -674,6 +674,7 @@
   "phonePair.killswitch.confirmMessage": "Wszystkie polaczone panele zdalnego sterowania zostana natychmiast rozlaczone.",
   "phonePair.killswitch.confirmNote": "Sparowane urzadzenia pozostaja na liscie i automatycznie sie polacza po ponownym wlaczeniu.",
   "phonePair.killswitch.confirmTitle": "Wylaczyc zdalne sterowanie?",
+  "phonePair.connectionOptions": "Opcje połączenia",
   "phonePair.killswitch.label": "Zezwol na zdalne sterowanie",
   "phonePair.killswitch.offHint": "Sparowane urzadzenia sa zachowane, ale nie moga dotrzec do tego systemu, dopoki nie wlaczysz tego ponownie.",
   "phonePair.killswitch.offLabel": "Zdalne sterowanie wylaczone",

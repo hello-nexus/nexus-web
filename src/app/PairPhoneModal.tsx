@@ -6,8 +6,9 @@ import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { Tabs, type TabDef } from '../components/common/Tabs/Tabs';
 import { EditableText } from '../components/common/Editable/EditableText';
-import { Toggle } from '../components/common/Toggle/Toggle';
 import { Select } from '../components/common/Select/Select';
+import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
+import { SettingRow, SettingToggle } from '../components/common/SettingRow/SettingRow';
 import {
   fetchPanelPhonePairQr,
   fetchPanelPhoneSessions,
@@ -484,43 +485,26 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
         <div className={styles.phonePairLayout} data-remote-enabled={remoteEnabled ? 'true' : 'false'}>
           {/* ── Left column: remote-control toggle + authorized device list ── */}
           <div className={styles.phonePairCol}>
-            <div className={styles.phonePairKillswitchRow}>
-              <div>
-                <span className={styles.phonePairKillswitchLabel} id="phone-pair-killswitch-label">
-                  {t('phonePair.killswitch.label')}
-                </span>
-                <span className={styles.phonePairKillswitchHint}>
-                  {remoteEnabled
-                    ? t('phonePair.killswitch.onHint')
-                    : t('phonePair.killswitch.offHint')}
-                </span>
-              </div>
-              <Toggle
+            <section className={styles.phonePairCard} aria-label={t('phonePair.connectionOptions')}>
+              <SectionHeader>{t('phonePair.connectionOptions')}</SectionHeader>
+              <SettingToggle
+                label={t('phonePair.killswitch.label')}
+                description={remoteEnabled
+                  ? t('phonePair.killswitch.onHint')
+                  : t('phonePair.killswitch.offHint')}
                 checked={remoteEnabled}
                 onChange={handleRemoteToggle}
-                ariaLabelledBy="phone-pair-killswitch-label"
               />
-            </div>
-
-            <div className={styles.phonePairKillswitchRow}>
-              <div>
-                <span className={styles.phonePairKillswitchLabel} id="phone-pair-relay-label">
-                  <SatelliteDish size={14} className={styles.phonePairRelayIcon} aria-hidden="true" />
-                  {t('phonePair.relay.label')}
-                </span>
-                <span className={styles.phonePairKillswitchHint}>
-                  {t('phonePair.relay.hint')}
-                </span>
-              </div>
-              <Toggle
+              <SettingToggle
+                label={t('phonePair.relay.label')}
+                description={t('phonePair.relay.hint')}
+                icon={<SatelliteDish size={14} />}
                 checked={remoteEnabled && relayEnabled}
                 onChange={applyRelayEnabled}
                 disabled={!remoteEnabled}
-                ariaLabelledBy="phone-pair-relay-label"
               />
-            </div>
-
-            <PairBroadcastSelector value={broadcast} onChange={updateBroadcast} now={now} />
+              <PairBroadcastRow value={broadcast} onChange={updateBroadcast} now={now} />
+            </section>
 
 
             <section className={styles.phonePairCard + ' ' + styles.phonePairSessionsPanel} aria-label={t('phonePair.ariaSessions')} data-disabled={remoteEnabled ? 'false' : 'true'}>
@@ -726,11 +710,12 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
 }
 
 /**
- * AirDrop-style discoverability selector for the Wi-Fi (mDNS) pair flow.
- * QR + manual pair-code flows are unaffected — this only gates whether the
- * iOS companion app can see this host in its "find on Wi-Fi" list.
+ * AirDrop-style discoverability selector for the Wi-Fi (mDNS) pair flow,
+ * rendered as a standard SettingRow inside the connection-options box. QR +
+ * manual pair-code flows are unaffected — this only gates whether the iOS
+ * companion app can see this host in its "find on Wi-Fi" list.
  */
-function PairBroadcastSelector({
+function PairBroadcastRow({
   value,
   onChange,
   now,
@@ -750,24 +735,19 @@ function PairBroadcastSelector({
       : t('phonePair.broadcast.hintUntil', { seconds: Math.ceil(expiresIn / 1000) });
 
   return (
-    <div className={styles.phonePairKillswitchRow}>
-      <div>
-        <span className={styles.phonePairKillswitchLabel}>
-          {t('phonePair.broadcast.label')}
-        </span>
-        <span className={styles.phonePairKillswitchHint}>{hint}</span>
-      </div>
+    <SettingRow label={t('phonePair.broadcast.label')} description={hint}>
       <Select
         value={value.mode}
         onChange={(next) => onChange(next as PairBroadcastState['mode'])}
         ariaLabel={t('phonePair.broadcast.label')}
+        size="sm"
         options={[
           { value: 'never', label: t('phonePair.broadcast.optNever') },
           { value: 'always', label: t('phonePair.broadcast.optAlways') },
           { value: 'until', label: t('phonePair.broadcast.optTen') },
         ]}
       />
-    </div>
+    </SettingRow>
   );
 }
 
