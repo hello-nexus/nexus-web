@@ -40,14 +40,19 @@ if (
     location.hostname === 'localhost' ||
     location.hostname.endsWith('.localhost'))
 ) {
-  // Attach controllerchange exactly once. The previous shape registered it
-  // inside the `load` callback, so an HMR re-eval (or any second module-init
-  // path) would stack a second listener and reload twice on every SW update.
+  // Reload to pick up a new SW build ONLY on a genuine update — i.e. when a
+  // controller ALREADY exists and is later replaced. On a first visit there is
+  // no controller yet, and the SW's initial activation also fires
+  // controllerchange; reloading then restarts the page mid-session (e.g. during
+  // QR pairing), which churns the relay connection and intermittently breaks
+  // pairing. Gating on an existing controller skips that first-visit reload.
   // `{ once: true }` auto-removes after firing, so no manual `refreshing` guard
   // is needed.
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
-  }, { once: true });
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    }, { once: true });
+  }
 
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((registration) => {
