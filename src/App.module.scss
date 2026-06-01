@@ -888,18 +888,26 @@
 
 // Mirror of .phonePairQrBox dimensions so the Code tab reserves the same
 // square footprint as the QR. Avoids the layout jump when toggling tabs.
+// Forced light, matching .phonePairQrBox: explicit white background +
+// near-black (#111827) foreground so the host + code read consistently and
+// scannably in BOTH the dark and light app themes (not theme variables).
 .phonePairCodeBox {
   display: grid;
   place-items: center;
   margin: 0;
   padding: 1rem;
   border-radius: var(--radius-sm);
-  background: var(--surface-low, var(--bg-card));
-  border: 1px solid var(--border);
+  background: #fff;
   aspect-ratio: 1 / 1;
   width: 100%;
   max-width: 320px;
   align-self: center;
+
+  .phonePairCodeFieldLabel,
+  .phonePairCodeHost,
+  .phonePairCodeDigits {
+    color: #111827;
+  }
 }
 
 .phonePairLoading {
@@ -1201,7 +1209,7 @@
   display: inline-block;
   vertical-align: -2px;
   margin-right: 6px;
-  color: var(--text-faded);
+  color: var(--accent);
 }
 
 .phonePairKillswitchHint {
