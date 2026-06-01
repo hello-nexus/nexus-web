@@ -8,6 +8,15 @@ const DEFAULT_SERVICE_PORT = '9400';
 const DEFAULT_HTTPS_PORT = '9443';
 const SERVICE_PORT = import.meta.env.VITE_SERVICE_PORT || DEFAULT_SERVICE_PORT;
 
+// Cloud relay fallback endpoint. The relay is a WSS gateway INSIDE nexus-api
+// (Railway, api.hellonexus.com) at path /relay — an opaque byte-forwarder used
+// only when the LAN /ws path fails. It lives at the api origin, NOT the local
+// service: unlike resolveWs() this never points at the LAN host. Overridable
+// via VITE_RELAY_URL for local/dev relay testing. Keep in sync with the
+// host-side RELAY_URL constant in nexus-service.
+const DEFAULT_RELAY_URL = 'wss://api.hellonexus.com/relay';
+const RELAY_URL = import.meta.env.VITE_RELAY_URL || DEFAULT_RELAY_URL;
+
 const locationHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 const locationPort = typeof window !== 'undefined' ? window.location.port : '';
 const locationProtocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
@@ -29,6 +38,11 @@ export function resolveHttp(path: string): string {
 
 export function resolveWs(path: string): string {
   return `${SERVICE_PROTOCOL === 'https:' ? 'wss' : 'ws'}://${endpoint}${path}`;
+}
+
+/** Resolve the cloud relay WSS URL (api origin, path /relay). */
+export function resolveRelayWs(): string {
+  return RELAY_URL;
 }
 
 /** Resolve a WS URL with the auth token as a query parameter. */

@@ -1,5 +1,24 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { resolveAuthWs, resolveHttp } from '../api/service';
+import { resolveAuthWs, resolveHttp, resolveRelayWs } from '../api/service';
+import { getToken } from '../api/auth';
+import { RelayChannel } from './relayChannel';
+
+// The multiplex client drives either the raw LAN WebSocket or, when the LAN
+// path can't open, the cloud RelayChannel. Both expose the same WebSocket-like
+// surface (readyState + onopen/onmessage/onclose/onerror + send/close), so the
+// connection plumbing below treats them uniformly; the only difference is which
+// one connect() instantiates. The handler signatures mirror the DOM
+// WebSocket's so a native socket assigns directly; RelayChannel implements the
+// same shape (synthesizing minimal Event-like objects).
+interface MultiplexTransport {
+  readyState: number;
+  send: (data: string) => void;
+  close: () => void;
+  onopen: ((e: Event) => void) | null;
+  onmessage: ((e: MessageEvent) => void) | null;
+  onclose: ((e: CloseEvent) => void) | null;
+  onerror: ((e: Event) => void) | null;
+}
 
 interface TopicListener {
   refCount: number;
@@ -122,12 +141,17 @@ export function useTopicCallback(topic: string, enabled: boolean, onFrame: (data
  * Call this once at the app level and pass the return value to MultiplexContext.Provider.
  */
 export function useMultiplexConnection(enabled: boolean): MultiplexContextValue | null {
-  const wsRef = useRef<WebSocket | null>(null);
+  const wsRef = useRef<MultiplexTransport | null>(null);
   const mountedRef = useRef(true);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const topicsRef = useRef<Map<string, TopicListener>>(new Map());
   const pendingSubsRef = useRef<Set<string>>(new Set());
   const backoffStepRef = useRef(0);
+  // Whether the relay fallback has already been tried since the last LAN
+  // open-failure / successful open. Caps relay attempts at one per LAN failure
+  // so we don't re-dial the (cost-bearing) relay on every backoff retry; the
+  // relay is re-attempted only after a fresh LAN socket again fails to open.
+  const relayTriedRef = useRef(false);
   const remoteDisabledRef = useRef(false);
   const sessionRevokedRef = useRef(false);
   const [connected, setConnected] = useState(false);
@@ -236,6 +260,87 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     handleDisconnectRef.current = handleDisconnect;
   }, [handleDisconnect]);
 
+  // Wire a transport (LAN WebSocket or RelayChannel) into the multiplex
+  // plumbing. Identical behavior for both: on open, reset backoff, clear any
+  // disabled/revoked state, and replay subscriptions; on message, dispatch
+  // multiplex frames to topic listeners. Returns the onclose code so the
+  // caller can decide between relay fallback and the normal backoff path.
+  const wireTransport = useCallback((
+    transport: MultiplexTransport,
+    onClose: (code: number) => void,
+    onOpen?: () => void,
+  ) => {
+    transport.onopen = () => {
+      onOpen?.();
+      backoffStepRef.current = 0;
+      if (remoteDisabledRef.current) {
+        remoteDisabledRef.current = false;
+        setRemoteDisabled(false);
+      }
+      if (sessionRevokedRef.current) {
+        sessionRevokedRef.current = false;
+        setSessionRevoked(false);
+      }
+      setConnected(true);
+      // Re-send all active subscriptions on reconnect.
+      const activeTopics = Array.from(topicsRef.current.keys());
+      if (activeTopics.length > 0) {
+        transport.send(JSON.stringify({ sub: activeTopics }));
+      }
+      // Send any subs that were queued while disconnected.
+      if (pendingSubsRef.current.size > 0) {
+        transport.send(JSON.stringify({ sub: Array.from(pendingSubsRef.current) }));
+        pendingSubsRef.current.clear();
+      }
+    };
+
+    transport.onmessage = (e) => {
+      try {
+        if (typeof e.data !== 'string' || e.data.length > MAX_FRAME_BYTES) return;
+        const parsed = JSON.parse(e.data);
+        if (!parsed || typeof parsed !== 'object' || typeof parsed.t !== 'string') return;
+        const msg = parsed as { t: string; d: unknown };
+        lastFrameCache.set(msg.t, msg.d);
+        const entry = topicsRef.current.get(msg.t);
+        if (entry) {
+          for (const listener of entry.listeners) {
+            listener(msg.d);
+          }
+        }
+      } catch { /* malformed frame */ }
+    };
+
+    transport.onclose = (event) => {
+      setConnected(false);
+      onClose(event.code);
+    };
+
+    transport.onerror = () => transport.close();
+  }, []);
+
+  // Cloud-relay fallback. Connect a RelayChannel (client role) and, on
+  // peer-up, run the identical {t,d} multiplex protocol over the encrypted
+  // channel. A failed open / no peer-up / peer-down surfaces via onClose and
+  // routes back into the normal backoff via handleDisconnect. The relay never
+  // carries the 1008 killswitch-revoke semantics — only the LAN /ws path does —
+  // so handleDisconnect's revoke branch is unreachable from here.
+  const tryRelay = useCallback(async () => {
+    if (!mountedRef.current) return;
+    const token = await getToken();
+    if (!mountedRef.current) return;
+    if (!token) { void handleDisconnect(); return; }
+    const channel = new RelayChannel(resolveRelayWs(), token);
+    wsRef.current = channel;
+    // On relay peer-up, clear the relay-tried gate so a later LAN failure can
+    // re-attempt relay; on relay close, return to the normal backoff path.
+    wireTransport(
+      channel,
+      () => { void handleDisconnect(); },
+      () => { relayTriedRef.current = false; },
+    );
+    void channel.connect();
+  }, [handleDisconnect, wireTransport]);
+
   const connect = useCallback(async () => {
     close();
     setNextAttemptAt(null);
@@ -245,57 +350,37 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
       const ws = new WebSocket(url);
       wsRef.current = ws;
+      // Track whether the LAN socket ever reached OPEN this attempt. If it
+      // closes WITHOUT having opened, and the close is not the 1008
+      // killswitch-revoke, the LAN path is unreachable (e.g. client-isolated
+      // Wi-Fi) — fall back to the relay before any backoff. A 1008 close, or a
+      // drop after a successful open, follows the existing handleDisconnect
+      // path unchanged.
+      let lanOpened = false;
 
-      ws.onopen = () => {
-        backoffStepRef.current = 0;
-        if (remoteDisabledRef.current) {
-          remoteDisabledRef.current = false;
-          setRemoteDisabled(false);
-        }
-        if (sessionRevokedRef.current) {
-          sessionRevokedRef.current = false;
-          setSessionRevoked(false);
-        }
-        setConnected(true);
-        // Re-send all active subscriptions on reconnect.
-        const activeTopics = Array.from(topicsRef.current.keys());
-        if (activeTopics.length > 0) {
-          ws.send(JSON.stringify({ sub: activeTopics }));
-        }
-        // Send any subs that were queued while disconnected.
-        if (pendingSubsRef.current.size > 0) {
-          ws.send(JSON.stringify({ sub: Array.from(pendingSubsRef.current) }));
-          pendingSubsRef.current.clear();
-        }
-      };
-
-      ws.onmessage = (e) => {
-        try {
-          if (typeof e.data !== 'string' || e.data.length > MAX_FRAME_BYTES) return;
-          const parsed = JSON.parse(e.data);
-          if (!parsed || typeof parsed !== 'object' || typeof parsed.t !== 'string') return;
-          const msg = parsed as { t: string; d: unknown };
-          lastFrameCache.set(msg.t, msg.d);
-          const entry = topicsRef.current.get(msg.t);
-          if (entry) {
-            for (const listener of entry.listeners) {
-              listener(msg.d);
-            }
+      wireTransport(
+        ws,
+        (code) => {
+          // LAN socket closed before it ever opened, and not the 1008
+          // killswitch-revoke ⇒ the LAN path is unreachable. Try the relay
+          // once before falling into backoff; on relay failure the relay's
+          // onClose routes to handleDisconnect() so backoff resumes. Already
+          // tried this cycle ⇒ skip straight to backoff (no relay re-dial).
+          if (!lanOpened && code !== WS_CLOSE_REVOKED && !relayTriedRef.current
+              && mountedRef.current && enabled) {
+            relayTriedRef.current = true;
+            void tryRelay();
+            return;
           }
-        } catch { /* malformed frame */ }
-      };
-
-      ws.onclose = (event) => {
-        setConnected(false);
-        void handleDisconnect(event.code);
-      };
-
-      ws.onerror = () => ws.close();
+          void handleDisconnect(code);
+        },
+        () => { lanOpened = true; relayTriedRef.current = false; },
+      );
     } catch {
       setConnected(false);
       void handleDisconnect();
     }
-  }, [close, handleDisconnect]);
+  }, [close, enabled, handleDisconnect, tryRelay, wireTransport]);
 
   // Keep the ref in sync so handleDisconnect can call the latest connect
   // without recreating handleDisconnect (which would loop the deps cycle).
@@ -305,6 +390,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
   const reconnect = useCallback(() => {
     backoffStepRef.current = 0;
+    relayTriedRef.current = false;
     clearTimeout(reconnectTimer.current);
     setNextAttemptAt(null);
     if (!mountedRef.current || !enabled) return;

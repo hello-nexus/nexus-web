@@ -18,6 +18,8 @@ import {
   startPanelPhonePairCode,
   fetchPanelPairBroadcast,
   setPanelPairBroadcast,
+  fetchPanelRelay,
+  setPanelRelay,
   type PanelPhonePairQr,
   type PanelPhonePairCodeStart,
   type PanelPhoneSessionsResponse,
@@ -145,6 +147,8 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   // to 0.5 without a transition, which makes the post-confirm flip read as
   // "fading" instead of a crisp ON->OFF flip).
   const togglingRemoteRef = useRef(false);
+  const [relayEnabled, setRelayEnabled] = useState(false);
+  const togglingRelayRef = useRef(false);
   const [now, setNow] = useState(() => Date.now());
   const [pairMode, setPairMode] = useState<'qr' | 'code'>('qr');
   const [pairCode, setPairCode] = useState<PanelPhonePairCodeStart | null>(null);
@@ -257,6 +261,27 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     void applyRemoteEnabled(false);
   }, [applyRemoteEnabled]);
 
+  // Cloud relay fallback toggle. Optimistic flip with revert-on-failure,
+  // mirroring applyRemoteEnabled. The relay only matters with remote control
+  // on, so the row is disabled when !remoteEnabled.
+  const applyRelayEnabled = useCallback(async (next: boolean) => {
+    if (togglingRelayRef.current) return;
+    togglingRelayRef.current = true;
+    setRelayEnabled(next);
+    try {
+      const result = await setPanelRelay(next);
+      if (result) {
+        if (result.enabled !== next) setRelayEnabled(result.enabled);
+      } else {
+        setRelayEnabled(!next);
+      }
+    } catch {
+      setRelayEnabled(!next);
+    } finally {
+      togglingRelayRef.current = false;
+    }
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const timer = window.setTimeout(() => {
@@ -346,6 +371,15 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     return () => { cancelled = true; };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetchPanelRelay().then(next => {
+      if (!cancelled && next) setRelayEnabled(next.enabled);
+    });
+    return () => { cancelled = true; };
+  }, [open]);
+
   const updateBroadcast = useCallback(async (mode: PairBroadcastState['mode']) => {
     const until = mode === 'until' ? Math.floor(Date.now() / 1000) + 600 : 0;
     const next = await setPanelPairBroadcast(mode, until);
@@ -406,6 +440,23 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                 checked={remoteEnabled}
                 onChange={handleRemoteToggle}
                 ariaLabelledBy="phone-pair-killswitch-label"
+              />
+            </div>
+
+            <div className={styles.phonePairKillswitchRow}>
+              <div>
+                <span className={styles.phonePairKillswitchLabel} id="phone-pair-relay-label">
+                  {t('phonePair.relay.label')}
+                </span>
+                <span className={styles.phonePairKillswitchHint}>
+                  {t('phonePair.relay.hint')}
+                </span>
+              </div>
+              <Toggle
+                checked={remoteEnabled && relayEnabled}
+                onChange={applyRelayEnabled}
+                disabled={!remoteEnabled}
+                ariaLabelledBy="phone-pair-relay-label"
               />
             </div>
 

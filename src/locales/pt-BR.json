@@ -683,6 +683,8 @@
   "phonePair.qrAlt": "Codigo QR para parear o controle remoto",
   "phonePair.refreshesIn": "Atualiza em {seconds}s",
   "phonePair.refreshing": "Atualizando...",
+  "phonePair.relay.hint": "Permite que os celulares pareados se conectem pela internet quando não alcançam este PC na rede local. Desativado por padrão.",
+  "phonePair.relay.label": "Retransmissão na nuvem",
   "phonePair.removeAll": "Remover tudo",
   "phonePair.removeSession": "Remover acesso de {name}",
   "phonePair.saving": "Salvando...",

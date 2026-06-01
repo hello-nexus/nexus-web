@@ -683,6 +683,8 @@
   "phonePair.qrAlt": "리모컨 페어링 QR 코드",
   "phonePair.refreshesIn": "{seconds}초 후 새로고침",
   "phonePair.refreshing": "새로고침 중...",
+  "phonePair.relay.hint": "페어링된 휴대폰이 로컬 네트워크에서 이 PC에 연결할 수 없을 때 인터넷을 통해 연결합니다. 기본값은 꺼짐입니다.",
+  "phonePair.relay.label": "클라우드 중계 폴백",
   "phonePair.removeAll": "모두 제거",
   "phonePair.removeSession": "{name} 접근 제거",
   "phonePair.saving": "저장 중...",

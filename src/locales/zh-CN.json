@@ -683,6 +683,8 @@
   "phonePair.qrAlt": "配对遥控器的 QR 码",
   "phonePair.refreshesIn": "{seconds}秒后刷新",
   "phonePair.refreshing": "正在刷新...",
+  "phonePair.relay.hint": "当已配对的手机无法在本地网络上访问此电脑时，允许其通过互联网连接。默认关闭。",
+  "phonePair.relay.label": "云中继回退",
   "phonePair.removeAll": "全部移除",
   "phonePair.removeSession": "移除 {name} 的访问权限",
   "phonePair.saving": "正在保存...",

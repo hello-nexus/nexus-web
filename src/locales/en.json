@@ -683,6 +683,8 @@
   "phonePair.qrAlt": "Pair remote QR code",
   "phonePair.refreshesIn": "Refreshes in {seconds}s",
   "phonePair.refreshing": "Refreshing...",
+  "phonePair.relay.hint": "Lets paired phones connect over the internet when they can’t reach this PC on the local network. Off by default.",
+  "phonePair.relay.label": "Cloud relay fallback",
   "phonePair.removeAll": "Remove all",
   "phonePair.removeSession": "Remove access for {name}",
   "phonePair.saving": "Saving...",

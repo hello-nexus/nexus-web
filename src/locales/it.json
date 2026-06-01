@@ -683,6 +683,8 @@
   "phonePair.qrAlt": "Codice QR per associare il telecomando",
   "phonePair.refreshesIn": "Si aggiorna tra {seconds}s",
   "phonePair.refreshing": "Aggiornamento...",
+  "phonePair.relay.hint": "Permette ai telefoni accoppiati di connettersi via internet quando non raggiungono questo PC sulla rete locale. Disattivato per impostazione predefinita.",
+  "phonePair.relay.label": "Relay cloud di riserva",
   "phonePair.removeAll": "Rimuovi tutto",
   "phonePair.removeSession": "Rimuovi accesso per {name}",
   "phonePair.saving": "Salvataggio...",

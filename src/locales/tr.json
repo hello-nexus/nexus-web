@@ -683,6 +683,8 @@
   "phonePair.qrAlt": "Kumanda eslestirme QR kodu",
   "phonePair.refreshesIn": "{seconds} sn icinde yenilenir",
   "phonePair.refreshing": "Yenileniyor...",
+  "phonePair.relay.hint": "Eşleştirilmiş telefonlar bu bilgisayara yerel ağda ulaşamadığında internet üzerinden bağlanmasını sağlar. Varsayılan olarak kapalı.",
+  "phonePair.relay.label": "Bulut aktarıcı yedek",
   "phonePair.removeAll": "Tumunu kaldir",
   "phonePair.removeSession": "{name} erisimini kaldir",
   "phonePair.saving": "Kaydediliyor...",

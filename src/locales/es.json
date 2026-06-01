@@ -683,6 +683,8 @@
   "phonePair.qrAlt": "Código QR para emparejar el control remoto",
   "phonePair.refreshesIn": "Se actualiza en {seconds}s",
   "phonePair.refreshing": "Actualizando...",
+  "phonePair.relay.hint": "Permite que los teléfonos emparejados se conecten por internet cuando no alcanzan este PC en la red local. Desactivado por defecto.",
+  "phonePair.relay.label": "Retransmisión en la nube",
   "phonePair.removeAll": "Eliminar todo",
   "phonePair.removeSession": "Eliminar acceso de {name}",
   "phonePair.saving": "Guardando...",

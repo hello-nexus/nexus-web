@@ -236,6 +236,21 @@ export const fetchPanelRemoteControlState = () =>
 export const setPanelRemoteControlEnabled = (enabled: boolean) =>
   postService<RemoteControlState>('/panel/phone/remote-control', { enabled });
 
+export interface RelayState {
+  enabled: boolean;
+}
+
+// Cloud relay fallback toggle. When enabled (and remote control is on) the host
+// holds an outbound relay socket per phone session so panels can connect when
+// the LAN /ws path is unreachable (hotel / client-isolated Wi-Fi). Default OFF
+// (cost + privacy); meaningless without remote control, so the UI disables it
+// when the killswitch is off.
+export const fetchPanelRelay = () =>
+  fetchService<RelayState>('/panel/phone/relay');
+
+export const setPanelRelay = (enabled: boolean) =>
+  postService<RelayState>('/panel/phone/relay', { enabled });
+
 // Wi-Fi (mDNS) discoverability preference. AirDrop-style three-state. QR + manual
 // pair-code flows are unaffected; this only gates the iOS app's "find device on
 // Wi-Fi" capability.
