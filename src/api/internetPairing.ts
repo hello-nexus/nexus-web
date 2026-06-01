@@ -54,8 +54,24 @@ export interface InternetPairParams {
   deviceName: string;
 }
 
+// Once-per-pair-token guard. The PairRedirect effect can fire more than once
+// for the same mount (React 18 StrictMode double-invoke, a Suspense/remount, or
+// a re-render that re-runs the effect) — and each invocation that reaches the
+// relay branch opens a SEPARATE rid_pair relay client with a fresh connSalt.
+// The relay enforces one client per rid, so the duplicate races the first and
+// ~1/3 of the time kills the winning claim (close 4409) → "Couldn't reach your
+// PC." Caching the in-flight promise keyed by the pair token collapses every
+// repeat call for the same attempt onto the SAME single LAN-probe + relay
+// claim, so the rid_pair channel is opened exactly once. The entry is cleared
+// when the promise settles so a genuinely new pair attempt (a fresh token after
+// a failure, or a re-scan) starts clean.
+const inFlightPairs = new Map<string, Promise<InternetPairResult>>();
+
 /**
  * Run the LAN-first → relay pairing decision for a brand-new phone.
+ *
+ * Idempotent per pair token: concurrent or repeated calls with the same
+ * `pairToken` share one in-flight attempt (one LAN probe, one relay claim).
  *
  * Decision logic:
  *   - LAN claim with a {@link LAN_CLAIM_TIMEOUT_MS} timeout:
@@ -68,7 +84,18 @@ export interface InternetPairParams {
  *       claim-err   → { kind: 'rejected' }
  *       transport   → { kind: 'unreachable' }
  */
-export async function pairOverInternet(params: InternetPairParams): Promise<InternetPairResult> {
+export function pairOverInternet(params: InternetPairParams): Promise<InternetPairResult> {
+  const existing = inFlightPairs.get(params.pairToken);
+  if (existing) return existing;
+
+  const attempt = runPairAttempt(params).finally(() => {
+    inFlightPairs.delete(params.pairToken);
+  });
+  inFlightPairs.set(params.pairToken, attempt);
+  return attempt;
+}
+
+async function runPairAttempt(params: InternetPairParams): Promise<InternetPairResult> {
   const { host, httpPort, pairToken, deviceName } = params;
 
   // 1. LAN-first fast path.

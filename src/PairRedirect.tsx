@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NexusMark } from './components/icons/NexusBrand';
 import { pairOverInternet, type InternetPairResult } from './api/internetPairing';
 import { PHONE_PANEL_PWA_KEY } from './app/panelRouting';
@@ -54,8 +54,18 @@ export function PairRedirect() {
 
   const [phase, setPhase] = useState<PairPhase>({ state: 'pairing' });
 
+  // Start the pair attempt at most once for this component's lifetime. The
+  // module-level guard in pairOverInternet already collapses repeat calls for
+  // the same token onto one relay claim, but this also stops a remount/effect
+  // re-run from even re-entering the effect body (and from re-applying a stale
+  // result after the redirect is in flight). Together they guarantee a single
+  // rid_pair relay channel per pair attempt.
+  const started = useRef(false);
+
   useEffect(() => {
     if (!valid) return;
+    if (started.current) return;
+    started.current = true;
     let cancelled = false;
     void pairOverInternet({
       host,

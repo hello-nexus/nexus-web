@@ -220,6 +220,57 @@ describe('pairOverInternet — relay fallback', () => {
   });
 });
 
+describe('pairOverInternet — single rid_pair claim per pair attempt', () => {
+  it('opens exactly ONE relay client for the pair rid even if the pair flow fires twice', async () => {
+    // The PairRedirect effect can run more than once for the same mount (the
+    // instrumented browser trace showed two relay client sockets to the SAME
+    // rid with DIFFERENT salts within ~100ms). Both invocations share the same
+    // (still in-flight) attempt: LAN unreachable both times, and the relay must
+    // be dialed only ONCE.
+    lanClaimMock.mockResolvedValue(null); // LAN unreachable for every call
+
+    const params = { host: '10.0.0.9', httpPort: '9400', pairToken: PAIR_TOKEN, deviceName: 'iPhone' };
+    // Fire the second call synchronously after the first, before either settles
+    // — exactly the double-fire shape from the trace.
+    const first = pairOverInternet(params);
+    const second = pairOverInternet(params);
+
+    const [r1, r2] = await Promise.all([first, second]);
+
+    // Both resolve to the same successful relay claim...
+    expect(r1).toEqual({ kind: 'relay', token: 'SESS-relay-9999', machineName: 'NICOLA-PC', spki: 'AB:CD' });
+    expect(r2).toEqual(r1);
+    // ...and the two calls collapsed onto a single in-flight attempt (one
+    // promise instance), so the rid_pair relay client was opened exactly once
+    // (no duplicate → no close 4409 race).
+    expect(second).toBe(first);
+    expect(relaySockets).toHaveLength(1);
+    expect(captured?.rid).toBe(RID_PAIR);
+    // The session token is stored once.
+    expect(storePhoneTokenMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a fresh pair attempt run after the previous one settled', async () => {
+    // The in-flight guard clears on settle, so a NEW token (e.g. a re-scan with
+    // a fresh QR) dials the relay again rather than being deduped away.
+    lanClaimMock.mockResolvedValue(null);
+
+    const r1 = await pairOverInternet({
+      host: '10.0.0.9', httpPort: '9400', pairToken: PAIR_TOKEN, deviceName: 'iPhone',
+    });
+    expect(r1.kind).toBe('relay');
+    expect(relaySockets).toHaveLength(1);
+
+    // Same token again, but now the first attempt has settled → a new attempt
+    // runs (a fresh relay socket), proving the guard doesn't permanently latch.
+    const r2 = await pairOverInternet({
+      host: '10.0.0.9', httpPort: '9400', pairToken: PAIR_TOKEN, deviceName: 'iPhone',
+    });
+    expect(r2.kind).toBe('relay');
+    expect(relaySockets).toHaveLength(2);
+  });
+});
+
 describe('derived rid_pair matches the contract KAT', () => {
   it('rid_pair = deriveRid(derivePairRoot(token))', async () => {
     expect(await deriveRid(await derivePairRoot(PAIR_TOKEN))).toBe(RID_PAIR);
