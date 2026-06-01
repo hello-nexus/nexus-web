@@ -21,6 +21,13 @@ interface PanelOfflineOverlayProps {
    */
   remoteDisabled: boolean;
   /**
+   * True when this panel was connected over the cloud relay and the host turned
+   * the cloud relay OFF (Pair Remote stays on). Like remoteDisabled the hook is
+   * already slow-polling for re-enable and reconnects automatically; we just
+   * surface a distinct "relay turned off" popup in the meantime.
+   */
+  relayDisabled: boolean;
+  /**
    * True when this specific phone session was removed by the host
    * (single-device revoke). Terminal - the only action is to re-pair.
    * Trumps both connection state and remoteDisabled because re-pairing is
@@ -63,6 +70,7 @@ export function PanelOfflineOverlay({
   nativeBridgeAvailable,
   nextAttemptAt,
   remoteDisabled,
+  relayDisabled,
   sessionRevoked,
   onRetry,
   onOpenNativePairing,
@@ -102,6 +110,45 @@ export function PanelOfflineOverlay({
               <QrCode size={15} />
               <span>{t('connection.sessionRevoked.pairAgain')}</span>
             </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (relayDisabled) {
+    // Host turned the cloud relay OFF while we were connected over it. Reuses
+    // the device-removed visual treatment (lock card + status line), but the
+    // copy is about the cloud relay and the hook is already slow-polling for
+    // re-enable, so a re-check line + manual retry mirror the remoteDisabled
+    // card. Auto-reconnects the moment the host flips the relay back on.
+    const retryLine = secondsLeft != null
+      ? t('connection.relayDisabled.checkingIn', { seconds: secondsLeft })
+      : t('connection.relayDisabled.checking');
+    return (
+      <div
+        className={`panel-root ${styles.overlay}`}
+        data-theme={resolvedThemeMode}
+        data-surface={surface}
+        style={themeStyle}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="panel-offline-title"
+      >
+        <div className={`panel-card ${styles.card}`}>
+          <div className={styles.lockIcon} aria-hidden="true"><Lock size={28} /></div>
+          <h2 id="panel-offline-title" className={styles.title}>{t('connection.relayDisabled.title')}</h2>
+          <p className={styles.message}>{t('connection.relayDisabled.message')}</p>
+          <p className={styles.statusLine} aria-live="polite">{retryLine}</p>
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={onRetry}
+            >
+              <RefreshCw size={15} />
+              <span>{t('connection.lost.retry')}</span>
+            </button>
           </div>
         </div>
       </div>

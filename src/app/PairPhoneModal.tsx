@@ -47,26 +47,6 @@ function formatRelativeTime(value: number, now: number, t: TranslateFn) {
   return t('phonePair.timeDaysAgo', { count: Math.floor(diff / day) });
 }
 
-function formatElapsedTime(value: number, now: number, t: TranslateFn) {
-  if (!value) return t('phonePair.unknown');
-  const diff = Math.max(0, now - value);
-  const minute = 60_000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-  if (diff < minute) return t('phonePair.durationLessThanMinute');
-  if (diff < hour) return t('phonePair.durationMinutes', { count: Math.floor(diff / minute) });
-  if (diff < day) {
-    return t('phonePair.durationHoursMinutes', {
-      hours: Math.floor(diff / hour),
-      minutes: Math.floor((diff % hour) / minute),
-    });
-  }
-  return t('phonePair.durationDaysHours', {
-    days: Math.floor(diff / day),
-    hours: Math.floor((diff % day) / hour),
-  });
-}
-
 function formatDateTime(value: number, t: TranslateFn) {
   if (!value) return t('phonePair.unknown');
   return new Intl.DateTimeFormat(undefined, {
@@ -520,6 +500,16 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                                 ? t('phonePair.statusRecentlyActive')
                                 : t('phonePair.statusPaired')}
                           </span>
+                          {session.connectedVia === 'relay' && (
+                            <HoverTooltip body={t('connection.relayMode')} side="top">
+                              <span
+                                className={styles.phonePairSessionRelay}
+                                aria-label={t('connection.relayMode')}
+                              >
+                                <SatelliteDish size={14} aria-hidden="true" />
+                              </span>
+                            </HoverTooltip>
+                          )}
                           {renamingId === session.id && (
                             <span className={styles.phonePairSessionSaving}>{t('phonePair.saving')}</span>
                           )}
@@ -530,8 +520,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                               {showDeviceType && <span>{deviceType}</span>}
                               <span>{t('phonePair.lastSeen', { time: formatRelativeTime(session.lastSeenAt, sessionNow, t) })}</span>
                               <span>{t('phonePair.pairedAt', { time: formatDateTime(session.createdAt, t) })}</span>
-                              <span>{t('phonePair.authorizedDuration', { duration: formatElapsedTime(session.createdAt, sessionNow, t) })}</span>
-                              <span>{session.remoteAddress || t('phonePair.unknownIp')}</span>
+                              {session.remoteAddress && <span>{session.remoteAddress}</span>}
                             </div>
                           </HoverTooltip>
                         ) : (
@@ -539,8 +528,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                             {showDeviceType && <span>{deviceType}</span>}
                             <span>{t('phonePair.lastSeen', { time: formatRelativeTime(session.lastSeenAt, sessionNow, t) })}</span>
                             <span>{t('phonePair.pairedAt', { time: formatDateTime(session.createdAt, t) })}</span>
-                            <span>{t('phonePair.authorizedDuration', { duration: formatElapsedTime(session.createdAt, sessionNow, t) })}</span>
-                            <span>{session.remoteAddress || t('phonePair.unknownIp')}</span>
+                            {session.remoteAddress && <span>{session.remoteAddress}</span>}
                           </div>
                         )}
                       </div>

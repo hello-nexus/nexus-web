@@ -118,7 +118,7 @@ import {
 // is removed.
 const EDITOR_EXIT_MS = 240;
 const WIDGET_RESIZE_MOTION_MS = 220;
-const CONNECTION_INTRO_MS = 1700;
+const CONNECTION_INTRO_MS = 2700;
 
 interface PanelLayoutState {
   layout: PanelLayout;
@@ -1653,6 +1653,7 @@ export function PanelContent({
           nativeBridgeAvailable={nativeSettings.available}
           nextAttemptAt={multiplex?.nextAttemptAt ?? null}
           remoteDisabled={multiplex?.remoteDisabled ?? false}
+          relayDisabled={multiplex?.relayDisabled ?? false}
           sessionRevoked={multiplex?.sessionRevoked ?? false}
           onRetry={handleRetry}
           onOpenNativePairing={nativeSettings.open}

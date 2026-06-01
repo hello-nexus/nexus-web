@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { fetchPanelRemoteControlState } from '../api/panel';
+import { fetchPanelRelay, fetchPanelRemoteControlState } from '../api/panel';
 import { isRelayActive, resolveAuthWs, resolveRelayWs, setActiveTransport } from '../api/service';
 import { getToken } from '../api/auth';
 import { RelayChannel } from './relayChannel';
@@ -55,6 +55,16 @@ export interface MultiplexContextValue {
    */
   remoteDisabled: boolean;
   /**
+   * True when this panel was connected over the CLOUD RELAY and the relay
+   * dropped because the host turned the cloud relay OFF (Pair Remote itself is
+   * still on - only the relay fallback was disabled). Unlike sessionRevoked
+   * this is NOT terminal: the hook slow-polls GET /panel/phone/relay and
+   * reconnects automatically the moment the host re-enables the relay. The UI
+   * surfaces a "relay turned off" popup in the meantime. Only ever set on a
+   * relay transport; a LAN connection never enters this state.
+   */
+  relayDisabled: boolean;
+  /**
    * True when this specific phone session has been removed from the host's
    * paired-devices list (server closed the WS with code 1008 "revoked" while
    * the killswitch is still ON). Terminal for the current session - the only
@@ -72,6 +82,11 @@ export const MultiplexContext = createContext<MultiplexContextValue | null>(null
 const RECONNECT_MIN_MS = 5000;
 const RECONNECT_MAX_MS = 60000;
 const REMOTE_DISABLED_POLL_MS = 5000;
+// How often a relay-disabled panel re-checks GET /panel/phone/relay for the
+// host to turn the cloud relay back on. Mirrors REMOTE_DISABLED_POLL_MS: a slow
+// poll is fine because the only thing that clears this state is the host
+// flipping a toggle, not anything the phone does.
+const RELAY_DISABLED_POLL_MS = 5000;
 // WebSocketCloseStatus.PolicyViolation in the service's SubscribedClient.
 // CloseRevokedAsync. Distinguishes a server-initiated kick (killswitch or
 // single-device revoke) from generic transport drops (1006, 1011, etc.).
@@ -162,10 +177,17 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
   // relay is re-attempted only after a fresh LAN socket again fails to open.
   const relayTriedRef = useRef(false);
   const remoteDisabledRef = useRef(false);
+  const relayDisabledRef = useRef(false);
   const sessionRevokedRef = useRef(false);
+  // Which transport the last OPENED connection ran over. handleDisconnect reads
+  // it to tell a relay drop (candidate for the relay-disabled popup) from a LAN
+  // drop. Set in wireTransport's onopen; never cleared on close so it still
+  // reflects the just-dropped connection when handleDisconnect inspects it.
+  const lastTransportRef = useRef<'lan' | 'relay' | null>(null);
   const [connected, setConnected] = useState(false);
   const [transport, setTransport] = useState<'lan' | 'relay' | null>(null);
   const [remoteDisabled, setRemoteDisabled] = useState(false);
+  const [relayDisabled, setRelayDisabled] = useState(false);
   const [sessionRevoked, setSessionRevoked] = useState(false);
   const [nextAttemptAt, setNextAttemptAt] = useState<number | null>(null);
 
@@ -254,6 +276,54 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
       return;
     }
 
+    // Relay-disabled: the panel was running over the cloud relay and the relay
+    // dropped while Pair Remote itself is still ON. The likely cause is the host
+    // turning the cloud relay toggle OFF (GET /panel/phone/relay → {enabled:
+    // false}), which force-closes the relay socket. Mirror the killswitch's
+    // poll-and-reconnect, but with a visible "relay turned off" popup: park in a
+    // relayDisabled state and slow-poll the relay endpoint until the host
+    // re-enables it, then reconnect. Only relevant on a relay transport (LAN
+    // drops never enter here) and only while we can still confirm the relay
+    // toggle's state (a null read means "couldn't reach" - fall through to the
+    // normal backoff rather than guess). Once relayDisabledRef latches, the
+    // re-poll keeps re-checking even though lastTransportRef no longer matters.
+    if (killswitchEnabled !== false
+        && (relayDisabledRef.current || lastTransportRef.current === 'relay')) {
+      let relayEnabled: boolean | null = null;
+      try {
+        const relayBody = await fetchPanelRelay();
+        if (!mountedRef.current) return;
+        if (relayBody) relayEnabled = relayBody.enabled !== false;
+      } catch { /* network glitch - relayEnabled stays null */ }
+      if (!mountedRef.current) return;
+      if (relayEnabled === false) {
+        relayDisabledRef.current = true;
+        setRelayDisabled(true);
+        clearTimeout(reconnectTimer.current);
+        setNextAttemptAt(Date.now() + RELAY_DISABLED_POLL_MS);
+        reconnectTimer.current = setTimeout(() => {
+          if (!mountedRef.current) return;
+          setNextAttemptAt(null);
+          void handleDisconnectRef.current();
+        }, RELAY_DISABLED_POLL_MS);
+        return;
+      }
+      // Relay is back on (or we were already parked and it re-enabled). If we
+      // were locked out, clear the state and reconnect immediately.
+      if (relayDisabledRef.current) {
+        relayDisabledRef.current = false;
+        setRelayDisabled(false);
+        backoffStepRef.current = 0;
+        relayTriedRef.current = false;
+        clearTimeout(reconnectTimer.current);
+        setNextAttemptAt(null);
+        connectRef.current();
+        return;
+      }
+      // Relay still enabled and we weren't parked: a transient relay drop.
+      // Fall through to the normal backoff below.
+    }
+
     // Killswitch is on (or endpoint unreachable). If we were locked out,
     // clear that state and reconnect immediately; otherwise normal backoff.
     if (remoteDisabledRef.current) {
@@ -286,6 +356,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     transport.onopen = () => {
       onOpen?.();
       setTransport(kind);
+      lastTransportRef.current = kind;
       // Publish the live transport to the REST fetch layer so off-LAN (relay)
       // calls tunnel over the relay while LAN calls stay direct (see service.ts).
       setActiveTransport(kind);
@@ -293,6 +364,10 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
       if (remoteDisabledRef.current) {
         remoteDisabledRef.current = false;
         setRemoteDisabled(false);
+      }
+      if (relayDisabledRef.current) {
+        relayDisabledRef.current = false;
+        setRelayDisabled(false);
       }
       if (sessionRevokedRef.current) {
         sessionRevokedRef.current = false;
@@ -426,9 +501,10 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     clearTimeout(reconnectTimer.current);
     setNextAttemptAt(null);
     if (!mountedRef.current || !enabled) return;
-    // If the user manually retries while we're in remote-disabled mode,
-    // re-check state immediately rather than firing a doomed WS open.
-    if (remoteDisabledRef.current) {
+    // If the user manually retries while we're in remote-disabled OR
+    // relay-disabled mode, re-check state immediately rather than firing a
+    // doomed WS open (both are host-side toggles the phone can't fix).
+    if (remoteDisabledRef.current || relayDisabledRef.current) {
       void handleDisconnect();
       return;
     }
@@ -508,8 +584,8 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
   return useMemo<MultiplexContextValue | null>(
     () => enabled
-      ? { subscribe, unsubscribe, connected, transport, remoteDisabled, sessionRevoked, reconnect, nextAttemptAt }
+      ? { subscribe, unsubscribe, connected, transport, remoteDisabled, relayDisabled, sessionRevoked, reconnect, nextAttemptAt }
       : null,
-    [enabled, subscribe, unsubscribe, connected, transport, remoteDisabled, sessionRevoked, reconnect, nextAttemptAt],
+    [enabled, subscribe, unsubscribe, connected, transport, remoteDisabled, relayDisabled, sessionRevoked, reconnect, nextAttemptAt],
   );
 }

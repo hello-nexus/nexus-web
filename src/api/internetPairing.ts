@@ -4,10 +4,12 @@
 // redirects to the PC's LAN IP — which only works when the phone shares the
 // PC's network. This module makes pairing work from ANY network:
 //
-//   1. LAN-first fast path: try the existing HTTP claim against the PC's
-//      LAN address (host:httpPort from the QR) with a SHORT timeout. On the
-//      same network this succeeds in a few ms and the caller keeps today's
-//      behavior (redirect into the LAN panel).
+//   1. LAN-first fast path (LOCAL ORIGIN ONLY): try the existing HTTP claim
+//      against the PC's LAN address (host:httpPort from the QR) with a SHORT
+//      timeout. On the same network this succeeds in a few ms and the caller
+//      keeps today's behavior (redirect into the LAN panel). On a REMOTE origin
+//      this probe is skipped entirely — the plain-HTTP claim would be a mixed-
+//      content request that WebKit turns into a fatal uncaught pageerror.
 //   2. Relay fallback: if the LAN claim times out / is unreachable, do a
 //      RELAY claim — derive rid_pair from the QR `pair` token, rendezvous with
 //      the PC over the cloud relay, send one sealed claim, and get back a
@@ -19,7 +21,7 @@
 // relayCrypto; this module only owns the LAN-first→relay decision + token
 // persistence.
 
-import { resolveRelayWs } from './service';
+import { isRemoteOrigin, resolveRelayWs } from './service';
 import { claimPanelPhonePairingLan } from './panel';
 import { pairOverRelay } from '../hooks/relayChannel';
 import { storePhoneToken } from './auth';
@@ -74,7 +76,8 @@ const inFlightPairs = new Map<string, Promise<InternetPairResult>>();
  * `pairToken` share one in-flight attempt (one LAN probe, one relay claim).
  *
  * Decision logic:
- *   - LAN claim with a {@link LAN_CLAIM_TIMEOUT_MS} timeout:
+ *   - LAN claim with a {@link LAN_CLAIM_TIMEOUT_MS} timeout (LOCAL ORIGIN ONLY;
+ *     a remote origin skips this and goes straight to the relay claim):
  *       paired      → { kind: 'lan' }      (fast path, redirect to LAN panel)
  *       refused     → { kind: 'rejected' } (token expired; don't try relay —
  *                       the relay would refuse the same token)
@@ -98,25 +101,39 @@ export function pairOverInternet(params: InternetPairParams): Promise<InternetPa
 async function runPairAttempt(params: InternetPairParams): Promise<InternetPairResult> {
   const { host, httpPort, pairToken, deviceName } = params;
 
-  // 1. LAN-first fast path.
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), LAN_CLAIM_TIMEOUT_MS);
-  let lan: Awaited<ReturnType<typeof claimPanelPhonePairingLan>> = null;
-  try {
-    lan = await claimPanelPhonePairingLan(host, httpPort, pairToken, controller.signal);
-  } finally {
-    clearTimeout(timer);
-  }
-  if (lan?.paired && lan.token) {
-    return { kind: 'lan', token: lan.token, machineName: lan.machineName };
-  }
-  if (lan && lan.paired === false && lan.error) {
-    // The PC answered on the LAN and refused (expired/used token). The relay
-    // claim would hit the same token state, so surface the rejection now.
-    return { kind: 'rejected', error: lan.error };
+  // 1. LAN-first fast path — LOCAL ORIGIN ONLY.
+  //
+  // The LAN claim is a plain-HTTP fetch to http://<host>:<httpPort>/panel/phone/
+  // claim. On a REMOTE origin (hellonexus.com, served over https) that is a
+  // mixed-content request to a private IP. Chromium rejects it quietly and the
+  // flow falls through to the relay, but WebKit (iOS Safari) raises an UNCAUGHT
+  // "Not allowed to request resource ... due to access control checks"
+  // pageerror that aborts the whole pair attempt → "Couldn't reach your PC".
+  // So only attempt the LAN claim when the page is served from the local origin
+  // (LAN, http→http, same-origin, no mixed content); on a remote origin there
+  // is no reachable localhost PC anyway, so go straight to the relay claim.
+  if (!isRemoteOrigin) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), LAN_CLAIM_TIMEOUT_MS);
+    let lan: Awaited<ReturnType<typeof claimPanelPhonePairingLan>> = null;
+    try {
+      lan = await claimPanelPhonePairingLan(host, httpPort, pairToken, controller.signal);
+    } finally {
+      clearTimeout(timer);
+    }
+    if (lan?.paired && lan.token) {
+      return { kind: 'lan', token: lan.token, machineName: lan.machineName };
+    }
+    if (lan && lan.paired === false && lan.error) {
+      // The PC answered on the LAN and refused (expired/used token). The relay
+      // claim would hit the same token state, so surface the rejection now.
+      return { kind: 'rejected', error: lan.error };
+    }
   }
 
-  // 2. Relay fallback (LAN unreachable / timed out / no answer).
+  // 2. Relay claim. On a remote origin this is the only path (no LAN probe was
+  //    attempted); on a local origin it's the fallback for an unreachable /
+  //    timed-out / unanswered LAN claim.
   try {
     const result = await pairOverRelay(resolveRelayWs(), pairToken, deviceName);
     if (result.ok) {

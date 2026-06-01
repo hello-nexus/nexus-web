@@ -19,8 +19,13 @@ vi.mock('../api/service', () => ({
 // fetch). Default null = "couldn't reach" so the schedule tests fall through to
 // the normal backoff exactly as the old rejecting-fetch mock did.
 const remoteControlMock = vi.fn(async () => null as { enabled: boolean } | null);
+// handleDisconnect reads the cloud-relay toggle through this helper when the
+// dropped connection was a relay transport. Default null = "couldn't reach" so
+// non-relay tests fall through to the normal backoff unchanged.
+const relayStateMock = vi.fn(async () => null as { enabled: boolean } | null);
 vi.mock('../api/panel', () => ({
   fetchPanelRemoteControlState: (...args: unknown[]) => remoteControlMock(...args),
+  fetchPanelRelay: (...args: unknown[]) => relayStateMock(...args),
 }));
 
 vi.mock('../api/auth', () => ({
@@ -255,6 +260,8 @@ describe('useMultiplexConnection relay fallback', () => {
     serviceState.relayActive = false;
     remoteControlMock.mockClear();
     remoteControlMock.mockResolvedValue(null);
+    relayStateMock.mockClear();
+    relayStateMock.mockResolvedValue(null);
     mockRejectingFetch();
     vi.useFakeTimers();
     (globalThis as unknown as { WebSocket: typeof FakeWebSocket }).WebSocket = FakeWebSocket;
@@ -264,6 +271,45 @@ describe('useMultiplexConnection relay fallback', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('parks in relayDisabled when a relay connection drops and the host has the cloud relay OFF, then auto-reconnects on re-enable', async () => {
+    // Remote origin: connect straight over the relay and reach peer-up.
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    // Killswitch stays ON (Pair Remote is on); only the cloud relay is off.
+    remoteControlMock.mockResolvedValue({ enabled: true });
+    relayStateMock.mockResolvedValue({ enabled: false });
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current?.transport).toBe('relay');
+    expect(FakeRelayChannel.instances.length).toBe(1);
+
+    // The host turns the cloud relay off → the relay socket closes (non-1008).
+    await act(async () => {
+      FakeRelayChannel.instances[0].onclose?.({ code: 1006 });
+      await flushRelayDetour();
+    });
+    // The relay toggle read returned {enabled:false}, so we park in relayDisabled
+    // (visible popup) and do NOT dial a fresh relay yet.
+    expect(result.current?.relayDisabled).toBe(true);
+    expect(result.current?.connected).toBe(false);
+    expect(FakeRelayChannel.instances.length).toBe(1);
+
+    // Host flips the relay back on. The next slow-poll sees {enabled:true} and
+    // reconnects immediately (a fresh relay dial that reaches peer-up).
+    relayStateMock.mockResolvedValue({ enabled: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+      await flushRelayDetour();
+    });
+    expect(result.current?.relayDisabled).toBe(false);
+    expect(FakeRelayChannel.instances.length).toBe(2);
+    expect(result.current?.connected).toBe(true);
+    expect(result.current?.transport).toBe('relay');
   });
 
   it('attempts the relay when the LAN socket closes before opening', async () => {

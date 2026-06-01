@@ -102,6 +102,9 @@ vi.mock('../api/service', () => ({
   resolveHttp: (path: string) => `http://test.local${path}`,
   setActiveTransport: () => {},
   isRelayActive: () => serviceState.relayActive,
+  // This flow models the remote-origin (hellonexus.com) pair: pairOverInternet
+  // must skip the mixed-content LAN claim and go straight to the relay.
+  isRemoteOrigin: true,
 }));
 
 // Runtime transport uses the mocked relay channel; the pair claim uses the raw

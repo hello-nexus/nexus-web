@@ -1159,6 +1159,16 @@
   color: #f59e0b;
 }
 
+// Satellite glyph on a session row whose live connection came in over the cloud
+// relay. Shares the relay iconography used by the panel's relay-mode badge and
+// the "Cloud relay" toggle so the feature reads the same everywhere.
+.phonePairSessionRelay {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
 // Pair Remote killswitch header row, sits above the QR. The Toggle component
 // here is the single authority for the system's "reachable" state.
 .phonePairKillswitchRow {

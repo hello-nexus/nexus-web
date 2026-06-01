@@ -216,6 +216,11 @@ export interface PanelPhoneSession {
   lastSeenAt: number;
   expiresAt: number;
   recentlyActive: boolean;
+  // How this session's live connection (if any) reached the host: 'relay' when
+  // it came in over the cloud relay, 'lan' for a direct LAN connection, null
+  // when the session is not currently connected. Surfaced by the service's GET
+  // /panel/phone/sessions so the dashboard can flag relay-connected devices.
+  connectedVia: 'relay' | 'lan' | null;
 }
 
 export interface PanelPhoneSessionsResponse {
