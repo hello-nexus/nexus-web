@@ -1,5 +1,5 @@
 import { getToken, handleUnauthorized } from './auth';
-import { deleteService, fetchService, postService, resolveHttp } from './service';
+import { deleteService, fetchService, isRelayActive, isRemoteOrigin, postService, relayRequestWithStatus, resolveHttp } from './service';
 import type { PanelLayout, PanelSurface } from '../panel/types';
 
 export interface PanelStatus {
@@ -78,6 +78,16 @@ export async function allocatePanelDeviceWithStatus(
   capabilities?: PanelDeviceCapabilitiesDto,
   displayName?: string,
 ): Promise<PanelAllocResult> {
+  // Off-LAN (remote origin / relay transport) there's no localhost PC to POST
+  // to — tunnel the alloc over the relay so the panel registers without a
+  // doomed mixed-content http://localhost call. Same status contract.
+  if (isRelayActive()) {
+    const { response, status } = await relayRequestWithStatus('POST', '/panel/devices', { displayName, capabilities });
+    if (!response || !response.ok) return { ok: false, status };
+    return { ok: true, record: (await response.json()) as PanelDeviceRecord };
+  }
+  // Remote origin without a usable relay yet ⇒ never hit http://localhost.
+  if (isRemoteOrigin) return { ok: false, status: 0 };
   try {
     const token = await getToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -114,6 +124,12 @@ export type PanelDeviceFetchResult =
 // The non-status variants conflate both as `null` and trigger an infinite
 // auto-persist loop when the kiosk holds an id the server no longer knows.
 export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDeviceFetchResult> {
+  if (isRelayActive()) {
+    const { response, status } = await relayRequestWithStatus('GET', `/panel/devices/${encodeURIComponent(id)}`);
+    if (response && response.ok) return { found: true, record: (await response.json()) as PanelDeviceRecord };
+    return { found: false, status };
+  }
+  if (isRemoteOrigin) return { found: false, status: 0 };
   try {
     let token = await getToken();
     const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
@@ -143,6 +159,12 @@ export type PanelDevicePatchResult =
   | { ok: false; status: number };
 
 export async function patchPanelDeviceWithStatus(id: string, patch: PanelDevicePatch): Promise<PanelDevicePatchResult> {
+  if (isRelayActive()) {
+    const { response, status } = await relayRequestWithStatus('POST', `/panel/devices/${encodeURIComponent(id)}`, patch);
+    if (!response || !response.ok) return { ok: false, status };
+    return { ok: true, record: (await response.json()) as PanelDeviceRecord };
+  }
+  if (isRemoteOrigin) return { ok: false, status: 0 };
   try {
     let token = await getToken();
     const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
@@ -331,6 +353,11 @@ export interface PanelPhonePairCodeRequestFrame {
 }
 
 export async function claimPanelPhonePairing(pairToken: string): Promise<PanelPhoneClaimResponse | null> {
+  // resolveHttp points at http://localhost on a remote origin. The remote pair
+  // flow claims over the relay (pairOverInternet) and lands on /panel/phone
+  // WITHOUT a ?pair= token, so this localhost claim only ever runs on the
+  // service-served origin; fail closed off-origin rather than fire it.
+  if (isRemoteOrigin) return null;
   try {
     const res = await fetch(resolveHttp('/panel/phone/claim'), {
       method: 'POST',

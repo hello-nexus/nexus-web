@@ -88,13 +88,20 @@ const { FakeRelayChannel } = vi.hoisted(() => {
 const lanClaimMock = vi.fn(async () => null);
 vi.mock('../api/panel', () => ({
   claimPanelPhonePairingLan: (...args: unknown[]) => lanClaimMock(...args),
+  // useMultiplexSocket reads the killswitch state through this helper; null =
+  // "couldn't reach", which keeps this flow on the relay path.
+  fetchPanelRemoteControlState: vi.fn(async () => null),
 }));
 
+// On a remote origin with a stored session token isRelayActive() is true, so the
+// runtime connects the relay directly (skipping the doomed ws://localhost open).
+const serviceState = { relayActive: true };
 vi.mock('../api/service', () => ({
   resolveRelayWs: () => 'wss://relay.test/relay',
   resolveAuthWs: async (path: string) => `ws://test.local${path}`,
   resolveHttp: (path: string) => `http://test.local${path}`,
   setActiveTransport: () => {},
+  isRelayActive: () => serviceState.relayActive,
 }));
 
 // Runtime transport uses the mocked relay channel; the pair claim uses the raw
@@ -157,22 +164,19 @@ describe('relay pair flow → token stored → runtime starts over relay', () =>
     expect(localStorage.getItem('nexus_token')).toBe(SESSION_TOKEN);
     expect(localStorage.getItem('nexus_phone_token')).toBe(SESSION_TOKEN);
 
-    // 3. Runtime starts: mount the multiplex connection. The LAN /ws fails to
-    // open (off-network) → relay fallback. Assert the runtime RelayChannel was
-    // constructed with the just-stored SESSION token.
+    // 3. Runtime starts: mount the multiplex connection. On a remote origin with
+    // the stored token, isRelayActive() is true, so the hook connects the relay
+    // DIRECTLY — no ws://localhost open is attempted. Assert no LAN socket was
+    // created and the runtime RelayChannel uses the just-stored SESSION token.
     vi.useFakeTimers();
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('no network'))));
     (globalThis as unknown as { WebSocket: typeof FakeLanWebSocket }).WebSocket = FakeLanWebSocket;
 
     const { result } = renderHook(() => useMultiplexConnection(true));
     await act(async () => { await flush(); });
-    expect(FakeLanWebSocket.instances.length).toBe(1);
 
-    await act(async () => {
-      FakeLanWebSocket.instances[0].triggerClose(1006); // LAN unreachable
-      await flush();
-    });
-
+    // The doomed LAN /ws was skipped entirely; the relay opened on first connect.
+    expect(FakeLanWebSocket.instances.length).toBe(0);
     expect(FakeRelayChannel.instances.length).toBe(1);
     expect(FakeRelayChannel.instances[0].token).toBe(SESSION_TOKEN);
     expect(FakeRelayChannel.instances[0].url).toBe('wss://relay.test/relay');

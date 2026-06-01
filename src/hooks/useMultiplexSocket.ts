@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { resolveAuthWs, resolveHttp, resolveRelayWs, setActiveTransport } from '../api/service';
+import { fetchPanelRemoteControlState } from '../api/panel';
+import { isRelayActive, resolveAuthWs, resolveRelayWs, setActiveTransport } from '../api/service';
 import { getToken } from '../api/auth';
 import { RelayChannel } from './relayChannel';
 
@@ -210,14 +211,16 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     if (!mountedRef.current) return;
     let killswitchEnabled: boolean | null = null;
     try {
-      const res = await fetch(resolveHttp('/panel/phone/remote-control'), { cache: 'no-store' });
+      // Read the killswitch state through the transport-aware fetch layer so a
+      // remote-origin panel checks it over the relay instead of firing a doomed
+      // http://localhost request (the state endpoint answers 200 with
+      // {enabled} either way, so null here means "couldn't reach", not "off").
+      const body = await fetchPanelRemoteControlState();
       // The mount check after every await is load-bearing: an unmount during
       // the fetch must not leave a setTimeout chain running forever on a
       // dead component, which would also resurrect remoteDisabled state.
       if (!mountedRef.current) return;
-      if (res.ok) {
-        const body = await res.json() as { enabled?: boolean };
-        if (!mountedRef.current) return;
+      if (body) {
         killswitchEnabled = body.enabled !== false;
         if (!killswitchEnabled) {
           remoteDisabledRef.current = true;
@@ -361,6 +364,15 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
   const connect = useCallback(async () => {
     close();
     setNextAttemptAt(null);
+    // Remote origin (e.g. hellonexus.com) with a session token: the LAN /ws
+    // resolves to ws://localhost — the phone, not the PC, and unreachable. Skip
+    // that doomed open entirely and connect the relay directly. tryRelay() falls
+    // back into handleDisconnect() on failure, so backoff still applies.
+    if (isRelayActive()) {
+      relayTriedRef.current = true;
+      void tryRelay();
+      return;
+    }
     try {
       const url = await resolveAuthWs('/ws');
       if (!mountedRef.current) return;

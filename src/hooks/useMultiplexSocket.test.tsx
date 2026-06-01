@@ -2,11 +2,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useMultiplexConnection } from './useMultiplexSocket';
 
+// isRelayActive controls the remote-origin eager-relay branch. Default false
+// (the LAN-first tests assume a service-served origin); the remote-origin test
+// flips it true. resolveHttp is kept for any indirect import but the hook no
+// longer fetches via it directly.
+const serviceState = { relayActive: false };
 vi.mock('../api/service', () => ({
   resolveAuthWs: vi.fn(async (path: string) => `ws://test.local${path}`),
   resolveHttp: vi.fn((path: string) => `http://test.local${path}`),
   resolveRelayWs: vi.fn(() => 'wss://relay.test.local/relay'),
   setActiveTransport: vi.fn(),
+  isRelayActive: vi.fn(() => serviceState.relayActive),
+}));
+
+// handleDisconnect reads the killswitch state through this helper (was a raw
+// fetch). Default null = "couldn't reach" so the schedule tests fall through to
+// the normal backoff exactly as the old rejecting-fetch mock did.
+const remoteControlMock = vi.fn(async () => null as { enabled: boolean } | null);
+vi.mock('../api/panel', () => ({
+  fetchPanelRemoteControlState: (...args: unknown[]) => remoteControlMock(...args),
 }));
 
 vi.mock('../api/auth', () => ({
@@ -119,6 +133,9 @@ describe('useMultiplexConnection reconnect schedule', () => {
     FakeWebSocket.instances = [];
     FakeRelayChannel.instances = [];
     relayState.nextPeerUp = false;
+    serviceState.relayActive = false;
+    remoteControlMock.mockClear();
+    remoteControlMock.mockResolvedValue(null);
     mockRejectingFetch();
     vi.useFakeTimers();
     (globalThis as unknown as { WebSocket: typeof FakeWebSocket }).WebSocket = FakeWebSocket;
@@ -235,6 +252,9 @@ describe('useMultiplexConnection relay fallback', () => {
     FakeWebSocket.instances = [];
     FakeRelayChannel.instances = [];
     relayState.nextPeerUp = false;
+    serviceState.relayActive = false;
+    remoteControlMock.mockClear();
+    remoteControlMock.mockResolvedValue(null);
     mockRejectingFetch();
     vi.useFakeTimers();
     (globalThis as unknown as { WebSocket: typeof FakeWebSocket }).WebSocket = FakeWebSocket;
@@ -303,5 +323,24 @@ describe('useMultiplexConnection relay fallback', () => {
     expect(relay.sent.some((s) => s.includes('"sub"') && s.includes('monitoring'))).toBe(true);
     act(() => { relay.onmessage?.({ data: JSON.stringify({ t: 'monitoring', d: { cpu: 42 } }) }); });
     expect(received).toEqual([{ cpu: 42 }]);
+  });
+
+  it('on a remote origin (relay active) connects the relay directly, never opening a LAN /ws', async () => {
+    // Remote-origin + token: isRelayActive() is true from the very first
+    // connect(), so the hook must skip the doomed ws://localhost open and dial
+    // the relay straight away. No FakeWebSocket (LAN) instance is created.
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    // The LAN /ws was never attempted; the relay opened on the first connect.
+    expect(FakeWebSocket.instances.length).toBe(0);
+    expect(FakeRelayChannel.instances.length).toBe(1);
+    expect(FakeRelayChannel.instances[0].url).toBe('wss://relay.test.local/relay');
+    expect(result.current?.connected).toBe(true);
+    expect(result.current?.transport).toBe('relay');
   });
 });
