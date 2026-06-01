@@ -116,7 +116,7 @@ export function isRelayActive(): boolean {
  *
  * An EXPLICIT 'lan' transport is the one exception: useMultiplexSocket only
  * publishes 'lan' after a direct /ws socket actually OPENED, which on a remote
- * origin can't happen — so a published 'lan' means localhost genuinely is
+ * origin can't happen — so a published 'lan' means localhost actually is
  * reachable (a service-served origin), and the direct fetch is allowed.
  */
 function blockedLocalhostFetch(): boolean {

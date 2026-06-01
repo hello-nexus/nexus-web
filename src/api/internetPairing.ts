@@ -74,7 +74,7 @@ export interface InternetPairParams {
 // PC." Caching the in-flight promise keyed by the pair token collapses every
 // repeat call for the same attempt onto the SAME single LAN-probe + relay
 // claim, so the rid_pair channel is opened exactly once. The entry is cleared
-// when the promise settles so a genuinely new pair attempt (a fresh token after
+// when the promise settles so a new pair attempt (a fresh token after
 // a failure, or a re-scan) starts clean.
 const inFlightPairs = new Map<string, Promise<InternetPairResult>>();
 

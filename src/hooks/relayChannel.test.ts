@@ -158,7 +158,7 @@ describe('pairOverRelay — post-claim close race (WebKit)', () => {
     driveToAwaitingReply(ws);
     await flush();
 
-    // No reply frame — the relay peer-downs / closes. This is a genuine failure
+    // No reply frame — the relay peer-downs / closes. This is a real failure
     // (PC never answered) and MUST still reject.
     ws.emitText(JSON.stringify({ e: 'peer-down' }));
     ws.emitClose();

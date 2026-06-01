@@ -312,7 +312,7 @@ export async function pairOverRelay(url: string, pairToken: string, deviceName: 
     // peer-down arriving AFTER a reply frame MUST NOT reject — the in-flight
     // decrypt of the received frame is the source of truth. Reject paths are
     // guarded by this flag; only the no-reply cases (no peer-up, timeout,
-    // genuine error before any reply) still reject.
+    // real error before any reply) still reject.
     let responseReceived = false;
     const timer = setTimeout(() => fail(new Error('relay pair timeout')), RELAY_PAIR_TIMEOUT_MS);
 
@@ -330,7 +330,7 @@ export async function pairOverRelay(url: string, pairToken: string, deviceName: 
       cleanup();
       resolve(result);
     };
-    // Reject the claim outright (used for genuine errors of the reply frame
+    // Reject the claim outright (used for real errors of the reply frame
     // itself — bad tag, wrong direction, unparseable reply — which are real
     // failures regardless of the close race).
     const abort = (err: Error) => {
@@ -403,7 +403,7 @@ export async function pairOverRelay(url: string, pairToken: string, deviceName: 
         opened = await openFrame(claimKey, frameBytes);
       } catch {
         // Tag-verify failure ⇒ forged/tampered reply ⇒ abort per the contract.
-        // This is a genuine failure of the received frame, so it rejects even
+        // This is a real failure of the received frame, so it rejects even
         // though responseReceived is set (it is NOT the post-claim close race).
         abort(new Error('claim reply tag verify failed'));
         return;

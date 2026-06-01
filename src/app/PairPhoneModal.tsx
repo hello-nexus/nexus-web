@@ -36,7 +36,7 @@ function formatConnectedDevices(count: number, t: TranslateFn) {
 
 /**
  * Decide whether a NEW device just paired, given the previous and next sets of
- * authorized session ids. Fires only on a genuine growth (an id present in
+ * authorized session ids. Fires only on a real growth (an id present in
  * `next` that was not in `prev`) — never on the first observation (prev null),
  * never on a pure revoke/decrease, and never when the membership is unchanged.
  * The pair QR/code are single-use tokens, so a new authorization means the
@@ -372,7 +372,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   // Detected off the existing sessions poll: when an authorized session id
   // appears that wasn't in the previous poll, the on-screen QR/code token was
   // just consumed, so refresh both to keep a fresh token ready for the next
-  // device. Guarded so it only fires on a genuine increase (not first load,
+  // device. Guarded so it only fires on a real increase (not first load,
   // not a revoke/decrease) and only while open with remote control enabled.
   // Additive to the TTL refresh above — neither replaces the other.
   useEffect(() => {

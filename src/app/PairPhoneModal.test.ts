@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { hasNewPairedSession } from './PairPhoneModal';
 
 // hasNewPairedSession drives the re-mint of the single-use pair QR + manual
-// code. It must fire ONLY on a genuine growth of the authorized-session set,
+// code. It must fire ONLY on a real growth of the authorized-session set,
 // because re-minting on the first load or on a revoke would needlessly churn
 // the displayed token (or hide that the QR is still usable for a fresh device).
 describe('hasNewPairedSession', () => {
@@ -29,7 +29,7 @@ describe('hasNewPairedSession', () => {
   });
 
   it('fires on a churn where a new id replaces a revoked one (net new device)', () => {
-    // 'a' was revoked and 'c' paired in the same poll window: 'c' is genuinely
+    // 'a' was revoked and 'c' paired in the same poll window: 'c' is actually
     // new and consumed the on-screen token, so a re-mint is correct.
     expect(hasNewPairedSession(set('a', 'b'), set('b', 'c'))).toBe(true);
   });
