@@ -20,6 +20,27 @@ import { NexusMark } from './components/icons/NexusBrand';
  * provides the dialog-free automatic app handoff. This whole flow is meant to
  * be revisited later.
  */
+/**
+ * A valid pairing QR always points at a private LAN IPv4 (the PC the phone
+ * is pairing with). Only a bare private/loopback IPv4 literal is accepted; a
+ * public IP, a DNS name, or any host carrying `/`, `@`, `:` or other URL
+ * metacharacters is rejected so this public-origin page can never be turned
+ * into an open redirect that leaks the pair token off-LAN.
+ */
+function isPrivateLanHost(host: string): boolean {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (!m) return false;
+  const [a, b, c, d] = m.slice(1).map(Number);
+  if ([a, b, c, d].some((n) => n > 255)) return false;
+  return (
+    a === 10 ||                          // 10.0.0.0/8
+    (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
+    (a === 192 && b === 168) ||          // 192.168.0.0/16
+    (a === 169 && b === 254) ||          // 169.254.0.0/16 link-local
+    a === 127                            // loopback
+  );
+}
+
 export function PairRedirect() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const host = params.get('host') ?? '';
@@ -31,9 +52,13 @@ export function PairRedirect() {
   const httpPort = params.get('httpPort') ?? '9400';
 
   // Validity guard: native iOS uses `port` for the HTTPS-pinned path, but the
-  // browser fallback only needs host + pair + httpPort. Any QR carrying both
-  // host and pair is good enough; missing iOS-only fields shouldn't reject it.
-  const valid = Boolean(host && pair);
+  // browser fallback only needs host + pair + httpPort. A valid QR always
+  // carries a private LAN IPv4 host. We MUST reject anything else: this page is
+  // served from the public hellonexus.com origin, so an unvalidated `host` turns
+  // it into an open redirect that carries the `pair` token to an attacker
+  // (host=evil.com, userinfo/@ tricks, public IPs). httpPort must be numeric so
+  // it can't smuggle a path/host segment into the URL either.
+  const valid = Boolean(pair) && isPrivateLanHost(host) && /^\d{1,5}$/.test(httpPort);
   const lanURL = valid
     ? `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}`
     : '';

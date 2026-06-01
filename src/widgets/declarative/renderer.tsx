@@ -90,6 +90,10 @@ export function renderView(view: WidgetView | undefined, ctx: RenderContext): Re
     case 'dot-grid':    return <DotGridMeter view={view} ctx={ctx} />;
     case 'microbars':   return <MicrobarsMeter view={view} ctx={ctx} />;
     case 'wedge':       return <WedgeMeter view={view} ctx={ctx} />;
+    // A kind that passes isMeterKind but has no case above (e.g. one added to
+    // the kind list but not wired here yet) renders the diagnostic instead of
+    // a silent blank cell.
+    default:            return <UnknownMeter type={type} />;
   }
 }
 
