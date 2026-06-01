@@ -674,6 +674,7 @@
   "phonePair.killswitch.confirmMessage": "Tutti i pannelli di controllo remoto connessi verranno disconnessi immediatamente.",
   "phonePair.killswitch.confirmNote": "I dispositivi accoppiati restano nell'elenco e si riconnettono automaticamente quando riattivi l'opzione.",
   "phonePair.killswitch.confirmTitle": "Disattivare il controllo remoto?",
+  "phonePair.connectionOptions": "Opzioni di connessione",
   "phonePair.killswitch.label": "Consenti controllo remoto",
   "phonePair.killswitch.offHint": "I dispositivi accoppiati vengono mantenuti ma non possono raggiungere questo sistema finché non riattivi l'opzione.",
   "phonePair.killswitch.offLabel": "Controllo remoto disattivato",

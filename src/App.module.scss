@@ -1209,46 +1209,6 @@
   color: var(--accent);
 }
 
-// Pair Remote killswitch header row, sits above the QR. The Toggle component
-// here is the single authority for the system's "reachable" state.
-.phonePairKillswitchRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-
-  & > div {
-    display: flex;
-    flex-direction: column;
-    gap: 0.18rem;
-    min-width: 0;
-  }
-}
-
-.phonePairKillswitchLabel {
-  @include text-button;
-  color: var(--text);
-}
-
-// Satellite glyph next to the "Cloud relay" label — shared iconography with
-// the live panel's relay-mode indicator so the relay feature reads the same
-// in both places. Aligned inline with the label text.
-.phonePairRelayIcon {
-  display: inline-block;
-  vertical-align: -2px;
-  margin-right: 6px;
-  color: var(--accent);
-}
-
-.phonePairKillswitchHint {
-  @include text-caption;
-  color: var(--text-faded);
-}
-
 // While the killswitch is OFF, the QR + sessions sections render dimmed so the
 // user sees the preserved list without thinking it's still actively reachable.
 .phonePairQrPanel[data-disabled='true'],

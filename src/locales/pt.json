@@ -674,6 +674,7 @@
   "phonePair.killswitch.confirmMessage": "Todos os paineis de controlo remoto ligados serao desligados imediatamente.",
   "phonePair.killswitch.confirmNote": "Os dispositivos emparelhados permanecem na lista e voltam a ligar-se assim que reativares.",
   "phonePair.killswitch.confirmTitle": "Desligar o controlo remoto?",
+  "phonePair.connectionOptions": "Opções de conexão",
   "phonePair.killswitch.label": "Permitir controlo remoto",
   "phonePair.killswitch.offHint": "Os dispositivos emparelhados sao mantidos mas nao conseguem alcancar este sistema ate o reativares.",
   "phonePair.killswitch.offLabel": "Controlo remoto desligado",
