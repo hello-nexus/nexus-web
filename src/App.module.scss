@@ -868,6 +868,8 @@
 }
 
 .phonePairQrBox {
+  position: relative;
+  overflow: hidden;
   display: grid;
   place-items: center;
   margin: 0;
@@ -892,6 +894,8 @@
 // near-black (#111827) foreground so the host + code read consistently and
 // scannably in BOTH the dark and light app themes (not theme variables).
 .phonePairCodeBox {
+  position: relative;
+  overflow: hidden;
   display: grid;
   place-items: center;
   margin: 0;
@@ -907,6 +911,65 @@
   .phonePairCodeHost,
   .phonePairCodeDigits {
     color: #111827;
+  }
+}
+
+// Fresh-token shine: a diagonal gloss sweep + brief brightness bloom that
+// plays once whenever the QR / manual code re-mints. Rendered as an absolute
+// overlay child (NOT a background on the box) so it never disturbs the QR
+// image or the code text, and clipped by the box's overflow:hidden. It is
+// remounted with an incrementing React key on every reload so the keyframes
+// re-fire (a CSS animation won't replay on an already-applied class). The
+// box layout is untouched — this sits on top with pointer-events:none.
+.phonePairShine {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  // The moving gloss band. Sized wider than the box and translated across it
+  // once; the brightness bloom rides the same element via animation chaining.
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 38%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0) 62%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  background-position: 140% 0;
+  // Sweep (band travels right→left) layered with a quick opacity bloom so it
+  // reads as a "fresh code just arrived" flash, ~0.7s, ease-out.
+  animation:
+    phonePairShineSweep 0.7s ease-out both,
+    phonePairShineFlash 0.45s ease-out both;
+  mix-blend-mode: screen;
+}
+
+@keyframes phonePairShineSweep {
+  0%   { background-position: 140% 0; }
+  100% { background-position: -40% 0; }
+}
+
+@keyframes phonePairShineFlash {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+// Reduced motion: drop the moving gloss sweep entirely and replace it with a
+// single quick, stationary fade so the "fresh token" cue is still perceivable
+// without any travelling/animated transform.
+@media (prefers-reduced-motion: reduce) {
+  .phonePairShine {
+    background: rgba(255, 255, 255, 0.6);
+    background-size: auto;
+    animation: phonePairShineFade 0.35s ease-out both;
+  }
+
+  @keyframes phonePairShineFade {
+    0%   { opacity: 0; }
+    35%  { opacity: 0.8; }
+    100% { opacity: 0; }
   }
 }
 
