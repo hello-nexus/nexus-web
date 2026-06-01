@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Plus, Settings2 } from 'lucide-react';
 import { usePanelTraySwipe } from './engine/usePanelTraySwipe';
+import { isNativeApp } from './panelNativeBridge';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import styles from './PanelActionsTray.module.scss';
 
@@ -121,7 +122,10 @@ export function PanelActionsTray({
             <span>Settings</span>
           </button>
         )}
-        {pairAvailable && onPair && (
+        {/* The pairing button triggers a native pairing dialog that only
+            exists inside the iOS app wrapper. In a plain browser it's a
+            no-op, so hide the whole button unless we're running natively. */}
+        {pairAvailable && onPair && isNativeApp() && (
           <HoverTooltip body="Pairing" side="top">
             <button
               type="button"

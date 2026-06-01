@@ -50,12 +50,18 @@ export function SidebarDevicesSection({
   // /devices polling cadence. Only navigable devices (those with their own
   // settings page) get a sidebar row — e.g. the MiniHub is controlled from
   // Cooling/Lighting, so it has no page and shouldn't deep-link to an empty one.
+  // Paired phone remotes (external-browser panel sessions from Pair Phone) are
+  // managed from the Pair Phone button + Devices page, not listed as devices in
+  // the sidebar — they're presence sessions, not hardware attached to this host.
   const sorted = useMemo(() => {
-    return unified.filter(d => d.navigable).sort((a, b) => {
-      if (a.connected !== b.connected) return a.connected ? -1 : 1;
-      if (a.category !== b.category) return a.category.localeCompare(b.category);
-      return a.shortName.localeCompare(b.shortName);
-    });
+    return unified
+      .filter(d => d.navigable)
+      .filter(d => d.panelDevice?.connectionKind !== 'external-browser')
+      .sort((a, b) => {
+        if (a.connected !== b.connected) return a.connected ? -1 : 1;
+        if (a.category !== b.category) return a.category.localeCompare(b.category);
+        return a.shortName.localeCompare(b.shortName);
+      });
   }, [unified]);
 
   const label = t('sidebar.section.devices');
