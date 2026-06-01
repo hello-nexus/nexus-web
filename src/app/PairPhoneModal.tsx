@@ -153,6 +153,16 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   const [broadcast, setBroadcast] = useState<PairBroadcastState>({ mode: 'always', untilUnixSeconds: 0 });
   const refreshInFlightRef = useRef(false);
   const sessionsInFlightRef = useRef(false);
+  // Incrementing keys that remount the shine overlay on each box whenever the
+  // displayed token re-mints. A bumped key forces React to unmount the old
+  // overlay and mount a fresh one, which re-fires the CSS keyframes (an
+  // animation does NOT replay on a class that is already applied). The shine
+  // value the effects last reacted to is tracked so we only bump on an actual
+  // change of the displayed content, not on every unrelated re-render.
+  const [qrShineKey, setQrShineKey] = useState(0);
+  const [codeShineKey, setCodeShineKey] = useState(0);
+  const lastQrShineRef = useRef<string | null>(null);
+  const lastCodeShineRef = useRef<string | null>(null);
   // Set of authorized session ids observed on the previous sessions poll. Used
   // to detect when a NEW device pairs so we can re-mint the single-use QR/code.
   // null until the first poll resolves so the initial load never counts as new.
@@ -403,6 +413,35 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     return () => { cancelled = true; };
   }, [open]);
 
+  // Play the shine sweep on the QR box whenever a fresh QR is displayed.
+  // Keyed off the rendered token (data URL + expiry) so it fires on every
+  // re-mint — TTL expiry AND a new device pairing — but never on an unrelated
+  // re-render. Skip while loading / empty so the sweep lands on the visible QR.
+  useEffect(() => {
+    if (!qr?.qrDataUrl || loading) return;
+    const token = `${qr.qrDataUrl}|${qr.expiresAt}`;
+    if (lastQrShineRef.current === token) return;
+    lastQrShineRef.current = token;
+    setQrShineKey(k => k + 1);
+  }, [qr?.qrDataUrl, qr?.expiresAt, loading]);
+
+  // Same for the manual code box, keyed off the displayed code value.
+  useEffect(() => {
+    if (!pairCode?.code) return;
+    if (lastCodeShineRef.current === pairCode.code) return;
+    lastCodeShineRef.current = pairCode.code;
+    setCodeShineKey(k => k + 1);
+  }, [pairCode?.code]);
+
+  // Forget the last-shown tokens when the modal closes / remote disables so a
+  // reopen replays the shine on the freshly fetched token rather than treating
+  // it as unchanged.
+  useEffect(() => {
+    if (open && remoteEnabled) return;
+    lastQrShineRef.current = null;
+    lastCodeShineRef.current = null;
+  }, [open, remoteEnabled]);
+
   const updateBroadcast = useCallback(async (mode: PairBroadcastState['mode']) => {
     const until = mode === 'until' ? Math.floor(Date.now() / 1000) + 600 : 0;
     const next = await setPanelPairBroadcast(mode, until);
@@ -618,6 +657,9 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                     ) : (
                       <div className={styles.phonePairLoading}>{t('phonePair.loadingQr')}</div>
                     )}
+                    {qrShineKey > 0 && (
+                      <span key={qrShineKey} className={styles.phonePairShine} aria-hidden="true" />
+                    )}
                   </div>
                   <div className={classNames(styles.phonePairTimer, {
                     [styles.phonePairTimerFlash]: secondsLeft > 0 && secondsLeft <= 5,
@@ -642,6 +684,9 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                       </div>
                     ) : (
                       <div className={styles.phonePairLoading}>{t('phonePair.refreshing')}</div>
+                    )}
+                    {codeShineKey > 0 && (
+                      <span key={codeShineKey} className={styles.phonePairShine} aria-hidden="true" />
                     )}
                   </div>
                   {pairCodeError && <p className={styles.phonePairCodeError}>{pairCodeError}</p>}
