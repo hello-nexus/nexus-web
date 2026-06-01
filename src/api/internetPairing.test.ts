@@ -130,7 +130,7 @@ vi.mock('./service', () => ({
   get isRemoteOrigin() { return remoteOrigin; },
 }));
 
-import { pairOverInternet, LAN_CLAIM_TIMEOUT_MS } from './internetPairing';
+import { pairOverInternet, pairOverRelayClaim, LAN_CLAIM_TIMEOUT_MS } from './internetPairing';
 
 beforeEach(() => {
   behavior = 'claim-ok';
@@ -226,34 +226,48 @@ describe('pairOverInternet — relay fallback', () => {
   });
 });
 
-describe('pairOverInternet — remote origin skips the LAN claim (WebKit fix)', () => {
-  it('does NOT attempt the LAN claim on a remote origin; goes straight to the relay', async () => {
-    // hellonexus.com (https) → the plain-HTTP LAN claim would be a mixed-content
-    // fetch to a private IP. On WebKit that fetch raises an uncaught pageerror
-    // that aborts the whole pair flow, so on a remote origin we must never make
-    // it. Prove the LAN claim mock is never called, yet pairing still succeeds
-    // over the relay.
-    remoteOrigin = true;
-    // If the LAN claim WERE attempted it would resolve to a paired LAN token;
-    // a 'relay' result therefore proves the LAN path was skipped entirely.
+describe('pairOverRelayClaim — TIER 2 relay-only path (no LAN fetch)', () => {
+  // The REMOTE-origin tiered flow lives in PairRedirect: it NAVIGATES to the PC
+  // (TIER 1, free) and only invokes pairOverRelayClaim (TIER 2) on a timeout.
+  // pairOverRelayClaim itself never touches the LAN claim — the plain-HTTP LAN
+  // fetch (mixed-content, WebKit-fatal) was removed from the remote path
+  // entirely. These tests pin that: the relay claim succeeds and stores the
+  // token without ever calling the LAN claim mock.
+  it('claims over the relay and stores the token without any LAN fetch', async () => {
     lanClaimMock.mockResolvedValue({ paired: true, token: 'LAN-TOKEN', machineName: 'PC' });
 
-    const result = await pairOverInternet({
-      host: '192.0.2.1', httpPort: '9400', pairToken: PAIR_TOKEN, deviceName: 'iPhone',
-    });
+    const result = await pairOverRelayClaim(PAIR_TOKEN, 'iPhone 15');
 
     expect(lanClaimMock).not.toHaveBeenCalled();
     expect(result).toEqual({
       kind: 'relay', token: 'SESS-relay-9999', machineName: 'NICOLA-PC', spki: 'AB:CD',
     });
     expect(relaySockets).toHaveLength(1);
+    expect(relaySockets[0].url).toBe('wss://relay.test/relay');
+    expect(captured?.rid).toBe(RID_PAIR);
+    expect(captured?.deviceName).toBe('iPhone 15');
     expect(storePhoneTokenMock).toHaveBeenCalledWith('SESS-relay-9999');
   });
 
-  it('still attempts the LAN claim on a local (service-served) origin', async () => {
-    // The complement: served from the local service, the LAN fast path is
-    // unchanged so same-network pairing keeps redirecting into the LAN panel.
-    remoteOrigin = false;
+  it('maps a relay claim-err to rejected (no LAN fetch)', async () => {
+    behavior = 'claim-err';
+    const result = await pairOverRelayClaim(PAIR_TOKEN, 'iPhone');
+    expect(lanClaimMock).not.toHaveBeenCalled();
+    expect(result).toEqual({ kind: 'rejected', error: 'pair token expired' });
+    expect(storePhoneTokenMock).not.toHaveBeenCalled();
+  });
+
+  it('maps a relay open error to unreachable (no LAN fetch)', async () => {
+    behavior = 'open-error';
+    const result = await pairOverRelayClaim(PAIR_TOKEN, 'iPhone');
+    expect(lanClaimMock).not.toHaveBeenCalled();
+    expect(result).toEqual({ kind: 'unreachable' });
+    expect(storePhoneTokenMock).not.toHaveBeenCalled();
+  });
+
+  it('still attempts the LAN claim on the LOCAL-origin pairOverInternet path', async () => {
+    // The complement: served from the local service, pairOverInternet keeps the
+    // LAN fast path so same-network pairing redirects into the LAN panel.
     lanClaimMock.mockResolvedValueOnce({ paired: true, token: 'LAN-TOKEN', machineName: 'PC' });
 
     const result = await pairOverInternet({

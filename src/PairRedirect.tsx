@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NexusMark } from './components/icons/NexusBrand';
-import { pairOverInternet, type InternetPairResult } from './api/internetPairing';
+import { pairOverInternet, pairOverRelayClaim, type InternetPairResult } from './api/internetPairing';
+import { isRemoteOrigin } from './api/service';
 import { PHONE_PANEL_PWA_KEY } from './app/panelRouting';
 
 /**
@@ -14,21 +15,40 @@ import { PHONE_PANEL_PWA_KEY } from './app/panelRouting';
  * component ever renders. If we get here the app did NOT take over (not
  * installed, Android, desktop, or an in-app browser).
  *
- * Pairing decision (Phase 1 internet pairing for brand-new phones):
- *   1. LAN-first fast path — try the HTTP claim against the PC's LAN address
- *      (host:httpPort) with a short timeout. On the same network this succeeds
- *      and we keep today's behavior: redirect into the LAN browser panel.
- *   2. Relay fallback — when the LAN is unreachable, pair over the cloud relay
- *      from the hellonexus.com origin (rid_pair derived from the QR `pair`
- *      token), store the returned session token, and run the panel over the
- *      relay right here on hellonexus.com (no LAN redirect). Reopening
- *      hellonexus.com reconnects via the relay using the stored token.
+ * Pairing decision (Phase 1 internet pairing for brand-new phones). DIRECT LAN
+ * is the primary path; the paid relay is only a fallback:
+ *
+ *   LOCAL ORIGIN (the PC's own panel on :9400/:9443, isServedFromService):
+ *     keep today's behavior — pairOverInternet() does the LAN HTTP claim and,
+ *     if the PC is unreachable, falls back to the relay.
+ *
+ *   REMOTE ORIGIN (hellonexus.com, served over https, isRemoteOrigin):
+ *     TIER 1 (direct LAN, free): NAVIGATE straight to the PC's plain-HTTP panel
+ *       (http://<host>:9400/panel/phone?pair=…). A navigation is NOT a fetch, so
+ *       it is exempt from mixed-content / WebKit "access control" aborts. On the
+ *       same LAN this commits and the PC-served panel (isServedFromService=true)
+ *       runs the direct same-origin claim — the relay is never used (free).
+ *     TIER 2 (relay fallback): a {@link DIRECT_PROBE_MS} timer is armed right
+ *       before the Tier-1 navigation. If the direct page commits (LAN reachable)
+ *       this hellonexus.com page unloads and the timer dies, so the relay never
+ *       runs (no double-claim). If it does NOT commit (PC off-LAN/unreachable)
+ *       the timer fires and pairOverRelayClaim() pairs over the cloud relay,
+ *       then runs the panel over the relay right here on hellonexus.com.
  *
  * We deliberately do not auto-fire the `hellonexus://` custom scheme here —
  * when the app isn't installed iOS Safari pops a "Cannot Open Page" error
  * dialog for an unregistered scheme, which is worse than the silent flow. The
  * Universal Link above already provides the dialog-free automatic app handoff.
  */
+
+// How long to give the direct-LAN navigation (TIER 1) to commit before falling
+// back to the cloud relay (TIER 2). On the same LAN the PC's plain-HTTP panel
+// loads well inside this window, this page unloads, and the timer is destroyed
+// — so the relay never runs (no double-claim). Off-LAN the navigation can't
+// commit (connection refused / unroutable private IP), the timer fires, and the
+// relay claim starts. ~3s balances "don't make an on-LAN phone wait" against
+// "give a slow-but-reachable PC time to answer before paying for the relay".
+const DIRECT_PROBE_MS = 3000;
 
 type PairPhase =
   | { state: 'pairing' }
@@ -50,7 +70,14 @@ export function PairRedirect() {
   // Validity guard: native iOS uses `port` for the HTTPS-pinned path, but the
   // browser fallback only needs host + pair + httpPort. Any QR carrying both
   // host and pair is good enough; missing iOS-only fields shouldn't reject it.
-  const valid = Boolean(host && pair);
+  //
+  // On a REMOTE origin TIER 1 NAVIGATES the browser to http://<host>:9400.
+  // `host` comes from the (untrusted) QR URL, so require it to be a private
+  // (RFC1918 / link-local) LAN IP: a direct PC pairing target is always a LAN
+  // address, and this stops a crafted hellonexus.com/r/pair link from
+  // navigating the phone to an arbitrary public host. The relay path keys off
+  // `pair` (not `host`), so a rejected host still can't be abused there either.
+  const valid = Boolean(host && pair && isPrivateLanHost(host));
 
   const [phase, setPhase] = useState<PairPhase>({ state: 'pairing' });
 
@@ -66,6 +93,58 @@ export function PairRedirect() {
     if (!valid) return;
     if (started.current) return;
     started.current = true;
+
+    // The direct-LAN panel URL: plain HTTP, the service's HTTP port (9400).
+    const directUrl = `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}`;
+
+    // Settle the relay outcome (shared by both origins' relay paths). The relay
+    // session token is stored under this origin, so render the panel over the
+    // relay right here on hellonexus.com — the multiplex hook's LAN /ws open
+    // fails (localhost is unreachable from this origin) and falls back to the
+    // relay using the stored token.
+    const applyResult = (result: InternetPairResult) => {
+      if (result.kind === 'relay') {
+        localStorage.setItem(PHONE_PANEL_PWA_KEY, '1');
+        setPhase({ state: 'relay', machineName: result.machineName });
+        window.location.replace(`${window.location.origin}/panel/phone`);
+      } else if (result.kind === 'rejected') {
+        setPhase({ state: 'rejected', error: result.error });
+      } else {
+        setPhase({ state: 'unreachable' });
+      }
+    };
+
+    // REMOTE ORIGIN — tiered: direct LAN first (free), relay only on timeout.
+    if (isRemoteOrigin) {
+      let cancelled = false;
+      // TIER 2 fallback armed BEFORE the TIER 1 navigation. If the direct
+      // navigation commits (LAN reachable) this page unloads and the timer is
+      // cleared below by the effect cleanup → relay never runs (no double
+      // claim). If it does NOT commit (PC off-LAN) the timer fires and the
+      // relay claim starts. This is the proven "navigate, fall back after a
+      // timeout" technique; the timer is the only signal we get that the
+      // off-LAN navigation silently failed to commit.
+      const fallback = window.setTimeout(() => {
+        if (cancelled) return;
+        setPhase({ state: 'relay' });
+        void pairOverRelayClaim(pair, deriveDeviceName()).then((result) => {
+          if (cancelled) return;
+          applyResult(result);
+        });
+      }, DIRECT_PROBE_MS);
+
+      // TIER 1: NAVIGATE to the PC's plain-HTTP panel. A navigation (not a
+      // fetch) is exempt from mixed-content / WebKit access-control aborts.
+      setPhase({ state: 'lan', lanURL: directUrl, host, httpPort });
+      window.location.href = directUrl;
+
+      return () => {
+        cancelled = true;
+        window.clearTimeout(fallback);
+      };
+    }
+
+    // LOCAL ORIGIN (PC's own panel) — unchanged: LAN HTTP claim, relay fallback.
     let cancelled = false;
     void pairOverInternet({
       host,
@@ -77,22 +156,10 @@ export function PairRedirect() {
       if (result.kind === 'lan') {
         // Fast path unchanged: hand the visitor straight to the LAN browser
         // panel. The PC already issued the token; the LAN panel uses it.
-        const lanURL = `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}`;
-        setPhase({ state: 'lan', lanURL, host, httpPort });
-        window.location.replace(lanURL);
-      } else if (result.kind === 'relay') {
-        // Paired over the relay: the session token is stored under this origin.
-        // Mark this as a phone panel and run the panel over the relay right
-        // here on hellonexus.com — the multiplex hook's LAN /ws open fails
-        // (localhost is unreachable from this origin) and falls back to the
-        // relay using the stored token.
-        localStorage.setItem(PHONE_PANEL_PWA_KEY, '1');
-        setPhase({ state: 'relay', machineName: result.machineName });
-        window.location.replace(`${window.location.origin}/panel/phone`);
-      } else if (result.kind === 'rejected') {
-        setPhase({ state: 'rejected', error: result.error });
+        setPhase({ state: 'lan', lanURL: directUrl, host, httpPort });
+        window.location.replace(directUrl);
       } else {
-        setPhase({ state: 'unreachable' });
+        applyResult(result);
       }
     });
     return () => { cancelled = true; };
@@ -153,6 +220,23 @@ export function PairRedirect() {
       )}
     </Frame>
   );
+}
+
+// True only for a private (RFC1918 / link-local) IPv4 LAN address — the only
+// kind of host a Nexus PC advertises in a pairing QR. TIER 1 NAVIGATES the
+// phone to http://<host>:9400, so an untrusted QR `host` must be confined to
+// the LAN; a public host is rejected (the QR is treated as invalid). Ranges:
+// 10/8, 172.16/12, 192.168/16, and 169.254/16 (link-local).
+function isPrivateLanHost(host: string): boolean {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host.trim());
+  if (!m) return false;
+  const [a, b, c, d] = m.slice(1).map(Number);
+  if ([a, b, c, d].some((n) => n > 255)) return false;
+  if (a === 10) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 169 && b === 254) return true;
+  return false;
 }
 
 // A short label for the pairing session list on the PC. The PC also records

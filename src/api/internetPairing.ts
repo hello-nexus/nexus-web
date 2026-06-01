@@ -1,27 +1,35 @@
 // Internet pairing for brand-new phones (Phase 1 relay transport).
 //
-// A phone scans the QR and lands on hellonexus.com/r/pair. Today the page just
-// redirects to the PC's LAN IP — which only works when the phone shares the
-// PC's network. This module makes pairing work from ANY network:
+// A phone scans the QR and lands on hellonexus.com/r/pair. Pairing must work on
+// the SAME LAN as the PC (free, direct) AND from any other network (over the
+// paid cloud relay). The /r/pair entry (PairRedirect.tsx) drives a TIERED flow;
+// this module owns the two transports it picks between:
 //
-//   1. LAN-first fast path (LOCAL ORIGIN ONLY): try the existing HTTP claim
-//      against the PC's LAN address (host:httpPort from the QR) with a SHORT
-//      timeout. On the same network this succeeds in a few ms and the caller
-//      keeps today's behavior (redirect into the LAN panel). On a REMOTE origin
-//      this probe is skipped entirely — the plain-HTTP claim would be a mixed-
-//      content request that WebKit turns into a fatal uncaught pageerror.
-//   2. Relay fallback: if the LAN claim times out / is unreachable, do a
-//      RELAY claim — derive rid_pair from the QR `pair` token, rendezvous with
-//      the PC over the cloud relay, send one sealed claim, and get back a
-//      session token. The phone then runs the panel over the relay from the
-//      hellonexus.com origin (the existing useMultiplexSocket relay path keys
-//      off the stored session token).
+//   - LOCAL ORIGIN (the PC's own panel on :9400/:9443) → pairOverInternet():
+//       LAN-first fast path — try the existing HTTP claim against the PC's LAN
+//       address (host:httpPort from the QR) with a SHORT timeout. On the same
+//       network this succeeds in a few ms and the caller keeps today's behavior
+//       (redirect into the LAN panel). If it times out / is unreachable, fall
+//       through to a relay claim.
+//
+//   - REMOTE ORIGIN (hellonexus.com, served over https) → PairRedirect drives
+//       the tiers itself (the plain-HTTP LAN *fetch* is gone — on WebKit it
+//       raised a fatal uncaught "access control" pageerror):
+//         TIER 1 (direct LAN, free): NAVIGATE the browser to the PC's plain-HTTP
+//           panel. A navigation is NOT a fetch, so it is exempt from mixed-
+//           content / access-control aborts. On the same LAN this commits and
+//           the PC-served panel runs the direct same-origin claim — no relay.
+//         TIER 2 (relay fallback): if the direct navigation never commits
+//           (PC off-LAN/unreachable), pairOverRelayClaim() does the relay claim.
+//       PairRedirect arms a timer before the Tier-1 navigation; a committed
+//       navigation unloads this page and destroys the timer, so the relay only
+//       runs when the PC is NOT directly reachable.
 //
 // The crypto + relay wire protocol are reused verbatim from relayChannel /
-// relayCrypto; this module only owns the LAN-first→relay decision + token
+// relayCrypto; this module only owns the transport decision + token
 // persistence.
 
-import { isRemoteOrigin, resolveRelayWs } from './service';
+import { resolveRelayWs } from './service';
 import { claimPanelPhonePairingLan } from './panel';
 import { pairOverRelay } from '../hooks/relayChannel';
 import { storePhoneToken } from './auth';
@@ -70,22 +78,22 @@ export interface InternetPairParams {
 const inFlightPairs = new Map<string, Promise<InternetPairResult>>();
 
 /**
- * Run the LAN-first → relay pairing decision for a brand-new phone.
+ * LOCAL-ORIGIN pairing: LAN-first → relay fallback for a brand-new phone.
+ *
+ * Used only when the page is served from the PC itself (isServedFromService).
+ * A REMOTE origin does NOT call this — PairRedirect drives the tiered flow there
+ * (direct navigation first, {@link pairOverRelayClaim} as the timeout fallback).
  *
  * Idempotent per pair token: concurrent or repeated calls with the same
  * `pairToken` share one in-flight attempt (one LAN probe, one relay claim).
  *
  * Decision logic:
- *   - LAN claim with a {@link LAN_CLAIM_TIMEOUT_MS} timeout (LOCAL ORIGIN ONLY;
- *     a remote origin skips this and goes straight to the relay claim):
+ *   - LAN claim with a {@link LAN_CLAIM_TIMEOUT_MS} timeout:
  *       paired      → { kind: 'lan' }      (fast path, redirect to LAN panel)
  *       refused     → { kind: 'rejected' } (token expired; don't try relay —
  *                       the relay would refuse the same token)
  *       no reply    → fall through to relay
- *   - Relay claim:
- *       claim-ok    → store the session token, { kind: 'relay' }
- *       claim-err   → { kind: 'rejected' }
- *       transport   → { kind: 'unreachable' }
+ *   - Relay claim ({@link pairOverRelayClaim}).
  */
 export function pairOverInternet(params: InternetPairParams): Promise<InternetPairResult> {
   const existing = inFlightPairs.get(params.pairToken);
@@ -101,39 +109,50 @@ export function pairOverInternet(params: InternetPairParams): Promise<InternetPa
 async function runPairAttempt(params: InternetPairParams): Promise<InternetPairResult> {
   const { host, httpPort, pairToken, deviceName } = params;
 
-  // 1. LAN-first fast path — LOCAL ORIGIN ONLY.
-  //
-  // The LAN claim is a plain-HTTP fetch to http://<host>:<httpPort>/panel/phone/
-  // claim. On a REMOTE origin (hellonexus.com, served over https) that is a
-  // mixed-content request to a private IP. Chromium rejects it quietly and the
-  // flow falls through to the relay, but WebKit (iOS Safari) raises an UNCAUGHT
-  // "Not allowed to request resource ... due to access control checks"
-  // pageerror that aborts the whole pair attempt → "Couldn't reach your PC".
-  // So only attempt the LAN claim when the page is served from the local origin
-  // (LAN, http→http, same-origin, no mixed content); on a remote origin there
-  // is no reachable localhost PC anyway, so go straight to the relay claim.
-  if (!isRemoteOrigin) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), LAN_CLAIM_TIMEOUT_MS);
-    let lan: Awaited<ReturnType<typeof claimPanelPhonePairingLan>> = null;
-    try {
-      lan = await claimPanelPhonePairingLan(host, httpPort, pairToken, controller.signal);
-    } finally {
-      clearTimeout(timer);
-    }
-    if (lan?.paired && lan.token) {
-      return { kind: 'lan', token: lan.token, machineName: lan.machineName };
-    }
-    if (lan && lan.paired === false && lan.error) {
-      // The PC answered on the LAN and refused (expired/used token). The relay
-      // claim would hit the same token state, so surface the rejection now.
-      return { kind: 'rejected', error: lan.error };
-    }
+  // 1. LAN-first fast path (local origin: http→http, same network, no mixed
+  //    content). The LAN claim is a plain-HTTP fetch to
+  //    http://<host>:<httpPort>/panel/phone/claim; safe here because the panel
+  //    is itself served over plain HTTP from the PC.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), LAN_CLAIM_TIMEOUT_MS);
+  let lan: Awaited<ReturnType<typeof claimPanelPhonePairingLan>> = null;
+  try {
+    lan = await claimPanelPhonePairingLan(host, httpPort, pairToken, controller.signal);
+  } finally {
+    clearTimeout(timer);
+  }
+  if (lan?.paired && lan.token) {
+    return { kind: 'lan', token: lan.token, machineName: lan.machineName };
+  }
+  if (lan && lan.paired === false && lan.error) {
+    // The PC answered on the LAN and refused (expired/used token). The relay
+    // claim would hit the same token state, so surface the rejection now.
+    return { kind: 'rejected', error: lan.error };
   }
 
-  // 2. Relay claim. On a remote origin this is the only path (no LAN probe was
-  //    attempted); on a local origin it's the fallback for an unreachable /
-  //    timed-out / unanswered LAN claim.
+  // 2. Relay claim — fallback for an unreachable / timed-out / unanswered LAN
+  //    claim.
+  return pairOverRelayClaim(pairToken, deviceName);
+}
+
+/**
+ * RELAY claim (Phase 1 internet pairing) — derive rid_pair from the QR `pair`
+ * token, rendezvous with the PC over the cloud relay, send one sealed claim,
+ * and get back a session token, which is stored under this origin so the panel
+ * (and a later reopen of hellonexus.com) reconnects over the relay.
+ *
+ *   claim-ok  → store the session token, { kind: 'relay' }
+ *   claim-err → { kind: 'rejected' }
+ *   transport → { kind: 'unreachable' }
+ *
+ * Exported so the REMOTE-origin tiered flow (PairRedirect) can invoke the relay
+ * as TIER 2 once the direct-LAN navigation has failed to commit. The local
+ * origin reaches it via {@link runPairAttempt}'s LAN-first fallback.
+ */
+export async function pairOverRelayClaim(
+  pairToken: string,
+  deviceName: string,
+): Promise<InternetPairResult> {
   try {
     const result = await pairOverRelay(resolveRelayWs(), pairToken, deviceName);
     if (result.ok) {
