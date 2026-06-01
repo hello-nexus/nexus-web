@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "Deine Entscheidung konnte nicht gespeichert werden. Versuche es erneut.",
   "phonePair.code.errorStart": "Manuelle Kopplung konnte nicht gestartet werden. Versuche es erneut.",
   "phonePair.code.hostLabel": "Adresse",
+  "phonePair.code.localOnly": "Nur lokales Netzwerk",
   "phonePair.code.requestFrom": "Von {ip}",
   "phonePair.code.requestSubtitle": "Bestätige, dass diese Nummer mit der auf deinem Smartphone angezeigten übereinstimmt:",
   "phonePair.code.requestTitle": "{device} koppeln?",

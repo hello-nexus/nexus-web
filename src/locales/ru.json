@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "Не удалось записать ваше решение. Попробуйте снова.",
   "phonePair.code.errorStart": "Не удалось начать сопряжение вручную. Попробуйте снова.",
   "phonePair.code.hostLabel": "Адрес",
+  "phonePair.code.localOnly": "Только локальная сеть",
   "phonePair.code.requestFrom": "От {ip}",
   "phonePair.code.requestSubtitle": "Убедитесь, что это число совпадает с тем, что показывает ваш телефон:",
   "phonePair.code.requestTitle": "Выполнить сопряжение с {device}?",

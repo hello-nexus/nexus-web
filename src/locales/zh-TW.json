@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "無法記錄你的決定。請再試一次。",
   "phonePair.code.errorStart": "無法開始手動配對。請再試一次。",
   "phonePair.code.hostLabel": "位址",
+  "phonePair.code.localOnly": "僅限本機網路",
   "phonePair.code.requestFrom": "來自 {ip}",
   "phonePair.code.requestSubtitle": "確認此數字與你手機上顯示的相符：",
   "phonePair.code.requestTitle": "要配對 {device} 嗎？",

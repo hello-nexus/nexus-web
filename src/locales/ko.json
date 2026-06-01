@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "결정을 기록하지 못했습니다. 다시 시도하세요.",
   "phonePair.code.errorStart": "수동 페어링을 시작하지 못했습니다. 다시 시도하세요.",
   "phonePair.code.hostLabel": "주소",
+  "phonePair.code.localOnly": "로컬 네트워크 전용",
   "phonePair.code.requestFrom": "{ip}에서",
   "phonePair.code.requestSubtitle": "이 번호가 휴대폰에 표시된 것과 일치하는지 확인하세요:",
   "phonePair.code.requestTitle": "{device}와(과) 페어링할까요?",

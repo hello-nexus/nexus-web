@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "Não foi possível registar a sua decisão. Tente novamente.",
   "phonePair.code.errorStart": "Não foi possível iniciar o emparelhamento manual. Tente novamente.",
   "phonePair.code.hostLabel": "Endereço",
+  "phonePair.code.localOnly": "Apenas rede local",
   "phonePair.code.requestFrom": "De {ip}",
   "phonePair.code.requestSubtitle": "Confirme que este número corresponde ao que o seu telemóvel apresenta:",
   "phonePair.code.requestTitle": "Emparelhar {device}?",

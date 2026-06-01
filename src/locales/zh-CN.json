@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "无法记录您的选择。请重试。",
   "phonePair.code.errorStart": "无法开始手动配对。请重试。",
   "phonePair.code.hostLabel": "地址",
+  "phonePair.code.localOnly": "仅限本地网络",
   "phonePair.code.requestFrom": "来自 {ip}",
   "phonePair.code.requestSubtitle": "确认此数字与您手机上显示的一致：",
   "phonePair.code.requestTitle": "配对 {device}？",

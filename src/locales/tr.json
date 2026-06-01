@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "Kararınız kaydedilemedi. Tekrar deneyin.",
   "phonePair.code.errorStart": "Manuel eşleştirme başlatılamadı. Tekrar deneyin.",
   "phonePair.code.hostLabel": "Adres",
+  "phonePair.code.localOnly": "Yalnızca yerel ağ",
   "phonePair.code.requestFrom": "{ip} adresinden",
   "phonePair.code.requestSubtitle": "Bu numaranın telefonunuzda gösterilenle eşleştiğini doğrulayın:",
   "phonePair.code.requestTitle": "{device} eşleştirilsin mi?",

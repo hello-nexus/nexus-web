@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "Impossible d'enregistrer votre décision. Réessayez.",
   "phonePair.code.errorStart": "Impossible de démarrer l'appairage manuel. Réessayez.",
   "phonePair.code.hostLabel": "Adresse",
+  "phonePair.code.localOnly": "Réseau local uniquement",
   "phonePair.code.requestFrom": "De {ip}",
   "phonePair.code.requestSubtitle": "Vérifiez que ce numéro correspond à celui affiché sur votre téléphone :",
   "phonePair.code.requestTitle": "Appairer {device} ?",

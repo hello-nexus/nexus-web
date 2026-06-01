@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "Não foi possível registrar sua decisão. Tente novamente.",
   "phonePair.code.errorStart": "Não foi possível iniciar o pareamento manual. Tente novamente.",
   "phonePair.code.hostLabel": "Endereço",
+  "phonePair.code.localOnly": "Somente rede local",
   "phonePair.code.requestFrom": "De {ip}",
   "phonePair.code.requestSubtitle": "Confirme que este número corresponde ao que seu telefone mostra:",
   "phonePair.code.requestTitle": "Parear {device}?",

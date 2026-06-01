@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "操作を記録できませんでした。もう一度お試しください。",
   "phonePair.code.errorStart": "手動ペアリングを開始できませんでした。もう一度お試しください。",
   "phonePair.code.hostLabel": "アドレス",
+  "phonePair.code.localOnly": "ローカルネットワークのみ",
   "phonePair.code.requestFrom": "送信元 {ip}",
   "phonePair.code.requestSubtitle": "この番号がスマートフォンに表示されている番号と一致することを確認してください:",
   "phonePair.code.requestTitle": "{device} とペアリングしますか？",

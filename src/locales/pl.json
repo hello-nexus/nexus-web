@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "Nie udało się zapisać Twojej decyzji. Spróbuj ponownie.",
   "phonePair.code.errorStart": "Nie udało się rozpocząć ręcznego parowania. Spróbuj ponownie.",
   "phonePair.code.hostLabel": "Adres",
+  "phonePair.code.localOnly": "Tylko sieć lokalna",
   "phonePair.code.requestFrom": "Od {ip}",
   "phonePair.code.requestSubtitle": "Potwierdź, że ta liczba jest zgodna z tym, co pokazuje Twój telefon:",
   "phonePair.code.requestTitle": "Sparować {device}?",

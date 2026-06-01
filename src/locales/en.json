@@ -654,6 +654,7 @@
   "phonePair.code.errorDecide": "Could not record your decision. Try again.",
   "phonePair.code.errorStart": "Could not start manual pairing. Try again.",
   "phonePair.code.hostLabel": "Address",
+  "phonePair.code.localOnly": "Local network only",
   "phonePair.code.requestFrom": "From {ip}",
   "phonePair.code.requestSubtitle": "Confirm this number matches what your phone shows:",
   "phonePair.code.requestTitle": "Pair {device}?",

@@ -153,16 +153,17 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   const [broadcast, setBroadcast] = useState<PairBroadcastState>({ mode: 'always', untilUnixSeconds: 0 });
   const refreshInFlightRef = useRef(false);
   const sessionsInFlightRef = useRef(false);
-  // Incrementing keys that remount the shine overlay on each box whenever the
-  // displayed token re-mints. A bumped key forces React to unmount the old
-  // overlay and mount a fresh one, which re-fires the CSS keyframes (an
-  // animation does NOT replay on a class that is already applied). The shine
-  // value the effects last reacted to is tracked so we only bump on an actual
-  // change of the displayed content, not on every unrelated re-render.
-  const [qrShineKey, setQrShineKey] = useState(0);
-  const [codeShineKey, setCodeShineKey] = useState(0);
-  const lastQrShineRef = useRef<string | null>(null);
-  const lastCodeShineRef = useRef<string | null>(null);
+  // Incrementing keys that remount the fade-from-white reveal overlay on each
+  // box whenever the displayed token re-mints. A bumped key forces React to
+  // unmount the old overlay and mount a fresh one, which re-fires the CSS
+  // keyframes (an animation does NOT replay on a class that is already
+  // applied). The value the effects last reacted to is tracked so we only bump
+  // on an actual change of the displayed content, not on every unrelated
+  // re-render.
+  const [qrRevealKey, setQrRevealKey] = useState(0);
+  const [codeRevealKey, setCodeRevealKey] = useState(0);
+  const lastQrRevealRef = useRef<string | null>(null);
+  const lastCodeRevealRef = useRef<string | null>(null);
   // Set of authorized session ids observed on the previous sessions poll. Used
   // to detect when a NEW device pairs so we can re-mint the single-use QR/code.
   // null until the first poll resolves so the initial load never counts as new.
@@ -413,33 +414,34 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     return () => { cancelled = true; };
   }, [open]);
 
-  // Play the shine sweep on the QR box whenever a fresh QR is displayed.
-  // Keyed off the rendered token (data URL + expiry) so it fires on every
-  // re-mint — TTL expiry AND a new device pairing — but never on an unrelated
-  // re-render. Skip while loading / empty so the sweep lands on the visible QR.
+  // Play the fade-from-white reveal on the QR box whenever a fresh QR is
+  // displayed. Keyed off the rendered token (data URL + expiry) so it fires on
+  // every re-mint — TTL expiry AND a new device pairing — but never on an
+  // unrelated re-render. Skip while loading / empty so the reveal lands on the
+  // visible QR.
   useEffect(() => {
     if (!qr?.qrDataUrl || loading) return;
     const token = `${qr.qrDataUrl}|${qr.expiresAt}`;
-    if (lastQrShineRef.current === token) return;
-    lastQrShineRef.current = token;
-    setQrShineKey(k => k + 1);
+    if (lastQrRevealRef.current === token) return;
+    lastQrRevealRef.current = token;
+    setQrRevealKey(k => k + 1);
   }, [qr?.qrDataUrl, qr?.expiresAt, loading]);
 
   // Same for the manual code box, keyed off the displayed code value.
   useEffect(() => {
     if (!pairCode?.code) return;
-    if (lastCodeShineRef.current === pairCode.code) return;
-    lastCodeShineRef.current = pairCode.code;
-    setCodeShineKey(k => k + 1);
+    if (lastCodeRevealRef.current === pairCode.code) return;
+    lastCodeRevealRef.current = pairCode.code;
+    setCodeRevealKey(k => k + 1);
   }, [pairCode?.code]);
 
   // Forget the last-shown tokens when the modal closes / remote disables so a
-  // reopen replays the shine on the freshly fetched token rather than treating
+  // reopen replays the reveal on the freshly fetched token rather than treating
   // it as unchanged.
   useEffect(() => {
     if (open && remoteEnabled) return;
-    lastQrShineRef.current = null;
-    lastCodeShineRef.current = null;
+    lastQrRevealRef.current = null;
+    lastCodeRevealRef.current = null;
   }, [open, remoteEnabled]);
 
   const updateBroadcast = useCallback(async (mode: PairBroadcastState['mode']) => {
@@ -657,8 +659,8 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                     ) : (
                       <div className={styles.phonePairLoading}>{t('phonePair.loadingQr')}</div>
                     )}
-                    {qrShineKey > 0 && (
-                      <span key={qrShineKey} className={styles.phonePairShine} aria-hidden="true" />
+                    {qrRevealKey > 0 && (
+                      <span key={qrRevealKey} className={styles.phonePairReveal} aria-hidden="true" />
                     )}
                   </div>
                   <div className={classNames(styles.phonePairTimer, {
@@ -673,6 +675,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                   <div className={styles.phonePairCodeBox}>
                     {pairCode ? (
                       <div className={styles.phonePairCodeRows}>
+                        <span className={styles.phonePairCodeLocalOnly}>{t('phonePair.code.localOnly')}</span>
                         <div>
                           <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.hostLabel')}</span>
                           <span className={styles.phonePairCodeHost}>{pairCode.host}:{pairCode.port}</span>
@@ -685,8 +688,8 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                     ) : (
                       <div className={styles.phonePairLoading}>{t('phonePair.refreshing')}</div>
                     )}
-                    {codeShineKey > 0 && (
-                      <span key={codeShineKey} className={styles.phonePairShine} aria-hidden="true" />
+                    {codeRevealKey > 0 && (
+                      <span key={codeRevealKey} className={styles.phonePairReveal} aria-hidden="true" />
                     )}
                   </div>
                   {pairCodeError && <p className={styles.phonePairCodeError}>{pairCodeError}</p>}
