@@ -27,9 +27,8 @@ export function EditableNumber({ value, min, max, step = 1, onCommit, format, cl
       if (!Number.isFinite(parsed)) return null;
       const clamped = Math.max(min, Math.min(max, parsed));
       // Snap to `step` so a free-typed value (e.g. 0.37 on a 0.1-step slider)
-      // commits to the same grid the range input + slider display use. Without
-      // this, the stored number drifts from what the user sees once the
-      // display's formatValue rounds back (display lies, value stays off-grid).
+      // commits to the same grid the range input + slider display use;
+      // otherwise the stored value sits off-grid from what formatValue shows.
       if (step > 0) {
         const snapped = Math.round((clamped - min) / step) * step + min;
         // Round away tiny float drift (0.1 + 0.2 = 0.30000000000000004).

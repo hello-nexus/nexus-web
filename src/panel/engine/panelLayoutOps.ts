@@ -42,8 +42,7 @@ export function appendWidget(
     }
   }
   if (options?.singlePage) {
-    // Dashboard mode: no implicit new-page creation. Caller can surface
-    // a "panel full" affordance if it wants.
+    // Dashboard mode: no implicit new-page creation.
     return layout;
   }
   const newPage: PanelPage = {
@@ -54,12 +53,10 @@ export function appendWidget(
 }
 
 /**
- * Single-widget surface helper: replaces every page-widget with one
- * fresh widget at (0, 0). Used for Q-series and any future small-form
- * surface that hosts exactly one widget at a time. The page list is
- * collapsed to one page; dock entries are left alone (single-widget
- * surfaces have no dock today, but if they ever do the engine should
- * not silently nuke it).
+ * Single-widget surface helper (Q-series): replaces every page-widget
+ * with one fresh widget at (0, 0). The page list collapses to one
+ * page; dock entries are left alone (single-widget surfaces have no
+ * dock today, but the engine must not nuke one if they ever get it).
  */
 export function replaceWidget(
   layout: PanelLayout,
@@ -110,13 +107,11 @@ export function removeWidgetById(
 }
 
 /**
- * Patches a widget by id (used for resize / config). When a size
- * change makes the new rect overlap siblings, this routes through
- * previewDrag so the overlapped siblings cascade row-major into the
- * next free aligned cells - exactly the same "make room" behaviour
- * that drag uses. The patch is only rejected when previewDrag can't
- * find a home for every displaced widget. Dock entries are updated
- * in place because they are not on the grid.
+ * Patches a widget by id (resize / config). When a size change makes
+ * the new rect overlap siblings, this routes through previewDrag so
+ * the overlapped siblings cascade row-major into free aligned cells.
+ * Rejected only when previewDrag can't home every displaced widget.
+ * Dock entries are patched in place because they are not on the grid.
  */
 export function patchWidgetById(
   layout: PanelLayout,
@@ -144,10 +139,8 @@ export function patchWidgetById(
   if (patchResult === current) return layout;
 
   // Slide the widget left / up if the new rect would push past the
-  // right or bottom edge. Build a NEW widget object instead of
-  // mutating `patchResult` - the caller-supplied patch function may
-  // have returned an object we don't own, and mutating it would be
-  // a sharp edge for any caller that returns a frozen / shared ref.
+  // right or bottom edge. Build a new widget object rather than mutate
+  // `patchResult`: the patch function may return a frozen/shared ref.
   let nextRect = widgetRect(patchResult, cols);
   let patched = patchResult;
   if (nextRect.col + nextRect.colSpan > cols) {
@@ -458,14 +451,11 @@ export function previewDrag(
  * Resize a widget to `newSize`, pushing overlapped siblings out of the
  * way (cascading across pages, creating new pages up to `maxPages` if
  * needed). Returns the new layout on success, or `null` when the
- * displaced widgets simply have nowhere to go. Callers treat `null` as
- * a hard rejection: do NOT mutate state, surface feedback to the user.
+ * displaced widgets have nowhere to go. Callers treat `null` as a hard
+ * rejection: do NOT mutate state, surface feedback to the user.
  *
  * Cascade order: source page first (so a shrink stays put), then later
- * pages in order, then any earlier pages, then a brand-new trailing
- * page. We never silently clobber siblings or leave overlapping rects
- * behind — that was the prior failure mode of resize-via-patchWidgetById
- * when previewDrag couldn't find single-page room.
+ * pages in order, then earlier pages, then a new trailing page.
  */
 export function tryResizeWidget(
   layout: PanelLayout,

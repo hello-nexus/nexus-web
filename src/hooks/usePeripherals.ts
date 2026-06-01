@@ -77,9 +77,8 @@ export function usePeripherals(enabled: boolean) {
   useEffect(() => {
     mountedRef.current = true;
     if (!enabled) return;
-    // Initial REST seed for the peripheral list; subsequent updates ride
-    // on the multiplex `devices` topic subscribed below.
-     
+    // Initial REST seed for the peripheral list; subsequent updates ride on
+    // the multiplex `devices` topic subscribed below.
     refresh();
     return () => {
       mountedRef.current = false;

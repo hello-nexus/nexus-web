@@ -2,12 +2,11 @@ import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTo
 import styles from '../LightingPage.module.scss';
 
 /**
- * Tiny OpenRGB status indicator at the top right of the lighting view. The dot
- * reflects the bundled openrgb-headless process state; the glyph is a monochrome
- * silhouette of the real OpenRGB logo: a filled donut ring (outer CW, inner CCW)
- * with a filled collar + screw base overlaid (CW). Nonzero fill rule lets the
- * collar + base cross the ring seamlessly, leaving just the bulb glass as
- * negative space.
+ * OpenRGB status indicator at the top-right of the lighting view. The
+ * dot reflects the openrgb-headless process state; the glyph is a
+ * monochrome OpenRGB logo: donut ring (outer CW, inner CCW) with a
+ * collar + screw base overlaid (CW). Nonzero fill rule lets the collar
+ * + base cross the ring, leaving the bulb glass as negative space.
  */
 function OpenRgbGlyph({ size = 14 }: { size?: number }) {
   return (

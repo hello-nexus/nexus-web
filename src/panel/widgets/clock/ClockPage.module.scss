@@ -19,8 +19,7 @@
   min-height: 0;
 }
 
-// Map sits in a capped-height slot so a tall window doesn't blow the
-// projection up past readability.
+// Capped-height slot so a tall window doesn't oversize the projection.
 .mapSlot {
   flex: 0 0 auto;
   width: 100%;
@@ -29,7 +28,6 @@
   justify-content: center;
 }
 
-// City list scrolls independently — map stays fixed above.
 .cityList {
   display: flex;
   flex-direction: column;
@@ -40,8 +38,8 @@
   padding-right: 0.25rem;
 }
 
-// City cards use the canonical Card component for chrome; this just
-// layers the day / night / local accents on top.
+// City cards use the Card component for chrome; this layers the
+// day / night / local accents on top.
 
 .cityCard {
   padding-top: 0.6rem;

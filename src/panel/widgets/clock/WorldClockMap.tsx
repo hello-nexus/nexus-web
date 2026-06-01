@@ -10,26 +10,23 @@ import { WORLD_MAP_PATH, WORLD_MAP_VIEWBOX } from './worldMapData';
 import styles from './WorldClockMap.module.scss';
 
 /**
- * Day/night world-clock map. Land outlines come from a pre-rendered,
+ * Day/night world-clock map. Land outlines are a pre-rendered,
  * vertex-thinned Natural Earth 110m coastline (see
- * `scripts/build-world-map.mjs`) — equirectangular projection, ~11 KB
- * of inline SVG path data, simple continent shapes only. ViewBox is
- * `-180 -90 360 180` so lon/lat map directly to SVG coordinates with
- * y flipped:
+ * `scripts/build-world-map.mjs`), ~11 KB of inline SVG path data.
+ * Equirectangular projection; viewBox `-180 -90 360 180` so lon/lat
+ * map directly to SVG coordinates with y flipped:
  *
  *   x = lon         (degrees east, -180..180)
  *   y = -lat        (south-positive SVG y)
  *
- * Cities, the day/night terminator polygon, and the subsolar sun
- * marker all project through the same identity transform.
+ * Cities, terminator polygon, and subsolar marker all project through
+ * this same identity transform.
  */
 interface WorldClockMapProps {
   now: Date;
   cities: readonly City[];
-  // IANA timezone of the user's "Local" entry. When a city in `cities`
-  // matches this tz, its pin is highlighted on the map so the viewer
-  // can immediately see where they are. No effect when no city in the
-  // list matches.
+  // IANA tz of the user's "Local" entry. A matching city's pin is
+  // highlighted; no effect when no city in the list matches.
   highlightTz?: string;
 }
 
@@ -68,10 +65,8 @@ export function WorldClockMap({ now, cities, highlightTz }: WorldClockMapProps) 
     <div className={styles.wrap}>
       <svg
         viewBox={WORLD_MAP_VIEWBOX}
-        // `xMidYMid meet` scales the projection uniformly into the
-        // container without stretching the continents. The wrap is
-        // sized at 2:1 so there's no visible letterboxing at the
-        // default dashboard width.
+        // Uniform scale into the container (no continent stretch);
+        // wrap is 2:1 so there's no letterboxing.
         preserveAspectRatio="xMidYMid meet"
         className={styles.svg}
         aria-label="World map showing day and night"
@@ -104,9 +99,7 @@ export function WorldClockMap({ now, cities, highlightTz }: WorldClockMapProps) 
         <circle cx={subLon} cy={-subLat} r="4" className={styles.sunGlow} />
         <circle cx={subLon} cy={-subLat} r="1.4" className={styles.sun} />
 
-        {/* Cities. The locally-resolved tz (if it matches a catalog
-            city) gets a glowing ring + larger dot so the viewer can
-            immediately spot where they are. */}
+        {/* Cities. The local-tz match gets a glowing ring + larger dot. */}
         {cities.map(city => {
           const day = isDaylight(city.lat, city.lon, now);
           const isLocal = highlightTz !== undefined && city.tz === highlightTz;

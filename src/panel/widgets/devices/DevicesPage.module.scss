@@ -1,15 +1,14 @@
 @use '../../../styles/text' as *;
 
 .devices {
-  // No max-width cap - every other view (Monitoring, Cooling, System,
-  // Lighting, Settings) stretches to the content column's full width; the
-  // old 1100 px cap made Devices look narrower than its neighbours.
+  // No max-width cap - matches the other views (Monitoring, Cooling,
+  // System, Lighting, Settings), which stretch to the content column's
+  // full width.
 }
 
 // Tertiary "browse supported devices" affordance on the Devices view, lives
 // in the ViewHeader's tabActions slot (right-aligned at tab level). Lighting
-// now exposes the same modal via the OpenRGB indicator at the bottom of its
-// device pane.
+// exposes the same modal via the OpenRGB indicator in its device pane.
 .headerActions {
   display: flex;
   align-items: center;
@@ -175,16 +174,15 @@
 .webhidToolbar {
   display: flex;
   align-items: center;
-  // Button on the left, explainer text to the right of it. Previously the
-  // button was pushed to the right edge and the CTA sprawled full-width.
+  // Button on the left, explainer text to the right of it.
   gap: 1rem;
   padding: 0.75rem 1rem;
   margin-top: 1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-card);
-  // Cap width so the box doesn't stretch the full page; it's a prompt, not
-  // a hero. Shrinks naturally on small viewports via max-width: 100%.
+  // Cap width so the prompt box doesn't stretch the full page. Shrinks
+  // on small viewports via max-width: 100%.
   max-width: 560px;
 }
 
@@ -242,7 +240,7 @@
   margin-top: 1rem;
 }
 
-// .refreshBtn lives on the canonical Button now; no custom rule needed.
+// .refreshBtn uses the canonical Button primitive; no local rule.
 
 .usbTableWrap {
   margin-top: 0.5rem;
@@ -398,9 +396,8 @@
   margin-top: 1rem;
 }
 
-// Cap the card width so the spec sheet reads as a compact summary — the same
-// "shareable card" feel as a pasted gist. On narrow viewports it shrinks
-// naturally via max-width: 100%.
+// Cap the card width so the spec sheet reads as a compact summary. On
+// narrow viewports it shrinks via max-width: 100%.
 .specsCard {
   margin-top: 0.75rem;
   border: 1px solid var(--border);

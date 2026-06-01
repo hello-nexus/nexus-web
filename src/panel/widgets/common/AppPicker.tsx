@@ -123,10 +123,10 @@ function AppRow({ app, selected, onSelect }: {
   );
 }
 
-// Two existing consumers (MacrosWidget, AppPicker.test) import useAppIcon
-// from this module path; moving the hook to a sibling file would force
-// changes outside the scope of this lint pass, so we keep it here and
-// accept the loss of fast-refresh for AppPicker's component edits.
+// Two consumers (MacrosWidget, AppPicker.test) import useAppIcon from this
+// module path; moving the hook to a sibling file would force changes in those
+// files, so it stays here and accepts the loss of fast-refresh for AppPicker's
+// component edits.
  
 export function useAppIcon(appId: string | undefined): string | null {
   const [iconUrl, setIconUrl] = useState<string | null>(null);

@@ -121,8 +121,7 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
   }, [open]);
 
   if (!isValidElement(children)) {
-    // Defensive fallback: render children as-is, no tooltip. Keeps the app
-    // running when a caller passes a fragment or string by mistake.
+    // Not a single element (fragment/string): render as-is, no tooltip.
     return <>{children}</>;
   }
 
@@ -159,8 +158,8 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     onPointerLeave: chain(childProps.onPointerLeave, (e: React.PointerEvent) => {
       if (e.pointerType !== 'touch') close();
     }),
-    // Keyboard focus opens immediately - keyboard users have committed to
-    // the element by tabbing to it, the delay would just feel sluggish.
+    // Keyboard focus opens immediately (no delay) — tabbing to the element is
+    // a deliberate commit.
     onFocus: chain(childProps.onFocus, () => { cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen(); }),
     onBlur: chain(childProps.onBlur, () => close()),
     'aria-describedby': open ? tooltipId : childProps['aria-describedby'],

@@ -303,7 +303,7 @@ export const CurveCard = memo(function CurveCard({
   /** Visual emphasis - this curve is on the currently-hovered or expanded
    *  wire path. Tracks the same condition as the wire-layer highlight. */
   highlighted?: boolean;
-  /** Live computed output (0-100). Computed once in CoolingView so the wire
+  /** Live computed output (0-100). Computed once in CoolingPage so the wire
    *  layer and every card share the same recursion-safe value. */
   outputPercent?: number;
   onChange: (c: CurveDef) => void;
@@ -357,7 +357,7 @@ export const CurveCard = memo(function CurveCard({
 
   const cardRef = useRef<HTMLDivElement>(null);
   // Bridge the internal ref (used for the draggable toggle below) with the
-  // optional prop ref (used by CoolingView to hit-test the whole card as a
+  // optional prop ref (used by CoolingPage to hit-test the whole card as a
   // wire drop target).
   const setCardEl = (el: HTMLDivElement | null) => {
     cardRef.current = el;
@@ -545,7 +545,7 @@ export const CurveCard = memo(function CurveCard({
 
       {/* Chevron at bottom-center toggles expansion. Card body clicks only
           expand; collapse is the chevron's job (or selecting another curve
-          via the single-expansion invariant up in CoolingView). */}
+          via the single-expansion invariant up in CoolingPage). */}
       <HoverTooltip body={expanded ? t('cooling.curves.collapse') : t('cooling.curves.expand')} side="top">
         <button
           type="button"

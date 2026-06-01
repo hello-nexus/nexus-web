@@ -1,7 +1,5 @@
-// Equirectangular world map with a day/night terminator overlay,
-// subsolar sun marker, and per-city pins. Visual style tries to read
-// like a section of a stylised globe — dim ocean, warm land, soft
-// curve of darkness sliding across as the Earth rotates.
+// Equirectangular world map: day/night terminator overlay, subsolar
+// sun marker, per-city pins.
 
 .wrap {
   position: relative;
@@ -40,8 +38,7 @@
   opacity: 0.7;
 }
 
-// Latitude / longitude reference lines. Faint so they read as map
-// chrome rather than competing with continents or cities.
+// Latitude / longitude reference lines, faint.
 .grid {
   stroke: color-mix(in srgb, var(--text-faded) 22%, transparent);
   stroke-width: 0.12;

@@ -1,8 +1,7 @@
-// Hook used by the iframe-hosted /panel?simulator=1 runtime. The parent
-// (PanelDeviceModal) owns the canonical layout + theme; this hook exposes
-// a PanelLayoutState shape backed by postMessage, so PanelContent can
-// render without ever fetching from /panel/devices/*. User edits inside
-// the iframe are echoed back to the parent via 'simulator/layout-changed'.
+// Hook for the iframe-hosted /panel?simulator=1 runtime. PanelDeviceModal owns
+// the canonical layout + theme; this exposes a PanelLayoutState backed by
+// postMessage so PanelContent renders without fetching /panel/devices/*. Edits
+// are echoed back to the parent via 'simulator/layout-changed'.
 
 import { useCallback, useEffect, useState } from 'react';
 import type { PanelLayout, PanelSurface } from '../types';
@@ -41,9 +40,8 @@ const SIMULATOR_FALLBACK_LAYOUT: PanelLayout = {
 function postToParent(message: SimulatorChildToParent) {
   if (typeof window === 'undefined') return;
   if (window.parent === window) return;
-  // Parent is always same-origin (the simulator iframe is loaded from
-  // the same dev/service host that hosts the parent dashboard), so pin
-  // the target to window.location.origin instead of '*'.
+  // Parent is same-origin (iframe loads from the dashboard's host), so pin the
+  // target to window.location.origin, not '*'.
   window.parent.postMessage(message, window.location.origin);
 }
 

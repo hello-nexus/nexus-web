@@ -1,6 +1,5 @@
-// File is .tsx because getSidebarAppMeta returns JSX via createElement, but
-// the public surface is helpers + re-exports rather than a component. Fast
-// refresh has nothing to refresh here.
+// .tsx because getSidebarAppMeta returns JSX via createElement; the public
+// surface is helpers + re-exports, not a component.
  
 import { type ReactNode, createElement } from 'react';
 import { LayoutDashboard } from 'lucide-react';

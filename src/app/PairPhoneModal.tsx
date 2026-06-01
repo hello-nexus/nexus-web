@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Smartphone, LogOut } from 'lucide-react';
+import { Smartphone, LogOut, SatelliteDish } from 'lucide-react';
 import classNames from 'classnames';
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
@@ -18,6 +18,8 @@ import {
   startPanelPhonePairCode,
   fetchPanelPairBroadcast,
   setPanelPairBroadcast,
+  fetchPanelRelay,
+  setPanelRelay,
   type PanelPhonePairQr,
   type PanelPhonePairCodeStart,
   type PanelPhoneSessionsResponse,
@@ -32,6 +34,22 @@ function formatConnectedDevices(count: number, t: TranslateFn) {
   return t(count === 1 ? 'phonePair.connectedDeviceOne' : 'phonePair.connectedDeviceOther', { count });
 }
 
+/**
+ * Decide whether a NEW device just paired, given the previous and next sets of
+ * authorized session ids. Fires only on a real growth (an id present in
+ * `next` that was not in `prev`) — never on the first observation (prev null),
+ * never on a pure revoke/decrease, and never when the membership is unchanged.
+ * The pair QR/code are single-use tokens, so a new authorization means the
+ * on-screen token has been consumed and must be re-minted.
+ */
+export function hasNewPairedSession(prev: ReadonlySet<string> | null, next: ReadonlySet<string>): boolean {
+  if (prev === null) return false;
+  for (const id of next) {
+    if (!prev.has(id)) return true;
+  }
+  return false;
+}
+
 function formatRelativeTime(value: number, now: number, t: TranslateFn) {
   if (!value) return t('phonePair.unknown');
   const diff = Math.max(0, now - value);
@@ -43,26 +61,6 @@ function formatRelativeTime(value: number, now: number, t: TranslateFn) {
   if (diff < hour) return t('phonePair.timeMinutesAgo', { count: Math.floor(diff / minute) });
   if (diff < day) return t('phonePair.timeHoursAgo', { count: Math.floor(diff / hour) });
   return t('phonePair.timeDaysAgo', { count: Math.floor(diff / day) });
-}
-
-function formatElapsedTime(value: number, now: number, t: TranslateFn) {
-  if (!value) return t('phonePair.unknown');
-  const diff = Math.max(0, now - value);
-  const minute = 60_000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-  if (diff < minute) return t('phonePair.durationLessThanMinute');
-  if (diff < hour) return t('phonePair.durationMinutes', { count: Math.floor(diff / minute) });
-  if (diff < day) {
-    return t('phonePair.durationHoursMinutes', {
-      hours: Math.floor(diff / hour),
-      minutes: Math.floor((diff % hour) / minute),
-    });
-  }
-  return t('phonePair.durationDaysHours', {
-    days: Math.floor(diff / day),
-    hours: Math.floor((diff % day) / hour),
-  });
 }
 
 function formatDateTime(value: number, t: TranslateFn) {
@@ -84,9 +82,9 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
 }) {
   const { t } = useTranslation();
   const connected = connectedCount > 0;
-  // remoteEnabled === false beats connected-count: when the killswitch is OFF
-  // the dot becomes amber regardless of how many devices were previously paired,
-  // because none of them can reach the system right now.
+  // remoteEnabled === false beats connected-count: with the killswitch OFF
+  // the dot is amber regardless of paired count, since none can reach the
+  // system.
   const dotState: 'off' | 'paired' | 'connected' = !remoteEnabled
     ? 'paired'
     : connected ? 'connected' : 'off';
@@ -145,6 +143,8 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   // to 0.5 without a transition, which makes the post-confirm flip read as
   // "fading" instead of a crisp ON->OFF flip).
   const togglingRemoteRef = useRef(false);
+  const [relayEnabled, setRelayEnabled] = useState(false);
+  const togglingRelayRef = useRef(false);
   const [now, setNow] = useState(() => Date.now());
   const [pairMode, setPairMode] = useState<'qr' | 'code'>('qr');
   const [pairCode, setPairCode] = useState<PanelPhonePairCodeStart | null>(null);
@@ -153,6 +153,21 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   const [broadcast, setBroadcast] = useState<PairBroadcastState>({ mode: 'always', untilUnixSeconds: 0 });
   const refreshInFlightRef = useRef(false);
   const sessionsInFlightRef = useRef(false);
+  // Incrementing keys that remount the fade-from-white reveal overlay on each
+  // box whenever the displayed token re-mints. A bumped key forces React to
+  // unmount the old overlay and mount a fresh one, which re-fires the CSS
+  // keyframes (an animation does NOT replay on a class that is already
+  // applied). The value the effects last reacted to is tracked so we only bump
+  // on an actual change of the displayed content, not on every unrelated
+  // re-render.
+  const [qrRevealKey, setQrRevealKey] = useState(0);
+  const [codeRevealKey, setCodeRevealKey] = useState(0);
+  const lastQrRevealRef = useRef<string | null>(null);
+  const lastCodeRevealRef = useRef<string | null>(null);
+  // Set of authorized session ids observed on the previous sessions poll. Used
+  // to detect when a NEW device pairs so we can re-mint the single-use QR/code.
+  // null until the first poll resolves so the initial load never counts as new.
+  const prevSessionIdsRef = useRef<ReadonlySet<string> | null>(null);
 
   const refresh = useCallback(() => {
     if (refreshInFlightRef.current) return;
@@ -214,11 +229,8 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   }, [loadSessions]);
 
   const applyRemoteEnabled = useCallback(async (next: boolean) => {
-    // Optimistic flip: the toggle moves immediately. If the server
-    // rejects (401/403/network), snap back to the previous state. The
-    // old "wait for confirmation" path made the killswitch feel laggy
-    // because the visual didn't move until the round-trip + session
-    // refetch resolved.
+    // Optimistic flip: the toggle moves immediately, then snaps back if the
+    // server rejects (401/403/network).
     if (togglingRemoteRef.current) return;
     togglingRemoteRef.current = true;
     onRemoteEnabledChange(next);
@@ -229,8 +241,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
         // dashboard already toggled). Trust the server's reading.
         if (result.enabled !== next) onRemoteEnabledChange(result.enabled);
         // KickAllPhoneAsync ran synchronously on the server when next=false,
-        // so the connected count drops to 0 by the next sessions poll; pull
-        // it now for snappy UI.
+        // so the connected count is already 0; pull it now.
         loadSessions(false);
       } else {
         // Request failed (no body / non-OK status). Revert the optimistic
@@ -256,6 +267,27 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     setConfirmDisableOpen(false);
     void applyRemoteEnabled(false);
   }, [applyRemoteEnabled]);
+
+  // Cloud relay fallback toggle. Optimistic flip with revert-on-failure,
+  // mirroring applyRemoteEnabled. The relay only matters with remote control
+  // on, so the row is disabled when !remoteEnabled.
+  const applyRelayEnabled = useCallback(async (next: boolean) => {
+    if (togglingRelayRef.current) return;
+    togglingRelayRef.current = true;
+    setRelayEnabled(next);
+    try {
+      const result = await setPanelRelay(next);
+      if (result) {
+        if (result.enabled !== next) setRelayEnabled(result.enabled);
+      } else {
+        setRelayEnabled(!next);
+      }
+    } catch {
+      setRelayEnabled(!next);
+    } finally {
+      togglingRelayRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -315,9 +347,8 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     }
   }, [t]);
 
-  // Auto-mint a code as soon as the user lands on the Code tab (or
-  // reopens the modal with Code already active). Mirrors the QR flow:
-  // the user shouldn't have to press a "generate" button.
+  // Auto-mint a code on landing on the Code tab (or reopening with Code
+  // active), mirroring the QR flow.
   useEffect(() => {
     if (!open || !remoteEnabled || pairMode !== 'code') return;
     if (pairCode || pairCodeBusy) return;
@@ -337,6 +368,29 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     return () => window.clearTimeout(timer);
   }, [pairCode, handleStartCode]);
 
+  // Re-mint the single-use QR + manual code whenever a NEW device pairs.
+  // Detected off the existing sessions poll: when an authorized session id
+  // appears that wasn't in the previous poll, the on-screen QR/code token was
+  // just consumed, so refresh both to keep a fresh token ready for the next
+  // device. Guarded so it only fires on a real increase (not first load,
+  // not a revoke/decrease) and only while open with remote control enabled.
+  // Additive to the TTL refresh above — neither replaces the other.
+  useEffect(() => {
+    if (!open || !remoteEnabled) {
+      prevSessionIdsRef.current = null;
+      return;
+    }
+    if (!sessions) return;
+    const nextIds = new Set(sessions.sessions.map(s => s.id));
+    const isNew = hasNewPairedSession(prevSessionIdsRef.current, nextIds);
+    prevSessionIdsRef.current = nextIds;
+    if (isNew) {
+      refresh();
+      setPairCode(null);
+      void handleStartCode();
+    }
+  }, [open, remoteEnabled, sessions, refresh, handleStartCode]);
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -345,6 +399,45 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     });
     return () => { cancelled = true; };
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetchPanelRelay().then(next => {
+      if (!cancelled && next) setRelayEnabled(next.enabled);
+    });
+    return () => { cancelled = true; };
+  }, [open]);
+
+  // Play the fade-from-white reveal on the QR box whenever a fresh QR is
+  // displayed. Keyed off the rendered token (data URL + expiry) so it fires on
+  // every re-mint — TTL expiry AND a new device pairing — but never on an
+  // unrelated re-render. Skip while loading / empty so the reveal lands on the
+  // visible QR.
+  useEffect(() => {
+    if (!qr?.qrDataUrl || loading) return;
+    const token = `${qr.qrDataUrl}|${qr.expiresAt}`;
+    if (lastQrRevealRef.current === token) return;
+    lastQrRevealRef.current = token;
+    setQrRevealKey(k => k + 1);
+  }, [qr?.qrDataUrl, qr?.expiresAt, loading]);
+
+  // Same for the manual code box, keyed off the displayed code value.
+  useEffect(() => {
+    if (!pairCode?.code) return;
+    if (lastCodeRevealRef.current === pairCode.code) return;
+    lastCodeRevealRef.current = pairCode.code;
+    setCodeRevealKey(k => k + 1);
+  }, [pairCode?.code]);
+
+  // Forget the last-shown tokens when the modal closes / remote disables so a
+  // reopen replays the reveal on the freshly fetched token rather than treating
+  // it as unchanged.
+  useEffect(() => {
+    if (open && remoteEnabled) return;
+    lastQrRevealRef.current = null;
+    lastCodeRevealRef.current = null;
+  }, [open, remoteEnabled]);
 
   const updateBroadcast = useCallback(async (mode: PairBroadcastState['mode']) => {
     const until = mode === 'until' ? Math.floor(Date.now() / 1000) + 600 : 0;
@@ -409,6 +502,24 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
               />
             </div>
 
+            <div className={styles.phonePairKillswitchRow}>
+              <div>
+                <span className={styles.phonePairKillswitchLabel} id="phone-pair-relay-label">
+                  <SatelliteDish size={14} className={styles.phonePairRelayIcon} aria-hidden="true" />
+                  {t('phonePair.relay.label')}
+                </span>
+                <span className={styles.phonePairKillswitchHint}>
+                  {t('phonePair.relay.hint')}
+                </span>
+              </div>
+              <Toggle
+                checked={remoteEnabled && relayEnabled}
+                onChange={applyRelayEnabled}
+                disabled={!remoteEnabled}
+                ariaLabelledBy="phone-pair-relay-label"
+              />
+            </div>
+
             <PairBroadcastSelector value={broadcast} onChange={updateBroadcast} now={now} />
 
 
@@ -468,6 +579,16 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                                 ? t('phonePair.statusRecentlyActive')
                                 : t('phonePair.statusPaired')}
                           </span>
+                          {session.connectedVia === 'relay' && (
+                            <HoverTooltip body={t('connection.relayMode')} side="top">
+                              <span
+                                className={styles.phonePairSessionRelay}
+                                aria-label={t('connection.relayMode')}
+                              >
+                                <SatelliteDish size={14} aria-hidden="true" />
+                              </span>
+                            </HoverTooltip>
+                          )}
                           {renamingId === session.id && (
                             <span className={styles.phonePairSessionSaving}>{t('phonePair.saving')}</span>
                           )}
@@ -478,8 +599,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                               {showDeviceType && <span>{deviceType}</span>}
                               <span>{t('phonePair.lastSeen', { time: formatRelativeTime(session.lastSeenAt, sessionNow, t) })}</span>
                               <span>{t('phonePair.pairedAt', { time: formatDateTime(session.createdAt, t) })}</span>
-                              <span>{t('phonePair.authorizedDuration', { duration: formatElapsedTime(session.createdAt, sessionNow, t) })}</span>
-                              <span>{session.remoteAddress || t('phonePair.unknownIp')}</span>
+                              {session.remoteAddress && <span>{session.remoteAddress}</span>}
                             </div>
                           </HoverTooltip>
                         ) : (
@@ -487,8 +607,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                             {showDeviceType && <span>{deviceType}</span>}
                             <span>{t('phonePair.lastSeen', { time: formatRelativeTime(session.lastSeenAt, sessionNow, t) })}</span>
                             <span>{t('phonePair.pairedAt', { time: formatDateTime(session.createdAt, t) })}</span>
-                            <span>{t('phonePair.authorizedDuration', { duration: formatElapsedTime(session.createdAt, sessionNow, t) })}</span>
-                            <span>{session.remoteAddress || t('phonePair.unknownIp')}</span>
+                            {session.remoteAddress && <span>{session.remoteAddress}</span>}
                           </div>
                         )}
                       </div>
@@ -535,6 +654,9 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                     ) : (
                       <div className={styles.phonePairLoading}>{t('phonePair.loadingQr')}</div>
                     )}
+                    {qrRevealKey > 0 && (
+                      <span key={qrRevealKey} className={styles.phonePairReveal} aria-hidden="true" />
+                    )}
                   </div>
                   <div className={classNames(styles.phonePairTimer, {
                     [styles.phonePairTimerFlash]: secondsLeft > 0 && secondsLeft <= 5,
@@ -548,6 +670,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                   <div className={styles.phonePairCodeBox}>
                     {pairCode ? (
                       <div className={styles.phonePairCodeRows}>
+                        <span className={styles.phonePairCodeLocalOnly}>{t('phonePair.code.localOnly')}</span>
                         <div>
                           <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.hostLabel')}</span>
                           <span className={styles.phonePairCodeHost}>{pairCode.host}:{pairCode.port}</span>
@@ -559,6 +682,9 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                       </div>
                     ) : (
                       <div className={styles.phonePairLoading}>{t('phonePair.refreshing')}</div>
+                    )}
+                    {codeRevealKey > 0 && (
+                      <span key={codeRevealKey} className={styles.phonePairReveal} aria-hidden="true" />
                     )}
                   </div>
                   {pairCodeError && <p className={styles.phonePairCodeError}>{pairCodeError}</p>}
@@ -603,8 +729,6 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
  * AirDrop-style discoverability selector for the Wi-Fi (mDNS) pair flow.
  * QR + manual pair-code flows are unaffected — this only gates whether the
  * iOS companion app can see this host in its "find on Wi-Fi" list.
- * Rendered with the workspace's standard <Select> component for visual
- * consistency with every other dropdown in the dashboard.
  */
 function PairBroadcastSelector({
   value,

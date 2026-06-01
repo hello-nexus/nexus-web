@@ -87,10 +87,8 @@
     z-index: 5;
   }
 
-  // Darker fills than the live-canvas accent/good/warn so the bold white
-  // LED index inside each circle has enough contrast to read cleanly. Still
-  // tinted per zone-type so the visual grouping (matrix/linear/single)
-  // survives at a glance.
+  // Darker than the live-canvas accent/good/warn so the white LED index
+  // has contrast, still tinted per zone-type (matrix/linear/single).
   &.ledMatrix {
     background: color-mix(in srgb, var(--accent) 58%, #000 42%);
   }
@@ -114,9 +112,8 @@
     pointer-events: none;
   }
 
-  // Parked / deleted LEDs sit in the row below the device frame. Keep them
-  // visually distinct (dimmer, grey fill) so they read as "off-device" but
-  // still clearly draggable back in.
+  // Parked / deleted LEDs sit in the row below the device frame;
+  // dimmer, grey fill to mark them off-device.
   &.ledParked {
     opacity: 0.55;
     background: color-mix(in srgb, var(--text-dim) 40%, #000 60%) !important;
@@ -150,9 +147,8 @@
   z-index: 6;
 }
 
-// Corner resize handles. Drag a corner to scale the bbox, which proportionally
-// stretches/compresses the selected LEDs along both axes so the whole group
-// can be quickly resized into a new shape without re-picking LEDs.
+// Corner resize handles. Dragging a corner scales the bbox, stretching
+// the selected LEDs proportionally along both axes.
 .selectionHandle {
   position: absolute;
   width: 11px;
@@ -170,9 +166,8 @@
 .selectionHandleSW { bottom: -6px; left: -6px; cursor: nesw-resize; }
 .selectionHandleSE { bottom: -6px; right: -6px; cursor: nwse-resize; }
 
-// Floating toolbar on the top-right of the selection bbox. Same visual
-// treatment as the lighting-canvas corner buttons so the two surfaces feel
-// related.
+// Floating toolbar at the top-right of the selection bbox. Same visual
+// treatment as the lighting-canvas corner buttons.
 .selectionToolbar {
   position: absolute;
   display: flex;
@@ -254,8 +249,7 @@
   margin: 0 0.15rem;
 }
 
-// Delete button styling in the selection toolbar. Destructive tint so it
-// doesn't blend with the safe ops next to it.
+// Delete button in the selection toolbar; destructive tint.
 .selectionBtnDanger {
   color: var(--bad);
 
@@ -413,9 +407,8 @@
   -moz-appearance: textfield;
 }
 
-// Compact icon-track-value layout for the per-device brightness slider in the
-// toolbar. Sun glyph mirrors the global brightness control on the lighting
-// page so the two affordances feel like a matched set.
+// Compact icon-track-value layout for the per-device brightness slider
+// in the toolbar. Sun glyph mirrors the global brightness control.
 .brightnessField {
   display: flex;
   align-items: center;

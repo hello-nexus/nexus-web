@@ -8,12 +8,9 @@ export async function lightingOutputUrl(): Promise<string> {
 
 // --- Effect thumbnails ---
 
-// The service renders effect thumbnails on demand and serves them with a
-// long (24h) browser cache header, so clients don't refetch 60 BMPs on every
-// page load. When the effect SHADERS change, the rendered thumbnail changes
-// too — bump this token so every client refetches the fresh screenshot once
-// (the new URL is a cache miss), then re-caches it. Increment on any shader
-// edit that alters how an effect looks.
+// Effect thumbnails are served with a 24h browser cache. This token cache-
+// busts them: increment on any shader edit that alters how an effect looks,
+// so every client refetches the new URL once then re-caches.
 export const EFFECT_THUMB_VERSION = 2;
 
 /** Path to an effect's preview thumbnail, cache-busted by EFFECT_THUMB_VERSION. */
@@ -81,9 +78,8 @@ export const startAnimate = (
   saturation = 1,
   contrast = 1,
   params?: Record<string, number>,
-  // Pass false during live slider drag to skip the settings-disk write.
-  // Default true keeps callers outside the drawer (mode switches, restart
-  // replay) on the durable path.
+  // False during live slider drag to skip the settings-disk write; default
+  // true for mode switches / restart replay.
   persist = true,
 ) =>
   postService('/lighting/animate/headless-start', {
@@ -98,11 +94,10 @@ export const startScreenMirror = (saturation = 1, contrast = 1, monitor = '', hu
     monitor, effect: 'average', saturation, contrast, blur: 0, hue, colorize,
   });
 
-// Post-process params persisted across sessions for Mirror + Media.
-// Backend shared by both modes: the canvas post-process (hue shift, colorize,
-// saturation, contrast) plus optional horizontal/vertical flip are applied
-// after the capture / playback frame is produced and before it's blitted to
-// the LED canvas. Flip is geometric and runs before the colour transform.
+// Post-process params persisted across sessions, shared by Mirror + Media:
+// hue shift, colorize, saturation, contrast, plus optional H/V flip, applied
+// after the capture/playback frame and before blit to the LED canvas. Flip
+// is geometric and runs before the colour transform.
 export interface PostProcessSettings {
   hue: number;
   colorize: number;
@@ -213,11 +208,10 @@ export const fetchLightingDevices = () =>
 export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h: number, rotation: number = 0) =>
   postService('/devices/lighting-devices/layout', { id, x, y, w, h, rotation });
 
-// Clears every persisted device-frame layout so each card snaps back to its
+// Clears every persisted device-frame layout so each card snaps to its
 // provider-computed default position/size/rotation on the next GetAll. The
-// service broadcasts a lighting topic frame after the clear so connected
-// clients refetch immediately. Used by the lighting settings modal's
-// "reset all positions" affordance.
+// service broadcasts a lighting topic frame after the clear so clients
+// refetch.
 export const resetDeviceLayouts = () =>
   deleteService('/devices/lighting-devices/layouts');
 
@@ -243,8 +237,8 @@ export const setZoneLedCount = (id: string, count: number) =>
   postService('/devices/lighting-devices/zone-size', { id, count });
 
 // Pulse a device (or motherboard zone) with a distinctive color for a few
-// seconds so the user can spot which physical strip is which. Overlays the
-// active lighting effect - no pause, recovers cleanly when the window ends.
+// seconds to spot which physical strip is which. Overlays the active effect
+// without pausing it.
 export const identifyLightingDevice = (id: string, durationMs: number = 2000) =>
   postService('/devices/lighting-devices/identify', { id, durationMs });
 

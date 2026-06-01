@@ -26,19 +26,16 @@ interface WidgetContextMenuProps {
   // and we're invoked from the dashboard (not from a remote panel preview).
   // Pins a copy of the widget onto the floating desktop overlay.
   onAddToDesktop?: () => void;
-  // Inverse of onAddToDesktop — only shown when at least one overlay
-  // widget of this type already exists on the floating desktop. Click
-  // removes every instance of this type from the overlay (the symmetric
-  // "undo" of "Add to desktop"). Caller wires whichever of the two is
-  // appropriate for the current state; never both at once.
+  // Inverse of onAddToDesktop; shown when at least one overlay widget of
+  // this type exists. Click removes every instance of this type from the
+  // overlay. Caller wires one of the two per state, never both at once.
   onRemoveFromDesktop?: () => void;
   // Optional — only shown when the widget is one of the pinnable desktop
-  // apps (matches PINNABLE_APP_KEYS in app/sidebarApps) AND isn't already
+  // apps (matches isPinnableAppKey in app/sidebarAppKeys) AND isn't already
   // pinned. Pins this widget's "app page" onto the desktop sidebar.
   onPinToSidebar?: () => void;
-  // Inverse of onPinToSidebar — only shown when the widget IS already
-  // pinned to the sidebar. Click removes the sidebar entry. Caller wires
-  // whichever of the two is appropriate; never both at once.
+  // Inverse of onPinToSidebar; shown when the widget is already pinned.
+  // Click removes the sidebar entry. Caller wires one of the two, never both.
   onUnpinFromSidebar?: () => void;
   // Override for the danger button label. Defaults to "Remove"; the desktop
   // overlay passes "Unpin" since the widget is being detached from the
@@ -82,9 +79,9 @@ export function WidgetContextMenu({
   const [pos, setPos] = useState({ x, y });
   const [origin, setOrigin] = useState({ x: 18, y: 18 });
   const [closing, setClosing] = useState(false);
-  // Stable callback ref so the bounds reporter doesn't refire just because
-  // the parent re-renders (the parent reacts to bounds updates with a layout
-  // post-message, which would loop).
+  // Stable callback ref so the bounds reporter doesn't refire on parent
+  // re-render (the parent reacts to bounds with a layout post-message, which
+  // would loop).
   const onBoundsChangeRef = useRef(onBoundsChange);
   useEffect(() => { onBoundsChangeRef.current = onBoundsChange; }, [onBoundsChange]);
 
@@ -108,10 +105,8 @@ export function WidgetContextMenu({
     if (ny + rect.height > window.innerHeight - safeInsets.bottom) ny = window.innerHeight - rect.height - safeInsets.bottom;
     if (nx < safeInsets.left) nx = safeInsets.left;
     if (ny < safeInsets.top) ny = safeInsets.top;
-    // Measure-then-position pattern: useLayoutEffect reads the rendered
-    // menu rect and commits the clamped coordinates before paint so the
-    // user never sees the menu in its initial off-screen position. This
-    // is the canonical case for setState inside a layout effect.
+    // Measure-then-position: useLayoutEffect reads the rendered menu rect
+    // and commits clamped coordinates before paint, so no off-screen flash.
      
     setPos({ x: nx, y: ny });
     setOrigin({
@@ -119,9 +114,8 @@ export function WidgetContextMenu({
       y: clamp(y - ny, 16, rect.height - 16),
     });
     // offsetWidth/offsetHeight return the layout box without CSS transforms,
-    // so the popover-rect carve-out reflects the menu's final settled size
-    // rather than the scale(0.96) open-animation frame the layout effect
-    // happens to observe.
+    // so the carve-out reflects the menu's final size, not the scale(0.96)
+    // open-animation frame the layout effect observes.
     onBoundsChangeRef.current?.({ x: nx, y: ny, w: el.offsetWidth, h: el.offsetHeight });
   }, [x, y]);
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-// Reuse the panel widget menu's stylesheet so this matches it exactly.
+// Reuse the panel widget menu's stylesheet.
 import styles from '../../../panel/widgets/common/WidgetContextMenu.module.scss';
 
 export interface DeviceMenuItem {

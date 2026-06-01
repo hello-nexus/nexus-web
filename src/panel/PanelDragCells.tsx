@@ -12,11 +12,9 @@ import type { EditorDockMotion } from './panelEditorDock';
 import type { ResolvedPanelThemeMode } from './editor/PanelThemeSettings';
 import styles from './PanelApp.module.scss';
 
-// Visualises the cells the dragged widget would commit to if it
-// were dropped right now. Reads currentOverIdRef + the active
-// widget's size to compute the (col, row, colSpan, rowSpan) rect on
-// the current page. Tinted with the panel accent so it reads as
-// "this is where it lands" feedback rather than a debug overlay.
+// Highlights the cells the dragged widget would land on if dropped now.
+// Reads currentOverIdRef + the active widget's size to compute the
+// (col, row, colSpan, rowSpan) rect on the current page. Accent-tinted.
 export function DragTargetHighlight({
   pageId,
   activeWidgetId,
@@ -85,10 +83,8 @@ export function DragTargetHighlight({
 }
 
 export function EmptyCellDroppable({ pageId, col, row }: { pageId: string; col: number; row: number }) {
-  // 1x1 drop target rendered into the grid at the empty cell.
-  // Pointer-events stay enabled so the collision detector can pick it
-  // up; the element itself is invisible. Visual feedback during drag
-  // comes from the floating DragOverlay clone.
+  // Invisible 1x1 drop target at the empty cell. Pointer-events stay enabled
+  // for the collision detector; feedback comes from the DragOverlay clone.
   const id = `empty:${pageId}:${col}:${row}`;
   const { setNodeRef } = useDroppable({ id });
   return (
@@ -158,11 +154,10 @@ export function PanelTouchCell({
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const span = sizeToSpan(widget.size);
-  // dnd-kit must already be tracking pointerdowns when the long-press
-  // fires; otherwise a hold + drag gesture has no chance to convert into
-  // a sort-drag because dnd-kit only starts tracking on its own
-  // onPointerDown listener. Disable only during transitional motion
-  // states where a drag would fight the in-flight animation.
+  // dnd-kit must already be tracking pointerdowns when the long-press fires,
+  // or a hold+drag can't convert to a sort-drag (it only tracks via its own
+  // onPointerDown). Disable only during transitional motion states where a
+  // drag would fight the in-flight animation.
   const {
     attributes, listeners, setNodeRef,
     isDragging,
@@ -176,14 +171,12 @@ export function PanelTouchCell({
   const gridColumn = `${widget.col + 1} / span ${span.cols}`;
   const gridRow = `${widget.row + 1} / span ${span.rows}`;
 
-  // State-based drag projection. PanelContent recomputes
-  // `previewLayout` every time the over target moves to a new cell;
-  // each cell looks up its OWN preview position, computes the pixel
-  // delta from its committed (col, row), and applies a translate as
-  // an inline style. CSS transition animates the slide. We don't use
-  // dnd-kit's strategy/transform path because the over target is a
-  // non-sortable empty-cell droppable and dnd-kit's useSortable
-  // memoization doesn't re-fire for it.
+  // State-based drag projection. PanelContent recomputes previewLayout when
+  // the over target moves; each cell looks up its preview position, computes
+  // the pixel delta from its committed (col, row), and translates via inline
+  // style (CSS transition animates the slide). Not dnd-kit's strategy/transform
+  // path — the over is a non-sortable empty-cell droppable that useSortable's
+  // memoization doesn't re-fire for.
   const previewWidget = previewLayout
     ? findWidgetById(previewLayout, widget.id)
     : null;
@@ -208,12 +201,10 @@ export function PanelTouchCell({
   const previewTransition = 'transform 220ms cubic-bezier(0.25, 1, 0.5, 1)';
 
   if (!def) {
-    // Reconciler in usePanelLayout drops orphan marketplace widgets after
-    // the registry has loaded once, so the only path to this branch is
-    // either (a) the registry is still loading on app start, or (b) a
-    // built-in widget type was renamed/removed mid-session. Render a
-    // minimal placeholder rather than a red "unknown:" box — the user
-    // shouldn't see internal type strings, and the layout will self-heal
+    // usePanelLayout's reconciler drops orphan marketplace widgets once the
+    // registry loads, so reaching here means (a) the registry is still loading
+    // at app start, or (b) a built-in type was renamed/removed mid-session.
+    // Render a blank placeholder, not a "unknown:" box; the layout self-heals
     // on the next normalize pass.
     return (
       <div
@@ -277,21 +268,18 @@ export function PanelTouchCell({
   }
 
   // Compose cellPointers (tap + long-press menu + press feedback) with
-  // dnd-kit's onPointerDown so both fire on a single press: cellPointers
-  // arms its long-press timer for the menu, and dnd-kit's PointerSensor
-  // arms its delay timer for drag activation. The user's intent (tap,
-  // long-press, or long-press-then-drag) is disambiguated by which
-  // timer fires + whether movement follows.
+  // dnd-kit's onPointerDown so one press fires both: cellPointers arms the
+  // menu's long-press timer, dnd-kit's PointerSensor arms the drag-activation
+  // delay. Intent (tap / long-press / long-press-then-drag) is disambiguated
+  // by which timer fires and whether movement follows.
   const dragMotionActive = Boolean(editorDockMotion) || Boolean(resizeMotion);
   const composedPointerHandlers = dragMotionActive ? {} : {
     ...cellPointers,
     onPointerDown: (e: React.PointerEvent) => {
       cellPointers.onPointerDown(e);
-      // Skip dnd-kit activation for scrolled regions inside widgets.
-      // cellPointers already bails on these (so the long-press menu
-      // doesn't open during scroll); arming the drag here would let a
-      // 500ms hold inside a scroll list start a sort-drag, which would
-      // be inconsistent and confusing.
+      // Skip dnd-kit activation in scroll regions inside widgets (cellPointers
+      // already bails there). Else a 500ms hold inside a scroll list would
+      // start a sort-drag.
       const target = e.target;
       if (target instanceof Element && target.closest('[data-panel-scrollable="true"]')) return;
       listeners?.onPointerDown?.(e);
@@ -310,16 +298,14 @@ export function PanelTouchCell({
       className={`${styles.cellWrap} ${editorDockMotion ? styles.cellEditorDocked : ''} ${resizeMotion ? styles.cellResizeMotion : ''} ${editorDockMotion?.phase === 'closing' ? styles.cellEditorDockClosing : ''} ${dimmed ? styles.cellContextDimmed : ''} ${flash ? styles.cellFlash : ''}`}
       style={{
         ...wrapStyle,
-        // Make-room transform comes from previewLayout (state-based)
-        // not dnd-kit's strategy. The DragOverlay floats the active
-        // widget at the cursor; this transform shifts displaced
-        // siblings out of the way. The transition animates the slide.
+        // Make-room transform comes from previewLayout, not dnd-kit's strategy.
+        // The DragOverlay floats the active widget; this shifts displaced
+        // siblings aside (transition animates the slide).
         transform: !dragMotionActive && !isDragging ? previewTransform : undefined,
         transition: !dragMotionActive ? previewTransition : undefined,
-        // Hold the z-index bump until rearrange-mode visuals are on. dnd-kit
-        // activates at the long-press mark with isDragging=true even before
-        // any movement; popping the cell above the context menu in that
-        // window would fight the menu the same press just opened.
+        // Hold the z-index bump until rearrange visuals are on. dnd-kit sets
+        // isDragging=true at the long-press mark before any movement; popping
+        // the cell above the context menu then would fight that menu.
         zIndex: !dragMotionActive && isDragging && rearranging ? 50 : undefined,
       }}
       onContextMenu={dragMotionActive ? e => e.preventDefault() : onContextMenu}
@@ -350,11 +336,9 @@ export function PanelTouchCell({
 
   if (editorDockMotion) {
     // Portal the docked cell into a panel-root-level container so its
-    // `position: fixed` anchors to the viewport instead of the pager
-    // track. The pager track applies a transform when the active page
-    // is not the first one, which would otherwise become the containing
-    // block and offset the docked widget by the page-translation
-    // distance (i.e. push it offscreen).
+    // `position: fixed` anchors to the viewport, not the pager track. The
+    // track's transform on non-first pages would otherwise be the containing
+    // block and offset the cell offscreen by the page translation.
     return (
       <>
         {editorDockPortal ? createPortal(cellNode, editorDockPortal) : cellNode}
@@ -371,9 +355,8 @@ export function PanelTouchCell({
   return cellNode;
 }
 
-// Renders inside @dnd-kit's DragOverlay (which is portaled to
-// document.body). Carries the panel CSS context so theme tokens and
-// the panel-card class chain still apply to the floating clone.
+// Renders inside @dnd-kit's DragOverlay (portaled to body). Carries the panel
+// CSS context so theme tokens + the panel-card class chain apply to the clone.
 export function PanelDragOverlayCell({
   widget,
   surface,

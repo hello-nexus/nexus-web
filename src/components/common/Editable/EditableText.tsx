@@ -6,9 +6,8 @@ import styles from './Editable.module.scss';
  * commit, Escape to revert. Caller controls the committed value via
  * `onCommit`; intermediate keystrokes are kept inside the hook.
  *
- * `maxLength` defaults to 20 to match the legacy fan/curve rename limit;
- * pass a different number when a wider input is needed. The trimmed value
- * is what gets committed - empty values are dropped.
+ * `maxLength` defaults to 20 (the fan/curve rename limit); pass a different
+ * number for a wider input. The trimmed value is committed; empty is dropped.
  */
 export interface EditableTextProps {
   value: string;

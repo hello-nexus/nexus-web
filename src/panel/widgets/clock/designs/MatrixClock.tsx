@@ -34,7 +34,7 @@ function useScrambleChar(target: string): { display: string; settling: boolean }
       if (countRef.current >= SCRAMBLE_ITERATIONS) {
         setDisplay(target);
         setSettling(true);
-        // Clear the settling glow after a brief moment
+        // Clear the settling glow.
         timerRef.current = setTimeout(() => setSettling(false), 300);
         return;
       }

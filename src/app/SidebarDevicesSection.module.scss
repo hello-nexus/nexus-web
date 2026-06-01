@@ -6,16 +6,13 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  // Visual separation from APPS above. Anchors the "two sections"
-  // structure the user asked for.
+  // Visual separation from the APPS list above.
   margin-top: 1.25rem;
 }
 
-// Section header — same item-row highlight chrome plus a full-width
-// horizontal divider so the header reads as a section heading on
-// top of acting as a clickable destination. See the matching rule
-// in Sidebar.module.scss (`.sectionHeader`) for the verbose
-// explanation.
+// Section header — item-row highlight chrome plus a full-width divider so
+// it reads as a section heading and a clickable destination. Matches
+// `.sectionHeader` in Sidebar.module.scss.
 .headerBtn {
   display: flex;
   align-items: center;
@@ -146,9 +143,8 @@
   background-color: currentColor;
   mask-image: var(--device-icon);
   // `contain` (matching the DevicesPage glyphs) fits the whole 48-unit
-  // viewBox into the box, so the art fills it the way the lucide app icons
-  // fill theirs. The old fixed 18px size left the tall/narrow panel
-  // silhouettes (Y70, Q60) reading noticeably smaller than the app rows.
+  // viewBox into the box so the art fills it like the lucide app icons,
+  // including tall/narrow panel silhouettes (Y70, Q60).
   mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;

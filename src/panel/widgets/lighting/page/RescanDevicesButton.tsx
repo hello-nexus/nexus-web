@@ -5,10 +5,9 @@ import { useTranslation } from '../../../../lib/i18n';
 import styles from '../LightingPage.module.scss';
 
 /**
- * Full-width labelled rescan action. Forces OpenRGB to re-enumerate the
- * attached devices - normal hot-plug is handled automatically; this button is
- * for the edge case of a device that needed a manual nudge. Three-state:
- * subprocess off (static disabled), scanning (spinning disabled), ready.
+ * Full-width labelled rescan action: forces OpenRGB to re-enumerate
+ * devices (hot-plug is otherwise automatic). Three-state: subprocess
+ * off (static disabled), scanning (spinning disabled), ready.
  */
 export function RescanDevicesButton({ rgbRunning, scanning }: {
   /** True when the OpenRGB subprocess is alive. */
@@ -25,11 +24,10 @@ export function RescanDevicesButton({ rgbRunning, scanning }: {
     : busy ? 'lighting.devices.rescanning'
     : 'lighting.devices.rescan';
 
-  // Hold the local spinner long enough for useRgbStatus to observe
-  // `scanning=true` and start its poll loop. The rescan POST now broadcasts
-  // a lighting topic so the refetch usually happens within 100-200ms, but the
-  // network round-trip + state update can take a beat; 2s is a safe window
-  // that prevents the brief off-then-on flicker we saw with 500ms.
+  // Hold the local spinner 2s so useRgbStatus observes `scanning=true`
+  // and starts polling before it clears. The rescan POST's lighting
+  // topic usually refetches within 100-200ms, but the round-trip can
+  // lag; 2s avoids an off-then-on flicker.
   const handleClick = async () => {
     if (disabled) return;
     setUserRescanning(true);

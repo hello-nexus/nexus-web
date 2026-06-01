@@ -46,9 +46,8 @@ export default function App() {
     return <PairRedirect />;
   }
 
-  // Declarative widget UI reference. A storybook-style catalog of every
-  // meter type plus the binding cheatsheet. Lets widget authors see what
-  // tags / props / variants are available without trawling the source.
+  // Declarative widget UI reference: catalog of every meter type plus the
+  // binding cheatsheet (available tags / props / variants).
   if (path === '/widget-reference') {
     return (
       <I18nProvider>
@@ -57,10 +56,8 @@ export default function App() {
     );
   }
 
-  // Snapshot harness for widget visual-parity work. Renders the
-  // legacy + declarative versions side-by-side with identical mocked
-  // data; Playwright takes pixel screenshots so we can iterate on the
-  // declarative manifest until visual fidelity matches.
+  // Widget visual-parity harness: legacy + declarative versions side-by-side
+  // with identical mocked data; Playwright takes pixel screenshots.
   if (path === '/snapshot-harness') {
     return (
       <I18nProvider>
@@ -113,6 +110,7 @@ export default function App() {
           initialDeviceId={explicitDeviceId}
           isPhonePair={isPhonePair}
           pairToken={params.get('pair')}
+          pairDeviceId={params.get('deviceId')}
         />
       </I18nProvider>
     );

@@ -49,9 +49,7 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  // Slight pulse so the badge reads as an active alert rather than passive
-  // chrome. Kept faint so it doesn't strobe attention when the user is
-  // working in another view.
+  // Faint pulse to mark the badge as an active alert without strobing.
   animation: conflict-pulse 2.4s ease-in-out infinite;
 }
 

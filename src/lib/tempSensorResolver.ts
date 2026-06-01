@@ -1,9 +1,7 @@
 import type { HardwareSensor } from '../hooks/useSensors';
 
-// Default-picker rules duplicated from the three places this lives in today
-// (CoolingView, MonitoringView OverviewTab, CoolingWidget). Keep them in sync
-// when adding new fallback paths so the "auto" branch matches what each view
-// used to do on its own.
+// Default-picker rules shared by CoolingView, MonitoringView OverviewTab, and
+// CoolingWidget. Keep the "auto" branch in sync across them.
 
 export function defaultCpuTempSensor(cpuSensors: readonly HardwareSensor[]): HardwareSensor | undefined {
   return (
@@ -21,14 +19,13 @@ export function defaultGpuTempSensor(gpuSensors: readonly HardwareSensor[]): Har
 }
 
 /**
- * Pick the CPU temperature sensor to display. When the user has chosen a
- * specific sensor AND that sensor is still being reported on the live topic,
- * return it. Otherwise fall back to the per-view default (first sensor whose
- * type is "Temperature").
+ * Pick the CPU temperature sensor to display. Return the user's chosen
+ * sensor if it's still on the live topic; otherwise the per-view default
+ * (first "Temperature"-type sensor).
  *
- * Reading the live sensor list is essential: hardware swaps and driver
- * restarts can rotate sensor ids, and we never want to display nothing when
- * a stale preference points at a sensor that no longer exists.
+ * Matching against the live list handles hardware swaps and driver restarts
+ * that rotate sensor ids, so a stale preference never leaves the display
+ * blank.
  */
 export function resolveCpuTempSensor(
   cpuSensors: readonly HardwareSensor[],
@@ -67,16 +64,15 @@ interface CurveSourceLike {
 /**
  * Default temperature SOURCE id for a new or preset fan curve. Mirrors the
  * service's FanProfiles.PreferredInput so the choice is identical on every
- * platform (each reports a different CPU sensor, but all categorise it "CPU"):
+ * platform (each reports a different CPU sensor, all categorised "CPU"):
  *
- *   1. The user's pinned CPU sensor, when its id is actually a cooling source
- *      (future-proof / when the monitoring + cooling id spaces coincide).
+ *   1. The user's pinned CPU sensor, when its id is also a cooling source.
  *   2. A CPU-category source whose name mentions "Package" (Intel/LHM).
  *   3. Any CPU-category source (e.g. Linux k10temp Tctl, mac CPU die).
- *   4. First source — last resort so a curve is never left with no input.
+ *   4. First source — last resort so a curve always has an input.
  *
- * Critically NOT `sources[0]`, which on Linux is often a motherboard SuperIO
- * channel (e.g. an unconnected it8696 header reading a -55°C sentinel).
+ * NOT `sources[0]`, which on Linux is often a motherboard SuperIO channel
+ * (e.g. an unconnected it8696 header reading a -55°C sentinel).
  */
 export function defaultCurveSourceId(
   sources: readonly CurveSourceLike[],

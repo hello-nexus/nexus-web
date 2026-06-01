@@ -8,26 +8,23 @@ import { useTranslation } from '../../../../lib/i18n';
 import styles from '../LightingPage.module.scss';
 
 /**
- * Master brightness slider rendered at the top of the lighting page. Multiplies
- * every per-device brightness slider before the colour lands on hardware, so
- * the effective brightness for an LED is `global * device / 100`. Stored as a
- * 0..1 float on the service side; the UI surfaces it as 0..100%.
+ * Master brightness slider at the top of the lighting page. Multiplies
+ * each per-device brightness before colour reaches hardware: effective
+ * LED brightness is `global * device / 100`. Stored 0..1 on the
+ * service side, surfaced 0..100% in the UI.
  *
- * Layout: [sun icon] [bare track] [value]. Same Sun glyph the Displays widget
- * uses for monitor brightness so the two affordances feel like a matched set.
+ * Layout: [sun icon] [bare track] [value]. Same Sun glyph the Displays
+ * widget uses for monitor brightness.
  */
 export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boolean }) {
   const { t } = useTranslation();
-  // Null until the first fetch resolves so we don't briefly flash 100% on
-  // mount when the persisted value is anything else. After hydration the
-  // slider is uncontrolled-by-defaults like every other lighting control.
+  // Null until the first fetch resolves, to avoid flashing 100% on
+  // mount when the persisted value is anything else.
   const [percent, setPercent] = useState<number | null>(null);
   const throttle = useThrottle();
-  // Window during which the user is actively dragging the slider. Topic
-  // pushes that fire mid-drag (including the broadcast triggered by our own
-  // throttled POST) would otherwise refetch the persisted value and snap the
-  // thumb back to wherever the server had last committed. Mirrors the same
-  // pattern LightingView uses for animate-effect drags.
+  // Active-drag window. Mid-drag topic pushes (including the broadcast
+  // from our own throttled POST) would refetch the persisted value and
+  // snap the thumb back to the last-committed server value.
   const localEditUntilRef = useRef(0);
 
   const refresh = useCallback(() => {
@@ -63,15 +60,14 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
   }, [sendValue]);
 
   if (percent === null) {
-    // Reserve the row so the OpenRGB badge doesn't jump in from the right
-    // when the slider hydrates. Width matches the rendered control roughly.
+    // Reserve the row so the OpenRGB badge doesn't shift when the
+    // slider hydrates.
     return <div className={styles.globalBrightnessSlider} aria-hidden />;
   }
 
   const ariaLabel = t('lighting.devices.brightness');
-  // Mute-like indicator when the master is at zero: SunDim is the same glyph
-  // with shorter rays so the affordance still reads as "brightness" but
-  // clearly signals "off" the way VolumeX does for the audio sliders.
+  // At zero, swap to SunDim (shorter rays) as an off indicator,
+  // mirroring how VolumeX marks muted audio.
   const Icon = percent === 0 ? SunDim : Sun;
 
   return (

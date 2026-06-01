@@ -91,7 +91,6 @@ export function usePanelDevices(
     if (!enabled) return;
     // Initial REST seed for panel status + phone sessions; push updates
     // arrive via the `panel/device` topic below.
-     
     void refresh();
   }, [enabled, refresh]);
 
@@ -179,9 +178,9 @@ function buildPanelDevices({
     devices.push({
       id: `simulated:${panel.id}`,
       sourceId: panel.id,
-      // Bare device name — the localized "(Simulated)" suffix is
-      // applied at the page-title level (see PanelDevicePage), not
-      // here, so the sidebar entry stays compact ("Y70" / "Q60").
+      // Bare device name; the localized "(Simulated)" suffix is applied at
+      // the page-title level (see PanelDevicePage) so the sidebar entry stays
+      // compact ("Y70" / "Q60").
       name: panel.name,
       subtitle: `${labels.simulated} - ${panel.width}x${panel.height} @ ${panel.dpi} dpi - short ${formatPanelInches(physical.shortSideInches)} - ${capacity.columns}x${capacity.rows} grid`,
       status: 'online',

@@ -82,12 +82,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const { t } = useTranslation();
   const { mode, setMode, rawSync, setRawSync, synced } = useLightingSync(serviceOnline, activeProfileId);
   const frames = useLightingFrames();
-  // RGB running/scanning was its own /lighting/status fetch; ride on useServiceState
-  // instead (already subscribed to the lighting topic for the sidebar pip)
-  // so a single topic push doesn't trigger two duplicate GETs. `running` here
-  // is the openrgb-headless subprocess state (LightingStatus.rgbRunning), not
-  // the effect-engine `running` field - consumers below ("OpenRGB running"
-  // badge, rescan button gate) want the subprocess.
+  // Read RGB running/scanning off useServiceState (already subscribed
+  // to the lighting topic for the sidebar pip) so a topic push doesn't
+  // trigger a duplicate GET. `running` is the openrgb-headless
+  // subprocess state (LightingStatus.rgbRunning), not the effect-engine
+  // `running` field; the badge + rescan gate want the subprocess.
   const rgb = {
     running: serviceState.lighting?.rgbRunning ?? false,
     scanning: serviceState.lighting?.scanning ?? false,
@@ -116,13 +115,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [activeEffect, setActiveEffect] = useState<string>('');
   const [effectTemplates, setEffectTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
-  // Canvas hides the rectangle for any device whose LEDs are turned off, so
-  // "off" reads visually the same as "no frame on canvas" without a separate
-  // hide/show frame toggle. Device frames are also hidden entirely when the
-  // right pane is showing the Effect tab - frames are a Devices-tab concern.
-  // Right-pane tab: 'effect' holds the post-process controls for animate /
-  // media / screen; 'devices' is the rescan + zone cards. Persisted across
-  // remounts so returning to the page restores the last selection.
+  // Canvas hides the frame for any device with LEDs off, and hides all
+  // frames while the Effect tab is showing (frames are a Devices-tab
+  // concern). Right-pane tab: 'effect' = post-process controls for
+  // animate / media / screen; 'devices' = rescan + zone cards.
+  // Persisted across remounts.
   const [activeRightTab, setActiveRightTab] = useState<RightPaneTab>(loadRightPaneTab);
   useEffect(() => {
     try { localStorage.setItem(RIGHT_PANE_TAB_KEY, activeRightTab); } catch { /* persist best-effort */ }
@@ -433,9 +430,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [applyAnimate]);
 
-  // Clicking an effect while the Devices tab is visible shouldn't hide the
-  // devices - just nudge the user toward the Effect tab with a brief pulse
-  // on the tab label so they know where the controls moved.
+  // Clicking an effect on the Devices tab pulses the Effect tab label
+  // instead of switching away from the devices.
   const pulseEffectTab = useCallback(() => setEffectPulseKey(k => k + 1), []);
 
   const handleEffectSelect = useCallback((key: string) => {
@@ -574,11 +570,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const devicesRef = useRef<LightingDevice[]>([]);
   devicesRef.current = devices;
-  // Per-zone toggle. Sister-callback to handleSetPower below: this flips the
-  // *current* state of one device, while handleSetPower writes an absolute
-  // on/off. We need both because a "turn the whole motherboard group off"
-  // click that called handleTogglePower per zone would re-enable any
-  // already-off zone in a partially-lit group.
+  // Per-zone toggle (flips one device's current state). Paired with the
+  // absolute handleSetPower below: a per-zone toggle applied to a whole
+  // group would re-enable already-off zones in a partially-lit group.
   const handleTogglePower = useCallback((id: string) => {
     const current = devicesRef.current.find(d => d.id === id);
     if (!current) return;
@@ -586,9 +580,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setLightingDevicePower(id, nextOn).catch(() => { /* 3s poll reconciles */ });
     setDevices(prev => prev.map(d => d.id === id ? { ...d, ledsOn: nextOn } : d));
   }, []);
-  // Absolute setter (vs. toggle). Group-header switches need this to set every
-  // child zone to the same state — a per-zone toggle would flip already-off
-  // zones back on when only some of the group were lit.
+  // Absolute setter, used by group-header switches to set every child
+  // zone to the same state (see handleTogglePower).
   const handleSetPower = useCallback((id: string, on: boolean) => {
     setLightingDevicePower(id, on).catch(() => { /* 3s poll reconciles */ });
     setDevices(prev => prev.map(d => d.id === id ? { ...d, ledsOn: on } : d));
@@ -734,9 +727,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return { key: m.key, label: t(m.labelKey), icon: <Icon size={14} /> };
   });
 
-  // Effect tab is only meaningful for animate / media / screen. Off renders
-  // an empty-state string; the tab header marks it disabled so the user
-  // doesn't feel invited to click into nothing.
+  // Effect tab applies to animate / media / screen only; in Off mode
+  // it renders an empty state and the tab header is disabled.
   const effectTabDisabled = mode === 'none';
 
   if (!serviceOnline) {

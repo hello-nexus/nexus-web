@@ -2,9 +2,80 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useMultiplexConnection } from './useMultiplexSocket';
 
+// isRelayActive controls the remote-origin eager-relay branch. Default false
+// (the LAN-first tests assume a service-served origin); the remote-origin test
+// flips it true. resolveHttp is kept for any indirect import but the hook no
+// longer fetches via it directly.
+const serviceState = { relayActive: false };
 vi.mock('../api/service', () => ({
   resolveAuthWs: vi.fn(async (path: string) => `ws://test.local${path}`),
+  resolveHttp: vi.fn((path: string) => `http://test.local${path}`),
+  resolveRelayWs: vi.fn(() => 'wss://relay.test.local/relay'),
+  setActiveTransport: vi.fn(),
+  isRelayActive: vi.fn(() => serviceState.relayActive),
 }));
+
+// handleDisconnect reads the killswitch state through this helper (was a raw
+// fetch). Default null = "couldn't reach" so the schedule tests fall through to
+// the normal backoff exactly as the old rejecting-fetch mock did.
+const remoteControlMock = vi.fn(async () => null as { enabled: boolean } | null);
+// handleDisconnect reads the cloud-relay toggle through this helper when the
+// dropped connection was a relay transport. Default null = "couldn't reach" so
+// non-relay tests fall through to the normal backoff unchanged.
+const relayStateMock = vi.fn(async () => null as { enabled: boolean } | null);
+vi.mock('../api/panel', () => ({
+  fetchPanelRemoteControlState: (...args: unknown[]) => remoteControlMock(...args),
+  fetchPanelRelay: (...args: unknown[]) => relayStateMock(...args),
+}));
+
+vi.mock('../api/auth', () => ({
+  getToken: vi.fn(async () => 'test-token'),
+}));
+
+// Controllable fake RelayChannel. By default a relay attempt fails immediately
+// (no host on the relay) so the backoff/killswitch tests exercise the LAN path
+// exactly as before, with the relay detour resolving fast. Tests that want a
+// successful relay flip `relayState.nextPeerUp` true. The class is defined
+// inside vi.hoisted so it exists before the (hoisted) vi.mock factory runs.
+const { FakeRelayChannel, relayState } = vi.hoisted(() => {
+  const relayState = { nextPeerUp: false };
+  class FakeRelayChannel {
+    static instances: FakeRelayChannel[] = [];
+    onopen: ((e: unknown) => void) | null = null;
+    onmessage: ((e: { data: unknown }) => void) | null = null;
+    onclose: ((e: { code: number }) => void) | null = null;
+    onerror: ((e: unknown) => void) | null = null;
+    readyState = 0;
+    sent: string[] = [];
+    closed = false;
+    url: string;
+    token: string;
+    constructor(url: string, token: string) {
+      this.url = url;
+      this.token = token;
+      FakeRelayChannel.instances.push(this);
+    }
+    async connect() {
+      if (relayState.nextPeerUp) {
+        this.readyState = 1;
+        this.onopen?.(new Event('open'));
+      } else {
+        this.readyState = 3;
+        this.onclose?.({ code: 1006 });
+      }
+    }
+    send(text: string) { this.sent.push(text); }
+    close() {
+      if (this.closed) return;
+      this.closed = true;
+      this.readyState = 3;
+      this.onclose?.({ code: 1000 });
+    }
+  }
+  return { FakeRelayChannel, relayState };
+});
+
+vi.mock('./relayChannel', () => ({ RelayChannel: FakeRelayChannel }));
 
 class FakeWebSocket {
   static CONNECTING = 0;
@@ -34,15 +105,43 @@ class FakeWebSocket {
     this.onclose?.(new Event('close'));
   }
 
-  triggerClose() {
+  triggerClose(code?: number) {
     this.readyState = FakeWebSocket.CLOSED;
-    this.onclose?.(new Event('close'));
+    this.onclose?.(code === undefined ? new Event('close') : Object.assign(new Event('close'), { code }));
   }
+
+  triggerOpen() {
+    this.readyState = FakeWebSocket.OPEN;
+    this.onopen?.(new Event('open'));
+  }
+}
+
+// Flush enough microtask turns to settle the relay detour: a LAN close that
+// triggers tryRelay() awaits getToken() (one tick) then RelayChannel.connect()
+// (another) before its onclose routes back into handleDisconnect()'s own fetch
+// (which rejects in jsdom and falls through to scheduleReconnect).
+async function flushRelayDetour() {
+  for (let i = 0; i < 8; i++) await Promise.resolve();
+}
+
+// handleDisconnect() probes /panel/phone/remote-control to tell a killswitch
+// from a transport drop. Mock fetch to reject in a microtask so that probe
+// resolves deterministically under fake timers and falls through to the normal
+// backoff (killswitchEnabled stays null), keeping the schedule assertions
+// stable instead of racing a real network attempt.
+function mockRejectingFetch() {
+  vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('no network'))));
 }
 
 describe('useMultiplexConnection reconnect schedule', () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
+    FakeRelayChannel.instances = [];
+    relayState.nextPeerUp = false;
+    serviceState.relayActive = false;
+    remoteControlMock.mockClear();
+    remoteControlMock.mockResolvedValue(null);
+    mockRejectingFetch();
     vi.useFakeTimers();
     (globalThis as unknown as { WebSocket: typeof FakeWebSocket }).WebSocket = FakeWebSocket;
   });
@@ -50,6 +149,7 @@ describe('useMultiplexConnection reconnect schedule', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('uses exponential backoff capped at 60s and resets on a successful open', async () => {
@@ -66,8 +166,12 @@ describe('useMultiplexConnection reconnect schedule', () => {
     for (const delay of expectedDelays) {
       const lastBeforeClose = FakeWebSocket.instances.length;
       const ws = FakeWebSocket.instances[lastBeforeClose - 1];
-      act(() => {
-        ws.triggerClose();
+      // Use a defined non-revoke close code so the relay detour is taken at
+      // most once (first close); after that relayTried is set and closes go
+      // straight to backoff.
+      await act(async () => {
+        ws.triggerClose(1006);
+        await flushRelayDetour();
       });
       // Just below the expected delay: no new socket yet.
       await act(async () => {
@@ -87,16 +191,20 @@ describe('useMultiplexConnection reconnect schedule', () => {
     // Successful open resets backoff: next close should schedule at 5s, not 60s.
     const lastWs = FakeWebSocket.instances[FakeWebSocket.instances.length - 1];
     act(() => {
-      lastWs.readyState = FakeWebSocket.OPEN;
-      lastWs.onopen?.(new Event('open'));
+      lastWs.triggerOpen();
     });
     expect(result.current?.connected).toBe(true);
+    // A direct /ws open reports the LAN transport.
+    expect(result.current?.transport).toBe('lan');
 
     const beforeReset = FakeWebSocket.instances.length;
-    act(() => {
-      lastWs.triggerClose();
+    await act(async () => {
+      lastWs.triggerClose(1006);
+      await flushRelayDetour();
     });
     expect(result.current?.connected).toBe(false);
+    // Transport clears to null once the socket closes.
+    expect(result.current?.transport).toBe(null);
     await act(async () => {
       vi.advanceTimersByTime(4999);
       await Promise.resolve();
@@ -121,8 +229,9 @@ describe('useMultiplexConnection reconnect schedule', () => {
     // Fail twice to advance the schedule.
     for (const delay of [5000, 10000]) {
       const before = FakeWebSocket.instances.length;
-      act(() => {
-        FakeWebSocket.instances[before - 1].triggerClose();
+      await act(async () => {
+        FakeWebSocket.instances[before - 1].triggerClose(1006);
+        await flushRelayDetour();
       });
       await act(async () => {
         vi.advanceTimersByTime(delay);
@@ -140,5 +249,144 @@ describe('useMultiplexConnection reconnect schedule', () => {
     });
     // reconnect() short-circuits the pending timer and creates a fresh socket.
     expect(FakeWebSocket.instances.length).toBe(beforeReconnect + 1);
+  });
+});
+
+describe('useMultiplexConnection relay fallback', () => {
+  beforeEach(() => {
+    FakeWebSocket.instances = [];
+    FakeRelayChannel.instances = [];
+    relayState.nextPeerUp = false;
+    serviceState.relayActive = false;
+    remoteControlMock.mockClear();
+    remoteControlMock.mockResolvedValue(null);
+    relayStateMock.mockClear();
+    relayStateMock.mockResolvedValue(null);
+    mockRejectingFetch();
+    vi.useFakeTimers();
+    (globalThis as unknown as { WebSocket: typeof FakeWebSocket }).WebSocket = FakeWebSocket;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('parks in relayDisabled when a relay connection drops and the host has the cloud relay OFF, then auto-reconnects on re-enable', async () => {
+    // Remote origin: connect straight over the relay and reach peer-up.
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    // Killswitch stays ON (Pair Remote is on); only the cloud relay is off.
+    remoteControlMock.mockResolvedValue({ enabled: true });
+    relayStateMock.mockResolvedValue({ enabled: false });
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current?.transport).toBe('relay');
+    expect(FakeRelayChannel.instances.length).toBe(1);
+
+    // The host turns the cloud relay off → the relay socket closes (non-1008).
+    await act(async () => {
+      FakeRelayChannel.instances[0].onclose?.({ code: 1006 });
+      await flushRelayDetour();
+    });
+    // The relay toggle read returned {enabled:false}, so we park in relayDisabled
+    // (visible popup) and do NOT dial a fresh relay yet.
+    expect(result.current?.relayDisabled).toBe(true);
+    expect(result.current?.connected).toBe(false);
+    expect(FakeRelayChannel.instances.length).toBe(1);
+
+    // Host flips the relay back on. The next slow-poll sees {enabled:true} and
+    // reconnects immediately (a fresh relay dial that reaches peer-up).
+    relayStateMock.mockResolvedValue({ enabled: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+      await flushRelayDetour();
+    });
+    expect(result.current?.relayDisabled).toBe(false);
+    expect(FakeRelayChannel.instances.length).toBe(2);
+    expect(result.current?.connected).toBe(true);
+    expect(result.current?.transport).toBe('relay');
+  });
+
+  it('attempts the relay when the LAN socket closes before opening', async () => {
+    renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(FakeWebSocket.instances.length).toBe(1);
+    expect(FakeRelayChannel.instances.length).toBe(0);
+
+    await act(async () => {
+      FakeWebSocket.instances[0].triggerClose(1006);
+      await flushRelayDetour();
+    });
+    // The LAN open-failure triggered exactly one relay dial.
+    expect(FakeRelayChannel.instances.length).toBe(1);
+    expect(FakeRelayChannel.instances[0].url).toBe('wss://relay.test.local/relay');
+  });
+
+  it('does NOT attempt the relay on a 1008 killswitch-revoke close', async () => {
+    renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      // 1008 = PolicyViolation: killswitch / single-device revoke. The relay
+      // must never be dialed for this; it routes straight to handleDisconnect.
+      FakeWebSocket.instances[0].triggerClose(1008);
+      await flushRelayDetour();
+    });
+    expect(FakeRelayChannel.instances.length).toBe(0);
+  });
+
+  it('goes connected via the relay on peer-up and replays subscriptions', async () => {
+    relayState.nextPeerUp = true;
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      FakeWebSocket.instances[0].triggerClose(1006);
+      await flushRelayDetour();
+    });
+    expect(FakeRelayChannel.instances.length).toBe(1);
+    expect(result.current?.connected).toBe(true);
+    // The open connection runs over the relay, so transport reports 'relay'.
+    expect(result.current?.transport).toBe('relay');
+
+    // A multiplex frame arriving over the relay reaches topic subscribers.
+    const received: unknown[] = [];
+    act(() => { result.current?.subscribe('monitoring', (d) => received.push(d)); });
+    // subscribe over the relay should have been sent as a {sub:[...]} text.
+    const relay = FakeRelayChannel.instances[0];
+    expect(relay.sent.some((s) => s.includes('"sub"') && s.includes('monitoring'))).toBe(true);
+    act(() => { relay.onmessage?.({ data: JSON.stringify({ t: 'monitoring', d: { cpu: 42 } }) }); });
+    expect(received).toEqual([{ cpu: 42 }]);
+  });
+
+  it('on a remote origin (relay active) connects the relay directly, never opening a LAN /ws', async () => {
+    // Remote-origin + token: isRelayActive() is true from the very first
+    // connect(), so the hook must skip the doomed ws://localhost open and dial
+    // the relay straight away. No FakeWebSocket (LAN) instance is created.
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    // The LAN /ws was never attempted; the relay opened on the first connect.
+    expect(FakeWebSocket.instances.length).toBe(0);
+    expect(FakeRelayChannel.instances.length).toBe(1);
+    expect(FakeRelayChannel.instances[0].url).toBe('wss://relay.test.local/relay');
+    expect(result.current?.connected).toBe(true);
+    expect(result.current?.transport).toBe('relay');
   });
 });

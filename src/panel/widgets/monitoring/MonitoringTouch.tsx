@@ -12,11 +12,9 @@ import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import styles from './MonitoringTouch.module.scss';
 
 /**
- * Renders one immersive cell per configured monitoring slot - each
- * cell shows a single sensor at full size so the graphs don't stack
- * inside one card. Reads sensors via the same useSensors hook the
- * tile uses, so state is shared across views (no reset on tap-to-
- * immersive).
+ * One immersive cell per configured monitoring slot, each showing a single
+ * sensor at full size. Reads sensors via the same useSensors hook the tile
+ * uses, so state is shared across views (no reset on tap-to-immersive).
  *
  * 1 slot   -> 1 cell, centered on the page.
  * 2 slots  -> 2 cells, stacked portrait / side-by-side landscape.
@@ -39,8 +37,7 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
   const usesNetwork = isMicro
     ? microDevice === 'network'
     : slotConfigs.some(s => s.device === 'network');
-  // Hooks must run on every render regardless of mode - see MonitoringWidget
-  // for the rationale.
+  // Hooks must run on every render regardless of mode (see MonitoringWidget).
   const sensors = useSensors(true);
   const fpsSensors = useFpsSensors(usesFps);
   const network = useNetworkMonitor(usesNetwork);

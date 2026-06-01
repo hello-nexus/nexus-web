@@ -188,9 +188,9 @@ export function useDataSources({
 
   const [fetchState, setFetchState] = useState<Record<string, Record<string, unknown> | null>>({});
 
-  // Ticking clock sources. The renderer ticks at the highest-precision
-  // cadence any clock source requests (1s default, 500ms allowed, 1m for
-  // widgets that only need wall-time). One interval per widget instance.
+  // Ticking clock sources at the highest-precision cadence any clock source
+  // requests (1s default, 500ms min, 1m for wall-time only). One interval per
+  // widget instance.
   const [tickNow, setTickNow] = useState(() => Date.now());
   const clockCadenceMs = useMemo(() => {
     let min = 0;
@@ -208,10 +208,9 @@ export function useDataSources({
     return () => clearInterval(handle);
   }, [clockCadenceMs]);
 
-  // Host-action data sources: poll /widgets-api/dispatch on a refresh
-  // schedule and surface the response body under `data.<key>`. Used by
-  // first-party widgets that consume host-internal state (e.g. the
-  // displays list) without needing a worker.
+  // Host-action data sources: poll /widgets-api/dispatch on a refresh schedule
+  // and surface the response body under `data.<key>`. For first-party widgets
+  // consuming host-internal state (e.g. the displays list) without a worker.
   useEffect(() => {
     if (!sources) return;
     const stops: Array<() => void> = [];
@@ -219,15 +218,14 @@ export function useDataSources({
       if (!source.host?.action) continue;
       const intervalMs = parseCadence(source.host.refresh) ?? 5_000;
       // Floor at 5 s. Host actions hit local services synchronously
-      // (screentime walks the full session log; displays enumerates DDC/CI
-      // monitors) — a sub-second cadence is real CPU draw for no UX win.
+      // (screentime walks the session log; displays enumerates DDC/CI
+      // monitors), so a sub-second cadence is real CPU draw.
       const safeMs = Math.max(5_000, intervalMs);
       let cancelled = false;
-      // One AbortController per tick. The new tick aborts the previous tick's
-      // in-flight request before spinning up its own — otherwise a host action
-      // slower than the 5s cadence (e.g. screentime walking the full session
-      // log) would leak past, resolve later, and call setHostState on a stale
-      // capabilities snapshot. Cleanup aborts whatever's current.
+      // One AbortController per tick: a new tick aborts the previous tick's
+      // in-flight request, else a host action slower than the cadence would
+      // resolve late and call setHostState on a stale capabilities snapshot.
+      // Cleanup aborts the current one.
       let currentAbort: AbortController | null = null;
       const tick = async () => {
         if (cancelled) return;

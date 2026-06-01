@@ -127,11 +127,10 @@ export function PanelEditorSheet({
     sheetRef,
     onDismiss: onClose,
   });
-  // Esc closes the sheet. The desktop modals (DeviceModal, ConfirmModal)
-  // get this through Overlay; the panel editor sheet keeps its bespoke
-  // swipe + dock-motion lifecycle, so we wire the keyboard handler
-  // inline rather than wrap the sheet in Overlay (which would conflict
-  // with the entry/closing animation states).
+  // Esc closes the sheet. Desktop modals get this via Overlay; the editor
+  // sheet keeps its own swipe + dock-motion lifecycle, so wire the handler
+  // inline instead of wrapping in Overlay (which would fight the entry/closing
+  // animation states).
   useEffect(() => {
     if (closing) return;
     const handler = (e: KeyboardEvent) => {
@@ -140,23 +139,19 @@ export function PanelEditorSheet({
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [closing, onClose]);
-  // scale(var(--panel-ui-zoom, 1)) keeps the monitor-panel chrome scale
-  // during a swipe-to-dismiss drag; the var falls back to 1 on phone /
-  // desktop so it's a no-op there.
+  // scale(var(--panel-ui-zoom, 1)) keeps the monitor-panel chrome scale during
+  // a swipe-dismiss drag; no-op on phone/desktop (var unset → 1).
   const sheetTransform = swipe.state === 'idle' && swipe.offset === 0
     ? undefined
     : { transform: `translateY(${swipe.offset}px) scale(var(--panel-ui-zoom, 1))` };
-  // [data-entered] suppresses the entry keyframe after it has played, so
-  // toggling [data-drag] at the end of a snap-back doesn't re-trigger the
-  // slide-up. The fallback timer covers the no-interaction case; the
-  // state-driven effect flips the flag synchronously the moment the user
-  // starts dragging, before [data-drag] ever toggles back off.
+  // [data-entered] suppresses the entry keyframe after it plays, so toggling
+  // [data-drag] at the end of a snap-back doesn't re-trigger the slide-up. The
+  // fallback timer covers the no-interaction case; the effect flips the flag
+  // synchronously when dragging starts, before [data-drag] toggles back off.
   const [didEnter, setDidEnter] = useState(false);
   useEffect(() => {
-    // The swipe state is driven by external pointer input; flipping the
-    // entry latch when the user first touches the sheet (before the
-    // 320ms timer fires) is a sync to that external gesture stream,
-    // not a derivable value.
+    // Swipe state is external pointer input; flipping the entry latch on first
+    // touch (before the 320ms timer) syncs to that gesture stream.
      
     if (swipe.state !== 'idle') setDidEnter(true);
   }, [swipe.state]);

@@ -31,7 +31,6 @@ export function ComponentPicker({ category, onSelect, onClose, onViewDetail }: C
 
   const columns = useMemo(() => getColumnsForCategory(category), [category]);
 
-  // Build API params from local state
   const params = useMemo<CatalogSearchParams>(() => ({
     q: search || undefined,
     page,
@@ -45,7 +44,6 @@ export function ComponentPicker({ category, onSelect, onClose, onViewDetail }: C
 
   const { items, total, totalPages, filters: apiFilters, loading, setParams } = useComponentSearch(category);
 
-  // Push params to the hook whenever they change
   useEffect(() => {
     setParams(params);
   }, [params, setParams]);
@@ -60,13 +58,10 @@ export function ComponentPicker({ category, onSelect, onClose, onViewDetail }: C
     setPage(1);
   }, [sortKey]);
 
-  // Reset to page 1 when filters or search change. Could be folded into the
-  // setSearch/setFilters callsites but those live in child components — the
-  // effect keeps the policy colocated with pagination state here.
-   
+  // Reset to page 1 when filters or search change.
+
   useEffect(() => { setPage(1); }, [search, filters]);
 
-  // Convert API filter options to the format ComponentFilters expects
   const filterOptions = apiFilters;
 
   const handleSelect = useCallback((comp: ComponentOption) => {

@@ -1,5 +1,5 @@
 import { getToken, handleUnauthorized } from './auth';
-import { deleteService, fetchService, postService, resolveHttp } from './service';
+import { deleteService, fetchService, isRelayActive, isRemoteOrigin, postService, relayRequestWithStatus, resolveHttp } from './service';
 import type { PanelLayout, PanelSurface } from '../panel/types';
 
 export interface PanelStatus {
@@ -71,13 +71,22 @@ export type PanelAllocResult =
   | { ok: true; record: PanelDeviceRecord }
   | { ok: false; status: number };
 
-// Alloc variant that surfaces the HTTP status. Lets the panel entrypoint show
-// a "pair this phone" message on 401/403 and "service unreachable" on others,
-// instead of dead-ending with a generic "could not register" toast.
+// Alloc variant that surfaces the HTTP status, so the panel entrypoint shows
+// "pair this phone" on 401/403 and "service unreachable" on others.
 export async function allocatePanelDeviceWithStatus(
   capabilities?: PanelDeviceCapabilitiesDto,
   displayName?: string,
 ): Promise<PanelAllocResult> {
+  // Off-LAN (remote origin / relay transport) there's no localhost PC to POST
+  // to — tunnel the alloc over the relay so the panel registers without a
+  // doomed mixed-content http://localhost call. Same status contract.
+  if (isRelayActive()) {
+    const { response, status } = await relayRequestWithStatus('POST', '/panel/devices', { displayName, capabilities });
+    if (!response || !response.ok) return { ok: false, status };
+    return { ok: true, record: (await response.json()) as PanelDeviceRecord };
+  }
+  // Remote origin without a usable relay yet ⇒ never hit http://localhost.
+  if (isRemoteOrigin) return { ok: false, status: 0 };
   try {
     const token = await getToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -114,6 +123,12 @@ export type PanelDeviceFetchResult =
 // The non-status variants conflate both as `null` and trigger an infinite
 // auto-persist loop when the kiosk holds an id the server no longer knows.
 export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDeviceFetchResult> {
+  if (isRelayActive()) {
+    const { response, status } = await relayRequestWithStatus('GET', `/panel/devices/${encodeURIComponent(id)}`);
+    if (response && response.ok) return { found: true, record: (await response.json()) as PanelDeviceRecord };
+    return { found: false, status };
+  }
+  if (isRemoteOrigin) return { found: false, status: 0 };
   try {
     let token = await getToken();
     const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
@@ -143,6 +158,12 @@ export type PanelDevicePatchResult =
   | { ok: false; status: number };
 
 export async function patchPanelDeviceWithStatus(id: string, patch: PanelDevicePatch): Promise<PanelDevicePatchResult> {
+  if (isRelayActive()) {
+    const { response, status } = await relayRequestWithStatus('POST', `/panel/devices/${encodeURIComponent(id)}`, patch);
+    if (!response || !response.ok) return { ok: false, status };
+    return { ok: true, record: (await response.json()) as PanelDeviceRecord };
+  }
+  if (isRemoteOrigin) return { ok: false, status: 0 };
   try {
     let token = await getToken();
     const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
@@ -194,6 +215,11 @@ export interface PanelPhoneSession {
   lastSeenAt: number;
   expiresAt: number;
   recentlyActive: boolean;
+  // How this session's live connection (if any) reached the host: 'relay' when
+  // it came in over the cloud relay, 'lan' for a direct LAN connection, null
+  // when the session is not currently connected. Surfaced by the service's GET
+  // /panel/phone/sessions so the dashboard can flag relay-connected devices.
+  connectedVia: 'relay' | 'lan' | null;
 }
 
 export interface PanelPhoneSessionsResponse {
@@ -236,6 +262,21 @@ export const fetchPanelRemoteControlState = () =>
 export const setPanelRemoteControlEnabled = (enabled: boolean) =>
   postService<RemoteControlState>('/panel/phone/remote-control', { enabled });
 
+export interface RelayState {
+  enabled: boolean;
+}
+
+// Cloud relay fallback toggle. When enabled (and remote control is on) the host
+// holds an outbound relay socket per phone session so panels can connect when
+// the LAN /ws path is unreachable (hotel / client-isolated Wi-Fi). Default OFF
+// (cost + privacy); meaningless without remote control, so the UI disables it
+// when the killswitch is off.
+export const fetchPanelRelay = () =>
+  fetchService<RelayState>('/panel/phone/relay');
+
+export const setPanelRelay = (enabled: boolean) =>
+  postService<RelayState>('/panel/phone/relay', { enabled });
+
 // Wi-Fi (mDNS) discoverability preference. AirDrop-style three-state. QR + manual
 // pair-code flows are unaffected; this only gates the iOS app's "find device on
 // Wi-Fi" capability.
@@ -262,11 +303,10 @@ export interface PanelHostNameResponse {
 export const setPanelHostName = (name: string) =>
   postService<PanelHostNameResponse>('/panel/host-name', { name });
 
-// Manual pair-code flow (BT-SSP Numeric Comparison). Additive to the QR
-// flow; the dashboard generates a 6-digit code that the user types into
-// a phone (no camera needed). The phone POSTs the typed code and gets
-// back a SAS; the user visually compares SAS on both screens and both
-// sides press Allow / Confirm before a session token is issued.
+// Manual pair-code flow (BT-SSP Numeric Comparison), alongside the QR flow.
+// The dashboard generates a 6-digit code the user types into a phone (no
+// camera). The phone POSTs the code and gets a SAS; both sides visually
+// compare the SAS and press Allow / Confirm before a session token issues.
 
 export interface PanelPhonePairCodeStart {
   host: string;
@@ -315,12 +355,20 @@ export interface PanelPhonePairCodeRequestFrame {
   reason: PanelPhonePairCodeCancelReason | '';
 }
 
-export async function claimPanelPhonePairing(pairToken: string): Promise<PanelPhoneClaimResponse | null> {
+export async function claimPanelPhonePairing(pairToken: string, deviceId: string): Promise<PanelPhoneClaimResponse | null> {
+  // resolveHttp points at http://localhost on a remote origin. The remote pair
+  // flow claims over the relay (pairOverInternet) and lands on /panel/phone
+  // WITHOUT a ?pair= token, so this localhost claim only ever runs on the
+  // service-served origin; fail closed off-origin rather than fire it.
+  if (isRemoteOrigin) return null;
   try {
+    // `deviceId` is the stable per-device id (carried from the LAN-direct
+    // redirect's ?deviceId=, else this origin's own id) so the service dedups a
+    // re-pair of the same device instead of minting a duplicate session.
     const res = await fetch(resolveHttp('/panel/phone/claim'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pairToken }),
+      body: JSON.stringify({ pairToken, deviceId }),
     });
     if (!res.ok) {
       try { return (await res.json()) as PanelPhoneClaimResponse; }
@@ -328,6 +376,37 @@ export async function claimPanelPhonePairing(pairToken: string): Promise<PanelPh
     }
     return (await res.json()) as PanelPhoneClaimResponse;
   } catch {
+    return null;
+  }
+}
+
+/**
+ * LAN claim against the PC's plain-HTTP listener taken straight from the QR
+ * (`host`:`httpPort`), NOT resolveHttp() — which on hellonexus.com points at
+ * localhost. Used as the fast-path probe in the internet-pairing flow: when
+ * the phone shares the LAN with the PC this succeeds in a few ms; off-LAN it
+ * times out via `signal` and the caller falls through to the relay claim.
+ */
+export async function claimPanelPhonePairingLan(
+  host: string,
+  httpPort: string,
+  pairToken: string,
+  signal?: AbortSignal,
+): Promise<PanelPhoneClaimResponse | null> {
+  try {
+    const res = await fetch(`http://${host}:${httpPort}/panel/phone/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pairToken }),
+      signal,
+    });
+    if (!res.ok) {
+      try { return (await res.json()) as PanelPhoneClaimResponse; }
+      catch { return null; }
+    }
+    return (await res.json()) as PanelPhoneClaimResponse;
+  } catch {
+    // Aborted (timeout) or unreachable host both land here ⇒ LAN unavailable.
     return null;
   }
 }

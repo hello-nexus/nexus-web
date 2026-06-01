@@ -30,22 +30,21 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
   const { t } = useTranslation();
 
   // All server persistence + local mirror + theme/accent application goes
-  // through this hook now. No fetchPreferences/savePreferences in this file.
+  // through this hook. No fetchPreferences/savePreferences in this file.
   const { settings: ui, update: updateUi } = useUiSettings();
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- prop signature matches ProfilesTab's onPreferencesChanged callback
   const onPreferencesChanged = useCallback((_prefs: Preferences) => {
-    // Kept for ProfilesTab compatibility. The UiSettingsProvider already
-    // reloads + re-applies theme/accent/language on profile switch, so this
-    // callback is effectively a no-op -- retained to avoid rewiring the
-    // ProfilesTab prop chain in the same PR.
+    // No-op: UiSettingsProvider already reloads + re-applies
+    // theme/accent/language on profile switch. Kept to satisfy ProfilesTab's
+    // onPreferencesChanged prop.
   }, []);
 
   const tab: SettingsTab = urlTab && VALID_TABS.includes(urlTab as SettingsTab)
     ? urlTab as SettingsTab : 'general';
 
   // View the unified settings through the legacy `NexusSettings` shape so
-  // the tab components don't need their own rewrite in this pass.
+  // the tab components don't need their own rewrite.
   const settings = useMemo<NexusSettings>(() => ({
     general: {
       language: ui.language,
@@ -73,11 +72,9 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
     updateUi(patch);
   }, [updateUi]);
 
-  // Match every other primary view: when the local service isn't detected
-  // the page shows the ServiceRequired overlay (Launch / download / Safari
-  // note) instead of controls that silently can't persist. Tabs on the
-  // header stay visible but disabled so the user knows where they'd land
-  // once the service is up.
+  // When the local service isn't detected, show the ServiceRequired overlay
+  // instead of controls that can't persist. Header tabs stay visible but
+  // disabled.
   if (!serviceOnline) {
     return (
       <div className={styles.settings}>

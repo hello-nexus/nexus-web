@@ -5,8 +5,8 @@
   user-select: none;
 }
 
-/* Rainbow strip - rendered as SVG arcs in PaletteRing.tsx, not CSS. This
-   rule just enables crisp rendering for the sliced donut. */
+/* Rainbow strip — SVG arcs (in PaletteRing.tsx), not CSS. This rule sets
+   crisp rendering for the sliced donut. */
 .rainbow {
   shape-rendering: geometricPrecision;
 }
@@ -25,11 +25,9 @@
   &:active { cursor: grabbing; }
 }
 
-/* Full-radius pie slice over the un-selected sector. Pure black (not the
-   theme bg) so it reads as "darker" in both light and dark modes - on a
-   light theme `var(--bg-elevated)` is a pale colour which desaturates the
-   rainbow rather than darkening it, making the dim look like it stops at
-   the ring midline. A real dark fill darkens uniformly all the way out. */
+/* Full-radius pie slice over the un-selected sector. Pure black (not theme
+   bg) darkens uniformly in both light and dark modes; a pale theme bg would
+   desaturate the rainbow rather than darken it. */
 .dim {
   fill: #000;
   fill-opacity: 0.55;
@@ -53,17 +51,15 @@
   }
 }
 
-/* Cursor is tugging at the snap boundary - accent-glow halo signals
-   "keep pulling to pop open / release to snap shut". No stroke (would
-   expand visible radius beyond the ring), glow comes from drop-shadow. */
+/* Accent-glow halo shown while the handle is at a snap boundary. No stroke
+   (would expand the visible radius beyond the ring); glow is drop-shadow. */
 .handleHint {
   filter: drop-shadow(0 0 8px var(--accent-glow-shadow)) drop-shadow(0 0 2px var(--accent-glow));
 }
 
 /* Split tabs on the tangential edges of the merged (snapped) handle.
-   Invisible by default; fade in when the user hovers the merged group so
-   the affordance is "hidden until you're near it". Clicking a tab pulls
-   the handles apart in that direction. */
+   Invisible by default; fade in on hover of the merged group. Clicking a
+   tab pulls the handles apart in that direction. */
 .splitTab {
   fill: var(--accent);
   stroke: #fff;
@@ -83,7 +79,7 @@
   &:hover .splitTab {
     opacity: 0.95;
   }
-  /* Tab hover emphasises just that one */
+  /* Hovering a single tab enlarges only that one. */
   .splitTab:hover {
     transform: scale(1.2);
     filter: drop-shadow(0 0 4px var(--accent-glow-shadow));

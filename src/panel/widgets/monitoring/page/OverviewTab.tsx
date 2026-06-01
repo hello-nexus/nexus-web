@@ -49,8 +49,8 @@ export function OverviewTab({ frame, hist, onNavigate }: {
   const netUpHistory = padTo60(hist.netUp);
 
   // Source CPU/Memory from the same LHM sensors the monitoring widget reads,
-  // so the overview card and the per-tab chart show identical values. The
-  // `hist`/`totalCpu` props are still consumed by the sparklines below.
+  // so the overview card and per-tab chart show identical values. `hist`/
+  // `totalCpu` props are consumed by the sparklines below.
   const cpuTotalSensor = frame?.cpu?.sensors?.find(s => s.name === 'CPU Total');
   const cpuFromSensor = cpuTotalSensor?.value ?? 0;
   const displayCpu = cpuFromSensor > 0 ? cpuFromSensor
@@ -60,9 +60,8 @@ export function OverviewTab({ frame, hist, onNavigate }: {
   const gpuParts = gpuLoad ? formatPercentParts(gpuLoad.value) : null;
   const memUsedSensor = memorySensors.find(s => s.name === 'Memory Used');
   const memPctFromUsage = memUsage ? Math.round(memUsage.value) : 0;
-  // theoreticalMaximum (GB) ships on the Memory Used sensor itself — single
-  // source of truth, no separate /system/memory/total fetch or frame.memoryTotal
-  // parse. Fall back to the frame's string only for older services.
+  // theoreticalMaximum (GB) ships on the Memory Used sensor itself. Fall back
+  // to the frame's string only for older services that omit it.
   const totalMemGbFromSensor = memUsedSensor?.theoreticalMaximum ?? 0;
   const totalMemGb = totalMemGbFromSensor > 0
     ? totalMemGbFromSensor.toFixed(0)
@@ -73,7 +72,7 @@ export function OverviewTab({ frame, hist, onNavigate }: {
   const displayMemPct = formatMemoryPercent(memPct || memPctFromUsage);
   const usedMemGb = (usedMemMb / 1024).toFixed(1);
 
-  // Top processes by CPU — aggregate by name first (Windows sends duplicates)
+  // Top processes by CPU; aggregate by name first (Windows sends duplicates).
   const procMap = new Map<string, { cpu: number; mem: number; net: number }>();
   for (const p of processes?.processes ?? []) {
     const existing = procMap.get(p.name);

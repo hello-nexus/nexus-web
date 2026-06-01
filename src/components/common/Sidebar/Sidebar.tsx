@@ -33,10 +33,8 @@ interface SidebarProps {
   active: string;
   onChange: (key: string) => void;
   // Text of the section header rendered above `items`. When
-  // `onSectionLabelClick` is also provided the header is a button —
-  // active state surfaces the same accent treatment a selected item
-  // gets, so the header reads as a first-class destination (today:
-  // APPS = the dashboard landing).
+  // `onSectionLabelClick` is also provided the header is a button with the
+  // same active accent treatment as a selected item (APPS = dashboard).
   sectionLabel: string;
   onSectionLabelClick?: () => void;
   sectionLabelActive?: boolean;
@@ -279,21 +277,18 @@ export function Sidebar({
             onClick={onSectionLabelClick}
             aria-label={sectionLabel}
           >
-            {/* Compact mode shows just the localized first letter —
-                "A" for APPS in English, "Α" in Greek, "应" in Chinese,
-                etc. The expanded mode shows the full uppercase label.
-                Either way the underline pseudo-element below the row
-                visually anchors the section so the header reads as a
-                heading rather than another tappable device row. */}
+            {/* Compact mode shows the localized first letter ("A" for APPS
+                in English, "Α" in Greek, "应" in Chinese); expanded shows the
+                full uppercase label. The underline pseudo-element below the
+                row marks it as a section heading, not a device row. */}
             <span className={styles.sectionHeaderLabel}>
               {compact ? Array.from(sectionLabel)[0]?.toLocaleUpperCase() ?? '' : sectionLabel}
             </span>
           </button>
         ) : (
-          // Non-interactive header — collapses out in compact mode (no
-          // affordance to tap, so no need to reserve the row). Today
-          // every consumer passes onSectionLabelClick, but keep the
-          // fallback for completeness.
+          // Non-interactive header — collapses out in compact mode (nothing
+          // to tap). Fallback; every consumer currently passes
+          // onSectionLabelClick.
           !compact && <div className={styles.sectionLabel}>{sectionLabel}</div>
         )
       )}

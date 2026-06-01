@@ -99,9 +99,8 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
   const initial = displayName.charAt(0).toUpperCase();
 
   // Single trigger button that fills the wrapper so the entire bordered
-  // .sidebarHeaderBox in Dashboard becomes the click target (was previously
-  // a small letterCircle in compact / inline trigger row in expanded, both
-  // leaving dead pixels around them inside the box).
+  // .sidebarHeaderBox in Dashboard becomes the click target (no dead pixels
+  // around a smaller inner control).
   const triggerButton = (
     <button
       type="button"

@@ -2,16 +2,34 @@
 // Override host/port via Vite env vars VITE_SERVICE_HOST / VITE_SERVICE_PORT.
 // All authenticated calls include the Bearer token obtained via /pair.
 
-import { getToken, handleUnauthorized } from './auth';
+import { getToken, handleUnauthorized, hasSessionToken } from './auth';
+import { relayFetch, type RelayHttpMethod } from './relayHttp';
 
 const DEFAULT_SERVICE_PORT = '9400';
 const DEFAULT_HTTPS_PORT = '9443';
 const SERVICE_PORT = import.meta.env.VITE_SERVICE_PORT || DEFAULT_SERVICE_PORT;
 
+// Cloud relay fallback endpoint. The relay is a WSS gateway INSIDE nexus-api
+// (Railway, api.hellonexus.com) at path /relay — an opaque byte-forwarder used
+// only when the LAN /ws path fails. It lives at the api origin, NOT the local
+// service: unlike resolveWs() this never points at the LAN host. Overridable
+// via VITE_RELAY_URL for local/dev relay testing. Keep in sync with the
+// host-side RELAY_URL constant in nexus-service.
+const DEFAULT_RELAY_URL = 'wss://api.hellonexus.com/relay';
+const RELAY_URL = import.meta.env.VITE_RELAY_URL || DEFAULT_RELAY_URL;
+
 const locationHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 const locationPort = typeof window !== 'undefined' ? window.location.port : '';
 const locationProtocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
 const isServedFromService = locationPort === DEFAULT_SERVICE_PORT || locationPort === DEFAULT_HTTPS_PORT;
+
+// True when the SPA is loaded from a REMOTE origin (hellonexus.com, a Vite dev
+// server, anything that is NOT the local service on :9400/:9443). On such an
+// origin there is NO localhost PC to reach: resolveHttp() would point at
+// http://localhost (wrong host — that's the phone, not the PC — and
+// mixed-content-blocked on an https page), so REST + /ws MUST go over the cloud
+// relay from the very first call. Deterministic from the origin, computed once.
+export const isRemoteOrigin = !isServedFromService;
 
 // If the SPA is served from the service itself, keep the same origin/protocol.
 // If served from Vite or hellonexus.com, fall back to the local HTTP service.
@@ -29,6 +47,80 @@ export function resolveHttp(path: string): string {
 
 export function resolveWs(path: string): string {
   return `${SERVICE_PROTOCOL === 'https:' ? 'wss' : 'ws'}://${endpoint}${path}`;
+}
+
+/** Resolve the cloud relay WSS URL (api origin, path /relay). */
+export function resolveRelayWs(): string {
+  return RELAY_URL;
+}
+
+// Which transport the panel's live multiplex connection runs over. Set by
+// useMultiplexSocket (its only writer) whenever the active transport changes:
+// 'lan' for the direct /ws socket, 'relay' for the cloud RelayChannel fallback,
+// null while disconnected. The fetch layer reads it to decide whether REST
+// calls go directly to the local service (LAN) or tunnel over the relay. A
+// module-level signal keeps the fetch helpers' signatures unchanged — callers
+// stay oblivious to which transport is live.
+let activeTransport: 'lan' | 'relay' | null = null;
+
+/**
+ * Publish the live multiplex transport so the REST fetch layer can route
+ * accordingly. Called only by useMultiplexSocket as the connection opens /
+ * closes. Off-LAN (transport === 'relay') REST calls tunnel over the relay;
+ * otherwise they hit the local service directly (the unchanged LAN path).
+ */
+export function setActiveTransport(transport: 'lan' | 'relay' | null): void {
+  activeTransport = transport;
+}
+
+/**
+ * The transport the fetch layer should route over RIGHT NOW.
+ *
+ * Normally this is just `activeTransport` (set by useMultiplexSocket as the
+ * live connection opens/closes). But on a REMOTE origin there is no localhost
+ * PC to reach, so before the multiplex socket has even opened — i.e. for the
+ * panel's very first REST calls (device alloc/patch, ping) — we must ALREADY be
+ * on the relay, or those early fetches hit http://localhost (wrong + mixed-
+ * content-blocked) and surface a bogus "could not reach the service".
+ *
+ * So when served remotely and a session token exists (the rid can be derived),
+ * default to 'relay' until useMultiplexSocket explicitly publishes a transport.
+ * Gating on the token avoids dialing the relay before pairing has stored one.
+ * On a local (service-served) origin this returns `activeTransport` unchanged,
+ * so the LAN-first-with-relay-fallback behavior is untouched.
+ */
+function effectiveTransport(): 'lan' | 'relay' | null {
+  if (activeTransport !== null) return activeTransport;
+  if (isRemoteOrigin && hasSessionToken()) return 'relay';
+  return null;
+}
+
+/**
+ * Whether REST/WS should tunnel over the cloud relay right now: either the live
+ * multiplex transport is the relay, or we're on a remote origin with a token
+ * and the multiplex socket hasn't opened yet (eager relay). Read by the fetch
+ * helpers and by useMultiplexSocket to skip the doomed localhost /ws attempt.
+ */
+export function isRelayActive(): boolean {
+  return effectiveTransport() === 'relay';
+}
+
+/**
+ * A direct window.fetch(resolveHttp(...)) here would target http://localhost —
+ * which on a REMOTE origin is the wrong host (the phone, not the PC) AND
+ * mixed-content-blocked on an https page. So when we're on a remote origin but
+ * the relay isn't usable yet (no session token to derive the rid — e.g. the
+ * pre-pairing /r/pair boot), the direct fetch must NOT fire: fail closed
+ * instead. On a local (service-served) origin this is always false, so the LAN
+ * fetch path is untouched.
+ *
+ * An EXPLICIT 'lan' transport is the one exception: useMultiplexSocket only
+ * publishes 'lan' after a direct /ws socket actually OPENED, which on a remote
+ * origin can't happen — so a published 'lan' means localhost actually is
+ * reachable (a service-served origin), and the direct fetch is allowed.
+ */
+function blockedLocalhostFetch(): boolean {
+  return isRemoteOrigin && activeTransport !== 'lan' && !isRelayActive();
 }
 
 /** Resolve a WS URL with the auth token as a query parameter. */
@@ -54,6 +146,19 @@ interface RequestOptions {
 }
 
 async function authFetch(path: string, opts: RequestOptions = {}): Promise<Response | null> {
+  // Off-LAN: the panel is connected via the cloud relay, so the local service
+  // HTTP endpoint is unreachable. Tunnel the call over the relay HTTP channel
+  // instead. The tunnel is already authenticated as this phone session
+  // server-side, so no bearer is sent. Transparent to callers: a Response-like
+  // object is synthesized so fetchService/.json() etc. work unchanged. Also
+  // covers the eager case (remote origin + token, multiplex not yet open).
+  if (isRelayActive()) {
+    return relayAuthFetch(path, opts);
+  }
+
+  // Remote origin without a usable relay yet ⇒ never hit http://localhost.
+  if (blockedLocalhostFetch()) return null;
+
   try {
     const token = await getToken();
     const headers: Record<string, string> = {};
@@ -85,6 +190,59 @@ async function authFetch(path: string, opts: RequestOptions = {}): Promise<Respo
   }
 }
 
+// Run an authFetch-equivalent request over the relay HTTP tunnel. The PC
+// dispatches it authorized as this relay session's phone session (no bearer
+// needed). Returns the same Response|null contract as the LAN path: null on a
+// non-2xx status or any transport failure, so every existing caller behaves
+// identically off-LAN.
+async function relayAuthFetch(path: string, opts: RequestOptions): Promise<Response | null> {
+  try {
+    const token = await getToken();
+    const method = (opts.method ?? 'GET') as RelayHttpMethod;
+    const hasBody = opts.body !== undefined;
+    const body = hasBody ? JSON.stringify(opts.body) : null;
+    const contentType = hasBody ? 'application/json' : null;
+    const res = await relayFetch(token, resolveRelayWs(), method, path, body, contentType);
+    if (res.status < 200 || res.status >= 300) return null;
+    return toResponse(res.status, res.body, res.contentType);
+  } catch {
+    return null;
+  }
+}
+
+// Build a real Response from a relay tunnel result so callers can use
+// .json()/.blob()/.text() exactly as they would for a window.fetch response.
+function toResponse(status: number, body: string, contentType: string | null): Response {
+  const headers: Record<string, string> = {};
+  if (contentType) headers['Content-Type'] = contentType;
+  return new Response(body, { status, headers });
+}
+
+/**
+ * Status-preserving relay request for the few callers that bypass authFetch to
+ * read the raw HTTP status (the panel.ts *WithStatus helpers + form upload).
+ * Unlike relayAuthFetch this does NOT collapse a non-2xx to null — it returns
+ * the real Response (and a status of 0 on a transport failure) so those callers
+ * branch on 401/403/404 over the relay exactly as they do on the LAN. Used only
+ * when isRelayActive(); the LAN path is the unchanged window.fetch below.
+ */
+export async function relayRequestWithStatus(
+  method: RelayHttpMethod,
+  path: string,
+  body?: unknown,
+): Promise<{ response: Response | null; status: number }> {
+  try {
+    const token = await getToken();
+    const hasBody = body !== undefined;
+    const payload = hasBody ? JSON.stringify(body) : null;
+    const contentType = hasBody ? 'application/json' : null;
+    const res = await relayFetch(token, resolveRelayWs(), method, path, payload, contentType);
+    return { response: toResponse(res.status, res.body, res.contentType), status: res.status };
+  } catch {
+    return { response: null, status: 0 };
+  }
+}
+
 export async function fetchService<T>(path: string): Promise<T | null> {
   const r = await authFetch(path, { cache: 'no-store' });
   return r ? (await r.json()) as T : null;
@@ -111,6 +269,11 @@ export async function patchService<T>(path: string, body: unknown): Promise<T | 
 }
 
 export async function postServiceForm<T>(path: string, form: FormData): Promise<T | null> {
+  // Form uploads can't be JSON-tunneled (the relay HTTP frame carries a string
+  // body, not multipart). On a remote origin there's no localhost to reach, so
+  // rather than fire a doomed mixed-content request, fail closed like a
+  // non-2xx. (Media import is a LAN/desktop affordance; off-LAN it's a no-op.)
+  if (isRelayActive() || blockedLocalhostFetch()) return null;
   try {
     const token = await getToken();
     const headers: Record<string, string> = {};
@@ -139,8 +302,16 @@ export async function fetchServiceBlob(path: string): Promise<Blob | null> {
   return r ? await r.blob() : null;
 }
 
-/** Ping is public - no token needed. */
+/** Ping is public - no token needed. Tunnels over the relay when off-LAN so a
+ * remote-origin panel never fires an http://localhost ping (wrong host +
+ * mixed-content-blocked); the host answers it over the rid_http channel. */
 export async function pingService(): Promise<PingResponse | null> {
+  if (isRelayActive()) {
+    const { response } = await relayRequestWithStatus('GET', '/ping');
+    if (!response || !response.ok) return null;
+    return (await response.json()) as PingResponse;
+  }
+  if (blockedLocalhostFetch()) return null;
   try {
     const response = await fetch(resolveHttp('/ping'));
     if (!response.ok) return null;

@@ -5,13 +5,8 @@ import { useEffect, type RefObject } from 'react';
  * on the document while `enabled` is true; fires `onClose()` when the click
  * target is not a descendant of `ref`.
  *
- * Prefer this over rolling your own listener in every popover component -
- * ProfileDropdown, the builder row gear menu, and any future dropdown all
- * want the same behaviour, and getting the cleanup / dep-array wrong is
- * a common source of stuck listeners.
- *
  * Uses `mousedown` (not `click`) so the popover closes before any embedded
- * button's onClick fires. Matches the platform convention for menus.
+ * button's onClick fires.
  */
 export function useClickOutside<T extends HTMLElement>(
   ref: RefObject<T | null>,

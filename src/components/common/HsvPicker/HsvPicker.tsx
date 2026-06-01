@@ -9,9 +9,9 @@ import styles from './HsvPicker.module.scss';
  *   - Hex input (live-validated /^#[0-9a-f]{6}$/i; reverts to last valid on blur)
  *
  * Pointer drag fires `onPreview(hex)` on every move (live theme application
- * without persistence) and `onCommit(hex)` once on release. Replaces the
- * native <input type="color"> which rendered a truncated palette under
- * some WebView2 builds.
+ * without persistence) and `onCommit(hex)` once on release. Custom because the
+ * native <input type="color"> renders a truncated palette under some WebView2
+ * builds.
  */
 export interface HsvPickerProps {
   value: string;

@@ -43,9 +43,8 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
   const showControls = surface ? surfaceSupportsTouch(surface) : true;
   const compact = widget.size === '2x2';
   const tall = widget.size === '2x4';
-  // Tall (2x4) is a portrait now-playing card with art on top, metadata
-  // and controls centered below — no room for the persistent volume
-  // mixer rail without crowding the layout.
+  // Tall (2x4) is a portrait card (art over centered metadata +
+  // controls) with no room for the persistent volume mixer rail.
   const volumeBridge = useSystemVolume(showControls && !compact && !tall);
   const { state: volume, previewVolume, commitVolume, setMuted } = volumeBridge;
 

@@ -6,9 +6,8 @@ import { ServiceRequired } from './ServiceRequired';
 import { GenericSkeleton } from './PageSkeleton/PageSkeleton';
 import { Card } from '../common/Card/Card';
 import { Button } from '../common/Button/Button';
-// Storybook lives behind the debug Tools page in every build. Lazy so the
-// component-catalog chunk is split out and only fetched when the user
-// actually opens it - the rest of the app loads without paying for it.
+// Storybook lives behind the debug Tools page. Lazy so the component-catalog
+// chunk is split out and only fetched when the user opens it.
 const StorybookModal = lazy(() =>
   import('../../storybook/StorybookModal').then(m => ({ default: m.StorybookModal })),
 );
@@ -40,10 +39,10 @@ interface PawnIoStatus {
 }
 
 /*
- * Internal Debug Tools page. Now rendered as the "Dev tools" tab inside the
- * Settings page (no longer a standalone top-bar route), so the tab label
- * itself supplies the page heading — this view starts straight at the card
- * grid. Cards here are diagnostics + developer utilities only.
+ * Internal Debug Tools page, rendered as the "Dev tools" tab inside the
+ * Settings page. The tab label supplies the page heading, so this view
+ * starts straight at the card grid. Cards here are diagnostics + developer
+ * utilities only.
  */
 export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
   if (!serviceOnline) {
@@ -87,10 +86,8 @@ function StorybookCard() {
 
 /**
  * Widget SDK reference card. Opens the storybook-style /widget-reference
- * page in a new tab — every meter tag, every binding function, every data
- * source type, every dispatch action with live previews. This is the
- * system bible we hand to third-party widget authors AND review ourselves
- * as the SDK grows.
+ * page in a new tab — every meter tag, binding function, data source type,
+ * and dispatch action with live previews.
  */
 function WidgetSdkCard() {
   return (
@@ -146,8 +143,7 @@ function PawnIoCard() {
 // can find-and-replace the corresponding block in
 // nexus-service/data/install-defaults.json.
 //
-// "dashboard" is a virtual row that maps to panel.layouts.desktop (the
-// install-defaults file nests it; users think of it as its own thing).
+// "dashboard" is a virtual row mapping to panel.layouts.desktop.
 function InstallDefaultsCard() {
   const [open, setOpen] = useState(false);
 

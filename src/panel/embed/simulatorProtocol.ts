@@ -1,9 +1,7 @@
-// postMessage protocol used between PanelDeviceModal (parent) and the
-// iframe-hosted /panel?simulator=1 runtime. The parent owns the canonical
-// layout and theme; the iframe is a renderer + interaction surface that
-// echoes user actions back as 'layout-changed' messages. This mirrors how
-// the real device works: layout state lives outside the kiosk render and
-// the kiosk is told what to draw.
+// postMessage protocol between PanelDeviceModal (parent) and the iframe-hosted
+// /panel?simulator=1 runtime. The parent owns the canonical layout + theme;
+// the iframe renders and echoes user actions back as 'layout-changed'. Mirrors
+// the real device: layout lives outside the kiosk, which is told what to draw.
 
 import type { PanelLayout, PanelSurface } from '../types';
 import type { PanelThemeSettingsState } from '../editor/PanelThemeSettings';

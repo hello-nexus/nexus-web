@@ -103,7 +103,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
   }, []);
 
   // Load curves + fan-state mapping + temperature sources for the response
-  // chart. Mirrors CoolingView's normalisation: the API ships curves keyed
+  // chart. Mirrors CoolingPage's normalisation: the API ships curves keyed
   // by "input.id" / "Flat|Linear|Graph|Mixed" so we adapt to the shared
   // CurveDef shape that computeCurveSpeed expects. Fan→curve assignment is
   // derived from each curve's `outputs` plus any channel whose mode is

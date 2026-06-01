@@ -23,17 +23,14 @@ export interface PanelWidgetCatalogProps {
   variant?: 'panel-sheet' | 'desktop-modal';
   aspect?: 'natural' | 'square';
   themeMode?: 'dark' | 'light';
-  // Inline CSS variables driving the panel theme (--panel-accent etc. and
-  // the full --accent family from buildPanelThemeVars). When the catalog
-  // renders inside the desktop chrome — e.g. the device-management modal —
-  // its surrounding stylesheet sets --accent to the desktop's accent, not
-  // the device's. Without this prop the search input + widget previews
-  // would highlight in the desktop's hue instead of the panel's.
+  // Inline panel-theme CSS vars (--panel-accent + the --accent family from
+  // buildPanelThemeVars). Inside desktop chrome (e.g. the device-management
+  // modal) the surrounding stylesheet sets --accent to the desktop's accent;
+  // without this prop the search input + previews highlight in the wrong hue.
   themeStyle?: CSSProperties;
   className?: string;
-  // Highlight the catalog card matching this widget type. Used by
-  // single-widget surfaces (q-series) so the user can see which entry
-  // is currently the active widget on the device.
+  // Highlight the card matching this widget type. Used by single-widget
+  // surfaces (q-series) to mark the device's active widget.
   selectedWidgetType?: string;
 }
 
@@ -51,9 +48,8 @@ export function PanelWidgetCatalog({
 }: PanelWidgetCatalogProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
-  // Force a re-render when the marketplace registry refreshes — the
-  // catalog reads from a module-level cache, so React has no way to
-  // observe writes without an explicit subscription.
+  // Force re-render on marketplace registry refresh — the catalog reads a
+  // module-level cache React can't observe without an explicit subscription.
   const forceRender = useReducer((r: number) => r + 1, 0)[1];
   const normalised = query.trim().toLowerCase();
 
@@ -64,10 +60,9 @@ export function PanelWidgetCatalog({
     return subscribeMarketplaceRegistry(forceRender);
   }, [forceRender]);
 
-  // Filter: only show built-ins + the allowlisted marketplace widgets. The
-  // marketplace registry may surface more bundled widgets than this allowlist
-  // (so already-placed instances still render via lookupApp), but the
-  // Add-a-Widget picker stays curated while the declarative SDK is in beta.
+  // Show built-ins + allowlisted marketplace widgets only. The registry may
+  // carry more bundled widgets than the allowlist (already-placed instances
+  // still render via lookupApp); the Add-a-Widget picker stays curated.
   const entries = getCatalogEntries().filter(([type, def]) => {
     if (!appAvailableForSurface(def.meta, surface)) return false;
     if (isMarketplaceType(type)) {
@@ -76,8 +71,7 @@ export function PanelWidgetCatalog({
     }
     return true;
   });
-  // Split into built-ins and marketplace so the picker can put a
-  // "MARKETPLACE (BETA)" separator between the two groups.
+  // Split built-ins from marketplace for the "MARKETPLACE (BETA)" separator.
   const builtIns = entries.filter(([type]) => !isMarketplaceType(type));
   const marketplace = entries.filter(([type]) => isMarketplaceType(type));
   const matchesSearch = (type: string, def: { meta: { i18nKey: string } }) => {

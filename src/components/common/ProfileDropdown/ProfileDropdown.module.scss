@@ -60,8 +60,7 @@
   text-overflow: ellipsis;
 }
 
-// Now a styled span inside the trigger button (was its own button in compact
-// mode). Visual treatment unchanged; just no longer interactive itself.
+// Avatar letter circle inside the trigger button.
 .letterCircle {
   display: grid;
   place-items: center;

@@ -1,6 +1,6 @@
 @use '../../styles/text' as *;
 
-/* Debug Tools page. Now rendered as a tab inside the Settings page, so the
+/* Debug Tools page, rendered as a tab inside the Settings page, so the
    layout matches the rest of the settings tabs: a single column constrained
    to var(--page-content-max), one card per row. Card chrome lives on the
    shared Card primitive; this file owns the page layout + kv/btn
@@ -153,9 +153,8 @@
 }
 
 // ── Install-defaults export modal ───────────────────────────────────────────
-// DeviceModal's body already owns the scrollbar (overflow-y: auto). The
-// content here is a plain stacked column — no inner scrollers, no flex
-// heroics. The modal body grows up to its max-height and the body scrolls.
+// DeviceModal's body owns the scrollbar (overflow-y: auto). This content is
+// a plain stacked column with no inner scrollers; the body scrolls.
 
 .installDefaultsModal {
   display: flex;

@@ -143,18 +143,16 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
                 className={`${styles.profileCard} ${isActive ? styles.profileCardActive : ''} ${dragOverId === p.id ? styles.profileCardDragOver : ''}`}
                 draggable
                 onMouseDownCapture={(e) => {
-                  // Mirrors FanCard: flip the host's draggable to false
-                  // BEFORE the browser starts drag tracking when the
-                  // pointer lands on an interactive child. The child's
-                  // own click handler then runs unobstructed.
+                  // Flip the host's draggable to false BEFORE the browser
+                  // starts drag tracking when the pointer lands on an
+                  // interactive child, so the child's click handler runs.
                   const target = e.target as HTMLElement;
                   const interactive = !!target.closest(profileInteractiveSelector);
                   e.currentTarget.draggable = !interactive;
                 }}
                 onDragStart={(e) => {
-                  // Belt + suspenders gate matching FanCard - cancels any
-                  // drag whose source is an interactive child even if the
-                  // capture-phase toggle didn't catch it.
+                  // Secondary gate: cancel any drag whose source is an
+                  // interactive child the capture-phase toggle missed.
                   const target = e.target as HTMLElement;
                   if (target.closest(profileInteractiveSelector)) {
                     e.preventDefault();

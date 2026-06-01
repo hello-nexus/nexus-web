@@ -18,10 +18,9 @@ export function SidebarBrand({ compact, onLogoClick, onToggleCompact, logoLabel,
   logoLabel: string;
   collapseLabel: string;
 }) {
-  // The brand logo (mark when compact, mark+wordmark when expanded) is a
-  // click target that navigates to the Apps landing — it never toggles the
-  // sidebar's compact state. Collapse/expand is handled by the right-edge
-  // strip (.collapseEdge) and the inline collapse button below.
+  // The brand logo navigates to the Apps landing; it never toggles compact
+  // state. Collapse/expand is the right-edge strip (.collapseEdge) and the
+  // inline collapse button below.
   return (
     <div className={styles.sidebarBrand}>
       <HoverTooltip body={logoLabel} side="right">
@@ -102,11 +101,9 @@ export function NotConnectedBadge({ state, t, compact }: {
 // ── Sidebar footer (debug + version) ────────────────────────────────────────
 
 /**
- * Bottom-left sidebar conflict warning slot. Reads the user's
- * <c>disableConflictAlerts</c> preference from the UiSettings context so we
- * can both gate the WebSocket subscription (no point polling when the user
- * hid the badge) and let the in-modal "Don't show again" checkbox persist
- * the flag through the same write path.
+ * Bottom-left sidebar conflict warning slot. The `disableConflictAlerts`
+ * UiSettings pref gates the WebSocket subscription and is the same flag the
+ * in-modal "Don't show again" checkbox persists.
  */
 export function SidebarConflictSlot({ serviceOnline, compact }: {
   serviceOnline: boolean;
@@ -132,10 +129,9 @@ export function SidebarConflictSlot({ serviceOnline, compact }: {
 // on other platforms. Styled to mimic Win11 caption buttons so the row reads
 // as one integrated chrome strip.
 
-// Browser-style back/forward chevrons pinned to the top-right strip, sitting
-// to the left of the settings button with a small gap so they read as their
-// own cluster. Desktop-app build only — see the __SERVICE_BUILD__ gate at
-// the Dashboard render site.
+// Browser-style back/forward chevrons in the top-right strip, left of the
+// settings button. Desktop-app build only — see the __SERVICE_BUILD__ gate
+// at the Dashboard render site.
 export function TopRightNavButton({ direction, disabled, onClick }: {
   direction: 'back' | 'forward';
   disabled: boolean;
@@ -161,7 +157,7 @@ export function TopRightNavButton({ direction, disabled, onClick }: {
   );
 }
 
-// Tiny + faded version label pinned to the bottom-left of the layout.
+// Version label pinned to the bottom-left of the layout.
 export function PageVersionLabel() {
   return <span className={styles.pageVersion}>{__APP_VERSION__} alpha</span>;
 }

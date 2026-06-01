@@ -5,7 +5,7 @@ export type ScaleMode = 'adaptive' | 'fixed';
 
 export const DEFAULT_SCALE_MODE: ScaleMode = 'adaptive';
 
-/** Designs whose visual is a line trace and benefit from a configurable Y range. */
+/** Line-trace designs that support a configurable Y range. */
 const SCALABLE_DESIGNS = new Set<GaugeDesignKey>(['sparkline', 'line']);
 
 export function designSupportsScale(design: GaugeDesignKey): boolean {
@@ -40,7 +40,7 @@ const FRAME_TIME_STEP = 10;
  * flat-mid line does not jam against the ceiling.
  *
  * Network passes its already-relative ceiling via `staticMax` (computed by
- * `networkMaxValue`), so we just adopt it.
+ * `networkMaxValue`), which is adopted as-is.
  */
 export function relativeHistoryDomain(
   device: DeviceKey,

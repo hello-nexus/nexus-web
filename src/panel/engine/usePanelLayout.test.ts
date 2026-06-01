@@ -32,9 +32,8 @@ describe('normalizePanelLayout registry reconciliation', () => {
   });
 
   it('drops widgets that are not supported on the current surface', () => {
-    // lighting is touch-only, so it's never available on q60 even after
-    // the capability-based filter was introduced (q60 = has 2x4 + not
-    // touch-only). Use it as the canonical "unsupported on q60" example.
+    // lighting is touch-only, so it's never available on q60 (q60 has
+    // 2x4 but is not touch). Canonical "unsupported on q60" example.
     const result = normalizePanelLayout(
       layout([widget({ id: 'a', type: 'lighting', size: '2x2' })]),
       'q60',
@@ -74,13 +73,11 @@ describe('normalizePanelLayout registry reconciliation', () => {
   });
 
   it('re-flows row-major when a size snap introduces overlap with siblings', () => {
-    // monitoring at 2x4 sits at (0, 0); a sibling at (2, 0) at 2x2 fits
+    // monitoring at 2x4 sits at (0, 0); a 2x2 sibling at (2, 0) fits
     // beside it without overlap. On y70 the 2x4 size is reserved for
-    // single-widget surfaces, so reconcile snaps it to 4x2 — which would
-    // now overlap the sibling at cols 2-3 / rows 0-1 if positions were
-    // left untouched. The post-reconcile re-flow detects the overlap and
-    // re-packs both widgets row-major so the layout never lands in a
-    // visually broken state that locks out subsequent edits.
+    // single-widget surfaces, so reconcile snaps it to 4x2, which
+    // overlaps the sibling at cols 2-3 / rows 0-1. The post-reconcile
+    // re-flow detects the overlap and re-packs both widgets row-major.
     const result = normalizePanelLayout(
       layout([
         widget({ id: 'mon', type: 'monitoring', size: '2x4', col: 0, row: 0 }),

@@ -1,6 +1,5 @@
-// Vendor-agnostic WebHID peripheral manager. Today: Razer. Tomorrow: Logitech
-// HID++ / Corsair Bragi / QMK keyboards — they register in src/lib/webhid/* and
-// appear here without this file changing.
+// Vendor-agnostic WebHID peripheral manager. Vendors register in
+// src/lib/webhid/* and appear here without this file changing.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   isWebHidAvailable,
@@ -27,7 +26,7 @@ export function getWebHidPeripheral(id: string): WebHidPeripheral | undefined {
   return PERIPHERAL_REGISTRY.get(id);
 }
 
-/** Back-compat alias — earlier call sites used `getWebHidMouse`. */
+/** Alias of getWebHidPeripheral for `getWebHidMouse` call sites. */
 export function getWebHidMouse(id: string): WebHidPeripheral | undefined {
   return PERIPHERAL_REGISTRY.get(id);
 }
@@ -118,10 +117,9 @@ export function useWebHidPeripherals(enabled: boolean): WebHidPeripheralState {
     mountedRef.current = true;
     if (!enabled || !available) return;
 
-    // Initial snapshot of granted WebHID devices; subsequent updates
-    // arrive via the navigator.hid connect/disconnect listeners and the
-    // 10s periodic refresh below.
-     
+    // Initial snapshot of granted WebHID devices; subsequent updates arrive
+    // via the navigator.hid connect/disconnect listeners and the 10s refresh
+    // below.
     refresh();
 
     // WebHID fires connect/disconnect when a granted device plugs or unplugs.
@@ -129,8 +127,8 @@ export function useWebHidPeripherals(enabled: boolean): WebHidPeripheralState {
     navigator.hid?.addEventListener('connect', onHidChange as EventListener);
     navigator.hid?.addEventListener('disconnect', onHidChange as EventListener);
 
-    // Periodic refresh so live values (battery %, on-device DPI changes) stay
-    // fresh without hammering the mouse. 10s balances latency vs. load.
+    // Periodic refresh (10s) so live values (battery %, on-device DPI
+    // changes) stay current.
     const id = setInterval(refresh, 10_000);
 
     return () => {

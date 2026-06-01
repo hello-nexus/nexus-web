@@ -169,8 +169,8 @@ export function PanelMixerSlider({
       data-disabled={disabled ? 'true' : 'false'}
       data-panel-scrollable="true"
     >
-      {/* Wrapped so the label's overflow-ellipsis truncation isn't silent —
-          hover restores the full string when the cell is too narrow. */}
+      {/* Tooltip restores the full label when ellipsis-truncated in a
+          too-narrow cell. */}
       {labelText && (
         <HoverTooltip body={labelText} side="top">
           <div className={styles.label}>{labelText}</div>

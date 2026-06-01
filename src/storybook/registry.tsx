@@ -1,9 +1,6 @@
-// Storybook registry intentionally bundles many Preview* components alongside
-// the REGISTRY data array. Splitting each preview into its own file just to
-// satisfy the fast-refresh rule would create dozens of tiny files used only
-// by this index. Component HMR isn't a goal for storybook entries — page
-// reload on edit is acceptable here.
- 
+// Bundles the Preview* components alongside the REGISTRY data array; one
+// file per preview to satisfy the fast-refresh rule would be dozens of tiny
+// files. Storybook entries reload (not HMR) on edit.
 import { useRef, useState, type FC } from 'react';
 import { Monitor, Palette, Sparkles, X, Plus, Settings, Download } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
@@ -534,9 +531,9 @@ function PreviewEffectCard() {
   const [active, setActive] = useState<'overlayA' | 'overlayB' | 'media' | null>('overlayA');
   return (
     <div className={styles.previewStack}>
-      {/* Overlay layout: the shared card used by both the lighting shader
-          browser AND the panel Theme animation picker - full-bleed thumbnail
-          with the label drawn over the lower third. */}
+      {/* Overlay layout: shared by the lighting shader browser and the panel
+          Theme animation picker — full-bleed thumbnail, label over the lower
+          third. */}
       <div className={styles.previewGridTwo}>
         <EffectCard
           overlay
@@ -553,8 +550,8 @@ function PreviewEffectCard() {
           onClick={() => setActive('overlayB')}
         />
       </div>
-      {/* Default (caption-below) layout: the media library grid, with a meta
-          line + hover-reveal delete. Same component, different props. */}
+      {/* Default (caption-below) layout: media library grid, meta line +
+          hover-reveal delete. */}
       <div className={styles.previewGridTwo}>
         <EffectCard
           asDiv

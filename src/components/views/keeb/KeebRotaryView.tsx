@@ -27,7 +27,7 @@ const DEFAULT_FN = 'VolumeAdjustment';
 ///
 /// TODO: Per-app overrides — once `AppDetection` exposes a running-app
 /// list in nexus-service, swap the "All Applications" placeholder for a
-/// real picker. For now the only scope is global.
+/// real picker. Scope is global only.
 export function KeebRotaryView({
   wheel,
   left,

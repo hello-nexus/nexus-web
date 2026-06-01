@@ -178,11 +178,9 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
         {activeTab === 'activity' && (
           <div className={styles.list}>
             {visibleRecent.length > 0 ? visibleRecent.map(game => (
-              // Rows are non-interactive: clicking anywhere on the widget
-              // body (including a row) is meant to open the Steam page
-              // overlay via the panel's tap-to-immersive path. Wrapping
-              // them in a button would suppress that gesture and trap the
-              // click inside the widget.
+              // Rows are non-interactive: a click anywhere on the widget
+              // body opens the Steam page via the panel's tap-to-immersive
+              // path. A button would trap the click and suppress it.
               <div key={game.appId} className={styles.gameRow}>
                 {game.iconHash ? (
                   <img className={styles.gameIcon} src={steamIconUrl(game.appId, game.iconHash)} alt="" />

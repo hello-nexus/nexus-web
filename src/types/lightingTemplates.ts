@@ -32,13 +32,10 @@ const COOL_MONO: Feel = { hue: 0.62, colorize: 0.75, speed: 30, saturation: 1.00
 const GREEN_MONO: Feel = { hue: 0.35, colorize: 0.75, speed: 65, saturation: 1.10, contrast: 1.05, intensity: 1 };
 
 // ── Simple solid-colour fills ──────────────────────────────────────────────
-// Each "simple" effect is the same cheap noise-fill shader; the colour comes
-// entirely from the post-process tint. The 4 template slots are all the SAME
-// base hue, varied only slightly in hue/saturation (a balanced default, a
-// punchy oversaturated take, a soft desaturated one, and a richly-saturated
-// slight-hue-shift) but with WIDELY different speeds so the four presets read
-// as distinct motion - e.g. "Simple Orange" stays orange across all four
-// while ranging from near-still to fast drift. colorize=1 = full tint.
+// Each "simple" effect is the same noise-fill shader; colour comes from the
+// post-process tint. The 4 slots share a base hue (slight hue/saturation
+// variation) but differ widely in speed, so they read as distinct motion
+// while staying the same colour. colorize=1 = full tint.
 const SIMPLE_HUES: Record<string, number> = {
   simplered:    0.00,
   simpleorange: 0.05,
@@ -523,8 +520,8 @@ const PARAM_VARIATIONS: Record<string, [Record<string, number>, Record<string, n
  */
 function feelsForSignature(sig: Feel): [Feel, Feel, Feel, Feel] {
   if (isRainbowSignature(sig)) {
-    // Monochrome stock template: keep the BW look in slot 0 and put the
-    // full rainbow in slot 1 (as requested for prismwave-style effects).
+    // Monochrome stock template: keep the BW look in slot 0, full rainbow
+    // in slot 1.
     if (isMonochromeSignature(sig)) {
       return [sig, RAINBOW, WARM_MONO, COOL_MONO];
     }
@@ -559,7 +556,7 @@ export function buildDefaultTemplates(effectKey: string): EffectTemplateBundle {
   return { selected: 0, slots };
 }
 
-/** Build defaults for every registered effect - handy for first-time hydrate. */
+/** Build defaults for every registered effect (first-time hydrate). */
 export function buildAllDefaultTemplates(): Record<string, EffectTemplateBundle> {
   const out: Record<string, EffectTemplateBundle> = {};
   for (const fx of EFFECTS) out[fx.key] = buildDefaultTemplates(fx.key);

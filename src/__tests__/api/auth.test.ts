@@ -1,3 +1,9 @@
+// auth.doPair() is the LAN/service-served-origin token mint. Run this file as
+// if served from the local service (port 9400) so service.ts computes
+// isRemoteOrigin = false and the direct /pair fetch path is exercised; on a
+// remote origin doPair() deliberately no-ops (a phone gets its token via the
+// relay claim, never localhost /pair).
+// @vitest-environment-options { "url": "http://localhost:9400/" }
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Reset module state between tests by re-importing

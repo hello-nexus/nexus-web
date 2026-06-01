@@ -34,11 +34,9 @@ export type EffectCategory =
   | 'geometric'
   | 'pattern';
 
-// "simple" leads: dead-cheap near-solid colour fills (the replacement for the
-// old static mode). The rest: "atmospheric" merged into the neighbouring
-// families it visually belongs to (mood pieces are mostly pattern-driven),
-// and "energy" + electric effects stay as their own family because they read
-// so distinctively from the rest.
+// "simple" leads: near-solid colour fills. "atmospheric" is merged into
+// neighbouring families (mood pieces are mostly pattern-driven); "energy" +
+// electric effects stay their own family.
 export const EFFECT_CATEGORIES: EffectCategory[] = [
   'simple', 'audio', 'cosmic', 'energy', 'organic', 'geometric', 'pattern',
 ];
@@ -73,7 +71,7 @@ export function categoryOf(key: string): EffectCategory {
 // anything also tagged audio"). When borderline (e.g. starpath could be
 // either cosmic or atmospheric), pick the dominant visual character.
 export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
-  // Simple solid-colour fills (replace the old static mode).
+  // Simple solid-colour fills.
   simplered: 'simple', simpleorange: 'simple', simpleyellow: 'simple',
   simplegreen: 'simple', simplecyan: 'simple', simpleblue: 'simple',
   simpleviolet: 'simple', simplepink: 'simple',

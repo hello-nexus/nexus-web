@@ -7,6 +7,9 @@ const baseProps = {
   themeStyle: {},
   nativeBridgeAvailable: false,
   nextAttemptAt: null,
+  remoteDisabled: false,
+  relayDisabled: false,
+  sessionRevoked: false,
   onRetry: () => {},
   onOpenNativePairing: () => {},
 };
@@ -73,6 +76,38 @@ describe('PanelOfflineOverlay', () => {
     );
     expect(screen.queryByText('connection.lost.pickDevice')).toBeNull();
     expect(screen.getByText('connection.lost.newDevice')).toBeInTheDocument();
+  });
+
+  it('shows the relay-turned-off popup when relayDisabled, with a retry button', () => {
+    const onRetry = vi.fn();
+    render(
+      <PanelOfflineOverlay
+        {...baseProps}
+        state="online"
+        surface="phone"
+        relayDisabled
+        onRetry={onRetry}
+      />,
+    );
+    expect(screen.getByText('connection.relayDisabled.title')).toBeInTheDocument();
+    expect(screen.getByText('connection.relayDisabled.message')).toBeInTheDocument();
+    expect(screen.getByText('connection.relayDisabled.checking')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('connection.lost.retry'));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('sessionRevoked trumps relayDisabled', () => {
+    render(
+      <PanelOfflineOverlay
+        {...baseProps}
+        state="online"
+        surface="phone"
+        relayDisabled
+        sessionRevoked
+      />,
+    );
+    expect(screen.getByText('connection.sessionRevoked.title')).toBeInTheDocument();
+    expect(screen.queryByText('connection.relayDisabled.title')).toBeNull();
   });
 
   it('shows the not-installed message when state is offline', () => {

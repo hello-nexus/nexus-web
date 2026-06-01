@@ -14,10 +14,9 @@ interface LightingSettingsModalProps {
 }
 
 /**
- * Settings dialog for the lighting page. Hosts the master brightness slider
- * (previously inline in the page header) plus a "reset positions" affordance
- * that clears every persisted canvas position/size/rotation. Matches the
- * cooling page's settings modal pattern so the two surfaces feel like a set.
+ * Settings dialog for the lighting page: master brightness slider plus
+ * a "reset positions" action that clears every persisted canvas
+ * position/size/rotation. Matches the cooling page's settings modal.
  */
 export function LightingSettingsModal({ open, onClose, serviceOnline }: LightingSettingsModalProps) {
   const { t } = useTranslation();

@@ -13,11 +13,10 @@ type Filter = EffectCategory | 'all';
 const FILTERS: Filter[] = ['all', ...EFFECT_CATEGORIES];
 
 /**
- * Effect picker. Lazily loads thumbnail BMPs from the service (~6 KB each
- * after AOT render). The active key is highlighted; click selects, which
- * also pulses the right-pane Effect tab in the parent if the user is still
- * looking at the Devices tab. A category chip row above the grid filters
- * to one effect family at a time.
+ * Effect picker. Lazily loads thumbnail BMPs from the service (~6 KB
+ * each). The active key is highlighted; click selects, and pulses the
+ * parent's right-pane Effect tab when the Devices tab is showing. A
+ * category chip row above the grid filters to one effect family.
  */
 export function AnimateGrid({ effect, onSelect }: {
   effect: string;

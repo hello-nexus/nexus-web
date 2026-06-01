@@ -20,12 +20,9 @@ import styles from './Slider.module.scss';
  *   - zeroMarker  : if range straddles zero, draws a tick at 0 on the track
  *   - showRange   : prints min / max under the track (DPI-style)
  *   - formatValue : controls how the value is rendered (e.g. '1.5s', '800 DPI')
- *   - trackFill   : the accent-fill track + bright (white-on-dark) thumb is
- *                   ALWAYS painted now — it is the single slider style; there is
- *                   no un-filled variant. By default the fill auto-computes from
- *                   value/min/max (centre-out when the range straddles zero,
- *                   e.g. -100..100). Pass a number (0..100) only to set the fill
- *                   end explicitly when it differs from value/min/max.
+ *   - trackFill   : the accent fill end. Auto-computes from value/min/max
+ *                   (centre-out when the range straddles zero, e.g. -100..100).
+ *                   Pass a number (0..100) to set the fill end explicitly.
  *
  * Callbacks:
  *   - onChange(v, commit?) fires for every range step AND for committed input edits.
@@ -65,9 +62,7 @@ export function Slider({
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showZero = zeroMarker && min < 0 && max > 0;
   const zeroPct = showZero ? ((0 - min) / (max - min)) * 100 : 0;
-  // The accent-fill track + bright (white-on-dark) thumb is the single slider
-  // style now — always painted. A numeric `trackFill` still sets the fill end
-  // explicitly for callers whose fill % differs from value/min/max; otherwise it
+  // A numeric `trackFill` sets the fill end explicitly; otherwise it
   // auto-computes (centre-out when the range straddles zero).
   const isBipolar = min < 0 && max > 0;
   const valuePct = ((value - min) / (max - min)) * 100;

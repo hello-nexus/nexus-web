@@ -1,6 +1,5 @@
-/* Fixed 10-column swatch grid. Swatches stretch to fill the container so the
-   grid sits comfortably edge-to-edge inside narrow surfaces (panel sheet,
-   phone) while staying capped at a comfortable size on wide containers. */
+/* Fixed 10-column swatch grid. Swatches stretch to fill the container edge-to-
+   edge in narrow surfaces (panel sheet, phone), capped in size on wide ones. */
 
 .root {
   --swatch-size-cap: 38px;
@@ -10,9 +9,8 @@
   flex-direction: column;
   gap: 0.75rem;
   width: 100%;
-  /* Cap total width on wide containers so swatches do not balloon on desktop;
-     narrow containers (phone settings sheet) flex below the cap and each
-     swatch grows to fill 1/10 of the available width. */
+  /* Cap total width on wide containers; narrow containers (phone settings
+     sheet) flex below the cap, each swatch filling 1/10 of the width. */
   max-width: calc(10 * var(--swatch-size-cap) + 9 * var(--swatch-gap));
 }
 

@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
  * value, then leave edit mode. Escape leaves edit mode without firing.
  *
  * The input ref is auto-selected when edit mode opens so the user can start
- * typing immediately - matches the legacy EditableName behaviour.
+ * typing immediately.
  */
 export interface UseEditableOptions<T> {
   value: T;

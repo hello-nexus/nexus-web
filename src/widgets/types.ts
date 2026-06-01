@@ -65,9 +65,8 @@ export interface WidgetManifestDataSource {
    * exposes a `data.<key>` object with formatted parts:
    *   { iso, hour, hour12, minute, second, ampm, weekday, day, month,
    *     year, time, date, hourAngle, minuteAngle, secondAngle }
-   * `tickEvery` accepts any duration string the renderer's `parseCadence`
-   * understands (e.g. `100ms`, `500ms`, `1s`, `1m`). The renderer enforces
-   * a 100 ms floor so authors can't busy-loop the panel.
+   * `tickEvery` accepts any parseCadence duration (`100ms`, `500ms`, `1s`,
+   * `1m`), floored at 100 ms.
    * `timezone` is an IANA zone (e.g. "America/New_York") or empty for
    * the system zone. May be a `{settings.x}` binding.
    */

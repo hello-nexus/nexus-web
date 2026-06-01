@@ -18,8 +18,7 @@ export function Sparkline({ view, ctx }: { view: WidgetView; ctx: RenderContext 
   const userMax = bindNumber(view.max, ctx, NaN);
   const points = Math.max(8, bindNumber(view.points, ctx, 60));
   const color = bindColor(view.color, ctx, 'var(--accent, currentColor)');
-  // `mode: "line"` skips the under-fill polygon — matches the legacy
-  // LineGauge. Default mode renders fill + line (legacy SparklineGauge).
+  // `mode: "line"` skips the under-fill polygon; default renders fill + line.
   const mode = (bind(view.mode, ctx) as string) === 'line' ? 'line' : 'filled';
   const fill = mode === 'line'
     ? 'none'
@@ -28,9 +27,8 @@ export function Sparkline({ view, ctx }: { view: WidgetView; ctx: RenderContext 
 
   // scale: "adaptive" | "fixed" | "none".
   //   fixed    — clamp Y axis to [userMin..userMax] (default when both supplied).
-  //   adaptive — stretch upper bound to the highest observed history sample,
-  //              snapped up to `step` and floored at `floor`. Mirrors the
-  //              legacy chartDomainForScale logic.
+  //   adaptive — stretch upper bound to the highest observed sample, snapped
+  //              up to `step` and floored at `floor`.
   //   none     — pure observed-range (lo = min(data), hi = max(data)).
   // When scale isn't set explicitly: fall back to fixed if a userMax exists,
   // adaptive when only userMin is set, none otherwise.
@@ -108,11 +106,8 @@ export function Sparkline({ view, ctx }: { view: WidgetView; ctx: RenderContext 
     }
   });
 
-  // Wrap the SVG in a flex:1 div so the sparkline claims remaining
-  // vertical space when it sits inside a flex column (legacy SparklineGauge
-  // had the same `.chart { flex: 1 }` pattern in its module SCSS). Without
-  // the wrapper, the bare SVG's intrinsic height is 0 in a flex container,
-  // and the trace renders as a hairline.
+  // flex:1 wrapper so the sparkline claims remaining vertical space in a flex
+  // column; a bare SVG has intrinsic height 0 there and renders as a hairline.
   return (
     <div style={{
       width: '100%', flex: '1 1 0', minWidth: 0, minHeight: 0,

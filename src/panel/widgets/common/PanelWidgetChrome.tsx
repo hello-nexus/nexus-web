@@ -48,8 +48,8 @@ export function PanelWidgetTab({
   icon: ReactNode;
   label: string;
   onClick: () => void;
-  /** Optional hover tooltip. Useful when the tab row is rendered compact and
-   *  the inline label is hidden, or when the label alone is ambiguous. */
+  /** Optional hover tooltip, for when the tab row is compact and the inline
+   *  label is hidden, or the label alone is ambiguous. */
   tooltip?: string;
 }) {
   const btn = (

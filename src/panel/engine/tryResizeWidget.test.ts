@@ -58,8 +58,6 @@ describe('tryResizeWidget', () => {
   });
 
   it('shrinks in place without disturbing siblings', () => {
-    // Pre-existing overlap before resize is contrived; the original sibling
-    // setup is documented here but `clean` is the actual fixture.
     const clean = layout([[
       widget('a', '4x4', 0, 0),
     ]]);
@@ -117,8 +115,8 @@ describe('tryResizeWidget', () => {
   it('rejects (returns null) when displaced widgets cannot fit anywhere within maxPages', () => {
     // Five pages, all full of 4x4 widgets. Resize the smallest into
     // something bigger: there's nowhere for the bumped 4x4 sibling to
-    // go because every other page is already at capacity.
-    // Use 2 pages capped at 2 for clarity.
+    // go because every other page is already at capacity. 2 pages,
+    // maxPages 2.
     const l = layout([
       [widget('a', '2x4', 0, 0), widget('b', '2x2', 2, 0), widget('c', '2x2', 2, 2)],
       [widget('d', '4x4', 0, 0)],

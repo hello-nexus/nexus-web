@@ -1,7 +1,6 @@
-// Vendor-agnostic WebHID peripheral contract. Each vendor (Razer today, Logitech
-// and Corsair Bragi next) ships a module that registers a tryWrap function here;
-// the hook + UI use the unified WebHidPeripheral interface without knowing which
-// vendor is behind it.
+// Vendor-agnostic WebHID peripheral contract. Each vendor module registers a
+// tryWrap function here; the hook + UI use the unified WebHidPeripheral
+// interface without knowing which vendor is behind it.
 import './types';
 
 /** Snapshot shape returned by a peripheral. Same fields as the service's PeripheralDto. */

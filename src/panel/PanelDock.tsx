@@ -5,11 +5,9 @@ import { WidgetCellLabel } from './widgets/common/WidgetCellLabel';
 import type { PanelSurface, PanelWidget } from './types';
 import styles from './PanelDock.module.scss';
 
-// iOS-springboard semantics: up to 4 1x1 icons, persistent across pages,
-// horizontally centered when fewer than 4 are present. The dock is sized
-// from CSS vars (--panel-cell-size / --panel-row-size / --panel-gap), so
-// every dock slot is the same square a 1x1 widget would render in on the
-// page grid above.
+// iOS-springboard dock: up to 4 1x1 icons, persistent across pages, centered
+// when fewer than 4. Sized from CSS vars (--panel-cell-size /
+// --panel-row-size / --panel-gap) so each slot matches a 1x1 page widget.
 export const MAX_DOCK_SLOTS = 4;
 
 interface PanelDockProps {
@@ -22,9 +20,8 @@ interface PanelDockProps {
 
 export function PanelDock({ widgets, surface, orientation }: PanelDockProps) {
   const { t } = useTranslation();
-  // Only 1x1 widgets are allowed in the dock. Cap at 4. Anything else
-  // gets filtered out silently (defensive — store-level normalization is
-  // expected to enforce this too).
+  // Only 1x1 widgets, capped at 4; others filtered out silently (defensive,
+  // store-level normalization also enforces this).
   const visible = widgets.filter(w => w.size === '1x1').slice(0, MAX_DOCK_SLOTS);
 
   return (

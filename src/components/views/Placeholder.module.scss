@@ -79,9 +79,8 @@
   max-width: 52ch;
 }
 
-// Safari-specific warning block. Compass icon (greyed) cues the user that
-// this is a Safari limitation rather than a generic "something went wrong"
-// alert, so the message reads as "use another browser" at a glance.
+// Safari-specific warning block. Greyed Compass icon marks this as a Safari
+// limitation, not a generic error.
 .safariNote {
   @include text-button;
   display: flex;

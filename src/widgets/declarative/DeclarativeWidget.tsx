@@ -37,10 +37,8 @@ export interface DeclarativeWidgetProps {
  * a pure flex-fill container; the meter palette handles its own layout.
  */
 export function DeclarativeWidget({ listing, size, instanceId }: DeclarativeWidgetProps) {
-  // Widget-local state — per-instance bag persisted to localStorage.
-  // Bound from manifest views as `{local.*}` and mutated via
-  // `button.onClick.localUpdate`. Defaults pulled from listing.local
-  // (manifest's `local` block; safe if absent).
+  // Per-instance local state in localStorage, bound as `{local.*}` and mutated
+  // via `button.onClick.localUpdate`. Defaults from listing.local.
   const localDefaults = useMemo(() => listing.local ?? undefined, [listing]);
   const [localState, setLocalState] = useWidgetLocalState({
     widgetId: listing.id, instanceId, defaults: localDefaults,
@@ -55,9 +53,8 @@ export function DeclarativeWidget({ listing, size, instanceId }: DeclarativeWidg
     return unsub;
   }, [settingsBridge]);
 
-  // Manifest-declared FontFaces. Loaded once per (widgetId, font name)
-  // pair and scoped so two widgets shipping the same font name don't
-  // collide. Authors reference their fonts via the meter's `font` prop.
+  // Manifest FontFaces, loaded once per (widgetId, font name) and scoped so two
+  // widgets shipping the same font name don't collide. Referenced via `font`.
   useEffect(() => {
     void loadWidgetFonts(listing.id, listing.fonts);
   }, [listing.id, JSON.stringify(listing.fonts ?? [])]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -68,10 +65,9 @@ export function DeclarativeWidget({ listing, size, instanceId }: DeclarativeWidg
     listing.capabilities.code === 'worker' &&
     Object.values(listing.data ?? {}).some((src) => src && src.worker);
   const workerRef = useRef<WidgetWorkerHandle | null>(null);
-  // Hydrate from localStorage so a dashboard reload immediately shows the
-  // last-known data while the worker fetches fresh values. Without this
-  // every reload flashes the empty state for ~1-2 s while the worker
-  // boots, fetches, and publishes.
+  // Hydrate from localStorage so a reload shows last-known data while the
+  // worker fetches fresh values; without it every reload flashes the empty
+  // state for ~1-2 s during worker boot.
   const [workerPayload, setWorkerPayload] = useState<Record<string, unknown>>(
     () => loadCachedWorkerPayload(listing.id) ?? {},
   );
@@ -135,9 +131,9 @@ export function DeclarativeWidget({ listing, size, instanceId }: DeclarativeWidg
     return () => ro.disconnect();
   }, []);
 
-  // Universal empty / loading state. Shown when no data source has produced
-  // its first value AND there's nothing in the localStorage cache to
-  // hydrate from. Subsequent publishes flip us into the regular render path.
+  // Universal empty / loading state. Shown when no data source has produced a
+  // value AND nothing is cached to hydrate. Later publishes flip to the render
+  // path.
   const isEmpty = useMemo(() => detectEmpty(data, listing), [data, listing]);
   const emptyOverride = useMemo(() => detectEmptyOverride(data), [data]);
 
@@ -173,10 +169,9 @@ export function DeclarativeWidget({ listing, size, instanceId }: DeclarativeWidg
 }
 
 /**
- * "No data yet" = every declared data source resolves to null/undefined
- * /empty-object. Used to decide whether to show the universal loading
- * state instead of rendering the view tree (which would fill itself with
- * em-dashes and zero-fill bars and look broken).
+ * "No data yet" = every declared data source is null/undefined/empty-object.
+ * Decides whether to show the loading state instead of the view tree (which
+ * would render em-dashes and zero-fill bars).
  */
 function detectEmpty(data: Record<string, unknown>, listing: WidgetInstalledListing): boolean {
   const keys = Object.keys(listing.data ?? {});
@@ -191,11 +186,9 @@ function detectEmpty(data: Record<string, unknown>, listing: WidgetInstalledList
 }
 
 /**
- * Per-widget empty-state override. Tier 2 widgets can publish a payload
- * shaped `{ <key>: { _emptyState: { primary, secondary } } }` to switch
- * the host into the standard empty-state component with custom copy —
- * useful for soft errors like "Location unknown" that the user should
- * see but shouldn't make the widget look broken.
+ * Per-widget empty-state override. Tier 2 widgets publish
+ * `{ <key>: { _emptyState: { primary, secondary } } }` to render the standard
+ * empty-state with custom copy (e.g. soft errors like "Location unknown").
  */
 function detectEmptyOverride(
   data: Record<string, unknown>,

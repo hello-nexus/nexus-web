@@ -27,8 +27,7 @@
 }
 
 .textDim {
-  // Same hue as the fill, alpha'd down - mirrors the line+fill colour
-  // pairing the Sparkline gauge uses.
+  // Same hue as the fill, alpha'd down, matching the Sparkline gauge.
   color: color-mix(in srgb, var(--panel-accent) 28%, transparent);
 }
 

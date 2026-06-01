@@ -2,12 +2,12 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react
 import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
 import styles from './SettingsRow.module.scss';
 
-// The settings row / toggle / select now come from the canonical shared
-// component (components/common/SettingRow) so the panel widget settings render
-// identically to the main Settings pages. Re-exported under the panel names so
-// the existing widget-settings imports keep working. Only the panel-specific
-// form utilities below (section wrapper, text input, action buttons, saved /
-// hint chips) live here now.
+// The settings row / toggle / select come from the canonical shared component
+// (components/common/SettingRow) so panel widget settings render identically to
+// the main Settings pages, re-exported under the panel names so existing
+// widget-settings imports keep working. Only the panel-specific form utilities
+// below (section wrapper, text input, action buttons, saved / hint chips) are
+// local.
 export {
   SettingRow as SettingsRow,
   SettingToggle as SettingsToggle,

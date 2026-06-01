@@ -58,8 +58,8 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
   if (sensors.memory.length > 0)
     entries.push({ id: 'memory', title: t('monitoring.detailed.memory'), subtitle: specs?.memory, sensors: sensors.memory });
   // One section per physical storage drive (NVMe + SATA), headed by its model.
-  // Replaces the old volume-capacity blob: extras.nvmeStorage is every
-  // HardwareType.Storage device LHM reports, each carrying its own sensors.
+  // extras.nvmeStorage is every HardwareType.Storage device LHM reports, each
+  // carrying its own sensors.
   pushExtras('storage', t('monitoring.detailed.storage'), extras.nvmeStorage);
   if (sensors.motherboard.length > 0 || sensors.motherboardModel)
     entries.push({

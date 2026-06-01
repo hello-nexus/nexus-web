@@ -22,9 +22,8 @@
   margin-bottom: 0.6rem;
 }
 
-/* The source/wireless row combines two tones in one value: dim for the
-   transport name (Service / WebHID), accent for the "Wireless" tag so the
-   user can spot the radio vs wired distinction at a glance. */
+/* Source/wireless row uses two tones: dim for the transport name (Service /
+   WebHID), accent for the "Wireless" tag to mark radio vs wired. */
 .sourceText {
   color: var(--text-dim);
 }

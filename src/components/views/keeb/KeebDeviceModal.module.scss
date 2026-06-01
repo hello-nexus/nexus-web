@@ -23,8 +23,8 @@
   border-bottom: none;
 }
 
-// Keyboard render is ~1400px wide at source size. Scale via `zoom` so it
-// sits comfortably in the fullscreen modal at laptop widths.
+// Keyboard render is ~1400px wide at source size. Scale via `zoom` to fit
+// the fullscreen modal at laptop widths.
 .keyboardStage {
   display: flex;
   justify-content: center;
@@ -50,9 +50,8 @@
   margin-right: 4px;
 }
 
-// Shorter + wider layer chips than the default IconLabelButton sizing.
-// The component exposes its dimensions as CSS variables, so we tune them
-// here for a header-band chip instead of redoing the markup.
+// Shorter + wider layer chips than default IconLabelButton sizing, tuned via
+// the CSS variables the component exposes for its dimensions.
 .layerChip {
   --icon-label-button-height: 24px;
   --icon-label-button-min-width: 44px;

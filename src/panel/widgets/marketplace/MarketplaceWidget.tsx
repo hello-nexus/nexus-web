@@ -10,11 +10,10 @@ import {
 import styles from './MarketplaceWidget.module.scss';
 
 /**
- * Panel-engine entrypoint for marketplace widgets. The actual rendering is
+ * Panel-engine entrypoint for marketplace widgets. Rendering is
  * delegated to the declarative renderer, which walks the manifest view
- * tree against the host meter palette. This component is just the bridge
- * between the panel layout's <c>WidgetProps</c> and the renderer's
- * data-driven interface.
+ * tree against the host meter palette. This component bridges the panel
+ * layout's `WidgetProps` to the renderer's data-driven interface.
  */
 export function MarketplaceWidget({ widget }: WidgetProps) {
   const id = marketplaceIdFromType(widget.type) ?? '';

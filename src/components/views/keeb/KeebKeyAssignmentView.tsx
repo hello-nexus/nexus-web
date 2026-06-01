@@ -27,11 +27,9 @@ export interface KeebKeyAssignmentViewProps {
 
 /// Key Assignment tab body. Category tabs at the top + content below.
 ///
-/// `Keyboard` category renders a second keyboard graphic that acts as a
-/// click-to-pick source: tap a key there and its default function gets
-/// assigned to the cell the user selected on the main keyboard above. This
-/// replaces the legacy drag-and-drop "source keyboard" — same outcome, one
-/// click instead of two-step drag.
+/// `Keyboard` category renders a second keyboard graphic as a click-to-pick
+/// source: tap a key there and its default function is assigned to the cell
+/// selected on the main keyboard above.
 ///
 /// All other categories render their function tiles in titled cards.
 export function KeebKeyAssignmentView({
@@ -63,17 +61,15 @@ export function KeebKeyAssignmentView({
     await setKey({ x: selected.x, y: selected.y, func: cell.function, mode: cell.mode });
   };
 
-  // Highlight on the source keyboard reflects what the target is currently
-  // mapped to. Two-pass lookup:
-  //   1. Target's *current* function from live state (firmware-assigned).
-  //   2. Find that function's natural position on the source keyboard.
-  //      If the function isn't a default-layout key (e.g. Macro1, MouseLButton),
-  //      no source cell matches and nothing highlights.
-  // This is the "which physical key does this remap to right now" indicator.
-  // React Compiler auto-memoizes the IIFE below based on the values it reads;
-  // an explicit useMemo here triggered react-hooks/preserve-manual-memoization
-  // because the compiler's inferred deps differed from the source list. Same
-  // referential-stability guarantee, fewer ceremony lines.
+  // Highlight on the source keyboard reflects the target's current mapping.
+  // Two-pass lookup:
+  //   1. Target's current function from live state (firmware-assigned).
+  //   2. Find that function's natural position on the source keyboard. If it
+  //      isn't a default-layout key (e.g. Macro1, MouseLButton), no source
+  //      cell matches and nothing highlights.
+  // React Compiler auto-memoizes the IIFE below; an explicit useMemo tripped
+  // react-hooks/preserve-manual-memoization because the inferred deps differed
+  // from the source list.
   const sourceSelected: KeebSelection = (() => {
     if (!selected) return null;
     const assigned = state.keys[selected.x]?.[selected.y];

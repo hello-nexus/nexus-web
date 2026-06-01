@@ -1,7 +1,6 @@
-// Lightweight right-click menu rendered at the cursor for the sidebar
-// pinned-apps list. Visually mirrors WidgetContextMenu so the desktop chrome
-// reads as one consistent treatment, but contains no size-grid or theme
-// handling — just a flat list of single-line actions.
+// Right-click menu at the cursor for the sidebar pinned-apps list. Mirrors
+// WidgetContextMenu's styling but has no size-grid or theme handling — a flat
+// list of single-line actions.
 
 .menu {
   position: fixed;

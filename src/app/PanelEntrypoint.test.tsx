@@ -67,10 +67,8 @@ afterEach(() => {
 
 describe('PanelEntrypoint allocate-or-recover', () => {
   it('reallocates when the cached device id 404s on the server', async () => {
-    // Repro of the HAR-captured bug: localStorage carries an id from a
-    // previous session, but the server has lost the record. Old code did
-    // fire-and-forget patch + trust the cache, leaving the panel mounted
-    // on a dead id and rendering the empty default layout.
+    // HAR-captured repro: localStorage carries an id from a previous session
+    // but the server has lost the record.
     localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
     patchMock.mockResolvedValueOnce({ ok: false, status: 404 });
     allocateMock.mockResolvedValueOnce({
@@ -83,6 +81,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         initialDeviceId={null}
         isPhonePair={false}
         pairToken={null}
+        pairDeviceId={null}
       />,
     );
 
@@ -112,6 +111,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         initialDeviceId={null}
         isPhonePair={false}
         pairToken={null}
+        pairDeviceId={null}
       />,
     );
 
@@ -125,8 +125,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
   });
 
   it('keeps the cached device id on a transient non-404 failure', async () => {
-    // 401 / network blip must not burn the cached record. The panel will
-    // surface the auth error its own way once it mounts; auto-reallocating
+    // 401 / network blip must not burn the cached record; auto-reallocating
     // on every transient hiccup would churn device records.
     localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
     patchMock.mockResolvedValueOnce({ ok: false, status: 401 });
@@ -136,6 +135,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         initialDeviceId={null}
         isPhonePair={false}
         pairToken={null}
+        pairDeviceId={null}
       />,
     );
 
@@ -159,6 +159,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         initialDeviceId={null}
         isPhonePair={false}
         pairToken={null}
+        pairDeviceId={null}
       />,
     );
 

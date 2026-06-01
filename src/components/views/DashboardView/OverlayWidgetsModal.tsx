@@ -53,10 +53,9 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
   const [widgets, setWidgets] = useState<OverlayWidgetDto[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  // True while the user is mid-drag on the opacity slider. The prefs WS
-  // broadcast we trigger from livePostOpacity round-trips back as a
-  // refresh, which would yank the slider thumb back to a stale value
-  // racing the live drag. Gated below.
+  // True while the opacity slider is mid-drag. livePostOpacity's prefs WS
+  // broadcast round-trips back as a refresh that would yank the thumb to a
+  // stale value; gated below.
   const isDraggingOpacityRef = useRef(false);
 
   const refresh = useCallback(async () => {
@@ -73,9 +72,7 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
         ? Math.round(overlay.opacity * 100)
         : OPACITY_DEFAULT);
     }
-    // Legacy -1 (primary fallback sentinel) collapses to 0 for display
-    // purposes - the user can pick any monitor in the dropdown and the
-    // next POST writes a real index.
+    // Legacy -1 sentinel collapses to 0 for display.
     const persisted = typeof overlay?.monitor === 'number'
       ? overlay.monitor : 0;
     setMonitor(persisted < 0 ? 0 : persisted);
@@ -84,8 +81,8 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
 
   useEffect(() => {
     if (!open) return;
-    // Fetch fresh list each time the modal opens. Standard data-loading
-    // pattern; `refresh` writes state via its captured setters.
+    // Fetch fresh list each time the modal opens; `refresh` writes state
+    // via its captured setters.
      
     void refresh();
   }, [open, refresh]);
@@ -106,7 +103,7 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
   }, []);
 
   // Live preview: stream opacity to the server during slider drag so the
-  // overlay widgets update in real time, not just when the user releases.
+  // overlay widgets update in real time, before the user releases.
   // Coalesce to one POST per animation frame so a fast drag doesn't
   // produce a backlog of in-flight requests. The service updates its
   // in-memory cache synchronously and broadcasts on the `prefs` topic
@@ -154,11 +151,9 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
     await postService('/preferences', { overlay: { monitor: next } });
   }, []);
 
-  // Dropdown options: numbered monitors only, no "Primary" entry. We
-  // always offer at least 2 monitors so single-display users can still
-  // see the control is a list; widgets already referencing a higher
-  // index expand the list, and the current selection is always present
-  // (covers a user who picked a now-disconnected monitor).
+  // Numbered monitors only, no "Primary" entry. Always at least 2 slots;
+  // a widget referencing a higher index expands the list, and the current
+  // selection is always included (covers a now-disconnected monitor).
   const monitorOptions = useMemo(() => {
     const referenced = widgets.length > 0 ? Math.max(...widgets.map(w => w.monitor)) : -1;
     const upper = Math.max(1, referenced, monitor);

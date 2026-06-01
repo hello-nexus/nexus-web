@@ -7,9 +7,8 @@
   display: flex;
   flex-direction: column;
   animation: immersiveEnter 240ms cubic-bezier(0.32, 0.72, 0, 1) both;
-  // Match the panel surface's safe-area only (no extra 12px). The
-  // immersive content fills edge-to-edge like the panel grid does so
-  // the widget renders at the same width as its tile.
+  // Safe-area only (no extra 12px): immersive content fills edge-to-edge like
+  // the grid so the widget renders at its tile width.
   padding:
     env(safe-area-inset-top)
     env(safe-area-inset-right)
@@ -17,11 +16,9 @@
     env(safe-area-inset-left);
 }
 
-// Once the initial enter animation has finished, suppress further
-// keyframe animations so removing [data-drag] (drag start/end)
-// doesn't restart the enter slide. The exit rule below wins via
-// !important when host-driven exit (ESC, programmatic close) needs to
-// play the exit keyframe.
+// After the enter animation, suppress further keyframes so removing
+// [data-drag] doesn't restart the enter slide. The exit rule below wins via
+// !important so host-driven exit (ESC, programmatic close) plays its keyframe.
 .overlay[data-entered='true'] {
   animation: none;
 }
@@ -30,12 +27,10 @@
   animation: immersiveExit var(--ease) cubic-bezier(0.32, 0.72, 0, 1) both !important;
 }
 
-// Mirrors the editor-sheet pattern (.editorSheet[data-drag]): inline
-// transform from the swipe-to-dismiss gesture must override the
-// keyframe animation, otherwise the keyframe and the finger-driven
-// translate fight each other and the user sees a double-bounce on
-// release. `dragging` follows the finger 1:1; `settling` springs to
-// the rest position (snap back to 0, or off-screen on dismiss).
+// Mirrors .editorSheet[data-drag]: the swipe-dismiss inline transform must
+// override the keyframe, else they fight and release double-bounces.
+// `dragging` follows the finger 1:1; `settling` springs to rest (0, or
+// off-screen on dismiss).
 .overlay[data-drag] {
   animation: none !important;
 }
@@ -44,10 +39,8 @@
   transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-// Top grabber handle, doubles as a tap-to-close button. Swipe DOWN still
-// works (matches editor sheet pattern); tap is the no-gesture fallback.
-// The visible pill stays 56x4 but the button hit-target is 88x36 so
-// fingers can land it reliably without aiming.
+// Top grabber, doubles as tap-to-close. Swipe DOWN closes; tap is the
+// no-gesture fallback. Visible pill is 56x4, hit-target 88x36.
 .exitHint {
   position: absolute;
   top: max(env(safe-area-inset-top), 8px);
@@ -62,8 +55,8 @@
   background: transparent;
   padding: 0;
   cursor: pointer;
-  // Parent .panelRoot sets touch-action: none which can suppress synthetic
-  // click events on tap in WebView2/Edge. Re-enable click synthesis here.
+  // Parent .panelRoot's touch-action: none can suppress synthetic click on
+  // tap in WebView2/Edge; re-enable click synthesis here.
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   z-index: 210;
@@ -98,10 +91,8 @@
   justify-content: center;
 }
 
-// Slide UP from the bottom on enter (matches the editor sheet direction
-// so the gesture vocabulary is consistent: drawers always come up from
-// below). Exit still slides DOWN so the close gesture (swipe down)
-// matches the visual direction.
+// Slide UP from the bottom on enter (matches the editor sheet); exit slides
+// DOWN to match the swipe-down close gesture.
 @keyframes immersiveEnter {
   from { transform: translateY(100%); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }

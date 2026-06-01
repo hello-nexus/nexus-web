@@ -11,13 +11,11 @@ import styles from './SidebarDevicesSection.module.scss';
  * device (panels, peripherals, curated hardware) the system knows
  * about, with a click navigating into that device's dedicated page.
  *
- * Wraps `useUnifiedDevices` — the same hook the DevicesPage and the
- * dashboard Devices widget consume, so a click here lands the user
- * on exactly the device they saw in either of those surfaces.
+ * Wraps `useUnifiedDevices` — the same hook DevicesPage and the dashboard
+ * Devices widget consume, so a click lands on the same device record.
  *
- * Empty state: a single hint row when no devices are connected. The
- * section header itself is always rendered so the user can scan the
- * sidebar's structure even without devices.
+ * Empty state: a single hint row when no devices are connected. The header
+ * always renders so the section structure is visible without devices.
  */
 interface SidebarDevicesSectionProps {
   serviceOnline: boolean;
@@ -50,12 +48,18 @@ export function SidebarDevicesSection({
   // /devices polling cadence. Only navigable devices (those with their own
   // settings page) get a sidebar row — e.g. the MiniHub is controlled from
   // Cooling/Lighting, so it has no page and shouldn't deep-link to an empty one.
+  // Paired phone remotes (external-browser panel sessions from Pair Phone) are
+  // managed from the Pair Phone button + Devices page, not listed as devices in
+  // the sidebar — they're presence sessions, not hardware attached to this host.
   const sorted = useMemo(() => {
-    return unified.filter(d => d.navigable).sort((a, b) => {
-      if (a.connected !== b.connected) return a.connected ? -1 : 1;
-      if (a.category !== b.category) return a.category.localeCompare(b.category);
-      return a.shortName.localeCompare(b.shortName);
-    });
+    return unified
+      .filter(d => d.navigable)
+      .filter(d => d.panelDevice?.connectionKind !== 'external-browser')
+      .sort((a, b) => {
+        if (a.connected !== b.connected) return a.connected ? -1 : 1;
+        if (a.category !== b.category) return a.category.localeCompare(b.category);
+        return a.shortName.localeCompare(b.shortName);
+      });
   }, [unified]);
 
   const label = t('sidebar.section.devices');
@@ -70,11 +74,8 @@ export function SidebarDevicesSection({
         onClick={onHeaderClick}
         aria-label={label}
       >
-        {/* Compact: localized first letter (e.g. "D" for English
-            "Devices"). Expanded: full label. The .headerLabel CSS
-            paints a thin underline beneath whichever form renders so
-            the header reads as a section heading rather than another
-            tappable device row. */}
+        {/* Compact: localized first letter; expanded: full label. The
+            .headerLabel underline marks it as a section heading, not a row. */}
         <span className={styles.headerLabel}>
           {compact ? Array.from(label)[0]?.toLocaleUpperCase() ?? '' : label}
         </span>

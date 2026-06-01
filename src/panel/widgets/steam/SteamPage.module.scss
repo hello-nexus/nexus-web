@@ -146,14 +146,10 @@ $dot-offline: var(--panel-text-faint);
   flex-shrink: 0;
 }
 
-// Virtualized scroller — the only scroll surface in the library pane.
-// Tiles in / out of the viewport mount and unmount via JS slicing; the
-// inner `.libraryRail` reserves total content height so the native
-// scrollbar matches the full library length even though only a few
-// rows are in the DOM. Compositor optimization (will-change) lives on
-// `.librarySlice` so this scroller stays flex-sized normally — using
-// `contain: strict` here collapses the height to its containment box
-// instead of the flex track.
+// Virtualized scroller. `.libraryRail` reserves full content height
+// so the native scrollbar matches the library length though only a
+// few rows are in the DOM. Stays flex-sized: `contain: strict` here
+// would collapse the height to the containment box, not the flex track.
 .libraryScroller {
   flex: 1;
   min-height: 0;
@@ -171,11 +167,8 @@ $dot-offline: var(--panel-text-faint);
   position: absolute;
   inset: 0 0 auto 0;
   display: grid;
-  // Columns are minmax(0, 1fr) so every card in a row is the same
-  // width and the row fills the available container width. The grid
-  // justifies to the container — no right gutter.
-  // gridTemplateColumns + column/row gap come from inline style so they
-  // can change per resize without re-parsing CSS.
+  // gridTemplateColumns + column/row gap come from inline style so
+  // they change per resize without re-parsing CSS.
   will-change: transform;
 }
 
@@ -198,9 +191,8 @@ $dot-offline: var(--panel-text-faint);
   text-align: left;
   color: inherit;
   transition: transform 120ms ease, border-color 120ms ease;
-  // No `overflow: hidden` — the user explicitly asked not to mask the
-  // card content. The corners are accepted as soft inner corners; the
-  // image is bounded by its own width / height and never spills.
+  // No `overflow: hidden`: card content isn't masked. The image is
+  // bounded by its own width / height and never spills.
 
   &:hover {
     transform: translateY(-2px);
@@ -211,9 +203,8 @@ $dot-offline: var(--panel-text-faint);
 .gameTileArt {
   display: block;
   width: 100%;
-  // capsule_231x87 is 231x87 — match it exactly. `object-fit: cover`
-  // with matched aspect is a no-op (no crop in the common case);
-  // defends against Steam serving a hair-off capsule.
+  // Matches capsule_231x87, so `object-fit: cover` doesn't crop in
+  // the common case; it only defends against a hair-off capsule.
   aspect-ratio: 231 / 87;
   object-fit: cover;
   background: var(--panel-element-bg);
@@ -264,8 +255,7 @@ $dot-offline: var(--panel-text-faint);
 
 .nowPlayingBanner {
   width: 100%;
-  // Same source + aspect as the library tile (capsule_231x87) so the
-  // banner and the library tiles share one visual language.
+  // Same source + aspect as the library tile (capsule_231x87).
   aspect-ratio: 231 / 87;
   object-fit: cover;
   border-radius: 10px;
@@ -384,12 +374,10 @@ $dot-offline: var(--panel-text-faint);
 .drillHero {
   position: relative;
   width: 100%;
-  // Explicit max-width keeps the hero proportional on very wide
-  // viewports without interacting badly with align-items: stretch +
-  // aspect-ratio (an earlier max-width-only version collapsed the
-  // hero in some flex-column widths and the image never paid out).
-  // The matched aspect-ratio (460x215 = header.jpg native) keeps
-  // the image's object-fit: cover from doing any actual cropping.
+  // max-width caps the hero on wide viewports; pairing it with an
+  // explicit aspect-ratio avoids a flex-column collapse under
+  // align-items: stretch. Aspect 460x215 = header.jpg native, so
+  // object-fit: cover does no cropping.
   max-width: 720px;
   aspect-ratio: 460 / 215;
   border-radius: 16px;

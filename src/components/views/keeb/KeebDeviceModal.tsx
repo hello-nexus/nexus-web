@@ -45,8 +45,7 @@ export function KeebDeviceModal({ open, onClose }: KeebDeviceModalProps) {
   // wheels. Drives what the Key Assignment tab renders below the keyboard.
   const [selected, setSelected] = useState<KeebSelection>(null);
 
-  // Rotary state isn't on /keeb/settings yet, so we keep a local optimistic
-  // copy until the backend exposes it. Defaults match the legacy nexus app.
+  // Rotary state isn't on /keeb/settings, so it's a local optimistic copy.
   const [rotaryLeft, setRotaryLeft] = useState('VolumeAdjustment');
   const [rotaryRight, setRotaryRight] = useState('ScrollY');
   const [sensitivity, setSensitivity] = useState('Balanced');
@@ -60,8 +59,8 @@ export function KeebDeviceModal({ open, onClose }: KeebDeviceModalProps) {
     ? undefined
     : 'Connect your Keeb TKL — the settings tab still works offline.';
 
-  // Only the Key Assignment tab acts on the keyboard render; Tester just
-  // displays it. Macros and Settings hide it entirely.
+  // Only the Key Assignment tab acts on the keyboard render; Tester displays
+  // it read-only. Macros and Settings hide it entirely.
   const showKeyboard = tab === 'key-assignment' || tab === 'tester';
   const keyboardInteractive = tab === 'key-assignment';
 

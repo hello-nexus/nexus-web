@@ -14,11 +14,9 @@
   min-height: 0;
 }
 
-// Keep the same top padding as .nav so the profile slot / menu items
-// don't shift vertically when the sidebar toggles compact. Only the
-// side padding stays at 0.5rem; the old `padding: 0 0.5rem` override
-// dropped the top inset and yanked everything below the brand row up
-// by 8px on collapse.
+// Keep the same top padding as .nav so the profile slot / menu items don't
+// shift vertically when the sidebar toggles compact; only the side padding
+// changes to 0.5rem.
 .navCompact {
   padding: 0.5rem 0.5rem 0;
 }
@@ -137,9 +135,8 @@
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-dim);
-  // Step down from --type-body (16px) so the nav text sits a touch
-  // smaller; matches the visual weight of the labels in the sidebar
-  // brand row and the bottom-of-sidebar buttons.
+  // Step down from --type-body (16px) to match the brand-row and bottom-of-
+  // sidebar button labels.
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   cursor: pointer;
@@ -201,8 +198,7 @@
   white-space: nowrap;
 }
 
-// Thin gap between the locked Dashboard row and the user-reorderable tail
-// so the lock reads visually, not just as a behavior difference.
+// Divider between the locked Dashboard row and the reorderable tail.
 .lockedDivider {
   height: 1px;
   margin: 6px 0.5rem 6px;

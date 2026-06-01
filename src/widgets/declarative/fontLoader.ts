@@ -33,9 +33,8 @@ export async function loadWidgetFonts(widgetId: string, fonts: WidgetManifestFon
       document.fonts.add(loadedFace);
       loaded.add(family);
     } catch {
-      // Best-effort: a font that fails to load just falls back to the
-      // panel default; the widget renders with system typography rather
-      // than failing outright.
+      // Best-effort: a font that fails to load falls back to the panel default
+      // (system typography) instead of failing the widget.
     }
   }
 }

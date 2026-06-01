@@ -1,7 +1,6 @@
 // CrossZoneDragProvider + the useCrossZoneDrag hook share one context object
-// defined in this file; splitting the consumer hook into a sibling module
-// would just be ceremony.
- 
+// defined in this file.
+
 import {
   createContext, useCallback, useContext, useMemo, useRef, useState,
   type MutableRefObject, type ReactNode,
@@ -12,15 +11,12 @@ import {
  * widget starts being dragged, consumed by the sidebar so it can mount a
  * pointer-tracked drop target and accept a drop independently of dnd-kit.
  *
- * Why a context instead of stretching the panel's DndContext to the sidebar:
- * the panel grid's DndContext is wired into its own sort / paginate /
- * long-press / edge-advance machinery. Hoisting it across the layout would
- * mean threading those signals through the sidebar column too. The drop
- * the user wants here ("dragged the widget over the sidebar, let go") is
- * better modelled as a side-channel — the panel publishes "drag is in
- * flight, here's the widget type", the sidebar listens directly to
- * `pointermove` / `pointerup` to interpret hover + drop. The panel's
- * regular onDragEnd remains the single arbiter for the in-grid sort.
+ * A side-channel rather than stretching the panel's DndContext across the
+ * layout: that DndContext is wired into the grid's sort / paginate /
+ * long-press / edge-advance machinery, and hoisting it would thread those
+ * signals through the sidebar too. The panel publishes the in-flight widget
+ * type; the sidebar listens to `pointermove` / `pointerup` for hover + drop.
+ * The panel's onDragEnd stays the single arbiter for the in-grid sort.
  */
 export interface CrossZoneDragValue {
   /**
@@ -32,12 +28,10 @@ export interface CrossZoneDragValue {
   setDraggingPinnableType: (type: string | null) => void;
   /**
    * Ref to a drop-commit callback registered by the sidebar's drop target.
-   * Invoked by the panel's onDragEnd BEFORE clearing the drag state — this
-   * sidesteps a React 19 timing bug where the sidebar would unmount (and
-   * its document pointerup listener detach) inside dnd-kit's onDragEnd
-   * synchronous flush, before the native pointerup reached other document
-   * listeners. The handler reads the latest insertion index (continuously
-   * updated by pointermove during the drag) and pins if non-null.
+   * Invoked by the panel's onDragEnd BEFORE it clears drag state: under
+   * React 19 that clear unmounts the sidebar (detaching its pointerup
+   * listener) in a synchronous flush before the native pointerup lands.
+   * The handler reads the latest pointermove insertion index and pins it.
    */
   dropHandlerRef: MutableRefObject<(() => void) | null>;
 }

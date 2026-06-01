@@ -95,11 +95,10 @@ export function SidebarColumn({
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
 
-  // The sidebar's APPS section header IS the Dashboard entry — there's
-  // no separate "Dashboard" row anymore. The pinned-apps list below
-  // the header is just the user-ordered tail. sanitizePinnedTail()
-  // drops unknown / duplicate keys read from the server, so a stale or
-  // hand-edited preferences blob can't render gaps.
+  // The APPS section header IS the Dashboard entry; there's no separate
+  // "Dashboard" row. The pinned-apps list below is the user-ordered tail.
+  // sanitizePinnedTail() drops unknown / duplicate server keys so a stale
+  // or hand-edited prefs blob can't render gaps.
   const tail = sanitizePinnedTail(settings.pinnedSidebarApps);
   const items = tail.flatMap(key => {
     const meta = getSidebarAppMeta(key);
@@ -114,9 +113,8 @@ export function SidebarColumn({
     update({ pinnedSidebarApps: nextTailKeys });
   };
 
-  // Right-click context menu state. Held here so the menu portal can
-  // dismiss cleanly on outside click without each row tracking its own
-  // open state.
+  // Right-click context menu state. Held here so the menu portal dismisses
+  // on outside click without each row tracking its own open state.
   const [ctxMenu, setCtxMenu] = useState<{ key: string; x: number; y: number } | null>(null);
   const handleItemContextMenu = (key: string, event: React.MouseEvent) => {
     setCtxMenu({ key, x: event.clientX, y: event.clientY });
@@ -249,10 +247,9 @@ interface SidebarPinDropTargetProps {
 // onDragEnd handles clearing its drag state — this overlay only acts on
 // the sidebar side.
 function SidebarPinDropTarget({ onDrop }: SidebarPinDropTargetProps) {
-  // `position` lives at fixed (viewport) coordinates so we can render the
-  // indicator anywhere the cursor lands inside the tail without nesting
-  // inside the Sidebar component itself. Null when the cursor is outside
-  // the tail rect; the indicator hides in that case.
+  // `position` in fixed (viewport) coordinates so the indicator can render
+  // anywhere the cursor lands inside the tail without nesting inside Sidebar.
+  // Null (indicator hidden) when the cursor is outside the tail rect.
   const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const insertionIndexRef = useRef<number | null>(null);
   const onDropRef = useRef(onDrop);
@@ -309,13 +306,9 @@ function SidebarPinDropTarget({ onDrop }: SidebarPinDropTargetProps) {
       });
     };
 
-    // Register a synchronous drop committer the panel will invoke from
-    // its onDragEnd, BEFORE the drag-state cleanup unmounts us. Reads
-    // the latest insertion index that pointermove has been updating.
-    // The native pointerup listener path is unreliable under React 19 —
-    // setDraggingPinnableType(null) inside dnd-kit's onDragEnd flushes
-    // synchronously, unmounting this component and detaching its
-    // pointerup listener before the native event reaches it.
+    // Synchronous drop committer the panel invokes from its onDragEnd before
+    // drag-state cleanup unmounts us. Reads the latest pointermove insertion
+    // index.
     dropHandlerRef.current = () => {
       const idx = insertionIndexRef.current;
       if (idx !== null) onDropRef.current(idx);

@@ -40,20 +40,16 @@ const LISTS_POLL_MS = 30_000;
 const DRILL_LIVE_POLL_MS = 30_000;
 const NEWS_BATCH_LIMIT = 6;
 
-// Tile grid layout constants. Tile width is FIXED in pixels — the
-// grid doesn't scale individual cards to fit the container; it just
-// fits as many fixed-size columns as will go. Every card renders at
-// exactly the same dimensions regardless of viewport width.
-// Aspect comes from Steam's capsule_231x87 (231x87 = ~2.66:1) — the
-// rectangular landscape capsule everyone wanted.
+// Tile grid layout constants. Tile width is FIXED in px: the grid
+// fits as many fixed-size columns as will go rather than scaling
+// cards to the container, so every card is identical regardless of
+// viewport width. Aspect is Steam's capsule_231x87 (~2.66:1).
 const TILE_WIDTH_PX = 220;
 const TILE_GAP_PX = 14;
 const TILE_META_HEIGHT_PX = 44;
 const TILE_IMAGE_ASPECT_H_OVER_W = 87 / 231;
-// Strict "only what's visible": don't render tiles outside the viewport.
-// With OVERSCAN_ROWS=0 the browser never starts fetching header images
-// for off-screen tiles — the only network requests in flight at any
-// moment are for the tiles actually visible.
+// 0 = render only on-screen tiles, so the browser never fetches
+// header images for off-screen tiles.
 const OVERSCAN_ROWS = 0;
 
 const SORT_OPTIONS = [
@@ -63,15 +59,10 @@ const SORT_OPTIONS = [
 ] as const;
 
 /**
- * Desktop "app page" for the Steam widget. Standard page chrome
- * (ViewHeader + body) followed by either the library-first entry
- * view or the per-game drilldown. Reuses Storybook common components
- * (SearchInput, Select, Button, Card, EmptyState) throughout — no
- * raw inputs / selects / button styling.
- *
- * Per the app-page convention (see ClockPage), the title comes from
- * the app manifest's i18nKey (`panel.widget.steam`), not a dedicated
- * `nav.steam` entry.
+ * Desktop app page for the Steam widget: page chrome (ViewHeader +
+ * body) then either the library entry view or the per-game drilldown.
+ * Title comes from the app manifest's i18nKey (`panel.widget.steam`),
+ * not a `nav.steam` entry (app-page convention, see ClockPage).
  */
 export function SteamPage() {
   const { t } = useTranslation();
@@ -369,13 +360,11 @@ function EntryView({
  * visible inside the scroller (plus a small overscan buffer above and
  * below), so:
  *
- *   - DOM size stays bounded regardless of library size (3k-game
- *     libraries are fine).
- *   - The browser only fetches capsule images for tiles that are in
- *     DOM. As you scroll, off-screen tiles unmount and their images
- *     are dropped from the active fetch / decode queue.
- *   - Scroll handling is rAF-throttled so we don't re-render every
- *     wheel tick.
+ *   - DOM size stays bounded regardless of library size.
+ *   - The browser only fetches capsule images for tiles in DOM;
+ *     scrolling unmounts off-screen tiles and drops their images
+ *     from the fetch / decode queue.
+ *   - Scroll handling is rAF-throttled (one re-render per frame).
  *
  * Layout is driven by a ResizeObserver on the scroller so column count
  * and tile width recompute when the window or right rail width
@@ -419,11 +408,8 @@ function VirtualizedLibrary({
     return () => ro.disconnect();
   }, []);
 
-  // rAF-throttle scroll: coalesce all scroll events that arrive within
-  // one frame into a single state write. The ref captures the latest
-  // scrollTop, the rAF reads from the ref, so the committed value is
-  // the most-recent position when the frame runs, not the position at
-  // the moment the rAF was scheduled.
+  // rAF-throttle scroll: coalesce a frame's scroll events into one
+  // state write, committing the latest scrollTop (from the ref).
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     latestScrollTopRef.current = e.currentTarget.scrollTop;
     if (rafRef.current !== null) return;
@@ -480,13 +466,9 @@ function VirtualizedLibrary({
           className={styles.librarySlice}
           style={{
             transform: `translateY(${offsetY}px)`,
-            // `minmax(0, 1fr)` — all columns equal, all stretch
-            // uniformly to fill the row (justify-to-width). The
-            // `0` minimum (vs `auto`) prevents long game names from
-            // pushing their column past the equal-share. Every card
-            // in a row is the same width; resizing the panel
-            // re-flows all cards together, never one independent
-            // of the rest.
+            // `minmax(0, 1fr)`: equal columns stretching to fill the
+            // row. The `0` minimum (vs `auto`) stops long game names
+            // pushing their column past its equal share.
             gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
             columnGap: TILE_GAP_PX,
             rowGap: TILE_GAP_PX,
@@ -502,16 +484,12 @@ function VirtualizedLibrary({
 }
 
 /**
- * Per-tile component. Owns the image-failed state so React unmounts
- * it cleanly when the tile scrolls off (keyed by appId). Per-tile
- * component state resets on key change — no leakage across recycled
- * DOM nodes.
+ * Per-tile component. Owns the image-failed state, keyed by appId so
+ * it resets when a tile scrolls off and recycles.
  *
- * On capsule_231x87 404 the tile shows a styled empty placeholder
- * of the same dimensions. We deliberately do NOT fall back to a
- * second URL — falling back to a different-aspect image would
- * letterbox inside the 231/87 box and the tile would visibly differ
- * from its neighbours.
+ * On capsule_231x87 404 the tile shows an empty placeholder of the
+ * same dimensions; no fallback URL, since a different-aspect image
+ * would letterbox inside the 231/87 box.
  */
 function GameTile({
   game,
@@ -581,9 +559,8 @@ function DrillView({
   const [playerCount, setPlayerCount] = useState<number | null>(null);
   const [hideUnlocked, setHideUnlocked] = useState(false);
 
-  // Use the owned-games array that the parent already polls. Drilling
-  // into a game shouldn't fire its own GetOwnedGames — that data is
-  // already in memory upstairs.
+  // Reuse the parent's already-polled owned-games array instead of
+  // firing a per-drill GetOwnedGames.
   const owned = useMemo(
     () => ownedGames.find(g => g.appId === appId) ?? null,
     [ownedGames, appId],
@@ -656,20 +633,15 @@ function DrillView({
 
       <section className={styles.drillHero}>
         <img
-          // key={appId} forces React to mount a fresh <img> for each
-          // game instead of reusing the previous DOM node. Without
-          // this, switching between games kept the same <img>; the
-          // browser dropped the old image's intrinsic dimensions
-          // while the new src loaded and the element briefly had
-          // zero natural size, which read as "scrunched" inside the
-          // aspect-ratio container.
+          // key={appId} forces a fresh <img> per game. Reusing the
+          // node across games drops the old intrinsic dimensions while
+          // the new src loads, giving a brief zero-natural-size flash
+          // inside the aspect-ratio container.
           key={appId}
           className={styles.drillHeroArt}
-          // Always use the well-known CDN header for the hero. Earlier
-          // we swapped to `details.headerImage` once the Storefront API
-          // responded, but that URL is sometimes a different host that
-          // can fail to load — and our onError handler then hid the
-          // image. The CDN URL is stable across every game.
+          // Use the CDN header, not `details.headerImage` from the
+          // Storefront API: that URL is sometimes a different host
+          // that can fail to load. The CDN URL is stable per game.
           src={steamHeaderUrl(appId)}
           width={460}
           height={215}
@@ -846,17 +818,13 @@ function personaStatusLabel(state: number | undefined) {
   }
 }
 
-// Small rectangular capsule (231x87, ~2.66:1). When a tile's capsule
-// 404s the tile shows an empty placeholder of the same dimensions —
-// we deliberately do NOT fall back to a wider URL like header.jpg
-// because that would letterbox inside the 231/87 frame and make the
-// tile look smaller than its neighbours.
+// Library-tile capsule (231x87, ~2.66:1). No fallback URL on 404
+// (see GameTile).
 function steamCapsuleUrl(appId: number) {
   return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/capsule_231x87.jpg`;
 }
 
-// Larger landscape header used for the drill hero where the bigger
-// image reads better.
+// Larger landscape header (460x215) for the drill hero.
 function steamHeaderUrl(appId: number) {
   return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`;
 }

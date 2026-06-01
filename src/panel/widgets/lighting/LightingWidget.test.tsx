@@ -55,9 +55,9 @@ vi.mock('../../../lib/i18n', () => ({
   }),
 }));
 
-// Default to advanced (rich) mode in these tests — the existing assertions
-// describe the rich UI's surface (mode buttons + per-mode arrows). The
-// new simple-mode default has its own dedicated test block below.
+// Default to advanced (rich) mode here — these assertions cover the
+// rich UI (mode buttons + per-mode arrows). Simple mode has its own
+// test block below.
 const mockUiSettings = vi.hoisted(() => ({ widgetAdvancedMode: true }));
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({ settings: mockUiSettings, update: vi.fn(), reload: vi.fn() }),
@@ -97,8 +97,7 @@ describe('LightingWidget', () => {
     expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
 
-    // No 'Off' or 'Static' buttons - Off isn't a widget surface and Static was
-    // removed with the static mode entirely.
+    // No 'Off' or 'Static' buttons - neither is a widget surface.
     expect(screen.queryByRole('button', { name: 'Off' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Static' })).not.toBeInTheDocument();
   });

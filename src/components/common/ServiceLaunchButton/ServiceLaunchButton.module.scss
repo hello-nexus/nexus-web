@@ -1,7 +1,6 @@
 .button {
   // Locked to the success-green token (matches the connected shield) so the
-  // button doesn't shift hue with the user's accent setting - "Launch" reads
-  // as a safe, ready-to-go action, not a brand-coloured CTA.
+  // button doesn't shift hue with the user's accent setting.
   --launch-bg: var(--good);
 
   display: inline-flex;

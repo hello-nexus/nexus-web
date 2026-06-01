@@ -146,8 +146,7 @@
 }
 
 // Section headers use the shared <SectionHeader> component
-// (components/common/SectionHeader) — the old global .device-modal-section
-// style was folded into it so there is a single definition.
+// (components/common/SectionHeader).
 
 :global(.device-modal-select) {
   padding: 0.35rem 0.6rem;

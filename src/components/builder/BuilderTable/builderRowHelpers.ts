@@ -1,10 +1,8 @@
 import type { ComponentCategory, ComponentOption, RetailerListing } from '../../../types/builder';
 
 /**
- * PC Part Picker-style key specs shown inline next to the product name in the
- * build list. One or two values per category, chosen to surface what the user
- * usually checks at a glance (CPU cores, PSU wattage, etc). Anything more
- * verbose belongs in the picker's full column view.
+ * Inline key specs shown next to the product name in the build list. One or
+ * two values per category (CPU cores, PSU wattage, etc).
  */
 interface KeySpec { label: string; value: string; }
 
@@ -57,11 +55,9 @@ export function getKeySpecs(category: ComponentCategory, c: ComponentOption): Ke
 }
 
 /**
- * The "Buy now" link should land on a real product page. Prefer the retailer
- * the user locked in on this build; otherwise the cheapest in-stock listing;
- * otherwise the first listing with any URL. Returns null when the catalogue
- * has no retailer entries at all (defensive - matcher should always produce
- * at least one).
+ * "Buy now" URL precedence: the retailer locked in on this build, else the
+ * cheapest in-stock listing, else the first listing with any URL. Returns
+ * null when there are no retailer entries at all.
  */
 export function resolveBuyUrl(c: ComponentOption, selectedRetailer: string | null): string | null {
   if (!c.retailers || c.retailers.length === 0) return null;

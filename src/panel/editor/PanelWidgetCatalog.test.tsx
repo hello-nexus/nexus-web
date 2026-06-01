@@ -39,23 +39,20 @@ vi.mock('../widgets/registry', () => {
   };
   return {
     APP_REGISTRY: REGISTRY,
-    // Mirror the real `getCatalogEntries` which the catalog now uses to
-    // walk both built-in and marketplace entries; tests don't exercise
-    // marketplace registration so the second list stays empty.
+    // Mirror getCatalogEntries (built-in + marketplace). Tests don't register
+    // marketplace widgets, so that list stays empty.
     getCatalogEntries: () => Object.entries(REGISTRY),
     pickerSizeFor: () => '2x2',
     appAvailableForSurface: (meta: MockMeta, surface: PanelSurface) => {
-      // Mirror the runtime rule: touch-required widgets are hidden on the
-      // no-touch q60 surface; everything else is available.
+      // Runtime rule: touch-required widgets hidden on the no-touch q60.
       if (meta.touch && surface === 'q60') return false;
       return true;
     },
   };
 });
 
-// The catalog now eagerly triggers a marketplace registry refresh on mount.
-// The test environment has no service to talk to, so stub both the
-// registry helpers to no-op functions.
+// The catalog refreshes the marketplace registry on mount; with no service in
+// the test environment, stub the registry helpers to no-ops.
 vi.mock('../../widgets/marketplaceRegistry', () => ({
   isMarketplaceRegistryStale: () => false,
   loadMarketplaceWidgets: () => Promise.resolve(),

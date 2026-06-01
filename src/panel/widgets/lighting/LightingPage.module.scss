@@ -6,9 +6,8 @@
   height: 100%;
 }
 
-// Sliders icon in the top-right of the ViewHeader. Opens LightingSettingsModal.
-// Visual weight matches the cooling page's settingsBtn so the two surfaces
-// read as siblings — neutral until hovered, accent-tinted on hover.
+// Sliders icon in the ViewHeader top-right; opens LightingSettingsModal.
+// Visual weight matches the cooling page's settingsBtn.
 .settingsBtn {
   display: inline-flex;
   align-items: center;
@@ -36,11 +35,10 @@
   }
 }
 
-// Compact icon-track-value layout for the master brightness slider. Lives
-// in the ViewHeader's tabActions slot now (right-aligned at the same vertical
-// level as the lighting mode tabs). Width is reserved (min/max) so the
-// underline doesn't jump while the value hydrates AND so the slider can't
-// blow past its slot and trigger horizontal overflow on the page.
+// Compact icon-track-value layout for the master brightness slider in
+// the ViewHeader's tabActions slot. Reserved width (min/max) keeps the
+// underline from jumping while the value hydrates and stops the slider
+// overflowing its slot.
 .globalBrightnessSlider {
   display: flex;
   align-items: center;
@@ -50,11 +48,9 @@
   max-width: 100%;
   flex-shrink: 0;
 
-  // Slider's own `.root { width: 100% }` would otherwise win the cascade
-  // (single-class selectors, identical specificity → file order decides,
-  // and that order isn't stable across refactors). Anchor the inner track
-  // here as a descendant selector so it wins by specificity instead of by
-  // chunk order.
+  // Slider's own `.root { width: 100% }` ties on specificity (both
+  // single-class), so file order would decide. Anchor the inner track
+  // as a descendant selector so it wins by specificity, not order.
   .globalBrightnessTrack {
     width: 140px;
     flex-shrink: 0;
@@ -83,8 +79,7 @@
 
 .body {
   display: grid;
-  // Device column set to 300px - matches CoolingView's right-pane width so
-  // the device list / effect tab reads at the same width as the fan list.
+  // Device column 300px, matching CoolingPage's right-pane width.
   grid-template-columns: 1fr 300px;
   grid-template-rows: minmax(0, 1fr);
   flex: 1;
@@ -101,9 +96,9 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  // Left edge inherits the app shell `.content` left pad so this view aligns
-  // flush with Monitoring + Cooling. Only the right gap is added back so the
-  // widened devices column has breathing room before the right divider.
+  // No left pad (inherits the app shell `.content` left pad, aligning
+  // with Monitoring + Cooling); right gap separates the devices column
+  // from the divider.
   padding: 0 0.5rem 0 0;
 }
 
@@ -248,13 +243,10 @@
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  // Compact thumbnail cell width - smaller cells fit more per row so the
-  // grid reads as a browsable catalogue rather than a few oversized banners.
+  // Compact cell width fits more thumbnails per row.
   grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-  // Cards size to their natural content height; without these the grid
-  // would stretch each row (and each card inside it) to fill the
-  // remaining vertical space, which looks especially odd when a category
-  // filter leaves only one row of effects visible.
+  // Cards size to natural content height; without these the grid
+  // stretches each row to fill the remaining vertical space.
   grid-auto-rows: max-content;
   align-content: start;
   gap: 0.6rem;
@@ -288,9 +280,9 @@
 }
 
 // Loading skeleton for the brief window between mount and the real
-// thumbnail BMP arriving from the service. Used to be a per-effect
-// hand-authored gradient, but the gradient set drifted out of date as
-// effects were added/removed/retuned. A neutral shimmer ages better.
+// thumbnail BMP arriving from the service. Neutral shimmer rather than a
+// per-effect gradient: hand-authored gradients drift out of date as
+// effects are added/removed/retuned.
 .effectThumb {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -331,7 +323,7 @@
   border: 1px solid var(--border);
   object-fit: cover;
   display: block;
-  image-rendering: pixelated; // 160x90 source looks intentional rather than muddy
+  image-rendering: pixelated; // crisp pixels for the 160x90 source
 }
 
 .effectLabel {
@@ -348,7 +340,7 @@
   right: 0;
   top: 0;
   bottom: 0;
-  width: 220px; // matches the device-list column so the panel swap feels seamless
+  width: 220px; // matches the device-list column width
   background: var(--bg-elevated);
   border-left: 1px solid var(--border);
   border-top: 1px solid var(--border);
@@ -414,10 +406,8 @@
 }
 
 // Row of 4 preset swatch buttons under the drawer title. Each button's
-// background renders the colour mood of that slot: rainbow gradient
-// underneath, with a solid-hue overlay whose opacity equals the slot's
-// colorize value. No numbers, no text - the user identifies presets by
-// colour alone.
+// background is a rainbow gradient under a solid-hue overlay whose
+// opacity equals the slot's colorize value. No numbers or text.
 .drawerTemplates {
   --effect-template-gap: 0.35rem;
   --effect-template-height: 32px;
@@ -450,9 +440,8 @@
   min-height: 0;
 }
 
-// Pinned-to-bottom footer holding the scoped Reset button. Stays visible
-// even when the slider list scrolls so the user can always undo edits to
-// the currently-selected preset without hunting.
+// Pinned-to-bottom footer holding the scoped Reset button; stays
+// visible while the slider list scrolls.
 .drawerFooter {
   flex-shrink: 0;
   padding: 0.6rem 1rem 0.85rem;
@@ -495,7 +484,7 @@
   padding: 0.35rem 0;
 }
 
-// Compact label is still used for the screen-mirror monitor picker.
+// Compact label for the screen-mirror monitor picker.
 .compactLabel {
   font-size: var(--type-small);
   color: var(--text-dim);
@@ -682,7 +671,7 @@
 // ── Device Panel ────────────────────────────────────────────────────────────
 
 .devicePanel {
-  // Horizontal padding mirrors CoolingView's .fanPanel (0 1rem 0 2.5rem) so
+  // Horizontal padding mirrors CoolingPage's .fanPanel (0 1rem 0 2.5rem) so
   // device cards land at the same on-screen width as cooling fan cards.
   padding: 0.5rem 1rem 0.5rem 2.5rem;
   overflow-y: auto;
@@ -690,10 +679,8 @@
   min-height: 0;
 }
 
-// Bottom-of-panel labelled rescan. Sits between the scrollable device list
-// and the OpenRGB indicator (which doubles as the supported-devices
-// catalogue trigger) so both footer actions read as a pair. Same dashed-
-// border pattern as the indicator below so they balance visually.
+// Bottom-of-panel labelled rescan, between the device list and the
+// OpenRGB indicator. Same dashed-border pattern as the indicator below.
 .rescanDevicesBtn {
   display: flex;
   align-items: center;
@@ -722,11 +709,9 @@
   }
 }
 
-// Bottom-of-pane OpenRGB indicator. Renders as either a plain badge (status
-// only) or, when an onClick is provided, a button that opens the supported-
-// devices catalogue. Sits where the old "browse supported devices" link used
-// to live - same dashed footer treatment so it pairs with the rescan button
-// above it.
+// Bottom-of-pane OpenRGB indicator: a plain badge (status only), or a
+// button that opens the supported-devices catalogue when given an
+// onClick. Same dashed footer treatment as the rescan button above.
 .statusCard {
   margin: 0.5rem 1rem 0.85rem 2.5rem;
   padding: 0.4rem 0.7rem;
@@ -743,8 +728,7 @@
   flex-shrink: 0;
   transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
 
-  // Button variant lights up on hover the same way the old browse-supported
-  // button did, so the affordance is unchanged.
+  // Button variant lights up on hover.
   &[type='button'] {
     cursor: pointer;
 
@@ -834,8 +818,8 @@
     &:hover { border-color: var(--border); }
   }
 
-  // Dim the device name + meta when the toggle is off, so the card reads as
-  // "this device won't light up" at a glance. Toggle itself stays full opacity.
+  // Dim the device name + meta when the toggle is off; the toggle
+  // itself stays full opacity.
   &.deviceCardPoweredOff {
     .deviceName { color: var(--text-faded); }
     .deviceMeta { opacity: 0.6; }
@@ -850,9 +834,8 @@
   outline-offset: -2px;
 }
 
-// Second line of the device card: LED count text on the left, action icons
-// flush right. Sharing a single row trims ~1rem off the card height versus the
-// previous "icons absolute-positioned underneath" layout.
+// Second line of the device card: LED count on the left, action icons
+// flush right, sharing one row to trim card height.
 .deviceMetaRow {
   display: flex;
   align-items: center;
@@ -891,10 +874,9 @@
   svg { width: 13px; height: 13px; }
 }
 
-// Stays visible (overrides .deviceSettingsBtn's opacity:0) when the device is
-// off, so the user always sees a way to turn it back on without having to
-// hover the card. When the device is on the button uses the default
-// .deviceSettingsBtn fade-in-on-hover behaviour like every other icon.
+// Stays visible (overrides .deviceSettingsBtn's opacity:0) when the
+// device is off, so the power-on control is always reachable. When on,
+// the button keeps the default fade-in-on-hover behaviour.
 .devicePowerBtnPersistent {
   opacity: 1;
 }
@@ -904,9 +886,9 @@
   font-weight: var(--weight-body);
   color: var(--text);
   line-height: 1.3;
-  // Wrap long zone names like "B850I AORUS PRO - Digital LED 1" onto multiple
-  // lines rather than truncating with an ellipsis - the card stretches down,
-  // the absolute-positioned action buttons stay anchored to the bottom-right.
+  // Wrap long zone names onto multiple lines rather than ellipsis-
+  // truncating; the card stretches down, action buttons stay anchored
+  // bottom-right.
   word-break: break-word;
 }
 
@@ -924,9 +906,8 @@
   flex-shrink: 0;
 }
 
-// Bold count prefix inside .deviceMeta. Matches the bolder number used for
-// motherboard zone LED counts so all device rows read the same way: solid
-// number followed by faded unit label.
+// Bold count prefix inside .deviceMeta: solid number, faded unit
+// label. Matches the motherboard zone LED-count styling.
 .deviceMetaCount {
   color: var(--text);
   font-weight: var(--weight-body);

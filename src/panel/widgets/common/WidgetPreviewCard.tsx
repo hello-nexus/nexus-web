@@ -31,16 +31,14 @@ interface WidgetPreviewCardProps {
   // shell is not panel-themed (e.g. Y70Modal catalog inside the desktop app).
   themeMode?: 'dark' | 'light';
   // Optional drag handlers from dnd-kit. Typed as unknown because dnd-kit's
-  // listener-map shape is library-internal; we just spread them onto the
-  // root element.
+  // listener-map shape is library-internal; spread onto the root element.
   dragRef?: (node: HTMLElement | null) => void;
   dragHandle?: ReactNode;
   dragListeners?: unknown;
   dragAttributes?: unknown;
   isDragging?: boolean;
-  // Visually marks this card as the currently chosen widget. Used by
-  // single-widget surfaces where the catalog acts as a chooser rather
-  // than an additive picker.
+  // Marks this card as the chosen widget, for single-widget surfaces where
+  // the catalog acts as a chooser rather than an additive picker.
   selected?: boolean;
   onClick?: () => void;
 }
@@ -74,9 +72,8 @@ export function WidgetPreviewCard({
       const w = el.clientWidth;
       const h = el.clientHeight;
       if (w <= 0 || h <= 0) return;
-      // Fit by the tighter dimension. With aspect-ratio matching the inner
-      // ratio, both match - this also handles the brief moment after layout
-      // when only one dimension is final.
+      // Fit by the tighter dimension; also covers the brief post-layout
+      // moment when only one dimension is final.
       const next = Math.min(w / innerW, h / innerH);
       if (next > 0 && Number.isFinite(next)) setScale(next);
     };
@@ -118,19 +115,17 @@ export function WidgetPreviewCard({
     }
   };
 
-  // Hint to grid layouts that a wide tile (cols > rows, e.g. 4x2) should
-  // span the full row in 2-column grids. Consumed by the panel sheet's grid;
-  // omitted for normal tiles to keep the DOM clean.
+  // Hints to grid layouts that a wide tile (cols > rows, e.g. 4x2) spans the
+  // full row in 2-column grids. Consumed by the panel sheet's grid.
   const isWide = aspect === 'natural' && span.cols > span.rows;
 
   return (
     <div
       ref={dragRef}
       className={`${styles.card} ${isDragging ? styles.cardDragging : ''} ${selected ? styles.cardSelected : ''}`}
-      // Spread drag attributes/listeners FIRST so our explicit role / tabIndex
-      // / onClick / onKeyDown / aria-label win on conflict. Today only the
-      // pointer sensor is wired up in the catalog, but a future keyboard
-      // sensor would otherwise stomp onKeyDown.
+      // Spread drag attributes/listeners FIRST so the explicit role/tabIndex/
+      // onClick/onKeyDown/aria-label below win on conflict (a keyboard drag
+      // sensor would otherwise stomp onKeyDown).
       {...((dragAttributes ?? {}) as Record<string, unknown>)}
       {...((dragListeners ?? {}) as Record<string, unknown>)}
       role="button"

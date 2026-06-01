@@ -40,11 +40,9 @@ export function PanelPager<T extends { id: string }>({
 
   const baseTranslate = pageWidth > 0 ? -safeIndex * pageWidth : 0;
   const translateX = baseTranslate + offset;
-  // Critical: do NOT set transform when at rest on page 0. Any non-none
-  // transform value creates a containing block for fixed-positioned
-  // descendants, which breaks the editor's `position: fixed` docked
-  // widget (it ends up positioned relative to .track instead of the
-  // viewport, hiding under the editor scrim).
+  // Critical: do NOT set transform at rest on page 0. Any non-none transform
+  // creates a containing block for fixed descendants, breaking the editor's
+  // `position: fixed` docked widget (anchors to .track, hides under the scrim).
   const trackStyle: CSSProperties | undefined = translateX !== 0
     ? { transform: `translate3d(${translateX}px, 0, 0)` }
     : undefined;

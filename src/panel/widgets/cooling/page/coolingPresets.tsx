@@ -4,7 +4,7 @@ import { SignalBarsIcon } from '../SignalBarsIcon';
 import type { CurveDef } from '../../../../types/cooling';
 
 /**
- * Canonical 5-tab cooling preset set, shared by the desktop CoolingView,
+ * Canonical 5-tab cooling preset set, shared by the desktop CoolingPage,
  * the panel cooling widget, and any other surface that needs to
  * mirror the active preset.
  *
@@ -55,9 +55,8 @@ const TurboIcon: IconComponent = ({ size, className }) => (
     className={className} />
 );
 
-// Custom uses lucide Gauge (was the old Balanced icon) — keeps a
-// recognisable "tunable speed" semantic without competing visually
-// with the signal-bars set.
+// Custom uses lucide Gauge — a recognisable "tunable speed" semantic that
+// doesn't compete visually with the signal-bars set.
 export const COOLING_PRESETS: readonly CoolingPresetDef[] = [
   { key: 'off',      i18nKey: 'cooling.preset.off',      Icon: Power },
   { key: 'silent',   i18nKey: 'cooling.preset.silent',   Icon: SilentIcon },

@@ -102,9 +102,8 @@ import(${JSON.stringify(entryUrl)}).catch(function (err) {
       const msg = ev.data;
       if (!msg || typeof msg !== 'object') return;
 
-      // RPC reply (response to a host-initiated call) - not used today;
-      // host calls go via opts/handle directly. Workers send notifications
-      // and host responds to worker RPCs.
+      // RPC reply to a host-initiated call — unused; host calls go via
+      // opts/handle directly. Workers notify; the host responds to worker RPCs.
       if ('result' in msg || 'error' in msg) {
         // not used
         return;

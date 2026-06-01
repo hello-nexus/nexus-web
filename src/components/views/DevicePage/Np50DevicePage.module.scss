@@ -1,6 +1,5 @@
-// Routed NP50 page. Follows the same .page / .pageBody contract every
-// device page uses so the chrome sits flush under the dashboard's view
-// header (matches KeebDevicePage / PeripheralDevicePage).
+// Routed NP50 page. Same .page / .pageBody contract every device page uses,
+// so the chrome sits flush under the dashboard's view header.
 
 .page {
   display: flex;

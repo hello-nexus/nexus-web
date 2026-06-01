@@ -6,14 +6,9 @@ import {
 
 export const ICON_SIZE = 18;
 
-// The five pinnable apps (dashboard + monitoring/lighting/cooling/devices)
-// now live in `./sidebarApps`, since the sidebar builds its rows from the
-// user's pinned order rather than this hardcoded list.
-
-// Builder / Benchmark / Community sidebar entries are hidden for now; routes
-// still resolve so anyone with a bookmarked URL keeps working. Typed instead
-// of `[] as const` so downstream consumers see the original element union
-// rather than `never`.
+// Builder / Benchmark / Community sidebar entries are hidden; routes still
+// resolve so bookmarked URLs keep working. Typed instead of `[] as const`
+// so consumers see the element union rather than `never`.
 export const PORTAL_NAV_KEYS: readonly ('builder' | 'benchmark' | 'community')[] = [];
 
 export const NAV_ICONS: Record<string, ReactNode> = {

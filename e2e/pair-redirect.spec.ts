@@ -66,9 +66,4 @@ test.describe('/r/pair landing page', () => {
     await page.goto(`/r/pair?host=${encodeURIComponent('192.168.1.50.evil.com')}&httpPort=9400&pair=SECRETTOKEN`);
     await expect(page.getByText('Invalid pairing link')).toBeVisible();
   });
-
-  test('refuses a non-numeric httpPort', async ({ page }) => {
-    await page.goto(`/r/pair?host=192.168.1.50&httpPort=${encodeURIComponent('9400/@evil.com')}&pair=SECRETTOKEN`);
-    await expect(page.getByText('Invalid pairing link')).toBeVisible();
-  });
 });

@@ -1,4 +1,4 @@
-// Two-column shape (mirrors LightingView): main pane on the left holds the
+// Two-column shape (mirrors LightingPage): main pane on the left holds the
 // trend chart + curves list; the right sidebar holds the fan cards. The
 // page owns its own vertical layout so the sidebar can fill height; the
 // outer `.content` scroll still wraps it.
@@ -62,7 +62,7 @@
 // wider than lighting's DevicePanel but narrower than the desktop FanCard
 // so the compact-variant fan cards fit naturally at full column width. The
 // row is pulled past the app shell content padding so the sidebar docks
-// flush to the viewport edge (same trick LightingView uses). The visible
+// flush to the viewport edge (same trick LightingPage uses). The visible
 // gutter between main and sidebar comes from each pane's own internal
 // padding, not a grid gap, to match lighting's spacing.
 .body {
@@ -568,9 +568,8 @@
 }
 
 // ── Fan mode dropdown (unified BIOS / Manual / curves / create-curve) ─────
-// Replaces the earlier chip + toggle switch + conditional curve row with a
-// single control. Visual weight kept low (text-dim, small font) to match the
-// "Curve" label typography the dropdown supersedes.
+// Visual weight kept low (text-dim, small font) to match the "Curve" label
+// typography elsewhere in the card.
 .fanModeSelect {
   width: 100%;
   // Tight padding + line-height matched to .sourceSelect so the fan-mode and
@@ -601,9 +600,9 @@
   font-style: italic;
 }
 
-// Binding marker (replaces the old mode dropdown). The wired variant shows
-// the curve name as a small accent-tinted chip; the disconnected variant
-// reads as a muted neutral state so unwired fans visually recede.
+// Binding marker. The wired variant shows the curve name as a small
+// accent-tinted chip; the disconnected variant reads as a muted neutral
+// state so unwired fans visually recede.
 .fanBindingReadout,
 .fanBindingDisconnected {
   display: flex;
@@ -671,11 +670,9 @@
   &:active { cursor: grabbing; }
 }
 
-// Live output % chip rendered inline at the end of the mode area. Visual
-// style matches the old mix preview chip so every curve type reads with one
-// chip language. Reserves enough width for the full "100%" string so the
-// chip selector to its left never shifts horizontally as the duty value
-// changes (0% -> 100%).
+// Live output % chip rendered inline at the end of the mode area. Reserves
+// enough width for the full "100%" string so the chip selector to its left
+// never shifts horizontally as the duty value changes (0% -> 100%).
 .curveOutBadge {
   display: inline-block;
   box-sizing: border-box;

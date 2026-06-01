@@ -1,7 +1,5 @@
-// useUiSettings and useTempSensorPrefs are hook exports bound to the
-// UiSettingsContext defined in this file; splitting them out would just
-// create a one-liner re-export module imported from every settings consumer.
- 
+// useUiSettings and useTempSensorPrefs are bound to the UiSettingsContext
+// defined in this file.
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
   type ReactNode,
@@ -21,24 +19,20 @@ import { useTranslation } from '../lib/i18n';
 import { sanitizePinnedTail } from '../app/sidebarApps';
 
 /**
- * Unified user-settings hook. Replaces the previous pattern where views called
- * `loadSettings()` / `saveSettings()` (localStorage) AND
- * `fetchPreferences()` / `savePreferences()` (server per-profile) independently,
- * which let them drift out of sync across profile switches.
+ * Unified user-settings hook.
  *
  * Rules enforced here:
  *   - `clientScoped` fields (startOnLogin) live in localStorage only.
  *   - `profileScoped` fields (language, theme, accent, monitoring,
- *     fanChannelOrder, etc.) live on the server per-profile. localStorage is
- *     strictly a boot-time cache so the first render is not blank; every
- *     write path pushes to the server too.
- *   - Profile switch re-fetches server state and re-applies the theme/accent
- *     immediately; views only need to re-render on `settings` change.
+ *     fanChannelOrder, etc.) live on the server per-profile; localStorage is
+ *     a boot-time cache so the first render is not blank, and every write
+ *     path also pushes to the server.
+ *   - Profile switch re-fetches server state and re-applies theme/accent;
+ *     views re-render on `settings` change.
  *
- * No extra polling or WebSocket subscriptions: one server fetch on mount and
- * one on each profile switch. `update()` debounces server writes by 250ms to
- * avoid thrashing when a slider drags, but mirrors to local state + localStorage
- * synchronously so the UI feels instant.
+ * One server fetch on mount and one per profile switch, no polling.
+ * `update()` debounces server writes by 250ms but mirrors to local state +
+ * localStorage synchronously.
  */
 
 export interface UiSettingsValue {
@@ -61,13 +55,12 @@ export interface UiSettingsValue {
   preferredCpuTempSensorId: string;
   preferredGpuTempSensorId: string;
   // Order of pinnable sidebar apps after the locked Dashboard row. See
-  // PINNABLE_APP_KEYS in app/sidebarApps.tsx. Server-mirrored under
+  // isPinnableAppKey in app/sidebarAppKeys.ts. Server-mirrored under
   // ui.pinnedSidebarApps.
   pinnedSidebarApps: string[];
   // When true, lighting + cooling widgets show the rich UI (chart, chips,
-  // mode buttons). Default false — the compact center-icon+arrows layout
-  // is the default at every size. Per-widget config.advancedMode can
-  // override this for a single widget instance.
+  // mode buttons); default false (compact center-icon+arrows layout).
+  // Per-widget config.advancedMode overrides this per instance.
   widgetAdvancedMode: boolean;
 }
 
@@ -176,13 +169,12 @@ interface UiSettingsProviderProps {
   /** Active profile id (for re-fetching on profile switch). */
   activeProfileId?: string;
   /**
-   * Whether server-driven theme / accent / language changes should be
-   * applied to `document.documentElement` and the global i18n state.
-   * `true` (default) is what the desktop dashboard wants. `false` for
-   * the kiosk panel, the overlay process, and the simulator iframe —
-   * those surfaces own their own theme/language pipelines (usePanelTheme,
-   * the overlay's standalone theme manager, the parent modal's postMessage
-   * theme feed) and would fight a second writer.
+   * Whether server-driven theme / accent / language changes apply to
+   * `document.documentElement` and global i18n state. `true` (default) for
+   * the desktop dashboard. `false` for the kiosk panel, overlay process,
+   * and simulator iframe: those own their own theme/language pipelines
+   * (usePanelTheme, the overlay's theme manager, the parent modal's
+   * postMessage feed) and would fight a second writer.
    */
   manageDom?: boolean;
 }
@@ -190,9 +182,9 @@ interface UiSettingsProviderProps {
 export function UiSettingsProvider({
   children, serviceOnline, activeProfileId, manageDom = true,
 }: UiSettingsProviderProps) {
-  // Language now lives in I18nProvider (see lib/i18n.tsx). Calling setLanguage
-  // from this hook keeps the provider in sync whenever settings.general.language
-  // changes via any path (manual pick in SettingsView, profile reload, etc.).
+  // Language lives in I18nProvider (lib/i18n.tsx); calling setLanguage keeps
+  // the provider in sync whenever settings.general.language changes via any
+  // path (SettingsView pick, profile reload, etc.).
   const { setLanguage } = useTranslation();
   // Synchronous seed from localStorage keeps the first render flash-free.
   const [settings, setSettings] = useState<UiSettingsValue>(() =>
@@ -226,11 +218,9 @@ export function UiSettingsProvider({
       const next = { ...prev, ...patch };
       persistLocal(next);
 
-      // Apply side effects for fields the whole UI cares about. Done here so
-      // the caller never forgets (the old pattern had view-level handlers
-      // calling applyThemeMode / applyAccentColor inconsistently). Guarded
-      // by `manageDom` so non-desktop surfaces don't trample their own
-      // theme/language managers.
+      // Apply DOM/i18n side effects for whole-UI fields here so every caller
+      // gets them. Guarded by `manageDom` so non-desktop surfaces don't
+      // trample their own theme/language managers.
       if (manageDom) {
         if (patch.themeMode !== undefined) applyThemeMode(patch.themeMode);
         if (patch.accentColor !== undefined) applyAccentColor(patch.accentColor);
@@ -249,10 +239,8 @@ export function UiSettingsProvider({
       setSettings(prev => {
         const next = applyServerToLocal(prefs, prev);
         persistLocal(next);
-        // Re-apply theme/accent when server state differs -- this is the
-        // profile-switch path (settings really changed) so hydration should
-        // also touch the DOM. Same `manageDom` guard as in update() so
-        // non-desktop surfaces aren't surprised by a server-driven repaint.
+        // Re-apply theme/accent when server state differs (profile-switch
+        // path). Same `manageDom` guard as update().
         if (manageDom) {
           if (next.themeMode !== prev.themeMode) applyThemeMode(next.themeMode);
           if (next.accentColor !== prev.accentColor) applyAccentColor(next.accentColor);
@@ -260,9 +248,9 @@ export function UiSettingsProvider({
         }
         return next;
       });
-      // Also call the legacy cache helper so any non-migrated code paths that
-      // still read via loadSettings() see the refreshed values until their
-      // migration lands. Safe to remove once every view goes through the hook.
+      // Mirror to the legacy cache so code paths still reading via
+      // loadSettings() see refreshed values. Removable once every view
+      // goes through this hook.
       cachePreferencesLocally({
         language: prefs.theme?.language,
         themeMode: prefs.theme?.themeMode,
@@ -317,12 +305,9 @@ export function useUiSettings(): UiSettingsContextValue {
 }
 
 /**
- * Safe read-only accessor for the preferred CPU/GPU temperature sensor ids.
- * Returns empty strings (auto-mode) when called outside a UiSettingsProvider —
- * the resolver then naturally falls back to the per-domain default sensor.
- * Acts as a fail-safe for any future surface that mounts a temp-aware widget
- * without first wrapping with the provider; in normal use today the desktop
- * dashboard, panel, simulator, and overlay all provide one.
+ * Read-only accessor for the preferred CPU/GPU temperature sensor ids.
+ * Returns empty strings (auto-mode) when called outside a UiSettingsProvider,
+ * so the resolver falls back to the per-domain default sensor.
  */
 export function useTempSensorPrefs(): { cpuId: string; gpuId: string } {
   const ctx = useContext(UiSettingsContext);

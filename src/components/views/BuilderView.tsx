@@ -54,10 +54,8 @@ export default function BuilderView({
     onCategoryChange(null);
   }, [onCategoryChange]);
 
-  // PSU wattage for the estimator
   const psuWattage = build.slots.psu?.[0]?.selection?.specs.wattage ?? null;
 
-  // When a category is active from the route, show the picker
   if (category) {
     return (
       <section className={styles.builder}>
@@ -73,7 +71,6 @@ export default function BuilderView({
     );
   }
 
-  // Default: show the builder table
   return (
     <section className={styles.builder}>
       <div className={styles.summaryBar}>

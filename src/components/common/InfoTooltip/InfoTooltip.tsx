@@ -60,8 +60,8 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
     }
   };
   // Open delay so incidental cursor pass-through doesn't pop the tooltip.
-  // Shares ../tooltipDelay's "scan mode" with HoverTooltip so all hover
-  // tooltips feel uniform and scanning across them opens each one instantly.
+  // Shares ../tooltipDelay's "scan mode" with HoverTooltip: scanning across
+  // tooltips opens each instantly.
   const scheduleOpen = () => {
     cancelPendingOpen();
     openTimerRef.current = window.setTimeout(() => {

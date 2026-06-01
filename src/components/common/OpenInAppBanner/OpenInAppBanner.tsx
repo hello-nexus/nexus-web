@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NexusMark } from '../../icons/NexusBrand';
 
-// Bumping the version invalidates older "dismissed" state, e.g. after the app
-// ships to the App Store and we want to re-pitch users who dismissed during dev.
+// Bumping the version suffix invalidates older "dismissed" state.
 const DISMISS_KEY = 'nexus_open_in_app_banner_dismissed_v1';
 
 /**
@@ -14,8 +13,7 @@ const DISMISS_KEY = 'nexus_open_in_app_banner_dismissed_v1';
  *
  * Self-gates so it never renders inside the iOS app's WKWebView (the app
  * loads `https://<lan-ip>:9443/panel/phone`, not hellonexus.com), on /r/*
- * routes (PairRedirect owns that flow), or on /panel/phone (that path IS
- * the app's home, no reason to re-pitch).
+ * routes (PairRedirect owns that flow), or on /panel/phone (the app's home).
  */
 export function OpenInAppBanner() {
   const [visible, setVisible] = useState(false);
@@ -41,15 +39,13 @@ export function OpenInAppBanner() {
       || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
     if (!isIOSDevice) return;
 
-    // Standalone PWA already lives outside the browser - the banner would
-    // be redundant chrome.
+    // Standalone PWA already runs outside the browser — no banner.
     const standalone = window.matchMedia('(display-mode: standalone)').matches
       || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
     if (standalone) return;
 
-    // Banner gating depends on host / UA / standalone / localStorage — all of
-    // which read window globals, so the visibility decision can only be made
-    // post-mount. setState in effect is the right primitive for this.
+    // Gating reads window globals (host / UA / standalone / localStorage), so
+    // the visibility decision can only be made post-mount.
      
     setVisible(true);
   }, []);

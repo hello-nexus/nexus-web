@@ -1,8 +1,6 @@
-// Declarative widget renderer + binding helpers live together: the bind*
-// utilities are tightly coupled to RenderContext and used by every meter.
-// Splitting them out just to satisfy fast-refresh would create a one-import
-// file that nothing else consumes. Loss of HMR for UnknownMeter is fine
-// (it's an authoring-time fallback only).
+// Renderer + bind* helpers co-located: the helpers are coupled to
+// RenderContext and used by every meter. (Trade-off: no HMR for UnknownMeter,
+// an authoring-time fallback.)
  
 import type { ReactNode } from 'react';
 import type { WidgetView } from '../types';
@@ -29,9 +27,8 @@ export interface RenderContext {
   data: Record<string, unknown>;
   settings: Record<string, unknown>;
   size: { width: number; height: number };
-  // Widget id is plumbed through so meters that fetch assets
-  // (e.g. <image src="assets/icon.png">) can resolve relative paths
-  // to `/widgets-api/installed/{id}/asset/...`.
+  // Widget id, so asset-fetching meters resolve relative paths to
+  // `/widgets-api/installed/{id}/asset/...`.
   widgetId: string;
   /** Widget-local state. Bound via `{local.*}`; mutated by `button`
    *  meters declaring `onClick: { localUpdate: { ... } }`. */
@@ -41,11 +38,9 @@ export interface RenderContext {
 }
 
 function asBindingContext(ctx: RenderContext): Record<string, unknown> {
-  // Cast the strongly-typed RenderContext to the loose binding context the
-  // expression evaluator expects. The evaluator walks paths against a
-  // plain object, so the only contract that matters at runtime is that
-  // top-level keys (`data`, `settings`, `size`, `widgetId`) exist - which
-  // RenderContext guarantees by construction.
+  // Cast RenderContext to the loose binding context. The evaluator walks paths
+  // against a plain object; only the top-level keys (data, settings, size,
+  // widgetId) need to exist, which RenderContext guarantees.
   return ctx as unknown as Record<string, unknown>;
 }
 

@@ -83,9 +83,8 @@
   min-height: 0;
 }
 
-// Non-touch (Q-series) variant: no controls row. The reclaimed space goes to
-// larger album art and roomier metadata so the now-playing card reads at a
-// glance from across the room.
+// Non-touch (Q-series) variant: no controls row, so larger album art
+// and roomier metadata.
 .statusOnly {
   &.full {
     .artWrap {
@@ -123,8 +122,7 @@
   flex-shrink: 0;
   width: 92px;
   height: 92px;
-  // Anchor at the top of the row so it visually sits at the top-left
-  // of the widget rather than vertically centred.
+  // Top-align in the row rather than vertically centred.
   align-self: flex-start;
   border-radius: 10px;
   overflow: hidden;
@@ -228,8 +226,7 @@
   background: var(--panel-border);
   border-radius: 2px;
   overflow: hidden;
-  // Higher up (right under the title/artist text) instead of pushed
-  // to the bottom of the metadata column.
+  // Sit just under the title/artist text, not at the column bottom.
   margin-top: 6px;
 }
 
@@ -284,7 +281,7 @@
 }
 
 // Toggle button (shuffle / repeat) - off state is dim, on state lights up
-// with the accent glow. Uses aria-pressed for screen readers.
+// with the accent glow.
 .toggle {
   color: var(--panel-text-faint);
 }

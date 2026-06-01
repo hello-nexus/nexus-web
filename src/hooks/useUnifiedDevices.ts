@@ -1,7 +1,6 @@
-// Shared selector for the Devices page "Available" tab AND the
-// dashboard Devices widget. Keeping both surfaces on the same unified
-// list (and the same `key` namespace) means a widget click can deep-link
-// straight to a card on the page by matching keys.
+// Shared selector for the Devices page "Available" tab and the dashboard
+// Devices widget. Both share one list and `key` namespace so a widget click
+// can deep-link to a card on the page by matching keys.
 
 import { useEffect, useMemo, useState } from 'react';
 import { useDevices } from './useDevices';
@@ -29,12 +28,11 @@ export interface UnifiedDevice {
   curatedId?: string;
   peripheral?: Peripheral;
   panelDevice?: PanelDevice;
-  // Whether this device has its own settings page. Drives both the sidebar
+  // Whether this device has its own settings page. Drives the sidebar
   // DEVICES section (only navigable devices get a row) and whether the
   // Devices-list card is clickable. Devices whose controls live on shared
-  // pages instead of a dedicated one (e.g. the MiniHub — fans on Cooling,
-  // ARGB on Lighting) are non-navigable so we don't deep-link into an empty
-  // "no page yet" placeholder.
+  // pages (e.g. MiniHub — fans on Cooling, ARGB on Lighting) are
+  // non-navigable so a click doesn't land on a "no page yet" placeholder.
   navigable: boolean;
 }
 
@@ -60,17 +58,15 @@ const CURATED_ICONS: Record<string, string> = {
 };
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
-  // Real connected Y70 of any variant is just "Y70 Touch" — the
-  // user doesn't need to see resolution class on a hardware row.
-  // Simulator entries carry the 2.5K / 4K suffix; see the
-  // SIMULATED_PANEL_PRESETS in panelSimulation.ts and the
+  // Real connected Y70 of any variant is just "Y70 Touch" (no resolution
+  // class on a hardware row). Simulator entries carry the 2.5K / 4K suffix;
+  // see SIMULATED_PANEL_PRESETS in panelSimulation.ts and the
   // simulated-vs-real branch in buildUnifiedList below.
   y70: 'Y70 Touch',
   'y70-4k': 'Y70 Touch',
-  // qseries deliberately omitted: the service reports the actual
-  // product name ("Q60" / "Q80") on the device record. Overriding
-  // here would collapse both to "Q-series" and lose the distinction
-  // the user wants surfaced.
+  // qseries omitted: the service reports the actual product name ("Q60" /
+  // "Q80") on the device record; overriding would collapse both to
+  // "Q-series".
   cnvs: 'CNVS',
   keeb: 'Keeb',
   'fan-hub': 'iBUYPOWER MiniHub',
@@ -97,10 +93,9 @@ export function useUnifiedDevices(enabled: boolean) {
   const devices = useDevices(enabled);
   const peripherals = usePeripherals(enabled);
   const webhid = useWebHidPeripherals(enabled);
-  // Y70 follows the same rules as Q60 / every other panel: it
-  // appears in the list only if (a) physically connected to this
-  // host, or (b) the user has activated its simulator (in which
-  // case it'll be in `simulatedPanels`). No always-on phantom.
+  // Y70 follows the same rules as every other panel: in the list only if
+  // (a) physically connected to this host, or (b) its simulator is active
+  // (then it's in `simulatedPanels`). No always-on phantom.
   const panels = usePanelDevices(enabled, { simulatedPanels });
 
   const merged: Peripheral[] = useMemo(() => {
@@ -113,12 +108,10 @@ export function useUnifiedDevices(enabled: boolean) {
   }, [peripherals.peripherals, webhid.peripherals]);
 
   const unified = useMemo(() => {
-    // Phone sessions are stored server-side in settings.json and stick around
-    // even after the phone hasn't pinged in months. The Available tab is for
-    // currently-available devices, so we explicitly drop external-browser
-    // sessions stuck in 'paired' (no recent keepalive). Any future status
-    // values on phone sessions are surfaced by default; only the known
-    // stale-pair state is filtered out.
+    // Phone sessions persist in settings.json long after the phone stops
+    // pinging. The Available tab shows currently-available devices, so drop
+    // external-browser sessions stuck in 'paired' (no recent keepalive).
+    // Other statuses are shown.
     const filteredPanels = panels.devices.filter(p =>
       !(p.connectionKind === 'external-browser' && p.status === 'paired')
     );
@@ -144,11 +137,10 @@ function buildUnifiedList(
   for (const p of panelDevices) {
     if (p.sourceId) claimedCuratedIds.add(p.sourceId);
     const sourceId = p.sourceId;
-    // Real connected panels go through CURATED_SHORT_NAMES so the
-    // sidebar shows a normalized hardware label ("Y70 Touch")
-    // regardless of which variant is attached. Simulator entries
-    // keep their preset name verbatim so the resolution-class suffix
-    // ("Y70 Touch 2.5K" / "Y70 Touch 4K") stays visible.
+    // Real connected panels use CURATED_SHORT_NAMES so the sidebar shows a
+    // normalized label ("Y70 Touch") regardless of variant. Simulator entries
+    // keep their preset name so the resolution suffix ("Y70 Touch 2.5K" /
+    // "Y70 Touch 4K") stays visible.
     const isSimulated = p.connectionKind === 'simulated';
     const shortName = isSimulated
       ? p.name

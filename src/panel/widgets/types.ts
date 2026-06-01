@@ -13,11 +13,8 @@ import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } fro
 //                        and become clickable on the embedded panel.
 //   Touch    (optional)  the touch-friendly fullscreen presentation
 //                        shown on panel kiosks (Y70 / phone) when the
-//                        user enters fullscreen mode. Was called
-//                        "Immersive" — kept the menu copy, renamed
-//                        the field for clarity. Falls back to a
-//                        generic fullscreen Widget wrapper when
-//                        absent.
+//                        user enters fullscreen mode. Falls back to a
+//                        generic fullscreen Widget wrapper when absent.
 //   Settings (optional)  the right-click edit sheet contents.
 //
 // The marketplace consumes this same shape (with a synthetic
@@ -50,10 +47,9 @@ export interface WidgetSettingsProps {
 }
 
 // Props passed to an App's desktop SPA Page. Each Page declares its
-// own bespoke prop shape (serviceOnline, serviceState, etc.) — the
+// own bespoke prop shape (serviceOnline, serviceState, etc.); the
 // manifest holds an opaque reference because rendering happens from
-// Dashboard.renderMyComputerView, which passes the right props per
-// case. The any-typing is intentional and gated to this slot.
+// Dashboard.renderMyComputerView, which passes the right props per case.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AppPageComponent = ComponentType<any>;
 
@@ -97,9 +93,9 @@ export interface AppManifest {
   // automatically pinnable to the sidebar and become click-through
   // on the dashboard panel.
   Page?: AppPageComponent | LazyExoticComponent<AppPageComponent>;
-  // Optional touch-fullscreen view (was `ImmersiveComponent`). Only
-  // widgets that ship this AND that have `meta.supportsImmersive`
-  // true for the current orientation get the menu entry.
+  // Optional touch-fullscreen view. Only widgets that ship this AND
+  // have `meta.supportsImmersive` true for the current orientation get
+  // the menu entry.
   Touch?: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
   // Optional right-click edit sheet contents.
   Settings?: ComponentType<WidgetSettingsProps> | LazyExoticComponent<ComponentType<WidgetSettingsProps>>;

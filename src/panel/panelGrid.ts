@@ -8,10 +8,8 @@ import { getPanelGridSizingSettings, PANEL_SIMULATION_CHANGED_EVENT } from '../l
 export const PHONE_WIDGET_REFERENCE_CELL = 90;
 export const DESKTOP_GRID_COLUMNS = 8;
 export const DESKTOP_GRID_ROWS = 8;
-// Hard cap on how many pages a panel can grow to. The user can drag
-// a widget toward the right edge to create a new empty page on
-// demand; this stops them at 10 so the pager / persistence don't
-// have to deal with unbounded growth.
+// Hard cap on pages. Dragging a widget to the right edge creates a new page;
+// this caps growth at 10 so the pager / persistence stay bounded.
 export const MAX_PANEL_PAGES = 10;
 export const DESKTOP_GRID_PADDING = 16;
 export const DESKTOP_ACTION_TRAY_HEIGHT = 0;
@@ -87,9 +85,9 @@ export function useRuntimePanelGrid(
   rootRef?: RefObject<HTMLElement | null>,
   simulator = false,
 ): PanelGridCapacity {
-  // Initialise from the surface without touching `rootRef` so we don't
-  // read a ref during render. The effect below immediately re-reads with
-  // the mounted root and replaces this value on the first paint.
+  // Initialise from the surface without touching `rootRef` (no ref reads
+  // during render). The effect below re-reads with the mounted root on first
+  // paint.
   const [metrics, setMetrics] = useState(() => readRuntimePanelGrid(surface, null, simulator));
 
   useEffect(() => {
@@ -126,9 +124,8 @@ export function readRuntimePanelGrid(surface: PanelSurface, root?: HTMLElement |
   }
 
   if (surface === 'desktop') {
-    // Desktop dashboard uses a fixed widget cell size so resizing the
-    // window does not rescale widgets. The grid clips past its container
-    // bounds rather than shrinking widget chrome.
+    // Desktop dashboard uses a fixed cell size so window resize doesn't
+    // rescale widgets; the grid clips past its container instead.
     return {
       columns: DESKTOP_GRID_COLUMNS,
       rows: DESKTOP_GRID_ROWS,
@@ -138,10 +135,10 @@ export function readRuntimePanelGrid(surface: PanelSurface, root?: HTMLElement |
     };
   }
 
-  // In simulator mode the iframe is sized at the device's native pixel
-  // dimensions (e.g. 682x2560 for Y70); the host browser's DPR would
-  // inflate the physical-size calc and trip the 4-to-8 column jump on
-  // Retina hosts, so treat cssWidth/cssHeight as device pixels directly.
+  // The simulator iframe is sized at the device's native pixels (e.g.
+  // 682x2560 for Y70). The host DPR would inflate the physical-size calc and
+  // trip the 4-to-8 column jump on Retina hosts, so treat cssWidth/cssHeight
+  // as device pixels directly.
   const dpr = simulator
     ? 1
     : Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0

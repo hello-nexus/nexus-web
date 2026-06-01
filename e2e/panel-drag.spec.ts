@@ -128,7 +128,7 @@ async function widgetCenterById(page: Page, id: string) {
 }
 
 // CDP touch driver. Runs in the browser's input pipeline so dnd-kit's
-// PointerSensor sees genuine pointerdown/move/up events with real
+// PointerSensor sees actual pointerdown/move/up events with real
 // pointer state (capture, primary, etc.) - synthesized PointerEvents
 // dispatched from page.evaluate() lose enough state that dnd-kit's
 // delay activation does not fire.

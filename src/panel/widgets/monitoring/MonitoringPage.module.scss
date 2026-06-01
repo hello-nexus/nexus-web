@@ -49,8 +49,7 @@
 
 .dashWide {
   cursor: pointer;
-  // Title row removed; the table's column header acts as the visual anchor,
-  // so trim the vertical padding to keep the card balanced.
+  // No title row; the table's column header anchors it, so trim vertical pad.
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
 }
@@ -94,9 +93,8 @@
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   color: var(--text);
-  // Mono digits have fixed advance; the display mixin's negative tracking
-  // and 1.2 leading aren't right for a single-line tabular number. Force
-  // tight, untracked composition so the unit suffix lines up cleanly.
+  // Override the display mixin's negative tracking and 1.2 leading: a
+  // single-line tabular number needs tight, untracked composition.
   line-height: 1;
   letter-spacing: 0;
   text-align: right;
@@ -364,8 +362,7 @@
   gap: 0.5rem;
   width: 100%;
   padding: 0.5rem 0.75rem;
-  // Elevated bar so each section title pops off the page surface and reads
-  // as a distinct group header, not just inline text.
+  // Elevated bar so each section title reads as a group header.
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -436,9 +433,7 @@
   padding: 0.22rem 0.5rem;
   border-radius: var(--radius-xs, 4px);
 
-  // Zebra striping in place of per-row separators — easier to follow
-  // long sensor lists horizontally without the visual noise of a dotted
-  // line on every row.
+  // Zebra striping in place of per-row separators.
   &:nth-child(odd) {
     background: color-mix(in srgb, var(--text) 4%, transparent);
   }

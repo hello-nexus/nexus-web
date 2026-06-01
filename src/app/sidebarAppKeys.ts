@@ -16,15 +16,11 @@ export function isPinnableAppKey(s: string): boolean {
   return APP_REGISTRY[s]?.Page != null;
 }
 
-// Default ordering applied to a fresh profile. Curated rather than
-// derived because it encodes a product choice — which apps a brand-
-// new user sees in their sidebar before customising. Clock is in the
-// registry as pinnable, but deliberately omitted here so the default
-// tail stays four entries wide.
-// Devices isn't in the default tail any more — it doesn't have a
-// Page on its manifest (the Devices app is now a pure launcher
-// widget that drills into per-device pages). The sidebar's DEVICES
-// section is the dedicated surface for it.
+// Default sidebar ordering for a fresh profile. Curated, not derived: it
+// encodes which apps a new user sees before customising. Clock is pinnable
+// in the registry but omitted to keep the tail short. Devices has no Page
+// (it's a launcher widget drilling into per-device pages) and lives in the
+// dedicated DEVICES section instead.
 export const DEFAULT_PINNED_TAIL: string[] = ['monitoring', 'lighting', 'cooling'];
 
 // Normalize a tail array read from settings/server: drop unknown

@@ -52,10 +52,9 @@ describe('firstFreeRect', () => {
   });
 
   it('places a 4x4 at the first free 2-cell slot, not the next 4-cell slot', () => {
-    // Wide grid (8x8) with a 2x2 blocking the top-left corner. Old
-    // span-stride logic skipped col 2 because 4x4 was locked to
-    // multiples of 4; the 2-cell stride lets the widget slide into
-    // the empty col-2 slot.
+    // Wide grid (8x8) with a 2x2 blocking the top-left corner. The
+    // 2-cell stride lets the 4x4 slide into the empty col-2 slot
+    // instead of jumping to the next multiple-of-4 column.
     const existing = [widget('2x2', 0, 0)];
     expect(firstFreeRect(existing, 8, 8, 4, 4)).toEqual({ col: 2, row: 0 });
   });

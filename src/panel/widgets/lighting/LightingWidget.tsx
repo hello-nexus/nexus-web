@@ -90,18 +90,16 @@ export function LightingWidget({ widget }: WidgetProps) {
   }, []);
 
   useEffect(() => {
-    // hydrate() fetches initial lighting state from the service over HTTP;
-    // the setState calls inside happen asynchronously after fetches resolve
-    // (not synchronously during the effect body), so this is the canonical
-    // "subscribe to external system" pattern despite the lint heuristic.
+    // hydrate() fetches initial lighting state over HTTP; its setState
+    // calls run after the fetches resolve, not during the effect body.
      
     hydrate();
   }, [hydrate]);
   useTopicCallback('lighting', true, hydrate);
 
-  // The widget shows ONE thumbnail at a time (the active effect, with Prev/Next
-  // cycling). Pre-fetching all 60+ effect BMPs on mount was pure waste; load
-  // the active one on demand and cache subsequent picks as the user cycles.
+  // The widget shows one thumbnail at a time (active effect, Prev/Next
+  // cycling). Load the active effect's BMP on demand and cache picks as
+  // the user cycles, rather than fetching all 60+ on mount.
   const thumbsRef = useRef<Record<string, string>>({});
   useEffect(() => {
     if (!activeEffect || thumbsRef.current[activeEffect]) return;
@@ -122,9 +120,8 @@ export function LightingWidget({ widget }: WidgetProps) {
     thumbsRef.current = {};
   }, []);
 
-  // Media library is only needed when the service is actually in gif mode so
-  // we can show the active media name; we never enter gif mode from the
-  // widget, so no need to load library otherwise.
+  // Media library is only needed in gif mode (to show the active media
+  // name); the widget never enters gif mode itself.
   const refreshMedia = useCallback(async () => {
     const [lib, cur] = await Promise.all([fetchMediaLibrary(), fetchMediaCurrent()]);
     if (lib?.items) setMediaItems(lib.items);
@@ -133,8 +130,8 @@ export function LightingWidget({ widget }: WidgetProps) {
 
   useEffect(() => {
     if (compact || mode !== 'gif') return;
-    // refreshMedia() awaits HTTP fetches before updating state; setState only
-    // runs once the network responses resolve, not synchronously in the effect.
+    // refreshMedia()'s setState runs after the HTTP fetches resolve,
+    // not synchronously in the effect.
      
     refreshMedia();
   }, [compact, mode, refreshMedia]);
@@ -253,9 +250,8 @@ export function LightingWidget({ widget }: WidgetProps) {
   };
 
   const view = useMemo<SingleView>(() => {
-    // Arrow handlers depend on simple-mode: in simple mode every
-    // mode's prev/next jumps into / stays in the animation cycle (per
-    // user spec — arrows ALWAYS cycle animations, never filters).
+    // In simple mode every mode's prev/next cycles animations, never
+    // filters.
     const prev = simpleMode ? () => enterOrCycleAnimate(-1) : undefined;
     const next = simpleMode ? () => enterOrCycleAnimate(1)  : undefined;
 
@@ -303,10 +299,9 @@ export function LightingWidget({ widget }: WidgetProps) {
     : mode === 'screen' ? 'screen'
     : null;
 
-  // Simple mode: same UX at every size — center icon/label + arrows, no
-  // mode-buttons row. Per user spec the arrows cycle through animations
-  // regardless of current mode (cycleStatic / cycleFilter are skipped),
-  // wired in the `view` builder above via simpleMode-aware onPrev/onNext.
+  // Simple mode: same UX at every size — center icon/label + arrows,
+  // no mode-buttons row. Arrows cycle animations regardless of mode
+  // (wired via the `view` builder's simpleMode-aware onPrev/onNext).
   if (simpleMode) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-simple="true">

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { Plus, QrCode, Settings2 } from 'lucide-react';
+import { Plus, Settings2 } from 'lucide-react';
 import { usePanelTraySwipe } from './engine/usePanelTraySwipe';
+import { isNativeApp } from './panelNativeBridge';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import styles from './PanelActionsTray.module.scss';
 
@@ -20,8 +21,7 @@ interface PanelActionsTrayProps {
   disabled?: boolean;
   // When true, the tray is always rendered open (editor preview).
   pinnedOpen?: boolean;
-  // OS-reported computer name shown above the action buttons. Empty
-  // string hides the label.
+  // OS-reported computer name shown above the buttons. Empty string hides it.
   machineName?: string;
 }
 
@@ -60,10 +60,9 @@ export function PanelActionsTray({
   }, [open, disabled, swipe]);
 
   const dragging = swipe.state === 'dragging' && !open && !pinnedOpen;
-  // 80 is the visual "tray fully revealed" point and is intentionally
-  // decoupled from commitDistancePx (48): the scrim should be at full dim
-  // when the tray is visually all the way up, not at the commit arming
-  // distance.
+  // 80 is the "tray fully revealed" point, decoupled from commitDistancePx
+  // (48): the scrim reaches full dim when the tray is visually all the way
+  // up, not at the commit-arming distance.
   const dragProgress = dragging ? Math.min(1, swipe.offset / 80) : 0;
   const showScrim = (open && !pinnedOpen) || dragging;
 
@@ -85,12 +84,11 @@ export function PanelActionsTray({
         data-state={pinnedOpen || open ? 'open' : (swipe.state === 'dragging' ? 'dragging' : 'closed')}
         style={
           swipe.state === 'dragging' && !open
-            // Track the finger 1:1 from fully hidden (translateY(100%))
-            // toward fully visible (translateY(0)) as offset grows.
-            // Clamp at 0 so an over-pull doesn't push the tray above its
-            // natural top position. scale(var(--panel-ui-zoom, 1))
-            // preserves the monitor-panel chrome scale; on phone it's
-            // a no-op (the var falls back to 1).
+            // Track the finger 1:1 from translateY(100%) toward
+            // translateY(0) as offset grows. Clamp at 0 so an over-pull
+            // can't push the tray above its rest position.
+            // scale(var(--panel-ui-zoom, 1)) preserves the monitor-panel
+            // chrome scale (no-op on phone where the var is unset).
             ? { transform: `translateY(max(0px, calc(100% - ${swipe.offset}px))) scale(var(--panel-ui-zoom, 1))` }
             : undefined
         }
@@ -121,7 +119,10 @@ export function PanelActionsTray({
             <span>Settings</span>
           </button>
         )}
-        {pairAvailable && onPair && (
+        {/* The pairing button triggers a native pairing dialog that only
+            exists inside the iOS app wrapper. In a plain browser it's a
+            no-op, so hide the whole button unless we're running natively. */}
+        {pairAvailable && onPair && isNativeApp() && (
           <HoverTooltip body="Pairing" side="top">
             <button
               type="button"
@@ -129,7 +130,6 @@ export function PanelActionsTray({
               onClick={() => { onPair(); onClose(); }}
               aria-label="Pairing"
             >
-              <QrCode size={17} />
               <span>Pairing</span>
             </button>
           </HoverTooltip>

@@ -396,9 +396,9 @@ interface SpecsPanelProps {
   specs: SystemSpecs | null;
 }
 
-// Build the row list once per render. Order matches the user's mental model
-// ("identity → OS → core silicon → memory → storage → display → audio →
-// network"), which also reads cleanly when copied to chat / spec sheets.
+// Build the row list once per render. Order is identity → OS → core
+// silicon → memory → storage → display → audio → network, which also
+// reads as a spec sheet when copied to chat.
 function specRows(specs: SystemSpecs, t: (k: string) => string) {
   return [
     { label: t('devices.specs.row.pcName'), value: specs.pcName },

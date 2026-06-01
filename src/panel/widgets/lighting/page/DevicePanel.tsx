@@ -62,9 +62,9 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
       const next = new Set(selectedIds);
       if (next.has(id)) {
         next.delete(id);
-        // Removed primary: pick the topmost remaining id (last in the device
-        // list) so LED dots track to a visible frame. Same rule the canvas
-        // uses on shift+click toggle — keeping both surfaces in sync.
+        // Removed primary: pick the topmost remaining id (last in the
+        // device list) so LED dots track to a visible frame. Same rule
+        // the canvas uses on shift+click toggle.
         let nextPrimary: string | null = null;
         for (let i = devices.length - 1; i >= 0; i--) {
           if (next.has(devices[i].id)) { nextPrimary = devices[i].id; break; }
@@ -76,8 +76,8 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
       }
       return;
     }
-    // Plain click: clicking the only-selected device toggles it off; otherwise
-    // it replaces the selection. Matches the previous single-toggle behaviour.
+    // Plain click: clicking the only-selected device toggles it off,
+    // otherwise replaces the selection.
     onSelectDevice(selectedIds.size === 1 && selectedIds.has(id) ? null : id);
   };
 

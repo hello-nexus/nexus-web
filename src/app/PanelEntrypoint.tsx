@@ -9,6 +9,7 @@ import {
   claimPanelPhonePairing,
 } from '../api/panel';
 import { storePhoneToken } from '../api/auth';
+import { getDeviceId } from '../api/deviceId';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
 import { useMonitoringStoreBridge } from './monitoringBridge';
@@ -58,10 +59,15 @@ export function OverlayWrapper() {
   );
 }
 
-export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken }: {
+export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairDeviceId }: {
   initialDeviceId: string | null;
   isPhonePair: boolean;
   pairToken: string | null;
+  // Stable per-device id carried on the LAN-direct redirect (?deviceId=) by the
+  // remote-origin PairRedirect, so this same-origin claim dedups to the SAME
+  // authorized-device session the relay path would have used. Absent on a fresh
+  // local-origin scan — fall back to this origin's own stable id.
+  pairDeviceId: string | null;
 }) {
   const needsPhoneClaim = isPhonePair && Boolean(pairToken);
   const [state, setState] = useState<PanelEntrypointState>(() =>
@@ -97,7 +103,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken }: {
   useEffect(() => {
     if (!needsPhoneClaim || !pairToken) return;
     let cancelled = false;
-    claimPanelPhonePairing(pairToken).then(result => {
+    claimPanelPhonePairing(pairToken, pairDeviceId || getDeviceId()).then(result => {
       if (cancelled) return;
       if (result?.paired && result.token) {
         storePhoneToken(result.token);
@@ -114,7 +120,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken }: {
       }
     });
     return () => { cancelled = true; };
-  }, [needsPhoneClaim, pairToken]);
+  }, [needsPhoneClaim, pairToken, pairDeviceId]);
 
   // Allocate-or-recover flow: when no deviceId is in the URL, look for one in
   // localStorage (Option A: device caches its own id). Allocate a fresh one

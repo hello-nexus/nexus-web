@@ -27,9 +27,9 @@ export interface KeebMacroViewProps {
 }
 
 /// Macro tab body. Slot list on the left (1–16), editor on the right.
-/// Recording attaches window key listeners and pushes Make/Break pairs
-/// per the legacy state machine; durations snap to 10 ms multiples.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- props are reserved for future API (open gate); signature kept stable
+/// Recording attaches window key listeners and pushes Make/Break pairs;
+/// durations snap to 10 ms multiples.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- props (open gate) kept for signature stability
 export function KeebMacroView(_: KeebMacroViewProps) {
   const [index, setIndex] = useState(0);
   const [macro, setMacro] = useState<KeebMacro | null>(null);

@@ -3,14 +3,11 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  // touch-action: none. The pager itself never scrolls (overflow:
-  // hidden) and the horizontal page swipe is JS-driven via
-  // usePanelHorizontalSwipe. Leaving the browser's default pan-y here
-  // would cause a vertical drag of a cell to be hijacked as a scroll
-  // gesture - the browser fires pointercancel on the second
-  // pointermove and dnd-kit's drag never gets to commit. Widget
-  // content that needs to scroll declares touch-action locally via
-  // [data-panel-scrollable="true"] (see global rule in PanelApp).
+  // touch-action: none. The pager never scrolls (overflow: hidden) and the
+  // horizontal swipe is JS-driven (usePanelHorizontalSwipe). Default pan-y
+  // would hijack a vertical cell drag as a scroll (pointercancel on the second
+  // pointermove kills dnd-kit's drag). Scroll panes opt into pan-y via
+  // [data-panel-scrollable="true"] (global rule in PanelApp).
   touch-action: none;
 }
 
@@ -19,11 +16,9 @@
   flex-direction: row;
   width: 100%;
   height: 100%;
-  // Intentionally NO `will-change: transform` here. will-change creates
-  // a containing block for fixed-positioned descendants, which breaks
-  // the editor's docked-widget animation (the cell uses position: fixed
-  // to detach from the grid and ends up positioned relative to .track
-  // instead of the viewport, hiding under the editor scrim).
+  // NO `will-change: transform`: it creates a containing block for fixed
+  // descendants, breaking the editor's docked-widget animation (the fixed cell
+  // would anchor to .track instead of the viewport, hiding under the scrim).
 }
 
 .track[data-state='dragging'] {
@@ -42,9 +37,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  // Padding lives inside each page so widget shadows can extend into
-  // the safe-area zone without the pager's overflow-hidden boundary
-  // clipping them. Moved here from .panelRoot in AMP-90.
+  // Padding lives inside each page so widget shadows reach the safe-area zone
+  // without the pager's overflow-hidden boundary clipping them.
   padding:
     var(--panel-page-padding-top, var(--panel-page-padding, 0))
     var(--panel-page-padding-right, var(--panel-page-padding, 0))

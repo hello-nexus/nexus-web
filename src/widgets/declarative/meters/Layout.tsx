@@ -26,11 +26,9 @@ function pxOrUndefined(v: unknown): number | undefined {
 function commonStyle(view: WidgetView, ctx: RenderContext): CSSProperties {
   const padding = bind(view.padding, ctx);
   const gap = pxOrUndefined(bind(view.gap, ctx)) ?? 6;
-  // `grow` lets a child claim the remaining vertical/horizontal space in
-  // its parent flex container. Equivalent to `flex: 1; flex-basis: 0;`,
-  // which is how the original handcrafted widgets sized lists that filled
-  // their card. Without it, lists render at natural height and clip if the
-  // container is shorter than the sum of items.
+  // `grow` lets a child claim remaining space in its flex parent
+  // (`flex: 1; flex-basis: 0;`). Without it, lists render at natural height
+  // and clip if the container is shorter than their total.
   const grow = bindBoolean(view.grow, ctx, false);
   return {
     padding: padding == null ? undefined : (typeof padding === 'number' ? padding : String(padding)),
@@ -43,10 +41,9 @@ function commonStyle(view: WidgetView, ctx: RenderContext): CSSProperties {
 }
 
 export function VStack({ view, ctx }: MeterProps) {
-  // Default to natural height + full width. Setting `height: 100%` here
-  // breaks nested layouts: every vstack would fight for full height and
-  // flex-shrink compresses each to a fraction. Use `grow: true` to opt in
-  // to filling — only the outermost vstack of a view typically needs it.
+  // Natural height + full width. `height: 100%` would break nesting (every
+  // vstack fights for full height, flex-shrink compresses each). Use
+  // `grow: true` to fill — usually only the outermost vstack needs it.
   return (
     <div style={{
       display: 'flex',
@@ -220,8 +217,7 @@ export function Repeat({ view, ctx }: MeterProps) {
       ...commonStyle(view, ctx),
     }}>
       {sliced.map((item, i) => {
-        // Compose a per-item context. The original data/settings/widgetId
-        // are preserved so children can still reach the parent scope.
+        // Per-item context; parent data/settings/widgetId stay reachable.
         const childCtx: RenderContext = {
           ...ctx,
           data: { ...ctx.data, item, index: i },

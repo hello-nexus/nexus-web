@@ -37,22 +37,19 @@ export function Slider({ view, ctx }: MeterProps) {
   const orientation = (bind(view.orientation, ctx) as string) === 'vertical' ? 'vertical' : 'horizontal';
   const segments = Math.max(0, bindNumber(view.segments, ctx, 0));
 
-  // Optimistic local value. We follow the bound value when the user
-  // isn't dragging; once they touch the slider, local state takes over
-  // until the next bound value lands matching the committed target.
+  // Optimistic local value: follows the bound value when not dragging; once
+  // the user touches the slider, local state owns it until the bound value
+  // matches the committed target.
   const [local, setLocal] = useState(boundValue);
   const [dragging, setDragging] = useState(false);
-  // Mirror of `dragging` used purely as a sync de-dupe guard for the
-  // onPointerUp / onPointerCancel / onTouchEnd trio (touch devices fire
-  // both touchEnd and pointerUp; without a sync flag we'd commit twice).
+  // Mirror of `dragging` as a de-dupe guard for onPointerUp / onPointerCancel
+  // / onTouchEnd (touch fires both touchEnd and pointerUp → double commit).
   const draggingGuardRef = useRef(false);
   const lastCommittedRef = useRef(boundValue);
   useEffect(() => {
-    // Sync to upstream when not dragging AND the upstream value matches
-    // what we last committed (server confirmed). This avoids snapping
-    // back mid-drag if a polled data source races the commit. The
-    // setLocal here is the standard "follow external system" pattern -
-    // boundValue is the external (polled / pushed) source of truth.
+    // Follow upstream when not dragging AND it matches the last committed
+    // value (server confirmed), avoiding a mid-drag snap-back if a polled
+    // source races the commit.
     if (!dragging && Math.abs(boundValue - lastCommittedRef.current) < 0.5) {
        
       setLocal(boundValue);
@@ -62,8 +59,8 @@ export function Slider({ view, ctx }: MeterProps) {
   const dispatchChange = useCallback((rawValue: number, kind: 'change' | 'commit') => {
     const spec = (kind === 'commit' ? view.onCommit : view.onChange) as WidgetAction | undefined;
     if (!spec) return;
-    // Compose a binding context augmented with `value` so the manifest's
-    // {value} placeholder in args resolves to the slider's current target.
+    // Augment the context with `value` so the manifest's {value} placeholder
+    // resolves to the slider's current target.
     const augmented = {
       ...ctx,
       data: { ...ctx.data, value: rawValue },
@@ -148,11 +145,10 @@ export function Slider({ view, ctx }: MeterProps) {
   );
 }
 
-// Vertical mixer-strip variant. When `segments > 0` the track renders as
-// a stack of N discrete slats (bottom-fills as value rises); otherwise a
-// continuous bar. Hidden <input type="range"> overlay does the actual
-// dragging — we map clientY → pct so a tap anywhere on the strip jumps
-// the value, matching the legacy PanelMixerSlider behaviour.
+// Vertical mixer-strip variant. `segments > 0` renders N discrete slats
+// (bottom-fills as value rises); else a continuous bar. A hidden
+// <input type="range"> drives the drag, mapping clientY → pct so a tap
+// anywhere on the strip jumps the value.
 function VerticalSlider({
   min, max, pct, segments, color, trackColor, disabled, ariaLabel,
   local, onPointerDown, onInput, onPointerUp, dragging,

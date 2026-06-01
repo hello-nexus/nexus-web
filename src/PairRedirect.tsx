@@ -1,5 +1,9 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NexusMark } from './components/icons/NexusBrand';
+import { pairOverInternet, pairOverRelayClaim, type InternetPairResult } from './api/internetPairing';
+import { isRemoteOrigin } from './api/service';
+import { getDeviceId } from './api/deviceId';
+import { PHONE_PANEL_PWA_KEY } from './app/panelRouting';
 
 /**
  * Landing page rendered when a phone scans the pairing QR.
@@ -10,36 +14,49 @@ import { NexusMark } from './components/icons/NexusBrand';
  * If the Nexus iOS app is installed, iOS intercepts the Universal Link via
  * `application(_:continue:userActivity:)` and opens the app before this
  * component ever renders. If we get here the app did NOT take over (not
- * installed, Android, desktop, or an in-app browser), so for now we bypass the
- * chooser entirely and send the user straight to the LAN browser panel.
+ * installed, Android, desktop, or an in-app browser).
  *
- * Simple-for-now: no "open in app vs. browser" prompt. We deliberately do not
- * auto-fire the `hellonexus://` custom scheme here — when the app isn't installed
- * iOS Safari pops a "Cannot Open Page" error dialog for an unregistered scheme,
- * which is worse than the silent redirect. The Universal Link above already
- * provides the dialog-free automatic app handoff. This whole flow is meant to
- * be revisited later.
+ * Pairing decision (Phase 1 internet pairing for brand-new phones). DIRECT LAN
+ * is the primary path; the paid relay is only a fallback:
+ *
+ *   LOCAL ORIGIN (the PC's own panel on :9400/:9443, isServedFromService):
+ *     keep today's behavior — pairOverInternet() does the LAN HTTP claim and,
+ *     if the PC is unreachable, falls back to the relay.
+ *
+ *   REMOTE ORIGIN (hellonexus.com, served over https, isRemoteOrigin):
+ *     TIER 1 (direct LAN, free): NAVIGATE straight to the PC's plain-HTTP panel
+ *       (http://<host>:9400/panel/phone?pair=…). A navigation is NOT a fetch, so
+ *       it is exempt from mixed-content / WebKit "access control" aborts. On the
+ *       same LAN this commits and the PC-served panel (isServedFromService=true)
+ *       runs the direct same-origin claim — the relay is never used (free).
+ *     TIER 2 (relay fallback): a {@link DIRECT_PROBE_MS} timer is armed right
+ *       before the Tier-1 navigation. If the direct page commits (LAN reachable)
+ *       this hellonexus.com page unloads and the timer dies, so the relay never
+ *       runs (no double-claim). If it does NOT commit (PC off-LAN/unreachable)
+ *       the timer fires and pairOverRelayClaim() pairs over the cloud relay,
+ *       then runs the panel over the relay right here on hellonexus.com.
+ *
+ * We deliberately do not auto-fire the `hellonexus://` custom scheme here —
+ * when the app isn't installed iOS Safari pops a "Cannot Open Page" error
+ * dialog for an unregistered scheme, which is worse than the silent flow. The
+ * Universal Link above already provides the dialog-free automatic app handoff.
  */
-/**
- * A valid pairing QR always points at a private LAN IPv4 (the PC the phone
- * is pairing with). Only a bare private/loopback IPv4 literal is accepted; a
- * public IP, a DNS name, or any host carrying `/`, `@`, `:` or other URL
- * metacharacters is rejected so this public-origin page can never be turned
- * into an open redirect that leaks the pair token off-LAN.
- */
-function isPrivateLanHost(host: string): boolean {
-  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
-  if (!m) return false;
-  const [a, b, c, d] = m.slice(1).map(Number);
-  if ([a, b, c, d].some((n) => n > 255)) return false;
-  return (
-    a === 10 ||                          // 10.0.0.0/8
-    (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
-    (a === 192 && b === 168) ||          // 192.168.0.0/16
-    (a === 169 && b === 254) ||          // 169.254.0.0/16 link-local
-    a === 127                            // loopback
-  );
-}
+
+// How long to give the direct-LAN navigation (TIER 1) to commit before falling
+// back to the cloud relay (TIER 2). On the same LAN the PC's plain-HTTP panel
+// loads well inside this window, this page unloads, and the timer is destroyed
+// — so the relay never runs (no double-claim). Off-LAN the navigation can't
+// commit (connection refused / unroutable private IP), the timer fires, and the
+// relay claim starts. ~3s balances "don't make an on-LAN phone wait" against
+// "give a slow-but-reachable PC time to answer before paying for the relay".
+const DIRECT_PROBE_MS = 3000;
+
+type PairPhase =
+  | { state: 'pairing' }
+  | { state: 'lan'; lanURL: string; host: string; httpPort: string }
+  | { state: 'relay'; machineName?: string }
+  | { state: 'rejected'; error: string }
+  | { state: 'unreachable' };
 
 export function PairRedirect() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
@@ -52,22 +69,112 @@ export function PairRedirect() {
   const httpPort = params.get('httpPort') ?? '9400';
 
   // Validity guard: native iOS uses `port` for the HTTPS-pinned path, but the
-  // browser fallback only needs host + pair + httpPort. A valid QR always
-  // carries a private LAN IPv4 host. We MUST reject anything else: this page is
-  // served from the public hellonexus.com origin, so an unvalidated `host` turns
-  // it into an open redirect that carries the `pair` token to an attacker
-  // (host=evil.com, userinfo/@ tricks, public IPs). httpPort must be numeric so
-  // it can't smuggle a path/host segment into the URL either.
-  const valid = Boolean(pair) && isPrivateLanHost(host) && /^\d{1,5}$/.test(httpPort);
-  const lanURL = valid
-    ? `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}`
-    : '';
+  // browser fallback only needs host + pair + httpPort. Any QR carrying both
+  // host and pair is good enough; missing iOS-only fields shouldn't reject it.
+  //
+  // On a REMOTE origin TIER 1 NAVIGATES the browser to http://<host>:9400.
+  // `host` comes from the (untrusted) QR URL, so require it to be a private
+  // (RFC1918 / link-local) LAN IP: a direct PC pairing target is always a LAN
+  // address, and this stops a crafted hellonexus.com/r/pair link from
+  // navigating the phone to an arbitrary public host. The relay path keys off
+  // `pair` (not `host`), so a rejected host still can't be abused there either.
+  const valid = Boolean(host && pair && isPrivateLanHost(host));
 
-  // Auto-bypass: hand the visitor straight to the browser panel. `replace` so
-  // the redirect page doesn't sit in history (back button skips it).
+  const [phase, setPhase] = useState<PairPhase>({ state: 'pairing' });
+
+  // Start the pair attempt at most once for this component's lifetime. The
+  // module-level guard in pairOverInternet already collapses repeat calls for
+  // the same token onto one relay claim, but this also stops a remount/effect
+  // re-run from even re-entering the effect body (and from re-applying a stale
+  // result after the redirect is in flight). Together they guarantee a single
+  // rid_pair relay channel per pair attempt.
+  const started = useRef(false);
+
   useEffect(() => {
-    if (lanURL) window.location.replace(lanURL);
-  }, [lanURL]);
+    if (!valid) return;
+    if (started.current) return;
+    started.current = true;
+
+    // The direct-LAN panel URL: plain HTTP, the service's HTTP port (9400).
+    // Carry the stable per-device id so the PC-served panel's same-origin claim
+    // sends the SAME deviceId it would have over the relay — a QR scan dedups to
+    // one authorized-device session whether it ends up LAN-direct or relay.
+    const directUrl = `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}&deviceId=${encodeURIComponent(getDeviceId())}`;
+
+    // Settle the relay outcome (shared by both origins' relay paths). The relay
+    // session token is stored under this origin, so render the panel over the
+    // relay right here on hellonexus.com — the multiplex hook's LAN /ws open
+    // fails (localhost is unreachable from this origin) and falls back to the
+    // relay using the stored token.
+    const applyResult = (result: InternetPairResult) => {
+      if (result.kind === 'relay') {
+        localStorage.setItem(PHONE_PANEL_PWA_KEY, '1');
+        setPhase({ state: 'relay', machineName: result.machineName });
+        window.location.replace(`${window.location.origin}/panel/phone`);
+      } else if (result.kind === 'rejected') {
+        setPhase({ state: 'rejected', error: result.error });
+      } else {
+        setPhase({ state: 'unreachable' });
+      }
+    };
+
+    // REMOTE ORIGIN — tiered: direct LAN first (free), relay only on timeout.
+    if (isRemoteOrigin) {
+      let cancelled = false;
+      // TIER 2 fallback armed BEFORE the TIER 1 navigation. If the direct
+      // navigation commits (LAN reachable) this page unloads and the timer is
+      // cleared below by the effect cleanup → relay never runs (no double
+      // claim). If it does NOT commit (PC off-LAN) the timer fires and the
+      // relay claim starts. This is the proven "navigate, fall back after a
+      // timeout" technique; the timer is the only signal we get that the
+      // off-LAN navigation silently failed to commit.
+      const fallback = window.setTimeout(() => {
+        if (cancelled) return;
+        // The Tier-1 direct nav never committed (PC off-LAN/unreachable), so a
+        // top-level navigation to the unreachable PC is still pending. Abort it
+        // BEFORE starting the relay claim: on WebKit a hung in-flight navigation
+        // interferes with the relay WS path (the close of the post-claim relay
+        // channel races the stuck nav). On the LAN-reachable case the direct nav
+        // already committed and this page unloaded, so this code never runs.
+        try { window.stop(); } catch { /* not supported / nothing to stop */ }
+        setPhase({ state: 'relay' });
+        void pairOverRelayClaim(pair, deriveDeviceName()).then((result) => {
+          if (cancelled) return;
+          applyResult(result);
+        });
+      }, DIRECT_PROBE_MS);
+
+      // TIER 1: NAVIGATE to the PC's plain-HTTP panel. A navigation (not a
+      // fetch) is exempt from mixed-content / WebKit access-control aborts.
+      setPhase({ state: 'lan', lanURL: directUrl, host, httpPort });
+      window.location.href = directUrl;
+
+      return () => {
+        cancelled = true;
+        window.clearTimeout(fallback);
+      };
+    }
+
+    // LOCAL ORIGIN (PC's own panel) — unchanged: LAN HTTP claim, relay fallback.
+    let cancelled = false;
+    void pairOverInternet({
+      host,
+      httpPort,
+      pairToken: pair,
+      deviceName: deriveDeviceName(),
+    }).then((result: InternetPairResult) => {
+      if (cancelled) return;
+      if (result.kind === 'lan') {
+        // Fast path unchanged: hand the visitor straight to the LAN browser
+        // panel. The PC already issued the token; the LAN panel uses it.
+        setPhase({ state: 'lan', lanURL: directUrl, host, httpPort });
+        window.location.replace(directUrl);
+      } else {
+        applyResult(result);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [valid, host, httpPort, pair]);
 
   if (!valid) {
     return (
@@ -78,16 +185,80 @@ export function PairRedirect() {
     );
   }
 
+  if (phase.state === 'rejected') {
+    return (
+      <Frame>
+        <Title>Pairing expired</Title>
+        <Sub>Generate a new QR from the Nexus dashboard ("Pair Phone") and scan it again.</Sub>
+        {phase.error && <Sub mono>{phase.error}</Sub>}
+      </Frame>
+    );
+  }
+
+  if (phase.state === 'unreachable') {
+    return (
+      <Frame>
+        <Title>Couldn't reach your PC</Title>
+        <Sub>
+          Make sure Nexus is running on your PC and that "Pair Remote" (and the cloud relay) are
+          enabled in the dashboard, then re-scan the QR.
+        </Sub>
+      </Frame>
+    );
+  }
+
+  if (phase.state === 'relay') {
+    return (
+      <Frame>
+        <Title>Connecting over the internet…</Title>
+        <Sub>{phase.machineName ? `Paired with ${phase.machineName}` : 'Paired — opening your panel.'}</Sub>
+      </Frame>
+    );
+  }
+
+  // 'pairing' (probing LAN, then relay) and 'lan' (redirect in flight) both
+  // show the connecting card; 'lan' adds the manual Continue fallback in case
+  // the auto-redirect is blocked.
+  const lanURL = phase.state === 'lan' ? phase.lanURL : '';
   return (
     <Frame>
       <Title>Connecting to your PC…</Title>
       <Sub mono>{`${host}:${httpPort}`}</Sub>
-      {/* Manual fallback for the rare case the auto-redirect is blocked. */}
-      <a href={lanURL} style={fallbackLink}>
-        Continue
-      </a>
+      {lanURL && (
+        <a href={lanURL} style={fallbackLink}>
+          Continue
+        </a>
+      )}
     </Frame>
   );
+}
+
+// True only for a private (RFC1918 / link-local) IPv4 LAN address — the only
+// kind of host a Nexus PC advertises in a pairing QR. TIER 1 NAVIGATES the
+// phone to http://<host>:9400, so an untrusted QR `host` must be confined to
+// the LAN; a public host is rejected (the QR is treated as invalid). Ranges:
+// 10/8, 172.16/12, 192.168/16, and 169.254/16 (link-local).
+function isPrivateLanHost(host: string): boolean {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host.trim());
+  if (!m) return false;
+  const [a, b, c, d] = m.slice(1).map(Number);
+  if ([a, b, c, d].some((n) => n > 255)) return false;
+  if (a === 10) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 169 && b === 254) return true;
+  return false;
+}
+
+// A short label for the pairing session list on the PC. The PC also records
+// the user agent, so this only needs to be a friendly platform hint; keep it
+// dependency-free (no UA-parser) per the project's least-code rule.
+function deriveDeviceName(): string {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  if (/iPhone/i.test(ua)) return 'iPhone';
+  if (/iPad/i.test(ua)) return 'iPad';
+  if (/Android/i.test(ua)) return 'Android phone';
+  return 'Phone';
 }
 
 function Frame({ children }: { children: React.ReactNode }) {

@@ -37,19 +37,17 @@ export interface PanelDevice {
 export const PANEL_DEVICE_ICON = '/assets/devices/y70.svg';
 export const PANEL_MONITOR_ICON = '/assets/devices/device.svg';
 
-// Per-panel-family icon. Used by usePanelDevices to populate
-// PanelDevice.iconSrc so the sidebar's DEVICES section renders
-// each panel with its own silhouette — Q60 should not look like
-// Y70. Falls back to PANEL_DEVICE_ICON for unknown source ids.
+// Per-panel-family icon for PanelDevice.iconSrc, so the sidebar DEVICES
+// section shows each panel's own silhouette. Falls back to PANEL_DEVICE_ICON
+// for unknown source ids.
 export const PANEL_FAMILY_ICONS: Readonly<Record<string, string>> = {
   y70:      '/assets/devices/y70.svg',
-  // Y70 Touch 4K (original wider-resolution panel) shares the
-  // Y70 silhouette — same case, same screen aperture.
+  // Y70 Touch 4K shares the Y70 silhouette (same case + screen aperture).
   'y70-4k': '/assets/devices/y70.svg',
   q60:      '/assets/devices/q60.svg',
   q80:      '/assets/devices/q80.svg',
-  // Q-series handler enumerates Q60 + Q80 under one id; the Q60
-  // silhouette doubles as the family default for connected panels.
+  // Q-series enumerates Q60 + Q80 under one id; the Q60 silhouette is the
+  // family default.
   qseries:  '/assets/devices/q60.svg',
 };
 

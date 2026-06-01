@@ -3,9 +3,9 @@
 // portal'd tooltip itself needs styling.
 //
 // Portal'd onto document.body. position: fixed against the viewport with
-// top/left/transform set inline by the JS reposition logic. Shared chrome
-// with InfoTooltip so every hover hint reads with one voice. Two visual
-// treatments: body-only (just .body) or title+body (.title above .body).
+// top/left/transform set inline by the JS reposition logic. Shares chrome
+// with InfoTooltip. Two treatments: body-only (.body) or title+body (.title
+// above .body).
 .tooltip {
   position: fixed;
   z-index: var(--z-tooltip);

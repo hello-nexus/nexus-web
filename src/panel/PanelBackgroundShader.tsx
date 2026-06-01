@@ -20,10 +20,9 @@ export function PanelBackgroundShader({ effect, template, opacity }: PanelBackgr
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const normalizedEffect = normalizePanelBackgroundEffect(effect);
   const normalizedTemplate = normalizePanelBackgroundTemplate(template);
-  // The shader's render loop reads stateRef.current on every frame, so
-  // pushing the new value via an effect is fine — the next animation
-  // frame picks it up. Initialize with the same normalized inputs so
-  // the very first frame doesn't render against stale state.
+  // The render loop reads stateRef.current each frame, so an effect push is
+  // picked up next frame. Initialize with the same normalized inputs so the
+  // first frame doesn't render stale state.
   const stateRef = useRef(panelBackgroundState(normalizedEffect, normalizedTemplate));
   useEffect(() => {
     stateRef.current = panelBackgroundState(normalizedEffect, normalizedTemplate);
