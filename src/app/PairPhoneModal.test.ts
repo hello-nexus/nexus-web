@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasNewPairedSession } from './PairPhoneModal';
+import { hasNewPairedSession } from '../api/panel';
 
 // hasNewPairedSession drives the re-mint of the single-use pair QR + manual
 // code. It must fire ONLY on a real growth of the authorized-session set,

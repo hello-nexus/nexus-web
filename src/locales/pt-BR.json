@@ -855,5 +855,7 @@
   "tools.storybook": "Storybook de componentes",
   "tools.storybook.label": "Navegue por todos os componentes",
   "tools.storybook.open": "Abrir",
-  "tools.yes": "Sim"
+  "tools.yes": "Sim",
+  "panel.widget.pairing": "Pair remote",
+  "panel.pairing.off": "Remote pairing is off"
 }

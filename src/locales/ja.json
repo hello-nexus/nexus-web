@@ -855,5 +855,7 @@
   "tools.storybook": "コンポーネント一覧",
   "tools.storybook.label": "再利用可能なUIコンポーネントを閲覧",
   "tools.storybook.open": "開く",
-  "tools.yes": "はい"
+  "tools.yes": "はい",
+  "panel.widget.pairing": "Pair remote",
+  "panel.pairing.off": "Remote pairing is off"
 }

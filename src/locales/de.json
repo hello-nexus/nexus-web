@@ -855,5 +855,7 @@
   "tools.storybook": "Komponenten-Storybook",
   "tools.storybook.label": "Alle wiederverwendbaren UI-Komponenten",
   "tools.storybook.open": "Offnen",
-  "tools.yes": "Ja"
+  "tools.yes": "Ja",
+  "panel.widget.pairing": "Pair remote",
+  "panel.pairing.off": "Remote pairing is off"
 }

@@ -855,5 +855,7 @@
   "tools.storybook": "组件库",
   "tools.storybook.label": "浏览所有可复用 UI 组件",
   "tools.storybook.open": "打开",
-  "tools.yes": "是"
+  "tools.yes": "是",
+  "panel.widget.pairing": "Pair remote",
+  "panel.pairing.off": "Remote pairing is off"
 }

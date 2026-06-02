@@ -5,6 +5,7 @@ import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { Tabs, type TabDef } from '../components/common/Tabs/Tabs';
+import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { EditableText } from '../components/common/Editable/EditableText';
 import { Select } from '../components/common/Select/Select';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
@@ -12,6 +13,7 @@ import { SettingRow, SettingToggle } from '../components/common/SettingRow/Setti
 import {
   fetchPanelPhonePairQr,
   fetchPanelPhoneSessions,
+  hasNewPairedSession,
   renamePanelPhoneSession,
   revokeAllPanelPhoneSessions,
   revokePanelPhoneSession,
@@ -33,22 +35,6 @@ type TranslateFn = (key: string, params?: Record<string, string | number>) => st
 
 function formatConnectedDevices(count: number, t: TranslateFn) {
   return t(count === 1 ? 'phonePair.connectedDeviceOne' : 'phonePair.connectedDeviceOther', { count });
-}
-
-/**
- * Decide whether a NEW device just paired, given the previous and next sets of
- * authorized session ids. Fires only on a real growth (an id present in
- * `next` that was not in `prev`) — never on the first observation (prev null),
- * never on a pure revoke/decrease, and never when the membership is unchanged.
- * The pair QR/code are single-use tokens, so a new authorization means the
- * on-screen token has been consumed and must be re-minted.
- */
-export function hasNewPairedSession(prev: ReadonlySet<string> | null, next: ReadonlySet<string>): boolean {
-  if (prev === null) return false;
-  for (const id of next) {
-    if (!prev.has(id)) return true;
-  }
-  return false;
 }
 
 function formatRelativeTime(value: number, now: number, t: TranslateFn) {
@@ -154,16 +140,14 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
   const [broadcast, setBroadcast] = useState<PairBroadcastState>({ mode: 'always', untilUnixSeconds: 0 });
   const refreshInFlightRef = useRef(false);
   const sessionsInFlightRef = useRef(false);
-  // Incrementing keys that remount the fade-from-white reveal overlay on each
-  // box whenever the displayed token re-mints. A bumped key forces React to
-  // unmount the old overlay and mount a fresh one, which re-fires the CSS
-  // keyframes (an animation does NOT replay on a class that is already
-  // applied). The value the effects last reacted to is tracked so we only bump
-  // on an actual change of the displayed content, not on every unrelated
-  // re-render.
-  const [qrRevealKey, setQrRevealKey] = useState(0);
+  // Incrementing key that remounts the fade-from-white reveal overlay on the
+  // manual-code box whenever the displayed token re-mints. A bumped key forces
+  // React to unmount the old overlay and mount a fresh one, which re-fires the
+  // CSS keyframes (an animation does NOT replay on a class that is already
+  // applied). The last reacted value is tracked so we only bump on an actual
+  // change of the displayed content, not on every unrelated re-render. The QR
+  // box runs this same effect internally inside PairingQrView.
   const [codeRevealKey, setCodeRevealKey] = useState(0);
-  const lastQrRevealRef = useRef<string | null>(null);
   const lastCodeRevealRef = useRef<string | null>(null);
   // Set of authorized session ids observed on the previous sessions poll. Used
   // to detect when a NEW device pairs so we can re-mint the single-use QR/code.
@@ -410,20 +394,8 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     return () => { cancelled = true; };
   }, [open]);
 
-  // Play the fade-from-white reveal on the QR box whenever a fresh QR is
-  // displayed. Keyed off the rendered token (data URL + expiry) so it fires on
-  // every re-mint — TTL expiry AND a new device pairing — but never on an
-  // unrelated re-render. Skip while loading / empty so the reveal lands on the
-  // visible QR.
-  useEffect(() => {
-    if (!qr?.qrDataUrl || loading) return;
-    const token = `${qr.qrDataUrl}|${qr.expiresAt}`;
-    if (lastQrRevealRef.current === token) return;
-    lastQrRevealRef.current = token;
-    setQrRevealKey(k => k + 1);
-  }, [qr?.qrDataUrl, qr?.expiresAt, loading]);
-
-  // Same for the manual code box, keyed off the displayed code value.
+  // Reveal on the manual code box, keyed off the displayed code value. (The QR
+  // box runs the equivalent effect internally inside PairingQrView.)
   useEffect(() => {
     if (!pairCode?.code) return;
     if (lastCodeRevealRef.current === pairCode.code) return;
@@ -431,12 +403,12 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
     setCodeRevealKey(k => k + 1);
   }, [pairCode?.code]);
 
-  // Forget the last-shown tokens when the modal closes / remote disables so a
-  // reopen replays the reveal on the freshly fetched token rather than treating
-  // it as unchanged.
+  // Forget the last-shown code token when the modal closes / remote disables so
+  // a reopen replays the reveal on the freshly fetched token rather than
+  // treating it as unchanged. (The QR box resets with PairingQrView, which
+  // unmounts when the modal closes.)
   useEffect(() => {
     if (open && remoteEnabled) return;
-    lastQrRevealRef.current = null;
     lastCodeRevealRef.current = null;
   }, [open, remoteEnabled]);
 
@@ -448,11 +420,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
 
   if (!open) return null;
 
-  const secondsLeft = qr ? Math.max(0, Math.ceil((qr.expiresAt - now) / 1000)) : 0;
   const codeSecondsLeft = pairCode ? Math.max(0, Math.ceil((pairCode.expiresAt - now) / 1000)) : 0;
-  const qrStatus = loading || secondsLeft <= 0
-    ? t('phonePair.refreshing')
-    : t('phonePair.refreshesIn', { seconds: secondsLeft });
   const codeStatus = !pairCode || codeSecondsLeft <= 0
     ? t('phonePair.refreshing')
     : t('phonePair.refreshesIn', { seconds: codeSecondsLeft });
@@ -632,21 +600,12 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
               ) : pairMode === 'qr' ? (
                 <>
                   <div className={styles.phonePairHintSpacer} aria-hidden="true" />
-                  <div className={styles.phonePairQrBox}>
-                    {qr?.qrDataUrl && !loading ? (
-                      <img src={qr.qrDataUrl} alt={t('phonePair.qrAlt')} />
-                    ) : (
-                      <div className={styles.phonePairLoading}>{t('phonePair.loadingQr')}</div>
-                    )}
-                    {qrRevealKey > 0 && (
-                      <span key={qrRevealKey} className={styles.phonePairReveal} aria-hidden="true" />
-                    )}
-                  </div>
-                  <div className={classNames(styles.phonePairTimer, {
-                    [styles.phonePairTimerFlash]: secondsLeft > 0 && secondsLeft <= 5,
-                  })}>
-                    <span>{qrStatus}</span>
-                  </div>
+                  <PairingQrView
+                    qrDataUrl={qr?.qrDataUrl}
+                    expiresAt={qr?.expiresAt}
+                    loading={loading}
+                    now={now}
+                  />
                 </>
               ) : (
                 <>

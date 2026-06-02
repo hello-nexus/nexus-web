@@ -239,6 +239,22 @@ export const fetchPanelPhonePairQr = () =>
 export const fetchPanelPhoneSessions = () =>
   fetchService<PanelPhoneSessionsResponse>('/panel/phone/sessions');
 
+/**
+ * Decide whether a NEW device just paired, given the previous and next sets of
+ * authorized session ids. Fires only on a real growth (an id present in
+ * `next` that was not in `prev`) — never on the first observation (prev null),
+ * never on a pure revoke/decrease, and never when the membership is unchanged.
+ * The pair QR/code are single-use tokens, so a new authorization means the
+ * on-screen token has been consumed and must be re-minted.
+ */
+export function hasNewPairedSession(prev: ReadonlySet<string> | null, next: ReadonlySet<string>): boolean {
+  if (prev === null) return false;
+  for (const id of next) {
+    if (!prev.has(id)) return true;
+  }
+  return false;
+}
+
 export const revokePanelPhoneSession = (id: string) =>
   deleteService<{ error?: boolean; msg?: string }>(`/panel/phone/sessions/${encodeURIComponent(id)}`);
 

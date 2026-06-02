@@ -855,5 +855,7 @@
   "tools.storybook": "元件目錄",
   "tools.storybook.label": "瀏覽所有可重用元件",
   "tools.storybook.open": "開啟",
-  "tools.yes": "是"
+  "tools.yes": "是",
+  "panel.widget.pairing": "Pair remote",
+  "panel.pairing.off": "Remote pairing is off"
 }

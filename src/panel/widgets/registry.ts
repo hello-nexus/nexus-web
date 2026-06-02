@@ -42,6 +42,7 @@ import { aquariumApp } from './aquarium';
 import { whiteboardApp } from './whiteboard';
 import { emojiApp } from './emoji';
 import { galleryApp } from './gallery';
+import { pairingApp } from './pairing';
 
 // Single source of truth for app type -> manifest. "App" is the
 // conceptual unit (one per widget type); the manifest carries up to
@@ -70,6 +71,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   whiteboard: whiteboardApp,
   emoji:      emojiApp,
   gallery:    galleryApp,
+  pairing:    pairingApp,
 };
 
 // Whether an app can appear on a given surface. The decision is purely

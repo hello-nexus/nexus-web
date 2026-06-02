@@ -855,5 +855,7 @@
   "tools.storybook": "Bilesen Storybook",
   "tools.storybook.label": "Tum yeniden kullanilabilir bilesenler",
   "tools.storybook.open": "Ac",
-  "tools.yes": "Evet"
+  "tools.yes": "Evet",
+  "panel.widget.pairing": "Pair remote",
+  "panel.pairing.off": "Remote pairing is off"
 }

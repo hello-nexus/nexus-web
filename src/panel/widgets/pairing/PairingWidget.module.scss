@@ -1,0 +1,33 @@
+@use '../../../styles/text' as *;
+
+// Solid white to the tile edges in every state; the rounded panel-card clips
+// the corners. QR + countdown sit black-on-white inside.
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  width: 100%;
+  padding: 14px;
+  box-sizing: border-box;
+  background: #fff;
+  color: #111827;
+  overflow: hidden;
+}
+
+.off {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  color: #111827;
+}
+
+.off span {
+  @include text-button;
+  max-width: 90%;
+}

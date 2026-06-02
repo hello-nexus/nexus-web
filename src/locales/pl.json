@@ -855,5 +855,7 @@
   "tools.storybook": "Storybook komponentow",
   "tools.storybook.label": "Przegladaj wszystkie komponenty",
   "tools.storybook.open": "Otworz",
-  "tools.yes": "Tak"
+  "tools.yes": "Tak",
+  "panel.widget.pairing": "Pair remote",
+  "panel.pairing.off": "Remote pairing is off"
 }
