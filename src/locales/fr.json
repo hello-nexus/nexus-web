@@ -734,8 +734,6 @@
   "service.required.otherPlatforms": "Autres plateformes",
   "service.required.safari": "Safari ne peut pas détecter automatiquement les services locaux. Utilisez Chrome, Firefox ou Edge, ou ouvrez Nexus depuis la barre de menus macOS si vous l'avez installé.",
   "settings.accent": "Couleur d'accentuation",
-  "settings.advancedWidgets.description": "Les widgets d'éclairage et de refroidissement affichent l'ensemble des contrôles : boutons animation/miroir/statique sur l'éclairage, graphique de réponse et pastilles sur le refroidissement. Désactivé (par défaut), un seul icône reste affiché avec des flèches gauche/droite.",
-  "settings.advancedWidgets.label": "Mode widget avancé",
   "settings.alerts.description": "Recevoir une notification si les opérations d'éclairage et/ou de contrôle des ventilateurs peuvent être affectées par d'autres logiciels en cours d'exécution",
   "settings.alerts.label": "Masquer les avertissements de conflit",
   "settings.feedback": "Retour d'information",

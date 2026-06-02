@@ -734,8 +734,6 @@
   "service.required.otherPlatforms": "其他平台",
   "service.required.safari": "Safari 無法自動偵測本地服務。請使用 Chrome、Firefox 或 Edge，或（如已安裝）從 macOS 選單列開啟 Nexus。",
   "settings.accent": "強調色",
-  "settings.advancedWidgets.description": "燈效與散熱小工具會顯示完整控制項——燈效上有動畫/鏡像/靜態按鈕，散熱上有回應圖表與晶片標籤。關閉（預設）時只保留單一圖示與左右箭頭。",
-  "settings.advancedWidgets.label": "進階小工具模式",
   "settings.alerts.description": "當燈光和/或風扇控制操作可能受到其他執行中軟體影響時發出通知",
   "settings.alerts.label": "隱藏衝突警告",
   "settings.feedback": "意見回饋",

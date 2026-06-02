@@ -734,8 +734,6 @@
   "service.required.otherPlatforms": "其他平台",
   "service.required.safari": "Safari 无法自动检测本地服务。请使用 Chrome、Firefox 或 Edge，或（如已安装）从 macOS 菜单栏打开 Nexus。",
   "settings.accent": "强调色",
-  "settings.advancedWidgets.description": "灯效和散热小组件将显示完整控件——灯效上的动画/镜像/静态按钮，以及散热上的响应曲线图和标签。关闭（默认）时仅保留一个带左右箭头的图标。",
-  "settings.advancedWidgets.label": "高级小组件模式",
   "settings.alerts.description": "当灯光和/或风扇控制操作可能受到其他运行中软件影响时发出通知",
   "settings.alerts.label": "隐藏冲突警告",
   "settings.feedback": "反馈",

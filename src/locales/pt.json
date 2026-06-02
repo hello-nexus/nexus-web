@@ -734,8 +734,6 @@
   "service.required.otherPlatforms": "Outras plataformas",
   "service.required.safari": "O Safari nao deteta automaticamente servicos locais. Use Chrome, Firefox ou Edge, ou abra o Nexus na barra de menus do macOS se estiver instalado.",
   "settings.accent": "Cor de destaque",
-  "settings.advancedWidgets.description": "Os widgets de iluminação e arrefecimento mostram todos os controlos — botões de animação/espelho/estático na iluminação, gráfico de resposta e chips no arrefecimento. Desativado (a predefinição) mantém um único ícone com setas para a esquerda/direita.",
-  "settings.advancedWidgets.label": "Modo de widget avançado",
   "settings.alerts.description": "Receber notificacoes se as operacoes de iluminacao e/ou controlo de ventoinhas puderem ser afetadas por outro software em execucao",
   "settings.alerts.label": "Ocultar avisos de conflito",
   "settings.feedback": "Comentarios",

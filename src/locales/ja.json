@@ -734,8 +734,6 @@
   "service.required.otherPlatforms": "他のプラットフォーム",
   "service.required.safari": "Safari はローカルサービスを自動検出できません。Chrome、Firefox、Edge をご利用いただくか、インストール済みの場合は macOS メニューバーから Nexus を開いてください。",
   "settings.accent": "アクセントカラー",
-  "settings.advancedWidgets.description": "ライティングと冷却のウィジェットにすべてのコントロールが表示されます。ライティングにはアニメーション/ミラー/静止ボタン、冷却には応答チャートとチップが表示されます。オフ（デフォルト）の場合は、左右の矢印付きのアイコン 1 つのみが表示されます。",
-  "settings.advancedWidgets.label": "詳細ウィジェットモード",
   "settings.alerts.description": "ライティングやファン制御の操作が他の実行中のソフトウェアに影響される可能性がある場合に通知を受け取ります",
   "settings.alerts.label": "競合警告を非表示",
   "settings.feedback": "フィードバック",

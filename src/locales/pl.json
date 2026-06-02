@@ -734,8 +734,6 @@
   "service.required.otherPlatforms": "Inne platformy",
   "service.required.safari": "Safari nie wykrywa automatycznie lokalnych uslug. Uzyj Chrome, Firefox lub Edge, albo otworz Nexus z paska menu macOS, jesli jest zainstalowany.",
   "settings.accent": "Kolor akcentu",
-  "settings.advancedWidgets.description": "Widżety podświetlenia i chłodzenia pokazują pełne sterowanie — przyciski animacja/lustro/statyczne dla podświetlenia oraz wykres reakcji i znaczniki dla chłodzenia. Wyłączenie (domyślnie) zachowuje pojedynczą ikonę ze strzałkami w lewo/prawo.",
-  "settings.advancedWidgets.label": "Tryb zaawansowanych widżetów",
   "settings.alerts.description": "Otrzymuj powiadomienia, gdy podswietlenie lub sterowanie wentylatorami moze byc zaburzone przez inne uruchomione oprogramowanie",
   "settings.alerts.label": "Ukryj ostrzezenia o konfliktach",
   "settings.feedback": "Opinie",

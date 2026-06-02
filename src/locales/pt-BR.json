@@ -734,8 +734,6 @@
   "service.required.otherPlatforms": "Outras plataformas",
   "service.required.safari": "O Safari nao detecta servicos locais automaticamente. Use Chrome, Firefox ou Edge, ou abra o Nexus na barra de menus do macOS se estiver instalado.",
   "settings.accent": "Cor de destaque",
-  "settings.advancedWidgets.description": "Os widgets de iluminação e resfriamento mostram os controles completos — botões de animação/espelhar/estático na iluminação e gráfico de resposta com chips no resfriamento. Desativado (o padrão) mantém um único ícone com setas para esquerda/direita.",
-  "settings.advancedWidgets.label": "Modo de widget avançado",
   "settings.alerts.description": "Receba notificacoes se operacoes de iluminacao e/ou controle de ventoinhas podem ser impactadas por outros softwares em execucao",
   "settings.alerts.label": "Ocultar avisos de conflito",
   "settings.feedback": "Feedback",

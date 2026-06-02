@@ -734,8 +734,6 @@
   "service.required.otherPlatforms": "Otras plataformas",
   "service.required.safari": "Safari no puede detectar automáticamente los servicios locales. Usa Chrome, Firefox o Edge, o abre Nexus desde la barra de menús de macOS si lo tienes instalado.",
   "settings.accent": "Color de acento",
-  "settings.advancedWidgets.description": "Los widgets de iluminación y refrigeración muestran todos los controles: botones de animación/espejo/estático en iluminación, gráfico de respuesta y chips en refrigeración. Desactivado (el valor predeterminado) mantiene un único icono con flechas izquierda/derecha.",
-  "settings.advancedWidgets.label": "Modo de widget avanzado",
   "settings.alerts.description": "Recibir notificaciones si las operaciones de iluminación y/o control de ventiladores pueden verse afectadas por otro software en ejecución",
   "settings.alerts.label": "Ocultar advertencias de conflicto",
   "settings.feedback": "Comentarios",

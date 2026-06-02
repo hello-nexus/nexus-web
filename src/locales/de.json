@@ -734,8 +734,6 @@
   "service.required.otherPlatforms": "Andere Plattformen",
   "service.required.safari": "Safari kann lokale Dienste nicht automatisch erkennen. Verwenden Sie Chrome, Firefox oder Edge, oder öffnen Sie Nexus über die macOS-Menüleiste, wenn Sie es installiert haben.",
   "settings.accent": "Akzentfarbe",
-  "settings.advancedWidgets.description": "Beleuchtungs- und Kühlungs-Widgets zeigen die vollständigen Bedienelemente — Animations-/Spiegel-/Statisch-Schaltflächen bei der Beleuchtung, Reaktionsdiagramm und Chips bei der Kühlung. Aus (der Standard) behält ein einzelnes Symbol mit Pfeilen nach links/rechts.",
-  "settings.advancedWidgets.label": "Erweiterter Widget-Modus",
   "settings.alerts.description": "Benachrichtigung erhalten, wenn Beleuchtungs- und/oder Lüftersteuerung durch andere laufende Software beeinträchtigt werden könnte",
   "settings.alerts.label": "Konfliktwarnungen ausblenden",
   "settings.feedback": "Feedback",

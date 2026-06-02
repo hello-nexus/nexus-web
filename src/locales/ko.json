@@ -734,8 +734,6 @@
   "service.required.otherPlatforms": "다른 플랫폼",
   "service.required.safari": "Safari는 로컬 서비스를 자동으로 감지할 수 없습니다. Chrome, Firefox 또는 Edge를 사용하거나, 설치되어 있다면 macOS 메뉴 막대에서 Nexus를 여세요.",
   "settings.accent": "강조 색상",
-  "settings.advancedWidgets.description": "조명 및 쿨링 위젯이 전체 컨트롤을 표시합니다 — 조명에는 애니메이션/미러/정적 버튼, 쿨링에는 반응 차트와 칩이 표시됩니다. 끄면(기본값) 좌우 화살표가 있는 단일 아이콘으로 유지됩니다.",
-  "settings.advancedWidgets.label": "고급 위젯 모드",
   "settings.alerts.description": "라이팅 및/또는 팬 제어 작업이 다른 실행 중인 소프트웨어에 의해 영향을 받을 수 있는 경우 알림을 받습니다",
   "settings.alerts.label": "충돌 경고 숨기기",
   "settings.feedback": "피드백",
