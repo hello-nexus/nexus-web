@@ -770,6 +770,16 @@
   // Pairing flow needs more vertical space so QR fits without pushing
   // the layout around when the user toggles tabs.
   min-height: 360px;
+  // Surface the QR / code blend onto (see PairingQrView). Matches the card so
+  // they read as part of it, not a separate inner box.
+  --qr-surface: var(--bg-card);
+}
+
+// Dark theme: drop the whole pairing box below the modal surface (--bg-elevated)
+// and blend the QR / code onto that darker surface, so there's no inner box.
+:global([data-theme='dark']) .phonePairFlowCard {
+  background: var(--bg);
+  --qr-surface: var(--bg);
 }
 
 .phonePairFlowTabs {
@@ -870,11 +880,10 @@
   }
 }
 
-// Mirror of .phonePairQrBox dimensions so the Code tab reserves the same
-// square footprint as the QR. Avoids the layout jump when toggling tabs.
-// Forced light, matching .phonePairQrBox: explicit white background +
-// near-black (#111827) foreground so the host + code read consistently and
-// scannably in BOTH the dark and light app themes (not theme variables).
+// Mirror of .phonePairQrBox dimensions so the Code tab reserves the same square
+// footprint as the QR, avoiding a layout jump when toggling tabs. No background:
+// the box sits on the card surface like the QR, and the host + code use the
+// themed text colors from the rules further down.
 .phonePairCodeBox {
   position: relative;
   overflow: hidden;
@@ -883,41 +892,28 @@
   margin: 0;
   padding: 1rem;
   border-radius: var(--radius-sm);
-  background: #fff;
   aspect-ratio: 1 / 1;
   width: 100%;
   max-width: 320px;
   align-self: center;
-
-  .phonePairCodeFieldLabel,
-  .phonePairCodeHost,
-  .phonePairCodeDigits {
-    color: #111827;
-  }
-
-  // Muted against the forced-white box; the rest of the box sits at near-black,
-  // so a mid grey reads as a subtle caption here rather than var(--text-faded)
-  // (which is tuned for the dark app surface).
-  .phonePairCodeLocalOnly {
-    color: #6b7280;
-  }
 }
 
-// Fresh-token reveal: an opaque-white overlay that starts fully covering the
-// box and fades out, so the QR / manual code is revealed as if dissolving in
-// from white. Plays once whenever the QR / manual code re-mints. Rendered as an
-// absolute overlay child (NOT a background on the box) so it never disturbs the
-// QR image or the code text, and clipped by the box's overflow:hidden. It is
-// remounted with an incrementing React key on every reload so the keyframe
-// re-fires (a CSS animation won't replay on an already-applied class). The box
-// layout is untouched — this sits on top with pointer-events:none.
+// Fresh-token reveal: an opaque overlay in the card surface color that starts
+// fully covering the box and fades out, so the QR / manual code is revealed as
+// if dissolving in. Plays once whenever the QR / manual code re-mints. Rendered
+// as an absolute overlay child (NOT a background on the box) so it never
+// disturbs the QR image or the code text, and clipped by the box's
+// overflow:hidden. It is remounted with an incrementing React key on every
+// reload so the keyframe re-fires (a CSS animation won't replay on an
+// already-applied class). The box layout is untouched — this sits on top with
+// pointer-events:none.
 .phonePairReveal {
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: #fff;
-  // Opaque white dissolving to reveal the content beneath. No sweep, no scale.
+  background: var(--qr-surface, var(--bg-card));
+  // Opaque surface dissolving to reveal the content beneath. No sweep, no scale.
   animation: phonePairRevealFade 0.5s ease-out both;
 }
 
@@ -936,7 +932,7 @@
 
 .phonePairLoading {
   @include text-button;
-  color: #111827;
+  color: var(--text);
 }
 
 .phonePairMeta {
@@ -1001,9 +997,9 @@
 }
 
 .phonePairCodeDigits {
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
-  font-size: 1.7rem;
-  letter-spacing: 0.18em;
+  @include text-code;
+  font-size: 2.4rem;
+  letter-spacing: 0.14em;
   color: var(--text);
 }
 

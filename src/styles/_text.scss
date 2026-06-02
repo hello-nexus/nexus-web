@@ -1,5 +1,5 @@
 // Canonical text styles. Bundles font-size + weight + line-height + tracking
-// into 7 named mixins. These are the ONLY authorized way to set type in any
+// into 8 named mixins. These are the ONLY authorized way to set type in any
 // component-level SCSS module. A stylelint rule will warn on raw font-size,
 // font-weight, line-height, or letter-spacing declarations outside this file
 // (lands separately, see the consolidation plan).
@@ -8,7 +8,7 @@
 // every style x every text color so you can compare them visually before
 // picking one. Treat that grid as the spec.
 //
-// Adding an 8th style is allowed but should be a deliberate decision, not a
+// Adding a 9th style is allowed but should be a deliberate decision, not a
 // silent one-off. Bring the proposal up before adding.
 
 @mixin text-display {
@@ -63,8 +63,19 @@
 @mixin text-numeric {
   font-family: var(--font-mono);
   font-size: var(--type-small);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1;
   letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+// Pairing / confirmation codes — the heavy mono readout shared by the Code-tab
+// digits and the desktop confirm-code (SAS) modal so they match. Size and
+// tracking are set per use (inline code vs hero SAS); this fixes the family +
+// weight + tabular figures.
+@mixin text-code {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }

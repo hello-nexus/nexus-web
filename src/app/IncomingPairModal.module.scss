@@ -1,3 +1,5 @@
+@use '../styles/text' as *;
+
 .modal {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -22,12 +24,10 @@
 
 .sas {
   margin: 0.25rem 0 0.1rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  @include text-code;
   font-size: 2.75rem;
-  font-weight: 800;
   letter-spacing: 0.5rem;
   color: var(--text);
-  line-height: 1;
 }
 
 .meta {

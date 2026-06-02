@@ -6,6 +6,7 @@ import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { Tabs, type TabDef } from '../components/common/Tabs/Tabs';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
+import { PairingOffState } from '../components/common/PairingQr/PairingOffState';
 import { EditableText } from '../components/common/Editable/EditableText';
 import { Select } from '../components/common/Select/Select';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
@@ -585,62 +586,63 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
           {/* ── Right column: pairing flow (QR or Code), tabbed ────────── */}
           <div className={styles.phonePairCol}>
             <section className={styles.phonePairCard + ' ' + styles.phonePairFlowCard} aria-label={t('phonePair.title')}>
-              <Tabs
-                tabs={pairTabs}
-                activeKey={pairMode}
-                onChange={(key) => setPairMode(key as 'qr' | 'code')}
-                ariaLabel={t('phonePair.title')}
-                variant="pill"
-                disabled={!remoteEnabled}
-                className={styles.phonePairFlowTabs}
-              />
-
               {!remoteEnabled ? (
-                <p className={styles.phonePairFlowHint}>{t('phonePair.killswitch.qrDisabled')}</p>
-              ) : pairMode === 'qr' ? (
-                <>
-                  <div className={styles.phonePairHintSpacer} aria-hidden="true" />
-                  <PairingQrView
-                    qrDataUrl={qr?.qrDataUrl}
-                    expiresAt={qr?.expiresAt}
-                    loading={loading}
-                    now={now}
-                  />
-                </>
+                <PairingOffState label={t('phonePair.killswitch.qrDisabled')} />
               ) : (
                 <>
-                  <div className={styles.phonePairHintSpacer} aria-hidden="true" />
-                  <div className={styles.phonePairCodeBox}>
-                    {pairCode ? (
-                      <div className={styles.phonePairCodeRows}>
-                        <span className={styles.phonePairCodeLocalOnly}>{t('phonePair.code.localOnly')}</span>
-                        <div>
-                          <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.hostLabel')}</span>
-                          <span className={styles.phonePairCodeHost}>{pairCode.host}:{pairCode.port}</span>
-                        </div>
-                        <div>
-                          <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.codeLabel')}</span>
-                          <span className={styles.phonePairCodeDigits}>{pairCode.code}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={styles.phonePairLoading}>{t('phonePair.refreshing')}</div>
-                    )}
-                    {codeRevealKey > 0 && (
-                      <span key={codeRevealKey} className={styles.phonePairReveal} aria-hidden="true" />
-                    )}
-                  </div>
-                  {pairCodeError && <p className={styles.phonePairCodeError}>{pairCodeError}</p>}
-                  <div className={classNames(styles.phonePairTimer, {
-                    [styles.phonePairTimerFlash]: codeSecondsLeft > 0 && codeSecondsLeft <= 5,
-                  })}>
-                    <span>{codeStatus}</span>
-                  </div>
-                </>
-              )}
+                  <Tabs
+                    tabs={pairTabs}
+                    activeKey={pairMode}
+                    onChange={(key) => setPairMode(key as 'qr' | 'code')}
+                    ariaLabel={t('phonePair.title')}
+                    variant="pill"
+                    className={styles.phonePairFlowTabs}
+                  />
 
-              {remoteEnabled && (
-                <p className={styles.phonePairFlowFooter}>{t('phonePair.securityNote')}</p>
+                  {pairMode === 'qr' ? (
+                    <>
+                      <div className={styles.phonePairHintSpacer} aria-hidden="true" />
+                      <PairingQrView
+                        qrDataUrl={qr?.qrDataUrl}
+                        expiresAt={qr?.expiresAt}
+                        loading={loading}
+                        now={now}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <div className={styles.phonePairHintSpacer} aria-hidden="true" />
+                      <div className={styles.phonePairCodeBox}>
+                        {pairCode ? (
+                          <div className={styles.phonePairCodeRows}>
+                            <span className={styles.phonePairCodeLocalOnly}>{t('phonePair.code.localOnly')}</span>
+                            <div>
+                              <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.hostLabel')}</span>
+                              <span className={styles.phonePairCodeHost}>{pairCode.host}:{pairCode.port}</span>
+                            </div>
+                            <div>
+                              <span className={styles.phonePairCodeFieldLabel}>{t('phonePair.code.codeLabel')}</span>
+                              <span className={styles.phonePairCodeDigits}>{pairCode.code}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={styles.phonePairLoading}>{t('phonePair.refreshing')}</div>
+                        )}
+                        {codeRevealKey > 0 && (
+                          <span key={codeRevealKey} className={styles.phonePairReveal} aria-hidden="true" />
+                        )}
+                      </div>
+                      {pairCodeError && <p className={styles.phonePairCodeError}>{pairCodeError}</p>}
+                      <div className={classNames(styles.phonePairTimer, {
+                        [styles.phonePairTimerFlash]: codeSecondsLeft > 0 && codeSecondsLeft <= 5,
+                      })}>
+                        <span>{codeStatus}</span>
+                      </div>
+                    </>
+                  )}
+
+                  <p className={styles.phonePairFlowFooter}>{t('phonePair.securityNote')}</p>
+                </>
               )}
             </section>
           </div>

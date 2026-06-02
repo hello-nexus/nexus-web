@@ -818,7 +818,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Text styles', category: 'foundation',
     filePath: 'src/styles/_text.scss',
-    description: 'The 7 canonical text mixins. Component styles must use one of these via @include text-...; raw font-size / weight / line-height / letter-spacing declarations outside _text.scss are flagged by stylelint. Use the matrix to pick the right combination of style x color.',
+    description: 'The 8 canonical text mixins. Component styles must use one of these via @include text-...; raw font-size / weight / line-height / letter-spacing declarations outside _text.scss are flagged by stylelint. Use the matrix to pick the right combination of style x color.',
     Preview: TextStyles,
     fullWidth: true,
   },

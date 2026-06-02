@@ -1,7 +1,8 @@
-@use '../../../styles/text' as *;
-
-// Solid white to the tile edges in every state; the rounded panel-card clips
-// the corners. QR + countdown sit black-on-white inside.
+// Solid tile to the edges in every state; the rounded panel-card clips the
+// corners. --qr-surface is the color the QR image blends onto (see
+// PairingQrView). Light: white tile, QR black-on-white. Dark (block below):
+// black tile, white-on-black. The off-state (shared PairingOffState) and the QR
+// both read on this tile. centers its single child.
 .container {
   display: flex;
   flex-direction: column;
@@ -12,22 +13,14 @@
   width: 100%;
   padding: 14px;
   box-sizing: border-box;
+  --qr-surface: #fff;
   background: #fff;
-  color: #111827;
+  color: var(--text);
   overflow: hidden;
 }
 
-.off {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  text-align: center;
-  color: #111827;
-}
-
-.off span {
-  @include text-button;
-  max-width: 90%;
+// Dark theme: black tile + matching blend surface.
+:global([data-theme='dark']) .container {
+  --qr-surface: #000;
+  background: #000;
 }

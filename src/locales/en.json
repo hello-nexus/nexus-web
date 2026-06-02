@@ -690,7 +690,7 @@
   "phonePair.loadingSessions": "Loading sessions...",
   "phonePair.pairedAt": "Paired {time}",
   "phonePair.qrAlt": "Pair remote QR code",
-  "phonePair.refreshesIn": "Refreshes in {seconds}s",
+  "phonePair.refreshesIn": "New code in {seconds}",
   "phonePair.refreshing": "Refreshing...",
   "phonePair.relay.hint": "Lets paired phones connect over the internet when they can’t reach this PC on the local network.",
   "phonePair.relay.label": "Cloud relay",

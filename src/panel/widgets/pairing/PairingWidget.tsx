@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { QrCode } from 'lucide-react';
 import { fetchPanelRemoteControlState } from '../../../api/panel';
 import { PairingQrView } from '../../../components/common/PairingQr/PairingQrView';
+import { PairingOffState } from '../../../components/common/PairingQr/PairingOffState';
 import { usePairingQrFeed } from '../../../components/common/PairingQr/usePairingQrFeed';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './PairingWidget.module.scss';
@@ -44,10 +44,7 @@ export function PairingWidget() {
   if (enabled === false) {
     return (
       <div className={styles.container}>
-        <div className={styles.off}>
-          <QrCode size={40} aria-hidden="true" />
-          <span>{t('panel.pairing.off')}</span>
-        </div>
+        <PairingOffState label={t('panel.pairing.off')} />
       </div>
     );
   }

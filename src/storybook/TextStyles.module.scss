@@ -187,6 +187,7 @@
 .label        { @include text-label; }
 .caption      { @include text-caption; }
 .numeric      { @include text-numeric; }
+.code         { @include text-code; font-size: var(--type-heading); }
 
 .swatchGrid {
   display: grid;

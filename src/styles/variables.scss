@@ -14,11 +14,13 @@
   // mode and the dark body bleeds into a white halo at the edges.
   color-scheme: dark;
 
-  // Surfaces — pure grayscale to mirror light mode's neutral whites.
-  --bg: #0a0a0a;
-  --bg-elevated: #141414;
-  --bg-card: #1a1a1a;
-  --bg-card-hover: #232323;
+  // Surfaces — pure grayscale to mirror light mode's neutral whites. Kept
+  // deliberately deep: modal bodies (--bg-elevated) and cards (--bg-card) read
+  // dark rather than mid-grey on the dark theme.
+  --bg: #080808;
+  --bg-elevated: #0f0f0f;
+  --bg-card: #161616;
+  --bg-card-hover: #202020;
   --border: #2a2a2a;
   --border-strong: #3a3a3a;
 
