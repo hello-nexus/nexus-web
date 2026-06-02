@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NexusMark } from './components/icons/NexusBrand';
 import { pairOverInternet, pairOverRelayClaim, type InternetPairResult } from './api/internetPairing';
-import { isRemoteOrigin } from './api/service';
+import { isRemoteOrigin, setRelayRegion } from './api/service';
 import { getDeviceId } from './api/deviceId';
 import { PHONE_PANEL_PWA_KEY } from './app/panelRouting';
 
@@ -67,6 +67,9 @@ export function PairRedirect() {
   // `httpPort`; older ones don't, in which case the service-port default is the
   // only sane guess.
   const httpPort = params.get('httpPort') ?? '9400';
+  // Regional relay tag (e.g. "ap"): the relay claim + the runtime panel both
+  // target the relay the host registered on. Absent ⇒ legacy default.
+  const region = params.get('r') ?? '';
 
   // Validity guard: native iOS uses `port` for the HTTPS-pinned path, but the
   // browser fallback only needs host + pair + httpPort. Any QR carrying both
@@ -94,6 +97,10 @@ export function PairRedirect() {
     if (!valid) return;
     if (started.current) return;
     started.current = true;
+
+    // Persist the QR's relay region before any claim so the relay claim and the
+    // post-pair runtime panel (resolveRelayWs) both hit the relay the host is on.
+    setRelayRegion(region);
 
     // The direct-LAN panel URL: plain HTTP, the service's HTTP port (9400).
     // Carry the stable per-device id so the PC-served panel's same-origin claim
@@ -174,7 +181,7 @@ export function PairRedirect() {
       }
     });
     return () => { cancelled = true; };
-  }, [valid, host, httpPort, pair]);
+  }, [valid, host, httpPort, pair, region]);
 
   if (!valid) {
     return (

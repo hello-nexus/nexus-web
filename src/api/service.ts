@@ -18,6 +18,30 @@ const SERVICE_PORT = import.meta.env.VITE_SERVICE_PORT || DEFAULT_SERVICE_PORT;
 const DEFAULT_RELAY_URL = 'wss://api.hellonexus.com/relay';
 const RELAY_URL = import.meta.env.VITE_RELAY_URL || DEFAULT_RELAY_URL;
 
+// Regional relay directory. The host stamps the pair QR with `r=<tag>` for the
+// latency-nearest relay it registered on; the phone follows to that same relay
+// so host + phone share one rendezvous instance. Built-in map — the web is
+// always served fresh from hellonexus.com, so adding a region is one entry + a
+// redeploy, no client-side directory fetch. Unknown / absent tag ⇒ the legacy
+// default (kept in sync with RELAY_REGIONS in nexus-api relays.config.ts).
+const RELAY_REGIONS: Record<string, string> = {
+  us: 'wss://relay-us.hellonexus.com/relay',
+  ap: 'wss://relay-ap.hellonexus.com/relay',
+};
+const RELAY_REGION_KEY = 'nexus.relayRegion';
+
+/**
+ * Persist the relay region from the pair QR's `r` tag so both the pairing claim
+ * and every later runtime reconnect target the same regional relay. A known tag
+ * is stored; an unknown / empty tag clears it (fall back to the legacy default
+ * rather than mispair on a relay this build doesn't know).
+ */
+export function setRelayRegion(tag: string | null | undefined): void {
+  if (typeof localStorage === 'undefined') return;
+  if (tag && RELAY_REGIONS[tag]) localStorage.setItem(RELAY_REGION_KEY, tag);
+  else localStorage.removeItem(RELAY_REGION_KEY);
+}
+
 const locationHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 const locationPort = typeof window !== 'undefined' ? window.location.port : '';
 const locationProtocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
@@ -49,8 +73,15 @@ export function resolveWs(path: string): string {
   return `${SERVICE_PROTOCOL === 'https:' ? 'wss' : 'ws'}://${endpoint}${path}`;
 }
 
-/** Resolve the cloud relay WSS URL (api origin, path /relay). */
+/**
+ * Resolve the cloud relay WSS URL: the regional relay this device paired
+ * through (persisted from the QR's `r` tag), else the legacy default.
+ */
 export function resolveRelayWs(): string {
+  if (typeof localStorage !== 'undefined') {
+    const tag = localStorage.getItem(RELAY_REGION_KEY);
+    if (tag && RELAY_REGIONS[tag]) return RELAY_REGIONS[tag];
+  }
   return RELAY_URL;
 }
 
