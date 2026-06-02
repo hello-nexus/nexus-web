@@ -26,6 +26,14 @@
   pointer-events: none;
 
   > * { pointer-events: auto; }
+
+  // A modal already neutralizes the shell drag strip (App.module.scss
+  // body:has([aria-modal="true"]) → no-drag), so the title no longer needs to
+  // float above it — drop under the modal scrim (--z-modal: 1000) so the blur
+  // covers the page title + its (i) tooltip like the rest of the chrome.
+  :global(body:has([aria-modal="true"])) & {
+    z-index: auto;
+  }
 }
 
 // Title + arrows are the interactive zone on the left of the title row.
