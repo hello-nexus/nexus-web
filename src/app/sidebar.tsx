@@ -32,7 +32,16 @@ export function SidebarBrand({ compact, onLogoClick, onToggleCompact, logoLabel,
           onClick={onLogoClick}
           aria-label={logoLabel}
         >
-          {compact ? <NexusMark size={28} /> : <NexusWordmark height={28} />}
+          {compact ? (
+            <NexusMark size={28} />
+          ) : (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <NexusMark size={28} />
+              <span style={{ display: 'inline-flex', marginLeft: 4 }}>
+                <NexusWordmark height={16} />
+              </span>
+            </span>
+          )}
         </button>
       </HoverTooltip>
       {!compact && (
