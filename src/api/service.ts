@@ -38,8 +38,15 @@ const RELAY_REGION_KEY = 'nexus.relayRegion';
  */
 export function setRelayRegion(tag: string | null | undefined): void {
   if (typeof localStorage === 'undefined') return;
-  if (tag && RELAY_REGIONS[tag]) localStorage.setItem(RELAY_REGION_KEY, tag);
-  else localStorage.removeItem(RELAY_REGION_KEY);
+  // Best-effort: a present-but-throwing store (Safari Private Mode, quota,
+  // hardened browsers) must NOT break pairing — it just costs the region hint
+  // (the relay falls back to the legacy default), so swallow any throw.
+  try {
+    if (tag && RELAY_REGIONS[tag]) localStorage.setItem(RELAY_REGION_KEY, tag);
+    else localStorage.removeItem(RELAY_REGION_KEY);
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 const locationHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
@@ -78,9 +85,13 @@ export function resolveWs(path: string): string {
  * through (persisted from the QR's `r` tag), else the legacy default.
  */
 export function resolveRelayWs(): string {
-  if (typeof localStorage !== 'undefined') {
-    const tag = localStorage.getItem(RELAY_REGION_KEY);
-    if (tag && RELAY_REGIONS[tag]) return RELAY_REGIONS[tag];
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const tag = localStorage.getItem(RELAY_REGION_KEY);
+      if (tag && RELAY_REGIONS[tag]) return RELAY_REGIONS[tag];
+    }
+  } catch {
+    /* storage unavailable → legacy default */
   }
   return RELAY_URL;
 }
