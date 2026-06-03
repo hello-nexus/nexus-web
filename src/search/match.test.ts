@@ -3,7 +3,7 @@ import { fuzzyScore, scoreEntry } from './match';
 import type { SearchEntry } from './types';
 
 const entry = (over: Partial<SearchEntry>): SearchEntry => ({
-  id: 'x', title: 'X', group: 'navigate', run: () => {}, ...over,
+  id: 'x', title: 'X', kind: 'navigate', run: () => {}, ...over,
 });
 
 describe('fuzzyScore', () => {
@@ -40,6 +40,14 @@ describe('scoreEntry', () => {
     const titled = entry({ id: 'a', title: 'Cooling' });
     const keyworded = entry({ id: 'b', title: 'Fans', keywords: ['cooling'] });
     expect(scoreEntry('cool', titled)!).toBeGreaterThan(scoreEntry('cool', keyworded)!);
+  });
+
+  it('a title hit always outranks a keyword-only hit (banding)', () => {
+    // "tray" must put the entry titled "Show icon in tray" above one that only
+    // has tray as a keyword (e.g. the Settings tab), even on an exact keyword.
+    const titled = entry({ id: 'a', title: 'Show icon in tray', keywords: ['tray'] });
+    const keyworded = entry({ id: 'b', title: 'Settings › General', keywords: ['tray'] });
+    expect(scoreEntry('tray', titled)!).toBeGreaterThan(scoreEntry('tray', keyworded)!);
   });
 
   it('returns null when nothing matches', () => {

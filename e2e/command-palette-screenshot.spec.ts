@@ -78,4 +78,19 @@ test('command palette screenshots', async ({ page }) => {
   await input.fill('y70');
   await page.waitForTimeout(200);
   await page.screenshot({ path: join(OUT, '6-query-device.png') });
+
+  // Deep settings: "tray" must surface the actual setting, not just the tab.
+  await input.fill('tray');
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: join(OUT, '7-query-tray.png') });
+
+  // Cooling + lighting methods (immediate actions, ⚡) alongside the page
+  // navigations (↗).
+  await input.fill('cool');
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: join(OUT, '8-query-cooling.png') });
+
+  await input.fill('light');
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: join(OUT, '9-query-lighting.png') });
 });

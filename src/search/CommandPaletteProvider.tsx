@@ -1,14 +1,9 @@
 import {
-  Suspense, lazy, useCallback, useEffect, useMemo, useState, type ReactNode,
+  useCallback, useEffect, useMemo, useState, type ReactNode,
 } from 'react';
 import type { Section } from '../hooks/useRoute';
 import type { CommandHost } from './types';
 import { CommandPaletteCtx, type PaletteController } from './CommandPaletteContext';
-
-// The palette pulls in device enumeration + WebHID specs; load it on first
-// open so it never weighs on the initial bundle.
-const CommandPalette = lazy(() =>
-  import('./CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
 interface Props {
   navigate: (section: Section, view?: string | null, subtab?: string | null) => void;
@@ -17,9 +12,10 @@ interface Props {
 }
 
 /**
- * Mounts the global ⌘K / Ctrl-K search. Provide once near the app root, inside
- * the i18n / settings / service-state providers the palette reads from. Renders
- * the children plus the palette overlay (only while open, lazily loaded).
+ * Owns the docked-search open state + the global ⌘K / Ctrl-K shortcut, and
+ * exposes both (plus the app host) via context. The search UI itself lives in
+ * the top bar (TopSearch), so this provider renders only its children — mount
+ * it near the app root, inside the i18n / settings / service-state providers.
  */
 export function CommandPaletteProvider({ navigate, onPairPhone, children }: Props) {
   const [isOpen, setIsOpen] = useState(false);
@@ -45,18 +41,13 @@ export function CommandPaletteProvider({ navigate, onPairPhone, children }: Prop
   }), [navigate, onPairPhone]);
 
   const controller = useMemo<PaletteController>(
-    () => ({ isOpen, open, close, toggle }),
-    [isOpen, open, close, toggle],
+    () => ({ isOpen, open, close, toggle, host }),
+    [isOpen, open, close, toggle, host],
   );
 
   return (
     <CommandPaletteCtx.Provider value={controller}>
       {children}
-      {isOpen && (
-        <Suspense fallback={null}>
-          <CommandPalette open onClose={close} host={host} />
-        </Suspense>
-      )}
     </CommandPaletteCtx.Provider>
   );
 }

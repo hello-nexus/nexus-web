@@ -9,6 +9,8 @@ import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useTranslation } from '../lib/i18n';
+import { useCommandPaletteOptional } from '../search/CommandPaletteContext';
+import { TopSearch } from '../search/TopSearch';
 import { CaptionButtons } from './CaptionButtons';
 import { ConnectedProfileSlot } from './sidebar';
 import type { ConnectionState } from '../hooks/useServiceStatus';
@@ -114,6 +116,7 @@ export function TopBar({
 }: TopBarProps) {
   const { t } = useTranslation();
   const [aboutOpen, setAboutOpen] = useState(false);
+  const palette = useCommandPaletteOptional();
 
   const offlineLabel = connectionState === 'checking'
     ? t('status.checking')
@@ -160,14 +163,17 @@ export function TopBar({
         </div>
       )}
 
-      {/* Center search-bar pill, absolutely centered on the window. Display-only
-          today — it shows the active page name; the bar background around it
-          remains the window-drag region. */}
-      <div className={styles.searchBar}>
-        {/* The page name is the document's primary heading (the in-page <h1>s
-            were removed when titles moved into the top bar). */}
-        <h1 className={styles.searchTitle}>{pageTitle}</h1>
-      </div>
+      {/* Center search pill. With a palette provider it's the interactive
+          docked search (TopSearch); otherwise a display-only title (panel
+          kiosk / iOS). The page name is the document's primary heading — the
+          in-page <h1>s were removed when titles moved into the top bar. */}
+      {palette ? (
+        <TopSearch pageTitle={pageTitle} online={online} />
+      ) : (
+        <div className={styles.searchBar}>
+          <h1 className={styles.searchTitle}>{pageTitle}</h1>
+        </div>
+      )}
 
       <div className={styles.rightCluster}>
         <TopBarMenu onNavigateSettings={onNavigateSettings} onOpenAbout={() => setAboutOpen(true)} />

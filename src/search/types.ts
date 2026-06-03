@@ -1,27 +1,11 @@
 import type { ReactNode } from 'react';
-import type { Language, ThemeMode } from '../lib/settings';
-
-// Groups order = the order they render in. Keep in sync with GROUP_ORDER /
-// GROUP_LABEL_KEYS in CommandPalette.tsx.
-export type CommandGroup =
-  | 'compute'
-  | 'navigate'
-  | 'devices'
-  | 'settings'
-  | 'appearance'
-  | 'actions';
+import type { UiSettingsValue } from '../hooks/useUiSettings';
 
 export interface PaletteDevice {
   key: string;
   name: string;
   subtitle: string;
   iconSrc: string;
-}
-
-export interface CommandSettingsPatch {
-  themeMode?: ThemeMode;
-  accentColor?: string;
-  language?: Language;
 }
 
 /** App-level capabilities a provider entry can invoke. Supplied by the host
@@ -39,9 +23,19 @@ export interface CommandHost {
  *  by the palette from live hooks; passed to every provider. */
 export interface CommandContext {
   t: (key: string, params?: Record<string, string | number>) => string;
+  /** Service reachable — gates entries that write to the device (cooling,
+   *  lighting) so they don't show while there's nothing to apply to. */
+  online: boolean;
   devices: PaletteDevice[];
-  settings: { themeMode: ThemeMode; accentColor: string; language: Language };
-  updateSettings: (patch: CommandSettingsPatch) => void;
+  /** User profiles + the active one, so search can switch directly. */
+  profiles: { id: string; name: string }[];
+  activeProfileId: string;
+  switchProfile: (id: string) => void;
+  /** The full UI settings, so toggle actions can read current state + flip any key. */
+  settings: UiSettingsValue;
+  updateSettings: (patch: Partial<UiSettingsValue>) => void;
+  /** Live remote-access on/off state, so those become single toggles. */
+  panel: { remoteEnabled: boolean; relayEnabled: boolean; wifiEnabled: boolean };
   host: CommandHost;
   /** Close the palette. Most entries don't need this — the palette closes
    *  itself after run() unless the entry sets keepOpen. */
@@ -52,20 +46,28 @@ export interface SearchEntry {
   id: string;
   title: string;
   subtitle?: string;
-  group: CommandGroup;
+  /** 'navigate' opens a page/section and commits nothing; 'action' applies an
+   *  immediate change (theme, cooling preset, lighting effect). Drives the
+   *  trailing affordance so the user knows which is which before selecting. */
+  kind: 'navigate' | 'action';
   icon?: ReactNode;
   /** Extra match targets that don't show in the label (synonyms, related terms). */
   keywords?: string[];
   /** Right-aligned secondary text: a value, shortcut, or live status. */
   hint?: string;
-  /** Perform the action. The palette closes afterwards unless keepOpen. */
+  /** When set, the entry is an on/off control: the row shows a switch in this
+   *  state. Clicking the switch flips it and keeps search open; selecting the
+   *  row (Enter / click elsewhere) flips + closes. */
+  toggle?: boolean;
+  /** Raw setter for a toggle, so repeated in-place flips use the live state. */
+  setToggle?: (next: boolean) => void;
+  /** Perform the action. The search closes afterwards. */
   run: () => void;
-  /** Keep the palette open after running — for live toggles the user may
-   *  flip repeatedly (theme, accent, language). */
-  keepOpen?: boolean;
+  /** Surface in the empty-state suggestions (the primary destinations). */
+  suggest?: boolean;
 }
 
-export interface SearchProvider {
-  id: string;
-  entries: (ctx: CommandContext) => SearchEntry[];
-}
+/** A source contributes entries for the current context. The whole catalog is
+ *  just an array of these — add one (or a row to a data table it reads) to add
+ *  results. Return [] to contribute nothing (e.g. device sources while offline). */
+export type SearchSource = (ctx: CommandContext) => SearchEntry[];

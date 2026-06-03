@@ -55,17 +55,26 @@ export function fuzzyScore(query: string, text: string): number | null {
  * Best score for an entry across its title (full weight), keywords (0.8),
  * and subtitle (0.55). Returns null if nothing matches.
  */
+// Banded so WHERE the query matches dominates: a title hit always outranks a
+// keyword-only hit, which outranks a subtitle-only hit. Within a band the fuzzy
+// strength orders them. This is why searching "tray" puts the entry titled
+// "Show icon in tray" above "Settings › General" (which only has tray as a
+// keyword).
+const TITLE_BAND = 2_000_000;
+const KEYWORD_BAND = 1_000_000;
+
 export function scoreEntry(query: string, entry: SearchEntry): number | null {
-  let best: number | null = null;
-  const consider = (text: string | undefined, weight: number) => {
-    if (!text) return;
-    const raw = fuzzyScore(query, text);
-    if (raw == null) return;
-    const w = raw * weight;
-    if (best == null || w > best) best = w;
-  };
-  consider(entry.title, 1);
-  if (entry.keywords) for (const k of entry.keywords) consider(k, 0.8);
-  consider(entry.subtitle, 0.55);
-  return best;
+  const title = fuzzyScore(query, entry.title);
+  if (title != null) return TITLE_BAND + title;
+
+  let keyword: number | null = null;
+  if (entry.keywords) {
+    for (const k of entry.keywords) {
+      const s = fuzzyScore(query, k);
+      if (s != null && (keyword == null || s > keyword)) keyword = s;
+    }
+  }
+  if (keyword != null) return KEYWORD_BAND + keyword;
+
+  return entry.subtitle ? fuzzyScore(query, entry.subtitle) : null;
 }
