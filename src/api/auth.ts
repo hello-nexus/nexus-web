@@ -2,7 +2,7 @@
 // caches in localStorage, and exposes it for all API calls.
 // Auto-re-pairs on 401 (handles service restarts that generate a new token).
 
-import { isRemoteOrigin, resolveHttp } from './service';
+import { isForceLanMode, isRemoteOrigin, resolveHttp } from './service';
 
 const TOKEN_KEY = 'nexus_token';
 const PHONE_TOKEN_KEY = 'nexus_phone_token';
@@ -71,7 +71,9 @@ async function doPair(): Promise<string> {
   // http://localhost — the phone, not the PC, and mixed-content-blocked. A
   // remote phone gets its token via the relay claim (storePhoneToken), never
   // here, so don't fire a doomed localhost request: report "no token".
-  if (isRemoteOrigin) return '';
+  // Exception: the detected-desktop case (forceLanMode) — http://localhost really
+  // is this machine's own service, so /pair mints the loopback token here too.
+  if (isRemoteOrigin && !isForceLanMode()) return '';
   try {
     const response = await fetch(resolveHttp('/pair'));
     if (response.ok) {

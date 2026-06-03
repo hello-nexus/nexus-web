@@ -10,6 +10,45 @@ import {
 } from './app/PanelEntrypoint';
 import { RESERVED_PANEL_PATH_SEGMENTS, shouldForcePhonePanelRoute } from './app/panelRouting';
 import { Dashboard } from './app/Dashboard';
+import { PublicGate } from './app/PublicGate';
+import { isRemoteOrigin, setForceLanMode } from './api/service';
+import { isWindowsAppShell, isMacAppShell } from './app/windowActions';
+
+// The public web at hellonexus.com: an ordinary browser origin that is NOT the
+// bundled local service (:9400/:9443 ⇒ isServedFromService ⇒ the real app) and
+// NOT a desktop `--app` shell (those load localhost, but guard explicitly so the
+// PublicGate can never wrap the native window) and NOT the Vite dev server
+// (import.meta.env.DEV). On this origin the entry point is PublicGate, which
+// detects a running local Nexus and shows the dashboard, else the splash.
+function isPublicWebsite(): boolean {
+  return isRemoteOrigin
+    && import.meta.env.PROD
+    && !isWindowsAppShell()
+    && !isMacAppShell();
+}
+
+// `?preview=1` (persisted) skips detection and forces the dashboard — lets the
+// team open the hosted app even on a machine without a local Nexus.
+const PREVIEW_BYPASS_KEY = 'nexus.preview';
+function previewBypassed(): boolean {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('preview') === '1') {
+      localStorage.setItem(PREVIEW_BYPASS_KEY, '1');
+      params.delete('preview');
+      const query = params.toString();
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.origin}${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`,
+      );
+      return true;
+    }
+    return localStorage.getItem(PREVIEW_BYPASS_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 // Pulls a service token out of `?token=...` into localStorage, then strips
 // it from the visible URL. Used by both the panel and overlay entrypoints
@@ -114,6 +153,27 @@ export default function App() {
         />
       </I18nProvider>
     );
+  }
+
+  // Public web entry. Sits AFTER every pairing / panel / overlay / reference
+  // route above, so those (and the installed app on localhost) are untouched.
+  // On hellonexus.com a local Nexus drives the dashboard over localhost
+  // (forceLanMode), so the desktop case behaves like the bundled app.
+  //
+  // INVARIANT: the /panel|/touch|/r/pair returns above MUST stay ordered before
+  // this branch. forceLanMode is a process-global; a phone that reached here
+  // would flip to localhost and never use the relay, breaking phone pairing.
+  // The phone panel returns earlier, so it never sets it.
+  if (isPublicWebsite()) {
+    setForceLanMode(true);
+    if (previewBypassed()) {
+      return (
+        <I18nProvider>
+          <Dashboard />
+        </I18nProvider>
+      );
+    }
+    return <PublicGate />;
   }
 
   return (
