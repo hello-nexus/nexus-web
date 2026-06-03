@@ -25,6 +25,7 @@ import { useRoute } from '../hooks/useRoute';
 import { useBuilder } from '../hooks/useBuilder';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { fetchPanelRemoteControlState } from '../api/panel';
+import { isRemoteOrigin } from '../api/service';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
 import { useTranslation } from '../lib/i18n';
@@ -385,12 +386,13 @@ export function Dashboard() {
     }
   };
 
-  // Service unavailable — what used to render the "Service Required" download
-  // screen now shows the pre-launch splash (coming-soon page). On hellonexus.com
-  // the service is never reachable from the browser, so the public always lands
-  // here; an installed desktop with the service running connects and renders the
-  // dashboard below exactly as before.
-  if (status.state === 'offline' || status.state === 'offline-installed') {
+  // Pre-launch splash is for the PUBLIC WEBSITE only. On hellonexus.com
+  // (isRemoteOrigin) an unreachable service means a public visitor → show the
+  // coming-soon splash. On the bundled local app (localhost / the --app shell,
+  // isServedFromService) an offline service is just a startup blip or a stopped
+  // service — show the normal "service required"/connecting UI below, NEVER the
+  // marketing splash.
+  if (isRemoteOrigin && (status.state === 'offline' || status.state === 'offline-installed')) {
     return <SplashPage />;
   }
 
