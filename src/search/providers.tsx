@@ -136,7 +136,7 @@ const settingsItems: SearchSource = (ctx) =>
 
 const devices: SearchSource = (ctx) =>
   ctx.devices.map((d) => go(`device:${d.key}`, {
-    title: d.name, subtitle: d.subtitle, keywords: ['device', d.subtitle],
+    title: d.name, keywords: ['device'],
     icon: <img className={styles.deviceIcon} src={d.iconSrc} alt="" aria-hidden />,
     to: () => ctx.host.goView('device', d.key),
   }));
