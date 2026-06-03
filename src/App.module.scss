@@ -11,74 +11,23 @@
   min-width: 1000px;
   background: var(--bg);
   color: var(--text);
+  // Height of the full-width application top bar (collapse + nav + search +
+  // profile). Consumed by .topBar in TopBar.module.scss.
+  --topbar-height: 52px;
+  // Collapsed sidebar rail width. The expanded sidebar is 200px (.sidebarColumn).
+  --rail-width: 86px;
+  // Horizontal padding on each nav item. Sized so the icon's center lands on the
+  // collapsed rail's centerline: nav side-pad (8px) + this + icon-half (10px) =
+  // --rail-width / 2. Identical expanded so icons never shift between states.
+  --rail-item-pad: 25px;
+  // macOS shell only: horizontal inset that pushes the top bar's collapse toggle
+  // clear of the native traffic lights (centered in the rail) with extra gap.
+  --mac-traffic-light-inset: 96px;
 }
 
 .layoutCompact {
-  min-width: 864px;
-}
-
-// Nexus Windows --app shell: we host our own title bar inside the page so
-// the WebView2 can paint flush to the top edge of the window. The shell
-// strips the OS caption, so we need a draggable strip across the top row
-// and reserved space for the custom caption buttons on the right. The page
-// title is intentionally allowed to render INTO the 32px drag strip area
-// so it lines up with the Nexus logo in the sidebar - the main-column top
-// gutter is already supplied by the base .mainColumn rule below; the
-// Windows shell only needs the sidebar nudge to keep the brand row aligned
-// with the page title.
-.layoutWindowsApp {
-  // Sidebar shifts down 6px so the brand row stays aligned with the
-  // page title which is sitting in the drag-strip region.
-  .sidebarColumn {
-    padding-top: 6px;
-  }
-}
-
-// Absolutely-positioned 32px strip at the top of the main column. Sits
-// between the sidebar (which has its own drag region in .sidebarBrand)
-// and the caption buttons (138px reserved on the right). Pointer events
-// stay on so the browser can detect the drag start; the strip's only
-// child is itself, so there's nothing here for clicks to fall through to.
-.windowDragStrip {
-  position: absolute;
-  // Start 8px below the top edge so the top resize strip wins those
-  // 8 pixels. WebView2 processes `app-region: drag` ahead of DOM
-  // z-index, so a higher-z resize strip can't override the drag
-  // claim — the two regions have to be physically disjoint.
-  top: 8px;
-  left: 200px; // right of the (expanded) sidebar - keep in lockstep with .sidebarColumn width
-  right: 138px; // left of the 3x46px caption buttons
-  height: 24px; // 32px title bar minus the 8px resize band on top
-  // Above the modal backdrop (z-index 1000) so the title bar stays
-  // draggable while no modal is open.
-  z-index: 2000;
-  -webkit-app-region: drag;
-  app-region: drag;
-
-  // When any modal is open, neutralize the drag region so the only
-  // window-chrome interaction left is the native min/max/close
-  // caption buttons (which live in their own stylesheet and remain
-  // active by design).
-  :global(body:has([aria-modal="true"])) & {
-    pointer-events: none;
-    -webkit-app-region: no-drag;
-    app-region: no-drag;
-  }
-}
-
-// When the sidebar is collapsed, the drag strip starts further left so
-// the gap above the main content stays uninterrupted. Keep in lockstep
-// with .sidebarCompact width.
-.layoutCompact .windowDragStrip {
-  left: 64px;
-}
-
-// Some sections (anything outside /system) render no sidebar at
-// all - the drag strip's default left:200 would leave a 200px dead
-// zone at the top-left that can't drag the window. Flush-left here
-// so the whole top row is grabbable.
-.layoutNoSidebar .windowDragStrip {
-  left: 0;
+  // Base min-width minus the rail vs expanded-sidebar delta (200 - rail).
+  min-width: 886px;
 }
 
 // Resize strips - one along each edge of the window. They catch
@@ -252,7 +201,7 @@
 }
 
 .sidebarCompact {
-  width: 64px;
+  width: var(--rail-width);
 }
 
 // Insertion indicator rendered by SidebarPinDropTarget during a cross-
@@ -296,13 +245,10 @@
     transition: background var(--ease-fast), width var(--ease-fast), right var(--ease-fast);
   }
 
-  // Highlight the edge stripe when either collapse affordance is hovered.
-  // The right-edge strip and the inline collapse button (PanelLeftClose in
-  // .sidebarBrandCollapse) both trigger the same toggle, so hovering one
-  // should visually engage the other.
+  // Highlight the edge stripe when the strip itself is hovered/focused. The
+  // primary collapse affordance now lives in the top bar.
   &:hover::before,
-  &:focus-visible::before,
-  .sidebarColumn:has(.sidebarBrandCollapse:hover) &::before {
+  &:focus-visible::before {
     width: 3px;
     right: 2px;
     background: var(--accent);
@@ -323,7 +269,9 @@
   align-items: center;
   gap: 0.55rem;
   height: var(--sidebar-section-height);
-  padding: 0 0.75rem 0 1.15rem;
+  // Left pad lands the 28px mark's center on the rail centerline (same as the
+  // nav icons below) so the mark stays put when the sidebar toggles.
+  padding: 0 0.75rem 0 calc(var(--rail-width) / 2 - 14px);
   flex-shrink: 0;
 }
 
@@ -386,42 +334,6 @@
   min-width: 0;
 }
 
-.sidebarBrandCollapse {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-faded);
-  cursor: pointer;
-  padding: 0;
-  flex-shrink: 0;
-  // Reserve space when hidden (so the wordmark doesn't reflow on
-  // hover) and fade in only when the brand row is hovered. Pointer
-  // events stay on so the button is still clickable in the hover
-  // state.
-  opacity: 0;
-  transition: color var(--ease-fast), opacity var(--ease-fast);
-
-  // Reveal the inline collapse button only when it (or the sibling right-edge
-  // strip) is hovered/focused — NOT on logo/brand-row hover, since clicking
-  // the logo navigates to the dashboard and no longer collapses the sidebar.
-  &:hover,
-  &:focus-visible,
-  .sidebarColumn:has(.collapseEdge:hover) & {
-    opacity: 1;
-  }
-  // Clickable - opt out of the drag region inherited from .sidebarBrand.
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-
-  &:hover,
-  .sidebarColumn:has(.collapseEdge:hover) & {
-    color: var(--accent-glow);
-  }
-}
 
 // ── Not-connected badge (offline state of the sidebar header slot) ───────
 
@@ -490,123 +402,6 @@
 // width:100% inside lines the box edges up with the pair-remote box below).
 // Vertical padding is tighter than the pair button on purpose so this box
 // reads slightly shorter than its sibling.
-.sidebarHeaderBox {
-  width: 100%;
-  display: flex;
-  align-items: stretch;
-  min-height: 36px;
-  // No padding here — the inner ProfileDropdown trigger button has its own
-  // padding and fills width:100% so the entire bordered card is the click
-  // target (no dead pixels in a padding band). NO overflow:hidden — the
-  // ProfileDropdown menu opens absolutely-positioned below this box; clipping
-  // it would swallow the entire menu.
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  transition: border-color var(--ease-fast), background var(--ease-fast);
-
-  // Hover state lives on the button (.trigger:hover changes text color);
-  // mirror the border/background tint here so the card reads as one
-  // continuous affordance.
-  &:hover {
-    border-color: var(--border-strong);
-    background: var(--bg-card-hover);
-  }
-}
-
-.sidebarHeaderBoxCompact {
-  justify-content: flex-start;
-  min-height: 36px;
-}
-
-// Top-right action buttons (settings + nav chevrons). Sized + tinted to mimic
-// Win11 caption buttons so the strip reads as one integrated chrome row when
-// the real caption buttons sit just to their right.
-//
-// z-index 2010 sits ABOVE every piece of window chrome (drag strip 2000,
-// resize edges 2004, resize corners 2005, caption buttons 2003) so the
-// buttons intercept hovers + clicks first. Without this the drag strip
-// (which extends right up to right:138) covers them entirely when the
-// layout is in Windows-app shell mode — buttons visually render but clicks
-// fall through to drag-window.
-.topRightAction {
-  position: absolute;
-  top: 0;
-  z-index: 2010;
-  // Interactive control inside a layout root that may carry app-region: drag.
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-  width: 46px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  cursor: default;
-  padding: 0;
-  outline: none;
-  // Match Win11's quick hover-in / slower hover-out fade.
-  transition: background-color 100ms ease;
-
-  &:hover {
-    background: color-mix(in srgb, var(--text) 8%, transparent);
-  }
-
-  &:active {
-    background: color-mix(in srgb, var(--text) 5%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
-  }
-
-  // Disable + fade when any modal is open. Only the native caption
-  // buttons (min/max/close) remain interactive during a modal.
-  :global(body:has([aria-modal="true"])) & {
-    pointer-events: none;
-    opacity: 0.35;
-  }
-
-  &:disabled {
-    opacity: 0.35;
-    pointer-events: none;
-  }
-}
-
-.topRightActionActive {
-  background: color-mix(in srgb, var(--text) 12%, transparent);
-
-  &:hover {
-    background: color-mix(in srgb, var(--text) 16%, transparent);
-  }
-}
-
-// Settings is the right-most action (dev tools live in a tab inside it).
-.topRightSettings { right: 0; }
-.layoutWindowsApp .topRightSettings { right: 138px; }
-
-// Back/forward chevrons sit further left, with a 16px gap from the settings
-// button so they read as a separate cluster from the chrome icons. Settings'
-// left edge is at 46px from the viewport right (0 + 46px width).
-.topRightNavForward { right: calc(46px + 16px); }
-.topRightNavBack { right: calc(46px + 16px + 46px); }
-.layoutWindowsApp .topRightNavForward { right: calc(138px + 46px + 16px); }
-.layoutWindowsApp .topRightNavBack { right: calc(138px + 46px + 16px + 46px); }
-
-.topRightActionIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  svg {
-    width: 14px;
-    height: 14px;
-  }
-}
-
 // Tiny + faded version stamp pinned to the bottom-left of the layout.
 .pageVersion {
   position: absolute;
@@ -614,7 +409,7 @@
   bottom: 8px;
   z-index: 30;
   font-family: var(--font-mono);
-  // Small enough that "vNN alpha" fits the 64px collapsed rail without clipping.
+  // Small enough that "vNN alpha" fits the collapsed rail without clipping.
   font-size: 8px;
   line-height: 1;
   letter-spacing: 0.04em;
@@ -625,14 +420,6 @@
 }
 
 // ── Sidebar footer ───────────────────────────────────────────────────────
-
-// Bottom-pinned Settings entry. The nav above has flex:1 so it fills and
-// anchors this cluster to the bottom; the 0.5rem side inset matches the
-// .nav wrapper so the row lines up x-for-x with the apps/devices nav rows.
-.sidebarSettingsItem {
-  flex-shrink: 0;
-  padding: 0 0.5rem;
-}
 
 .phonePairWrap {
   margin-top: auto;
@@ -1318,12 +1105,8 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  // Top gutter so the page title doesn't sit flush against the viewport
-  // edge. In the Nexus Windows --app shell this same 16px lets the title
-  // float inside the 32px drag-strip region (the drag strip overlays on
-  // z-index:40); on the public website the gutter is just breathing
-  // room since there's no shell chrome above us.
-  padding-top: 16px;
+  // Small breathing room below the top bar; pages sit close to it.
+  padding-top: 8px;
 }
 
 .content {

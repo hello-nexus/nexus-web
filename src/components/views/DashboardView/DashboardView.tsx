@@ -52,7 +52,6 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
     <div className={styles.dashboard}>
       <ViewHeader
         title={t('nav.dashboard')}
-        titleTooltip="Right-click any widget to pin it onto the Windows desktop. Use the Desktop Widgets button on the right to manage the floating overlay."
       />
       <div className={styles.headerActions}>
         <button

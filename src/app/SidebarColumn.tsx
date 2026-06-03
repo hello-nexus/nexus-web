@@ -1,20 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
 import { PinOff } from 'lucide-react';
-import { Sidebar, SidebarNavButton } from '../components/common/Sidebar/Sidebar';
-import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDropdown';
-import { NAV_ICONS } from './sidebarNav';
+import { Sidebar } from '../components/common/Sidebar/Sidebar';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useUiSettings } from '../hooks/useUiSettings';
 import type { ServiceState } from '../hooks/useServiceState';
-import type { ConnectionState } from '../hooks/useServiceStatus';
-import type { UseProfilesResult } from '../hooks/useProfiles';
-import type { Preferences } from '../api/profiles';
 import { useTranslation } from '../lib/i18n';
 import {
   SidebarBrand,
-  ConnectedProfileSlot,
-  NotConnectedBadge,
   SidebarConflictSlot,
 } from './sidebar';
 import { PairPhoneButton } from './PairPhoneModal';
@@ -40,8 +33,6 @@ interface SidebarColumnProps {
   compact: boolean;
   onToggleCompact: () => void;
   online: boolean;
-  connectionState: ConnectionState;
-  connectEpoch: number;
   serviceState: ServiceState;
   serviceNavActive: string;
   onServiceNavChange: (key: string) => void;
@@ -50,10 +41,6 @@ interface SidebarColumnProps {
   portalNav: readonly ExtraNavItem[];
   portalNavActive: string;
   onPortalNavChange: (key: string) => void;
-  profiles: UseProfilesResult;
-  onPreferencesChanged: (prefs: Preferences) => void;
-  onNavigateSettings: () => void;
-  settingsActive: boolean;
   remoteControlEnabled: boolean;
   phoneSubscribers: number;
   onPairPhoneOpen: () => void;
@@ -72,18 +59,12 @@ export function SidebarColumn({
   compact,
   onToggleCompact,
   online,
-  connectionState,
-  connectEpoch,
   serviceState,
   serviceNavActive,
   onServiceNavChange,
   portalNav,
   portalNavActive,
   onPortalNavChange,
-  profiles,
-  onPreferencesChanged,
-  onNavigateSettings,
-  settingsActive,
   remoteControlEnabled,
   phoneSubscribers,
   onPairPhoneOpen,
@@ -140,9 +121,7 @@ export function SidebarColumn({
       <SidebarBrand
         compact={compact}
         onLogoClick={() => onServiceNavChange(DASHBOARD_APP_KEY)}
-        onToggleCompact={onToggleCompact}
         logoLabel={t('sidebar.section.apps')}
-        collapseLabel={t('sidebar.collapse')}
       />
       <Sidebar
         items={items}
@@ -154,22 +133,6 @@ export function SidebarColumn({
         serviceState={serviceState}
         onTailReorder={handleTailReorder}
         onItemContextMenu={handleItemContextMenu}
-        headerSlot={
-          <div className={classNames(styles.sidebarHeaderBox, { [styles.sidebarHeaderBoxCompact]: compact })}>
-            {online ? (
-              <ConnectedProfileSlot connectEpoch={connectEpoch}>
-                <ProfileDropdown
-                  profiles={profiles}
-                  onPreferencesChanged={onPreferencesChanged}
-                  onNavigateSettings={onNavigateSettings}
-                  compact={compact}
-                />
-              </ConnectedProfileSlot>
-            ) : (
-              <NotConnectedBadge state={connectionState} t={t} compact={compact} />
-            )}
-          </div>
-        }
         compact={compact}
         extraItems={portalNav}
         extraSectionLabel=""
@@ -186,15 +149,6 @@ export function SidebarColumn({
           />
         }
       />
-      <div className={styles.sidebarSettingsItem}>
-        <SidebarNavButton
-          icon={NAV_ICONS.settings}
-          label={t('nav.settings')}
-          active={settingsActive}
-          compact={compact}
-          onClick={onNavigateSettings}
-        />
-      </div>
       <PairPhoneButton
         connectedCount={phoneSubscribers}
         remoteEnabled={remoteControlEnabled}

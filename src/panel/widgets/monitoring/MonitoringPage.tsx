@@ -61,7 +61,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   if (!serviceOnline) {
     return (
       <div className={styles.monitoring}>
-        <ViewHeader title={t('nav.monitoring')} titleTooltip={t('monitoring.title.tooltip')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabsDisabled />
+        <ViewHeader title={t('nav.monitoring')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabsDisabled />
         <ServiceRequired state={connectionState} skeleton={<MonitoringSkeleton />} />
       </div>
     );
@@ -82,7 +82,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
 
   return (
     <div className={styles.monitoring}>
-      <ViewHeader title={t('nav.monitoring')} titleTooltip={t('monitoring.title.tooltip')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} />
+      <ViewHeader title={t('nav.monitoring')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} />
       <div className={styles.tabContent}>
         {renderTab()}
       </div>

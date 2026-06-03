@@ -1118,7 +1118,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       <div className={styles.cooling}>
         <ViewHeader
           title={t('cooling.title')}
-          titleTooltip={t('cooling.title.tooltip')}
           tabs={presetTabs}
           activeTab={activePreset ?? undefined}
           onTabChange={k => handlePresetChange(k)}
@@ -1133,7 +1132,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     <div className={styles.cooling}>
       <ViewHeader
         title={t('cooling.title')}
-        titleTooltip={t('cooling.title.tooltip')}
         tabs={presetTabs}
         activeTab={activePreset ?? undefined}
         onTabChange={k => handlePresetChange(k)}

@@ -16,9 +16,13 @@ interface ProfileDropdownProps {
   onPreferencesChanged: (prefs: Preferences) => void;
   onNavigateSettings: () => void;
   compact?: boolean;
+  // 'sidebar' (default) renders the full trigger or letter circle in the
+  // sidebar header. 'avatar' renders a round person-icon button for the
+  // top bar, with its dropdown right-aligned under the avatar.
+  variant?: 'sidebar' | 'avatar';
 }
 
-export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSettings, compact = false }: ProfileDropdownProps) {
+export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSettings, compact = false, variant = 'sidebar' }: ProfileDropdownProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -98,10 +102,24 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
   const displayName = activeEntry?.name ?? t('profile.default');
   const initial = displayName.charAt(0).toUpperCase();
 
+  const isAvatar = variant === 'avatar';
+
   // Single trigger button that fills the wrapper so the entire bordered
   // .sidebarHeaderBox in Dashboard becomes the click target (no dead pixels
-  // around a smaller inner control).
-  const triggerButton = (
+  // around a smaller inner control). The avatar variant is a self-contained
+  // round person-icon button for the top bar instead.
+  const triggerButton = isAvatar ? (
+    <button
+      type="button"
+      className={styles.avatarTrigger}
+      onClick={() => setOpen(o => !o)}
+      aria-label={`${t('profile.label')}: ${displayName}`}
+      aria-haspopup="menu"
+      aria-expanded={open}
+    >
+      <UserRound size={16} aria-hidden />
+    </button>
+  ) : (
     <button
       type="button"
       className={classNames(styles.trigger, { [styles.triggerCompact]: compact })}
@@ -121,14 +139,20 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
   );
 
   return (
-    <div className={classNames(styles.wrapper, { [styles.wrapperCompact]: compact })} ref={ref}>
-      {compact ? (
-        <HoverTooltip body={displayName} side="right">
+    <div className={classNames(styles.wrapper, {
+      [styles.wrapperCompact]: compact,
+      [styles.wrapperAvatar]: isAvatar,
+    })} ref={ref}>
+      {(compact || isAvatar) ? (
+        <HoverTooltip body={displayName} side={isAvatar ? 'bottom' : 'right'}>
           {triggerButton}
         </HoverTooltip>
       ) : triggerButton}
       {open && (
-        <div className={classNames(styles.dropdown, { [styles.compactDropdown]: compact })}>
+        <div className={classNames(styles.dropdown, {
+          [styles.compactDropdown]: compact,
+          [styles.avatarDropdown]: isAvatar,
+        })}>
           <div className={styles.dropdownHeader}>{t('profile.header')}</div>
           <div className={styles.profileList}>
             {profiles.profiles.map(p => (

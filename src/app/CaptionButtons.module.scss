@@ -5,16 +5,17 @@
 // route clicks back to nexus-overlay via window.chrome.webview.postMessage.
 
 .bar {
-  position: absolute;
-  top: 0;
-  right: 0;
   display: flex;
-  height: 32px;
-  // Above the modal backdrop (z-index 1000) and the window-resize corner
-  // strips (z-index 2002) so the caption buttons stay live over any modal.
+  // Fill the full top-bar height so each button's hover/press highlight spans
+  // the whole bar, matching native Windows caption buttons.
+  align-self: stretch;
+  align-items: stretch;
+  // Sits in the top bar's right cluster. Stays above the window-resize corner
+  // strips so the caption buttons remain live, including over a modal.
+  position: relative;
   z-index: 2003;
-  // Each button is interactive - exempt the bar from any inherited
-  // app-region: drag set on the layout root.
+  // Each button is interactive - exempt the bar from the top bar's
+  // app-region: drag region.
   -webkit-app-region: no-drag;
   app-region: no-drag;
   user-select: none;
@@ -22,7 +23,7 @@
 
 .btn {
   width: 46px;
-  height: 32px;
+  height: 100%;
   display: grid;
   place-items: center;
   border: none;

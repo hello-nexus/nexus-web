@@ -45,6 +45,18 @@ export function isWindowsAppShell(): boolean {
   return platform === 'windows-app';
 }
 
+/**
+ * True only inside the Nexus macOS shell (MacAppWindow's WKWebView). The shell
+ * injects `window.nexusShellPlatform = 'mac-app'` via a document-start
+ * WKUserScript. The window uses a full-size content view with a transparent
+ * title bar, so the layout insets its top chrome below the traffic lights.
+ */
+export function isMacAppShell(): boolean {
+  if (typeof window === 'undefined') return false;
+  const platform = (window as Window & { nexusShellPlatform?: string }).nexusShellPlatform;
+  return platform === 'mac-app';
+}
+
 export function postWindowAction(action: NexusWindowAction): void {
   const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
   // postMessage's argument shape varies by host; the shell expects a plain

@@ -52,10 +52,14 @@
 }
 
 .headerCompactRow {
-  justify-content: flex-start;
+  // Center the single collapsed letter on the rail centerline (matching APPS).
+  justify-content: center;
   &::after {
     left: 0.4rem;
     right: 0.4rem;
+  }
+  .headerLabel {
+    padding-left: 0;
   }
 }
 
@@ -88,7 +92,8 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.6rem 0.75rem;
+  // Center the icon on the collapsed rail; identical expanded so it never moves.
+  padding: 0.6rem var(--rail-item-pad);
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -118,7 +123,7 @@
   // Match the APPS list: left-aligned icons hold their position through the
   // collapse/expand width animation rather than sliding in from the centre.
   justify-content: flex-start;
-  padding: 0.6rem 0.75rem;
+  padding: 0.6rem var(--rail-item-pad);
   width: 100%;
   gap: 0;
 }

@@ -23,6 +23,7 @@ import { useServiceState } from '../hooks/useServiceState';
 import { useProfiles } from '../hooks/useProfiles';
 import { useRoute } from '../hooks/useRoute';
 import { useBuilder } from '../hooks/useBuilder';
+import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { fetchPanelRemoteControlState } from '../api/panel';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
@@ -32,18 +33,16 @@ import type { Preferences } from '../api/profiles';
 import type { Language, ThemeMode } from '../lib/settings';
 import type { ComponentCategory, ComponentOption } from '../types/builder';
 import { NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
-import {
-  TopRightNavButton,
-  PageVersionLabel,
-} from './sidebar';
+import { PageVersionLabel } from './sidebar';
+import { TopBar } from './TopBar';
+import { getSidebarAppMeta } from './sidebarApps';
 import { SidebarColumn } from './SidebarColumn';
 import { CrossZoneDragProvider } from './CrossZoneDrag';
 import { CommandPaletteProvider } from '../search/CommandPaletteProvider';
 import { PairPhoneModal } from './PairPhoneModal';
 import { IncomingPairModal } from './IncomingPairModal';
 import { useMonitoringStoreBridge } from './monitoringBridge';
-import { CaptionButtons } from './CaptionButtons';
-import { isWindowsAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
+import { isWindowsAppShell, isMacAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
 import styles from '../App.module.scss';
 
 const PORTAL_URL = 'https://hellonexus.com';
@@ -80,6 +79,9 @@ export function Dashboard() {
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
+  // Used only to resolve the active device's display name for the top-bar
+  // title on /system/device/<key>.
+  const unifiedDevices = useUnifiedDevices(online);
   const { t, setLanguage } = useTranslation();
 
   // Builder state (needed for sidebar in builder mode)
@@ -166,6 +168,24 @@ export function Dashboard() {
   const hasSidebar = !__SERVICE_BUILD__ || section === 'system';
   const serviceNavActive = section === 'system' ? activeView : '';
   const portalNavActive = section !== 'system' ? section : '';
+
+  // Page name shown in the top-bar search pill. Portal sections use their
+  // nav.section label; inside /system the active view resolves through the
+  // sidebar app meta (Dashboard, Lighting, Cooling, ...), with the device and
+  // settings views special-cased since they aren't pinnable apps.
+  const pageTitle = (() => {
+    if (section !== 'system') return t(`nav.section.${section}`);
+    if (activeView === 'settings') return t('settings.title');
+    // A specific device page shows the device's own name; the all-devices
+    // landing keeps the generic "Devices" label.
+    if (activeView === 'device') {
+      const dev = unifiedDevices.unified.find(d => d.key === subtab);
+      return dev?.name ?? t('sidebar.section.devices');
+    }
+    if (activeView === 'devices') return t('sidebar.section.devices');
+    const meta = getSidebarAppMeta(activeView);
+    return meta ? t(meta.i18nKey) : t('nav.dashboard');
+  })();
   // null = auto (follow viewport), true = user-collapsed, false = user-expanded
   const [manualOverride, setManualOverride] = useState<boolean | null>(null);
   const [pairPhoneOpen, setPairPhoneOpen] = useState(false);
@@ -375,16 +395,14 @@ export function Dashboard() {
       <div className={classNames(styles.layout, {
         [styles.layoutCompact]: compact,
         [styles.layoutWindowsApp]: isWindowsAppShell(),
-        [styles.layoutNoSidebar]: !hasSidebar,
       })}>
         <OpenInAppBanner />
-        {/* Nexus Windows shell only: top drag strip + custom caption buttons.
-            The native system buttons can't paint here because the WebView2
-            child HWND covers the parent's non-client area; we route clicks
-            back to nexus-overlay via window.chrome.webview.postMessage. */}
+        {/* Nexus Windows shell only: window-resize grab strips along each
+            edge. The drag region + caption buttons now live in the top bar
+            below; these strips IPC nexus-overlay to start the native resize
+            loop. */}
         {isWindowsAppShell() && (
           <>
-            <div className={styles.windowDragStrip} aria-hidden />
             <ResizeStrip className={styles.windowResizeStripLeft} edge={NEXUS_RESIZE_EDGES.left} />
             <ResizeStrip className={styles.windowResizeStripRight} edge={NEXUS_RESIZE_EDGES.right} />
             <ResizeStrip className={styles.windowResizeStripTop} edge={NEXUS_RESIZE_EDGES.top} />
@@ -394,17 +412,26 @@ export function Dashboard() {
                 Resize via the top or right edge instead. */}
             <ResizeStrip className={styles.windowResizeCornerBottomLeft} edge={NEXUS_RESIZE_EDGES.bottomLeft} />
             <ResizeStrip className={styles.windowResizeCornerBottomRight} edge={NEXUS_RESIZE_EDGES.bottomRight} />
-            <CaptionButtons />
           </>
         )}
-        {/* Browser-style back/forward chevrons. Desktop-app build only —
-            the website never renders them. */}
-        {__SERVICE_BUILD__ && (
-          <>
-            <TopRightNavButton direction="back" disabled={!canGoBack} onClick={goBack} />
-            <TopRightNavButton direction="forward" disabled={!canGoForward} onClick={goForward} />
-          </>
-        )}
+        <TopBar
+          hasSidebar={hasSidebar}
+          compact={compact}
+          onToggleCompact={() => setManualOverride(!sidebarCompact)}
+          pageTitle={pageTitle}
+          canGoBack={canGoBack}
+          canGoForward={canGoForward}
+          goBack={goBack}
+          goForward={goForward}
+          online={online}
+          connectionState={status.state}
+          connectEpoch={connectEpoch}
+          profiles={profilesHook}
+          onPreferencesChanged={handlePreferencesChanged}
+          onNavigateSettings={handleNavigateSettings}
+          isWindowsApp={isWindowsAppShell()}
+          isMacApp={isMacAppShell()}
+        />
         <PageVersionLabel />
         {/* Body row: sidebar (/system only) + content */}
         <div className={styles.bodyRow}>
@@ -413,18 +440,12 @@ export function Dashboard() {
               compact={compact}
               onToggleCompact={() => setManualOverride(!sidebarCompact)}
               online={online}
-              connectionState={status.state}
-              connectEpoch={connectEpoch}
               serviceState={serviceState}
               serviceNavActive={serviceNavActive}
               onServiceNavChange={handleServiceNavChange}
               portalNav={portalNav}
               portalNavActive={portalNavActive}
               onPortalNavChange={handlePortalNavChange}
-              profiles={profilesHook}
-              onPreferencesChanged={handlePreferencesChanged}
-              onNavigateSettings={handleNavigateSettings}
-              settingsActive={section === 'system' && activeView === 'settings'}
               remoteControlEnabled={remoteControlEnabled}
               phoneSubscribers={serviceState.panel?.phoneSubscribers ?? 0}
               onPairPhoneOpen={() => setPairPhoneOpen(true)}

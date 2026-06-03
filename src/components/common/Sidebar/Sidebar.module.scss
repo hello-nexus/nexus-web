@@ -102,10 +102,15 @@
 }
 
 .sectionHeaderCompactRow {
-  justify-content: flex-start;
+  // Center the single collapsed letter on the rail centerline (matching the nav
+  // icons). Drop the label's expanded indent so the glyph itself is centered.
+  justify-content: center;
   &::after {
     left: 0.4rem;
     right: 0.4rem;
+  }
+  .sectionHeaderLabel {
+    padding-left: 0;
   }
 }
 
@@ -130,7 +135,9 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.6rem 0.75rem;
+  // Horizontal pad centers the icon on the collapsed rail and is identical in
+  // both states so the icon never shifts when the sidebar toggles.
+  padding: 0.6rem var(--rail-item-pad);
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -259,9 +266,10 @@
 .itemCompact {
   // Keep icons left-aligned (same as expanded) so they hold their exact
   // horizontal position through the collapse/expand width animation instead
-  // of sliding in from the centre of the still-wide row.
+  // of sliding in from the centre of the still-wide row. The symmetric
+  // --rail-item-pad then visually centers the icon within the collapsed rail.
   justify-content: flex-start;
-  padding: 0.6rem 0.75rem;
+  padding: 0.6rem var(--rail-item-pad);
   width: 100%;
   gap: 0;
 }

@@ -16,13 +16,8 @@ interface InfoTooltipProps {
 }
 
 const OFFSET = 8;
-
-const TRANSFORM_PER_SIDE: Record<NonNullable<InfoTooltipProps['side']>, string> = {
-  bottom: 'translateX(-50%)',
-  top: 'translate(-50%, -100%)',
-  right: 'translateY(-50%)',
-  left: 'translate(-100%, -50%)',
-};
+// Minimum gap kept between the tooltip box and the viewport edge when clamping.
+const VIEWPORT_MARGIN = 8;
 
 /**
  * Subtle info affordance placed next to section titles. Hover or focus
@@ -86,14 +81,24 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
     if (!open) return;
     const reposition = () => {
       const el = triggerRef.current;
-      if (!el) return;
+      const tip = tooltipRef.current;
+      if (!el || !tip) return;
       const r = el.getBoundingClientRect();
+      // Measure the rendered tooltip so we can place its top-left corner exactly
+      // (no CSS transform) and clamp the whole box inside the viewport.
+      const tw = tip.offsetWidth;
+      const th = tip.offsetHeight;
       let top = 0;
       let left = 0;
-      if (side === 'bottom') { top = r.bottom + OFFSET; left = r.left + r.width / 2; }
-      else if (side === 'top') { top = r.top - OFFSET; left = r.left + r.width / 2; }
-      else if (side === 'right') { top = r.top + r.height / 2; left = r.right + OFFSET; }
-      else { top = r.top + r.height / 2; left = r.left - OFFSET; }
+      if (side === 'bottom') { top = r.bottom + OFFSET; left = r.left + r.width / 2 - tw / 2; }
+      else if (side === 'top') { top = r.top - OFFSET - th; left = r.left + r.width / 2 - tw / 2; }
+      else if (side === 'right') { top = r.top + r.height / 2 - th / 2; left = r.right + OFFSET; }
+      else { top = r.top + r.height / 2 - th / 2; left = r.left - OFFSET - tw; }
+      const m = VIEWPORT_MARGIN;
+      const maxLeft = window.innerWidth - tw - m;
+      const maxTop = window.innerHeight - th - m;
+      left = Math.max(Math.min(m, maxLeft), Math.min(left, maxLeft));
+      top = Math.max(Math.min(m, maxTop), Math.min(top, maxTop));
       setCoords({ top, left });
     };
     reposition();
@@ -135,6 +140,10 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
     };
   }, [open]);
 
+  // Clear coords whenever it closes so the next open re-measures from scratch
+  // (renders hidden until positioned) - never a stale-position flash.
+  useEffect(() => { if (!open) setCoords(null); }, [open]);
+
   // On unmount, release scan mode if this tooltip was still open — otherwise
   // `scanning` stays latched with no timer to lapse it.
   useEffect(() => () => {
@@ -165,11 +174,17 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
         onBlur={() => scheduleClose()}>
         <Info size={14} strokeWidth={1.8} aria-hidden />
       </button>
-      {open && coords && createPortal(
+      {open && createPortal(
+        // Rendered as soon as it opens (hidden until the layout effect measures
+        // + clamps it) so getBoundingClientRect has a real box to size against.
         <span role="tooltip" id={tooltipId}
           ref={tooltipRef}
           className={styles.tooltip}
-          style={{ top: coords.top, left: coords.left, transform: TRANSFORM_PER_SIDE[side] }}
+          style={{
+            top: coords?.top ?? 0,
+            left: coords?.left ?? 0,
+            visibility: coords ? 'visible' : 'hidden',
+          }}
           onPointerEnter={cancelPendingClose}
           onPointerLeave={scheduleClose}>
           {message}
