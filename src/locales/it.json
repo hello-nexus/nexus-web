@@ -857,5 +857,20 @@
   "tools.storybook.open": "Apri",
   "tools.yes": "Si",
   "panel.widget.pairing": "Pair remote",
-  "panel.pairing.off": "Remote pairing is off"
+  "panel.pairing.off": "Remote pairing is off",
+  "search.placeholder": "Search Nexus",
+  "search.section.recent": "Recent",
+  "search.section.suggestions": "Suggestions",
+  "search.noresults": "No matches for “{query}”",
+  "search.footer.navigate": "Navigate",
+  "search.footer.select": "Open",
+  "search.hint.active": "Active",
+  "search.calc.copy": "Copy",
+  "search.appearance.themeDark": "Dark theme",
+  "search.appearance.themeLight": "Light theme",
+  "search.appearance.themeSystem": "System theme",
+  "search.appearance.accent": "Accent · {name}",
+  "search.appearance.language": "Language · {name}",
+  "search.action.pairPhone": "Pair a phone",
+  "search.action.toggleTheme": "Toggle light / dark"
 }

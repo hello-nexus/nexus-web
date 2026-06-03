@@ -38,6 +38,7 @@ import {
 } from './sidebar';
 import { SidebarColumn } from './SidebarColumn';
 import { CrossZoneDragProvider } from './CrossZoneDrag';
+import { CommandPaletteProvider } from '../search/CommandPaletteProvider';
 import { PairPhoneModal } from './PairPhoneModal';
 import { IncomingPairModal } from './IncomingPairModal';
 import { useMonitoringStoreBridge } from './monitoringBridge';
@@ -370,6 +371,7 @@ export function Dashboard() {
         activeProfileId={profilesHook.activeId}
       >
       <CrossZoneDragProvider>
+      <CommandPaletteProvider navigate={navigate} onPairPhone={() => setPairPhoneOpen(true)}>
       <div className={classNames(styles.layout, {
         [styles.layoutCompact]: compact,
         [styles.layoutWindowsApp]: isWindowsAppShell(),
@@ -460,6 +462,7 @@ export function Dashboard() {
           onClose={() => setPairPhoneOpen(false)}
         />
       </div>
+      </CommandPaletteProvider>
       </CrossZoneDragProvider>
       </UiSettingsProvider>
     </MultiplexContext.Provider>

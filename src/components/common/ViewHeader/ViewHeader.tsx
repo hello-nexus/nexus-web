@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
 import { Tabs, type TabDef } from '../Tabs/Tabs';
+import { useCommandPaletteOptional } from '../../../search/CommandPaletteContext';
+import { CommandSearchTrigger } from '../../../search/CommandSearchTrigger';
 import styles from './ViewHeader.module.scss';
 
 interface ViewHeaderProps {
@@ -18,6 +20,10 @@ interface ViewHeaderProps {
 }
 
 export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, titleTooltip, actions, tabActions }: ViewHeaderProps) {
+  // When the command palette is mounted (desktop dashboard), the page title is
+  // rendered as a search bar that opens it. Without a provider (panel kiosk /
+  // iOS) it stays a plain heading.
+  const palette = useCommandPaletteOptional();
   return (
     <header className={styles.header}>
       <div className={styles.titleRow}>
@@ -26,7 +32,9 @@ export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, 
             instead of being claimed by the shell's window-move handler. */}
         <div className={styles.leftGroup}>
           <div className={styles.titleCluster}>
-            <h1 className={styles.title}>{title}</h1>
+            {palette
+              ? <CommandSearchTrigger pageTitle={title} />
+              : <h1 className={styles.title}>{title}</h1>}
             {titleTooltip && <InfoTooltip message={titleTooltip} side="bottom" />}
           </div>
         </div>
