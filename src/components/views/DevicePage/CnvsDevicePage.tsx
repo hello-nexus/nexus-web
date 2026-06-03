@@ -68,7 +68,7 @@ export function CnvsDevicePage() {
     <section className={styles.page}>
       <ViewHeader
         title="CNVS"
-        titleTooltip="Firmware toggles for the HYTE CNVS canvas LEDs." />
+        />
       <div className={styles.pageBody}>
         {loading ? null : !settings ? (
           <Placeholder title={error ?? 'CNVS not available'} />

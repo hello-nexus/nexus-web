@@ -64,7 +64,6 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: 
     <section className={styles.devices}>
       <ViewHeader
         title={t('devices.title')}
-        titleTooltip={t('devices.title.tooltip')}
         tabs={tabs}
         activeTab={tab}
         onTabChange={(k) => setTab(k as TabKey)}

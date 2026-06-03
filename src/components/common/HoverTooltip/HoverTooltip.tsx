@@ -17,16 +17,11 @@ interface HoverTooltipProps {
 }
 
 const OFFSET = 8;
+// Minimum gap kept between the tooltip box and the viewport edge when clamping.
+const VIEWPORT_MARGIN = 8;
 // The pointer-rest delay before opening lives in ../tooltipDelay as a shared
 // "scan mode" coordinator: a lone hover pays the full delay, but scanning
 // across a cluster of tooltips opens each one instantly. See tooltipOpenDelay.
-
-const TRANSFORM_PER_SIDE: Record<NonNullable<HoverTooltipProps['side']>, string> = {
-  bottom: 'translateX(-50%)',
-  top: 'translate(-50%, -100%)',
-  right: 'translateY(-50%)',
-  left: 'translate(-100%, -50%)',
-};
 
 type TriggerProps = {
   ref?: (el: HTMLElement | null) => void;
@@ -55,6 +50,7 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const tooltipRef = useRef<HTMLSpanElement | null>(null);
   const openTimerRef = useRef<number | null>(null);
   // Whether THIS tooltip actually became visible. The shared scan-mode
   // coordinator must only see a close for a tooltip that really opened —
@@ -81,6 +77,9 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
   const close = () => {
     cancelPendingOpen();
     setOpen(false);
+    // Clear so the next open re-measures from scratch (renders hidden until the
+    // layout effect positions it) - never a stale-position flash.
+    setCoords(null);
     if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
   };
 
@@ -94,12 +93,27 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
 
   const reposition = () => {
     const el = triggerRef.current;
-    if (!el) return;
+    const tip = tooltipRef.current;
+    if (!el || !tip) return;
     const r = el.getBoundingClientRect();
-    if (side === 'bottom') setCoords({ top: r.bottom + OFFSET, left: r.left + r.width / 2 });
-    else if (side === 'top') setCoords({ top: r.top - OFFSET, left: r.left + r.width / 2 });
-    else if (side === 'right') setCoords({ top: r.top + r.height / 2, left: r.right + OFFSET });
-    else setCoords({ top: r.top + r.height / 2, left: r.left - OFFSET });
+    // Measure the rendered tooltip so we can place its top-left corner exactly
+    // (no CSS transform) and then clamp the whole box inside the viewport.
+    const tw = tip.offsetWidth;
+    const th = tip.offsetHeight;
+    let top: number;
+    let left: number;
+    if (side === 'bottom') { top = r.bottom + OFFSET; left = r.left + r.width / 2 - tw / 2; }
+    else if (side === 'top') { top = r.top - OFFSET - th; left = r.left + r.width / 2 - tw / 2; }
+    else if (side === 'right') { top = r.top + r.height / 2 - th / 2; left = r.right + OFFSET; }
+    else { top = r.top + r.height / 2 - th / 2; left = r.left - OFFSET - tw; }
+    const m = VIEWPORT_MARGIN;
+    const maxLeft = window.innerWidth - tw - m;
+    const maxTop = window.innerHeight - th - m;
+    // Math.min(m, maxLeft) guards the degenerate case where the tooltip is wider
+    // than the viewport - pin to the left/top margin rather than going negative.
+    left = Math.max(Math.min(m, maxLeft), Math.min(left, maxLeft));
+    top = Math.max(Math.min(m, maxTop), Math.min(top, maxTop));
+    setCoords({ top, left });
   };
 
   // reposition is intentionally not a dep: it reads refs / closes over `side`
@@ -168,9 +182,15 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
   return (
     <>
       {trigger}
-      {open && coords && createPortal(
-        <span role="tooltip" id={tooltipId} className={styles.tooltip}
-          style={{ top: coords.top, left: coords.left, transform: TRANSFORM_PER_SIDE[side] }}>
+      {open && createPortal(
+        // Rendered as soon as it opens (hidden until the layout effect measures
+        // + clamps it) so getBoundingClientRect has a real box to size against.
+        <span ref={tooltipRef} role="tooltip" id={tooltipId} className={styles.tooltip}
+          style={{
+            top: coords?.top ?? 0,
+            left: coords?.left ?? 0,
+            visibility: coords ? 'visible' : 'hidden',
+          }}>
           {title && <span className={styles.title}>{title}</span>}
           <span className={styles.body}>{body}</span>
         </span>,

@@ -5,65 +5,15 @@
   flex-direction: column;
 }
 
+// Row holding the page's right-aligned action widget(s). The page title that
+// used to sit on its left now lives in the top bar, so this row only renders
+// when a page passes `actions`.
 .titleRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.4rem;
   margin: 0 0 0.5rem;
-  // Float above the nexus-overlay shell's drag strip (z-index 2000 in
-  // App.module.scss .windowDragStrip) so hover + clicks on the page
-  // title, its (i) tooltip, and the back/forward arrows register on
-  // those elements instead of being eaten by the drag handler. The
-  // top-right caption-adjacent action buttons use z-index 2010 for
-  // the same reason; keep this in lockstep with that.
-  // The row itself is pointer-events: none so the empty gap between
-  // the title cluster and the right-aligned actions still falls
-  // through to the drag strip and the user can drag from there; only
-  // the interactive children opt back in.
-  position: relative;
-  z-index: 2010;
-  pointer-events: none;
-
-  > * { pointer-events: auto; }
-
-  // A modal already neutralizes the shell drag strip (App.module.scss
-  // body:has([aria-modal="true"]) → no-drag), so the title no longer needs to
-  // float above it — drop under the modal scrim (--z-modal: 1000) so the blur
-  // covers the page title + its (i) tooltip like the rest of the chrome.
-  :global(body:has([aria-modal="true"])) & {
-    z-index: auto;
-  }
-}
-
-// Title + arrows are the interactive zone on the left of the title row.
-// Carve out of the nexus-overlay shell's drag region (App.module.scss
-// .windowDragStrip carries app-region: drag at z-index 2000). WebView2
-// processes app-region at the OS hit-test level BEFORE DOM stacking, so
-// the titleRow z-index 2010 alone is not enough — we also need no-drag
-// here so hover and clicks reach the (i) tooltip and arrows instead of
-// being claimed by the window-move handler.
-.leftGroup {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-}
-
-.titleCluster {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.title {
-  @include text-heading;
-  color: var(--text);
-  margin: 0;
-  white-space: nowrap;
 }
 
 .actions {

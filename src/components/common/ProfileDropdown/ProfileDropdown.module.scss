@@ -14,6 +14,47 @@
   justify-content: center;
 }
 
+// Top-bar avatar variant: content-width wrapper anchoring a right-aligned menu.
+.wrapperAvatar {
+  width: auto;
+}
+
+// Round person-icon button shown in the top-right of the top bar.
+.avatarTrigger {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0;
+  transition: border-color var(--ease-fast), color var(--ease-fast), background var(--ease-fast);
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    background: var(--bg-card-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+// Right-align the menu under the avatar so it never overflows the window's
+// right edge. Compound selector so it overrides the base .dropdown { left: 0 }
+// regardless of source order.
+.dropdown.avatarDropdown {
+  left: auto;
+  right: 0;
+}
+
 // Single trigger button fills the entire .sidebarHeaderBox in Dashboard so
 // clicks anywhere on the bordered card open the dropdown.
 .trigger {

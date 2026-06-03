@@ -734,7 +734,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   if (!serviceOnline) {
     return (
       <div className={styles.lighting}>
-        <ViewHeader title={t('lighting.title')} titleTooltip={t('lighting.title.tooltip')} tabs={modeTabs} activeTab={synced ? mode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
+        <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? mode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
         <ServiceRequired state={connectionState} skeleton={<LightingSkeleton />} />
       </div>
     );
@@ -744,7 +744,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     <div className={styles.lighting}>
       <ViewHeader
         title={t('lighting.title')}
-        titleTooltip={t('lighting.title.tooltip')}
         tabs={modeTabs}
         activeTab={synced ? mode : undefined}
         onTabChange={k => handleModeChange(k as LightingMode)}

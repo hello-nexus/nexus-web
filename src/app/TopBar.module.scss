@@ -1,0 +1,241 @@
+// Full-width application top bar. Hosts (left to right): sidebar collapse
+// toggle, history back/forward, the centered page-name search pill, the
+// "..." overflow menu, the profile avatar, and - on the Windows shell only -
+// the custom caption buttons. Replaces the old absolutely-positioned drag
+// strip + top-right action cluster.
+
+.topBar {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: var(--topbar-height);
+  // Minimal left pad so the collapse toggle sits near the top-left corner
+  // (Windows). macOS adds the traffic-light inset on .leftCluster below.
+  padding: 0 0.5rem;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  // Width of the centered search pill; shared with the arrow offset below so
+  // the arrows always sit just left of the pill's edge.
+  --search-w: 460px;
+}
+
+// Windows --app shell: the whole bar is the window-drag region; interactive
+// controls opt back out with .iconButton / .searchTitle / caption-button
+// no-drag rules below. Targets the body class Dashboard sets on the shell.
+:global(body.nexus-shell-windows-app) .topBar {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+// Neutralize the drag region while any modal is open so the only window-chrome
+// interaction left is the native-style caption buttons (which stay no-drag).
+:global(body.nexus-shell-windows-app:has([aria-modal="true"])) .topBar {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+// macOS shell: inset the left cluster past the native traffic lights so the
+// collapse toggle clears them. The inset matches the collapsed sidebar rail
+// width so the "semaforo" sits within the sidebar's column, not over content.
+.topBarMacApp .leftCluster {
+  padding-left: var(--mac-traffic-light-inset);
+}
+
+// Side clusters sit at the bar's edges (space-between); the search pill is
+// absolutely centered over the bar so it stays on the window centerline
+// regardless of either cluster's width (e.g. the macOS traffic-light inset).
+.leftCluster {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex: 0 0 auto;
+}
+
+// Pinned immediately to the left of the absolutely-centered search pill: its
+// right edge sits half-a-pill-width left of the window centerline, minus a gap.
+.navArrows {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: calc(50% + (var(--search-w) / 2) + 0.4rem);
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.rightCluster {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  // Fill the full bar height so the caption buttons (which stretch within it)
+  // get a full-height hover highlight; the menu + avatar stay vertically
+  // centered via align-items above.
+  align-self: stretch;
+}
+
+// Windows caption buttons abut the right edge; cancel the bar's right pad so
+// the close button reaches the corner like the native chrome.
+.topBarWindowsApp .rightCluster {
+  margin-right: -0.5rem;
+}
+
+// Shared icon-button chrome for collapse / back / forward / "...".
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--ease-fast), color var(--ease-fast);
+  // Interactive control inside a bar that may carry app-region: drag.
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+}
+
+.iconButtonActive {
+  background: var(--bg-card-hover);
+  color: var(--text);
+}
+
+// ── Center search-bar pill ───────────────────────────────────────────────
+
+.searchBar {
+  // Absolutely centered on the window so neither the macOS traffic-light inset
+  // nor the side clusters can shift it off the centerline.
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--search-w);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.searchTitle {
+  // Match the page tab font (.tab in Tabs.module.scss). It's an <h1> for the
+  // document outline, so reset the UA heading margin.
+  margin: 0;
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  // Page name is a label, not selectable chrome.
+  user-select: none;
+}
+
+// ── Profile slot ─────────────────────────────────────────────────────────
+
+.profileSlot {
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+// Offline stand-in for the profile avatar: a round badge with an unplug glyph.
+.offlineAvatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.offlineIcon { color: var(--bad); }
+.offlineIconChecking {
+  color: var(--warn);
+  animation: topbar-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes topbar-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+// ── "..." overflow menu ──────────────────────────────────────────────────
+
+.menuWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.menuDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-dropdown);
+  min-width: 180px;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-xl);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: var(--text-dim);
+  // Match the profile dropdown's action items (.actionBtn).
+  font-size: var(--type-small);
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+
+  svg { flex-shrink: 0; }
+}

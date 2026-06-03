@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { ChevronLeft, ChevronRight, PanelLeftClose, Unplug } from 'lucide-react';
+import { Unplug } from 'lucide-react';
 import classNames from 'classnames';
 import { ConflictWarningBadge } from '../components/common/Sidebar/ConflictWarning';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
@@ -11,16 +11,13 @@ import styles from '../App.module.scss';
 
 // ── Sidebar brand (logo + wordmark at top of sidebar) ───────────────────
 
-export function SidebarBrand({ compact, onLogoClick, onToggleCompact, logoLabel, collapseLabel }: {
+export function SidebarBrand({ compact, onLogoClick, logoLabel }: {
   compact: boolean;
   onLogoClick: () => void;
-  onToggleCompact: () => void;
   logoLabel: string;
-  collapseLabel: string;
 }) {
-  // The brand logo navigates to the Apps landing; it never toggles compact
-  // state. Collapse/expand is the right-edge strip (.collapseEdge) and the
-  // inline collapse button below.
+  // The brand logo navigates to the Apps landing. Collapse/expand lives in the
+  // top bar now (plus the invisible right-edge strip in SidebarColumn).
   return (
     <div className={styles.sidebarBrand}>
       <HoverTooltip body={logoLabel} side="right">
@@ -44,18 +41,6 @@ export function SidebarBrand({ compact, onLogoClick, onToggleCompact, logoLabel,
           )}
         </button>
       </HoverTooltip>
-      {!compact && (
-        <HoverTooltip body={collapseLabel} side="right">
-          <button
-            type="button"
-            className={styles.sidebarBrandCollapse}
-            onClick={onToggleCompact}
-            aria-label={collapseLabel}
-          >
-            <PanelLeftClose size={16} />
-          </button>
-        </HoverTooltip>
-      )}
     </div>
   );
 }
@@ -130,39 +115,6 @@ export function SidebarConflictSlot({ serviceOnline, compact }: {
       compact={compact}
       onDismissForever={() => update({ disableConflictAlerts: true })}
     />
-  );
-}
-
-// Top-right action buttons (settings). Live at the layout root next to the
-// caption buttons (Windows shell) or in the top-right corner of the viewport
-// on other platforms. Styled to mimic Win11 caption buttons so the row reads
-// as one integrated chrome strip.
-
-// Browser-style back/forward chevrons in the top-right strip, left of the
-// settings button. Desktop-app build only — see the __SERVICE_BUILD__ gate
-// at the Dashboard render site.
-export function TopRightNavButton({ direction, disabled, onClick }: {
-  direction: 'back' | 'forward';
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  const label = direction === 'back' ? 'Back' : 'Forward';
-  const Icon = direction === 'back' ? ChevronLeft : ChevronRight;
-  const positionClass = direction === 'back' ? styles.topRightNavBack : styles.topRightNavForward;
-  return (
-    <HoverTooltip body={label} side="bottom">
-      <button
-        type="button"
-        className={classNames(styles.topRightAction, positionClass)}
-        onClick={onClick}
-        disabled={disabled}
-        aria-label={label}
-      >
-        <span className={styles.topRightActionIcon} aria-hidden>
-          <Icon size={14} />
-        </span>
-      </button>
-    </HoverTooltip>
   );
 }
 
