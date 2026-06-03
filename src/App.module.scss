@@ -11,6 +11,11 @@
   min-width: 1000px;
   background: var(--bg);
   color: var(--text);
+  // Gap reserved on the right edge for OS caption buttons. Only the Windows
+  // --app shell paints its own min/max/close buttons inside the page; the
+  // browser and macOS builds have none, so the top-right nav arrows sit flush
+  // against the right edge. The Windows shell overrides this below.
+  --caption-gutter: 0px;
 }
 
 .layoutCompact {
@@ -27,10 +32,37 @@
 // Windows shell only needs the sidebar nudge to keep the brand row aligned
 // with the page title.
 .layoutWindowsApp {
+  // Reserve the custom caption-button cluster (3x46px) plus a 16px gap so the
+  // top-right nav arrows clear it. This is the only build with caption buttons
+  // here, so it's the only one that sets the gutter.
+  --caption-gutter: calc(138px + 16px);
+
   // Sidebar shifts down 6px so the brand row stays aligned with the
   // page title which is sitting in the drag-strip region.
   .sidebarColumn {
     padding-top: 6px;
+  }
+}
+
+// Nexus macOS --app shell: MacAppWindow runs a full-size content view with a
+// transparent, caption-less title bar, so the WKWebView paints flush to the
+// top edge and the system traffic lights overlay the top-left. The title bar
+// strip stays a native window-drag handle (no custom drag strip needed). The
+// only adjustment the page needs is to keep its interactive top chrome out of
+// that strip: the sidebar brand and top-right nav buttons sit below the
+// traffic lights, while the sidebar and page backgrounds stay flush to the top.
+.layoutMacApp {
+  // The traffic lights overlay only the top-left of the sidebar, so the sidebar
+  // brand is the only thing pushed down to clear them. The main column and the
+  // top-right nav arrows keep the same Y as the browser/Windows builds - the
+  // native drag strip and traffic lights sit above the page, not in its flow.
+  // The arrows stay clickable because MacAppWindow.cs leaves the strip's right
+  // edge undragged (TitlebarDragStripRightInset); the page can't reserve it
+  // itself since app-region has no effect on a native WKWebView drag region.
+  --mac-titlebar-inset: 34px;
+
+  .sidebarColumn {
+    padding-top: var(--mac-titlebar-inset);
   }
 }
 
@@ -584,17 +616,11 @@
   }
 }
 
-// Settings is the right-most action (dev tools live in a tab inside it).
-.topRightSettings { right: 0; }
-.layoutWindowsApp .topRightSettings { right: 138px; }
-
-// Back/forward chevrons sit further left, with a 16px gap from the settings
-// button so they read as a separate cluster from the chrome icons. Settings'
-// left edge is at 46px from the viewport right (0 + 46px width).
-.topRightNavForward { right: calc(46px + 16px); }
-.topRightNavBack { right: calc(46px + 16px + 46px); }
-.layoutWindowsApp .topRightNavForward { right: calc(138px + 46px + 16px); }
-.layoutWindowsApp .topRightNavBack { right: calc(138px + 46px + 16px + 46px); }
+// Back/forward chevrons sit flush against the right edge, offset only by the
+// caption-button gutter (zero everywhere except the Windows shell). Forward is
+// the right-most; back sits one 46px button-width to its left.
+.topRightNavForward { right: var(--caption-gutter); }
+.topRightNavBack { right: calc(var(--caption-gutter) + 46px); }
 
 .topRightActionIcon {
   display: inline-flex;

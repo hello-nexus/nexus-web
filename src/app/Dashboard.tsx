@@ -42,7 +42,7 @@ import { PairPhoneModal } from './PairPhoneModal';
 import { IncomingPairModal } from './IncomingPairModal';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { CaptionButtons } from './CaptionButtons';
-import { isWindowsAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
+import { isWindowsAppShell, isMacAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
 import styles from '../App.module.scss';
 
 const PORTAL_URL = 'https://hellonexus.com';
@@ -373,6 +373,7 @@ export function Dashboard() {
       <div className={classNames(styles.layout, {
         [styles.layoutCompact]: compact,
         [styles.layoutWindowsApp]: isWindowsAppShell(),
+        [styles.layoutMacApp]: isMacAppShell(),
         [styles.layoutNoSidebar]: !hasSidebar,
       })}>
         <OpenInAppBanner />
