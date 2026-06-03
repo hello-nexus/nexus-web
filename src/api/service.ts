@@ -105,6 +105,24 @@ export function resolveRelayWs(): string {
 // stay oblivious to which transport is live.
 let activeTransport: 'lan' | 'relay' | null = null;
 
+// Desktop-on-hellonexus override. The remote-origin model otherwise assumes
+// "no local PC to reach" (phone → relay / fail-closed). But a DESKTOP browser on
+// hellonexus.com whose own machine runs Nexus must drive localhost directly, not
+// the relay. The public dashboard route sets this once a local service is
+// detected; the phone panel never sets it, so /panel/* stays relay-only and
+// unchanged. When true, remote origin behaves like a local (LAN) origin.
+let forceLanMode = false;
+
+/** Treat localhost as reachable on a remote origin (the detected-desktop case). */
+export function setForceLanMode(on: boolean): void {
+  forceLanMode = on;
+}
+
+/** Read by auth.ts so /pair mints the loopback token on a remote origin too. */
+export function isForceLanMode(): boolean {
+  return forceLanMode;
+}
+
 /**
  * Publish the live multiplex transport so the REST fetch layer can route
  * accordingly. Called only by useMultiplexSocket as the connection opens /
@@ -133,7 +151,8 @@ export function setActiveTransport(transport: 'lan' | 'relay' | null): void {
  */
 function effectiveTransport(): 'lan' | 'relay' | null {
   if (activeTransport !== null) return activeTransport;
-  if (isRemoteOrigin && hasSessionToken()) return 'relay';
+  // forceLanMode (detected local desktop) keeps the LAN path even with a token.
+  if (isRemoteOrigin && !forceLanMode && hasSessionToken()) return 'relay';
   return null;
 }
 
@@ -162,6 +181,7 @@ export function isRelayActive(): boolean {
  * reachable (a service-served origin), and the direct fetch is allowed.
  */
 function blockedLocalhostFetch(): boolean {
+  if (forceLanMode) return false; // detected local desktop: localhost is the PC
   return isRemoteOrigin && activeTransport !== 'lan' && !isRelayActive();
 }
 
@@ -356,6 +376,28 @@ export async function fetchServiceBlob(path: string): Promise<Blob | null> {
   // server cache hint and refetch on every mount.
   const r = await authFetch(path);
   return r ? await r.blob() : null;
+}
+
+/**
+ * One-shot "is the local Nexus service running on THIS machine?" probe for the
+ * public entry gate (PublicGate). A raw fetch (not authFetch) straight to the
+ * local service's /ping, independent of the relay/transport state. On a remote
+ * origin resolveHttp already targets http://localhost:9400 (the PC, when it's a
+ * desktop browser); /ping is public, so no token is needed.
+ * Resolves true on a 2xx, false on timeout / connection-refused / blocked; never
+ * throws. Requires the browser to permit an https→localhost request (the
+ * service's Private-Network-Access CORS header).
+ */
+export async function detectLocalService(timeoutMs = 1500): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const response = await fetch(resolveHttp('/ping'), { signal: controller.signal, cache: 'no-store' });
+    clearTimeout(timer);
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 /** Ping is public - no token needed. Tunnels over the relay when off-LAN so a

@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
+import { NexusWordmark } from '../components/icons/NexusBrand';
 
 /**
- * Public pre-launch splash for hellonexus.com.
+ * Public pre-launch splash for hellonexus.com — shown only to visitors who have
+ * never had a local Nexus detected (see the gate in App.tsx). Later this slot
+ * becomes the onboarding flow; for now it's the coming-soon page.
  *
- * Shown ONLY to ordinary web visitors (a production build served from a remote
- * origin). It never renders when the SPA is served by an installed local
- * service (isServedFromService → the real dashboard) nor inside the desktop
- * `--app` shell, and the gate in App.tsx sits AFTER every pairing / panel /
- * overlay route, so phone pairing is untouched. See the showSplash check there.
+ * Layout: big colored mark, the NEXUS wordmark (same SVG as the sidebar
+ * top-left) centered under it, then the teaser line.
  */
 export function SplashPage() {
-  // Gentle mount fade so the big mark doesn't pop in. Plain opacity transition
+  // Gentle mount fade so the mark doesn't pop in. Plain opacity transition
   // (no keyframes / extra stylesheet) keeps this route self-contained.
   const [shown, setShown] = useState(false);
   useEffect(() => {
@@ -22,11 +22,12 @@ export function SplashPage() {
     <div style={frame}>
       <div style={{ ...stack, opacity: shown ? 1 : 0 }}>
         {/* Colored brand mark (transparent ColorAlpha master), not the white
-            currentColor NexusMark. Decorative: the <h1> below carries the name,
-            so an alt here would just double-announce "Nexus". */}
+            currentColor NexusMark. Decorative: the wordmark below names it. */}
         <img src="/nexus-mark-color.png" alt="" width={200} height={200} style={mark} />
-        <h1 style={name}>Nexus</h1>
-        <p style={tagline}>The next generation of Nexus is almost here</p>
+        <span style={wordmark}>
+          <NexusWordmark height={44} />
+        </span>
+        <p style={tagline}>The next generation of Nexus is almost here.</p>
       </div>
     </div>
   );
@@ -57,18 +58,16 @@ const mark: React.CSSProperties = {
   marginBottom: 28,
 };
 
-const name: React.CSSProperties = {
-  margin: 0,
-  fontSize: 'clamp(2.25rem, 6vw, 3.25rem)',
-  fontWeight: 800,
-  letterSpacing: '-0.02em',
-  lineHeight: 1,
+// Wordmark inherits `color` via currentColor — same as the sidebar brand.
+const wordmark: React.CSSProperties = {
+  display: 'inline-flex',
+  color: 'var(--text)',
 };
 
 const tagline: React.CSSProperties = {
-  margin: '14px 0 0',
+  margin: '18px 0 0',
   fontSize: 'clamp(0.95rem, 2.4vw, 1.125rem)',
   color: 'var(--text-dim)',
-  maxWidth: 420,
+  maxWidth: 440,
   lineHeight: 1.5,
 };
