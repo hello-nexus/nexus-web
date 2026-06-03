@@ -386,14 +386,19 @@ export function Dashboard() {
     }
   };
 
-  // Pre-launch splash is for the PUBLIC WEBSITE only. On hellonexus.com
-  // (isRemoteOrigin) an unreachable service means a public visitor → show the
-  // coming-soon splash. On the bundled local app (localhost / the --app shell,
-  // isServedFromService) an offline service is just a startup blip or a stopped
-  // service — show the normal "service required"/connecting UI below, NEVER the
-  // marketing splash.
-  if (isRemoteOrigin && (status.state === 'offline' || status.state === 'offline-installed')) {
-    return <SplashPage />;
+  // Public website (hellonexus.com) render gate. To avoid flashing the
+  // dashboard's pre-connection chrome, never render the layout here until the
+  // connection state is known:
+  //   checking → blank themed frame (we don't yet know splash vs app)
+  //   offline / offline-installed → coming-soon splash (no local Nexus reachable)
+  //   online → fall through to the real dashboard below
+  // On the bundled local app (localhost / --app shell, isServedFromService) this
+  // whole block is skipped: it shows its normal connecting / "service required"
+  // UI, NEVER the marketing splash.
+  if (isRemoteOrigin && status.state !== 'online') {
+    return status.state === 'checking'
+      ? <div style={{ minHeight: '100dvh', background: 'var(--bg)' }} />
+      : <SplashPage />;
   }
 
   return (

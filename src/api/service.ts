@@ -378,28 +378,6 @@ export async function fetchServiceBlob(path: string): Promise<Blob | null> {
   return r ? await r.blob() : null;
 }
 
-/**
- * One-shot "is the local Nexus service running on THIS machine?" probe for the
- * public entry gate (PublicGate). A raw fetch (not authFetch) straight to the
- * local service's /ping, independent of the relay/transport state. On a remote
- * origin resolveHttp already targets http://localhost:9400 (the PC, when it's a
- * desktop browser); /ping is public, so no token is needed.
- * Resolves true on a 2xx, false on timeout / connection-refused / blocked; never
- * throws. Requires the browser to permit an https→localhost request (the
- * service's Private-Network-Access CORS header).
- */
-export async function detectLocalService(timeoutMs = 1500): Promise<boolean> {
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const response = await fetch(resolveHttp('/ping'), { signal: controller.signal, cache: 'no-store' });
-    clearTimeout(timer);
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
 /** Ping is public - no token needed. Tunnels over the relay when off-LAN so a
  * remote-origin panel never fires an http://localhost ping (wrong host +
  * mixed-content-blocked); the host answers it over the rid_http channel. */
