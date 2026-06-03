@@ -35,6 +35,7 @@ import type { ComponentCategory, ComponentOption } from '../types/builder';
 import { NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
 import { PageVersionLabel } from './sidebar';
 import { TopBar } from './TopBar';
+import { SplashPage } from './SplashPage';
 import { getSidebarAppMeta } from './sidebarApps';
 import { SidebarColumn } from './SidebarColumn';
 import { CrossZoneDragProvider } from './CrossZoneDrag';
@@ -383,6 +384,15 @@ export function Dashboard() {
       default:           return <Placeholder title={activeView} />;
     }
   };
+
+  // Service unavailable — what used to render the "Service Required" download
+  // screen now shows the pre-launch splash (coming-soon page). On hellonexus.com
+  // the service is never reachable from the browser, so the public always lands
+  // here; an installed desktop with the service running connects and renders the
+  // dashboard below exactly as before.
+  if (status.state === 'offline' || status.state === 'offline-installed') {
+    return <SplashPage />;
+  }
 
   return (
     <MultiplexContext.Provider value={multiplex}>
