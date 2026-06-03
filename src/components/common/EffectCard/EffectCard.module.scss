@@ -92,7 +92,8 @@
   border: 1px solid var(--border);
   object-fit: cover;
   display: block;
-  image-rendering: pixelated;
+  // Smooth scaling so the small capture doesn't read as blocky when the card is wide.
+  image-rendering: auto;
 }
 
 .thumbSkeleton {

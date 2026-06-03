@@ -323,7 +323,7 @@
   border: 1px solid var(--border);
   object-fit: cover;
   display: block;
-  image-rendering: pixelated; // crisp pixels for the 160x90 source
+  image-rendering: auto; // smooth scaling: the capture is upscaled here, so nearest-neighbor reads as blocky
 }
 
 .effectLabel {

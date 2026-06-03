@@ -37,7 +37,9 @@
     height: 100%;
     display: block;
     object-fit: cover;
-    image-rendering: pixelated;
+    // Smooth (bilinear) scaling: the source is far smaller than this preview,
+    // so nearest-neighbor reads as blocky. Soft beats blocky on a big upscale.
+    image-rendering: auto;
     -webkit-user-drag: none;
   }
 }
