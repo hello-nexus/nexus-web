@@ -6,8 +6,8 @@
 // IMPORTANT: never intercept localhost — the local Nexus service must hit the
 // network directly so the SPA can detect it going up/down in real time.
 
-const CACHE_VERSION = 'nexus-web-v131-panel-html-theme';
-const SHELL_URLS = ['/', '/index.html', '/favicon.svg', '/icons.svg', '/manifest.webmanifest', '/panel-phone.webmanifest', '/fonts/lexend/lexend-latin.woff2'];
+const CACHE_VERSION = 'nexus-web-v132-splash-favicon';
+const SHELL_URLS = ['/', '/index.html', '/favicon.svg', '/favicon.ico', '/icons.svg', '/manifest.webmanifest', '/panel-phone.webmanifest', '/fonts/lexend/lexend-latin.woff2'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
