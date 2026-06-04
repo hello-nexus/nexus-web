@@ -237,6 +237,8 @@
   "devices.panels.running": "运行中",
   "devices.panels.simulated": "模拟测试面板",
   "devices.panels.simulatedSuffix": "（模拟）",
+  "devices.panels.prevPage": "上一页",
+  "devices.panels.nextPage": "下一页",
   "devices.peripheral.category": "类型",
   "devices.peripheral.source": "连接",
   "devices.peripheral.vendor": "制造商",

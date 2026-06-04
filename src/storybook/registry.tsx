@@ -1139,7 +1139,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'WidgetContextMenu', category: 'panel-kit',
     filePath: 'src/panel/widgets/common/WidgetContextMenu.tsx',
-    description: 'Long-press / right-click context menu for widgets. Resize, edit, remove, rearrange. Renders as a positioned popover with theme tokens applied via the panel surface.',
+    description: 'Long-press / right-click context menu for widgets. Resize, edit, remove. Renders as a positioned popover with theme tokens applied via the panel surface.',
     notes: 'No live preview - needs widget identity + theme context.',
   },
   {

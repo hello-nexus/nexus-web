@@ -237,6 +237,8 @@
   "devices.panels.running": "実行中",
   "devices.panels.simulated": "シミュレートされたテストパネル",
   "devices.panels.simulatedSuffix": "（シミュレート）",
+  "devices.panels.prevPage": "前のページ",
+  "devices.panels.nextPage": "次のページ",
   "devices.peripheral.category": "種類",
   "devices.peripheral.source": "接続",
   "devices.peripheral.vendor": "メーカー",

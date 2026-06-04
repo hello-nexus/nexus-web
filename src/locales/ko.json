@@ -237,6 +237,8 @@
   "devices.panels.running": "실행 중",
   "devices.panels.simulated": "시뮬레이션된 테스트 패널",
   "devices.panels.simulatedSuffix": "(시뮬레이션)",
+  "devices.panels.prevPage": "이전 페이지",
+  "devices.panels.nextPage": "다음 페이지",
   "devices.peripheral.category": "유형",
   "devices.peripheral.source": "연결",
   "devices.peripheral.vendor": "제조사",

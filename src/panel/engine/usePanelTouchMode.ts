@@ -55,9 +55,7 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
   const longPressWidgetRef = useRef<PanelWidget | null>(null);
   const pressOriginRef = useRef({ x: 0, y: 0 });
   const pressFeedbackTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
-  const draggingRef = useRef(false);
   const movedDuringDragRef = useRef(false);
-  const lastDragEndAtRef = useRef(0);
 
   const clearPressFeedback = useCallback(() => {
     if (pressFeedbackTimerRef.current) {
@@ -103,32 +101,12 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
     setCtxMenu({ widget, x: e.clientX, y: e.clientY });
   }, [clearPressFeedback]);
 
-  const handleGridClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && rearranging) {
-      setRearranging(false);
-    }
-  }, [rearranging]);
-
-  const toggleRearrange = useCallback(() => {
-    clearPressFeedback();
-    setRearranging(prev => !prev);
-  }, [clearPressFeedback]);
-
-  const handleRearrangeTap = useCallback((e: React.MouseEvent) => {
-    if (!rearranging) return;
-    e.stopPropagation();
-    const now = performance.now();
-    if (draggingRef.current || now - lastDragEndAtRef.current < 200) return;
-    setRearranging(false);
-  }, [rearranging]);
-
   const closeCtxMenu = useCallback(() => {
     clearPressFeedback();
     setCtxMenu(null);
   }, [clearPressFeedback]);
 
   const handleDragStart = useCallback(() => {
-    draggingRef.current = true;
     movedDuringDragRef.current = false;
     // Don't dismiss the context menu here. With a delay-based activation
     // constraint, dnd-kit fires DragStart at the long-press mark even when
@@ -146,10 +124,6 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
   }, [clearPressFeedback]);
 
   const handleDragEnd = useCallback(() => {
-    if (draggingRef.current) {
-      lastDragEndAtRef.current = performance.now();
-    }
-    draggingRef.current = false;
     movedDuringDragRef.current = false;
     setRearranging(false);
   }, []);
@@ -253,9 +227,6 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
     pressedWidgetId,
     closeCtxMenu,
     handleContextMenu,
-    handleGridClick,
-    handleRearrangeTap,
-    toggleRearrange,
     handleDragStart,
     handleDragMove,
     handleDragEnd,

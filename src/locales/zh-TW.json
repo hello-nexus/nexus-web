@@ -237,6 +237,8 @@
   "devices.panels.running": "執行中",
   "devices.panels.simulated": "模擬測試面板",
   "devices.panels.simulatedSuffix": "（模擬）",
+  "devices.panels.prevPage": "上一頁",
+  "devices.panels.nextPage": "下一頁",
   "devices.peripheral.category": "類型",
   "devices.peripheral.source": "連線",
   "devices.peripheral.vendor": "製造商",

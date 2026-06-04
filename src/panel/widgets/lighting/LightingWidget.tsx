@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Film, Lightbulb, Monitor, Sparkles } from 'lucide-react';
+import { Film, Lightbulb, Monitor, Sparkles } from 'lucide-react';
+import { PanelArrowButton } from '../../PanelArrowButton';
 import type { LucideIcon } from 'lucide-react';
 import {
   effectThumbnailPath,
@@ -358,24 +359,18 @@ function SingleItemView({ view, t, showArrows }: { view: SingleView; t: (key: st
         </span>
         {arrowsRendered && (
           <>
-            <button
-              type="button"
+            <PanelArrowButton
+              side="prev"
               className={styles.arrowBtn}
-              data-side="prev"
-              onClick={view.onPrev}
-              aria-label={t('lighting.panel.prev')}
-            >
-              <ChevronLeft />
-            </button>
-            <button
-              type="button"
+              onClick={view.onPrev!}
+              ariaLabel={t('lighting.panel.prev')}
+            />
+            <PanelArrowButton
+              side="next"
               className={styles.arrowBtn}
-              data-side="next"
-              onClick={view.onNext}
-              aria-label={t('lighting.panel.next')}
-            >
-              <ChevronRight />
-            </button>
+              onClick={view.onNext!}
+              ariaLabel={t('lighting.panel.next')}
+            />
           </>
         )}
       </div>
@@ -403,24 +398,18 @@ function SingleItemView({ view, t, showArrows }: { view: SingleView; t: (key: st
       </span>
       {arrowsRendered && (
         <>
-          <button
-            type="button"
+          <PanelArrowButton
+            side="prev"
             className={styles.arrowBtn}
-            data-side="prev"
-            onClick={view.onPrev}
-            aria-label={t('lighting.panel.prev')}
-          >
-            <ChevronLeft />
-          </button>
-          <button
-            type="button"
+            onClick={view.onPrev!}
+            ariaLabel={t('lighting.panel.prev')}
+          />
+          <PanelArrowButton
+            side="next"
             className={styles.arrowBtn}
-            data-side="next"
-            onClick={view.onNext}
-            aria-label={t('lighting.panel.next')}
-          >
-            <ChevronRight />
-          </button>
+            onClick={view.onNext!}
+            ariaLabel={t('lighting.panel.next')}
+          />
         </>
       )}
     </div>

@@ -74,7 +74,6 @@ import {
   buildPanelCollisionDetection,
   isDashboardClickthroughType,
   noopCellPointers,
-  noopMouseHandler,
   parseDragTarget,
   trimTrailingEmptyPages,
 } from './panelLayoutHelpers';
@@ -491,6 +490,24 @@ export function PanelContent({
     if (paginatedLayout !== layout) setLayout(paginatedLayout);
   }, [paginatedLayout, layout, setLayout, loaded]);
 
+  // Abort an in-flight widget drag when the grid reshapes (device rotation /
+  // viewport orientation flip). Rotation re-paginates every widget to the new
+  // orientation; a half-finished drag would otherwise commit into the reflowed
+  // grid and land the widget in the wrong slot. Cancelling restores the
+  // pre-drag layout instead — no drop is committed, so the widget reflows in
+  // place with the rest. Routed through dnd-kit's own resize-cancel path
+  // (window 'resize' -> sensor handleCancel) so its pointer capture + overlay
+  // tear down too. dnd-kit already cancels on a real window resize, but the
+  // phone surface can flip orientation via matchMedia without one, so make the
+  // cancel explicit off the capacity signal. No-ops when nothing is dragging.
+  const dragInProgress = Boolean(dragArmedId || activeDragId);
+  const prevCapacityRef = useRef(capacity);
+  useEffect(() => {
+    if (prevCapacityRef.current === capacity) return;
+    prevCapacityRef.current = capacity;
+    if (dragInProgress) window.dispatchEvent(new Event('resize'));
+  }, [capacity, dragInProgress]);
+
   // Layout for the renderer + drag pipeline. During a drag, appends a phantom
   // empty page (if under MAX_PANEL_PAGES) so the user can drop onto a new
   // page. Outside drag, equals paginatedLayout so persistence is unaffected.
@@ -540,6 +557,66 @@ export function PanelContent({
   // the snap never picks a cell on another page from a drifting rect.
   const activePageIndexRef = useRef(activePageIndex);
   useEffect(() => { activePageIndexRef.current = activePageIndex; }, [activePageIndex]);
+
+  // --- Current-page sync via layout.activePageId ---------------------------
+  // The active page rides in the layout so the device-page preview, the
+  // on-device panel, and sibling tabs track the same page (propagated by the
+  // panel/device refetch path, same as widget moves). Page changes never
+  // survive a relaunch: a fresh panel start shows the first page.
+  //
+  // Honoring an external page (effect below) and persisting a local page
+  // (handlePageChange) are kept strictly apart. An earlier version reacted to
+  // activePageIndex with a *write* effect; because setActivePageIndex hadn't
+  // applied yet in the same commit, that effect read the stale index and wrote
+  // the previous page back, ping-ponging the two effects. The persist now
+  // lives at the pager's onActiveChange, which fires only on a user swipe and
+  // carries the new index explicitly, so no effect both reads the index and
+  // writes the layout from it.
+  const pageBootRef = useRef(false);
+  const lastSeenPageIdRef = useRef<string | undefined>(undefined);
+  const pageDragging = Boolean(activeDragId || dragArmedId);
+  useEffect(() => {
+    if (!loaded || pageDragging) return;
+    const pages = paginatedLayout.pages;
+    if (pages.length === 0) return;
+    if (!pageBootRef.current) {
+      pageBootRef.current = true;
+      if (kioskBehavior && pages.length > 1) {
+        // Fresh panel start: show the first page and clear any page the last
+        // session left in the record.
+        lastSeenPageIdRef.current = pages[0].id;
+        if (activePageIndex !== 0) setActivePageIndex(0);
+        if (layout.activePageId !== pages[0].id) setLayout({ ...layout, activePageId: pages[0].id });
+      } else {
+        // Viewer (device-page preview / simulator) or single-page kiosk: adopt
+        // whatever page the record already points at.
+        lastSeenPageIdRef.current = layout.activePageId;
+        const idx = layout.activePageId ? pages.findIndex(p => p.id === layout.activePageId) : 0;
+        if (idx > 0 && idx !== activePageIndex) setActivePageIndex(idx);
+      }
+      return;
+    }
+    // Post-boot: honor a page change pushed from another client only. Skipped
+    // during a drag so edge-advance owns the page.
+    const target = layout.activePageId;
+    if (!target || target === lastSeenPageIdRef.current) return;
+    lastSeenPageIdRef.current = target;
+    const idx = pages.findIndex(p => p.id === target);
+    if (idx >= 0 && idx !== activePageIndex) setActivePageIndex(idx);
+  }, [loaded, kioskBehavior, paginatedLayout, layout, pageDragging, activePageIndex, setLayout]);
+
+  // Persist a user-driven page change (swipe) into the layout so other clients
+  // follow. Carries the new index from the pager so it never reads a stale
+  // render value, and marks it seen so the honor effect won't echo it back.
+  const handlePageChange = useCallback((idx: number) => {
+    setActivePageIndex(idx);
+    const pages = paginatedLayout.pages;
+    if (pages.length <= 1) return;
+    const id = pages[Math.min(Math.max(idx, 0), pages.length - 1)]?.id;
+    if (!id) return;
+    lastSeenPageIdRef.current = id;
+    if (layout.activePageId !== id) setLayout({ ...layout, activePageId: id });
+  }, [paginatedLayout, layout, setLayout]);
   // Frozen snapshot of the dragged cell's pixel size + runtime CSS vars at
   // drag start. Captured once in onDragStart and reused every overlay render
   // so the clone never re-measures mid-drag (which would pick up
@@ -1178,7 +1255,6 @@ export function PanelContent({
         setDragExtraPageId(null);
         pendingDragRef.current = null;
         dragGestureRef.current = { startX: 0, startY: 0, lastOverId: null };
-        if (touch.rearranging) touch.toggleRearrange();
         touch.handleDragEnd();
         setDraggingPinnableType(null);
       }}
@@ -1203,7 +1279,6 @@ export function PanelContent({
         setDragExtraPageId(null);
         pendingDragRef.current = null;
         dragGestureRef.current = { startX: 0, startY: 0, lastOverId: null };
-        if (touch.rearranging) touch.toggleRearrange();
         touch.handleDragEnd();
         setDraggingPinnableType(null);
         if (!overId || activeId === overId) return;
@@ -1274,14 +1349,13 @@ export function PanelContent({
                 <PanelPager
                   pages={allFiltered}
                   activeIndex={Math.min(activePageIndex, pageCount - 1)}
-                  onActiveChange={setActivePageIndex}
+                  onActiveChange={handlePageChange}
                   swipeEnabled={!sheetMode && !dragArmedId}
                   renderPage={page => (
                     <>
                       <div
                         data-panel-grid
                         className={`${styles.grid} ${touch.rearranging ? styles.gridRearranging : ''}`}
-                        onClick={touch.handleGridClick}
                       >
                         {page.widgets.map(w => (
                           <ErrorBoundary key={w.id} label={w.type}>
@@ -1300,14 +1374,12 @@ export function PanelContent({
                               onSelectSlot={sheetMode === 'settings' && editingWidgetId === w.id && w.type === 'monitoring' ? setSelectedMonitoringSlot : undefined}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               onContextMenu={surfaceSupportsTouch(surface) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
-                              onRearrangeTap={surfaceSupportsTouch(surface) ? touch.handleRearrangeTap : noopMouseHandler}
                               cellPointers={surfaceSupportsTouch(surface) ? touch.bindCellPointers(w) : noopCellPointers}
                               // Non-touch sim surfaces (Q-series) can't reach
                               // onCellTap via the pointer pipeline; a plain
                               // click opens the edit sheet from an iframe tap.
                               onSimulatorClick={simulator && !surfaceSupportsTouch(surface) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
                               previewLayout={previewLayout}
-                              anyDragging={Boolean(activeDragId)}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                               onConfigureWidget={openWidgetSettings}
                             />
@@ -1435,11 +1507,9 @@ export function PanelContent({
             surface={surface}
             themeMode={resolvedThemeMode}
             themeStyle={panelThemeVars}
-            isRearranging={touch.rearranging}
             onResize={size => resizeWidget(ctxWidget.id, size, { animateFromContextMenu: true })}
             onEdit={() => openWidgetSettings(ctxWidget, ctxPoint)}
             onRemove={() => removeWidget(ctxWidget.id)}
-            onRearrange={touch.toggleRearrange}
             onImmersive={!embedded && immersiveAvailable ? () => enterImmersive(ctxWidget.id) : undefined}
             onAddToDesktop={desktopAddAvailable ? () => {
               void createOverlayWidget({

@@ -237,6 +237,8 @@
   "devices.panels.running": "Uruchomiony",
   "devices.panels.simulated": "Symulowany panel testowy",
   "devices.panels.simulatedSuffix": " (symulowany)",
+  "devices.panels.prevPage": "Poprzednia strona",
+  "devices.panels.nextPage": "Następna strona",
   "devices.peripheral.category": "Typ",
   "devices.peripheral.source": "Polaczenie",
   "devices.peripheral.vendor": "Producent",

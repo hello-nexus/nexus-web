@@ -237,6 +237,8 @@
   "devices.panels.running": "Em execução",
   "devices.panels.simulated": "Painel de teste simulado",
   "devices.panels.simulatedSuffix": " (simulado)",
+  "devices.panels.prevPage": "Página anterior",
+  "devices.panels.nextPage": "Próxima página",
   "devices.peripheral.category": "Tipo",
   "devices.peripheral.source": "Conexao",
   "devices.peripheral.vendor": "Fabricante",
