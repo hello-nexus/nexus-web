@@ -237,6 +237,8 @@
   "devices.panels.running": "Работает",
   "devices.panels.simulated": "Симулированная тестовая панель",
   "devices.panels.simulatedSuffix": " (симуляция)",
+  "devices.panels.prevPage": "Предыдущая страница",
+  "devices.panels.nextPage": "Следующая страница",
   "devices.peripheral.category": "Тип",
   "devices.peripheral.source": "Подключение",
   "devices.peripheral.vendor": "Производитель",

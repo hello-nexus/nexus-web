@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Fan } from 'lucide-react';
+import { Fan } from 'lucide-react';
+import { PanelArrowButton } from '../../PanelArrowButton';
 import {
   applyProfile, fetchProfiles,
   fetchCurves, fetchFanChannels, fetchTemperatureSources,
@@ -233,15 +234,12 @@ export function CoolingWidget({ widget }: WidgetProps) {
     return (
       <div className={styles.cooling} data-size={widget.size} data-simple="true">
         <div className={styles.simpleStage}>
-          <button
-            type="button"
+          <PanelArrowButton
+            side="prev"
             className={styles.simpleArrow}
-            data-side="prev"
             onClick={() => cyclePreset(-1)}
-            aria-label={t('cooling.panel.prev')}
-          >
-            <ChevronLeft />
-          </button>
+            ariaLabel={t('cooling.panel.prev')}
+          />
           <div className={styles.simpleCenter}>
             <div className={`${styles.simpleIconGroup} ${level ? '' : styles.simpleIconMuted}`}>
               <Fan size={56} aria-hidden className={styles.simpleFan} />
@@ -249,15 +247,12 @@ export function CoolingWidget({ widget }: WidgetProps) {
             </div>
             {showLabel && <span className={styles.simpleLabel}>{t(labelKey)}</span>}
           </div>
-          <button
-            type="button"
+          <PanelArrowButton
+            side="next"
             className={styles.simpleArrow}
-            data-side="next"
             onClick={() => cyclePreset(1)}
-            aria-label={t('cooling.panel.next')}
-          >
-            <ChevronRight />
-          </button>
+            ariaLabel={t('cooling.panel.next')}
+          />
         </div>
       </div>
     );
