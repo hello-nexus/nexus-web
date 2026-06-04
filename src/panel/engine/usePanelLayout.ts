@@ -5,7 +5,6 @@ import {
   isSingleWidgetSurface,
   normalizePanelWidgetSizeForSurface,
   type PanelLayout,
-  type PanelPage,
   type PanelSurface,
   type PanelWidget,
   type PanelWidgetSize,
@@ -13,7 +12,7 @@ import {
 import { lookupApp, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
 import { defaultDockForMissingSurface, defaultLayoutForSurface } from './defaultLayout';
 import { broadcastLayoutChanged, onLayoutChanged } from './panelSync';
-import { sizeToSpan } from './grid';
+import { pagesHaveOverlap, repackPage } from './paginate';
 import {
   getMarketplaceListing,
   hasMarketplaceLoadedOnce,
@@ -116,50 +115,6 @@ const SURFACE_COLS: Record<PanelSurface, number> = {
   q60: 2,
   desktop: 8,
 };
-
-function repackPage(widgets: PanelWidget[], cols: number): PanelWidget[] {
-  let cursorRow = 0;
-  let cursorCol = 0;
-  let currentRowMaxSpan = 0;
-  return widgets.map(widget => {
-    const span = sizeToSpan(widget.size);
-    const colSpan = Math.max(1, Math.min(span.cols, cols));
-    const rowSpan = Math.max(1, span.rows);
-    if (cursorCol + colSpan > cols) {
-      cursorRow += currentRowMaxSpan || 1;
-      cursorCol = 0;
-      currentRowMaxSpan = 0;
-    }
-    const placed: PanelWidget = { ...widget, col: cursorCol, row: cursorRow };
-    cursorCol += colSpan;
-    if (rowSpan > currentRowMaxSpan) currentRowMaxSpan = rowSpan;
-    return placed;
-  });
-}
-
-function pageHasOverlap(widgets: readonly PanelWidget[], cols: number): boolean {
-  const rects = widgets.map(w => {
-    const span = sizeToSpan(w.size);
-    const colSpan = Math.max(1, Math.min(span.cols, cols));
-    const rowSpan = Math.max(1, span.rows);
-    return { col: w.col, row: w.row, colSpan, rowSpan };
-  });
-  for (let i = 0; i < rects.length; i++) {
-    for (let j = i + 1; j < rects.length; j++) {
-      const a = rects[i];
-      const b = rects[j];
-      if (a.col < b.col + b.colSpan && b.col < a.col + a.colSpan
-        && a.row < b.row + b.rowSpan && b.row < a.row + a.rowSpan) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-function pagesHaveOverlap(pages: readonly PanelPage[], cols: number): boolean {
-  return pages.some(page => pageHasOverlap(page.widgets, cols));
-}
 
 export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface): PanelLayout {
   const migrated = layout;

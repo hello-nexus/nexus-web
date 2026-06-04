@@ -7,10 +7,37 @@ import {
   firstFreeRect,
   rectsOverlap,
 } from './paginate';
+import { sizeToSpan } from './grid';
 import type { PanelLayout, PanelPage, PanelWidget, PanelWidgetSize } from '../types';
 
 function widget(size: PanelWidgetSize, col: number, row: number, id?: string): PanelWidget {
   return { id: id ?? `w-${col}-${row}`, type: 'clock', size, col, row };
+}
+
+// "Clip" = a widget out of the grid OR two widgets overlapping. The whole
+// point of the reflow is that neither happens after a rotation.
+function assertNoClip(widgets: readonly PanelWidget[], cols: number, rows: number) {
+  const rects = widgets.map(w => {
+    const span = sizeToSpan(w.size);
+    return {
+      id: w.id,
+      col: w.col,
+      row: w.row,
+      colSpan: Math.max(1, Math.min(span.cols, cols)),
+      rowSpan: Math.max(1, span.rows),
+    };
+  });
+  for (const r of rects) {
+    expect.soft(r.col, `${r.id} left edge`).toBeGreaterThanOrEqual(0);
+    expect.soft(r.row, `${r.id} top edge`).toBeGreaterThanOrEqual(0);
+    expect.soft(r.col + r.colSpan, `${r.id} right edge within ${cols} cols`).toBeLessThanOrEqual(cols);
+    expect.soft(r.row + r.rowSpan, `${r.id} bottom edge within ${rows} rows`).toBeLessThanOrEqual(rows);
+  }
+  for (let i = 0; i < rects.length; i++) {
+    for (let j = i + 1; j < rects.length; j++) {
+      expect.soft(rectsOverlap(rects[i], rects[j]), `${rects[i].id} overlaps ${rects[j].id}`).toBe(false);
+    }
+  }
 }
 
 const COLS = 4;
@@ -163,5 +190,80 @@ describe('repaginatePanelLayout', () => {
     // Gap between rows 0 and 5 stays.
     expect(next.pages[0].widgets[0].row).toBe(0);
     expect(next.pages[0].widgets[1].row).toBe(5);
+  });
+
+  it('packs the stock phone stack top-to-bottom in landscape (no clip)', () => {
+    // Three full-width 4x2 widgets stacked vertically in portrait. Rotating
+    // to an 8x4 landscape grid, the flow runs top-to-bottom then rightward.
+    const mon = widget('4x2', 0, 0, 'mon');
+    const light = widget('4x2', 0, 2, 'light');
+    const cool = widget('4x2', 0, 4, 'cool');
+    const next = repaginatePanelLayout(layoutWith([mon, light, cool]), { gridCols: 8, pageRows: 4 });
+    const byId = Object.fromEntries(next.pages[0].widgets.map(w => [w.id, w]));
+    expect(byId.mon).toMatchObject({ col: 0, row: 0 });
+    expect(byId.light).toMatchObject({ col: 0, row: 2 });
+    expect(byId.cool).toMatchObject({ col: 4, row: 0 });
+    assertNoClip(next.pages[0].widgets, 8, 4);
+  });
+
+  it('packs the connected-iPhone page-1 layout into landscape with no crop and no empty slot', () => {
+    // The real device case: 4x2 monitor on top, two 2x2s, one 4x4. Row-major
+    // packing cropped the 4x4 and left a 2x4 hole; top-to-bottom fills 8x4.
+    const mon = widget('4x2', 0, 0, 'mon');
+    const clock = widget('2x2', 0, 2, 'clock');
+    const media = widget('2x2', 2, 2, 'media');
+    const lighting = widget('4x4', 0, 4, 'lighting');
+    const next = repaginatePanelLayout(layoutWith([mon, clock, media, lighting]), { gridCols: 8, pageRows: 4 });
+    const byId = Object.fromEntries(next.pages[0].widgets.map(w => [w.id, w]));
+    expect(byId.mon).toMatchObject({ col: 0, row: 0 });
+    expect(byId.clock).toMatchObject({ col: 0, row: 2 });
+    expect(byId.media).toMatchObject({ col: 2, row: 2 });
+    expect(byId.lighting).toMatchObject({ col: 4, row: 0 });
+    assertNoClip(next.pages[0].widgets, 8, 4);
+  });
+
+  it('is a no-op (same reference) once a layout already fits the grid', () => {
+    // Idempotence guards the persist effect against a render loop.
+    const layout = layoutWith([widget('4x2', 0, 0, 'mon'), widget('2x2', 0, 2, 'clock'),
+      widget('2x2', 2, 2, 'media'), widget('4x4', 0, 4, 'lighting')]);
+    const landscape = repaginatePanelLayout(layout, { gridCols: 8, pageRows: 4 });
+    expect(repaginatePanelLayout(landscape, { gridCols: 8, pageRows: 4 })).toBe(landscape);
+  });
+
+  it('stays a fixed point for an over-capacity page (no persist render-loop)', () => {
+    // 45 cells of widgets into a 32-cell (4x8) grid: packing can't fit it,
+    // so the result must still settle to a stable reference on re-run rather
+    // than re-trigger setLayout every render.
+    const cells: Array<[PanelWidgetSize, number, number]> = [
+      ['4x4', 3, 1], ['4x2', 5, 1], ['2x4', 5, 4], ['4x2', 2, 11], ['2x2', 1, 11], ['1x1', 1, 4],
+    ];
+    const layout = layoutWith(cells.map(([s, c, r], i) => widget(s, c, r, `w${i}`)));
+    const once = repaginatePanelLayout(layout, { gridCols: 4, pageRows: 8 });
+    expect(repaginatePanelLayout(once, { gridCols: 4, pageRows: 8 })).toBe(once);
+  });
+
+  // Each config fills a 4x8 portrait page exactly (32 cells = 8x4 landscape).
+  // The success criterion is purely "nothing clips" in either direction:
+  // every widget stays in bounds and no two overlap.
+  const FILLED_CONFIGS: Array<[string, Array<[PanelWidgetSize, number, number]>]> = [
+    ['monitor + 2x2 pair + 4x4', [['4x2', 0, 0], ['2x2', 0, 2], ['2x2', 2, 2], ['4x4', 0, 4]]],
+    ['four 4x2 stacked', [['4x2', 0, 0], ['4x2', 0, 2], ['4x2', 0, 4], ['4x2', 0, 6]]],
+    ['four 2x4 columns', [['2x4', 0, 0], ['2x4', 2, 0], ['2x4', 0, 4], ['2x4', 2, 4]]],
+    ['two 4x4', [['4x4', 0, 0], ['4x4', 0, 4]]],
+    ['4x4 + four 2x2', [['4x4', 0, 0], ['2x2', 0, 4], ['2x2', 2, 4], ['2x2', 0, 6], ['2x2', 2, 6]]],
+    ['two 2x4 + 4x4', [['2x4', 0, 0], ['2x4', 2, 0], ['4x4', 0, 4]]],
+    ['2x2 pair + 4x2 + 4x4', [['2x2', 0, 0], ['2x2', 2, 0], ['4x2', 0, 2], ['4x4', 0, 4]]],
+    ['eight 2x2 grid', [['2x2', 0, 0], ['2x2', 2, 0], ['2x2', 0, 2], ['2x2', 2, 2],
+      ['2x2', 0, 4], ['2x2', 2, 4], ['2x2', 0, 6], ['2x2', 2, 6]]],
+  ];
+
+  it.each(FILLED_CONFIGS)('does not clip rotating a filled page both ways: %s', (_name, cells) => {
+    const portrait = layoutWith(cells.map(([size, col, row], i) => widget(size, col, row, `w${i}`)));
+    // portrait -> landscape
+    const landscape = repaginatePanelLayout(portrait, { gridCols: 8, pageRows: 4 });
+    assertNoClip(landscape.pages[0].widgets, 8, 4);
+    // landscape -> portrait
+    const backToPortrait = repaginatePanelLayout(landscape, { gridCols: 4, pageRows: 8 });
+    assertNoClip(backToPortrait.pages[0].widgets, 4, 8);
   });
 });
