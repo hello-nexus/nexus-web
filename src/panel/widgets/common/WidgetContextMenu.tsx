@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, ExternalLink, GripVertical, Maximize2, Monitor, MonitorOff, Pin, PinOff, Settings, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, Maximize2, Monitor, MonitorOff, Pin, PinOff, Settings, Trash2 } from 'lucide-react';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
 import type { PanelSurface, PanelWidgetSize } from '../../types';
@@ -14,11 +14,9 @@ interface WidgetContextMenuProps {
   surface?: PanelSurface;
   themeMode?: 'dark' | 'light';
   themeStyle?: CSSProperties;
-  isRearranging?: boolean;
   onResize: (size: PanelWidgetSize) => void;
   onEdit: () => void;
   onRemove: () => void;
-  onRearrange?: () => void;
   // Optional - only shown when the widget has an ImmersiveComponent
   // and the current orientation is supported. Caller owns the gating.
   onImmersive?: () => void;
@@ -63,8 +61,7 @@ export function WidgetContextMenu({
   surface,
   themeMode = 'dark',
   themeStyle,
-  isRearranging,
-  onResize, onEdit, onRemove, onRearrange, onImmersive,
+  onResize, onEdit, onRemove, onImmersive,
   onAddToDesktop, onRemoveFromDesktop,
   onPinToSidebar, onUnpinFromSidebar,
   onClose,
@@ -241,13 +238,6 @@ export function WidgetContextMenu({
         <button type="button" className={styles.item} onClick={() => runAndClose(onUnpinFromSidebar)}>
           <PinOff size={14} />
           <span>Unpin from Sidebar</span>
-        </button>
-      )}
-
-      {onRearrange && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onRearrange)}>
-          <GripVertical size={14} />
-          <span>{isRearranging ? 'Stop rearranging' : 'Rearrange'}</span>
         </button>
       )}
 

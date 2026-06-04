@@ -74,7 +74,6 @@ import {
   buildPanelCollisionDetection,
   isDashboardClickthroughType,
   noopCellPointers,
-  noopMouseHandler,
   parseDragTarget,
   trimTrailingEmptyPages,
 } from './panelLayoutHelpers';
@@ -490,6 +489,24 @@ export function PanelContent({
     if (!loaded) return;
     if (paginatedLayout !== layout) setLayout(paginatedLayout);
   }, [paginatedLayout, layout, setLayout, loaded]);
+
+  // Abort an in-flight widget drag when the grid reshapes (device rotation /
+  // viewport orientation flip). Rotation re-paginates every widget to the new
+  // orientation; a half-finished drag would otherwise commit into the reflowed
+  // grid and land the widget in the wrong slot. Cancelling restores the
+  // pre-drag layout instead — no drop is committed, so the widget reflows in
+  // place with the rest. Routed through dnd-kit's own resize-cancel path
+  // (window 'resize' -> sensor handleCancel) so its pointer capture + overlay
+  // tear down too. dnd-kit already cancels on a real window resize, but the
+  // phone surface can flip orientation via matchMedia without one, so make the
+  // cancel explicit off the capacity signal. No-ops when nothing is dragging.
+  const dragInProgress = Boolean(dragArmedId || activeDragId);
+  const prevCapacityRef = useRef(capacity);
+  useEffect(() => {
+    if (prevCapacityRef.current === capacity) return;
+    prevCapacityRef.current = capacity;
+    if (dragInProgress) window.dispatchEvent(new Event('resize'));
+  }, [capacity, dragInProgress]);
 
   // Layout for the renderer + drag pipeline. During a drag, appends a phantom
   // empty page (if under MAX_PANEL_PAGES) so the user can drop onto a new
@@ -1238,7 +1255,6 @@ export function PanelContent({
         setDragExtraPageId(null);
         pendingDragRef.current = null;
         dragGestureRef.current = { startX: 0, startY: 0, lastOverId: null };
-        if (touch.rearranging) touch.toggleRearrange();
         touch.handleDragEnd();
         setDraggingPinnableType(null);
       }}
@@ -1263,7 +1279,6 @@ export function PanelContent({
         setDragExtraPageId(null);
         pendingDragRef.current = null;
         dragGestureRef.current = { startX: 0, startY: 0, lastOverId: null };
-        if (touch.rearranging) touch.toggleRearrange();
         touch.handleDragEnd();
         setDraggingPinnableType(null);
         if (!overId || activeId === overId) return;
@@ -1341,7 +1356,6 @@ export function PanelContent({
                       <div
                         data-panel-grid
                         className={`${styles.grid} ${touch.rearranging ? styles.gridRearranging : ''}`}
-                        onClick={touch.handleGridClick}
                       >
                         {page.widgets.map(w => (
                           <ErrorBoundary key={w.id} label={w.type}>
@@ -1360,14 +1374,12 @@ export function PanelContent({
                               onSelectSlot={sheetMode === 'settings' && editingWidgetId === w.id && w.type === 'monitoring' ? setSelectedMonitoringSlot : undefined}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               onContextMenu={surfaceSupportsTouch(surface) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
-                              onRearrangeTap={surfaceSupportsTouch(surface) ? touch.handleRearrangeTap : noopMouseHandler}
                               cellPointers={surfaceSupportsTouch(surface) ? touch.bindCellPointers(w) : noopCellPointers}
                               // Non-touch sim surfaces (Q-series) can't reach
                               // onCellTap via the pointer pipeline; a plain
                               // click opens the edit sheet from an iframe tap.
                               onSimulatorClick={simulator && !surfaceSupportsTouch(surface) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
                               previewLayout={previewLayout}
-                              anyDragging={Boolean(activeDragId)}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                               onConfigureWidget={openWidgetSettings}
                             />
@@ -1495,11 +1507,9 @@ export function PanelContent({
             surface={surface}
             themeMode={resolvedThemeMode}
             themeStyle={panelThemeVars}
-            isRearranging={touch.rearranging}
             onResize={size => resizeWidget(ctxWidget.id, size, { animateFromContextMenu: true })}
             onEdit={() => openWidgetSettings(ctxWidget, ctxPoint)}
             onRemove={() => removeWidget(ctxWidget.id)}
-            onRearrange={touch.toggleRearrange}
             onImmersive={!embedded && immersiveAvailable ? () => enterImmersive(ctxWidget.id) : undefined}
             onAddToDesktop={desktopAddAvailable ? () => {
               void createOverlayWidget({

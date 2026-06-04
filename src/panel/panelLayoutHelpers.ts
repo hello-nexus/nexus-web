@@ -40,11 +40,9 @@ export interface DragGestureState {
 // Inert touch handlers for surfaces with no pointer input (Q60). The cell
 // wires every cellPointers callback unconditionally, so hand back no-ops to
 // keep call sites typed without listeners that could fire on a stray pointer.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match React.MouseEventHandler
-const noopMouseHandler = (_e: React.MouseEvent) => { /* no-op on Q60 */ };
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match React.PointerEventHandler
 const noopPointerHandler = (_e: React.PointerEvent) => { /* no-op on Q60 */ };
-export { noopMouseHandler, noopPointerHandler };
+export { noopPointerHandler };
 export const noopCellPointers = {
   onPointerDown: noopPointerHandler,
   onPointerMove: noopPointerHandler,
