@@ -115,7 +115,7 @@ export function Dashboard() {
   }, [setLanguage]);
 
   const handleNavigateSettings = useCallback(() => {
-    navigate('system', 'settings', 'profiles');
+    navigate('system', 'settings', 'general');
   }, [navigate]);
 
   const handleServiceNavChange = useCallback((key: string) => {
