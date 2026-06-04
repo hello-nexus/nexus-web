@@ -74,13 +74,13 @@
 // height off-screen. Phone and desktop skip this (no display-scaling).
 :global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']) .tray {
   right: auto;
-  width: calc(100% / var(--panel-ui-zoom, 1));
-  transform: translateY(calc(100% * var(--panel-ui-zoom, 1))) scale(var(--panel-ui-zoom, 1));
+  width: calc(100% / var(--panel-scale, 1));
+  transform: translateY(calc(100% * var(--panel-scale, 1))) scale(var(--panel-scale, 1));
   transform-origin: bottom left;
 }
 
 :global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']) .tray[data-state='open'] {
-  transform: translateY(0) scale(var(--panel-ui-zoom, 1));
+  transform: translateY(0) scale(var(--panel-scale, 1));
 }
 
 :global(.panel-root)[data-surface='desktop'] .tray {

@@ -83,7 +83,7 @@
 
 .body {
   position: relative;
-  // Render area is sized at 1/zoom then scaled back up by --panel-ui-zoom, so
+  // Render area is sized at 1/zoom then scaled back up by --panel-scale, so
   // the immersive content (sliders, fonts, fixed-px chrome) reads at the same
   // proportion as the rest of the monitor panel — mirroring the editor sheet
   // and actions tray. The var is unset on phone/desktop (→ 1), making the
@@ -91,11 +91,11 @@
   // in both axes; bottom-center origin is wrong here since the overlay is
   // centered, so scale from the center.
   flex: 0 0 auto;
-  width: calc(100% / var(--panel-ui-zoom, 1));
-  height: calc(100% / var(--panel-ui-zoom, 1));
+  width: calc(100% / var(--panel-scale, 1));
+  height: calc(100% / var(--panel-scale, 1));
   margin: auto;
   min-height: 0;
-  transform: scale(var(--panel-ui-zoom, 1));
+  transform: scale(var(--panel-scale, 1));
   transform-origin: center center;
   display: flex;
   align-items: center;

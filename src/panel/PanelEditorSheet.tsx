@@ -139,11 +139,11 @@ export function PanelEditorSheet({
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [closing, onClose]);
-  // scale(var(--panel-ui-zoom, 1)) keeps the monitor-panel chrome scale during
+  // scale(var(--panel-scale, 1)) keeps the monitor-panel chrome scale during
   // a swipe-dismiss drag; no-op on phone/desktop (var unset → 1).
   const sheetTransform = swipe.state === 'idle' && swipe.offset === 0
     ? undefined
-    : { transform: `translateY(${swipe.offset}px) scale(var(--panel-ui-zoom, 1))` };
+    : { transform: `translateY(${swipe.offset}px) scale(var(--panel-scale, 1))` };
   // [data-entered] suppresses the entry keyframe after it plays, so toggling
   // [data-drag] at the end of a snap-back doesn't re-trigger the slide-up. The
   // fallback timer covers the no-interaction case; the effect flips the flag

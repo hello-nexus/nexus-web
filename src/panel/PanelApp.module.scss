@@ -440,25 +440,11 @@
   display: none;
 }
 
-// Q60 widget content scale.
-//
-// The default cellScaler uses `tan(atan2(--_content, 90px))` for
-// "cell-size / 90px" as a unitless `transform: scale()`. CSS trig functions
-// landed in Chrome 111 (March 2023); the Q60 ships Android System WebView
-// v83 (Chrome 83) which can't parse them, so `--_s` resolves invalid, scale
-// falls back to 1, and contents render at design-pixel size (~40% of
-// Y70/phone). Hardcode the scale instead.
-//
-// Q60 is fixed at 720x1280 @ density 240 (dpr 1.5), so the CSS viewport is
-// 480x853 and `--panel-cell-size` is (480 - 16 - 8) / 2 = 228 CSS px →
-// 228 / 90 ≈ 2.53. Use 2.5 flat to leave 1% for the card border + inner pad.
+// Q60 cells are non-square (~236w × ~203h); --panel-content-scale = min(cell,
+// row) collapses --_content to the short axis, leaving a ~33px gap that reads
+// as a border. Size the content box per-axis from the real cell dims so it
+// fills the card. (Scale is --panel-scale: 2.5, set in tokens.scss for Chrome 83.)
 .panelRoot[data-surface='q60'] .cellScaler {
-  --_s: 2.5;
-  // Q60 cells are non-square (~236 wide vs ~203 tall) and
-  // --panel-content-scale = min(cell, row) collapses --_content to the
-  // shorter axis, so the base cellScaler renders content ~414px wide in a
-  // 480px card (a ~33px gap reading as a border). Size the content box
-  // per-axis from the real cell dimensions so it fills the card.
   --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
   --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
 }
@@ -730,9 +716,8 @@
   }
 }
 
-// Scale widget content so text/icons fill the same proportion of the cell at
-// any cell size. Reference: 90px per grid unit (matches InlineWidgetSettings'
-// editor preview). tan(atan2(a,b)) computes a/b as unitless.
+// Scale widget content to a constant proportion of the cell at any size, from
+// the shared --panel-scale token (see tokens.scss).
 //
 // Fills the card's visible rectangle minus a static inner padding on all
 // sides. `--_s` stays uniform (cell-size reference) so children render at
@@ -756,7 +741,7 @@
   --_card-h: calc(var(--_grid-h) - var(--_label-strip) - var(--_bottom-gap));
   --_inner-w: calc(var(--_card-w) - 2 * var(--_inner-pad));
   --_inner-h: calc(var(--_card-h) - 2 * var(--_inner-pad));
-  --_s: tan(atan2(var(--_content), 90px));
+  --_s: var(--panel-scale, 1);
   width: calc(var(--_inner-w) / var(--_s));
   height: calc(var(--_inner-h) / var(--_s));
   transform: scale(var(--_s));
@@ -764,10 +749,6 @@
   display: flex;
   min-width: 0;
   min-height: 0;
-}
-
-.panelRoot[data-surface='phone'] .cellScaler {
-  --_s: var(--panel-widget-scale);
 }
 
 .panelRoot:not([data-surface='q60']) .cellEditorDocked {
@@ -819,10 +800,6 @@
   pointer-events: none;
   min-width: 0;
   min-height: 0;
-}
-
-.panelRoot[data-surface='phone'] .cellEditorDocked .cellScaler {
-  --_s: var(--panel-widget-scale, tan(atan2(var(--panel-cell-size, 172px), 90px)));
 }
 
 .panelActions {
@@ -1229,16 +1206,16 @@
   to { transform: translateX(28px); opacity: 0; }
 }
 
-// Compose --panel-ui-zoom into the transform so Y70 (var = cell-size/90)
+// Compose --panel-scale into the transform so Y70 (var = cell-size/90)
 // animates at scale; other surfaces (var unset → 1) see no change.
 @keyframes sheetUp {
-  from { transform: translateY(100%) scale(var(--panel-ui-zoom, 1)); }
-  to { transform: translateY(0) scale(var(--panel-ui-zoom, 1)); }
+  from { transform: translateY(100%) scale(var(--panel-scale, 1)); }
+  to { transform: translateY(0) scale(var(--panel-scale, 1)); }
 }
 
 @keyframes sheetDown {
-  from { transform: translateY(0) scale(var(--panel-ui-zoom, 1)); }
-  to { transform: translateY(100%) scale(var(--panel-ui-zoom, 1)); }
+  from { transform: translateY(0) scale(var(--panel-scale, 1)); }
+  to { transform: translateY(100%) scale(var(--panel-scale, 1)); }
 }
 
 @media (max-width: 900px) {
@@ -1273,8 +1250,8 @@
   // that's ~2200 CSS px ≈ 86dvh; near-square/wide viewports cap at screen
   // height. Phone keeps the :not(desktop) rule's min(76dvh, 760px).
   .editorBackdrop:not([data-surface='phone']):not([data-surface='desktop']) .editorSheet {
-    width: calc(100% / var(--panel-ui-zoom, 1));
-    max-height: calc(min(300vw, 100dvh) / var(--panel-ui-zoom, 1));
+    width: calc(100% / var(--panel-scale, 1));
+    max-height: calc(min(300vw, 100dvh) / var(--panel-scale, 1));
     margin-inline: auto;
     transform-origin: bottom center;
   }
