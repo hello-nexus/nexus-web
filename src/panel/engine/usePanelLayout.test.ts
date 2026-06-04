@@ -10,12 +10,11 @@ function widget(overrides: Partial<PanelWidget> & Pick<PanelWidget, 'id' | 'type
   };
 }
 
-function layout(widgets: PanelWidget[], dock?: PanelWidget[]): PanelLayout {
+function layout(widgets: PanelWidget[]): PanelLayout {
   return {
     layoutSchemaVersion: 2,
     surface: 'y70',
     pages: [{ id: 'p1', widgets }],
-    dock: dock ? { enabled: true, widgets: dock } : undefined,
   };
 }
 
@@ -103,18 +102,21 @@ describe('normalizePanelLayout registry reconciliation', () => {
     }
   });
 
-  it('filters dock widgets but preserves their stored size', () => {
-    const result = normalizePanelLayout(
-      layout(
-        [],
-        [
-          widget({ id: 'd1', type: 'cooling', size: '1x1' }),
-          widget({ id: 'd2', type: 'does-not-exist', size: '1x1' }),
-        ],
-      ),
-      'y70',
-    );
-    expect(result.dock?.widgets.map(w => w.id)).toEqual(['d1']);
-    expect(result.dock?.widgets[0].size).toBe('1x1');
+  it('strips a legacy dock field but keeps pages, widgets, and active page intact', () => {
+    // A config saved before the dock feature was removed still carries a
+    // `dock` block. Loading it must drop the dock entirely and leave the
+    // rest of the layout untouched (the same graceful path as a widget that
+    // is suddenly no longer available).
+    const stored = {
+      layoutSchemaVersion: 2,
+      surface: 'y70',
+      activePageId: 'p1',
+      pages: [{ id: 'p1', widgets: [widget({ id: 'a', type: 'cooling', size: '2x2' })] }],
+      dock: { enabled: true, widgets: [widget({ id: 'd1', type: 'cooling', size: '1x1' })] },
+    } as unknown as PanelLayout;
+    const result = normalizePanelLayout(stored, 'y70');
+    expect((result as Record<string, unknown>).dock).toBeUndefined();
+    expect(result.pages[0].widgets.map(w => w.id)).toEqual(['a']);
+    expect(result.activePageId).toBe('p1');
   });
 });

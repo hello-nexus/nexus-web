@@ -16,14 +16,13 @@ import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
 import { sizeToSpan } from './engine/grid';
-import { paginateCapacityForGrid, repaginatePanelLayout, type PaginateCapacity } from './engine/paginate';
+import { repaginatePanelLayout, type PaginateCapacity } from './engine/paginate';
 import {
   allCellsForPage,
   appendWidget,
   patchWidgetById,
   previewDrag,
   removeWidgetById,
-  setDockEnabled,
   tryResizeWidget,
 } from './engine/panelLayoutOps';
 import { PANEL_EDGE_ADVANCE_DWELL_MS } from './engine/dragConstants';
@@ -31,7 +30,6 @@ import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
 import { PanelPager } from './PanelPager';
 import { PanelPageIndicator } from './PanelPageIndicator';
 import { PanelActionsTray } from './PanelActionsTray';
-import { PanelDock } from './PanelDock';
 import { PanelImmersiveOverlay } from './PanelImmersiveOverlay';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from './widgets/registry';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
@@ -436,24 +434,15 @@ export function PanelContent({
     ],
   );
 
-  // ---------- Pagination + dock state derived from layout ----------
-  const dockEnabled = Boolean(layout.dock?.enabled);
-  const dockSupported = surface !== 'desktop' && surfaceSupportsTouch(surface);
+  // ---------- Pagination derived from layout ----------
   // Touch surfaces hoist the focused widget above the editor's backdrop-blur
   // scrim, else the edited widget disappears under the blur. q60 is
   // display-only so editing never engages. See .cellEditorDocked rules.
   const editorDockSupported = surfaceSupportsTouch(surface);
-  const dockActive = dockSupported && dockEnabled;
   const isLandscape = useIsLandscape(surface);
   const capacity = useMemo<PaginateCapacity>(
-    () => paginateCapacityForGrid(
-      runtimeGrid.columns,
-      runtimeGrid.rows,
-      dockActive,
-      isLandscape ? 'landscape' : 'portrait',
-      surface,
-    ),
-    [runtimeGrid.columns, runtimeGrid.rows, dockActive, isLandscape, surface],
+    () => ({ gridCols: runtimeGrid.columns, pageRows: runtimeGrid.rows }),
+    [runtimeGrid.columns, runtimeGrid.rows],
   );
 
   // Two-stage drag state, declared early so dragLayout/allFiltered can fold
@@ -635,15 +624,14 @@ export function PanelContent({
   // movement) shows only the menu, never the lift/overlay.
   const pendingDragRef = useRef<DragSnapshot | null>(null);
 
-  const dockWidgets = paginatedLayout.dock?.widgets ?? [];
-  const dockOrientation: 'portrait' | 'landscape' = isLandscape ? 'landscape' : 'portrait';
+  const pageOrientation: 'portrait' | 'landscape' = isLandscape ? 'landscape' : 'portrait';
 
   const widgetById = useCallback((id: string): PanelWidget | undefined => {
     for (const page of paginatedLayout.pages) {
       const found = page.widgets.find(w => w.id === id);
       if (found) return found;
     }
-    return paginatedLayout.dock?.widgets.find(w => w.id === id);
+    return undefined;
   }, [paginatedLayout]);
 
   const editingWidget = editingWidgetId ? widgetById(editingWidgetId) ?? null : null;
@@ -911,10 +899,6 @@ export function PanelContent({
     setPendingScrollId(next.id);
     closeSheet();
   }, [closeSheet, embedded, paginatedLayout, capacity, setLayout, surface]);
-
-  const toggleDock = useCallback(() => {
-    setLayout(setDockEnabled(paginatedLayout, !dockEnabled, capacity));
-  }, [paginatedLayout, dockEnabled, capacity, setLayout]);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     setLayout(patchWidgetById(
@@ -1339,11 +1323,7 @@ export function PanelContent({
           <div className={styles.loading}>loading panel...</div>
         ) : (
           <>
-            <div
-              className={styles.panelStage}
-              data-orientation={dockOrientation}
-              data-dock-active={dockActive ? 'true' : undefined}
-            >
+            <div className={styles.panelStage}>
               <div className={styles.panelStagePages}>
                 <SortableContext items={allFlatIds} strategy={projectedLayoutStrategy}>
                 <PanelPager
@@ -1408,7 +1388,7 @@ export function PanelContent({
                 />
                 </SortableContext>
                 {pageCount > 1 && (
-                  <div className={styles.panelPageIndicatorPosition} data-orientation={dockOrientation}>
+                  <div className={styles.panelPageIndicatorPosition} data-orientation={pageOrientation}>
                     <PanelPageIndicator
                       total={pageCount}
                       active={Math.min(activePageIndex, pageCount - 1)}
@@ -1417,15 +1397,6 @@ export function PanelContent({
                   </div>
                 )}
               </div>
-              {dockActive && (
-                <div className={styles.panelDockPosition} data-orientation={dockOrientation}>
-                  <PanelDock
-                    widgets={dockWidgets}
-                    surface={surface}
-                    orientation={dockOrientation}
-                  />
-                </div>
-              )}
             </div>
             {kioskBehavior && surfaceSupportsTouch(surface) && (
               <PanelActionsTray
@@ -1607,9 +1578,6 @@ export function PanelContent({
           onRemove={removeWidget}
           selectedMonitoringSlot={selectedMonitoringSlot}
           onSelectedMonitoringSlotChange={setSelectedMonitoringSlot}
-          dockSupported={dockSupported}
-          dockEnabled={dockEnabled}
-          onDockToggle={toggleDock}
         />
       )}
 

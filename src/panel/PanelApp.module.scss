@@ -93,23 +93,6 @@
   }
 }
 
-@keyframes connectionIntroDockWidget {
-  0%, 18% {
-    opacity: 0;
-    transform: scale(0.46);
-    filter: blur(8px) saturate(0.82);
-  }
-  56% {
-    opacity: 0.82;
-    filter: blur(1px) saturate(0.98);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-    filter: blur(0) saturate(1);
-  }
-}
-
 @keyframes connectionIntroTray {
   0% {
     opacity: 0;
@@ -225,11 +208,6 @@
   animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.panelRoot[data-connection-intro='active'] .panelDockPosition [data-panel-widget-id] {
-  transform-origin: center;
-  animation: connectionIntroDockWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .connectionIntroBackdrop {
     animation: none;
@@ -242,8 +220,7 @@
     transform: translate(-50%, 0);
   }
 
-  .panelRoot[data-connection-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell),
-  .panelRoot[data-connection-intro='active'] .panelDockPosition [data-panel-widget-id] {
+  .panelRoot[data-connection-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) {
     animation: none;
     opacity: 1;
     filter: none;
@@ -272,8 +249,7 @@
   position: relative;
 }
 
-// Stage hosts the pager (one page = one viewport) plus an optional dock
-// rail. data-orientation flips the dock from the bottom to the right.
+// Stage hosts the pager (one page = one viewport).
 .panelStage {
   position: relative;
   width: 100%;
@@ -297,41 +273,11 @@
   pointer-events: auto;
 }
 
-.panelStage[data-orientation='landscape'][data-dock-active='true'] {
-  flex-direction: row;
-}
-
 .panelStagePages {
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-}
-
-.panelDockPosition {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--panel-gap, 8px) 0 0;
-}
-
-.panelDockPosition[data-orientation='landscape'] {
-  padding: 0 0 0 var(--panel-gap, 8px);
-}
-
-// Y70 portrait reserves vertical room for the dock inside its 12-row grid
-// budget (see paginateCapacityForGrid). Float the dock at the bottom of the
-// stage so toggling it on/off doesn't reflow the page area and shift widget
-// placement upward.
-.panelRoot[data-surface='y70']
-  .panelStage[data-orientation='portrait'][data-dock-active='true']
-  .panelDockPosition {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 0;
 }
 
 .panelPageIndicatorPosition {
@@ -491,8 +437,8 @@
     --panel-landscape-height: max(100vh, 100dvh);
     --panel-safe-bottom: var(--panel-safe-top);
     // In landscape on a phone surface, cell size derives from the
-    // height (short axis after rotation). The pager + dock layout
-    // owns the horizontal axis so we don't scroll the surface.
+    // height (short axis after rotation). The pager layout owns the
+    // horizontal axis so we don't scroll the surface.
     --panel-cell-size: calc((var(--panel-landscape-height) - var(--panel-safe-top) - var(--panel-safe-bottom) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
     min-height: var(--panel-landscape-height);
     height: var(--panel-landscape-height);
@@ -1063,29 +1009,6 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
-}
-
-.dockSection {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.dockToggleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  min-height: 44px;
-  color: var(--panel-text);
-  font: 800 13px/1.2 var(--panel-font, 'Lexend', system-ui, sans-serif);
-}
-
-.dockToggleHint {
-  flex: 1 1 auto;
-  min-width: 0;
-  @include text-caption;
-  color: var(--panel-text-faint);
 }
 
 .editorActions {

@@ -78,7 +78,7 @@ function findWidget(layout: PanelLayout, id: string): PanelWidget | undefined {
     const w = page.widgets.find(w => w.id === id);
     if (w) return w;
   }
-  return layout.dock?.widgets.find(w => w.id === id);
+  return undefined;
 }
 
 export function PanelEmbedFrame({

@@ -1,4 +1,4 @@
-import type { PanelDock, PanelLayout, PanelPage, PanelWidget, PanelWidgetSize } from '../types';
+import type { PanelLayout, PanelPage, PanelWidget, PanelWidgetSize } from '../types';
 import { firstFreeRect, rectsOverlap, type PaginateCapacity } from './paginate';
 import { sizeToSpan, snapStride } from './grid';
 import { createUuid } from '../../lib/uuid';
@@ -54,9 +54,7 @@ export function appendWidget(
 
 /**
  * Single-widget surface helper (Q-series): replaces every page-widget
- * with one fresh widget at (0, 0). The page list collapses to one
- * page; dock entries are left alone (single-widget surfaces have no
- * dock today, but the engine must not nuke one if they ever get it).
+ * with one fresh widget at (0, 0). The page list collapses to one page.
  */
 export function replaceWidget(
   layout: PanelLayout,
@@ -82,9 +80,6 @@ export function removeWidgetById(
   _capacity: PaginateCapacity,
 ): PanelLayout {
   void _capacity;
-  const dock = layout.dock
-    ? { ...layout.dock, widgets: layout.dock.widgets.filter(w => w.id !== widgetId) }
-    : layout.dock;
   let removed = false;
   const pagesAfter = layout.pages.map(page => {
     const next = page.widgets.filter(w => w.id !== widgetId);
@@ -92,9 +87,7 @@ export function removeWidgetById(
     removed = true;
     return { ...page, widgets: next };
   });
-  if (!removed) {
-    return layout.dock === dock ? layout : { ...layout, dock };
-  }
+  if (!removed) return layout;
   // Drop trailing empty pages but keep at least one. The first page
   // is always kept even when empty so the renderer always has a page
   // to show.
@@ -103,7 +96,7 @@ export function removeWidgetById(
     if (page.widgets.length === 0 && idx > 0) return;
     pruned.push(page);
   });
-  return { ...layout, dock, pages: pruned.length === 0 ? [pagesAfter[0]] : pruned };
+  return { ...layout, pages: pruned.length === 0 ? [pagesAfter[0]] : pruned };
 }
 
 /**
@@ -111,7 +104,6 @@ export function removeWidgetById(
  * the new rect overlap siblings, this routes through previewDrag so
  * the overlapped siblings cascade row-major into free aligned cells.
  * Rejected only when previewDrag can't home every displaced widget.
- * Dock entries are patched in place because they are not on the grid.
  */
 export function patchWidgetById(
   layout: PanelLayout,
@@ -119,13 +111,6 @@ export function patchWidgetById(
   patch: (widget: PanelWidget) => PanelWidget,
   capacity: PaginateCapacity,
 ): PanelLayout {
-  if (layout.dock?.widgets.some(w => w.id === widgetId)) {
-    const dock: PanelDock = {
-      ...layout.dock,
-      widgets: layout.dock.widgets.map(w => w.id === widgetId ? patch(w) : w),
-    };
-    return { ...layout, dock };
-  }
   const cols = Math.max(1, capacity.gridCols);
   const rows = Math.max(1, capacity.pageRows);
   let pageIdx = -1;
@@ -617,19 +602,4 @@ export function allCellsForPage(
     }
   }
   return cells;
-}
-
-/**
- * Toggles the dock and clamps existing widgets to the new capacity.
- */
-export function setDockEnabled(
-  layout: PanelLayout,
-  enabled: boolean,
-  _capacity: PaginateCapacity,
-): PanelLayout {
-  void _capacity;
-  const dock: PanelDock = layout.dock
-    ? { ...layout.dock, enabled }
-    : { enabled, widgets: [] };
-  return { ...layout, dock };
 }

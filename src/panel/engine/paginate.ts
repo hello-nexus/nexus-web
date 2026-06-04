@@ -1,52 +1,9 @@
-import type { PanelLayout, PanelPage, PanelSurface, PanelWidget } from '../types';
+import type { PanelLayout, PanelPage, PanelWidget } from '../types';
 import { sizeToSpan, snapStride } from './grid';
 
 export interface PaginateCapacity {
   gridCols: number;
   pageRows: number;
-}
-
-/**
- * Returns the rows reserved by an enabled dock when the surface is
- * portrait. In landscape the dock takes a column instead, so this
- * returns 0 for the row axis and `paginateCapacityForGrid` shaves a
- * column from gridCols instead.
- */
-export function dockRowsForGrid(
-  gridColumns: number,
-  gridRows: number,
-  dockEnabled: boolean,
-): number {
-  if (!dockEnabled) return 0;
-  void gridColumns; void gridRows;
-  return 1;
-}
-
-/**
- * Builds the page capacity that layoutPage / placement helpers should
- * use for the current orientation. Portrait dock = -1 row; landscape
- * dock = -1 column — UNLESS the surface ships a fixed grid with
- * vertical (portrait) or horizontal (landscape) slack the dock can
- * occupy without stealing a cell from the page. Y70 portrait is the
- * only such surface today: its 4x12 grid leaves enough vertical room
- * for a full dock row below, so a 12-row page stays 12 rows even with
- * the dock active.
- */
-export function paginateCapacityForGrid(
-  gridColumns: number,
-  gridRows: number,
-  dockEnabled: boolean,
-  orientation: 'portrait' | 'landscape',
-  surface?: PanelSurface,
-): PaginateCapacity {
-  if (!dockEnabled) return { gridCols: gridColumns, pageRows: gridRows };
-  if (surface === 'y70' && orientation === 'portrait') {
-    return { gridCols: gridColumns, pageRows: gridRows };
-  }
-  if (orientation === 'landscape') {
-    return { gridCols: Math.max(1, gridColumns - 1), pageRows: gridRows };
-  }
-  return { gridCols: gridColumns, pageRows: Math.max(1, gridRows - 1) };
 }
 
 /** True if rects `a` and `b` intersect. */

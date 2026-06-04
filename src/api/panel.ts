@@ -16,7 +16,6 @@ export interface PanelDeviceCapabilitiesDto {
   surface?: PanelSurface;
   grid?: string;
   touch?: boolean;
-  dock?: boolean;
   orientation?: string;
   cssWidth?: number;
   cssHeight?: number;

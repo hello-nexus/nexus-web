@@ -82,16 +82,9 @@ export interface PanelPage {
   widgets: PanelWidget[];
 }
 
-export interface PanelDock {
-  enabled: boolean;
-  // Persisted across pages. Each entry must be size '1x1'.
-  widgets: PanelWidget[];
-}
-
 export interface PanelLayout {
   layoutSchemaVersion: number;
   surface: PanelSurface;
   pages: PanelPage[];
   activePageId?: string;
-  dock?: PanelDock;
 }
