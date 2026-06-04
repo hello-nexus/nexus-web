@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLongPress } from './useLongPress';
+import { triggerHaptic } from '../panelNativeBridge';
 import type { PanelWidget } from '../types';
 
 const PRESS_MOVE_THRESHOLD = 12;
@@ -86,7 +87,7 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
         pressFeedbackTimerRef.current = null;
         setPressedWidgetId(w.id);
       }
-      triggerContextMenuHaptic();
+      triggerHaptic('medium');
       setCtxMenu({ widget: w, x, y });
     } else {
       clearPressFeedback();
@@ -262,28 +263,3 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
   };
 }
 
-type NativeHapticsWindow = Window & {
-  nexusNative?: {
-    haptic?: (style?: string) => void;
-  };
-  webkit?: {
-    messageHandlers?: {
-      nexusNativeHaptics?: {
-        postMessage?: (message: unknown) => void;
-      };
-    };
-  };
-};
-
-function triggerContextMenuHaptic() {
-  const nativeWindow = window as NativeHapticsWindow;
-  if (typeof nativeWindow.nexusNative?.haptic === 'function') {
-    nativeWindow.nexusNative.haptic('medium');
-    return;
-  }
-  if (typeof nativeWindow.webkit?.messageHandlers?.nexusNativeHaptics?.postMessage === 'function') {
-    nativeWindow.webkit.messageHandlers.nexusNativeHaptics.postMessage('medium');
-    return;
-  }
-  navigator.vibrate?.(10);
-}

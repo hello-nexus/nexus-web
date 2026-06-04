@@ -1,7 +1,8 @@
 import { act, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PanelActionsTray } from './PanelActionsTray';
+import { resetGestureAxis } from './engine/gestureAxisLock';
 
 function Harness() {
   const surfaceRef = useRef<HTMLDivElement | null>(null);
@@ -20,6 +21,8 @@ function Harness() {
 }
 
 describe('PanelActionsTray swipe-to-open', () => {
+  beforeEach(() => resetGestureAxis());
+
   // Regression: the reset effect used to depend on the whole `swipe` object
   // (new every render), so it re-ran on the drag's own re-render and — since
   // `open` stays false until commit — reset the live offset on every touchmove.
@@ -31,14 +34,31 @@ describe('PanelActionsTray swipe-to-open', () => {
     const tray = screen.getByLabelText('Panel actions');
 
     act(() => {
-      // Start above the iOS home-indicator band (>28px from bottom of the
-      // 768px jsdom viewport), then lift 50px up — past ENGAGE_DELTA (8),
-      // vertical-dominant.
+      // Above the iOS home-indicator band (>28px from the 768px jsdom viewport
+      // bottom), lift 50px straight up — past GESTURE_ENGAGE_PX (16) and
+      // clearly vertical-dominant.
       dispatchTouch(surface, 'touchstart', 100, 700, 0);
       dispatchTouch(surface, 'touchmove', 100, 650, 16);
     });
 
     expect(tray).toHaveAttribute('data-state', 'dragging');
+  });
+
+  // A mostly-horizontal swipe (page change) must not pop the tray, even once
+  // it has lifted past the vertical engage distance.
+  it('ignores a horizontal-dominant swipe', () => {
+    render(<Harness />);
+    const surface = screen.getByTestId('surface');
+    const tray = screen.getByLabelText('Panel actions');
+
+    act(() => {
+      // 200px across, only 20px up: past the 16px engage but nowhere near
+      // vertical-dominant, so the tray leaves it to the pager.
+      dispatchTouch(surface, 'touchstart', 100, 700, 0);
+      dispatchTouch(surface, 'touchmove', 300, 680, 16);
+    });
+
+    expect(tray).toHaveAttribute('data-state', 'closed');
   });
 });
 

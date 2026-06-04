@@ -35,6 +35,21 @@ export function isNativeApp() {
     || typeof nativeWindow.webkit?.messageHandlers?.nexusNativeHaptics?.postMessage === 'function';
 }
 
+// Fire a device haptic tick: the iOS app bridge first, then the web Vibration
+// API (Android). No-op on desktop / browsers without either.
+export function triggerHaptic(style: 'light' | 'medium' | 'heavy' = 'medium', fallbackMs = 10) {
+  const nativeWindow = window as NativeSettingsWindow;
+  if (typeof nativeWindow.nexusNative?.haptic === 'function') {
+    nativeWindow.nexusNative.haptic(style);
+    return;
+  }
+  if (typeof nativeWindow.webkit?.messageHandlers?.nexusNativeHaptics?.postMessage === 'function') {
+    nativeWindow.webkit.messageHandlers.nexusNativeHaptics.postMessage(style);
+    return;
+  }
+  navigator.vibrate?.(fallbackMs);
+}
+
 export function useNativeSettingsBridge(enabled: boolean) {
   const [available, setAvailable] = useState(false);
 

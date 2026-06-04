@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { GESTURE_AXIS_DOMINANCE, GESTURE_ENGAGE_PX } from './gestureThresholds';
+import { claimGestureAxis, resetGestureAxis } from './gestureAxisLock';
+import { triggerHaptic } from '../panelNativeBridge';
 
 /**
  * Light upward-swipe gesture that reveals the panel actions tray. Lands
@@ -7,8 +10,10 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
  *  - Defers to widget content scrollers: any touch starting inside an
  *    element marked `[data-panel-scrollable="true"]` is ignored so the
  *    widget keeps owning its vertical scroll (e.g. lighting carousel).
- *  - Defers to the page pager: only engages when the gesture is
- *    primarily vertical-upward (|dy| > |dx| AND dy < 0).
+ *  - Defers to the page pager: engages only on a clearly vertical-up drag
+ *    (dy > |dx| * dominance) and then claims the gesture's axis, so a
+ *    horizontal page swipe is never also read as a tray pull and vice-versa
+ *    (see gestureAxisLock).
  *  - Ignores starts inside the iOS home-indicator handoff band: the
  *    system steals these gestures to background the app, and the
  *    trailing-edge events on return commit the tray. See
@@ -44,7 +49,6 @@ interface TraySwipeResult {
   reset: () => void;
 }
 
-const ENGAGE_DELTA = 8;
 const SETTLE_MS = 220;
 
 export function usePanelTraySwipe({
@@ -97,6 +101,10 @@ export function usePanelTraySwipe({
     let velocity = 0;
     let lastOffset = 0;
     let isDragging = false;
+    // One-shot per gesture: fire a detent haptic the instant the drag crosses
+    // the commit distance (re-armed if it drops back below), so the user feels
+    // the moment the tray is committed to opening.
+    let committedHaptic = false;
     // Set at touchstart - if true, this gesture is yielded for its
     // entire lifetime: either to a widget's own scroller, or because
     // it began inside the iOS home-indicator handoff band. Sticky so
@@ -129,6 +137,9 @@ export function usePanelTraySwipe({
       velocity = 0;
       lastOffset = 0;
       isDragging = false;
+      committedHaptic = false;
+      // A fresh touch releases any axis claim left by the previous gesture.
+      resetGestureAxis();
       clearSettle();
     };
 
@@ -140,8 +151,13 @@ export function usePanelTraySwipe({
       const deltaX = t.clientX - startX;
 
       if (!isDragging) {
-        if (deltaY <= ENGAGE_DELTA) return;
-        if (Math.abs(deltaX) > deltaY) return; // primarily horizontal -> pager
+        if (deltaY <= GESTURE_ENGAGE_PX) return;
+        // Engage only on a clearly vertical-up drag; near-diagonal stays
+        // unclaimed so a mostly-horizontal swipe is left to the pager.
+        if (deltaY <= Math.abs(deltaX) * GESTURE_AXIS_DOMINANCE) return;
+        // Claim the gesture's axis. If the pager already owns it (a swipe that
+        // started horizontal then curved up), yield for the rest of this touch.
+        if (!claimGestureAxis('vertical')) { yielded = true; return; }
         isDragging = true;
         setState('dragging');
       }
@@ -152,9 +168,14 @@ export function usePanelTraySwipe({
         if (dt > 0) velocity = (lastY - t.clientY) / dt; // upward = positive
         lastY = t.clientY;
         lastTime = e.timeStamp;
-        const lifted = Math.max(0, deltaY - ENGAGE_DELTA);
+        const lifted = Math.max(0, deltaY - GESTURE_ENGAGE_PX);
         lastOffset = lifted;
         setOffset(lifted);
+        if (lifted > commitDistanceRef.current) {
+          if (!committedHaptic) { committedHaptic = true; triggerHaptic('medium'); }
+        } else {
+          committedHaptic = false;
+        }
       }
     };
 

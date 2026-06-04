@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { GESTURE_AXIS_DOMINANCE, GESTURE_ENGAGE_PX } from './gestureThresholds';
+import { claimGestureAxis, resetGestureAxis } from './gestureAxisLock';
 
 /**
  * iOS-style horizontal page swipe for PanelPager. Tracks pointer drag
@@ -39,7 +41,6 @@ interface SwipeResult {
   pageWidth: number;
 }
 
-const ENGAGE_DELTA = 8;
 const SETTLE_MS = 240;
 
 export function usePanelHorizontalSwipe({
@@ -112,6 +113,8 @@ export function usePanelHorizontalSwipe({
       velocity = 0;
       lastOffset = 0;
       isDragging = false;
+      // A fresh touch releases any axis claim left by the previous gesture.
+      resetGestureAxis();
       clearSettle();
     };
 
@@ -122,10 +125,13 @@ export function usePanelHorizontalSwipe({
       const deltaY = t.clientY - startY;
 
       if (!isDragging) {
-        if (Math.abs(deltaX) <= ENGAGE_DELTA) return;
-        // Reject the gesture if it's primarily vertical so widget content
-        // scrolling and the bottom-tray swipe win.
-        if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+        if (Math.abs(deltaX) <= GESTURE_ENGAGE_PX) return;
+        // Engage only on a clearly horizontal drag; near-diagonal stays
+        // unclaimed so widget scrolling and the bottom-tray swipe can win.
+        if (Math.abs(deltaX) <= Math.abs(deltaY) * GESTURE_AXIS_DOMINANCE) return;
+        // Claim the gesture's axis; if the tray already owns it (a swipe that
+        // started vertical then curved sideways), leave this gesture alone.
+        if (!claimGestureAxis('horizontal')) return;
         isDragging = true;
         setState('dragging');
       }
@@ -137,7 +143,7 @@ export function usePanelHorizontalSwipe({
         lastX = t.clientX;
         lastTime = e.timeStamp;
         const sign = deltaX < 0 ? -1 : 1;
-        const magnitude = Math.max(0, Math.abs(deltaX) - ENGAGE_DELTA);
+        const magnitude = Math.max(0, Math.abs(deltaX) - GESTURE_ENGAGE_PX);
         let signed = sign * magnitude;
         // Edge resistance: at the first or last page, halve the offset
         // past the edge so the user feels the wall.
