@@ -8,8 +8,12 @@ interface ConfirmModalProps {
   title: string;
   /** Body text. May contain plain newlines; they are rendered as paragraph breaks. */
   message: string;
+  /** Optional bulleted list rendered below the message (e.g. items affected). */
+  bullets?: string[];
   /** Optional secondary hint rendered in a dimmed block below the main message. */
   note?: string;
+  /** 'danger' renders the note as a red-bordered callout with red text. */
+  noteTone?: 'default' | 'danger';
   confirmLabel?: string;
   cancelLabel?: string;
   /** Style the confirm button as destructive (red). Default true since this is used for deletes. */
@@ -30,7 +34,9 @@ export function ConfirmModal({
   open,
   title,
   message,
+  bullets,
   note,
+  noteTone = 'default',
   confirmLabel,
   cancelLabel,
   destructive = true,
@@ -54,7 +60,12 @@ export function ConfirmModal({
       <h2 className={styles.title}>{title}</h2>
       <div className={styles.body}>
         {paragraphs.map((p, i) => <p key={i} className={styles.text}>{p}</p>)}
-        {note && <p className={styles.note}>{note}</p>}
+        {bullets && bullets.length > 0 && (
+          <ul className={styles.bullets}>
+            {bullets.map((b, i) => <li key={i}>{b}</li>)}
+          </ul>
+        )}
+        {note && <p className={noteTone === 'danger' ? styles.noteDanger : styles.note}>{note}</p>}
       </div>
       <div className={styles.actions}>
         <button ref={cancelRef} type="button" className={styles.cancelBtn} onClick={onCancel}>

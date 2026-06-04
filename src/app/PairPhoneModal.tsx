@@ -70,12 +70,9 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
 }) {
   const { t } = useTranslation();
   const connected = connectedCount > 0;
-  // remoteEnabled === false beats connected-count: with the killswitch OFF
-  // the dot is amber regardless of paired count, since none can reach the
-  // system.
-  const dotState: 'off' | 'paired' | 'connected' = !remoteEnabled
-    ? 'paired'
-    : connected ? 'connected' : 'off';
+  // When remote is OFF the dot and the connected-count are hidden entirely
+  // (nothing can connect), so the dot only ever reflects connected/idle.
+  const dotState: 'off' | 'connected' = connected ? 'connected' : 'off';
   const countLabel = remoteEnabled
     ? formatConnectedDevices(connectedCount, t)
     : t('phonePair.killswitch.offLabel');
@@ -89,12 +86,12 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
     >
       <span className={styles.phonePairIcon}>
         <Smartphone size={16} />
-        <span className={styles.phonePairDot} data-state={dotState} />
+        {remoteEnabled && <span className={styles.phonePairDot} data-state={dotState} />}
       </span>
       {!compact && (
         <>
           <span className={styles.phonePairTitle}>{t('phonePair.title')}</span>
-          <span className={styles.phonePairState}>{countLabel}</span>
+          {remoteEnabled && <span className={styles.phonePairState}>{countLabel}</span>}
         </>
       )}
     </button>
