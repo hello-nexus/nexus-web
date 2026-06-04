@@ -25,6 +25,18 @@
   max-width: var(--page-content-max);
 }
 
+// A labelled cluster of settings rows under a SectionHeader. Spacing above
+// separates one group from the next; the first group sits flush with the top.
+.settingsGroup {
+  display: flex;
+  flex-direction: column;
+  margin-top: 1.75rem;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
 // ── Unified row ──────────────────────────────────────────────────────────────
 
 .row {

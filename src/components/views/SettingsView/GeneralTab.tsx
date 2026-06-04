@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../common/Button/Button';
+import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { SettingRow, SettingToggle, SettingSelect } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
@@ -91,102 +92,134 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     window.close();
   };
 
+  // Reveal the logs folder (service.log, plus desktop-host.log on Windows) in
+  // the OS file manager so testers can grab them for a bug report. Loopback-only
+  // endpoint — acts on the local machine.
+  const openLogs = async () => {
+    await postService('/diagnostics/open-logs', {});
+  };
+
   return (
     <div className={styles.tabPanel}>
-      <SettingSelect
-        label={t('settings.language')}
-        value={settings.general.language}
-        options={LANGUAGES.map(l => ({ value: l, label: `${LANGUAGE_FLAGS[l]}  ${LANGUAGE_LABELS[l]}` }))}
-        onChange={v => updateGeneral({ language: v as Language })}
-      />
-
-      {platform === 'windows' && autoStart !== null && (
-        <SettingToggle
-          label={t('settings.systemStartup.label')}
-          description={t('settings.systemStartup.description')}
-          checked={autoStart}
-          onChange={toggleAutoStart}
-          disabled={!serviceOnline || autoStartLoading}
+      <div className={styles.settingsGroup}>
+        <SectionHeader>General</SectionHeader>
+        <SettingSelect
+          label={t('settings.language')}
+          value={settings.general.language}
+          options={LANGUAGES.map(l => ({ value: l, label: `${LANGUAGE_FLAGS[l]}  ${LANGUAGE_LABELS[l]}` }))}
+          onChange={v => updateGeneral({ language: v as Language })}
         />
+        <SettingToggle
+          label={t('settings.alerts.label')}
+          description={t('settings.alerts.description')}
+          checked={settings.general.disableConflictAlerts}
+          onChange={() => updateGeneral({ disableConflictAlerts: !settings.general.disableConflictAlerts })}
+        />
+      </div>
+
+      {(platform === 'windows' || platform === 'macos') && (
+        <div className={styles.settingsGroup}>
+          <SectionHeader>Startup &amp; tray</SectionHeader>
+          {platform === 'windows' && autoStart !== null && (
+            <SettingToggle
+              label={t('settings.systemStartup.label')}
+              description={t('settings.systemStartup.description')}
+              checked={autoStart}
+              onChange={toggleAutoStart}
+              disabled={!serviceOnline || autoStartLoading}
+            />
+          )}
+          {platform === 'windows' && (
+            <SettingToggle
+              label={t('settings.windowsTray.label')}
+              description={t('settings.windowsTray.description')}
+              checked={settings.general.showWindowsTrayIcon}
+              onChange={() => updateGeneral({ showWindowsTrayIcon: !settings.general.showWindowsTrayIcon })}
+            />
+          )}
+          {platform === 'macos' && (
+            <SettingToggle
+              label={t('settings.macStatusBar.label')}
+              description={t('settings.macStatusBar.description')}
+              checked={settings.general.showMacStatusBarIcon}
+              onChange={() => updateGeneral({ showMacStatusBarIcon: !settings.general.showMacStatusBarIcon })}
+            />
+          )}
+        </div>
       )}
 
-      <SettingToggle
-        label={t('settings.alerts.label')}
-        description={t('settings.alerts.description')}
-        checked={settings.general.disableConflictAlerts}
-        onChange={() => updateGeneral({ disableConflictAlerts: !settings.general.disableConflictAlerts })}
-      />
-
-      {platform === 'macos' && (
-        <SettingToggle
-          label={t('settings.macStatusBar.label')}
-          description={t('settings.macStatusBar.description')}
-          checked={settings.general.showMacStatusBarIcon}
-          onChange={() => updateGeneral({ showMacStatusBarIcon: !settings.general.showMacStatusBarIcon })}
-        />
-      )}
-
-      {platform === 'windows' && (
-        <SettingToggle
-          label={t('settings.windowsTray.label')}
-          description={t('settings.windowsTray.description')}
-          checked={settings.general.showWindowsTrayIcon}
-          onChange={() => updateGeneral({ showWindowsTrayIcon: !settings.general.showWindowsTrayIcon })}
-        />
-      )}
-
-      <SettingRow
-        label={t('settings.screentime.title')}
-        description={t('settings.screentime.trackingDesc')}
-      >
-        <Button
-          type="button"
-          tone="neutral"
-          size="sm"
-          onClick={() => setScreenTimeOpen(true)}
-          disabled={!serviceOnline}
-        >
-          {t('settings.screentime.openButton')}
-        </Button>
-      </SettingRow>
-
-      {telemetryOn !== null && (
-        <SettingToggle
-          label="Share anonymous usage data"
-          description="Helps us make Nexus better. Always anonymous and encrypted."
-          checked={telemetryOn}
-          onChange={toggleTelemetry}
-          disabled={!serviceOnline || telemetryLoading}
-        />
-      )}
-
-      <SettingRow label={t('settings.feedback')}>
-        <a
-          className={styles.rowButton}
-          href="https://github.com/hello-nexus/nexus-service/issues"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t('settings.feedback.report')}
-        </a>
-      </SettingRow>
-
-      {platform === 'windows' && (
+      <div className={styles.settingsGroup}>
+        <SectionHeader>Privacy</SectionHeader>
+        {telemetryOn !== null && (
+          <SettingToggle
+            label="Share anonymous usage data"
+            description="Helps us make Nexus better. Always anonymous and encrypted."
+            checked={telemetryOn}
+            onChange={toggleTelemetry}
+            disabled={!serviceOnline || telemetryLoading}
+          />
+        )}
         <SettingRow
-          label={t('settings.shutDown.label')}
-          description={flashing ? t('settings.shutDown.flashBlocked') : t('settings.shutDown.description')}
+          label={t('settings.screentime.title')}
+          description={t('settings.screentime.trackingDesc')}
         >
           <Button
             type="button"
-            tone="danger"
+            tone="neutral"
             size="sm"
-            onClick={() => setStopConfirmOpen(true)}
-            disabled={!serviceOnline || stopping || flashing}
+            onClick={() => setScreenTimeOpen(true)}
+            disabled={!serviceOnline}
           >
-            {t('settings.shutDown.button')}
+            {t('settings.screentime.openButton')}
           </Button>
         </SettingRow>
-      )}
+      </div>
+
+      <div className={styles.settingsGroup}>
+        <SectionHeader>Diagnostics &amp; support</SectionHeader>
+        <SettingRow
+          label="Logs"
+          description="Open the folder with Nexus log files to share for diagnostics"
+        >
+          <Button
+            type="button"
+            tone="neutral"
+            size="sm"
+            onClick={openLogs}
+            disabled={!serviceOnline}
+          >
+            Open logs folder
+          </Button>
+        </SettingRow>
+
+        <SettingRow label={t('settings.feedback')}>
+          <a
+            className={styles.rowButton}
+            href="https://github.com/hello-nexus/nexus-service/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('settings.feedback.report')}
+          </a>
+        </SettingRow>
+
+        {platform === 'windows' && (
+          <SettingRow
+            label={t('settings.shutDown.label')}
+            description={flashing ? t('settings.shutDown.flashBlocked') : t('settings.shutDown.description')}
+          >
+            <Button
+              type="button"
+              tone="danger"
+              size="sm"
+              onClick={() => setStopConfirmOpen(true)}
+              disabled={!serviceOnline || stopping || flashing}
+            >
+              {t('settings.shutDown.button')}
+            </Button>
+          </SettingRow>
+        )}
+      </div>
 
       <ConfirmModal
         open={stopConfirmOpen}
