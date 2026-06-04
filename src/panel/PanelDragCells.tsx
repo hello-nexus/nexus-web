@@ -116,11 +116,9 @@ export function PanelTouchCell({
   onSelectSlot,
   clickthrough = false,
   onContextMenu,
-  onRearrangeTap,
   cellPointers,
   onSimulatorClick,
   previewLayout = null,
-  anyDragging = false,
   onSectionNavigate,
   onConfigureWidget,
 }: {
@@ -138,7 +136,6 @@ export function PanelTouchCell({
   onSelectSlot?: (slot: number) => void;
   clickthrough?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
-  onRearrangeTap: (e: React.MouseEvent) => void;
   cellPointers: {
     onPointerDown: (e: React.PointerEvent) => void;
     onPointerMove: (e: React.PointerEvent) => void;
@@ -147,7 +144,6 @@ export function PanelTouchCell({
   };
   onSimulatorClick?: () => void;
   previewLayout?: PanelLayout | null;
-  anyDragging?: boolean;
   onSectionNavigate?: DashboardSectionNavigate;
   onConfigureWidget?: (widget: PanelWidget) => void;
 }) {
@@ -253,9 +249,8 @@ export function PanelTouchCell({
         onContextMenu={onContextMenu}
         {...attributes}
         {...listeners}
-        onClick={onRearrangeTap}
       >
-        <div className={`panel-card ${styles.cell} ${anyDragging ? '' : styles.cellRearranging}`} data-size={widget.size}>
+        <div className={`panel-card ${styles.cell}`} data-size={widget.size}>
           <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
             <Comp widget={widget} surface={surface} />
           </div>
