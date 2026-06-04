@@ -6,24 +6,32 @@
 // IMPORTANT: never intercept localhost — the local Nexus service must hit the
 // network directly so the SPA can detect it going up/down in real time.
 
-const CACHE_VERSION = 'nexus-web-v133-splash-offline';
+const CACHE_VERSION = 'nexus-web-v134-no-skipwaiting';
 const SHELL_URLS = ['/', '/index.html', '/favicon.svg', '/favicon.ico', '/icons.svg', '/manifest.webmanifest', '/panel-phone.webmanifest', '/fonts/lexend/lexend-latin.woff2'];
 
 self.addEventListener('install', (event) => {
+  // No skipWaiting(): a freshly-installed worker WAITS instead of jumping the
+  // queue to activate while a tab is open. Safari/WebKit intermittently treats
+  // a byte-identical sw.js as an update and re-installs it on nearly every load;
+  // with skipWaiting that re-install immediately activated + claimed, firing
+  // controllerchange, which the page turned into a window.location.reload() —
+  // an endless reload loop (seen on Safari mac/iOS, never Chromium). Letting the
+  // new worker wait means the controller never changes mid-session, so the loop
+  // can't form. The update is picked up on the next cold load (all tabs closed).
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) => cache.addAll(SHELL_URLS))
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  // Drop stale caches, then take over fetches for already-open pages.
-  // Do NOT force a navigate() on existing windows: that double-fires
-  // the SPA mount on URLs that carry one-shot tokens (e.g. the phone
-  // pair flow at /panel/phone?pair=...), making the second claim attempt
-  // see the consumed token and surface a misleading "expired" error.
-  // Navigations are network-first below, so users still pick up shell
-  // updates on the next manual navigation without us reloading them here.
+  // Runs only once this worker actually becomes active (next cold load, since we
+  // no longer skipWaiting). Drop stale caches, then claim so this load's page is
+  // controlled for offline. Any controllerchange this triggers happens at most
+  // once per cold load and is capped to a single reload by main.tsx — it can no
+  // longer recur mid-session, so no loop.
+  // Do NOT force a navigate() on existing windows: that double-fires the SPA
+  // mount on URLs carrying one-shot tokens (e.g. /panel/phone?pair=...), making
+  // the second claim see the consumed token and surface a bogus "expired" error.
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)))

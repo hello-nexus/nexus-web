@@ -40,16 +40,32 @@ if (
     location.hostname === 'localhost' ||
     location.hostname.endsWith('.localhost'))
 ) {
+  // Per-tab flag (auto-cleared when the tab closes) recording that we've already
+  // done the post-update reload once in this tab.
+  const SW_RELOADED_KEY = 'nexus_sw_reloaded';
+  const readReloaded = () => {
+    try { return sessionStorage.getItem(SW_RELOADED_KEY) === '1'; } catch { return false; }
+  };
+
   // Reload to pick up a new SW build ONLY on a real update — i.e. when a
   // controller ALREADY exists and is later replaced. On a first visit there is
   // no controller yet, and the SW's initial activation also fires
   // controllerchange; reloading then restarts the page mid-session (e.g. during
   // QR pairing), which churns the relay connection and intermittently breaks
   // pairing. Gating on an existing controller skips that first-visit reload.
-  // `{ once: true }` auto-removes after firing, so no manual `refreshing` guard
-  // is needed.
-  if (navigator.serviceWorker.controller) {
+  //
+  // Bounded to ONCE per tab. `{ once: true }` only stops a re-fire within a
+  // single page load; the listener is re-armed on every load. Safari/WebKit can
+  // fire controllerchange on essentially every load (it intermittently treats a
+  // byte-identical sw.js as updated and re-activates it), so without a guard
+  // that survives the reload the page reloads forever — the loop reported on
+  // Safari mac/iOS. The sessionStorage flag persists across reloads within the
+  // tab, so the second controllerchange is a no-op and the loop can't form. The
+  // SW no longer self-activates mid-session (see sw.js), so in practice this now
+  // rarely fires at all; it stays as a hard cap.
+  if (navigator.serviceWorker.controller && !readReloaded()) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+      try { sessionStorage.setItem(SW_RELOADED_KEY, '1'); } catch { /* storage blocked */ }
       window.location.reload();
     }, { once: true });
   }

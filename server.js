@@ -1,7 +1,7 @@
 import express from 'express';
 import compression from 'compression';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { basename, dirname, join, sep } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -72,11 +72,47 @@ app.get(['/download/mac', '/download/macos', '/downloads/mac', '/downloads/macos
   (_req, res) => redirectToAsset(res, 'macos'));
 app.get(['/download/linux', '/downloads/linux'], (_req, res) => redirectToChooser(res));
 
-app.use(express.static(join(__dirname, 'dist'), { maxAge: '1d' }));
+app.use(express.static(join(__dirname, 'dist'), {
+  maxAge: '1d',
+  setHeaders: (res, filePath) => {
+    // Vite emits content-hashed build outputs FLAT in dist/assets/ (e.g.
+    // index-B3qUJaPz.js); the URL changes whenever the bytes do, so cache them
+    // forever. Files copied verbatim from public/ keep their sub-path with a
+    // STABLE name (e.g. /assets/devices/y70.svg) — those must NOT be immutable
+    // or an icon edit is stuck stale for a year. So: immutable only for a direct
+    // child of /assets/, never a nested verbatim copy.
+    const assetsAt = filePath.indexOf(`${sep}assets${sep}`);
+    if (assetsAt !== -1) {
+      const rest = filePath.slice(assetsAt + `${sep}assets${sep}`.length);
+      if (!rest.includes(sep)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        return;
+      }
+      // nested copy (assets/devices/*.svg) → fall through to the maxAge default.
+    }
+    // sw.js, the SPA shell, and the manifests MUST always be revalidated.
+    // sw.js is the one that matters: served with a long max-age (the old blanket
+    // 1d) it gets pinned by the browser/CDN, and Safari's SW update check then
+    // re-activates a stale/duplicate worker on nearly every load, firing
+    // controllerchange → window.location.reload() in an endless loop. no-cache
+    // forces a conditional revalidation against origin every time so the worker
+    // the browser holds is always the current one.
+    const name = basename(filePath);
+    if (name === 'sw.js' || name === 'index.html' || name.endsWith('.webmanifest')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+    // Everything else (favicon, icons.svg, fonts, device SVGs) keeps the
+    // maxAge:'1d' default set above — unchanged from prior behavior.
+  },
+}));
 // Express 5 / send v1+ requires an explicit `root` option for sendFile,
 // otherwise absolute paths come back with a NotFoundError even when the
 // file exists. The SPA catchall was returning 404 for every deep link
-// (e.g. /my-computer/devices) without it.
-app.get('/{*path}', (_req, res) => res.sendFile('index.html', { root: join(__dirname, 'dist') }));
+// (e.g. /my-computer/devices) without it. The shell must revalidate (see
+// above) so a stale index.html never points at purged asset hashes.
+app.get('/{*path}', (_req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile('index.html', { root: join(__dirname, 'dist') });
+});
 
 app.listen(port, () => console.log(`nexus-web on port ${port}`));
