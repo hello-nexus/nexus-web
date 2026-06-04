@@ -51,13 +51,18 @@ export function PanelActionsTray({
     onCommit: handleCommit,
   });
 
-  // Reset internal swipe state when the tray closes externally OR when
-  // the host disables interactions mid-gesture - otherwise the hook tears
-  // down its touch listeners without ever firing onEnd, leaving 'dragging'
-  // and a non-zero offset latched and the scrim half-dimmed.
+  // Reset internal swipe state only on the transition into closed/disabled —
+  // e.g. the tray dismissed externally or interactions disabled mid-gesture,
+  // which tear down the hook's listeners without firing onEnd and leave
+  // 'dragging' + a non-zero offset latched. Depend on the stable `reset`, NOT
+  // the whole `swipe` object (new every render): the object form re-ran this
+  // effect each render and, since `open` is false for the entire pre-commit
+  // drag, reset the live offset on every touchmove — the tray would reveal,
+  // snap back to the bottom, and only animate up from scratch on release.
+  const { reset: resetSwipe } = swipe;
   useEffect(() => {
-    if (!open || disabled) swipe.reset();
-  }, [open, disabled, swipe]);
+    if (!open || disabled) resetSwipe();
+  }, [open, disabled, resetSwipe]);
 
   const dragging = swipe.state === 'dragging' && !open && !pinnedOpen;
   // 80 is the "tray fully revealed" point, decoupled from commitDistancePx
