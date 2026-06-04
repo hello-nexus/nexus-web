@@ -36,10 +36,6 @@ import { calculatorApp } from './calculator';
 import { iframeApp } from './iframe';
 import { twitchApp } from './twitch';
 import { macrosApp } from './macros';
-import { snakeApp } from './snake';
-import { blocksApp } from './blocks';
-import { aquariumApp } from './aquarium';
-import { whiteboardApp } from './whiteboard';
 import { emojiApp } from './emoji';
 import { galleryApp } from './gallery';
 import { pairingApp } from './pairing';
@@ -65,10 +61,6 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   iframe:     iframeApp,
   twitch:     twitchApp,
   macros:     macrosApp,
-  snake:      snakeApp,
-  blocks:     blocksApp,
-  aquarium:   aquariumApp,
-  whiteboard: whiteboardApp,
   emoji:      emojiApp,
   gallery:    galleryApp,
   pairing:    pairingApp,

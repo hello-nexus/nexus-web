@@ -22,9 +22,9 @@ vi.mock('../widgets/registry', () => {
         touch: false,
       },
     },
-    snake: {
+    lighting: {
       meta: {
-        i18nKey: 'panel.widget.snake',
+        i18nKey: 'panel.widget.lighting',
         sizes: ['4x4'],
         touch: true,
       },
@@ -92,12 +92,12 @@ describe('PanelWidgetCatalog', () => {
 
     expect(screen.getByRole('button', { name: 'panel.widget.clock' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'panel.widget.media' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'panel.widget.snake' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.widget.lighting' })).toBeNull();
   });
 
   it('shows touch-only widgets on touch surfaces', () => {
     render(<PanelWidgetCatalog surface="y70" onAdd={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'panel.widget.snake' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toBeInTheDocument();
   });
 });
