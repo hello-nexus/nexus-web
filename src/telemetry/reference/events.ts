@@ -80,7 +80,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     source: 'service',
     description: 'A cooling preset was applied from the panel (POST /cooling/profile/{name}) — the fan-mode widget.',
     params: [
-      { name: 'preset', type: 'string', required: true, description: 'Preset the user picked: silent, balanced, turbo, or off.' },
+      { name: 'preset', type: 'string', required: true, description: 'The applied preset — a built-in name (silent, balanced, turbo, …), a custom curve name, or "off".' },
     ],
   },
   {
