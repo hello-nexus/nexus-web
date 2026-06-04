@@ -58,6 +58,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
       <div className={styles.grid}>
         <StorybookCard />
         <WidgetSdkCard />
+        <TelemetryEventsCard />
         <InstallDefaultsCard />
         <PawnIoCard />
         <PanelSimulatorCard />
@@ -98,6 +99,24 @@ function WidgetSdkCard() {
       </span>
       <Button tone="accent" size="sm" onClick={() => {
         window.open('/widget-reference', '_blank', 'noopener,noreferrer');
+      }}>Open reference</Button>
+    </Card>
+  );
+}
+
+/**
+ * Telemetry events reference card. Opens /telemetry-reference — every product
+ * event sent to PostHog, what it means, when it fires, and its parameters.
+ */
+function TelemetryEventsCard() {
+  return (
+    <Card title="Telemetry events">
+      <span className={styles.dim}>
+        Every product-analytics event the app sends to PostHog — what it records, when it
+        fires, and its parameters. The API lookup for our telemetry.
+      </span>
+      <Button tone="accent" size="sm" onClick={() => {
+        window.open('/telemetry-reference', '_blank', 'noopener,noreferrer');
       }}>Open reference</Button>
     </Card>
   );

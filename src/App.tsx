@@ -1,5 +1,6 @@
 import { PairRedirect } from './PairRedirect';
 import { WidgetReferenceWrapper } from './widgets/reference/WidgetReference';
+import { TelemetryReference } from './telemetry/reference/TelemetryReference';
 import { SnapshotHarness } from './__snapshots__/legacy-weather/SnapshotHarness';
 import { I18nProvider } from './lib/i18n';
 import { SIMULATOR_QUERY_FLAG } from './panel/embed/simulatorProtocol';
@@ -68,6 +69,16 @@ export default function App() {
     return (
       <I18nProvider>
         <WidgetReferenceWrapper />
+      </I18nProvider>
+    );
+  }
+
+  // Product-telemetry event catalog (what we send to PostHog), opened from the
+  // Dev tools page.
+  if (path === '/telemetry-reference') {
+    return (
+      <I18nProvider>
+        <TelemetryReference />
       </I18nProvider>
     );
   }

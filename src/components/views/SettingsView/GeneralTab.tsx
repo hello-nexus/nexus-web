@@ -26,6 +26,10 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [screenTimeOpen, setScreenTimeOpen] = useState(false);
+  // Telemetry consent is server-authoritative (the service gates sending), so
+  // it's fetched/written directly like auto-start, not via the local UI store.
+  const [telemetryOn, setTelemetryOn] = useState<boolean | null>(null);
+  const [telemetryLoading, setTelemetryLoading] = useState(false);
   // Block shutdown while a firmware flash is running — stopping the service
   // mid-flash would strand the device in the DFU bootloader. (The service
   // also refuses /service/stop during a flash; this mirrors it in the UI.)
@@ -56,6 +60,27 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     });
     if (resp) setAutoStart(resp.autoStart);
     setAutoStartLoading(false);
+  };
+
+  // Hydrate the telemetry opt-in from the loopback-only consent endpoint. Stays
+  // null (toggle hidden) on surfaces that can't reach it, e.g. a paired phone.
+  useEffect(() => {
+    if (!serviceOnline) return;
+    let cancelled = false;
+    fetchService<{ enabled: boolean }>('/telemetry/consent').then(data => {
+      if (data && !cancelled) setTelemetryOn(data.enabled);
+    });
+    return () => { cancelled = true; };
+  }, [serviceOnline]);
+
+  const toggleTelemetry = async () => {
+    if (telemetryOn === null) return;
+    setTelemetryLoading(true);
+    const resp = await postService<{ enabled: boolean }>('/telemetry/consent', {
+      enabled: !telemetryOn,
+    });
+    if (resp) setTelemetryOn(resp.enabled);
+    setTelemetryLoading(false);
   };
 
   const shutDown = async () => {
@@ -124,6 +149,16 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           {t('settings.screentime.openButton')}
         </Button>
       </SettingRow>
+
+      {telemetryOn !== null && (
+        <SettingToggle
+          label="Share anonymous usage data"
+          description="Helps us make Nexus better. Always anonymous and encrypted."
+          checked={telemetryOn}
+          onChange={toggleTelemetry}
+          disabled={!serviceOnline || telemetryLoading}
+        />
+      )}
 
       <SettingRow label={t('settings.feedback')}>
         <a
