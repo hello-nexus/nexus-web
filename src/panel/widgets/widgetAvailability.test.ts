@@ -17,10 +17,10 @@ describe('surfaceSupportsTouch', () => {
 
 describe('appAvailableForSurface', () => {
   it('hides touch-required widgets on q60', () => {
-    const snake = APP_REGISTRY.snake;
-    expect(appAvailableForSurface(snake.meta, 'y70')).toBe(true);
-    expect(appAvailableForSurface(snake.meta, 'phone')).toBe(true);
-    expect(appAvailableForSurface(snake.meta, 'q60')).toBe(false);
+    const lighting = APP_REGISTRY.lighting;
+    expect(appAvailableForSurface(lighting.meta, 'y70')).toBe(true);
+    expect(appAvailableForSurface(lighting.meta, 'phone')).toBe(true);
+    expect(appAvailableForSurface(lighting.meta, 'q60')).toBe(false);
   });
 
   it('shows non-touch widgets on every surface that fits a size', () => {
@@ -91,10 +91,6 @@ describe('appAvailableForSurface', () => {
       'calculator',
       'cooling',
       'macros',
-      'snake',
-      'blocks',
-      'aquarium',
-      'whiteboard',
       'emoji',
     ];
     for (const type of expectedTouch) {
