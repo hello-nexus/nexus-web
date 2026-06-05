@@ -138,7 +138,6 @@ function makeMarketplaceAppManifest(
       icon: Boxes,
       sizes: safeSizes,
       defaultSize,
-      pickerSize: defaultSize,
       supportsImmersive: { portrait: false, landscape: false },
       hasConfig: true,
       touch: false,
@@ -167,28 +166,24 @@ export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurfac
   return meta.sizes.filter(s => !SINGLE_WIDGET_SIZES.has(s));
 }
 
-// Size to use in the add-widget picker (preview + insertion size).
-// Honors an explicit `pickerSize`; otherwise picks the smallest
-// sensible — 1x1 then 2x2 then 4x2 then 4x4 — so newly added widgets
-// stay compact.
-//
-// When the target surface is a single-widget surface (e.g. Q60 locked
-// to 2x4), `sizesForSurface` already collapses to just that one entry.
-// We short-circuit on that case so the locked size always wins,
-// regardless of whether it appears in the small-first priority list
-// — otherwise widgets fall through to meta.defaultSize, which is
-// almost always wrong for that surface (e.g. Clock's 4x2 default
-// rendering as a wide tile in a 2x4-locked catalog).
+// Size for the add-widget picker (preview + insertion size). An explicit
+// `pickerSize` wins; otherwise the larger of the common 2x2/4x2 pair (4x2),
+// falling back to a widget's sole supported size (4x4 / 2x2 / 1x1). This
+// drives the variable-size catalog tiles. Single-widget surfaces (Q60,
+// locked to 2x4) short-circuit: `sizesForSurface` already collapsed to the
+// one allowed size.
 export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface): PanelWidgetSize {
   const sizes = sizesForSurface(meta, surface);
   if (surface && singleWidgetSurfaceSize(surface) && sizes.length > 0) {
     return sizes[0];
   }
   if (meta.pickerSize && sizes.includes(meta.pickerSize)) return meta.pickerSize;
-  if (sizes.includes('1x1')) return '1x1';
-  if (sizes.includes('2x2')) return '2x2';
   if (sizes.includes('4x2')) return '4x2';
+  if (sizes.length === 1) return sizes[0];
+  // Mixed sizes without 4x2 (e.g. 2x2 + 4x4) — no current widget produces
+  // this; prefer the larger as a defensive default.
   if (sizes.includes('4x4')) return '4x4';
+  if (sizes.includes('2x2')) return '2x2';
   return meta.defaultSize;
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isSingleWidgetSurface, surfaceSupportsTouch } from '../types';
-import { sizesForSurface, APP_REGISTRY, appAvailableForSurface } from './registry';
+import { sizesForSurface, APP_REGISTRY, appAvailableForSurface, pickerSizeFor } from './registry';
 import enLocale from '../../locales/en.json';
 
 describe('surfaceSupportsTouch', () => {
@@ -140,6 +140,41 @@ describe('sizesForSurface', () => {
   it('returns the manifest sizes verbatim when no surface is passed', () => {
     const monitoring = APP_REGISTRY.monitoring;
     expect(sizesForSurface(monitoring.meta)).toEqual([...monitoring.meta.sizes]);
+  });
+});
+
+describe('pickerSizeFor', () => {
+  // Multi-widget rule: prefer the larger of the 2x2/4x2 pair (4x2); fall back
+  // to a widget's sole supported size (4x4 / 2x2 / 1x1). Drives the variable
+  // tile sizes in the proportional catalog.
+  it('prefers 4x2 when a widget supports it', () => {
+    for (const type of ['clock', 'cooling', 'iframe', 'lighting', 'obs',
+                        'screentime', 'gallery', 'media', 'displays',
+                        'stopwatch', 'timer', 'monitoring']) {
+      const def = APP_REGISTRY[type];
+      expect(def.meta.sizes, `${type} should declare 4x2`).toContain('4x2');
+      expect(pickerSizeFor(def.meta, 'y70'), `${type} on y70`).toBe('4x2');
+    }
+  });
+
+  it('falls back to a sole supported size when 4x2 is unavailable', () => {
+    // 4x4-only widgets, 2x2-only pairing, 1x1-only macros.
+    expect(pickerSizeFor(APP_REGISTRY.calculator.meta, 'y70')).toBe('4x4');
+    expect(pickerSizeFor(APP_REGISTRY.steam.meta, 'y70')).toBe('4x4');
+    expect(pickerSizeFor(APP_REGISTRY.pairing.meta, 'y70')).toBe('2x2');
+    expect(pickerSizeFor(APP_REGISTRY.macros.meta, 'y70')).toBe('1x1');
+  });
+
+  it('drops 2x4 first, then applies the rule (twitch becomes 4x4)', () => {
+    // twitch declares ['2x4', '4x4']; 2x4 is reserved for q60, so on y70 only
+    // 4x4 remains -> the sole-size fallback returns 4x4.
+    expect(APP_REGISTRY.twitch.meta.sizes).toEqual(['2x4', '4x4']);
+    expect(pickerSizeFor(APP_REGISTRY.twitch.meta, 'y70')).toBe('4x4');
+  });
+
+  it('locks to the single size on q60 regardless of the rule', () => {
+    expect(pickerSizeFor(APP_REGISTRY.clock.meta, 'q60')).toBe('2x4');
+    expect(pickerSizeFor(APP_REGISTRY.monitoring.meta, 'q60')).toBe('2x4');
   });
 });
 

@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import { sizeToSpan } from './engine/grid';
 import { lookupApp } from './widgets/registry';
 import { WidgetCellLabel } from './widgets/common/WidgetCellLabel';
+import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { useTranslation } from '../lib/i18n';
 import type { PanelLayout, PanelSurface, PanelWidget } from './types';
 import { findWidgetById, readCellMetrics, type DashboardSectionNavigate } from './panelLayoutHelpers';
@@ -348,6 +349,64 @@ export function PanelTouchCell({
   }
 
   return cellNode;
+}
+
+// Non-interactive panel cell for the add-widget catalog. Reuses the exact
+// grid placement, card, content scaler, and label-strip the live panel uses,
+// so the catalog inherits the panel's scaling and label sizing instead of a
+// bespoke preview. Placed by (col, row) the catalog packs via appendWidget.
+export function PanelCatalogCell({
+  widget,
+  surface,
+  label,
+  selected = false,
+  onClick,
+}: {
+  widget: PanelWidget;
+  surface?: PanelSurface;
+  label: string;
+  selected?: boolean;
+  onClick?: () => void;
+}) {
+  const def = lookupApp(widget.type);
+  const span = sizeToSpan(widget.size);
+  if (!def) return null;
+  const Comp = def.Widget;
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onClick();
+    }
+  };
+  return (
+    <div
+      data-panel-widget-id={widget.id}
+      className={`${styles.cellWrap} ${styles.catalogCell} ${selected ? styles.catalogCellSelected : ''}`}
+      style={{
+        gridColumn: `${widget.col + 1} / span ${span.cols}`,
+        gridRow: `${widget.row + 1} / span ${span.rows}`,
+        '--panel-span-cols': span.cols,
+        '--panel-span-rows': span.rows,
+      } as CSSProperties}
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      aria-pressed={selected || undefined}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+    >
+      <div className={`panel-card ${styles.cell}`} data-size={widget.size}>
+        <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
+          <ErrorBoundary label={widget.type}>
+            <Comp widget={widget} surface={surface} />
+          </ErrorBoundary>
+        </div>
+      </div>
+      <div className={styles.cellLabelStrip}>
+        <WidgetCellLabel label={label} />
+      </div>
+    </div>
+  );
 }
 
 // Renders inside @dnd-kit's DragOverlay (portaled to body). Carries the panel

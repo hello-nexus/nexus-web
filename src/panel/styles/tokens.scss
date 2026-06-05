@@ -65,8 +65,12 @@
   // before the label dominates very large cells.
   --panel-widget-label-strip: clamp(18px, calc(var(--panel-cell-size, 172px) * 0.15), 28px);
   --panel-widget-label-font-size: clamp(12px, calc(var(--panel-cell-size, 172px) * 0.10), 18px);
-  --panel-widget-card-margin-x: 6px;
-  --panel-widget-card-bottom-gap: 4px;
+  // Widget content fills its grid cell edge-to-edge on every surface (the only
+  // separation between widgets is --panel-gap). Cells are separated by the grid
+  // gap, not a per-card margin, so a widget's background (e.g. the lighting
+  // colour) reaches the cell edges — consistent panel/phone/catalog rendering.
+  --panel-widget-card-margin-x: 0px;
+  --panel-widget-card-bottom-gap: 0px;
   --panel-widget-card-inner-pad: 0px;
 
   --panel-element-bg: var(--panel-control-bg);

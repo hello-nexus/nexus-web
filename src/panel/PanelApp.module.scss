@@ -13,9 +13,11 @@
   // Strip height under each cell when labels are on. Collapses to 0 when
   // labels are toggled off so the cell card reclaims the full grid track.
   --panel-widget-label-strip: 18px;
-  // Outer insets on the cell card itself (visible card box).
-  --panel-widget-card-margin-x: 6px;
-  --panel-widget-card-bottom-gap: 4px;
+  // Outer insets on the cell card itself. 0 so widget content fills the grid
+  // cell edge-to-edge (separation between widgets comes from --panel-gap only),
+  // consistent across panel surfaces and the add-widget catalog.
+  --panel-widget-card-margin-x: 0px;
+  --panel-widget-card-bottom-gap: 0px;
   // Inner padding between the card edge and widget contents. 0 = contents
   // reach the rounded edge; raise for uniform breathing room on all sides.
   --panel-widget-card-inner-pad: 0px;
@@ -505,6 +507,31 @@
   flex: 0 0 auto;
 }
 
+// Add-widget catalog cell (PanelCatalogCell): same cell chrome as a live
+// widget, plus a click affordance. Hover/selected ring on the card only.
+.catalogCell {
+  cursor: pointer;
+
+  .cell {
+    transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
+    border: 1px solid transparent;
+  }
+
+  &:hover .cell,
+  &:focus-visible .cell {
+    border-color: var(--panel-accent);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.catalogCellSelected .cell {
+  border-color: var(--panel-accent);
+  box-shadow: 0 0 0 1px var(--panel-accent);
+}
+
 .cell {
   --panel-press-duration: var(--ease-fast);
   flex: 1 1 auto;
@@ -695,6 +722,12 @@
   display: flex;
   min-width: 0;
   min-height: 0;
+  // The scaler sizes itself to inner/scale then scales by `scale` to fill the
+  // card. When scale < 1 (cells smaller than the 90px design base, e.g. a dense
+  // add-widget catalog) inner/scale exceeds the card, so as a flex item it would
+  // shrink back and the transform would then render the content too small. Pin
+  // flex-shrink so the scale-to-fill always holds (no-op when scale >= 1).
+  flex-shrink: 0;
 }
 
 .panelRoot:not([data-surface='q60']) .cellEditorDocked {

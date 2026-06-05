@@ -1,8 +1,10 @@
-import { useEffect, useReducer, useState, type CSSProperties } from 'react';
-import { useDraggable } from '@dnd-kit/core';
+import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { useTranslation } from '../../lib/i18n';
-import type { PanelSurface, PanelWidgetSize } from '../types';
+import type { PanelLayout, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
+import { PANEL_GRID_GAP } from '../engine/grid';
+import { PHONE_WIDGET_REFERENCE_CELL } from '../panelGrid';
+import { appendWidget } from '../engine/panelLayoutOps';
 import { getCatalogEntries, pickerSizeFor, appAvailableForSurface } from '../widgets/registry';
 import {
   isMarketplaceIdEnabled,
@@ -12,16 +14,25 @@ import {
   marketplaceIdFromType,
   subscribeMarketplaceRegistry,
 } from '../../widgets/marketplaceRegistry';
-import { WidgetPreviewCard } from '../widgets/common/WidgetPreviewCard';
+import { PanelCatalogCell } from '../PanelDragCells';
+import panelStyles from '../PanelApp.module.scss';
 import styles from './PanelWidgetCatalog.module.scss';
+
+// The catalog IS a panel grid. The column count is a multiple of 4 sized so
+// each cell lands near this target, then widgets pack row-major via the panel's
+// appendWidget and render through the panel's own cell (PanelCatalogCell) — same
+// scaling, label sizing, and fill as the live panel. Tune for tile size: a
+// narrow add-widget sheet lands on 4 columns (like the phone panel); wider
+// device-page panes step up to 8 / 12.
+const CATALOG_TARGET_CELL = 100;
+
+type CatalogEntry = ReturnType<typeof getCatalogEntries>[number];
 
 export interface PanelWidgetCatalogProps {
   surface: PanelSurface;
   onAdd: (type: string, size: PanelWidgetSize) => void;
-  draggable?: boolean;
   searchable?: boolean;
   variant?: 'panel-sheet' | 'desktop-modal';
-  aspect?: 'natural' | 'square';
   themeMode?: 'dark' | 'light';
   // Inline panel-theme CSS vars (--panel-accent + the --accent family from
   // buildPanelThemeVars). Inside desktop chrome (e.g. the device-management
@@ -37,10 +48,8 @@ export interface PanelWidgetCatalogProps {
 export function PanelWidgetCatalog({
   surface,
   onAdd,
-  draggable = false,
   searchable = true,
   variant = 'panel-sheet',
-  aspect = 'natural',
   themeMode,
   themeStyle,
   className,
@@ -90,8 +99,93 @@ export function PanelWidgetCatalog({
     className ?? '',
   ].filter(Boolean).join(' ');
 
+  // Measure the available width, then pick a multiple-of-4 column count sized so
+  // each cell sits near the target. Cell size drives the panel grid vars below.
+  const measureRef = useRef<HTMLDivElement | null>(null);
+  const [gridWidth, setGridWidth] = useState(0);
+  // Layout effect so the first paint already has the measured column count —
+  // avoids a one-frame flash from the fallback 4 columns to the real count.
+  useLayoutEffect(() => {
+    const el = measureRef.current;
+    if (!el) return;
+    const update = () => setGridWidth(el.clientWidth);
+    update();
+    // jsdom (vitest) has no ResizeObserver; fall back to the one-shot measure.
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const gap = PANEL_GRID_GAP;
+  const cols = gridWidth > 0
+    ? Math.max(4, Math.ceil(gridWidth / (CATALOG_TARGET_CELL + gap) / 4) * 4)
+    : 4;
+  const cellSize = gridWidth > 0 ? (gridWidth - (cols - 1) * gap) / cols : CATALOG_TARGET_CELL;
+
+  // Panel grid CSS vars on the catalog root so the reused .grid + PanelCatalogCell
+  // inherit the live panel's column count, cell size, content scale, label-strip
+  // sizing, and gap — one rendering path, identical to the panel. Always set
+  // (cols/cellSize fall back to 4 / target before the first measure) so
+  // `--panel-columns` is never undefined, which would collapse the grid.
+  const panelGridVars: CSSProperties = {
+    '--panel-columns': cols,
+    '--panel-cell-size': `${cellSize}px`,
+    '--panel-row-size': `${cellSize}px`,
+    '--panel-content-scale': `${cellSize}px`,
+    // Plain-number scale (cell / 90px design base). The default token derives
+    // this via CSS trig (`tan(atan2(...))`), which `scale()` reads but the cell
+    // scaler's `width: calc(inner / scale)` division does NOT evaluate —
+    // leaving widget content scaled down without compensation. A number fills.
+    '--panel-scale': cellSize / PHONE_WIDGET_REFERENCE_CELL,
+    '--panel-gap': `${gap}px`,
+  } as CSSProperties;
+
+  // Pack an ordered entry list into `cols` columns the way the panel does:
+  // row-major first-free-rect on a single page (no implicit new pages).
+  const packEntries = (items: CatalogEntry[]): PanelWidget[] => {
+    let acc: PanelLayout = {
+      layoutSchemaVersion: 1,
+      surface,
+      pages: [{ id: 'catalog', widgets: [] }],
+    };
+    for (const [type, def] of items) {
+      const widget: PanelWidget = { id: type, type, size: pickerSizeFor(def.meta, surface), col: 0, row: 0 };
+      acc = appendWidget(acc, widget, { gridCols: cols, pageRows: 10_000 }, { singlePage: true });
+    }
+    return acc.pages[0]?.widgets ?? [];
+  };
+
+  const defByType = new Map(entries);
+  const renderPacked = (items: CatalogEntry[]) =>
+    packEntries(items).map(w => {
+      const def = defByType.get(w.type);
+      return (
+        <PanelCatalogCell
+          key={w.id}
+          widget={w}
+          surface={surface}
+          label={def ? t(def.meta.i18nKey) || w.type : w.type}
+          selected={selectedWidgetType === w.type}
+          onClick={() => onAdd(w.type, w.size)}
+        />
+      );
+    });
+
+  const marketplaceHeader = (
+    <div className={styles.sectionHeader}>
+      <span className={styles.sectionHeaderLabel}>Marketplace</span>
+      <span className={styles.sectionHeaderTag}>BETA</span>
+    </div>
+  );
+
   return (
-    <div className={rootClass} data-theme={themeMode} data-surface={surface} style={themeStyle}>
+    <div
+      className={rootClass}
+      data-theme={themeMode}
+      data-surface={surface}
+      style={{ ...themeStyle, ...panelGridVars }}
+    >
       {searchable && (
         <div className={styles.search}>
           <SearchInput
@@ -103,115 +197,17 @@ export function PanelWidgetCatalog({
         </div>
       )}
       <div className={styles.scroller}>
-        <div className={styles.grid}>
-          {visibleBuiltIns.map(([type, def]) => {
-            const label = t(def.meta.i18nKey) || type;
-            const size = pickerSizeFor(def.meta, surface);
-            const selected = selectedWidgetType === type;
-            return draggable ? (
-              <DraggableCatalogCard
-                key={type}
-                widgetType={type}
-                size={size}
-                label={label}
-                aspect={aspect}
-                themeMode={themeMode}
-                selected={selected}
-                onAdd={onAdd}
-              />
-            ) : (
-              <WidgetPreviewCard
-                key={type}
-                widgetType={type}
-                size={size}
-                label={label}
-                aspect={aspect}
-                themeMode={themeMode}
-                selected={selected}
-                onClick={() => onAdd(type, size)}
-              />
-            );
-          })}
+        {/* Built-ins and marketplace are separate panel grids so the section
+            header sits between them. */}
+        <div ref={measureRef} className={styles.propWrap}>
+          <div className={panelStyles.grid}>{renderPacked(visibleBuiltIns)}</div>
+          {visibleMarketplace.length > 0 && marketplaceHeader}
           {visibleMarketplace.length > 0 && (
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionHeaderLabel}>Marketplace</span>
-              <span className={styles.sectionHeaderTag}>BETA</span>
-            </div>
+            <div className={panelStyles.grid}>{renderPacked(visibleMarketplace)}</div>
           )}
-          {visibleMarketplace.map(([type, def]) => {
-            const label = t(def.meta.i18nKey) || type;
-            const size = pickerSizeFor(def.meta, surface);
-            const selected = selectedWidgetType === type;
-            return draggable ? (
-              <DraggableCatalogCard
-                key={type}
-                widgetType={type}
-                size={size}
-                label={label}
-                aspect={aspect}
-                themeMode={themeMode}
-                selected={selected}
-                onAdd={onAdd}
-              />
-            ) : (
-              <WidgetPreviewCard
-                key={type}
-                widgetType={type}
-                size={size}
-                label={label}
-                aspect={aspect}
-                themeMode={themeMode}
-                selected={selected}
-                onClick={() => onAdd(type, size)}
-              />
-            );
-          })}
-          {visibleCount === 0 && (
-            <div className={styles.empty}>
-              {t('panel.add.noMatches')}
-            </div>
-          )}
+          {visibleCount === 0 && <div className={styles.empty}>{t('panel.add.noMatches')}</div>}
         </div>
       </div>
     </div>
-  );
-}
-
-function DraggableCatalogCard({
-  widgetType,
-  size,
-  label,
-  aspect,
-  themeMode,
-  selected,
-  onAdd,
-}: {
-  widgetType: string;
-  size: PanelWidgetSize;
-  label: string;
-  aspect: 'natural' | 'square';
-  themeMode?: 'dark' | 'light';
-  selected?: boolean;
-  onAdd: (type: string, size: PanelWidgetSize) => void;
-}) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `catalog-${widgetType}`,
-    data: { type: widgetType, size },
-  });
-
-  return (
-    <WidgetPreviewCard
-      widgetType={widgetType}
-      size={size}
-      label={label}
-      aspect={aspect}
-      themeMode={themeMode}
-      selected={selected}
-      dragRef={setNodeRef}
-      dragListeners={listeners}
-      dragAttributes={attributes}
-      isDragging={isDragging}
-      onClick={() => onAdd(widgetType, size)}
-    />
   );
 }

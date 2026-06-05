@@ -343,11 +343,6 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       surface={surface}
                       onAdd={handleAddWidget}
                       variant="desktop-modal"
-                      // Single-widget surfaces (Q60 / Q80) lock every
-                      // widget to 2x4, so cards use that aspect to preview
-                      // the on-device shape. Multi-size surfaces (Y70,
-                      // phone, desktop) keep the square tile.
-                      aspect={isSingleWidgetSurface(surface) ? 'natural' : 'square'}
                       themeMode={resolvedPanelThemeMode}
                       themeStyle={panelThemeVars}
                       className={styles.catalog}
