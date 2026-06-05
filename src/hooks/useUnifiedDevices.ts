@@ -108,13 +108,11 @@ export function useUnifiedDevices(enabled: boolean) {
   }, [peripherals.peripherals, webhid.peripherals]);
 
   const unified = useMemo(() => {
-    // Phone sessions persist in settings.json long after the phone stops
-    // pinging. The Available tab shows currently-available devices, so drop
-    // external-browser sessions stuck in 'paired' (no recent keepalive).
-    // Other statuses are shown.
-    const filteredPanels = panels.devices.filter(p =>
-      !(p.connectionKind === 'external-browser' && p.status === 'paired')
-    );
+    // Paired phones (external-browser panel sessions) are remote controls, not
+    // hardware Nexus controls, so they're never devices — excluded from every
+    // device surface (Devices page, sidebar, search, detail route). Managed
+    // from the Pair Phone modal via /panel/phone/sessions instead.
+    const filteredPanels = panels.devices.filter(p => p.connectionKind !== 'external-browser');
     return buildUnifiedList(filteredPanels, devices.filter(d => d.connected), merged);
   }, [panels.devices, devices, merged]);
 
@@ -188,7 +186,11 @@ function buildUnifiedList(
       connected: true,
       kind: 'peripheral',
       peripheral: p,
-      navigable: true,
+      // Detection-only peripherals (no capabilities — nothing to configure)
+      // have no settings page, so they're non-navigable: kept off the sidebar
+      // and shown as a static card on the Devices page rather than deep-linking
+      // to an empty "No Capabilities" page.
+      navigable: p.capabilities.length > 0,
     });
   }
 
