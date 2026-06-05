@@ -782,7 +782,9 @@ function PreviewPanelThemeSettings() {
     backgroundColor: '', backgroundColorLight: '',
     // Solid keeps the (thumbnail-fetching) animation picker out of the preview.
     backgroundMode: 'solid', backgroundEffect: 'aurora', backgroundTemplate: 0,
-    backgroundOpacity: 0.4, widgetOpacity: 1, widgetLabels: true, widgetBlur: true,
+    backgroundOpacity: 0.4,
+    backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
+    widgetOpacity: 1, widgetLabels: true, widgetBlur: true,
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
   return (
@@ -800,6 +802,8 @@ function PreviewPanelThemeSettings() {
         onBackgroundModeCommit={mode => set({ backgroundMode: mode })}
         onBackgroundEffectCommit={fx => set({ backgroundEffect: fx })}
         onBackgroundTemplateCommit={n => set({ backgroundTemplate: n })}
+        onBackgroundEffectStatePreview={s => set({ backgroundEffectState: s })}
+        onBackgroundEffectStateCommit={s => set({ backgroundEffectState: s })}
         onBackgroundOpacityPreview={o => set({ backgroundOpacity: o })}
         onBackgroundOpacityCommit={o => set({ backgroundOpacity: o })}
         onWidgetOpacityPreview={o => set({ widgetOpacity: o })}

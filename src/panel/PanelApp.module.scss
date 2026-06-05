@@ -1004,10 +1004,16 @@
 }
 
 // After the entry keyframe plays, suppress further animations so toggling
-// [data-drag] doesn't restart it. The [data-state='closing'] keyframe has
-// higher specificity and still wins for the X-button close path.
-.editorSheet[data-entered='true'] {
+// [data-drag] off at the end of a swipe snap-back doesn't restart the
+// entrance. Scoped with a descendant + :not() so it outranks the
+// bottom-anchored `.editorBackdrop:not([data-surface='desktop']) .editorSheet`
+// sheetUp rule (which would otherwise win on Y70/phone and replay the slide-up
+// on snap-back). The resting transform is restated because dropping the
+// keyframe also drops its held translateY(0) scale(--panel-scale).
+// [data-state='closing'] is excluded so the close keyframe still plays.
+.editorBackdrop:not([data-state='closing']) .editorSheet[data-entered='true'] {
   animation: none;
+  transform: translateY(0) scale(var(--panel-scale, 1));
 }
 
 // Top-center grabber pill signaling swipe-down. Shown only for

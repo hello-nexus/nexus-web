@@ -71,6 +71,7 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
       cells={cells}
       gridColumns={immersiveGrid?.columns ?? 4}
       gridRows={immersiveGrid?.rows ?? 8}
+      fillLast={false}
     />
   );
 }

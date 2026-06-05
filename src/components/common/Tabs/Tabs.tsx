@@ -34,6 +34,8 @@ export interface TabsProps {
    *   pill. Used for secondary in-page toggles (ScreenTime day/week/month/app).
    */
   variant?: TabsVariant;
+  /** Stretch the bar to 100% width with each tab sharing the width equally. */
+  fullWidth?: boolean;
 }
 
 /**
@@ -43,10 +45,11 @@ export interface TabsProps {
  * renders a segmented toggle group instead of an underline bar - same
  * semantics, different chrome, same component.
  */
-export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', className, variant = 'underline' }: TabsProps) {
+export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', className, variant = 'underline', fullWidth = false }: TabsProps) {
   const navClass = classNames(
     styles.tabs,
     variant === 'pill' && styles.tabsPill,
+    fullWidth && styles.fullWidth,
     className,
   );
   const tabClass = variant === 'pill' ? styles.pillTab : styles.tab;

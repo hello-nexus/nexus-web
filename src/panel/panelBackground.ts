@@ -137,14 +137,57 @@ export function normalizePanelWidgetBlur(value: boolean | null | undefined): boo
   return value;
 }
 
-export function panelBackgroundState(effectKey: string, templateIndex: number): EffectState {
+export function panelBackgroundState(
+  effectKey: string,
+  templateIndex: number,
+  override?: Partial<EffectState> | null,
+): EffectState {
   const effect = normalizePanelBackgroundEffect(effectKey);
   const template = normalizePanelBackgroundTemplate(templateIndex);
   const bundle = buildDefaultTemplates(effect);
   const base = defaultStateFor(effect);
   const slot = bundle.slots[template];
 
-  return slot
+  const merged = slot
     ? { ...base, ...slot, params: { ...base.params, ...slot.params } }
     : base;
+  // A per-panel custom state (saved on the device record) layers on top of the
+  // template default — so a tweaked background renders the user's edits.
+  return override
+    ? { ...merged, ...override, params: { ...merged.params, ...(override.params ?? {}) } }
+    : merged;
+}
+
+// Validate a persisted per-panel custom EffectState, coercing missing/garbage
+// fields back to the template default so a partial or legacy record still
+// renders. Always returns a concrete state.
+export function normalizePanelBackgroundEffectState(
+  value: Partial<EffectState> | null | undefined,
+  fallback: EffectState,
+): EffectState {
+  if (!value || typeof value !== 'object') return fallback;
+  const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
+  return {
+    speed: num(value.speed, fallback.speed),
+    intensity: num(value.intensity, fallback.intensity),
+    hue: num(value.hue, fallback.hue),
+    colorize: num(value.colorize, fallback.colorize),
+    saturation: num(value.saturation, fallback.saturation),
+    contrast: num(value.contrast, fallback.contrast),
+    params: { ...fallback.params, ...(value.params && typeof value.params === 'object' ? value.params : {}) },
+  };
+}
+
+// Whether two EffectStates are equal (scalars + params). Drives the Effect
+// tab's reset affordance (custom state vs the selected template default).
+export function panelBackgroundStateEquals(a: EffectState, b: EffectState): boolean {
+  if (a.speed !== b.speed || a.intensity !== b.intensity || a.hue !== b.hue
+    || a.colorize !== b.colorize || a.saturation !== b.saturation || a.contrast !== b.contrast) {
+    return false;
+  }
+  const keys = new Set([...Object.keys(a.params), ...Object.keys(b.params)]);
+  for (const k of keys) {
+    if (a.params[k] !== b.params[k]) return false;
+  }
+  return true;
 }

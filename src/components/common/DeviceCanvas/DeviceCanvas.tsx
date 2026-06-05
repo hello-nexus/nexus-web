@@ -5,6 +5,7 @@ import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting'
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
 import { useShaderRenderer } from '../../../hooks/useShaderRenderer';
 import { useTranslation } from '../../../lib/i18n';
+import { paintLedFrame } from '../../../lib/ledFrame';
 import type { EffectState } from '../../../types/lighting';
 import { DeviceContextMenu, type DeviceMenuItem } from './DeviceContextMenu';
 import styles from './DeviceCanvas.module.scss';
@@ -60,21 +61,7 @@ const CanvasBackground = memo(function CanvasBackground({ canvasPixels, canvasW,
   useEffect(() => {
     const el = bgRef.current;
     if (!el) return;
-    const ctx = el.getContext('2d');
-    if (!ctx) return;
-    if (!canvasPixels || canvasW === 0 || canvasH === 0) {
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, el.width, el.height);
-      return;
-    }
-    if (el.width !== canvasW || el.height !== canvasH) { el.width = canvasW; el.height = canvasH; }
-    const img = ctx.createImageData(canvasW, canvasH);
-    const d = img.data;
-    for (let i = 0; i < canvasW * canvasH; i++) {
-      const s = i * 3, o = i * 4;
-      d[o] = canvasPixels[s]; d[o+1] = canvasPixels[s+1]; d[o+2] = canvasPixels[s+2]; d[o+3] = 255;
-    }
-    ctx.putImageData(img, 0, 0);
+    paintLedFrame(el, canvasPixels, canvasW, canvasH);
   }, [canvasPixels, canvasW, canvasH]);
 
   return <canvas ref={bgRef} className={styles.bgCanvas} />;

@@ -332,6 +332,8 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       onBackgroundModeCommit={panelTheme.commitBackgroundMode}
                       onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
                       onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
+                      onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
+                      onBackgroundEffectStateCommit={panelTheme.commitBackgroundEffectState}
                       onBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
                       onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
                       onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}

@@ -403,6 +403,7 @@
   "lighting.devices.selectModeHint": "Cihazlari kesfetmek veya taramak icin bir aydinlatma modu secin.",
   "lighting.devices.zoneFixed": "12V RGB (sabit)",
   "lighting.devices.zoneFixedTooltip": "Bu 12V RGB baslik: tek renk, adreslenemez, LED sayisi ayarlanamaz.",
+  "lighting.editor.options": "Secenekler",
   "lighting.filter.bw": "S&B",
   "lighting.filter.highsat": "Yüksek doygunluk",
   "lighting.filter.mirrorx": "Ayna X",

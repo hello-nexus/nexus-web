@@ -12,7 +12,7 @@ export interface LightingFrameState {
 
 const EMPTY: LightingFrameState = { deviceColors: new Map(), canvasPixels: null, canvasW: 0, canvasH: 0, framesReceived: 0, connected: false };
 
-export function useLightingFrames(): LightingFrameState {
+export function useLightingFrames(enabled = true): LightingFrameState {
   const [state, setState] = useState<LightingFrameState>(EMPTY);
   const latest = useRef<{ deviceColors: Map<number, string[]>; canvasPixels: Uint8Array | null; canvasW: number; canvasH: number; frames: number }>(
     { deviceColors: new Map(), canvasPixels: null, canvasW: 0, canvasH: 0, frames: 0 }
@@ -20,6 +20,10 @@ export function useLightingFrames(): LightingFrameState {
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
+    // Gated off (e.g. when connected via relay — the binary output stream is
+    // too much bandwidth to forward). Stay on the empty state so consumers fall
+    // back to a static preview.
+    if (!enabled) { setState(EMPTY); return undefined; }
     let cancelled = false;
     let socket: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -58,7 +62,7 @@ export function useLightingFrames(): LightingFrameState {
 
     connect();
     return () => { cancelled = true; try { socket?.close(); } catch { /* socket already closed/torn down */ } if (reconnectTimer !== null) clearTimeout(reconnectTimer); if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
-  }, []);
+  }, [enabled]);
 
   return state;
 }

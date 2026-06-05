@@ -403,6 +403,7 @@
   "lighting.devices.selectModeHint": "选择灯光模式以开始发现或扫描设备。",
   "lighting.devices.zoneFixed": "12V RGB (固定)",
   "lighting.devices.zoneFixedTooltip": "这是 12V RGB 接口,仅支持单色,非可寻址,无法设置 LED 数量。",
+  "lighting.editor.options": "选项",
   "lighting.filter.bw": "黑白",
   "lighting.filter.highsat": "高饱和度",
   "lighting.filter.mirrorx": "镜像 X",

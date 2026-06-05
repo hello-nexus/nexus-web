@@ -4,35 +4,47 @@ import { PanelPageIndicator } from '../../PanelPageIndicator';
 import styles from './ImmersiveLayout.module.scss';
 
 interface ImmersiveLayoutProps {
-  // One entry per 4x4 cell the widget wants to expose. Each cell is
-  // sized to occupy the same area a 4x4 panel widget would in the
-  // current runtime grid (4 cols x 4 rows worth of cell-size).
+  // One entry per 4x4 cell the widget wants to expose. By default the LAST
+  // cell on each page grows to fill the remaining length of the panel and
+  // earlier cells stay pinned to a 4x4 footprint (lighting/media); with
+  // `fillLast={false}` every cell is a fixed 4x4 (monitoring's equal tiles).
   cells: ReactNode[];
-  // Runtime grid info from useRuntimePanelGrid. Lets the layout fit
-  // the same number of 4x4 cells per page as the panel grid does.
+  // Runtime grid info from useRuntimePanelGrid. Drives orientation, how many
+  // 4x4 cells fit per page, and the fixed-cell size (4 rows / 4 cols of it).
   gridColumns: number;
   gridRows: number;
+  // When false, no cell grows — every cell is a fixed 4x4 tile and the group
+  // centers on the page. Default true (last cell fills).
+  fillLast?: boolean;
   // How many 4x4 cells occupy one immersive page. Defaults to the panel
   // grid's fit:
   //   4 cols x 8 rows  -> 2 (stacked vertically)
   //   8 cols x 4 rows  -> 2 (side by side)
-  //   4 cols x 14 rows -> 3 (Y70 portrait)
+  //   4 cols x 12 rows -> 3 (Y70 portrait)
   cellsPerPage?: number;
-  // Centers cells when fewer cells than capacity. Default true.
-  center?: boolean;
 }
 
 export function ImmersiveLayout({
   cells,
   gridColumns,
   gridRows,
+  fillLast = true,
   cellsPerPage,
-  center = true,
 }: ImmersiveLayoutProps) {
   const orientation: 'portrait' | 'landscape' =
     gridRows >= gridColumns ? 'portrait' : 'landscape';
   const fitPerPage = cellsPerPage
     ?? Math.max(1, Math.floor(Math.max(gridColumns, gridRows) / 4));
+
+  // Length of one fixed 4x4 cell as a FRACTION of the immersive page: 4 grid
+  // rows tall in portrait, 4 grid columns wide in landscape. A row-count ratio
+  // (not a px size from the grid) is deliberate — the immersive render area
+  // lives in a --panel-scale-transformed space where the grid's device-px cell
+  // sizes don't map 1:1, but `4 / rows` of the page is a true 4x4 at any zoom.
+  // The last cell flex-grows into whatever is left over.
+  const fixedBasis = orientation === 'portrait'
+    ? `${(400 / Math.max(gridRows, 1)).toFixed(4)}%`
+    : `${(400 / Math.max(gridColumns, 1)).toFixed(4)}%`;
 
   const pages = useMemo(() => {
     const out: { id: string; cells: ReactNode[] }[] = [];
@@ -46,7 +58,7 @@ export function ImmersiveLayout({
 
   // Single page: no pager chrome.
   if (pages.length <= 1) {
-    return <ImmersivePage cells={pages[0].cells} orientation={orientation} fitPerPage={fitPerPage} center={center} />;
+    return <ImmersivePage cells={pages[0].cells} orientation={orientation} fixedBasis={fixedBasis} fillLast={fillLast} />;
   }
 
   // Multi-page: horizontal swipe between pages, dot indicator at bottom.
@@ -58,7 +70,7 @@ export function ImmersiveLayout({
         activeIndex={Math.min(activeIndex, pages.length - 1)}
         onActiveChange={setActiveIndex}
         renderPage={(page) => (
-          <ImmersivePage cells={page.cells} orientation={orientation} fitPerPage={fitPerPage} center={center} />
+          <ImmersivePage cells={page.cells} orientation={orientation} fixedBasis={fixedBasis} fillLast={fillLast} />
         )}
       />
       <div className={styles.indicator}>
@@ -71,32 +83,42 @@ export function ImmersiveLayout({
 function ImmersivePage({
   cells,
   orientation,
-  fitPerPage,
-  center,
+  fixedBasis,
+  fillLast,
 }: {
   cells: ReactNode[];
   orientation: 'portrait' | 'landscape';
-  fitPerPage: number;
-  center: boolean;
+  fixedBasis: string;
+  fillLast: boolean;
 }) {
   return (
     <div
       className={styles.layout}
       data-orientation={orientation}
       data-cells={cells.length}
-      data-center={center && cells.length < fitPerPage ? 'true' : undefined}
+      data-fixed={fillLast ? undefined : 'true'}
     >
       {cells.map((cell, idx) => (
-        <ImmersiveCell key={idx}>{cell}</ImmersiveCell>
+        <ImmersiveCell key={idx} fill={fillLast && idx === cells.length - 1} basis={fixedBasis}>
+          {cell}
+        </ImmersiveCell>
       ))}
     </div>
   );
 }
 
 /**
- * Wraps each cell with consistent padding so per-widget immersive
- * components don't program their own.
+ * One immersive cell. The fill cell (last on the page) grows to take the
+ * leftover length; every other cell is pinned to one 4x4 block via `basis`.
  */
-export function ImmersiveCell({ children }: { children: ReactNode }) {
-  return <div className={styles.cell}>{children}</div>;
+export function ImmersiveCell({ children, fill, basis }: { children: ReactNode; fill?: boolean; basis?: string }) {
+  return (
+    <div
+      className={styles.cell}
+      data-fill={fill ? 'true' : undefined}
+      style={fill ? undefined : { flexBasis: basis }}
+    >
+      {children}
+    </div>
+  );
 }

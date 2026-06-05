@@ -403,6 +403,7 @@
   "lighting.devices.selectModeHint": "Selecione um modo de iluminacao para descobrir ou procurar dispositivos.",
   "lighting.devices.zoneFixed": "12V RGB (fixo)",
   "lighting.devices.zoneFixedTooltip": "Cabecalho 12V RGB: cor unica, nao enderecavel, a contagem de LEDs nao pode ser definida.",
+  "lighting.editor.options": "Opcoes",
   "lighting.filter.bw": "P&B",
   "lighting.filter.highsat": "Alta saturação",
   "lighting.filter.mirrorx": "Espelho X",

@@ -15,6 +15,7 @@ import { SectionHeader } from '../components/common/SectionHeader/SectionHeader'
 import { Toggle } from '../components/common/Toggle/Toggle';
 import { useTranslation } from '../lib/i18n';
 import type { ThemeMode } from '../lib/settings';
+import type { EffectState } from '../types/lighting';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from './types';
 import type { PanelBackgroundMode } from './panelBackground';
 import type { PanelThemeState } from './panelTheme';
@@ -43,6 +44,8 @@ export function PanelEditorSheet({
   onThemeBackgroundModeCommit,
   onThemeBackgroundEffectCommit,
   onThemeBackgroundTemplateCommit,
+  onThemeBackgroundEffectStatePreview,
+  onThemeBackgroundEffectStateCommit,
   onThemeBackgroundOpacityPreview,
   onThemeBackgroundOpacityCommit,
   onThemeWidgetOpacityPreview,
@@ -81,6 +84,8 @@ export function PanelEditorSheet({
   onThemeBackgroundModeCommit: (mode: PanelBackgroundMode) => void;
   onThemeBackgroundEffectCommit: (effect: string) => void;
   onThemeBackgroundTemplateCommit: (template: number) => void;
+  onThemeBackgroundEffectStatePreview: (state: EffectState) => void;
+  onThemeBackgroundEffectStateCommit: (state: EffectState) => void;
   onThemeBackgroundOpacityPreview: (opacity: number) => void;
   onThemeBackgroundOpacityCommit: (opacity: number) => void;
   onThemeWidgetOpacityPreview: (opacity: number) => void;
@@ -309,6 +314,8 @@ export function PanelEditorSheet({
               onBackgroundModeCommit={onThemeBackgroundModeCommit}
               onBackgroundEffectCommit={onThemeBackgroundEffectCommit}
               onBackgroundTemplateCommit={onThemeBackgroundTemplateCommit}
+              onBackgroundEffectStatePreview={onThemeBackgroundEffectStatePreview}
+              onBackgroundEffectStateCommit={onThemeBackgroundEffectStateCommit}
               onBackgroundOpacityPreview={onThemeBackgroundOpacityPreview}
               onBackgroundOpacityCommit={onThemeBackgroundOpacityCommit}
               onWidgetOpacityPreview={onThemeWidgetOpacityPreview}

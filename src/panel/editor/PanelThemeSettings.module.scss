@@ -10,9 +10,9 @@
   gap: 10px;
 }
 
-.themeModeTabs,
-.backgroundModeTabs {
+.themeModeTabs {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   padding: 3px;
   border: 1px solid var(--panel-border);
@@ -20,18 +20,20 @@
   background: var(--panel-control-bg);
 }
 
-.themeModeTabs {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.backgroundModeTabs {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .backgroundShaderControls {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  // Bound the preview + embedded effect editor so the Options grid / Effect
+  // controls scroll inside the settings flow rather than stretching it open.
+  height: min(64vh, 540px);
+  min-height: 0;
+}
+
+// The effect editor fills the space under the fixed-height preview.
+.backgroundEditorFill {
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .animationPicker {
