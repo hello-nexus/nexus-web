@@ -12,6 +12,20 @@ does nothing; **major** = a capability class is unreachable; **minor** = a sharp
 - **Dispatch data-path + control** (`useHostAction` / `useDispatch`) now work end-to-end
   (screentime.today, displays.list/setBrightness).
 
+## Added this round (new capabilities)
+- **Page surface** — `mount({ cell, page })`. A widget renders a second, expanded surface
+  (a separate worker render, `useSurface()`) opened as a **desktop section route** by
+  clicking the tile. Standard page chrome: title in the top bar, the standard `ViewHeader`
+  with **tabs**, full-height scroll. (Touch-immersive page = follow-up.)
+- **Blessed composites** — `ui-clockface` (the 8 clock designs), `ui-worldclock` (the full
+  day/night world map + city list), `ui-viewheader` (title + tabs). The host renders the
+  **same pure native component** (no reimplementation), so a first-party SDK widget is
+  **pixel-identical to native with zero duplication**. This is the escape hatch for bespoke
+  visuals (SVG world map, analog face) that the closed primitive set can't express — without
+  a raw canvas/SVG hole that would break the consistency guarantee. Cost: each composite is a
+  curated entry in the shared element contract (a deliberate coupling), and only **first-party**
+  pure components can be blessed — arbitrary third-party custom visuals still can't.
+
 ## A. Data the SDK can't reach (major)
 - Only **two** read host-actions exist: `screentime.today`, `displays.list`. Everything else is
   unreachable: media now-playing, cooling curves/channels, lighting state, OBS/Discord/Steam
