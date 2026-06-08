@@ -62,6 +62,18 @@ describe('appAvailableForSurface', () => {
     expect(appAvailableForSurface(displays.meta, 'desktop')).toBe(true);
   });
 
+  it('hides local-only widgets (pairing QR) on remotely-connected panels', () => {
+    const pairing = APP_REGISTRY.pairing;
+    expect(pairing.meta.localOnly).toBe(true);
+    // Local (hard-wired) panels show it; remote (paired phone/browser/app) hide it.
+    expect(appAvailableForSurface(pairing.meta, 'y70')).toBe(true);
+    expect(appAvailableForSurface(pairing.meta, 'y70', { remote: false })).toBe(true);
+    expect(appAvailableForSurface(pairing.meta, 'phone', { remote: true })).toBe(false);
+    expect(appAvailableForSurface(pairing.meta, 'desktop', { remote: true })).toBe(false);
+    // Non-local-only widgets are unaffected by the remote flag.
+    expect(appAvailableForSurface(APP_REGISTRY.clock.meta, 'phone', { remote: true })).toBe(true);
+  });
+
   it('exposes every widget on the desktop dashboard (pointer + every multi-widget size)', () => {
     // Desktop has a mouse (pointer-capable) and accepts every multi-widget
     // size. Per the canonical rule, availability is determined by touch +

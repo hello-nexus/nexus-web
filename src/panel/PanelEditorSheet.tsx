@@ -196,6 +196,9 @@ export function PanelEditorSheet({
           <PanelWidgetCatalog
             surface={surface}
             onAdd={onAdd}
+            // The on-device phone panel is itself the remote session, so hide
+            // local-only widgets (pairing QR) there.
+            remote={surface === 'phone'}
           />
         )}
 

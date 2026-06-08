@@ -11,7 +11,7 @@ import {
   getConnectedSimulatedPanels,
   PANEL_SIMULATION_CHANGED_EVENT,
 } from '../lib/panelSimulation';
-import type { PanelDevice } from '../panel/panelDevices';
+import { isRemotePanel, type PanelDevice } from '../panel/panelDevices';
 
 export type UnifiedDeviceKind = 'panel' | 'curated' | 'peripheral';
 
@@ -108,11 +108,11 @@ export function useUnifiedDevices(enabled: boolean) {
   }, [peripherals.peripherals, webhid.peripherals]);
 
   const unified = useMemo(() => {
-    // Paired phones (external-browser panel sessions) are remote controls, not
-    // hardware Nexus controls, so they're never devices — excluded from every
-    // device surface (Devices page, sidebar, search, detail route). Managed
-    // from the Pair Phone modal via /panel/phone/sessions instead.
-    const filteredPanels = panels.devices.filter(p => p.connectionKind !== 'external-browser');
+    // Paired phones (remote panel sessions) are remote controls, not hardware
+    // Nexus controls, so they're never devices — excluded from every device
+    // surface (Devices page, sidebar, search, detail route). Managed from the
+    // Pair Phone modal via /panel/phone/sessions instead.
+    const filteredPanels = panels.devices.filter(p => !isRemotePanel(p.connectionKind));
     return buildUnifiedList(filteredPanels, devices.filter(d => d.connected), merged);
   }, [panels.devices, devices, merged]);
 

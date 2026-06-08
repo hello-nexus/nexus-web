@@ -33,6 +33,9 @@ export interface PanelWidgetCatalogProps {
   onAdd: (type: string, size: PanelWidgetSize) => void;
   searchable?: boolean;
   variant?: 'panel-sheet' | 'desktop-modal';
+  // The target panel connects over the network (paired phone/browser/app), so
+  // local-only widgets (the pairing QR) are hidden.
+  remote?: boolean;
   themeMode?: 'dark' | 'light';
   // Inline panel-theme CSS vars (--panel-accent + the --accent family from
   // buildPanelThemeVars). Inside desktop chrome (e.g. the device-management
@@ -50,6 +53,7 @@ export function PanelWidgetCatalog({
   onAdd,
   searchable = true,
   variant = 'panel-sheet',
+  remote = false,
   themeMode,
   themeStyle,
   className,
@@ -73,7 +77,7 @@ export function PanelWidgetCatalog({
   // carry more bundled widgets than the allowlist (already-placed instances
   // still render via lookupApp); the Add-a-Widget picker stays curated.
   const entries = getCatalogEntries().filter(([type, def]) => {
-    if (!appAvailableForSurface(def.meta, surface)) return false;
+    if (!appAvailableForSurface(def.meta, surface, { remote })) return false;
     if (isMarketplaceType(type)) {
       const id = marketplaceIdFromType(type);
       return id !== null && isMarketplaceIdEnabled(id);
