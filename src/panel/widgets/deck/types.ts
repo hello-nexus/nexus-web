@@ -67,8 +67,8 @@ export type DeckActionType = DeckAction['type'];
 
 export interface DeckSequenceStep {
   action: DeckAction;
-  // Stream-Deck-5.3 two-knob model: pressMs holds this step's action before
-  // release; gapAfterMs idles before the next step.
+  // Two-knob timing: pressMs holds this step's action before release;
+  // gapAfterMs idles before the next step.
   pressMs?: number;
   gapAfterMs?: number;
 }
