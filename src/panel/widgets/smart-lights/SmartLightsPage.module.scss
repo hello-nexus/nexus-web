@@ -83,8 +83,7 @@
 
 // ---------- Discovered list ----------
 
-.discoverList,
-.pairedList {
+.discoverList {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -93,8 +92,7 @@
   gap: 8px;
 }
 
-.discoverRow,
-.pairedRow {
+.discoverRow {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -144,6 +142,68 @@
 
   &[data-online='true'] { background: var(--good); }
   &[data-online='false'] { background: var(--text-faded); }
+}
+
+// ---------- Paired devices (grid of cards, like the brand picker) ----------
+
+.pairedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.pairedCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px;
+  min-height: 116px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text);
+
+  // Only the card's own icon is dimmed; the remove button's icon follows its
+  // own (hover-reactive) color.
+  > svg { color: var(--text-dim); }
+
+  .deviceName,
+  .deviceHost { max-width: 100%; }
+}
+
+// Online/offline — always shown, pinned to the bottom of the card.
+.pairedStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  font-size: var(--type-mini);
+  color: var(--text-faded);
+
+  &[data-online='true'] { color: var(--good); }
+}
+
+.pairedRemove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+
+  &:hover { opacity: 1; color: var(--bad); background: var(--bg-card-hover); }
 }
 
 // ---------- Messages ----------

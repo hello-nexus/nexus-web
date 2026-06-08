@@ -180,30 +180,28 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
               compact
             />
           ) : (
-            <ul className={styles.pairedList}>
+            <div className={styles.pairedGrid}>
               {paired.map(device => (
-                <li key={device.id} className={styles.pairedRow}>
-                  <span
-                    className={styles.statusDot}
-                    data-online={device.online ? 'true' : 'false'}
-                    aria-hidden="true"
-                  />
-                  <div className={styles.discoverInfo}>
-                    <span className={styles.deviceName}>{device.name}</span>
-                    <span className={styles.deviceHost}>
-                      {device.host} · {device.online ? t('smartLights.online') : t('smartLights.offline')}
-                    </span>
-                  </div>
-                  <Button
-                    size="sm"
-                    tone="ghost"
-                    icon={<Trash2 size={14} />}
+                <div key={device.id} className={styles.pairedCard}>
+                  <button
+                    type="button"
+                    className={styles.pairedRemove}
                     title={t('smartLights.remove')}
+                    aria-label={t('smartLights.remove')}
                     onClick={() => void handleRemove(device.id)}
-                  />
-                </li>
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                  <LampCeiling size={22} aria-hidden="true" />
+                  <span className={styles.deviceName}>{device.name}</span>
+                  <span className={styles.deviceHost}>{device.host}</span>
+                  <span className={styles.pairedStatus} data-online={device.online ? 'true' : 'false'}>
+                    <span className={styles.statusDot} data-online={device.online ? 'true' : 'false'} aria-hidden="true" />
+                    {device.online ? t('smartLights.online') : t('smartLights.offline')}
+                  </span>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
           {onSectionNavigate ? (
             <button
