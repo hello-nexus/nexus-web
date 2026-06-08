@@ -4,32 +4,15 @@
   gap: 8px;
 }
 
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-
-  button {
-    padding: 4px 10px;
-    border: 1px solid var(--panel-border, var(--border));
-    border-radius: 8px;
-    background: transparent;
-    color: var(--panel-text-secondary, var(--text-faded));
-    font-size: 12px;
-    cursor: pointer;
-  }
-
-  .activeTab {
-    color: var(--panel-text, var(--text));
-    border-color: var(--panel-accent, var(--accent));
-  }
-
-  .auto { margin-left: auto; }
-}
-
 .search {
   width: 100%;
   box-sizing: border-box;
+}
+
+.autoHint {
+  font-size: 12px;
+  color: var(--panel-text-secondary, var(--text-faded));
+  padding: 6px 2px;
 }
 
 .grid {
@@ -61,16 +44,47 @@
   background: color-mix(in srgb, var(--panel-accent, var(--accent)) 18%, transparent);
 }
 
-.appOption {
+.emojiCats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.emojiCatBtn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+  line-height: 1;
   border: 1px solid var(--panel-border, var(--border));
   border-radius: 8px;
   background: transparent;
-  color: var(--panel-text, var(--text));
   cursor: pointer;
 
-  img { width: 24px; height: 24px; border-radius: 4px; }
+  &:hover { border-color: var(--panel-accent, var(--accent)); }
+}
+
+.emojiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.emojiBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  font-size: 20px;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+
+  &:hover { background: var(--panel-element-bg-hover, var(--bg-card-hover)); }
 }

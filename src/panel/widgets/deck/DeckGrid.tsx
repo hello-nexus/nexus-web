@@ -18,20 +18,23 @@ function useCellVisual(slot: DeckSlot): { accent: string; content: ReactNode; em
   const icon = slot.icon;
   const appId = action?.type === 'launchApp' ? action.appId : icon?.kind === 'app' ? icon.value : undefined;
   const appIconUrl = useAppIcon(appId); // unconditional (null for undefined appId)
-  const empty = !action && !isFolder;
+  // A slot with an explicit icon isn't "empty" even before an action is chosen,
+  // so a picked icon renders immediately (not only after picking an action).
+  const empty = !action && !isFolder && !icon;
 
   let iconEl: ReactNode;
   if (icon?.kind === 'emoji') {
     iconEl = <span className={styles.emoji}>{icon.value}</span>;
+  } else if (icon?.kind === 'lucide') {
+    iconEl = <span className={styles.icon}>{renderLucide(icon.value)}</span>;
   } else if (appId) {
     iconEl = appIconUrl
       ? <img src={appIconUrl} className={styles.appIcon} alt="" />
       : <span className={styles.icon}>{renderLucide('AppWindow')}</span>;
-  } else if (empty) {
-    iconEl = null;
+  } else if (!empty) {
+    iconEl = <span className={styles.icon}>{renderLucide(autoIconName(action, isFolder))}</span>;
   } else {
-    const name = icon?.kind === 'lucide' ? icon.value : autoIconName(action, isFolder);
-    iconEl = <span className={styles.icon}>{renderLucide(name)}</span>;
+    iconEl = null;
   }
 
   const accent = slot.color ?? categoryColor(isFolder ? 'folder' : deckCategory(action));

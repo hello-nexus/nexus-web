@@ -1,38 +1,60 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
+import { Tabs } from '../../../components/common/Tabs/Tabs';
 import { DECK_ICONS, DECK_ICON_NAMES } from '../deck/deckIcons';
-import { useAppIcon } from './AppPicker';
+import { CATEGORIES as EMOJI_CATEGORIES, CATEGORY_KEYS as EMOJI_CATEGORY_KEYS } from '../emoji/EmojiWidget';
 import type { DeckIcon } from '../deck/types';
 import styles from './IconPicker.module.scss';
 
 interface IconPickerProps {
   value?: DeckIcon;
   onChange: (icon: DeckIcon | undefined) => void;
-  // When the slot launches an app (or otherwise has an app id), offer "use app icon".
+  // Present when the slot launches an app; the Auto tab then shows the app's icon.
   appId?: string;
 }
 
-type Tab = 'icons' | 'emoji' | 'app';
+type Tab = 'auto' | 'icons' | 'emoji';
 
-export function IconPicker({ value, onChange, appId }: IconPickerProps) {
+function tabForValue(value?: DeckIcon): Tab {
+  if (value?.kind === 'lucide') return 'icons';
+  if (value?.kind === 'emoji') return 'emoji';
+  return 'auto'; // undefined or app icon → Auto
+}
+
+export function IconPicker({ value, onChange }: IconPickerProps) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<Tab>(value?.kind === 'emoji' ? 'emoji' : value?.kind === 'app' ? 'app' : 'icons');
+  const [tab, setTab] = useState<Tab>(() => tabForValue(value));
   const [query, setQuery] = useState('');
-  const appIconUrl = useAppIcon(appId);
+  const [emojiCat, setEmojiCat] = useState(EMOJI_CATEGORY_KEYS[0]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q ? DECK_ICON_NAMES.filter(n => n.toLowerCase().includes(q)) : DECK_ICON_NAMES;
   }, [query]);
 
+  const onTab = (key: string) => {
+    const k = key as Tab;
+    setTab(k);
+    if (k === 'auto') onChange(undefined); // Auto = no explicit icon (derives from the action / app)
+  };
+
   return (
     <div className={styles.picker}>
-      <div className={styles.tabs}>
-        <button type="button" className={tab === 'icons' ? styles.activeTab : ''} onClick={() => setTab('icons')}>{t('panel.iconPicker.icons')}</button>
-        <button type="button" className={tab === 'emoji' ? styles.activeTab : ''} onClick={() => setTab('emoji')}>{t('panel.iconPicker.emoji')}</button>
-        {appId ? <button type="button" className={tab === 'app' ? styles.activeTab : ''} onClick={() => setTab('app')}>{t('panel.iconPicker.useApp')}</button> : null}
-        <button type="button" className={styles.auto} onClick={() => onChange(undefined)}>{t('panel.iconPicker.auto')}</button>
-      </div>
+      <Tabs
+        variant="pill"
+        ariaLabel={t('panel.settings.icon')}
+        activeKey={tab}
+        onChange={onTab}
+        tabs={[
+          { key: 'auto', label: t('panel.iconPicker.auto') },
+          { key: 'icons', label: t('panel.iconPicker.icons') },
+          { key: 'emoji', label: t('panel.iconPicker.emoji') },
+        ]}
+      />
+
+      {tab === 'auto' && (
+        <div className={styles.autoHint}>{t('panel.iconPicker.autoHint')}</div>
+      )}
 
       {tab === 'icons' && (
         <>
@@ -64,20 +86,36 @@ export function IconPicker({ value, onChange, appId }: IconPickerProps) {
       )}
 
       {tab === 'emoji' && (
-        <input
-          className={styles.search}
-          type="text"
-          value={value?.kind === 'emoji' ? value.value : ''}
-          placeholder="🚀"
-          onChange={e => onChange(e.target.value ? { kind: 'emoji', value: e.target.value } : undefined)}
-        />
-      )}
-
-      {tab === 'app' && appId && (
-        <button type="button" className={styles.appOption} onClick={() => onChange({ kind: 'app', value: appId })}>
-          {appIconUrl ? <img src={appIconUrl} alt="" /> : null}
-          <span>{t('panel.iconPicker.useApp')}</span>
-        </button>
+        <>
+          <div className={styles.emojiCats}>
+            {EMOJI_CATEGORY_KEYS.map(key => (
+              <button
+                key={key}
+                type="button"
+                className={`${styles.emojiCatBtn} ${emojiCat === key ? styles.activeIcon : ''}`}
+                aria-label={key}
+                onClick={() => setEmojiCat(key)}
+              >
+                {EMOJI_CATEGORIES[key].icon}
+              </button>
+            ))}
+          </div>
+          <div className={styles.emojiGrid} data-panel-scrollable="true">
+            {EMOJI_CATEGORIES[emojiCat].emojis.map((emoji, i) => {
+              const active = value?.kind === 'emoji' && value.value === emoji;
+              return (
+                <button
+                  key={`${emojiCat}-${i}`}
+                  type="button"
+                  className={`${styles.emojiBtn} ${active ? styles.activeIcon : ''}`}
+                  onClick={() => onChange({ kind: 'emoji', value: emoji })}
+                >
+                  {emoji}
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
