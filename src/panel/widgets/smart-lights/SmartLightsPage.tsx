@@ -178,18 +178,15 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
                       <span className={styles.deviceName}>{d.name}</span>
                       <span className={styles.deviceHost}>{d.host}</span>
                     </div>
-                    {d.alreadyPaired ? (
-                      <span className={styles.badge}>{t('smartLights.paired')}</span>
-                    ) : (
-                      <Button
-                        size="sm"
-                        tone="accent"
-                        loading={pairing}
-                        onClick={() => void doPair(d.brand, d.host, d.stableKey, d.name)}
-                      >
-                        {pairing ? t('smartLights.pairing') : t('smartLights.pair')}
-                      </Button>
-                    )}
+                    {d.alreadyPaired && <span className={styles.badge}>{t('smartLights.paired')}</span>}
+                    <Button
+                      size="sm"
+                      tone="accent"
+                      loading={pairing}
+                      onClick={() => void doPair(d.brand, d.host, d.stableKey, d.name)}
+                    >
+                      {pairing ? t('smartLights.pairing') : d.alreadyPaired ? t('smartLights.rePair') : t('smartLights.pair')}
+                    </Button>
                   </li>
                 );
               })}

@@ -933,6 +933,7 @@
   "smartLights.online": "Çevrimiçi",
   "smartLights.onlineOfTotal": "{total} ışığın {online} tanesi çevrimiçi",
   "smartLights.pair": "Eşleştir",
+  "smartLights.rePair": "Yeniden eşleştir",
   "smartLights.pairFailed": "Eşleştirme başarısız",
   "smartLights.paired": "Eşleştirildi",
   "smartLights.pairing": "Eşleştiriliyor...",

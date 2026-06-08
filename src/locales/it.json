@@ -933,6 +933,7 @@
   "smartLights.online": "Online",
   "smartLights.onlineOfTotal": "{online} di {total} online",
   "smartLights.pair": "Associa",
+  "smartLights.rePair": "Riassocia",
   "smartLights.pairFailed": "Associazione non riuscita",
   "smartLights.paired": "Associata",
   "smartLights.pairing": "Associazione...",

@@ -933,6 +933,7 @@
   "smartLights.online": "在线",
   "smartLights.onlineOfTotal": "{total} 个中 {online} 个在线",
   "smartLights.pair": "配对",
+  "smartLights.rePair": "重新配对",
   "smartLights.pairFailed": "配对失败",
   "smartLights.paired": "已配对",
   "smartLights.pairing": "配对中...",

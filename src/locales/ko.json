@@ -933,6 +933,7 @@
   "smartLights.online": "온라인",
   "smartLights.onlineOfTotal": "{total}개 중 {online}개 온라인",
   "smartLights.pair": "페어링",
+  "smartLights.rePair": "다시 페어링",
   "smartLights.pairFailed": "페어링 실패",
   "smartLights.paired": "페어링됨",
   "smartLights.pairing": "페어링 중...",

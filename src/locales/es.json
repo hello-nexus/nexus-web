@@ -933,6 +933,7 @@
   "smartLights.online": "En línea",
   "smartLights.onlineOfTotal": "{online} de {total} en línea",
   "smartLights.pair": "Vincular",
+  "smartLights.rePair": "Volver a vincular",
   "smartLights.pairFailed": "Error al vincular",
   "smartLights.paired": "Vinculada",
   "smartLights.pairing": "Vinculando...",

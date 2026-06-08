@@ -933,6 +933,7 @@
   "smartLights.online": "Online",
   "smartLights.onlineOfTotal": "{online} z {total} online",
   "smartLights.pair": "Paruj",
+  "smartLights.rePair": "Sparuj ponownie",
   "smartLights.pairFailed": "Parowanie nie powiodło się",
   "smartLights.paired": "Sparowane",
   "smartLights.pairing": "Parowanie...",

@@ -933,6 +933,7 @@
   "smartLights.online": "オンライン",
   "smartLights.onlineOfTotal": "{total}台中{online}台がオンライン",
   "smartLights.pair": "ペアリング",
+  "smartLights.rePair": "再ペアリング",
   "smartLights.pairFailed": "ペアリングに失敗しました",
   "smartLights.paired": "ペアリング済み",
   "smartLights.pairing": "ペアリング中...",

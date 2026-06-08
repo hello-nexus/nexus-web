@@ -933,6 +933,7 @@
   "smartLights.online": "В сети",
   "smartLights.onlineOfTotal": "{online} из {total} в сети",
   "smartLights.pair": "Подключить",
+  "smartLights.rePair": "Связать заново",
   "smartLights.pairFailed": "Не удалось подключить",
   "smartLights.paired": "Подключено",
   "smartLights.pairing": "Подключение...",
