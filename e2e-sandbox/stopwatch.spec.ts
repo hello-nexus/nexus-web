@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const URL = '/?entry=/widgets/stopwatch/widget.mjs&id=com.hellonexus.stopwatch&w=220&h=220';
+const URL = '/?entry=/widgets/com.hellonexus.stopwatch/widget.mjs&id=com.hellonexus.stopwatch&w=220&h=220';
 
 test('stopwatch SDK widget: real worker -> remote-dom -> host render', async ({ page }) => {
   const t0 = Date.now();
@@ -60,7 +60,7 @@ test('local state persists across reload (host-backed)', async ({ page }) => {
 
 test('clock SDK widget: settings + Intl time render and tick', async ({ page }) => {
   const s = encodeURIComponent(JSON.stringify({ showSeconds: true, format: '24h', showDate: true }));
-  await page.goto(`/?entry=/widgets/clock/widget.mjs&id=com.hellonexus.clock&w=240&h=160&s=${s}`);
+  await page.goto(`/?entry=/widgets/com.hellonexus.clock/widget.mjs&id=com.hellonexus.clock&w=240&h=160&s=${s}`);
   const cell = page.locator('.cell');
   await expect(cell).toContainText(/\d\d:\d\d:\d\d/, { timeout: 15_000 });
   const a = await cell.innerText();
@@ -70,7 +70,7 @@ test('clock SDK widget: settings + Intl time render and tick', async ({ page }) 
 });
 
 test('timer SDK widget: setup steppers -> run -> countdown -> stop', async ({ page }) => {
-  await page.goto('/?entry=/widgets/timer/widget.mjs&id=com.hellonexus.timer&w=260&h=200');
+  await page.goto('/?entry=/widgets/com.hellonexus.timer/widget.mjs&id=com.hellonexus.timer&w=260&h=200');
   // Setup phase: default 5 minutes -> Start enabled.
   const start = page.getByRole('button', { name: 'Start' });
   await expect(start).toBeVisible({ timeout: 15_000 });
@@ -88,7 +88,7 @@ test('timer SDK widget: setup steppers -> run -> countdown -> stop', async ({ pa
 });
 
 test('weather SDK widget: brokered fetch -> geolocation + forecast render', async ({ page }) => {
-  await page.goto('/?entry=/widgets/weather/widget.mjs&id=com.hellonexus.weather&w=320&h=370&nf=api.open-meteo.com,ipwho.is');
+  await page.goto('/?entry=/widgets/com.hellonexus.weather/widget.mjs&id=com.hellonexus.weather&w=320&h=370&nf=api.open-meteo.com,ipwho.is');
   const cell = page.locator('.cell');
   await expect(cell).toContainText('72°', { timeout: 15_000 }); // current temp via mock OpenMeteo
   await expect(cell).toContainText('Partly cloudy');
@@ -99,7 +99,7 @@ test('weather SDK widget: brokered fetch -> geolocation + forecast render', asyn
 });
 
 test('blob-URL bundle load (the remote-panel path): worker imports a blob: module', async ({ page }) => {
-  await page.goto('/?entry=/widgets/stopwatch/widget.mjs&id=com.hellonexus.stopwatch&w=220&h=180&blob=1');
+  await page.goto('/?entry=/widgets/com.hellonexus.stopwatch/widget.mjs&id=com.hellonexus.stopwatch&w=220&h=180&blob=1');
   const start = page.getByRole('button', { name: 'Start' });
   await expect(start).toBeVisible({ timeout: 15_000 });
   const cell = page.locator('.cell');
@@ -111,7 +111,7 @@ test('blob-URL bundle load (the remote-panel path): worker imports a blob: modul
 });
 
 test('screentime SDK widget: host-action dispatch data path', async ({ page }) => {
-  await page.goto('/?entry=/widgets/screentime/widget.mjs&id=com.hellonexus.screentime&w=360&h=360');
+  await page.goto('/?entry=/widgets/com.hellonexus.screentime/widget.mjs&id=com.hellonexus.screentime&w=360&h=360');
   const cell = page.locator('.cell');
   await expect(cell).toContainText('3h 30m', { timeout: 15_000 });   // total via screentime.today
   await expect(cell).toContainText('Visual Studio Code');            // focus + #1 app
@@ -127,7 +127,7 @@ test('displays SDK widget: host-action data + control (setBrightness dispatch)',
     if (body.action === 'displays.setBrightness') dispatched.push(JSON.stringify(body.args));
     await route.continue();
   });
-  await page.goto('/?entry=/widgets/displays/widget.mjs&id=com.hellonexus.displays&w=360&h=300');
+  await page.goto('/?entry=/widgets/com.hellonexus.displays/widget.mjs&id=com.hellonexus.displays&w=360&h=300');
   const cell = page.locator('.cell');
   await expect(cell).toContainText('Dell U2720Q', { timeout: 15_000 });
   await expect(cell).toContainText('LG 27GP950');

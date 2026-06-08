@@ -45,6 +45,10 @@ export interface WidgetManifestSettingEntry {
   step?: number;
   filter?: string;
   options?: string[];
+  /** Parallel to options, for the `icon-select` control: per-option display
+   *  label + icon name (mapped host-side to a lucide glyph). */
+  optionLabels?: string[];
+  optionIcons?: string[];
 }
 
 export interface WidgetManifestDataSource {

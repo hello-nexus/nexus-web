@@ -1,9 +1,15 @@
-// Builds (1) the host-shared SDK runtime bundle ONCE, and (2) each widget under
-// widgets/<id>/index.tsx as a LIGHT bundle (~5 KB) with react / react/jsx-runtime
-// / @hellonexus/ui / @hellonexus/sdk externalized to thin shims that read
-// globalThis.__nexusRuntime (populated by the shared runtime). A widget therefore
-// ships only the author's code; react-dom + remote-dom + the SDK are downloaded
-// once and shared. This is exactly what a third-party author's build produces.
+// Builds (1) the host-shared SDK runtime bundle ONCE, and (2) each app under the
+// apps repo's apps/<id>/index.tsx as a LIGHT bundle (~5 KB) with react /
+// react/jsx-runtime / @hellonexus/ui / @hellonexus/sdk externalized to thin shims
+// that read globalThis.__nexusRuntime (populated by the shared runtime). An app
+// therefore ships only the author's code; react-dom + remote-dom + the SDK are
+// downloaded once and shared — exactly what a third-party author's build produces.
+//
+// The author SOURCE lives in the apps repo (nexus-apps): apps/<id>/index.tsx,
+// committed + studyable next to the built widgets/<id>/widget.mjs. The SDK runtime
+// + the shared element contract still live in nexus-web (the host owns the
+// vocabulary); this build aliases them. NEXUS_APPS_DIR overrides the apps-repo
+// location (defaults to the sibling worktree).
 
 import { build } from 'esbuild';
 import { readdirSync, statSync, existsSync, copyFileSync } from 'node:fs';
@@ -11,9 +17,12 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
-const widgetsDir = join(root, 'widgets');
 const runtimeDir = join(root, 'runtime');
 const outDir = join(root, 'dist');
+// The apps repo. Each app is one unit: apps/<id>/ holds the author source
+// (index.tsx), manifest.json, assets, AND the built widget.mjs — built in place.
+const appsRepo = process.env.NEXUS_APPS_DIR || join(root, '..', '..', 'nexus-widgets-sdk-panel');
+const appsDir = join(appsRepo, 'apps');
 
 const alias = {
   '@hellonexus/ui': join(runtimeDir, 'ui.tsx'),
@@ -83,26 +92,31 @@ if (existsSync(pub)) {
   console.log('staged runtime → public/sdk-runtime.mjs');
 }
 
-// --- 3. Build each widget LIGHT. ---
-const ids = readdirSync(widgetsDir).filter((d) => {
-  const p = join(widgetsDir, d);
+// --- 3. Build each app LIGHT (source from the apps repo). ---
+if (!existsSync(appsDir)) { console.error('apps dir not found at', appsDir, '(set NEXUS_APPS_DIR)'); process.exit(1); }
+const ids = readdirSync(appsDir).filter((d) => {
+  const p = join(appsDir, d);
   return statSync(p).isDirectory() && existsSync(join(p, 'index.tsx'));
 });
-if (ids.length === 0) { console.warn('no widgets found under', widgetsDir); process.exit(0); }
+if (ids.length === 0) { console.warn('no apps found under', appsDir); process.exit(0); }
 
 const results = [];
 for (const id of ids) {
+  // Build the widget facet in place: apps/<id>/widget.mjs next to its source +
+  // manifest. An app with a manifest.json is a shipped app; one without is an
+  // example (built so authors can run it through the harness).
   const r = await build({
-    entryPoints: [join(widgetsDir, id, 'index.tsx')],
-    outfile: join(outDir, id, 'widget.mjs'),
+    entryPoints: [join(appsDir, id, 'index.tsx')],
+    outfile: join(appsDir, id, 'widget.mjs'),
     bundle: true, format: 'esm', platform: 'browser', target: 'es2019',
     jsx: 'automatic', jsxImportSource: 'react', minify: true, sourcemap: true,
     plugins: [shimPlugin],
     define: { 'process.env.NODE_ENV': '"production"' }, metafile: true, logLevel: 'warning',
   });
-  results.push({ id, kb: mjsBytes(r) });
-  console.log(`built ${id} → widget.mjs (${mjsBytes(r)} KB)`);
+  const app = existsSync(join(appsDir, id, 'manifest.json'));
+  results.push({ id, kb: mjsBytes(r), app });
+  console.log(`built ${id} → widget.mjs (${mjsBytes(r)} KB)${app ? '' : ' (example)'}`);
 }
 
-console.log('\nbundle sizes (widget.mjs only):');
-for (const r of results) console.log(`  ${r.id.padEnd(28)} ${r.kb} KB`);
+console.log('\nwidget.mjs sizes:');
+for (const r of results) console.log(`  ${r.id.padEnd(32)} ${String(r.kb).padStart(3)} KB${r.app ? '' : '  (example)'}`);

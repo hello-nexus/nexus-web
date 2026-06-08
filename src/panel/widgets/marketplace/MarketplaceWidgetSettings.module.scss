@@ -41,3 +41,23 @@
   font-size: 13px;
   resize: vertical;
 }
+
+// icon-select control: a full-width visual switcher (label on top, button grid
+// below) — the SDK equivalent of the native clock design switcher.
+.iconSelect {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.iconSelectLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-dim, rgba(255, 255, 255, 0.7));
+}
+
+.iconSelectGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
