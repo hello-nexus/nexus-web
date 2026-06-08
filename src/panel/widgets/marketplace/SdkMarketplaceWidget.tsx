@@ -9,7 +9,7 @@
 // (relay-aware). Everything else (worker, MessagePort UI channel, remote-dom)
 // runs locally in the panel's browser.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { postService, fetchServiceBlob } from '../../../api/service';
 import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
 import type { WidgetInstalledListing } from '../../../widgets/types';
@@ -45,6 +45,14 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
 
   const netFetch = useMemo(() => listing.capabilities['net.fetch'] ?? [], [listing]);
 
+  // Gated host action: POST /widgets-api/dispatch (relay-aware). Returns the
+  // { ok, result } envelope so the worker's useDispatch / useHostAction work.
+  const onDispatch = useCallback(
+    (action: string, args?: Record<string, unknown>) =>
+      postService<unknown>('/widgets-api/dispatch', { widgetId: listing.id, action, args: args ?? {} }),
+    [listing.id],
+  );
+
   // Mint a code session, fetch widget.mjs bytes (relay-aware), expose as a blob.
   // Cached per widget type; not revoked (kept for the session) so remounts reuse it.
   useEffect(() => {
@@ -77,6 +85,7 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
       instanceId={instanceId}
       settings={settings}
       netFetch={netFetch}
+      onDispatch={onDispatch}
     />
   );
 }

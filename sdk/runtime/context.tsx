@@ -9,8 +9,10 @@ import { createContext, createElement, useContext, type ReactNode } from 'react'
 export interface WidgetHostApi {
   /** Persist the widget's per-instance local-state bag (host -> localStorage). */
   persistLocal(next: Record<string, unknown>): void | Promise<void>;
-  /** Emit a gated control/host action (host -> /widgets-api/dispatch). */
-  dispatch(action: string, args?: Record<string, unknown>): void | Promise<void>;
+  /** Host-brokered action (host -> /widgets-api/dispatch). Returns the
+   *  `{ ok, result }` envelope so the same call powers control writes and
+   *  host-action data sources. */
+  dispatch(action: string, args?: Record<string, unknown>): Promise<unknown>;
 }
 
 export interface WidgetContextInit {

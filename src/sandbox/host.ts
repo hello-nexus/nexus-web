@@ -19,7 +19,11 @@ export interface SandboxContext {
   netFetch?: string[];
   api: {
     persistLocal(next: Record<string, unknown>): void;
-    dispatch(action: string, args?: Record<string, unknown>): void | Promise<void>;
+    /** Host-brokered action: POSTs /widgets-api/dispatch (relay-aware), returns
+     *  the `{ ok, result }` envelope. Powers control writes AND host-action data
+     *  sources (e.g. screentime.today). The action must be in the manifest's
+     *  capabilities.dispatch allowlist. */
+    dispatch(action: string, args?: Record<string, unknown>): Promise<unknown>;
   };
 }
 
@@ -68,6 +72,14 @@ export function spawnSandboxedWidget(entryUrl: string, context: SandboxContext):
 
   const channel = new MessageChannel();
   worker.postMessage({ type: 'nexus.ui.port' }, [channel.port2]);
+
+  // Resolve the worker's nexus.ready (the boot blocks on this) so any nexus.*
+  // usage works. The SDK's primary surface rides the threads context, but this
+  // closes the gap with the declarative host.
+  worker.postMessage({
+    type: 'nexus.welcome',
+    payload: { widgetId: context.widgetId, netFetch: context.netFetch ?? [], settings: context.settings ?? {} },
+  });
 
   const receiver = new RemoteReceiver({ retain, release });
   const remote = ThreadMessagePort.import<RemoteWidgetImports>(channel.port1);

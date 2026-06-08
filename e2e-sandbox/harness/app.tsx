@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SandboxedWidget } from '../../src/sandbox/SandboxedWidget';
-import { setForceLanMode } from '../../src/api/service';
+import { setForceLanMode, postService } from '../../src/api/service';
 
 // The harness runs on a non-service port (so isRemoteOrigin is true) but fakes
 // the service at its own origin. forceLanMode makes the relay-aware service
@@ -44,7 +44,11 @@ function Cell({ index }: { index: number }) {
   return (
     <div className="cell" style={{ width: w, height: h }}>
       {url ? (
-        <SandboxedWidget entryUrl={url} widgetId={widgetId} instanceId={`harness-${index}`} settings={settings} netFetch={netFetch} />
+        <SandboxedWidget
+          entryUrl={url} widgetId={widgetId} instanceId={`harness-${index}`}
+          settings={settings} netFetch={netFetch}
+          onDispatch={(action, args) => postService('/widgets-api/dispatch', { widgetId, action, args: args ?? {} })}
+        />
       ) : null}
     </div>
   );

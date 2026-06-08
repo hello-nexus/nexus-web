@@ -15,8 +15,8 @@ export interface SandboxedWidgetProps {
   settings?: Record<string, unknown>;
   /** Cert/manifest net.fetch host allowlist (e.g. ["api.open-meteo.com"]). */
   netFetch?: string[];
-  /** Host dispatch for gated control/host actions. */
-  onDispatch?: (action: string, args?: Record<string, unknown>) => void | Promise<void>;
+  /** Host dispatch for gated control/host actions; returns the dispatch envelope. */
+  onDispatch?: (action: string, args?: Record<string, unknown>) => Promise<unknown>;
 }
 
 const localKey = (widgetId: string, instanceId: string) => `nexus.sdk.local.${widgetId}.${instanceId}`;
@@ -74,7 +74,7 @@ export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netF
             try { localStorage.setItem(localKey(widgetId, instanceId), JSON.stringify(next)); }
             catch { /* quota / private mode */ }
           },
-          dispatch: (action, args) => onDispatch?.(action, args),
+          dispatch: (action, args) => onDispatch?.(action, args) ?? Promise.resolve(null),
         },
       };
       entry = { handle: spawnSandboxedWidget(entryUrl, context), disposeTimer: null };

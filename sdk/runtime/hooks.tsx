@@ -108,10 +108,42 @@ export async function request(url: string, init?: RequestInit): Promise<Response
   return globalThis.nexus.net.fetch(url, init);
 }
 
-/** Emit a gated control/host action (cooling/lighting/system writes). */
-export function useDispatch(): (action: string, args?: Record<string, unknown>) => void {
+/** Emit a gated control/host action (cooling/lighting/system writes). Returns the
+ *  dispatch result so callers can await it; fire-and-forget is fine too. */
+export function useDispatch(): (action: string, args?: Record<string, unknown>) => Promise<unknown> {
   const store = useStore();
-  return useCallback((action, args) => { void store.api.dispatch(action, args); }, [store]);
+  return useCallback((action, args) => store.api.dispatch(action, args), [store]);
+}
+
+/** Host-action data source: poll a dispatch action on a refresh schedule and
+ *  surface its `result`. Mirrors the declarative `host` data source — the way
+ *  first-party widgets read host-internal state (e.g. screentime.today, the
+ *  displays list) that isn't a sensor or a public HTTPS endpoint. The action
+ *  must be in the manifest's capabilities.dispatch allowlist. */
+export function useHostAction<T = unknown>(
+  action: string,
+  opts?: { args?: Record<string, unknown>; refreshMs?: number },
+): { data: T | undefined; loading: boolean } {
+  const store = useStore();
+  const [data, setData] = useState<T | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const argsKey = JSON.stringify(opts?.args ?? {});
+  const refreshMs = Math.max(2000, opts?.refreshMs ?? 5000);
+  useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      try {
+        const res = (await store.api.dispatch(action, opts?.args)) as { ok?: boolean; result?: T } | null;
+        if (alive && res && res.ok !== false) { setData(res.result); setLoading(false); }
+        else if (alive) setLoading(false);
+      } catch { if (alive) setLoading(false); }
+    };
+    void run();
+    const handle = setInterval(run, refreshMs);
+    return () => { alive = false; clearInterval(handle); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [action, argsKey, refreshMs]);
+  return { data, loading };
 }
 
 /** A stable ref to the latest value (helper for event handlers). */

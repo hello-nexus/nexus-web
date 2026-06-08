@@ -61,6 +61,25 @@ function mockProxyBody(targetUrl) {
   return {};
 }
 
+// Canned host-action results so the screentime widget's dispatch data path works.
+function mockDispatchResult(action) {
+  if (action === 'screentime.today') {
+    return {
+      focus: { name: 'Visual Studio Code', totalMs: 5_400_000, formatted: '1h 30m' },
+      history: [
+        { name: 'Visual Studio Code', totalMs: 5_400_000, formatted: '1h 30m', pctOfMax: 100 },
+        { name: 'Google Chrome', totalMs: 3_600_000, formatted: '1h', pctOfMax: 67 },
+        { name: 'Slack', totalMs: 1_800_000, formatted: '30m', pctOfMax: 33 },
+        { name: 'Terminal', totalMs: 900_000, formatted: '15m', pctOfMax: 17 },
+        { name: 'Spotify', totalMs: 600_000, formatted: '10m', pctOfMax: 11 },
+        { name: 'Figma', totalMs: 300_000, formatted: '5m', pctOfMax: 6 },
+      ],
+      totalMs: 12_600_000, totalFormatted: '3h 30m', maxMs: 5_400_000, hasData: true,
+    };
+  }
+  return null;
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', `http://localhost:${PORT}`);
@@ -72,6 +91,16 @@ const server = createServer(async (req, res) => {
       try { target = JSON.parse(raw).url ?? ''; } catch { /* ignore */ }
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
       res.end(JSON.stringify({ ok: true, status: 200, statusText: 'OK', headers: {}, body: mockProxyBody(target) }));
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/widgets-api/dispatch') {
+      let raw = '';
+      for await (const chunk of req) raw += chunk;
+      let action = '';
+      try { action = JSON.parse(raw).action ?? ''; } catch { /* ignore */ }
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      res.end(JSON.stringify({ ok: true, result: mockDispatchResult(action) }));
       return;
     }
 

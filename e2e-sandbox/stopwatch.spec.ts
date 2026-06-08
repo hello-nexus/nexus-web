@@ -109,3 +109,13 @@ test('blob-URL bundle load (the remote-panel path): worker imports a blob: modul
   await page.waitForTimeout(600);
   expect(await cell.innerText()).not.toBe(t1); // worker booted from a blob: import and ticks
 });
+
+test('screentime SDK widget: host-action dispatch data path', async ({ page }) => {
+  await page.goto('/?entry=/widgets/screentime/widget.mjs&id=com.hellonexus.screentime.sdk&w=360&h=360');
+  const cell = page.locator('.cell');
+  await expect(cell).toContainText('3h 30m', { timeout: 15_000 });   // total via screentime.today
+  await expect(cell).toContainText('Visual Studio Code');            // focus + #1 app
+  await expect(cell).toContainText('Active now');                    // focus highlight
+  await expect(cell).toContainText('Slack');                         // ranked list
+  await expect(cell).toContainText('43%'); // VS Code = 5.4M/12.6M of the day
+});
