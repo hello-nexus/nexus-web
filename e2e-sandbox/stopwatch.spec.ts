@@ -57,3 +57,32 @@ test('local state persists across reload (host-backed)', async ({ page }) => {
   // The paused elapsed should survive the reload (non-zero).
   await expect(page.locator('.cell')).not.toContainText(/^00:00\.00$/);
 });
+
+test('clock SDK widget: settings + Intl time render and tick', async ({ page }) => {
+  const s = encodeURIComponent(JSON.stringify({ showSeconds: true, format: '24h', showDate: true }));
+  await page.goto(`/?entry=/widgets/clock/widget.mjs&id=com.hellonexus.clock&w=240&h=160&s=${s}`);
+  const cell = page.locator('.cell');
+  await expect(cell).toContainText(/\d\d:\d\d:\d\d/, { timeout: 15_000 });
+  const a = await cell.innerText();
+  await page.waitForTimeout(1300);
+  const b = await cell.innerText();
+  expect(b).not.toBe(a); // seconds advanced
+});
+
+test('timer SDK widget: setup steppers -> run -> countdown -> stop', async ({ page }) => {
+  await page.goto('/?entry=/widgets/timer/widget.mjs&id=com.hellonexus.timer&w=260&h=200');
+  // Setup phase: default 5 minutes -> Start enabled.
+  const start = page.getByRole('button', { name: 'Start' });
+  await expect(start).toBeVisible({ timeout: 15_000 });
+  await start.click();
+
+  const cell = page.locator('.cell');
+  await expect(cell).toContainText(/0?[45]:\d\d/, { timeout: 5_000 }); // ~05:00 counting down
+  const t1 = await cell.innerText();
+  await page.waitForTimeout(1100);
+  const t2 = await cell.innerText();
+  expect(t2).not.toBe(t1); // counting down
+
+  await page.getByRole('button', { name: 'Stop' }).click();
+  await expect(page.getByRole('button', { name: 'Start' })).toBeVisible(); // back to setup
+});

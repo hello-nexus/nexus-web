@@ -11,11 +11,13 @@ const widgetId = params.get('id') ?? 'harness.widget';
 const w = Number(params.get('w') ?? 220);
 const h = Number(params.get('h') ?? 220);
 const absEntry = entry ? new URL(entry, location.origin).toString() : '';
+let settings: Record<string, unknown> = {};
+try { settings = JSON.parse(params.get('s') ?? '{}'); } catch { settings = {}; }
 
 const root = createRoot(document.getElementById('root')!);
 root.render(
   <div className="cell" style={{ width: w, height: h }}>
-    <SandboxedWidget entryUrl={absEntry} widgetId={widgetId} instanceId="harness-1" settings={{}} />
+    <SandboxedWidget entryUrl={absEntry} widgetId={widgetId} instanceId="harness-1" settings={settings} />
   </div>,
 );
 
