@@ -39,7 +39,12 @@ const KEEP_ALIVE_MS = 2500;
 
 export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netFetch, onDispatch }: SandboxedWidgetProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const [handle, setHandle] = useState<SandboxHandle | null>(null);
+  // Seed from the keep-alive cache synchronously: on a remount (edit-sheet open/
+  // close re-parents the cell) the live worker already exists, so the FIRST
+  // render shows the tree — no blank frame / flicker.
+  const [handle, setHandle] = useState<SandboxHandle | null>(
+    () => liveWidgets.get(`${widgetId}:${instanceId}`)?.handle ?? null,
+  );
   const settingsKey = JSON.stringify(settings ?? {});
 
   useEffect(() => {
