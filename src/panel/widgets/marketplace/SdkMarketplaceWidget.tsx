@@ -14,7 +14,7 @@ import { postService } from '../../../api/service';
 import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
 import type { WidgetInstalledListing } from '../../../widgets/types';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
-import { useSdkBundle } from './useSdkBundle';
+import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
 import styles from './MarketplaceWidget.module.scss';
 
 export interface SdkMarketplaceWidgetProps {
@@ -24,7 +24,9 @@ export interface SdkMarketplaceWidgetProps {
 }
 
 export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidgetProps) {
-  const { entryUrl, failed } = useSdkBundle(listing.id);
+  const { entryUrl, failed: bundleFailed } = useSdkBundle(listing.id);
+  const { runtimeUrl, failed: runtimeFailed } = useSdkRuntime();
+  const failed = bundleFailed || runtimeFailed;
 
   // Per-instance settings, same bridge the declarative path uses.
   const settingsBridge = useMemo(() => new WidgetSettingsBridge(instanceId), [instanceId]);
@@ -47,10 +49,11 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
   );
 
   if (failed) return <div className={styles.empty}>Failed to load {listing.name}</div>;
-  if (!entryUrl) return <div className={styles.empty}>Loading {listing.name}…</div>;
+  if (!entryUrl || !runtimeUrl) return <div className={styles.empty}>Loading {listing.name}…</div>;
 
   return (
     <SandboxedWidget
+      runtimeUrl={runtimeUrl}
       entryUrl={entryUrl}
       widgetId={listing.id}
       instanceId={instanceId}

@@ -8,7 +8,7 @@ import { useCallback, useMemo } from 'react';
 import { postService } from '../../../api/service';
 import { getMarketplaceListing, marketplaceIdFromType } from '../../../widgets/marketplaceRegistry';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
-import { useSdkBundle } from './useSdkBundle';
+import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
 import styles from './MarketplaceWidget.module.scss';
 
 export interface SdkMarketplacePageProps {
@@ -19,7 +19,9 @@ export interface SdkMarketplacePageProps {
 export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
   const id = marketplaceIdFromType(type) ?? '';
   const listing = getMarketplaceListing(id);
-  const { entryUrl, failed } = useSdkBundle(id);
+  const { entryUrl, failed: bundleFailed } = useSdkBundle(id);
+  const { runtimeUrl, failed: runtimeFailed } = useSdkRuntime();
+  const failed = bundleFailed || runtimeFailed;
 
   const netFetch = useMemo(() => listing?.capabilities['net.fetch'] ?? [], [listing]);
   const sensorsRead = useMemo(() => listing?.capabilities['sensors.read'] ?? [], [listing]);
@@ -35,10 +37,11 @@ export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
     <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0, width: '100%', height: '100%' }}>
       {failed ? (
         <div className={styles.empty}>Failed to load {listing.name}</div>
-      ) : !entryUrl ? (
+      ) : !entryUrl || !runtimeUrl ? (
         <div className={styles.empty}>Loading {listing.name}…</div>
       ) : (
         <SandboxedWidget
+          runtimeUrl={runtimeUrl}
           entryUrl={entryUrl}
           widgetId={id}
           instanceId={`${id}:page`}

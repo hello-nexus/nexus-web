@@ -15,6 +15,33 @@ interface CodeSession { sessionId: string; baseUrl: string; }
 
 const bundleCache = new Map<string, string>();
 
+// The host-shared SDK runtime (react-dom + remote-dom + @hellonexus/* ≈ 188 KB).
+// Fetched ONCE per session (relay-aware bytes → one blob URL) and imported by every
+// widget worker, so each widget.mjs is only the author's ~5 KB of code.
+const RUNTIME_PATH = '/sdk-runtime.mjs';
+let runtimePromise: Promise<string | null> | null = null;
+
+async function resolveRuntime(): Promise<string | null> {
+  const blob = await fetchServiceBlob(RUNTIME_PATH);
+  if (!blob) return null;
+  return URL.createObjectURL(new Blob([blob], { type: 'text/javascript' }));
+}
+
+export function useSdkRuntime(): { runtimeUrl: string | null; failed: boolean } {
+  const [runtimeUrl, setRuntimeUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    runtimePromise ??= resolveRuntime();
+    void runtimePromise.then((u) => {
+      if (!alive) return;
+      if (u) setRuntimeUrl(u); else setFailed(true);
+    });
+    return () => { alive = false; };
+  }, []);
+  return { runtimeUrl, failed };
+}
+
 export function useSdkBundle(listingId: string): { entryUrl: string | null; failed: boolean } {
   const [entryUrl, setEntryUrl] = useState<string | null>(() => bundleCache.get(listingId) ?? null);
   const [failed, setFailed] = useState(false);

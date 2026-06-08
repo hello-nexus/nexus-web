@@ -28,25 +28,30 @@ const netFetch = (params.get('nf') ?? '').split(',').map((x) => x.trim()).filter
 const n = Math.max(1, Number(params.get('n') ?? 1));
 const surface = params.get('surface') === 'page' ? 'page' : 'cell';
 
+async function asBlobUrl(url: string): Promise<string> {
+  const src = await fetch(url).then((r) => r.text());
+  return URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+}
+
 function Cell({ index }: { index: number }) {
   const [url, setUrl] = useState<string | null>(useBlob ? null : absEntry);
+  const [runtimeUrl, setRuntimeUrl] = useState<string | null>(null);
   useEffect(() => {
-    if (!useBlob) return;
-    let revoke: string | null = null;
     let alive = true;
-    void fetch(absEntry).then((r) => r.text()).then((src) => {
-      if (!alive) return;
-      const u = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
-      revoke = u;
-      setUrl(u);
+    const urls: string[] = [];
+    void asBlobUrl(new URL('/sdk-runtime.mjs', location.origin).toString()).then((u) => {
+      if (!alive) return; urls.push(u); setRuntimeUrl(u);
     });
-    return () => { alive = false; if (revoke) URL.revokeObjectURL(revoke); };
+    if (useBlob) {
+      void asBlobUrl(absEntry).then((u) => { if (!alive) return; urls.push(u); setUrl(u); });
+    }
+    return () => { alive = false; urls.forEach((u) => URL.revokeObjectURL(u)); };
   }, []);
   return (
     <div className="cell" style={{ width: w, height: h }}>
-      {url ? (
+      {url && runtimeUrl ? (
         <SandboxedWidget
-          entryUrl={url} widgetId={widgetId} instanceId={`harness-${index}`}
+          runtimeUrl={runtimeUrl} entryUrl={url} widgetId={widgetId} instanceId={`harness-${index}`}
           surface={surface}
           settings={settings} netFetch={netFetch}
           onDispatch={(action, args) => postService('/widgets-api/dispatch', { widgetId, action, args: args ?? {} })}

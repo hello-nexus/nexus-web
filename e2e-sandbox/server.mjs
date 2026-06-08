@@ -31,6 +31,21 @@ const scssStub = {
   },
 };
 
+// lib/i18n uses Vite's import.meta.glob (no esbuild equivalent) at module top, so
+// importing it transitively (richComponents -> ClockWorldView) breaks the esbuild
+// harness build. Stub it: useTranslation echoes keys — enough for structure.
+const i18nStub = {
+  name: 'i18n-stub',
+  setup(b) {
+    b.onResolve({ filter: /lib\/i18n$/ }, () => ({ path: 'i18n', namespace: 'i18n-stub' }));
+    b.onLoad({ filter: /.*/, namespace: 'i18n-stub' }, () => ({
+      contents: 'export const useTranslation = () => ({ t: (k) => k, lang: "en", setLang: () => {} });\n'
+        + 'export const I18nProvider = ({ children }) => children;',
+      loader: 'js',
+    }));
+  },
+};
+
 // 1. Build worker widget bundles (idempotent).
 spawnSync(process.execPath, [join(webRoot, 'sdk', 'build.mjs')], { stdio: 'inherit' });
 
@@ -40,7 +55,7 @@ await build({
   outfile: join(harnessDir, 'app.mjs'),
   bundle: true, format: 'esm', platform: 'browser', target: 'es2020',
   jsx: 'automatic', jsxImportSource: 'react', sourcemap: false,
-  plugins: [scssStub],
+  plugins: [scssStub, i18nStub],
   define: {
     'process.env.NODE_ENV': '"production"',
     // The SDK host (proxyClient) pulls in the app's service client, which reads
@@ -134,7 +149,9 @@ const server = createServer(async (req, res) => {
     if (path === '/' ) path = '/index.html';
 
     let file;
-    if (path.startsWith('/widgets/')) {
+    if (path === '/sdk-runtime.mjs') {
+      file = join(sdkDist, 'runtime', 'sdk-runtime.mjs');
+    } else if (path.startsWith('/widgets/')) {
       file = join(sdkDist, normalize(path.slice('/widgets/'.length)).replace(/^(\.\.[/\\])+/, ''));
     } else {
       file = join(harnessDir, normalize(path).replace(/^(\.\.[/\\])+/, ''));

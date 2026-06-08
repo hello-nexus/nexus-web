@@ -23,11 +23,19 @@ const SDK_BOOT_SUFFIX = `
 })();
 `;
 
-export function composeSdkWorkerSource(entryUrl: string): string {
+export function composeSdkWorkerSource(runtimeUrl: string, entryUrl: string): string {
+  // Import the host-shared runtime FIRST (it installs the polyfills, registers the
+  // UI elements, and populates globalThis.__nexusRuntime), then the author bundle,
+  // whose externalized react / @hellonexus/* imports are shims reading that global.
   return `${workerBootScript()}
 ${SDK_BOOT_SUFFIX}
-import(${JSON.stringify(entryUrl)}).catch(function (err) {
-  self.postMessage({ type: 'nexus.error', message: String((err && err.message) || err) });
-});
+(async function () {
+  try {
+    await import(${JSON.stringify(runtimeUrl)});
+    await import(${JSON.stringify(entryUrl)});
+  } catch (err) {
+    self.postMessage({ type: 'nexus.error', message: String((err && err.message) || err) });
+  }
+})();
 `;
 }

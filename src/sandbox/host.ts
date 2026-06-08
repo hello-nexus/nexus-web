@@ -55,8 +55,8 @@ interface RemoteWidgetImports {
   update(patch: SandboxPatch): Promise<void>;
 }
 
-export function spawnSandboxedWidget(entryUrl: string, context: SandboxContext): SandboxHandle {
-  const source = composeSdkWorkerSource(entryUrl);
+export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, context: SandboxContext): SandboxHandle {
+  const source = composeSdkWorkerSource(runtimeUrl, entryUrl);
   const blob = new Blob([source], { type: 'application/javascript' });
   const blobUrl = URL.createObjectURL(blob);
   const worker = new Worker(blobUrl, { type: 'module', name: `sdk:${context.widgetId}` });

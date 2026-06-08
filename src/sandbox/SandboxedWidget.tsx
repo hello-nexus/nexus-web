@@ -8,6 +8,9 @@ import { RemoteTree } from './RemoteTree';
 import { spawnSandboxedWidget, type SandboxContext, type SandboxHandle } from './host';
 
 export interface SandboxedWidgetProps {
+  /** Blob URL of the host-shared SDK runtime; the worker imports it before the
+   *  author bundle so react-dom/remote-dom/the SDK are downloaded once, not per widget. */
+  runtimeUrl: string;
   /** Absolute URL to the built worker bundle (served per code-session in prod). */
   entryUrl: string;
   widgetId: string;
@@ -42,7 +45,7 @@ interface LiveWidget { handle: SandboxHandle; disposeTimer: ReturnType<typeof se
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
 
-export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, onDispatch }: SandboxedWidgetProps) {
+export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, onDispatch }: SandboxedWidgetProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   // Cache key includes the surface so a widget's cell and page workers (separate
   // renders of the same bundle) never collide.
@@ -87,7 +90,7 @@ export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netF
           dispatch: (action, args) => onDispatch?.(action, args) ?? Promise.resolve(null),
         },
       };
-      entry = { handle: spawnSandboxedWidget(entryUrl, context), disposeTimer: null };
+      entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null };
       liveWidgets.set(key, entry);
       setHandle(entry.handle);
     }
