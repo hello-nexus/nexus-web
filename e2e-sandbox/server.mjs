@@ -77,6 +77,16 @@ function mockDispatchResult(action) {
       totalMs: 12_600_000, totalFormatted: '3h 30m', maxMs: 5_400_000, hasData: true,
     };
   }
+  if (action === 'displays.list') {
+    return {
+      displays: [
+        { id: 'DEL-U2720Q', name: 'Dell U2720Q', manufacturer: 'Dell', model: 'U2720Q', isInternal: false, brightnessControl: { supported: true, min: 0, max: 100, current: 75 } },
+        { id: 'LG-27GP', name: 'LG 27GP950', manufacturer: 'LG', model: '27GP950', isInternal: false, brightnessControl: { supported: true, min: 0, max: 100, current: 40 } },
+      ],
+      hint: '',
+    };
+  }
+  if (action === 'displays.setBrightness') return { id: '', brightness: 0, status: 'applied', error: '' };
   return null;
 }
 

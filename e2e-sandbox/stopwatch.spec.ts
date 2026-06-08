@@ -119,3 +119,24 @@ test('screentime SDK widget: host-action dispatch data path', async ({ page }) =
   await expect(cell).toContainText('Slack');                         // ranked list
   await expect(cell).toContainText('43%'); // VS Code = 5.4M/12.6M of the day
 });
+
+test('displays SDK widget: host-action data + control (setBrightness dispatch)', async ({ page }) => {
+  const dispatched: string[] = [];
+  await page.route('**/widgets-api/dispatch', async (route) => {
+    const body = route.request().postDataJSON?.() ?? {};
+    if (body.action === 'displays.setBrightness') dispatched.push(JSON.stringify(body.args));
+    await route.continue();
+  });
+  await page.goto('/?entry=/widgets/displays/widget.mjs&id=com.hellonexus.displays.sdk&w=360&h=300');
+  const cell = page.locator('.cell');
+  await expect(cell).toContainText('Dell U2720Q', { timeout: 15_000 });
+  await expect(cell).toContainText('LG 27GP950');
+  await expect(cell).toContainText('75%'); // current brightness via displays.list
+  // drive a brightness write
+  const slider = cell.locator('input[type=range]').first();
+  await slider.focus();
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  await page.waitForTimeout(400);
+  expect(dispatched.some((a) => /setBrightness|value/i.test(a) || a.includes('value'))).toBeTruthy();
+});

@@ -205,6 +205,7 @@ export function Slider(p: HostProps) {
         style={{ accentColor: toneVar(str(p.tone), 'var(--accent, currentColor)'), width: '100%' }}
         onChange={(e) => emit('input', Number(e.currentTarget.value))}
         onPointerUp={(e) => emit('change', Number((e.currentTarget as HTMLInputElement).value))}
+        onKeyUp={(e) => emit('change', Number((e.currentTarget as HTMLInputElement).value))}
       />
     </div>
   );
