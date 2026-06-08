@@ -43,7 +43,7 @@ export async function mount(App: ComponentType): Promise<void> {
       rootEl.connect(connection);
       document.body.appendChild(rootEl);
       createRoot(rootEl as unknown as Element).render(
-        createElement(ContextProvider, { store }, createElement(App)),
+        createElement(ContextProvider, { store, children: createElement(App) }),
       );
     },
     update(patch: { settings?: Record<string, unknown>; size?: { width: number; height: number } }) {

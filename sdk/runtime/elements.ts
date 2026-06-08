@@ -5,7 +5,7 @@
 
 import { RemoteRootElement, createRemoteElement } from '@remote-dom/core/elements';
 import type { RemoteElementConstructor } from '@remote-dom/core/elements';
-import { UI_ELEMENTS, type UiElementName } from '../../src/sandbox/contract/elements';
+import { UI_ELEMENTS, type UiElementName, type UiElementSpec } from '../../src/sandbox/contract/elements';
 
 export const ELEMENT_CTORS = {} as Record<UiElementName, RemoteElementConstructor>;
 
@@ -20,7 +20,7 @@ export function registerElements(): void {
   }
 
   for (const name of Object.keys(UI_ELEMENTS) as UiElementName[]) {
-    const spec = UI_ELEMENTS[name];
+    const spec: UiElementSpec = UI_ELEMENTS[name];
     const properties: Record<string, object> = {};
     for (const prop of spec.properties) properties[prop] = {};
     const Ctor = createRemoteElement({

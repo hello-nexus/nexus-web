@@ -32,7 +32,7 @@ export function useSize(): { width: number; height: number } {
 
 /** Per-instance local state bag. Persisted by the host across reloads; the
  *  setter merges, mirroring the declarative `localUpdate`. */
-export function useLocalState<T extends Record<string, unknown>>(
+export function useLocalState<T extends object>(
   defaults: T,
 ): [T, (next: Partial<T>) => void] {
   const store = useStore();

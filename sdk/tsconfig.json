@@ -10,7 +10,11 @@
     "skipLibCheck": true,
     "noEmit": true,
     "allowImportingTsExtensions": false,
-    "types": []
+    "types": [],
+    "paths": {
+      "@hellonexus/ui": ["./runtime/ui.tsx"],
+      "@hellonexus/sdk": ["./runtime/sdk.ts"]
+    }
   },
   "include": ["runtime", "widgets"]
 }
