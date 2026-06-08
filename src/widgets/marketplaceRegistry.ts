@@ -16,11 +16,12 @@ export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
  * `lookupApp` (already-placed instances keep rendering) but aren't offered.
  */
 export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
-  // SDK (sandboxed remote-component) widgets — the single widget model.
-  'com.hellonexus.weather.sdk',
-  'com.hellonexus.screentime.sdk',
-  'com.hellonexus.displays.sdk',
-  'com.hellonexus.clock.sdk',
+  // The Nexus apps (sandboxed remote-component SDK widgets — the single model).
+  'com.hellonexus.weather',
+  'com.hellonexus.screentime',
+  'com.hellonexus.displays',
+  'com.hellonexus.clock',
+  'com.hellonexus.media',
 ]);
 
 export function isMarketplaceIdEnabled(id: string): boolean {

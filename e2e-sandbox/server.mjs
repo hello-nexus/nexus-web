@@ -118,6 +118,15 @@ function mockDispatchResult(action) {
     };
   }
   if (action === 'displays.setBrightness') return { id: '', brightness: 0, status: 'applied', error: '' };
+  if (action === 'media.nowPlaying') {
+    return {
+      sourceAppName: 'Spotify',
+      song: { title: 'Midnight City', artist: 'M83', album: 'Hurry Up, We’re Dreaming' },
+      playback: { playing: true, positionMs: 64000, durationMs: 244000 },
+      controls: { isPrevEnabled: true, isNextEnabled: true, isPlayEnabled: true, isPauseEnabled: true },
+    };
+  }
+  if (action === 'media.transport' || action === 'media.setVolume') return { ok: true };
   return null;
 }
 

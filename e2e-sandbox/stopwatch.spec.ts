@@ -111,7 +111,7 @@ test('blob-URL bundle load (the remote-panel path): worker imports a blob: modul
 });
 
 test('screentime SDK widget: host-action dispatch data path', async ({ page }) => {
-  await page.goto('/?entry=/widgets/screentime/widget.mjs&id=com.hellonexus.screentime.sdk&w=360&h=360');
+  await page.goto('/?entry=/widgets/screentime/widget.mjs&id=com.hellonexus.screentime&w=360&h=360');
   const cell = page.locator('.cell');
   await expect(cell).toContainText('3h 30m', { timeout: 15_000 });   // total via screentime.today
   await expect(cell).toContainText('Visual Studio Code');            // focus + #1 app
@@ -127,7 +127,7 @@ test('displays SDK widget: host-action data + control (setBrightness dispatch)',
     if (body.action === 'displays.setBrightness') dispatched.push(JSON.stringify(body.args));
     await route.continue();
   });
-  await page.goto('/?entry=/widgets/displays/widget.mjs&id=com.hellonexus.displays.sdk&w=360&h=300');
+  await page.goto('/?entry=/widgets/displays/widget.mjs&id=com.hellonexus.displays&w=360&h=300');
   const cell = page.locator('.cell');
   await expect(cell).toContainText('Dell U2720Q', { timeout: 15_000 });
   await expect(cell).toContainText('LG 27GP950');
