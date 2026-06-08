@@ -1,0 +1,24 @@
+{
+  "name": "@hellonexus/sdk-workspace",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Author-facing Nexus widget SDK + sample widget build context. Builds to react@18 worker bundles; isolated from the host app's react@19.",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@quilted/threads": "4.0.1",
+    "@remote-dom/core": "1.11.1",
+    "@remote-dom/react": "1.2.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "esbuild": "^0.25.0",
+    "typescript": "~6.0.2"
+  }
+}

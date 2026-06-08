@@ -24,6 +24,8 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@quilted/threads": "^4.0.1",
+    "@remote-dom/core": "^1.11.1",
     "classnames": "^2.5.1",
     "compression": "^1.8.1",
     "express": "^5.2.1",

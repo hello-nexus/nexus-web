@@ -1,0 +1,87 @@
+// Exercises the owned host renderer against a real @remote-dom RemoteReceiver,
+// feeding it the same mutation records a worker would emit. Proves: blessed
+// elements render their host components, text nodes render, unknown elements
+// render nothing (the consistency boundary), and event listeners fire back.
+
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
+import { RemoteReceiver } from '@remote-dom/core/receivers';
+import {
+  ROOT_ID, NODE_TYPE_ELEMENT, NODE_TYPE_TEXT,
+  MUTATION_TYPE_INSERT_CHILD, MUTATION_TYPE_UPDATE_PROPERTY,
+} from '@remote-dom/core';
+import { RemoteTree } from '../RemoteTree';
+
+function el(
+  id: string, element: string, properties: Record<string, unknown>,
+  children: unknown[] = [], eventListeners: Record<string, unknown> = {},
+) {
+  return { id, type: NODE_TYPE_ELEMENT, element, properties, attributes: {}, eventListeners, children };
+}
+function text(id: string, data: string) {
+  return { id, type: NODE_TYPE_TEXT, data };
+}
+
+afterEach(() => cleanup());
+
+describe('RemoteTree host renderer', () => {
+  it('renders blessed elements + text from worker mutations', () => {
+    const receiver = new RemoteReceiver();
+    render(<RemoteTree receiver={receiver} />);
+
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID,
+          el('s1', 'ui-stack', { direction: 'column' }, [
+            el('t1', 'ui-text', { value: '00:42' }),
+            el('t2', 'ui-text', {}, [text('x1', 'label')]),
+          ]),
+          0],
+      ] as never);
+    });
+
+    expect(screen.getByText('00:42')).toBeTruthy();
+    expect(screen.getByText('label')).toBeTruthy();
+  });
+
+  it('renders nothing for an element name not in the map (consistency boundary)', () => {
+    const receiver = new RemoteReceiver();
+    const { container } = render(<RemoteTree receiver={receiver} />);
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('e1', 'div', { dangerous: true }, [text('t', 'XSS')]), 0],
+      ] as never);
+    });
+    expect(container.textContent ?? '').not.toContain('XSS');
+  });
+
+  it('fires an event listener back to the worker', () => {
+    const receiver = new RemoteReceiver();
+    const onPress = vi.fn();
+    render(<RemoteTree receiver={receiver} />);
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('b1', 'ui-button', { label: 'Go' }, [], { press: onPress }), 0],
+      ] as never);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Go' }));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('updates a property in place on a later mutation', () => {
+    const receiver = new RemoteReceiver();
+    render(<RemoteTree receiver={receiver} />);
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('t1', 'ui-text', { value: 'A' }), 0],
+      ] as never);
+    });
+    expect(screen.getByText('A')).toBeTruthy();
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_UPDATE_PROPERTY, 't1', 'value', 'B'],
+      ] as never);
+    });
+    expect(screen.getByText('B')).toBeTruthy();
+  });
+});
