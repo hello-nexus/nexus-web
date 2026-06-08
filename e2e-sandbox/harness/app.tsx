@@ -13,6 +13,7 @@ const h = Number(params.get('h') ?? 220);
 const absEntry = entry ? new URL(entry, location.origin).toString() : '';
 let settings: Record<string, unknown> = {};
 try { settings = JSON.parse(params.get('s') ?? '{}'); } catch { settings = {}; }
+const netFetch = (params.get('nf') ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 
 const n = Math.max(1, Number(params.get('n') ?? 1));
 const root = createRoot(document.getElementById('root')!);
@@ -20,7 +21,7 @@ root.render(
   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: 12 }}>
     {Array.from({ length: n }, (_, i) => (
       <div key={i} className="cell" style={{ width: w, height: h }}>
-        <SandboxedWidget entryUrl={absEntry} widgetId={widgetId} instanceId={`harness-${i}`} settings={settings} />
+        <SandboxedWidget entryUrl={absEntry} widgetId={widgetId} instanceId={`harness-${i}`} settings={settings} netFetch={netFetch} />
       </div>
     ))}
   </div>,

@@ -16,6 +16,7 @@ import { getToken, handleUnauthorized } from '../../api/auth';
 import { resolveHttp } from '../../api/service';
 import * as monitoringStore from '../../lib/monitoringStore';
 import { workerBootScript } from './workerBoot';
+import { proxyFetch } from './proxyClient';
 
 interface WorkerOptions {
   widgetId: string;
@@ -314,38 +315,11 @@ async function handleNetFetch(msg: RpcInbound, worker: Worker, opts: WorkerOptio
   } | undefined;
   if (!p?.url || !msg.id) return;
   try {
-    const token = await getToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    let res = await fetch(resolveHttp('/widgets-api/proxy'), {
-      method: 'POST', headers,
-      body: JSON.stringify({
-        widgetId: opts.widgetId,
-        url: p.url,
-        method: p.method,
-        headers: p.headers,
-        body: p.body,
-        allowedHosts: opts.netFetchAllowlist,
-      }),
-    });
-    if (res.status === 401) {
-      const next = await handleUnauthorized();
-      if (next) {
-        headers.Authorization = `Bearer ${next}`;
-        res = await fetch(resolveHttp('/widgets-api/proxy'), {
-          method: 'POST', headers,
-          body: JSON.stringify({
-            widgetId: opts.widgetId,
-            url: p.url,
-            method: p.method,
-            headers: p.headers,
-            body: p.body,
-            allowedHosts: opts.netFetchAllowlist,
-          }),
-        });
-      }
-    }
-    const payload = await res.json();
+    const payload = await proxyFetch(
+      opts.widgetId,
+      { url: p.url, method: p.method, headers: p.headers, body: p.body },
+      opts.netFetchAllowlist,
+    );
     worker.postMessage({ type: 'nexus.reply', id: msg.id, result: payload });
   } catch (err) {
     worker.postMessage({ type: 'nexus.reply', id: msg.id, error: { code: -32001, message: String(err) } });

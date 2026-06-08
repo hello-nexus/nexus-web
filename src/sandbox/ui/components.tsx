@@ -122,6 +122,34 @@ export function Bar(p: HostProps) {
   );
 }
 
+// Host-owned gradients so authors get a temperature ramp without passing raw
+// colours (cold→warm is semantic, not branding).
+const RANGE_GRADIENT: Record<string, string> = {
+  temp: 'linear-gradient(90deg, #38bdf8, var(--accent-glow, #67e8f9), #fbbf24)',
+  accent: 'linear-gradient(90deg, var(--accent-deep, #22d3ee), var(--accent-glow, #67e8f9))',
+};
+
+export function Range(p: HostProps) {
+  const min = num(p.min) ?? 0; const max = num(p.max) ?? 1;
+  const lo = num(p.lo) ?? min; const hi = num(p.hi) ?? max;
+  const span = max - min || 1;
+  const left = Math.max(0, Math.min(1, (lo - min) / span));
+  const right = Math.max(0, Math.min(1, (hi - min) / span));
+  const width = Math.max(0.04, right - left);
+  const height = num(p.height) ?? 5;
+  const radius = num(p.radius) ?? 999;
+  const grad = RANGE_GRADIENT[str(p.gradient) ?? 'temp'] ?? RANGE_GRADIENT.temp;
+  return (
+    <div style={{ position: 'relative', flex: 1, height, borderRadius: radius, background: 'var(--border, rgba(255,255,255,0.10))', overflow: 'hidden' }}>
+      <div style={{
+        position: 'absolute', top: 0, bottom: 0, left: `${left * 100}%`, width: `${width * 100}%`,
+        background: grad, borderRadius: radius,
+        boxShadow: p.glow ? '0 0 6px var(--accent-glow, rgba(103,232,249,0.55))' : undefined,
+      }} />
+    </div>
+  );
+}
+
 export function Ring(p: HostProps) {
   const fill = pctOf(p.value, p.min, p.max);
   const tone = toneVar(str(p.tone), 'var(--accent, currentColor)');

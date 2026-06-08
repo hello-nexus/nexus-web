@@ -13,6 +13,8 @@ export interface SandboxedWidgetProps {
   widgetId: string;
   instanceId: string;
   settings?: Record<string, unknown>;
+  /** Cert/manifest net.fetch host allowlist (e.g. ["api.open-meteo.com"]). */
+  netFetch?: string[];
   /** Host dispatch for gated control/host actions. */
   onDispatch?: (action: string, args?: Record<string, unknown>) => void | Promise<void>;
 }
@@ -24,7 +26,7 @@ function readLocal(widgetId: string, instanceId: string): Record<string, unknown
   catch { return {}; }
 }
 
-export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, onDispatch }: SandboxedWidgetProps) {
+export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netFetch, onDispatch }: SandboxedWidgetProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [handle, setHandle] = useState<SandboxHandle | null>(null);
   const settingsKey = JSON.stringify(settings ?? {});
@@ -41,6 +43,7 @@ export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, onDi
       size,
       settings: settings ?? {},
       local: readLocal(widgetId, instanceId),
+      netFetch: netFetch ?? [],
       api: {
         persistLocal: (next) => {
           try { localStorage.setItem(localKey(widgetId, instanceId), JSON.stringify(next)); }

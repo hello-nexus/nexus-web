@@ -49,6 +49,10 @@ export interface RingProps extends WithChildren {
   label?: string; sublabel?: string; tone?: UiTone; thickness?: number;
 }
 export interface BarProps { value: number; min?: number; max?: number; tone?: UiTone; label?: string }
+export interface RangeProps {
+  lo: number; hi: number; min?: number; max?: number;
+  gradient?: 'temp' | 'accent'; glow?: boolean; height?: number; radius?: number;
+}
 export interface GaugeProps { value: number; min?: number; max?: number; tone?: UiTone; label?: string; sublabel?: string }
 export interface SparklineProps { values: number[]; min?: number; max?: number; tone?: UiTone }
 export interface SliderProps {
@@ -76,6 +80,7 @@ export const Text = createRemoteComponent('ui-text' as any, ELEMENT_CTORS['ui-te
 export const Icon = createRemoteComponent('ui-icon' as any, ELEMENT_CTORS['ui-icon']) as unknown as React.FC<IconProps>;
 export const Ring = createRemoteComponent('ui-ring' as any, ELEMENT_CTORS['ui-ring']) as unknown as React.FC<RingProps>;
 export const Bar = createRemoteComponent('ui-bar' as any, ELEMENT_CTORS['ui-bar']) as unknown as React.FC<BarProps>;
+export const Range = createRemoteComponent('ui-range' as any, ELEMENT_CTORS['ui-range']) as unknown as React.FC<RangeProps>;
 export const Gauge = createRemoteComponent('ui-gauge' as any, ELEMENT_CTORS['ui-gauge']) as unknown as React.FC<GaugeProps>;
 export const Sparkline = createRemoteComponent('ui-sparkline' as any, ELEMENT_CTORS['ui-sparkline']) as unknown as React.FC<SparklineProps>;
 export const Slider = createRemoteComponent('ui-slider' as any, ELEMENT_CTORS['ui-slider'], {

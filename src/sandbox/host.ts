@@ -6,6 +6,7 @@ import { RemoteReceiver } from '@remote-dom/core/receivers';
 import type { RemoteConnection } from '@remote-dom/core';
 import { ThreadMessagePort, retain, release } from '@quilted/threads';
 import { composeSdkWorkerSource } from './sandboxBoot';
+import { proxyFetch } from '../widgets/declarative/proxyClient';
 
 export interface SandboxContext {
   instanceId: string;
@@ -13,6 +14,9 @@ export interface SandboxContext {
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;
+  /** Cert/manifest net.fetch host allowlist; the host services the worker's
+   *  brokered `nexus.net.fetch` through the SSRF-guarded proxy. */
+  netFetch?: string[];
   api: {
     persistLocal(next: Record<string, unknown>): void;
     dispatch(action: string, args?: Record<string, unknown>): void | Promise<void>;
@@ -49,9 +53,17 @@ export function spawnSandboxedWidget(entryUrl: string, context: SandboxContext):
     console.error(`[sdk:${context.widgetId}] worker error`, e.message, e.filename, e.lineno);
   });
   worker.addEventListener('message', (e: MessageEvent) => {
-    const d = e.data as { type?: string; message?: string; payload?: unknown } | null;
-    if (d?.type === 'nexus.error') console.error(`[sdk:${context.widgetId}]`, d.message);
-    else if (d?.type === 'nexus.log') console.warn(`[sdk:${context.widgetId}]`, d.payload);
+    const d = e.data as { type?: string; id?: number; message?: string; payload?: unknown } | null;
+    if (d?.type === 'nexus.error') { console.error(`[sdk:${context.widgetId}]`, d.message); return; }
+    if (d?.type === 'nexus.log') { console.warn(`[sdk:${context.widgetId}]`, d.payload); return; }
+    if (d?.type === 'nexus.net.fetch' && typeof d.id === 'number') {
+      const req = (d.payload ?? {}) as { url?: string; method?: string; headers?: Record<string, string>; body?: string };
+      const id = d.id;
+      if (!req.url) return;
+      void proxyFetch(context.widgetId, { url: req.url, method: req.method, headers: req.headers, body: req.body }, context.netFetch ?? [])
+        .then((result) => worker.postMessage({ type: 'nexus.reply', id, result }))
+        .catch((err: unknown) => worker.postMessage({ type: 'nexus.reply', id, error: { code: -32001, message: String(err) } }));
+    }
   });
 
   const channel = new MessageChannel();

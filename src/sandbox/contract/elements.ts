@@ -45,6 +45,8 @@ export const UI_ELEMENTS = {
   // --- indicators ---
   'ui-ring': { properties: ['value', 'min', 'max', 'label', 'sublabel', 'tone', 'thickness'] },
   'ui-bar': { properties: ['value', 'min', 'max', 'tone', 'label'] },
+  // A lo..hi segment positioned within a min..max track (e.g. a day's temp range).
+  'ui-range': { properties: ['lo', 'hi', 'min', 'max', 'gradient', 'glow', 'height', 'radius'] },
   'ui-gauge': { properties: ['value', 'min', 'max', 'tone', 'label', 'sublabel'] },
   'ui-sparkline': { properties: ['values', 'min', 'max', 'tone'] },
   // --- interactive (events flow host -> worker) ---

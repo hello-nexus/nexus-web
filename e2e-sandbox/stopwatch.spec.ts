@@ -86,3 +86,14 @@ test('timer SDK widget: setup steppers -> run -> countdown -> stop', async ({ pa
   await page.getByRole('button', { name: 'Stop' }).click();
   await expect(page.getByRole('button', { name: 'Start' })).toBeVisible(); // back to setup
 });
+
+test('weather SDK widget: brokered fetch -> geolocation + forecast render', async ({ page }) => {
+  await page.goto('/?entry=/widgets/weather/widget.mjs&id=com.hellonexus.weather&w=320&h=370&nf=api.open-meteo.com,ipwho.is');
+  const cell = page.locator('.cell');
+  await expect(cell).toContainText('72°', { timeout: 15_000 }); // current temp via mock OpenMeteo
+  await expect(cell).toContainText('Partly cloudy');
+  await expect(cell).toContainText('Los Angeles');          // ipwho.is geolocation
+  await expect(cell).toContainText('Today');                // 5-day forecast
+  await expect(cell).toContainText('Fri');
+  await expect(cell).toContainText(/H:78° L:60°/);
+});

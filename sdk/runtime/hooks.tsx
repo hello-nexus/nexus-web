@@ -101,6 +101,13 @@ export function useFetch<T = unknown>(
   return state;
 }
 
+/** Imperative brokered HTTPS request — for multi-step flows (e.g. geolocate then
+ *  fetch forecast). Routes through the host's SSRF-guarded proxy; needs the grant. */
+export async function request(url: string, init?: RequestInit): Promise<Response> {
+  if (!globalThis.nexus) throw new Error('[sdk] net.fetch unavailable');
+  return globalThis.nexus.net.fetch(url, init);
+}
+
 /** Emit a gated control/host action (cooling/lighting/system writes). */
 export function useDispatch(): (action: string, args?: Record<string, unknown>) => void {
   const store = useStore();

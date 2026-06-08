@@ -25,15 +25,56 @@ await build({
   outfile: join(harnessDir, 'app.mjs'),
   bundle: true, format: 'esm', platform: 'browser', target: 'es2020',
   jsx: 'automatic', jsxImportSource: 'react', sourcemap: false,
-  define: { 'process.env.NODE_ENV': '"production"' },
+  define: {
+    'process.env.NODE_ENV': '"production"',
+    // The SDK host (proxyClient) pulls in the app's service client, which reads
+    // Vite's import.meta.env + build-time globals. Point it at this harness
+    // origin so the worker's brokered fetch hits the mock /widgets-api/proxy.
+    'import.meta.env': JSON.stringify({
+      VITE_SERVICE_PROTOCOL: 'http:', VITE_SERVICE_HOST: 'localhost', VITE_SERVICE_PORT: String(PORT),
+      DEV: false, PROD: true, MODE: 'production', BASE_URL: '/',
+    }),
+    __APP_VERSION__: '"harness"', __SERVICE_BUILD__: 'false', __DEV_TOOLS__: 'false',
+  },
   logLevel: 'warning',
 });
 
 const MIME = { '.html': 'text/html', '.mjs': 'text/javascript', '.js': 'text/javascript', '.map': 'application/json', '.css': 'text/css' };
 
+// Canned upstream responses so the weather widget's brokered fetch works offline.
+// Times are generated server-side (Node Date is fine here) so the hourly cutoff
+// and "Today" labels line up with the test run.
+function mockProxyBody(targetUrl) {
+  if (targetUrl.includes('ipwho.is')) {
+    return { success: true, latitude: 34.0522, longitude: -118.2437, city: 'Los Angeles', region: 'California', country: 'United States', country_code: 'US' };
+  }
+  if (targetUrl.includes('open-meteo')) {
+    const now = new Date();
+    const hours = Array.from({ length: 12 }, (_, i) => new Date(now.getTime() + i * 3600_000).toISOString().slice(0, 13) + ':00');
+    const days = Array.from({ length: 5 }, (_, i) => new Date(now.getTime() + i * 86400_000).toISOString().slice(0, 10));
+    return {
+      current: { temperature_2m: 72, weather_code: 2, wind_speed_10m: 11, relative_humidity_2m: 54 },
+      hourly: { time: hours, temperature_2m: [72, 73, 74, 75, 74, 72, 70, 68, 67, 66, 65, 64], weather_code: [2, 2, 1, 0, 0, 2, 3, 3, 61, 61, 3, 2] },
+      daily: { time: days, weather_code: [2, 0, 61, 3, 1], temperature_2m_max: [78, 81, 69, 74, 80], temperature_2m_min: [60, 62, 57, 59, 61] },
+    };
+  }
+  return {};
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', `http://localhost:${PORT}`);
+
+    if (req.method === 'POST' && url.pathname === '/widgets-api/proxy') {
+      let raw = '';
+      for await (const chunk of req) raw += chunk;
+      let target = '';
+      try { target = JSON.parse(raw).url ?? ''; } catch { /* ignore */ }
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      res.end(JSON.stringify({ ok: true, status: 200, statusText: 'OK', headers: {}, body: mockProxyBody(target) }));
+      return;
+    }
+
     let path = decodeURIComponent(url.pathname);
     if (path === '/' ) path = '/index.html';
 

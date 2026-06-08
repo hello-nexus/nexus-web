@@ -8,7 +8,7 @@ import type { UiElementName } from './contract/elements';
 import type { HostProps } from './ui/components';
 import {
   Stack, Grid, Frame, Spacer, Divider, Text, Icon,
-  Ring, Bar, Gauge, Sparkline, Slider, Button, Stepper,
+  Ring, Bar, Range, Gauge, Sparkline, Slider, Button, Stepper,
 } from './ui/components';
 
 export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
@@ -21,6 +21,7 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-icon': Icon,
   'ui-ring': Ring,
   'ui-bar': Bar,
+  'ui-range': Range,
   'ui-gauge': Gauge,
   'ui-sparkline': Sparkline,
   'ui-slider': Slider,
