@@ -73,8 +73,15 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
 // and phone (touch) all expose a pointer and accept every app whose
 // sizes match. Single-widget surfaces (Q60) lock to one size and
 // additionally exclude touch-required apps since they have no pointer.
-export function appAvailableForSurface(meta: AppManifest['meta'], surface: PanelSurface): boolean {
+export function appAvailableForSurface(
+  meta: AppManifest['meta'],
+  surface: PanelSurface,
+  opts?: { remote?: boolean },
+): boolean {
   if (meta.touch && !surfaceSupportsTouch(surface)) return false;
+  // Local-only widgets (e.g. the pairing QR) are hidden on remotely-connected
+  // panels — a remote panel is the thing being paired, not the pairer.
+  if (meta.localOnly && opts?.remote) return false;
   const single = singleWidgetSurfaceSize(surface);
   if (single !== undefined) {
     return meta.sizes.includes(single);

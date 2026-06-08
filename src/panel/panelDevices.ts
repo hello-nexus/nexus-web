@@ -1,9 +1,20 @@
 import type { PanelSurface } from './types';
 
-export type PanelConnectionKind = 'attached-monitor' | 'usb-display' | 'external-browser' | 'simulated';
+// 'remote' is a panel that connects over the network — a paired phone/browser
+// or the native app (a WKWebView around /panel/phone), all the same remote
+// /panel/phone session. Contrast the hard-wired displays: 'attached-monitor'
+// (Y70) and 'usb-display' (Q-series).
+export type PanelConnectionKind = 'attached-monitor' | 'usb-display' | 'remote' | 'simulated';
 export type PanelManagementMode = 'managed' | 'self-managed' | 'managed-test';
 export type PanelDeviceStatus = 'online' | 'offline' | 'paired' | 'recently-active' | 'running';
 export type PanelDeviceModalKind = 'y70-compat' | 'panel-editor';
+
+// Whether a panel connects over the network (vs a display hard-wired to the
+// host). The single place that means "remote"; extend it as new remote
+// transports are added rather than checking connectionKind values inline.
+export function isRemotePanel(kind: PanelConnectionKind | undefined): boolean {
+  return kind === 'remote';
+}
 
 export interface PanelDeviceCapabilities {
   layout: boolean;

@@ -39,7 +39,7 @@ import {
   type PanelWidgetSize,
   type PanelConfigValue,
 } from '../../../panel/types';
-import type { PanelDevice } from '../../../panel/panelDevices';
+import { isRemotePanel, type PanelDevice } from '../../../panel/panelDevices';
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
 import { PanelWidgetCatalog } from '../../../panel/editor/PanelWidgetCatalog';
 import '../../../panel/styles/tokens.scss';
@@ -343,6 +343,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       surface={surface}
                       onAdd={handleAddWidget}
                       variant="desktop-modal"
+                      remote={isRemotePanel(device?.connectionKind)}
                       themeMode={resolvedPanelThemeMode}
                       themeStyle={panelThemeVars}
                       className={styles.catalog}
