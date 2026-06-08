@@ -1,0 +1,23 @@
+// Standalone harness that mounts a single SandboxedWidget, for real-browser e2e
+// + perf measurement. Reads the widget bundle URL + cell size from the query.
+// No StrictMode: its double-invoke would spawn two workers per mount.
+
+import { createRoot } from 'react-dom/client';
+import { SandboxedWidget } from '../../src/sandbox/SandboxedWidget';
+
+const params = new URLSearchParams(location.search);
+const entry = params.get('entry') ?? '';
+const widgetId = params.get('id') ?? 'harness.widget';
+const w = Number(params.get('w') ?? 220);
+const h = Number(params.get('h') ?? 220);
+const absEntry = entry ? new URL(entry, location.origin).toString() : '';
+
+const root = createRoot(document.getElementById('root')!);
+root.render(
+  <div className="cell" style={{ width: w, height: h }}>
+    <SandboxedWidget entryUrl={absEntry} widgetId={widgetId} instanceId="harness-1" settings={{}} />
+  </div>,
+);
+
+// Signal readiness for perf timing in the spec.
+(window as unknown as { __harnessReady: boolean }).__harnessReady = true;

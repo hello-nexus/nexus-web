@@ -1,6 +1,9 @@
-// Polyfill must initialize before react-dom: this import runs first in the
-// bundle's module graph, installing window/document/customElements in the worker.
+// Polyfills must initialize before react-dom. Core installs window/document/
+// customElements; the react polyfill then patches the bits react-dom probes
+// (Element.style/CSSStyleDeclaration, HTMLIFrameElement, location, navigator).
+// Order matters: core first.
 import '@remote-dom/core/polyfill';
+import '@remote-dom/react/polyfill';
 
 import { createElement, type ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';

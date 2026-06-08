@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SDK sandbox harness</title>
+    <style>
+      :root {
+        --bg: #0b0b0c; --bg-card: rgba(255,255,255,0.05);
+        --text: #f4f4f5; --text-dim: #a1a1aa; --text-faded: #71717a;
+        --accent: #6ee7ff; --accent-deep: #22d3ee; --accent-glow: #67e8f9;
+        --good: #10b981; --warn: #f59e0b; --bad: #ef4444;
+        --border: rgba(255,255,255,0.12);
+        color-scheme: dark;
+      }
+      html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+        font-family: system-ui, -apple-system, sans-serif; }
+      #root { display: grid; place-items: center; min-height: 100vh; }
+      .cell { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>

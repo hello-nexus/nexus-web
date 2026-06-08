@@ -42,6 +42,18 @@ export function spawnSandboxedWidget(entryUrl: string, context: SandboxContext):
   const worker = new Worker(blobUrl, { type: 'module', name: `sdk:${context.widgetId}` });
   setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
 
+  // Surface worker faults/logs to the host console (worker console output does
+  // not otherwise reach the page). The UI rides the threads port, but nexus.*
+  // diagnostics still come over the worker's main channel.
+  worker.addEventListener('error', (e) => {
+    console.error(`[sdk:${context.widgetId}] worker error`, e.message, e.filename, e.lineno);
+  });
+  worker.addEventListener('message', (e: MessageEvent) => {
+    const d = e.data as { type?: string; message?: string; payload?: unknown } | null;
+    if (d?.type === 'nexus.error') console.error(`[sdk:${context.widgetId}]`, d.message);
+    else if (d?.type === 'nexus.log') console.warn(`[sdk:${context.widgetId}]`, d.payload);
+  });
+
   const channel = new MessageChannel();
   worker.postMessage({ type: 'nexus.ui.port' }, [channel.port2]);
 
