@@ -32,6 +32,7 @@ import { PanelPageIndicator } from './PanelPageIndicator';
 import { PanelActionsTray } from './PanelActionsTray';
 import { PanelImmersiveOverlay } from './PanelImmersiveOverlay';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from './widgets/registry';
+import type { DeckEditView } from './widgets/types';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
@@ -287,6 +288,7 @@ export function PanelContent({
   const [sheetClosing, setSheetClosing] = useState(false);
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
+  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ folderPath: [] });
   const [editorDockMotion, setEditorDockMotion] = useState<EditorDockMotion | null>(null);
   // Widgets whose last action was rejected (e.g. resize didn't fit anywhere).
   // Drives a brief shake/flash on the cell, auto-cleared by a timer. Plural
@@ -964,6 +966,7 @@ export function PanelContent({
       ? def.resolveInitialSelection({ point, widget })
       : undefined;
     setSelectedMonitoringSlot(initial?.selectedSlot ?? 0);
+    setDeckEditView({ folderPath: [] });
     setEditingWidgetId(widget.id);
     setSheetMode('settings');
   }, [clearCloseTimer, surface]);
@@ -1350,8 +1353,11 @@ export function PanelContent({
                               flash={flashedWidgets.has(w.id)}
                               isDragSource={activeDragId === w.id}
                               resizeMotion={!sheetMode && resizeMotionWidgetId === w.id}
-                              selectedSlot={sheetMode === 'settings' && editingWidgetId === w.id && w.type === 'monitoring' ? selectedMonitoringSlot : undefined}
-                              onSelectSlot={sheetMode === 'settings' && editingWidgetId === w.id && w.type === 'monitoring' ? setSelectedMonitoringSlot : undefined}
+                              selectedSlot={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? selectedMonitoringSlot : undefined}
+                              onSelectSlot={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? setSelectedMonitoringSlot : undefined}
+                              editView={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? deckEditView : undefined}
+                              onEditViewChange={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? setDeckEditView : undefined}
+                              onUpdate={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? (cfg => updateWidgetConfig(w.id, cfg)) : undefined}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               onContextMenu={surfaceSupportsTouch(surface) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               cellPointers={surfaceSupportsTouch(surface) ? touch.bindCellPointers(w) : noopCellPointers}
@@ -1578,6 +1584,8 @@ export function PanelContent({
           onRemove={removeWidget}
           selectedMonitoringSlot={selectedMonitoringSlot}
           onSelectedMonitoringSlotChange={setSelectedMonitoringSlot}
+          editView={deckEditView}
+          onEditViewChange={setDeckEditView}
         />
       )}
 
