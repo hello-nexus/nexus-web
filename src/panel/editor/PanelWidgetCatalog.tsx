@@ -2,10 +2,10 @@ import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSPrope
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { useTranslation } from '../../lib/i18n';
 import type { PanelLayout, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
-import { PANEL_GRID_GAP } from '../engine/grid';
+import { PANEL_GRID_GAP, sizeToSpan } from '../engine/grid';
 import { PHONE_WIDGET_REFERENCE_CELL } from '../panelGrid';
 import { appendWidget } from '../engine/panelLayoutOps';
-import { getCatalogEntries, pickerSizeFor, appAvailableForSurface } from '../widgets/registry';
+import { getCatalogEntries, pickerSizeFor, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
 import {
   isMarketplaceIdEnabled,
   isMarketplaceRegistryStale,
@@ -142,18 +142,41 @@ export function PanelWidgetCatalog({
   } as CSSProperties;
 
   // Pack an ordered entry list into `cols` columns the way the panel does:
-  // row-major first-free-rect on a single page (no implicit new pages).
+  // row-major first-free-rect on a single page (no implicit new pages). 1x1
+  // widgets are held back and laid out left-to-right on fresh rows BELOW
+  // everything else, so the smallest tiles always group at the bottom of the
+  // grid instead of back-filling gaps higher up.
+  // Picker size for a widget, adjusted for the browse grid's width. At exactly
+  // 4 columns a 4x2 spans the full row (one widget per row); prefer the
+  // half-width 2x2 where the widget supports it so the narrow grid stays
+  // compact. Wider grids (8 / 12 / ...) keep the panel's 4x2 preference.
+  const pickSize = (meta: CatalogEntry[1]['meta']): PanelWidgetSize => {
+    const size = pickerSizeFor(meta, surface);
+    if (cols === 4 && size === '4x2' && sizesForSurface(meta, surface).includes('2x2')) {
+      return '2x2';
+    }
+    return size;
+  };
+
   const packEntries = (items: CatalogEntry[]): PanelWidget[] => {
+    const sized = items.map(([type, def]) => ({ type, size: pickSize(def.meta) }));
     let acc: PanelLayout = {
       layoutSchemaVersion: 1,
       surface,
       pages: [{ id: 'catalog', widgets: [] }],
     };
-    for (const [type, def] of items) {
-      const widget: PanelWidget = { id: type, type, size: pickerSizeFor(def.meta, surface), col: 0, row: 0 };
-      acc = appendWidget(acc, widget, { gridCols: cols, pageRows: 10_000 }, { singlePage: true });
+    for (const { type, size } of sized.filter(w => w.size !== '1x1')) {
+      acc = appendWidget(acc, { id: type, type, size, col: 0, row: 0 }, { gridCols: cols, pageRows: 10_000 }, { singlePage: true });
     }
-    return acc.pages[0]?.widgets ?? [];
+    const placed = acc.pages[0]?.widgets ?? [];
+    const baseRow = placed.reduce((max, w) => Math.max(max, w.row + sizeToSpan(w.size).rows), 0);
+    const ones = sized
+      .filter(w => w.size === '1x1')
+      .map((w, i): PanelWidget => ({
+        id: w.type, type: w.type, size: w.size,
+        col: i % cols, row: baseRow + Math.floor(i / cols),
+      }));
+    return [...placed, ...ones];
   };
 
   const defByType = new Map(entries);

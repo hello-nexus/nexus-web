@@ -509,10 +509,16 @@
 
 // Add-widget catalog cell (PanelCatalogCell): same cell chrome as a live
 // widget, plus a click affordance. Hover/selected ring on the card only.
+// The catalog is click-to-add with inert previews (pointer-events:none on the
+// scaler), so — unlike the live panel — the cell must NOT own the touch
+// gesture. Re-enable vertical panning so a drag scrolls the catalog instead of
+// locking onto a widget (the live `.cell` sets touch-action:none for drag).
 .catalogCell {
   cursor: pointer;
+  touch-action: pan-y;
 
   .cell {
+    touch-action: pan-y;
     transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
     border: 1px solid transparent;
   }
