@@ -1,13 +1,13 @@
 // Button meter: click target that fires a dispatch action. The button's
-// surface fits the parent flex cell (so a macros widget at 2x2 gets a
+// surface fits the parent flex cell (so a button widget at 2x2 gets a
 // full-card button) and renders a single child view inside as its label.
 //
 // Manifest shape:
 //   { "type": "button",
-//     "child": { "type": "icon", "name": "play", "size": 28 },
+//     "child": { "type": "icon", "name": "sun", "size": 28 },
 //     "color": "accent",                  // optional tint, default subtle
-//     "onClick": { "action": "macros.launchApp",
-//                  "args": { "appId": "{settings.appId}" } } }
+//     "onClick": { "action": "displays.setBrightness",
+//                  "args": { "id": "{settings.displayId}", "value": 80 } } }
 
 import { useCallback, useState } from 'react';
 import type { WidgetView } from '../../types';

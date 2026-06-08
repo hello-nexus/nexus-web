@@ -22,6 +22,7 @@ export const monitoringApp: AppManifest = {
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
     touch: false,
+    usesSlotSelection: true,
   },
   Widget: MonitoringWidget,
   Preview: MonitoringPreview,

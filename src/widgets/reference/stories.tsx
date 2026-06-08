@@ -601,11 +601,11 @@ export const STORIES: WidgetReferenceStory[] = [
     ],
     variants: [
       {
-        name: 'icon-only macro',
+        name: 'icon-only action',
         view: {
-          type: 'button', label: 'Run macro',
-          onClick: { action: 'macros.openUrl', args: { url: 'https://example.com' } },
-          child: { type: 'icon', name: 'play', size: 22, color: 'accent' },
+          type: 'button', label: 'Set brightness',
+          onClick: { action: 'displays.setBrightness', args: { id: '{settings.displayId}', value: 80 } },
+          child: { type: 'icon', name: 'sun', size: 22, color: 'accent' },
         },
         size: { width: 88, height: 88 },
       },
