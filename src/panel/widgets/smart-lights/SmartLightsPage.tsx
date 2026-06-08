@@ -214,18 +214,18 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
                         key={device.id}
                         title={device.name}
                         className={device.enabled ? styles.lightCard : `${styles.lightCard} ${styles.lightCardOff}`}
-                        actions={(
+                      >
+                        <div className={styles.cardFooter}>
+                          <span className={styles.pairedStatus} data-online={device.online ? 'true' : 'false'}>
+                            <span className={styles.statusDot} data-online={device.online ? 'true' : 'false'} aria-hidden="true" />
+                            {device.online ? t('smartLights.online') : t('smartLights.offline')}
+                          </span>
                           <Toggle
                             checked={device.enabled}
                             onChange={on => void handleToggleEnabled(device.id, on)}
                             ariaLabel={device.name}
                           />
-                        )}
-                      >
-                        <span className={styles.pairedStatus} data-online={device.online ? 'true' : 'false'}>
-                          <span className={styles.statusDot} data-online={device.online ? 'true' : 'false'} aria-hidden="true" />
-                          {device.online ? t('smartLights.online') : t('smartLights.offline')}
-                        </span>
+                        </div>
                       </Card>
                     ))}
                   </CollapsibleCategory>
