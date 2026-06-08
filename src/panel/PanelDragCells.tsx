@@ -4,6 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import type { CSSProperties } from 'react';
 import { sizeToSpan } from './engine/grid';
 import { lookupApp } from './widgets/registry';
+import type { DeckEditView } from './widgets/types';
 import { WidgetCellLabel } from './widgets/common/WidgetCellLabel';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { useTranslation } from '../lib/i18n';
@@ -115,6 +116,8 @@ export function PanelTouchCell({
   resizeMotion = false,
   selectedSlot,
   onSelectSlot,
+  editView,
+  onEditViewChange,
   clickthrough = false,
   onContextMenu,
   cellPointers,
@@ -135,6 +138,8 @@ export function PanelTouchCell({
   resizeMotion?: boolean;
   selectedSlot?: number;
   onSelectSlot?: (slot: number) => void;
+  editView?: DeckEditView;
+  onEditViewChange?: (view: DeckEditView) => void;
   clickthrough?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
@@ -319,6 +324,8 @@ export function PanelTouchCell({
             surface={surface}
             selectedSlot={selectedSlot}
             onSelectSlot={onSelectSlot}
+            editView={editView}
+            onEditViewChange={onEditViewChange}
             onSectionNavigate={onSectionNavigate}
             onConfigure={onConfigureWidget ? () => onConfigureWidget(widget) : undefined}
           />

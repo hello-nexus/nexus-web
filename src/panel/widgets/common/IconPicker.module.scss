@@ -1,0 +1,76 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  button {
+    padding: 4px 10px;
+    border: 1px solid var(--panel-border, var(--border));
+    border-radius: 8px;
+    background: transparent;
+    color: var(--panel-text-secondary, var(--text-faded));
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .activeTab {
+    color: var(--panel-text, var(--text));
+    border-color: var(--panel-accent, var(--accent));
+  }
+
+  .auto { margin-left: auto; }
+}
+
+.search {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: 1px solid var(--panel-border, var(--border));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--panel-text, var(--text));
+  cursor: pointer;
+
+  svg { width: 20px; height: 20px; }
+
+  &:hover { border-color: var(--panel-accent, var(--accent)); }
+}
+
+.activeIcon {
+  border-color: var(--panel-accent, var(--accent));
+  background: color-mix(in srgb, var(--panel-accent, var(--accent)) 18%, transparent);
+}
+
+.appOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--panel-border, var(--border));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--panel-text, var(--text));
+  cursor: pointer;
+
+  img { width: 24px; height: 24px; border-radius: 4px; }
+}

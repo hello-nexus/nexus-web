@@ -35,7 +35,7 @@ import { stopwatchApp } from './stopwatch';
 import { calculatorApp } from './calculator';
 import { iframeApp } from './iframe';
 import { twitchApp } from './twitch';
-import { macrosApp } from './macros';
+import { deckApp } from './deck';
 import { emojiApp } from './emoji';
 import { galleryApp } from './gallery';
 import { pairingApp } from './pairing';
@@ -60,7 +60,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   calculator: calculatorApp,
   iframe:     iframeApp,
   twitch:     twitchApp,
-  macros:     macrosApp,
+  deck:       deckApp,
   emoji:      emojiApp,
   gallery:    galleryApp,
   pairing:    pairingApp,
@@ -122,7 +122,7 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
 const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '4x2', '4x4'];
 
 // Synthesise an AppManifest for a marketplace app. Sizes come from
-// the listing's manifest so a 1x1 macros app stays 1x1 and a 4x2-only
+// the listing's manifest so a 1x1 app stays 1x1 and a 4x2-only
 // weather stays 4x2. Anything the manifest declares that the panel
 // engine doesn't know about is filtered out.
 function makeMarketplaceAppManifest(

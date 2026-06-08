@@ -36,6 +36,18 @@ export interface WidgetProps {
   // it from setup states ("Add API key…") so the user has a direct path
   // to config without going through the right-click context menu.
   onConfigure?: () => void;
+  // Deck-style widgets with pages/folders: the shared edit-mode view (which
+  // page / folder the editor is on) so the live tile mirrors the edit sheet and
+  // slot selection hit-tests the right grid. Undefined outside editing — run
+  // mode keeps its own internal navigation state.
+  editView?: DeckEditView;
+  onEditViewChange?: (view: DeckEditView) => void;
+}
+
+// Which page + folder path a paged/foldered widget (deck) is currently showing.
+export interface DeckEditView {
+  pageIndex: number;
+  folderPath: number[];
 }
 
 export interface WidgetSettingsProps {
@@ -44,6 +56,9 @@ export interface WidgetSettingsProps {
   onResize: (size: PanelWidgetSize) => void;
   selectedSlot?: number;
   onSelectedSlotChange?: (slot: number) => void;
+  // Shared paged/foldered edit view (deck) — see WidgetProps.editView.
+  editView?: DeckEditView;
+  onEditViewChange?: (view: DeckEditView) => void;
 }
 
 // Props passed to an App's desktop SPA Page. Each Page declares its
@@ -80,6 +95,11 @@ export interface AppMetadata {
   // e.g. the pairing/QR widget: a remote panel is the thing being paired, so
   // showing it a "pair a remote" QR is nonsensical. Defaults to false.
   localOnly?: boolean;
+  // Whether the widget participates in slot selection during editing: the live
+  // tile renders selectable cells and the edit sheet edits the selected slot
+  // (monitoring, deck). When true, PanelApp/WidgetEditSheet/PanelEditorSheet
+  // pass selectedSlot/onSelectedSlotChange through. Defaults to false.
+  usesSlotSelection?: boolean;
 }
 
 // Initial sheet state derived from where the user invoked the edit flow.

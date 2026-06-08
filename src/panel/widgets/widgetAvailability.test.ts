@@ -102,7 +102,7 @@ describe('appAvailableForSurface', () => {
       'stopwatch',
       'calculator',
       'cooling',
-      'macros',
+      'deck',
       'emoji',
     ];
     for (const type of expectedTouch) {
@@ -162,7 +162,7 @@ describe('pickerSizeFor', () => {
   it('prefers 4x2 when a widget supports it', () => {
     for (const type of ['clock', 'cooling', 'iframe', 'lighting', 'obs',
                         'screentime', 'gallery', 'media', 'displays',
-                        'stopwatch', 'timer', 'monitoring']) {
+                        'stopwatch', 'timer', 'monitoring', 'deck']) {
       const def = APP_REGISTRY[type];
       expect(def.meta.sizes, `${type} should declare 4x2`).toContain('4x2');
       expect(pickerSizeFor(def.meta, 'y70'), `${type} on y70`).toBe('4x2');
@@ -170,11 +170,10 @@ describe('pickerSizeFor', () => {
   });
 
   it('falls back to a sole supported size when 4x2 is unavailable', () => {
-    // 4x4-only widgets, 2x2-only pairing, 1x1-only macros.
+    // 4x4-only widgets, 2x2-only pairing.
     expect(pickerSizeFor(APP_REGISTRY.calculator.meta, 'y70')).toBe('4x4');
     expect(pickerSizeFor(APP_REGISTRY.steam.meta, 'y70')).toBe('4x4');
     expect(pickerSizeFor(APP_REGISTRY.pairing.meta, 'y70')).toBe('2x2');
-    expect(pickerSizeFor(APP_REGISTRY.macros.meta, 'y70')).toBe('1x1');
   });
 
   it('drops 2x4 first, then applies the rule (twitch becomes 4x4)', () => {
