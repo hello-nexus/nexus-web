@@ -13,13 +13,17 @@ import styles from './DeckSettings.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
+// NOTE: audioOutput / audioInput are intentionally omitted — switching the
+// default audio endpoint needs IPolicyConfig in the user session and isn't
+// reliably verifiable yet (see deck plan: deferred). The action kinds + backend
+// route remain for a future verified re-enable; they're just not offered here.
 const TOP_KINDS: (DeckActionType | 'folder')[] = [
   'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'text',
-  'power', 'audioOutput', 'audioInput', 'nexus', 'sequence', 'toggle', 'folder',
+  'power', 'nexus', 'sequence', 'toggle', 'folder',
 ];
 const NESTED_KINDS: DeckActionType[] = [
   'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'text',
-  'power', 'audioOutput', 'audioInput', 'nexus',
+  'power', 'nexus',
 ];
 
 const SWATCHES = ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#a855f7', '#ec4899', '#64748b', '#ffffff'];
