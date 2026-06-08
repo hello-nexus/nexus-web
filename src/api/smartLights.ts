@@ -1,0 +1,62 @@
+// Smart-lights API wrapper — discovery + pairing + removal of paired network
+// lighting devices (Philips Hue, etc.). Per-device color/brightness/power lives
+// on the existing /devices/lighting-devices/* routes (see api/lighting.ts); this
+// client only covers the management surface. Uses the same authed service
+// helpers as every other client.
+
+import { fetchService, postService } from './service';
+
+// A device already paired and exposed by the service.
+export interface SmartLight {
+  id: string;
+  brand: string;
+  name: string;
+  host: string;
+  online: boolean;
+  enabled: boolean;
+  ledCount: number;
+}
+
+export interface SmartLightsResponse {
+  devices: SmartLight[];
+}
+
+// A candidate found during a discovery scan (not yet paired).
+export interface DiscoveredSmartLight {
+  brand: string;
+  host: string;
+  name: string;
+  stableKey: string;
+  alreadyPaired: boolean;
+}
+
+export interface DiscoverResponse {
+  ok: boolean;
+  error?: string;
+  devices?: DiscoveredSmartLight[];
+}
+
+export interface PairResponse {
+  ok: boolean;
+  // 'link-button' ⇒ the bridge needs its physical button pressed first.
+  error?: string;
+  added?: number;
+  message?: string;
+}
+
+export interface RemoveResponse {
+  error?: string;
+  msg?: string;
+}
+
+export const fetchSmartLights = () =>
+  fetchService<SmartLightsResponse>('/smart-lights/all');
+
+export const discoverSmartLights = (brand: string) =>
+  postService<DiscoverResponse>('/smart-lights/discover', { brand });
+
+export const pairSmartLight = (brand: string, host: string, stableKey: string, name: string) =>
+  postService<PairResponse>('/smart-lights/pair', { brand, host, stableKey, name });
+
+export const removeSmartLight = (id: string) =>
+  postService<RemoveResponse>('/smart-lights/remove', { id });

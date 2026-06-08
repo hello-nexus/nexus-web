@@ -1,0 +1,196 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+  min-height: 0;
+  padding: 0 0 1rem;
+  box-sizing: border-box;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+// ---------- Brand picker ----------
+
+.brandGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.brandTile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover:not([data-disabled]):not(:disabled) {
+    border-color: var(--accent);
+    background: var(--bg-card-hover);
+  }
+
+  &[data-active='true'] {
+    border-color: var(--accent);
+  }
+
+  &[data-disabled='true'],
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  svg { color: var(--text-dim); }
+}
+
+.brandName {
+  font-weight: var(--weight-heading);
+}
+
+.brandSub {
+  font-size: var(--type-mini);
+  color: var(--text-faded);
+}
+
+// ---------- Discovered list ----------
+
+.discoverList,
+.pairedList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.discoverRow,
+.pairedRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.discoverInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.deviceName {
+  font-weight: var(--weight-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deviceHost {
+  font-size: var(--type-mini);
+  color: var(--text-faded);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+}
+
+.statusDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-faded);
+
+  &[data-online='true'] { background: var(--good); }
+  &[data-online='false'] { background: var(--text-faded); }
+}
+
+// ---------- Messages ----------
+
+.error {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--bad);
+}
+
+.success {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--good);
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.noticeText {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--text);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--type-mini);
+  color: var(--text-faded);
+}
+
+.linkNote {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--type-mini);
+  color: var(--accent);
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+}
