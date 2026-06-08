@@ -97,3 +97,15 @@ test('weather SDK widget: brokered fetch -> geolocation + forecast render', asyn
   await expect(cell).toContainText('Fri');
   await expect(cell).toContainText(/H:78° L:60°/);
 });
+
+test('blob-URL bundle load (the remote-panel path): worker imports a blob: module', async ({ page }) => {
+  await page.goto('/?entry=/widgets/stopwatch/widget.mjs&id=com.hellonexus.stopwatch&w=220&h=180&blob=1');
+  const start = page.getByRole('button', { name: 'Start' });
+  await expect(start).toBeVisible({ timeout: 15_000 });
+  const cell = page.locator('.cell');
+  await expect(cell).toContainText(/00:00/);
+  await start.click();
+  const t1 = await cell.innerText();
+  await page.waitForTimeout(600);
+  expect(await cell.innerText()).not.toBe(t1); // worker booted from a blob: import and ticks
+});

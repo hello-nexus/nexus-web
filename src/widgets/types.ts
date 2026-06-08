@@ -116,6 +116,9 @@ export interface WidgetInstalledListing {
   description?: string;
   iconUrl?: string | null;
   surfaces: string[];
+  /** Render runtime: undefined/"declarative" = meter-palette view tree; "sdk" =
+   *  sandboxed remote-component widget loaded from the bundle's widget.mjs. */
+  runtime?: string;
   capabilities: WidgetManifestCapabilities;
   viewport?: WidgetManifestViewport;
   settings?: WidgetManifestSettingEntry[];

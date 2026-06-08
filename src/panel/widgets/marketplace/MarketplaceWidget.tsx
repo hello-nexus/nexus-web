@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { WidgetProps } from '../types';
 import { DeclarativeWidget } from '../../../widgets/declarative/DeclarativeWidget';
+import { SdkMarketplaceWidget } from './SdkMarketplaceWidget';
 import {
   getMarketplaceListing,
   loadMarketplaceWidgets,
@@ -35,6 +36,18 @@ export function MarketplaceWidget({ widget }: WidgetProps) {
 
   if (!listing) {
     return <div className={styles.empty}>{id ? `Loading ${id}…` : 'Marketplace widget missing id'}</div>;
+  }
+
+  // SDK (sandboxed remote-component) widgets render through the SDK host; the
+  // meter-palette renderer handles everything else.
+  if (listing.runtime === 'sdk') {
+    return (
+      <SdkMarketplaceWidget
+        listing={listing}
+        size={widget.size}
+        instanceId={widget.id}
+      />
+    );
   }
 
   return (

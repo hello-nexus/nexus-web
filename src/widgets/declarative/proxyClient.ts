@@ -1,10 +1,12 @@
 // Shared host-side egress: POST a widget's outbound HTTPS request to the
 // service's SSRF-guarded /widgets-api/proxy with the cert/manifest allowlist.
-// Used by both the declarative Tier-2 worker host and the sandboxed SDK host so
-// the brokered-fetch path exists once.
+// Used by both the declarative Tier-2 worker host and the sandboxed SDK host.
+//
+// Routes through postService (relay-aware): on a remotely-connected panel the
+// call tunnels over the relay instead of hitting http://localhost, so brokered
+// fetch works off-LAN.
 
-import { getToken, handleUnauthorized } from '../../api/auth';
-import { resolveHttp } from '../../api/service';
+import { postService } from '../../api/service';
 
 export interface ProxyRequest {
   url: string;
@@ -13,32 +15,19 @@ export interface ProxyRequest {
   body?: string;
 }
 
-/** Returns the proxy's `{ ok, status, statusText, headers, body }` envelope. */
+/** Returns the proxy's `{ ok, status, statusText, headers, body }` envelope
+ *  (or null if the request couldn't be made). */
 export async function proxyFetch(
   widgetId: string,
   req: ProxyRequest,
   allowedHosts: string[],
 ): Promise<unknown> {
-  const post = async (token: string | null) => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    return fetch(resolveHttp('/widgets-api/proxy'), {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        widgetId,
-        url: req.url,
-        method: req.method,
-        headers: req.headers,
-        body: req.body,
-        allowedHosts,
-      }),
-    });
-  };
-  let res = await post(await getToken());
-  if (res.status === 401) {
-    const next = await handleUnauthorized();
-    if (next) res = await post(next);
-  }
-  return res.json();
+  return postService('/widgets-api/proxy', {
+    widgetId,
+    url: req.url,
+    method: req.method,
+    headers: req.headers,
+    body: req.body,
+    allowedHosts,
+  });
 }

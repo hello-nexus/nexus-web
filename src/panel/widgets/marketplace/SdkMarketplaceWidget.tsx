@@ -1,0 +1,76 @@
+// Panel entrypoint for an SDK (sandboxed remote-component) marketplace widget.
+// Sibling to DeclarativeWidget; chosen by MarketplaceWidget when the listing's
+// runtime === "sdk".
+//
+// Remote-panel safe: the worker can't live-import the widget bundle over the
+// relay (the browser ESM loader can't be tunneled), so we fetch widget.mjs as
+// BYTES through the relay-aware service client and hand the worker a same-origin
+// blob: URL. The brokered nexus.net.fetch likewise routes through the proxy
+// (relay-aware). Everything else (worker, MessagePort UI channel, remote-dom)
+// runs locally in the panel's browser.
+
+import { useEffect, useMemo, useState } from 'react';
+import { postService, fetchServiceBlob } from '../../../api/service';
+import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
+import type { WidgetInstalledListing } from '../../../widgets/types';
+import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
+import styles from './MarketplaceWidget.module.scss';
+
+interface CodeSession { sessionId: string; baseUrl: string; }
+
+export interface SdkMarketplaceWidgetProps {
+  listing: WidgetInstalledListing;
+  size: string;
+  instanceId: string;
+}
+
+export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidgetProps) {
+  const [entryUrl, setEntryUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  // Per-instance settings, same bridge the declarative path uses.
+  const settingsBridge = useMemo(() => new WidgetSettingsBridge(instanceId), [instanceId]);
+  const [settings, setSettings] = useState<Record<string, unknown>>(() => settingsBridge.get());
+  useEffect(() => {
+    const unsub = settingsBridge.onChange((v) => setSettings({ ...v }));
+    void settingsBridge.load();
+    return unsub;
+  }, [settingsBridge]);
+
+  const netFetch = useMemo(() => listing.capabilities['net.fetch'] ?? [], [listing]);
+
+  // Mint a code session, fetch widget.mjs bytes (relay-aware), expose as a blob.
+  useEffect(() => {
+    let revokeUrl: string | null = null;
+    let alive = true;
+    setFailed(false);
+    setEntryUrl(null);
+    void (async () => {
+      const session = await postService<CodeSession>(
+        `/widgets-api/installed/${encodeURIComponent(listing.id)}/code-session`, {},
+      );
+      if (!alive) return;
+      if (!session?.baseUrl) { setFailed(true); return; }
+      const blob = await fetchServiceBlob(`${session.baseUrl}/widget.mjs`);
+      if (!alive) return;
+      if (!blob) { setFailed(true); return; }
+      const url = URL.createObjectURL(new Blob([blob], { type: 'text/javascript' }));
+      revokeUrl = url;
+      setEntryUrl(url);
+    })();
+    return () => { alive = false; if (revokeUrl) URL.revokeObjectURL(revokeUrl); };
+  }, [listing.id]);
+
+  if (failed) return <div className={styles.empty}>Failed to load {listing.name}</div>;
+  if (!entryUrl) return <div className={styles.empty}>Loading {listing.name}…</div>;
+
+  return (
+    <SandboxedWidget
+      entryUrl={entryUrl}
+      widgetId={listing.id}
+      instanceId={instanceId}
+      settings={settings}
+      netFetch={netFetch}
+    />
+  );
+}
