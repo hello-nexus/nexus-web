@@ -89,6 +89,11 @@ export interface AppManifest {
   meta: AppMetadata;
   // The widget tile — always present. Rendered in the panel grid.
   Widget: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
+  // Optional static stand-in for the add-widget catalog tile. Widgets whose
+  // live tile subscribes to streaming data (e.g. monitoring graphs) ship this
+  // so the picker preview shows frozen mock data instead of animating. Falls
+  // back to `Widget` when absent.
+  Preview?: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
   // Optional desktop SPA "app page". Apps with a Page are
   // automatically pinnable to the sidebar and become click-through
   // on the dashboard panel.

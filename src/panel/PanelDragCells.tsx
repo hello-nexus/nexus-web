@@ -371,7 +371,9 @@ export function PanelCatalogCell({
   const def = lookupApp(widget.type);
   const span = sizeToSpan(widget.size);
   if (!def) return null;
-  const Comp = def.Widget;
+  // Prefer a static preview facet so streaming-data tiles (monitoring) show
+  // frozen mock data in the catalog instead of animating live.
+  const Comp = def.Preview ?? def.Widget;
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (onClick && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
