@@ -1633,6 +1633,7 @@ export function PanelContent({
               themeMode={resolvedThemeMode}
               fixedWidth={dragSnapshot.width}
               fixedHeight={dragSnapshot.height}
+              showLabels={effectiveTheme.widgetLabels}
             />
           );
         })()}
