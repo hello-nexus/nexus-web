@@ -193,15 +193,26 @@ export function Stepper(p: HostProps) {
     if (max != null) v = Math.min(max, v);
     p.__events?.change?.(v);
   };
-  const btn: CSSProperties = {
-    width: 28, height: 28, borderRadius: 8, border: '1px solid var(--border, rgba(255,255,255,0.12))',
-    background: 'var(--bg-card, rgba(255,255,255,0.06))', color: 'inherit', cursor: disabled ? 'default' : 'pointer',
+  // Compact vertical chevron stepper (matches the native widget; narrow enough
+  // for three side-by-side in a 2x2 timer cell).
+  const chevron: CSSProperties = {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 26, height: 18, padding: 0, lineHeight: 1, fontSize: 11,
+    border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 6,
+    background: 'var(--bg-card, rgba(255,255,255,0.06))', color: 'inherit',
+    cursor: disabled ? 'default' : 'pointer',
   };
+  const atMax = max != null && value >= max;
+  const atMin = min != null && value <= min;
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-      <button type="button" style={btn} disabled={disabled} onClick={() => emit(value - step)}>−</button>
-      <span style={{ minWidth: 32, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-      <button type="button" style={btn} disabled={disabled} onClick={() => emit(value + step)}>+</button>
+    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+      <button type="button" aria-label="increment" style={{ ...chevron, opacity: disabled || atMax ? 0.35 : 1 }}
+        disabled={disabled || atMax} onClick={() => emit(value + step)}>▲</button>
+      <span style={{ minWidth: 26, textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 700, fontSize: '1.3em', lineHeight: 1 }}>
+        {String(value).padStart(2, '0')}
+      </span>
+      <button type="button" aria-label="decrement" style={{ ...chevron, opacity: disabled || atMin ? 0.35 : 1 }}
+        disabled={disabled || atMin} onClick={() => emit(value - step)}>▼</button>
     </div>
   );
 }
