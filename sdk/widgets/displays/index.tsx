@@ -16,9 +16,10 @@ interface DisplayList { displays: Display[]; hint: string }
 
 function DisplayRow({ d, onSet }: { d: Display; onSet: (id: string, v: number) => void }) {
   const bc = d.brightnessControl;
-  const [val, setVal] = useState(bc.current ?? 50);
+  const current = bc.current;
+  const [val, setVal] = useState(current ?? 50);
   // Reconcile from the host when not actively dragging.
-  useEffect(() => { if (typeof bc.current === 'number') setVal(bc.current); }, [bc.current]);
+  useEffect(() => { if (typeof current === 'number') setVal(current); }, [current]);
 
   const label = (
     <Stack direction="row" gap={6} align="center">
