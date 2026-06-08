@@ -4,16 +4,20 @@
 // that ARE pinned in a fresh profile is the small DEFAULT_PINNED_TAIL
 // curated here (one design choice we don't want to derive).
 
-import { APP_REGISTRY } from '../panel/widgets/registry';
+import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
+import { isMarketplaceType } from '../widgets/marketplaceRegistry';
 
 export const DASHBOARD_APP_KEY = 'dashboard' as const;
 export type SidebarAppKey = string; // any app type that has a Page, or 'dashboard'
 
-// True iff a widget type has a desktop SPA Page in the registry —
-// i.e. the app is pinnable to the sidebar AND its tile becomes
-// click-through on the dashboard panel.
+// True iff a widget type has a desktop SPA Page — i.e. it's pinnable to the
+// sidebar AND its tile becomes click-through. Built-ins read from the static
+// registry; marketplace (SDK) apps resolve their synthetic manifest, so a
+// page-capable SDK app (the clock) pins exactly like a native one.
 export function isPinnableAppKey(s: string): boolean {
-  return APP_REGISTRY[s]?.Page != null;
+  if (APP_REGISTRY[s]?.Page != null) return true;
+  if (isMarketplaceType(s)) return lookupApp(s)?.Page != null;
+  return false;
 }
 
 // Default sidebar ordering for a fresh profile. Curated, not derived: it
