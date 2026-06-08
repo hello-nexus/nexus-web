@@ -15,9 +15,14 @@ export interface WidgetHostApi {
   dispatch(action: string, args?: Record<string, unknown>): Promise<unknown>;
 }
 
+export type WidgetSurface = 'cell' | 'page';
+
 export interface WidgetContextInit {
   instanceId: string;
   widgetId: string;
+  /** Which surface this render drives: the panel tile ('cell') or the expanded
+   *  full view ('page'). Static for the life of a render. Default 'cell'. */
+  surface?: WidgetSurface;
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;
@@ -33,6 +38,7 @@ export interface WidgetState {
 export interface WidgetStore {
   readonly instanceId: string;
   readonly widgetId: string;
+  readonly surface: WidgetSurface;
   readonly api: WidgetHostApi;
   getSnapshot(): WidgetState;
   subscribe(cb: () => void): () => void;
@@ -51,6 +57,7 @@ export function createStore(init: WidgetContextInit): WidgetStore {
   return {
     instanceId: init.instanceId,
     widgetId: init.widgetId,
+    surface: init.surface ?? 'cell',
     api: init.api,
     getSnapshot: () => state,
     subscribe: (cb) => { subs.add(cb); return () => { subs.delete(cb); }; },

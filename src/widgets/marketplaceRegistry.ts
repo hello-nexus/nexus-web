@@ -22,6 +22,7 @@ export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
   'com.hellonexus.weather.sdk',
   'com.hellonexus.screentime.sdk',
   'com.hellonexus.displays.sdk',
+  'com.hellonexus.clock.sdk',
 ]);
 
 export function isMarketplaceIdEnabled(id: string): boolean {

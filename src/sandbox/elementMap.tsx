@@ -10,6 +10,7 @@ import {
   Stack, Grid, Frame, Spacer, Divider, Text, Icon,
   Ring, Bar, Range, Gauge, Sparkline, Slider, Button, Stepper,
 } from './ui/components';
+import { WorldClock, ClockFace, ViewHeaderHost } from './ui/richComponents';
 
 export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-stack': Stack,
@@ -27,4 +28,7 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-slider': Slider,
   'ui-button': Button,
   'ui-stepper': Stepper,
+  'ui-worldclock': WorldClock,
+  'ui-clockface': ClockFace,
+  'ui-viewheader': ViewHeaderHost,
 };

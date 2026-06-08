@@ -2,6 +2,7 @@ import type { CollisionDetection } from '@dnd-kit/core';
 import { snapStride } from './engine/grid';
 import type { PanelLayout, PanelWidget } from './types';
 import { isPinnableAppKey } from '../app/sidebarAppKeys';
+import { getMarketplaceListing, isMarketplaceType, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 
 // A click on a dashboard widget tile navigates to the widget's app page, keyed
 // off the App registry (manifest.Page) like the sidebar pin list. Adding a
@@ -18,7 +19,15 @@ export type DashboardSectionNavigate =
   (section: DashboardWidgetSection, payload?: DashboardSectionNavigatePayload) => void;
 
 export function isDashboardClickthroughType(type: string): type is DashboardWidgetSection {
-  return isPinnableAppKey(type);
+  if (isPinnableAppKey(type)) return true;
+  // Marketplace (SDK) widgets aren't in the built-in registry; clickthrough is
+  // gated on the listing's `page` flag instead — kept separate from the sidebar
+  // pin set so a marketplace page doesn't need a curated nav icon.
+  if (isMarketplaceType(type)) {
+    const id = marketplaceIdFromType(type);
+    return !!(id && getMarketplaceListing(id)?.page);
+  }
+  return false;
 }
 
 export interface DragTarget { pageId: string; col: number; row: number; }

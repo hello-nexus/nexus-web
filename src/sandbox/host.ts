@@ -17,6 +17,9 @@ function globToRegex(pattern: string): RegExp {
 export interface SandboxContext {
   instanceId: string;
   widgetId: string;
+  /** Which surface this worker drives: 'cell' (panel tile) or 'page' (expanded
+   *  full view). Passed straight through to the worker's mount; default 'cell'. */
+  surface?: 'cell' | 'page';
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;

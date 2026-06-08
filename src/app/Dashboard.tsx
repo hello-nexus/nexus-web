@@ -17,7 +17,8 @@ const DevicesPage = lazy(() => import('../panel/widgets/devices/DevicesPage').th
 const LightingPage = lazy(() => import('../panel/widgets/lighting/LightingPage').then(m => ({ default: m.LightingPage })));
 const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
 const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
-import { loadMarketplaceWidgets } from '../widgets/marketplaceRegistry';
+import { getMarketplaceListing, isMarketplaceType, loadMarketplaceWidgets, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
+import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
 import { useProfiles } from '../hooks/useProfiles';
@@ -185,6 +186,12 @@ export function Dashboard() {
       return dev?.name ?? t('sidebar.section.devices');
     }
     if (activeView === 'devices') return t('sidebar.section.devices');
+    // A marketplace (SDK) widget's page: the top bar shows the widget's name.
+    if (activeView && isMarketplaceType(activeView)) {
+      const id = marketplaceIdFromType(activeView);
+      const name = id ? getMarketplaceListing(id)?.name : undefined;
+      if (name) return name;
+    }
     const meta = getSidebarAppMeta(activeView);
     return meta ? t(meta.i18nKey) : t('nav.dashboard');
   })();
@@ -382,7 +389,16 @@ export function Dashboard() {
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} profiles={profilesHook} />;
-      default:           return <Placeholder title={activeView} />;
+      default: {
+        // Page-capable marketplace (SDK) widget: render its bundle's page surface
+        // as a section view (e.g. the clock's world map). The synthetic manifest
+        // supplies SdkMarketplacePage as its Page.
+        if (activeView && isMarketplaceType(activeView)) {
+          const MarketplacePage = lookupApp(activeView)?.Page;
+          if (MarketplacePage) return <MarketplacePage type={activeView} />;
+        }
+        return <Placeholder title={activeView} />;
+      }
     }
   };
 

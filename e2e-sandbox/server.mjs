@@ -16,6 +16,21 @@ const harnessDir = join(here, 'harness');
 const sdkDist = join(webRoot, 'sdk', 'dist');
 const PORT = Number(process.env.SANDBOX_PORT ?? 4317);
 
+// Blessed composites (ui-worldclock/ui-clockface) render real native components
+// that import CSS-module .scss. The app builds those via Vite; this esbuild
+// harness has no scss loader, so stub each module to a className proxy
+// (styles.foo -> "foo") — structure renders, full theming only shows in the app.
+const scssStub = {
+  name: 'scss-stub',
+  setup(b) {
+    b.onResolve({ filter: /\.scss$/ }, (a) => ({ path: a.path, namespace: 'scss-stub' }));
+    b.onLoad({ filter: /.*/, namespace: 'scss-stub' }, () => ({
+      contents: 'export default new Proxy({}, { get: (_, k) => (typeof k === "string" ? k : "") });',
+      loader: 'js',
+    }));
+  },
+};
+
 // 1. Build worker widget bundles (idempotent).
 spawnSync(process.execPath, [join(webRoot, 'sdk', 'build.mjs')], { stdio: 'inherit' });
 
@@ -25,6 +40,7 @@ await build({
   outfile: join(harnessDir, 'app.mjs'),
   bundle: true, format: 'esm', platform: 'browser', target: 'es2020',
   jsx: 'automatic', jsxImportSource: 'react', sourcemap: false,
+  plugins: [scssStub],
   define: {
     'process.env.NODE_ENV': '"production"',
     // The SDK host (proxyClient) pulls in the app's service client, which reads

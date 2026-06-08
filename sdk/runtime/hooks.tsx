@@ -30,6 +30,13 @@ export function useSize(): { width: number; height: number } {
   return useSyncExternalStore(store.subscribe, () => store.getSnapshot().size);
 }
 
+/** Which surface this render drives: 'cell' (panel tile) or 'page' (expanded
+ *  full view). Static for the render. Lets a single component branch its layout;
+ *  mount({ cell, page }) is the alternative when the two trees diverge a lot. */
+export function useSurface(): 'cell' | 'page' {
+  return useStore().surface;
+}
+
 /** Per-instance local state bag. Persisted by the host across reloads; the
  *  setter merges, mirroring the declarative `localUpdate`. */
 export function useLocalState<T extends object>(

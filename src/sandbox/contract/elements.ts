@@ -62,6 +62,25 @@ export const UI_ELEMENTS = {
     properties: ['value', 'min', 'max', 'step', 'label', 'disabled'],
     events: ['change'],
   },
+  // --- blessed composites ---
+  // Rich, host-owned widgets the worker can place but not redraw. The host
+  // renders the SAME pure presentational component a native widget uses (e.g.
+  // ui-worldclock -> the clock widget's WorldClockMap), so there is one
+  // implementation, not a sandbox copy. The worker only supplies serializable
+  // inputs (an epoch ms tick, a design key); all pixels stay host-side. This is
+  // how a bespoke visual (SVG world map, analog face) reaches the SDK without a
+  // raw canvas/SVG escape that would break the consistency guarantee.
+  // Full day/night world clock page body (map + scrollable city cards). Self-ticks.
+  'ui-worldclock': { properties: ['highlightTz'] },
+  'ui-clockface': {
+    properties: ['nowMs', 'design', 'tz', 'showSeconds', 'showDate', 'hour12', 'useAccentColor', 'size'],
+  },
+  // Standard page header — gives SDK pages the same title/tab chrome native pages
+  // use. `tabs` is [{ key, label, disabled? }]; the host fires `change` with the key.
+  'ui-viewheader': {
+    properties: ['title', 'tabs', 'activeTab'],
+    events: ['change'],
+  },
 } as const satisfies Record<string, UiElementSpec>;
 
 export type UiElementName = keyof typeof UI_ELEMENTS;

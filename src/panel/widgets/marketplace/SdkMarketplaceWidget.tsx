@@ -10,19 +10,12 @@
 // runs locally in the panel's browser.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { postService, fetchServiceBlob } from '../../../api/service';
+import { postService } from '../../../api/service';
 import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
 import type { WidgetInstalledListing } from '../../../widgets/types';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
+import { useSdkBundle } from './useSdkBundle';
 import styles from './MarketplaceWidget.module.scss';
-
-interface CodeSession { sessionId: string; baseUrl: string; }
-
-// One resolved blob: bundle URL per widget type, cached for the session. The
-// bundle is identical across instances and remounts, so a transient remount
-// (e.g. the edit-sheet re-parent) reuses it instead of re-minting a code-session
-// and re-fetching ~200 KB — paired with the worker keep-alive, edit is seamless.
-const bundleCache = new Map<string, string>();
 
 export interface SdkMarketplaceWidgetProps {
   listing: WidgetInstalledListing;
@@ -31,8 +24,7 @@ export interface SdkMarketplaceWidgetProps {
 }
 
 export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidgetProps) {
-  const [entryUrl, setEntryUrl] = useState<string | null>(() => bundleCache.get(listing.id) ?? null);
-  const [failed, setFailed] = useState(false);
+  const { entryUrl, failed } = useSdkBundle(listing.id);
 
   // Per-instance settings, same bridge the declarative path uses.
   const settingsBridge = useMemo(() => new WidgetSettingsBridge(instanceId), [instanceId]);
@@ -53,28 +45,6 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
       postService<unknown>('/widgets-api/dispatch', { widgetId: listing.id, action, args: args ?? {} }),
     [listing.id],
   );
-
-  // Mint a code session, fetch widget.mjs bytes (relay-aware), expose as a blob.
-  // Cached per widget type; not revoked (kept for the session) so remounts reuse it.
-  useEffect(() => {
-    if (bundleCache.has(listing.id)) { setEntryUrl(bundleCache.get(listing.id)!); return; }
-    let alive = true;
-    setFailed(false);
-    void (async () => {
-      const session = await postService<CodeSession>(
-        `/widgets-api/installed/${encodeURIComponent(listing.id)}/code-session`, {},
-      );
-      if (!alive) return;
-      if (!session?.baseUrl) { setFailed(true); return; }
-      const blob = await fetchServiceBlob(`${session.baseUrl}/widget.mjs`);
-      if (!alive) return;
-      if (!blob) { setFailed(true); return; }
-      const url = URL.createObjectURL(new Blob([blob], { type: 'text/javascript' }));
-      bundleCache.set(listing.id, url);
-      setEntryUrl(url);
-    })();
-    return () => { alive = false; };
-  }, [listing.id]);
 
   if (failed) return <div className={styles.empty}>Failed to load {listing.name}</div>;
   if (!entryUrl) return <div className={styles.empty}>Loading {listing.name}…</div>;

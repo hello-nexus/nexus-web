@@ -119,6 +119,9 @@ export interface WidgetInstalledListing {
   /** Render runtime: undefined/"declarative" = meter-palette view tree; "sdk" =
    *  sandboxed remote-component widget loaded from the bundle's widget.mjs. */
   runtime?: string;
+  /** True when the SDK bundle ships an expanded page surface (mount({cell,page})).
+   *  The dashboard makes the tile click-through into a full section view. */
+  page?: boolean;
   capabilities: WidgetManifestCapabilities;
   viewport?: WidgetManifestViewport;
   settings?: WidgetManifestSettingEntry[];

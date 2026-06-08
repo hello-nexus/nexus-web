@@ -17,6 +17,9 @@ export interface SandboxedWidgetProps {
   netFetch?: string[];
   /** Cert/manifest sensors.read pattern allowlist (e.g. ["cpu.*"]). */
   sensorsRead?: string[];
+  /** Which surface to render: 'cell' (panel tile, default) or 'page' (expanded
+   *  full view). The page is a separate worker render of the same bundle. */
+  surface?: 'cell' | 'page';
   /** Host dispatch for gated control/host actions; returns the dispatch envelope. */
   onDispatch?: (action: string, args?: Record<string, unknown>) => Promise<unknown>;
 }
@@ -39,18 +42,21 @@ interface LiveWidget { handle: SandboxHandle; disposeTimer: ReturnType<typeof se
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
 
-export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, onDispatch }: SandboxedWidgetProps) {
+export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, onDispatch }: SandboxedWidgetProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  // Cache key includes the surface so a widget's cell and page workers (separate
+  // renders of the same bundle) never collide.
+  const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}`;
   // Seed from the keep-alive cache synchronously: on a remount (edit-sheet open/
   // close re-parents the cell) the live worker already exists, so the FIRST
   // render shows the tree — no blank frame / flicker.
   const [handle, setHandle] = useState<SandboxHandle | null>(
-    () => liveWidgets.get(`${widgetId}:${instanceId}`)?.handle ?? null,
+    () => liveWidgets.get(cacheKey)?.handle ?? null,
   );
   const settingsKey = JSON.stringify(settings ?? {});
 
   useEffect(() => {
-    const key = `${widgetId}:${instanceId}`;
+    const key = cacheKey;
     let entry = liveWidgets.get(key);
 
     if (entry) {
@@ -67,6 +73,7 @@ export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netF
       const context: SandboxContext = {
         instanceId,
         widgetId,
+        surface: surface ?? 'cell',
         size,
         settings: settings ?? {},
         local: readLocal(widgetId, instanceId),
@@ -95,10 +102,10 @@ export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netF
         }, KEEP_ALIVE_MS);
       }
     };
-    // Identity is the widget instance; entryUrl/settings change in place (reused
-    // worker is updated, never respawned for a transient blob-url change).
+    // Identity is the widget instance + surface; entryUrl/settings change in place
+    // (reused worker is updated, never respawned for a transient blob-url change).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [widgetId, instanceId]);
+  }, [widgetId, instanceId, surface]);
 
   useEffect(() => {
     handle?.update({ settings: settings ?? {} });

@@ -26,6 +26,7 @@ let settings: Record<string, unknown> = {};
 try { settings = JSON.parse(params.get('s') ?? '{}'); } catch { settings = {}; }
 const netFetch = (params.get('nf') ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 const n = Math.max(1, Number(params.get('n') ?? 1));
+const surface = params.get('surface') === 'page' ? 'page' : 'cell';
 
 function Cell({ index }: { index: number }) {
   const [url, setUrl] = useState<string | null>(useBlob ? null : absEntry);
@@ -46,6 +47,7 @@ function Cell({ index }: { index: number }) {
       {url ? (
         <SandboxedWidget
           entryUrl={url} widgetId={widgetId} instanceId={`harness-${index}`}
+          surface={surface}
           settings={settings} netFetch={netFetch}
           onDispatch={(action, args) => postService('/widgets-api/dispatch', { widgetId, action, args: args ?? {} })}
         />

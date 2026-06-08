@@ -1,6 +1,7 @@
 import { Boxes } from 'lucide-react';
 import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
+import { SdkMarketplacePage } from './marketplace/SdkMarketplacePage';
 import {
   getAllMarketplaceListings,
   getMarketplaceListing,
@@ -95,7 +96,7 @@ export function lookupApp(type: string): AppManifest | undefined {
     if (!id) return undefined;
     const listing = getMarketplaceListing(id);
     if (!listing) return undefined;
-    return makeMarketplaceAppManifest(id, listing.name, listing.sizes, listing.defaultSize);
+    return makeMarketplaceAppManifest(id, listing.name, listing.sizes, listing.defaultSize, !!listing.page);
   }
   return APP_REGISTRY[type];
 }
@@ -111,7 +112,7 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
   const builtIns = Object.entries(APP_REGISTRY);
   const marketplace = getAllMarketplaceListings().map((listing): [string, AppManifest] => [
     typeForMarketplace(listing.id),
-    makeMarketplaceAppManifest(listing.id, listing.name, listing.sizes, listing.defaultSize),
+    makeMarketplaceAppManifest(listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page),
   ]);
   return [...builtIns, ...marketplace];
 }
@@ -130,6 +131,7 @@ function makeMarketplaceAppManifest(
   label: string,
   manifestSizes: string[] | undefined,
   manifestDefault: string | undefined,
+  hasPage: boolean,
 ): AppManifest {
   const sizes = (manifestSizes ?? [])
     .filter((s): s is PanelWidgetSize => (VALID_MARKETPLACE_SIZES as readonly string[]).includes(s));
@@ -150,6 +152,10 @@ function makeMarketplaceAppManifest(
       touch: false,
     },
     Widget: MarketplaceWidget,
+    // A page-capable SDK widget becomes click-through into a desktop section
+    // view (Dashboard.renderSystemView). The wrapper reads the marketplace type
+    // from its props and spawns the bundle's page surface.
+    Page: hasPage ? SdkMarketplacePage : undefined,
     Settings: MarketplaceWidgetSettings,
   };
 }

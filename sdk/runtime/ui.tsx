@@ -69,6 +69,22 @@ export interface StepperProps {
   value: number; min?: number; max?: number; step?: number;
   label?: string; disabled?: boolean; onChange?: (value: number) => void;
 }
+// Blessed composites — the host renders the real native component (the day/night
+// world clock page body, the clock designs, the standard page header). Lets an
+// SDK page be a first-class native page with zero duplication.
+export interface WorldClockProps { highlightTz?: string }
+export interface ClockFaceProps {
+  nowMs: number; design?: string; tz?: string;
+  showSeconds?: boolean; showDate?: boolean; hour12?: boolean;
+  useAccentColor?: boolean; size?: string;
+}
+export interface ViewHeaderTab { key: string; label: string; disabled?: boolean }
+export interface ViewHeaderProps {
+  title: string;
+  tabs?: ViewHeaderTab[];
+  activeTab?: string;
+  onChange?: (key: string) => void;
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const Stack = createRemoteComponent('ui-stack' as any, ELEMENT_CTORS['ui-stack']) as unknown as React.FC<StackProps>;
@@ -92,4 +108,9 @@ export const Button = createRemoteComponent('ui-button' as any, ELEMENT_CTORS['u
 export const Stepper = createRemoteComponent('ui-stepper' as any, ELEMENT_CTORS['ui-stepper'], {
   eventProps: { onChange: { event: 'change' } },
 } as any) as unknown as React.FC<StepperProps>;
+export const WorldClock = createRemoteComponent('ui-worldclock' as any, ELEMENT_CTORS['ui-worldclock']) as unknown as React.FC<WorldClockProps>;
+export const ClockFace = createRemoteComponent('ui-clockface' as any, ELEMENT_CTORS['ui-clockface']) as unknown as React.FC<ClockFaceProps>;
+export const ViewHeader = createRemoteComponent('ui-viewheader' as any, ELEMENT_CTORS['ui-viewheader'], {
+  eventProps: { onChange: { event: 'change' } },
+} as any) as unknown as React.FC<ViewHeaderProps>;
 /* eslint-enable @typescript-eslint/no-explicit-any */

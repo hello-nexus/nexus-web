@@ -1,10 +1,13 @@
-// Clock — settings-driven wall clock. Exercises useSettings (live host-pushed
-// config) + Intl time formatting in the worker. Covers the text designs
-// (digital/led/rolling); analog/dots need an SVG primitive (future ui element).
+// Clock — full-fidelity SDK widget. The cell renders <ClockFace>, the page
+// renders <WorldClock>; both are blessed composites the host draws with the
+// SAME pure components the native clock widget uses (the 8 clock designs, the
+// day/night WorldClockMap), so this is pixel-identical to native with zero
+// duplication. The worker only orchestrates: reads settings, ticks, and picks
+// inputs. mount({ cell, page }) gives one bundle two surfaces — the page worker
+// is a separate render of this same code, opened from the dashboard section route.
 
-import { mount, useSettings, useTick } from '@hellonexus/sdk';
-import { Stack, Text } from '@hellonexus/ui';
-import type { UiTone } from '../../../src/sandbox/contract/elements';
+import { mount, useSettings, useSize, useTick } from '@hellonexus/sdk';
+import { Stack, ClockFace, ViewHeader, WorldClock } from '@hellonexus/ui';
 
 interface ClockSettings {
   design?: string;
@@ -15,37 +18,44 @@ interface ClockSettings {
   timezone?: string;
 }
 
-function formatNow(now: number, s: ClockSettings) {
-  const timeZone = s.timezone || undefined;
-  const hour12 = s.format === '12h';
-  const time = new Intl.DateTimeFormat(undefined, {
-    hour: '2-digit', minute: '2-digit',
-    ...(s.showSeconds ? { second: '2-digit' } : {}),
-    hour12, timeZone,
-  }).format(now);
-  const date = new Intl.DateTimeFormat(undefined, {
-    weekday: 'short', month: 'short', day: 'numeric', timeZone,
-  }).format(now);
-  return { time, date };
+// Map the rendered pixel tile to the design's grid-size bucket (the designs
+// scale typography off this). The worker has pixels, not the grid string.
+function sizeBucket(w: number, h: number): string {
+  if (w >= 360 && h >= 320) return '4x4';
+  if (w >= 360) return '4x2';
+  return '2x2';
 }
 
-function Clock() {
-  const settings = useSettings<ClockSettings>();
-  const now = useTick(settings.showSeconds ? 1000 : 1000);
-  const { time, date } = formatNow(now, settings);
-  const design = settings.design ?? 'digital';
-  const isLed = design === 'led';
-  const mono = design === 'led' || design === 'rolling';
-  const timeTone: UiTone = isLed ? 'accent-glow' : settings.useAccentColor ? 'accent' : 'text';
-
+function ClockCell() {
+  const s = useSettings<ClockSettings>();
+  const { width, height } = useSize();
+  // 1s tick so the analog second hand sweeps and seconds (when shown) advance.
+  const now = useTick(1000);
   return (
-    <Stack direction="column" padding={10} gap={6} align="center" justify="center" grow>
-      <Text value={time} size={isLed ? 36 : 41} weight={isLed ? 'light' : 'black'} tone={timeTone} mono={mono} lineHeight={1} />
-      {settings.showDate !== false && (
-        <Text value={date} size={12} weight="medium" transform="uppercase" tone="text-faded" letterSpacing={0.05} />
-      )}
+    <ClockFace
+      nowMs={now}
+      design={s.design ?? 'digital'}
+      tz={s.timezone || undefined}
+      showSeconds={!!s.showSeconds}
+      showDate={s.showDate !== false}
+      hour12={s.format === '12h'}
+      useAccentColor={!!s.useAccentColor}
+      size={sizeBucket(width, height)}
+    />
+  );
+}
+
+// The page is a first-class native page: the standard ViewHeader (the title
+// shows in the top bar; tabs would render here) over the full day/night world
+// map + scrollable city list — the same components the native clock page uses.
+function ClockPageView() {
+  const s = useSettings<ClockSettings>();
+  return (
+    <Stack direction="column" grow>
+      <ViewHeader title="Clock" />
+      <WorldClock highlightTz={s.timezone || undefined} />
     </Stack>
   );
 }
 
-mount(Clock);
+mount({ cell: ClockCell, page: ClockPageView });
