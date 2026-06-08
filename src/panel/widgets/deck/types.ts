@@ -61,10 +61,7 @@ export type DeckAction =
   | { type: 'audioInput'; deviceId: string }
   | { type: 'nexus'; action: DeckNexusAction }
   | { type: 'sequence'; steps: DeckSequenceStep[] }
-  | { type: 'toggle'; on: DeckAction; off: DeckAction; state?: DeckToggleState }
-  | { type: 'pageNext' }
-  | { type: 'pagePrev' }
-  | { type: 'pageGoto'; page: number };
+  | { type: 'toggle'; on: DeckAction; off: DeckAction; state?: DeckToggleState };
 
 export type DeckActionType = DeckAction['type'];
 
@@ -78,7 +75,7 @@ export interface DeckSequenceStep {
 
 export interface DeckSlot {
   icon?: DeckIcon;     // unset → auto icon by action category
-  label?: string;      // shown only when DeckConfig.showLabels
+  label?: string;      // shown when set (no global toggle); icon shrinks to fit
   color?: string;      // unset → auto color by action category; else override token/hex
   action?: DeckAction; // a slot is an action OR a folder OR empty
   folder?: DeckFolder;
@@ -88,11 +85,6 @@ export interface DeckFolder {
   slots: DeckSlot[];
 }
 
-export interface DeckPage {
-  slots: DeckSlot[];
-}
-
 export interface DeckConfig {
-  showLabels?: boolean;
-  pages: DeckPage[]; // always ≥1
+  slots: DeckSlot[];
 }

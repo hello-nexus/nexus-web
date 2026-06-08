@@ -1,36 +1,80 @@
-.tabs {
+.settingsRoot {
+  --deck-settings-border: var(--panel-border, var(--border));
+  --deck-settings-bg: var(--panel-element-bg, var(--bg-card));
+  --deck-settings-bg-hover: var(--panel-element-bg-hover, var(--bg-card-hover));
+  --deck-settings-text: var(--panel-text, var(--text));
+  --deck-settings-faint: var(--panel-text-faint, var(--text-faded));
+  --deck-settings-accent: var(--panel-accent, var(--accent));
+
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 12px;
+}
 
-  button {
-    padding: 4px 10px;
-    border: 1px solid var(--panel-border, var(--border));
-    border-radius: 8px;
+.subLabel {
+  color: var(--deck-settings-faint);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  margin-bottom: -4px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--deck-settings-bg);
+  border: 1px solid var(--deck-settings-border);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--deck-settings-text);
+  font-size: var(--type-small, 12px);
+  padding: 0.4rem 0.55rem;
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    border-color: var(--deck-settings-accent);
+  }
+}
+
+textarea.input { resize: vertical; min-height: 2.4rem; }
+
+.selectWide {
+  width: 100%;
+  background: var(--deck-settings-bg);
+  border: 1px solid var(--deck-settings-border);
+  border-radius: var(--radius-sm, 6px);
+
+  select[class] {
     background: transparent;
-    color: var(--panel-text-secondary, var(--text-faded));
-    font-size: 12px;
-    cursor: pointer;
+    border-color: transparent;
+    box-shadow: none;
+    padding: 0.3rem 1.55rem 0.3rem 0.55rem;
+    color: var(--deck-settings-text);
+    font-size: var(--type-small, 12px);
+
+    &:focus,
+    &:focus-visible { border-color: transparent; box-shadow: none; }
+    option { background: var(--bg-elevated); color: var(--text); }
   }
 
-  .active {
-    color: var(--panel-text, var(--text));
-    border-color: var(--panel-accent, var(--accent));
-  }
-
-  .add { color: var(--panel-accent, var(--accent)); }
-  .remove { margin-left: auto; color: var(--danger, #ef4444); }
+  &:hover { background: var(--deck-settings-bg-hover); }
+  &:focus-within { border-color: var(--deck-settings-accent); }
 }
 
 .breadcrumb {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
   font-size: 12px;
-  color: var(--panel-text-secondary, var(--text-faded));
+  color: var(--deck-settings-faint);
 
   button {
     display: inline-flex;
@@ -38,72 +82,83 @@
     gap: 4px;
     border: 0;
     background: transparent;
-    color: var(--panel-accent, var(--accent));
+    color: var(--deck-settings-accent);
     cursor: pointer;
   }
 }
 
-.miniGrid {
-  margin: 0 auto 12px;
-  width: 100%;
-  max-width: 260px;
-  aspect-ratio: var(--mini-aspect, 1);
+.hint {
+  font-size: 11px;
+  color: var(--deck-settings-faint);
 }
 
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border-top: 1px solid var(--panel-border, var(--border));
-  padding-top: 10px;
+.folderBtn,
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 1px solid var(--deck-settings-border);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--deck-settings-bg);
+  color: var(--deck-settings-text);
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover { background: var(--deck-settings-bg-hover); }
 }
 
-.steps {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+
+  &.activeSwatch { border-color: var(--deck-settings-text); }
 }
+
+.autoSwatch {
+  width: auto;
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--deck-settings-faint);
+  background: transparent;
+  border: 1px solid var(--deck-settings-border);
+}
+
+.steps { display: flex; flex-direction: column; gap: 10px; }
 
 .step {
-  border: 1px solid var(--panel-border, var(--border));
+  border: 1px solid var(--deck-settings-border);
   border-radius: 10px;
   padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .stepHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
-  color: var(--panel-text-secondary, var(--text-faded));
-
-  button { border: 0; background: transparent; color: inherit; cursor: pointer; }
-}
-
-.swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.swatch {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  border: 2px solid transparent;
-  cursor: pointer;
-
-  &.activeSwatch { border-color: var(--panel-text, var(--text)); }
-}
-
-.autoSwatch {
-  width: auto;
-  padding: 0 8px;
   font-size: 11px;
-  color: var(--panel-text-secondary, var(--text-faded));
-  background: transparent;
-  border: 1px solid var(--panel-border, var(--border));
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--deck-settings-faint);
+
+  span button { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0 3px; }
 }
+
+.branch {
+  border-left: 2px solid var(--deck-settings-border);
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.branchLabel { font-size: 12px; font-weight: 800; color: var(--deck-settings-text); }

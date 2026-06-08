@@ -11,7 +11,7 @@ function collectToggleStates(deck: DeckConfig): { needsVolume: boolean } {
       if (s.folder) walk(s.folder.slots);
     }
   };
-  for (const p of deck.pages) walk(p.slots);
+  walk(deck.slots);
   return { needsVolume };
 }
 

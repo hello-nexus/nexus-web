@@ -1,5 +1,5 @@
 import type { PanelWidget, PanelWidgetSize, PanelConfigValue } from '../../types';
-import type { DeckConfig, DeckPage, DeckSlot } from './types';
+import type { DeckConfig, DeckSlot } from './types';
 
 export interface InnerGrid { cols: number; rows: number; count: number; }
 
@@ -15,29 +15,16 @@ export function innerGridForSize(size: PanelWidgetSize | string): InnerGrid {
 }
 
 export function emptyDeck(): DeckConfig {
-  return { showLabels: false, pages: [{ slots: [] }] };
+  return { slots: [] };
 }
 
-/** Parse + normalize the deck config off a widget (always ≥1 page). */
+/** Parse + normalize the deck config off a widget. */
 export function readDeckConfig(widget: PanelWidget): DeckConfig {
-  const raw = widget.config?.deck as unknown;
-  return normalizeDeckConfig(raw);
+  return normalizeDeckConfig(widget.config?.deck as unknown);
 }
 
 export function normalizeDeckConfig(raw: unknown): DeckConfig {
   if (!raw || typeof raw !== 'object') return emptyDeck();
-  const obj = raw as { showLabels?: unknown; pages?: unknown };
-  const pages = Array.isArray(obj.pages)
-    ? obj.pages.map(normalizePage).filter(Boolean) as DeckPage[]
-    : [];
-  return {
-    showLabels: obj.showLabels === true,
-    pages: pages.length > 0 ? pages : [{ slots: [] }],
-  };
-}
-
-function normalizePage(raw: unknown): DeckPage | null {
-  if (!raw || typeof raw !== 'object') return { slots: [] };
   const slots = (raw as { slots?: unknown }).slots;
   return { slots: Array.isArray(slots) ? (slots as DeckSlot[]) : [] };
 }
@@ -50,19 +37,16 @@ export function padSlots(slots: readonly DeckSlot[], count: number): DeckSlot[] 
 }
 
 /**
- * The slot list shown for a given page + folder path, padded to `count`.
- * Returns null when the folder path no longer resolves (e.g. after a resize
- * removed the folder cell) so the caller can reset the view.
+ * The slot list shown for a folder path, padded to `count`. Returns null when
+ * the folder path no longer resolves (e.g. a resize removed the folder) so the
+ * caller can reset the view.
  */
 export function resolveViewSlots(
   deck: DeckConfig,
-  pageIndex: number,
   folderPath: readonly number[],
   count: number,
 ): DeckSlot[] | null {
-  const page = deck.pages[pageIndex];
-  if (!page) return null;
-  let slots = padSlots(page.slots, count);
+  let slots = padSlots(deck.slots, count);
   for (const idx of folderPath) {
     const folder = slots[idx]?.folder;
     if (!folder) return null;
@@ -71,42 +55,53 @@ export function resolveViewSlots(
   return slots;
 }
 
-/**
- * Immutably replace the slot at (pageIndex, folderPath, slotIndex). Returns a
- * new DeckConfig. Pads intermediate slot lists to `count` so positional indices
- * stay stable.
- */
+/** Immutably replace the slot at (folderPath, slotIndex). */
 export function updateSlotAt(
   deck: DeckConfig,
-  pageIndex: number,
   folderPath: readonly number[],
   slotIndex: number,
   next: DeckSlot,
   count: number,
 ): DeckConfig {
-  const pages = deck.pages.map((p, pi) => {
-    if (pi !== pageIndex) return p;
-    return { slots: replaceInTree(padSlots(p.slots, count), folderPath, 0, slotIndex, next, count) };
-  });
-  return { ...deck, pages };
+  return {
+    ...deck,
+    slots: mapLevel(padSlots(deck.slots, count), folderPath, 0, count, slots =>
+      slots.map((s, i) => (i === slotIndex ? next : s))),
+  };
 }
 
-function replaceInTree(
+/** Immutably swap two slots at the given folder level (drag-reorder). */
+export function swapSlots(
+  deck: DeckConfig,
+  folderPath: readonly number[],
+  from: number,
+  to: number,
+  count: number,
+): DeckConfig {
+  if (from === to) return deck;
+  return {
+    ...deck,
+    slots: mapLevel(padSlots(deck.slots, count), folderPath, 0, count, slots => {
+      const out = slots.slice();
+      [out[from], out[to]] = [out[to], out[from]];
+      return out;
+    }),
+  };
+}
+
+function mapLevel(
   slots: DeckSlot[],
   folderPath: readonly number[],
   depth: number,
-  slotIndex: number,
-  next: DeckSlot,
   count: number,
+  fn: (slots: DeckSlot[]) => DeckSlot[],
 ): DeckSlot[] {
-  if (depth === folderPath.length) {
-    return slots.map((s, i) => (i === slotIndex ? next : s));
-  }
+  if (depth === folderPath.length) return fn(slots);
   const idx = folderPath[depth];
   return slots.map((s, i) => {
     if (i !== idx) return s;
-    const childSlots = padSlots(s.folder?.slots ?? [], count);
-    return { ...s, folder: { slots: replaceInTree(childSlots, folderPath, depth + 1, slotIndex, next, count) } };
+    const child = padSlots(s.folder?.slots ?? [], count);
+    return { ...s, folder: { slots: mapLevel(child, folderPath, depth + 1, count, fn) } };
   });
 }
 

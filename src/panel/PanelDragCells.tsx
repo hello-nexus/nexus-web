@@ -8,7 +8,7 @@ import type { DeckEditView } from './widgets/types';
 import { WidgetCellLabel } from './widgets/common/WidgetCellLabel';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { useTranslation } from '../lib/i18n';
-import type { PanelLayout, PanelSurface, PanelWidget } from './types';
+import type { PanelLayout, PanelSurface, PanelWidget, PanelConfigValue } from './types';
 import { findWidgetById, readCellMetrics, type DashboardSectionNavigate } from './panelLayoutHelpers';
 import type { EditorDockMotion } from './panelEditorDock';
 import type { ResolvedPanelThemeMode } from './editor/PanelThemeSettings';
@@ -118,6 +118,7 @@ export function PanelTouchCell({
   onSelectSlot,
   editView,
   onEditViewChange,
+  onUpdate,
   clickthrough = false,
   onContextMenu,
   cellPointers,
@@ -140,6 +141,7 @@ export function PanelTouchCell({
   onSelectSlot?: (slot: number) => void;
   editView?: DeckEditView;
   onEditViewChange?: (view: DeckEditView) => void;
+  onUpdate?: (config: Record<string, PanelConfigValue>) => void;
   clickthrough?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
@@ -326,6 +328,7 @@ export function PanelTouchCell({
             onSelectSlot={onSelectSlot}
             editView={editView}
             onEditViewChange={onEditViewChange}
+            onUpdate={onUpdate}
             onSectionNavigate={onSectionNavigate}
             onConfigure={onConfigureWidget ? () => onConfigureWidget(widget) : undefined}
           />

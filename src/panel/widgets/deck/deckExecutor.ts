@@ -62,11 +62,6 @@ export async function executeDeckAction(action: DeckAction): Promise<void> {
     case 'toggle':
       await executeDeckAction(action.on);
       return;
-    // Navigation — handled by the widget.
-    case 'pageNext':
-    case 'pagePrev':
-    case 'pageGoto':
-      return;
   }
 }
 

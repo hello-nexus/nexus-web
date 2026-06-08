@@ -6,10 +6,10 @@
 
 .grid {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   height: 100%;
   width: 100%;
-  padding: 10px;
+  padding: 8px;
   box-sizing: border-box;
 }
 
@@ -19,23 +19,25 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--deck-accent, #64748b) 35%, transparent);
+  container-type: size;
+  border: 1px solid color-mix(in srgb, var(--deck-accent, #64748b) 50%, transparent);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--deck-accent, #64748b) 16%, transparent);
-  color: color-mix(in srgb, var(--deck-accent, #64748b) 75%, #ffffff);
+  // Tinted at rest (not just on hover).
+  background: color-mix(in srgb, var(--deck-accent, #64748b) 30%, transparent);
+  color: color-mix(in srgb, var(--deck-accent, #64748b) 70%, #ffffff);
   font: inherit;
-  padding: 4px;
+  padding: 5px;
   box-sizing: border-box;
   cursor: pointer;
   touch-action: manipulation;
   transition: transform var(--ease), background var(--ease), box-shadow var(--ease), border-color var(--ease);
 
   &:hover {
-    background: color-mix(in srgb, var(--deck-accent, #64748b) 26%, transparent);
+    background: color-mix(in srgb, var(--deck-accent, #64748b) 42%, transparent);
   }
 
   &:active {
@@ -56,47 +58,63 @@
   cursor: default;
 }
 
-.selectable {
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border: 2px dashed transparent;
-    border-radius: inherit;
-    pointer-events: none;
-    transition: border-color var(--ease);
-  }
+.selectable::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 2px dashed transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: border-color var(--ease);
 }
 
-.selected::after {
-  border-color: var(--panel-accent, var(--accent));
+.selected::after { border-color: var(--panel-accent, var(--accent)); }
+
+.dropOver {
+  box-shadow: inset 0 0 0 2px var(--panel-accent, var(--accent));
+}
+
+// Icon fills most of the button; shrinks automatically when a label is present
+// (the label takes its own row and the icon row flexes down).
+.iconWrap {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  width: 100%;
 }
 
 .icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
+  width: 100%;
+  height: 100%;
 
-  svg { width: 60%; height: auto; max-width: 38px; }
+  svg { width: auto; height: 82%; max-height: 100%; max-width: 86%; }
 }
 
 .emoji {
-  font-size: clamp(20px, 7cqmin, 40px);
+  font-size: clamp(20px, 60cqmin, 72px);
   line-height: 1;
 }
 
 .appIcon {
-  width: 60%;
-  max-width: 40px;
-  height: auto;
-  border-radius: 6px;
+  width: auto;
+  height: 82%;
+  max-height: 100%;
+  max-width: 86%;
+  border-radius: 8px;
+  object-fit: contain;
 }
 
 .label {
+  flex: 0 0 auto;
   max-width: 100%;
-  font-size: 10px;
-  color: var(--panel-text-secondary, #94a3b8);
+  font-size: clamp(9px, 16cqmin, 13px);
+  line-height: 1.1;
+  color: var(--panel-text, #e2e8f0);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -119,24 +137,4 @@
   cursor: pointer;
 
   svg { width: 16px; height: 16px; }
-}
-
-.pageDots {
-  position: absolute;
-  bottom: 4px;
-  left: 0;
-  right: 0;
-  display: flex;
-  gap: 4px;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.pageDot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: color-mix(in srgb, #94a3b8 40%, transparent);
-
-  &.activeDot { background: var(--panel-accent, var(--accent)); }
 }

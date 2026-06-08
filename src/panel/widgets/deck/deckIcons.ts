@@ -29,7 +29,7 @@ export const DECK_ICON_NAMES: string[] = Object.keys(DECK_ICONS);
 
 export type DeckCategory =
   | 'launch' | 'open' | 'volume' | 'media' | 'brightness' | 'keyboard' | 'text'
-  | 'power' | 'audio' | 'nexus' | 'sequence' | 'toggle' | 'folder' | 'page' | 'empty';
+  | 'power' | 'audio' | 'nexus' | 'sequence' | 'toggle' | 'folder' | 'empty';
 
 /** Maps an action to a visual category (drives the auto icon + color). */
 export function deckCategory(action: DeckAction | undefined): DeckCategory {
@@ -51,9 +51,6 @@ export function deckCategory(action: DeckAction | undefined): DeckCategory {
     case 'nexus': return 'nexus';
     case 'sequence': return 'sequence';
     case 'toggle': return 'toggle';
-    case 'pageNext':
-    case 'pagePrev':
-    case 'pageGoto': return 'page';
     default: return 'empty';
   }
 }
@@ -74,7 +71,6 @@ const CATEGORY_COLOR: Record<DeckCategory, string> = {
   sequence: '#eab308',   // yellow
   toggle: '#14b8a6',     // teal
   folder: '#94a3b8',     // neutral
-  page: '#94a3b8',
   empty: '#475569',
 };
 
@@ -134,9 +130,6 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
       }
     case 'sequence': return 'ListOrdered';
     case 'toggle': return 'ToggleLeft';
-    case 'pageNext': return 'ChevronRight';
-    case 'pagePrev': return 'ChevronLeft';
-    case 'pageGoto': return 'Layers';
     default: return 'Plus';
   }
 }

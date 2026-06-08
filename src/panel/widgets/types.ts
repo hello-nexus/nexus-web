@@ -42,11 +42,13 @@ export interface WidgetProps {
   // mode keeps its own internal navigation state.
   editView?: DeckEditView;
   onEditViewChange?: (view: DeckEditView) => void;
+  // Persist a config patch from the live tile (e.g. deck drag-reorder in edit
+  // mode). Wired by PanelApp only while editing a slot-selection widget.
+  onUpdate?: (config: Record<string, PanelConfigValue>) => void;
 }
 
-// Which page + folder path a paged/foldered widget (deck) is currently showing.
+// Which folder path a foldered widget (deck) is currently showing in edit mode.
 export interface DeckEditView {
-  pageIndex: number;
   folderPath: number[];
 }
 

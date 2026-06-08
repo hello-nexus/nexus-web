@@ -72,8 +72,4 @@ describe('executeDeckAction → REST', () => {
     await executeDeckAction({ type: 'nexus', action: { op: 'y70Power', on: true } });
     expect(postService).toHaveBeenCalledWith('/y70/toggle', { toggle: false });
   });
-  it('navigation actions do not hit REST', async () => {
-    await executeDeckAction({ type: 'pageNext' });
-    expect(postService).not.toHaveBeenCalled();
-  });
 });

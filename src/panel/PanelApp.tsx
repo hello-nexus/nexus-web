@@ -288,7 +288,7 @@ export function PanelContent({
   const [sheetClosing, setSheetClosing] = useState(false);
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
-  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ pageIndex: 0, folderPath: [] });
+  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ folderPath: [] });
   const [editorDockMotion, setEditorDockMotion] = useState<EditorDockMotion | null>(null);
   // Widgets whose last action was rejected (e.g. resize didn't fit anywhere).
   // Drives a brief shake/flash on the cell, auto-cleared by a timer. Plural
@@ -966,7 +966,7 @@ export function PanelContent({
       ? def.resolveInitialSelection({ point, widget })
       : undefined;
     setSelectedMonitoringSlot(initial?.selectedSlot ?? 0);
-    setDeckEditView({ pageIndex: 0, folderPath: [] });
+    setDeckEditView({ folderPath: [] });
     setEditingWidgetId(widget.id);
     setSheetMode('settings');
   }, [clearCloseTimer, surface]);
@@ -1357,6 +1357,7 @@ export function PanelContent({
                               onSelectSlot={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? setSelectedMonitoringSlot : undefined}
                               editView={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? deckEditView : undefined}
                               onEditViewChange={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? setDeckEditView : undefined}
+                              onUpdate={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? (cfg => updateWidgetConfig(w.id, cfg)) : undefined}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               onContextMenu={surfaceSupportsTouch(surface) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               cellPointers={surfaceSupportsTouch(surface) ? touch.bindCellPointers(w) : noopCellPointers}
