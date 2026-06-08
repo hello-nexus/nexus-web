@@ -123,7 +123,7 @@ function AppRow({ app, selected, onSelect }: {
   );
 }
 
-// Two consumers (MacrosWidget, AppPicker.test) import useAppIcon from this
+// Two consumers (the Deck widget, AppPicker.test) import useAppIcon from this
 // module path; moving the hook to a sibling file would force changes in those
 // files, so it stays here and accepts the loss of fast-refresh for AppPicker's
 // component edits.
