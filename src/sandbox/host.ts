@@ -7,6 +7,12 @@ import type { RemoteConnection } from '@remote-dom/core';
 import { ThreadMessagePort, retain, release } from '@quilted/threads';
 import { composeSdkWorkerSource } from './sandboxBoot';
 import { proxyFetch } from '../widgets/declarative/proxyClient';
+import { flattenFrameForWorker, type FlatReading } from '../widgets/declarative/sensorFlatten';
+import * as monitoringStore from '../lib/monitoringStore';
+
+function globToRegex(pattern: string): RegExp {
+  return new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*') + '$', 'i');
+}
 
 export interface SandboxContext {
   instanceId: string;
@@ -17,6 +23,9 @@ export interface SandboxContext {
   /** Cert/manifest net.fetch host allowlist; the host services the worker's
    *  brokered `nexus.net.fetch` through the SSRF-guarded proxy. */
   netFetch?: string[];
+  /** Cert/manifest sensors.read pattern allowlist (e.g. ["cpu.*"]). The host
+   *  delivers only readings matching a granted pattern. Empty = no sensors. */
+  sensorsRead?: string[];
   api: {
     persistLocal(next: Record<string, unknown>): void;
     /** Host-brokered action: POSTs /widgets-api/dispatch (relay-aware), returns
@@ -56,10 +65,49 @@ export function spawnSandboxedWidget(entryUrl: string, context: SandboxContext):
   worker.addEventListener('error', (e) => {
     console.error(`[sdk:${context.widgetId}] worker error`, e.message, e.filename, e.lineno);
   });
+
+  // Sensor broker — mirrors the declarative host, capped to the manifest's
+  // sensors.read grant (the declarative host does NOT enforce this; the SDK does).
+  const allowedSensors = (context.sensorsRead ?? []).map(globToRegex);
+  const isGranted = (id: string) => allowedSensors.some((re) => re.test(id));
+  const sensorSubs = new Map<number, RegExp>();
+  const findReading = (id: string): FlatReading | null => {
+    const frame = monitoringStore.getMonitoringFrame();
+    return frame ? (flattenFrameForWorker(frame).find((s) => s.id === id) ?? null) : null;
+  };
+  const fanoutSensors = () => {
+    if (sensorSubs.size === 0) return;
+    const frame = monitoringStore.getMonitoringFrame();
+    if (!frame) return;
+    for (const reading of flattenFrameForWorker(frame)) {
+      if (!isGranted(reading.id)) continue;
+      for (const [subId, re] of sensorSubs) {
+        if (re.test(reading.id)) worker.postMessage({ type: 'nexus.sensors.reading', payload: { subscriptionId: subId, reading } });
+      }
+    }
+  };
+  const onFrame = () => fanoutSensors();
+  monitoringStore.subscribe(onFrame);
+
   worker.addEventListener('message', (e: MessageEvent) => {
     const d = e.data as { type?: string; id?: number; message?: string; payload?: unknown } | null;
     if (d?.type === 'nexus.error') { console.error(`[sdk:${context.widgetId}]`, d.message); return; }
     if (d?.type === 'nexus.log') { console.warn(`[sdk:${context.widgetId}]`, d.payload); return; }
+    if (d?.type === 'nexus.sensors.read' && typeof d.id === 'number') {
+      const p = d.payload as { id?: string } | undefined;
+      worker.postMessage({ type: 'nexus.reply', id: d.id, result: p?.id && isGranted(p.id) ? findReading(p.id) : null });
+      return;
+    }
+    if (d?.type === 'nexus.sensors.subscribe') {
+      const p = d.payload as { pattern?: string; subscriptionId?: number } | undefined;
+      if (p?.subscriptionId && p?.pattern) { sensorSubs.set(p.subscriptionId, globToRegex(p.pattern)); fanoutSensors(); }
+      return;
+    }
+    if (d?.type === 'nexus.sensors.unsubscribe') {
+      const p = d.payload as { subscriptionId?: number } | undefined;
+      if (p?.subscriptionId) sensorSubs.delete(p.subscriptionId);
+      return;
+    }
     if (d?.type === 'nexus.net.fetch' && typeof d.id === 'number') {
       const req = (d.payload ?? {}) as { url?: string; method?: string; headers?: Record<string, string>; body?: string };
       const id = d.id;
@@ -96,6 +144,8 @@ export function spawnSandboxedWidget(entryUrl: string, context: SandboxContext):
     dispose: () => {
       if (disposed) return;
       disposed = true;
+      monitoringStore.unsubscribe(onFrame);
+      sensorSubs.clear();
       try { worker.terminate(); } catch { /* ignore */ }
       try { channel.port1.close(); } catch { /* ignore */ }
     },

@@ -15,6 +15,8 @@ export interface SandboxedWidgetProps {
   settings?: Record<string, unknown>;
   /** Cert/manifest net.fetch host allowlist (e.g. ["api.open-meteo.com"]). */
   netFetch?: string[];
+  /** Cert/manifest sensors.read pattern allowlist (e.g. ["cpu.*"]). */
+  sensorsRead?: string[];
   /** Host dispatch for gated control/host actions; returns the dispatch envelope. */
   onDispatch?: (action: string, args?: Record<string, unknown>) => Promise<unknown>;
 }
@@ -37,7 +39,7 @@ interface LiveWidget { handle: SandboxHandle; disposeTimer: ReturnType<typeof se
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
 
-export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netFetch, onDispatch }: SandboxedWidgetProps) {
+export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, onDispatch }: SandboxedWidgetProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   // Seed from the keep-alive cache synchronously: on a remount (edit-sheet open/
   // close re-parents the cell) the live worker already exists, so the FIRST
@@ -69,6 +71,7 @@ export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netF
         settings: settings ?? {},
         local: readLocal(widgetId, instanceId),
         netFetch: netFetch ?? [],
+        sensorsRead: sensorsRead ?? [],
         api: {
           persistLocal: (next) => {
             try { localStorage.setItem(localKey(widgetId, instanceId), JSON.stringify(next)); }

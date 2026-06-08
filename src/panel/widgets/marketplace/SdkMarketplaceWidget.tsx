@@ -44,6 +44,7 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
   }, [settingsBridge]);
 
   const netFetch = useMemo(() => listing.capabilities['net.fetch'] ?? [], [listing]);
+  const sensorsRead = useMemo(() => listing.capabilities['sensors.read'] ?? [], [listing]);
 
   // Gated host action: POST /widgets-api/dispatch (relay-aware). Returns the
   // { ok, result } envelope so the worker's useDispatch / useHostAction work.
@@ -85,6 +86,7 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
       instanceId={instanceId}
       settings={settings}
       netFetch={netFetch}
+      sensorsRead={sensorsRead}
       onDispatch={onDispatch}
     />
   );
