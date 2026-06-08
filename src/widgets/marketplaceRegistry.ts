@@ -17,6 +17,7 @@ export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
  */
 export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
   'com.hellonexus.weather',
+  'com.hellonexus.weather.sdk',
   'com.hellonexus.screentime',
 ]);
 
