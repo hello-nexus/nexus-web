@@ -73,10 +73,19 @@ function buildGauge(slot: PreviewSlot) {
 // gauge data once on mount (no live sensor subscription) so the preview stays
 // frozen and looks populated.
 export function MonitoringPreview({ widget }: WidgetProps) {
-  const slots = useMemo(() => PREVIEW_SLOTS.map(buildGauge), []);
-  const layoutClass = widget.size === '4x4' || widget.size === '2x4'
-    ? styles.grid2row
-    : styles.grid2col;
+  // 2x2 has no valid 2-gauge layout (slot options are 1 or micro 3/4, never 2),
+  // so its default is a single solo gauge — show one sensor, not two squished
+  // side-by-side. Larger tiles keep the CPU+memory pair.
+  const solo = widget.size === '2x2';
+  const slots = useMemo(
+    () => (solo ? PREVIEW_SLOTS.slice(0, 1) : PREVIEW_SLOTS).map(buildGauge),
+    [solo],
+  );
+  const layoutClass = solo
+    ? styles.solo
+    : widget.size === '4x4' || widget.size === '2x4'
+      ? styles.grid2row
+      : styles.grid2col;
 
   return (
     <div className={`${styles.performance} ${layoutClass}`}>

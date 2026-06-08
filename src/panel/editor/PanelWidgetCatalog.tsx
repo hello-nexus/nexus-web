@@ -219,7 +219,11 @@ export function PanelWidgetCatalog({
             value={query}
             onChange={setQuery}
             placeholder={t('panel.add.searchPlaceholder')}
-            autoFocus={variant === 'desktop-modal'}
+            // Focus on the desktop modal and the desktop dashboard's add-widget
+            // sheet (which uses the default 'panel-sheet' variant). Touch panels
+            // (phone/y70/q60) stay unfocused so the on-screen keyboard doesn't
+            // pop up.
+            autoFocus={variant === 'desktop-modal' || surface === 'desktop'}
           />
         </div>
       )}

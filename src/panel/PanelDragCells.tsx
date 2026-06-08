@@ -430,6 +430,7 @@ export function PanelDragOverlayCell({
   themeMode,
   fixedWidth,
   fixedHeight,
+  showLabels = true,
 }: {
   widget: PanelWidget;
   surface?: PanelSurface;
@@ -437,6 +438,7 @@ export function PanelDragOverlayCell({
   themeMode: ResolvedPanelThemeMode;
   fixedWidth?: number;
   fixedHeight?: number;
+  showLabels?: boolean;
 }) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
@@ -449,6 +451,9 @@ export function PanelDragOverlayCell({
       className={`panel-root ${styles.dragOverlayHost}`}
       data-theme={themeMode}
       data-surface={surface}
+      // Portaled to body, so it can't inherit the panel root's labels-off state
+      // — mirror it here or the dragged clone shows a label the grid hides.
+      data-show-widget-labels={showLabels ? 'true' : 'false'}
       style={themeStyle}
     >
       <div

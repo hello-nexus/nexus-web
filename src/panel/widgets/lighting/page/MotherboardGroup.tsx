@@ -18,6 +18,7 @@ export function MotherboardGroup({
   groupOn,
   onTogglePower,
   children,
+  ariaLabel,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on. Drives the icon state
@@ -26,9 +27,13 @@ export function MotherboardGroup({
   /** Flips every child zone to the opposite of {@link groupOn}. */
   onTogglePower: () => void;
   children: React.ReactNode;
+  /** Toggle a11y label. Defaults to the motherboard wording; provider groups
+   *  (Philips Hue, …) pass their own so this collapsible group reads correctly. */
+  ariaLabel?: string;
 }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
+  const toggleLabel = ariaLabel ?? t('lighting.devices.motherboardHeader');
 
   return (
     <div className={styles.motherboardGroup}>
@@ -38,7 +43,7 @@ export function MotherboardGroup({
           className={styles.motherboardGroupToggle}
           onClick={() => setExpanded(v => !v)}
           aria-expanded={expanded}
-          aria-label={t('lighting.devices.motherboardHeader')}
+          aria-label={toggleLabel}
         >
           {expanded ? <ChevronDown /> : <ChevronRight />}
           <span className={styles.motherboardGroupName}>{parentName}</span>

@@ -26,6 +26,7 @@ import { monitoringApp } from './monitoring';
 import { mediaApp } from './media';
 import { screentimeApp } from './screentime';
 import { lightingApp } from './lighting';
+import { smartLightsApp } from './smart-lights';
 import { obsApp } from './obs';
 import { steamApp } from './steam';
 import { discordApp } from './discord';
@@ -51,6 +52,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   media:      mediaApp,
   screentime: screentimeApp,
   lighting:   lightingApp,
+  'smart-lights': smartLightsApp,
   obs:        obsApp,
   steam:      steamApp,
   discord:    discordApp,
