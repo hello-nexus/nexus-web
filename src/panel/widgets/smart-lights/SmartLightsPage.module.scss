@@ -144,66 +144,66 @@
   &[data-online='false'] { background: var(--text-faded); }
 }
 
-// ---------- Paired devices (grid of cards, like the brand picker) ----------
+// ---------- Paired devices (collapsible brand categories of cards) ----------
 
-.pairedGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.category {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.pairedCard {
-  position: relative;
+.categoryHeader {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
-  padding: 16px;
-  min-height: 116px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-card);
-  color: var(--text);
+  padding: 2px 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-dim);
 
-  // Only the card's own icon is dimmed; the remove button's icon follows its
-  // own (hover-reactive) color.
-  > svg { color: var(--text-dim); }
-
-  .deviceName,
-  .deviceHost { max-width: 100%; }
+  svg { flex-shrink: 0; }
+  &:hover { color: var(--text); }
 }
 
-// Online/offline — always shown, pinned to the bottom of the card.
+.categoryLabel {
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.categoryCount {
+  font-size: var(--type-mini);
+  color: var(--text-faded);
+}
+
+.pairedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+// Standard Card surface; consistent min-height, and dimmed when the light is
+// disabled (still listed, just not driven by effects).
+.lightCard { min-height: 84px; }
+.lightCardOff { opacity: 0.5; }
+
+// Online/offline indicator inside the card body.
 .pairedStatus {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: auto;
   font-size: var(--type-mini);
   color: var(--text-faded);
 
   &[data-online='true'] { color: var(--good); }
-}
-
-.pairedRemove {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.15s, color 0.15s, background 0.15s;
-
-  &:hover { opacity: 1; color: var(--bad); background: var(--bg-card-hover); }
 }
 
 // ---------- Messages ----------

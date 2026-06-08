@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { LampCeiling, RefreshCw, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, LampCeiling, RefreshCw } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
+import { Card } from '../../../components/common/Card/Card';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
+import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
 import {
   discoverSmartLights,
   fetchSmartLights,
   pairSmartLight,
-  removeSmartLight,
+  setSmartLightEnabled,
   type DiscoveredSmartLight,
   type SmartLight,
 } from '../../../api/smartLights';
@@ -31,6 +33,20 @@ const COMING_SOON_BRANDS = ['Nanoleaf', 'Govee'];
 // The Hue pair flow needs the user to press the bridge button; the backend
 // reports that as this error string and we re-call pair after the press.
 const LINK_BUTTON_ERROR = 'link-button';
+
+// Paired lights are grouped under a collapsible category per brand. Labels are
+// proper nouns (not localized).
+const BRAND_CATEGORIES: ReadonlyArray<readonly [brand: string, label: string]> = [
+  ['hue', 'Philips Hue'],
+  ['nanoleaf', 'Nanoleaf'],
+  ['wled', 'WLED'],
+  ['lifx', 'LIFX'],
+  ['govee', 'Govee'],
+  ['twinkly', 'Twinkly'],
+  ['wiz', 'WiZ'],
+  ['yeelight', 'Yeelight'],
+  ['elgato', 'Elgato'],
+];
 
 type PairState =
   | { kind: 'idle' }
@@ -91,11 +107,19 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
     setPairState({ kind: 'error', message: res?.error || t('smartLights.pairFailed') });
   }, [refreshPaired, t]);
 
-  const handleRemove = useCallback(async (id: string) => {
-    const res = await removeSmartLight(id);
-    if (res && res.error) return;
-    await refreshPaired();
+  const handleToggleEnabled = useCallback(async (id: string, enabled: boolean) => {
+    setPaired(prev => prev.map(d => (d.id === id ? { ...d, enabled } : d))); // optimistic
+    const res = await setSmartLightEnabled(id, enabled);
+    if (res && res.error) await refreshPaired(); // revert on failure
   }, [refreshPaired]);
+
+  // Group paired lights by brand for the collapsible category sections.
+  const grouped = new Map<string, SmartLight[]>();
+  for (const d of paired) {
+    const arr = grouped.get(d.brand);
+    if (arr) arr.push(d);
+    else grouped.set(d.brand, [d]);
+  }
 
   return (
     <div className={styles.page}>
@@ -180,27 +204,33 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
               compact
             />
           ) : (
-            <div className={styles.pairedGrid}>
-              {paired.map(device => (
-                <div key={device.id} className={styles.pairedCard}>
-                  <button
-                    type="button"
-                    className={styles.pairedRemove}
-                    title={t('smartLights.remove')}
-                    aria-label={t('smartLights.remove')}
-                    onClick={() => void handleRemove(device.id)}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                  <LampCeiling size={22} aria-hidden="true" />
-                  <span className={styles.deviceName}>{device.name}</span>
-                  <span className={styles.deviceHost}>{device.host}</span>
-                  <span className={styles.pairedStatus} data-online={device.online ? 'true' : 'false'}>
-                    <span className={styles.statusDot} data-online={device.online ? 'true' : 'false'} aria-hidden="true" />
-                    {device.online ? t('smartLights.online') : t('smartLights.offline')}
-                  </span>
-                </div>
-              ))}
+            <div className={styles.categories}>
+              {BRAND_CATEGORIES.filter(([brand]) => grouped.has(brand)).map(([brand, label]) => {
+                const list = grouped.get(brand)!;
+                return (
+                  <CollapsibleCategory key={brand} label={label} count={list.length}>
+                    {list.map(device => (
+                      <Card
+                        key={device.id}
+                        title={device.name}
+                        className={device.enabled ? styles.lightCard : `${styles.lightCard} ${styles.lightCardOff}`}
+                        actions={(
+                          <Toggle
+                            checked={device.enabled}
+                            onChange={on => void handleToggleEnabled(device.id, on)}
+                            ariaLabel={device.name}
+                          />
+                        )}
+                      >
+                        <span className={styles.pairedStatus} data-online={device.online ? 'true' : 'false'}>
+                          <span className={styles.statusDot} data-online={device.online ? 'true' : 'false'} aria-hidden="true" />
+                          {device.online ? t('smartLights.online') : t('smartLights.offline')}
+                        </span>
+                      </Card>
+                    ))}
+                  </CollapsibleCategory>
+                );
+              })}
             </div>
           )}
           {onSectionNavigate ? (
@@ -226,6 +256,23 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h3 className={styles.sectionTitle}>{title}</h3>
       {children}
     </section>
+  );
+}
+
+// Collapsible brand category: chevron + label + count header that folds the
+// grid away. No shared Collapsible primitive exists, so this is composed from
+// the standard chevron icon + the section-label typography.
+function CollapsibleCategory({ label, count, children }: { label: string; count: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className={styles.category}>
+      <button type="button" className={styles.categoryHeader} aria-expanded={open} onClick={() => setOpen(o => !o)}>
+        {open ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
+        <span className={styles.categoryLabel}>{label}</span>
+        <span className={styles.categoryCount}>{count}</span>
+      </button>
+      {open && <div className={styles.pairedGrid}>{children}</div>}
+    </div>
   );
 }
 
