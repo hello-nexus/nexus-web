@@ -787,6 +787,26 @@
   gap: 0.4rem;
 }
 
+// Provider category section (local PC + each smart-light brand). The header is
+// a plain section label — distinct from the interactive, collapsible
+// motherboard-group header.
+.deviceCategory {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.deviceCategory + .deviceCategory { margin-top: 0.35rem; }
+
+.deviceCategoryHeader {
+  padding: 0.1rem 0.2rem 0.2rem;
+  font-size: 0.62rem;
+  font-weight: var(--weight-strong, 600);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faded);
+  border-bottom: 1px solid var(--border);
+}
+
 .deviceCard {
   position: relative;
   display: flex;

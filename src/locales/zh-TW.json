@@ -391,6 +391,7 @@
   "lighting.devices.detectionFailed": "已偵測到但無法控制",
   "lighting.devices.detectionFailedTooltip": "OpenRGB 偵測到此裝置，但其偵測器初始化失敗，Nexus 無法控制其燈光。",
   "lighting.devices.empty": "未偵測到燈光裝置",
+  "lighting.devices.categoryLocal": "此電腦",
   "lighting.devices.identify": "識別",
   "lighting.devices.maximize": "最大化至整個畫布",
   "lighting.devices.minimize": "最小化",

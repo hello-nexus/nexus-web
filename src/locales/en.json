@@ -391,6 +391,7 @@
   "lighting.devices.detectionFailed": "Detected but not drivable",
   "lighting.devices.detectionFailedTooltip": "This device was seen by OpenRGB but its detector failed to initialize it, so Nexus cannot control its lighting.",
   "lighting.devices.empty": "No lighting devices detected",
+  "lighting.devices.categoryLocal": "This PC",
   "lighting.devices.identify": "Identify",
   "lighting.devices.maximize": "Maximize to full canvas",
   "lighting.devices.minimize": "Minimize",

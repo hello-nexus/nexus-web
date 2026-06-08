@@ -391,6 +391,7 @@
   "lighting.devices.detectionFailed": "감지되었으나 제어할 수 없음",
   "lighting.devices.detectionFailedTooltip": "OpenRGB가 이 장치를 감지했지만 감지기 초기화에 실패했습니다. Nexus는 이 장치의 조명을 제어할 수 없습니다.",
   "lighting.devices.empty": "감지된 라이팅 장치 없음",
+  "lighting.devices.categoryLocal": "이 PC",
   "lighting.devices.identify": "식별",
   "lighting.devices.maximize": "전체 캔버스로 최대화",
   "lighting.devices.minimize": "최소화",

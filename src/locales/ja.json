@@ -391,6 +391,7 @@
   "lighting.devices.detectionFailed": "検出されましたが制御できません",
   "lighting.devices.detectionFailedTooltip": "このデバイスは OpenRGB で検出されましたが、ディテクターの初期化に失敗したため、Nexus はライティングを制御できません。",
   "lighting.devices.empty": "ライティングデバイスが検出されません",
+  "lighting.devices.categoryLocal": "このPC",
   "lighting.devices.identify": "識別",
   "lighting.devices.maximize": "キャンバス全体に最大化",
   "lighting.devices.minimize": "最小化",

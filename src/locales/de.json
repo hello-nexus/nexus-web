@@ -391,6 +391,7 @@
   "lighting.devices.detectionFailed": "Erkannt, aber nicht steuerbar",
   "lighting.devices.detectionFailedTooltip": "Dieses Gerät wurde von OpenRGB erkannt, aber die Initialisierung ist fehlgeschlagen. Nexus kann seine Beleuchtung nicht steuern.",
   "lighting.devices.empty": "Keine Beleuchtungsgeräte erkannt",
+  "lighting.devices.categoryLocal": "Dieser PC",
   "lighting.devices.identify": "Identifizieren",
   "lighting.devices.maximize": "Auf gesamte Fläche vergrößern",
   "lighting.devices.minimize": "Minimieren",

@@ -4,12 +4,54 @@ import { ZoneCard, type ZoneCardDrag } from './ZoneCard';
 import { MotherboardGroup } from './MotherboardGroup';
 import styles from '../LightingPage.module.scss';
 
+// Smart-light brands, in display order, keyed by the device-id prefix the
+// service routes on (e.g. "hue:<bridge>:<rid>"). Brand labels are proper nouns
+// — intentionally not localized. Add a brand here when its driver ships.
+const SMART_BRANDS: ReadonlyArray<readonly [prefix: string, label: string]> = [
+  ['hue:', 'Philips Hue'],
+  ['nanoleaf:', 'Nanoleaf'],
+  ['wled:', 'WLED'],
+  ['lifx:', 'LIFX'],
+  ['govee:', 'Govee'],
+  ['twinkly:', 'Twinkly'],
+  ['wiz:', 'WiZ'],
+  ['yeelight:', 'Yeelight'],
+  ['elgato:', 'Elgato'],
+];
+// Native PC RGB (OpenRGB / NP50 / CNVS / keeb / …) — everything that isn't a
+// recognized smart-light brand prefix.
+const LOCAL_CATEGORY_KEY = 'local';
+
+function categoryKeyFor(id: string): string {
+  for (const [prefix] of SMART_BRANDS) if (id.startsWith(prefix)) return prefix;
+  return LOCAL_CATEGORY_KEY;
+}
+function categoryOrder(key: string): number {
+  if (key === LOCAL_CATEGORY_KEY) return 0;
+  const i = SMART_BRANDS.findIndex(([p]) => p === key);
+  return i < 0 ? 99 : i + 1;
+}
+function categoryLabel(key: string, localLabel: string): string {
+  if (key === LOCAL_CATEGORY_KEY) return localLabel;
+  const b = SMART_BRANDS.find(([p]) => p === key);
+  return b ? b[1] : key;
+}
+
+type DeviceGroup =
+  | { kind: 'single'; device: LightingDevice }
+  | { kind: 'motherboard'; parentId: string; parentName: string; zones: LightingDevice[] };
+
 /**
  * Right-side sidebar listing detected RGB devices. Flags devices whose OpenRGB
  * detector failed (ledCount = 0) so the user can see the device is detected
  * but not drivable. Motherboards with more than one ARGB header are grouped
  * under a collapsible header; each zone renders as its own card so the user
  * can configure + control each physical strip independently.
+ *
+ * Devices are bucketed into provider categories — the local PC plus each
+ * smart-light brand (Philips Hue, …) — with a header per category. Headers only
+ * appear when more than one category is present, so a PC with no smart lights
+ * looks exactly as before.
  */
 export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, dragFor }: {
   devices: LightingDevice[];
@@ -33,10 +75,7 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
 
   // Group devices so motherboard zones show as children under a single parent
   // header. Non-zone devices are rendered as flat top-level cards.
-  const groups: Array<
-    | { kind: 'single'; device: LightingDevice }
-    | { kind: 'motherboard'; parentId: string; parentName: string; zones: LightingDevice[] }
-  > = [];
+  const groups: DeviceGroup[] = [];
   const motherboardIndex = new Map<string, number>();
   for (const d of devices) {
     if (d.parentDeviceId && d.zoneIndex != null) {
@@ -53,6 +92,22 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
       groups.push({ kind: 'single', device: d });
     }
   }
+
+  // Bucket the top-level groups into provider categories, preserving each
+  // category's first-seen group order and sorting categories (local first,
+  // then brands in SMART_BRANDS order).
+  const catMap = new Map<string, DeviceGroup[]>();
+  for (const g of groups) {
+    const id = g.kind === 'single' ? g.device.id : g.parentId;
+    const key = categoryKeyFor(id);
+    const arr = catMap.get(key);
+    if (arr) arr.push(g);
+    else catMap.set(key, [g]);
+  }
+  const categories = [...catMap.entries()]
+    .map(([key, items]) => ({ key, label: categoryLabel(key, t('lighting.devices.categoryLocal')), items }))
+    .sort((a, b) => categoryOrder(a.key) - categoryOrder(b.key));
+  const showHeaders = categories.length > 1;
 
   // Single shift-aware click handler so both single cards and motherboard zones
   // share the exact same selection semantics as the canvas: plain click =
@@ -81,60 +136,68 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
     onSelectDevice(selectedIds.size === 1 && selectedIds.has(id) ? null : id);
   };
 
+  const renderGroup = (g: DeviceGroup, i: number) => {
+    if (g.kind === 'single') {
+      const d = g.device;
+      return (
+        <ZoneCard
+          key={d.id}
+          device={d}
+          selected={selectedIds.has(d.id)}
+          indent={false}
+          onSelect={shiftKey => handleZoneSelect(d.id, shiftKey)}
+          onTogglePower={() => onTogglePower(d.id)}
+          onOpenSettings={() => onOpenSettings(d.id)}
+          drag={dragFor?.(d.id) ?? undefined}
+        />
+      );
+    }
+    // Group is "on" iff any zone is on. Clicking the header switch flips every
+    // zone to !groupOn — an absolute set, not a per-zone toggle (which would
+    // flip already-off zones back on when the group was partially lit).
+    const groupOn = g.zones.some(z => z.ledsOn);
+    const handleToggleGroup = () => {
+      const target = !groupOn;
+      for (const z of g.zones) onSetPower(z.id, target);
+    };
+    return (
+      <MotherboardGroup
+        key={g.parentId + '-' + i}
+        parentName={g.parentName}
+        groupOn={groupOn}
+        onTogglePower={handleToggleGroup}
+      >
+        {g.zones.map(z => (
+          <ZoneCard
+            key={z.id}
+            device={z}
+            displayName={stripParentPrefix(z.name, g.parentName)}
+            selected={selectedIds.has(z.id)}
+            indent={true}
+            onSelect={shiftKey => handleZoneSelect(z.id, shiftKey)}
+            onTogglePower={() => onTogglePower(z.id)}
+            onOpenSettings={() => onOpenSettings(z.id)}
+            drag={dragFor?.(z.id) ?? undefined}
+          />
+        ))}
+      </MotherboardGroup>
+    );
+  };
+
   return (
     <aside className={styles.devicePanel}>
       {devices.length === 0 ? (
         <p className={styles.deviceEmpty}>{t(lightingOff ? 'lighting.devices.selectModeHint' : 'lighting.devices.empty')}</p>
       ) : (
         <div className={styles.deviceList}>
-          {groups.map((g, i) => {
-            if (g.kind === 'single') {
-              const d = g.device;
-              return (
-                <ZoneCard
-                  key={d.id}
-                  device={d}
-                  selected={selectedIds.has(d.id)}
-                  indent={false}
-                  onSelect={shiftKey => handleZoneSelect(d.id, shiftKey)}
-                  onTogglePower={() => onTogglePower(d.id)}
-                  onOpenSettings={() => onOpenSettings(d.id)}
-                  drag={dragFor?.(d.id) ?? undefined}
-                />
-              );
-            }
-            // Group is "on" iff any zone is on. Clicking the header switch
-            // flips every zone to !groupOn — an absolute set, not a per-zone
-            // toggle (which would flip already-off zones back on when the
-            // group was partially lit).
-            const groupOn = g.zones.some(z => z.ledsOn);
-            const handleToggleGroup = () => {
-              const target = !groupOn;
-              for (const z of g.zones) onSetPower(z.id, target);
-            };
-            return (
-              <MotherboardGroup
-                key={g.parentId + '-' + i}
-                parentName={g.parentName}
-                groupOn={groupOn}
-                onTogglePower={handleToggleGroup}
-              >
-                {g.zones.map(z => (
-                  <ZoneCard
-                    key={z.id}
-                    device={z}
-                    displayName={stripParentPrefix(z.name, g.parentName)}
-                    selected={selectedIds.has(z.id)}
-                    indent={true}
-                    onSelect={shiftKey => handleZoneSelect(z.id, shiftKey)}
-                    onTogglePower={() => onTogglePower(z.id)}
-                    onOpenSettings={() => onOpenSettings(z.id)}
-                    drag={dragFor?.(z.id) ?? undefined}
-                  />
-                ))}
-              </MotherboardGroup>
-            );
-          })}
+          {showHeaders
+            ? categories.map(cat => (
+                <section key={cat.key} className={styles.deviceCategory}>
+                  <div className={styles.deviceCategoryHeader}>{cat.label}</div>
+                  {cat.items.map((g, i) => renderGroup(g, i))}
+                </section>
+              ))
+            : groups.map((g, i) => renderGroup(g, i))}
         </div>
       )}
     </aside>

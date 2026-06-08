@@ -391,6 +391,7 @@
   "lighting.devices.detectionFailed": "Algilandi ancak kontrol edilemiyor",
   "lighting.devices.detectionFailedTooltip": "Bu cihaz OpenRGB tarafindan goruldu ancak surucu baslatma basarisiz oldu, bu yuzden Nexus aydinlatmasini kontrol edemiyor.",
   "lighting.devices.empty": "Aydinlatma cihazi algilanmadi",
+  "lighting.devices.categoryLocal": "Bu PC",
   "lighting.devices.identify": "Tanimla",
   "lighting.devices.maximize": "Tam tuvale genis let",
   "lighting.devices.minimize": "Simge Durumuna Küçült",
