@@ -7,6 +7,7 @@ import { SectionHeader } from '../../../components/common/SectionHeader/SectionH
 import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
+import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import {
   discoverSmartLights,
   fetchSmartLights,
@@ -79,6 +80,10 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
     void refreshPaired();
   }, [refreshPaired]);
 
+  // Live-update on smart-light changes (pair/remove/enable, incl. from the
+  // Lighting page or another client) — those routes broadcast the 'lighting' topic.
+  useTopicCallback('lighting', true, () => { void refreshPaired(); });
+
   const handleScan = useCallback(async () => {
     setScanning(true);
     setScanError(null);
@@ -111,7 +116,7 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
   const handleToggleEnabled = useCallback(async (id: string, enabled: boolean) => {
     setPaired(prev => prev.map(d => (d.id === id ? { ...d, enabled } : d))); // optimistic
     const res = await setSmartLightEnabled(id, enabled);
-    if (res && res.error) await refreshPaired(); // revert on failure
+    if (!res || res.error) await refreshPaired(); // revert unless the call clearly succeeded
   }, [refreshPaired]);
 
   // Group paired lights by brand for the collapsible category sections.

@@ -58,9 +58,6 @@ export const discoverSmartLights = (brand: string) =>
 export const pairSmartLight = (brand: string, host: string, stableKey: string, name: string) =>
   postService<PairResponse>('/smart-lights/pair', { brand, host, stableKey, name });
 
-export const removeSmartLight = (id: string) =>
-  postService<RemoveResponse>('/smart-lights/remove', { id });
-
 // Enable/disable a paired light without unpairing it (stays listed; leaves the
 // lighting canvas/effects when disabled).
 export const setSmartLightEnabled = (id: string, enabled: boolean) =>
