@@ -926,6 +926,7 @@
   "smartLights.addLights": "Ajouter des lumières",
   "smartLights.addedNLights": "{count} lumières ajoutées",
   "smartLights.brandHue": "Philips Hue",
+  "smartLights.comingSoon": "Bientôt disponible",
   "smartLights.colorOnLightingPage": "La couleur et la luminosité se trouvent sur la page Éclairage",
   "smartLights.noLightsYet": "Aucune lumière connectée pour l’instant",
   "smartLights.offline": "Hors ligne",

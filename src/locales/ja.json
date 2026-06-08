@@ -926,6 +926,7 @@
   "smartLights.addLights": "ライトを追加",
   "smartLights.addedNLights": "{count}台のライトを追加しました",
   "smartLights.brandHue": "Philips Hue",
+  "smartLights.comingSoon": "近日対応",
   "smartLights.colorOnLightingPage": "色と明るさはライティングページで設定できます",
   "smartLights.noLightsYet": "スマートライトはまだありません",
   "smartLights.offline": "オフライン",

@@ -926,6 +926,7 @@
   "smartLights.addLights": "Добавить лампы",
   "smartLights.addedNLights": "Добавлено ламп: {count}",
   "smartLights.brandHue": "Philips Hue",
+  "smartLights.comingSoon": "Скоро",
   "smartLights.colorOnLightingPage": "Цвет и яркость настраиваются на странице «Подсветка»",
   "smartLights.noLightsYet": "Умных ламп пока нет",
   "smartLights.offline": "Не в сети",

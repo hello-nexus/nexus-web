@@ -22,9 +22,11 @@ interface SmartLightsPageProps {
   onSectionNavigate?: DashboardSectionNavigate;
 }
 
-// Only compatible brands are shown. Add a brand's tile here when its driver
-// ships (Hue is the only one wired to the backend today).
+// Hue is wired to the backend. Nanoleaf + Govee are the planned next brands,
+// shown as disabled "coming soon" tiles; every other brand stays hidden until
+// it's planned/shipped.
 const HUE_BRAND = 'hue';
+const COMING_SOON_BRANDS = ['Nanoleaf', 'Govee'];
 
 // The Hue pair flow needs the user to press the bridge button; the backend
 // reports that as this error string and we re-call pair after the press.
@@ -112,6 +114,13 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
               <span className={styles.brandName}>{t('smartLights.brandHue')}</span>
               <span className={styles.brandSub}>{scanning ? t('smartLights.scanning') : t('smartLights.scan')}</span>
             </button>
+            {COMING_SOON_BRANDS.map(brand => (
+              <div key={brand} className={styles.brandTile} data-disabled="true" aria-disabled="true">
+                <LampCeiling size={22} aria-hidden="true" />
+                <span className={styles.brandName}>{brand}</span>
+                <span className={styles.brandSub}>{t('smartLights.comingSoon')}</span>
+              </div>
+            ))}
           </div>
 
           {scanError && <p className={styles.error}>{scanError}</p>}
