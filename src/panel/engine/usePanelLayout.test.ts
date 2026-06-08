@@ -101,22 +101,4 @@ describe('normalizePanelLayout registry reconciliation', () => {
       }
     }
   });
-
-  it('strips a legacy dock field but keeps pages, widgets, and active page intact', () => {
-    // A config saved before the dock feature was removed still carries a
-    // `dock` block. Loading it must drop the dock entirely and leave the
-    // rest of the layout untouched (the same graceful path as a widget that
-    // is suddenly no longer available).
-    const stored = {
-      layoutSchemaVersion: 2,
-      surface: 'y70',
-      activePageId: 'p1',
-      pages: [{ id: 'p1', widgets: [widget({ id: 'a', type: 'cooling', size: '2x2' })] }],
-      dock: { enabled: true, widgets: [widget({ id: 'd1', type: 'cooling', size: '1x1' })] },
-    } as unknown as PanelLayout;
-    const result = normalizePanelLayout(stored, 'y70');
-    expect((result as Record<string, unknown>).dock).toBeUndefined();
-    expect(result.pages[0].widgets.map(w => w.id)).toEqual(['a']);
-    expect(result.activePageId).toBe('p1');
-  });
 });

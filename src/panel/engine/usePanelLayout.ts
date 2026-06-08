@@ -117,12 +117,7 @@ const SURFACE_COLS: Record<PanelSurface, number> = {
 };
 
 export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface): PanelLayout {
-  // The dock feature was removed; drop any `dock` field a pre-removal config
-  // still carries so it doesn't ride the spread back into persisted state.
-  // Pages, theme, and active-page are preserved untouched.
-  const { dock: _legacyDock, ...migrated } = layout as PanelLayout & { dock?: unknown };
-  void _legacyDock;
-  const reconciledPages = migrated.pages.map(page => ({
+  const reconciledPages = layout.pages.map(page => ({
     ...page,
     widgets: reconcileWidgetsAgainstRegistry(
       page.widgets.filter(widget => !REMOVED_WIDGET_TYPES.has(widget.type)),
@@ -158,7 +153,7 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface)
   }
 
   return {
-    ...migrated,
+    ...layout,
     surface,
     pages: finalPages,
   };
