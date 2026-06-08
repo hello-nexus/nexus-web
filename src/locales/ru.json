@@ -391,7 +391,6 @@
   "lighting.devices.detectionFailed": "Обнаружено, но недоступно",
   "lighting.devices.detectionFailedTooltip": "Это устройство было обнаружено OpenRGB, но инициализация драйвера не удалась, поэтому Nexus не может управлять его подсветкой.",
   "lighting.devices.empty": "Устройства подсветки не обнаружены",
-  "lighting.devices.categoryLocal": "Этот компьютер",
   "lighting.devices.identify": "Определить",
   "lighting.devices.maximize": "Развернуть на весь холст",
   "lighting.devices.minimize": "Свернуть",

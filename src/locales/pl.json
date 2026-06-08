@@ -391,7 +391,6 @@
   "lighting.devices.detectionFailed": "Wykryto, ale nie mozna sterowac",
   "lighting.devices.detectionFailedTooltip": "Urzadzenie zostalo wykryte przez OpenRGB, ale detektor nie zdolal go zainicjalizowac, wiec Nexus nie moze sterowac jego podswietleniem.",
   "lighting.devices.empty": "Nie wykryto urzadzen podswietlenia",
-  "lighting.devices.categoryLocal": "Ten komputer",
   "lighting.devices.identify": "Identyfikuj",
   "lighting.devices.maximize": "Maksymalizuj do pelnego plotna",
   "lighting.devices.minimize": "Minimalizuj",

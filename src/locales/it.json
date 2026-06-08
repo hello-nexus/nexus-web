@@ -391,7 +391,6 @@
   "lighting.devices.detectionFailed": "Rilevato ma non controllabile",
   "lighting.devices.detectionFailedTooltip": "Questo dispositivo è stato visto da OpenRGB ma il rilevatore non è riuscito a inizializzarlo, quindi Nexus non può controllarne l'illuminazione.",
   "lighting.devices.empty": "Nessun dispositivo di illuminazione rilevato",
-  "lighting.devices.categoryLocal": "Questo PC",
   "lighting.devices.identify": "Identifica",
   "lighting.devices.maximize": "Massimizza all'intera area",
   "lighting.devices.minimize": "Riduci a icona",
