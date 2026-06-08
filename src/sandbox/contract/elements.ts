@@ -62,6 +62,20 @@ export const UI_ELEMENTS = {
     properties: ['value', 'min', 'max', 'step', 'label', 'disabled'],
     events: ['change'],
   },
+  // An image from an https/data/blob URL (the host validates the scheme). The
+  // worker supplies a URL string; the host owns sizing/fit/radius via tokens.
+  'ui-image': { properties: ['src', 'alt', 'fit', 'radius', 'width', 'height', 'aspect', 'tone'] },
+  // A scrollable container — the missing primitive for long lists (steam, emoji).
+  'ui-scroll': { properties: ['direction', 'gap', 'padding', 'grow'] },
+  // Text/number input. `value` is for programmatic sets (reset/compute); typing is
+  // local for a smooth cursor and reported via the `input` event. `submit` fires on Enter.
+  'ui-input': {
+    properties: ['value', 'placeholder', 'type', 'disabled', 'maxLength', 'tone', 'align', 'size', 'mono'],
+    events: ['input', 'submit', 'blur'],
+  },
+  // A multi-series line/area chart (richer than ui-sparkline). The worker passes
+  // numeric series; the host draws the SVG, so no raw-SVG escape.
+  'ui-chart': { properties: ['series', 'min', 'max', 'height', 'gridlines', 'tone'] },
   // --- blessed composites ---
   // Rich, host-owned widgets the worker can place but not redraw. The host
   // renders the SAME pure presentational component a native widget uses (e.g.

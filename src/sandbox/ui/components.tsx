@@ -3,7 +3,7 @@
 // feeds them synced properties + event listeners. An author can ONLY cause one of
 // these to render, which is the structural visual-consistency guarantee.
 
-import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { ICON_TABLE } from './icons';
 import { alignValue, justifyValue, weightValue, toneVar, cssSize } from './tokens';
 
@@ -267,5 +267,97 @@ export function Button(p: HostProps) {
     >
       {p.children ?? (label != null ? label : null)}
     </button>
+  );
+}
+
+// Only these schemes load — never a bare http: or javascript: URL from a worker.
+const SAFE_IMG = /^(https:|data:image\/|blob:)/i;
+export function Image(p: HostProps) {
+  const src = str(p.src);
+  if (!src || !SAFE_IMG.test(src)) return null;
+  const style: CSSProperties = {
+    objectFit: (str(p.fit) ?? 'cover') as CSSProperties['objectFit'],
+    width: num(p.width) ?? '100%', height: num(p.height),
+    aspectRatio: p.aspect != null ? String(p.aspect) : undefined,
+    borderRadius: num(p.radius) ?? 0,
+    background: p.tone ? toneVar(str(p.tone)) : undefined,
+    display: 'block', minWidth: 0,
+  };
+  return <img src={src} alt={str(p.alt) ?? ''} style={style} loading="lazy" referrerPolicy="no-referrer" draggable={false} />;
+}
+
+export function Scroll(p: HostProps) {
+  const dir = str(p.direction) ?? 'vertical';
+  const style: CSSProperties = {
+    display: 'flex', flexDirection: dir === 'horizontal' ? 'row' : 'column',
+    gap: num(p.gap), padding: num(p.padding),
+    overflowX: dir === 'horizontal' || dir === 'both' ? 'auto' : 'hidden',
+    overflowY: dir === 'vertical' || dir === 'both' ? 'auto' : 'hidden',
+    flex: p.grow ? 1 : undefined, minWidth: 0, minHeight: 0,
+  };
+  return <div style={style}>{p.children}</div>;
+}
+
+export function Input(p: HostProps) {
+  const ref = useRef<HTMLInputElement>(null);
+  const value = str(p.value) ?? '';
+  const lastSet = useRef<string | null>(null);
+  // Apply a programmatic value (reset/compute result) only when the prop actually
+  // changes — never on every render — so local typing keeps a stable cursor.
+  useEffect(() => {
+    if (lastSet.current !== value && ref.current) ref.current.value = value;
+    lastSet.current = value;
+  }, [value]);
+  const emit = (k: 'input' | 'submit' | 'blur', v: string) => p.__events?.[k]?.(v);
+  const style: CSSProperties = {
+    width: '100%', boxSizing: 'border-box',
+    padding: p.size === 'sm' ? '5px 8px' : '8px 10px',
+    borderRadius: 8, border: '1px solid var(--border, rgba(255,255,255,0.14))',
+    background: 'var(--bg-card, rgba(255,255,255,0.05))',
+    color: toneVar(str(p.tone), 'var(--text, currentColor)'),
+    font: 'inherit', fontFamily: p.mono ? 'ui-monospace, monospace' : undefined,
+    textAlign: TEXT_ALIGN[str(p.align) ?? ''], outline: 'none',
+  };
+  return (
+    <input
+      ref={ref} type={str(p.type) ?? 'text'} placeholder={str(p.placeholder)}
+      disabled={!!p.disabled} maxLength={num(p.maxLength)} defaultValue={value} style={style}
+      onInput={(e) => emit('input', e.currentTarget.value)}
+      onKeyDown={(e) => { if (e.key === 'Enter') emit('submit', (e.currentTarget as HTMLInputElement).value); }}
+      onBlur={(e) => emit('blur', e.currentTarget.value)}
+    />
+  );
+}
+
+interface ChartSeries { values: number[]; tone?: string; area?: boolean }
+export function Chart(p: HostProps) {
+  const series: ChartSeries[] = Array.isArray(p.series)
+    ? (p.series as ChartSeries[]).filter((s) => Array.isArray(s?.values))
+    : [];
+  const h = num(p.height) ?? 80;
+  const all = series.flatMap((s) => s.values.filter((v) => Number.isFinite(v)));
+  if (all.length < 2) return <div style={{ height: h }} />;
+  const min = num(p.min) ?? Math.min(...all);
+  const max = num(p.max) ?? Math.max(...all);
+  const span = max - min || 1;
+  const W = 100, H = 100;
+  const project = (vals: number[]) =>
+    vals.map((v, i) => `${vals.length > 1 ? (i / (vals.length - 1)) * W : 0},${(H - ((v - min) / span) * H).toFixed(2)}`);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: h, overflow: 'visible' }}>
+      {!!p.gridlines && [0.25, 0.5, 0.75].map((g) => (
+        <line key={g} x1={0} y1={H * g} x2={W} y2={H * g} stroke="var(--border, rgba(255,255,255,0.10))" strokeWidth={0.5} vectorEffect="non-scaling-stroke" />
+      ))}
+      {series.map((s, si) => {
+        const pts = project(s.values).join(' ');
+        const tone = toneVar(s.tone ?? str(p.tone), 'var(--accent, currentColor)');
+        return (
+          <g key={si}>
+            {s.area && <polygon points={`0,${H} ${pts} ${W},${H}`} fill={tone} opacity={0.15} />}
+            <polyline points={pts} fill="none" stroke={tone} strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+          </g>
+        );
+      })}
+    </svg>
   );
 }

@@ -6,12 +6,39 @@
 // keeps every SDK widget visually consistent with native ones. The host renders
 // the matching real component; an element the host doesn't know renders nothing.
 
-import type { ReactNode } from 'react';
+import { createElement, forwardRef, useRef, type ReactNode } from 'react';
 import { createRemoteComponent } from '@remote-dom/react';
 import { ELEMENT_CTORS, registerElements } from './elements';
 import type { UiTone } from '../../src/sandbox/contract/elements';
 
 registerElements();
+
+// @remote-dom delivers a RemoteEvent to the listener (the value is in `.detail`),
+// so a bare createRemoteComponent hands authors an event object, not the value.
+// This wraps each event prop to pass `event.detail` through, with a STABLE listener
+// identity (reads the latest author fn from a ref) so there's no per-render
+// add/removeEventListener churn while typing.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function eventComponent<P>(tag: string, ctor: any, events: ReadonlyArray<readonly [string, string]>): React.FC<P> {
+  const Raw = createRemoteComponent(tag as any, ctor, {
+    eventProps: Object.fromEntries(events.map(([prop, ev]) => [prop, { event: ev }])),
+  } as any);
+  const Wrapped = forwardRef(function Wrapped(props: any, ref: any) {
+    const latest = useRef<Record<string, any>>({});
+    const stable = useRef<Record<string, (e: any) => void> | null>(null);
+    if (!stable.current) {
+      stable.current = {};
+      for (const [prop] of events) stable.current[prop] = (e: any) => latest.current[prop]?.(e?.detail);
+    }
+    const next: any = { ...props, ref };
+    for (const [prop] of events) {
+      latest.current[prop] = props[prop];
+      next[prop] = props[prop] ? stable.current[prop] : undefined;
+    }
+    return createElement(Raw as any, next);
+  });
+  return Wrapped as unknown as React.FC<P>;
+}
 
 type Align = 'start' | 'center' | 'end' | 'baseline' | 'stretch';
 type Justify = 'start' | 'center' | 'end' | 'between' | 'around';
@@ -69,6 +96,26 @@ export interface StepperProps {
   value: number; min?: number; max?: number; step?: number;
   label?: string; disabled?: boolean; onChange?: (value: number) => void;
 }
+export interface ImageProps {
+  src: string; alt?: string; fit?: 'cover' | 'contain' | 'fill' | 'none';
+  radius?: number; width?: number; height?: number; aspect?: string | number; tone?: UiTone;
+}
+export interface ScrollProps extends WithChildren {
+  direction?: 'vertical' | 'horizontal' | 'both'; gap?: number; padding?: number; grow?: boolean;
+}
+export interface InputProps {
+  /** A value to SET programmatically (reset / computed result). Not a controlled
+   *  binding — typing is local + reported via onValueChange, so the cursor stays put. */
+  value?: string; placeholder?: string; type?: 'text' | 'number' | 'search' | 'password';
+  disabled?: boolean; maxLength?: number; tone?: UiTone; align?: Align; size?: 'sm' | 'md'; mono?: boolean;
+  // Non-DOM names on purpose: onInput/onBlur collide with React-18 synthetic
+  // events in the worker and would deliver an event object instead of the value.
+  onValueChange?: (value: string) => void; onEnter?: (value: string) => void; onLeave?: (value: string) => void;
+}
+export interface ChartSeriesInput { values: number[]; tone?: UiTone; area?: boolean }
+export interface ChartProps {
+  series: ChartSeriesInput[]; min?: number; max?: number; height?: number; gridlines?: boolean; tone?: UiTone;
+}
 // Blessed composites — the host renders the real native component (the day/night
 // world clock page body, the clock designs, the standard page header). Lets an
 // SDK page be a first-class native page with zero duplication.
@@ -99,18 +146,14 @@ export const Bar = createRemoteComponent('ui-bar' as any, ELEMENT_CTORS['ui-bar'
 export const Range = createRemoteComponent('ui-range' as any, ELEMENT_CTORS['ui-range']) as unknown as React.FC<RangeProps>;
 export const Gauge = createRemoteComponent('ui-gauge' as any, ELEMENT_CTORS['ui-gauge']) as unknown as React.FC<GaugeProps>;
 export const Sparkline = createRemoteComponent('ui-sparkline' as any, ELEMENT_CTORS['ui-sparkline']) as unknown as React.FC<SparklineProps>;
-export const Slider = createRemoteComponent('ui-slider' as any, ELEMENT_CTORS['ui-slider'], {
-  eventProps: { onInput: { event: 'input' }, onChange: { event: 'change' } },
-} as any) as unknown as React.FC<SliderProps>;
-export const Button = createRemoteComponent('ui-button' as any, ELEMENT_CTORS['ui-button'], {
-  eventProps: { onPress: { event: 'press' } },
-} as any) as unknown as React.FC<ButtonProps>;
-export const Stepper = createRemoteComponent('ui-stepper' as any, ELEMENT_CTORS['ui-stepper'], {
-  eventProps: { onChange: { event: 'change' } },
-} as any) as unknown as React.FC<StepperProps>;
+export const Slider = eventComponent<SliderProps>('ui-slider', ELEMENT_CTORS['ui-slider'], [['onInput', 'input'], ['onChange', 'change']]);
+export const Button = eventComponent<ButtonProps>('ui-button', ELEMENT_CTORS['ui-button'], [['onPress', 'press']]);
+export const Stepper = eventComponent<StepperProps>('ui-stepper', ELEMENT_CTORS['ui-stepper'], [['onChange', 'change']]);
+export const Image = createRemoteComponent('ui-image' as any, ELEMENT_CTORS['ui-image']) as unknown as React.FC<ImageProps>;
+export const Scroll = createRemoteComponent('ui-scroll' as any, ELEMENT_CTORS['ui-scroll']) as unknown as React.FC<ScrollProps>;
+export const Input = eventComponent<InputProps>('ui-input', ELEMENT_CTORS['ui-input'], [['onValueChange', 'input'], ['onEnter', 'submit'], ['onLeave', 'blur']]);
+export const Chart = createRemoteComponent('ui-chart' as any, ELEMENT_CTORS['ui-chart']) as unknown as React.FC<ChartProps>;
 export const WorldClock = createRemoteComponent('ui-worldclock' as any, ELEMENT_CTORS['ui-worldclock']) as unknown as React.FC<WorldClockProps>;
 export const ClockFace = createRemoteComponent('ui-clockface' as any, ELEMENT_CTORS['ui-clockface']) as unknown as React.FC<ClockFaceProps>;
-export const ViewHeader = createRemoteComponent('ui-viewheader' as any, ELEMENT_CTORS['ui-viewheader'], {
-  eventProps: { onChange: { event: 'change' } },
-} as any) as unknown as React.FC<ViewHeaderProps>;
+export const ViewHeader = eventComponent<ViewHeaderProps>('ui-viewheader', ELEMENT_CTORS['ui-viewheader'], [['onChange', 'change']]);
 /* eslint-enable @typescript-eslint/no-explicit-any */

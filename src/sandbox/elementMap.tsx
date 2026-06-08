@@ -9,6 +9,7 @@ import type { HostProps } from './ui/components';
 import {
   Stack, Grid, Frame, Spacer, Divider, Text, Icon,
   Ring, Bar, Range, Gauge, Sparkline, Slider, Button, Stepper,
+  Image, Scroll, Input, Chart,
 } from './ui/components';
 import { WorldClock, ClockFace, ViewHeaderHost } from './ui/richComponents';
 
@@ -28,6 +29,10 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-slider': Slider,
   'ui-button': Button,
   'ui-stepper': Stepper,
+  'ui-image': Image,
+  'ui-scroll': Scroll,
+  'ui-input': Input,
+  'ui-chart': Chart,
   'ui-worldclock': WorldClock,
   'ui-clockface': ClockFace,
   'ui-viewheader': ViewHeaderHost,
