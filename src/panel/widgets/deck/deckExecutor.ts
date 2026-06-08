@@ -17,9 +17,9 @@ interface VolumeState { supported: boolean; volume: number; muted: boolean; }
 interface DisplayInfo { id: string; brightness?: number; }
 
 /**
- * Dispatch a single deck action. Navigation actions (pageNext/Prev/Goto) are
- * resolved in the widget, not here. A toggle defaults to its `on` branch; the
- * widget normally unwraps toggles against live state before calling this.
+ * Dispatch a single deck action via direct REST. Folder navigation is resolved
+ * in the widget, not here. A toggle defaults to its `on` branch; the widget
+ * normally unwraps toggles against live state before calling this.
  */
 export async function executeDeckAction(action: DeckAction): Promise<void> {
   switch (action.type) {
