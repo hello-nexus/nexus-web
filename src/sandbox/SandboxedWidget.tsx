@@ -26,39 +26,71 @@ function readLocal(widgetId: string, instanceId: string): Record<string, unknown
   catch { return {}; }
 }
 
+// Keep-alive cache. The panel remounts a widget's whole subtree for transient
+// reasons (e.g. opening the edit sheet re-parents the cell into the editor-dock
+// portal — a changed return shape, so React unmounts + remounts). Respawning the
+// worker + refetching data each time is a visible reload. Instead we keep the
+// live worker for a short grace window keyed by instance, so a remount reuses it
+// and the RemoteTree re-renders the receiver's existing tree instantly. A widget
+// that is genuinely removed disposes after the window elapses.
+interface LiveWidget { handle: SandboxHandle; disposeTimer: ReturnType<typeof setTimeout> | null; }
+const liveWidgets = new Map<string, LiveWidget>();
+const KEEP_ALIVE_MS = 2500;
+
 export function SandboxedWidget({ entryUrl, widgetId, instanceId, settings, netFetch, onDispatch }: SandboxedWidgetProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [handle, setHandle] = useState<SandboxHandle | null>(null);
   const settingsKey = JSON.stringify(settings ?? {});
 
   useEffect(() => {
-    const el = wrapRef.current;
-    const size = el
-      ? { width: Math.round(el.clientWidth), height: Math.round(el.clientHeight) }
-      : { width: 0, height: 0 };
+    const key = `${widgetId}:${instanceId}`;
+    let entry = liveWidgets.get(key);
 
-    const context: SandboxContext = {
-      instanceId,
-      widgetId,
-      size,
-      settings: settings ?? {},
-      local: readLocal(widgetId, instanceId),
-      netFetch: netFetch ?? [],
-      api: {
-        persistLocal: (next) => {
-          try { localStorage.setItem(localKey(widgetId, instanceId), JSON.stringify(next)); }
-          catch { /* quota / private mode */ }
+    if (entry) {
+      // Reuse across a transient remount; cancel any pending disposal.
+      if (entry.disposeTimer) { clearTimeout(entry.disposeTimer); entry.disposeTimer = null; }
+      entry.handle.update({ settings: settings ?? {} });
+      setHandle(entry.handle);
+    } else {
+      const el = wrapRef.current;
+      const size = el
+        ? { width: Math.round(el.clientWidth), height: Math.round(el.clientHeight) }
+        : { width: 0, height: 0 };
+
+      const context: SandboxContext = {
+        instanceId,
+        widgetId,
+        size,
+        settings: settings ?? {},
+        local: readLocal(widgetId, instanceId),
+        netFetch: netFetch ?? [],
+        api: {
+          persistLocal: (next) => {
+            try { localStorage.setItem(localKey(widgetId, instanceId), JSON.stringify(next)); }
+            catch { /* quota / private mode */ }
+          },
+          dispatch: (action, args) => onDispatch?.(action, args),
         },
-        dispatch: (action, args) => onDispatch?.(action, args),
-      },
-    };
+      };
+      entry = { handle: spawnSandboxedWidget(entryUrl, context), disposeTimer: null };
+      liveWidgets.set(key, entry);
+      setHandle(entry.handle);
+    }
 
-    const spawned = spawnSandboxedWidget(entryUrl, context);
-    setHandle(spawned);
-    return () => { spawned.dispose(); setHandle(null); };
-    // settings/dispatch are pushed via update; re-spawn only on identity change.
+    return () => {
+      setHandle(null);
+      const e = liveWidgets.get(key);
+      if (e && !e.disposeTimer) {
+        e.disposeTimer = setTimeout(() => {
+          e.handle.dispose();
+          liveWidgets.delete(key);
+        }, KEEP_ALIVE_MS);
+      }
+    };
+    // Identity is the widget instance; entryUrl/settings change in place (reused
+    // worker is updated, never respawned for a transient blob-url change).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entryUrl, widgetId, instanceId]);
+  }, [widgetId, instanceId]);
 
   useEffect(() => {
     handle?.update({ settings: settings ?? {} });

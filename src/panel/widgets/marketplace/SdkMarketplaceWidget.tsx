@@ -18,6 +18,12 @@ import styles from './MarketplaceWidget.module.scss';
 
 interface CodeSession { sessionId: string; baseUrl: string; }
 
+// One resolved blob: bundle URL per widget type, cached for the session. The
+// bundle is identical across instances and remounts, so a transient remount
+// (e.g. the edit-sheet re-parent) reuses it instead of re-minting a code-session
+// and re-fetching ~200 KB — paired with the worker keep-alive, edit is seamless.
+const bundleCache = new Map<string, string>();
+
 export interface SdkMarketplaceWidgetProps {
   listing: WidgetInstalledListing;
   size: string;
@@ -25,7 +31,7 @@ export interface SdkMarketplaceWidgetProps {
 }
 
 export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidgetProps) {
-  const [entryUrl, setEntryUrl] = useState<string | null>(null);
+  const [entryUrl, setEntryUrl] = useState<string | null>(() => bundleCache.get(listing.id) ?? null);
   const [failed, setFailed] = useState(false);
 
   // Per-instance settings, same bridge the declarative path uses.
@@ -40,11 +46,11 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
   const netFetch = useMemo(() => listing.capabilities['net.fetch'] ?? [], [listing]);
 
   // Mint a code session, fetch widget.mjs bytes (relay-aware), expose as a blob.
+  // Cached per widget type; not revoked (kept for the session) so remounts reuse it.
   useEffect(() => {
-    let revokeUrl: string | null = null;
+    if (bundleCache.has(listing.id)) { setEntryUrl(bundleCache.get(listing.id)!); return; }
     let alive = true;
     setFailed(false);
-    setEntryUrl(null);
     void (async () => {
       const session = await postService<CodeSession>(
         `/widgets-api/installed/${encodeURIComponent(listing.id)}/code-session`, {},
@@ -55,10 +61,10 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
       if (!alive) return;
       if (!blob) { setFailed(true); return; }
       const url = URL.createObjectURL(new Blob([blob], { type: 'text/javascript' }));
-      revokeUrl = url;
+      bundleCache.set(listing.id, url);
       setEntryUrl(url);
     })();
-    return () => { alive = false; if (revokeUrl) URL.revokeObjectURL(revokeUrl); };
+    return () => { alive = false; };
   }, [listing.id]);
 
   if (failed) return <div className={styles.empty}>Failed to load {listing.name}</div>;
