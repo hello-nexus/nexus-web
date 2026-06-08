@@ -4,7 +4,7 @@
 // imports the author bundle. The SDK UI channel rides that dedicated port; the
 // nexus.* data channel stays on the worker's main message port.
 
-import { workerBootScript } from '../widgets/declarative/workerBoot';
+import { workerBootScript } from './workerBoot';
 
 // Captured before the author bundle runs so mount() can await the port even if
 // the bundle finishes importing before the host's port message is delivered.

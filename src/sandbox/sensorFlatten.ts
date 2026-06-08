@@ -1,8 +1,7 @@
 // Flatten a monitoring frame into the flat `family.host.sensor` readings that
-// widget workers subscribe to. Shared by the declarative worker host and the
-// sandboxed SDK host so both feed sensors identically.
+// SDK widget workers subscribe to via nexus.sensors.
 
-import type { MonitoringFrame } from '../../hooks/useMonitoringFrame';
+import type { MonitoringFrame } from '../hooks/useMonitoringFrame';
 
 export interface FlatReading {
   id: string;

@@ -1,7 +1,6 @@
 // Dashboard-side API client for the widget admin surface. Calls hit the
 // loopback nexus-service endpoints under `/widgets-api/...`. Widgets render
-// in-page via DeclarativeWidget (Tier 1) or a Web Worker (Tier 2); no
-// iframe is involved.
+// in-page via the sandboxed SDK host (a Web Worker per widget); no iframe is involved.
 
 import { fetchService } from '../api/service';
 import type { WidgetInstalledListing, WidgetInstalledListingResponse } from './types';

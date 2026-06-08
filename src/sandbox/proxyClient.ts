@@ -1,12 +1,12 @@
 // Shared host-side egress: POST a widget's outbound HTTPS request to the
 // service's SSRF-guarded /widgets-api/proxy with the cert/manifest allowlist.
-// Used by both the declarative Tier-2 worker host and the sandboxed SDK host.
+// Used by the sandboxed SDK host for the worker's brokered nexus.net.fetch.
 //
 // Routes through postService (relay-aware): on a remotely-connected panel the
 // call tunnels over the relay instead of hitting http://localhost, so brokered
 // fetch works off-LAN.
 
-import { postService } from '../../api/service';
+import { postService } from '../api/service';
 
 export interface ProxyRequest {
   url: string;

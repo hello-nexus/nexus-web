@@ -1,6 +1,5 @@
-// Panel entrypoint for an SDK (sandboxed remote-component) marketplace widget.
-// Sibling to DeclarativeWidget; chosen by MarketplaceWidget when the listing's
-// runtime === "sdk".
+// Panel entrypoint for an SDK (sandboxed remote-component) marketplace widget —
+// the cell surface. Rendered by MarketplaceWidget for every marketplace widget.
 //
 // Remote-panel safe: the worker can't live-import the widget bundle over the
 // relay (the browser ESM loader can't be tunneled), so we fetch widget.mjs as
@@ -28,7 +27,7 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
   const { runtimeUrl, failed: runtimeFailed } = useSdkRuntime();
   const failed = bundleFailed || runtimeFailed;
 
-  // Per-instance settings, same bridge the declarative path uses.
+  // Per-instance settings via the shared settings bridge.
   const settingsBridge = useMemo(() => new WidgetSettingsBridge(instanceId), [instanceId]);
   const [settings, setSettings] = useState<Record<string, unknown>>(() => settingsBridge.get());
   useEffect(() => {

@@ -6,8 +6,8 @@ import { RemoteReceiver } from '@remote-dom/core/receivers';
 import type { RemoteConnection } from '@remote-dom/core';
 import { ThreadMessagePort, retain, release } from '@quilted/threads';
 import { composeSdkWorkerSource } from './sandboxBoot';
-import { proxyFetch } from '../widgets/declarative/proxyClient';
-import { flattenFrameForWorker, type FlatReading } from '../widgets/declarative/sensorFlatten';
+import { proxyFetch } from './proxyClient';
+import { flattenFrameForWorker, type FlatReading } from './sensorFlatten';
 import * as monitoringStore from '../lib/monitoringStore';
 
 function globToRegex(pattern: string): RegExp {
