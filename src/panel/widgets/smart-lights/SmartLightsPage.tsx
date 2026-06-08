@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, LampCeiling, RefreshCw } from 'lucide-react'
 import { Button } from '../../../components/common/Button/Button';
 import { Card } from '../../../components/common/Card/Card';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
+import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
@@ -253,7 +254,7 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className={styles.section}>
-      <h3 className={styles.sectionTitle}>{title}</h3>
+      <SectionHeader>{title}</SectionHeader>
       {children}
     </section>
   );

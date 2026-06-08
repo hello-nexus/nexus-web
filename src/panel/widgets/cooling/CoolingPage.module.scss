@@ -134,6 +134,7 @@
 .deviceGroupName {
   font-weight: 600;
   color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase; // category headers are always caps
 }
 .deviceGroupCount {
   font-variant-numeric: tabular-nums;
