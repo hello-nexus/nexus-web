@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { pairOverRelay } from './relayChannel';
+import { RelayChannel, pairOverRelay } from './relayChannel';
 import {
   DIR_HOST_TO_CLIENT,
   deriveAeadKey,
@@ -202,6 +202,44 @@ describe('pairOverRelay — post-claim close race (WebKit)', () => {
     ws.emitClose();
 
     await expect(promise).rejects.toThrow();
+  });
+});
+
+describe('RelayChannel — no-host fast fail', () => {
+  const realWebSocket = globalThis.WebSocket;
+
+  afterEach(() => {
+    globalThis.WebSocket = realWebSocket;
+    FakeWebSocket.last = null;
+    vi.restoreAllMocks();
+  });
+
+  it('opts in with nh:1 and closes fast on a no-host advisory (never reaches OPEN)', async () => {
+    globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+
+    const channel = new RelayChannel(RELAY_URL, 'session-token-for-runtime-test');
+    let closed = false;
+    channel.onclose = () => { closed = true; };
+    let opened = false;
+    channel.onopen = () => { opened = true; };
+
+    void channel.connect();
+    const ws = await awaitSocket();
+    ws.emitOpen();
+    await flush();
+
+    // The runtime hello carries the nh:1 opt-in.
+    const hello = JSON.parse(ws.sent.find((d) => typeof d === 'string') as string);
+    expect(hello.role).toBe('client');
+    expect(hello.nh).toBe(1);
+
+    // Relay says no host is present → channel closes at once, never opens.
+    ws.emitText(JSON.stringify({ e: 'no-host' }));
+    await flush();
+
+    expect(channel.readyState).toBe(RelayChannel.CLOSED);
+    expect(closed).toBe(true);
+    expect(opened).toBe(false);
   });
 });
 

@@ -102,7 +102,9 @@ export class RelayChannel {
       // The relay socket is open, but the PEER (host) may not be present yet.
       // Send the client hello and wait for peer-up before reporting open to
       // the hook. Arm a timeout so a missing host doesn't stall the retry loop.
-      const hello = JSON.stringify({ v: 1, role: 'client', rid, salt: base64UrlNoPad(this.connSalt) });
+      // nh:1 opts into the relay's {"e":"no-host"} advisory so a missing host
+      // is reported at once instead of only after the peer-up timeout fires.
+      const hello = JSON.stringify({ v: 1, role: 'client', rid, salt: base64UrlNoPad(this.connSalt), nh: 1 });
       try {
         socket.send(hello);
       } catch {
@@ -135,8 +137,10 @@ export class RelayChannel {
   private async handleMessage(e: MessageEvent): Promise<void> {
     if (!this.peerUp) {
       // Pre-peer-up: the only expected message is the relay's TEXT control
-      // frame. {"e":"peer-up"} promotes us to OPEN; anything else (peer-down,
-      // unexpected) ends the channel.
+      // frame. {"e":"peer-up"} promotes us to OPEN; {"e":"no-host"} means the PC
+      // isn't on the relay, so close fast and let the hook back off rather than
+      // waiting out the peer-up timeout; anything else (peer-down, unexpected)
+      // also ends the channel.
       if (typeof e.data !== 'string') { this.close(); return; }
       let parsed: { e?: string };
       try { parsed = JSON.parse(e.data) as { e?: string }; } catch { this.close(); return; }
@@ -146,7 +150,7 @@ export class RelayChannel {
         this.readyState = RelayChannel.OPEN;
         this.onopen?.(new Event('open'));
       } else {
-        // peer-down before peer-up, or an unknown control frame.
+        // no-host, peer-down before peer-up, or an unknown control frame.
         this.close();
       }
       return;

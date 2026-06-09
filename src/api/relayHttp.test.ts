@@ -53,6 +53,10 @@ class MockRelaySocket {
     body: JSON.stringify({ ok: true, path: req.path, method: req.method }),
     contentType: 'application/json',
   });
+  // The control frame the mock relay returns for the client hello. Defaults to
+  // peer-up; a test flips it to no-host to exercise the fast-fail path.
+  static helloControl: Record<string, unknown> = { e: 'peer-up' };
+  static lastHello: Record<string, unknown> | null = null;
 
   readyState = MockRelaySocket.CONNECTING;
   binaryType = 'arraybuffer';
@@ -74,7 +78,8 @@ class MockRelaySocket {
       const hello = JSON.parse(data) as { rid: string; role: string; salt: string };
       this.rid = hello.rid;
       this.salt = hello.salt;
-      setTimeout(() => this.onmessage?.(new MessageEvent('message', { data: JSON.stringify({ e: 'peer-up' }) })), 0);
+      MockRelaySocket.lastHello = hello as Record<string, unknown>;
+      setTimeout(() => this.onmessage?.(new MessageEvent('message', { data: JSON.stringify(MockRelaySocket.helloControl) })), 0);
       return;
     }
     void this.handleSealedRequest(new Uint8Array(data));
@@ -103,6 +108,8 @@ class MockRelaySocket {
 beforeEach(() => {
   resetRelayHttpTunnel();
   MockRelaySocket.instances = [];
+  MockRelaySocket.helloControl = { e: 'peer-up' };
+  MockRelaySocket.lastHello = null;
   MockRelaySocket.responder = async (req) => ({
     id: req.id,
     status: 200,
@@ -163,6 +170,14 @@ describe('relayFetch (REST-over-relay tunnel)', () => {
     expect(JSON.parse(c.body)).toEqual({ path: '/panel/c' });
     // All three rode the SAME lazily-opened tunnel.
     expect(MockRelaySocket.instances).toHaveLength(1);
+  });
+
+  it('opts in with nh:1 and fails fast when the relay reports no-host', async () => {
+    MockRelaySocket.helloControl = { e: 'no-host' };
+    // The PC isn't on the relay: the tunnel must reject rather than wait out the
+    // peer-up timeout, so the /ping that drives the offline overlay resolves now.
+    await expect(relayFetch(TOKEN, RELAY_URL, 'GET', '/ping')).rejects.toThrow();
+    expect(MockRelaySocket.lastHello?.nh).toBe(1);
   });
 
   it('reuses the single tunnel across sequential requests', async () => {
