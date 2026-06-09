@@ -121,7 +121,6 @@ const SIGNATURES: Record<string, Feel> = {
   chromaspiral:   RAINBOW,
   neongrid:       { hue: 0.58, colorize: 0.55, speed: 70, saturation: 1.20, contrast: 1.10, intensity: 1 },
   oilslick:       RAINBOW,
-  neoncube:       RAINBOW,
   caustics:       { hue: 0.55, colorize: 0.30, speed: 35, saturation: 1.20, contrast: 1.10, intensity: 1 },
   galaxy:         { hue: 0.72, colorize: 0.20, speed: 45, saturation: 1.20, contrast: 1.10, intensity: 1 },
   starpath:       { hue: 0.62, colorize: 0.20, speed: 40, saturation: 1.10, contrast: 1.10, intensity: 1 },
@@ -340,12 +339,6 @@ const PARAM_VARIATIONS: Record<string, [Record<string, number>, Record<string, n
     { u_flow: 2.8, u_iridescence: 3.8, u_scale: 2.2 },
     { u_flow: 0.5, u_iridescence: 1.0, u_scale: 0.6 },
     { u_flow: 1.8, u_iridescence: 3.0, u_scale: 1.0 },
-  ],
-  neoncube: [
-    { u_size: 0.8, u_spin: 1.0, u_glow: 1.0 },
-    { u_size: 1.2, u_spin: 2.5, u_glow: 1.4 },
-    { u_size: 0.4, u_spin: 0.3, u_glow: 0.6 },
-    { u_size: 1.0, u_spin: 1.5, u_glow: 0.8 },
   ],
   caustics: [
     { u_density: 1.4, u_brightness: 1.0, u_flow: 1.0 },
