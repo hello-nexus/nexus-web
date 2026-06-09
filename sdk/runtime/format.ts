@@ -1,6 +1,6 @@
 // Formatting helpers exposed to authors so common widget needs (durations,
 // clamping, percentages) don't get re-encoded per widget. Mirrors the subset of
-// the declarative binding helpers that authors actually used.
+// the binding helpers that authors actually used.
 
 export function clamp(value: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, value));

@@ -64,7 +64,7 @@ await build({
     'process.env.NODE_ENV': '"production"',
     // The SDK host (proxyClient) pulls in the app's service client, which reads
     // Vite's import.meta.env + build-time globals. Point it at this harness
-    // origin so the worker's brokered fetch hits the mock /widgets-api/proxy.
+    // origin so the worker's brokered fetch hits the mock /apps-api/proxy.
     'import.meta.env': JSON.stringify({
       VITE_SERVICE_PROTOCOL: 'http:', VITE_SERVICE_HOST: 'localhost', VITE_SERVICE_PORT: String(PORT),
       DEV: false, PROD: true, MODE: 'production', BASE_URL: '/',
@@ -138,7 +138,7 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', `http://localhost:${PORT}`);
 
-    if (req.method === 'POST' && url.pathname === '/widgets-api/proxy') {
+    if (req.method === 'POST' && url.pathname === '/apps-api/proxy') {
       let raw = '';
       for await (const chunk of req) raw += chunk;
       let target = '';
@@ -148,7 +148,7 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'POST' && url.pathname === '/widgets-api/dispatch') {
+    if (req.method === 'POST' && url.pathname === '/apps-api/dispatch') {
       let raw = '';
       for await (const chunk of req) raw += chunk;
       let action = '';

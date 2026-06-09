@@ -1,4 +1,4 @@
-// Host icon table for the SDK `ui-icon` element. Mirrors the declarative meter's
+// Host icon table for the SDK `ui-icon` element. Mirrors the native
 // lucide name map so SDK widgets render the identical glyphs as native ones.
 
 import {

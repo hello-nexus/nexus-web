@@ -11,13 +11,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { postService } from '../../../api/service';
 import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
-import type { WidgetInstalledListing } from '../../../widgets/types';
+import type { AppInstalledListing } from '../../../widgets/types';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
 import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
 import styles from './MarketplaceWidget.module.scss';
 
 export interface SdkMarketplaceWidgetProps {
-  listing: WidgetInstalledListing;
+  listing: AppInstalledListing;
   size: string;
   instanceId: string;
 }
@@ -39,11 +39,11 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
   const netFetch = useMemo(() => listing.capabilities['net.fetch'] ?? [], [listing]);
   const sensorsRead = useMemo(() => listing.capabilities['sensors.read'] ?? [], [listing]);
 
-  // Gated host action: POST /widgets-api/dispatch (relay-aware). Returns the
+  // Gated host action: POST /apps-api/dispatch (relay-aware). Returns the
   // { ok, result } envelope so the worker's useDispatch / useHostAction work.
   const onDispatch = useCallback(
     (action: string, args?: Record<string, unknown>) =>
-      postService<unknown>('/widgets-api/dispatch', { widgetId: listing.id, action, args: args ?? {} }),
+      postService<unknown>('/apps-api/dispatch', { appId: listing.id, action, args: args ?? {} }),
     [listing.id],
   );
 

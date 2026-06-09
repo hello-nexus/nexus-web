@@ -10,7 +10,7 @@ import {
   isMarketplaceIdEnabled,
   isMarketplaceRegistryStale,
   isMarketplaceType,
-  loadMarketplaceWidgets,
+  loadMarketplaceApps,
   marketplaceIdFromType,
   subscribeMarketplaceRegistry,
 } from '../../widgets/marketplaceRegistry';
@@ -68,7 +68,7 @@ export function PanelWidgetCatalog({
 
   useEffect(() => {
     if (isMarketplaceRegistryStale()) {
-      void loadMarketplaceWidgets();
+      void loadMarketplaceApps();
     }
     return subscribeMarketplaceRegistry(forceRender);
   }, [forceRender]);

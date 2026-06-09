@@ -1,4 +1,4 @@
-// Worker boot source for SDK widgets. Reuses the existing declarative boot
+// Worker boot source for SDK widgets. Reuses the shared worker boot
 // VERBATIM (privileged-global stripping + the nexus.* RPC surface) and appends a
 // tiny suffix that captures the transferred UI MessagePort the host sends, then
 // imports the author bundle. The SDK UI channel rides that dedicated port; the

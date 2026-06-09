@@ -1,5 +1,5 @@
 // Shared host-side egress: POST a widget's outbound HTTPS request to the
-// service's SSRF-guarded /widgets-api/proxy with the cert/manifest allowlist.
+// service's SSRF-guarded /apps-api/proxy with the cert/manifest allowlist.
 // Used by the sandboxed SDK host for the worker's brokered nexus.net.fetch.
 //
 // Routes through postService (relay-aware): on a remotely-connected panel the
@@ -18,12 +18,12 @@ export interface ProxyRequest {
 /** Returns the proxy's `{ ok, status, statusText, headers, body }` envelope
  *  (or null if the request couldn't be made). */
 export async function proxyFetch(
-  widgetId: string,
+  appId: string,
   req: ProxyRequest,
   allowedHosts: string[],
 ): Promise<unknown> {
-  return postService('/widgets-api/proxy', {
-    widgetId,
+  return postService('/apps-api/proxy', {
+    appId,
     url: req.url,
     method: req.method,
     headers: req.headers,

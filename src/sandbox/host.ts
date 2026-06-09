@@ -1,5 +1,5 @@
 // Host-side spawn for a sandboxed SDK widget. Boots the worker (reusing the
-// hardened declarative boot), hands it a dedicated UI MessagePort, and drives its
+// hardened worker boot), hands it a dedicated UI MessagePort, and drives its
 // React tree over @quilted/threads into a RemoteReceiver the host renders.
 
 import { RemoteReceiver } from '@remote-dom/core/receivers';
@@ -31,7 +31,7 @@ export interface SandboxContext {
   sensorsRead?: string[];
   api: {
     persistLocal(next: Record<string, unknown>): void;
-    /** Host-brokered action: POSTs /widgets-api/dispatch (relay-aware), returns
+    /** Host-brokered action: POSTs /apps-api/dispatch (relay-aware), returns
      *  the `{ ok, result }` envelope. Powers control writes AND host-action data
      *  sources (e.g. screentime.today). The action must be in the manifest's
      *  capabilities.dispatch allowlist. */
@@ -69,8 +69,8 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
     console.error(`[sdk:${context.widgetId}] worker error`, e.message, e.filename, e.lineno);
   });
 
-  // Sensor broker — mirrors the declarative host, capped to the manifest's
-  // sensors.read grant (the declarative host does NOT enforce this; the SDK does).
+  // Sensor broker — capped to the manifest's
+  // sensors.read grant (enforced here in the SDK host).
   const allowedSensors = (context.sensorsRead ?? []).map(globToRegex);
   const isGranted = (id: string) => allowedSensors.some((re) => re.test(id));
   const sensorSubs = new Map<number, RegExp>();
@@ -126,7 +126,7 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
 
   // Resolve the worker's nexus.ready (the boot blocks on this) so any nexus.*
   // usage works. The SDK's primary surface rides the threads context, but this
-  // closes the gap with the declarative host.
+  // matches the native sensor surface.
   worker.postMessage({
     type: 'nexus.welcome',
     payload: { widgetId: context.widgetId, netFetch: context.netFetch ?? [], settings: context.settings ?? {} },

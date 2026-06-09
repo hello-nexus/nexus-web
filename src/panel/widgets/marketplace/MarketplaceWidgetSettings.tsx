@@ -9,7 +9,7 @@ import {
 import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
 import {
   getMarketplaceListing,
-  loadMarketplaceWidgets,
+  loadMarketplaceApps,
   marketplaceIdFromType,
   subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
@@ -78,7 +78,7 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
   // settings drawer opens before the catalog refresh has landed).
   useEffect(() => {
     if (!id) return;
-    if (!getMarketplaceListing(id)) void loadMarketplaceWidgets();
+    if (!getMarketplaceListing(id)) void loadMarketplaceApps();
     const unsub = subscribeMarketplaceRegistry(() => setListing(getMarketplaceListing(id)));
     return unsub;
   }, [id]);

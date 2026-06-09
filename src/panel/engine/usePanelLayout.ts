@@ -54,7 +54,7 @@ function nearestAllowedSize(
 // list to the nearest allowed size. Without this, a profile saved with an
 // out-of-spec size renders the widget at a size its CSS does not handle,
 // producing layout glitches and re-render churn.
-function reconcileWidgetsAgainstRegistry(
+function reconcileAppsAgainstRegistry(
   widgets: readonly PanelWidget[],
   surface: PanelSurface,
 ): PanelWidget[] {
@@ -107,7 +107,7 @@ interface UsePanelLayoutResult {
 }
 
 // Default column count per surface used by the overlap-reflow path
-// when reconcileWidgetsAgainstRegistry snaps a widget's size and
+// when reconcileAppsAgainstRegistry snaps a widget's size and
 // introduces overlap with siblings.
 const SURFACE_COLS: Record<PanelSurface, number> = {
   y70: 4,
@@ -119,7 +119,7 @@ const SURFACE_COLS: Record<PanelSurface, number> = {
 export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface): PanelLayout {
   const reconciledPages = layout.pages.map(page => ({
     ...page,
-    widgets: reconcileWidgetsAgainstRegistry(
+    widgets: reconcileAppsAgainstRegistry(
       page.widgets.filter(widget => !REMOVED_WIDGET_TYPES.has(widget.type)),
       surface,
     ),

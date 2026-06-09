@@ -53,7 +53,7 @@ export function useSdkBundle(listingId: string): { entryUrl: string | null; fail
     setFailed(false);
     void (async () => {
       const session = await postService<CodeSession>(
-        `/widgets-api/installed/${encodeURIComponent(listingId)}/code-session`, {},
+        `/apps-api/installed/${encodeURIComponent(listingId)}/code-session`, {},
       );
       if (!alive) return;
       if (!session?.baseUrl) { setFailed(true); return; }

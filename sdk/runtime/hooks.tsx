@@ -38,7 +38,7 @@ export function useSurface(): 'cell' | 'page' {
 }
 
 /** Per-instance local state bag. Persisted by the host across reloads; the
- *  setter merges, mirroring the declarative `localUpdate`. */
+ *  setter merges, doing a shallow `localUpdate`-style merge. */
 export function useLocalState<T extends object>(
   defaults: T,
 ): [T, (next: Partial<T>) => void] {
@@ -123,7 +123,7 @@ export function useDispatch(): (action: string, args?: Record<string, unknown>) 
 }
 
 /** Host-action data source: poll a dispatch action on a refresh schedule and
- *  surface its `result`. Mirrors the declarative `host` data source — the way
+ *  surface its `result`. Mirrors a `host` action poll — the way
  *  first-party widgets read host-internal state (e.g. screentime.today, the
  *  displays list) that isn't a sensor or a public HTTPS endpoint. The action
  *  must be in the manifest's capabilities.dispatch allowlist. */

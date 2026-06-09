@@ -4,8 +4,8 @@
 // existing Add Widget catalog renders them alongside the built-in widgets
 // without per-feature plumbing.
 
-import { listInstalledWidgets } from './api';
-import type { WidgetInstalledListing } from './types';
+import { listInstalledApps } from './api';
+import type { AppInstalledListing } from './types';
 
 export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
 
@@ -41,17 +41,17 @@ export function typeForMarketplace(id: string): string {
   return `${MARKETPLACE_TYPE_PREFIX}${id}`;
 }
 
-const cache = new Map<string, WidgetInstalledListing>();
+const cache = new Map<string, AppInstalledListing>();
 const listeners = new Set<() => void>();
 let loadInFlight: Promise<void> | null = null;
 let lastLoadAt = 0;
 const STALE_AFTER_MS = 30_000;
 
-export function getMarketplaceListing(id: string): WidgetInstalledListing | undefined {
+export function getMarketplaceListing(id: string): AppInstalledListing | undefined {
   return cache.get(id);
 }
 
-export function getAllMarketplaceListings(): WidgetInstalledListing[] {
+export function getAllMarketplaceListings(): AppInstalledListing[] {
   return [...cache.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -80,11 +80,11 @@ export function hasMarketplaceLoadedOnce(): boolean {
  * Failures leave the previous cache intact so the dashboard doesn't lose
  * its widget list on a transient blip.
  */
-export async function loadMarketplaceWidgets(): Promise<void> {
+export async function loadMarketplaceApps(): Promise<void> {
   if (loadInFlight) return loadInFlight;
   loadInFlight = (async () => {
     try {
-      const list = await listInstalledWidgets();
+      const list = await listInstalledApps();
       cache.clear();
       for (const widget of list) cache.set(widget.id, widget);
       lastLoadAt = Date.now();
@@ -107,7 +107,7 @@ export function _resetMarketplaceRegistryForTests(): void {
 }
 
 /** Test seam: mark the registry as loaded with a custom set. */
-export function _seedMarketplaceRegistryForTests(entries: WidgetInstalledListing[]): void {
+export function _seedMarketplaceRegistryForTests(entries: AppInstalledListing[]): void {
   cache.clear();
   for (const w of entries) cache.set(w.id, w);
   lastLoadAt = Date.now();

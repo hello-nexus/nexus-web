@@ -27,7 +27,7 @@ export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
   const sensorsRead = useMemo(() => listing?.capabilities['sensors.read'] ?? [], [listing]);
   const onDispatch = useCallback(
     (action: string, args?: Record<string, unknown>) =>
-      postService<unknown>('/widgets-api/dispatch', { widgetId: id, action, args: args ?? {} }),
+      postService<unknown>('/apps-api/dispatch', { appId: id, action, args: args ?? {} }),
     [id],
   );
 

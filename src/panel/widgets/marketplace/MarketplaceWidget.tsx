@@ -3,7 +3,7 @@ import type { WidgetProps } from '../types';
 import { SdkMarketplaceWidget } from './SdkMarketplaceWidget';
 import {
   getMarketplaceListing,
-  loadMarketplaceWidgets,
+  loadMarketplaceApps,
   marketplaceIdFromType,
   subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
@@ -22,7 +22,7 @@ export function MarketplaceWidget({ widget }: WidgetProps) {
     if (!id) return;
     let cancelled = false;
     if (!getMarketplaceListing(id)) {
-      void loadMarketplaceWidgets().then(() => {
+      void loadMarketplaceApps().then(() => {
         if (!cancelled) setListing(getMarketplaceListing(id));
       });
     }

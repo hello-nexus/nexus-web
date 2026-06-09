@@ -54,7 +54,7 @@ function Cell({ index }: { index: number }) {
           runtimeUrl={runtimeUrl} entryUrl={url} widgetId={widgetId} instanceId={`harness-${index}`}
           surface={surface}
           settings={settings} netFetch={netFetch}
-          onDispatch={(action, args) => postService('/widgets-api/dispatch', { widgetId, action, args: args ?? {} })}
+          onDispatch={(action, args) => postService('/apps-api/dispatch', { widgetId, action, args: args ?? {} })}
         />
       ) : null}
     </div>

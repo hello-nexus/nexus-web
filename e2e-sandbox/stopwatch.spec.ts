@@ -122,7 +122,7 @@ test('screentime SDK widget: host-action dispatch data path', async ({ page }) =
 
 test('displays SDK widget: host-action data + control (setBrightness dispatch)', async ({ page }) => {
   const dispatched: string[] = [];
-  await page.route('**/widgets-api/dispatch', async (route) => {
+  await page.route('**/apps-api/dispatch', async (route) => {
     const body = route.request().postDataJSON?.() ?? {};
     if (body.action === 'displays.setBrightness') dispatched.push(JSON.stringify(body.args));
     await route.continue();

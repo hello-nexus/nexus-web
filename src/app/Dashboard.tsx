@@ -18,7 +18,7 @@ const LightingPage = lazy(() => import('../panel/widgets/lighting/LightingPage')
 const SmartLightsPage = lazy(() => import('../panel/widgets/smart-lights/SmartLightsPage').then(m => ({ default: m.SmartLightsPage })));
 const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
 const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
-import { getMarketplaceListing, isMarketplaceType, loadMarketplaceWidgets, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
+import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
@@ -294,7 +294,7 @@ export function Dashboard() {
   // panel registry can resolve `marketplace:<id>` widgets on first reconcile.
   useEffect(() => {
     if (!online) return;
-    void loadMarketplaceWidgets();
+    void loadMarketplaceApps();
   }, [online]);
 
   // ── Render main content based on section + view ────────────────────────

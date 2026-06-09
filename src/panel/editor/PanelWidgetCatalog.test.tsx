@@ -55,7 +55,7 @@ vi.mock('../widgets/registry', () => {
 // the test environment, stub the registry helpers to no-ops.
 vi.mock('../../widgets/marketplaceRegistry', () => ({
   isMarketplaceRegistryStale: () => false,
-  loadMarketplaceWidgets: () => Promise.resolve(),
+  loadMarketplaceApps: () => Promise.resolve(),
   subscribeMarketplaceRegistry: () => () => {},
   isMarketplaceType: (type: string) => type.startsWith('marketplace:'),
   marketplaceIdFromType: (type: string) =>
