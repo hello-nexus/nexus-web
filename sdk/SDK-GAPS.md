@@ -4,6 +4,25 @@ Compiled from two adversarial reviews of the sandboxed SDK widget system, valida
 the code. Severity: **blocker** = whole widget class impossible / shipped surface that silently
 does nothing; **major** = a capability class is unreachable; **minor** = a sharp edge.
 
+## Fixed in the UI-tooling + packaging round (2026-06-08)
+Closes several D/E/F/G/I gaps below (the original lines are left intact for the audit trail):
+- **`ui-color`** — blesses the native `HsvPicker` (SV square + hue strip + hex field), so a
+  sandboxed lighting app gets a pixel-identical raw-colour picker. (was **E**: no colour swatch.)
+- **`ui-curve`** — a self-contained draggable X/Y curve editor (drag a point, double-click to add,
+  right-click to remove; `change` fires the full point array). Unblocks the **cooling fan-curve
+  editor**. Still single-series — multi-series history charts remain open. (was **D**: no curve chart.)
+- **Real `ui-gauge`** — a 270° arc meter; was a literal `<Ring/>` alias. (was **D**: Gauge stub.)
+- **`ui-spinner`** — a host-drawn SMIL loading arc. (was **E**: no spinner.)
+- **Long-press** — `longpress` event on `ui-button` + interactive `ui-card` (shared `useLongPress`,
+  450 ms, suppresses the trailing click). Plus the curve editor's point drag. (was **F**: no
+  long-press/drag.)
+- **Per-widget error boundary** — `SdkErrorBoundary` contains a worker render throw to its own cell
+  (small fallback + console error tagged with the app id), instead of blanking the dashboard;
+  resets on a new receiver. (was **G**: no per-widget error boundary.)
+- **Publishable package** — `@hello-nexus/sdk` (`.` = mount/hooks, `./ui` = components) builds to
+  `dist` (JS + `.d.ts`, no source maps) for GitHub Packages. **Built + `npm pack`/`--dry-run`
+  verified only — NOT yet published.** (was **I**: no published packages.)
+
 ## Fixed during this round (was broken, now works)
 - **`useSensor` was dead** — the SDK host never serviced `nexus.sensors.*`, so it returned
   `undefined` forever. Now wired (host.ts feeds from `monitoringStore`), and the `sensors.read`

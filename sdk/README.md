@@ -54,10 +54,13 @@ mount(Stopwatch);
 The same widget as declarative JSON was ~120 lines plus a binding mini-language
 (`now()`, `formatDuration`, `conditional`, `localUpdate`). Here it is plain React.
 
-- **Components** (`@hellonexus/ui`): `Stack`, `Grid`, `Frame`, `Spacer`, `Divider`, `Text`,
-  `Icon`, `Ring`, `Bar`, `Gauge`, `Sparkline`, `Slider`, `Button`, `Stepper`. Props are
-  semantic (`tone`/`size`/`weight`/`variant`) and theme through panel tokens. No `style`/
-  `className` — that is deliberate (consistency).
+- **Components** (`@hellonexus/ui`): layout — `Stack`, `Grid`, `Frame`, `Spacer`, `Divider`,
+  `Scroll`; content — `Text`, `Icon`, `Image`, `Badge`, `Empty`, `Section`, `Card`; data viz —
+  `Ring`, `Bar`, `Range`, `Gauge`, `Sparkline`, `Chart`; input — `Slider`, `Button`, `Stepper`,
+  `Input`, `Toggle`, `Segmented`, `Color` (native HSV picker), `Curve` (draggable curve editor),
+  `Spinner`; blessed composites — `ClockFace`, `WorldClock`, `ViewHeader`. Props are semantic
+  (`tone`/`size`/`weight`/`variant`) and theme through panel tokens. No `style`/`className` —
+  that is deliberate (consistency). `Button`/`Card` also take `onLongPress`.
 - **Hooks** (`@hellonexus/sdk`): `useLocalState`, `useSettings`, `useSize`, `useTick`,
   `useSensor`, `useFetch`, `useDispatch`. Plus `formatDuration`/`clamp`/`pct`.
 - **Build**: `node build.mjs` bundles each `widgets/<id>/index.tsx` to a worker ESM module
