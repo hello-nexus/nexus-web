@@ -66,6 +66,23 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
 - **Build**: `node build.mjs` bundles each `widgets/<id>/index.tsx` to a worker ESM module
   (`dist/<id>/widget.mjs`).
 
+### Author CLI (`sdk/cli/nexus-app.mjs`)
+
+The build an outside author runs once they `npm install @hello-nexus/sdk`. It externalises
+`react` / `react/jsx-runtime` / `@hello-nexus/sdk` / `@hello-nexus/sdk/ui` to thin shims over
+the host-provided `globalThis.__nexusRuntime`, so the shipped `widget.mjs` is only the author's
+code (a starter app builds to ~1.3 KB).
+
+```sh
+node sdk/cli/nexus-app.mjs new my-app     # scaffold index.tsx + manifest.json + config
+node sdk/cli/nexus-app.mjs build my-app   # -> my-app/widget.mjs  (--dev, --sourcemap)
+node sdk/cli/nexus-app.mjs validate my-app
+```
+
+The shim re-exports exactly what the runtime exports (probed). Runtime source: the installed
+`@hello-nexus/sdk` if resolvable, else this repo's `sdk/runtime` (dev), overridable via
+`NEXUS_SDK_RUNTIME`. In-repo today (not yet a published bin).
+
 ## Native widget vs sandboxed SDK widget — the exact difference
 
 | | Native built-in widget | Sandboxed SDK widget |
