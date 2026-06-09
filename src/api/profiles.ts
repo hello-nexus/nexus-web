@@ -65,6 +65,8 @@ export interface CoolingPrefs {
   // "field omitted, keep current" and empty string as "reset to auto".
   preferredCpuTempSensorId?: string | null;
   preferredGpuTempSensorId?: string | null;
+  // Primary GPU by model name. Same null/empty semantics as the temp sensors.
+  preferredGpuId?: string | null;
 }
 
 export interface UiPrefs {

@@ -42,7 +42,7 @@ function bottomLabelForDevice(
 ): string {
   switch (device) {
     case 'cpu': return sensors.cpuModel || 'CPU';
-    case 'gpu': return sensors.gpuModels[0] || 'GPU';
+    case 'gpu': return sensors.gpuModel || 'GPU';
     case 'memory': return sensors.memoryTotal ? `RAM | ${sensors.memoryTotal}` : 'RAM';
     case 'fan': return sensors.motherboardModel || 'Fan';
     case 'storage': return 'Storage';

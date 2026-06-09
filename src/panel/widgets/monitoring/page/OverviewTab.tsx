@@ -2,6 +2,8 @@ import type { MonitoringFrame } from '../../../../hooks/useMonitoringFrame';
 import { useTranslation } from '../../../../lib/i18n';
 import { useUiSettings } from '../../../../hooks/useUiSettings';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../../lib/tempSensorResolver';
+import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
+import { getGpuHist } from '../../../../lib/monitoringStore';
 import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { UsageBar } from '../../../../components/common/UsageBar/UsageBar';
 import { formatMemoryPercent, formatPercentParts, formatRate, formatRateParts } from './shared';
@@ -20,7 +22,9 @@ export function OverviewTab({ frame, hist, onNavigate }: {
   const { settings } = useUiSettings();
 
   const cpuSensors = frame?.cpu?.sensors ?? [];
-  const gpuSensors = frame?.gpu?.[0]?.sensors ?? [];
+  const primaryGpu = resolvePrimaryGpu(frame?.gpu ?? [], settings.preferredGpuId);
+  const gpuSensors = primaryGpu?.sensors ?? [];
+  const gpuName = primaryGpu?.name ?? frame?.gpuModels?.[0] ?? '';
   const memorySensors = frame?.memory?.sensors ?? [];
   const storageComponents = frame?.storage ?? {};
   const processes = frame?.processes;
@@ -44,7 +48,9 @@ export function OverviewTab({ frame, hist, onNavigate }: {
     arr.length >= 60 ? arr.slice(-60) : [...new Array(60 - arr.length).fill(0), ...arr];
 
   const cpuHistory = padTo60(hist.cpu);
-  const gpuHistory = padTo60(hist.gpu);
+  // Per-GPU buffer keyed by the resolved GPU's name, so switching the picker
+  // instantly shows that GPU's accumulated history (not the shared default).
+  const gpuHistory = padTo60([...getGpuHist(gpuName)]);
   const netDownHistory = padTo60(hist.netDown);
   const netUpHistory = padTo60(hist.netUp);
 
@@ -115,7 +121,7 @@ export function OverviewTab({ frame, hist, onNavigate }: {
         <button type="button" className={styles.dashCard} onClick={() => onNavigate('detailed')}>
           <div className={styles.dashCardHeader}>
             <span className={styles.dashCardTitle}>{t('monitoring.detailed.gpu')}</span>
-            <span className={styles.dashCardSub}>{frame?.gpuModels?.[0] ?? ''}</span>
+            <span className={styles.dashCardSub}>{gpuName}</span>
           </div>
           <div className={styles.dashCardBody}>
             <div className={styles.dashMetric}>

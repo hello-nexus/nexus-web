@@ -54,7 +54,7 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
   if (sensors.cpu.length > 0)
     entries.push({ id: 'cpu', title: t('monitoring.detailed.cpu'), subtitle: sensors.cpuModel, sensors: sensors.cpu });
   if (sensors.gpu.length > 0)
-    entries.push({ id: 'gpu', title: t('monitoring.detailed.gpu'), subtitle: sensors.gpuModels[0], sensors: sensors.gpu });
+    entries.push({ id: 'gpu', title: t('monitoring.detailed.gpu'), subtitle: sensors.gpuModel, sensors: sensors.gpu });
   if (sensors.memory.length > 0)
     entries.push({ id: 'memory', title: t('monitoring.detailed.memory'), subtitle: specs?.memory, sensors: sensors.memory });
   // One section per physical storage drive (NVMe + SATA), headed by its model.
