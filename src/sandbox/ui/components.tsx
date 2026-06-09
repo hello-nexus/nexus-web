@@ -170,9 +170,45 @@ export function Ring(p: HostProps) {
   );
 }
 
+// A 270° bottom-open arc meter (distinct from the full-donut Ring): a faint track
+// with a tone-tinted fill sweeping from the lower-left up over the top to the
+// lower-right, with an optional centred label/sublabel.
 export function Gauge(p: HostProps) {
-  // Reuse the ring visual for now; a later pass swaps in the polished meter.
-  return <Ring {...p} />;
+  const min = num(p.min) ?? 0;
+  const max = num(p.max) ?? 100;
+  const span = max - min || 1;
+  const frac = Math.max(0, Math.min(1, ((num(p.value) ?? min) - min) / span));
+  const color = toneVar(str(p.tone), 'var(--accent, currentColor)');
+  const SIZE = 100, c = SIZE / 2, sw = 9, r = c - sw / 2 - 1;
+  const START = 225, SWEEP = 270; // degrees; angle decreases start -> end (clockwise on screen)
+  const pt = (deg: number): [number, number] => {
+    const a = (deg * Math.PI) / 180;
+    return [c + r * Math.cos(a), c - r * Math.sin(a)];
+  };
+  const arc = (fromDeg: number, toDeg: number): string => {
+    const [x0, y0] = pt(fromDeg);
+    const [x1, y1] = pt(toDeg);
+    const large = Math.abs(fromDeg - toDeg) > 180 ? 1 : 0;
+    return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0, minHeight: 0, width: '100%' }}>
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ width: '100%', maxWidth: 170, overflow: 'visible' }} role="img" aria-label={str(p.label) ?? 'gauge'}>
+        <path d={arc(START, START - SWEEP)} fill="none" strokeWidth={sw} strokeLinecap="round" stroke="var(--border, rgba(255,255,255,0.12))" />
+        {frac > 0 && (
+          <path d={arc(START, START - frac * SWEEP)} fill="none" strokeWidth={sw} strokeLinecap="round" stroke={color} />
+        )}
+        {p.label != null && (
+          <text x={c} y={p.sublabel != null ? c - 4 : c} textAnchor="middle" dominantBaseline="middle"
+            fill="var(--text, currentColor)" style={{ fontSize: 22, fontWeight: 600 }}>{String(p.label)}</text>
+        )}
+        {p.sublabel != null && (
+          <text x={c} y={c + 15} textAnchor="middle" dominantBaseline="middle"
+            fill="var(--text-dim, currentColor)" style={{ fontSize: 9, letterSpacing: 0.4 }}>{String(p.sublabel)}</text>
+        )}
+      </svg>
+    </div>
+  );
 }
 
 export function Sparkline(p: HostProps) {

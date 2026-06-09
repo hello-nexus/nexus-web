@@ -79,6 +79,18 @@ describe('RemoteTree host renderer', () => {
     expect(screen.getByRole('img', { name: 'Loading' })).toBeTruthy();
   });
 
+  it('renders the gauge as a labelled arc meter', () => {
+    const receiver = new RemoteReceiver();
+    render(<RemoteTree receiver={receiver} />);
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('g1', 'ui-gauge', { value: 60, label: '60%' }), 0],
+      ] as never);
+    });
+    expect(screen.getByRole('img', { name: '60%' })).toBeTruthy();
+    expect(screen.getByText('60%')).toBeTruthy();
+  });
+
   it('renders the colour picker and fires change with the committed hex', () => {
     const receiver = new RemoteReceiver();
     const onChange = vi.fn();
