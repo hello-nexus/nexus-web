@@ -4,6 +4,7 @@ import { pairOverInternet, pairOverRelayClaim, type InternetPairResult } from '.
 import { isRemoteOrigin, setRelayRegion } from './api/service';
 import { getDeviceId } from './api/deviceId';
 import { PHONE_PANEL_PWA_KEY } from './app/panelRouting';
+import { deriveDeviceLabel } from './lib/platform';
 
 /**
  * Landing page rendered when a phone scans the pairing QR.
@@ -145,7 +146,7 @@ export function PairRedirect() {
         // already committed and this page unloaded, so this code never runs.
         try { window.stop(); } catch { /* not supported / nothing to stop */ }
         setPhase({ state: 'relay' });
-        void pairOverRelayClaim(pair, deriveDeviceName()).then((result) => {
+        void pairOverRelayClaim(pair, deriveDeviceLabel()).then((result) => {
           if (cancelled) return;
           applyResult(result);
         });
@@ -168,7 +169,7 @@ export function PairRedirect() {
       host,
       httpPort,
       pairToken: pair,
-      deviceName: deriveDeviceName(),
+      deviceName: deriveDeviceLabel(),
     }).then((result: InternetPairResult) => {
       if (cancelled) return;
       if (result.kind === 'lan') {
@@ -255,17 +256,6 @@ function isPrivateLanHost(host: string): boolean {
   if (a === 192 && b === 168) return true;
   if (a === 169 && b === 254) return true;
   return false;
-}
-
-// A short label for the pairing session list on the PC. The PC also records
-// the user agent, so this only needs to be a friendly platform hint; keep it
-// dependency-free (no UA-parser) per the project's least-code rule.
-function deriveDeviceName(): string {
-  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-  if (/iPhone/i.test(ua)) return 'iPhone';
-  if (/iPad/i.test(ua)) return 'iPad';
-  if (/Android/i.test(ua)) return 'Android phone';
-  return 'Phone';
 }
 
 function Frame({ children }: { children: React.ReactNode }) {
