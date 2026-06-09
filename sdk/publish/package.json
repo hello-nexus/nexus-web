@@ -1,0 +1,41 @@
+{
+  "name": "@hello-nexus/sdk",
+  "version": "0.1.0",
+  "description": "Author-facing SDK for building sandboxed Nexus apps — @hello-nexus/sdk (mount + hooks) and @hello-nexus/sdk/ui (the blessed component set). The host runtime is provided at load; an app bundle externalizes these to it.",
+  "license": "UNLICENSED",
+  "private": false,
+  "type": "module",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hello-nexus/nexus-web.git",
+    "directory": "sdk"
+  },
+  "homepage": "https://hellonexus.com",
+  "files": ["dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/types/sdk/runtime/sdk.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ui": {
+      "types": "./dist/types/sdk/runtime/ui.d.ts",
+      "import": "./dist/ui.js"
+    }
+  },
+  "sideEffects": ["./dist/ui.js"],
+  "peerDependencies": {
+    "react": "^18.3.0"
+  },
+  "dependencies": {
+    "@quilted/threads": "^4.0.1",
+    "@remote-dom/core": "^1.11.1",
+    "@remote-dom/react": "^1.2.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
