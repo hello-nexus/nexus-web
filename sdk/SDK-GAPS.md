@@ -4,6 +4,19 @@ Compiled from two adversarial reviews of the sandboxed SDK widget system, valida
 the code. Severity: **blocker** = whole widget class impossible / shipped surface that silently
 does nothing; **major** = a capability class is unreachable; **minor** = a sharp edge.
 
+## Control write-path round (2026-06-09)
+Closes part of **B** (control the SDK can't do) — the counterparts to the new ui-color/ui-curve:
+- **`lighting.setColor(hex)`** — drives the solid-fill "simple" shader tinted to the colour's hue
+  (matches the built-in simple<colour> presets). Hue only — exact RGB needs a dedicated colour
+  shader. The ui-color counterpart.
+- **`cooling.setCurve(channelId, sourceId, points[{temp,speed}])`** — applies a graph fan curve via
+  the exact POST /cooling/curves/set flow (CoolingSafety.Sanitize clamps, persists, re-derives the
+  active preset, broadcasts). The ui-curve counterpart.
+- Both are manifest-`dispatch`-gated + rate-limited (20/s). Demo app: `com.hellonexus.appcontrol`.
+- STILL open in B: media transport, system volume, macros/deck, app launch, power; `cooling.applyPreset`
+  + `cooling.setDuty` + `lighting.setMode` already existed. Built + locally verified; **not yet proven on
+  device** (needs the new service binary deployed to Y70).
+
 ## Fixed in the UI-tooling + packaging round (2026-06-08)
 Closes several D/E/F/G/I gaps below (the original lines are left intact for the audit trail):
 - **`ui-color`** — blesses the native `HsvPicker` (SV square + hue strip + hex field), so a
