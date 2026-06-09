@@ -12,6 +12,7 @@ import { ICON_TABLE } from './icons';
 import { ViewHeader } from '../../components/common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../components/common/Tabs/Tabs';
 import { Toggle } from '../../components/common/Toggle/Toggle';
+import { HsvPicker } from '../../components/common/HsvPicker/HsvPicker';
 import { Card } from '../../components/common/Card/Card';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
 import { EmptyState } from '../../components/common/EmptyState/EmptyState';
@@ -112,6 +113,19 @@ export function Segmented(p: HostProps) {
         );
       })}
     </div>
+  );
+}
+
+// The native free-form HSV colour picker (SV square + hue strip + hex field) —
+// the same control lighting uses, rendered identically. `value` is a hex string;
+// the host fires `preview` continuously during a drag and `change` once on commit.
+export function ColorHost(p: HostProps) {
+  return (
+    <HsvPicker
+      value={str(p.value) ?? '#000000'}
+      onPreview={(hex) => p.__events?.preview?.(hex)}
+      onCommit={(hex) => p.__events?.change?.(hex)}
+    />
   );
 }
 

@@ -68,6 +68,31 @@ describe('RemoteTree host renderer', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
+  it('renders the spinner as an SVG loading indicator', () => {
+    const receiver = new RemoteReceiver();
+    render(<RemoteTree receiver={receiver} />);
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('sp1', 'ui-spinner', { size: 24 }), 0],
+      ] as never);
+    });
+    expect(screen.getByRole('img', { name: 'Loading' })).toBeTruthy();
+  });
+
+  it('renders the colour picker and fires change with the committed hex', () => {
+    const receiver = new RemoteReceiver();
+    const onChange = vi.fn();
+    render(<RemoteTree receiver={receiver} />);
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('c1', 'ui-color', { value: '#112233' }, [], { change: onChange }), 0],
+      ] as never);
+    });
+    // The native HSV picker's hex field commits on a valid entry.
+    fireEvent.change(screen.getByLabelText('Hex color'), { target: { value: '#ff8800' } });
+    expect(onChange).toHaveBeenCalledWith('#ff8800');
+  });
+
   it('updates a property in place on a later mutation', () => {
     const receiver = new RemoteReceiver();
     render(<RemoteTree receiver={receiver} />);

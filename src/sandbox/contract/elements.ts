@@ -49,6 +49,8 @@ export const UI_ELEMENTS = {
   'ui-range': { properties: ['lo', 'hi', 'min', 'max', 'gradient', 'glow', 'height', 'radius'] },
   'ui-gauge': { properties: ['value', 'min', 'max', 'tone', 'label', 'sublabel'] },
   'ui-sparkline': { properties: ['values', 'min', 'max', 'tone'] },
+  // An indeterminate loading spinner (host-drawn SVG). For "loading…" states.
+  'ui-spinner': { properties: ['size', 'tone'] },
   // --- interactive (events flow host -> worker) ---
   'ui-slider': {
     properties: ['value', 'min', 'max', 'step', 'tone', 'label', 'disabled'],
@@ -83,6 +85,10 @@ export const UI_ELEMENTS = {
   // the clock's design picker. `options` is [{ key, label?, icon? }]; `value` is
   // the active key; the host fires `change` with the chosen key.
   'ui-segmented': { properties: ['options', 'value', 'disabled'], events: ['change'] },
+  // The native free-form HSV colour picker (SV square + hue strip + hex field) —
+  // the same control lighting uses. `value` is a hex string; the host fires
+  // `preview` continuously during a drag and `change` once on commit.
+  'ui-color': { properties: ['value'], events: ['preview', 'change'] },
   // --- surfaces / display (presentational, reuse native chrome) ---
   // A standard Card surface. Holds children; optional title/subtitle chrome.
   // When `interactive`, the whole card is pressable and fires `press`.

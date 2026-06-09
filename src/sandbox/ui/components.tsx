@@ -381,3 +381,33 @@ export function Badge(p: HostProps) {
     </span>
   );
 }
+
+// An indeterminate loading spinner — a rotating arc over a faint track ring.
+// SMIL-animated so it's self-contained (no global @keyframes to inject). `size`
+// is px (default 20); `tone` tints it (default accent).
+export function Spinner(p: HostProps) {
+  const size = num(p.size) ?? 20;
+  const color = toneVar(str(p.tone), 'var(--accent, #6c8cff)');
+  const sw = Math.max(2, Math.round(size / 10));
+  const r = (size - sw) / 2;
+  const c = size / 2;
+  const circ = 2 * Math.PI * r;
+  return (
+    <svg
+      width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+      role="img" aria-label="Loading" style={{ display: 'block' }}
+    >
+      <circle cx={c} cy={c} r={r} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={sw} />
+      <circle
+        cx={c} cy={c} r={r} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round"
+        strokeDasharray={`${circ * 0.28} ${circ}`}
+      >
+        <animateTransform
+          attributeName="transform" type="rotate"
+          from={`0 ${c} ${c}`} to={`360 ${c} ${c}`}
+          dur="0.8s" repeatCount="indefinite"
+        />
+      </circle>
+    </svg>
+  );
+}

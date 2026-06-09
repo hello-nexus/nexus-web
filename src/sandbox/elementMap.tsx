@@ -9,11 +9,11 @@ import type { HostProps } from './ui/components';
 import {
   Stack, Grid, Frame, Spacer, Divider, Text, Icon,
   Ring, Bar, Range, Gauge, Sparkline, Slider, Button, Stepper,
-  Image, Scroll, Input, Chart, Badge,
+  Image, Scroll, Input, Chart, Badge, Spinner,
 } from './ui/components';
 import {
   WorldClock, ClockFace, ViewHeaderHost,
-  ToggleHost, Segmented, CardHost, EmptyHost, Section,
+  ToggleHost, Segmented, CardHost, EmptyHost, Section, ColorHost,
 } from './ui/richComponents';
 
 export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
@@ -29,6 +29,7 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-range': Range,
   'ui-gauge': Gauge,
   'ui-sparkline': Sparkline,
+  'ui-spinner': Spinner,
   'ui-slider': Slider,
   'ui-button': Button,
   'ui-stepper': Stepper,
@@ -38,6 +39,7 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-chart': Chart,
   'ui-toggle': ToggleHost,
   'ui-segmented': Segmented,
+  'ui-color': ColorHost,
   'ui-card': CardHost,
   'ui-badge': Badge,
   'ui-empty': EmptyHost,
