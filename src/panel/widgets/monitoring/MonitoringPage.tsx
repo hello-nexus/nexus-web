@@ -17,6 +17,7 @@ import { CpuTab } from './page/CpuTab';
 import { MemoryTab } from './page/MemoryTab';
 import { NetworkTab } from './page/NetworkTab';
 import { DetailedTab } from './page/DetailedTab';
+import { GpuSelect } from './page/GpuSelect';
 import styles from './MonitoringPage.module.scss';
 
 type MonitoringTab = 'overview' | 'cpu' | 'memory' | 'network' | 'screentime' | 'detailed';
@@ -80,9 +81,19 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     }
   };
 
+  // The GPU picker is global but only relevant where GPU sensors show, and only
+  // useful when there's a choice to make (iGPU + dGPU).
+  const showGpuSelect = (tab === 'overview' || tab === 'detailed') && sensors.gpuComponents.length > 1;
+
   return (
     <div className={styles.monitoring}>
-      <ViewHeader title={t('nav.monitoring')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} />
+      <ViewHeader
+        title={t('nav.monitoring')}
+        tabs={tabs}
+        activeTab={tab}
+        onTabChange={onTabChange}
+        tabActions={showGpuSelect ? <GpuSelect gpus={sensors.gpuComponents} /> : undefined}
+      />
       <div className={styles.tabContent}>
         {renderTab()}
       </div>

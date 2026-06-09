@@ -54,6 +54,11 @@ export interface UiSettingsValue {
   // choice survives profile switches and is shared via the Dashboard category.
   preferredCpuTempSensorId: string;
   preferredGpuTempSensorId: string;
+  // The "primary" GPU (by model name) shown across the Monitoring widget,
+  // sensors view, and GPU temp display. Empty string === "auto" (the client
+  // defaults to the first discrete GPU). Server-mirrored under
+  // cooling.preferredGpuId, shared via the Dashboard category.
+  preferredGpuId: string;
   // Order of pinnable sidebar apps after the locked Dashboard row. See
   // isPinnableAppKey in app/sidebarAppKeys.ts. Server-mirrored under
   // ui.pinnedSidebarApps.
@@ -89,6 +94,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     fanChannelOrder: [],
     preferredCpuTempSensorId: '',
     preferredGpuTempSensorId: '',
+    preferredGpuId: '',
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
     widgetAdvancedMode: src.general.widgetAdvancedMode,
   };
@@ -129,10 +135,11 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.showWindowsTrayIcon !== undefined) monitoring.showWindowsTrayIcon = patch.showWindowsTrayIcon;
   if (Object.keys(monitoring).length > 0) out.monitoring = monitoring;
   // cooling block
-  const cooling: Partial<{ fanChannelOrder: string[]; preferredCpuTempSensorId: string | null; preferredGpuTempSensorId: string | null }> = {};
+  const cooling: Partial<{ fanChannelOrder: string[]; preferredCpuTempSensorId: string | null; preferredGpuTempSensorId: string | null; preferredGpuId: string | null }> = {};
   if (patch.fanChannelOrder !== undefined) cooling.fanChannelOrder = patch.fanChannelOrder;
   if (patch.preferredCpuTempSensorId !== undefined) cooling.preferredCpuTempSensorId = patch.preferredCpuTempSensorId;
   if (patch.preferredGpuTempSensorId !== undefined) cooling.preferredGpuTempSensorId = patch.preferredGpuTempSensorId;
+  if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
   const ui: Partial<{ disableConflictAlerts: boolean; pinnedSidebarApps: string[] }> = {};
@@ -156,6 +163,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     fanChannelOrder: server.cooling?.fanChannelOrder ?? base.fanChannelOrder,
     preferredCpuTempSensorId: server.cooling?.preferredCpuTempSensorId ?? '',
     preferredGpuTempSensorId: server.cooling?.preferredGpuTempSensorId ?? '',
+    preferredGpuId: server.cooling?.preferredGpuId ?? '',
     pinnedSidebarApps: server.ui?.pinnedSidebarApps !== undefined
       ? sanitizePinnedTail(server.ui.pinnedSidebarApps)
       : base.pinnedSidebarApps,
@@ -316,4 +324,14 @@ export function useTempSensorPrefs(): { cpuId: string; gpuId: string } {
     cpuId: ctx.settings.preferredCpuTempSensorId,
     gpuId: ctx.settings.preferredGpuTempSensorId,
   };
+}
+
+/**
+ * Read-only accessor for the preferred primary-GPU model name ("" = auto).
+ * Returns "" outside a UiSettingsProvider so callers fall back to the
+ * discrete-first default in {@link resolvePrimaryGpu}.
+ */
+export function usePreferredGpuId(): string {
+  const ctx = useContext(UiSettingsContext);
+  return ctx ? ctx.settings.preferredGpuId : '';
 }

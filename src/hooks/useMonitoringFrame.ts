@@ -5,6 +5,9 @@ import type { HardwareSensor, StorageComponent } from './useSensors';
 export interface HardwareComponent {
   id: string;
   name: string;
+  // GPU only: vendor + integrated/discrete classification from the service.
+  vendor?: string;
+  integrated?: boolean;
   sensors: HardwareSensor[];
 }
 

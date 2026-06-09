@@ -1,6 +1,7 @@
 import type { MonitoringFrame } from '../hooks/useMonitoringFrame';
 import type { SeriesEntry } from '../hooks/useProcessMonitor';
 import type { NetworkEntry } from '../hooks/useNetworkMonitor';
+import { resolvePrimaryGpu } from './gpuResolver';
 
 const MAX_SAMPLES = 60;
 const TOP_PROCS = 20;
@@ -56,6 +57,16 @@ const overviewHist = {
   netDown: [] as number[],
   netUp: [] as number[],
 };
+
+// Per-GPU overview history, keyed by GPU model name. Every frame pushes every
+// GPU's load into its own buffer, so the overview can switch instantly to
+// whichever GPU the user picks — the chosen GPU's history already exists rather
+// than having to morph out of a single shared buffer. (overviewHist.gpu still
+// mirrors the discrete-first default for any consumer that isn't selection-aware.)
+const gpuHistByName = new Map<string, number[]>();
+export function getGpuHist(name: string): readonly number[] {
+  return gpuHistByName.get(name) ?? EMPTY_HIST;
+}
 
 // ── Per-sensor history (panel performance widget) ────────────────────────
 //
@@ -183,8 +194,17 @@ export function ingestMonitoring(frame: MonitoringFrame) {
   // Overview sparklines
   const procs = frame.processes;
   const net = frame.network;
-  const gpuSensors = frame.gpu?.[0]?.sensors ?? [];
-  const gpuLoad = gpuSensors.find(s => s.id.includes('load'));
+  // Accumulate every GPU's load into its own per-name buffer so the overview can
+  // switch to any GPU instantly. `includes('load')` matches OverviewTab's own
+  // current-value lookup, so the sparkline and the % stay consistent.
+  const gpus = frame.gpu ?? [];
+  for (const g of gpus) {
+    const load = g.sensors.find(s => s.id.includes('load'))?.value ?? 0;
+    let buf = gpuHistByName.get(g.name);
+    if (!buf) { buf = []; gpuHistByName.set(g.name, buf); }
+    push60(buf, load);
+  }
+  const gpuLoad = resolvePrimaryGpu(gpus, '')?.sensors.find(s => s.id.includes('load'));
   // totalUsedMb = total system memory used (kernel + cached + every process,
   // not just the streamed top-25). Source is the `Memory Used` sensor (GB)
   // from this frame. Fall back to summing the per-process snapshot only when

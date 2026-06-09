@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import { useTopic } from './useMultiplexSocket';
+import { resolvePrimaryGpu, type GpuComponent } from '../lib/gpuResolver';
+import { usePreferredGpuId } from './useUiSettings';
 
 export interface HardwareSensor {
   id: string;
@@ -33,12 +35,20 @@ export interface StorageComponent {
 interface HardwareComponent {
   id: string;
   name: string;
+  // GPU only: vendor + integrated/discrete classification from the service.
+  vendor?: string;
+  integrated?: boolean;
   sensors: HardwareSensor[];
 }
 
 export interface SensorState {
   cpu: HardwareSensor[];
+  /** Sensors of the resolved primary GPU (see `gpuComponents` for all GPUs). */
   gpu: HardwareSensor[];
+  /** Model name of the resolved primary GPU (follows the picker; "" if none). */
+  gpuModel: string;
+  /** Every GPU the service reports, classified — drives the GPU picker. */
+  gpuComponents: GpuComponent[];
   memory: HardwareSensor[];
   storage: StorageInfo[];
   storageComponents: Record<string, StorageComponent>;
@@ -51,7 +61,7 @@ export interface SensorState {
 }
 
 const EMPTY: SensorState = {
-  cpu: [], gpu: [], memory: [], storage: [], storageComponents: {},
+  cpu: [], gpu: [], gpuModel: '', gpuComponents: [], memory: [], storage: [], storageComponents: {},
   storageSensors: [], motherboard: [],
   motherboardModel: '', cpuModel: '', gpuModels: [], memoryTotal: '',
 };
@@ -62,6 +72,7 @@ const EMPTY: SensorState = {
  * cadence via MonitoringBroadcaster.
  */
 export function useSensors(enabled: boolean): SensorState {
+  const preferredGpuId = usePreferredGpuId();
   const cpuComponent = useTopic<HardwareComponent>('cpu', enabled);
   const gpuComponents = useTopic<HardwareComponent[]>('gpu', enabled);
   const memComponent = useTopic<HardwareComponent>('memory', enabled);
@@ -71,9 +82,13 @@ export function useSensors(enabled: boolean): SensorState {
   return useMemo<SensorState>(() => {
     if (!enabled) return EMPTY;
 
+    const gpus = gpuComponents ?? [];
+    const primaryGpu = resolvePrimaryGpu(gpus, preferredGpuId);
     return {
       cpu: cpuComponent?.sensors ?? [],
-      gpu: gpuComponents?.[0]?.sensors ?? [],
+      gpu: primaryGpu?.sensors ?? [],
+      gpuModel: primaryGpu?.name ?? '',
+      gpuComponents: gpus,
       memory: memComponent?.sensors ?? [],
       storage: [],
       storageComponents: storageData ?? {},
@@ -81,8 +96,8 @@ export function useSensors(enabled: boolean): SensorState {
       motherboard: moboComponent?.sensors ?? [],
       motherboardModel: moboComponent?.name ?? '',
       cpuModel: cpuComponent?.name ?? '',
-      gpuModels: gpuComponents?.map(g => g.name) ?? [],
+      gpuModels: gpus.map(g => g.name),
       memoryTotal: '',
     };
-  }, [enabled, cpuComponent, gpuComponents, memComponent, storageData, moboComponent]);
+  }, [enabled, preferredGpuId, cpuComponent, gpuComponents, memComponent, storageData, moboComponent]);
 }
