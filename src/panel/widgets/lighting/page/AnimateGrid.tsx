@@ -4,7 +4,7 @@ import { effectThumbnailPath } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import {
   EFFECTS, EFFECT_CATEGORIES, categoryOf,
-  type EffectCategory,
+  type EffectCategory, type EffectDef,
 } from '../../../../types/lighting';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
 import styles from '../LightingPage.module.scss';
@@ -18,9 +18,12 @@ const FILTERS: Filter[] = ['all', ...EFFECT_CATEGORIES];
  * parent's right-pane Effect tab when the Devices tab is showing. A
  * category chip row above the grid filters to one effect family.
  */
-export function AnimateGrid({ effect, onSelect }: {
+export function AnimateGrid({ effect, onSelect, effects = EFFECTS }: {
   effect: string;
   onSelect: (key: string) => void;
+  /** Effect pool to show. Defaults to the full RGB set; panel backgrounds pass
+   *  PANEL_BACKGROUND_EFFECTS (no audio-reactive effects). */
+  effects?: EffectDef[];
 }) {
   const { t } = useTranslation();
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -50,7 +53,7 @@ export function AnimateGrid({ effect, onSelect }: {
     let cancelled = false;
     const urls: string[] = [];
     (async () => {
-      for (const fx of EFFECTS) {
+      for (const fx of effects) {
         const blob = await fetchServiceBlob(effectThumbnailPath(fx.key));
         if (cancelled) return;
         if (blob) {
@@ -64,11 +67,11 @@ export function AnimateGrid({ effect, onSelect }: {
       cancelled = true;
       urls.forEach(u => URL.revokeObjectURL(u));
     };
-  }, []);
+  }, [effects]);
 
   const visible = useMemo(
-    () => filter === 'all' ? EFFECTS : EFFECTS.filter(fx => categoryOf(fx.key) === filter),
-    [filter],
+    () => filter === 'all' ? effects : effects.filter(fx => categoryOf(fx.key) === filter),
+    [filter, effects],
   );
 
   return (

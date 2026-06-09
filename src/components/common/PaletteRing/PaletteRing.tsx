@@ -335,7 +335,7 @@ export function PaletteRing({
   };
 
   return (
-    <div className={styles.wrap} style={{ width: SIZE, height: SIZE }}>
+    <div className={styles.wrap} style={{ width: SIZE, height: SIZE }} data-panel-no-sheet-swipe="true">
       <svg
         ref={svgRef}
         className={styles.overlay}

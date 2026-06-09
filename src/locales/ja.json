@@ -404,6 +404,7 @@
   "lighting.devices.selectModeHint": "ライティングモードを選択して、デバイスの検出またはスキャンを開始します。",
   "lighting.devices.zoneFixed": "12V RGB (固定)",
   "lighting.devices.zoneFixedTooltip": "12V RGBヘッダーです。単色のみで、アドレッサブルではないためLED数は設定できません。",
+  "lighting.editor.options": "オプション",
   "lighting.filter.bw": "モノクロ",
   "lighting.filter.highsat": "高彩度",
   "lighting.filter.mirrorx": "ミラーX",

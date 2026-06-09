@@ -1,25 +1,23 @@
 import { memo, useEffect, useRef, useState } from 'react';
+import { Monitor } from 'lucide-react';
 import {
   fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect, reselectScreen,
   type ScreenMonitor, type PostProcessSettings,
 } from '../../../../api/lighting';
 import {
   deleteMedia,
-  fetchMediaCurrent,
-  fetchMediaLibrary,
   importMedia,
   openMediaFolder,
-  playMedia,
-  type MediaItem,
 } from '../../../../api/mediaLibrary';
-import { fetchServiceBlob } from '../../../../api/service';
 import { useTranslation } from '../../../../lib/i18n';
 import type { LightingMode } from '../../../../types/lighting';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
-import { Select } from '../../../../components/common/Select/Select';
+import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
 import { SCREEN_FILTERS, matchScreenFilter, screenFilterByKey, type ScreenFilterKey } from './screenFilters';
+import { useMediaLibrary } from '../effecteditor/useMediaLibrary';
+import { MediaGrid } from '../effecteditor/MediaGrid';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -42,7 +40,7 @@ export const ModeControls = memo(function ModeControls({ mode, screenPP, onScree
   }
 });
 
-function ScreenControls({ screenPP, onScreenPPChange }: {
+export function ScreenControls({ screenPP, onScreenPPChange }: {
   screenPP: PostProcessSettings;
   onScreenPPChange: (pp: PostProcessSettings) => void;
 }) {
@@ -128,20 +126,35 @@ function ScreenControls({ screenPP, onScreenPPChange }: {
           >
             {t('lighting.controls.changeScreen')}
           </button>
+        ) : monitors.length === 0 ? (
+          <span className={styles.compactLabel}>{t('lighting.controls.noMonitors')}</span>
         ) : (
-          <Select
-            className={styles.monitorSelect}
-            value={selectedMonitor}
-            onChange={handleMonitorChange}
-            ariaLabel={t('lighting.controls.monitor')}
-            disabled={monitors.length === 0}
-          >
-            {monitors.length === 0
-              ? <option value="">{t('lighting.controls.noMonitors')}</option>
-              : monitors.map(m => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-          </Select>
+          // Large touch targets instead of a native <select> — the dropdown
+          // doesn't open reliably on the Y70 kiosk WebView. The service names
+          // monitors "Display N (WxH)"; split into a title + resolution line.
+          <div className={styles.monitorGrid}>
+            {monitors.map(m => {
+              const parsed = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(m.name);
+              const title = parsed ? parsed[1] : m.name;
+              const res = parsed ? parsed[2] : undefined;
+              return (
+                <IconLabelButton
+                  key={m.id}
+                  className={styles.monitorButton}
+                  active={m.id === selectedMonitor}
+                  onPress={() => { void handleMonitorChange(m.id); }}
+                  ariaLabel={m.name}
+                  icon={<Monitor aria-hidden="true" />}
+                  label={(
+                    <span className={styles.monitorButtonText}>
+                      <span className={styles.monitorButtonTitle}>{title}</span>
+                      {res && <span className={styles.monitorButtonRes}>{res}</span>}
+                    </span>
+                  )}
+                />
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
@@ -150,83 +163,12 @@ function ScreenControls({ screenPP, onScreenPPChange }: {
 
 function MediaControls() {
   const { t } = useTranslation();
-  const [items, setItems] = useState<MediaItem[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const { items, activeId, thumbs, refresh, play, removeLocal } = useMediaLibrary();
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
-  const [thumbs, setThumbs] = useState<Record<string, string>>({});
-  const thumbsRef = useRef<Record<string, string>>({});
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const refresh = async () => {
-    const [lib, cur] = await Promise.all([
-      fetchMediaLibrary(),
-      fetchMediaCurrent(),
-    ]);
-    if (lib?.items) setItems(lib.items);
-    if (cur?.mediaId) setActiveId(cur.mediaId);
-  };
-
-  // Initial load: pull library + currently playing media on mount.
-  // refresh()'s setState runs after its Promise resolves.
-   
-  useEffect(() => { refresh(); }, []);
-
-  useEffect(() => {
-    thumbsRef.current = thumbs;
-  }, [thumbs]);
-
-  useEffect(() => () => {
-    for (const url of Object.values(thumbsRef.current)) {
-      URL.revokeObjectURL(url);
-    }
-    thumbsRef.current = {};
-  }, []);
-
-  useEffect(() => {
-    const itemIds = new Set(items.map(item => item.id));
-    setThumbs(prev => {
-      let changed = false;
-      const next = { ...prev };
-      for (const [id, url] of Object.entries(prev)) {
-        if (!itemIds.has(id)) {
-          URL.revokeObjectURL(url);
-          delete next[id];
-          changed = true;
-        }
-      }
-      if (changed) thumbsRef.current = next;
-      return changed ? next : prev;
-    });
-  }, [items]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      for (const item of items) {
-        if (thumbsRef.current[item.id]) continue;
-        const blob = await fetchServiceBlob(`/media/${encodeURIComponent(item.id)}/thumbnail`);
-        if (cancelled) return;
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          setThumbs(prev => {
-            if (prev[item.id]) {
-              URL.revokeObjectURL(url);
-              return prev;
-            }
-            const next = { ...prev, [item.id]: url };
-            thumbsRef.current = next;
-            return next;
-          });
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [items]);
-
   const [importingName, setImportingName] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -242,10 +184,8 @@ function MediaControls() {
     } else if (result.error || !result.item) {
       setImportError(result.msg || t('lighting.controls.importFailed'));
     } else {
-      const newId = result.item.id;
       await refresh();
-      const ok = await playMedia(newId);
-      if (ok) setActiveId(newId);
+      await play(result.item.id);
     }
     e.target.value = '';
   };
@@ -254,32 +194,13 @@ function MediaControls() {
     await openMediaFolder();
   };
 
-  const handlePlay = async (id: string) => {
-    if (id === activeId) return;
-    const ok = await playMedia(id);
-    if (ok) setActiveId(id);
-  };
-
-  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
-
   const handleDelete = async (id: string) => {
     const deleted = await deleteMedia(id);
     if (!deleted) {
       await refresh();
       return;
     }
-    setItems(prev => prev.filter(item => item.id !== id));
-    setThumbs(prev => {
-      const url = prev[id];
-      if (url) URL.revokeObjectURL(url);
-      const next = { ...prev };
-      delete next[id];
-      thumbsRef.current = next;
-      return next;
-    });
-    if (activeId === id) {
-      setActiveId(null);
-    }
+    removeLocal(id);
     await refresh();
   };
 
@@ -329,8 +250,14 @@ function MediaControls() {
         onCancel={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
       />
-      <div className={styles.mediaGrid}>
-        {importingName && (
+      <MediaGrid
+        items={items}
+        activeId={activeId}
+        thumbs={thumbs}
+        onPlay={play}
+        onDelete={requestDelete}
+        deleteAriaLabel={t('lighting.controls.mediaDelete')}
+        prepend={importingName ? (
           <EffectCard
             asDiv
             label={importingName.replace(/\.[^.]+$/, '')}
@@ -341,28 +268,8 @@ function MediaControls() {
             thumbOverlay={<span className={styles.mediaSpinner} role="status" aria-label={t('lighting.controls.importing')} />}
             ariaLabel={importingName}
           />
-        )}
-        {items.map(item => {
-          const label = item.name.replace(/\.[^.]+$/, '');
-          const meta = item.type === 'animated'
-            ? `${(item.frames / Math.max(item.fps, 1)).toFixed(1)}s`
-            : t('lighting.controls.mediaStatic');
-          return (
-            <EffectCard
-              key={item.id}
-              asDiv
-              label={label}
-              thumbUrl={thumbs[item.id] ?? null}
-              active={item.id === activeId}
-              onClick={() => handlePlay(item.id)}
-              meta={meta}
-              onDelete={() => requestDelete(item.id, label)}
-              deleteAriaLabel={t('lighting.controls.mediaDelete')}
-              ariaLabel={label}
-            />
-          );
-        })}
-      </div>
+        ) : undefined}
+      />
     </div>
   );
 }

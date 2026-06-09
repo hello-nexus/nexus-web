@@ -2,6 +2,7 @@ import { getToken, handleUnauthorized } from './auth';
 import { deleteService, fetchService, isRelayActive, isRemoteOrigin, postService, relayRequestWithStatus, resolveHttp } from './service';
 import { deriveDeviceLabel } from '../lib/platform';
 import type { PanelLayout, PanelSurface } from '../panel/types';
+import type { EffectState } from '../types/lighting';
 
 export interface PanelStatus {
   msg: string;
@@ -35,6 +36,10 @@ export interface PanelDeviceRecord {
   backgroundEffect?: string;
   backgroundTemplate?: number;
   backgroundOpacity?: number;
+  // Per-panel custom effect state (radial color + slider tweaks) layered on the
+  // selected background template. Saved on the device record, same as the other
+  // background fields.
+  backgroundEffectState?: EffectState;
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetBlur?: boolean;
@@ -56,6 +61,7 @@ export interface PanelDevicePatch {
   backgroundEffect?: string | null;
   backgroundTemplate?: number;
   backgroundOpacity?: number;
+  backgroundEffectState?: EffectState;
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetBlur?: boolean;

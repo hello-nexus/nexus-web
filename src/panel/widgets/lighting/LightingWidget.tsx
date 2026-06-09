@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Film, Lightbulb, Monitor, Sparkles } from 'lucide-react';
 import { PanelArrowButton } from '../../PanelArrowButton';
 import type { LucideIcon } from 'lucide-react';
@@ -11,6 +11,7 @@ import {
   setScreenEffect,
   startAnimate,
   startScreenMirror,
+  stopLighting,
 } from '../../../api/lighting';
 import {
   fetchMediaCurrent,
@@ -21,6 +22,7 @@ import {
 import { fetchServiceBlob } from '../../../api/service';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync } from '../../../lib/controlSync';
+import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useTranslation } from '../../../lib/i18n';
 import {
   DEFAULT_SCREEN_FILTER,
@@ -31,6 +33,7 @@ import {
 } from './page/screenFilters';
 import {
   EFFECTS,
+  MODES,
   defaultStateFor,
   type EffectState,
   type EffectTemplateBundle,
@@ -39,6 +42,7 @@ import {
 import { buildAllDefaultTemplates, mergeTemplates } from '../../../types/lightingTemplates';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
+import { LightingLivePreview } from './LightingLivePreview';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
@@ -50,7 +54,7 @@ const WIDGET_BUTTONS: { key: WidgetMode; icon: LucideIcon; labelKey: string }[] 
   { key: 'screen',  icon: Monitor,  labelKey: 'lighting.mode.screen'  },
 ];
 
-export function LightingWidget({ widget }: WidgetProps) {
+export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?: boolean }) {
   const { t } = useTranslation();
   const { settings: ui } = useUiSettings();
   const simpleMode = !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
@@ -244,8 +248,23 @@ export function LightingWidget({ widget }: WidgetProps) {
     publishLighting('gif', 'gif');
   }, [publishLighting]);
 
+  const onOffButton = useCallback(async () => {
+    setMode('none');
+    setMusicReactive(false).catch(() => { /* best-effort */ });
+    await stopLighting();
+    publishLighting('none', 'none');
+  }, [publishLighting]);
+
   const handleButton = (k: WidgetMode) => {
     if (k === 'animate') onAnimateButton();
+    else if (k === 'gif') onMediaButton();
+    else if (k === 'screen') onMirrorButton();
+  };
+
+  // Immersive mode-button dispatch — covers every mode incl. Off.
+  const handleMode = (k: LightingMode) => {
+    if (k === 'none') onOffButton();
+    else if (k === 'animate') onAnimateButton();
     else if (k === 'gif') onMediaButton();
     else if (k === 'screen') onMirrorButton();
   };
@@ -300,6 +319,34 @@ export function LightingWidget({ widget }: WidgetProps) {
     : mode === 'screen' ? 'screen'
     : null;
 
+  // Immersive (fullscreen panel) variant: a row of square mode buttons
+  // on top (off / animate / media / mirror), preview below. Shown for
+  // every mode and regardless of the simple/advanced widget setting.
+  if (immersive) {
+    return (
+      <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-immersive="true">
+        <div className={styles.immersiveModeGrid}>
+          {MODES.map(m => {
+            const Icon = LIGHTING_MODE_ICONS[m.key];
+            return (
+              <button
+                key={m.key}
+                type="button"
+                className={styles.immersiveModeButton}
+                data-active={mode === m.key ? 'true' : 'false'}
+                onClick={() => handleMode(m.key)}
+                aria-label={t(m.labelKey)}
+              >
+                <Icon aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
+        <SingleItemView view={view} t={t} showArrows={false} overlay={<LightingLivePreview />} />
+      </div>
+    );
+  }
+
   // Simple mode: same UX at every size — center icon/label + arrows,
   // no mode-buttons row. Arrows cycle animations regardless of mode
   // (wired via the `view` builder's simpleMode-aware onPrev/onNext).
@@ -346,7 +393,7 @@ type SingleView =
   | { kind: 'icon';  icon: LucideIcon;       label: string; onPrev?: () => void; onNext?: () => void }
   | { kind: 'message'; message: string;      label: string; onPrev?: () => void; onNext?: () => void };
 
-function SingleItemView({ view, t, showArrows }: { view: SingleView; t: (key: string) => string; showArrows: boolean }) {
+function SingleItemView({ view, t, showArrows, overlay }: { view: SingleView; t: (key: string) => string; showArrows: boolean; overlay?: ReactNode }) {
   const arrowsRendered = showArrows && !!view.onPrev && !!view.onNext;
   if (view.kind === 'message') {
     return (
@@ -357,6 +404,7 @@ function SingleItemView({ view, t, showArrows }: { view: SingleView; t: (key: st
             <span className={styles.thumbCaption}>{view.label}</span>
           </span>
         </span>
+        {overlay}
         {arrowsRendered && (
           <>
             <PanelArrowButton
@@ -396,6 +444,7 @@ function SingleItemView({ view, t, showArrows }: { view: SingleView; t: (key: st
             : <span className={styles.thumbSkeleton} />
         )}
       </span>
+      {overlay}
       {arrowsRendered && (
         <>
           <PanelArrowButton

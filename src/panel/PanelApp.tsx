@@ -1320,6 +1320,7 @@ export function PanelContent({
             effect={effectiveTheme.backgroundEffect}
             template={effectiveTheme.backgroundTemplate}
             opacity={effectiveTheme.backgroundOpacity}
+            effectState={effectiveTheme.backgroundEffectState}
           />
         )}
         {!loaded ? (
@@ -1570,6 +1571,8 @@ export function PanelContent({
           onThemeBackgroundModeCommit={panelTheme.commitBackgroundMode}
           onThemeBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
           onThemeBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
+          onThemeBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
+          onThemeBackgroundEffectStateCommit={panelTheme.commitBackgroundEffectState}
           onThemeBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
           onThemeBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
           onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}

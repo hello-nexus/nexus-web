@@ -404,6 +404,7 @@
   "lighting.devices.selectModeHint": "Sélectionnez un mode d'éclairage pour découvrir ou rechercher des appareils.",
   "lighting.devices.zoneFixed": "12V RGB (fixe)",
   "lighting.devices.zoneFixedTooltip": "Connecteur 12V RGB : une seule couleur, non adressable, le nombre de LEDs n'est pas reglable.",
+  "lighting.editor.options": "Options",
   "lighting.filter.bw": "N&B",
   "lighting.filter.highsat": "Haute saturation",
   "lighting.filter.mirrorx": "Miroir X",

@@ -404,6 +404,7 @@
   "lighting.devices.selectModeHint": "Wybierz tryb podswietlenia, aby rozpoczac wykrywanie urzadzen.",
   "lighting.devices.zoneFixed": "12V RGB (staly)",
   "lighting.devices.zoneFixedTooltip": "To jest zlacze 12V RGB - jednokolorowe, nieadresowalne, liczby LEDow nie da sie ustawic.",
+  "lighting.editor.options": "Opcje",
   "lighting.filter.bw": "Cz/B",
   "lighting.filter.highsat": "Wysokie nasycenie",
   "lighting.filter.mirrorx": "Lustro X",

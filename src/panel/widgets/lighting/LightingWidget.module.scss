@@ -44,6 +44,20 @@
   }
 }
 
+// Live lighting-output canvas overlaid on the preview when the output stream is
+// available (non-relay). The LED canvas is low-res, so smooth upscale matches
+// the thumbnail beneath it.
+.livePreview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  z-index: 1;
+  image-rendering: auto;
+}
+
 // Selected-style label drawn over the lower third of the preview. Sized to
 // match the cooling widget's Silent/Balanced label (700 16px), stroked +
 // shadowed so it stays legible over any effect frame.
@@ -159,6 +173,52 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+// Immersive variant: a centered row of square icon-only mode buttons
+// (off / animate / media / mirror) above the preview. Capped width keeps
+// the squares from ballooning on a wide panel; they shrink to fit narrow
+// cells. The preview below loses the top edge to this row, so it bleeds
+// only to the sides + bottom.
+.immersiveModeGrid {
+  flex-shrink: 0;
+  align-self: center;
+  width: min(100%, 360px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.immersiveModeButton {
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: var(--panel-element-bg);
+  color: var(--panel-text-muted);
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  @include widget-button-hover;
+
+  svg {
+    width: 46%;
+    height: 46%;
+  }
+
+  &[data-active='true'] {
+    border-color: var(--panel-accent);
+    background: var(--panel-accent-soft);
+    color: var(--panel-accent-glow);
+  }
+}
+
+.lighting[data-immersive='true'] .thumbBox {
+  margin: 0 -12px -12px;
 }
 
 // 4x4 immersive: roomier arrows.

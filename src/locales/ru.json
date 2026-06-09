@@ -404,6 +404,7 @@
   "lighting.devices.selectModeHint": "Выберите режим подсветки, чтобы начать обнаружение устройств.",
   "lighting.devices.zoneFixed": "12V RGB (фикс.)",
   "lighting.devices.zoneFixedTooltip": "Это 12V RGB разъем - только одна цвет, не адресуемый, количество светодиодов задать нельзя.",
+  "lighting.editor.options": "Параметры",
   "lighting.filter.bw": "Ч/Б",
   "lighting.filter.highsat": "Высокая насыщенность",
   "lighting.filter.mirrorx": "Зеркало X",

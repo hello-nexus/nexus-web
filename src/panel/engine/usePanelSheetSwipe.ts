@@ -171,7 +171,10 @@ export function usePanelSheetSwipe({
 }
 
 function isSheetSwipeControlTarget(start: Element | null, until: HTMLElement): boolean {
-  let node = start instanceof HTMLElement ? start : null;
+  // Element (not HTMLElement) so SVG drag controls — the PaletteRing wheel is
+  // all <svg> — are walked too; otherwise an SVG target bails immediately and
+  // a drag on it falls through to the sheet-dismiss gesture.
+  let node: Element | null = start instanceof Element ? start : null;
   while (node && node !== until) {
     if (node.matches('input[type="range"], [role="slider"], [data-panel-horizontal-control="true"], [data-panel-no-sheet-swipe="true"]')) {
       return true;

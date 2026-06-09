@@ -404,6 +404,7 @@
   "lighting.devices.selectModeHint": "Select a lighting mode to start discovering or scanning devices.",
   "lighting.devices.zoneFixed": "12V RGB (fixed)",
   "lighting.devices.zoneFixedTooltip": "This is a 12V RGB header - single colour only, not addressable, so the LED count can't be set.",
+  "lighting.editor.options": "Options",
   "lighting.filter.bw": "B&W",
   "lighting.filter.highsat": "High Saturation",
   "lighting.filter.mirrorx": "Mirror X",

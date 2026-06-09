@@ -404,6 +404,7 @@
   "lighting.devices.selectModeHint": "Wähle einen Beleuchtungsmodus, um Geräte zu entdecken oder zu suchen.",
   "lighting.devices.zoneFixed": "12V RGB (fest)",
   "lighting.devices.zoneFixedTooltip": "Dies ist ein 12V-RGB-Anschluss - nur eine Farbe, nicht adressierbar; LED-Anzahl nicht einstellbar.",
+  "lighting.editor.options": "Optionen",
   "lighting.filter.bw": "S&W",
   "lighting.filter.highsat": "Hohe Sättigung",
   "lighting.filter.mirrorx": "Spiegel X",

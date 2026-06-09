@@ -16,6 +16,7 @@ import {
   defaultPanelWidgetLabels,
   defaultPanelWidgetOpacity,
   normalizePanelBackgroundEffect,
+  normalizePanelBackgroundEffectState,
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
   normalizePanelBackgroundTemplate,
@@ -23,8 +24,10 @@ import {
   normalizePanelWidgetLabels,
   normalizePanelWidgetOpacity,
   panelBackgroundPair,
+  panelBackgroundState,
   type PanelBackgroundMode,
 } from './panelBackground';
+import type { EffectState } from '../types/lighting';
 import type { PanelThemeSettingsState, ResolvedPanelThemeMode } from './editor/PanelThemeSettings';
 
 export type PanelThemeState = PanelThemeSettingsState;
@@ -159,6 +162,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     backgroundEffect: DEFAULT_PANEL_BACKGROUND_EFFECT,
     backgroundTemplate: DEFAULT_PANEL_BACKGROUND_TEMPLATE,
     backgroundOpacity: DEFAULT_PANEL_BACKGROUND_OPACITY,
+    backgroundEffectState: panelBackgroundState(DEFAULT_PANEL_BACKGROUND_EFFECT, DEFAULT_PANEL_BACKGROUND_TEMPLATE),
     widgetOpacity: defaultPanelWidgetOpacity(),
     widgetLabels: defaultPanelWidgetLabels(),
     widgetBlur: defaultPanelWidgetBlur(),
@@ -194,6 +198,13 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         backgroundEffect: normalizePanelBackgroundEffect(r?.backgroundEffect),
         backgroundTemplate: normalizePanelBackgroundTemplate(r?.backgroundTemplate),
         backgroundOpacity: normalizePanelBackgroundOpacity(r?.backgroundOpacity),
+        backgroundEffectState: normalizePanelBackgroundEffectState(
+          r?.backgroundEffectState,
+          panelBackgroundState(
+            normalizePanelBackgroundEffect(r?.backgroundEffect),
+            normalizePanelBackgroundTemplate(r?.backgroundTemplate),
+          ),
+        ),
         widgetOpacity: normalizePanelWidgetOpacity(r?.widgetOpacity),
         widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
         widgetBlur: normalizePanelWidgetBlur(r?.widgetBlur),
@@ -270,16 +281,26 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     persistPatch({ backgroundMode: mode });
   }, [persistPatch]);
 
+  // Changing the effect or template reseeds the custom state to that
+  // effect/template's default — the override is always a concrete state and
+  // never leaks across effects.
   const commitBackgroundEffect = useCallback((effect: string) => {
     const nextEffect = normalizePanelBackgroundEffect(effect);
-    setTheme(prev => ({ ...prev, backgroundEffect: nextEffect }));
-    persistPatch({ backgroundEffect: nextEffect });
+    const nextState = panelBackgroundState(nextEffect, themeRef.current.backgroundTemplate);
+    setTheme(prev => ({ ...prev, backgroundEffect: nextEffect, backgroundEffectState: nextState }));
+    persistPatch({ backgroundEffect: nextEffect, backgroundEffectState: nextState });
   }, [persistPatch]);
 
   const commitBackgroundTemplate = useCallback((template: number) => {
     const nextTemplate = normalizePanelBackgroundTemplate(template);
-    setTheme(prev => ({ ...prev, backgroundTemplate: nextTemplate }));
-    persistPatch({ backgroundTemplate: nextTemplate });
+    const nextState = panelBackgroundState(themeRef.current.backgroundEffect, nextTemplate);
+    setTheme(prev => ({ ...prev, backgroundTemplate: nextTemplate, backgroundEffectState: nextState }));
+    persistPatch({ backgroundTemplate: nextTemplate, backgroundEffectState: nextState });
+  }, [persistPatch]);
+
+  const commitBackgroundEffectState = useCallback((state: EffectState) => {
+    setTheme(prev => ({ ...prev, backgroundEffectState: state }));
+    persistPatch({ backgroundEffectState: state });
   }, [persistPatch]);
 
   const commitBackgroundOpacity = useCallback((opacity: number) => {
@@ -322,6 +343,8 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     commitBackgroundMode,
     commitBackgroundEffect,
     commitBackgroundTemplate,
+    previewBackgroundEffectState: (state: EffectState) => setTheme(prev => ({ ...prev, backgroundEffectState: state })),
+    commitBackgroundEffectState,
     previewBackgroundOpacity: (opacity: number) => setTheme(prev => (
       { ...prev, backgroundOpacity: normalizePanelBackgroundOpacity(opacity) }
     )),

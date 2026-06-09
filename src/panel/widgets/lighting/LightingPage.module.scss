@@ -641,24 +641,44 @@
 
 .monitorPicker {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.5rem;
 }
 
-.monitorSelect {
-  flex: 1;
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  color: var(--text);
-  font-size: var(--type-small);
-  font-family: inherit;
-  min-width: 0;
-  cursor: pointer;
+// Large touch-target monitor tiles (replaces the native <select>, which the
+// Y70 kiosk WebView won't reliably open). Each is a square-ish IconLabelButton
+// showing a monitor glyph, "Display N", and the resolution.
+.monitorGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: 8px;
+}
 
-  &:focus { outline: none; border-color: var(--accent); }
-  option { background: var(--bg-card); color: var(--text); }
+.monitorButton {
+  --icon-label-button-height: 78px;
+  --icon-label-icon-size: 24px;
+  width: 100%;
+  gap: 5px;
+}
+
+.monitorButtonText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.monitorButtonTitle {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.monitorButtonRes {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.72;
 }
 
 .offMessage {

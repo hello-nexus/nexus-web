@@ -36,32 +36,25 @@
   flex-direction: row;
 }
 
-.layout[data-center='true'] {
-  align-items: center;
+// All-fixed pages (fillLast=false, e.g. monitoring's equal 4x4 tiles): no cell
+// grows, so center the group when it doesn't fill the page.
+.layout[data-fixed='true'] {
   justify-content: center;
 }
 
 .cell {
-  flex: 1 1 0;
+  // Fixed (non-last) cells: pinned to one 4x4 block. flex-basis is set
+  // inline per orientation; no grow, no shrink. align-items:stretch on the
+  // container fills the cross axis.
+  flex: 0 0 auto;
   min-width: 0;
   min-height: 0;
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
   // Cells render edge to edge; card chrome is the widget content's own.
 }
 
-// When centred (one cell on a multi-cell page), don't expand the cell
-// to full height/width - keep it the same size as it would have if
-// stacked.
-.layout[data-center='true'] .cell {
-  flex: 0 1 auto;
-  height: 50%;
-  width: 100%;
-}
-
-.layout[data-orientation='landscape'][data-center='true'] .cell {
-  height: 100%;
-  width: 50%;
+// The last cell on the page grows to fill the leftover length.
+.cell[data-fill='true'] {
+  flex: 1 1 0;
 }

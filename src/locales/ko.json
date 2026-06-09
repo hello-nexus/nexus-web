@@ -404,6 +404,7 @@
   "lighting.devices.selectModeHint": "조명 모드를 선택하여 장치 검색 또는 스캔을 시작하세요.",
   "lighting.devices.zoneFixed": "12V RGB (고정)",
   "lighting.devices.zoneFixedTooltip": "12V RGB 헤더입니다. 단색만 지원하며 주소 지정이 불가능해 LED 수를 설정할 수 없습니다.",
+  "lighting.editor.options": "옵션",
   "lighting.filter.bw": "흑백",
   "lighting.filter.highsat": "고채도",
   "lighting.filter.mirrorx": "미러 X",

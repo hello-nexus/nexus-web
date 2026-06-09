@@ -138,3 +138,17 @@
   color: var(--accent-glow);
   font-weight: var(--weight-heading);
 }
+
+// ── Full-width ───────────────────────────────────────────────────────────
+// Stretch the bar across its container; every segment/tab shares the width
+// equally and centers its label. Works for both variants.
+.fullWidth {
+  display: flex;
+  width: 100%;
+}
+
+.fullWidth .pillTab,
+.fullWidth .tab {
+  flex: 1 1 0;
+  text-align: center;
+}
