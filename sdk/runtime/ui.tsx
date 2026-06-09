@@ -92,6 +92,8 @@ export interface ButtonProps extends WithChildren {
   label?: string; tone?: UiTone; variant?: 'solid' | 'soft' | 'ghost';
   disabled?: boolean; icon?: string; size?: 'sm' | 'md' | 'lg';
   onPress?: () => void;
+  /** Fires on a press held past the long-press threshold (touch + mouse). */
+  onLongPress?: () => void;
 }
 export interface StepperProps {
   value: number; min?: number; max?: number; step?: number;
@@ -152,6 +154,15 @@ export interface ColorProps {
 }
 export interface CardProps extends WithChildren {
   title?: string; subtitle?: string; interactive?: boolean; onPress?: () => void;
+  /** Fires on a press held past the long-press threshold (interactive cards). */
+  onLongPress?: () => void;
+}
+export interface CurvePoint { x: number; y: number }
+export interface CurveProps {
+  points: CurvePoint[];
+  xmin?: number; xmax?: number; ymin?: number; ymax?: number; tone?: UiTone;
+  /** Fires with the full point array on each edit (drag / add / remove). */
+  onChange?: (points: CurvePoint[]) => void;
 }
 export interface BadgeProps { label: string; tone?: UiTone; icon?: string }
 export interface EmptyProps { title: string; hint?: string; icon?: string; compact?: boolean }
@@ -172,7 +183,7 @@ export const Gauge = createRemoteComponent('ui-gauge' as any, ELEMENT_CTORS['ui-
 export const Sparkline = createRemoteComponent('ui-sparkline' as any, ELEMENT_CTORS['ui-sparkline']) as unknown as React.FC<SparklineProps>;
 export const Spinner = createRemoteComponent('ui-spinner' as any, ELEMENT_CTORS['ui-spinner']) as unknown as React.FC<SpinnerProps>;
 export const Slider = eventComponent<SliderProps>('ui-slider', ELEMENT_CTORS['ui-slider'], [['onInput', 'input'], ['onChange', 'change']]);
-export const Button = eventComponent<ButtonProps>('ui-button', ELEMENT_CTORS['ui-button'], [['onPress', 'press']]);
+export const Button = eventComponent<ButtonProps>('ui-button', ELEMENT_CTORS['ui-button'], [['onPress', 'press'], ['onLongPress', 'longpress']]);
 export const Stepper = eventComponent<StepperProps>('ui-stepper', ELEMENT_CTORS['ui-stepper'], [['onChange', 'change']]);
 export const Image = createRemoteComponent('ui-image' as any, ELEMENT_CTORS['ui-image']) as unknown as React.FC<ImageProps>;
 export const Scroll = createRemoteComponent('ui-scroll' as any, ELEMENT_CTORS['ui-scroll']) as unknown as React.FC<ScrollProps>;
@@ -184,7 +195,8 @@ export const ViewHeader = eventComponent<ViewHeaderProps>('ui-viewheader', ELEME
 export const Toggle = eventComponent<ToggleProps>('ui-toggle', ELEMENT_CTORS['ui-toggle'], [['onChange', 'change']]);
 export const Segmented = eventComponent<SegmentedProps>('ui-segmented', ELEMENT_CTORS['ui-segmented'], [['onChange', 'change']]);
 export const Color = eventComponent<ColorProps>('ui-color', ELEMENT_CTORS['ui-color'], [['onPreview', 'preview'], ['onChange', 'change']]);
-export const Card = eventComponent<CardProps>('ui-card', ELEMENT_CTORS['ui-card'], [['onPress', 'press']]);
+export const Card = eventComponent<CardProps>('ui-card', ELEMENT_CTORS['ui-card'], [['onPress', 'press'], ['onLongPress', 'longpress']]);
+export const Curve = eventComponent<CurveProps>('ui-curve', ELEMENT_CTORS['ui-curve'], [['onChange', 'change']]);
 export const Badge = createRemoteComponent('ui-badge' as any, ELEMENT_CTORS['ui-badge']) as unknown as React.FC<BadgeProps>;
 export const Empty = createRemoteComponent('ui-empty' as any, ELEMENT_CTORS['ui-empty']) as unknown as React.FC<EmptyProps>;
 export const Section = createRemoteComponent('ui-section' as any, ELEMENT_CTORS['ui-section']) as unknown as React.FC<SectionProps>;

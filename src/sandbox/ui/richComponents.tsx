@@ -13,6 +13,7 @@ import { ViewHeader } from '../../components/common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../components/common/Tabs/Tabs';
 import { Toggle } from '../../components/common/Toggle/Toggle';
 import { HsvPicker } from '../../components/common/HsvPicker/HsvPicker';
+import { useLongPress } from './useLongPress';
 import { Card } from '../../components/common/Card/Card';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
 import { EmptyState } from '../../components/common/EmptyState/EmptyState';
@@ -130,18 +131,30 @@ export function ColorHost(p: HostProps) {
 }
 
 // A standard Card surface; holds children, optional title/subtitle chrome, and
-// is pressable (fires `press`) when `interactive`.
+// is pressable (fires `press`, or `longpress` on a held press) when `interactive`.
+// Card only forwards onClick, so the long-press pointer handlers ride a
+// layout-neutral display:contents wrapper that the inner card bubbles through.
 export function CardHost(p: HostProps) {
   const interactive = !!p.interactive;
+  const lp = useLongPress({
+    onLongPress: interactive && p.__events?.longpress ? () => p.__events?.longpress?.() : undefined,
+    onPress: interactive ? () => p.__events?.press?.() : undefined,
+  });
   return (
-    <Card
-      title={str(p.title)}
-      subtitle={str(p.subtitle)}
-      interactive={interactive}
-      onClick={interactive ? () => p.__events?.press?.() : undefined}
+    <div
+      style={{ display: 'contents' }}
+      onPointerDown={lp.onPointerDown} onPointerUp={lp.onPointerUp}
+      onPointerLeave={lp.onPointerLeave} onPointerCancel={lp.onPointerCancel}
     >
-      {p.children}
-    </Card>
+      <Card
+        title={str(p.title)}
+        subtitle={str(p.subtitle)}
+        interactive={interactive}
+        onClick={interactive ? lp.onClick : undefined}
+      >
+        {p.children}
+      </Card>
+    </div>
   );
 }
 

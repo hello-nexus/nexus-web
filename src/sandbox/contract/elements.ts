@@ -58,7 +58,7 @@ export const UI_ELEMENTS = {
   },
   'ui-button': {
     properties: ['label', 'tone', 'variant', 'disabled', 'icon', 'size'],
-    events: ['press'],
+    events: ['press', 'longpress'],
   },
   'ui-stepper': {
     properties: ['value', 'min', 'max', 'step', 'label', 'disabled'],
@@ -89,10 +89,18 @@ export const UI_ELEMENTS = {
   // the same control lighting uses. `value` is a hex string; the host fires
   // `preview` continuously during a drag and `change` once on commit.
   'ui-color': { properties: ['value'], events: ['preview', 'change'] },
+  // A draggable X/Y curve editor (the cooling fan-curve control). `points` is
+  // [{x,y}]; axis ranges via xmin/xmax/ymin/ymax. Drag a point to move it,
+  // double-click empty space to add, right-click a point to remove; the host
+  // fires `change` with the full point array on each edit.
+  'ui-curve': {
+    properties: ['points', 'xmin', 'xmax', 'ymin', 'ymax', 'tone'],
+    events: ['change'],
+  },
   // --- surfaces / display (presentational, reuse native chrome) ---
   // A standard Card surface. Holds children; optional title/subtitle chrome.
   // When `interactive`, the whole card is pressable and fires `press`.
-  'ui-card': { properties: ['title', 'subtitle', 'interactive'], events: ['press'] },
+  'ui-card': { properties: ['title', 'subtitle', 'interactive'], events: ['press', 'longpress'] },
   // A small status pill. `label` text tinted by `tone`; optional leading `icon`.
   'ui-badge': { properties: ['label', 'tone', 'icon'] },
   // Standard empty state (the native EmptyState): icon + title + hint. For

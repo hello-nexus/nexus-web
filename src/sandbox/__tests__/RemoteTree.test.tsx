@@ -105,6 +105,62 @@ describe('RemoteTree host renderer', () => {
     expect(onChange).toHaveBeenCalledWith('#ff8800');
   });
 
+  it('renders the curve editor with a node per point', () => {
+    const receiver = new RemoteReceiver();
+    const { container } = render(<RemoteTree receiver={receiver} />);
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID,
+          el('cv1', 'ui-curve',
+            { points: [{ x: 30, y: 20 }, { x: 60, y: 60 }, { x: 90, y: 100 }], xmin: 20, xmax: 100, ymin: 0, ymax: 100 },
+            [], { change: vi.fn() }),
+          0],
+      ] as never);
+    });
+    expect(screen.getByRole('img', { name: 'curve editor' })).toBeTruthy();
+    expect(container.querySelectorAll('circle').length).toBe(3);
+  });
+
+  it('fires longpress on a held button press and suppresses the trailing click', () => {
+    vi.useFakeTimers();
+    const receiver = new RemoteReceiver();
+    const onPress = vi.fn(); const onLong = vi.fn();
+    render(<RemoteTree receiver={receiver} />);
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('b2', 'ui-button', { label: 'Hold' }, [], { press: onPress, longpress: onLong }), 0],
+      ] as never);
+    });
+    const btn = screen.getByRole('button', { name: 'Hold' });
+    fireEvent.pointerDown(btn);
+    act(() => { vi.advanceTimersByTime(500); });
+    fireEvent.pointerUp(btn);
+    fireEvent.click(btn);
+    expect(onLong).toHaveBeenCalledTimes(1);
+    expect(onPress).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('fires press (not longpress) on a quick button tap', () => {
+    vi.useFakeTimers();
+    const receiver = new RemoteReceiver();
+    const onPress = vi.fn(); const onLong = vi.fn();
+    render(<RemoteTree receiver={receiver} />);
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('b3', 'ui-button', { label: 'Tap' }, [], { press: onPress, longpress: onLong }), 0],
+      ] as never);
+    });
+    const btn = screen.getByRole('button', { name: 'Tap' });
+    fireEvent.pointerDown(btn);
+    act(() => { vi.advanceTimersByTime(100); });
+    fireEvent.pointerUp(btn);
+    fireEvent.click(btn);
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(onLong).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
   it('updates a property in place on a later mutation', () => {
     const receiver = new RemoteReceiver();
     render(<RemoteTree receiver={receiver} />);

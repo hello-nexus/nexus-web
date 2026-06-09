@@ -6,6 +6,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { ICON_TABLE } from './icons';
 import { alignValue, justifyValue, weightValue, toneVar, cssSize } from './tokens';
+import { useLongPress } from './useLongPress';
 
 export interface HostProps {
   children?: ReactNode;
@@ -296,10 +297,17 @@ export function Button(p: HostProps) {
     opacity: disabled ? 0.4 : 1, font: 'inherit', fontWeight: 600, lineHeight: 1,
   };
   const label = str(p.label);
+  const lp = useLongPress({
+    onLongPress: p.__events?.longpress ? () => p.__events?.longpress?.() : undefined,
+    onPress: () => p.__events?.press?.(),
+    disabled,
+  });
   return (
     <button
       type="button" style={style} disabled={disabled} aria-label={label}
-      onClick={() => { if (!disabled) p.__events?.press?.(); }}
+      onPointerDown={lp.onPointerDown} onPointerUp={lp.onPointerUp}
+      onPointerLeave={lp.onPointerLeave} onPointerCancel={lp.onPointerCancel}
+      onClick={lp.onClick}
     >
       {p.children ?? (label != null ? label : null)}
     </button>
