@@ -918,6 +918,13 @@
   --panel-page-padding: 16px;
   --panel-card-radius: var(--radius);
   --panel-font: var(--font-sans);
+  // The desktop add-widget drawer is a fixed-size side sheet, NOT a scaled kiosk
+  // panel. It otherwise inherits the live panel's --panel-scale (a content zoom,
+  // e.g. ~2.16x on a wide embedded dashboard), which the editor-sheet transform
+  // (`scale(var(--panel-scale))`) then applies — blowing the whole catalog up by
+  // that factor. Neutralise it here; the catalog grid sets its own --panel-scale
+  // for its preview cells (a closer ancestor), so those still scale correctly.
+  --panel-scale: 1;
   background: color-mix(in srgb, var(--bg) 58%, transparent);
   // Start below the app top bar (base rule is inset:0), or the sheet's header —
   // title + close button — renders behind it and can't be seen/clicked.
