@@ -11,6 +11,7 @@ import { EditableText } from '../components/common/Editable/EditableText';
 import { Select } from '../components/common/Select/Select';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 import { SettingRow, SettingToggle } from '../components/common/SettingRow/SettingRow';
+import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import {
   fetchPanelPhonePairQr,
   fetchPanelPhoneSessions,
@@ -373,6 +374,18 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
       void handleStartCode();
     }
   }, [open, remoteEnabled, sessions, refresh, handleStartCode]);
+
+  // Re-mint immediately when the host IP changes (VPN/Wi-Fi↔wired/DHCP). Both
+  // the QR and the Code tab's host:port embed the LAN address picked at mint
+  // time, so refresh both rather than waiting out the TTL. The code only
+  // re-mints when one is currently shown (it re-reads the new host).
+  useTopicCallback('panel/phone/pair-qr/refresh', open && remoteEnabled, () => {
+    refresh();
+    if (pairCode) {
+      setPairCode(null);
+      void handleStartCode();
+    }
+  });
 
   useEffect(() => {
     if (!open) return;

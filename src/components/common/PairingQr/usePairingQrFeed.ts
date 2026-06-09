@@ -5,6 +5,7 @@ import {
   hasNewPairedSession,
   type PanelPhonePairQr,
 } from '../../../api/panel';
+import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 
 // QR-feed lifecycle, identical to the Pair-remote panel's QR tab: while
 // `active`, mint a single-use QR, re-mint at TTL expiry, and insta-re-mint the
@@ -40,6 +41,10 @@ export function usePairingQrFeed(active: boolean): { qr: PanelPhonePairQr | null
       prevSessionIds.current = null;
     }
   }, [active, refresh]);
+
+  // Re-mint immediately when the host IP changes (VPN/Wi-Fi↔wired/DHCP): the
+  // current QR embeds the old LAN address, so don't wait out the TTL.
+  useTopicCallback('panel/phone/pair-qr/refresh', active, refresh);
 
   // Re-mint at TTL so the displayed token never goes stale.
   useEffect(() => {
