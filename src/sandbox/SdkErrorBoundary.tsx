@@ -36,7 +36,6 @@ export class SdkErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    // eslint-disable-next-line no-console
     console.error(`[sdk:${this.props.widgetId}] render error`, error, info.componentStack);
   }
 
