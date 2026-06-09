@@ -3,6 +3,7 @@ import { Settings2, Trash2, X } from 'lucide-react';
 import { usePanelSheetSwipe } from './engine/usePanelSheetSwipe';
 import { sizeToSpan } from './engine/grid';
 import { lookupApp, sizesForSurface } from './widgets/registry';
+import type { DeckEditView } from './widgets/types';
 import { SIZE_ICONS } from './widgets/common/SizeIcons';
 import { WidgetControlGroup } from './widgets/common/WidgetControlGroup';
 import { SlotCountIcon } from './widgets/monitoring/SlotCountIcons';
@@ -11,8 +12,6 @@ import { PanelWidgetCatalog } from './editor/PanelWidgetCatalog';
 import { PanelHostNameSetting } from './editor/PanelHostNameSetting';
 import { PanelThemeSettings, type ResolvedPanelThemeMode } from './editor/PanelThemeSettings';
 import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
-import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
-import { Toggle } from '../components/common/Toggle/Toggle';
 import { useTranslation } from '../lib/i18n';
 import type { ThemeMode } from '../lib/settings';
 import type { EffectState } from '../types/lighting';
@@ -60,9 +59,8 @@ export function PanelEditorSheet({
   onRemove,
   selectedMonitoringSlot,
   onSelectedMonitoringSlotChange,
-  dockSupported,
-  dockEnabled,
-  onDockToggle,
+  editView,
+  onEditViewChange,
 }: {
   mode: SheetMode;
   surface: PanelSurface;
@@ -100,9 +98,8 @@ export function PanelEditorSheet({
   onRemove: (widgetId: string) => void;
   selectedMonitoringSlot: number;
   onSelectedMonitoringSlotChange: (slot: number) => void;
-  dockSupported: boolean;
-  dockEnabled: boolean;
-  onDockToggle: () => void;
+  editView: DeckEditView;
+  onEditViewChange: (view: DeckEditView) => void;
 }) {
   const { t } = useTranslation();
   const def = editingWidget ? lookupApp(editingWidget.type) : undefined;
@@ -113,6 +110,7 @@ export function PanelEditorSheet({
     : 'Add a widget';
   const Settings = def?.Settings;
   const isMonitoringWidget = editingWidget?.type === 'monitoring';
+  const usesSlotSelection = !!def?.meta.usesSlotSelection;
   const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface) : [];
   const slotCountOptions = editingWidget && isMonitoringWidget ? slotCountOptionsForSize(editingWidget.size) : [];
   const slotCount = editingWidget && isMonitoringWidget
@@ -167,8 +165,12 @@ export function PanelEditorSheet({
 
   const handleResize = (size: PanelWidgetSize) => {
     if (!editingWidget) return;
-    const nextSlotCount = resolvedSlotCountForSize(size, editingWidget.config?.slotCount as number | undefined);
-    onSelectedMonitoringSlotChange(Math.min(selectedMonitoringSlot, nextSlotCount - 1));
+    // Monitoring clamps the selected slot to the resized layout's slot count.
+    // Other slot-selection widgets (deck) clamp themselves on read.
+    if (isMonitoringWidget) {
+      const nextSlotCount = resolvedSlotCountForSize(size, editingWidget.config?.slotCount as number | undefined);
+      onSelectedMonitoringSlotChange(Math.min(selectedMonitoringSlot, nextSlotCount - 1));
+    }
     onResize(editingWidget.id, size);
   };
 
@@ -209,6 +211,9 @@ export function PanelEditorSheet({
           <PanelWidgetCatalog
             surface={surface}
             onAdd={onAdd}
+            // The on-device phone panel is itself the remote session, so hide
+            // local-only widgets (pairing QR) there.
+            remote={surface === 'phone'}
           />
         )}
 
@@ -267,8 +272,10 @@ export function PanelEditorSheet({
                   widget={editingWidget}
                   onUpdate={config => onUpdate(editingWidget.id, config)}
                   onResize={handleResize}
-                  selectedSlot={isMonitoringWidget ? selectedMonitoringSlot : undefined}
-                  onSelectedSlotChange={isMonitoringWidget ? onSelectedMonitoringSlotChange : undefined}
+                  selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
+                  onSelectedSlotChange={usesSlotSelection ? onSelectedMonitoringSlotChange : undefined}
+                  editView={usesSlotSelection ? editView : undefined}
+                  onEditViewChange={usesSlotSelection ? onEditViewChange : undefined}
                 />
               </div>
             ) : (
@@ -286,21 +293,6 @@ export function PanelEditorSheet({
               machineName={machineName}
               onCommit={onMachineNameCommit}
             />
-            {dockSupported && (
-              <div className={styles.dockSection}>
-                <SectionHeader>Dock</SectionHeader>
-                <div className={styles.dockToggleRow}>
-                  <span className={styles.dockToggleHint}>
-                    Pin up to 4 shortcuts that stay visible across pages.
-                  </span>
-                  <Toggle
-                    checked={dockEnabled}
-                    onChange={onDockToggle}
-                    ariaLabel="Dock"
-                  />
-                </div>
-              </div>
-            )}
             <PanelThemeSettings
               theme={panelTheme}
               resolvedThemeMode={resolvedThemeMode}

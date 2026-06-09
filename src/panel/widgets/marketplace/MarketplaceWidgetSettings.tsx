@@ -9,11 +9,24 @@ import {
 import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
 import {
   getMarketplaceListing,
-  loadMarketplaceWidgets,
+  loadMarketplaceApps,
   marketplaceIdFromType,
   subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
+import {
+  Hash, Clock3, ScanLine, RotateCw, CircleDot, FlipHorizontal, Binary,
+  LayoutGrid, Sun, Palette, type LucideIcon,
+} from 'lucide-react';
 import styles from './MarketplaceWidgetSettings.module.scss';
+
+// Icon names an `icon-select` option may reference (manifest optionIcons).
+// Mirrors the native clock design switcher; extend as widgets need glyphs.
+const SETTINGS_ICONS: Record<string, LucideIcon> = {
+  hash: Hash, 'clock-3': Clock3, 'scan-line': ScanLine, 'rotate-cw': RotateCw,
+  'circle-dot': CircleDot, 'flip-horizontal': FlipHorizontal, binary: Binary,
+  grid: LayoutGrid, sun: Sun, palette: Palette,
+};
 
 type ManifestSettingType =
   | 'sensor'
@@ -23,6 +36,7 @@ type ManifestSettingType =
   | 'boolean'
   | 'string'
   | 'select'
+  | 'icon-select'
   | 'text';
 
 interface ManifestSetting {
@@ -35,6 +49,8 @@ interface ManifestSetting {
   step?: number;
   filter?: string;
   options?: string[];
+  optionLabels?: string[];
+  optionIcons?: string[];
 }
 
 const DEBOUNCE_MS = 200;
@@ -62,7 +78,7 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
   // settings drawer opens before the catalog refresh has landed).
   useEffect(() => {
     if (!id) return;
-    if (!getMarketplaceListing(id)) void loadMarketplaceWidgets();
+    if (!getMarketplaceListing(id)) void loadMarketplaceApps();
     const unsub = subscribeMarketplaceRegistry(() => setListing(getMarketplaceListing(id)));
     return unsub;
   }, [id]);
@@ -152,6 +168,32 @@ function SettingControl({ entry, value, onChange }: ControlProps) {
           onChange={(s) => onChange(s)}
         />
       );
+    case 'icon-select': {
+      // Native-style visual switcher: one IconLabelButton per option, full-width
+      // (label on top, buttons below). icon + label come from the manifest's
+      // parallel optionIcons / optionLabels.
+      const current = asString(value);
+      const opts = entry.options ?? [];
+      return (
+        <div className={styles.iconSelect}>
+          <span className={styles.iconSelectLabel}>{label}</span>
+          <div className={styles.iconSelectGrid}>
+            {opts.map((opt, i) => {
+              const Icon = SETTINGS_ICONS[entry.optionIcons?.[i] ?? ''];
+              return (
+                <IconLabelButton
+                  key={opt}
+                  active={opt === current}
+                  icon={Icon ? <Icon aria-hidden="true" /> : undefined}
+                  label={entry.optionLabels?.[i] ?? opt}
+                  onPress={() => onChange(opt)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
     case 'color':
       return (
         <SettingsRow label={label}>

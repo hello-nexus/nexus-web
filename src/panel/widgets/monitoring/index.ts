@@ -2,6 +2,7 @@ import { lazy } from 'react';
 import { Activity } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { MonitoringWidget } from './MonitoringWidget';
+import { MonitoringPreview } from './MonitoringPreview';
 import { MonitoringTouch } from './MonitoringTouch';
 import { MonitoringSettings } from './MonitoringSettings';
 
@@ -21,8 +22,10 @@ export const monitoringApp: AppManifest = {
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
     touch: false,
+    usesSlotSelection: true,
   },
   Widget: MonitoringWidget,
+  Preview: MonitoringPreview,
   Page: MonitoringPage,
   Touch: MonitoringTouch,
   Settings: MonitoringSettings,

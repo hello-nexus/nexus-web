@@ -10,7 +10,7 @@ import {
   type PanelWidgetSize,
 } from '../types';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
-import { defaultDockForMissingSurface, defaultLayoutForSurface } from './defaultLayout';
+import { defaultLayoutForSurface } from './defaultLayout';
 import { broadcastLayoutChanged, onLayoutChanged } from './panelSync';
 import { pagesHaveOverlap, repackPage } from './paginate';
 import {
@@ -54,7 +54,7 @@ function nearestAllowedSize(
 // list to the nearest allowed size. Without this, a profile saved with an
 // out-of-spec size renders the widget at a size its CSS does not handle,
 // producing layout glitches and re-render churn.
-function reconcileWidgetsAgainstRegistry(
+function reconcileAppsAgainstRegistry(
   widgets: readonly PanelWidget[],
   surface: PanelSurface,
 ): PanelWidget[] {
@@ -107,7 +107,7 @@ interface UsePanelLayoutResult {
 }
 
 // Default column count per surface used by the overlap-reflow path
-// when reconcileWidgetsAgainstRegistry snaps a widget's size and
+// when reconcileAppsAgainstRegistry snaps a widget's size and
 // introduces overlap with siblings.
 const SURFACE_COLS: Record<PanelSurface, number> = {
   y70: 4,
@@ -117,31 +117,9 @@ const SURFACE_COLS: Record<PanelSurface, number> = {
 };
 
 export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface): PanelLayout {
-  const migrated = layout;
-  // Surfaces that ship with a default dock (currently Y70 only) get one
-  // injected when no dock state has been persisted yet. Once the user
-  // toggles the dock — even to `enabled: false` — that decision sticks
-  // and we never re-inject. Existing pre-dock-feature layouts upgrade
-  // transparently on next load.
-  const sourceDock = migrated.dock ?? defaultDockForMissingSurface(surface);
-  const dock = sourceDock
-    ? {
-        ...sourceDock,
-        // Dock slots own their size (always 1x1 visually), so we only filter
-        // out widgets that no longer exist or aren't valid for this surface,
-        // plus anything not actually 1x1 (defensive — store-level invariant).
-        widgets: sourceDock.widgets.filter(widget => {
-          if (widget.size !== '1x1') return false;
-          if (REMOVED_WIDGET_TYPES.has(widget.type)) return false;
-          const def = lookupApp(widget.type);
-          if (!def) return false;
-          return appAvailableForSurface(def.meta, surface);
-        }),
-      }
-    : undefined;
-  const reconciledPages = migrated.pages.map(page => ({
+  const reconciledPages = layout.pages.map(page => ({
     ...page,
-    widgets: reconcileWidgetsAgainstRegistry(
+    widgets: reconcileAppsAgainstRegistry(
       page.widgets.filter(widget => !REMOVED_WIDGET_TYPES.has(widget.type)),
       surface,
     ),
@@ -175,9 +153,8 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface)
   }
 
   return {
-    ...migrated,
+    ...layout,
     surface,
-    ...(dock ? { dock } : {}),
     pages: finalPages,
   };
 }

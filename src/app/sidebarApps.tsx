@@ -4,7 +4,8 @@
 import { type ReactNode, createElement } from 'react';
 import { LayoutDashboard } from 'lucide-react';
 import { ICON_SIZE } from './sidebarNav';
-import { APP_REGISTRY } from '../panel/widgets/registry';
+import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
+import { isMarketplaceType } from '../widgets/marketplaceRegistry';
 import { DASHBOARD_APP_KEY } from './sidebarAppKeys';
 
 // Re-export the leaf-module helpers so existing imports from
@@ -38,7 +39,9 @@ const DASHBOARD_META: SidebarAppMeta = {
  */
 export function getSidebarAppMeta(key: string): SidebarAppMeta | null {
   if (key === DASHBOARD_APP_KEY) return DASHBOARD_META;
-  const manifest = APP_REGISTRY[key];
+  // Built-ins read the static registry; marketplace (SDK) apps resolve their
+  // synthetic manifest so a pinned SDK page renders its icon + name.
+  const manifest = APP_REGISTRY[key] ?? (isMarketplaceType(key) ? lookupApp(key) : undefined);
   if (!manifest || !manifest.Page) return null;
   return {
     icon: createElement(manifest.meta.icon, { size: ICON_SIZE }),

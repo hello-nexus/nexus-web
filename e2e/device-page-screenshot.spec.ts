@@ -189,7 +189,7 @@ async function mockService(page: Page) {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ toggle: false }) });
       return;
     }
-    if (path === '/widgets-api/listings') {
+    if (path === '/apps-api/listings') {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ listings: [] }) });
       return;
     }

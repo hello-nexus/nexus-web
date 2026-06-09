@@ -25,6 +25,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
+  // Native inputs don't inherit font-family — set it so the query + placeholder
+  // render in Lexend like the rest of the app, not the browser default.
+  font-family: var(--font-sans);
   font-size: var(--type-small);
   outline: none;
   transition: border-color var(--ease-fast) ease, box-shadow var(--ease-fast) ease;

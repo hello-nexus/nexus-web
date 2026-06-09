@@ -13,9 +13,11 @@
   // Strip height under each cell when labels are on. Collapses to 0 when
   // labels are toggled off so the cell card reclaims the full grid track.
   --panel-widget-label-strip: 18px;
-  // Outer insets on the cell card itself (visible card box).
-  --panel-widget-card-margin-x: 6px;
-  --panel-widget-card-bottom-gap: 4px;
+  // Outer insets on the cell card itself. 0 so widget content fills the grid
+  // cell edge-to-edge (separation between widgets comes from --panel-gap only),
+  // consistent across panel surfaces and the add-widget catalog.
+  --panel-widget-card-margin-x: 0px;
+  --panel-widget-card-bottom-gap: 0px;
   // Inner padding between the card edge and widget contents. 0 = contents
   // reach the rounded edge; raise for uniform breathing room on all sides.
   --panel-widget-card-inner-pad: 0px;
@@ -77,23 +79,6 @@
 }
 
 @keyframes connectionIntroWidget {
-  0%, 18% {
-    opacity: 0;
-    transform: scale(0.46);
-    filter: blur(8px) saturate(0.82);
-  }
-  56% {
-    opacity: 0.82;
-    filter: blur(1px) saturate(0.98);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-    filter: blur(0) saturate(1);
-  }
-}
-
-@keyframes connectionIntroDockWidget {
   0%, 18% {
     opacity: 0;
     transform: scale(0.46);
@@ -225,11 +210,6 @@
   animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.panelRoot[data-connection-intro='active'] .panelDockPosition [data-panel-widget-id] {
-  transform-origin: center;
-  animation: connectionIntroDockWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .connectionIntroBackdrop {
     animation: none;
@@ -242,8 +222,7 @@
     transform: translate(-50%, 0);
   }
 
-  .panelRoot[data-connection-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell),
-  .panelRoot[data-connection-intro='active'] .panelDockPosition [data-panel-widget-id] {
+  .panelRoot[data-connection-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) {
     animation: none;
     opacity: 1;
     filter: none;
@@ -272,8 +251,7 @@
   position: relative;
 }
 
-// Stage hosts the pager (one page = one viewport) plus an optional dock
-// rail. data-orientation flips the dock from the bottom to the right.
+// Stage hosts the pager (one page = one viewport).
 .panelStage {
   position: relative;
   width: 100%;
@@ -297,41 +275,11 @@
   pointer-events: auto;
 }
 
-.panelStage[data-orientation='landscape'][data-dock-active='true'] {
-  flex-direction: row;
-}
-
 .panelStagePages {
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-}
-
-.panelDockPosition {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--panel-gap, 8px) 0 0;
-}
-
-.panelDockPosition[data-orientation='landscape'] {
-  padding: 0 0 0 var(--panel-gap, 8px);
-}
-
-// Y70 portrait reserves vertical room for the dock inside its 12-row grid
-// budget (see paginateCapacityForGrid). Float the dock at the bottom of the
-// stage so toggling it on/off doesn't reflow the page area and shift widget
-// placement upward.
-.panelRoot[data-surface='y70']
-  .panelStage[data-orientation='portrait'][data-dock-active='true']
-  .panelDockPosition {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 0;
 }
 
 .panelPageIndicatorPosition {
@@ -491,8 +439,8 @@
     --panel-landscape-height: max(100vh, 100dvh);
     --panel-safe-bottom: var(--panel-safe-top);
     // In landscape on a phone surface, cell size derives from the
-    // height (short axis after rotation). The pager + dock layout
-    // owns the horizontal axis so we don't scroll the surface.
+    // height (short axis after rotation). The pager layout owns the
+    // horizontal axis so we don't scroll the surface.
     --panel-cell-size: calc((var(--panel-landscape-height) - var(--panel-safe-top) - var(--panel-safe-bottom) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
     min-height: var(--panel-landscape-height);
     height: var(--panel-landscape-height);
@@ -557,6 +505,37 @@
 
 .cellLabelStrip {
   flex: 0 0 auto;
+}
+
+// Add-widget catalog cell (PanelCatalogCell): same cell chrome as a live
+// widget, plus a click affordance. Hover/selected ring on the card only.
+// The catalog is click-to-add with inert previews (pointer-events:none on the
+// scaler), so — unlike the live panel — the cell must NOT own the touch
+// gesture. Re-enable vertical panning so a drag scrolls the catalog instead of
+// locking onto a widget (the live `.cell` sets touch-action:none for drag).
+.catalogCell {
+  cursor: pointer;
+  touch-action: pan-y;
+
+  .cell {
+    touch-action: pan-y;
+    transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
+    border: 1px solid transparent;
+  }
+
+  &:hover .cell,
+  &:focus-visible .cell {
+    border-color: var(--panel-accent);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.catalogCellSelected .cell {
+  border-color: var(--panel-accent);
+  box-shadow: 0 0 0 1px var(--panel-accent);
 }
 
 .cell {
@@ -749,6 +728,12 @@
   display: flex;
   min-width: 0;
   min-height: 0;
+  // The scaler sizes itself to inner/scale then scales by `scale` to fill the
+  // card. When scale < 1 (cells smaller than the 90px design base, e.g. a dense
+  // add-widget catalog) inner/scale exceeds the card, so as a flex item it would
+  // shrink back and the transform would then render the content too small. Pin
+  // flex-shrink so the scale-to-fill always holds (no-op when scale >= 1).
+  flex-shrink: 0;
 }
 
 .panelRoot:not([data-surface='q60']) .cellEditorDocked {
@@ -934,6 +919,9 @@
   --panel-card-radius: var(--radius);
   --panel-font: var(--font-sans);
   background: color-mix(in srgb, var(--bg) 58%, transparent);
+  // Start below the app top bar (base rule is inset:0), or the sheet's header —
+  // title + close button — renders behind it and can't be seen/clicked.
+  top: var(--topbar-height, 52px);
 }
 
 .editorBackdrop[data-surface='desktop'] .editorSheet {
@@ -1069,29 +1057,6 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
-}
-
-.dockSection {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.dockToggleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  min-height: 44px;
-  color: var(--panel-text);
-  font: 800 13px/1.2 var(--panel-font, 'Lexend', system-ui, sans-serif);
-}
-
-.dockToggleHint {
-  flex: 1 1 auto;
-  min-width: 0;
-  @include text-caption;
-  color: var(--panel-text-faint);
 }
 
 .editorActions {

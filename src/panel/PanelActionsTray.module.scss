@@ -65,6 +65,18 @@
   border-top-color: color-mix(in srgb, black 8%, transparent);
 }
 
+// Landscape phone: panelRoot is sized to the LARGE viewport (max(100vh,100dvh))
+// so the grid doesn't reflow as the browser URL bar retracts. The tray is
+// bottom-anchored to that oversized root, so its rest position lands below the
+// visible (dynamic) viewport while the chrome shows. Lift it by the chrome's
+// height (100vh - 100dvh, 0 in the native app where they're equal) so it
+// re-anchors at the visible bottom instead of spawning too low.
+@media (orientation: landscape) {
+  :global(.panel-root)[data-surface='phone'] .tray {
+    bottom: calc(100vh - 100dvh);
+  }
+}
+
 
 // Monitor-attached panel chrome scaling via transform: scale. The kiosk
 // WebView2 ignores CSS `zoom` (IsZoomControlEnabled = false), so this uses

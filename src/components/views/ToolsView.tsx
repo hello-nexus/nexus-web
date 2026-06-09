@@ -94,8 +94,8 @@ function WidgetSdkCard() {
   return (
     <Card title="Widget SDK reference">
       <span className={styles.dim}>
-        Every meter, binding function, data source, dispatch action, capability — with live previews.
-        Acts as the bible for the declarative widget SDK and 3rd-party widget authors.
+        Every UI primitive, SDK hook, dispatch action, capability — with live previews.
+        Acts as the reference for the app SDK and 3rd-party app authors.
       </span>
       <Button tone="accent" size="sm" onClick={() => {
         window.open('/widget-reference', '_blank', 'noopener,noreferrer');

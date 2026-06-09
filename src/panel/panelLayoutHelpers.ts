@@ -18,6 +18,8 @@ export type DashboardSectionNavigate =
   (section: DashboardWidgetSection, payload?: DashboardSectionNavigatePayload) => void;
 
 export function isDashboardClickthroughType(type: string): type is DashboardWidgetSection {
+  // A page-capable app is both click-through and sidebar-pinnable; isPinnableAppKey
+  // now covers built-ins AND page-capable marketplace (SDK) apps.
   return isPinnableAppKey(type);
 }
 

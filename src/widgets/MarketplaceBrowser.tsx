@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Download, Trash2, X } from 'lucide-react';
-import type { WidgetCatalogEntry } from './types';
-import { listAvailableWidgets, installWidget, uninstallWidget } from './marketplaceApi';
-import { loadMarketplaceWidgets } from './marketplaceRegistry';
+import type { AppCatalogEntry } from './types';
+import { listAvailableApps, installApp, uninstallApp } from './marketplaceApi';
+import { loadMarketplaceApps } from './marketplaceRegistry';
 import { resolveHttp } from '../api/service';
 import styles from './MarketplaceBrowser.module.scss';
 
@@ -12,14 +12,14 @@ export interface MarketplaceBrowserProps {
 }
 
 export function MarketplaceBrowser({ open, onClose }: MarketplaceBrowserProps) {
-  const [entries, setEntries] = useState<WidgetCatalogEntry[] | null>(null);
+  const [entries, setEntries] = useState<AppCatalogEntry[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setError(null);
     try {
-      const list = await listAvailableWidgets();
+      const list = await listAvailableApps();
       setEntries(list);
     } catch (err) {
       setError((err as Error).message);
@@ -34,10 +34,10 @@ export function MarketplaceBrowser({ open, onClose }: MarketplaceBrowserProps) {
     setBusyId(id);
     setError(null);
     try {
-      const r = await installWidget(id);
+      const r = await installApp(id);
       if (r?.error) setError(r.error);
       await refresh();
-      await loadMarketplaceWidgets();
+      await loadMarketplaceApps();
     } finally {
       setBusyId(null);
     }
@@ -47,10 +47,10 @@ export function MarketplaceBrowser({ open, onClose }: MarketplaceBrowserProps) {
     setBusyId(id);
     setError(null);
     try {
-      const r = await uninstallWidget(id);
+      const r = await uninstallApp(id);
       if (r?.error) setError(r.error);
       await refresh();
-      await loadMarketplaceWidgets();
+      await loadMarketplaceApps();
     } finally {
       setBusyId(null);
     }

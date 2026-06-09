@@ -79,6 +79,26 @@
   min-height: 0;
   width: 100%;
   height: 100%;
+  // Anchor the page-nav arrows, which sit just inside the pane edges flanking
+  // the centered iframe.
+  position: relative;
+}
+
+// Page-nav arrows in the device-page preview. Bigger hit-area than the
+// in-widget arrows since the preview pane is roomy; colour + base look come
+// from PanelArrowButton's shared style.
+.pageArrow {
+  width: 56px;
+  height: 56px;
+  z-index: 2;
+
+  svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  &[data-side='prev'] { left: 8px; }
+  &[data-side='next'] { right: 8px; }
 }
 
 .toggleLabel {

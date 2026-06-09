@@ -36,6 +36,20 @@ export interface WidgetProps {
   // it from setup states ("Add API key…") so the user has a direct path
   // to config without going through the right-click context menu.
   onConfigure?: () => void;
+  // Deck-style widgets with pages/folders: the shared edit-mode view (which
+  // page / folder the editor is on) so the live tile mirrors the edit sheet and
+  // slot selection hit-tests the right grid. Undefined outside editing — run
+  // mode keeps its own internal navigation state.
+  editView?: DeckEditView;
+  onEditViewChange?: (view: DeckEditView) => void;
+  // Persist a config patch from the live tile (e.g. deck drag-reorder in edit
+  // mode). Wired by PanelApp only while editing a slot-selection widget.
+  onUpdate?: (config: Record<string, PanelConfigValue>) => void;
+}
+
+// Which folder path a foldered widget (deck) is currently showing in edit mode.
+export interface DeckEditView {
+  folderPath: number[];
 }
 
 export interface WidgetSettingsProps {
@@ -44,6 +58,9 @@ export interface WidgetSettingsProps {
   onResize: (size: PanelWidgetSize) => void;
   selectedSlot?: number;
   onSelectedSlotChange?: (slot: number) => void;
+  // Shared paged/foldered edit view (deck) — see WidgetProps.editView.
+  editView?: DeckEditView;
+  onEditViewChange?: (view: DeckEditView) => void;
 }
 
 // Props passed to an App's desktop SPA Page. Each Page declares its
@@ -75,6 +92,16 @@ export interface AppMetadata {
   // pointer. Availability is computed from `touch` + `sizes` alone; there is
   // no per-widget surface allowlist.
   touch: boolean;
+  // Whether the widget only makes sense on a panel hard-wired to this host —
+  // hidden on remotely-connected panels (paired phone/browser/app sessions).
+  // e.g. the pairing/QR widget: a remote panel is the thing being paired, so
+  // showing it a "pair a remote" QR is nonsensical. Defaults to false.
+  localOnly?: boolean;
+  // Whether the widget participates in slot selection during editing: the live
+  // tile renders selectable cells and the edit sheet edits the selected slot
+  // (monitoring, deck). When true, PanelApp/WidgetEditSheet/PanelEditorSheet
+  // pass selectedSlot/onSelectedSlotChange through. Defaults to false.
+  usesSlotSelection?: boolean;
 }
 
 // Initial sheet state derived from where the user invoked the edit flow.
@@ -89,6 +116,11 @@ export interface AppManifest {
   meta: AppMetadata;
   // The widget tile — always present. Rendered in the panel grid.
   Widget: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
+  // Optional static stand-in for the add-widget catalog tile. Widgets whose
+  // live tile subscribes to streaming data (e.g. monitoring graphs) ship this
+  // so the picker preview shows frozen mock data instead of animating. Falls
+  // back to `Widget` when absent.
+  Preview?: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
   // Optional desktop SPA "app page". Apps with a Page are
   // automatically pinnable to the sidebar and become click-through
   // on the dashboard panel.

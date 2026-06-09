@@ -1147,10 +1147,10 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview - needs widget identity + theme context.',
   },
   {
-    name: 'WidgetPreviewCard', category: 'panel-kit',
-    filePath: 'src/panel/widgets/common/WidgetPreviewCard.tsx',
-    description: 'Tile shown in the add-widget catalog. Renders a scaled live preview of the actual widget with its label below. Used by the panel add-widget search.',
-    notes: 'No live preview - the preview itself instantiates a real panel widget.',
+    name: 'PanelCatalogCell', category: 'panel-kit',
+    filePath: 'src/panel/PanelDragCells.tsx',
+    description: 'Tile shown in the add-widget catalog. Reuses the live panel cell (card + content scaler + label strip) so the catalog renders a widget identically to the panel grid. Used by the panel add-widget search.',
+    notes: 'No live preview - the cell instantiates a real panel widget at panel scale.',
   },
   {
     name: 'AppPicker', category: 'panel-kit',

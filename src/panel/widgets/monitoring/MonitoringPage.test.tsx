@@ -31,6 +31,7 @@ const sensorState = {
     { id: 'cpu/load', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'cpu' } },
   ],
   gpu: [],
+  gpuComponents: [],
   memory: [],
   storage: [],
   storageComponents: {},
@@ -81,6 +82,7 @@ vi.mock('../../../../lib/monitoringStore', () => ({
     netDown: [],
     netUp: [],
   }),
+  getGpuHist: () => [],
   colorFor: () => '#888',
 }));
 

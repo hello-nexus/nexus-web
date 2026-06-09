@@ -26,6 +26,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   const [autoStartLoading, setAutoStartLoading] = useState(false);
   const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
   const [stopping, setStopping] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [screenTimeOpen, setScreenTimeOpen] = useState(false);
   // Telemetry consent is server-authoritative (the service gates sending), so
   // it's fetched/written directly like auto-start, not via the local UI store.
@@ -89,6 +91,18 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     await postService('/service/stop', {});
     setStopConfirmOpen(false);
     setStopping(false);
+    window.close();
+  };
+
+  // Wipe every Nexus data dir and restart the service from a clean slate. The
+  // service spawns a detached finalizer, stops, gets wiped, then restarts — so
+  // this window's connection drops; close it and let the user reopen on the
+  // fresh install. Loopback-only endpoint.
+  const factoryReset = async () => {
+    setResetting(true);
+    await postService('/service/factory-reset', {});
+    setResetConfirmOpen(false);
+    setResetting(false);
     window.close();
   };
 
@@ -202,6 +216,10 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             {t('settings.feedback.report')}
           </a>
         </SettingRow>
+      </div>
+
+      <div className={styles.settingsGroup}>
+        <SectionHeader style={{ color: 'var(--bad)' }}>{t('settings.dangerZone')}</SectionHeader>
 
         {platform === 'windows' && (
           <SettingRow
@@ -219,6 +237,21 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             </Button>
           </SettingRow>
         )}
+
+        <SettingRow
+          label={t('settings.factoryReset.label')}
+          description={flashing ? t('settings.factoryReset.flashBlocked') : t('settings.factoryReset.description')}
+        >
+          <Button
+            type="button"
+            tone="danger"
+            size="sm"
+            onClick={() => setResetConfirmOpen(true)}
+            disabled={!serviceOnline || resetting || flashing}
+          >
+            {t('settings.factoryReset.button')}
+          </Button>
+        </SettingRow>
       </div>
 
       <ConfirmModal
@@ -229,6 +262,19 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         destructive
         onConfirm={shutDown}
         onCancel={() => setStopConfirmOpen(false)}
+      />
+
+      <ConfirmModal
+        open={resetConfirmOpen}
+        title={t('settings.factoryReset.confirmTitle')}
+        message={t('settings.factoryReset.confirmMessage')}
+        bullets={t('settings.factoryReset.wipeList').split('\n')}
+        note={t('settings.factoryReset.confirmNote')}
+        noteTone="danger"
+        confirmLabel={t('settings.factoryReset.confirmButton')}
+        destructive
+        onConfirm={factoryReset}
+        onCancel={() => setResetConfirmOpen(false)}
       />
 
       <ScreenTimeDataControl

@@ -13,9 +13,11 @@ import { fetchService, postService } from '../../../api/service';
 import { fetchPreferences, savePreferences } from '../../../api/profiles';
 import {
   allocatePanelDevice,
+  fetchPanelDevice,
   fetchPanelDevices,
   patchPanelDevice,
 } from '../../../api/panel';
+import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
@@ -23,6 +25,7 @@ import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
+import { PanelArrowButton } from '../../../panel/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/panelTheme';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
@@ -36,7 +39,7 @@ import {
   type PanelWidgetSize,
   type PanelConfigValue,
 } from '../../../panel/types';
-import type { PanelDevice } from '../../../panel/panelDevices';
+import { isRemotePanel, type PanelDevice } from '../../../panel/panelDevices';
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
 import { PanelWidgetCatalog } from '../../../panel/editor/PanelWidgetCatalog';
 import '../../../panel/styles/tokens.scss';
@@ -169,6 +172,23 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
     });
   }, [editingDeviceId, surface]);
 
+  // Reverse sync: when the physical panel (or another editor) saves a layout,
+  // the service broadcasts panel/device with the changed id. Refetch this
+  // device's record so the preview tracks on-device edits, not just edits made
+  // here. PanelEmbedFrame's structural echo-guard makes the refetch from our
+  // own writes a no-op. Mirrors usePanelLayout's panel/device subscription.
+  useTopicCallback('panel/device', true, (raw) => {
+    const frame = raw as { deviceId?: string } | null;
+    if (!editingDeviceId || frame?.deviceId !== editingDeviceId) return;
+    fetchPanelDevice(editingDeviceId).then(record => {
+      if (!record) return;
+      const cw = record.capabilities?.cssWidth;
+      const ch = record.capabilities?.cssHeight;
+      setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
+      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface));
+    }).catch(() => {});
+  });
+
   // Editor capacity is the surface default - the live runtime may
   // recompute based on physical size. With explicit (col, row) the
   // user can place widgets anywhere within these bounds in the editor.
@@ -257,6 +277,18 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
     setConfiguringWidget(prev => prev?.id === widgetId ? { ...prev, size } : prev);
   }, [layout, updateLayout]);
 
+  // Page navigation. The active page rides in layout.activePageId; writing it
+  // moves the preview iframe (via set-layout) and the on-device panel (via the
+  // panel/device refetch), keeping both in step. PanelContent maps the id back
+  // to a page index on each surface.
+  const goToPage = useCallback((delta: number) => {
+    const pages = layout.pages;
+    const cur = Math.max(0, layout.activePageId ? pages.findIndex(p => p.id === layout.activePageId) : 0);
+    const next = Math.min(pages.length - 1, Math.max(0, cur + delta));
+    if (next === cur) return;
+    updateLayout({ ...layout, activePageId: pages[next].id });
+  }, [layout, updateLayout]);
+
   const tabs: { key: Tab; label: string }[] = [
     { key: 'widgets', label: t('devices.y70.tab.widgets') },
     { key: 'theme', label: t('devices.y70.tab.theme') },
@@ -272,6 +304,10 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   const isSimulated = device?.connectionKind === 'simulated';
   const baseTitle = device?.name ?? t('devices.y70.title');
   const pageTitle = isSimulated ? `${baseTitle}${t('devices.panels.simulatedSuffix')}` : baseTitle;
+
+  const pageCount = layout.pages.length;
+  const currentPageIndex = Math.max(0, layout.activePageId ? layout.pages.findIndex(p => p.id === layout.activePageId) : 0);
+  const showPageArrows = !singleWidget && pageCount > 1;
 
   return (
     <section className={styles.page}>
@@ -307,11 +343,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       surface={surface}
                       onAdd={handleAddWidget}
                       variant="desktop-modal"
-                      // Single-widget surfaces (Q60 / Q80) lock every
-                      // widget to 2x4, so cards use that aspect to preview
-                      // the on-device shape. Multi-size surfaces (Y70,
-                      // phone, desktop) keep the square tile.
-                      aspect={isSingleWidgetSurface(surface) ? 'natural' : 'square'}
+                      remote={isRemotePanel(device?.connectionKind)}
                       themeMode={resolvedPanelThemeMode}
                       themeStyle={panelThemeVars}
                       className={styles.catalog}
@@ -386,6 +418,24 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
 
           <div className={styles.previewPane} data-surface={surface}>
             <div className={styles.previewStage}>
+              {showPageArrows && (
+                <PanelArrowButton
+                  side="prev"
+                  className={styles.pageArrow}
+                  disabled={currentPageIndex <= 0}
+                  onClick={() => goToPage(-1)}
+                  ariaLabel={t('devices.panels.prevPage')}
+                />
+              )}
+              {showPageArrows && (
+                <PanelArrowButton
+                  side="next"
+                  className={styles.pageArrow}
+                  disabled={currentPageIndex >= pageCount - 1}
+                  onClick={() => goToPage(1)}
+                  ariaLabel={t('devices.panels.nextPage')}
+                />
+              )}
               <PanelEmbedFrame
                 surface={surface}
                 layout={layout}

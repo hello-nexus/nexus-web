@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import {
   Activity, LayoutDashboard, Lightbulb, Fan, Settings,
-  Usb, Wrench, Gauge, Users,
+  Usb, Wrench, Gauge, Users, LampCeiling,
 } from 'lucide-react';
 
 export const ICON_SIZE = 18;
@@ -15,6 +15,7 @@ export const NAV_ICONS: Record<string, ReactNode> = {
   dashboard:  <LayoutDashboard size={ICON_SIZE} />,
   monitoring: <Activity size={ICON_SIZE} />,
   lighting:   <Lightbulb size={ICON_SIZE} />,
+  'smart-lights': <LampCeiling size={ICON_SIZE} />,
   cooling:    <Fan size={ICON_SIZE} />,
   devices:    <Usb size={ICON_SIZE} />,
   settings:   <Settings size={ICON_SIZE} />,

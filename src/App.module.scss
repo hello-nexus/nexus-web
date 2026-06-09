@@ -471,17 +471,12 @@
   background: var(--text-faded);
   box-shadow: 0 0 0 2px var(--bg);
 
-  // Killswitch ON, devices connected.
+  // Devices connected. When remote is OFF the dot isn't rendered at all, so
+  // there's no separate "disabled" colour — the dot's presence means remote
+  // is on, green means at least one device is connected.
   &[data-state='connected'] {
     background: var(--good);
     box-shadow: 0 0 0 2px var(--bg), 0 0 8px color-mix(in srgb, var(--good) 60%, transparent);
-  }
-
-  // Killswitch OFF, paired devices preserved but unreachable. Amber signals
-  // "system is intentionally locked" without using the same red as errors.
-  &[data-state='paired'] {
-    background: var(--warn);
-    box-shadow: 0 0 0 2px var(--bg), 0 0 8px color-mix(in srgb, var(--warn) 55%, transparent);
   }
 }
 

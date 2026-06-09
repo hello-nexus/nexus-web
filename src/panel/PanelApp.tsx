@@ -16,14 +16,13 @@ import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
 import { sizeToSpan } from './engine/grid';
-import { paginateCapacityForGrid, repaginatePanelLayout, type PaginateCapacity } from './engine/paginate';
+import { repaginatePanelLayout, type PaginateCapacity } from './engine/paginate';
 import {
   allCellsForPage,
   appendWidget,
   patchWidgetById,
   previewDrag,
   removeWidgetById,
-  setDockEnabled,
   tryResizeWidget,
 } from './engine/panelLayoutOps';
 import { PANEL_EDGE_ADVANCE_DWELL_MS } from './engine/dragConstants';
@@ -31,9 +30,9 @@ import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
 import { PanelPager } from './PanelPager';
 import { PanelPageIndicator } from './PanelPageIndicator';
 import { PanelActionsTray } from './PanelActionsTray';
-import { PanelDock } from './PanelDock';
 import { PanelImmersiveOverlay } from './PanelImmersiveOverlay';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from './widgets/registry';
+import type { DeckEditView } from './widgets/types';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
@@ -289,6 +288,7 @@ export function PanelContent({
   const [sheetClosing, setSheetClosing] = useState(false);
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
+  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ folderPath: [] });
   const [editorDockMotion, setEditorDockMotion] = useState<EditorDockMotion | null>(null);
   // Widgets whose last action was rejected (e.g. resize didn't fit anywhere).
   // Drives a brief shake/flash on the cell, auto-cleared by a timer. Plural
@@ -436,24 +436,15 @@ export function PanelContent({
     ],
   );
 
-  // ---------- Pagination + dock state derived from layout ----------
-  const dockEnabled = Boolean(layout.dock?.enabled);
-  const dockSupported = surface !== 'desktop' && surfaceSupportsTouch(surface);
+  // ---------- Pagination derived from layout ----------
   // Touch surfaces hoist the focused widget above the editor's backdrop-blur
   // scrim, else the edited widget disappears under the blur. q60 is
   // display-only so editing never engages. See .cellEditorDocked rules.
   const editorDockSupported = surfaceSupportsTouch(surface);
-  const dockActive = dockSupported && dockEnabled;
   const isLandscape = useIsLandscape(surface);
   const capacity = useMemo<PaginateCapacity>(
-    () => paginateCapacityForGrid(
-      runtimeGrid.columns,
-      runtimeGrid.rows,
-      dockActive,
-      isLandscape ? 'landscape' : 'portrait',
-      surface,
-    ),
-    [runtimeGrid.columns, runtimeGrid.rows, dockActive, isLandscape, surface],
+    () => ({ gridCols: runtimeGrid.columns, pageRows: runtimeGrid.rows }),
+    [runtimeGrid.columns, runtimeGrid.rows],
   );
 
   // Two-stage drag state, declared early so dragLayout/allFiltered can fold
@@ -557,6 +548,66 @@ export function PanelContent({
   // the snap never picks a cell on another page from a drifting rect.
   const activePageIndexRef = useRef(activePageIndex);
   useEffect(() => { activePageIndexRef.current = activePageIndex; }, [activePageIndex]);
+
+  // --- Current-page sync via layout.activePageId ---------------------------
+  // The active page rides in the layout so the device-page preview, the
+  // on-device panel, and sibling tabs track the same page (propagated by the
+  // panel/device refetch path, same as widget moves). Page changes never
+  // survive a relaunch: a fresh panel start shows the first page.
+  //
+  // Honoring an external page (effect below) and persisting a local page
+  // (handlePageChange) are kept strictly apart. An earlier version reacted to
+  // activePageIndex with a *write* effect; because setActivePageIndex hadn't
+  // applied yet in the same commit, that effect read the stale index and wrote
+  // the previous page back, ping-ponging the two effects. The persist now
+  // lives at the pager's onActiveChange, which fires only on a user swipe and
+  // carries the new index explicitly, so no effect both reads the index and
+  // writes the layout from it.
+  const pageBootRef = useRef(false);
+  const lastSeenPageIdRef = useRef<string | undefined>(undefined);
+  const pageDragging = Boolean(activeDragId || dragArmedId);
+  useEffect(() => {
+    if (!loaded || pageDragging) return;
+    const pages = paginatedLayout.pages;
+    if (pages.length === 0) return;
+    if (!pageBootRef.current) {
+      pageBootRef.current = true;
+      if (kioskBehavior && pages.length > 1) {
+        // Fresh panel start: show the first page and clear any page the last
+        // session left in the record.
+        lastSeenPageIdRef.current = pages[0].id;
+        if (activePageIndex !== 0) setActivePageIndex(0);
+        if (layout.activePageId !== pages[0].id) setLayout({ ...layout, activePageId: pages[0].id });
+      } else {
+        // Viewer (device-page preview / simulator) or single-page kiosk: adopt
+        // whatever page the record already points at.
+        lastSeenPageIdRef.current = layout.activePageId;
+        const idx = layout.activePageId ? pages.findIndex(p => p.id === layout.activePageId) : 0;
+        if (idx > 0 && idx !== activePageIndex) setActivePageIndex(idx);
+      }
+      return;
+    }
+    // Post-boot: honor a page change pushed from another client only. Skipped
+    // during a drag so edge-advance owns the page.
+    const target = layout.activePageId;
+    if (!target || target === lastSeenPageIdRef.current) return;
+    lastSeenPageIdRef.current = target;
+    const idx = pages.findIndex(p => p.id === target);
+    if (idx >= 0 && idx !== activePageIndex) setActivePageIndex(idx);
+  }, [loaded, kioskBehavior, paginatedLayout, layout, pageDragging, activePageIndex, setLayout]);
+
+  // Persist a user-driven page change (swipe) into the layout so other clients
+  // follow. Carries the new index from the pager so it never reads a stale
+  // render value, and marks it seen so the honor effect won't echo it back.
+  const handlePageChange = useCallback((idx: number) => {
+    setActivePageIndex(idx);
+    const pages = paginatedLayout.pages;
+    if (pages.length <= 1) return;
+    const id = pages[Math.min(Math.max(idx, 0), pages.length - 1)]?.id;
+    if (!id) return;
+    lastSeenPageIdRef.current = id;
+    if (layout.activePageId !== id) setLayout({ ...layout, activePageId: id });
+  }, [paginatedLayout, layout, setLayout]);
   // Frozen snapshot of the dragged cell's pixel size + runtime CSS vars at
   // drag start. Captured once in onDragStart and reused every overlay render
   // so the clone never re-measures mid-drag (which would pick up
@@ -575,15 +626,14 @@ export function PanelContent({
   // movement) shows only the menu, never the lift/overlay.
   const pendingDragRef = useRef<DragSnapshot | null>(null);
 
-  const dockWidgets = paginatedLayout.dock?.widgets ?? [];
-  const dockOrientation: 'portrait' | 'landscape' = isLandscape ? 'landscape' : 'portrait';
+  const pageOrientation: 'portrait' | 'landscape' = isLandscape ? 'landscape' : 'portrait';
 
   const widgetById = useCallback((id: string): PanelWidget | undefined => {
     for (const page of paginatedLayout.pages) {
       const found = page.widgets.find(w => w.id === id);
       if (found) return found;
     }
-    return paginatedLayout.dock?.widgets.find(w => w.id === id);
+    return undefined;
   }, [paginatedLayout]);
 
   const editingWidget = editingWidgetId ? widgetById(editingWidgetId) ?? null : null;
@@ -852,10 +902,6 @@ export function PanelContent({
     closeSheet();
   }, [closeSheet, embedded, paginatedLayout, capacity, setLayout, surface]);
 
-  const toggleDock = useCallback(() => {
-    setLayout(setDockEnabled(paginatedLayout, !dockEnabled, capacity));
-  }, [paginatedLayout, dockEnabled, capacity, setLayout]);
-
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     setLayout(patchWidgetById(
       paginatedLayout,
@@ -920,6 +966,7 @@ export function PanelContent({
       ? def.resolveInitialSelection({ point, widget })
       : undefined;
     setSelectedMonitoringSlot(initial?.selectedSlot ?? 0);
+    setDeckEditView({ folderPath: [] });
     setEditingWidgetId(widget.id);
     setSheetMode('settings');
   }, [clearCloseTimer, surface]);
@@ -1280,17 +1327,13 @@ export function PanelContent({
           <div className={styles.loading}>loading panel...</div>
         ) : (
           <>
-            <div
-              className={styles.panelStage}
-              data-orientation={dockOrientation}
-              data-dock-active={dockActive ? 'true' : undefined}
-            >
+            <div className={styles.panelStage}>
               <div className={styles.panelStagePages}>
                 <SortableContext items={allFlatIds} strategy={projectedLayoutStrategy}>
                 <PanelPager
                   pages={allFiltered}
                   activeIndex={Math.min(activePageIndex, pageCount - 1)}
-                  onActiveChange={setActivePageIndex}
+                  onActiveChange={handlePageChange}
                   swipeEnabled={!sheetMode && !dragArmedId}
                   renderPage={page => (
                     <>
@@ -1311,8 +1354,11 @@ export function PanelContent({
                               flash={flashedWidgets.has(w.id)}
                               isDragSource={activeDragId === w.id}
                               resizeMotion={!sheetMode && resizeMotionWidgetId === w.id}
-                              selectedSlot={sheetMode === 'settings' && editingWidgetId === w.id && w.type === 'monitoring' ? selectedMonitoringSlot : undefined}
-                              onSelectSlot={sheetMode === 'settings' && editingWidgetId === w.id && w.type === 'monitoring' ? setSelectedMonitoringSlot : undefined}
+                              selectedSlot={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? selectedMonitoringSlot : undefined}
+                              onSelectSlot={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? setSelectedMonitoringSlot : undefined}
+                              editView={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? deckEditView : undefined}
+                              onEditViewChange={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? setDeckEditView : undefined}
+                              onUpdate={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? (cfg => updateWidgetConfig(w.id, cfg)) : undefined}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               onContextMenu={surfaceSupportsTouch(surface) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               cellPointers={surfaceSupportsTouch(surface) ? touch.bindCellPointers(w) : noopCellPointers}
@@ -1349,7 +1395,7 @@ export function PanelContent({
                 />
                 </SortableContext>
                 {pageCount > 1 && (
-                  <div className={styles.panelPageIndicatorPosition} data-orientation={dockOrientation}>
+                  <div className={styles.panelPageIndicatorPosition} data-orientation={pageOrientation}>
                     <PanelPageIndicator
                       total={pageCount}
                       active={Math.min(activePageIndex, pageCount - 1)}
@@ -1358,15 +1404,6 @@ export function PanelContent({
                   </div>
                 )}
               </div>
-              {dockActive && (
-                <div className={styles.panelDockPosition} data-orientation={dockOrientation}>
-                  <PanelDock
-                    widgets={dockWidgets}
-                    surface={surface}
-                    orientation={dockOrientation}
-                  />
-                </div>
-              )}
             </div>
             {kioskBehavior && surfaceSupportsTouch(surface) && (
               <PanelActionsTray
@@ -1550,9 +1587,8 @@ export function PanelContent({
           onRemove={removeWidget}
           selectedMonitoringSlot={selectedMonitoringSlot}
           onSelectedMonitoringSlotChange={setSelectedMonitoringSlot}
-          dockSupported={dockSupported}
-          dockEnabled={dockEnabled}
-          onDockToggle={toggleDock}
+          editView={deckEditView}
+          onEditViewChange={setDeckEditView}
         />
       )}
 
@@ -1600,6 +1636,7 @@ export function PanelContent({
               themeMode={resolvedThemeMode}
               fixedWidth={dragSnapshot.width}
               fixedHeight={dragSnapshot.height}
+              showLabels={effectiveTheme.widgetLabels}
             />
           );
         })()}

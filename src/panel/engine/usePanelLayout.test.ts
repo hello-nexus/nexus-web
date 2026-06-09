@@ -10,12 +10,11 @@ function widget(overrides: Partial<PanelWidget> & Pick<PanelWidget, 'id' | 'type
   };
 }
 
-function layout(widgets: PanelWidget[], dock?: PanelWidget[]): PanelLayout {
+function layout(widgets: PanelWidget[]): PanelLayout {
   return {
     layoutSchemaVersion: 2,
     surface: 'y70',
     pages: [{ id: 'p1', widgets }],
-    dock: dock ? { enabled: true, widgets: dock } : undefined,
   };
 }
 
@@ -101,20 +100,5 @@ describe('normalizePanelLayout registry reconciliation', () => {
         expect(overlap, `widgets ${i} and ${j} overlap`).toBe(false);
       }
     }
-  });
-
-  it('filters dock widgets but preserves their stored size', () => {
-    const result = normalizePanelLayout(
-      layout(
-        [],
-        [
-          widget({ id: 'd1', type: 'cooling', size: '1x1' }),
-          widget({ id: 'd2', type: 'does-not-exist', size: '1x1' }),
-        ],
-      ),
-      'y70',
-    );
-    expect(result.dock?.widgets.map(w => w.id)).toEqual(['d1']);
-    expect(result.dock?.widgets[0].size).toBe('1x1');
   });
 });

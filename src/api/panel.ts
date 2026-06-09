@@ -1,5 +1,6 @@
 import { getToken, handleUnauthorized } from './auth';
 import { deleteService, fetchService, isRelayActive, isRemoteOrigin, postService, relayRequestWithStatus, resolveHttp } from './service';
+import { deriveDeviceLabel } from '../lib/platform';
 import type { PanelLayout, PanelSurface } from '../panel/types';
 import type { EffectState } from '../types/lighting';
 
@@ -17,7 +18,6 @@ export interface PanelDeviceCapabilitiesDto {
   surface?: PanelSurface;
   grid?: string;
   touch?: boolean;
-  dock?: boolean;
   orientation?: string;
   cssWidth?: number;
   cssHeight?: number;
@@ -390,7 +390,7 @@ export async function claimPanelPhonePairing(pairToken: string, deviceId: string
     const res = await fetch(resolveHttp('/panel/phone/claim'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pairToken, deviceId }),
+      body: JSON.stringify({ pairToken, deviceId, deviceName: deriveDeviceLabel() }),
     });
     if (!res.ok) {
       try { return (await res.json()) as PanelPhoneClaimResponse; }
@@ -419,7 +419,7 @@ export async function claimPanelPhonePairingLan(
     const res = await fetch(`http://${host}:${httpPort}/panel/phone/claim`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pairToken }),
+      body: JSON.stringify({ pairToken, deviceName: deriveDeviceLabel() }),
       signal,
     });
     if (!res.ok) {

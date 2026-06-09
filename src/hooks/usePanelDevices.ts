@@ -206,7 +206,7 @@ function buildPanelDevices({
       subtitle: labels.phone,
       status: recentlyActive ? 'recently-active' : 'paired',
       statusLabel: recentlyActive ? labels.recentlyActive : labels.paired,
-      connectionKind: 'external-browser',
+      connectionKind: 'remote',
       managementMode: 'self-managed',
       surfaceProfileKey: 'phone-responsive',
       runtimeSurface: 'phone',

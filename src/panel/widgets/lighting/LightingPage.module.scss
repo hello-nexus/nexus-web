@@ -988,6 +988,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-transform: uppercase; // category-header convention (matches cooling)
 }
 
 .motherboardGroupChildren {

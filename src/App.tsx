@@ -1,7 +1,5 @@
 import { PairRedirect } from './PairRedirect';
-import { WidgetReferenceWrapper } from './widgets/reference/WidgetReference';
 import { TelemetryReference } from './telemetry/reference/TelemetryReference';
-import { SnapshotHarness } from './__snapshots__/legacy-weather/SnapshotHarness';
 import { I18nProvider } from './lib/i18n';
 import { SIMULATOR_QUERY_FLAG } from './panel/embed/simulatorProtocol';
 import {
@@ -63,32 +61,12 @@ export default function App() {
     return <PairRedirect />;
   }
 
-  // Declarative widget UI reference: catalog of every meter type plus the
-  // binding cheatsheet (available tags / props / variants).
-  if (path === '/widget-reference') {
-    return (
-      <I18nProvider>
-        <WidgetReferenceWrapper />
-      </I18nProvider>
-    );
-  }
-
   // Product-telemetry event catalog (what we send to PostHog), opened from the
   // Dev tools page.
   if (path === '/telemetry-reference') {
     return (
       <I18nProvider>
         <TelemetryReference />
-      </I18nProvider>
-    );
-  }
-
-  // Widget visual-parity harness: legacy + declarative versions side-by-side
-  // with identical mocked data; Playwright takes pixel screenshots.
-  if (path === '/snapshot-harness') {
-    return (
-      <I18nProvider>
-        <SnapshotHarness />
       </I18nProvider>
     );
   }

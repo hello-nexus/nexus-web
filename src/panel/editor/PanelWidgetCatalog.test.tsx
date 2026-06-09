@@ -22,9 +22,9 @@ vi.mock('../widgets/registry', () => {
         touch: false,
       },
     },
-    snake: {
+    lighting: {
       meta: {
-        i18nKey: 'panel.widget.snake',
+        i18nKey: 'panel.widget.lighting',
         sizes: ['4x4'],
         touch: true,
       },
@@ -55,7 +55,7 @@ vi.mock('../widgets/registry', () => {
 // the test environment, stub the registry helpers to no-ops.
 vi.mock('../../widgets/marketplaceRegistry', () => ({
   isMarketplaceRegistryStale: () => false,
-  loadMarketplaceWidgets: () => Promise.resolve(),
+  loadMarketplaceApps: () => Promise.resolve(),
   subscribeMarketplaceRegistry: () => () => {},
   isMarketplaceType: (type: string) => type.startsWith('marketplace:'),
   marketplaceIdFromType: (type: string) =>
@@ -63,8 +63,8 @@ vi.mock('../../widgets/marketplaceRegistry', () => ({
   isMarketplaceIdEnabled: () => true,
 }));
 
-vi.mock('../widgets/common/WidgetPreviewCard', () => ({
-  WidgetPreviewCard: ({
+vi.mock('../PanelDragCells', () => ({
+  PanelCatalogCell: ({
     label,
     onClick,
   }: {
@@ -92,12 +92,12 @@ describe('PanelWidgetCatalog', () => {
 
     expect(screen.getByRole('button', { name: 'panel.widget.clock' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'panel.widget.media' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'panel.widget.snake' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.widget.lighting' })).toBeNull();
   });
 
   it('shows touch-only widgets on touch surfaces', () => {
     render(<PanelWidgetCatalog surface="y70" onAdd={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'panel.widget.snake' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toBeInTheDocument();
   });
 });

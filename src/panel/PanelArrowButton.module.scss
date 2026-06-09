@@ -1,0 +1,47 @@
+// Naked chevron arrow - no pill, no background. Colour tracks the muted
+// panel text; drop shadow keeps it legible over any frame. Token fallbacks
+// let it render in desktop chrome (device-page preview) where the --panel-*
+// vars aren't in scope.
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--panel-text-muted, var(--text-dim));
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ease-fast, 150ms) ease, transform var(--ease-fast, 150ms) ease;
+
+  svg {
+    width: 26px;
+    height: 26px;
+    stroke-width: 2.2;
+    filter: drop-shadow(0 1px 3px rgb(0 0 0 / var(--alpha-strong, 0.5)));
+  }
+
+  &[data-side='prev'] { left: 6px;  justify-content: flex-start; padding-left: 4px; }
+  &[data-side='next'] { right: 6px; justify-content: flex-end;   padding-right: 4px; }
+
+  &:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
+
+  &:not(:disabled):hover {
+    color: var(--panel-text, var(--text));
+    transform: translateY(-50%) scale(1.04);
+  }
+
+  &:not(:disabled):active {
+    transform: translateY(-50%) scale(0.96);
+    color: var(--panel-accent-glow, var(--accent));
+  }
+}

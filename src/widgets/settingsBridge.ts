@@ -1,5 +1,5 @@
 // Host-side settings facade for the widget bridge. Talks to
-// `/widgets-api/installed/{id}/settings` and broadcasts changes to
+// `/apps-api/installed/{id}/settings` and broadcasts changes to
 // subscribers (the Tier 2 worker host and the in-host settings form).
 
 import { fetchService, resolveHttp } from '../api/service';
@@ -44,7 +44,7 @@ export class WidgetSettingsBridge {
 
   async load(): Promise<Record<string, unknown>> {
     const doc = await fetchService<WidgetSettingsDocument>(
-      `/widgets-api/instance/${encodeURIComponent(this.instanceId)}/settings`,
+      `/apps-api/instance/${encodeURIComponent(this.instanceId)}/settings`,
     );
     if (doc?.values) {
       this.values = doc.values;
@@ -58,14 +58,14 @@ export class WidgetSettingsBridge {
     const token = await getToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    let res = await fetch(resolveHttp(`/widgets-api/instance/${encodeURIComponent(this.instanceId)}/settings`), {
+    let res = await fetch(resolveHttp(`/apps-api/instance/${encodeURIComponent(this.instanceId)}/settings`), {
       method: 'PATCH', headers, body: JSON.stringify(patch),
     });
     if (res.status === 401) {
       const next = await handleUnauthorized();
       if (next) {
         headers['Authorization'] = `Bearer ${next}`;
-        res = await fetch(resolveHttp(`/widgets-api/instance/${encodeURIComponent(this.instanceId)}/settings`), {
+        res = await fetch(resolveHttp(`/apps-api/instance/${encodeURIComponent(this.instanceId)}/settings`), {
           method: 'PATCH', headers, body: JSON.stringify(patch),
         });
       }

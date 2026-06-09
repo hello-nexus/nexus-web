@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  dockRowsForGrid,
-  paginateCapacityForGrid,
   flattenPages,
   repaginatePanelLayout,
   firstFreeRect,
@@ -92,49 +90,6 @@ describe('firstFreeRect', () => {
     void existing;
     const placed = [widget('2x2', 0, 0), widget('2x2', 0, 6)];
     expect(firstFreeRect(placed, COLS, 8, 2, 2)).toEqual({ col: 2, row: 0 });
-  });
-});
-
-describe('dockRowsForGrid', () => {
-  it('reserves 1 row for portrait grids when enabled', () => {
-    expect(dockRowsForGrid(4, 8, true)).toBe(1);
-    expect(dockRowsForGrid(4, 12, true)).toBe(1);
-  });
-
-  it('reserves 1 row for landscape grids when enabled', () => {
-    expect(dockRowsForGrid(8, 4, true)).toBe(1);
-  });
-
-  it('returns 0 when the dock is disabled', () => {
-    expect(dockRowsForGrid(4, 8, false)).toBe(0);
-  });
-});
-
-describe('paginateCapacityForGrid', () => {
-  it('shaves a row in portrait when the dock is enabled', () => {
-    expect(paginateCapacityForGrid(4, 8, true, 'portrait')).toEqual({ gridCols: 4, pageRows: 7 });
-  });
-
-  it('shaves a column in landscape when the dock is enabled', () => {
-    expect(paginateCapacityForGrid(8, 4, true, 'landscape')).toEqual({ gridCols: 7, pageRows: 4 });
-  });
-
-  it('keeps the full 4x12 page on Y70 portrait — its fixed grid has room for the dock below', () => {
-    expect(paginateCapacityForGrid(4, 12, true, 'portrait', 'y70')).toEqual({ gridCols: 4, pageRows: 12 });
-  });
-
-  it('still shaves a column on Y70 landscape — the 4x2 grid is too wide to fit a dock column', () => {
-    expect(paginateCapacityForGrid(4, 2, true, 'landscape', 'y70')).toEqual({ gridCols: 3, pageRows: 2 });
-  });
-
-  it('returns full grid dimensions when the dock is disabled', () => {
-    expect(paginateCapacityForGrid(4, 8, false, 'portrait')).toEqual({ gridCols: 4, pageRows: 8 });
-    expect(paginateCapacityForGrid(8, 4, false, 'landscape')).toEqual({ gridCols: 8, pageRows: 4 });
-  });
-
-  it('clamps to at least 1 unit to keep the renderer from dividing by zero', () => {
-    expect(paginateCapacityForGrid(1, 4, true, 'landscape').gridCols).toBeGreaterThanOrEqual(1);
-    expect(paginateCapacityForGrid(4, 1, true, 'portrait').pageRows).toBeGreaterThanOrEqual(1);
   });
 });
 

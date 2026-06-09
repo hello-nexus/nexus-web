@@ -18,34 +18,13 @@
   @include scrollbar-visible($thumb: var(--panel-border), $thumb-hover: var(--panel-border-strong));
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  padding: 4px 2px 12px;
-  align-content: start;
-}
-
-.grid > [data-tile-span='wide'] {
-  grid-column: 1 / -1;
-}
-
-.desktop .grid {
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.6rem;
-  padding: 0.25rem;
-}
-
-// Single-widget surfaces (Q60 / Q80) render cards at the 2x4 widget aspect
-// (tall, narrow). The default 180px column min-width makes each ~180 × 360,
-// dominating the catalog. Drop the floor + max so 5–6 tiles fit per row.
-.desktop[data-surface='q60'] .grid,
-.desktop[data-surface='q80'] .grid {
-  grid-template-columns: repeat(auto-fill, minmax(120px, 160px));
+// Wrapper for the panel grids (built-ins + marketplace). Holds the measured
+// width the column count derives from.
+.propWrap {
+  padding: 4px 0 12px;
 }
 
 .empty {
-  grid-column: 1 / -1;
   padding: 32px 8px;
   text-align: center;
   color: var(--panel-text-muted);
