@@ -9,9 +9,12 @@ import type { HostProps } from './ui/components';
 import {
   Stack, Grid, Frame, Spacer, Divider, Text, Icon,
   Ring, Bar, Range, Gauge, Sparkline, Slider, Button, Stepper,
-  Image, Scroll, Input, Chart,
+  Image, Scroll, Input, Chart, Badge,
 } from './ui/components';
-import { WorldClock, ClockFace, ViewHeaderHost } from './ui/richComponents';
+import {
+  WorldClock, ClockFace, ViewHeaderHost,
+  ToggleHost, Segmented, CardHost, EmptyHost, Section,
+} from './ui/richComponents';
 
 export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-stack': Stack,
@@ -33,6 +36,12 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-scroll': Scroll,
   'ui-input': Input,
   'ui-chart': Chart,
+  'ui-toggle': ToggleHost,
+  'ui-segmented': Segmented,
+  'ui-card': CardHost,
+  'ui-badge': Badge,
+  'ui-empty': EmptyHost,
+  'ui-section': Section,
   'ui-worldclock': WorldClock,
   'ui-clockface': ClockFace,
   'ui-viewheader': ViewHeaderHost,

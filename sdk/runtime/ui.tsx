@@ -132,6 +132,21 @@ export interface ViewHeaderProps {
   activeTab?: string;
   onChange?: (key: string) => void;
 }
+export interface ToggleProps {
+  value?: boolean; disabled?: boolean; label?: string;
+  onChange?: (value: boolean) => void;
+}
+export interface SegmentedOption { key: string; label?: string; icon?: string }
+export interface SegmentedProps {
+  options: SegmentedOption[]; value?: string; disabled?: boolean;
+  onChange?: (key: string) => void;
+}
+export interface CardProps extends WithChildren {
+  title?: string; subtitle?: string; interactive?: boolean; onPress?: () => void;
+}
+export interface BadgeProps { label: string; tone?: UiTone; icon?: string }
+export interface EmptyProps { title: string; hint?: string; icon?: string; compact?: boolean }
+export interface SectionProps { title: string }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const Stack = createRemoteComponent('ui-stack' as any, ELEMENT_CTORS['ui-stack']) as unknown as React.FC<StackProps>;
@@ -156,4 +171,10 @@ export const Chart = createRemoteComponent('ui-chart' as any, ELEMENT_CTORS['ui-
 export const WorldClock = createRemoteComponent('ui-worldclock' as any, ELEMENT_CTORS['ui-worldclock']) as unknown as React.FC<WorldClockProps>;
 export const ClockFace = createRemoteComponent('ui-clockface' as any, ELEMENT_CTORS['ui-clockface']) as unknown as React.FC<ClockFaceProps>;
 export const ViewHeader = eventComponent<ViewHeaderProps>('ui-viewheader', ELEMENT_CTORS['ui-viewheader'], [['onChange', 'change']]);
+export const Toggle = eventComponent<ToggleProps>('ui-toggle', ELEMENT_CTORS['ui-toggle'], [['onChange', 'change']]);
+export const Segmented = eventComponent<SegmentedProps>('ui-segmented', ELEMENT_CTORS['ui-segmented'], [['onChange', 'change']]);
+export const Card = eventComponent<CardProps>('ui-card', ELEMENT_CTORS['ui-card'], [['onPress', 'press']]);
+export const Badge = createRemoteComponent('ui-badge' as any, ELEMENT_CTORS['ui-badge']) as unknown as React.FC<BadgeProps>;
+export const Empty = createRemoteComponent('ui-empty' as any, ELEMENT_CTORS['ui-empty']) as unknown as React.FC<EmptyProps>;
+export const Section = createRemoteComponent('ui-section' as any, ELEMENT_CTORS['ui-section']) as unknown as React.FC<SectionProps>;
 /* eslint-enable @typescript-eslint/no-explicit-any */

@@ -76,6 +76,24 @@ export const UI_ELEMENTS = {
   // A multi-series line/area chart (richer than ui-sparkline). The worker passes
   // numeric series; the host draws the SVG, so no raw-SVG escape.
   'ui-chart': { properties: ['series', 'min', 'max', 'height', 'gridlines', 'tone'] },
+  // A boolean switch (the native Toggle). `value` is the on/off state; the host
+  // fires `change` with the next boolean.
+  'ui-toggle': { properties: ['value', 'disabled', 'label'], events: ['change'] },
+  // A segmented switcher: one pill per option (the native IconLabelButton), like
+  // the clock's design picker. `options` is [{ key, label?, icon? }]; `value` is
+  // the active key; the host fires `change` with the chosen key.
+  'ui-segmented': { properties: ['options', 'value', 'disabled'], events: ['change'] },
+  // --- surfaces / display (presentational, reuse native chrome) ---
+  // A standard Card surface. Holds children; optional title/subtitle chrome.
+  // When `interactive`, the whole card is pressable and fires `press`.
+  'ui-card': { properties: ['title', 'subtitle', 'interactive'], events: ['press'] },
+  // A small status pill. `label` text tinted by `tone`; optional leading `icon`.
+  'ui-badge': { properties: ['label', 'tone', 'icon'] },
+  // Standard empty state (the native EmptyState): icon + title + hint. For
+  // "nothing playing" / "no devices" surfaces.
+  'ui-empty': { properties: ['title', 'hint', 'icon', 'compact'] },
+  // Uppercase section header (the native SectionHeader) for grouping a page.
+  'ui-section': { properties: ['title'] },
   // --- blessed composites ---
   // Rich, host-owned widgets the worker can place but not redraw. The host
   // renders the SAME pure presentational component a native widget uses (e.g.

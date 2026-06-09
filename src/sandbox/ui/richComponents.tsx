@@ -6,15 +6,27 @@
 // and supplies only serializable inputs; the host owns every pixel, keeping the
 // visual-consistency guarantee and giving SDK pages the standard page chrome.
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { HostProps } from './components';
+import { ICON_TABLE } from './icons';
 import { ViewHeader } from '../../components/common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../components/common/Tabs/Tabs';
+import { Toggle } from '../../components/common/Toggle/Toggle';
+import { Card } from '../../components/common/Card/Card';
+import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
+import { EmptyState } from '../../components/common/EmptyState/EmptyState';
+import { SectionHeader } from '../../components/common/SectionHeader/SectionHeader';
 import { ClockWorldView } from '../../panel/widgets/clock/ClockWorldView';
 import { CLOCK_DESIGNS } from '../../panel/widgets/clock/designs';
 
 const num = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
+// Resolve a contract icon name to a node (same lucide table as <ui-icon>), so
+// blessed components that take an icon get the identical glyph set.
+function iconNode(name: unknown, size = 16): ReactNode | undefined {
+  const I = ICON_TABLE[(str(name) ?? '').toLowerCase()];
+  return I ? <I size={size} aria-hidden="true" /> : undefined;
+}
 const fill: CSSProperties = { display: 'flex', flex: 1, minWidth: 0, minHeight: 0, alignItems: 'center', justifyContent: 'center' };
 
 // The full day/night world clock page body (map + scrollable city cards).
@@ -62,4 +74,76 @@ export function ClockFace(p: HostProps) {
       />
     </div>
   );
+}
+
+// A boolean switch — the native Toggle. The worker sends `value`; the host
+// fires `change` with the next boolean.
+export function ToggleHost(p: HostProps) {
+  return (
+    <Toggle
+      checked={!!p.value}
+      disabled={!!p.disabled}
+      ariaLabel={str(p.label)}
+      onChange={(b) => p.__events?.change?.(b)}
+    />
+  );
+}
+
+// A segmented switcher — a row of the native IconLabelButton (the same pill the
+// clock design picker uses). `options` is [{ key, label?, icon? }].
+export function Segmented(p: HostProps) {
+  const opts = Array.isArray(p.options)
+    ? (p.options as Array<{ key?: unknown; label?: unknown; icon?: unknown }>)
+    : [];
+  const active = str(p.value);
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', minWidth: 0 }}>
+      {opts.filter((o) => typeof o?.key === 'string').map((o) => {
+        const key = String(o.key);
+        return (
+          <IconLabelButton
+            key={key}
+            active={key === active}
+            disabled={!!p.disabled}
+            icon={iconNode(o.icon)}
+            label={o.label != null ? String(o.label) : undefined}
+            onPress={() => p.__events?.change?.(key)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// A standard Card surface; holds children, optional title/subtitle chrome, and
+// is pressable (fires `press`) when `interactive`.
+export function CardHost(p: HostProps) {
+  const interactive = !!p.interactive;
+  return (
+    <Card
+      title={str(p.title)}
+      subtitle={str(p.subtitle)}
+      interactive={interactive}
+      onClick={interactive ? () => p.__events?.press?.() : undefined}
+    >
+      {p.children}
+    </Card>
+  );
+}
+
+// The native empty state — icon + title + hint.
+export function EmptyHost(p: HostProps) {
+  return (
+    <EmptyState
+      title={str(p.title) ?? ''}
+      hint={str(p.hint)}
+      icon={iconNode(p.icon, 28)}
+      compact={!!p.compact}
+    />
+  );
+}
+
+// The native uppercase section header.
+export function Section(p: HostProps) {
+  return <SectionHeader>{str(p.title) ?? ''}</SectionHeader>;
 }

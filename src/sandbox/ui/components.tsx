@@ -361,3 +361,23 @@ export function Chart(p: HostProps) {
     </svg>
   );
 }
+
+// A small status pill. `label` tinted by `tone`; optional leading `icon`. No
+// native Badge exists, so this is a host primitive (tokens keep it on-theme).
+export function Badge(p: HostProps) {
+  const color = toneVar(str(p.tone), 'var(--text)');
+  const Icn = ICON_TABLE[(str(p.icon) ?? '').toLowerCase()];
+  return (
+    <span
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600,
+        lineHeight: 1.45, whiteSpace: 'nowrap', color,
+        background: `color-mix(in srgb, ${color} 14%, transparent)`,
+      }}
+    >
+      {Icn ? <Icn size={12} aria-hidden="true" /> : null}
+      {str(p.label) ?? ''}
+    </span>
+  );
+}
