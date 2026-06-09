@@ -95,7 +95,7 @@ export const UI_ELEMENTS = {
   // fires `change` with the full point array on each edit.
   'ui-curve': {
     properties: ['points', 'xmin', 'xmax', 'ymin', 'ymax', 'tone'],
-    events: ['change'],
+    events: ['preview', 'change'],
   },
   // --- surfaces / display (presentational, reuse native chrome) ---
   // A standard Card surface. Holds children; optional title/subtitle chrome.

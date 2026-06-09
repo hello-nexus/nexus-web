@@ -161,7 +161,9 @@ export interface CurvePoint { x: number; y: number }
 export interface CurveProps {
   points: CurvePoint[];
   xmin?: number; xmax?: number; ymin?: number; ymax?: number; tone?: UiTone;
-  /** Fires with the full point array on each edit (drag / add / remove). */
+  /** Fires continuously while dragging a point (live, cheap — no persist). */
+  onPreview?: (points: CurvePoint[]) => void;
+  /** Fires on a commit: drag release, add (double-click), or remove (right-click). */
   onChange?: (points: CurvePoint[]) => void;
 }
 export interface BadgeProps { label: string; tone?: UiTone; icon?: string }
@@ -196,7 +198,7 @@ export const Toggle = eventComponent<ToggleProps>('ui-toggle', ELEMENT_CTORS['ui
 export const Segmented = eventComponent<SegmentedProps>('ui-segmented', ELEMENT_CTORS['ui-segmented'], [['onChange', 'change']]);
 export const Color = eventComponent<ColorProps>('ui-color', ELEMENT_CTORS['ui-color'], [['onPreview', 'preview'], ['onChange', 'change']]);
 export const Card = eventComponent<CardProps>('ui-card', ELEMENT_CTORS['ui-card'], [['onPress', 'press'], ['onLongPress', 'longpress']]);
-export const Curve = eventComponent<CurveProps>('ui-curve', ELEMENT_CTORS['ui-curve'], [['onChange', 'change']]);
+export const Curve = eventComponent<CurveProps>('ui-curve', ELEMENT_CTORS['ui-curve'], [['onPreview', 'preview'], ['onChange', 'change']]);
 export const Badge = createRemoteComponent('ui-badge' as any, ELEMENT_CTORS['ui-badge']) as unknown as React.FC<BadgeProps>;
 export const Empty = createRemoteComponent('ui-empty' as any, ELEMENT_CTORS['ui-empty']) as unknown as React.FC<EmptyProps>;
 export const Section = createRemoteComponent('ui-section' as any, ELEMENT_CTORS['ui-section']) as unknown as React.FC<SectionProps>;

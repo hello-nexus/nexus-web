@@ -56,7 +56,9 @@ export function CurveHost(p: HostProps) {
     const r = el.getBoundingClientRect();
     return { x: ((e.clientX - r.left) / r.width) * VIEW_W, y: ((e.clientY - r.top) / r.height) * VIEW_H };
   };
-  const emit = (next: Pt[]) => p.__events?.change?.(next.map((q) => ({ x: q.x, y: q.y })));
+  // preview = continuous during a drag (live, cheap); change = a commit (release,
+  // add, remove) so a consumer can persist/dispatch only on commit, like ui-slider.
+  const emit = (ev: 'preview' | 'change', next: Pt[]) => p.__events?.[ev]?.(next.map((q) => ({ x: q.x, y: q.y })));
 
   const onPtrDown = (idx: number, e: React.PointerEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -75,17 +77,17 @@ export function CurveHost(p: HostProps) {
     const ny = Math.max(ymin, Math.min(ymax, fromY(sp.y)));
     const nextSorted = sorted.slice(); nextSorted[i] = { x: nx, y: ny };
     setDrag({ idx: i, pts: nextSorted });
-    emit(nextSorted);
+    emit('preview', nextSorted);
   };
-  const onPtrUp = () => { if (drag) { emit(drag.pts.slice().sort((a, b) => a.x - b.x)); setDrag(null); } };
+  const onPtrUp = () => { if (drag) { emit('change', drag.pts.slice().sort((a, b) => a.x - b.x)); setDrag(null); } };
   const onDblClick = (e: React.MouseEvent) => {
     const sp = svgPoint(e); if (!sp) return;
     const np = { x: Math.max(xmin, Math.min(xmax, fromX(sp.x))), y: Math.max(ymin, Math.min(ymax, fromY(sp.y))) };
-    emit([...pts, np].sort((a, b) => a.x - b.x));
+    emit('change', [...pts, np].sort((a, b) => a.x - b.x));
   };
   const onCtx = (idx: number, e: React.MouseEvent) => {
     e.preventDefault();
-    if (pts.length > 2) emit(pts.filter((_, i) => i !== idx));
+    if (pts.length > 2) emit('change', pts.filter((_, i) => i !== idx));
   };
 
   const line = pts.map((q, i) => `${i === 0 ? 'M' : 'L'} ${toX(q.x)} ${toY(q.y)}`).join(' ');
