@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { RemoteTree } from './RemoteTree';
+import { SdkErrorBoundary } from './SdkErrorBoundary';
 import { spawnSandboxedWidget, type SandboxContext, type SandboxHandle } from './host';
 
 export interface SandboxedWidgetProps {
@@ -128,7 +129,11 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
 
   return (
     <div ref={wrapRef} style={{ width: '100%', height: '100%', display: 'flex', minWidth: 0, minHeight: 0 }}>
-      {handle ? <RemoteTree receiver={handle.receiver} /> : null}
+      {handle ? (
+        <SdkErrorBoundary widgetId={widgetId} resetKey={handle.receiver}>
+          <RemoteTree receiver={handle.receiver} />
+        </SdkErrorBoundary>
+      ) : null}
     </div>
   );
 }
