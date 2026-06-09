@@ -74,9 +74,10 @@ the host-provided `globalThis.__nexusRuntime`, so the shipped `widget.mjs` is on
 code (a starter app builds to ~1.3 KB).
 
 ```sh
-node sdk/cli/nexus-app.mjs new my-app     # scaffold index.tsx + manifest.json + config
+node sdk/cli/nexus-app.mjs new my-app     # scaffold nexus.app/1: index.tsx + manifest.json + assets + config
 node sdk/cli/nexus-app.mjs build my-app   # -> my-app/widget.mjs  (--dev, --sourcemap)
-node sdk/cli/nexus-app.mjs validate my-app
+node sdk/cli/nexus-app.mjs dev my-app     # rebuild widget.mjs on change (unminified)
+node sdk/cli/nexus-app.mjs validate my-app # check manifest + entry against the nexus.app/1 schema
 ```
 
 The shim re-exports exactly what the runtime exports (probed). Runtime source: the installed

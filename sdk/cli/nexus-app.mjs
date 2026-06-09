@@ -17,7 +17,7 @@
 // dir, else the in-tree sdk/runtime (this repo's dev checkout). Override with NEXUS_SDK_RUNTIME
 // (a dir containing sdk.ts/ui.tsx or an installed package's dist).
 
-import { build } from 'esbuild';
+import { build, context } from 'esbuild';
 import { mkdirSync, writeFileSync, existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, resolve, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -87,26 +87,46 @@ function shimPlugin(sdkExports, uiExports) {
 }
 
 // --- commands --------------------------------------------------------------------------
-async function cmdBuild(appDir, opts) {
+// Shared esbuild config: bundle index.tsx -> widget.mjs, externalising react /
+// @hello-nexus/* to the host runtime shims. dev => unminified + NODE_ENV development.
+async function buildSpec(appDir, opts) {
   const dir = abs(appDir);
   const entry = join(dir, 'index.tsx');
   if (!existsSync(entry)) die(`no index.tsx in ${dir} (run \`nexus-app new\` first)`);
   const rt = resolveRuntime(dir);
   const [sdkExports, uiExports] = await Promise.all([probeExports(rt.sdk), probeExports(rt.ui)]);
-  const out = join(dir, 'widget.mjs');
-  const r = await build({
-    entryPoints: [entry], outfile: out,
-    bundle: true, format: 'esm', platform: 'browser', target: 'es2019',
-    jsx: 'automatic', jsxImportSource: 'react', minify: !opts.dev, sourcemap: !!opts.sourcemap,
-    plugins: [shimPlugin(sdkExports, uiExports)],
-    define: { 'process.env.NODE_ENV': opts.dev ? '"development"' : '"production"' },
-    metafile: true, logLevel: 'warning',
-  });
+  return {
+    rt,
+    options: {
+      entryPoints: [entry], outfile: join(dir, 'widget.mjs'),
+      bundle: true, format: 'esm', platform: 'browser', target: 'es2019',
+      jsx: 'automatic', jsxImportSource: 'react', minify: !opts.dev, sourcemap: !!opts.sourcemap,
+      plugins: [shimPlugin(sdkExports, uiExports)],
+      define: { 'process.env.NODE_ENV': opts.dev ? '"development"' : '"production"' },
+      metafile: true, logLevel: 'warning',
+    },
+  };
+}
+
+async function cmdBuild(appDir, opts) {
+  const { rt, options } = await buildSpec(appDir, opts);
+  const r = await build(options);
   const kb = Math.round((Object.values(r.metafile.outputs).find((o) => o.entryPoint)?.bytes ?? 0) / 1024 * 10) / 10;
   console.log(`built ${appDir}/widget.mjs (${kb} KB)  [runtime: ${rt.where}]`);
 }
 
-const ALLOWED_CAPS = new Set(['net.fetch', 'sensors.read', 'dispatch']);
+async function cmdDev(appDir, opts) {
+  const { rt, options } = await buildSpec(appDir, { ...opts, dev: true });
+  const ctx = await context(options);
+  await ctx.rebuild();
+  await ctx.watch();
+  console.log(`watching ${appDir}/index.tsx -> widget.mjs (dev, unminified)  [runtime: ${rt.where}]\nCtrl-C to stop.`);
+  await new Promise(() => {}); // keep alive until interrupted
+}
+
+// nexus.app/1 capability keys: array allowlists vs boolean flags vs the code model.
+const ARRAY_CAPS = new Set(['net.fetch', 'sensors.read', 'dispatch']);
+const BOOL_CAPS = new Set(['rgb.read', 'rgb.write', 'config']);
 
 function cmdValidate(appDir) {
   const dir = abs(appDir);
@@ -120,17 +140,26 @@ function cmdValidate(appDir) {
     try { m = JSON.parse(readFileSync(mPath, 'utf8')); }
     catch (e) { errors.push(`manifest.json is not valid JSON: ${e.message}`); }
     if (m) {
+      if (m.schema !== 'nexus.app/1') warns.push('manifest.schema should be "nexus.app/1"');
       if (typeof m.id !== 'string' || !/^[a-z0-9.-]+\.[a-z0-9.-]+$/i.test(m.id)) errors.push('manifest.id must be a reverse-DNS string (e.g. com.you.myapp)');
       if (typeof m.name !== 'string' || !m.name) errors.push('manifest.name is required');
       if (typeof m.version !== 'string' || !/^\d+\.\d+\.\d+/.test(m.version)) errors.push('manifest.version must be semver (e.g. 0.1.0)');
+      if (m.runtime != null && m.runtime !== 'sdk') warns.push('manifest.runtime should be "sdk"');
+      if (m.page != null && typeof m.page !== 'boolean') errors.push('manifest.page must be a boolean');
       if (m.capabilities != null) {
         if (typeof m.capabilities !== 'object' || Array.isArray(m.capabilities)) errors.push('manifest.capabilities must be an object');
         else for (const [k, v] of Object.entries(m.capabilities)) {
-          if (!ALLOWED_CAPS.has(k)) warns.push(`unknown capability "${k}" (known: ${[...ALLOWED_CAPS].join(', ')})`);
-          if (!Array.isArray(v) || v.some((x) => typeof x !== 'string')) errors.push(`capability "${k}" must be a string array`);
+          if (ARRAY_CAPS.has(k)) {
+            if (!Array.isArray(v) || v.some((x) => typeof x !== 'string')) errors.push(`capability "${k}" must be a string array`);
+          } else if (BOOL_CAPS.has(k)) {
+            if (typeof v !== 'boolean') errors.push(`capability "${k}" must be a boolean`);
+          } else if (k === 'code') {
+            if (v !== 'worker') warns.push('capability "code" is usually "worker"');
+          } else {
+            warns.push(`unknown capability "${k}"`);
+          }
         }
       }
-      if (m.page != null && typeof m.page !== 'boolean') errors.push('manifest.page must be a boolean');
     }
   }
   for (const w of warns) console.warn(`warn: ${w}`);
@@ -143,7 +172,11 @@ function cmdNew(appDir) {
   if (existsSync(dir) && readdirSync(dir).length) die(`${dir} exists and is not empty`);
   mkdirSync(dir, { recursive: true });
   const id = appDir.split(/[\\/]/).pop().replace(/[^a-z0-9-]/gi, '-').toLowerCase();
-  for (const [name, content] of Object.entries(TEMPLATES(id))) writeFileSync(join(dir, name), content);
+  for (const [name, content] of Object.entries(TEMPLATES(id))) {
+    const target = join(dir, name);
+    mkdirSync(dirname(target), { recursive: true }); // nested (e.g. assets/icon.svg)
+    writeFileSync(target, content);
+  }
   console.log(`scaffolded ${appDir}/`);
   console.log('  next:  cd ' + appDir + ' && npm install && npx nexus-app build .');
 }
@@ -177,14 +210,26 @@ function App() {
 mount(App);
 `,
   'manifest.json': JSON.stringify({
+    schema: 'nexus.app/1',
     id: `com.example.${id}`,
     name: id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
     version: '0.1.0',
     description: 'A Nexus SDK app.',
-    // Capabilities the host grants. Empty = no network, no sensors, no host actions.
-    // (The authoritative grant set is the signed cert; the manifest must be a subset.)
-    capabilities: { 'net.fetch': [], 'sensors.read': [], 'dispatch': [] },
+    author: { name: '', url: '' },
+    icon: 'assets/icon.svg',
+    min_nexus_version: '0.42.0',
+    runtime: 'sdk',
     page: false,
+    surfaces: ['dashboard'],
+    sizes: ['4x2', '4x4'],
+    default_size: '4x2',
+    // Capabilities the host grants. Arrays are allowlists (empty = none); the
+    // rgb.*/config flags are booleans; code is the execution model. The
+    // authoritative grant set is the signed cert; the manifest must be a subset.
+    capabilities: {
+      'sensors.read': [], 'rgb.read': false, 'rgb.write': false,
+      'net.fetch': [], config: false, code: 'worker', dispatch: [],
+    },
   }, null, 2) + '\n',
   'package.json': JSON.stringify({
     name: id,
@@ -207,6 +252,7 @@ mount(App);
 @hello-nexus:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=\${GITHUB_TOKEN}
 `,
+  'assets/icon.svg': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>\n`,
   '.gitignore': 'node_modules\nwidget.mjs\nwidget.mjs.map\n',
   'README.md': `# ${id}
 
@@ -238,10 +284,13 @@ switch (cmd) {
   case 'build':
     await cmdBuild(dirArg, { dev: flags.has('--dev'), sourcemap: flags.has('--sourcemap') });
     break;
+  case 'dev':
+    await cmdDev(dirArg, { sourcemap: flags.has('--sourcemap') });
+    break;
   case 'validate':
     cmdValidate(dirArg);
     break;
   default:
-    console.log('nexus-app — Nexus SDK app CLI\n\n  new <dir>        scaffold a starter app\n  build [dir]      bundle index.tsx -> widget.mjs  (--dev, --sourcemap)\n  validate [dir]   check manifest + entry');
+    console.log('nexus-app — Nexus SDK app CLI\n\n  new <dir>        scaffold a starter app\n  build [dir]      bundle index.tsx -> widget.mjs  (--dev, --sourcemap)\n  dev [dir]        rebuild widget.mjs on change (unminified)\n  validate [dir]   check manifest + entry against nexus.app/1');
     if (cmd && cmd !== '--help' && cmd !== '-h') process.exit(1);
 }
