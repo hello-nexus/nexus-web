@@ -93,7 +93,7 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   spiral: 'geometric', voronoi: 'geometric', kaleidoscope: 'geometric',
   wormhole: 'geometric', sacredgeometry: 'geometric',
   tessellation: 'geometric', chromaspiral: 'geometric', neongrid: 'geometric',
-  neoncube: 'geometric', hextunnel: 'geometric', mandelbrot: 'geometric',
+  hextunnel: 'geometric', mandelbrot: 'geometric',
   circuit: 'geometric', crystaltunnel: 'geometric',
   // Pattern / animation / waves.
   rainbow: 'pattern', matrix: 'pattern', meteor: 'pattern', ripple: 'pattern',
@@ -275,11 +275,6 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_flow',         label: 'Flow',         min: 0.1, max: 3.0, step: 0.05, defaultValue: 1.5 },
       { name: 'u_iridescence',  label: 'Iridescence',  min: 0.3, max: 4.0, step: 0.05, defaultValue: 2.5 },
       { name: 'u_scale',        label: 'Scale',        min: 0.3, max: 4.0, step: 0.05, defaultValue: 1.5 },
-  ]},
-  { key: 'neoncube',      labelKey: 'lighting.controls.neoncube',     params: [
-      { name: 'u_size', label: 'Size',  min: 0.2, max: 1.6, step: 0.05, defaultValue: 0.8 },
-      { name: 'u_spin', label: 'Spin',  min: 0.1, max: 4.0, step: 0.05, defaultValue: 1.0 },
-      { name: 'u_glow', label: 'Glow',  min: 0.2, max: 3.0, step: 0.05, defaultValue: 1.0 },
   ]},
   { key: 'caustics',      labelKey: 'lighting.controls.caustics',     params: [
       { name: 'u_density',    label: 'Density',    min: 0.5, max: 3.0, step: 0.05, defaultValue: 1.4 },

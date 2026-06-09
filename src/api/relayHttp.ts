@@ -133,7 +133,10 @@ class RelayHttpTunnel {
     this.ws = socket;
 
     socket.onopen = () => {
-      const hello = JSON.stringify({ v: 1, role: 'client', rid, salt: base64UrlNoPad(this.connSalt) });
+      // nh:1 opts into the relay's {"e":"no-host"} advisory so the tunnel (which
+      // backs the /ping that drives the offline overlay) fails fast when the PC
+      // isn't on the relay, instead of waiting out the peer-up timeout.
+      const hello = JSON.stringify({ v: 1, role: 'client', rid, salt: base64UrlNoPad(this.connSalt), nh: 1 });
       try {
         socket.send(hello);
       } catch {
