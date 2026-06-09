@@ -919,6 +919,9 @@
   --panel-card-radius: var(--radius);
   --panel-font: var(--font-sans);
   background: color-mix(in srgb, var(--bg) 58%, transparent);
+  // Start below the app top bar (base rule is inset:0), or the sheet's header —
+  // title + close button — renders behind it and can't be seen/clicked.
+  top: var(--topbar-height, 52px);
 }
 
 .editorBackdrop[data-surface='desktop'] .editorSheet {
