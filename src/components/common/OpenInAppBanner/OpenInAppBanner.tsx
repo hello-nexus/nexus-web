@@ -4,19 +4,21 @@ import { NexusMark } from '../../icons/NexusBrand';
 // Bumping the version suffix invalidates older "dismissed" state.
 const DISMISS_KEY = 'nexus_open_in_app_banner_dismissed_v1';
 
+type AppPlatform = 'ios' | 'android';
+
 /**
- * Top banner shown on hellonexus.com when the visitor is on an iPhone/iPad.
- * Tapping "Open" navigates to the `hellonexus://` custom scheme, which iOS
- * hands off to the Nexus app when installed. If the app is not installed,
- * Safari silently does nothing (no error toast); the banner stays put so
- * the user can dismiss or ignore it.
+ * Top banner shown on hellonexus.com when the visitor is on an iPhone/iPad or
+ * an Android device. Tapping "Open" navigates to the `hellonexus://` custom
+ * scheme, which the OS hands off to the Nexus app when installed. If the app is
+ * not installed the browser silently does nothing (no error toast); the banner
+ * stays put so the user can dismiss or ignore it.
  *
- * Self-gates so it never renders inside the iOS app's WKWebView (the app
- * loads `https://<lan-ip>:9443/panel/phone`, not hellonexus.com), on /r/*
- * routes (PairRedirect owns that flow), or on /panel/phone (the app's home).
+ * Self-gates so it never renders inside the native app's WebView (the app loads
+ * `https://<lan-ip>:9443/panel/phone`, not hellonexus.com), on /r/* routes
+ * (PairRedirect owns that flow), or on /panel/phone (the app's home).
  */
 export function OpenInAppBanner() {
-  const [visible, setVisible] = useState(false);
+  const [platform, setPlatform] = useState<AppPlatform | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -37,7 +39,8 @@ export function OpenInAppBanner() {
     const isIOSDevice = /iPhone|iPad|iPod/.test(ua)
       // iPadOS 13+ identifies as Mac in UA; cross-check touch capability.
       || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
-    if (!isIOSDevice) return;
+    const isAndroidDevice = /Android/.test(ua);
+    if (!isIOSDevice && !isAndroidDevice) return;
 
     // Standalone PWA already runs outside the browser — no banner.
     const standalone = window.matchMedia('(display-mode: standalone)').matches
@@ -46,11 +49,10 @@ export function OpenInAppBanner() {
 
     // Gating reads window globals (host / UA / standalone / localStorage), so
     // the visibility decision can only be made post-mount.
-     
-    setVisible(true);
+    setPlatform(isIOSDevice ? 'ios' : 'android');
   }, []);
 
-  if (!visible) return null;
+  if (!platform) return null;
 
   const openInApp = () => {
     window.location.href = 'hellonexus://open';
@@ -58,11 +60,13 @@ export function OpenInAppBanner() {
 
   const dismiss = () => {
     localStorage.setItem(DISMISS_KEY, '1');
-    setVisible(false);
+    setPlatform(null);
   };
 
+  const titleText = platform === 'android' ? 'Nexus for Android' : 'Nexus for iPhone';
+
   return (
-    <div style={banner} role="region" aria-label="Nexus app for iPhone">
+    <div style={banner} role="region" aria-label="Nexus app">
       <button type="button" style={dismissBtn} onClick={dismiss} aria-label="Dismiss">
         <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
           <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -72,7 +76,7 @@ export function OpenInAppBanner() {
         <NexusMark size={22} />
       </div>
       <div style={text}>
-        <div style={title}>Nexus for iPhone</div>
+        <div style={title}>{titleText}</div>
         <div style={sub}>Open this page in the Nexus app.</div>
       </div>
       <button type="button" style={openBtn} onClick={openInApp}>

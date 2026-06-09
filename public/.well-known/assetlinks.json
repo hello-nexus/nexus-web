@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.hellonexus.panel",
+      "sha256_cert_fingerprints": [
+        "B8:95:EF:7E:5B:2B:D6:7D:95:BE:FD:6D:4B:5B:EF:B2:B5:D3:07:F9:6A:0A:10:DC:69:A2:D4:5F:1B:67:A5:70"
+      ]
+    }
+  }
+]
