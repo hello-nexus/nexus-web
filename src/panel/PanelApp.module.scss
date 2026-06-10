@@ -528,8 +528,15 @@
 
   .cell {
     touch-action: pan-y;
-    transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
-    border: 1px solid transparent;
+    transition: border-color var(--ease-fast), box-shadow var(--ease-fast), background-color var(--ease-slow);
+  }
+
+  // The accent ring on the card is the focus affordance; the UA default
+  // outline (outline-style: auto) would otherwise box the whole tile + label
+  // in the browser's focus color instead of the accent. Transparent (not
+  // none) so forced-colors mode recolors it and keeps a focus indicator.
+  &:focus-visible {
+    outline: 2px solid transparent;
   }
 
   &:hover .cell,
