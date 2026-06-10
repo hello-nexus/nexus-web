@@ -90,7 +90,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // refetch doesn't snap the UI back to the prior value mid-transition.
   const presetLockUntilRef = useRef(0);
 
-  const calibrating = serviceState.cooling?.calibrating ?? false;
+  // Optimistic calibration lock: the server flag arrives via the cooling
+  // broadcast, but the user needs the fan rail dimmed + locked the instant
+  // they click Calibrate — not a broadcast round-trip later. The local flag
+  // bridges that gap and hands off to the server flag (or expires after 10 s
+  // if the start never confirms, so a failed start can't wedge the page).
+  const [calStarting, setCalStarting] = useState(false);
+  const serverCalibrating = serviceState.cooling?.calibrating ?? false;
+  const calibrating = serverCalibrating || calStarting;
+  useEffect(() => {
+    if (!calStarting) return;
+    if (serverCalibrating) { setCalStarting(false); return; }
+    const id = setTimeout(() => setCalStarting(false), 10_000);
+    return () => clearTimeout(id);
+  }, [calStarting, serverCalibrating]);
 
   const realtimeData = useCoolingRealtime(serviceOnline);
   const curveCalcs = useCoolingCurves(serviceOnline);
@@ -588,7 +601,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   const runCalibration = useCallback(async () => {
     setCalibrationResults(null);
-    await startCalibration([]);
+    setCalStarting(true); // lock the rail immediately; the server flag takes over
+    const r = await startCalibration([]);
+    if (!r || r.error) setCalStarting(false);
   }, []);
 
   const dismissResults = useCallback(() => setCalibrationResults(null), []);
