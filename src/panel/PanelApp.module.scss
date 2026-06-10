@@ -924,10 +924,7 @@
   --panel-scale: 1;
 }
 
-// [data-dock='right'] = device pages forcing the desktop-style side sheet
-// while the catalog filters by the panel's own surface.
-.editorBackdrop[data-surface='desktop'],
-.editorBackdrop[data-dock='right'] {
+.editorBackdrop[data-surface='desktop'] {
   --panel-columns: 8;
   --panel-rows: 6;
   --panel-gap: 10px;
@@ -947,8 +944,7 @@
   top: var(--topbar-height, 52px);
 }
 
-.editorBackdrop[data-surface='desktop'] .editorSheet,
-.editorBackdrop[data-dock='right'] .editorSheet {
+.editorBackdrop[data-surface='desktop'] .editorSheet {
   width: min(440px, 92vw);
   background: var(--bg-elevated);
   border-left: 1px solid var(--border);
@@ -1217,12 +1213,12 @@
   // Bottom-sheet layout for panel surfaces (phone / Y70 / Q60). The embedded
   // desktop dashboard keeps its side-drawer at every width, so each rule
   // below scopes out data-surface='desktop'.
-  .editorBackdrop:not([data-surface='desktop']):not([data-dock='right']) {
+  .editorBackdrop:not([data-surface='desktop']) {
     align-items: flex-end;
     justify-content: stretch;
   }
 
-  .editorBackdrop:not([data-surface='desktop']):not([data-dock='right']) .editorSheet {
+  .editorBackdrop:not([data-surface='desktop']) .editorSheet {
     width: 100%;
     height: auto;
     max-height: min(76dvh, 760px);
@@ -1244,18 +1240,18 @@
   // viewport width), capped at 100dvh. On a tall portrait Y70 (~734 × 2560)
   // that's ~2200 CSS px ≈ 86dvh; near-square/wide viewports cap at screen
   // height. Phone keeps the :not(desktop) rule's min(76dvh, 760px).
-  .editorBackdrop:not([data-surface='phone']):not([data-surface='desktop']):not([data-dock='right']) .editorSheet {
+  .editorBackdrop:not([data-surface='phone']):not([data-surface='desktop']) .editorSheet {
     width: calc(100% / var(--panel-scale, 1));
     max-height: calc(min(300vw, 100dvh) / var(--panel-scale, 1));
     margin-inline: auto;
     transform-origin: bottom center;
   }
 
-  .editorBackdrop:not([data-surface='desktop']):not([data-dock='right'])[data-state='closing'] .editorSheet {
+  .editorBackdrop:not([data-surface='desktop'])[data-state='closing'] .editorSheet {
     animation: sheetDown 220ms cubic-bezier(0.32, 0.72, 0, 1) both;
   }
 
-  .editorBackdrop:not([data-surface='desktop']):not([data-dock='right']) .editorSheetGrabber {
+  .editorBackdrop:not([data-surface='desktop']) .editorSheetGrabber {
     display: block;
     position: absolute;
     top: 6px;

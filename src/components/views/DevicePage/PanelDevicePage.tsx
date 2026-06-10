@@ -22,7 +22,6 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
-import { Button } from '../../common/Button/Button';
 import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
@@ -31,7 +30,6 @@ import { PanelArrowButton } from '../../../panel/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/panelTheme';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
-import { PanelEditorSheet } from '../../../panel/PanelEditorSheet';
 import { lookupApp, sizesForSurface } from '../../../panel/widgets/registry';
 import { sizeToSpan } from '../../../panel/engine/grid';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
@@ -42,8 +40,9 @@ import {
   type PanelWidgetSize,
   type PanelConfigValue,
 } from '../../../panel/types';
-import type { PanelDevice } from '../../../panel/panelDevices';
+import { isRemotePanel, type PanelDevice } from '../../../panel/panelDevices';
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
+import { PanelWidgetCatalog } from '../../../panel/editor/PanelWidgetCatalog';
 import '../../../panel/styles/tokens.scss';
 import styles from './PanelDevicePage.module.scss';
 
@@ -91,10 +90,6 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   // attached.
   const [liveCanvas, setLiveCanvas] = useState<{ width: number; height: number } | null>(null);
   const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
-  // Add-widget slideout — the same PanelEditorSheet the dashboard and the
-  // on-panel editor use, docked right since this page is desktop chrome.
-  // Two-phase close so the sheet's slide-out animation plays.
-  const [catalogState, setCatalogState] = useState<'closed' | 'open' | 'closing'>('closed');
   // Per-panel persisted settings off the device record (promoted monitors).
   const [recordReserve, setRecordReserve] = useState(true);
   const [recordTouch, setRecordTouch] = useState<boolean | undefined>(undefined);
@@ -243,6 +238,9 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   })();
 
   const singleWidget = isSingleWidgetSurface(surface);
+  const currentSingleWidget: PanelWidget | undefined = singleWidget
+    ? layout.pages[0]?.widgets[0]
+    : undefined;
 
   const handleAddWidget = useCallback((type: string, size: PanelWidgetSize) => {
     if (singleWidget) {
@@ -362,48 +360,8 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
       ) : (
         <div className={styles.splitLayout}>
-          {/* Live panel preview, always on the left. */}
-          <div className={styles.previewPane} data-surface={surface}>
-            <div className={styles.previewStage}>
-              {showPageArrows && (
-                <PanelArrowButton
-                  side="prev"
-                  className={styles.pageArrow}
-                  disabled={currentPageIndex <= 0}
-                  onClick={() => goToPage(-1)}
-                  ariaLabel={t('devices.panels.prevPage')}
-                />
-              )}
-              {showPageArrows && (
-                <PanelArrowButton
-                  side="next"
-                  className={styles.pageArrow}
-                  disabled={currentPageIndex >= pageCount - 1}
-                  onClick={() => goToPage(1)}
-                  ariaLabel={t('devices.panels.nextPage')}
-                />
-              )}
-              <PanelEmbedFrame
-                surface={surface}
-                layout={layout}
-                theme={theme}
-                themeMode={resolvedPanelThemeMode}
-                selectedWidgetId={configuringWidget?.id ?? null}
-                onLayoutChange={updateLayout}
-                onWidgetClicked={handleConfigureWidget}
-                onBackgroundClicked={() => setConfiguringWidget(null)}
-                canvasSize={liveCanvas ?? device?.previewSize}
-                canvasDpi={device?.previewDpi}
-                canvasIsCssPixels={!!liveCanvas}
-                brightness={supportsDisplayControls ? brightness : 100}
-                screenOn={supportsDisplayControls ? screenOn : true}
-                showPanel={supportsAutoLaunch ? autoLaunch : true}
-              />
-            </div>
-          </div>
-
-          {/* Contextual right pane per tab. */}
-          <div className={styles.rightPane}>
+          {/* Options pane on the left; live preview on the right. */}
+          <div className={styles.leftPane}>
             {configuringWidget ? (
               <InlineWidgetSettings
                 key={configuringWidget.id}
@@ -421,18 +379,17 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
               <>
                 <div className={styles.tabContent}>
                   {activeTab === 'widgets' && (
-                    <div className={styles.widgetsPane}>
-                      <Button
-                        type="button"
-                        tone="accent"
-                        size="md"
-                        onClick={() => setCatalogState('open')}
-                        className={styles.addWidgetBtn}
-                      >
-                        {t('devices.y70.editor.addWidget')}
-                      </Button>
-                      <div className={styles.widgetsHint}>{t('devices.panels.selectHint')}</div>
-                    </div>
+                    <PanelWidgetCatalog
+                      surface={surface}
+                      deviceTouch={deviceTouch}
+                      onAdd={handleAddWidget}
+                      variant="desktop-modal"
+                      remote={isRemotePanel(device?.connectionKind)}
+                      themeMode={resolvedPanelThemeMode}
+                      themeStyle={panelThemeVars}
+                      className={styles.catalog}
+                      selectedWidgetType={currentSingleWidget?.type}
+                    />
                   )}
                   {activeTab === 'theme' && (
                     <PanelThemeSettings
@@ -521,60 +478,47 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
             )}
           </div>
 
+          <div className={styles.previewPane} data-surface={surface}>
+            <div className={styles.previewStage}>
+              {showPageArrows && (
+                <PanelArrowButton
+                  side="prev"
+                  className={styles.pageArrow}
+                  disabled={currentPageIndex <= 0}
+                  onClick={() => goToPage(-1)}
+                  ariaLabel={t('devices.panels.prevPage')}
+                />
+              )}
+              {showPageArrows && (
+                <PanelArrowButton
+                  side="next"
+                  className={styles.pageArrow}
+                  disabled={currentPageIndex >= pageCount - 1}
+                  onClick={() => goToPage(1)}
+                  ariaLabel={t('devices.panels.nextPage')}
+                />
+              )}
+              <PanelEmbedFrame
+                surface={surface}
+                layout={layout}
+                theme={theme}
+                themeMode={resolvedPanelThemeMode}
+                selectedWidgetId={configuringWidget?.id ?? null}
+                onLayoutChange={updateLayout}
+                onWidgetClicked={handleConfigureWidget}
+                onBackgroundClicked={() => setConfiguringWidget(null)}
+                canvasSize={liveCanvas ?? device?.previewSize}
+                canvasDpi={device?.previewDpi}
+                canvasIsCssPixels={!!liveCanvas}
+                brightness={supportsDisplayControls ? brightness : 100}
+                screenOn={supportsDisplayControls ? screenOn : true}
+                showPanel={supportsAutoLaunch ? autoLaunch : true}
+              />
+            </div>
+          </div>
         </div>
       )}
       </div>
-
-      {/* Universal Add Widget slideout — the same PanelEditorSheet the
-          dashboard and the on-panel editor use, right-docked in desktop
-          chrome, catalog filtered by this panel's surface + touch. */}
-      {catalogState !== 'closed' && (
-        <PanelEditorSheet
-          mode="catalog"
-          dock="right"
-          surface={surface}
-          deviceTouch={deviceTouch}
-          editingWidget={null}
-          panelTheme={theme}
-          gridColumns={editorCapacity.gridCols}
-          gridRows={editorCapacity.pageRows}
-          resolvedThemeMode={resolvedPanelThemeMode}
-          panelThemeStyle={panelThemeVars}
-          closing={catalogState === 'closing'}
-          onClose={() => {
-            setCatalogState('closing');
-            window.setTimeout(() => setCatalogState('closed'), 240);
-          }}
-          onThemeSyncCommit={panelTheme.commitThemeSync}
-          onThemeModeCommit={panelTheme.commitThemeMode}
-          onThemeAccentSyncCommit={panelTheme.commitAccentSync}
-          onThemeAccentPreview={panelTheme.previewAccent}
-          onThemeAccentCommit={panelTheme.commitAccent}
-          onThemeBackgroundPreview={panelTheme.previewBackground}
-          onThemeBackgroundCommit={panelTheme.commitBackground}
-          onThemeBackgroundModeCommit={panelTheme.commitBackgroundMode}
-          onThemeBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
-          onThemeBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
-          onThemeBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
-          onThemeBackgroundEffectStateCommit={panelTheme.commitBackgroundEffectState}
-          onThemeBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
-          onThemeBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
-          onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
-          onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
-          onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
-          onThemeWidgetBlurCommit={panelTheme.commitWidgetBlur}
-          machineName=""
-          onMachineNameCommit={() => {}}
-          onAdd={handleAddWidget}
-          onResize={handleResizeWidget}
-          onUpdate={handleUpdateWidgetConfig}
-          onRemove={handleRemoveWidget}
-          selectedMonitoringSlot={0}
-          onSelectedMonitoringSlotChange={() => {}}
-          editView={{ folderPath: [] }}
-          onEditViewChange={() => {}}
-        />
-      )}
     </section>
   );
 }

@@ -53,6 +53,9 @@ export interface PanelDeviceRecord {
   displayId?: string;
   // Per-panel "keep panel clear of other windows" (display-bound records).
   reserveMonitor?: boolean;
+  // Display-bound panels: false = turned off (record + config kept; no
+  // kiosk). Absent/null = on.
+  enabled?: boolean | null;
   // Response-only: false when the bound monitor is currently unplugged,
   // undefined/null when topology is unknown (treat as attached).
   displayAttached?: boolean | null;

@@ -198,8 +198,8 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
         title={t('displays.demote.title')}
         message={t('displays.demote.message', { name: confirmDemote?.name ?? '' })}
         note={t('displays.demote.note')}
-        noteTone="danger"
         confirmLabel={t('displays.demote.confirm')}
+        destructive={false}
         onConfirm={() => confirmDemote && void demote(confirmDemote)}
         onCancel={() => setConfirmDemote(null)}
       />

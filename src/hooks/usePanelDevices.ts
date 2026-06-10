@@ -228,7 +228,9 @@ function buildPanelDevices({
   // monitor is unplugged (displayAttached === false); unknown topology
   // (null/undefined) keeps the row visible rather than flickering it away.
   for (const record of records) {
-    if (!record.displayId || record.displayAttached === false) continue;
+    // Off panels keep their record (config persistence) but host no kiosk —
+    // no device entry until turned back on from the Displays tab.
+    if (!record.displayId || record.displayAttached === false || record.enabled === false) continue;
     const cssWidth = record.capabilities?.cssWidth ?? 0;
     const cssHeight = record.capabilities?.cssHeight ?? 0;
     // CSS pixels, same convention as the Y70/phone subtitles. Reconstructing

@@ -26,7 +26,6 @@ export function PanelEditorSheet({
   mode,
   surface,
   deviceTouch,
-  dock,
   editingWidget,
   panelTheme,
   gridColumns,
@@ -68,11 +67,6 @@ export function PanelEditorSheet({
   surface: PanelSurface;
   // Per-device touch capability (promoted monitors) for catalog/size gating.
   deviceTouch?: boolean;
-  // 'right' forces the desktop-style right-side slideout regardless of the
-  // panel surface — used by the device pages, which render in desktop chrome
-  // while the catalog stays filtered by the panel's own surface. Default
-  // keeps the surface-driven behavior (bottom sheet on narrow panels).
-  dock?: 'right';
   editingWidget: PanelWidget | null;
   panelTheme: PanelThemeState;
   gridColumns: number;
@@ -195,7 +189,6 @@ export function PanelEditorSheet({
       data-mode={mode}
       data-state={closing ? 'closing' : 'open'}
       data-surface={surface}
-      data-dock={dock}
       data-theme={resolvedThemeMode}
       style={editorStyle}
       onClick={onClose}

@@ -120,7 +120,6 @@ export function PanelEmbedFrame({
   const dpr = canvasIsCssPixels ? 1 : (SURFACE_DPR[surface] ?? (canvasDpi ? canvasDpi / 160 : 1));
   const canvasW = Math.round(nativeW / dpr);
   const canvasH = Math.round(nativeH / dpr);
-  const aspect = canvasW / canvasH;
   const [measured, setMeasured] = useState({
     w: canvasW * 0.35,
     h: canvasH * 0.35,
@@ -132,15 +131,23 @@ export function PanelEmbedFrame({
     if (!el) return;
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
+        // Fit BOTH axes: height-only fit overflows the stage horizontally on
+        // landscape canvases (promoted monitors, wide simulated panels) —
+        // portrait panels (Y70/Q60) stay height-bound, wide ones width-bound.
+        const availW = entry.contentRect.width;
         const availH = entry.contentRect.height;
-        const fitW = Math.round(availH * aspect);
-        const fitScale = availH / canvasH;
-        setMeasured({ w: fitW, h: Math.round(availH), scale: fitScale });
+        if (availW <= 0 || availH <= 0) continue;
+        const fitScale = Math.min(availW / canvasW, availH / canvasH);
+        setMeasured({
+          w: Math.round(canvasW * fitScale),
+          h: Math.round(canvasH * fitScale),
+          scale: fitScale,
+        });
       }
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [aspect, canvasH]);
+  }, [canvasW, canvasH]);
 
   const post = useCallback((message: SimulatorParentToChild) => {
     const win = iframeRef.current?.contentWindow;
