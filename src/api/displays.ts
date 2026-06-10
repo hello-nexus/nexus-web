@@ -1,4 +1,5 @@
-import { fetchService, postService } from './service';
+import { deleteService, fetchService, postService } from './service';
+import type { PanelDeviceRecord } from './panel';
 
 export interface DisplayCapabilities {
   brightness: boolean;
@@ -45,8 +46,61 @@ export interface DisplayBrightnessResponse {
   error: string;
 }
 
+export interface DisplayBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface DisplaySize {
+  width: number;
+  height: number;
+}
+
+export interface TopologyDisplay {
+  id: string;
+  /** OS display number (Windows settings numbering); 0 = unknown. */
+  number: number;
+  name: string;
+  manufacturer: string;
+  model: string;
+  /** Virtual-desktop bounds; null when the platform reports no positions (Linux). */
+  bounds: DisplayBounds | null;
+  resolution: DisplaySize;
+  scaleFactor: number | null;
+  dpi: number | null;
+  isPrimary: boolean;
+  isInternal: boolean;
+  /** The Y70's own monitor: auto-managed, never promotable here. */
+  isY70: boolean;
+  hostingSupported: boolean;
+  assignedPanelDeviceId: string | null;
+  assignedPanelName: string | null;
+}
+
+export interface DisplayTopology {
+  hostingSupported: boolean;
+  positionsAvailable: boolean;
+  revision: number;
+  displays: TopologyDisplay[];
+  hint: string;
+}
+
 export async function fetchDisplays(): Promise<DisplayListResponse | null> {
   return fetchService<DisplayListResponse>('/displays');
+}
+
+export async function fetchDisplayTopology(): Promise<DisplayTopology | null> {
+  return fetchService<DisplayTopology>('/displays/topology');
+}
+
+export async function promoteDisplayToPanel(id: string): Promise<PanelDeviceRecord | null> {
+  return postService<PanelDeviceRecord>(`/displays/${encodeURIComponent(id)}/panel`, {});
+}
+
+export async function demoteDisplayPanel(id: string): Promise<{ error?: boolean } | null> {
+  return deleteService<{ error?: boolean }>(`/displays/${encodeURIComponent(id)}/panel`);
 }
 
 export async function fetchDisplayBrightness(id: string): Promise<DisplayBrightnessResponse | null> {
