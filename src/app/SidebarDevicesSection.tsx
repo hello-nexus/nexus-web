@@ -30,7 +30,13 @@ interface SidebarDevicesSectionProps {
   // SidebarColumn owns the exact destination.
   onHeaderClick: () => void;
   headerActive: boolean;
+  // Fixed "Displays" utility row below the device rows — the monitor
+  // topology page (any monitor → Nexus panel). Always visible.
+  onDisplaysClick: () => void;
+  displaysActive: boolean;
 }
+
+const DISPLAYS_ICON = '/assets/devices/monitor.svg';
 
 export function SidebarDevicesSection({
   serviceOnline,
@@ -39,6 +45,8 @@ export function SidebarDevicesSection({
   onSelect,
   onHeaderClick,
   headerActive,
+  onDisplaysClick,
+  displaysActive,
 }: SidebarDevicesSectionProps) {
   const { t } = useTranslation();
   const { unified } = useUnifiedDevices(serviceOnline);
@@ -61,6 +69,25 @@ export function SidebarDevicesSection({
   }, [unified]);
 
   const label = t('sidebar.section.devices');
+  const displaysLabel = t('displays.title');
+  const displaysRow = (
+    <button
+      type="button"
+      className={classNames(styles.item, {
+        [styles.active]: displaysActive,
+        [styles.itemCompact]: compact,
+      })}
+      onClick={onDisplaysClick}
+      aria-label={displaysLabel}
+    >
+      <span
+        className={styles.icon}
+        aria-hidden
+        style={{ ['--device-icon' as string]: `url(${DISPLAYS_ICON})` }}
+      />
+      {!compact && <span className={styles.label}>{displaysLabel}</span>}
+    </button>
+  );
   return (
     <section className={styles.section}>
       <button
@@ -127,6 +154,11 @@ export function SidebarDevicesSection({
           ) : row;
         })
       )}
+      {/* Always-visible Displays row: the monitor-topology page is reachable
+          even with zero devices (it's how a monitor becomes one). */}
+      {compact ? (
+        <HoverTooltip body={displaysLabel} side="right">{displaysRow}</HoverTooltip>
+      ) : displaysRow}
     </section>
   );
 }

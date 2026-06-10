@@ -1,0 +1,70 @@
+// Windows-display-settings-style arrangement canvas. The rect positions are
+// inline styles computed by monitorMapLayout; this file is chrome only.
+
+.map {
+  position: relative;
+  min-height: 260px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+}
+
+.monitor {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), background var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+}
+
+.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.panel {
+  // A monitor already hosting a Nexus panel reads as "claimed" even when
+  // not selected.
+  border-style: solid;
+  border-color: var(--accent);
+}
+
+.number {
+  font-size: clamp(0.9rem, 2.4vw, 1.6rem);
+  font-weight: var(--weight-heading);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.badges {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.primaryBadge {
+  color: var(--text-faded);
+}
+
+.panelBadge {
+  color: var(--accent);
+}

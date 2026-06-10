@@ -55,6 +55,7 @@ const NAV: { view: string; labelKey: string; keywords: string[] }[] = [
   { view: 'lighting',   labelKey: 'lighting.title', keywords: ['rgb', 'led', 'leds', 'effects', 'color', 'colour', 'animation', 'effect', 'mirror', 'media', 'brightness', 'off'] },
   { view: 'cooling',    labelKey: 'cooling.title',  keywords: ['fans', 'fan curve', 'pump', 'thermals', 'temps', 'preset', 'profile', 'silent', 'balanced', 'turbo', 'custom', 'curve', 'off'] },
   { view: 'devices',    labelKey: 'devices.title',  keywords: ['usb', 'peripherals', 'hardware', 'connected'] },
+  { view: 'displays',   labelKey: 'displays.title', keywords: ['monitor', 'screen', 'display', 'panel', 'second screen', 'multi'] },
   { view: 'settings',   labelKey: 'settings.title', keywords: ['preferences', 'config', 'options', 'setup'] },
 ];
 

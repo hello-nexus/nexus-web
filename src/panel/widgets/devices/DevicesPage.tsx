@@ -23,11 +23,14 @@ interface DevicesViewProps {
   // page (PanelDevicePage / PeripheralDevicePage) rather than opening
   // a modal in place.
   onDeviceSelect: (deviceKey: string) => void;
+  // Click handler for the Displays entry card (monitor topology page).
+  // Optional: the dashboard devices widget reuses this page without it.
+  onDisplaysSelect?: () => void;
 }
 
 type TabKey = 'available' | 'firmware' | 'specs';
 
-export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: DevicesViewProps) {
+export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, onDisplaysSelect }: DevicesViewProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<TabKey>('available');
   const [supportedModalOpen, setSupportedModalOpen] = useState(false);
@@ -99,14 +102,22 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect }: 
               </div>
             )}
 
-            {unified.length === 0 ? (
+            {unified.length === 0 && !onDisplaysSelect ? (
               <div className={styles.empty}>{t('devices.available.none')}</div>
             ) : (
-              <div className={styles.grid}>
-                {unified.map(d => (
-                  <DeviceCard key={d.key} device={d} onClick={() => onDeviceSelect(d.key)} />
-                ))}
-              </div>
+              <>
+                {unified.length === 0 && (
+                  <div className={styles.empty}>{t('devices.available.none')}</div>
+                )}
+                <div className={styles.grid}>
+                  {unified.map(d => (
+                    <DeviceCard key={d.key} device={d} onClick={() => onDeviceSelect(d.key)} />
+                  ))}
+                  {serviceOnline && onDisplaysSelect && (
+                    <DisplaysEntryCard onClick={onDisplaysSelect} />
+                  )}
+                </div>
+              </>
             )}
           </>
         )
@@ -157,6 +168,35 @@ function ConnectedDevicesModal({ open, onClose, devices, loading, onRefresh }: C
       <p className={styles.explainer}>{t('devices.connected.description')}</p>
       <UsbPanel devices={devices} loading={loading} onRefresh={onRefresh} />
     </DeviceModal>
+  );
+}
+
+// Entry card to the Displays page — not a device, so no status line; just
+// the gateway to "turn a monitor into a Nexus panel".
+function DisplaysEntryCard({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className={styles.card}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => { if (e.key === 'Enter') onClick(); }}
+      data-testid="displays-entry-card"
+    >
+      <div className={styles.cardIcon}>
+        <span
+          className={styles.cardIconGlyph}
+          role="img"
+          aria-label={t('displays.title')}
+          style={{ ['--icon-url' as string]: 'url(/assets/devices/monitor.svg)' }}
+        />
+      </div>
+      <div className={styles.cardInfo}>
+        <span className={styles.cardName}>{t('displays.title')}</span>
+        <span className={styles.cardSub}>{t('displays.card.subtitle')}</span>
+      </div>
+    </div>
   );
 }
 
