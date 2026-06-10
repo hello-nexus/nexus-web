@@ -1,6 +1,12 @@
+import { lazy } from 'react';
 import { BarChart } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { ScreentimeWidget } from './ScreentimeWidget';
+
+// Code-split: Page only loads when the dashboard navigates into it. Widget
+// stays eager so panel cells render synchronously and the panel bundle never
+// fetches Page bytes at all.
+const ScreentimePage = lazy(() => import('./ScreentimePage').then(m => ({ default: m.ScreentimePage })));
 
 export const screentimeApp: AppManifest = {
   meta: {
@@ -14,4 +20,5 @@ export const screentimeApp: AppManifest = {
     touch: false,
   },
   Widget: ScreentimeWidget,
+  Page: ScreentimePage,
 };

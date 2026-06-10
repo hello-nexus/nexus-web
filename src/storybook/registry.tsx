@@ -1245,7 +1245,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Tabs (pill)', category: 'navigation',
     filePath: 'src/components/common/Tabs/Tabs.tsx',
-    description: 'Bordered segmented-group variant of the same Tabs primitive. One shared border around the whole bar, accent-soft fill on the active segment. Used for in-page secondary toggles (ScreenTime day/week/month/app). Set variant="pill" on Tabs to activate.', Preview: PreviewTabsPill,
+    description: 'Bordered segmented-group variant of the same Tabs primitive. One shared border around the whole bar, accent-soft fill on the active segment. Used for in-page secondary toggles (panel theme settings, icon picker). Set variant="pill" on Tabs to activate.', Preview: PreviewTabsPill,
     notes: 'Same component as the underline variant - pass variant="pill" to render this chrome.',
   },
   {

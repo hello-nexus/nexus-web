@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import {
-  Activity, LayoutDashboard, Lightbulb, Fan, Settings,
+  Activity, BarChart, LayoutDashboard, Lightbulb, Fan, Settings,
   Usb, Wrench, Gauge, Users, LampCeiling,
 } from 'lucide-react';
 
@@ -14,6 +14,7 @@ export const PORTAL_NAV_KEYS: readonly ('builder' | 'benchmark' | 'community')[]
 export const NAV_ICONS: Record<string, ReactNode> = {
   dashboard:  <LayoutDashboard size={ICON_SIZE} />,
   monitoring: <Activity size={ICON_SIZE} />,
+  screentime: <BarChart size={ICON_SIZE} />,
   lighting:   <Lightbulb size={ICON_SIZE} />,
   'smart-lights': <LampCeiling size={ICON_SIZE} />,
   cooling:    <Fan size={ICON_SIZE} />,

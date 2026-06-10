@@ -49,6 +49,7 @@ function toggleEntry(id: string, e: {
 const NAV: { view: string; labelKey: string; keywords: string[] }[] = [
   { view: 'dashboard',  labelKey: 'nav.dashboard',  keywords: ['home', 'overview', 'start'] },
   { view: 'monitoring', labelKey: 'nav.monitoring', keywords: ['cpu', 'gpu', 'temps', 'sensors', 'usage', 'performance', 'network', 'ram', 'memory'] },
+  { view: 'screentime', labelKey: 'screentime.title', keywords: ['screen time', 'usage', 'apps', 'tracking', 'pickups', 'history'] },
   // Cooling/lighting keywords include their actions' terms so the page-open
   // pairs with the direct actions (search "silent" or "mirror" → preset/mode
   // action + the page to see more).

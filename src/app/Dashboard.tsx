@@ -18,6 +18,7 @@ const LightingPage = lazy(() => import('../panel/widgets/lighting/LightingPage')
 const SmartLightsPage = lazy(() => import('../panel/widgets/smart-lights/SmartLightsPage').then(m => ({ default: m.SmartLightsPage })));
 const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
 const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
+const ScreentimePage = lazy(() => import('../panel/widgets/screentime/ScreentimePage').then(m => ({ default: m.ScreentimePage })));
 import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
@@ -371,6 +372,7 @@ export function Dashboard() {
         />
       );
       case 'monitoring': return <MonitoringPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
+      case 'screentime': return <ScreentimePage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
       case 'lighting':   return <LightingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
       case 'smart-lights': return <SmartLightsPage onSectionNavigate={(target) => setView(target)} />;
       case 'cooling':    return <CoolingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;

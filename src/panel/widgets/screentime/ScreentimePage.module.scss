@@ -1,0 +1,25 @@
+.screentime {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.manageBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: var(--type-small);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+}
