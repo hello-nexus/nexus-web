@@ -14,7 +14,7 @@
   // Height of the full-width application top bar (collapse + nav + search +
   // profile). Consumed by .topBar in TopBar.module.scss.
   --topbar-height: 52px;
-  // Collapsed sidebar rail width. The expanded sidebar is 200px (.sidebarColumn).
+  // Collapsed sidebar rail width. The expanded sidebar is 240px (.sidebarColumn).
   --rail-width: 86px;
   // Horizontal padding on each nav item. Sized so the icon's center lands on the
   // collapsed rail's centerline: nav side-pad (8px) + this + icon-half (10px) =
@@ -26,8 +26,8 @@
 }
 
 .layoutCompact {
-  // Base min-width minus the rail vs expanded-sidebar delta (200 - rail).
-  min-width: 886px;
+  // Base min-width minus the rail vs expanded-sidebar delta (240 - rail).
+  min-width: 846px;
 }
 
 // Resize strips - one along each edge of the window. They catch
@@ -186,7 +186,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  width: 200px;
+  width: 240px;
   background: var(--bg-elevated);
   // 8px top gutter nudges the Nexus logo into rough vertical alignment
   // with the page title bar in the web/browser version. The Windows
