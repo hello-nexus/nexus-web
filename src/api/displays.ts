@@ -85,6 +85,10 @@ export interface TopologyDisplay {
 
 export interface DisplayTopology {
   hostingSupported: boolean;
+  /** Promoted-monitor rotation availability on the host OS (Windows only). */
+  rotationSupported: boolean;
+  /** "Keep panel clear of other windows" availability on the host OS (Windows only). */
+  reserveSupported: boolean;
   positionsAvailable: boolean;
   revision: number;
   displays: TopologyDisplay[];

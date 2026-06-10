@@ -10,6 +10,8 @@ const Y70_ID = 'RTK0004-5-def-UID67890';
 function topologyBody(assignedPanelDeviceId: string | null) {
   return {
     hostingSupported: true,
+    rotationSupported: true,
+    reserveSupported: true,
     positionsAvailable: true,
     revision: 1,
     hint: '',

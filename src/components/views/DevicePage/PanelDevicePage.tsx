@@ -10,7 +10,7 @@ import { appendWidget, replaceWidget } from '../../../panel/engine/panelLayoutOp
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { isSingleWidgetSurface } from '../../../panel/types';
 import { fetchService, postService } from '../../../api/service';
-import { fetchDisplays, rotateDisplay, setDisplayBrightness } from '../../../api/displays';
+import { fetchDisplays, fetchDisplayTopology, rotateDisplay, setDisplayBrightness } from '../../../api/displays';
 import { fetchPreferences, savePreferences } from '../../../api/profiles';
 import {
   allocatePanelDevice,
@@ -119,7 +119,22 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
     return () => { cancelled = true; };
   }, [ddcDisplayId]);
   const ddcSupported = ddcDisplayId !== null && ddcBrightness !== null;
-  const settingsAvailable = supportsDisplayControls || supportsAutoLaunch || ddcSupported || isMonitorPanel;
+  // Rotation and the monitor-reserve guard exist only on hosts that
+  // implement them (Windows); macOS/Linux monitor panels hide those rows.
+  const [hostCaps, setHostCaps] = useState<{ rotation: boolean; reserve: boolean } | null>(null);
+  useEffect(() => {
+    if (!isMonitorPanel) return;
+    let cancelled = false;
+    fetchDisplayTopology().then(topo => {
+      if (cancelled || !topo) return;
+      setHostCaps({ rotation: topo.rotationSupported, reserve: topo.reserveSupported });
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [isMonitorPanel]);
+  const monitorRotation = isMonitorPanel && hostCaps?.rotation === true;
+  const monitorReserve = isMonitorPanel && hostCaps?.reserve === true;
+  const settingsAvailable = supportsDisplayControls || supportsAutoLaunch || ddcSupported
+    || monitorRotation || monitorReserve;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -423,13 +438,13 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                         setDdcBrightness(value);
                         if (ddcDisplayId) void setDisplayBrightness(ddcDisplayId, value).catch(() => {});
                       }}
-                      orientation={isMonitorPanel ? orientation : null}
+                      orientation={monitorRotation ? orientation : null}
                       onOrientation={(next) => {
                         setOrientation(next);
                         if (device?.displayId) void rotateDisplay(device.displayId, next).catch(() => {});
                       }}
                       orientationOptions={Y70_ORIENTATIONS}
-                      reserveMonitor={isMonitorPanel ? recordReserve : null}
+                      reserveMonitor={monitorReserve ? recordReserve : null}
                       onReserveMonitorToggle={() => {
                         const next = !recordReserve;
                         setRecordReserve(next);
