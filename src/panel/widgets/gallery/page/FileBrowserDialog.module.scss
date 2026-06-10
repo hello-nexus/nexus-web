@@ -1,0 +1,119 @@
+@use '../../../../styles/scrollbar' as *;
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 92vw);
+  max-height: min(640px, 85vh);
+  gap: 0.75rem;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-h4, 1rem);
+  color: var(--text);
+}
+
+.pathRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.path {
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl; // keep the deepest segment visible when truncated
+  text-align: left;
+  flex: 1 1 auto;
+}
+
+.listing {
+  flex: 1 1 auto;
+  min-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.35rem;
+  @include scrollbar-visible;
+}
+
+.error {
+  margin: 0.5rem;
+  color: var(--danger, #e5484d);
+  font-size: var(--type-small);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--type-body);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.rowSelected {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+}
+
+.rowIcon {
+  flex: 0 0 auto;
+  color: var(--text-dim);
+}
+
+.rowName {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowCheck {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

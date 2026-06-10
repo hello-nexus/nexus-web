@@ -18,6 +18,7 @@ const LightingPage = lazy(() => import('../panel/widgets/lighting/LightingPage')
 const SmartLightsPage = lazy(() => import('../panel/widgets/smart-lights/SmartLightsPage').then(m => ({ default: m.SmartLightsPage })));
 const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
 const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
+const GalleryPage = lazy(() => import('../panel/widgets/gallery/page/GalleryPage').then(m => ({ default: m.GalleryPage })));
 import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
@@ -392,6 +393,7 @@ export function Dashboard() {
       );
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
+      case 'gallery':    return <GalleryPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} profiles={profilesHook} />;
       default: {
         // Page-capable marketplace (SDK) widget: render its bundle's page surface

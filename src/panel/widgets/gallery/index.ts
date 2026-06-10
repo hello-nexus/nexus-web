@@ -1,19 +1,31 @@
+import { lazy } from 'react';
 import { ImageIcon } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { GalleryWidget } from './GalleryWidget';
 import { GallerySettings } from './GallerySettings';
+import { makeWidgetTouchView } from '../common/WidgetTouchView';
+
+// Code-split: the management Page only loads when the dashboard navigates
+// into it. Widget + Touch stay eager so panel cells render synchronously.
+const GalleryPage = lazy(() => import('./page/GalleryPage').then(m => ({ default: m.GalleryPage })));
 
 export const galleryApp: AppManifest = {
   meta: {
     type: 'gallery',
     i18nKey: 'panel.widget.gallery',
     icon: ImageIcon,
-    sizes: ['1x1', '2x2', '2x4', '4x2', '4x4'],
+    // 2x4 kept so the gallery stays available on Q-series single-widget
+    // surfaces.
+    sizes: ['2x2', '2x4', '4x2', '4x4'],
     defaultSize: '4x4',
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
     touch: false,
   },
   Widget: GalleryWidget,
+  Page: GalleryPage,
+  // Generic single-cell fullscreen: the lone cell becomes the fill cell, so
+  // the viewer (and its fading arrows) spans the whole immersive overlay.
+  Touch: makeWidgetTouchView(GalleryWidget),
   Settings: GallerySettings,
 };
