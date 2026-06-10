@@ -117,7 +117,7 @@ export function CurveHost(p: HostProps) {
       {pts.map((q, i) => (
         <circle
           key={i} cx={toX(q.x)} cy={toY(q.y)} r={drag?.idx === i ? 3 : 2.3}
-          fill={color} stroke="var(--bg-card, #1a1a1a)" strokeWidth={0.6}
+          fill={color} stroke="var(--bg-card, #161616)" strokeWidth={0.6}
           style={{ cursor: 'grab' }}
           onPointerDown={(e) => onPtrDown(i, e)} onContextMenu={(e) => onCtx(i, e)}
         />

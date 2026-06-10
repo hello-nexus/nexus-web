@@ -16,21 +16,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.track {
-  width: 80%;
-  height: 8px;
-  border-radius: 4px;
-  background: var(--panel-border);
-  overflow: hidden;
-}
-
-.fill {
-  height: 100%;
-  border-radius: 4px;
-  background: var(--panel-accent);
-  box-shadow: 0 0 8px var(--panel-accent-shadow);
+  --gauge-track-width: 80%;
+  --gauge-track-height: 8px;
+  --gauge-track-glow: 8px;
 }
 
 .info {

@@ -238,7 +238,7 @@
   padding: 0.3rem 0.7rem; border: 1px solid var(--bad); border-radius: var(--radius-sm);
   background: transparent; color: var(--bad); font-size: var(--type-small);
   cursor: pointer; transition: all var(--ease);
-  &:hover { background: rgba(239, 68, 68, 0.1); }
+  &:hover { background: color-mix(in srgb, var(--bad) 10%, transparent); }
 }
 
 .calibrationBanner {
@@ -281,7 +281,7 @@
   white-space: nowrap;
 }
 .calBadge { font-size: 0.7rem; }
-.calControllable { background: rgba(16, 185, 129, 0.15); color: var(--good); }
+.calControllable { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
 .calStalling { background: rgba(251, 191, 36, 0.15); color: var(--warn); }
 .calFixed { background: rgba(139, 92, 246, 0.15); color: var(--accent-glow); }
 .calUnresponsive { background: rgba(107, 114, 128, 0.15); color: var(--text-faded); }
@@ -786,7 +786,7 @@
   &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 }
 .curveCardRemoveBtn:hover {
-  color: var(--bad); border-color: var(--bad); background: rgba(239, 68, 68, 0.08);
+  color: var(--bad); border-color: var(--bad); background: color-mix(in srgb, var(--bad) 8%, transparent);
 }
 .curveCardResetBtn {
   // Hover lifts to accent rather than .bad — reset is a recover-state op,

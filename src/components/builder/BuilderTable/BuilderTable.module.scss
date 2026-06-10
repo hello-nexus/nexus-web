@@ -183,7 +183,7 @@ $grid-cols: 170px minmax(0, 2.2fr) minmax(0, 1.4fr) 6rem 10.5rem;
 .ownedBadge {
   font-size: var(--type-small);
   color: var(--good);
-  background: rgba(16, 185, 129, 0.12);
+  background: color-mix(in srgb, var(--good) 12%, transparent);
   padding: 0.15rem 0.5rem;
   border-radius: var(--radius-pill);
   white-space: nowrap;

@@ -40,7 +40,7 @@
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   color: var(--bad);
-  background: rgba(239, 68, 68, 0.12);
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
   padding: 0.15rem 0.5rem;
   border-radius: var(--radius-pill);
 }
@@ -49,7 +49,7 @@
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   color: var(--warn);
-  background: rgba(245, 158, 11, 0.12);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
   padding: 0.15rem 0.5rem;
   border-radius: var(--radius-pill);
 }

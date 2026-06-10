@@ -1,20 +1,15 @@
 import { splitFormatted } from './format';
+import { GaugeTrack } from './GaugeTrack';
 import type { GaugeProps } from './types';
 import styles from './BarGauge.module.scss';
 
 export function BarGauge({ value, formatted, label }: GaugeProps) {
-  const fillPercent = Math.max(0, Math.min(100, value));
   const parts = splitFormatted(formatted);
 
   return (
     <div className={styles.bar}>
       <div className={styles.trackWrap}>
-        <div className={styles.track}>
-          <div
-            className={styles.fill}
-            style={{ width: `${fillPercent}%` }}
-          />
-        </div>
+        <GaugeTrack fillPercent={value} />
       </div>
       <div className={styles.info}>
         <span className={styles.value}>

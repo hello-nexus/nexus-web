@@ -1,0 +1,14 @@
+.track {
+  width: var(--gauge-track-width, 100%);
+  height: var(--gauge-track-height, 5px);
+  border-radius: var(--radius-pill);
+  background: var(--panel-border);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--panel-accent);
+  box-shadow: 0 0 var(--gauge-track-glow, 6px) var(--panel-accent-shadow);
+}

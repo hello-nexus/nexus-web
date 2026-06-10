@@ -53,7 +53,7 @@ export class SdkErrorBoundary extends Component<Props, State> {
             minHeight: 0,
             padding: 12,
             boxSizing: 'border-box',
-            color: 'var(--text-dim, #888)',
+            color: 'var(--text-dim, #a0a0a0)',
             fontSize: 12,
             textAlign: 'center',
           }}

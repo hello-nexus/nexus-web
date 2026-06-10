@@ -993,15 +993,15 @@
 }
 
 .phonePairSessionBadgeActive {
-  border-color: rgba(16, 185, 129, 0.35);
-  background: rgba(16, 185, 129, 0.12);
+  border-color: color-mix(in srgb, var(--good) 35%, transparent);
+  background: color-mix(in srgb, var(--good) 12%, transparent);
   color: var(--good);
 }
 
 .phonePairSessionBadgeDisabled {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  color: var(--warn);
 }
 
 // Satellite glyph on a session row whose live connection came in over the cloud
@@ -1032,14 +1032,14 @@
   justify-content: center;
   gap: 0.35rem;
   min-height: 28px;
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent);
   border-radius: var(--radius-sm);
-  background: rgba(239, 68, 68, 0.08);
+  background: color-mix(in srgb, var(--bad) 8%, transparent);
   color: var(--bad);
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.14);
+    background: color-mix(in srgb, var(--bad) 14%, transparent);
   }
 
   &:disabled {

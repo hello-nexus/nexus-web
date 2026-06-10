@@ -263,13 +263,13 @@
   border-radius: var(--radius-sm);
   border: none;
   background: transparent;
-  color: rgba(239, 68, 68, 0.6);
+  color: color-mix(in srgb, var(--bad) 60%, transparent);
   cursor: pointer;
   transition: background var(--ease), color var(--ease);
 
   &:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    background: color-mix(in srgb, var(--bad) 10%, transparent);
+    color: var(--bad);
   }
 }
 

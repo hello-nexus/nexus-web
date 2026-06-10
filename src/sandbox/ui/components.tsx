@@ -293,7 +293,7 @@ export function Button(p: HostProps) {
     borderRadius: 10, cursor: disabled ? 'default' : 'pointer',
     border: variant === 'ghost' ? '1px solid transparent' : '1px solid var(--border, rgba(255,255,255,0.12))',
     background: variant === 'solid' ? tone : variant === 'ghost' ? 'transparent' : 'var(--bg-card, rgba(255,255,255,0.06))',
-    color: variant === 'solid' ? 'var(--bg, #0b0b0c)' : tone,
+    color: variant === 'solid' ? 'var(--bg, #080808)' : tone,
     opacity: disabled ? 0.4 : 1, font: 'inherit', fontWeight: 600, lineHeight: 1,
   };
   const label = str(p.label);

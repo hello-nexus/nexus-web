@@ -1,6 +1,6 @@
 .page {
   min-height: 100vh;
-  background: var(--bg, #0f0f0f);
+  background: var(--bg, #080808);
   color: var(--text, #f5f5f5);
   font-family: var(--font-sans, system-ui, sans-serif);
   padding: 40px clamp(20px, 6vw, 96px) 80px;
@@ -31,8 +31,8 @@
   max-width: 360px;
   padding: 9px 12px;
   border-radius: var(--radius-sm, 8px);
-  border: 1px solid var(--border, #303030);
-  background: var(--bg-card, #1a1a1a);
+  border: 1px solid var(--border, #2a2a2a);
+  background: var(--bg-card, #161616);
   color: var(--text, #f5f5f5);
   font-size: var(--type-small);
   outline: none;
@@ -52,9 +52,9 @@
 .autoProps {
   margin-bottom: 28px;
   padding: 18px 20px;
-  border: 1px solid var(--border, #303030);
+  border: 1px solid var(--border, #2a2a2a);
   border-radius: var(--radius, 12px);
-  background: var(--bg-elevated, #161616);
+  background: var(--bg-elevated, #0f0f0f);
 
   h2 {
     font-size: var(--type-small);
@@ -73,9 +73,9 @@
 
 .card {
   padding: 18px 20px;
-  border: 1px solid var(--border, #303030);
+  border: 1px solid var(--border, #2a2a2a);
   border-radius: var(--radius, 12px);
-  background: var(--bg-card, #1a1a1a);
+  background: var(--bg-card, #161616);
 }
 
 .cardHead {
@@ -108,26 +108,26 @@
 }
 
 .planned {
-  background: color-mix(in srgb, var(--text-faded, #707070) 22%, transparent);
+  background: color-mix(in srgb, var(--text-faded, #6a6a6a) 22%, transparent);
   color: var(--text-dim, #a0a0a0);
 }
 
 .source {
   font-size: var(--type-tiny);
-  color: var(--text-faded, #707070);
+  color: var(--text-faded, #6a6a6a);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
 .desc {
-  color: var(--text-dim, #c4c4c4);
+  color: var(--text-dim, #a0a0a0);
   font-size: 13.5px;
   line-height: 1.55;
   margin: 0 0 12px;
 }
 
 .dim {
-  color: var(--text-faded, #707070);
+  color: var(--text-faded, #6a6a6a);
   font-size: 12.5px;
   margin: 4px 0 0;
 }
@@ -140,18 +140,18 @@
   th {
     text-align: left;
     font-weight: var(--weight-strong);
-    color: var(--text-faded, #707070);
+    color: var(--text-faded, #6a6a6a);
     font-size: var(--type-tiny);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 6px 12px 6px 0;
-    border-bottom: 1px solid var(--border, #303030);
+    border-bottom: 1px solid var(--border, #2a2a2a);
   }
 
   td {
     padding: 8px 12px 8px 0;
-    border-bottom: 1px solid color-mix(in srgb, var(--border, #303030) 60%, transparent);
-    color: var(--text, #e8e8e8);
+    border-bottom: 1px solid color-mix(in srgb, var(--border, #2a2a2a) 60%, transparent);
+    color: var(--text, #f5f5f5);
     vertical-align: top;
 
     code {
@@ -171,7 +171,7 @@
 }
 
 .empty {
-  color: var(--text-faded, #707070);
+  color: var(--text-faded, #6a6a6a);
   text-align: center;
   padding: 40px 0;
 }

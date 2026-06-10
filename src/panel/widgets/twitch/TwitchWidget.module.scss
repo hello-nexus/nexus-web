@@ -60,7 +60,7 @@
 
 .liveBadge {
   @include text-label;
-  color: #ef4444;
+  color: var(--bad);
 }
 
 .chat {

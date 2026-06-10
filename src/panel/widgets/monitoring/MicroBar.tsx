@@ -1,4 +1,5 @@
 import { splitFormatted } from './gauges/format';
+import { GaugeTrack } from './gauges/GaugeTrack';
 import styles from './MicroBar.module.scss';
 
 interface MicroBarProps {
@@ -8,7 +9,6 @@ interface MicroBarProps {
 }
 
 export function MicroBar({ label, formatted, fillPercent }: MicroBarProps) {
-  const clamped = Math.max(0, Math.min(100, fillPercent));
   const parts = splitFormatted(formatted);
 
   return (
@@ -20,9 +20,7 @@ export function MicroBar({ label, formatted, fillPercent }: MicroBarProps) {
           {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
         </span>
       </div>
-      <div className={styles.track}>
-        <div className={styles.fill} style={{ width: `${clamped}%` }} />
-      </div>
+      <GaugeTrack fillPercent={fillPercent} />
     </div>
   );
 }

@@ -65,7 +65,7 @@ $wheel-size: 110px;
   border-radius: 8px;
   border: 1px solid var(--accent, #2563eb);
   background: var(--panel-bg, rgba(20, 20, 24, 0.85));
-  color: var(--text, #e8e8ec);
+  color: var(--text, #f5f5f5);
   // Source size 75x70 scaled by the modal's `zoom` (0.55 main / 0.48 source).
   // 28px is legible at both zoom levels.
   font-size: 28px;
@@ -132,7 +132,7 @@ $wheel-size: 110px;
 .wheelSelected {
   border-color: var(--accent, #ff8a3d);
   background: var(--accent-bg, rgba(255, 138, 61, 0.15));
-  color: var(--text, #e8e8ec);
+  color: var(--text, #f5f5f5);
 }
 
 .offlineBanner {

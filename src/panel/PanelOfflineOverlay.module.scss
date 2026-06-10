@@ -81,7 +81,7 @@
   margin-bottom: 4px;
   border-radius: 50%;
   background: rgba(245, 158, 11, 0.16);
-  color: #f59e0b;
+  color: var(--warn);
 }
 
 @keyframes spin {

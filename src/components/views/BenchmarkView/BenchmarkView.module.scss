@@ -420,12 +420,12 @@
   }
 
   &.confMed {
-    background: rgba(245, 158, 11, 0.12);
+    background: color-mix(in srgb, var(--warn) 12%, transparent);
     color: var(--warn);
   }
 
   &.confLow {
-    background: rgba(239, 68, 68, 0.12);
+    background: color-mix(in srgb, var(--bad) 12%, transparent);
     color: var(--bad);
   }
 }
