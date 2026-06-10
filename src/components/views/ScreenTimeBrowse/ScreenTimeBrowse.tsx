@@ -5,7 +5,6 @@ import { useScreenTime } from '../../../hooks/useScreenTime';
 import { fetchService } from '../../../api/service';
 import { DatePicker } from '../../common/DatePicker/DatePicker';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
-import { Tabs } from '../../common/Tabs/Tabs';
 import {
   deleteScreenTimeApp,
   useScreenTimeApp,
@@ -17,60 +16,44 @@ import {
 } from '../../../hooks/useScreenTimeBrowse';
 import styles from './ScreenTimeBrowse.module.scss';
 
-type Mode = 'day' | 'week' | 'month' | 'app';
+export const SCREEN_TIME_MODES = ['day', 'week', 'month', 'app'] as const;
+export type ScreenTimeMode = typeof SCREEN_TIME_MODES[number];
 
 interface ScreenTimeBrowseProps {
-  onManageData: () => void;
+  mode: ScreenTimeMode;
+  onModeChange: (mode: ScreenTimeMode) => void;
 }
 
-export function ScreenTimeBrowse({ onManageData }: ScreenTimeBrowseProps) {
-  const { t } = useTranslation();
-  const [mode, setMode] = useState<Mode>('day');
+export function ScreenTimeBrowse({ mode, onModeChange }: ScreenTimeBrowseProps) {
   const [date, setDate] = useState<string>(todayIso());
   const [appName, setAppName] = useState<string>('');
 
   const goToApp = (name: string) => {
     setAppName(name);
-    setMode('app');
+    onModeChange('app');
   };
 
   return (
     <div className={styles.root}>
-      <div className={styles.headerRow}>
-        <Tabs
-          variant="pill"
-          tabs={(['day', 'week', 'month', 'app'] as Mode[]).map(m => ({
-            key: m,
-            label: t(`monitoring.screentime.tab.${m}`),
-          }))}
-          activeKey={mode}
-          onChange={k => setMode(k as Mode)}
-          ariaLabel={t('monitoring.screentime.title')}
-        />
-        <button type="button" className={styles.manageBtn} onClick={onManageData}>
-          {t('monitoring.screentime.manageData')}
-        </button>
-      </div>
-
       {mode === 'day' && (
         <DayPanel date={date} setDate={setDate} onAppClick={goToApp} />
       )}
       {mode === 'week' && (
         <WeekPanel
-          onPickDay={d => { setDate(d); setMode('day'); }}
+          onPickDay={d => { setDate(d); onModeChange('day'); }}
           onPickApp={goToApp}
         />
       )}
       {mode === 'month' && (
         <MonthPanel
-          onPickDay={d => { setDate(d); setMode('day'); }}
+          onPickDay={d => { setDate(d); onModeChange('day'); }}
         />
       )}
       {mode === 'app' && (
         <AppPanel
           name={appName}
           onPickName={setAppName}
-          onBack={() => setMode('day')}
+          onBack={() => onModeChange('day')}
         />
       )}
     </div>
@@ -104,19 +87,19 @@ function DayPanel({ date, setDate, onAppClick }: {
       <div className={styles.summaryCard}>
         <div className={styles.summaryTotal}>
           <div className={styles.summaryValue}>{formatDuration(merged.totalMs)}</div>
-          <div className={styles.summarySub}>{t('monitoring.screentime.totalTime')}</div>
+          <div className={styles.summarySub}>{t('screentime.totalTime')}</div>
         </div>
         <div className={styles.summaryStats}>
           <div className={styles.statBlock}>
             <div className={styles.statValue}>{merged.pickups}</div>
-            <div className={styles.statLabel}>{t('monitoring.screentime.pickups')}</div>
+            <div className={styles.statLabel}>{t('screentime.pickups')}</div>
           </div>
           {!isToday && (
             <div className={styles.statBlock}>
               <div className={delta >= 0 ? styles.statDeltaUp : styles.statDeltaDown}>
                 {delta === 0 ? '0' : (delta > 0 ? '+' : '') + formatDuration(Math.abs(delta))}
               </div>
-              <div className={styles.statLabel}>{t('monitoring.screentime.vsPrev')}</div>
+              <div className={styles.statLabel}>{t('screentime.vsPrev')}</div>
             </div>
           )}
         </div>
@@ -124,11 +107,11 @@ function DayPanel({ date, setDate, onAppClick }: {
 
       <div className={styles.hourlyCard}>
         <div className={styles.cardTitle}>
-          {t('monitoring.screentime.hourly')}
+          {t('screentime.hourly')}
           {selectedHour !== null && (
             <button type="button" className={styles.clearFilter}
               onClick={() => setSelectedHour(null)}>
-              {t('monitoring.screentime.hourFilterClear')}
+              {t('screentime.hourFilterClear')}
             </button>
           )}
         </div>
@@ -152,11 +135,11 @@ function DayPanel({ date, setDate, onAppClick }: {
       <div className={styles.appsCard}>
         <div className={styles.cardTitle}>
           {selectedHour !== null
-            ? t('monitoring.screentime.hourFilter', { hour: String(selectedHour).padStart(2, '0') })
-            : t('monitoring.screentime.appsList')}
+            ? t('screentime.hourFilter', { hour: String(selectedHour).padStart(2, '0') })
+            : t('screentime.appsList')}
         </div>
         {apps.length === 0 ? (
-          <div className={styles.empty}>{t('monitoring.screentime.noData')}</div>
+          <div className={styles.empty}>{t('screentime.noData')}</div>
         ) : (
           <AppsList apps={apps} onAppClick={onAppClick} />
         )}
@@ -184,18 +167,18 @@ function WeekPanel({ onPickDay, onPickApp }: {
       <div className={styles.summaryCard}>
         <div className={styles.summaryTotal}>
           <div className={styles.summaryValue}>{formatDuration(weekTotal)}</div>
-          <div className={styles.summarySub}>{t('monitoring.screentime.weekTotal')}</div>
+          <div className={styles.summarySub}>{t('screentime.weekTotal')}</div>
         </div>
         <div className={styles.summaryStats}>
           <div className={styles.statBlock}>
             <div className={styles.statValue}>{formatDuration(dailyAvg)}</div>
-            <div className={styles.statLabel}>{t('monitoring.screentime.weekAverage')}</div>
+            <div className={styles.statLabel}>{t('screentime.weekAverage')}</div>
           </div>
         </div>
       </div>
 
       <div className={styles.weekCard}>
-        <div className={styles.cardTitle}>{t('monitoring.screentime.weekTitle')}</div>
+        <div className={styles.cardTitle}>{t('screentime.weekTitle')}</div>
         <div className={styles.weekChart}>
           {days.map(d => (
             <HoverTooltip key={d.date} title={d.date} body={formatDuration(d.totalMs)} side="top">
@@ -230,12 +213,12 @@ function MonthPanel({ onPickDay }: { onPickDay: (d: string) => void }) {
       <div className={styles.summaryCard}>
         <div className={styles.summaryTotal}>
           <div className={styles.summaryValue}>{formatDuration(monthTotal)}</div>
-          <div className={styles.summarySub}>{t('monitoring.screentime.monthTitle')}</div>
+          <div className={styles.summarySub}>{t('screentime.monthTitle')}</div>
         </div>
       </div>
 
       <div className={styles.monthCard}>
-        <div className={styles.cardTitle}>{t('monitoring.screentime.monthTitle')}</div>
+        <div className={styles.cardTitle}>{t('screentime.monthTitle')}</div>
         <div className={styles.heatmap}>
           {days.map(d => {
             const ratio = d.totalMs / max;
@@ -251,9 +234,9 @@ function MonthPanel({ onPickDay }: { onPickDay: (d: string) => void }) {
           })}
         </div>
         <div className={styles.heatmapLegend}>
-          <span>{t('monitoring.screentime.heatmapLess')}</span>
+          <span>{t('screentime.heatmapLess')}</span>
           <div className={styles.heatmapGradient} />
-          <span>{t('monitoring.screentime.heatmapMore')}</span>
+          <span>{t('screentime.heatmapMore')}</span>
         </div>
       </div>
     </>
@@ -276,7 +259,7 @@ function AppPanel({ name, onPickName, onBack }: {
   if (!name) {
     return (
       <div className={styles.empty}>
-        <p>{t('monitoring.screentime.appPickPrompt')}</p>
+        <p>{t('screentime.appPickPrompt')}</p>
       </div>
     );
   }
@@ -286,7 +269,7 @@ function AppPanel({ name, onPickName, onBack }: {
   const avg = filled.length > 0 ? Math.round(total / filled.length) : 0;
 
   const onDelete = async () => {
-    if (!confirm(t('monitoring.screentime.appDeleteConfirm', { name }))) return;
+    if (!confirm(t('screentime.appDeleteConfirm', { name }))) return;
     await deleteScreenTimeApp(name);
     onPickName('');
     onBack();
@@ -296,7 +279,7 @@ function AppPanel({ name, onPickName, onBack }: {
     <>
       <div className={styles.appHeader}>
         <button type="button" className={styles.backBtn} onClick={onBack}>
-          {t('monitoring.screentime.appBack')}
+          {t('screentime.appBack')}
         </button>
         <div className={styles.appName}>{name}</div>
       </div>
@@ -304,24 +287,24 @@ function AppPanel({ name, onPickName, onBack }: {
       <div className={styles.appStatsRow}>
         <div className={styles.statCard}>
           <div className={styles.statValue}>{formatDuration(total)}</div>
-          <div className={styles.statLabel}>{t('monitoring.screentime.appLast7')}</div>
+          <div className={styles.statLabel}>{t('screentime.appLast7')}</div>
         </div>
         <div className={styles.statCard}>
           <div className={styles.statValue}>{formatDuration(avg)}</div>
-          <div className={styles.statLabel}>{t('monitoring.screentime.appDailyAvg')}</div>
+          <div className={styles.statLabel}>{t('screentime.appDailyAvg')}</div>
         </div>
         <div className={styles.statCard}>
           <div className={styles.statValue}>{formatDuration(history?.longestSessionMs ?? 0)}</div>
-          <div className={styles.statLabel}>{t('monitoring.screentime.appLongestSession')}</div>
+          <div className={styles.statLabel}>{t('screentime.appLongestSession')}</div>
         </div>
         <div className={styles.statCard}>
           <div className={styles.statValue}>{history?.totalPickups ?? 0}</div>
-          <div className={styles.statLabel}>{t('monitoring.screentime.appPickups')}</div>
+          <div className={styles.statLabel}>{t('screentime.appPickups')}</div>
         </div>
       </div>
 
       <div className={styles.appChartCard}>
-        <div className={styles.cardTitle}>{t('monitoring.screentime.appLast7')}</div>
+        <div className={styles.cardTitle}>{t('screentime.appLast7')}</div>
         <div className={styles.weekChart}>
           {filled.map(d => (
             <HoverTooltip key={d.date} title={d.date} body={formatDuration(d.totalMs)} side="top">
@@ -336,7 +319,7 @@ function AppPanel({ name, onPickName, onBack }: {
       </div>
 
       <button type="button" className={styles.deleteAppBtn} onClick={onDelete}>
-        {t('monitoring.screentime.appDeleteData')}
+        {t('screentime.appDeleteData')}
       </button>
     </>
   );
@@ -352,21 +335,21 @@ function DateNav({ date, setDate }: { date: string; setDate: (d: string) => void
     <div className={styles.dateNav}>
       <button type="button" className={styles.dateNavBtn}
         onClick={() => setDate(addDays(date, -1))}
-        aria-label={t('monitoring.screentime.dateNav.prev')}>
+        aria-label={t('screentime.dateNav.prev')}>
         ‹
       </button>
       <div className={styles.dateNavLabel}>
-        {isToday ? t('monitoring.screentime.dateNav.today') : labelDate}
+        {isToday ? t('screentime.dateNav.today') : labelDate}
         {!isToday && <span className={styles.dateNavSubLabel}> · {labelDate}</span>}
       </div>
       <button type="button" className={styles.dateNavBtn}
         onClick={() => setDate(addDays(date, 1))}
         disabled={isToday}
-        aria-label={t('monitoring.screentime.dateNav.next')}>
+        aria-label={t('screentime.dateNav.next')}>
         ›
       </button>
       <DatePicker value={date} max={today} onChange={setDate}
-        ariaLabel={t('monitoring.screentime.dateNav.prev')} />
+        ariaLabel={t('screentime.dateNav.prev')} />
     </div>
   );
 }
@@ -418,7 +401,7 @@ function RangeAppsList({ from, to, onAppClick }: {
 
   return (
     <div className={styles.appsCard}>
-      <div className={styles.cardTitle}>{t('monitoring.screentime.appsList')}</div>
+      <div className={styles.cardTitle}>{t('screentime.appsList')}</div>
       <AppsList apps={agg} onAppClick={onAppClick} />
     </div>
   );

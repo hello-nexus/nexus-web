@@ -31,7 +31,7 @@ export interface TabsProps {
    * - `underline` (default): accent underline on the active tab, neutral
    *   border-bottom on the bar. Used for page-level primary nav.
    * - `pill`: bordered segmented group with accent-soft fill on the active
-   *   pill. Used for secondary in-page toggles (ScreenTime day/week/month/app).
+   *   pill. Used for secondary in-page toggles (panel theme settings, icon picker).
    */
   variant?: TabsVariant;
   /** Stretch the bar to 100% width with each tab sharing the width equally. */
