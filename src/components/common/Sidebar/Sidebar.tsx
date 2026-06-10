@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import classNames from 'classnames';
 import {
-  DndContext, type DragEndEvent, PointerSensor, KeyboardSensor,
-  useSensor, useSensors, closestCenter,
+  DndContext, type CollisionDetection, type DragEndEvent, type DragOverEvent,
+  type DragStartEvent, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core';
 import {
   SortableContext, useSortable, verticalListSortingStrategy,
@@ -206,7 +206,44 @@ export function Sidebar({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  // Pinned rows never target the running row's slot — only the running row
+  // itself crosses the separator. Filtering the collision candidates (rather
+  // than clamping after the fact) keeps the live preview honest too: the
+  // running row is never shifted by a pinned drag.
+  const collisionDetection: CollisionDetection = (args) => {
+    const collisions = closestCenter(args);
+    if (runningItem && String(args.active.id) !== runningItem.key) {
+      return collisions.filter(c => String(c.id) !== runningItem.key);
+    }
+    return collisions;
+  };
+
+  // While the running row is projected into the tail, the separator slides
+  // down one slot in step with dnd-kit's row shift, so no pinned row ever
+  // renders below the bar — only the running row crosses it. The slot stride
+  // (last pinned row top → running row top, which is exactly the offset
+  // dnd-kit applies to the shifted rows) is measured once at drag start,
+  // before any transforms move the rects.
+  const [sepShift, setSepShift] = useState(0);
+  const strideRef = useRef(0);
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    strideRef.current = 0;
+    if (!runningItem || String(active.id) !== runningItem.key || tailKeys.length === 0) return;
+    const lastTail = document.querySelector(`[data-sidebar-row-key="${tailKeys[tailKeys.length - 1]}"]`);
+    const running = document.querySelector(`[data-sidebar-row-key="${runningItem.key}"]`);
+    if (lastTail && running) {
+      strideRef.current = running.getBoundingClientRect().top - lastTail.getBoundingClientRect().top;
+    }
+  };
+  const handleDragOver = ({ active, over }: DragOverEvent) => {
+    const overId = over ? String(over.id) : null;
+    setSepShift(runningItem && String(active.id) === runningItem.key && overId && overId !== runningItem.key
+      ? strideRef.current
+      : 0);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
+    setSepShift(0);
     const activeKey = String(event.active.id);
     const overKey = event.over ? String(event.over.id) : null;
     if (!overKey || activeKey === overKey) return;
@@ -220,8 +257,9 @@ export function Sidebar({
     }
     if (!onTailReorder) return;
     const from = tailKeys.indexOf(activeKey);
-    // A pinned row dropped onto the running row clamps to the end of the
-    // pinned list — the running row is a boundary, not a slot.
+    // Pointer drags can't reach the running row (collision filter above), but
+    // keyboard sorting can: clamp a pinned row dropped onto it to the end of
+    // the pinned list — the running row is a boundary, not a slot.
     const to = overKey === runningKey ? tailKeys.length - 1 : tailKeys.indexOf(overKey);
     if (from < 0 || to < 0) return;
     const next = arrayMove(tailKeys, from, to);
@@ -319,9 +357,12 @@ export function Sidebar({
         <div className={styles.tailScroll} data-sidebar-tail-scroll="true">
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={collisionDetection}
             modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={() => setSepShift(0)}
           >
             <SortableContext items={sortableKeys} strategy={verticalListSortingStrategy}>
               {tail.map((item) => (
@@ -340,7 +381,15 @@ export function Sidebar({
               ))}
               {runningItem && (
                 <>
-                  <div className={styles.runningSeparator} aria-hidden="true" />
+                  <div
+                    className={styles.runningSeparator}
+                    data-sidebar-running-separator="true"
+                    style={{
+                      transform: sepShift ? `translateY(${sepShift}px)` : undefined,
+                      transition: 'transform 200ms ease',
+                    }}
+                    aria-hidden="true"
+                  />
                   <SortableRow
                     key={runningItem.key}
                     item={runningItem}
