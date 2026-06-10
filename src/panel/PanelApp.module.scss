@@ -911,6 +911,19 @@
   --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
 }
 
+// Promoted-monitor kiosks are wide (>900px), so their add-widget sheet takes
+// the base right-slide path — which inherits the live panel's --panel-scale
+// (a content zoom, e.g. ~1.57x on a 1920px monitor) and the sheet transform
+// `scale(var(--panel-scale))` blows the whole drawer up by that factor. The
+// sheet is fixed-size chrome, not scaled panel content; neutralise like the
+// desktop drawer does. The catalog grid sets its own --panel-scale for its
+// preview cells (closer ancestor), so those still scale correctly. Narrow
+// rotated monitors (≤900px) keep the bottom-sheet path, whose rules divide
+// by --panel-scale=1 — a no-op, also correct.
+.editorBackdrop[data-surface='monitor'] {
+  --panel-scale: 1;
+}
+
 // [data-dock='right'] = device pages forcing the desktop-style side sheet
 // while the catalog filters by the panel's own surface.
 .editorBackdrop[data-surface='desktop'],
