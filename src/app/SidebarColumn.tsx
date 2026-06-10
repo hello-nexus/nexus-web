@@ -53,10 +53,6 @@ interface SidebarColumnProps {
   // landing page. Dashboard maps this to the existing DevicesPage.
   onDevicesHeaderClick: () => void;
   devicesHeaderActive: boolean;
-  // Fixed "Displays" utility row at the bottom of the DEVICES section —
-  // the monitor-topology page where any monitor can become a panel.
-  onDisplaysClick: () => void;
-  displaysActive: boolean;
 }
 
 export function SidebarColumn({
@@ -76,8 +72,6 @@ export function SidebarColumn({
   onDeviceSelect,
   onDevicesHeaderClick,
   devicesHeaderActive,
-  onDisplaysClick,
-  displaysActive,
 }: SidebarColumnProps) {
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
@@ -152,8 +146,6 @@ export function SidebarColumn({
             onSelect={onDeviceSelect}
             onHeaderClick={onDevicesHeaderClick}
             headerActive={devicesHeaderActive}
-            onDisplaysClick={onDisplaysClick}
-            displaysActive={displaysActive}
           />
         }
       />

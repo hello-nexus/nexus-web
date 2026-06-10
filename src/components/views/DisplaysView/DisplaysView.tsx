@@ -4,7 +4,6 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDisplayTopology } from '../../../hooks/useDisplayTopology';
 import { demoteDisplayPanel, promoteDisplayToPanel, type TopologyDisplay } from '../../../api/displays';
 import { useTranslation } from '../../../lib/i18n';
-import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Button } from '../../../components/common/Button/Button';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { ServiceRequired } from '../ServiceRequired';
@@ -48,10 +47,11 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
 
   const selected = displays.find(d => d.id === selectedId) ?? null;
 
+  // No header of its own: this view renders as the Displays tab inside the
+  // Devices page, which owns the ViewHeader + tab strip.
   if (!serviceOnline) {
     return (
       <section className={styles.view}>
-        <ViewHeader title={t('displays.title')} />
         <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
       </section>
     );
@@ -92,8 +92,6 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
 
   return (
     <section className={styles.view}>
-      <ViewHeader title={t('displays.title')} />
-
       {displays.length === 0 ? (
         <div className={styles.empty}>{loading ? '' : t('displays.empty')}</div>
       ) : (
@@ -130,6 +128,9 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
                 )}
                 {selected.isInternal && (
                   <span className={styles.chip}>{t('displays.internal')}</span>
+                )}
+                {selected.isTouch && (
+                  <span className={styles.chip}>{t('displays.touch')}</span>
                 )}
               </div>
 

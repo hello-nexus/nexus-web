@@ -12,6 +12,7 @@ import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DevicesSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
 import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
+import { DisplaysView } from '../../../components/views/DisplaysView/DisplaysView';
 import styles from './DevicesPage.module.scss';
 
 interface DevicesViewProps {
@@ -23,16 +24,23 @@ interface DevicesViewProps {
   // page (PanelDevicePage / PeripheralDevicePage) rather than opening
   // a modal in place.
   onDeviceSelect: (deviceKey: string) => void;
-  // Click handler for the Displays entry card (monitor topology page).
-  // Optional: the dashboard devices widget reuses this page without it.
-  onDisplaysSelect?: () => void;
+  // Controlled tab = the route subtab (so /devices/displays deep-links).
+  // Falls back to local state when not routed (dashboard widget reuse).
+  tab?: string | null;
+  onTabChange?: (tab: string) => void;
 }
 
-type TabKey = 'available' | 'firmware' | 'specs';
+type TabKey = 'available' | 'displays' | 'firmware' | 'specs';
+const TAB_KEYS: readonly string[] = ['available', 'displays', 'firmware', 'specs'];
 
-export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, onDisplaysSelect }: DevicesViewProps) {
+export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, tab: routedTab, onTabChange }: DevicesViewProps) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<TabKey>('available');
+  const [localTab, setLocalTab] = useState<TabKey>('available');
+  const tab: TabKey = routedTab && TAB_KEYS.includes(routedTab) ? (routedTab as TabKey) : localTab;
+  const setTab = (next: TabKey) => {
+    setLocalTab(next);
+    onTabChange?.(next);
+  };
   const [supportedModalOpen, setSupportedModalOpen] = useState(false);
   const [connectedModalOpen, setConnectedModalOpen] = useState(false);
 
@@ -59,6 +67,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, on
 
   const tabs = [
     { key: 'available', label: t('devices.tabs.available') },
+    { key: 'displays', label: t('displays.title') },
     { key: 'firmware', label: t('devices.tabs.firmware') },
     { key: 'specs', label: t('devices.tabs.specs') },
   ] as const;
@@ -102,25 +111,23 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, on
               </div>
             )}
 
-            {unified.length === 0 && !onDisplaysSelect ? (
+            {unified.length === 0 ? (
               <div className={styles.empty}>{t('devices.available.none')}</div>
             ) : (
-              <>
-                {unified.length === 0 && (
-                  <div className={styles.empty}>{t('devices.available.none')}</div>
-                )}
-                <div className={styles.grid}>
-                  {unified.map(d => (
-                    <DeviceCard key={d.key} device={d} onClick={() => onDeviceSelect(d.key)} />
-                  ))}
-                  {serviceOnline && onDisplaysSelect && (
-                    <DisplaysEntryCard onClick={onDisplaysSelect} />
-                  )}
-                </div>
-              </>
+              <div className={styles.grid}>
+                {unified.map(d => (
+                  <DeviceCard key={d.key} device={d} onClick={() => onDeviceSelect(d.key)} />
+                ))}
+              </div>
             )}
           </>
         )
+      ) : tab === 'displays' ? (
+        <DisplaysView
+          serviceOnline={serviceOnline}
+          connectionState={connectionState}
+          onDeviceSelect={onDeviceSelect}
+        />
       ) : tab === 'firmware' ? (
         !serviceOnline ? (
           <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
@@ -168,35 +175,6 @@ function ConnectedDevicesModal({ open, onClose, devices, loading, onRefresh }: C
       <p className={styles.explainer}>{t('devices.connected.description')}</p>
       <UsbPanel devices={devices} loading={loading} onRefresh={onRefresh} />
     </DeviceModal>
-  );
-}
-
-// Entry card to the Displays page — not a device, so no status line; just
-// the gateway to "turn a monitor into a Nexus panel".
-function DisplaysEntryCard({ onClick }: { onClick: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <div
-      className={styles.card}
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => { if (e.key === 'Enter') onClick(); }}
-      data-testid="displays-entry-card"
-    >
-      <div className={styles.cardIcon}>
-        <span
-          className={styles.cardIconGlyph}
-          role="img"
-          aria-label={t('displays.title')}
-          style={{ ['--icon-url' as string]: 'url(/assets/devices/monitor.svg)' }}
-        />
-      </div>
-      <div className={styles.cardInfo}>
-        <span className={styles.cardName}>{t('displays.title')}</span>
-        <span className={styles.cardSub}>{t('displays.card.subtitle')}</span>
-      </div>
-    </div>
   );
 }
 

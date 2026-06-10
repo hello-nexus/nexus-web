@@ -55,9 +55,18 @@ const NAV: { view: string; labelKey: string; keywords: string[] }[] = [
   { view: 'lighting',   labelKey: 'lighting.title', keywords: ['rgb', 'led', 'leds', 'effects', 'color', 'colour', 'animation', 'effect', 'mirror', 'media', 'brightness', 'off'] },
   { view: 'cooling',    labelKey: 'cooling.title',  keywords: ['fans', 'fan curve', 'pump', 'thermals', 'temps', 'preset', 'profile', 'silent', 'balanced', 'turbo', 'custom', 'curve', 'off'] },
   { view: 'devices',    labelKey: 'devices.title',  keywords: ['usb', 'peripherals', 'hardware', 'connected'] },
-  { view: 'displays',   labelKey: 'displays.title', keywords: ['monitor', 'screen', 'display', 'panel', 'second screen', 'multi'] },
   { view: 'settings',   labelKey: 'settings.title', keywords: ['preferences', 'config', 'options', 'setup'] },
 ];
+
+// Displays is the Devices page's second tab, so its search hit deep-links
+// with the subtab (same pattern as the settings tabs below).
+const navDisplays: SearchSource = (ctx) => [go('nav:displays', {
+  title: `${ctx.t('devices.title')} › ${ctx.t('displays.title')}`,
+  icon: NAV_ICONS.devices,
+  keywords: ['monitor', 'screen', 'display', 'panel', 'second screen', 'multi'],
+  suggest: true,
+  to: () => ctx.host.goView('devices', 'displays'),
+})];
 
 const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
   { tab: 'general',  labelKey: 'settings.general',      keywords: ['startup', 'tray', 'login', 'language'] },
@@ -273,7 +282,7 @@ const profilesSource: SearchSource = (ctx) => {
 // Add a source here to add a category of results. Order is cosmetic — entries
 // are ranked by relevance, not source order.
 export const SOURCES: SearchSource[] = [
-  navigation, settingsTabs, settingsItems, devices, profilesSource,
+  navigation, navDisplays, settingsTabs, settingsItems, devices, profilesSource,
   cooling, lightingModes, lightingEffects, appearance,
   actions, remoteAccess, settingsToggles,
 ];

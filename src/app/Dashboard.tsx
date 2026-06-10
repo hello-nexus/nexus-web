@@ -14,7 +14,6 @@ import { DevicePage } from '../components/views/DevicePage/DevicePage';
 const CoolingPage = lazy(() => import('../panel/widgets/cooling/CoolingPage').then(m => ({ default: m.CoolingPage })));
 const MonitoringPage = lazy(() => import('../panel/widgets/monitoring/MonitoringPage').then(m => ({ default: m.MonitoringPage })));
 const DevicesPage = lazy(() => import('../panel/widgets/devices/DevicesPage').then(m => ({ default: m.DevicesPage })));
-const DisplaysView = lazy(() => import('../components/views/DisplaysView/DisplaysView').then(m => ({ default: m.DisplaysView })));
 const LightingPage = lazy(() => import('../panel/widgets/lighting/LightingPage').then(m => ({ default: m.LightingPage })));
 const SmartLightsPage = lazy(() => import('../panel/widgets/smart-lights/SmartLightsPage').then(m => ({ default: m.SmartLightsPage })));
 const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
@@ -188,7 +187,6 @@ export function Dashboard() {
       return dev?.name ?? t('sidebar.section.devices');
     }
     if (activeView === 'devices') return t('sidebar.section.devices');
-    if (activeView === 'displays') return t('displays.title');
     // A marketplace (SDK) widget's page: the top bar shows the widget's name.
     if (activeView && isMarketplaceType(activeView)) {
       const id = marketplaceIdFromType(activeView);
@@ -381,14 +379,8 @@ export function Dashboard() {
           serviceOnline={online}
           connectionState={status.state}
           onDeviceSelect={k => navigate('system', 'device', k)}
-          onDisplaysSelect={() => navigate('system', 'displays')}
-        />
-      );
-      case 'displays':   return (
-        <DisplaysView
-          serviceOnline={online}
-          connectionState={status.state}
-          onDeviceSelect={k => navigate('system', 'device', k)}
+          tab={subtab}
+          onTabChange={setSubtab}
         />
       );
       case 'device':     return (
@@ -498,8 +490,6 @@ export function Dashboard() {
               onDeviceSelect={k => navigate('system', 'device', k)}
               onDevicesHeaderClick={() => navigate('system', 'devices')}
               devicesHeaderActive={section === 'system' && activeView === 'devices'}
-              onDisplaysClick={() => navigate('system', 'displays')}
-              displaysActive={section === 'system' && activeView === 'displays'}
             />
           )}
 
