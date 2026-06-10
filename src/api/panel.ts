@@ -51,6 +51,11 @@ export interface PanelDeviceRecord {
   // Stable display id when this record was created by promoting an OS
   // monitor (POST /displays/{id}/panel). Absent on self-registered panels.
   displayId?: string;
+  // Per-panel "keep panel clear of other windows" (display-bound records).
+  reserveMonitor?: boolean;
+  // Display-bound panels: false = turned off (record + config kept; no
+  // kiosk). Absent/null = on.
+  enabled?: boolean | null;
   // Response-only: false when the bound monitor is currently unplugged,
   // undefined/null when topology is unknown (treat as attached).
   displayAttached?: boolean | null;
@@ -73,6 +78,8 @@ export interface PanelDevicePatch {
   widgetBlur?: boolean;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
+  // Display-bound records only; ignored for other panels.
+  reserveMonitor?: boolean;
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 

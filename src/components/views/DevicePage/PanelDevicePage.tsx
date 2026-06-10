@@ -10,7 +10,7 @@ import { appendWidget, replaceWidget } from '../../../panel/engine/panelLayoutOp
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { isSingleWidgetSurface } from '../../../panel/types';
 import { fetchService, postService } from '../../../api/service';
-import { fetchDisplays, setDisplayBrightness } from '../../../api/displays';
+import { fetchDisplays, rotateDisplay, setDisplayBrightness } from '../../../api/displays';
 import { fetchPreferences, savePreferences } from '../../../api/profiles';
 import {
   allocatePanelDevice,
@@ -90,9 +90,18 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   // attached.
   const [liveCanvas, setLiveCanvas] = useState<{ width: number; height: number } | null>(null);
   const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
+  // Per-panel persisted settings off the device record (promoted monitors).
+  const [recordReserve, setRecordReserve] = useState(true);
+  const [recordTouch, setRecordTouch] = useState<boolean | undefined>(undefined);
   const surface = device?.runtimeSurface ?? 'y70';
   const supportsDisplayControls = device?.capabilities.displayControls ?? surface === 'y70';
   const supportsAutoLaunch = device?.capabilities.launchClose ?? surface === 'y70';
+  // Promoted monitor panels: bound to an OS display (per-panel reserve +
+  // rotation live on the record / displays API).
+  const isMonitorPanel = !!device?.displayId && !!device?.panelRecordId;
+  // The record's touch flag is authoritative once loaded; the device entry's
+  // UI capability seeds it for first paint.
+  const deviceTouch = recordTouch ?? device?.capabilities.touch;
   // Promoted monitors with a DDC/CI-capable display get a brightness-only
   // settings tab wired to the generic /displays brightness endpoint.
   const [ddcBrightness, setDdcBrightness] = useState<number | null>(null);
@@ -110,7 +119,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
     return () => { cancelled = true; };
   }, [ddcDisplayId]);
   const ddcSupported = ddcDisplayId !== null && ddcBrightness !== null;
-  const settingsAvailable = supportsDisplayControls || supportsAutoLaunch || ddcSupported;
+  const settingsAvailable = supportsDisplayControls || supportsAutoLaunch || ddcSupported || isMonitorPanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -157,8 +166,13 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       const cw = match?.capabilities?.cssWidth;
       const ch = match?.capabilities?.cssHeight;
       setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
+      // Per-panel persisted settings (promoted monitors).
+      setRecordReserve(match?.reserveMonitor ?? true);
+      if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
+      const touchFromRecord = match?.capabilities?.touch ?? device?.capabilities.touch;
+      setRecordTouch(match?.capabilities?.touch);
       const savedLayout = match?.layout ?? defaultLayoutForSurface(surface);
-      setLayout(normalizePanelLayout(savedLayout, surface));
+      setLayout(normalizePanelLayout(savedLayout, surface, touchFromRecord));
       if (prefs) {
         setAutoLaunch(prefs.panel?.autoLaunch ?? false);
         setReserveMonitor(prefs.panel?.reserveMonitor ?? true);
@@ -166,7 +180,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       setLoaded(true);
     }).catch(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
-  }, [surface, supportsDisplayControls, device?.panelRecordId]);
+  }, [surface, supportsDisplayControls, device?.panelRecordId, device?.capabilities.touch]);
 
   const pushBrightness = (value: number) => {
     setBrightness(value);
@@ -175,7 +189,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   };
 
   const updateLayout = useCallback((next: PanelLayout) => {
-    const normalized = normalizePanelLayout(next, surface);
+    const normalized = normalizePanelLayout(next, surface, deviceTouch);
     setLayout(normalized);
     // Per-device editing path. If no device for this surface is registered
     // yet (no panel of this kind has ever connected), allocate one on first
@@ -194,7 +208,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
         return persist(record.id);
       }
     });
-  }, [editingDeviceId, surface]);
+  }, [editingDeviceId, surface, deviceTouch]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -209,7 +223,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       const cw = record.capabilities?.cssWidth;
       const ch = record.capabilities?.cssHeight;
       setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
-      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface));
+      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
     }).catch(() => {});
   });
 
@@ -346,12 +360,14 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
       ) : (
         <div className={styles.splitLayout}>
+          {/* Options pane on the left; live preview on the right. */}
           <div className={styles.leftPane}>
             {configuringWidget ? (
               <InlineWidgetSettings
                 key={configuringWidget.id}
                 widget={configuringWidget}
                 surface={surface}
+                deviceTouch={deviceTouch}
                 themeStyle={panelThemeVars}
                 themeMode={resolvedPanelThemeMode}
                 onBack={() => setConfiguringWidget(null)}
@@ -365,6 +381,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                   {activeTab === 'widgets' && (
                     <PanelWidgetCatalog
                       surface={surface}
+                      deviceTouch={deviceTouch}
                       onAdd={handleAddWidget}
                       variant="desktop-modal"
                       remote={isRemotePanel(device?.connectionKind)}
@@ -399,12 +416,24 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       hideWidgetLabelsToggle={singleWidget}
                     />
                   )}
-                  {activeTab === 'settings' && ddcSupported && !supportsDisplayControls && !supportsAutoLaunch && (
+                  {activeTab === 'settings' && (isMonitorPanel || ddcSupported) && !supportsDisplayControls && !supportsAutoLaunch && (
                     <MonitorSettingsPanel
-                      brightness={ddcBrightness ?? 50}
+                      brightness={ddcSupported ? (ddcBrightness ?? 50) : null}
                       onBrightness={(value) => {
                         setDdcBrightness(value);
                         if (ddcDisplayId) void setDisplayBrightness(ddcDisplayId, value).catch(() => {});
+                      }}
+                      orientation={isMonitorPanel ? orientation : null}
+                      onOrientation={(next) => {
+                        setOrientation(next);
+                        if (device?.displayId) void rotateDisplay(device.displayId, next).catch(() => {});
+                      }}
+                      orientationOptions={Y70_ORIENTATIONS}
+                      reserveMonitor={isMonitorPanel ? recordReserve : null}
+                      onReserveMonitorToggle={() => {
+                        const next = !recordReserve;
+                        setRecordReserve(next);
+                        if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { reserveMonitor: next }).catch(() => {});
                       }}
                     />
                   )}
@@ -499,6 +528,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
 interface InlineWidgetSettingsProps {
   widget: PanelWidget;
   surface: PanelSurface;
+  deviceTouch?: boolean;
   themeStyle?: CSSProperties;
   themeMode?: 'dark' | 'light';
   onBack: () => void;
@@ -507,11 +537,11 @@ interface InlineWidgetSettingsProps {
   onRemove: (widgetId: string) => void;
 }
 
-function InlineWidgetSettings({ widget, surface, themeStyle, themeMode = 'dark', onBack, onUpdate, onResize, onRemove }: InlineWidgetSettingsProps) {
+function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeMode = 'dark', onBack, onUpdate, onResize, onRemove }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
-  const sizes = def ? sizesForSurface(def.meta, surface) : [];
+  const sizes = def ? sizesForSurface(def.meta, surface, deviceTouch) : [];
   const Settings = def?.Settings;
   const isMonitoringWidget = widget.type === 'monitoring';
   const slotCountOptions = isMonitoringWidget ? slotCountOptionsForSize(widget.size) : [];
@@ -639,29 +669,73 @@ function InlineWidgetSettings({ widget, surface, themeStyle, themeMode = 'dark',
   );
 }
 
-// --- Monitor (promoted display) settings: DDC/CI brightness only ---
+// --- Monitor (promoted display) settings ---
+//
+// Per-panel persisted settings for display-bound panels: DDC/CI brightness
+// (when the monitor exposes it), OS rotation, and the per-record
+// "keep panel clear of other windows" reserve. Null props hide a row.
 
-function MonitorSettingsPanel({ brightness, onBrightness }: { brightness: number; onBrightness: (v: number) => void }) {
+interface MonitorSettingsPanelProps {
+  brightness: number | null;
+  onBrightness: (v: number) => void;
+  orientation: Y70Orientation | null;
+  onOrientation: (v: Y70Orientation) => void;
+  orientationOptions: readonly Y70Orientation[];
+  reserveMonitor: boolean | null;
+  onReserveMonitorToggle: () => void;
+}
+
+function MonitorSettingsPanel({
+  brightness, onBrightness,
+  orientation, onOrientation, orientationOptions,
+  reserveMonitor, onReserveMonitorToggle,
+}: MonitorSettingsPanelProps) {
   const { t } = useTranslation();
   return (
     <div className={styles.settingsContent}>
       <SectionHeader>{t('devices.y70.display')}</SectionHeader>
-      <div className="device-modal-row">
-        <div className="device-modal-label">{t('devices.y70.brightness')}</div>
-        <div className={styles.brightnessControl}>
-          <Slider
-            orientation="bare"
-            min={0}
-            max={100}
-            value={brightness}
-            trackFill={brightness}
-            onChange={onBrightness}
-            ariaLabel={t('devices.y70.brightness')}
-            className={styles.brightnessSlider}
-          />
-          <span className={styles.brightnessValue}>{brightness}</span>
+      {brightness !== null && (
+        <div className="device-modal-row">
+          <div className="device-modal-label">{t('devices.y70.brightness')}</div>
+          <div className={styles.brightnessControl}>
+            <Slider
+              orientation="bare"
+              min={0}
+              max={100}
+              value={brightness}
+              trackFill={brightness}
+              onChange={onBrightness}
+              ariaLabel={t('devices.y70.brightness')}
+              className={styles.brightnessSlider}
+            />
+            <span className={styles.brightnessValue}>{brightness}</span>
+          </div>
         </div>
-      </div>
+      )}
+      {orientation !== null && (
+        <div className="device-modal-row">
+          <div className="device-modal-label">{t('devices.y70.orientation')}</div>
+          <Select
+            value={orientation}
+            onChange={(v) => onOrientation(v as Y70Orientation)}
+            options={orientationOptions.map(o => ({
+              value: o,
+              label: t(`devices.y70.orientation.${o}`),
+            }))}
+            ariaLabel={t('devices.y70.orientation')}
+            size="sm"
+          />
+        </div>
+      )}
+      {reserveMonitor !== null && (
+        <div className="device-modal-row">
+          <div>
+            <div className="device-modal-label">{t('devices.y70.reserveMonitor')}</div>
+            <div className="device-modal-hint">{t('devices.y70.reserveMonitorHint')}</div>
+          </div>
+          <Toggle checked={reserveMonitor} onChange={onReserveMonitorToggle} ariaLabel={t('devices.y70.reserveMonitor')} />
+        </div>
+      )}
     </div>
   );
 }

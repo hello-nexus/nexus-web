@@ -45,13 +45,13 @@ function parsePath(): Route {
   // Handle legacy flat routes (e.g. /monitoring, /cooling, /settings)
   const SERVICE_VIEWS = ['dashboard', 'monitoring', 'lighting', 'cooling', 'devices', 'device', 'displays', 'clock', 'settings', 'tools'];
   if (SERVICE_VIEWS.includes(rawSection)) {
-    return {
+    return normalizeSystemRoute({
       section: 'system',
       view: rawSection,
       subtab: parts[1] || null,
       componentId: null,
       fromCategory: null,
-    };
+    });
   }
 
   if (!isSection(rawSection)) {
@@ -69,13 +69,22 @@ function parsePath(): Route {
     };
   }
 
-  return {
+  return normalizeSystemRoute({
     section: rawSection,
     view: parts[1] || null,
     subtab: parts[2] || null,
     componentId: null,
     fromCategory: null,
-  };
+  });
+}
+
+// Displays used to be its own view; it now lives as the Devices page's
+// second tab. Old bookmarks (/displays, /system/displays) land on it.
+function normalizeSystemRoute(route: Route): Route {
+  if (route.section === 'system' && route.view === 'displays') {
+    return { ...route, view: 'devices', subtab: 'displays' };
+  }
+  return route;
 }
 
 function buildPath(section: Section, view?: string | null, subtab?: string | null): string {

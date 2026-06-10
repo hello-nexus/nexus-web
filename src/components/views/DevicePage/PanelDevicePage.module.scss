@@ -50,8 +50,13 @@
 // iframe's initial scale (0.35) — content never grows. Stretching to row
 // height first, then capping with max-height, breaks that self-reference.
 .previewPane {
-  flex: 0 0 auto;
-  min-width: 360px;
+  // Definite basis (not content-sized): the embed frame fits BOTH axes
+  // against this box, so it needs a real width that doesn't derive from the
+  // iframe's own measured size. Portrait panels stay height-bound and narrow;
+  // landscape canvases (promoted monitors) become width-bound instead of
+  // clipping.
+  flex: 0 0 clamp(360px, 44%, 820px);
+  min-width: 0;
   height: 100%;
   display: flex;
   align-items: center;

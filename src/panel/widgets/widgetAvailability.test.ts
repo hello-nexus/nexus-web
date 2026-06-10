@@ -13,6 +13,37 @@ describe('surfaceSupportsTouch', () => {
   it('treats q60 as non-touch', () => {
     expect(surfaceSupportsTouch('q60')).toBe(false);
   });
+
+  it('gates monitor per device: touch only with an explicit digitizer', () => {
+    // No record info / unknown → non-touch (q-series-like default).
+    expect(surfaceSupportsTouch('monitor')).toBe(false);
+    expect(surfaceSupportsTouch('monitor', false)).toBe(false);
+    expect(surfaceSupportsTouch('monitor', true)).toBe(true);
+    // deviceTouch never loosens fixed surfaces.
+    expect(surfaceSupportsTouch('q60', true)).toBe(false);
+    expect(surfaceSupportsTouch('y70', false)).toBe(true);
+  });
+});
+
+describe('per-device touch gating on monitor panels', () => {
+  it('hides touch-required widgets unless the monitor has touch', () => {
+    const lighting = APP_REGISTRY.lighting;
+    expect(appAvailableForSurface(lighting.meta, 'monitor')).toBe(false);
+    expect(appAvailableForSurface(lighting.meta, 'monitor', { deviceTouch: false })).toBe(false);
+    expect(appAvailableForSurface(lighting.meta, 'monitor', { deviceTouch: true })).toBe(true);
+  });
+
+  it('keeps non-touch widgets available either way', () => {
+    const clock = APP_REGISTRY.clock;
+    expect(appAvailableForSurface(clock.meta, 'monitor', { deviceTouch: false })).toBe(true);
+    expect(appAvailableForSurface(clock.meta, 'monitor', { deviceTouch: true })).toBe(true);
+  });
+
+  it('returns no sizes for touch widgets on a non-touch monitor', () => {
+    const lighting = APP_REGISTRY.lighting;
+    expect(sizesForSurface(lighting.meta, 'monitor', false)).toEqual([]);
+    expect(sizesForSurface(lighting.meta, 'monitor', true).length).toBeGreaterThan(0);
+  });
 });
 
 describe('appAvailableForSurface', () => {

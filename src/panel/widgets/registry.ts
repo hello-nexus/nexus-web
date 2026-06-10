@@ -79,9 +79,9 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
 export function appAvailableForSurface(
   meta: AppManifest['meta'],
   surface: PanelSurface,
-  opts?: { remote?: boolean },
+  opts?: { remote?: boolean; deviceTouch?: boolean },
 ): boolean {
-  if (meta.touch && !surfaceSupportsTouch(surface)) return false;
+  if (meta.touch && !surfaceSupportsTouch(surface, opts?.deviceTouch)) return false;
   // Local-only widgets (e.g. the pairing QR) are hidden on remotely-connected
   // panels — a remote panel is the thing being paired, not the pairer.
   if (meta.localOnly && opts?.remote) return false;
@@ -171,9 +171,9 @@ function makeMarketplaceAppManifest(
 // surface (e.g. 2x4 belongs to q60; everywhere else doesn't see it).
 // The reconciler snaps existing widgets at a hidden size to the nearest
 // non-reserved size on load.
-export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurface): PanelWidgetSize[] {
+export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean): PanelWidgetSize[] {
   if (!surface) return [...meta.sizes];
-  if (meta.touch && !surfaceSupportsTouch(surface)) return [];
+  if (meta.touch && !surfaceSupportsTouch(surface, deviceTouch)) return [];
   const single = singleWidgetSurfaceSize(surface);
   if (single !== undefined) {
     return meta.sizes.includes(single) ? [single] : [];
@@ -187,8 +187,8 @@ export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurfac
 // drives the variable-size catalog tiles. Single-widget surfaces (Q60,
 // locked to 2x4) short-circuit: `sizesForSurface` already collapsed to the
 // one allowed size.
-export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface): PanelWidgetSize {
-  const sizes = sizesForSurface(meta, surface);
+export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean): PanelWidgetSize {
+  const sizes = sizesForSurface(meta, surface, deviceTouch);
   if (surface && singleWidgetSurfaceSize(surface) && sizes.length > 0) {
     return sizes[0];
   }

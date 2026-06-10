@@ -121,10 +121,12 @@ async function mockService(page: Page, state: { promoted: boolean; promotePosts:
   });
 }
 
-test('displays page renders the monitor map and promotes a monitor', async ({ page }) => {
+test('displays tab renders the monitor map and promotes a monitor', async ({ page }) => {
   const state = { promoted: false, promotePosts: [] as string[] };
   await mockService(page, state);
 
+  // Legacy /system/displays bookmarks normalize (in-memory) onto the
+  // Devices page's Displays tab; the address bar keeps the typed URL.
   await page.goto('/system/displays');
 
   // Three numbered monitor rects.
@@ -153,13 +155,13 @@ test('displays page renders the monitor map and promotes a monitor', async ({ pa
   expect(state.promotePosts).toHaveLength(1);
 });
 
-test('sidebar displays row navigates to the displays view', async ({ page }) => {
+test('devices page displays tab shows the monitor map', async ({ page }) => {
   const state = { promoted: false, promotePosts: [] as string[] };
   await mockService(page, state);
 
-  await page.goto('/system/dashboard');
-  await page.getByRole('button', { name: 'Displays', exact: true }).click();
+  await page.goto('/system/devices');
+  await page.getByRole('tab', { name: 'Displays', exact: true }).click();
 
-  await expect(page).toHaveURL(/\/system\/displays/);
+  await expect(page).toHaveURL(/\/system\/devices\/displays/);
   await expect(page.getByRole('option')).toHaveCount(3);
 });

@@ -72,6 +72,10 @@ export interface TopologyDisplay {
   dpi: number | null;
   isPrimary: boolean;
   isInternal: boolean;
+  /** An integrated touch digitizer targets this monitor. */
+  isTouch: boolean;
+  /** Current OS rotation ('Landscape' | 'Portrait' | ...); '' when unknown. */
+  orientation: string;
   /** The Y70's own monitor: auto-managed, never promotable here. */
   isY70: boolean;
   hostingSupported: boolean;
@@ -101,6 +105,10 @@ export async function promoteDisplayToPanel(id: string): Promise<PanelDeviceReco
 
 export async function demoteDisplayPanel(id: string): Promise<{ error?: boolean } | null> {
   return deleteService<{ error?: boolean }>(`/displays/${encodeURIComponent(id)}/panel`);
+}
+
+export async function rotateDisplay(id: string, orientation: string): Promise<{ error?: boolean } | null> {
+  return postService<{ error?: boolean }>(`/displays/${encodeURIComponent(id)}/rotation`, { orientation });
 }
 
 export async function fetchDisplayBrightness(id: string): Promise<DisplayBrightnessResponse | null> {

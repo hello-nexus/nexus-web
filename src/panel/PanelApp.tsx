@@ -126,26 +126,29 @@ interface PanelLayoutState {
 
 
 export default function PanelApp({ deviceId }: { deviceId: string }) {
-  // Resolve the device record once on mount; the surface stamped on it
-  // drives widget filtering. If the record is missing on the server (cleared
-  // profile etc.), fall back to a viewport-inferred surface so the panel
-  // still mounts instead of showing a blank page.
-  const [resolvedSurface, setResolvedSurface] = useState<PanelSurface | null>(null);
+  // Resolve the device record once on mount; the surface + touch capability
+  // stamped on it drive widget filtering. If the record is missing on the
+  // server (cleared profile etc.), fall back to a viewport-inferred surface
+  // so the panel still mounts instead of showing a blank page.
+  const [resolved, setResolved] = useState<{ surface: PanelSurface; touch?: boolean } | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetchPanelDevice(deviceId).then(record => {
       if (cancelled) return;
       const surfaceFromRecord = record?.capabilities?.surface;
-      setResolvedSurface(surfaceFromRecord ?? inferSurfaceFromViewport(false));
+      setResolved({
+        surface: surfaceFromRecord ?? inferSurfaceFromViewport(false),
+        touch: record?.capabilities?.touch,
+      });
     }).catch(() => {
-      if (!cancelled) setResolvedSurface(inferSurfaceFromViewport(false));
+      if (!cancelled) setResolved({ surface: inferSurfaceFromViewport(false) });
     });
     return () => { cancelled = true; };
   }, [deviceId]);
-  if (!resolvedSurface) {
+  if (!resolved) {
     return null;
   }
-  return <PanelKioskContent deviceId={deviceId} surface={resolvedSurface} />;
+  return <PanelKioskContent deviceId={deviceId} surface={resolved.surface} deviceTouch={resolved.touch} />;
 }
 export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, onSectionNavigate }: {
   openCatalogSignal?: number;
@@ -167,11 +170,11 @@ export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, on
   );
 }
 
-function PanelKioskContent({ deviceId, surface }: { deviceId: string; surface: PanelSurface }) {
-  const layoutState = usePanelLayout(deviceId, surface);
+function PanelKioskContent({ deviceId, surface, deviceTouch }: { deviceId: string; surface: PanelSurface; deviceTouch?: boolean }) {
+  const layoutState = usePanelLayout(deviceId, surface, deviceTouch);
   return (
     <ErrorBoundary label="Panel">
-      <PanelContent surface={surface} deviceId={deviceId} layoutState={layoutState} />
+      <PanelContent surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} layoutState={layoutState} />
     </ErrorBoundary>
   );
 }
@@ -179,6 +182,7 @@ function PanelKioskContent({ deviceId, surface }: { deviceId: string; surface: P
 export function PanelContent({
   surface,
   deviceId,
+  deviceTouch,
   layoutState,
   embedded = false,
   simulator = false,
@@ -193,6 +197,9 @@ export function PanelContent({
 }: {
   surface: PanelSurface;
   deviceId?: string;
+  // Per-device touch capability (promoted monitors). Undefined falls back to
+  // the surface default in surfaceSupportsTouch.
+  deviceTouch?: boolean;
   layoutState: PanelLayoutState;
   embedded?: boolean;
   simulator?: boolean;
@@ -440,7 +447,7 @@ export function PanelContent({
   // Touch surfaces hoist the focused widget above the editor's backdrop-blur
   // scrim, else the edited widget disappears under the blur. q60 is
   // display-only so editing never engages. See .cellEditorDocked rules.
-  const editorDockSupported = surfaceSupportsTouch(surface);
+  const editorDockSupported = surfaceSupportsTouch(surface, deviceTouch);
   const isLandscape = useIsLandscape(surface);
   const capacity = useMemo<PaginateCapacity>(
     () => ({ gridCols: runtimeGrid.columns, pageRows: runtimeGrid.rows }),
@@ -517,13 +524,13 @@ export function PanelContent({
       .filter(w => {
         const def = lookupApp(w.type);
         if (!def) return true;
-        return appAvailableForSurface(def.meta, surface);
+        return appAvailableForSurface(def.meta, surface, { deviceTouch });
       })
       .slice()
       // Row-major (col, row) sort so the focus walk and DOM order match the
       // visual layout; placement itself is via inline style, not source order.
       .sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col),
-  })), [dragLayout.pages, surface]);
+  })), [dragLayout.pages, surface, deviceTouch]);
 
   // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
   // every page so dnd-kit's hover detection works across pages.
@@ -695,7 +702,7 @@ export function PanelContent({
   // interactive elements.
   const backgroundLongPress = useLongPress(() => setTrayOpen(true), PANEL_CONTEXT_MENU_TRIGGER_MS);
   const backgroundPressBlocked = !kioskBehavior
-    || !surfaceSupportsTouch(surface)
+    || !surfaceSupportsTouch(surface, deviceTouch)
     || trayOpen
     || Boolean(sheetMode)
     || Boolean(immersiveWidgetId)
@@ -1360,12 +1367,12 @@ export function PanelContent({
                               onEditViewChange={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? setDeckEditView : undefined}
                               onUpdate={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? (cfg => updateWidgetConfig(w.id, cfg)) : undefined}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
-                              onContextMenu={surfaceSupportsTouch(surface) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
-                              cellPointers={surfaceSupportsTouch(surface) ? touch.bindCellPointers(w) : noopCellPointers}
+                              onContextMenu={surfaceSupportsTouch(surface, deviceTouch) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
+                              cellPointers={surfaceSupportsTouch(surface, deviceTouch) ? touch.bindCellPointers(w) : noopCellPointers}
                               // Non-touch sim surfaces (Q-series) can't reach
                               // onCellTap via the pointer pipeline; a plain
                               // click opens the edit sheet from an iframe tap.
-                              onSimulatorClick={simulator && !surfaceSupportsTouch(surface) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
+                              onSimulatorClick={simulator && !surfaceSupportsTouch(surface, deviceTouch) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
                               previewLayout={previewLayout}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                               onConfigureWidget={openWidgetSettings}
@@ -1405,7 +1412,7 @@ export function PanelContent({
                 )}
               </div>
             </div>
-            {kioskBehavior && surfaceSupportsTouch(surface) && (
+            {kioskBehavior && surfaceSupportsTouch(surface, deviceTouch) && (
               <PanelActionsTray
                 open={trayOpen}
                 onOpen={() => setTrayOpen(true)}
@@ -1553,6 +1560,7 @@ export function PanelContent({
         <PanelEditorSheet
           mode={sheetMode}
           surface={surface}
+          deviceTouch={deviceTouch}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
           panelTheme={panelTheme.theme}
           gridColumns={runtimeGrid.columns}

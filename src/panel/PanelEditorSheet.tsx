@@ -25,6 +25,7 @@ export type SheetMode = 'catalog' | 'settings' | 'panelSettings';
 export function PanelEditorSheet({
   mode,
   surface,
+  deviceTouch,
   editingWidget,
   panelTheme,
   gridColumns,
@@ -64,6 +65,8 @@ export function PanelEditorSheet({
 }: {
   mode: SheetMode;
   surface: PanelSurface;
+  // Per-device touch capability (promoted monitors) for catalog/size gating.
+  deviceTouch?: boolean;
   editingWidget: PanelWidget | null;
   panelTheme: PanelThemeState;
   gridColumns: number;
@@ -111,7 +114,7 @@ export function PanelEditorSheet({
   const Settings = def?.Settings;
   const isMonitoringWidget = editingWidget?.type === 'monitoring';
   const usesSlotSelection = !!def?.meta.usesSlotSelection;
-  const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface) : [];
+  const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface, deviceTouch) : [];
   const slotCountOptions = editingWidget && isMonitoringWidget ? slotCountOptionsForSize(editingWidget.size) : [];
   const slotCount = editingWidget && isMonitoringWidget
     ? resolvedSlotCountForSize(editingWidget.size, editingWidget.config?.slotCount as number | undefined)
@@ -210,6 +213,7 @@ export function PanelEditorSheet({
         {mode === 'catalog' && (
           <PanelWidgetCatalog
             surface={surface}
+            deviceTouch={deviceTouch}
             onAdd={onAdd}
             // The on-device phone panel is itself the remote session, so hide
             // local-only widgets (pairing QR) there.

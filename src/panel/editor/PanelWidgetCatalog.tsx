@@ -46,6 +46,9 @@ export interface PanelWidgetCatalogProps {
   // Highlight the card matching this widget type. Used by single-widget
   // surfaces (q-series) to mark the device's active widget.
   selectedWidgetType?: string;
+  // Per-device touch capability (promoted monitors): touch-requiring widgets
+  // are listed only when the device's display actually has a digitizer.
+  deviceTouch?: boolean;
 }
 
 export function PanelWidgetCatalog({
@@ -58,6 +61,7 @@ export function PanelWidgetCatalog({
   themeStyle,
   className,
   selectedWidgetType,
+  deviceTouch,
 }: PanelWidgetCatalogProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -77,7 +81,7 @@ export function PanelWidgetCatalog({
   // carry more bundled widgets than the allowlist (already-placed instances
   // still render via lookupApp); the Add-a-Widget picker stays curated.
   const entries = getCatalogEntries().filter(([type, def]) => {
-    if (!appAvailableForSurface(def.meta, surface, { remote })) return false;
+    if (!appAvailableForSurface(def.meta, surface, { remote, deviceTouch })) return false;
     if (isMarketplaceType(type)) {
       const id = marketplaceIdFromType(type);
       return id !== null && isMarketplaceIdEnabled(id);
@@ -155,8 +159,8 @@ export function PanelWidgetCatalog({
   // half-width 2x2 where the widget supports it so the narrow grid stays
   // compact. Wider grids (8 / 12 / ...) keep the panel's 4x2 preference.
   const pickSize = (meta: CatalogEntry[1]['meta']): PanelWidgetSize => {
-    const size = pickerSizeFor(meta, surface);
-    if (cols === 4 && size === '4x2' && sizesForSurface(meta, surface).includes('2x2')) {
+    const size = pickerSizeFor(meta, surface, deviceTouch);
+    if (cols === 4 && size === '4x2' && sizesForSurface(meta, surface, deviceTouch).includes('2x2')) {
       return '2x2';
     }
     return size;

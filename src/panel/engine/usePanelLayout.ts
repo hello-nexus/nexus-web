@@ -57,6 +57,7 @@ function nearestAllowedSize(
 function reconcileAppsAgainstRegistry(
   widgets: readonly PanelWidget[],
   surface: PanelSurface,
+  deviceTouch?: boolean,
 ): PanelWidget[] {
   return widgets.flatMap((widget): PanelWidget[] => {
     const def = lookupApp(widget.type);
@@ -84,9 +85,9 @@ function reconcileAppsAgainstRegistry(
       }
       return [];
     }
-    if (!appAvailableForSurface(def.meta, surface)) return [];
+    if (!appAvailableForSurface(def.meta, surface, { deviceTouch })) return [];
     const surfaceSize = normalizePanelWidgetSizeForSurface(widget.size, surface);
-    const allowed = sizesForSurface(def.meta, surface);
+    const allowed = sizesForSurface(def.meta, surface, deviceTouch);
     const finalSize = nearestAllowedSize(surfaceSize, allowed, def.meta.defaultSize);
     if (finalSize === widget.size) return [widget];
     return [{ ...widget, size: finalSize }];
@@ -117,12 +118,13 @@ const SURFACE_COLS: Record<PanelSurface, number> = {
   monitor: 8,
 };
 
-export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface): PanelLayout {
+export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface, deviceTouch?: boolean): PanelLayout {
   const reconciledPages = layout.pages.map(page => ({
     ...page,
     widgets: reconcileAppsAgainstRegistry(
       page.widgets.filter(widget => !REMOVED_WIDGET_TYPES.has(widget.type)),
       surface,
+      deviceTouch,
     ),
   }));
 
@@ -167,7 +169,7 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface)
  * browser stay in sync). Cross-device sync arrives via the multiplex
  * panel/device topic - subscribed in PanelApp via useTopic.
  */
-export function usePanelLayout(deviceId: string, surface: PanelSurface): UsePanelLayoutResult {
+export function usePanelLayout(deviceId: string, surface: PanelSurface, deviceTouch?: boolean): UsePanelLayoutResult {
   const [layout, setLayoutState] = useState<PanelLayout>(() => defaultLayoutForSurface(surface));
   const [loaded, setLoaded] = useState(false);
   const [deviceMissing, setDeviceMissing] = useState(false);
@@ -185,14 +187,14 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface): UsePane
         // setLayout call later in the same commit sees the cleared flag,
         // not the stale value the mirror effect hasn't yet written.
         deviceMissingRef.current = false;
-        setLayoutState(normalizePanelLayout(next, surface));
+        setLayoutState(normalizePanelLayout(next, surface, deviceTouch));
         setDeviceMissing(false);
       } else if (result.status === 404) {
         // Device record is gone server-side (profile switch, manual delete).
         // Render a default layout but flag the device as missing so we do
         // NOT auto-persist - every patch would 404 in a tight loop.
         deviceMissingRef.current = true;
-        setLayoutState(normalizePanelLayout(defaultLayoutForSurface(surface), surface));
+        setLayoutState(normalizePanelLayout(defaultLayoutForSurface(surface), surface, deviceTouch));
         setDeviceMissing(true);
       }
       // Other failures (network, 401 after re-pair) leave layout state
@@ -203,7 +205,7 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface): UsePane
     }).catch(() => {
       setLoaded(true);
     });
-  }, [deviceId, surface]);
+  }, [deviceId, surface, deviceTouch]);
 
   useEffect(() => {
     fetchLayout();
@@ -219,7 +221,7 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface): UsePane
   });
 
   const setLayout = useCallback((next: PanelLayout) => {
-    const normalized = normalizePanelLayout(next, surface);
+    const normalized = normalizePanelLayout(next, surface, deviceTouch);
     setLayoutState(normalized);
     if (deviceMissingRef.current) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
@@ -238,7 +240,7 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface): UsePane
         }
       });
     }, 250);
-  }, [deviceId, surface]);
+  }, [deviceId, surface, deviceTouch]);
 
   useEffect(() => () => {
     if (writeTimer.current) {
