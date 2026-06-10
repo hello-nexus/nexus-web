@@ -941,6 +941,7 @@
   "sidebar.expand": "Rozwin pasek boczny",
   "sidebar.section.apps": "Aplikacje",
   "sidebar.section.devices": "Urządzenia",
+  "sidebar.pin": "Przypnij do paska bocznego",
   "sidebar.unpin": "Odepnij z paska bocznego",
   "smartLights.addLights": "Dodaj światła",
   "smartLights.addedNLights": "Dodano światła: {count}",

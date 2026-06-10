@@ -941,6 +941,7 @@
   "sidebar.expand": "Seitenleiste ausklappen",
   "sidebar.section.apps": "Apps",
   "sidebar.section.devices": "Geräte",
+  "sidebar.pin": "An Seitenleiste anheften",
   "sidebar.unpin": "Aus Seitenleiste lösen",
   "smartLights.addLights": "Lampen hinzufügen",
   "smartLights.addedNLights": "{count} Lampen hinzugefügt",

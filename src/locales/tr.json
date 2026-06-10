@@ -941,6 +941,7 @@
   "sidebar.expand": "Kenar cubugunu genislet",
   "sidebar.section.apps": "Uygulamalar",
   "sidebar.section.devices": "Cihazlar",
+  "sidebar.pin": "Kenar çubuğuna sabitle",
   "sidebar.unpin": "Kenar çubuğundan kaldır",
   "smartLights.addLights": "Işık ekle",
   "smartLights.addedNLights": "{count} ışık eklendi",

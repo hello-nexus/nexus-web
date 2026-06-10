@@ -941,6 +941,7 @@
   "sidebar.expand": "展开侧边栏",
   "sidebar.section.apps": "应用",
   "sidebar.section.devices": "设备",
+  "sidebar.pin": "固定到侧边栏",
   "sidebar.unpin": "从侧边栏取消固定",
   "smartLights.addLights": "添加灯具",
   "smartLights.addedNLights": "已添加 {count} 个灯具",

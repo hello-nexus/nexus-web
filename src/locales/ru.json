@@ -941,6 +941,7 @@
   "sidebar.expand": "Развернуть боковую панель",
   "sidebar.section.apps": "Приложения",
   "sidebar.section.devices": "Устройства",
+  "sidebar.pin": "Закрепить на боковой панели",
   "sidebar.unpin": "Открепить с боковой панели",
   "smartLights.addLights": "Добавить лампы",
   "smartLights.addedNLights": "Добавлено ламп: {count}",

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
-import { PinOff } from 'lucide-react';
-import { Sidebar } from '../components/common/Sidebar/Sidebar';
+import { Pin, PinOff } from 'lucide-react';
+import { Sidebar, SidebarNavButton } from '../components/common/Sidebar/Sidebar';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useUiSettings } from '../hooks/useUiSettings';
 import type { ServiceState } from '../hooks/useServiceState';
@@ -95,14 +95,30 @@ export function SidebarColumn({
   };
 
   // Right-click context menu state. Held here so the menu portal dismisses
-  // on outside click without each row tracking its own open state.
-  const [ctxMenu, setCtxMenu] = useState<{ key: string; x: number; y: number } | null>(null);
+  // on outside click without each row tracking its own open state. `pinned`
+  // picks the menu: a pinned row offers Unpin, the running row offers Pin.
+  const [ctxMenu, setCtxMenu] = useState<{ key: string; x: number; y: number; pinned: boolean } | null>(null);
   const handleItemContextMenu = (key: string, event: React.MouseEvent) => {
-    setCtxMenu({ key, x: event.clientX, y: event.clientY });
+    setCtxMenu({ key, x: event.clientX, y: event.clientY, pinned: true });
   };
   const handleUnpin = (key: string) => {
     update({ pinnedSidebarApps: tail.filter(k => k !== key) });
   };
+  const handlePin = (key: string) => {
+    if (!isPinnableAppKey(key) || tail.includes(key)) return;
+    update({ pinnedSidebarApps: [...tail, key] });
+  };
+
+  // Taskbar semantics for unpinned apps: while an unpinned app's page is
+  // open, it surfaces as a transient row below the pinned tail (behind a
+  // hairline separator). It unmounts when the user navigates off the page;
+  // right-click → Pin makes it a permanent tail row.
+  const runningUnpinned = (() => {
+    if (!isPinnableAppKey(serviceNavActive) || tail.includes(serviceNavActive)) return null;
+    const meta = getSidebarAppMeta(serviceNavActive);
+    if (!meta) return null;
+    return { key: serviceNavActive, label: t(meta.i18nKey), icon: meta.icon };
+  })();
 
   // Cross-zone drop from the dashboard panel. Published by PanelContent
   // when a pinnable widget enters its drag state; null otherwise.
@@ -139,14 +155,31 @@ export function SidebarColumn({
         extraActive={portalNavActive}
         extraOnChange={onPortalNavChange}
         afterTail={
-          <SidebarDevicesSection
-            serviceOnline={online}
-            activeDeviceKey={activeDeviceKey}
-            compact={compact}
-            onSelect={onDeviceSelect}
-            onHeaderClick={onDevicesHeaderClick}
-            headerActive={devicesHeaderActive}
-          />
+          <>
+            {runningUnpinned && (
+              <div className={styles.sidebarRunningGroup}>
+                <SidebarNavButton
+                  icon={runningUnpinned.icon}
+                  label={runningUnpinned.label}
+                  active
+                  compact={compact}
+                  onClick={() => onServiceNavChange(runningUnpinned.key)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setCtxMenu({ key: runningUnpinned.key, x: e.clientX, y: e.clientY, pinned: false });
+                  }}
+                />
+              </div>
+            )}
+            <SidebarDevicesSection
+              serviceOnline={online}
+              activeDeviceKey={activeDeviceKey}
+              compact={compact}
+              onSelect={onDeviceSelect}
+              onHeaderClick={onDevicesHeaderClick}
+              headerActive={devicesHeaderActive}
+            />
+          </>
         }
       />
       <PairPhoneButton
@@ -169,13 +202,20 @@ export function SidebarColumn({
         <SidebarContextMenu
           x={ctxMenu.x}
           y={ctxMenu.y}
-          items={[
+          items={ctxMenu.pinned ? [
             {
               key: 'unpin',
               label: t('sidebar.unpin'),
               icon: <PinOff size={14} />,
               danger: true,
               onSelect: () => handleUnpin(ctxMenu.key),
+            },
+          ] : [
+            {
+              key: 'pin',
+              label: t('sidebar.pin'),
+              icon: <Pin size={14} />,
+              onSelect: () => handlePin(ctxMenu.key),
             },
           ]}
           onClose={() => setCtxMenu(null)}

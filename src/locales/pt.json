@@ -941,6 +941,7 @@
   "sidebar.expand": "Expandir barra lateral",
   "sidebar.section.apps": "Aplicações",
   "sidebar.section.devices": "Dispositivos",
+  "sidebar.pin": "Adicionar à barra lateral",
   "sidebar.unpin": "Remover da barra lateral",
   "smartLights.addLights": "Adicionar luzes",
   "smartLights.addedNLights": "{count} luzes adicionadas",

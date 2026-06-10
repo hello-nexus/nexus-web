@@ -122,12 +122,13 @@ function SidebarRow({ item, active, compact, serviceState, onClick, onContextMen
 // hover/active highlight, compact tooltip). Used for one-off entries outside
 // the sortable apps list — e.g. the bottom-pinned Settings button in the
 // sidebar column — so they read identically to the nav rows above.
-export function SidebarNavButton({ icon, label, active, compact, onClick }: {
+export function SidebarNavButton({ icon, label, active, compact, onClick, onContextMenu }: {
   icon: ReactNode;
   label: string;
   active: boolean;
   compact: boolean;
   onClick: () => void;
+  onContextMenu?: (event: React.MouseEvent) => void;
 }) {
   const button = (
     <button
@@ -137,6 +138,7 @@ export function SidebarNavButton({ icon, label, active, compact, onClick }: {
         [styles.itemCompact]: compact,
       })}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       aria-label={compact ? label : undefined}
       aria-pressed={active}
     >

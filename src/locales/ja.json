@@ -941,6 +941,7 @@
   "sidebar.expand": "サイドバーを展開",
   "sidebar.section.apps": "アプリ",
   "sidebar.section.devices": "デバイス",
+  "sidebar.pin": "サイドバーにピン留め",
   "sidebar.unpin": "サイドバーからピン留めを解除",
   "smartLights.addLights": "ライトを追加",
   "smartLights.addedNLights": "{count}台のライトを追加しました",

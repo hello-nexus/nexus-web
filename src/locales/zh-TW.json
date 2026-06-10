@@ -941,6 +941,7 @@
   "sidebar.expand": "展開側邊欄",
   "sidebar.section.apps": "應用程式",
   "sidebar.section.devices": "裝置",
+  "sidebar.pin": "釘選到側邊欄",
   "sidebar.unpin": "從側邊欄取消釘選",
   "smartLights.addLights": "新增燈具",
   "smartLights.addedNLights": "已新增 {count} 個燈具",
