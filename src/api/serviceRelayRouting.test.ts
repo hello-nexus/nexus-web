@@ -22,7 +22,15 @@ vi.mock('./auth', () => ({
   hasSessionToken: vi.fn(() => authState.hasToken),
 }));
 
-import { fetchService, postService, isRelayActive, setActiveTransport } from './service';
+import {
+  fetchService,
+  postService,
+  isRelayActive,
+  isLanSealedActive,
+  isLanSealedEligible,
+  isTunnelActive,
+  setActiveTransport,
+} from './service';
 
 beforeEach(() => {
   relayFetchMock.mockClear();
@@ -133,5 +141,53 @@ describe('service.ts eager relay on a remote origin', () => {
     expect(out).toEqual({ via: 'lan' });
     expect(directFetch).toHaveBeenCalledTimes(1);
     expect(relayFetchMock).not.toHaveBeenCalled();
+  });
+});
+
+// LAN sealed transport (Phase 2). When the live transport is 'lan-sealed' the
+// fetch layer must tunnel REST through relayFetch exactly like the cloud relay,
+// but point it at the LOCAL /secure-tunnel URL (not the cloud relay), so the
+// token never crosses the LAN as a bearer. setActiveTransport('lan-sealed')
+// drives effectiveTransport() directly, so these assert the routing decision
+// independent of the origin (which the jsdom env fixes at module load).
+describe('service.ts lan-sealed transport routing', () => {
+  it('tunnels REST through relayFetch targeting /secure-tunnel under lan-sealed', async () => {
+    const directFetch = vi.fn();
+    vi.stubGlobal('fetch', directFetch);
+    setActiveTransport('lan-sealed');
+
+    expect(isTunnelActive()).toBe(true);
+    expect(isLanSealedActive()).toBe(true);
+    // It is NOT the cloud relay — the relay-specific indicator must stay off.
+    expect(isRelayActive()).toBe(false);
+
+    const out = await fetchService<{ via: string }>('/panel/devices');
+
+    expect(out).toEqual({ via: 'relay' }); // mock body; proves it went through relayFetch
+    expect(directFetch).not.toHaveBeenCalled();
+    expect(relayFetchMock).toHaveBeenCalledTimes(1);
+    // (token, url, method, path, body, contentType) — url is the LOCAL sealed tunnel.
+    const call = relayFetchMock.mock.calls[0] as unknown[];
+    expect(call[1]).toMatch(/\/secure-tunnel$/);
+    expect(call[1]).not.toContain('hellonexus.com/relay');
+    expect(call[3]).toBe('/panel/devices');
+  });
+
+  it('targets the cloud relay (not /secure-tunnel) under the relay transport', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+    setActiveTransport('relay');
+
+    await fetchService('/panel/devices');
+
+    const call = relayFetchMock.mock.calls[0] as unknown[];
+    expect(call[1]).not.toMatch(/\/secure-tunnel$/);
+    expect(call[1]).toContain('/relay');
+  });
+
+  it('isLanSealedEligible is false on this (remote-origin) test surface', () => {
+    // The jsdom URL is http://localhost/ ⇒ isRemoteOrigin true, isRemotePaired
+    // false, so lan-sealed never auto-activates here regardless of the flag —
+    // a remote origin is the cloud relay's domain, not the LAN sealed tunnel's.
+    expect(isLanSealedEligible()).toBe(false);
   });
 });

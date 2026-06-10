@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { fetchPanelRelay, fetchPanelRemoteControlState } from '../api/panel';
-import { isRelayActive, resolveAuthWs, resolveRelayWs, setActiveTransport } from '../api/service';
+import { isLanSealedActive, isRelayActive, resolveAuthWs, resolveLanSealedWs, resolveRelayWs, setActiveTransport } from '../api/service';
 import { getToken } from '../api/auth';
 import { RelayChannel } from './relayChannel';
 
@@ -40,12 +40,14 @@ export interface MultiplexContextValue {
   connected: boolean;
   /**
    * Which transport the currently-open connection runs over: 'lan' for the
-   * direct /ws WebSocket, 'relay' for the cloud RelayChannel fallback, or
-   * null while disconnected. Driven off whichever transport actually opened
-   * (set in its onopen, cleared on close), so the UI can surface a relay-mode
-   * indicator without inferring it from connection failures.
+   * direct /ws WebSocket, 'relay' for the cloud RelayChannel fallback,
+   * 'lan-sealed' for the local sealed /secure-tunnel, or null while
+   * disconnected. Driven off whichever transport actually opened (set in its
+   * onopen, cleared on close), so the UI can surface a relay-mode indicator
+   * without inferring it from connection failures. The cloud-relay indicator
+   * keys off 'relay' only, so a sealed LAN connection shows no satellite icon.
    */
-  transport: 'lan' | 'relay' | null;
+  transport: 'lan' | 'relay' | 'lan-sealed' | null;
   /**
    * True when the Nexus service has disabled Pair Remote (killswitch off).
    * Phone clients in this state can't open the WS or call protected REST
@@ -183,9 +185,9 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
   // it to tell a relay drop (candidate for the relay-disabled popup) from a LAN
   // drop. Set in wireTransport's onopen; never cleared on close so it still
   // reflects the just-dropped connection when handleDisconnect inspects it.
-  const lastTransportRef = useRef<'lan' | 'relay' | null>(null);
+  const lastTransportRef = useRef<'lan' | 'relay' | 'lan-sealed' | null>(null);
   const [connected, setConnected] = useState(false);
-  const [transport, setTransport] = useState<'lan' | 'relay' | null>(null);
+  const [transport, setTransport] = useState<'lan' | 'relay' | 'lan-sealed' | null>(null);
   const [remoteDisabled, setRemoteDisabled] = useState(false);
   const [relayDisabled, setRelayDisabled] = useState(false);
   const [sessionRevoked, setSessionRevoked] = useState(false);
@@ -349,7 +351,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
   // caller can decide between relay fallback and the normal backoff path.
   const wireTransport = useCallback((
     transport: MultiplexTransport,
-    kind: 'lan' | 'relay',
+    kind: 'lan' | 'relay' | 'lan-sealed',
     onClose: (code: number) => void,
     onOpen?: () => void,
   ) => {
@@ -436,6 +438,24 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     void channel.connect();
   }, [handleDisconnect, wireTransport]);
 
+  // LAN sealed-tunnel transport (Phase 2). A flag-on LAN phone runs the same
+  // {t,d} multiplex over a RelayChannel pointed at the local /secure-tunnel
+  // (the relay E2E crypto, no cloud hop) instead of the plain /ws — which would
+  // carry the session token in the URL. There is NO cleartext LAN fallback: a
+  // failed open / no peer-up / peer-down routes to handleDisconnect, and the
+  // backoff re-dials the sealed tunnel (connect() picks it again). Like the
+  // relay, the sealed channel never carries the 1008 killswitch-revoke close.
+  const trySealed = useCallback(async () => {
+    if (!mountedRef.current) return;
+    const token = await getToken();
+    if (!mountedRef.current) return;
+    if (!token) { void handleDisconnect(); return; }
+    const channel = new RelayChannel(resolveLanSealedWs(), token);
+    wsRef.current = channel;
+    wireTransport(channel, 'lan-sealed', () => { void handleDisconnect(); });
+    void channel.connect();
+  }, [handleDisconnect, wireTransport]);
+
   const connect = useCallback(async () => {
     close();
     setNextAttemptAt(null);
@@ -446,6 +466,12 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     if (isRelayActive()) {
       relayTriedRef.current = true;
       void tryRelay();
+      return;
+    }
+    // Flag-on LAN phone: run the multiplex over the local sealed tunnel instead
+    // of the token-in-URL /ws. No cloud/cleartext fallback — backoff re-dials it.
+    if (isLanSealedActive()) {
+      void trySealed();
       return;
     }
     try {
@@ -487,7 +513,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
       setActiveTransport(null);
       void handleDisconnect();
     }
-  }, [close, enabled, handleDisconnect, tryRelay, wireTransport]);
+  }, [close, enabled, handleDisconnect, tryRelay, trySealed, wireTransport]);
 
   // Keep the ref in sync so handleDisconnect can call the latest connect
   // without recreating handleDisconnect (which would loop the deps cycle).
