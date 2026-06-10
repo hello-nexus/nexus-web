@@ -451,8 +451,16 @@ export async function fetchServiceBlob(path: string): Promise<Blob | null> {
   // Effect thumbnails + app icons are static-per-key bytes; the routes that
   // care set Cache-Control accordingly. Forcing no-store here would void any
   // server cache hint and refetch on every mount.
+  // An error status must yield null, not a blob of the JSON error body —
+  // callers feed this straight into URL.createObjectURL for <img> sources.
   const r = await authFetch(path);
-  return r ? await r.blob() : null;
+  if (!r || !r.ok) return null;
+  try {
+    return await r.blob();
+  } catch {
+    // Connection drop mid-body rejects .blob().
+    return null;
+  }
 }
 
 /** Ping is public - no token needed. Tunnels over the relay when off-LAN so a

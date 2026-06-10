@@ -1,55 +1,46 @@
 import type { WidgetSettingsProps } from '../types';
-import { SettingsSelect, SettingsSection } from '../common/SettingsRow/SettingsRow';
+import { SettingsSelect, SettingsSection, SettingsToggle } from '../common/SettingsRow/SettingsRow';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './GallerySettings.module.scss';
 
-const MODE_OPTIONS = [
-  { value: 'single', label: 'Single' },
-  { value: 'slideshow', label: 'Slideshow' },
-];
+const INTERVAL_SECONDS = [5, 10, 15, 30, 60];
 
-const INTERVAL_OPTIONS = [
-  { value: '5', label: '5s' },
-  { value: '10', label: '10s' },
-  { value: '15', label: '15s' },
-  { value: '30', label: '30s' },
-  { value: '60', label: '60s' },
-];
-
+// Per-instance display settings only. The image sources are per-system
+// shared and managed on the gallery page, never from the edit sheet.
 export function GallerySettings({ widget, onUpdate }: WidgetSettingsProps) {
+  const { t } = useTranslation();
   const mode = ((widget.config?.mode as string | undefined) ?? 'single');
   const interval = String(((widget.config?.interval as number | undefined) ?? 10));
-  const urls = ((widget.config?.urls as string | undefined) ?? '');
+  const fit = ((widget.config?.fit as boolean | undefined) ?? false);
 
   return (
     <div className={styles.settings}>
-      <SettingsSection title="Display">
+      <SettingsSection title={t('gallery.settings.title')}>
         <SettingsSelect
-          label="Mode"
+          label={t('gallery.settings.mode')}
           value={mode}
-          options={MODE_OPTIONS}
+          options={[
+            { value: 'single', label: t('gallery.settings.single') },
+            { value: 'slideshow', label: t('gallery.settings.slideshow') },
+          ]}
           onChange={v => onUpdate({ mode: v })}
         />
         {mode === 'slideshow' && (
           <SettingsSelect
-            label="Interval"
+            label={t('gallery.settings.interval')}
             value={interval}
-            options={INTERVAL_OPTIONS}
+            options={INTERVAL_SECONDS.map(s => ({
+              value: String(s),
+              label: t('gallery.settings.intervalSeconds', { seconds: s }),
+            }))}
             onChange={v => onUpdate({ interval: Number(v) })}
           />
         )}
-      </SettingsSection>
-      <SettingsSection title="Images">
-        <div className={styles.urlsRow}>
-          <label className={styles.urlsLabel}>Image URLs (one per line)</label>
-          <textarea
-            className={styles.textarea}
-            value={urls}
-            onChange={e => onUpdate({ urls: e.target.value })}
-            placeholder={'https://example.com/image1.jpg\nhttps://example.com/image2.jpg'}
-            rows={6}
-            spellCheck={false}
-          />
-        </div>
+        <SettingsToggle
+          label={t('gallery.settings.fit')}
+          checked={fit}
+          onChange={v => onUpdate({ fit: v })}
+        />
       </SettingsSection>
     </div>
   );

@@ -1134,6 +1134,10 @@
 
 .settingsBody {
   padding: 12px 2px 0 0;
+  // Mirrors the padding-top above: sticky children (the theme settings
+  // background dock) pull up by this much so they pin flush with the
+  // scrollport edge instead of leaving a see-through padding strip.
+  --settings-sticky-inset: 12px;
   flex: 1;
   overscroll-behavior: contain;
   touch-action: pan-y;
