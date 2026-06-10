@@ -15,7 +15,7 @@
   background: var(--bg-card);
   color: var(--text);
   cursor: pointer;
-  transition: border-color var(--ease-fast), background var(--ease-fast), transform 0.08s;
+  transition: border-color var(--ease-fast), background var(--ease-fast), transform var(--ease-fast);
   appearance: none;
   text-align: inherit;
   font: inherit;

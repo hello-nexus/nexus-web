@@ -32,7 +32,8 @@
 .segment {
   position: absolute;
   border-radius: 1.5px;
-  transition: opacity var(--ease-fast);
+  // LED afterglow fade — deliberately slower than the hover rung.
+  transition: opacity 120ms;
 }
 
 .on {

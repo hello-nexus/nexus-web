@@ -123,7 +123,7 @@
   background: var(--panel-element-bg);
   color: var(--panel-text);
   cursor: pointer;
-  transition: background-color var(--ease) ease, transform var(--ease-fast) ease, color var(--ease) ease;
+  transition: background-color var(--ease-fast) ease, transform var(--ease-fast) ease, color var(--ease-fast) ease;
   flex-shrink: 0;
 
   svg { width: 20px; height: 20px; }

@@ -36,7 +36,7 @@
   border-radius: var(--radius);
   background: var(--bg-card);
   cursor: pointer;
-  transition: background var(--ease), border-color var(--ease);
+  transition: background var(--ease-fast), border-color var(--ease-fast);
   text-align: left;
   font: inherit;
   color: inherit;

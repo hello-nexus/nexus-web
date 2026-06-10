@@ -60,12 +60,12 @@
 }
 
 // Standard transition for state-driven props (background, border, color).
-// Matches --ease (180ms) which is the default rung. Components that need a
-// snappier feel can override with var(--ease-fast).
+// Rides --ease-fast so hover/active feedback lands near-instant in both
+// directions.
 @mixin state-transition {
-  transition: background-color var(--ease) ease,
-              border-color var(--ease) ease,
-              color var(--ease) ease;
+  transition: background-color var(--ease-fast) ease,
+              border-color var(--ease-fast) ease,
+              color var(--ease-fast) ease;
 }
 
 // Canonical rollover for in-widget operable buttons (lighting/cooling

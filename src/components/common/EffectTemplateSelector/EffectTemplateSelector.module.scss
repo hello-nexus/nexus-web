@@ -27,7 +27,7 @@
   background: var(--effect-template-bg);
   color: var(--effect-template-text);
   cursor: pointer;
-  transition: border-color var(--ease-fast), background var(--ease-fast), color var(--ease-fast), transform 0.08s, box-shadow var(--ease-fast);
+  transition: border-color var(--ease-fast), background var(--ease-fast), color var(--ease-fast), transform var(--ease-fast), box-shadow var(--ease-fast);
   appearance: none;
   font: inherit;
 

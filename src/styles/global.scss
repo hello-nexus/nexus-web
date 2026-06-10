@@ -277,7 +277,7 @@ input[type="range"][data-range-knob] {
   color: var(--text-dim);
   cursor: pointer;
   font-family: inherit;
-  transition: background var(--ease) ease, border-color var(--ease) ease, color var(--ease) ease;
+  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, color var(--ease-fast) ease;
 
   &:hover:not(:disabled):not(.chip-active) {
     border-color: var(--accent);

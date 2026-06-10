@@ -159,7 +159,7 @@
 
 .iconButton {
   cursor: pointer;
-  transition: background-color var(--ease) ease, color var(--ease) ease, transform var(--ease-fast) ease;
+  transition: background-color var(--ease-fast) ease, color var(--ease-fast) ease, transform var(--ease-fast) ease;
 
   &:hover:not(:disabled) {
     background: color-mix(in srgb, var(--panel-text) 8%, transparent);
