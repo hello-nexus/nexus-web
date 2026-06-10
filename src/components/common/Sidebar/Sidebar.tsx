@@ -1,12 +1,12 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import classNames from 'classnames';
 import {
   DndContext, type CollisionDetection, type DragEndEvent, type DragOverEvent,
-  type DragStartEvent, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter,
+  PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core';
 import {
-  SortableContext, useSortable, verticalListSortingStrategy,
+  SortableContext, type SortingStrategy, useSortable,
   sortableKeyboardCoordinates, arrayMove,
 } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
@@ -155,6 +155,27 @@ export function SidebarNavButton({ icon, label, active, compact, onClick }: {
   return compact ? <HoverTooltip body={label} side="right">{button}</HoverTooltip> : button;
 }
 
+// Must match .tailScroll's flex gap.
+const TAIL_GAP_PX = 2;
+
+// verticalListSortingStrategy derives each shifted row's travel from its own
+// rect gap to its neighbor, so the pinned row adjacent to the separator would
+// travel further than its siblings (that gap includes the separator block).
+// Same vertical list behavior, but with one uniform stride for every row.
+const uniformVerticalStrategy: SortingStrategy = ({ activeIndex, activeNodeRect, index, rects, overIndex }) => {
+  const activeRect = rects[activeIndex] ?? activeNodeRect;
+  if (!activeRect) return null;
+  const stride = activeRect.height + TAIL_GAP_PX;
+  if (index === activeIndex) {
+    const overRect = rects[overIndex];
+    if (!overRect) return null;
+    return { x: 0, y: overRect.top - activeRect.top, scaleX: 1, scaleY: 1 };
+  }
+  if (index > activeIndex && index <= overIndex) return { x: 0, y: -stride, scaleX: 1, scaleY: 1 };
+  if (index < activeIndex && index >= overIndex) return { x: 0, y: stride, scaleX: 1, scaleY: 1 };
+  return null;
+};
+
 function SortableRow(props: Omit<RowProps, 'sortableProps'>) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: props.item.key });
@@ -219,26 +240,13 @@ export function Sidebar({
   };
 
   // While the running row is projected into the tail, the separator slides
-  // down one slot in step with dnd-kit's row shift, so no pinned row ever
-  // renders below the bar — only the running row crosses it. The slot stride
-  // (last pinned row top → running row top, which is exactly the offset
-  // dnd-kit applies to the shifted rows) is measured once at drag start,
-  // before any transforms move the rects.
+  // down one slot in step with the rows' uniform stride, so no pinned row
+  // ever renders below the bar — only the running row crosses it.
   const [sepShift, setSepShift] = useState(0);
-  const strideRef = useRef(0);
-  const handleDragStart = ({ active }: DragStartEvent) => {
-    strideRef.current = 0;
-    if (!runningItem || String(active.id) !== runningItem.key || tailKeys.length === 0) return;
-    const lastTail = document.querySelector(`[data-sidebar-row-key="${tailKeys[tailKeys.length - 1]}"]`);
-    const running = document.querySelector(`[data-sidebar-row-key="${runningItem.key}"]`);
-    if (lastTail && running) {
-      strideRef.current = running.getBoundingClientRect().top - lastTail.getBoundingClientRect().top;
-    }
-  };
   const handleDragOver = ({ active, over }: DragOverEvent) => {
     const overId = over ? String(over.id) : null;
     setSepShift(runningItem && String(active.id) === runningItem.key && overId && overId !== runningItem.key
-      ? strideRef.current
+      ? (active.rect.current.initial?.height ?? 0) + TAIL_GAP_PX
       : 0);
   };
 
@@ -359,12 +367,11 @@ export function Sidebar({
             sensors={sensors}
             collisionDetection={collisionDetection}
             modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-            onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             onDragCancel={() => setSepShift(0)}
           >
-            <SortableContext items={sortableKeys} strategy={verticalListSortingStrategy}>
+            <SortableContext items={sortableKeys} strategy={uniformVerticalStrategy}>
               {tail.map((item) => (
                 <SortableRow
                   key={item.key}
