@@ -9,8 +9,8 @@ import { describe, expect, it } from 'vitest';
  * a count, ratchet the baseline down to lock in the progress.
  */
 const BASELINES = {
-  styles: 1483, // npm run audit:styles      - raw radius/shadow/alpha/blur/timing/type
-  text: 1075, // npm run audit:text-styles - raw font declarations outside _text.scss
+  styles: 850, // npm run audit:styles      - raw radius/shadow/alpha/blur/timing/type
+  text: 470, // npm run audit:text-styles - raw font declarations outside _text.scss
 };
 
 const REPO_ROOT = join(__dirname, '..', '..', '..');

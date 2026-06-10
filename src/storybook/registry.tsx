@@ -1,7 +1,7 @@
 // Bundles the Preview* components alongside the REGISTRY data array; one
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
-import { useRef, useState, type FC } from 'react';
+import { useRef, useState, type CSSProperties, type FC } from 'react';
 import { Monitor, Palette, Sparkles, X, Plus, Settings, Download } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
@@ -52,6 +52,7 @@ import { PanelMixerSliderPreview } from './PanelMixerSliderPreview';
 import { TextStyles } from './TextStyles';
 import { SurfaceStyles } from './SurfaceStyles';
 import { MicroBar } from '../panel/widgets/monitoring/MicroBar';
+import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 import { SettingToggle } from '../components/common/SettingRow/SettingRow';
@@ -918,6 +919,17 @@ function PreviewSizeIcons() {
   );
 }
 
+function PreviewGaugeTrack() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+      <GaugeTrack fillPercent={35} />
+      <div style={{ '--gauge-track-height': '8px', '--gauge-track-glow': '8px' } as CSSProperties}>
+        <GaugeTrack fillPercent={72} />
+      </div>
+    </div>
+  );
+}
+
 function PreviewIconPicker() {
   const [icon, setIcon] = useState<DeckIcon | undefined>({ kind: 'lucide', value: 'Rocket' });
   return (
@@ -934,7 +946,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Text styles', category: 'foundation',
     filePath: 'src/styles/_text.scss',
-    description: 'The 8 canonical text mixins. Component styles must use one of these via @include text-...; raw font-size / weight / line-height / letter-spacing declarations outside _text.scss are flagged by stylelint. Use the matrix to pick the right combination of style x color.',
+    description: 'The 8 canonical text mixins. Tiered usage: @include text-* when the whole bundle fits; var(--type-*) / var(--weight-*) when only one metric differs; raw literals are drift (flagged by audit:text-styles, capped by the ratchet test). Panel widgets that scale with cell size use em on purpose. Use the matrix to pick the right style x color.',
     Preview: TextStyles,
     fullWidth: true,
   },
@@ -1352,6 +1364,12 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Per-panel theme editor (Widgets / Theme / Accent / Background) shown in the Y70 touch editor sheet and the dashboard device Settings tab. Section headers match the Y70 device Settings (.device-modal-section): uppercase, --type-small / --weight-heading, with a full-width rule underneath.',
     Preview: PreviewPanelThemeSettings,
     notes: 'Preview is in solid background mode; switching to Animations hits the live thumbnail service, so the grid is empty in Storybook.',
+  },
+  {
+    name: 'GaugeTrack', category: 'panel-kit',
+    filePath: 'src/panel/widgets/monitoring/gauges/GaugeTrack.tsx',
+    description: 'Shared accent fill track composed by MicroBar rows and the BarGauge tile. Clamps to 0-100; sized via --gauge-track-width/height/glow custom props on the caller\'s wrapper.',
+    Preview: PreviewGaugeTrack,
   },
   {
     name: 'PanelArrowButton', category: 'panel-kit',

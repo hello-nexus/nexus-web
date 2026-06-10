@@ -1,8 +1,15 @@
 // Canonical text styles. Bundles font-size + weight + line-height + tracking
-// into 8 named mixins. These are the ONLY authorized way to set type in any
-// component-level SCSS module. A stylelint rule will warn on raw font-size,
-// font-weight, line-height, or letter-spacing declarations outside this file
-// (lands separately, see the consolidation plan).
+// into 8 named mixins. Type in component SCSS is tiered:
+//   1. @include text-* mixin - the preferred form; use one whenever the whole
+//      bundle fits.
+//   2. var(--type-*) / var(--weight-*) - sanctioned when only one metric
+//      differs from the inherited style; the value still rides the central
+//      scale. audit:text-styles accepts these.
+//   3. Raw literals - drift; flagged by audit:text-styles and capped by the
+//      ratchet test (src/__tests__/audit/styleDriftRatchet.test.ts).
+// Exception: panel widgets that scale with cell size (timer, calculator,
+// clock faces, gauge values) use em so their type tracks the widget box, not
+// the root. That em tier is intentional and stays off the rem scale.
 //
 // The Storybook viewer (Tools > Debug Tools > Storybook > Foundation) renders
 // every style x every text color so you can compare them visually before
