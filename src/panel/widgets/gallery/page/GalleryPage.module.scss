@@ -57,19 +57,36 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.5rem;
 }
 
-.sourceRow {
+// One card per source — same visual language as the cooling page's fan cards.
+.sourceCard {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.45rem 0.5rem;
-  border-radius: var(--radius-sm);
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease;
 
   &:hover {
-    background: color-mix(in srgb, var(--text) 5%, transparent);
+    background: var(--bg-card-hover);
   }
+}
+
+// Lit while the matching grid images are hovered (and vice versa).
+.sourceCardHighlight {
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+}
+
+.sourceHead {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
 }
 
 .sourceIcon {
@@ -77,16 +94,9 @@
   color: var(--text-dim);
 }
 
-.sourceText {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
 .sourceName {
   color: var(--text);
-  font-size: var(--type-body);
+  font-size: var(--type-small);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -102,10 +112,18 @@
   text-align: left;
 }
 
+// Second line: image count left, delete right.
+.sourceMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .sourceCount {
   flex: 0 0 auto;
   color: var(--text-dim);
-  font-size: var(--type-small);
+  font-size: var(--type-mini);
   font-variant-numeric: tabular-nums;
 }
 
@@ -185,4 +203,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+// Lit while this image's source card is hovered (and vice versa).
+.tileHighlight {
+  img,
+  .tilePlaceholder {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
 }

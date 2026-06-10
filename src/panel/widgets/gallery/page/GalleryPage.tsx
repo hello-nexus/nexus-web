@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FileImage, Folder, ImageIcon, Trash2, Upload } from 'lucide-react';
+import { FileImage, Folder, FolderPlus, ImageIcon, ImagePlus, Trash2, Upload } from 'lucide-react';
 import { ViewHeader } from '../../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../../components/common/Card/Card';
 import { Button } from '../../../../components/common/Button/Button';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
+import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
 import { useTranslation } from '../../../../lib/i18n';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { fetchServiceBlob, isRelayActive } from '../../../../api/service';
@@ -48,6 +49,9 @@ export function GalleryPage() {
   // failures, cleared when the next action starts.
   const [actionError, setActionError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // Bidirectional hover link: hovering a source card highlights its images
+  // in the grid, hovering an image highlights its source card.
+  const [hoverSourceId, setHoverSourceId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -183,56 +187,63 @@ export function GalleryPage() {
       <ViewHeader title={t('panel.widget.gallery')} />
       <div className={styles.body}>
         {/* Static-width sources column (300px, matching the Lighting /
-            Cooling device-column width); the library fills the rest. */}
+            Cooling device-column width); the library fills the rest. No
+            bounding box — each source is its own card, cooling-page style. */}
         <div className={styles.sourcesColumn}>
-          <Card title={t('gallery.page.sources')}>
-            <div className={styles.sourceActions}>
-              <Button size="sm" disabled={pickingDisabled} onClick={() => pickAndAdd('file')}>
-                {picking === 'file' ? t('gallery.page.picking') : t('gallery.page.addFile')}
-              </Button>
-              <Button size="sm" disabled={pickingDisabled} onClick={() => pickAndAdd('folder')}>
-                {picking === 'folder' ? t('gallery.page.picking') : t('gallery.page.addFolder')}
-              </Button>
-              <Button
-                size="sm"
-                tone="accent"
-                icon={<Upload size={14} />}
-                onClick={() => fileRef.current?.click()}
-                disabled={uploadsDisabled || uploadingNames.length > 0}
-                title={uploadsDisabled ? t('gallery.page.uploadRelayHint') : undefined}
-              >
-                {uploadingNames.length > 0 ? t('gallery.page.uploading') : t('gallery.page.upload')}
-              </Button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className={styles.hiddenInput}
-                onChange={handleUploadInput}
-              />
-            </div>
-            {actionError && <p className={styles.uploadError}>{actionError}</p>}
-            {sources.length === 0 ? (
-              <EmptyState
-                compact
-                icon={<ImageIcon size={22} />}
-                title={t('gallery.page.noSources')}
-                hint={t('gallery.page.noSourcesHint')}
-              />
-            ) : (
-              <ul className={styles.sourceList}>
-                {sources.map(source => {
-                  const Icon = KIND_ICONS[source.kind] ?? FileImage;
-                  return (
-                    <li key={source.id} className={styles.sourceRow}>
-                      <Icon size={16} className={styles.sourceIcon} aria-hidden="true" />
-                      <div className={styles.sourceText}>
-                        <span className={styles.sourceName}>{source.name}</span>
-                        {source.kind !== 'upload' && (
-                          <span className={styles.sourcePath}>{source.path}</span>
-                        )}
-                      </div>
+          <SectionHeader>{t('gallery.page.sources')}</SectionHeader>
+          <div className={styles.sourceActions}>
+            <Button size="sm" icon={<ImagePlus size={14} />} disabled={pickingDisabled} onClick={() => pickAndAdd('file')}>
+              {picking === 'file' ? t('gallery.page.picking') : t('gallery.page.addFile')}
+            </Button>
+            <Button size="sm" icon={<FolderPlus size={14} />} disabled={pickingDisabled} onClick={() => pickAndAdd('folder')}>
+              {picking === 'folder' ? t('gallery.page.picking') : t('gallery.page.addFolder')}
+            </Button>
+            <Button
+              size="sm"
+              tone="accent"
+              icon={<Upload size={14} />}
+              onClick={() => fileRef.current?.click()}
+              disabled={uploadsDisabled || uploadingNames.length > 0}
+              title={uploadsDisabled ? t('gallery.page.uploadRelayHint') : undefined}
+            >
+              {uploadingNames.length > 0 ? t('gallery.page.uploading') : t('gallery.page.upload')}
+            </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className={styles.hiddenInput}
+              onChange={handleUploadInput}
+            />
+          </div>
+          {actionError && <p className={styles.uploadError}>{actionError}</p>}
+          {sources.length === 0 ? (
+            <EmptyState
+              compact
+              icon={<ImageIcon size={22} />}
+              title={t('gallery.page.noSources')}
+              hint={t('gallery.page.noSourcesHint')}
+            />
+          ) : (
+            <ul className={styles.sourceList}>
+              {sources.map(source => {
+                const Icon = KIND_ICONS[source.kind] ?? FileImage;
+                return (
+                  <li
+                    key={source.id}
+                    className={`${styles.sourceCard} ${hoverSourceId === source.id ? styles.sourceCardHighlight : ''}`}
+                    onMouseEnter={() => setHoverSourceId(source.id)}
+                    onMouseLeave={() => setHoverSourceId(null)}
+                  >
+                    <div className={styles.sourceHead}>
+                      <Icon size={14} className={styles.sourceIcon} aria-hidden="true" />
+                      <span className={styles.sourceName}>{source.name}</span>
+                    </div>
+                    {source.kind !== 'upload' && (
+                      <span className={styles.sourcePath}>{source.path}</span>
+                    )}
+                    <div className={styles.sourceMeta}>
                       <span className={styles.sourceCount}>
                         {t('gallery.page.itemCount', { count: countFor(source.id) })}
                       </span>
@@ -243,12 +254,12 @@ export function GalleryPage() {
                         aria-label={t('gallery.page.remove')}
                         onClick={() => setPendingDelete(source)}
                       />
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
 
         {/* The entire library card is the drop target, not just the grid. */}
@@ -276,7 +287,13 @@ export function GalleryPage() {
             ) : (
               <div className={styles.grid}>
                 {items.map(item => (
-                  <figure key={item.id} className={styles.tile} title={item.name}>
+                  <figure
+                    key={item.id}
+                    className={`${styles.tile} ${hoverSourceId === item.sourceId ? styles.tileHighlight : ''}`}
+                    title={item.name}
+                    onMouseEnter={() => setHoverSourceId(item.sourceId)}
+                    onMouseLeave={() => setHoverSourceId(null)}
+                  >
                     {thumbs[item.id] ? (
                       <img src={thumbs[item.id]!} alt={item.name} loading="lazy" draggable={false} />
                     ) : (
