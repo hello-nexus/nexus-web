@@ -9,6 +9,7 @@ const mockState = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../../api/gallery', () => ({
+  GALLERY_ERROR_DUPLICATE: 'duplicate',
   fetchGallerySources: vi.fn(() => Promise.resolve({ sources: mockState.sources })),
   fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items })),
   addGallerySource: vi.fn(() => Promise.resolve({ source: null })),
@@ -118,6 +119,19 @@ describe('GalleryPage', () => {
     const chip = await screen.findByText('gallery.page.excludedCount:count=2');
     fireEvent.click(chip);
     await waitFor(() => expect(vi.mocked(restoreGalleryExclusions)).toHaveBeenCalledWith('Pictures'));
+  });
+
+  it('adding an already-present source says so instead of a generic failure', async () => {
+    const { addGallerySource, pickGalleryPaths } = await import('../../../../api/gallery');
+    vi.mocked(pickGalleryPaths).mockResolvedValueOnce({ paths: ['/home/user/Pictures'] });
+    vi.mocked(addGallerySource).mockResolvedValueOnce({ source: null, error: true, code: 'duplicate' });
+    render(<GalleryPage />);
+    await screen.findByText('gallery.page.noSources');
+
+    fireEvent.click(screen.getByText('gallery.page.addFolder'));
+
+    expect(await screen.findByText('gallery.page.alreadyAdded:name=Pictures')).toBeTruthy();
+    expect(screen.queryByText(/gallery\.page\.addFailed/)).toBeNull();
   });
 
   it('a cancelled native dialog adds nothing and shows no error', async () => {

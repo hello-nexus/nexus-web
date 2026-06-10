@@ -308,6 +308,7 @@
   "gallery.page.addFailed": "Impossible d'ajouter {name}",
   "gallery.page.addFile": "Ajouter des fichiers…",
   "gallery.page.addFolder": "Ajouter un dossier…",
+  "gallery.page.alreadyAdded": "{name} est déjà dans la galerie",
   "gallery.page.dropHint": "Déposez des images ou des dossiers pour les ajouter",
   "gallery.page.dropNeedsApp": "Le glisser-déposer nécessite l'application de bureau Nexus — utilisez Ajouter des fichiers",
   "gallery.page.empty": "Pas encore d'images",

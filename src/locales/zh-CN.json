@@ -308,6 +308,7 @@
   "gallery.page.addFailed": "无法添加 {name}",
   "gallery.page.addFile": "添加文件…",
   "gallery.page.addFolder": "添加文件夹…",
+  "gallery.page.alreadyAdded": "{name} 已在图库中",
   "gallery.page.dropHint": "拖放图片或文件夹以添加",
   "gallery.page.dropNeedsApp": "拖放需要 Nexus 桌面应用——请改用“添加文件”",
   "gallery.page.empty": "还没有图片",

@@ -308,6 +308,7 @@
   "gallery.page.addFailed": "Не удалось добавить {name}",
   "gallery.page.addFile": "Добавить файлы…",
   "gallery.page.addFolder": "Добавить папку…",
+  "gallery.page.alreadyAdded": "{name} уже есть в галерее",
   "gallery.page.dropHint": "Перетащите изображения или папки, чтобы добавить их",
   "gallery.page.dropNeedsApp": "Перетаскивание доступно только в настольном приложении Nexus — используйте «Добавить файлы»",
   "gallery.page.empty": "Изображений пока нет",

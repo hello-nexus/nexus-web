@@ -12,6 +12,7 @@ import { fetchServiceBlob, isRelayActive } from '../../../../api/service';
 import { postGalleryDrop, subscribeGalleryDropPaths } from '../../../../app/windowActions';
 import {
   addGallerySource,
+  GALLERY_ERROR_DUPLICATE,
   deleteGallerySource,
   excludeGalleryItem,
   fetchGalleryItems,
@@ -99,14 +100,20 @@ export function GalleryPage() {
   const addPaths = useCallback(async (paths: string[], kind: 'file' | 'folder' | 'auto') => {
     setActionError(null);
     const failed: string[] = [];
+    const duplicates: string[] = [];
     for (const path of paths) {
       const added = await addGallerySource(path, kind);
       if (!added || added.error) {
-        failed.push(path.split(/[\\/]/).pop() || path);
+        const name = path.split(/[\\/]/).pop() || path;
+        (added?.code === GALLERY_ERROR_DUPLICATE ? duplicates : failed).push(name);
       }
     }
-    if (failed.length > 0) {
-      setActionError(t('gallery.page.addFailed', { name: failed.join(', ') }));
+    const messages = [
+      duplicates.length > 0 ? t('gallery.page.alreadyAdded', { name: duplicates.join(', ') }) : null,
+      failed.length > 0 ? t('gallery.page.addFailed', { name: failed.join(', ') }) : null,
+    ].filter(Boolean);
+    if (messages.length > 0) {
+      setActionError(messages.join(' · '));
     }
     await refresh();
   }, [refresh, t]);

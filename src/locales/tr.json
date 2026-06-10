@@ -308,6 +308,7 @@
   "gallery.page.addFailed": "{name} eklenemedi",
   "gallery.page.addFile": "Dosya ekle…",
   "gallery.page.addFolder": "Klasör ekle…",
+  "gallery.page.alreadyAdded": "{name} zaten galeride",
   "gallery.page.dropHint": "Eklemek için görselleri veya klasörleri bırakın",
   "gallery.page.dropNeedsApp": "Sürükle ve bırak Nexus masaüstü uygulaması gerektirir — bunun yerine Dosya ekle'yi kullanın",
   "gallery.page.empty": "Henüz görsel yok",

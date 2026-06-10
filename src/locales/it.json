@@ -308,6 +308,7 @@
   "gallery.page.addFailed": "Impossibile aggiungere {name}",
   "gallery.page.addFile": "Aggiungi file…",
   "gallery.page.addFolder": "Aggiungi cartella…",
+  "gallery.page.alreadyAdded": "{name} è già nella galleria",
   "gallery.page.dropHint": "Trascina qui immagini o cartelle per aggiungerle",
   "gallery.page.dropNeedsApp": "Il trascinamento richiede l'app desktop di Nexus: usa Aggiungi file",
   "gallery.page.empty": "Ancora nessuna immagine",

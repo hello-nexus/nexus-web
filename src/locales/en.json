@@ -308,6 +308,7 @@
   "gallery.page.addFailed": "Couldn't add {name}",
   "gallery.page.addFile": "Add files…",
   "gallery.page.addFolder": "Add folder…",
+  "gallery.page.alreadyAdded": "{name} is already in the gallery",
   "gallery.page.dropHint": "Drop images or folders to add them",
   "gallery.page.dropNeedsApp": "Drag & drop needs the Nexus desktop app — use Add files instead",
   "gallery.page.empty": "No images yet",

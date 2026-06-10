@@ -308,6 +308,7 @@
   "gallery.page.addFailed": "無法新增 {name}",
   "gallery.page.addFile": "新增檔案…",
   "gallery.page.addFolder": "新增資料夾…",
+  "gallery.page.alreadyAdded": "{name} 已在圖庫中",
   "gallery.page.dropHint": "拖放圖片或資料夾以新增",
   "gallery.page.dropNeedsApp": "拖放需要 Nexus 桌面應用程式——請改用「新增檔案」",
   "gallery.page.empty": "還沒有圖片",

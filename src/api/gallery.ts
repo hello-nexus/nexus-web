@@ -31,10 +31,15 @@ export interface GalleryPickResponse {
   msg?: string;
 }
 
+// Stable error code on source mutations. Keep in lockstep with
+// GalleryErrorCodes in nexus-service Models/Gallery/GalleryModels.cs.
+export const GALLERY_ERROR_DUPLICATE = 'duplicate';
+
 export interface GallerySourceMutation {
   source: GallerySource | null;
   error?: boolean;
   msg?: string;
+  code?: string;
 }
 
 export const fetchGallerySources = () =>

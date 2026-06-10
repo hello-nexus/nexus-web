@@ -308,6 +308,7 @@
   "gallery.page.addFailed": "Não foi possível adicionar {name}",
   "gallery.page.addFile": "Adicionar ficheiros…",
   "gallery.page.addFolder": "Adicionar pasta…",
+  "gallery.page.alreadyAdded": "{name} já está na galeria",
   "gallery.page.dropHint": "Largue imagens ou pastas para as adicionar",
   "gallery.page.dropNeedsApp": "Arrastar e largar requer a aplicação de desktop Nexus — utilize Adicionar ficheiros",
   "gallery.page.empty": "Ainda não há imagens",

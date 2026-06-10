@@ -308,6 +308,7 @@
   "gallery.page.addFailed": "{name}を追加できませんでした",
   "gallery.page.addFile": "ファイルを追加…",
   "gallery.page.addFolder": "フォルダーを追加…",
+  "gallery.page.alreadyAdded": "{name}はすでにギャラリーにあります",
   "gallery.page.dropHint": "画像やフォルダーをドロップして追加",
   "gallery.page.dropNeedsApp": "ドラッグ＆ドロップにはNexusデスクトップアプリが必要です。「ファイルを追加」をご利用ください",
   "gallery.page.empty": "まだ画像がありません",
