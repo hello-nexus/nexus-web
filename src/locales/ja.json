@@ -801,7 +801,7 @@
   "phonePair.removeSession": "{name} のアクセスを削除",
   "phonePair.saving": "保存中...",
   "phonePair.securityNote": "同じデバイスから再度ペアリングすると承認が更新されます。削除されたデバイスは、再接続する前に再度ペアリングする必要があります。",
-  "phonePair.e2eNote": "エンドツーエンド暗号化。鍵が端末の外に出ることはありません。",
+  "phonePair.e2eNote": "エンドツーエンド暗号化。鍵が端末の外に出ることはなく、通信内容を読み取ることは誰にもできません。",
   "phonePair.statusPaired": "ペアリング済み",
   "phonePair.statusRecentlyActive": "最近アクティブ",
   "phonePair.tab.code": "コードペアリング",

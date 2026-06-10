@@ -801,7 +801,7 @@
   "phonePair.removeSession": "Zugriff für {name} entfernen",
   "phonePair.saving": "Speichere...",
   "phonePair.securityNote": "Ein erneutes Koppeln vom selben Gerät aktualisiert seine Autorisierung. Entfernte Geräte müssen vor der erneuten Verbindung erneut gekoppelt werden.",
-  "phonePair.e2eNote": "Ende-zu-Ende-verschlüsselt – die Schlüssel verlassen nie deine Geräte.",
+  "phonePair.e2eNote": "Ende-zu-Ende-verschlüsselt – die Schlüssel verlassen nie deine Geräte und niemand kann deinen Datenverkehr mitlesen.",
   "phonePair.statusPaired": "Gekoppelt",
   "phonePair.statusRecentlyActive": "Kürzlich aktiv",
   "phonePair.tab.code": "Code-Kopplung",
