@@ -801,6 +801,7 @@
   "phonePair.removeSession": "移除 {name} 的访问权限",
   "phonePair.saving": "正在保存...",
   "phonePair.securityNote": "从同一设备再次配对会刷新其授权。被移除的设备必须先重新配对才能重新连接。",
+  "phonePair.e2eNote": "默认端到端加密。密钥永不离开设备，任何人都无法读取流量。",
   "phonePair.statusPaired": "已配对",
   "phonePair.statusRecentlyActive": "最近活跃",
   "phonePair.tab.code": "配对码配对",

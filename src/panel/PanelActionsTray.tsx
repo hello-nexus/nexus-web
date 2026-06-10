@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { Plus, QrCode, Settings2 } from 'lucide-react';
+import { Lock, Plus, QrCode, Settings2 } from 'lucide-react';
 import { usePanelTraySwipe } from './engine/usePanelTraySwipe';
 import { isNativeApp } from './panelNativeBridge';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
@@ -23,6 +23,10 @@ interface PanelActionsTrayProps {
   pinnedOpen?: boolean;
   // OS-reported computer name shown above the buttons. Empty string hides it.
   machineName?: string;
+  // True when this panel is a remote/paired session (a phone reaching the PC),
+  // not a local hardwired kiosk. The "Connected to <PC> 🔒" line shows only
+  // then — a hardwired display already knows what it's plugged into.
+  remotePaired?: boolean;
 }
 
 export function PanelActionsTray({
@@ -37,6 +41,7 @@ export function PanelActionsTray({
   disabled = false,
   pinnedOpen = false,
   machineName,
+  remotePaired = false,
 }: PanelActionsTrayProps) {
   const trayRef = useRef<HTMLDivElement | null>(null);
 
@@ -99,10 +104,11 @@ export function PanelActionsTray({
         }
         aria-label="Panel actions"
       >
-        {machineName && (
+        {machineName && remotePaired && (
           <div className={styles.connectedTo}>
             <span className={styles.connectedLabel}>Connected to</span>
             <span className={styles.connectedName}>{machineName}</span>
+            <Lock size={12} className={styles.connectedLock} aria-label="End-to-end encrypted" />
           </div>
         )}
         <div className={styles.actionRow}>

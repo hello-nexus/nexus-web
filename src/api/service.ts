@@ -62,6 +62,45 @@ const isServedFromService = locationPort === DEFAULT_SERVICE_PORT || locationPor
 // relay from the very first call. Deterministic from the origin, computed once.
 export const isRemoteOrigin = !isServedFromService;
 
+// True when the panel is served from a REMOTE host: a paired phone reaching the
+// PC over LAN (<pc-ip>:9400/9443) or over the relay (hellonexus.com), versus a
+// LOCAL hardwired surface (a Y70/Q60 kiosk or the embedded dashboard, which load
+// from localhost). Gates the "Connected to <PC>" + lock indicator — a hardwired
+// display already knows what it's plugged into, so it's hidden there.
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '']);
+export const isRemotePaired = !LOCAL_HOSTS.has(locationHost);
+
+// LAN sealed transport (Phase 2). A phone reaching the PC over the LAN is served
+// from the service (so isRemoteOrigin is false) but from a real host IP
+// (isRemotePaired) — its session token currently crosses the LAN as a bearer
+// header AND a ?token= on the /ws URL. When the flag is on, route the panel's
+// runtime + REST over the sealed /secure-tunnel (the same E2E relay crypto, no
+// cloud hop) so the token never leaves the device. Gated for staged rollout:
+// OFF keeps the unchanged plain-LAN path (isTunnelActive collapses to
+// isRelayActive, resolveTunnelWs to resolveRelayWs, trySealed is never reached),
+// so default behavior is provably identical. The cloud-relay path (remote
+// origin) is a separate transport and unaffected either way.
+const LAN_SEALED_FLAG_KEY = 'nexus.lanSealed';
+function lanSealedFlagOn(): boolean {
+  if (import.meta.env.VITE_LAN_SEALED === '1') return true;
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(LAN_SEALED_FLAG_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * True when this surface should use the sealed LAN tunnel: a phone served from
+ * the local service (not a remote origin) but reaching it over a real host IP
+ * (isRemotePaired, i.e. not a localhost kiosk), with the flag enabled. A token
+ * still has to exist before anything actually tunnels — that gate lives in
+ * effectiveTransport.
+ */
+export function isLanSealedEligible(): boolean {
+  return !isRemoteOrigin && isRemotePaired && lanSealedFlagOn();
+}
+
 // If the SPA is served from the service itself, keep the same origin/protocol.
 // If served from Vite or hellonexus.com, fall back to the local HTTP service.
 const SERVICE_PROTOCOL = import.meta.env.VITE_SERVICE_PROTOCOL
@@ -96,14 +135,20 @@ export function resolveRelayWs(): string {
   return RELAY_URL;
 }
 
+/** Resolve the LAN sealed-tunnel WS URL: the same host/port the LAN /ws uses, path /secure-tunnel. */
+export function resolveLanSealedWs(): string {
+  return resolveWs('/secure-tunnel');
+}
+
 // Which transport the panel's live multiplex connection runs over. Set by
 // useMultiplexSocket (its only writer) whenever the active transport changes:
 // 'lan' for the direct /ws socket, 'relay' for the cloud RelayChannel fallback,
-// null while disconnected. The fetch layer reads it to decide whether REST
-// calls go directly to the local service (LAN) or tunnel over the relay. A
-// module-level signal keeps the fetch helpers' signatures unchanged — callers
-// stay oblivious to which transport is live.
-let activeTransport: 'lan' | 'relay' | null = null;
+// 'lan-sealed' for the local sealed /secure-tunnel, null while disconnected. The
+// fetch layer reads it to decide whether REST calls go directly to the local
+// service (LAN) or tunnel over a sealed channel. A module-level signal keeps the
+// fetch helpers' signatures unchanged — callers stay oblivious to which
+// transport is live.
+let activeTransport: 'lan' | 'relay' | 'lan-sealed' | null = null;
 
 // Desktop-on-hellonexus override. The remote-origin model otherwise assumes
 // "no local PC to reach" (phone → relay / fail-closed). But a DESKTOP browser on
@@ -129,7 +174,7 @@ export function isForceLanMode(): boolean {
  * closes. Off-LAN (transport === 'relay') REST calls tunnel over the relay;
  * otherwise they hit the local service directly (the unchanged LAN path).
  */
-export function setActiveTransport(transport: 'lan' | 'relay' | null): void {
+export function setActiveTransport(transport: 'lan' | 'relay' | 'lan-sealed' | null): void {
   activeTransport = transport;
 }
 
@@ -149,10 +194,15 @@ export function setActiveTransport(transport: 'lan' | 'relay' | null): void {
  * On a local (service-served) origin this returns `activeTransport` unchanged,
  * so the LAN-first-with-relay-fallback behavior is untouched.
  */
-function effectiveTransport(): 'lan' | 'relay' | null {
+function effectiveTransport(): 'lan' | 'relay' | 'lan-sealed' | null {
   if (activeTransport !== null) return activeTransport;
   // forceLanMode (detected local desktop) keeps the LAN path even with a token.
   if (isRemoteOrigin && !forceLanMode && hasSessionToken()) return 'relay';
+  // Eager LAN-sealed: a flag-on LAN phone with a token routes its early REST
+  // (device alloc/ping) over the sealed tunnel before the multiplex socket
+  // publishes a transport, mirroring the eager-relay case above. Without a token
+  // there's no rid to derive, so fall through to the unchanged direct LAN path.
+  if (isLanSealedEligible() && hasSessionToken()) return 'lan-sealed';
   return null;
 }
 
@@ -164,6 +214,32 @@ function effectiveTransport(): 'lan' | 'relay' | null {
  */
 export function isRelayActive(): boolean {
   return effectiveTransport() === 'relay';
+}
+
+/**
+ * Whether the live/eager transport is the LAN sealed tunnel — the runtime path
+ * opens a RelayChannel to /secure-tunnel instead of the plain /ws. Read by
+ * useMultiplexSocket to choose the sealed channel over the token-in-URL socket.
+ */
+export function isLanSealedActive(): boolean {
+  return effectiveTransport() === 'lan-sealed';
+}
+
+/**
+ * Whether REST should tunnel over a sealed channel right now — the cloud relay
+ * (off-LAN) OR the local sealed tunnel (flag-on LAN phone). Both seal the same
+ * way and use the same relayFetch path; only the WS URL differs. With the
+ * lan-sealed flag off this is exactly isRelayActive(), so the REST routing is
+ * unchanged from the relay-only behavior.
+ */
+export function isTunnelActive(): boolean {
+  const t = effectiveTransport();
+  return t === 'relay' || t === 'lan-sealed';
+}
+
+/** The WS URL the REST/runtime tunnel should target: the LAN sealed tunnel when lan-sealed is active, else the cloud relay. */
+function resolveTunnelWs(): string {
+  return effectiveTransport() === 'lan-sealed' ? resolveLanSealedWs() : resolveRelayWs();
 }
 
 /**
@@ -213,8 +289,9 @@ async function authFetch(path: string, opts: RequestOptions = {}): Promise<Respo
   // instead. The tunnel is already authenticated as this phone session
   // server-side, so no bearer is sent. Transparent to callers: a Response-like
   // object is synthesized so fetchService/.json() etc. work unchanged. Also
-  // covers the eager case (remote origin + token, multiplex not yet open).
-  if (isRelayActive()) {
+  // covers the eager case (remote origin + token, multiplex not yet open) and
+  // the LAN sealed tunnel (flag-on LAN phone) — both tunnel via relayAuthFetch.
+  if (isTunnelActive()) {
     return relayAuthFetch(path, opts);
   }
 
@@ -264,7 +341,7 @@ async function relayAuthFetch(path: string, opts: RequestOptions): Promise<Respo
     const hasBody = opts.body !== undefined;
     const body = hasBody ? JSON.stringify(opts.body) : null;
     const contentType = hasBody ? 'application/json' : null;
-    const res = await relayFetch(token, resolveRelayWs(), method, path, body, contentType);
+    const res = await relayFetch(token, resolveTunnelWs(), method, path, body, contentType);
     if (res.status < 200 || res.status >= 300) return null;
     return toResponse(res.status, res.body, res.contentType, res.base64);
   } catch {
@@ -312,7 +389,7 @@ export async function relayRequestWithStatus(
     const hasBody = body !== undefined;
     const payload = hasBody ? JSON.stringify(body) : null;
     const contentType = hasBody ? 'application/json' : null;
-    const res = await relayFetch(token, resolveRelayWs(), method, path, payload, contentType);
+    const res = await relayFetch(token, resolveTunnelWs(), method, path, payload, contentType);
     return { response: toResponse(res.status, res.body, res.contentType, res.base64), status: res.status };
   } catch {
     return { response: null, status: 0 };
@@ -349,7 +426,7 @@ export async function postServiceForm<T>(path: string, form: FormData): Promise<
   // body, not multipart). On a remote origin there's no localhost to reach, so
   // rather than fire a doomed mixed-content request, fail closed like a
   // non-2xx. (Media import is a LAN/desktop affordance; off-LAN it's a no-op.)
-  if (isRelayActive() || blockedLocalhostFetch()) return null;
+  if (isTunnelActive() || blockedLocalhostFetch()) return null;
   try {
     const token = await getToken();
     const headers: Record<string, string> = {};
@@ -382,7 +459,7 @@ export async function fetchServiceBlob(path: string): Promise<Blob | null> {
  * remote-origin panel never fires an http://localhost ping (wrong host +
  * mixed-content-blocked); the host answers it over the rid_http channel. */
 export async function pingService(): Promise<PingResponse | null> {
-  if (isRelayActive()) {
+  if (isTunnelActive()) {
     const { response } = await relayRequestWithStatus('GET', '/ping');
     if (!response || !response.ok) return null;
     return (await response.json()) as PingResponse;

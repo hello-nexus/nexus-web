@@ -6,13 +6,15 @@ import { useMultiplexConnection } from './useMultiplexSocket';
 // (the LAN-first tests assume a service-served origin); the remote-origin test
 // flips it true. resolveHttp is kept for any indirect import but the hook no
 // longer fetches via it directly.
-const serviceState = { relayActive: false };
+const serviceState = { relayActive: false, lanSealedActive: false };
 vi.mock('../api/service', () => ({
   resolveAuthWs: vi.fn(async (path: string) => `ws://test.local${path}`),
   resolveHttp: vi.fn((path: string) => `http://test.local${path}`),
   resolveRelayWs: vi.fn(() => 'wss://relay.test.local/relay'),
+  resolveLanSealedWs: vi.fn(() => 'ws://test.local/secure-tunnel'),
   setActiveTransport: vi.fn(),
   isRelayActive: vi.fn(() => serviceState.relayActive),
+  isLanSealedActive: vi.fn(() => serviceState.lanSealedActive),
 }));
 
 // handleDisconnect reads the killswitch state through this helper (was a raw
@@ -139,6 +141,7 @@ describe('useMultiplexConnection reconnect schedule', () => {
     FakeRelayChannel.instances = [];
     relayState.nextPeerUp = false;
     serviceState.relayActive = false;
+    serviceState.lanSealedActive = false;
     remoteControlMock.mockClear();
     remoteControlMock.mockResolvedValue(null);
     mockRejectingFetch();
@@ -258,6 +261,7 @@ describe('useMultiplexConnection relay fallback', () => {
     FakeRelayChannel.instances = [];
     relayState.nextPeerUp = false;
     serviceState.relayActive = false;
+    serviceState.lanSealedActive = false;
     remoteControlMock.mockClear();
     remoteControlMock.mockResolvedValue(null);
     relayStateMock.mockClear();
@@ -388,5 +392,25 @@ describe('useMultiplexConnection relay fallback', () => {
     expect(FakeRelayChannel.instances[0].url).toBe('wss://relay.test.local/relay');
     expect(result.current?.connected).toBe(true);
     expect(result.current?.transport).toBe('relay');
+  });
+
+  it('on a flag-on LAN phone (lan-sealed active) connects the sealed tunnel, never the plain /ws', async () => {
+    // isLanSealedActive() is true from the first connect(), so the hook opens a
+    // RelayChannel pointed at the LOCAL /secure-tunnel instead of the plain /ws
+    // (which would carry the token in the URL). No FakeWebSocket (LAN) instance
+    // is created, and the published transport is 'lan-sealed' (not 'relay'), so
+    // the cloud-relay satellite indicator stays off.
+    serviceState.lanSealedActive = true;
+    relayState.nextPeerUp = true;
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(FakeWebSocket.instances.length).toBe(0);
+    expect(FakeRelayChannel.instances.length).toBe(1);
+    expect(FakeRelayChannel.instances[0].url).toBe('ws://test.local/secure-tunnel');
+    expect(result.current?.connected).toBe(true);
+    expect(result.current?.transport).toBe('lan-sealed');
   });
 });

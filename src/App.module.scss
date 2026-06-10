@@ -596,6 +596,33 @@
   border-top: 1px solid var(--border-soft, var(--border));
 }
 
+// Trust badge under the pair flow: reassures the user the remote connection
+// is end-to-end encrypted. Lock in the accent color over a soft accent tint.
+.phonePairE2e {
+  @include text-button;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  // Centered, content-width badge (not a full-bleed bar): fit-content sizes the
+  // box to its text up to a cap; margin-inline auto centers it in the modal.
+  width: fit-content;
+  max-width: min(360px, 100%);
+  margin: 0.85rem auto 0;
+  padding: 0.6rem 0.85rem;
+  text-align: center;
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--text-faded);
+  line-height: 1.45;
+
+  svg {
+    flex: 0 0 auto;
+    color: var(--accent);
+  }
+}
+
 // Countdown text - accent color so it stands out from the regular hint
 // copy. Flashes when ≤5s remaining so the user can react before
 // regeneration happens under them.

@@ -1,5 +1,5 @@
 import { getToken, handleUnauthorized } from './auth';
-import { deleteService, fetchService, isRelayActive, isRemoteOrigin, postService, relayRequestWithStatus, resolveHttp } from './service';
+import { deleteService, fetchService, isTunnelActive, isRemoteOrigin, postService, relayRequestWithStatus, resolveHttp } from './service';
 import { deriveDeviceLabel } from '../lib/platform';
 import type { PanelLayout, PanelSurface } from '../panel/types';
 import type { EffectState } from '../types/lighting';
@@ -99,7 +99,7 @@ export async function allocatePanelDeviceWithStatus(
   // Off-LAN (remote origin / relay transport) there's no localhost PC to POST
   // to — tunnel the alloc over the relay so the panel registers without a
   // doomed mixed-content http://localhost call. Same status contract.
-  if (isRelayActive()) {
+  if (isTunnelActive()) {
     const { response, status } = await relayRequestWithStatus('POST', '/panel/devices', { displayName, capabilities });
     if (!response || !response.ok) return { ok: false, status };
     return { ok: true, record: (await response.json()) as PanelDeviceRecord };
@@ -142,7 +142,7 @@ export type PanelDeviceFetchResult =
 // The non-status variants conflate both as `null` and trigger an infinite
 // auto-persist loop when the kiosk holds an id the server no longer knows.
 export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDeviceFetchResult> {
-  if (isRelayActive()) {
+  if (isTunnelActive()) {
     const { response, status } = await relayRequestWithStatus('GET', `/panel/devices/${encodeURIComponent(id)}`);
     if (response && response.ok) return { found: true, record: (await response.json()) as PanelDeviceRecord };
     return { found: false, status };
@@ -177,7 +177,7 @@ export type PanelDevicePatchResult =
   | { ok: false; status: number };
 
 export async function patchPanelDeviceWithStatus(id: string, patch: PanelDevicePatch): Promise<PanelDevicePatchResult> {
-  if (isRelayActive()) {
+  if (isTunnelActive()) {
     const { response, status } = await relayRequestWithStatus('POST', `/panel/devices/${encodeURIComponent(id)}`, patch);
     if (!response || !response.ok) return { ok: false, status };
     return { ok: true, record: (await response.json()) as PanelDeviceRecord };

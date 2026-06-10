@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Proves the panel.ts *WithStatus helpers — which bypass authFetch to read the
 // raw HTTP status — route over the relay (and never fire an http://localhost
-// fetch) when isRelayActive() is true. allocatePanelDeviceWithStatus is the
+// fetch) when isTunnelActive() is true. allocatePanelDeviceWithStatus is the
 // exact call that surfaced the bogus "could not reach the service" overlay on a
 // remote origin before this fix.
 
-const serviceState = { relayActive: true };
+const serviceState = { tunnelActive: true };
 const relayWithStatusMock = vi.fn(
   async (...args: unknown[]) => {
     void args;
@@ -18,7 +18,7 @@ const relayWithStatusMock = vi.fn(
 );
 
 vi.mock('./service', () => ({
-  isRelayActive: () => serviceState.relayActive,
+  isTunnelActive: () => serviceState.tunnelActive,
   // The "stays on LAN" case flips this false (service-served origin) so the
   // remote-origin fail-closed guard in panel.ts doesn't short-circuit it.
   isRemoteOrigin: false,
@@ -42,7 +42,7 @@ import {
 } from './panel';
 
 beforeEach(() => {
-  serviceState.relayActive = true;
+  serviceState.tunnelActive = true;
   relayWithStatusMock.mockClear();
 });
 
@@ -106,7 +106,7 @@ describe('panel.ts *WithStatus relay routing', () => {
   });
 
   it('stays on the direct LAN path when the relay is not active', async () => {
-    serviceState.relayActive = false;
+    serviceState.tunnelActive = false;
     const directFetch = vi.fn(async () => new Response(JSON.stringify({ id: 'lan-dev' }), { status: 200 }));
     vi.stubGlobal('fetch', directFetch);
 

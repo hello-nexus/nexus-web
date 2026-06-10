@@ -174,6 +174,16 @@
   color: currentColor;
 }
 
+// Lock by the host name on a remote/paired connection's pill (the link is
+// E2E-encrypted). The whole pill is gated on isRemotePaired, so local hardwired
+// kiosks show neither it nor the lock.
+.connectionIntroLock {
+  flex: 0 0 auto;
+  align-self: center;
+  opacity: 0.85;
+  color: currentColor;
+}
+
 // Persistent corner badge shown whenever the live connection is running
 // over the cloud relay instead of the direct LAN socket. Matches the
 // connection-intro tray's accent treatment so the relay state reads as part
