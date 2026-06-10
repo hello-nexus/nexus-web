@@ -7,6 +7,7 @@ import { PanelDevicePage } from './PanelDevicePage';
 import { PeripheralDevicePage } from './PeripheralDevicePage';
 import { KeebDevicePage } from './KeebDevicePage';
 import { Np50DevicePage } from './Np50DevicePage';
+import { SmartHubDevicePage } from './SmartHubDevicePage';
 import { CnvsDevicePage } from './CnvsDevicePage';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 
@@ -18,7 +19,7 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
  *
  *   panel       → PanelDevicePage     (Y70 / Q60 / Q80 / simulator)
  *   peripheral  → PeripheralDevicePage (mice, keyboards, …)
- *   curated     → its bespoke page (keeb / np50 / cnvs); any without one
+ *   curated     → its bespoke page (keeb / np50 / smarthub / cnvs); any without one
  *                  falls through to a name + "no page yet" placeholder.
  *
  * Rendering these as pages (rather than fullscreen modals) lets the
@@ -71,6 +72,10 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
 
   if (device.curatedId === 'np50') {
     return <Np50DevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'smarthub') {
+    return <SmartHubDevicePage key={device.key} />;
   }
 
   if (device.curatedId === 'cnvs') {

@@ -1,0 +1,97 @@
+// Routed SmartHub page. Same .page / .pageBody contract every device page
+// uses, so the chrome sits flush under the dashboard's view header. Type
+// rides the _text.scss tokens — the Np50 file's raw sizes are grandfathered
+// in the style-drift ratchet, new files are not.
+
+@use '../../../styles/text' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.pageBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1rem 0 1.25rem;
+  overflow-y: auto;
+}
+
+.savingBadge {
+  @include text-label;
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sectionHead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sectionTitle {
+  font-size: var(--type-body);
+  font-weight: var(--weight-strong);
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sectionHint {
+  @include text-body;
+  font-size: var(--type-mini);
+  margin: 0;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2rem;
+}
+
+.rowDisabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.rowLabel {
+  flex: 0 0 9.5rem;
+  font-size: var(--type-small);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.rowValue {
+  flex: 0 0 3rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-small);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.slider {
+  flex: 1;
+  min-width: 0;
+}
+
+.colorBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
