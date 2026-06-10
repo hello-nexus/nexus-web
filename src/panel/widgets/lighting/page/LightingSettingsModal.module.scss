@@ -77,7 +77,7 @@
   font-size: var(--type-small);
   cursor: pointer;
   transition: all var(--ease) ease;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   border: 1px solid var(--accent);
   background: var(--accent);
   color: var(--accent-text);

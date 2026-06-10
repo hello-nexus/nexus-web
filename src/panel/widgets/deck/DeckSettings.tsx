@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ChevronLeft, FolderInput } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { DECK_SWATCHES } from '../../../lib/settings';
 import { fetchService } from '../../../api/service';
 import { Select } from '../../../components/common/Select/Select';
 import { AppPicker } from '../common/AppPicker';
@@ -26,7 +27,6 @@ const NESTED_KINDS: DeckActionType[] = [
   'power', 'nexus',
 ];
 
-const SWATCHES = ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#a855f7', '#ec4899', '#64748b', '#ffffff'];
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return <div className={styles.field}><div className={styles.subLabel}>{label}</div>{children}</div>;
@@ -250,7 +250,7 @@ export function DeckSettings({ widget, onUpdate, selectedSlot, onSelectedSlotCha
       <Field label={t('panel.settings.deck.color')}>
         <div className={styles.swatches}>
           <button type="button" className={`${styles.swatch} ${styles.autoSwatch} ${!slot.color ? styles.activeSwatch : ''}`} onClick={() => writeSlot({ ...slot, color: undefined })}>{t('panel.settings.deck.colorAuto')}</button>
-          {SWATCHES.map(c => (
+          {DECK_SWATCHES.map(c => (
             <button key={c} type="button" className={`${styles.swatch} ${slot.color === c ? styles.activeSwatch : ''}`} style={{ background: c }} onClick={() => writeSlot({ ...slot, color: c })} aria-label={c} />
           ))}
         </div>

@@ -111,7 +111,7 @@
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  font-size: 0.75rem;
+  font-size: var(--type-mini);
 }
 
 .model {
@@ -124,7 +124,7 @@
   color: var(--text-faded);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  font-size: 0.75rem;
+  font-size: var(--type-mini);
 }
 
 .mono {
@@ -136,7 +136,7 @@
 .caps {
   color: var(--text-faded);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--type-mini);
   max-width: 320px;
   overflow: hidden;
   text-overflow: ellipsis;

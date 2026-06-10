@@ -33,12 +33,12 @@
 }
 
 .digits {
-  font-weight: 800;
+  font-weight: var(--weight-display);
   letter-spacing: 0;
 }
 
 .fraction {
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   opacity: 0.55;
 }
 

@@ -10,7 +10,7 @@
 }
 
 .autoHint {
-  font-size: 12px;
+  font-size: var(--type-mini);
   color: var(--panel-text-secondary, var(--text-faded));
   padding: 6px 2px;
 }

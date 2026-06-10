@@ -128,7 +128,7 @@
 // underlying .led still owns drag + click.
 .ledIndex {
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: var(--weight-display);
   line-height: 1;
   color: #fff;
   text-shadow: 0 0 3px rgb(0 0 0 / var(--alpha-strong));

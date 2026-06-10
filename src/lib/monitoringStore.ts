@@ -6,6 +6,11 @@ import { resolvePrimaryGpu } from './gpuResolver';
 const MAX_SAMPLES = 60;
 const TOP_PROCS = 20;
 
+// Headline series colors for the monitoring page tab charts.
+export const CPU_SERIES_COLOR = '#22d3ee';
+export const MEMORY_SERIES_COLOR = '#a78bfa';
+export const NETWORK_SERIES_COLOR = '#10b981';
+
 const SERIES_COLORS = [
   '#8b5cf6', '#f472b6', '#22d3ee', '#10b981', '#f59e0b',
   '#ef4444', '#6366f1', '#ec4899', '#14b8a6', '#f97316',

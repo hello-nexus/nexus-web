@@ -431,7 +431,7 @@ export function Badge(p: HostProps) {
 // is px (default 20); `tone` tints it (default accent).
 export function Spinner(p: HostProps) {
   const size = num(p.size) ?? 20;
-  const color = toneVar(str(p.tone), 'var(--accent, #6c8cff)');
+  const color = toneVar(str(p.tone), 'var(--accent, #2563eb)');
   const sw = Math.max(2, Math.round(size / 10));
   const r = (size - sw) / 2;
   const c = size / 2;

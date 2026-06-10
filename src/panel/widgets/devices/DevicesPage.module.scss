@@ -21,7 +21,7 @@
   border: 1px dashed var(--border-strong);
   border-radius: 4px;
   color: var(--text-dim);
-  font-size: 0.75rem;
+  font-size: var(--type-mini);
   cursor: pointer;
   transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
 
@@ -303,7 +303,7 @@
 
 .fwUpdateBadge {
   color: var(--accent);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   white-space: nowrap;
 }
 
@@ -383,7 +383,7 @@
 
 .fwFailed {
   color: var(--danger, #e5484d);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 // --- System Specs ---

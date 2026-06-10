@@ -88,11 +88,15 @@ function isCommentOrVarDecl(line) {
 }
 
 // Type axis: skip font-family / font-variant-numeric / inherit values.
+// Token-valued declarations (var(--type-*) / var(--weight-*)) are sanctioned:
+// the value still comes from the central scale, so retuning a token
+// propagates. Mixins stay the preferred form; raw literals stay flagged.
 function isTypeException(line) {
   const trimmed = line.trim();
   if (/^\s*font-family\s*:/.test(line)) return true;
   if (/^\s*font-variant-numeric\s*:/.test(line)) return true;
   if (/:\s*(inherit|unset|initial|revert|revert-layer)\s*[!;]?/.test(trimmed)) return true;
+  if (/:\s*var\(--(type|weight)-[\w-]+\)\s*[!;]?/.test(trimmed)) return true;
   return false;
 }
 

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { useProcessMonitor } from '../../../../hooks/useProcessMonitor';
 import type { SensorState } from '../../../../hooks/useSensors';
 import { useTranslation } from '../../../../lib/i18n';
+import { CPU_SERIES_COLOR } from '../../../../lib/monitoringStore';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
 import { useSharedSensorHistory } from '../../common/useSharedSensorHistory';
@@ -38,7 +39,7 @@ export function CpuTab({ cpuSeries, sensors, showAverage, onToggle }: {
     const sum = history.reduce((a, b) => a + b, 0);
     return [{
       name: 'CPU Total',
-      color: '#22d3ee',
+      color: CPU_SERIES_COLOR,
       values,
       current: cpuValue,
       avg: history.length > 0 ? sum / history.length : 0,

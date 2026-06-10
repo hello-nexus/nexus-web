@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { NetworkData } from '../../../../hooks/useNetworkMonitor';
 import { useTranslation } from '../../../../lib/i18n';
+import { NETWORK_SERIES_COLOR } from '../../../../lib/monitoringStore';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
 import { useSharedSensorHistory } from '../../common/useSharedSensorHistory';
@@ -47,7 +48,7 @@ export function NetworkTab({ network, showAverage, onToggle }: {
     const sum = history.reduce((a, b) => a + b, 0);
     return [{
       name: 'Network Total',
-      color: '#10b981',
+      color: NETWORK_SERIES_COLOR,
       values,
       current: totalKBs,
       avg: history.length > 0 ? sum / history.length : 0,

@@ -462,7 +462,7 @@
 
 .gpuSelectLabel {
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-faded);

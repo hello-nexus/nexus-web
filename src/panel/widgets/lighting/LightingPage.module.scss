@@ -327,8 +327,8 @@
 }
 
 .effectLabel {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: var(--type-mini);
+  font-weight: var(--weight-body);
   letter-spacing: 0.02em;
   color: var(--text);
   text-align: center;
@@ -512,7 +512,7 @@
 .importBtn {
   padding: 0.45rem 0.95rem; border: 1px solid var(--accent); border-radius: var(--radius-sm);
   background: var(--accent); color: var(--accent-text); font-size: var(--type-small);
-  font-weight: 600; cursor: pointer; transition: all var(--ease);
+  font-weight: var(--weight-strong); cursor: pointer; transition: all var(--ease);
   box-shadow: 0 0 0 0 var(--accent-glow-shadow);
   &:hover:not(:disabled) { background: var(--accent-glow); border-color: var(--accent-glow); box-shadow: 0 2px 10px var(--accent-glow-shadow); }
   &:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -670,14 +670,14 @@
 }
 
 .monitorButtonTitle {
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--type-mini);
+  font-weight: var(--weight-display);
   letter-spacing: 0.01em;
 }
 
 .monitorButtonRes {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   opacity: 0.72;
 }
 
@@ -739,7 +739,7 @@
   border: 1px dashed var(--border-strong);
   border-radius: 4px;
   color: var(--text-dim);
-  font-size: 0.75rem;
+  font-size: var(--type-mini);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -763,7 +763,7 @@
 
 .statusBadgeLabel {
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   color: var(--text);
   letter-spacing: 0.02em;
 }

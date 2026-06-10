@@ -79,6 +79,14 @@ export const PRESET_ACCENTS = [
   '#4f9aab', // Soft cyan
 ] as const;
 
+// Deck button glyph palette: rainbow walk through the PRESET_ACCENTS primary
+// hues plus icon-only neutrals (purple / slate / white) that are not app
+// accents. Single source - do not redeclare swatch hexes in widgets.
+export const DECK_SWATCHES = [
+  '#ef4444', '#f97316', '#f59e0b', '#16c963', '#0bbfa9', '#06b6d4',
+  '#3b82f6', '#8b5cf6', '#a855f7', '#ec4899', '#64748b', '#ffffff',
+] as const;
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface GeneralSettings {

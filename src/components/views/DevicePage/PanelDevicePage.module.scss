@@ -111,7 +111,7 @@
   align-items: center;
   gap: 0.6rem;
   font-size: var(--type-small);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   color: var(--text-dim);
   cursor: pointer;
 }
@@ -238,7 +238,7 @@
   align-items: center;
   gap: 0.4rem;
   font-size: var(--type-body);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   color: var(--text);
   flex: 1;
   min-width: 0;

@@ -73,7 +73,7 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--type-mini);
   color: var(--deck-settings-faint);
 
   button {
@@ -88,7 +88,7 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
 }
 
 .hint {
-  font-size: 11px;
+  font-size: var(--type-tiny);
   color: var(--deck-settings-faint);
 }
 
@@ -103,7 +103,7 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   border-radius: var(--radius-sm, 6px);
   background: var(--deck-settings-bg);
   color: var(--deck-settings-text);
-  font-size: 12px;
+  font-size: var(--type-mini);
   cursor: pointer;
 
   &:hover { background: var(--deck-settings-bg-hover); }
@@ -124,7 +124,7 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
 .autoSwatch {
   width: auto;
   padding: 0 10px;
-  font-size: 11px;
+  font-size: var(--type-tiny);
   color: var(--deck-settings-faint);
   background: transparent;
   border: 1px solid var(--deck-settings-border);
@@ -145,8 +145,8 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--type-tiny);
+  font-weight: var(--weight-display);
   text-transform: uppercase;
   color: var(--deck-settings-faint);
 
@@ -161,4 +161,4 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   gap: 8px;
 }
 
-.branchLabel { font-size: 12px; font-weight: 800; color: var(--deck-settings-text); }
+.branchLabel { font-size: var(--type-mini); font-weight: var(--weight-display); color: var(--deck-settings-text); }

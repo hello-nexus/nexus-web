@@ -100,7 +100,7 @@
   color: var(--panel-text);
   padding: 6px;
   text-align: left;
-  font-family: var(--panel-font, inherit);
+  font-family: var(--panel-font);
 
   &[data-mention='true'] {
     border-color: var(--panel-accent);

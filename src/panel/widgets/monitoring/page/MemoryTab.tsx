@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { useProcessMonitor } from '../../../../hooks/useProcessMonitor';
 import type { SensorState } from '../../../../hooks/useSensors';
 import { useTranslation } from '../../../../lib/i18n';
+import { MEMORY_SERIES_COLOR } from '../../../../lib/monitoringStore';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
 import { useSharedSensorHistory } from '../../common/useSharedSensorHistory';
@@ -40,7 +41,7 @@ export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
     const sum = history.reduce((a, b) => a + b, 0);
     return [{
       name: 'Memory Used',
-      color: '#a78bfa',
+      color: MEMORY_SERIES_COLOR,
       values,
       current: usedMb,
       avg: history.length > 0 ? sum / history.length : 0,

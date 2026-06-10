@@ -1,8 +1,8 @@
 @use '../../../styles/text' as *;
 
-$dot-online: var(--panel-good, #62c46e);
-$dot-away: #d8a14a;
-$dot-busy: var(--panel-bad, #e36b6b);
+$dot-online: var(--panel-good, #10b981);
+$dot-away: var(--panel-status-away, #d8a14a);
+$dot-busy: var(--panel-bad, #ef4444);
 $dot-offline: var(--panel-text-faint);
 
 // ---------- App page chrome ----------
@@ -420,7 +420,7 @@ $dot-offline: var(--panel-text-faint);
 
 .metacritic {
   color: #ffd166;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .drillLive {
@@ -436,8 +436,8 @@ $dot-offline: var(--panel-text-faint);
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #62c46e;
-  box-shadow: 0 0 6px rgba(98, 196, 110, 0.7);
+  background: $dot-online;
+  box-shadow: 0 0 6px color-mix(in srgb, $dot-online 70%, transparent);
   animation: livePulse 1.6s ease-in-out infinite;
 }
 
@@ -584,7 +584,7 @@ $dot-offline: var(--panel-text-faint);
   width: 100%;
   text-align: center;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   color: var(--panel-text);
   z-index: 1;
 }
@@ -624,7 +624,7 @@ $dot-offline: var(--panel-text-faint);
 .statValue {
   @include text-body;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .drillNewsList {

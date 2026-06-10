@@ -66,7 +66,7 @@
 .notchText {
   font-family: var(--font-mono);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   letter-spacing: 0.02em;
 }
 
@@ -94,12 +94,12 @@
 
 .fanLabel {
   color: var(--accent-glow);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--type-tiny);
+  font-weight: var(--weight-strong);
 }
 
 .fanValue {
   color: var(--panel-text, var(--text));
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--weight-heading);
 }

@@ -102,9 +102,9 @@
   border: none;
   background: transparent;
   color: var(--panel-text-muted);
-  font-family: var(--panel-font, inherit);
+  font-family: var(--panel-font);
   font-size: var(--type-small);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   cursor: pointer;
   transition: background var(--ease), color var(--ease);
   text-align: left;

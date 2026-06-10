@@ -9,9 +9,9 @@
   line-height: var(--panel-widget-label-strip, 18px);
   padding: 0 6px;
   margin-top: 2px;
-  font-family: var(--panel-font, 'Lexend', system-ui, sans-serif);
+  font-family: var(--panel-font);
   font-size: var(--panel-widget-label-font-size, 12px);
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   color: var(--panel-text);
   text-align: center;
   white-space: nowrap;

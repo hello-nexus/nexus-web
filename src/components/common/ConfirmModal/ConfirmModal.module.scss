@@ -51,7 +51,7 @@
   background: color-mix(in srgb, var(--bad) 12%, transparent);
   color: var(--bad);
   font-size: var(--type-small);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   line-height: 1.4;
 }
 
@@ -79,7 +79,7 @@
   font-size: var(--type-small);
   cursor: pointer;
   transition: all var(--ease);
-  font-weight: 500;
+  font-weight: var(--weight-body);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text);
@@ -91,7 +91,7 @@
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-text);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   &:hover { background: var(--accent-glow); border-color: var(--accent-glow); }
 }
 
@@ -99,6 +99,6 @@
   border-color: var(--bad);
   background: var(--bad);
   color: #fff;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   &:hover { filter: brightness(1.1); }
 }

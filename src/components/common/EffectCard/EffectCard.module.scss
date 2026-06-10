@@ -68,7 +68,7 @@
   bottom: 12%;
   text-align: center;
   color: #fff;
-  font-weight: 800;
+  font-weight: var(--weight-display);
   font-size: 0.8rem;
   line-height: 1.1;
   letter-spacing: 0.01em;
@@ -126,8 +126,8 @@
 }
 
 .label {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: var(--type-mini);
+  font-weight: var(--weight-body);
   letter-spacing: 0.02em;
   color: var(--text);
   text-align: center;

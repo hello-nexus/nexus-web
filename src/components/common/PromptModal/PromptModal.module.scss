@@ -79,7 +79,7 @@
   font-size: var(--type-small);
   cursor: pointer;
   transition: all var(--ease) ease;
-  font-weight: 500;
+  font-weight: var(--weight-body);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text);
@@ -91,7 +91,7 @@
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-text);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   &:hover { background: var(--accent-glow); border-color: var(--accent-glow); }
   &:disabled {
     opacity: 0.45;

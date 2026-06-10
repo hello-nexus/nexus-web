@@ -29,7 +29,7 @@
   width: 1.1em;
   height: var(--split-flap-card-height);
   font-size: 1em;
-  font-weight: 800;
+  font-weight: var(--weight-display);
   font-variant-numeric: tabular-nums;
   line-height: 1;
   perspective: 300px;
@@ -140,14 +140,14 @@
   justify-content: center;
   width: 0.4em;
   font-size: 1em;
-  font-weight: 800;
+  font-weight: var(--weight-display);
   color: var(--panel-text-faint);
   padding-bottom: 0.1em;
 }
 
 .ampm {
   font-size: 0.35em;
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   color: var(--panel-text-faint);
   margin-left: 0.3em;
   align-self: flex-end;
@@ -157,7 +157,7 @@
 .date {
   margin-top: 0.3em;
   font-size: 0.4em;
-  font-weight: 500;
+  font-weight: var(--weight-body);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--panel-text-faint);

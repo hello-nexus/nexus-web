@@ -11,7 +11,7 @@
   backdrop-filter: blur(18px);
   border: 1px solid var(--panel-border);
   box-shadow: var(--shadow-xl);
-  font-family: var(--panel-font, inherit);
+  font-family: var(--panel-font);
   color: var(--panel-text);
   // The desktop overlay root opts out of pointer events; this sheet is a
   // sibling of the widgets, so it must opt in itself or pointer events fall
@@ -50,7 +50,7 @@
   white-space: nowrap;
   color: var(--panel-text);
   font-size: 18px;
-  font-weight: 800;
+  font-weight: var(--weight-display);
   text-transform: capitalize;
 }
 
@@ -133,6 +133,6 @@
 .empty {
   padding: 24px 0 8px;
   color: var(--panel-text-faint);
-  font-size: 13px;
+  font-size: var(--type-small);
   text-align: center;
 }

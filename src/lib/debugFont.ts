@@ -3,9 +3,9 @@
 // localStorage.
 //
 // A single injected <style> redefines --font-sans on :root and --panel-font
-// on .panel-root. !important because PanelApp.module.scss also redeclares
-// --panel-font on the editor backdrop, so the picker must win across all
-// panel scopes.
+// on .panel-root. --panel-font is a :root alias of --font-sans (variables.scss),
+// so the :root rule already reaches every panel surface; the .panel-root rule
+// keeps the kiosk pinned if a panel theme ever scopes its own font.
 
 const STYLE_ID = 'nexus-debug-font-style';
 const LINK_ID = 'nexus-debug-font-link';

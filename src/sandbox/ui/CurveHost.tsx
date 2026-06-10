@@ -37,7 +37,7 @@ export function CurveHost(p: HostProps) {
   const xmin = fin(p.xmin) ?? 0, xmax = fin(p.xmax) ?? 100;
   const ymin = fin(p.ymin) ?? 0, ymax = fin(p.ymax) ?? 100;
   const xspan = xmax - xmin || 1, yspan = ymax - ymin || 1;
-  const color = toneVar(typeof p.tone === 'string' ? p.tone : undefined, 'var(--accent, #6c8cff)');
+  const color = toneVar(typeof p.tone === 'string' ? p.tone : undefined, 'var(--accent, #2563eb)');
   const svgRef = useRef<SVGSVGElement>(null);
   // Local optimistic points during a drag; null when not dragging (props own it).
   const [drag, setDrag] = useState<{ idx: number; pts: Pt[] } | null>(null);

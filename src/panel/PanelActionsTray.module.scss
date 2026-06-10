@@ -155,7 +155,7 @@
 
 .connectedLabel {
   font-size: var(--type-tiny);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--panel-text) 55%, transparent);
@@ -164,7 +164,7 @@
 
 .connectedName {
   font-size: var(--type-small);
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -201,7 +201,7 @@
   background: color-mix(in srgb, white 5%, transparent);
   color: var(--panel-text);
   font-size: var(--type-small);
-  font-weight: 500;
+  font-weight: var(--weight-body);
   cursor: pointer;
   transition: background 160ms ease, border-color 160ms ease;
 }

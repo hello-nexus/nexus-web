@@ -67,7 +67,7 @@
 .date {
   margin-top: 4px;
   font-size: 0.7em;
-  font-weight: 500;
+  font-weight: var(--weight-body);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--panel-text-faint);

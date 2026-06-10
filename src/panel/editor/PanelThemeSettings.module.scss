@@ -59,7 +59,7 @@
   background: var(--panel-control-bg);
   color: var(--panel-text-muted);
   padding: 0.25rem 0.7rem;
-  font: 500 0.78rem/1 var(--panel-font, 'Lexend', system-ui, sans-serif);
+  font: 500 0.78rem/1 var(--panel-font);
   cursor: pointer;
   text-transform: capitalize;
   transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
@@ -106,7 +106,7 @@
 .animationCardFrame > button {
   width: 100%;
   min-width: 0;
-  font-family: var(--panel-font, 'Lexend', system-ui, sans-serif);
+  font-family: var(--panel-font);
 }
 
 .backgroundTemplateRow {
@@ -123,5 +123,5 @@
   --effect-template-active-bg: var(--panel-accent-soft);
   --effect-template-active-text: var(--panel-text);
   --effect-template-active-shadow: 0 0 0 1px var(--panel-accent);
-  --effect-template-number-font: 900 11px/1 var(--panel-font, 'Lexend', system-ui, sans-serif);
+  --effect-template-number-font: 900 11px/1 var(--panel-font);
 }

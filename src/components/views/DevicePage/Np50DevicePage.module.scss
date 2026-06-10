@@ -44,14 +44,14 @@
 
 .sectionTitle {
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   margin: 0;
   color: rgba(255, 255, 255, 0.9);
 }
 
 .sectionHint {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: var(--type-mini);
   line-height: 1.4;
   color: rgba(255, 255, 255, 0.55);
 }

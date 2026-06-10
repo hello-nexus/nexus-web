@@ -10,7 +10,7 @@
 
 .type {
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   letter-spacing: 0.02em;
   text-transform: capitalize;
 }
@@ -19,7 +19,7 @@
   display: flex;
   justify-content: space-between;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--type-mini);
   color: var(--text-dim);
   letter-spacing: 0.08em;
 }

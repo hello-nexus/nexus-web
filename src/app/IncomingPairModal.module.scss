@@ -16,7 +16,7 @@
 .eyebrow {
   margin: 0;
   font-size: var(--type-small);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-dim);
@@ -56,7 +56,7 @@
   font-size: var(--type-body);
   cursor: pointer;
   transition: all var(--ease);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text);
@@ -73,6 +73,6 @@
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-text);
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   &:hover { background: var(--accent-glow); border-color: var(--accent-glow); }
 }

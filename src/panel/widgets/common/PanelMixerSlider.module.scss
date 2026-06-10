@@ -32,7 +32,7 @@
   min-height: 12px;
   font-size: var(--mixer-label-size);
   line-height: 1.15;
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   text-align: center;
@@ -49,9 +49,9 @@
   align-items: center;
   justify-content: center;
   min-height: var(--mixer-value-height);
-  font-size: 11px;
+  font-size: var(--type-tiny);
   line-height: 1;
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   font-variant-numeric: tabular-nums;
   color: var(--panel-text);
   opacity: 0.82;

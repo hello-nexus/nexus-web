@@ -36,7 +36,7 @@
   background: var(--panel-element-bg);
   color: var(--panel-text-muted);
   padding: 0 6px;
-  font: 900 10px/1 var(--panel-font, inherit);
+  font: 900 10px/1 var(--panel-font);
   cursor: pointer;
 
   @include widget-button-hover;
@@ -72,8 +72,8 @@
 .setupMessage {
   max-width: 92%;
   color: var(--panel-text-faint);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--type-tiny);
+  font-weight: var(--weight-display);
   line-height: 1.25;
 }
 

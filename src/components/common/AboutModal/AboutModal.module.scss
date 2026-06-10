@@ -47,7 +47,7 @@
   background: var(--accent);
   color: var(--accent-text);
   font-size: var(--type-body);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   font-family: inherit;
   cursor: pointer;
   transition: background var(--ease-fast);

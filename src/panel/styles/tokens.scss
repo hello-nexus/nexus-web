@@ -78,7 +78,6 @@
   --panel-element-bg-active: var(--panel-control-bg-active);
   --panel-element-radius: 10px;
 
-  --panel-font: 'Lexend', system-ui, sans-serif;
 
   --panel-accent:        var(--accent);
   --panel-accent-glow:   var(--accent-glow);
@@ -87,6 +86,7 @@
   --panel-good:          var(--good);
   --panel-warn:          var(--warn);
   --panel-bad:           var(--bad);
+  --panel-status-away:   var(--status-away);
 
   font-family: var(--panel-font);
   color: var(--panel-text);

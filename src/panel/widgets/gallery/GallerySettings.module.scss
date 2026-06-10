@@ -13,8 +13,8 @@
 }
 
 .urlsLabel {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--type-small);
+  font-weight: var(--weight-strong);
   color: var(--panel-text-muted);
 }
 
@@ -25,8 +25,8 @@
   border: 1px solid var(--panel-border);
   border-radius: 8px;
   color: var(--panel-text);
-  font-family: var(--panel-font, inherit);
-  font-size: 12px;
+  font-family: var(--panel-font);
+  font-size: var(--type-mini);
   padding: 8px 10px;
   resize: vertical;
   box-sizing: border-box;

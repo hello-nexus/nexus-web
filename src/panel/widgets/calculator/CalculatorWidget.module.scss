@@ -23,7 +23,7 @@
 
 .displayText {
   font-size: 2.4em;
-  font-weight: 800;
+  font-weight: var(--weight-display);
   line-height: 1.1;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
@@ -51,7 +51,7 @@
   color: var(--panel-text);
   font-family: var(--panel-font);
   font-size: 1.1em;
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   cursor: pointer;
   user-select: none;
   min-height: 40px;

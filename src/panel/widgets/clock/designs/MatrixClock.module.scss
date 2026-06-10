@@ -25,7 +25,7 @@
   width: 0.65em;
   text-align: center;
   font-family: 'Courier New', 'Consolas', monospace;
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   font-size: 1.2em;
   color: var(--panel-text);
   line-height: 1;
@@ -45,7 +45,7 @@
 .ampm {
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 0.4em;
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   color: var(--panel-text-faint);
   margin-left: 0.3em;
   align-self: flex-end;
@@ -55,7 +55,7 @@
 .date {
   margin-top: 0.15em;
   font-size: 0.35em;
-  font-weight: 500;
+  font-weight: var(--weight-body);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--panel-text-faint);

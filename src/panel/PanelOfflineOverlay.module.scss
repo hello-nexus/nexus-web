@@ -10,7 +10,7 @@
   backdrop-filter: blur(18px) saturate(0.92);
   -webkit-backdrop-filter: blur(18px) saturate(0.92);
   color: var(--panel-text);
-  font-family: var(--panel-font, 'Lexend', system-ui, sans-serif);
+  font-family: var(--panel-font);
   pointer-events: auto;
   animation: overlayFadeIn 220ms ease-out both;
   box-sizing: border-box;
@@ -32,7 +32,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    var(--panel-accent, #5b8def) 50%,
+    var(--panel-accent, #2563eb) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -67,7 +67,7 @@
   flex: 0 0 44px;
   border-radius: 50%;
   border: 3px solid var(--panel-border, rgba(255, 255, 255, 0.12));
-  border-top-color: var(--panel-accent, #5b8def);
+  border-top-color: var(--panel-accent, #2563eb);
   animation: spin 0.9s linear infinite;
   margin-bottom: 4px;
 }
@@ -90,24 +90,24 @@
 
 .title {
   font-size: 17px;
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   letter-spacing: 0.01em;
   margin: 0;
 }
 
 .message {
-  font-size: 13px;
+  font-size: var(--type-small);
   color: var(--panel-text-muted, var(--text-dim));
   margin: 0;
   line-height: 1.45;
 }
 
 .statusLine {
-  font-size: 11px;
+  font-size: var(--type-tiny);
   color: var(--panel-text-faint, var(--text-faded));
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   margin: 0;
 }
 
@@ -127,7 +127,7 @@
   padding: 12px 14px;
   font-family: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 80ms ease;
@@ -138,10 +138,10 @@
 }
 
 .primaryButton {
-  background: var(--panel-accent, #5b8def);
+  background: var(--panel-accent, #2563eb);
   color: #fff;
 
-  &:hover { background: var(--panel-accent-glow, var(--panel-accent, #5b8def)); }
+  &:hover { background: var(--panel-accent-glow, var(--panel-accent, #2563eb)); }
   &:active { transform: scale(0.98); }
   &:disabled { opacity: 0.5; cursor: default; }
 }

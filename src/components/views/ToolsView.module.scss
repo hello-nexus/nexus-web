@@ -179,7 +179,7 @@
   background: transparent;
   color: var(--text-faded);
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: var(--weight-body);
   cursor: pointer;
   transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease;
   &:hover { color: var(--text); }
@@ -242,7 +242,7 @@
 .installDefaultsKey {
   font-family: var(--font-mono);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   color: var(--text);
 }
 .installDefaultsCopy {

@@ -28,7 +28,7 @@
 
 .separator {
   font-size: 1.4em;
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   line-height: 1;
   opacity: 0.5;
   padding: 0 2px;
@@ -62,7 +62,7 @@
 
 .stepValue {
   font-size: 1.6em;
-  font-weight: 800;
+  font-weight: var(--weight-display);
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
   min-width: 2ch;
@@ -83,7 +83,7 @@
 // Running / complete phase - countdown display
 .countdown {
   font-size: 3em;
-  font-weight: 800;
+  font-weight: var(--weight-display);
   letter-spacing: -0.02em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
