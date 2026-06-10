@@ -160,6 +160,9 @@
   min-height: 0;
   overflow-y: auto;
   padding-top: 1rem;
+  // Mirrors the padding-top: lets the theme tab's sticky background dock pin
+  // flush with the scrollport edge (see .backgroundDock).
+  --settings-sticky-inset: 1rem;
   padding-right: 4px;
 }
 
