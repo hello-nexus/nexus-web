@@ -4,6 +4,21 @@ import { fetchServiceBlob } from '../../../api/service';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 
+// Per-widget-instance viewer position, shared between the tile and its
+// immersive view (separate component instances in the same document) so
+// fullscreen opens on the photo the tile is showing, and a remounted tile
+// resumes where it left off. Keyed by item id, not index — the list can
+// change between reads.
+const lastShownItem = new Map<string, string>();
+
+export function rememberGalleryPosition(widgetId: string, itemId: string): void {
+  lastShownItem.set(widgetId, itemId);
+}
+
+export function recallGalleryPosition(widgetId: string): string | undefined {
+  return lastShownItem.get(widgetId);
+}
+
 /**
  * Shared per-system gallery item list. Fetches once on mount and refetches on
  * the 'gallery' multiplex topic (source added/removed, upload). Preview mode

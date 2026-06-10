@@ -12,14 +12,10 @@ vi.mock('../../../../api/gallery', () => ({
   fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items })),
   addGallerySource: vi.fn(() => Promise.resolve({ source: null })),
   deleteGallerySource: vi.fn(() => Promise.resolve(true)),
-  browseGallery: vi.fn(() => Promise.resolve({
-    path: '',
-    parent: null,
-    dirs: [{ name: 'Pictures', path: '/home/user/Pictures' }],
-    files: [],
-  })),
+  pickGalleryPaths: vi.fn(() => Promise.resolve({ paths: ['/home/user/Pictures'] })),
   importGalleryImage: vi.fn(() => Promise.resolve({ source: null })),
   galleryItemThumbUrl: (id: string) => `/gallery/items/${id}/thumbnail`,
+  galleryItemFileUrl: (id: string) => `/gallery/items/${id}/file`,
 }));
 
 vi.mock('../../../../api/service', () => ({
@@ -32,8 +28,8 @@ vi.mock('../../../../hooks/useMultiplexSocket', () => ({
 }));
 
 vi.mock('../../../../lib/i18n', () => {
-  // Single stable t — FileBrowserDialog keeps it in effect deps; a fresh
-  // function per render would loop the browse effect forever.
+  // Single stable t — the real hook's t is reference-stable; a fresh function
+  // per render would re-fire any effect that lists it as a dep.
   const t = (key: string, params?: Record<string, string | number>) => {
     let text = key;
     for (const [k, v] of Object.entries(params ?? {})) text += `:${k}=${v}`;
@@ -75,28 +71,52 @@ describe('GalleryPage', () => {
     expect(screen.queryByText('/data/gallery/uploads/u1.png')).toBeNull();
   });
 
-  it('opens the browse dialog and adds the chosen folder', async () => {
-    const { addGallerySource, browseGallery } = await import('../../../../api/gallery');
+  it('add-folder opens the native picker and adds the chosen path', async () => {
+    const { addGallerySource, pickGalleryPaths } = await import('../../../../api/gallery');
     render(<GalleryPage />);
     await screen.findByText('gallery.page.noSources');
 
     fireEvent.click(screen.getByText('gallery.page.addFolder'));
-    await waitFor(() => expect(vi.mocked(browseGallery)).toHaveBeenCalled());
-
-    // Navigate into a directory, then confirm it.
-    vi.mocked(browseGallery).mockResolvedValueOnce({
-      path: '/home/user/Pictures',
-      parent: '/home/user',
-      dirs: [],
-      files: [],
-    });
-    fireEvent.click(await screen.findByText('Pictures'));
-    const confirm = await screen.findByText('gallery.browse.useFolder');
-    await waitFor(() => expect((confirm.closest('button') as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(confirm);
-
+    await waitFor(() => expect(vi.mocked(pickGalleryPaths)).toHaveBeenCalledWith(true));
     await waitFor(() =>
       expect(vi.mocked(addGallerySource)).toHaveBeenCalledWith('/home/user/Pictures', 'folder'));
+  });
+
+  it('add-files passes folder=false and adds every returned path', async () => {
+    const { addGallerySource, pickGalleryPaths } = await import('../../../../api/gallery');
+    vi.mocked(pickGalleryPaths).mockResolvedValueOnce({ paths: ['/p/a.png', '/p/b.png'] });
+    render(<GalleryPage />);
+    await screen.findByText('gallery.page.noSources');
+
+    fireEvent.click(screen.getByText('gallery.page.addFile'));
+    await waitFor(() => expect(vi.mocked(pickGalleryPaths)).toHaveBeenCalledWith(false));
+    await waitFor(() => expect(vi.mocked(addGallerySource)).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(addGallerySource)).toHaveBeenCalledWith('/p/a.png', 'file');
+    expect(vi.mocked(addGallerySource)).toHaveBeenCalledWith('/p/b.png', 'file');
+  });
+
+  it('a cancelled native dialog adds nothing and shows no error', async () => {
+    const { addGallerySource, pickGalleryPaths } = await import('../../../../api/gallery');
+    vi.mocked(pickGalleryPaths).mockResolvedValueOnce({ paths: [], cancelled: true });
+    render(<GalleryPage />);
+    await screen.findByText('gallery.page.noSources');
+
+    fireEvent.click(screen.getByText('gallery.page.addFile'));
+    await waitFor(() => expect(vi.mocked(pickGalleryPaths)).toHaveBeenCalled());
+
+    expect(vi.mocked(addGallerySource)).not.toHaveBeenCalled();
+    expect(screen.queryByText('gallery.page.pickFailed')).toBeNull();
+  });
+
+  it('a failed native dialog surfaces the error line', async () => {
+    const { pickGalleryPaths } = await import('../../../../api/gallery');
+    vi.mocked(pickGalleryPaths).mockResolvedValueOnce({ paths: [], error: true, msg: '' });
+    render(<GalleryPage />);
+    await screen.findByText('gallery.page.noSources');
+
+    fireEvent.click(screen.getByText('gallery.page.addFile'));
+
+    expect(await screen.findByText('gallery.page.pickFailed')).toBeTruthy();
   });
 
   it('removing a source asks for confirmation first', async () => {

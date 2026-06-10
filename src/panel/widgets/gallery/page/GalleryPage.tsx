@@ -13,12 +13,13 @@ import {
   deleteGallerySource,
   fetchGalleryItems,
   fetchGallerySources,
+  galleryItemFileUrl,
   galleryItemThumbUrl,
   importGalleryImage,
+  pickGalleryPaths,
   type GalleryItem,
   type GallerySource,
 } from '../../../../api/gallery';
-import { FileBrowserDialog } from './FileBrowserDialog';
 import styles from './GalleryPage.module.scss';
 
 const KIND_ICONS = {
@@ -31,14 +32,16 @@ const KIND_ICONS = {
  * Gallery management page — the single place images are managed. The source
  * set is per-system shared: every panel surface of this PC (Y70, phone,
  * desktop) draws from what's configured here. Sources are referenced
- * files/folders picked via the service-side browse dialog, plus direct
- * uploads (file picker or drag-n-drop onto the library grid).
+ * files/folders picked via the OS-native dialog (opened on the host PC by
+ * the service), plus direct uploads (file picker or drag-n-drop onto the
+ * library card).
  */
 export function GalleryPage() {
   const { t } = useTranslation();
   const [sources, setSources] = useState<GallerySource[]>([]);
   const [items, setItems] = useState<GalleryItem[]>([]);
-  const [browserMode, setBrowserMode] = useState<'file' | 'folder' | null>(null);
+  // Which native dialog is open on the PC right now ('file' | 'folder').
+  const [picking, setPicking] = useState<'file' | 'folder' | null>(null);
   const [pendingDelete, setPendingDelete] = useState<GallerySource | null>(null);
   const [uploadingNames, setUploadingNames] = useState<string[]>([]);
   // One error line for the sources card — set by upload or add-source
@@ -62,8 +65,9 @@ export function GalleryPage() {
   useTopicCallback('gallery', true, refresh);
 
   // Thumbnail blob cache (panel auth is token-based, <img> can't hit the
-  // route directly). Loaded lazily per item; null marks a 404 (no ffmpeg /
-  // unreadable file) so the grid shows a placeholder instead of retrying.
+  // route directly). Loaded lazily per item; a missing thumbnail (no ffmpeg
+  // on the host) falls back to the original image bytes — only when both
+  // fail does the grid show the placeholder icon (null, never retried).
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   const thumbsRef = useRef<Record<string, string | null>>({});
   useEffect(() => {
@@ -72,7 +76,8 @@ export function GalleryPage() {
       for (const item of items) {
         if (cancelled) return;
         if (item.id in thumbsRef.current) continue;
-        const blob = await fetchServiceBlob(galleryItemThumbUrl(item.id));
+        const blob = await fetchServiceBlob(galleryItemThumbUrl(item.id))
+          ?? await fetchServiceBlob(galleryItemFileUrl(item.id));
         if (cancelled) return;
         if (item.id in thumbsRef.current) continue;
         const url = blob ? URL.createObjectURL(blob) : null;
@@ -92,21 +97,34 @@ export function GalleryPage() {
     thumbsRef.current = {};
   }, []);
 
-  const handleBrowseSelect = async (paths: string[]) => {
-    const kind = browserMode === 'folder' ? 'folder' : 'file';
-    setBrowserMode(null);
+  // Open the native OS dialog on the PC; the request stays in flight until
+  // the user closes the dialog, then the chosen paths become sources.
+  const pickAndAdd = async (kind: 'file' | 'folder') => {
+    if (picking) return;
+    setPicking(kind);
     setActionError(null);
-    const failed: string[] = [];
-    for (const path of paths) {
-      const res = await addGallerySource(path, kind);
+    try {
+      const res = await pickGalleryPaths(kind === 'folder');
       if (!res || res.error) {
-        failed.push(path.split(/[\\/]/).pop() || path);
+        setActionError(res?.msg || t('gallery.page.pickFailed'));
+        return;
       }
+      if (res.cancelled || !res.paths?.length) return;
+
+      const failed: string[] = [];
+      for (const path of res.paths) {
+        const added = await addGallerySource(path, kind);
+        if (!added || added.error) {
+          failed.push(path.split(/[\\/]/).pop() || path);
+        }
+      }
+      if (failed.length > 0) {
+        setActionError(t('gallery.page.addFailed', { name: failed.join(', ') }));
+      }
+      await refresh();
+    } finally {
+      setPicking(null);
     }
-    if (failed.length > 0) {
-      setActionError(t('gallery.page.addFailed', { name: failed.join(', ') }));
-    }
-    await refresh();
   };
 
   const confirmDelete = async () => {
@@ -117,9 +135,11 @@ export function GalleryPage() {
     await refresh();
   };
 
-  // Uploads go straight to the service (multipart) — fails closed over the
-  // relay, so the affordance is disabled on remote sessions.
+  // Uploads go straight to the service (multipart, fails closed over the
+  // relay) and the native dialog opens on the host PC's screen — both
+  // affordances are disabled on remote (relay) sessions.
   const uploadsDisabled = isRelayActive();
+  const pickingDisabled = uploadsDisabled || picking !== null;
 
   const uploadFiles = async (files: File[]) => {
     // One batch at a time — a second drop mid-upload would clobber the
@@ -166,11 +186,11 @@ export function GalleryPage() {
           title={t('gallery.page.sources')}
           actions={
             <div className={styles.sourceActions}>
-              <Button size="sm" onClick={() => setBrowserMode('file')}>
-                {t('gallery.page.addFile')}
+              <Button size="sm" disabled={pickingDisabled} onClick={() => pickAndAdd('file')}>
+                {picking === 'file' ? t('gallery.page.picking') : t('gallery.page.addFile')}
               </Button>
-              <Button size="sm" onClick={() => setBrowserMode('folder')}>
-                {t('gallery.page.addFolder')}
+              <Button size="sm" disabled={pickingDisabled} onClick={() => pickAndAdd('folder')}>
+                {picking === 'folder' ? t('gallery.page.picking') : t('gallery.page.addFolder')}
               </Button>
               <Button
                 size="sm"
@@ -231,19 +251,20 @@ export function GalleryPage() {
           )}
         </Card>
 
-        <Card
-          title={t('gallery.page.library')}
-          subtitle={t('gallery.page.itemCount', { count: items.length })}
-          className={styles.libraryCard}
+        {/* The entire library card is the drop target, not just the grid. */}
+        <div
+          className={`${styles.dropZone} ${dragOver ? styles.dragOver : ''}`}
+          onDragOver={e => {
+            e.preventDefault();
+            if (!uploadsDisabled) setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
         >
-          <div
-            className={`${styles.dropZone} ${dragOver ? styles.dragOver : ''}`}
-            onDragOver={e => {
-              e.preventDefault();
-              if (!uploadsDisabled) setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
+          <Card
+            title={t('gallery.page.library')}
+            subtitle={t('gallery.page.itemCount', { count: items.length })}
+            className={styles.libraryCard}
           >
             {items.length === 0 ? (
               <EmptyState
@@ -268,17 +289,10 @@ export function GalleryPage() {
                 ))}
               </div>
             )}
-            {dragOver && <div className={styles.dropHint}>{t('gallery.page.dropHint')}</div>}
-          </div>
-        </Card>
+          </Card>
+          {dragOver && <div className={styles.dropHint}>{t('gallery.page.dropHint')}</div>}
+        </div>
       </div>
-
-      <FileBrowserDialog
-        open={browserMode !== null}
-        mode={browserMode ?? 'file'}
-        onClose={() => setBrowserMode(null)}
-        onSelect={handleBrowseSelect}
-      />
 
       <ConfirmModal
         open={pendingDelete !== null}

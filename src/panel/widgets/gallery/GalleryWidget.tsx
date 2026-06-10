@@ -5,7 +5,7 @@ import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { previewWallpaperUri } from '../common/previewAssets';
 import { useTranslation } from '../../../lib/i18n';
-import { useGalleryImageLoader, useGalleryItems } from './useGallery';
+import { recallGalleryPosition, rememberGalleryPosition, useGalleryImageLoader, useGalleryItems } from './useGallery';
 import type { WidgetProps } from '../types';
 import styles from './GalleryWidget.module.scss';
 
@@ -24,11 +24,14 @@ const GALLERY_PREVIEW_URL = previewWallpaperUri(210);
  * interactive element — center-tap still enters immersive on panels and
  * click-through opens the gallery page on the desktop dashboard.
  */
-export function GalleryWidget({ widget }: WidgetProps) {
+export function GalleryWidget({ widget, immersive }: WidgetProps & { immersive?: boolean }) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const mode = ((widget.config?.mode as string | undefined) ?? 'single');
   const intervalMs = (((widget.config?.interval as number | undefined) ?? 10) * 1000);
+  // Tiles fill the cell (cover, no bars) unless the per-instance "fit" switch
+  // is on; fullscreen always letterboxes so the whole photo is visible.
+  const fitWhole = immersive || ((widget.config?.fit as boolean | undefined) ?? false);
 
   const { items, loaded } = useGalleryItems();
   const { getUrl, load, retain } = useGalleryImageLoader();
@@ -43,6 +46,25 @@ export function GalleryWidget({ widget }: WidgetProps) {
   // Monotonic nav token: only the latest goTo may swap the index, so a slow
   // uncached load can't land after (and visually undo) a newer navigation.
   const navSeqRef = useRef(0);
+
+  // Resume at the photo this widget instance last showed — most importantly,
+  // the immersive view opens on the image the tile is displaying.
+  const positionRestoredRef = useRef(false);
+  // Set while a restore jump is scheduled: the same commit's retain/prefetch
+  // pass still sees index 0 and would fetch (and pin) the wrong neighborhood
+  // of full-res blobs; it skips once and runs against the restored index.
+  const pendingRestoreRef = useRef(false);
+  useEffect(() => {
+    if (positionRestoredRef.current || preview || count === 0) return;
+    positionRestoredRef.current = true;
+    const savedId = recallGalleryPosition(widget.id);
+    const savedIndex = savedId ? items.findIndex(i => i.id === savedId) : -1;
+    if (savedIndex > 0) {
+      pendingRestoreRef.current = true;
+      pointerRef.current = savedIndex;
+      setIndex(savedIndex);
+    }
+  }, [preview, count, items, widget.id]);
 
   // Items that didn't resolve to a renderable image (deleted from disk,
   // decode failure). Reset whenever the item list changes.
@@ -74,6 +96,7 @@ export function GalleryWidget({ widget }: WidgetProps) {
         if (seq !== navSeqRef.current) return;
         if (url) {
           pointerRef.current = next;
+          rememberGalleryPosition(widget.id, item.id);
           setIndex(next);
           return;
         }
@@ -81,13 +104,17 @@ export function GalleryWidget({ widget }: WidgetProps) {
       }
       next = (next + dir + count) % count;
     }
-  }, [count, items, load]);
+  }, [count, items, load, widget.id]);
 
   // Keep only prev/current/next blobs alive (full-res photos are heavy on
   // panel WebViews); prefetch the neighbors so manual nav and the slideshow
   // swap without a loading gap.
   useEffect(() => {
     if (preview || !current) return;
+    if (pendingRestoreRef.current) {
+      pendingRestoreRef.current = false;
+      return;
+    }
     const prev = items[(index - 1 + count) % count];
     const next = items[(index + 1) % count];
     const keep = [current.id, prev?.id, next?.id].filter((id): id is string => Boolean(id));
@@ -128,7 +155,7 @@ export function GalleryWidget({ widget }: WidgetProps) {
   if (preview) {
     return (
       <div className={styles.viewer}>
-        <img src={GALLERY_PREVIEW_URL} alt="" className={styles.image} draggable={false} />
+        <img src={GALLERY_PREVIEW_URL} alt="" className={styles.image} data-fit="cover" draggable={false} />
       </div>
     );
   }
@@ -153,6 +180,7 @@ export function GalleryWidget({ widget }: WidgetProps) {
           src={url}
           alt=""
           className={styles.image}
+          data-fit={fitWhole ? 'contain' : 'cover'}
           draggable={false}
           onError={() => {
             failedRef.current.add(current.id);

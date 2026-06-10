@@ -1,5 +1,5 @@
 import type { WidgetSettingsProps } from '../types';
-import { SettingsSelect, SettingsSection } from '../common/SettingsRow/SettingsRow';
+import { SettingsSelect, SettingsSection, SettingsToggle } from '../common/SettingsRow/SettingsRow';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './GallerySettings.module.scss';
 
@@ -11,6 +11,7 @@ export function GallerySettings({ widget, onUpdate }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const mode = ((widget.config?.mode as string | undefined) ?? 'single');
   const interval = String(((widget.config?.interval as number | undefined) ?? 10));
+  const fit = ((widget.config?.fit as boolean | undefined) ?? false);
 
   return (
     <div className={styles.settings}>
@@ -35,6 +36,11 @@ export function GallerySettings({ widget, onUpdate }: WidgetSettingsProps) {
             onChange={v => onUpdate({ interval: Number(v) })}
           />
         )}
+        <SettingsToggle
+          label={t('gallery.settings.fit')}
+          checked={fit}
+          onChange={v => onUpdate({ fit: v })}
+        />
       </SettingsSection>
     </div>
   );

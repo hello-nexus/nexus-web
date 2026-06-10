@@ -98,8 +98,12 @@
   flex: 1 1 auto;
 }
 
+// Wraps the whole library card so a drop lands anywhere on it.
 .dropZone {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
   min-height: 120px;
 }
 
