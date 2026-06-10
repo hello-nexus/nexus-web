@@ -62,7 +62,7 @@
   font: 500 0.78rem/1 var(--panel-font);
   cursor: pointer;
   text-transform: capitalize;
-  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+  transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease, background var(--ease-fast) ease;
 
   &:hover {
     color: var(--panel-text);

@@ -203,7 +203,7 @@
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   cursor: pointer;
-  transition: background 160ms ease, border-color 160ms ease;
+  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease;
 }
 
 .actionButton:hover,

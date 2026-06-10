@@ -74,7 +74,7 @@
   background: transparent;
   color: var(--panel-text-faint);
   cursor: pointer;
-  transition: background var(--ease), color var(--ease);
+  transition: background var(--ease-fast), color var(--ease-fast);
 
   &:hover {
     background: var(--panel-element-bg-hover);
@@ -106,7 +106,7 @@
   font-size: var(--type-small);
   font-weight: var(--weight-strong);
   cursor: pointer;
-  transition: background var(--ease), color var(--ease);
+  transition: background var(--ease-fast), color var(--ease-fast);
   text-align: left;
 
   &:hover {

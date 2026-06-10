@@ -800,7 +800,7 @@
   "phonePair.removeSession": "{name} 접근 제거",
   "phonePair.saving": "저장 중...",
   "phonePair.securityNote": "같은 기기에서 다시 페어링하면 승인이 갱신됩니다. 제거된 기기는 다시 연결하기 전에 다시 페어링해야 합니다.",
-  "phonePair.e2eNote": "종단 간 암호화. 키는 기기를 벗어나지 않습니다.",
+  "phonePair.e2eNote": "종단 간 암호화. 키는 기기를 벗어나지 않으며 누구도 트래픽을 읽을 수 없습니다.",
   "phonePair.statusPaired": "페어링됨",
   "phonePair.statusRecentlyActive": "최근 활성",
   "phonePair.tab.code": "코드 페어링",

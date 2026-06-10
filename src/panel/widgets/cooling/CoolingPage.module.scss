@@ -42,7 +42,7 @@
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+  transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease, background-color var(--ease-fast) ease;
 
   &:hover {
     color: var(--accent);
@@ -214,7 +214,7 @@
   display: inline-flex; align-items: center; gap: 0.35rem;
   padding: 0.3rem 0.7rem; border: 1px solid var(--border); border-radius: var(--radius-sm);
   background: transparent; color: var(--text-dim); font-size: var(--type-small);
-  cursor: pointer; transition: all var(--ease);
+  cursor: pointer; transition: all var(--ease-fast);
   &:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
   &:disabled { opacity: 0.45; cursor: not-allowed; }
 }
@@ -231,13 +231,13 @@
   display: inline-flex; align-items: center; gap: 0.35rem;
   padding: 0.3rem 0.7rem; border: 1px solid var(--border); border-radius: var(--radius-sm);
   background: transparent; color: var(--text-dim); font-size: var(--type-small);
-  cursor: pointer; transition: all var(--ease);
+  cursor: pointer; transition: all var(--ease-fast);
   &:hover { color: var(--accent); border-color: var(--accent); }
 }
 .cancelCalBtn {
   padding: 0.3rem 0.7rem; border: 1px solid var(--bad); border-radius: var(--radius-sm);
   background: transparent; color: var(--bad); font-size: var(--type-small);
-  cursor: pointer; transition: all var(--ease);
+  cursor: pointer; transition: all var(--ease-fast);
   &:hover { background: color-mix(in srgb, var(--bad) 10%, transparent); }
 }
 
@@ -293,7 +293,7 @@
   border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-card);
   width: 370px;
   cursor: grab;
-  transition: background var(--ease) ease, border-color var(--ease) ease, box-shadow var(--ease) ease, opacity var(--ease) ease;
+  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, box-shadow var(--ease-fast) ease, opacity var(--ease-fast) ease;
   &:hover { background: var(--bg-card-hover); }
   &:active { cursor: grabbing; }
 }
@@ -493,7 +493,7 @@
   font-weight: var(--weight-strong);
   cursor: pointer;
   text-align: left;
-  transition: background var(--ease);
+  transition: background var(--ease-fast);
   &:hover { background: rgba(255, 255, 255, 0.04); }
   &:focus-visible {
     outline: 2px solid var(--accent);
@@ -585,7 +585,7 @@
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   cursor: pointer;
-  transition: border-color var(--ease) ease, color var(--ease) ease;
+  transition: border-color var(--ease-fast) ease, color var(--ease-fast) ease;
 
   &:hover { color: var(--text); }
   &:focus { outline: none; border-color: var(--accent); color: var(--text); }
@@ -666,7 +666,7 @@
   border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--bg-card);
   cursor: grab;
-  transition: background var(--ease) ease, border-color var(--ease) ease, opacity var(--ease) ease, box-shadow var(--ease) ease;
+  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, opacity var(--ease-fast) ease, box-shadow var(--ease-fast) ease;
   &:hover { background: var(--bg-card-hover); }
   &:active { cursor: grabbing; }
 }
@@ -850,7 +850,7 @@
   color: var(--text-faded);
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: color var(--ease) ease;
+  transition: color var(--ease-fast) ease;
   z-index: 2;
   &:hover { color: var(--accent); }
   &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -1106,7 +1106,7 @@
   line-height: 1;
 }
 .gridLine { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; }
-.curvePoint { fill: var(--accent); stroke: #fff; stroke-width: 2; cursor: grab; transition: r var(--ease) ease; &:hover { r: 8; } }
+.curvePoint { fill: var(--accent); stroke: #fff; stroke-width: 2; cursor: grab; transition: r var(--ease-fast) ease; &:hover { r: 8; } }
 .curvePointActive { cursor: grabbing; fill: var(--accent-glow); filter: drop-shadow(0 0 8px var(--accent)); }
 
 // Live temperature indicator overlaid on the graph: vertical line from the

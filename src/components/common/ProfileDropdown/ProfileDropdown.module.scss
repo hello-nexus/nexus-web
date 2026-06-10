@@ -71,7 +71,7 @@
   font-weight: var(--weight-body);
   font-family: inherit;
   cursor: pointer;
-  transition: color var(--ease);
+  transition: color var(--ease-fast);
   white-space: nowrap;
   text-align: left;
 
@@ -113,7 +113,7 @@
   color: var(--accent-glow);
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
-  transition: border-color var(--ease), color var(--ease);
+  transition: border-color var(--ease-fast), color var(--ease-fast);
 
   .trigger:hover & {
     border-color: var(--accent);

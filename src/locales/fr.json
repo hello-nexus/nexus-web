@@ -800,7 +800,7 @@
   "phonePair.removeSession": "Supprimer l'accès pour {name}",
   "phonePair.saving": "Enregistrement...",
   "phonePair.securityNote": "Coupler à nouveau depuis le même appareil actualise son autorisation. Les appareils supprimés doivent être à nouveau couplés avant de se reconnecter.",
-  "phonePair.e2eNote": "Chiffrement de bout en bout — les clés ne quittent jamais vos appareils.",
+  "phonePair.e2eNote": "Chiffrement de bout en bout — les clés ne quittent jamais vos appareils et personne ne peut lire votre trafic.",
   "phonePair.statusPaired": "Associé",
   "phonePair.statusRecentlyActive": "Actif récemment",
   "phonePair.tab.code": "Appairage par code",

@@ -800,7 +800,7 @@
   "phonePair.removeSession": "Usun dostep dla {name}",
   "phonePair.saving": "Zapisywanie...",
   "phonePair.securityNote": "Ponowne sparowanie z tego samego urzadzenia odswieza jego autoryzacje. Usuniete urzadzenia musza zostac sparowane ponownie przed ponownym polaczeniem.",
-  "phonePair.e2eNote": "Szyfrowanie end-to-end — klucze nigdy nie opuszczają Twoich urządzeń.",
+  "phonePair.e2eNote": "Szyfrowanie end-to-end — klucze nigdy nie opuszczają Twoich urządzeń, a nikt nie może odczytać Twojego ruchu.",
   "phonePair.statusPaired": "Sparowane",
   "phonePair.statusRecentlyActive": "Ostatnio aktywne",
   "phonePair.tab.code": "Parowanie kodem",

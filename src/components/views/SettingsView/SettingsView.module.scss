@@ -87,7 +87,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color var(--ease), background var(--ease);
+  transition: border-color var(--ease-fast), background var(--ease-fast);
   background: var(--bg-elevated);
 
   &:hover {
@@ -141,7 +141,7 @@
   border: 2px solid var(--border);
   padding: 0;
   cursor: pointer;
-  transition: transform var(--ease-fast) ease, border-color var(--ease) ease, box-shadow var(--ease) ease;
+  transition: transform var(--ease-fast) ease, border-color var(--ease-fast) ease, box-shadow var(--ease-fast) ease;
 
   &:hover {
     transform: scale(1.08);
@@ -193,7 +193,7 @@
   text-decoration: none;
   flex-shrink: 0;
   cursor: pointer;
-  transition: background var(--ease), border-color var(--ease), color var(--ease);
+  transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast);
 
   &:hover {
     background: var(--bg-card-hover);
@@ -223,7 +223,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-card);
-  transition: border-color var(--ease), box-shadow var(--ease), background var(--ease);
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast), background var(--ease-fast);
   cursor: pointer;
 
   &:hover {
@@ -377,7 +377,7 @@
   border: 0;
   color: var(--text-faded);
   cursor: pointer;
-  transition: background var(--ease), color var(--ease);
+  transition: background var(--ease-fast), color var(--ease-fast);
 
   &:hover:not(:disabled) {
     color: var(--text);

@@ -20,7 +20,7 @@
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+  transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease, background-color var(--ease-fast) ease;
 
   &:hover {
     color: var(--accent);
@@ -137,7 +137,7 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity var(--ease), color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+  transition: opacity var(--ease-fast), color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
 
   .canvasArea:hover & { opacity: 1; }
 
@@ -265,7 +265,7 @@
   background: var(--bg-card);
   color: var(--text);
   cursor: pointer;
-  transition: border-color var(--ease-fast), background var(--ease-fast), transform 0.08s;
+  transition: border-color var(--ease-fast), background var(--ease-fast), transform var(--ease-fast);
 
   &:hover {
     border-color: var(--accent);
@@ -512,7 +512,7 @@
 .importBtn {
   padding: 0.45rem 0.95rem; border: 1px solid var(--accent); border-radius: var(--radius-sm);
   background: var(--accent); color: var(--accent-text); font-size: var(--type-small);
-  font-weight: var(--weight-strong); cursor: pointer; transition: all var(--ease);
+  font-weight: var(--weight-strong); cursor: pointer; transition: all var(--ease-fast);
   box-shadow: 0 0 0 0 var(--accent-glow-shadow);
   &:hover:not(:disabled) { background: var(--accent-glow); border-color: var(--accent-glow); box-shadow: 0 2px 10px var(--accent-glow-shadow); }
   &:disabled { opacity: 0.55; cursor: not-allowed; }

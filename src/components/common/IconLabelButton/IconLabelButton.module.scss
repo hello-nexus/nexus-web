@@ -33,7 +33,7 @@
   cursor: pointer;
   text-align: center;
   touch-action: manipulation;
-  transition: background var(--ease), border-color var(--ease), color var(--ease), box-shadow var(--ease);
+  transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast), box-shadow var(--ease-fast);
 
   &:hover:not(:disabled) {
     background: var(--icon-label-button-bg-hover);

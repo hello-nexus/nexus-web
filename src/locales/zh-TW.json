@@ -800,7 +800,7 @@
   "phonePair.removeSession": "移除 {name} 的存取權",
   "phonePair.saving": "正在儲存...",
   "phonePair.securityNote": "從同一裝置再次配對會重新整理其授權。被移除的裝置必須先重新配對才能重新連線。",
-  "phonePair.e2eNote": "端對端加密，金鑰永遠不會離開您的裝置。",
+  "phonePair.e2eNote": "端對端加密，金鑰永遠不會離開您的裝置，任何人都無法讀取您的流量。",
   "phonePair.statusPaired": "已配對",
   "phonePair.statusRecentlyActive": "最近活躍",
   "phonePair.tab.code": "代碼配對",

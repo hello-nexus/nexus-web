@@ -34,7 +34,7 @@
   box-sizing: border-box;
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform var(--ease), background var(--ease), box-shadow var(--ease), border-color var(--ease);
+  transition: transform var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast), border-color var(--ease-fast);
 
   &:hover {
     background: color-mix(in srgb, var(--deck-accent, #64748b) 42%, transparent);

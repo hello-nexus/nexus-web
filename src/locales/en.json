@@ -742,7 +742,7 @@
   "phonePair.durationHoursMinutes": "{hours}h {minutes}m",
   "phonePair.durationLessThanMinute": "<1m",
   "phonePair.durationMinutes": "{count}m",
-  "phonePair.e2eNote": "End-to-end encrypted — your keys never leave your devices.",
+  "phonePair.e2eNote": "End-to-end encrypted — your keys never leave your devices, and nobody can read your traffic.",
   "phonePair.editDeviceName": "Edit device name",
   "phonePair.emptySessions": "No paired devices yet.",
   "phonePair.killswitch.confirmAction": "Turn off",

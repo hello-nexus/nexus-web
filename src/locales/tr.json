@@ -800,7 +800,7 @@
   "phonePair.removeSession": "{name} erisimini kaldir",
   "phonePair.saving": "Kaydediliyor...",
   "phonePair.securityNote": "Ayni cihazdan tekrar eslestirmek yetkilendirmeyi yeniler. Kaldirilan cihazlar yeniden baglanmadan once tekrar eslestirilmelidir.",
-  "phonePair.e2eNote": "Uçtan uca şifreleme — anahtarlar cihazlarınızdan asla çıkmaz.",
+  "phonePair.e2eNote": "Uçtan uca şifreleme — anahtarlar cihazlarınızdan asla çıkmaz ve trafiğinizi kimse okuyamaz.",
   "phonePair.statusPaired": "Eslestirildi",
   "phonePair.statusRecentlyActive": "Son zamanlarda aktif",
   "phonePair.tab.code": "Kod ile Eşleştirme",
