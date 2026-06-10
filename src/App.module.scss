@@ -208,14 +208,6 @@
 // zone drag from the dashboard panel. Position is set inline (fixed
 // coordinates relative to the viewport) by the JS that owns the
 // hit-test; the styles only describe the visual.
-// Transient "running app" row group: hairline separator between the pinned
-// tail and the unpinned-but-open app row (taskbar semantics).
-.sidebarRunningGroup {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border);
-}
-
 .sidebarPinIndicator {
   position: fixed;
   height: 2px;

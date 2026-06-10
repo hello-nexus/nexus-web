@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
 import { Pin, PinOff } from 'lucide-react';
-import { Sidebar, SidebarNavButton } from '../components/common/Sidebar/Sidebar';
+import { Sidebar } from '../components/common/Sidebar/Sidebar';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useUiSettings } from '../hooks/useUiSettings';
 import type { ServiceState } from '../hooks/useServiceState';
@@ -99,7 +99,7 @@ export function SidebarColumn({
   // picks the menu: a pinned row offers Unpin, the running row offers Pin.
   const [ctxMenu, setCtxMenu] = useState<{ key: string; x: number; y: number; pinned: boolean } | null>(null);
   const handleItemContextMenu = (key: string, event: React.MouseEvent) => {
-    setCtxMenu({ key, x: event.clientX, y: event.clientY, pinned: true });
+    setCtxMenu({ key, x: event.clientX, y: event.clientY, pinned: tail.includes(key) });
   };
   const handleUnpin = (key: string) => {
     update({ pinnedSidebarApps: tail.filter(k => k !== key) });
@@ -119,6 +119,15 @@ export function SidebarColumn({
     if (!meta) return null;
     return { key: serviceNavActive, label: t(meta.i18nKey), icon: meta.icon };
   })();
+  // Drop-pin from dragging the running row above the fold: insert at the
+  // slot it was dropped on.
+  const handleRunningPinAt = (index: number) => {
+    if (!runningUnpinned || tail.includes(runningUnpinned.key)) return;
+    const next = [...tail];
+    next.splice(Math.max(0, Math.min(index, next.length)), 0, runningUnpinned.key);
+    update({ pinnedSidebarApps: next });
+  };
+
 
   // Cross-zone drop from the dashboard panel. Published by PanelContent
   // when a pinnable widget enters its drag state; null otherwise.
@@ -149,37 +158,22 @@ export function SidebarColumn({
         serviceState={serviceState}
         onTailReorder={handleTailReorder}
         onItemContextMenu={handleItemContextMenu}
+        runningItem={runningUnpinned}
+        onRunningPinAt={handleRunningPinAt}
         compact={compact}
         extraItems={portalNav}
         extraSectionLabel=""
         extraActive={portalNavActive}
         extraOnChange={onPortalNavChange}
         afterTail={
-          <>
-            {runningUnpinned && (
-              <div className={styles.sidebarRunningGroup}>
-                <SidebarNavButton
-                  icon={runningUnpinned.icon}
-                  label={runningUnpinned.label}
-                  active
-                  compact={compact}
-                  onClick={() => onServiceNavChange(runningUnpinned.key)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setCtxMenu({ key: runningUnpinned.key, x: e.clientX, y: e.clientY, pinned: false });
-                  }}
-                />
-              </div>
-            )}
-            <SidebarDevicesSection
-              serviceOnline={online}
-              activeDeviceKey={activeDeviceKey}
-              compact={compact}
-              onSelect={onDeviceSelect}
-              onHeaderClick={onDevicesHeaderClick}
-              headerActive={devicesHeaderActive}
-            />
-          </>
+          <SidebarDevicesSection
+            serviceOnline={online}
+            activeDeviceKey={activeDeviceKey}
+            compact={compact}
+            onSelect={onDeviceSelect}
+            onHeaderClick={onDevicesHeaderClick}
+            headerActive={devicesHeaderActive}
+          />
         }
       />
       <PairPhoneButton

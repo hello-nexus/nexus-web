@@ -48,8 +48,16 @@ interface SidebarProps {
   // Fires with the next ordering of `items` after a drag-reorder.
   // When omitted, items are non-sortable.
   onTailReorder?: (nextTailKeys: string[]) => void;
-  // Optional context-menu hook fired by a right-click on an item row.
+  // Optional context-menu hook fired by a right-click on an item row
+  // (pinned tail rows AND the transient running row).
   onItemContextMenu?: (key: string, event: React.MouseEvent) => void;
+  // Transient "running app" row (open page, not pinned). Rendered after the
+  // tail behind a hairline separator, inside the same sortable context so it
+  // can be dragged above the fold to pin it (macOS dock semantics).
+  runningItem?: NavItem | null;
+  // Fires when the running row is dropped inside the pinned tail; the index
+  // is the tail slot it was dropped at.
+  onRunningPinAt?: (index: number) => void;
   // Optional content rendered inside the scrollable region after the
   // items. Used by SidebarColumn to slot the DEVICES section below
   // APPS so both share one scroll context.
@@ -122,13 +130,12 @@ function SidebarRow({ item, active, compact, serviceState, onClick, onContextMen
 // hover/active highlight, compact tooltip). Used for one-off entries outside
 // the sortable apps list — e.g. the bottom-pinned Settings button in the
 // sidebar column — so they read identically to the nav rows above.
-export function SidebarNavButton({ icon, label, active, compact, onClick, onContextMenu }: {
+export function SidebarNavButton({ icon, label, active, compact, onClick }: {
   icon: ReactNode;
   label: string;
   active: boolean;
   compact: boolean;
   onClick: () => void;
-  onContextMenu?: (event: React.MouseEvent) => void;
 }) {
   const button = (
     <button
@@ -138,7 +145,6 @@ export function SidebarNavButton({ icon, label, active, compact, onClick, onCont
         [styles.itemCompact]: compact,
       })}
       onClick={onClick}
-      onContextMenu={onContextMenu}
       aria-label={compact ? label : undefined}
       aria-pressed={active}
     >
@@ -181,11 +187,15 @@ export function Sidebar({
   headerSlot, compact = false,
   extraItems, extraSectionLabel, extraActive, extraOnChange,
   onTailReorder, onItemContextMenu,
+  runningItem, onRunningPinAt,
   afterTail,
 }: SidebarProps) {
   const tail = items;
   const sortable = Boolean(onTailReorder);
   const tailKeys = tail.map(i => i.key);
+  // The running row sorts as the last item so dragging it above the fold
+  // projects an insertion slot inside the tail.
+  const sortableKeys = runningItem ? [...tailKeys, runningItem.key] : tailKeys;
 
   // PointerSensor with a 5px activation distance lets a plain click fire
   // navigation; the user has to actually drag to start a sort. KeyboardSensor
@@ -197,12 +207,22 @@ export function Sidebar({
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
-    if (!onTailReorder) return;
     const activeKey = String(event.active.id);
     const overKey = event.over ? String(event.over.id) : null;
     if (!overKey || activeKey === overKey) return;
+    const runningKey = runningItem?.key ?? null;
+    // Running row dragged above the fold: pin it at the drop slot. Released
+    // over itself / outside the tail it stays transient.
+    if (activeKey === runningKey) {
+      const to = tailKeys.indexOf(overKey);
+      if (to >= 0) onRunningPinAt?.(to);
+      return;
+    }
+    if (!onTailReorder) return;
     const from = tailKeys.indexOf(activeKey);
-    const to = tailKeys.indexOf(overKey);
+    // A pinned row dropped onto the running row clamps to the end of the
+    // pinned list — the running row is a boundary, not a slot.
+    const to = overKey === runningKey ? tailKeys.length - 1 : tailKeys.indexOf(overKey);
     if (from < 0 || to < 0) return;
     const next = arrayMove(tailKeys, from, to);
     onTailReorder(next);
@@ -303,7 +323,7 @@ export function Sidebar({
             modifiers={[restrictToVerticalAxis, restrictToParentElement]}
             onDragEnd={handleDragEnd}
           >
-            <SortableContext items={tailKeys} strategy={verticalListSortingStrategy}>
+            <SortableContext items={sortableKeys} strategy={verticalListSortingStrategy}>
               {tail.map((item) => (
                 <SortableRow
                   key={item.key}
@@ -318,6 +338,23 @@ export function Sidebar({
                   } : undefined}
                 />
               ))}
+              {runningItem && (
+                <>
+                  <div className={styles.runningSeparator} aria-hidden="true" />
+                  <SortableRow
+                    key={runningItem.key}
+                    item={runningItem}
+                    active={runningItem.key === active}
+                    compact={compact}
+                    serviceState={serviceState}
+                    onClick={() => onChange(runningItem.key)}
+                    onContextMenu={onItemContextMenu ? (e) => {
+                      e.preventDefault();
+                      onItemContextMenu(runningItem.key, e);
+                    } : undefined}
+                  />
+                </>
+              )}
             </SortableContext>
           </DndContext>
           {afterTail}
@@ -338,6 +375,23 @@ export function Sidebar({
               } : undefined}
             />
           ))}
+          {runningItem && (
+            <>
+              <div className={styles.runningSeparator} aria-hidden="true" />
+              <SidebarRow
+                key={runningItem.key}
+                item={runningItem}
+                active={runningItem.key === active}
+                compact={compact}
+                serviceState={serviceState}
+                onClick={() => onChange(runningItem.key)}
+                onContextMenu={onItemContextMenu ? (e) => {
+                  e.preventDefault();
+                  onItemContextMenu(runningItem.key, e);
+                } : undefined}
+              />
+            </>
+          )}
           {afterTail}
         </div>
       )}
