@@ -1,6 +1,6 @@
-import { lazy } from 'react';
+import { createElement, lazy } from 'react';
 import { ImageIcon } from 'lucide-react';
-import type { AppManifest } from '../types';
+import type { AppManifest, WidgetProps } from '../types';
 import { GalleryWidget } from './GalleryWidget';
 import { GallerySettings } from './GallerySettings';
 import { makeWidgetTouchView } from '../common/WidgetTouchView';
@@ -8,6 +8,12 @@ import { makeWidgetTouchView } from '../common/WidgetTouchView';
 // Code-split: the management Page only loads when the dashboard navigates
 // into it. Widget + Touch stay eager so panel cells render synchronously.
 const GalleryPage = lazy(() => import('./page/GalleryPage').then(m => ({ default: m.GalleryPage })));
+
+// Fullscreen always letterboxes (whole photo visible) regardless of the
+// tile's cover/fit setting.
+function GalleryImmersive(props: WidgetProps) {
+  return createElement(GalleryWidget, { ...props, immersive: true });
+}
 
 export const galleryApp: AppManifest = {
   meta: {
@@ -26,6 +32,6 @@ export const galleryApp: AppManifest = {
   Page: GalleryPage,
   // Generic single-cell fullscreen: the lone cell becomes the fill cell, so
   // the viewer (and its fading arrows) spans the whole immersive overlay.
-  Touch: makeWidgetTouchView(GalleryWidget),
+  Touch: makeWidgetTouchView(GalleryImmersive),
   Settings: GallerySettings,
 };

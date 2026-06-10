@@ -39,8 +39,11 @@ vi.mock('../../../lib/i18n', () => {
   return { useTranslation: () => ({ t }) };
 });
 
-function galleryWidget(config?: PanelWidget['config']): PanelWidget {
-  return { id: 'gallery-1', type: 'gallery', size: '4x4', col: 0, row: 0, config };
+// Unique id per call: the module-level position memory keys off widget.id,
+// so reusing one id would leak the shown photo between unrelated tests.
+let widgetSeq = 0;
+function galleryWidget(config?: PanelWidget['config'], id?: string): PanelWidget {
+  return { id: id ?? `gallery-${++widgetSeq}`, type: 'gallery', size: '4x4', col: 0, row: 0, config };
 }
 
 function items(...ids: string[]) {
@@ -175,5 +178,39 @@ describe('GalleryWidget', () => {
     expect(shownImage()?.startsWith('data:image/svg+xml')).toBe(true);
     expect(vi.mocked(fetchGalleryItems)).not.toHaveBeenCalled();
     expect(vi.mocked(fetchServiceBlob)).not.toHaveBeenCalled();
+  });
+
+  it('tiles fill by default (cover); the fit setting letterboxes', async () => {
+    mockItems.current = items('a');
+    const { unmount } = render(<GalleryWidget widget={galleryWidget()} />);
+    await waitFor(() => expect(shownImage()).toBe('blob:a'));
+    expect(document.querySelector('img')!.getAttribute('data-fit')).toBe('cover');
+    unmount();
+
+    render(<GalleryWidget widget={galleryWidget({ fit: true })} />);
+    await waitFor(() => expect(shownImage()).toBe('blob:a'));
+    expect(document.querySelector('img')!.getAttribute('data-fit')).toBe('contain');
+  });
+
+  it('immersive always letterboxes, even with fit off', async () => {
+    mockItems.current = items('a');
+    render(<GalleryWidget widget={galleryWidget({ fit: false })} immersive />);
+
+    await waitFor(() => expect(shownImage()).toBe('blob:a'));
+    expect(document.querySelector('img')!.getAttribute('data-fit')).toBe('contain');
+  });
+
+  it('a second instance with the same widget id opens on the photo the first showed', async () => {
+    mockItems.current = items('a', 'b', 'c');
+    const shared = galleryWidget(undefined, 'gallery-shared');
+    const { unmount } = render(<GalleryWidget widget={shared} />);
+    await waitFor(() => expect(shownImage()).toBe('blob:a'));
+    fireEvent.click(screen.getByLabelText('Next image'));
+    await waitFor(() => expect(shownImage()).toBe('blob:b'));
+    unmount();
+
+    // Same instance id (the immersive view of the same tile).
+    render(<GalleryWidget widget={{ ...shared }} immersive />);
+    await waitFor(() => expect(shownImage()).toBe('blob:b'));
   });
 });

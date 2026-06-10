@@ -10,20 +10,35 @@
   box-sizing: border-box;
 }
 
+// Two columns sharing ONE scroller: a static-width sources column on the
+// left, the library filling the rest. Cards keep their natural height so
+// the body scrolls both columns together.
 .body {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   gap: 1rem;
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   @include scrollbar-visible;
+  // The app shell (.content) pads 1.25rem on the right; cancel it so the
+  // library stretches to the page edge (same dock as Lighting's device
+  // column).
+  margin-right: -1.25rem;
+}
+
+.sourcesColumn {
+  // Matches the Lighting / Cooling device-column width.
+  flex: 0 0 300px;
+  min-width: 0;
 }
 
 .sourceActions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .hiddenInput {
@@ -98,8 +113,14 @@
   flex: 1 1 auto;
 }
 
+// Wraps the whole library card so a drop lands anywhere on it. Fills the
+// width left of the sources column.
 .dropZone {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: 120px;
 }
 

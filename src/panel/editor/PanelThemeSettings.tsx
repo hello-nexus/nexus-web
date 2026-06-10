@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { Slider } from '../../components/common/Slider/Slider';
 import { Tabs } from '../../components/common/Tabs/Tabs';
@@ -15,10 +16,9 @@ import {
   resolvePanelBackground,
   type PanelBackgroundMode,
 } from '../panelBackground';
-import { EffectEditor } from '../widgets/lighting/effecteditor/EffectEditor';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
 import { usePanelBackgroundEffectController } from '../widgets/lighting/effecteditor/usePanelBackgroundEffectController';
-import { AnimateGrid } from '../widgets/lighting/page/AnimateGrid';
+import { AnimateCategoryChips, AnimateGrid, type AnimateFilter } from '../widgets/lighting/page/AnimateGrid';
 import { EffectControls } from '../widgets/lighting/page/EffectControls';
 import styles from './PanelThemeSettings.module.scss';
 
@@ -103,8 +103,14 @@ export function PanelThemeSettings({
   const backgroundOpacityPercent = Math.round(theme.backgroundOpacity * 100);
   const widgetOpacityPercent = Math.round(theme.widgetOpacity * 100);
 
-  // The same Options | Effect editor as the immersive lighting view, here
-  // targeting this panel's per-device background effect (animate-only).
+  // Options | Effect tab and chip-filter state, owned here (not by the
+  // EffectEditor shell) so the preview + tab bars + chips can sit in one
+  // sticky dock while the grid / controls scroll with the page.
+  const [editorTab, setEditorTab] = useState<'options' | 'effect'>('options');
+  const [animationFilter, setAnimationFilter] = useState<AnimateFilter>('all');
+
+  // The same Options | Effect editing surface as the immersive lighting view,
+  // here targeting this panel's per-device background effect (animate-only).
   const backgroundController = usePanelBackgroundEffectController({
     effect: backgroundEffect,
     template: backgroundTemplate,
@@ -114,6 +120,22 @@ export function PanelThemeSettings({
     onPreview: onBackgroundEffectStatePreview,
     onCommit: onBackgroundEffectStateCommit,
   });
+
+  // Rendered in normal flow for solid mode, inside the sticky dock for shader
+  // mode (one instance keeps the pill state/animation continuous).
+  const backgroundModeTabs = (
+    <Tabs
+      variant="pill"
+      fullWidth
+      tabs={[
+        { key: 'solid', label: label('panel.settings.backgroundMode.solid', 'Solid') },
+        { key: 'shader', label: label('panel.settings.backgroundMode.animations', 'Animations') },
+      ]}
+      activeKey={theme.backgroundMode}
+      onChange={key => onBackgroundModeCommit(key as PanelBackgroundMode)}
+      ariaLabel={label('panel.settings.backgroundMode', 'Background mode')}
+    />
+  );
 
   return (
     <div className={styles.themePanel}>
@@ -191,75 +213,83 @@ export function PanelThemeSettings({
 
       <div className={styles.themeSection}>
         <SectionHeader>{t('devices.y70.theme.background') || 'Background'}</SectionHeader>
-        <Tabs
-          variant="pill"
-          fullWidth
-          tabs={[
-            { key: 'solid', label: label('panel.settings.backgroundMode.solid', 'Solid') },
-            { key: 'shader', label: label('panel.settings.backgroundMode.animations', 'Animations') },
-          ]}
-          activeKey={theme.backgroundMode}
-          onChange={key => onBackgroundModeCommit(key as PanelBackgroundMode)}
-          ariaLabel={label('panel.settings.backgroundMode', 'Background mode')}
-        />
-
         {theme.backgroundMode === 'solid' ? (
-          <ColorPickerWithPresets
-            value={resolvePanelBackground(theme.backgroundColor, theme.backgroundColorLight, resolvedThemeMode)}
-            presets={panelBackgroundPresets(resolvedThemeMode)}
-            fallback={panelBackgroundDefault(resolvedThemeMode)}
-            onPreview={onBackgroundPreview}
-            onCommit={onBackgroundCommit}
-          />
-        ) : (
-          <div className={styles.backgroundShaderControls}>
-            <BackgroundEffectPreview
-              effect={backgroundEffect}
-              template={backgroundTemplate}
-              effectState={theme.backgroundEffectState}
+          <>
+            {backgroundModeTabs}
+            <ColorPickerWithPresets
+              value={resolvePanelBackground(theme.backgroundColor, theme.backgroundColorLight, resolvedThemeMode)}
+              presets={panelBackgroundPresets(resolvedThemeMode)}
+              fallback={panelBackgroundDefault(resolvedThemeMode)}
+              onPreview={onBackgroundPreview}
+              onCommit={onBackgroundCommit}
             />
-            <div className={styles.backgroundEditorFill}>
-              <EffectEditor
-                options={(
-                  <AnimateGrid
-                    effect={backgroundEffect}
-                    onSelect={onBackgroundEffectCommit}
-                    effects={PANEL_BACKGROUND_EFFECTS}
-                  />
-                )}
-                effect={(
-                  <EffectControls
-                    effect={backgroundController.effect}
-                    state={backgroundController.state}
-                    bundle={backgroundController.bundle}
-                    canReset={backgroundController.canReset}
-                    onTemplateSelect={backgroundController.onTemplateSelect}
-                    onChange={backgroundController.onChange}
-                    onCommit={backgroundController.onCommit}
-                    onReset={backgroundController.onReset}
-                  />
-                )}
-                effectFooter={(
-                  <Slider
-                    orientation="stacked"
-                    label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
-                    value={backgroundOpacityPercent}
-                    min={0}
-                    max={100}
-                    step={1}
-                    trackFill={backgroundOpacityPercent}
-                    formatValue={v => `${v}%`}
-                    onChange={(v, commit) => {
-                      const next = v / 100;
-                      if (commit) onBackgroundOpacityCommit(next);
-                      else onBackgroundOpacityPreview(next);
-                    }}
-                    onCommit={v => onBackgroundOpacityCommit(v / 100)}
-                  />
-                )}
+          </>
+        ) : (
+          <>
+            <div className={styles.backgroundDock}>
+              {backgroundModeTabs}
+              <BackgroundEffectPreview
+                effect={backgroundEffect}
+                template={backgroundTemplate}
+                effectState={theme.backgroundEffectState}
               />
+              <Tabs
+                variant="pill"
+                fullWidth
+                tabs={[
+                  { key: 'options', label: t('lighting.editor.options') },
+                  { key: 'effect', label: t('lighting.rightPane.effect') },
+                ]}
+                activeKey={editorTab}
+                onChange={key => setEditorTab(key as 'options' | 'effect')}
+                ariaLabel={t('lighting.rightPane.label')}
+              />
+              {editorTab === 'options' && (
+                <AnimateCategoryChips
+                  effects={PANEL_BACKGROUND_EFFECTS}
+                  value={animationFilter}
+                  onChange={setAnimationFilter}
+                />
+              )}
             </div>
-          </div>
+            {editorTab === 'options' ? (
+              <AnimateGrid
+                effect={backgroundEffect}
+                onSelect={onBackgroundEffectCommit}
+                effects={PANEL_BACKGROUND_EFFECTS}
+                filter={animationFilter}
+              />
+            ) : (
+              <>
+                <EffectControls
+                  effect={backgroundController.effect}
+                  state={backgroundController.state}
+                  bundle={backgroundController.bundle}
+                  canReset={backgroundController.canReset}
+                  onTemplateSelect={backgroundController.onTemplateSelect}
+                  onChange={backgroundController.onChange}
+                  onCommit={backgroundController.onCommit}
+                  onReset={backgroundController.onReset}
+                />
+                <Slider
+                  orientation="stacked"
+                  label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
+                  value={backgroundOpacityPercent}
+                  min={0}
+                  max={100}
+                  step={1}
+                  trackFill={backgroundOpacityPercent}
+                  formatValue={v => `${v}%`}
+                  onChange={(v, commit) => {
+                    const next = v / 100;
+                    if (commit) onBackgroundOpacityCommit(next);
+                    else onBackgroundOpacityPreview(next);
+                  }}
+                  onCommit={v => onBackgroundOpacityCommit(v / 100)}
+                />
+              </>
+            )}
+          </>
         )}
       </div>
     </div>

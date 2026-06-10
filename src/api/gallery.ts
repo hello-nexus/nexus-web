@@ -20,16 +20,9 @@ export interface GalleryItem {
   sourceId: string;
 }
 
-export interface GalleryBrowseEntry {
-  name: string;
-  path: string;
-}
-
-export interface GalleryBrowseResponse {
-  path: string;
-  parent?: string | null;
-  dirs: GalleryBrowseEntry[];
-  files: GalleryBrowseEntry[];
+export interface GalleryPickResponse {
+  paths: string[];
+  cancelled?: boolean;
   error?: boolean;
   msg?: string;
 }
@@ -54,8 +47,11 @@ export async function deleteGallerySource(id: string): Promise<boolean> {
   return !!resp && resp.error !== true;
 }
 
-export const browseGallery = (path?: string) =>
-  fetchService<GalleryBrowseResponse>(`/gallery/browse${path ? `?path=${encodeURIComponent(path)}` : ''}`);
+// Opens the native OS file/folder dialog on the host PC and resolves with the
+// chosen absolute paths once the user closes it — this request stays in
+// flight for as long as the dialog is open.
+export const pickGalleryPaths = (folder: boolean) =>
+  postService<GalleryPickResponse>('/gallery/pick', { folder });
 
 export function importGalleryImage(file: File): Promise<GallerySourceMutation | null> {
   const form = new FormData();
