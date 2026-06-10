@@ -5,7 +5,6 @@ import { useDisplayTopology } from '../../../hooks/useDisplayTopology';
 import { demoteDisplayPanel, promoteDisplayToPanel, type TopologyDisplay } from '../../../api/displays';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../../components/common/Button/Button';
-import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { MonitorMap } from './MonitorMap';
@@ -30,7 +29,6 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [confirmDemote, setConfirmDemote] = useState<TopologyDisplay | null>(null);
 
   const displays = useMemo(() => topology?.displays ?? [], [topology]);
 
@@ -75,7 +73,6 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
   };
 
   const demote = async (display: TopologyDisplay) => {
-    setConfirmDemote(null);
     setError('');
     setPendingId(display.id);
     try {
@@ -162,7 +159,7 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
                       tone="danger"
                       size="sm"
                       disabled={pendingId === selected.id}
-                      onClick={() => setConfirmDemote(selected)}
+                      onClick={() => void demote(selected)}
                     >
                       {t('displays.panel.stop')}
                     </Button>
@@ -192,17 +189,6 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
           )}
         </>
       )}
-
-      <ConfirmModal
-        open={confirmDemote !== null}
-        title={t('displays.demote.title')}
-        message={t('displays.demote.message', { name: confirmDemote?.name ?? '' })}
-        note={t('displays.demote.note')}
-        confirmLabel={t('displays.demote.confirm')}
-        destructive={false}
-        onConfirm={() => confirmDemote && void demote(confirmDemote)}
-        onCancel={() => setConfirmDemote(null)}
-      />
     </section>
   );
 }
