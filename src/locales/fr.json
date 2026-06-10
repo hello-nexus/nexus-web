@@ -221,7 +221,7 @@
   "devices.available.none": "Aucun appareil pris en charge actuellement disponible.",
   "devices.connected": "Connectés",
   "devices.connected.browse": "Appareils connectés",
-  "devices.connected.description": "Tous les périphériques USB actuellement connectés à ce PC, y compris ceux sans prise en charge Nexus. Utile pour le diagnostic - les appareils disparaissent de cette liste dès que vous les débranchez.",
+  "devices.connected.description": "Tous les périphériques USB actuellement connectés à ce PC, y compris ceux sans prise en charge Nexus. Utile pour le diagnostic.",
   "devices.firmware.column.current": "Version installée",
   "devices.firmware.column.device": "Appareil",
   "devices.firmware.column.status": "État",

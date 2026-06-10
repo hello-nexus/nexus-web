@@ -221,7 +221,7 @@
   "devices.available.none": "В данный момент нет доступных поддерживаемых устройств.",
   "devices.connected": "Подключено",
   "devices.connected.browse": "Подключённые устройства",
-  "devices.connected.description": "Все USB-устройства, подключённые к этому ПК, включая устройства без поддержки Nexus. Полезно для диагностики - устройства исчезают из списка сразу после отключения.",
+  "devices.connected.description": "Все USB-устройства, подключённые к этому ПК, включая устройства без поддержки Nexus. Полезно для диагностики.",
   "devices.firmware.column.current": "Установленная версия",
   "devices.firmware.column.device": "Устройство",
   "devices.firmware.column.status": "Состояние",

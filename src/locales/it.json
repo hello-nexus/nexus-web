@@ -221,7 +221,7 @@
   "devices.available.none": "Nessun dispositivo supportato attualmente disponibile.",
   "devices.connected": "Connessi",
   "devices.connected.browse": "Dispositivi connessi",
-  "devices.connected.description": "Tutti i dispositivi USB attualmente collegati a questo PC, inclusi quelli senza supporto Nexus. Utile per la diagnostica - i dispositivi scompaiono dall'elenco non appena vengono scollegati.",
+  "devices.connected.description": "Tutti i dispositivi USB attualmente collegati a questo PC, inclusi quelli senza supporto Nexus. Utile per la diagnostica.",
   "devices.firmware.column.current": "Versione installata",
   "devices.firmware.column.device": "Dispositivo",
   "devices.firmware.column.status": "Stato",

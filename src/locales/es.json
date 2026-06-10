@@ -221,7 +221,7 @@
   "devices.available.none": "No hay dispositivos compatibles disponibles actualmente.",
   "devices.connected": "Conectados",
   "devices.connected.browse": "Dispositivos conectados",
-  "devices.connected.description": "Todos los dispositivos USB conectados actualmente a este PC, incluidos los que no son compatibles con Nexus. Útil para diagnóstico - los dispositivos desaparecen de la lista al desconectarlos.",
+  "devices.connected.description": "Todos los dispositivos USB conectados actualmente a este PC, incluidos los que no son compatibles con Nexus. Útil para diagnóstico.",
   "devices.firmware.column.current": "Versión instalada",
   "devices.firmware.column.device": "Dispositivo",
   "devices.firmware.column.status": "Estado",

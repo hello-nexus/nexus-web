@@ -221,7 +221,7 @@
   "devices.available.none": "当前没有可用的受支持设备。",
   "devices.connected": "已连接",
   "devices.connected.browse": "已连接设备",
-  "devices.connected.description": "当前连接到此电脑的所有 USB 设备,包括不受 Nexus 支持的设备。用于诊断 -- 拔出设备后会立即从列表中消失。",
+  "devices.connected.description": "当前连接到此电脑的所有 USB 设备,包括不受 Nexus 支持的设备。用于诊断。",
   "devices.firmware.column.current": "已安装版本",
   "devices.firmware.column.device": "设备",
   "devices.firmware.column.status": "状态",

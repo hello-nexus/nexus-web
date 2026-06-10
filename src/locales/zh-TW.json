@@ -221,7 +221,7 @@
   "devices.available.none": "目前沒有可用的受支援裝置。",
   "devices.connected": "已連接",
   "devices.connected.browse": "已連接的裝置",
-  "devices.connected.description": "目前連接至此電腦的所有 USB 裝置，包括不受 Nexus 支援的裝置。適合用於診斷--拔除裝置後會立即從清單中消失。",
+  "devices.connected.description": "目前連接至此電腦的所有 USB 裝置，包括不受 Nexus 支援的裝置。適合用於診斷。",
   "devices.firmware.column.current": "已安裝版本",
   "devices.firmware.column.device": "裝置",
   "devices.firmware.column.status": "狀態",

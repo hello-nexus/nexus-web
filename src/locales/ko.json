@@ -221,7 +221,7 @@
   "devices.available.none": "현재 사용 가능한 지원 장치가 없습니다.",
   "devices.connected": "연결됨",
   "devices.connected.browse": "연결된 장치",
-  "devices.connected.description": "이 PC에 현재 연결된 모든 USB 장치(Nexus 미지원 장치 포함). 진단에 유용 - 장치를 분리하면 목록에서 즉시 사라집니다.",
+  "devices.connected.description": "이 PC에 현재 연결된 모든 USB 장치(Nexus 미지원 장치 포함). 진단에 유용합니다.",
   "devices.firmware.column.current": "설치된 버전",
   "devices.firmware.column.device": "장치",
   "devices.firmware.column.status": "상태",

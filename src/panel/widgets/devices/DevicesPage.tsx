@@ -170,10 +170,14 @@ interface ConnectedDevicesModalProps {
 // diagnostics surface, not part of the primary device flow.
 function ConnectedDevicesModal({ open, onClose, devices, loading, onRefresh }: ConnectedDevicesModalProps) {
   const { t } = useTranslation();
+  const sorted = useMemo(
+    () => [...devices].sort((a, b) => (a.name || '').localeCompare(b.name || '')),
+    [devices],
+  );
   return (
     <DeviceModal open={open} onClose={onClose} fit title={t('devices.connected.browse')}>
       <p className={styles.explainer}>{t('devices.connected.description')}</p>
-      <UsbPanel devices={devices} loading={loading} onRefresh={onRefresh} />
+      <UsbPanel devices={sorted} loading={loading} onRefresh={onRefresh} />
     </DeviceModal>
   );
 }

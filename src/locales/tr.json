@@ -221,7 +221,7 @@
   "devices.available.none": "Şu anda kullanılabilir desteklenen cihaz yok.",
   "devices.connected": "Bagli",
   "devices.connected.browse": "Bağlı cihazlar",
-  "devices.connected.description": "Bu bilgisayara bagli tum USB cihazlari, Nexus destegi olmayanlar dahil. Tani icin kullanislidir - cihazlar cikariildiginda bu listeden kaybolur.",
+  "devices.connected.description": "Bu bilgisayara bağlı tüm USB cihazları, Nexus desteği olmayanlar dahil. Tanı için kullanışlıdır.",
   "devices.firmware.column.current": "Yüklü sürüm",
   "devices.firmware.column.device": "Cihaz",
   "devices.firmware.column.status": "Durum",
