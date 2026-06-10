@@ -32,8 +32,7 @@
   cursor: default;
   outline: none;
   padding: 0;
-  // Match Win11's quick hover-in / slower hover-out fade.
-  transition: background-color 100ms ease;
+  transition: background-color var(--ease-fast) ease;
 
   &:hover {
     // Theme-aware Win11 caption hover tint. --text resolves to off-white in

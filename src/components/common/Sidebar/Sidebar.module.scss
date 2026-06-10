@@ -217,6 +217,16 @@
 // claims the remaining vertical room between the locked head and the
 // extra group (portal / pair phone / conflict slot below .nav). The
 // hidden scrollbar styling matches the panel's body scroll surfaces.
+// Hairline between the pinned tail and the transient running-app row
+// (taskbar semantics). A sibling of the rows — not a wrapper — so every
+// sortable row shares one parent for dnd-kit's restrictToParentElement.
+// Inset so it reads as a short divider, not a full-width rule.
+.runningSeparator {
+  flex-shrink: 0;
+  margin: 4px 14px;
+  border-top: 1px solid var(--border);
+}
+
 .tailScroll {
   display: flex;
   flex-direction: column;

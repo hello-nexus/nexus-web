@@ -190,7 +190,7 @@ $dot-offline: var(--panel-text-faint);
   padding: 0;
   text-align: left;
   color: inherit;
-  transition: transform 120ms ease, border-color 120ms ease;
+  transition: transform var(--ease-fast) ease, border-color var(--ease-fast) ease;
   // No `overflow: hidden`: card content isn't masked. The image is
   // bounded by its own width / height and never spills.
 

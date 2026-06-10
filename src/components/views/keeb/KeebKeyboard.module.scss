@@ -73,7 +73,7 @@ $wheel-size: 110px;
   text-align: center;
   line-height: 1;
   cursor: pointer;
-  transition: background 100ms ease, border-color 100ms ease, transform 100ms ease;
+  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, transform var(--ease-fast) ease;
   overflow: hidden;
   white-space: nowrap;
 }
@@ -122,7 +122,7 @@ $wheel-size: 110px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 100ms ease, background 100ms ease, transform 100ms ease;
+  transition: border-color var(--ease-fast) ease, background var(--ease-fast) ease, transform var(--ease-fast) ease;
 }
 
 .wheel:hover:not(:disabled) {

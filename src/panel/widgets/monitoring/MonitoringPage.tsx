@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useMonitoringFrame } from '../../../hooks/useMonitoringFrame';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
@@ -9,8 +9,6 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import * as monitoringStore from '../../../lib/monitoringStore';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
-import { ScreenTimeBrowse } from '../../../components/views/ScreenTimeBrowse/ScreenTimeBrowse';
-import { ScreenTimeDataControl } from '../../../components/views/ScreenTimeBrowse/ScreenTimeDataControl';
 import { MonitoringSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { OverviewTab } from './page/OverviewTab';
 import { CpuTab } from './page/CpuTab';
@@ -20,8 +18,8 @@ import { DetailedTab } from './page/DetailedTab';
 import { GpuSelect } from './page/GpuSelect';
 import styles from './MonitoringPage.module.scss';
 
-type MonitoringTab = 'overview' | 'cpu' | 'memory' | 'network' | 'screentime' | 'detailed';
-const VALID_TABS: MonitoringTab[] = ['overview', 'cpu', 'memory', 'network', 'screentime', 'detailed'];
+type MonitoringTab = 'overview' | 'cpu' | 'memory' | 'network' | 'detailed';
+const VALID_TABS: MonitoringTab[] = ['overview', 'cpu', 'memory', 'network', 'detailed'];
 
 interface MonitoringViewProps {
   serviceOnline: boolean;
@@ -40,8 +38,6 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const network = useNetworkMonitor();
   const sensors = useSensors(serviceOnline);
   const overviewHist = monitoringStore.getOverviewHist();
-  const [dataControlOpen, setDataControlOpen] = useState(false);
-  const [browseRefresh, setBrowseRefresh] = useState(0);
 
   const { settings, update } = useUiSettings();
   const showAverage = settings.monitoringShowAverage;
@@ -55,7 +51,6 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     { key: 'cpu', label: t('monitoring.tab.cpu') },
     { key: 'memory', label: t('monitoring.tab.memory') },
     { key: 'network', label: t('monitoring.tab.network') },
-    { key: 'screentime', label: t('monitoring.tab.screentime') },
     { key: 'detailed', label: t('monitoring.tab.detailed') },
   ] as const;
 
@@ -76,7 +71,6 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
       case 'cpu': return <CpuTab cpuSeries={cpuSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;
       case 'memory': return <MemoryTab memSeries={memSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;
       case 'network': return <NetworkTab network={network} showAverage={showAverage} onToggle={toggleMode} />;
-      case 'screentime': return <ScreenTimeBrowse key={browseRefresh} onManageData={() => setDataControlOpen(true)} />;
       case 'detailed': return <DetailedTab sensors={sensors} />;
     }
   };
@@ -97,11 +91,6 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
       <div className={styles.tabContent}>
         {renderTab()}
       </div>
-      <ScreenTimeDataControl
-        open={dataControlOpen}
-        onClose={() => setDataControlOpen(false)}
-        onChanged={() => setBrowseRefresh(v => v + 1)}
-      />
     </div>
   );
 }

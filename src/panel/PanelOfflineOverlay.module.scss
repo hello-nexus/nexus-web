@@ -130,7 +130,7 @@
   font-weight: var(--weight-heading);
   letter-spacing: 0.01em;
   cursor: pointer;
-  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 80ms ease;
+  transition: background-color var(--ease-fast) ease, color var(--ease-fast) ease, border-color var(--ease-fast) ease, transform var(--ease-fast) ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;

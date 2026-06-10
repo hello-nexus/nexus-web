@@ -1,0 +1,64 @@
+import { useState } from 'react';
+import type { ConnectionState } from '../../../hooks/useServiceStatus';
+import { useTranslation } from '../../../lib/i18n';
+import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { ServiceRequired } from '../../../components/views/ServiceRequired';
+import { GenericSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
+import {
+  SCREEN_TIME_MODES,
+  ScreenTimeBrowse,
+  type ScreenTimeMode,
+} from '../../../components/views/ScreenTimeBrowse/ScreenTimeBrowse';
+import { ScreenTimeDataControl } from '../../../components/views/ScreenTimeBrowse/ScreenTimeDataControl';
+import styles from './ScreentimePage.module.scss';
+
+interface ScreentimePageProps {
+  serviceOnline: boolean;
+  connectionState?: ConnectionState;
+  tab: string | null;
+  onTabChange: (tab: string) => void;
+}
+
+export function ScreentimePage({ serviceOnline, connectionState, tab: urlTab, onTabChange }: ScreentimePageProps) {
+  const { t } = useTranslation();
+  const tab: ScreenTimeMode = urlTab && SCREEN_TIME_MODES.includes(urlTab as ScreenTimeMode)
+    ? urlTab as ScreenTimeMode : 'day';
+
+  const [dataControlOpen, setDataControlOpen] = useState(false);
+  const [browseRefresh, setBrowseRefresh] = useState(0);
+
+  const tabs = SCREEN_TIME_MODES.map(m => ({ key: m, label: t(`screentime.tab.${m}`) }));
+
+  if (!serviceOnline) {
+    return (
+      <div className={styles.screentime}>
+        <ViewHeader title={t('screentime.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabsDisabled />
+        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.screentime}>
+      <ViewHeader
+        title={t('screentime.title')}
+        tabs={tabs}
+        activeTab={tab}
+        onTabChange={onTabChange}
+        tabActions={(
+          <button type="button" className={styles.manageBtn} onClick={() => setDataControlOpen(true)}>
+            {t('screentime.manageData')}
+          </button>
+        )}
+      />
+      <div className={styles.tabContent}>
+        <ScreenTimeBrowse key={browseRefresh} mode={tab} onModeChange={onTabChange} />
+      </div>
+      <ScreenTimeDataControl
+        open={dataControlOpen}
+        onClose={() => setDataControlOpen(false)}
+        onChanged={() => setBrowseRefresh(v => v + 1)}
+      />
+    </div>
+  );
+}

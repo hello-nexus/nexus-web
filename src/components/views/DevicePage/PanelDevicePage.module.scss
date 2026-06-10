@@ -134,7 +134,7 @@
   font-size: var(--type-body);
   font-weight: var(--weight-body);
   cursor: pointer;
-  transition: color var(--ease) ease;
+  transition: color var(--ease-fast) ease;
 
   &:hover { color: var(--text); }
 }
@@ -224,7 +224,7 @@
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;
-  transition: background var(--ease), color var(--ease);
+  transition: background var(--ease-fast), color var(--ease-fast);
   flex-shrink: 0;
 
   &:hover {
@@ -265,7 +265,7 @@
   background: transparent;
   color: color-mix(in srgb, var(--bad) 60%, transparent);
   cursor: pointer;
-  transition: background var(--ease), color var(--ease);
+  transition: background var(--ease-fast), color var(--ease-fast);
 
   &:hover {
     background: color-mix(in srgb, var(--bad) 10%, transparent);

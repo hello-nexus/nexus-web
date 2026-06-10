@@ -34,7 +34,7 @@
   font: inherit;
   font-size: var(--type-small);
   cursor: pointer;
-  transition: color var(--ease), border-color var(--ease), background var(--ease);
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
 
   &:hover,
   &:focus-visible {

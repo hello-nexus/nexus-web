@@ -80,9 +80,14 @@ function parsePath(): Route {
 
 // Displays used to be its own view; it now lives as the Devices page's
 // second tab. Old bookmarks (/displays, /system/displays) land on it.
+// Screen Time moved the other way - from a Monitoring tab to its own view -
+// so /system/monitoring/screentime lands on /system/screentime.
 function normalizeSystemRoute(route: Route): Route {
   if (route.section === 'system' && route.view === 'displays') {
     return { ...route, view: 'devices', subtab: 'displays' };
+  }
+  if (route.section === 'system' && route.view === 'monitoring' && route.subtab === 'screentime') {
+    return { ...route, view: 'screentime', subtab: null };
   }
   return route;
 }

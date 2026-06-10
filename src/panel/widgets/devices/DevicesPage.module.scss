@@ -54,7 +54,7 @@
   background: var(--bg-card);
   overflow: hidden;
   cursor: pointer;
-  transition: border-color var(--ease), background var(--ease), box-shadow var(--ease);
+  transition: border-color var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast);
 
   &:hover {
     background: var(--bg-card-hover);

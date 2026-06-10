@@ -44,7 +44,7 @@
   color: var(--text);
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--ease-fast), background var(--ease-fast);
 
   &:hover:not([data-disabled]):not(:disabled) {
     border-color: var(--accent);

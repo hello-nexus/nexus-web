@@ -55,7 +55,7 @@
   cursor: pointer;
   user-select: none;
   min-height: 40px;
-  transition: background-color var(--ease) ease, transform 80ms ease;
+  transition: background-color var(--ease-fast) ease, transform var(--ease-fast) ease;
 
   &:active {
     transform: scale(0.96);

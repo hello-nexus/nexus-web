@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
-import { PinOff } from 'lucide-react';
+import { Pin, PinOff } from 'lucide-react';
 import { Sidebar } from '../components/common/Sidebar/Sidebar';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useUiSettings } from '../hooks/useUiSettings';
@@ -95,14 +95,39 @@ export function SidebarColumn({
   };
 
   // Right-click context menu state. Held here so the menu portal dismisses
-  // on outside click without each row tracking its own open state.
-  const [ctxMenu, setCtxMenu] = useState<{ key: string; x: number; y: number } | null>(null);
+  // on outside click without each row tracking its own open state. `pinned`
+  // picks the menu: a pinned row offers Unpin, the running row offers Pin.
+  const [ctxMenu, setCtxMenu] = useState<{ key: string; x: number; y: number; pinned: boolean } | null>(null);
   const handleItemContextMenu = (key: string, event: React.MouseEvent) => {
-    setCtxMenu({ key, x: event.clientX, y: event.clientY });
+    setCtxMenu({ key, x: event.clientX, y: event.clientY, pinned: tail.includes(key) });
   };
   const handleUnpin = (key: string) => {
     update({ pinnedSidebarApps: tail.filter(k => k !== key) });
   };
+  const handlePin = (key: string) => {
+    if (!isPinnableAppKey(key) || tail.includes(key)) return;
+    update({ pinnedSidebarApps: [...tail, key] });
+  };
+
+  // Taskbar semantics for unpinned apps: while an unpinned app's page is
+  // open, it surfaces as a transient row below the pinned tail (behind a
+  // hairline separator). It unmounts when the user navigates off the page;
+  // right-click → Pin makes it a permanent tail row.
+  const runningUnpinned = (() => {
+    if (!isPinnableAppKey(serviceNavActive) || tail.includes(serviceNavActive)) return null;
+    const meta = getSidebarAppMeta(serviceNavActive);
+    if (!meta) return null;
+    return { key: serviceNavActive, label: t(meta.i18nKey), icon: meta.icon };
+  })();
+  // Drop-pin from dragging the running row above the fold: insert at the
+  // slot it was dropped on.
+  const handleRunningPinAt = (index: number) => {
+    if (!runningUnpinned || tail.includes(runningUnpinned.key)) return;
+    const next = [...tail];
+    next.splice(Math.max(0, Math.min(index, next.length)), 0, runningUnpinned.key);
+    update({ pinnedSidebarApps: next });
+  };
+
 
   // Cross-zone drop from the dashboard panel. Published by PanelContent
   // when a pinnable widget enters its drag state; null otherwise.
@@ -133,6 +158,8 @@ export function SidebarColumn({
         serviceState={serviceState}
         onTailReorder={handleTailReorder}
         onItemContextMenu={handleItemContextMenu}
+        runningItem={runningUnpinned}
+        onRunningPinAt={handleRunningPinAt}
         compact={compact}
         extraItems={portalNav}
         extraSectionLabel=""
@@ -169,13 +196,20 @@ export function SidebarColumn({
         <SidebarContextMenu
           x={ctxMenu.x}
           y={ctxMenu.y}
-          items={[
+          items={ctxMenu.pinned ? [
             {
               key: 'unpin',
               label: t('sidebar.unpin'),
               icon: <PinOff size={14} />,
               danger: true,
               onSelect: () => handleUnpin(ctxMenu.key),
+            },
+          ] : [
+            {
+              key: 'pin',
+              label: t('sidebar.pin'),
+              icon: <Pin size={14} />,
+              onSelect: () => handlePin(ctxMenu.key),
             },
           ]}
           onClose={() => setCtxMenu(null)}

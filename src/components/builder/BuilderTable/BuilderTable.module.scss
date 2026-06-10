@@ -45,7 +45,7 @@ $grid-cols: 170px minmax(0, 2.2fr) minmax(0, 1.4fr) 6rem 10.5rem;
 
 .row {
   border-bottom: 1px solid var(--border);
-  transition: background var(--ease);
+  transition: background var(--ease-fast);
 
   &:last-child { border-bottom: none; }
   &:hover { background: var(--bg-card-hover); }

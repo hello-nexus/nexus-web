@@ -18,7 +18,7 @@
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: color var(--ease-fast, 150ms) ease, transform var(--ease-fast, 150ms) ease;
+  transition: color var(--ease-fast) ease, transform var(--ease-fast) ease;
 
   svg {
     width: 26px;
