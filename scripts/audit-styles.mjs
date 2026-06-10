@@ -23,6 +23,7 @@
  * once a surface is fully migrated to lock it down.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { TOKENED_TYPE_LINE } from './style-type-exceptions.mjs';
 import { join, relative, sep } from 'node:path';
 
 const ROOT = new URL('../src/', import.meta.url).pathname;
@@ -87,16 +88,14 @@ function isCommentOrVarDecl(line) {
   return false;
 }
 
-// Type axis: skip font-family / font-variant-numeric / inherit values.
-// Token-valued declarations (var(--type-*) / var(--weight-*)) are sanctioned:
-// the value still comes from the central scale, so retuning a token
-// propagates. Mixins stay the preferred form; raw literals stay flagged.
+// Type axis: skip font-family / font-variant-numeric / inherit values, and
+// single-declaration token lines (see style-type-exceptions.mjs).
 function isTypeException(line) {
   const trimmed = line.trim();
   if (/^\s*font-family\s*:/.test(line)) return true;
   if (/^\s*font-variant-numeric\s*:/.test(line)) return true;
   if (/:\s*(inherit|unset|initial|revert|revert-layer)\s*[!;]?/.test(trimmed)) return true;
-  if (/:\s*var\(--(type|weight)-[\w-]+\)\s*[!;]?/.test(trimmed)) return true;
+  if (TOKENED_TYPE_LINE.test(line)) return true;
   return false;
 }
 

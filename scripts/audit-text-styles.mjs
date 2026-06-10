@@ -17,6 +17,7 @@
  * resets that target raw HTML elements) are exempt - listed in ALLOWLIST.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { TOKENED_TYPE_LINE } from './style-type-exceptions.mjs';
 import { join, relative, sep } from 'node:path';
 
 const ROOT = new URL('../src/', import.meta.url).pathname;
@@ -56,9 +57,8 @@ const RAW_TYPE = /^\s*(font|font-size|font-weight|line-height|letter-spacing)\s*
 //   - font-family declarations (still allowed; only the 4 metrics above are gated)
 //   - font-variant-numeric (legitimate composition tweak, e.g. tabular-nums)
 //   - inherit / unset / initial (legitimate composition, not a raw value pick)
-//   - var(--type-*) / var(--weight-*) values (the value still comes from the
-//     central scale, so retuning a token propagates; mixins stay preferred,
-//     raw literals stay flagged)
+//   - single-declaration var(--type-*) / var(--weight-*) lines (sanctioned
+//     central-scale values; see style-type-exceptions.mjs)
 function isException(line) {
   const trimmed = line.trim();
   if (trimmed.startsWith('//')) return true;
@@ -68,7 +68,7 @@ function isException(line) {
   if (/^\s*font-family\s*:/.test(line)) return true;
   if (/^\s*font-variant-numeric\s*:/.test(line)) return true;
   if (/:\s*(inherit|unset|initial|revert|revert-layer)\s*[!;]?/.test(trimmed)) return true;
-  if (/:\s*var\(--(type|weight)-[\w-]+\)\s*[!;]?/.test(trimmed)) return true;
+  if (TOKENED_TYPE_LINE.test(line)) return true;
   return false;
 }
 

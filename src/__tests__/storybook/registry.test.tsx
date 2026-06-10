@@ -27,14 +27,24 @@ const PANEL_KIT_EXCLUSIONS: Record<string, string> = {
   PanelPreviewContext: 'context provider for catalog preview mode, nothing to preview',
 };
 
+// First path segment under the prefix, .tsx stripped - so a dir entry
+// (Foo/Foo.tsx) and a flat file entry (Foo.tsx) both register as "Foo".
 function registeredUnder(prefix: string): Set<string> {
   const hits = new Set<string>();
   for (const entry of REGISTRY) {
     if (entry.filePath.startsWith(prefix)) {
-      hits.add(entry.filePath.slice(prefix.length).split('/')[0]);
+      hits.add(entry.filePath.slice(prefix.length).split('/')[0].replace(/\.tsx$/, ''));
     }
   }
   return hits;
+}
+
+// Component dirs plus flat .tsx components (tests excluded) in a dir.
+function componentNames(dir: string): string[] {
+  return readdirSync(dir)
+    .filter(name => !name.includes('.test.'))
+    .filter(name => name.endsWith('.tsx') || statSync(join(dir, name)).isDirectory())
+    .map(name => name.replace(/\.tsx$/, ''));
 }
 
 describe('storybook registry', () => {
@@ -53,28 +63,20 @@ describe('storybook registry', () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('covers every component dir under src/components/common', () => {
-    const commonDir = join(REPO_ROOT, 'src/components/common');
+  it('covers every component under src/components/common', () => {
     const registered = registeredUnder('src/components/common/');
-    const missing = readdirSync(commonDir)
-      .filter(name => statSync(join(commonDir, name)).isDirectory())
+    const missing = componentNames(join(REPO_ROOT, 'src/components/common'))
       .filter(name => !registered.has(name) && !(name in COMMON_EXCLUSIONS));
     expect(
       missing,
-      `unregistered components/common dirs (register in src/storybook/registry.tsx or exclude with a reason):\n${missing.join('\n')}`,
+      `unregistered components/common entries (register in src/storybook/registry.tsx or exclude with a reason):\n${missing.join('\n')}`,
     ).toEqual([]);
   });
 
   it('covers every panel-kit module under src/panel/widgets/common', () => {
-    const kitDir = join(REPO_ROOT, 'src/panel/widgets/common');
     const registered = registeredUnder('src/panel/widgets/common/');
-    const missing = readdirSync(kitDir)
-      .filter(name => !name.includes('.test.'))
-      .filter(name => name.endsWith('.tsx') || statSync(join(kitDir, name)).isDirectory())
-      .map(name => name.replace(/\.tsx$/, ''))
-      .filter(name => !registered.has(name) && !(name in PANEL_KIT_EXCLUSIONS))
-      // dir entries register as <Dir>/<Dir>.tsx, file entries as <Name>.tsx
-      .filter(name => !registered.has(`${name}.tsx`));
+    const missing = componentNames(join(REPO_ROOT, 'src/panel/widgets/common'))
+      .filter(name => !registered.has(name) && !(name in PANEL_KIT_EXCLUSIONS));
     expect(
       missing,
       `unregistered panel-kit modules (register in src/storybook/registry.tsx or exclude with a reason):\n${missing.join('\n')}`,

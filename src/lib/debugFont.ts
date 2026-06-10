@@ -109,7 +109,7 @@ export function applyDebugFont(state: DebugFontState | null): void {
 
   const css =
     `:root { --font-sans: 'Twemoji Country Flags', '${font.family}', system-ui, sans-serif !important; }\n` +
-    `.panel-root { --panel-font: '${font.family}', 'Lexend', system-ui, sans-serif !important; }`;
+    `.panel-root { --panel-font: 'Twemoji Country Flags', '${font.family}', 'Lexend', system-ui, sans-serif !important; }`;
 
   ensureStyle(css);
 }

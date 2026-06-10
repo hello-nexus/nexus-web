@@ -53,6 +53,7 @@ import { TextStyles } from './TextStyles';
 import { SurfaceStyles } from './SurfaceStyles';
 import { MicroBar } from '../panel/widgets/monitoring/MicroBar';
 import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
+import { pairingPreviewQr } from '../panel/widgets/pairing/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 import { SettingToggle } from '../components/common/SettingRow/SettingRow';
@@ -832,7 +833,7 @@ function PreviewSettingRow() {
   const [startup, setStartup] = useState(true);
   const [beta, setBeta] = useState(false);
   return (
-    <div style={{ width: '100%' }}>
+    <div className={styles.previewStack}>
       <SettingToggle label="Run at startup" description="Launch Nexus when you sign in"
         checked={startup} onChange={setStartup} />
       <SettingToggle label="Beta updates" checked={beta} onChange={setBeta} disabled />
@@ -842,23 +843,18 @@ function PreviewSettingRow() {
 
 function PreviewServiceLaunchButton() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div className={styles.previewRow}>
       <ServiceLaunchButton />
       <ServiceLaunchButton iconOnly />
     </div>
   );
 }
 
-// Placeholder QR pattern; the real feed mints a PNG data URL per token.
-const STUB_QR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 7 7">'
-  + '<rect width="7" height="7" fill="white"/>'
-  + '<path fill="black" d="M0 0h3v3H0zM1 1h1v1H1zM4 0h3v3H4zM5 1h1v1H5zM0 4h3v3H0zM1 5h1v1H1zM4 4h1v1H4zM6 4h1v1H6zM5 5h1v1H5zM4 6h1v1H4zM6 6h1v1H6z"/>'
-  + '</svg>');
-
 function PreviewPairingQr() {
   const [now] = useState(() => Date.now());
-  return <PairingQrView qrDataUrl={STUB_QR} expiresAt={now + 90_000} loading={false} now={now} />;
+  // Same deterministic QR-look fixture the panel widget catalog uses.
+  const qr = pairingPreviewQr(now);
+  return <PairingQrView qrDataUrl={qr.qrDataUrl} expiresAt={qr.expiresAt} loading={false} now={now} />;
 }
 
 function PreviewAboutModal() {
@@ -875,7 +871,7 @@ function PreviewAboutModal() {
 
 function PreviewBrand() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+    <div className={styles.previewRow}>
       <NexusMark size={40} />
       <NexusWordmark height={22} />
     </div>
@@ -913,7 +909,7 @@ function PreviewWidgetCellLabel() {
 
 function PreviewSizeIcons() {
   return (
-    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+    <div className={styles.previewRow}>
       {Object.entries(SIZE_ICONS).map(([size, Icon]) => <Icon key={size} aria-label={size} />)}
     </div>
   );
@@ -921,7 +917,7 @@ function PreviewSizeIcons() {
 
 function PreviewGaugeTrack() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+    <div className={styles.previewStack}>
       <GaugeTrack fillPercent={35} />
       <div style={{ '--gauge-track-height': '8px', '--gauge-track-glow': '8px' } as CSSProperties}>
         <GaugeTrack fillPercent={72} />
