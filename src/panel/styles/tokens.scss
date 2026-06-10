@@ -196,7 +196,7 @@
   font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
-  transition: background-color var(--ease) ease, color var(--ease) ease, border-color var(--ease) ease;
+  transition: background-color var(--ease-fast) ease, color var(--ease-fast) ease, border-color var(--ease-fast) ease;
 
   &:hover:not(:disabled) { background: var(--panel-element-bg-hover); }
   &:active:not(:disabled) { background: var(--panel-element-bg-active); transform: scale(0.98); }

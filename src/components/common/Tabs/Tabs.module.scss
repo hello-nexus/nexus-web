@@ -17,7 +17,7 @@
   // and the text-to-underline gap matches across both shapes.
   line-height: 1.5;
   cursor: pointer;
-  transition: color var(--ease) ease;
+  transition: color var(--ease-fast) ease;
 
   &:hover:not(:disabled):not(.active) {
     color: var(--text);
@@ -85,7 +85,7 @@
   // affecting layout.
   width: 1.5em;
   height: 1.5em;
-  transition: color var(--ease) ease;
+  transition: color var(--ease-fast) ease;
 
   svg {
     display: block;

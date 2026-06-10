@@ -63,7 +63,7 @@
   font-family: var(--font-mono);
   font-size: var(--type-small);
   cursor: pointer;
-  transition: all var(--ease);
+  transition: all var(--ease-fast);
 
   &:hover:not(:disabled) {
     background: var(--accent-soft);

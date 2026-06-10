@@ -66,7 +66,7 @@
   place-items: center;
   padding: 0;
   cursor: pointer;
-  transition: background var(--ease), color var(--ease);
+  transition: background var(--ease-fast), color var(--ease-fast);
 
   &:hover {
     background: var(--panel-element-bg-hover);

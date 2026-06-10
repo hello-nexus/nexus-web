@@ -83,9 +83,9 @@
   --blur-sm: 8px;          // subtle veils, popover backdrops
   --blur-lg: 20px;         // heavy modal backdrops, panel actions tray
 
-  // Animation timing. Three rungs cover the 100-300ms range. Use via
+  // Animation timing. Three rungs cover the 50-300ms range. Use via
   // `transition: bg var(--ease) ease` etc.
-  --ease-fast: 120ms;      // micro feedback (hover tint, press scale)
+  --ease-fast: 50ms;       // micro feedback (hover highlight, press scale) — reads as instant, on and off
   --ease: 180ms;           // default (most state changes)
   --ease-slow: 300ms;      // narrative animation (sheet open, tab swap)
 

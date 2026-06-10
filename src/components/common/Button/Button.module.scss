@@ -3,7 +3,6 @@
 
 .button {
   @include text-button;
-  @include state-transition;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -15,11 +14,11 @@
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition:
-    background-color var(--ease) ease,
-    border-color var(--ease) ease,
-    color var(--ease) ease,
+    background-color var(--ease-fast) ease,
+    border-color var(--ease-fast) ease,
+    color var(--ease-fast) ease,
     transform var(--ease-fast) ease,
-    filter var(--ease) ease;
+    filter var(--ease-fast) ease;
 
   &:focus-visible {
     @include focus-ring;
