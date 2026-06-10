@@ -230,10 +230,9 @@ function buildPanelDevices({
     if (!record.displayId || record.displayAttached === false) continue;
     const cssWidth = record.capabilities?.cssWidth ?? 0;
     const cssHeight = record.capabilities?.cssHeight ?? 0;
-    const dpr = record.capabilities?.dpr ?? 1;
-    const resolution = cssWidth > 0 && cssHeight > 0
-      ? `${Math.round(cssWidth * dpr)}x${Math.round(cssHeight * dpr)}`
-      : '';
+    // CSS pixels, same convention as the Y70/phone subtitles. Reconstructing
+    // native px (css x dpr) double-rounds and drifts by a pixel at 150%.
+    const resolution = cssWidth > 0 && cssHeight > 0 ? `${cssWidth}x${cssHeight}` : '';
     devices.push({
       id: `display:${record.id}`,
       panelRecordId: record.id,

@@ -60,28 +60,34 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
   const promote = async (display: TopologyDisplay) => {
     setError('');
     setPendingId(display.id);
-    const record = await promoteDisplayToPanel(display.id);
-    setPendingId(null);
-    if (!record) {
-      setError(t('displays.error.promote'));
-      return;
+    try {
+      const record = await promoteDisplayToPanel(display.id);
+      if (!record) {
+        setError(t('displays.error.promote'));
+        return;
+      }
+      // Refetch before re-enabling the button so the detail flips against
+      // fresh topology (no re-promote window, and e2e runs WS-free).
+      await refresh();
+    } finally {
+      setPendingId(null);
     }
-    // Refetch immediately rather than waiting for the topic frame so the
-    // detail flips deterministically (and e2e runs WS-free).
-    void refresh();
   };
 
   const demote = async (display: TopologyDisplay) => {
     setConfirmDemote(null);
     setError('');
     setPendingId(display.id);
-    const result = await demoteDisplayPanel(display.id);
-    setPendingId(null);
-    if (!result) {
-      setError(t('displays.error.demote'));
-      return;
+    try {
+      const result = await demoteDisplayPanel(display.id);
+      if (!result) {
+        setError(t('displays.error.demote'));
+        return;
+      }
+      await refresh();
+    } finally {
+      setPendingId(null);
     }
-    void refresh();
   };
 
   return (
