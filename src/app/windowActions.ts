@@ -31,6 +31,42 @@ export type NexusResizeEdge = (typeof NEXUS_RESIZE_EDGES)[keyof typeof NEXUS_RES
 
 interface NexusShellWebView {
   postMessage?: (msg: unknown) => void;
+  postMessageWithAdditionalObjects?: (msg: unknown, objects: unknown) => void;
+  addEventListener?: (type: 'message', cb: (e: { data?: unknown }) => void) => void;
+  removeEventListener?: (type: 'message', cb: (e: { data?: unknown }) => void) => void;
+}
+
+// Gallery drag-n-drop bridge. The web sandbox hides dropped files' disk
+// paths; inside the Windows shell the host reads them off the message's
+// AdditionalObjects and replies with the real paths. Keep both sentinels in
+// lockstep with HandleGalleryDrop in nexus-overlay/src/DashboardWindow.cs.
+export const NEXUS_GALLERY_DROP = 'nexus:gallery-drop';
+export const NEXUS_GALLERY_DROP_PATHS = 'nexus:gallery-drop-paths';
+
+/**
+ * Hand dropped files to the shell so it can resolve their disk paths.
+ * Returns false when no path-capable shell bridge is present (plain
+ * browser tabs) — the caller shows a "use the picker" hint instead.
+ */
+export function postGalleryDrop(files: File[]): boolean {
+  const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
+  if (!wv?.postMessageWithAdditionalObjects) return false;
+  wv.postMessageWithAdditionalObjects(NEXUS_GALLERY_DROP, files);
+  return true;
+}
+
+/** Subscribe to the shell's dropped-paths replies. Returns the unsubscribe. */
+export function subscribeGalleryDropPaths(onPaths: (paths: string[]) => void): () => void {
+  const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
+  if (!wv?.addEventListener) return () => {};
+  const listener = (e: { data?: unknown }) => {
+    const data = e.data as { type?: string; paths?: unknown } | undefined;
+    if (data?.type === NEXUS_GALLERY_DROP_PATHS && Array.isArray(data.paths)) {
+      onPaths(data.paths.filter((p): p is string => typeof p === 'string'));
+    }
+  };
+  wv.addEventListener('message', listener);
+  return () => wv.removeEventListener?.('message', listener);
 }
 
 /**

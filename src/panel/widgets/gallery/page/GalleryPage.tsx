@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FileImage, Folder, FolderPlus, ImageIcon, ImagePlus, Trash2, Upload } from 'lucide-react';
+import { FileImage, Folder, FolderPlus, ImageIcon, ImagePlus, Trash2, Undo2, X } from 'lucide-react';
 import { ViewHeader } from '../../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../../components/common/Card/Card';
 import { Button } from '../../../../components/common/Button/Button';
@@ -9,15 +9,16 @@ import { SectionHeader } from '../../../../components/common/SectionHeader/Secti
 import { useTranslation } from '../../../../lib/i18n';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { fetchServiceBlob, isRelayActive } from '../../../../api/service';
+import { postGalleryDrop, subscribeGalleryDropPaths } from '../../../../app/windowActions';
 import {
   addGallerySource,
   deleteGallerySource,
+  excludeGalleryItem,
   fetchGalleryItems,
   fetchGallerySources,
   galleryItemFileUrl,
-  galleryItemThumbUrl,
-  importGalleryImage,
   pickGalleryPaths,
+  restoreGalleryExclusions,
   type GalleryItem,
   type GallerySource,
 } from '../../../../api/gallery';
@@ -26,16 +27,15 @@ import styles from './GalleryPage.module.scss';
 const KIND_ICONS = {
   file: FileImage,
   folder: Folder,
-  upload: Upload,
 } as const;
 
 /**
- * Gallery management page — the single place images are managed. The source
- * set is per-system shared: every panel surface of this PC (Y70, phone,
- * desktop) draws from what's configured here. Sources are referenced
- * files/folders picked via the OS-native dialog (opened on the host PC by
- * the service), plus direct uploads (file picker or drag-n-drop onto the
- * library card).
+ * Gallery management page. The source set is per-system shared (every panel
+ * surface of this PC draws from it) and is pure REFERENCES — Nexus never
+ * copies or deletes image bytes. Sources come from the OS-native picker or
+ * from drag-n-drop (desktop app only: the shell bridge resolves dropped
+ * files' real paths; browser tabs can't see them). Removing a folder's
+ * image puts it on that source's exclusion list, restorable in one click.
  */
 export function GalleryPage() {
   const { t } = useTranslation();
@@ -44,15 +44,12 @@ export function GalleryPage() {
   // Which native dialog is open on the PC right now ('file' | 'folder').
   const [picking, setPicking] = useState<'file' | 'folder' | null>(null);
   const [pendingDelete, setPendingDelete] = useState<GallerySource | null>(null);
-  const [uploadingNames, setUploadingNames] = useState<string[]>([]);
-  // One error line for the sources card — set by upload or add-source
-  // failures, cleared when the next action starts.
+  // One error line for the sources column, cleared when the next action starts.
   const [actionError, setActionError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  // Bidirectional hover link: hovering a source card highlights its images
-  // in the grid, hovering an image highlights its source card.
+  // Hovering a source card highlights its images in the grid (one-way only —
+  // image hover deliberately lights nothing up).
   const [hoverSourceId, setHoverSourceId] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     const [src, itm] = await Promise.all([fetchGallerySources(), fetchGalleryItems()]);
@@ -68,10 +65,9 @@ export function GalleryPage() {
   }, [refresh]);
   useTopicCallback('gallery', true, refresh);
 
-  // Thumbnail blob cache (panel auth is token-based, <img> can't hit the
-  // route directly). Loaded lazily per item; a missing thumbnail (no ffmpeg
-  // on the host) falls back to the original image bytes — only when both
-  // fail does the grid show the placeholder icon (null, never retried).
+  // Preview blob cache (panel auth is token-based, <img> can't hit the route
+  // directly). Original bytes only — no server-side conversion exists; null
+  // marks an unreadable file so the grid shows a placeholder, never retried.
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   const thumbsRef = useRef<Record<string, string | null>>({});
   useEffect(() => {
@@ -80,8 +76,7 @@ export function GalleryPage() {
       for (const item of items) {
         if (cancelled) return;
         if (item.id in thumbsRef.current) continue;
-        const blob = await fetchServiceBlob(galleryItemThumbUrl(item.id))
-          ?? await fetchServiceBlob(galleryItemFileUrl(item.id));
+        const blob = await fetchServiceBlob(galleryItemFileUrl(item.id));
         if (cancelled) return;
         if (item.id in thumbsRef.current) continue;
         const url = blob ? URL.createObjectURL(blob) : null;
@@ -101,8 +96,39 @@ export function GalleryPage() {
     thumbsRef.current = {};
   }, []);
 
-  // Open the native OS dialog on the PC; the request stays in flight until
-  // the user closes the dialog, then the chosen paths become sources.
+  const addPaths = useCallback(async (paths: string[], kind: 'file' | 'folder' | 'auto') => {
+    setActionError(null);
+    const failed: string[] = [];
+    for (const path of paths) {
+      const added = await addGallerySource(path, kind);
+      if (!added || added.error) {
+        failed.push(path.split(/[\\/]/).pop() || path);
+      }
+    }
+    if (failed.length > 0) {
+      setActionError(t('gallery.page.addFailed', { name: failed.join(', ') }));
+    }
+    await refresh();
+  }, [refresh, t]);
+
+  // Shell drop bridge: the host resolves dropped files' disk paths and posts
+  // them back; they enter through the same add flow as the native picker. An
+  // empty reply means the shell couldn't resolve paths (old WebView2 runtime)
+  // — surface the same hint as a bridge-less drop instead of silence.
+  useEffect(() => subscribeGalleryDropPaths(paths => {
+    // addPaths' setState calls run after its awaits, not synchronously.
+
+    if (paths.length === 0) {
+      setActionError(t('gallery.page.dropNeedsApp'));
+      return;
+    }
+    addPaths(paths, 'auto');
+  }), [addPaths, t]);
+
+  // The native dialog opens on the host PC's screen; both buttons disable
+  // while one is open. Remote (relay) sessions can't summon it.
+  const pickingDisabled = picking !== null || isRelayActive();
+
   const pickAndAdd = async (kind: 'file' | 'folder') => {
     if (picking) return;
     setPicking(kind);
@@ -114,18 +140,7 @@ export function GalleryPage() {
         return;
       }
       if (res.cancelled || !res.paths?.length) return;
-
-      const failed: string[] = [];
-      for (const path of res.paths) {
-        const added = await addGallerySource(path, kind);
-        if (!added || added.error) {
-          failed.push(path.split(/[\\/]/).pop() || path);
-        }
-      }
-      if (failed.length > 0) {
-        setActionError(t('gallery.page.addFailed', { name: failed.join(', ') }));
-      }
-      await refresh();
+      await addPaths(res.paths, kind);
     } finally {
       setPicking(null);
     }
@@ -139,45 +154,35 @@ export function GalleryPage() {
     await refresh();
   };
 
-  // Uploads go straight to the service (multipart, fails closed over the
-  // relay) and the native dialog opens on the host PC's screen — both
-  // affordances are disabled on remote (relay) sessions.
-  const uploadsDisabled = isRelayActive();
-  const pickingDisabled = uploadsDisabled || picking !== null;
-
-  const uploadFiles = async (files: File[]) => {
-    // One batch at a time — a second drop mid-upload would clobber the
-    // in-flight indicator state.
-    if (uploadingNames.length > 0) return;
-    const images = files.filter(f => f.type.startsWith('image/'));
-    if (images.length === 0) return;
-    setActionError(null);
-    setUploadingNames(images.map(f => f.name));
-    const failed: string[] = [];
-    for (const file of images) {
-      const result = await importGalleryImage(file);
-      if (!result || result.error) {
-        failed.push(file.name);
-      }
-    }
-    setUploadingNames([]);
-    if (failed.length > 0) {
-      setActionError(t('gallery.page.uploadFailed', { name: failed.join(', ') }));
+  // Removing an image never touches the disk: a folder's image goes on the
+  // source's exclusion list (restorable), a single-file source is dropped.
+  const removeItem = async (item: GalleryItem) => {
+    const source = sources.find(s => s.id === item.sourceId);
+    if (!source) return;
+    if (source.kind === 'folder') {
+      await excludeGalleryItem(source.id, item.id);
+    } else {
+      await deleteGallerySource(source.id);
     }
     await refresh();
   };
 
-  const handleUploadInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = '';
-    uploadFiles(files);
+  const restore = async (source: GallerySource) => {
+    await restoreGalleryExclusions(source.id);
+    await refresh();
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    if (uploadsDisabled) return;
-    uploadFiles(Array.from(e.dataTransfer.files));
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+    setActionError(null);
+    if (!postGalleryDrop(files)) {
+      // Plain browser tab: the sandbox hides dropped files' paths, so a
+      // reference can't be made here — point at the native picker instead.
+      setActionError(t('gallery.page.dropNeedsApp'));
+    }
   };
 
   const countFor = (sourceId: string) => items.filter(i => i.sourceId === sourceId).length;
@@ -190,7 +195,7 @@ export function GalleryPage() {
             Cooling device-column width); the library fills the rest. No
             bounding box — each source is its own card, cooling-page style. */}
         <div className={styles.sourcesColumn}>
-          <SectionHeader>{t('gallery.page.sources')}</SectionHeader>
+          <SectionHeader className={styles.sourcesHeader}>{t('gallery.page.sources')}</SectionHeader>
           <div className={styles.sourceActions}>
             <Button size="sm" icon={<ImagePlus size={14} />} disabled={pickingDisabled} onClick={() => pickAndAdd('file')}>
               {picking === 'file' ? t('gallery.page.picking') : t('gallery.page.addFile')}
@@ -198,24 +203,6 @@ export function GalleryPage() {
             <Button size="sm" icon={<FolderPlus size={14} />} disabled={pickingDisabled} onClick={() => pickAndAdd('folder')}>
               {picking === 'folder' ? t('gallery.page.picking') : t('gallery.page.addFolder')}
             </Button>
-            <Button
-              size="sm"
-              tone="accent"
-              icon={<Upload size={14} />}
-              onClick={() => fileRef.current?.click()}
-              disabled={uploadsDisabled || uploadingNames.length > 0}
-              title={uploadsDisabled ? t('gallery.page.uploadRelayHint') : undefined}
-            >
-              {uploadingNames.length > 0 ? t('gallery.page.uploading') : t('gallery.page.upload')}
-            </Button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className={styles.hiddenInput}
-              onChange={handleUploadInput}
-            />
           </div>
           {actionError && <p className={styles.uploadError}>{actionError}</p>}
           {sources.length === 0 ? (
@@ -240,9 +227,7 @@ export function GalleryPage() {
                       <Icon size={14} className={styles.sourceIcon} aria-hidden="true" />
                       <span className={styles.sourceName}>{source.name}</span>
                     </div>
-                    {source.kind !== 'upload' && (
-                      <span className={styles.sourcePath}>{source.path}</span>
-                    )}
+                    <span className={styles.sourcePath}>{source.path}</span>
                     <div className={styles.sourceMeta}>
                       <span className={styles.sourceCount}>
                         {t('gallery.page.itemCount', { count: countFor(source.id) })}
@@ -255,6 +240,17 @@ export function GalleryPage() {
                         onClick={() => setPendingDelete(source)}
                       />
                     </div>
+                    {(source.excluded?.length ?? 0) > 0 && (
+                      <button
+                        type="button"
+                        className={styles.excludedChip}
+                        onClick={() => restore(source)}
+                      >
+                        <Undo2 size={12} aria-hidden="true" />
+                        {t('gallery.page.excludedCount', { count: source.excluded.length })}
+                        <span className={styles.excludedRestore}>{t('gallery.page.restore')}</span>
+                      </button>
+                    )}
                   </li>
                 );
               })}
@@ -262,12 +258,12 @@ export function GalleryPage() {
           )}
         </div>
 
-        {/* The entire library card is the drop target, not just the grid. */}
+        {/* The entire library card is the drop target. */}
         <div
           className={`${styles.dropZone} ${dragOver ? styles.dragOver : ''}`}
           onDragOver={e => {
             e.preventDefault();
-            if (!uploadsDisabled) setDragOver(true);
+            setDragOver(true);
           }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
@@ -282,7 +278,7 @@ export function GalleryPage() {
                 compact
                 icon={<ImageIcon size={22} />}
                 title={t('gallery.page.empty')}
-                hint={uploadsDisabled ? undefined : t('gallery.page.dropHint')}
+                hint={t('gallery.page.dropHint')}
               />
             ) : (
               <div className={styles.grid}>
@@ -291,8 +287,6 @@ export function GalleryPage() {
                     key={item.id}
                     className={`${styles.tile} ${hoverSourceId === item.sourceId ? styles.tileHighlight : ''}`}
                     title={item.name}
-                    onMouseEnter={() => setHoverSourceId(item.sourceId)}
-                    onMouseLeave={() => setHoverSourceId(null)}
                   >
                     {thumbs[item.id] ? (
                       <img src={thumbs[item.id]!} alt={item.name} loading="lazy" draggable={false} />
@@ -301,6 +295,14 @@ export function GalleryPage() {
                         <ImageIcon size={20} aria-hidden="true" />
                       </span>
                     )}
+                    <button
+                      type="button"
+                      className={styles.tileRemove}
+                      aria-label={t('gallery.page.removeImage')}
+                      onClick={() => removeItem(item)}
+                    >
+                      <X size={12} aria-hidden="true" />
+                    </button>
                     <figcaption className={styles.tileName}>{item.name}</figcaption>
                   </figure>
                 ))}
@@ -315,9 +317,7 @@ export function GalleryPage() {
         open={pendingDelete !== null}
         title={t('gallery.page.removeSourceTitle')}
         message={t('gallery.page.removeSourceMessage', { name: pendingDelete?.name ?? '' })}
-        note={pendingDelete?.kind === 'upload'
-          ? t('gallery.page.removeUploadNote')
-          : t('gallery.page.removeSourceNote')}
+        note={t('gallery.page.removeSourceNote')}
         confirmLabel={t('gallery.page.remove')}
         onCancel={() => setPendingDelete(null)}
         onConfirm={confirmDelete}

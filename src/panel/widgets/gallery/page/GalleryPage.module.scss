@@ -33,16 +33,18 @@
   min-width: 0;
 }
 
+// Breathing room between the SOURCES header (and its underline) and the
+// add buttons below it.
+.sourcesHeader {
+  margin-bottom: 0.85rem;
+}
+
 .sourceActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
-}
-
-.hiddenInput {
-  display: none;
 }
 
 .uploadError {
@@ -127,6 +129,32 @@
   font-variant-numeric: tabular-nums;
 }
 
+// "N excluded · Restore" — accent-tinted so a trimmed folder stands out;
+// one click puts everything back.
+.excludedChip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--text);
+  font-size: var(--type-mini);
+  cursor: pointer;
+  transition: background var(--ease-fast) ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+}
+
+.excludedRestore {
+  margin-left: auto;
+  color: var(--accent);
+  font-weight: var(--weight-strong);
+}
+
 .libraryCard {
   flex: 1 1 auto;
 }
@@ -168,6 +196,7 @@
 }
 
 .tile {
+  position: relative;
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -182,6 +211,34 @@
     border: 1px solid var(--border);
     background: #000;
     display: block;
+  }
+
+  &:hover .tileRemove {
+    opacity: 1;
+  }
+}
+
+// Per-image remove (folder items go on the exclusion list; single-file
+// sources are dropped). Never deletes anything from disk.
+.tileRemove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #000 65%, transparent);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--ease-fast) ease, background var(--ease-fast) ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--danger, #e5484d) 80%, transparent);
   }
 }
 
@@ -205,7 +262,8 @@
   text-overflow: ellipsis;
 }
 
-// Lit while this image's source card is hovered (and vice versa).
+// Lit while this image's source card is hovered (one-way: image hover
+// deliberately lights nothing up).
 .tileHighlight {
   img,
   .tilePlaceholder {

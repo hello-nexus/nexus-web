@@ -3,8 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GalleryPage } from './GalleryPage';
 
 const mockState = vi.hoisted(() => ({
-  sources: [] as { id: string; kind: string; path: string; name: string; addedAtUnixMs: number }[],
+  sources: [] as { id: string; kind: string; path: string; name: string; addedAtUnixMs: number; excluded: string[] }[],
   items: [] as { id: string; name: string; sourceId: string }[],
+  bridgeAvailable: false,
 }));
 
 vi.mock('../../../../api/gallery', () => ({
@@ -12,15 +13,20 @@ vi.mock('../../../../api/gallery', () => ({
   fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items })),
   addGallerySource: vi.fn(() => Promise.resolve({ source: null })),
   deleteGallerySource: vi.fn(() => Promise.resolve(true)),
+  excludeGalleryItem: vi.fn(() => Promise.resolve(true)),
+  restoreGalleryExclusions: vi.fn(() => Promise.resolve(true)),
   pickGalleryPaths: vi.fn(() => Promise.resolve({ paths: ['/home/user/Pictures'] })),
-  importGalleryImage: vi.fn(() => Promise.resolve({ source: null })),
-  galleryItemThumbUrl: (id: string) => `/gallery/items/${id}/thumbnail`,
   galleryItemFileUrl: (id: string) => `/gallery/items/${id}/file`,
 }));
 
 vi.mock('../../../../api/service', () => ({
   fetchServiceBlob: vi.fn(() => Promise.resolve(null)),
   isRelayActive: vi.fn(() => false),
+}));
+
+vi.mock('../../../../app/windowActions', () => ({
+  postGalleryDrop: vi.fn(() => mockState.bridgeAvailable),
+  subscribeGalleryDropPaths: vi.fn(() => () => {}),
 }));
 
 vi.mock('../../../../hooks/useMultiplexSocket', () => ({
@@ -38,9 +44,18 @@ vi.mock('../../../../lib/i18n', () => {
   return { useTranslation: () => ({ t }) };
 });
 
+function folderSource(id: string, excluded: string[] = []) {
+  return { id, kind: 'folder', path: `/home/user/${id}`, name: id, addedAtUnixMs: 1, excluded };
+}
+
+function fileSource(id: string) {
+  return { id, kind: 'file', path: `/home/user/${id}.png`, name: `${id}.png`, addedAtUnixMs: 1, excluded: [] };
+}
+
 beforeEach(() => {
   mockState.sources = [];
   mockState.items = [];
+  mockState.bridgeAvailable = false;
   vi.clearAllMocks();
 });
 
@@ -52,23 +67,17 @@ describe('GalleryPage', () => {
   });
 
   it('lists sources with derived item counts', async () => {
-    mockState.sources = [
-      { id: 's1', kind: 'folder', path: '/home/user/Pictures', name: 'Pictures', addedAtUnixMs: 1 },
-      { id: 's2', kind: 'upload', path: '/data/gallery/uploads/u1.png', name: 'photo.png', addedAtUnixMs: 2 },
-    ];
+    mockState.sources = [folderSource('Pictures'), fileSource('solo')];
     mockState.items = [
-      { id: 'i1', name: 'a.png', sourceId: 's1' },
-      { id: 'i2', name: 'b.png', sourceId: 's1' },
-      { id: 'i3', name: 'photo.png', sourceId: 's2' },
+      { id: 'i1', name: 'a.png', sourceId: 'Pictures' },
+      { id: 'i2', name: 'b.png', sourceId: 'Pictures' },
+      { id: 'i3', name: 'solo.png', sourceId: 'solo' },
     ];
     render(<GalleryPage />);
 
     expect(await screen.findByText('Pictures')).toBeTruthy();
     expect(screen.getByText('/home/user/Pictures')).toBeTruthy();
     expect(screen.getByText('gallery.page.itemCount:count=2')).toBeTruthy();
-    // Upload rows show the original name, never the internal storage path.
-    expect(screen.getAllByText('photo.png').length).toBeGreaterThan(0);
-    expect(screen.queryByText('/data/gallery/uploads/u1.png')).toBeNull();
   });
 
   it('add-folder opens the native picker and adds the chosen path', async () => {
@@ -82,17 +91,33 @@ describe('GalleryPage', () => {
       expect(vi.mocked(addGallerySource)).toHaveBeenCalledWith('/home/user/Pictures', 'folder'));
   });
 
-  it('add-files passes folder=false and adds every returned path', async () => {
-    const { addGallerySource, pickGalleryPaths } = await import('../../../../api/gallery');
-    vi.mocked(pickGalleryPaths).mockResolvedValueOnce({ paths: ['/p/a.png', '/p/b.png'] });
+  it('removing a folder image excludes it; a file-source image drops the source', async () => {
+    const { deleteGallerySource, excludeGalleryItem } = await import('../../../../api/gallery');
+    mockState.sources = [folderSource('Pictures'), fileSource('solo')];
+    mockState.items = [
+      { id: 'i1', name: 'a.png', sourceId: 'Pictures' },
+      { id: 'i3', name: 'solo.png', sourceId: 'solo' },
+    ];
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('Pictures');
 
-    fireEvent.click(screen.getByText('gallery.page.addFile'));
-    await waitFor(() => expect(vi.mocked(pickGalleryPaths)).toHaveBeenCalledWith(false));
-    await waitFor(() => expect(vi.mocked(addGallerySource)).toHaveBeenCalledTimes(2));
-    expect(vi.mocked(addGallerySource)).toHaveBeenCalledWith('/p/a.png', 'file');
-    expect(vi.mocked(addGallerySource)).toHaveBeenCalledWith('/p/b.png', 'file');
+    const removeButtons = screen.getAllByLabelText('gallery.page.removeImage');
+    fireEvent.click(removeButtons[0]);
+    await waitFor(() => expect(vi.mocked(excludeGalleryItem)).toHaveBeenCalledWith('Pictures', 'i1'));
+    expect(vi.mocked(deleteGallerySource)).not.toHaveBeenCalled();
+
+    fireEvent.click(removeButtons[1]);
+    await waitFor(() => expect(vi.mocked(deleteGallerySource)).toHaveBeenCalledWith('solo'));
+  });
+
+  it('the excluded chip restores in one click', async () => {
+    const { restoreGalleryExclusions } = await import('../../../../api/gallery');
+    mockState.sources = [folderSource('Pictures', ['x1', 'x2'])];
+    render(<GalleryPage />);
+
+    const chip = await screen.findByText('gallery.page.excludedCount:count=2');
+    fireEvent.click(chip);
+    await waitFor(() => expect(vi.mocked(restoreGalleryExclusions)).toHaveBeenCalledWith('Pictures'));
   });
 
   it('a cancelled native dialog adds nothing and shows no error', async () => {
@@ -119,11 +144,32 @@ describe('GalleryPage', () => {
     expect(await screen.findByText('gallery.page.pickFailed')).toBeTruthy();
   });
 
+  it('a drop without the shell bridge shows the desktop-app hint', async () => {
+    render(<GalleryPage />);
+    await screen.findByText('gallery.page.noSources');
+
+    const drop = document.querySelector('[class*=dropZone]')!;
+    fireEvent.drop(drop, { dataTransfer: { files: [new File(['x'], 'a.png')] } });
+
+    expect(await screen.findByText('gallery.page.dropNeedsApp')).toBeTruthy();
+  });
+
+  it('a drop with the shell bridge hands the files over and shows no error', async () => {
+    const { postGalleryDrop } = await import('../../../../app/windowActions');
+    mockState.bridgeAvailable = true;
+    render(<GalleryPage />);
+    await screen.findByText('gallery.page.noSources');
+
+    const drop = document.querySelector('[class*=dropZone]')!;
+    fireEvent.drop(drop, { dataTransfer: { files: [new File(['x'], 'a.png')] } });
+
+    await waitFor(() => expect(vi.mocked(postGalleryDrop)).toHaveBeenCalled());
+    expect(screen.queryByText('gallery.page.dropNeedsApp')).toBeNull();
+  });
+
   it('removing a source asks for confirmation first', async () => {
     const { deleteGallerySource } = await import('../../../../api/gallery');
-    mockState.sources = [
-      { id: 's1', kind: 'file', path: '/home/user/a.png', name: 'a.png', addedAtUnixMs: 1 },
-    ];
+    mockState.sources = [fileSource('a')];
     render(<GalleryPage />);
     await screen.findByText('a.png');
 
@@ -134,6 +180,6 @@ describe('GalleryPage', () => {
     const confirmBtn = screen.getAllByRole('button').find(b =>
       b.textContent === 'gallery.page.remove' && !b.getAttribute('aria-label'));
     fireEvent.click(confirmBtn!);
-    await waitFor(() => expect(vi.mocked(deleteGallerySource)).toHaveBeenCalledWith('s1'));
+    await waitFor(() => expect(vi.mocked(deleteGallerySource)).toHaveBeenCalledWith('a'));
   });
 });
