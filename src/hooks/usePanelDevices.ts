@@ -56,14 +56,15 @@ const EXTERNAL_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
 
 // User-promoted OS monitors hosting a kiosk. Layout + theme edit like any
 // panel; no Y70 hardware controls (those are serial/DDC Y70-specific).
-const HOSTED_MONITOR_CAPABILITIES: PanelDeviceCapabilities = {
+// `touch` is per-device — stamped from the record (Windows pointer-device
+// association at promote time).
+const HOSTED_MONITOR_CAPABILITIES: Omit<PanelDeviceCapabilities, 'touch'> = {
   layout: true,
   theme: true,
   displayControls: false,
   launchClose: false,
   pairing: false,
   presence: false,
-  touch: false,
 };
 
 const WIDGET_PANEL_PROFILES: Partial<Record<string, {
@@ -247,7 +248,7 @@ function buildPanelDevices({
       runtimeSurface: (record.capabilities?.surface as PanelSurface | undefined) ?? 'monitor',
       previewSize: cssWidth > 0 && cssHeight > 0 ? { width: cssWidth, height: cssHeight } : undefined,
       iconSrc: PANEL_MONITOR_ICON,
-      capabilities: HOSTED_MONITOR_CAPABILITIES,
+      capabilities: { ...HOSTED_MONITOR_CAPABILITIES, touch: record.capabilities?.touch ?? false },
       modalKind: 'panel-editor',
     });
   }

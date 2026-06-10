@@ -25,6 +25,8 @@ export type SheetMode = 'catalog' | 'settings' | 'panelSettings';
 export function PanelEditorSheet({
   mode,
   surface,
+  deviceTouch,
+  dock,
   editingWidget,
   panelTheme,
   gridColumns,
@@ -64,6 +66,13 @@ export function PanelEditorSheet({
 }: {
   mode: SheetMode;
   surface: PanelSurface;
+  // Per-device touch capability (promoted monitors) for catalog/size gating.
+  deviceTouch?: boolean;
+  // 'right' forces the desktop-style right-side slideout regardless of the
+  // panel surface — used by the device pages, which render in desktop chrome
+  // while the catalog stays filtered by the panel's own surface. Default
+  // keeps the surface-driven behavior (bottom sheet on narrow panels).
+  dock?: 'right';
   editingWidget: PanelWidget | null;
   panelTheme: PanelThemeState;
   gridColumns: number;
@@ -111,7 +120,7 @@ export function PanelEditorSheet({
   const Settings = def?.Settings;
   const isMonitoringWidget = editingWidget?.type === 'monitoring';
   const usesSlotSelection = !!def?.meta.usesSlotSelection;
-  const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface) : [];
+  const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface, deviceTouch) : [];
   const slotCountOptions = editingWidget && isMonitoringWidget ? slotCountOptionsForSize(editingWidget.size) : [];
   const slotCount = editingWidget && isMonitoringWidget
     ? resolvedSlotCountForSize(editingWidget.size, editingWidget.config?.slotCount as number | undefined)
@@ -186,6 +195,7 @@ export function PanelEditorSheet({
       data-mode={mode}
       data-state={closing ? 'closing' : 'open'}
       data-surface={surface}
+      data-dock={dock}
       data-theme={resolvedThemeMode}
       style={editorStyle}
       onClick={onClose}
@@ -210,6 +220,7 @@ export function PanelEditorSheet({
         {mode === 'catalog' && (
           <PanelWidgetCatalog
             surface={surface}
+            deviceTouch={deviceTouch}
             onAdd={onAdd}
             // The on-device phone panel is itself the remote session, so hide
             // local-only widgets (pairing QR) there.

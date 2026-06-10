@@ -237,6 +237,7 @@
   "devices.panels.phone": "Phone or tablet panel",
   "devices.panels.prevPage": "Previous page",
   "devices.panels.running": "Running",
+  "devices.panels.selectHint": "Select a widget on the preview to edit it, or add a new one.",
   "devices.panels.simulated": "Simulated test panel",
   "devices.panels.simulatedSuffix": " (Simulated)",
   "devices.peripheral.category": "Type",

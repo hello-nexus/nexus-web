@@ -34,13 +34,30 @@
   overflow: hidden;
 }
 
-.leftPane {
-  flex: 1;
+// Contextual pane on the RIGHT of the preview: Add Widget entry + inline
+// widget settings on the widgets tab, theme / settings stacks otherwise.
+.rightPane {
+  flex: 0 0 380px;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+}
+
+.widgetsPane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.addWidgetBtn {
+  align-self: stretch;
+}
+
+.widgetsHint {
+  color: var(--text-dim);
+  font-size: var(--type-small);
 }
 
 // Preview pane reserves a minimum horizontal slot so the panel canvas
@@ -50,7 +67,9 @@
 // iframe's initial scale (0.35) — content never grows. Stretching to row
 // height first, then capping with max-height, breaks that self-reference.
 .previewPane {
-  flex: 0 0 auto;
+  // Preview leads the row and claims the remaining width; the contextual
+  // pane on its right is fixed-width.
+  flex: 1;
   min-width: 360px;
   height: 100%;
   display: flex;

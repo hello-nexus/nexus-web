@@ -9,7 +9,11 @@ export type PanelSurface = 'y70' | 'q60' | 'phone' | 'desktop' | 'monitor';
 
 // Whether a surface accepts direct pointer input. Q60 is display-only;
 // desktop, phone, Y70 support interactive widget controls (desktop via mouse).
-export function surfaceSupportsTouch(surface: PanelSurface): boolean {
+// 'monitor' is per-DEVICE: a promoted monitor is interactive only when an
+// integrated touch digitizer targets it (capabilities.touch on its record);
+// plain monitors are glanceable displays like the Q-series.
+export function surfaceSupportsTouch(surface: PanelSurface, deviceTouch?: boolean): boolean {
+  if (surface === 'monitor') return deviceTouch === true;
   return surface !== 'q60';
 }
 
