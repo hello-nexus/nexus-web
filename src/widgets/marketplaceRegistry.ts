@@ -22,7 +22,6 @@ export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
   'com.hellonexus.displays',
   'com.hellonexus.clock',
   'com.hellonexus.media',
-  'com.hellonexus.appcontrol',
 ]);
 
 export function isMarketplaceIdEnabled(id: string): boolean {
