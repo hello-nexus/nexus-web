@@ -1,7 +1,7 @@
 import { lazy } from 'react';
-import { BarChart } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { ScreentimeWidget } from './ScreentimeWidget';
+import { ScreenTimeIcon } from './screentimeIcon';
 
 // Code-split: Page only loads when the dashboard navigates into it. Widget
 // stays eager so panel cells render synchronously and the panel bundle never
@@ -12,7 +12,7 @@ export const screentimeApp: AppManifest = {
   meta: {
     type: 'screentime',
     i18nKey: 'panel.widget.screentime',
-    icon: BarChart,
+    icon: ScreenTimeIcon,
     sizes: ['2x2', '2x4', '4x2', '4x4'],
     defaultSize: '4x2',
     supportsImmersive: { portrait: true, landscape: false },

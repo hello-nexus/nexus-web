@@ -1,8 +1,9 @@
 import { type ReactNode } from 'react';
 import {
-  Activity, BarChart, LayoutDashboard, Lightbulb, Fan, Settings,
+  Activity, LayoutDashboard, Lightbulb, Fan, Settings,
   Usb, Wrench, Gauge, Users, LampCeiling,
 } from 'lucide-react';
+import { ScreenTimeIcon } from '../panel/widgets/screentime/screentimeIcon';
 
 export const ICON_SIZE = 18;
 
@@ -14,7 +15,7 @@ export const PORTAL_NAV_KEYS: readonly ('builder' | 'benchmark' | 'community')[]
 export const NAV_ICONS: Record<string, ReactNode> = {
   dashboard:  <LayoutDashboard size={ICON_SIZE} />,
   monitoring: <Activity size={ICON_SIZE} />,
-  screentime: <BarChart size={ICON_SIZE} />,
+  screentime: <ScreenTimeIcon size={ICON_SIZE} />,
   lighting:   <Lightbulb size={ICON_SIZE} />,
   'smart-lights': <LampCeiling size={ICON_SIZE} />,
   cooling:    <Fan size={ICON_SIZE} />,
