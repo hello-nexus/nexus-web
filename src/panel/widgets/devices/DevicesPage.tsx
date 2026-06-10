@@ -239,6 +239,7 @@ const FW_ICONS: Record<string, string> = {
   y70: '/assets/devices/y70.svg',
   'fan-hub': '/assets/devices/fan-hub.svg',
   np50: '/assets/devices/fan-hub.svg',
+  smarthub: '/assets/devices/fan-hub.svg',
 };
 const FW_FALLBACK_ICON = '/assets/devices/device.svg';
 

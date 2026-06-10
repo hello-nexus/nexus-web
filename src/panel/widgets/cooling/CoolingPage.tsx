@@ -1348,6 +1348,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   const deviceName =
                     key.startsWith('np50:') ? 'HYTE NP50'
                     : key.startsWith('minihub:') ? 'iBUYPOWER MiniHub'
+                    : key.startsWith('smarthub:') ? 'HYTE SmartHub'
                     : key;
                   blocks.push(
                     <div key={`${key}-hdr`} className={styles.deviceGroupHeader}>
