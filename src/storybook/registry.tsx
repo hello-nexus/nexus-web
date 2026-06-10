@@ -54,6 +54,18 @@ import { SurfaceStyles } from './SurfaceStyles';
 import { MicroBar } from '../panel/widgets/monitoring/MicroBar';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
+import { SettingToggle } from '../components/common/SettingRow/SettingRow';
+import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
+import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
+import { AboutModal } from '../components/common/AboutModal/AboutModal';
+import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
+import { NexusAppIcon } from '../components/icons/NexusAppIcon';
+import { PanelArrowButton } from '../panel/PanelArrowButton';
+import { PanelPageIndicator } from '../panel/PanelPageIndicator';
+import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
+import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
+import { IconPicker } from '../panel/widgets/common/IconPicker';
+import type { DeckIcon } from '../panel/widgets/deck/types';
 // Side-effect: pulls the global `.panel-root { --panel-*: … }` token rules into
 // the Storybook bundle so the panel-scoped preview below resolves its vars.
 // Idempotent — PanelDevicePage imports the same sheet.
@@ -815,6 +827,106 @@ function PreviewPanelThemeSettings() {
   );
 }
 
+function PreviewSettingRow() {
+  const [startup, setStartup] = useState(true);
+  const [beta, setBeta] = useState(false);
+  return (
+    <div style={{ width: '100%' }}>
+      <SettingToggle label="Run at startup" description="Launch Nexus when you sign in"
+        checked={startup} onChange={setStartup} />
+      <SettingToggle label="Beta updates" checked={beta} onChange={setBeta} disabled />
+    </div>
+  );
+}
+
+function PreviewServiceLaunchButton() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <ServiceLaunchButton />
+      <ServiceLaunchButton iconOnly />
+    </div>
+  );
+}
+
+// Placeholder QR pattern; the real feed mints a PNG data URL per token.
+const STUB_QR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 7 7">'
+  + '<rect width="7" height="7" fill="white"/>'
+  + '<path fill="black" d="M0 0h3v3H0zM1 1h1v1H1zM4 0h3v3H4zM5 1h1v1H5zM0 4h3v3H0zM1 5h1v1H1zM4 4h1v1H4zM6 4h1v1H6zM5 5h1v1H5zM4 6h1v1H4zM6 6h1v1H6z"/>'
+  + '</svg>');
+
+function PreviewPairingQr() {
+  const [now] = useState(() => Date.now());
+  return <PairingQrView qrDataUrl={STUB_QR} expiresAt={now + 90_000} loading={false} now={now} />;
+}
+
+function PreviewAboutModal() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        Open About
+      </button>
+      <AboutModal open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+function PreviewBrand() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <NexusMark size={40} />
+      <NexusWordmark height={22} />
+    </div>
+  );
+}
+
+function PreviewAppIcon() {
+  return <NexusAppIcon size={48} />;
+}
+
+function PreviewPanelArrowButtons() {
+  return (
+    <div style={{ position: 'relative', height: 72, width: '100%' }}>
+      <PanelArrowButton side="prev" onClick={() => {}} ariaLabel="Previous page" />
+      <PanelArrowButton side="next" onClick={() => {}} ariaLabel="Next page" />
+    </div>
+  );
+}
+
+function PreviewPanelPageIndicator() {
+  const [page, setPage] = useState(0);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+      <PanelPageIndicator total={4} active={page} visibilityToken={page} />
+      <button type="button" className={styles.previewBtn} onClick={() => setPage(p => (p + 1) % 4)}>
+        Next page
+      </button>
+    </div>
+  );
+}
+
+function PreviewWidgetCellLabel() {
+  return <WidgetCellLabel label="Cooling" />;
+}
+
+function PreviewSizeIcons() {
+  return (
+    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      {Object.entries(SIZE_ICONS).map(([size, Icon]) => <Icon key={size} aria-label={size} />)}
+    </div>
+  );
+}
+
+function PreviewIconPicker() {
+  const [icon, setIcon] = useState<DeckIcon | undefined>({ kind: 'lucide', value: 'Rocket' });
+  return (
+    <div style={{ width: '100%', maxWidth: 320 }}>
+      <IconPicker value={icon} onChange={setIcon} />
+    </div>
+  );
+}
+
 /* ── Registry ────────────────────────────────────────────────────────────── */
 
 export const REGISTRY: StorybookEntry[] = [
@@ -832,6 +944,18 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Canonical spacing, radius, shadow, blur, and opacity tokens. Reach for these instead of raw px/rem or one-off rgba alphas. Five opacity tiers cover ~80% of the literal alphas the codebase used to scatter.',
     Preview: SurfaceStyles,
     fullWidth: true,
+  },
+  {
+    name: 'Brand (NexusMark / NexusWordmark)', category: 'foundation',
+    filePath: 'src/components/icons/NexusBrand.tsx',
+    description: 'The interlocking-N mark and NEXUS wordmark as currentColor SVGs traced from the brand art. size / height props govern rendered dimensions directly (viewBoxes are tight to the visible bbox).',
+    Preview: PreviewBrand,
+  },
+  {
+    name: 'NexusAppIcon', category: 'foundation',
+    filePath: 'src/components/icons/NexusAppIcon.tsx',
+    description: 'App-tile icon: rounded-square accent surface with the bolt mark. boltFill overrides the punch-through color for non-dark surfaces.',
+    Preview: PreviewAppIcon,
   },
   // ── Inputs ────────────────────────────────────────────────────────────
   {
@@ -899,6 +1023,14 @@ export const REGISTRY: StorybookEntry[] = [
     Preview: PreviewButtonMatrix,
     fullWidth: true,
     notes: 'Reach for size="md" tone="neutral" for tertiary actions. tone="accent" for primary CTAs. tone="danger" for destructive. tone="ghost" when bordered chrome would compete with adjacent UI.',
+  },
+
+  {
+    name: 'SettingRow / SettingToggle / SettingSelect', category: 'inputs',
+    filePath: 'src/components/common/SettingRow/SettingRow.tsx',
+    description: 'Canonical settings row: label (+ optional description / icon) left, control right. The one settings row for the whole app (Settings pages, lighting/keeb pages, panel editor sheet, device Settings tab); the panel SettingsRow re-exports it. SettingToggle and SettingSelect bundle the matching control.',
+    Preview: PreviewSettingRow,
+    notes: 'Token fallbacks (--panel-* → app globals) keep it correct inside .panel-root and on the dashboard. No per-row divider — rules belong to SectionHeader.',
   },
 
   // ── Editable text ─────────────────────────────────────────────────────
@@ -973,7 +1105,7 @@ export const REGISTRY: StorybookEntry[] = [
   },
   {
     name: 'EffectControls', category: 'inputs',
-    filePath: 'src/components/views/lighting/EffectControls.tsx',
+    filePath: 'src/panel/widgets/lighting/page/EffectControls.tsx',
     description: 'Animate effect editor shared by the Lighting right-pane Effect tab and fullscreen drawer. Combines EffectTemplateSelector, PaletteRing, shader sliders, and reset behavior for a selected effect.', Preview: PreviewEffectControls,
     notes: 'View-level component intentionally cataloged because it has two live mount points and is the canonical animate preset/editor composition.',
   },
@@ -999,6 +1131,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/EffectCard/EffectCard.tsx',
     description: 'The one shared thumbnail card: lighting shader browser, panel Theme animation picker, and media library all use it. overlay=true gives a full-bleed thumbnail with the label stroked over the lower third (both shader pickers); default layout is thumbnail-above-caption with optional meta line + hover-reveal delete X (media library).', Preview: PreviewEffectCard,
     notes: 'Pass overlay for the full-bleed label-on-thumbnail shader-picker layout. Pass asDiv when the card contains a nested button (CardDeleteButton) - nested buttons are invalid HTML. thumbUrl=null renders a shimmer skeleton.',
+  },
+  {
+    name: 'DeviceCanvas', category: 'cards',
+    filePath: 'src/components/common/DeviceCanvas/DeviceCanvas.tsx',
+    description: 'Free-arrange device canvas for the Lighting view: drag-position device tiles, marquee multi-select, per-device LED preview driven by the live shader effect, right-click DeviceContextMenu.',
+    notes: 'No live preview - needs live device geometry, LED maps, and shader state.',
   },
 
   // ── Modals ────────────────────────────────────────────────────────────
@@ -1031,6 +1169,12 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Fullscreen device catalogue browser with search + pagination + highlight of currently-detected VID/PIDs. Used by Devices and Lighting views to surface the supported hardware list.', Preview: PreviewSupportedDevicesModal,
     notes: 'source="peripherals" | "lighting" selects which catalogue to load. Pass detectedVidPids to mark already-connected devices.',
   },
+  {
+    name: 'AboutModal', category: 'modals',
+    filePath: 'src/components/common/AboutModal/AboutModal.tsx',
+    description: 'Lightweight "About Nexus" dialog opened from the top-bar "..." menu. Brand mark + wordmark, build version, link to hellonexus.com. Composes Overlay (alert variant, Enter/Esc close).',
+    Preview: PreviewAboutModal,
+  },
 
   // ── Charts ────────────────────────────────────────────────────────────
   {
@@ -1052,7 +1196,7 @@ export const REGISTRY: StorybookEntry[] = [
 
   {
     name: 'UsageBar', category: 'charts',
-    filePath: 'src/components/common/UsageBar/UsageBar.tsx:7',
+    filePath: 'src/components/common/UsageBar/UsageBar.tsx',
     description: 'Simple single-color usage bar. Accepts a 0-1 fraction and an optional color override. Used in the Monitoring dashboard for RAM and storage utilization.',
     Preview: () => (
       <div className={styles.previewBarStack}>
@@ -1066,7 +1210,7 @@ export const REGISTRY: StorybookEntry[] = [
 
   {
     name: 'CapacityBar', category: 'charts',
-    filePath: 'src/components/common/CapacityBar/CapacityBar.tsx:18',
+    filePath: 'src/components/common/CapacityBar/CapacityBar.tsx',
     description: 'Three-segment capacity bar: other usage (muted border-strong), accent slice (accent color), available (track background).',
     Preview: () => (
       <CapacityBar
@@ -1096,6 +1240,18 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Bordered segmented-group variant of the same Tabs primitive. One shared border around the whole bar, accent-soft fill on the active segment. Used for in-page secondary toggles (ScreenTime day/week/month/app). Set variant="pill" on Tabs to activate.', Preview: PreviewTabsPill,
     notes: 'Same component as the underline variant - pass variant="pill" to render this chrome.',
   },
+  {
+    name: 'Sidebar', category: 'navigation',
+    filePath: 'src/components/common/Sidebar/Sidebar.tsx',
+    description: 'Main app navigation column: drag-to-reorder nav rows, compact (icon-only) mode, service status shield, bottom-pinned Settings. SidebarNavButton reuses the exact row chrome for one-off entries.',
+    notes: 'No live preview - needs DnD context, service state, and profile store.',
+  },
+  {
+    name: 'ProfileDropdown', category: 'navigation',
+    filePath: 'src/components/common/ProfileDropdown/ProfileDropdown.tsx',
+    description: 'Profile picker with create / import / export actions. sidebar and avatar variants; compact mode collapses to the avatar disc.',
+    notes: 'No live preview - bound to the profiles store and save API.',
+  },
 
   // ── Status ────────────────────────────────────────────────────────────
   {
@@ -1112,6 +1268,26 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'BatteryBar (low)', category: 'status',
     filePath: 'src/components/peripherals/BatteryBar.tsx',
     description: 'Low-battery (<20%) tone variant.', Preview: PreviewBatteryBarLow,
+  },
+  {
+    name: 'ServiceLaunchButton', category: 'status',
+    filePath: 'src/components/common/ServiceLaunchButton/ServiceLaunchButton.tsx',
+    description: 'Launch-the-local-service button with a shared module-level launching state: clicking any instance spins them all and tightens the status poll until the service binds the port (10s timeout). iconOnly variant for the compact sidebar wraps itself in HoverTooltip.',
+    Preview: PreviewServiceLaunchButton,
+    notes: 'Clicking in Storybook triggers a real launch attempt against the local service endpoint.',
+  },
+  {
+    name: 'PairingQrView', category: 'status',
+    filePath: 'src/components/common/PairingQr/PairingQrView.tsx',
+    description: 'Shared pairing-QR pane: white QR square with a fade-from-white reveal on each re-mint, plus a countdown that flashes in the final 5s. Pure presentation - the caller owns minting via usePairingQrFeed. Used by the Pair-remote modal QR tab and the 2x2 pairing widget so both render identically. PairingOffState is the companion "pairing disabled" pane.',
+    Preview: PreviewPairingQr,
+    notes: 'Preview is frozen (static now prop), so the countdown does not tick. variant="card" renders the smaller in-widget layout.',
+  },
+  {
+    name: 'OpenInAppBanner', category: 'status',
+    filePath: 'src/components/common/OpenInAppBanner/OpenInAppBanner.tsx',
+    description: 'Mobile-only banner offering to open the current page in the native app via the hellonexus:// scheme. Detects platform, remembers dismissal per version suffix.',
+    notes: 'No live preview - renders null outside a mobile browser context.',
   },
 
   // ── Panel kit ─────────────────────────────────────────────────────────
@@ -1176,5 +1352,73 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Per-panel theme editor (Widgets / Theme / Accent / Background) shown in the Y70 touch editor sheet and the dashboard device Settings tab. Section headers match the Y70 device Settings (.device-modal-section): uppercase, --type-small / --weight-heading, with a full-width rule underneath.',
     Preview: PreviewPanelThemeSettings,
     notes: 'Preview is in solid background mode; switching to Animations hits the live thumbnail service, so the grid is empty in Storybook.',
+  },
+  {
+    name: 'PanelArrowButton', category: 'panel-kit',
+    filePath: 'src/panel/PanelArrowButton.tsx',
+    description: 'Naked chevron nav arrow shared by the cooling/lighting widgets and the panel device-page preview. Absolutely positioned by data-side; the caller\'s container must be position: relative.',
+    Preview: PreviewPanelArrowButtons,
+    notes: 'Pass a caller class for per-surface size/position tweaks - the base look stays in the shared module.',
+  },
+  {
+    name: 'PanelPageIndicator', category: 'panel-kit',
+    filePath: 'src/panel/PanelPageIndicator.tsx',
+    description: 'Fading dot page indicator. Un-fades for 1.5s whenever visibilityToken or the active page changes, then fades back out. Renders nothing when total <= 1.',
+    Preview: PreviewPanelPageIndicator,
+    notes: 'Click "Next page" to bump the token and watch the un-fade cycle.',
+  },
+  {
+    name: 'PanelPager', category: 'panel-kit',
+    filePath: 'src/panel/PanelPager.tsx',
+    description: 'Horizontal swipeable pager container: edge-swipe gesture handling, per-page render callback, momentum snapping. Hosts the panel page grid and the immersive overlay pages.',
+    notes: 'No live preview - owns pointer-gesture state and needs page content to mean anything.',
+  },
+  {
+    name: 'WidgetCellLabel', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/WidgetCellLabel.tsx',
+    description: 'iOS-style centered label rendered below a widget cell or catalog tile. Strip height is owned by the panel root via --panel-widget-label-strip so cells and labels stay aligned on both surfaces.',
+    Preview: PreviewWidgetCellLabel,
+  },
+  {
+    name: 'SizeIcons', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/SizeIcons.tsx',
+    description: 'SIZE_ICONS record: one glyph per widget size (1x1 ... 4x4) used by the size selector in widget settings and the context menu resize row.',
+    Preview: PreviewSizeIcons,
+  },
+  {
+    name: 'IconPicker', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/IconPicker.tsx',
+    description: 'Auto / Icons / Emoji tabbed picker for deck-button glyphs. Searches the lucide deck set, browses the emoji categories, Auto derives from the action or app. Returns a DeckIcon or undefined (auto).',
+    Preview: PreviewIconPicker,
+  },
+  {
+    name: 'WidgetEditSheet', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/WidgetEditSheet.tsx',
+    description: 'Anchored edit sheet for widget settings: positions itself beside the widget cell (flipping to fit the viewport), hosts the widget\'s settings pane + size selector.',
+    notes: 'No live preview - anchors to a real widget cell and edits live panel config.',
+  },
+  {
+    name: 'ImmersiveLayout / ImmersiveCell', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/ImmersiveLayout.tsx',
+    description: 'Layout grid for a widget\'s fullscreen immersive page: cellsPerPage adapts to the panel orientation (2 stacked on portrait, 2 side-by-side on landscape, 3 on Y70 portrait). ImmersiveCell wraps each region.',
+    notes: 'No live preview - sized by the immersive overlay surface.',
+  },
+  {
+    name: 'WidgetTouchView (makeWidgetTouchView)', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/WidgetTouchView.tsx',
+    description: 'Generic immersive wrapper for widgets without a custom fullscreen layout: renders the widget at 4x4 inside a single ImmersiveLayout cell, centered in portrait, column-filling in landscape.',
+    notes: 'No live preview - HOC over a live widget component.',
+  },
+  {
+    name: 'WidgetControlGroup', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/WidgetControlGroup.tsx',
+    description: 'Bordered group frame for related controls inside a widget (e.g. media transport cluster). Pure layout chrome over panel tokens.',
+    notes: 'No live preview - composition shell; see PanelMixerSlider for the framed-control look.',
+  },
+  {
+    name: 'AdvancedModeSettings', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/AdvancedModeSettings.tsx',
+    description: 'Per-widget "advanced mode" toggle used by the lighting + cooling widgets. widget.config.advancedMode overrides the global ui.widgetAdvancedMode; resolveAdvancedMode handles the fallback.',
+    notes: 'No live preview - reads and writes live widget config.',
   },
 ];

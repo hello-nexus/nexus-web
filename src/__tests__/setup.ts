@@ -15,6 +15,14 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
+// Stub ResizeObserver for jsdom (StackedChart and other width-tracking components)
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+
 // Clear localStorage between tests
 afterEach(() => {
   localStorage.clear();
