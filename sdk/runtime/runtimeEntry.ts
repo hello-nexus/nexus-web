@@ -18,7 +18,6 @@ import * as UI from './ui';
 import * as SDK from './sdk';
 
 declare global {
-  // eslint-disable-next-line no-var
   var __nexusRuntime: {
     React: typeof React;
     JsxRuntime: typeof JsxRuntime;
