@@ -3,6 +3,8 @@ import { LampCeiling } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { fetchSmartLights, type SmartLight } from '../../../api/smartLights';
 import type { WidgetProps } from '../types';
+import { usePanelPreview } from '../common/PanelPreviewContext';
+import { SMART_LIGHTS_PREVIEW } from './smartLightsPreviewData';
 import styles from './SmartLightsWidget.module.scss';
 
 const REFRESH_MS = 15_000;
@@ -14,10 +16,12 @@ const REFRESH_MS = 15_000;
  */
 export function SmartLightsWidget({ widget, onSectionNavigate }: WidgetProps) {
   const { t } = useTranslation();
-  const [devices, setDevices] = useState<SmartLight[]>([]);
+  const preview = usePanelPreview();
+  const [devices, setDevices] = useState<SmartLight[]>(preview ? SMART_LIGHTS_PREVIEW : []);
   const compact = widget.size === '2x2';
 
   useEffect(() => {
+    if (preview) return;
     let cancelled = false;
     const load = () => {
       void fetchSmartLights().then(res => {
@@ -28,7 +32,7 @@ export function SmartLightsWidget({ widget, onSectionNavigate }: WidgetProps) {
     load();
     const timer = window.setInterval(load, REFRESH_MS);
     return () => { cancelled = true; window.clearInterval(timer); };
-  }, []);
+  }, [preview]);
 
   const total = devices.length;
   const online = devices.filter(d => d.online).length;

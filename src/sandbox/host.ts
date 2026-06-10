@@ -20,6 +20,9 @@ export interface SandboxContext {
   /** Which surface this worker drives: 'cell' (panel tile) or 'page' (expanded
    *  full view). Passed straight through to the worker's mount; default 'cell'. */
   surface?: 'cell' | 'page';
+  /** Catalog preview: net.fetch is refused; sensors stay live (local store,
+   *  zero I/O). The app branches via the SDK's usePreview(). */
+  preview?: boolean;
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;
@@ -115,6 +118,10 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
       const req = (d.payload ?? {}) as { url?: string; method?: string; headers?: Record<string, string>; body?: string };
       const id = d.id;
       if (!req.url) return;
+      if (context.preview) {
+        worker.postMessage({ type: 'nexus.reply', id, error: { code: -32002, message: 'unavailable in preview' } });
+        return;
+      }
       void proxyFetch(context.widgetId, { url: req.url, method: req.method, headers: req.headers, body: req.body }, context.netFetch ?? [])
         .then((result) => worker.postMessage({ type: 'nexus.reply', id, result }))
         .catch((err: unknown) => worker.postMessage({ type: 'nexus.reply', id, error: { code: -32001, message: String(err) } }));
@@ -129,7 +136,7 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
   // matches the native sensor surface.
   worker.postMessage({
     type: 'nexus.welcome',
-    payload: { widgetId: context.widgetId, netFetch: context.netFetch ?? [], settings: context.settings ?? {} },
+    payload: { widgetId: context.widgetId, netFetch: context.netFetch ?? [], settings: context.settings ?? {}, preview: !!context.preview },
   });
 
   const receiver = new RemoteReceiver({ retain, release });

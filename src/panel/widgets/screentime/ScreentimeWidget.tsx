@@ -1,6 +1,8 @@
 import { useScreenTime } from '../../../hooks/useScreenTime';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
+import { usePanelPreview } from '../common/PanelPreviewContext';
+import { SCREENTIME_PREVIEW } from './screentimePreviewData';
 import styles from './ScreentimeWidget.module.scss';
 
 function formatHm(ms: number): string {
@@ -14,7 +16,10 @@ function formatHm(ms: number): string {
 
 export function ScreentimeWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
-  const { focus, history } = useScreenTime();
+  const preview = usePanelPreview();
+  // Hook stays mounted (store read only, no network); preview overrides data.
+  const live = useScreenTime();
+  const { focus, history } = preview ? SCREENTIME_PREVIEW : live;
 
   const totalMs = history.reduce((sum, app) => sum + app.totalMs, 0);
   const top = history.slice().sort((a, b) => b.totalMs - a.totalMs).slice(0, 4);

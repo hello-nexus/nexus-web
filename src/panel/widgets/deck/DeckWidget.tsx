@@ -7,14 +7,18 @@ import { innerGridForSize, readDeckConfig, resolveViewSlots, padSlots, swapSlots
 import { executeDeckAction } from './deckExecutor';
 import { useDeckLiveState } from './useDeckState';
 import { autoIconName, deckCategory, categoryColor } from './deckIcons';
+import { usePanelPreview } from '../common/PanelPreviewContext';
+import { DECK_PREVIEW_CONFIG } from './deckPreviewData';
 import type { DeckAction, DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
 export function DeckWidget({ widget, selectedSlot, onSelectSlot, editView, onEditViewChange, onUpdate }: WidgetProps) {
-  const deck = readDeckConfig(widget);
+  const preview = usePanelPreview();
+  const parsed = readDeckConfig(widget);
+  const deck = preview && parsed.slots.length === 0 ? DECK_PREVIEW_CONFIG : parsed;
   const { cols, rows, count } = innerGridForSize(widget.size);
   const editing = typeof onSelectSlot === 'function';
-  const live = useDeckLiveState(deck, !editing);
+  const live = useDeckLiveState(deck, !editing && !preview);
   const [internalFolder, setInternalFolder] = useState<number[]>([]);
   const [flips, setFlips] = useState<Record<string, boolean>>({});
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));

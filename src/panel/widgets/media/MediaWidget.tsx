@@ -12,7 +12,9 @@ import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import type { WidgetProps } from '../types';
 import { surfaceSupportsTouch } from '../../types';
 import { PanelMixerSlider } from '../common/PanelMixerSlider';
+import { usePanelPreview } from '../common/PanelPreviewContext';
 import { mediaArtSignature } from './mediaArt';
+import { MEDIA_PREVIEW } from './mediaPreviewData';
 import styles from './MediaWidget.module.scss';
 
 interface MediaArtAsset {
@@ -38,23 +40,26 @@ function VolumeIcon({ volume, muted }: { volume: number; muted: boolean }) {
 
 export function MediaWidget({ widget, surface }: WidgetProps) {
   const { t } = useTranslation();
-  const { sessions } = useMedia(true);
+  const preview = usePanelPreview();
+  const { sessions } = useMedia(!preview);
   const [artAsset, setArtAsset] = useState<MediaArtAsset>({ key: '', signature: '', url: '' });
   const showControls = surface ? surfaceSupportsTouch(surface) : true;
   const compact = widget.size === '2x2';
   const tall = widget.size === '2x4';
   // Tall (2x4) is a portrait card (art over centered metadata +
   // controls) with no room for the persistent volume mixer rail.
-  const volumeBridge = useSystemVolume(showControls && !compact && !tall);
-  const { state: volume, previewVolume, commitVolume, setMuted } = volumeBridge;
+  const volumeBridge = useSystemVolume(showControls && !compact && !tall && !preview);
+  const { state: liveVolume, previewVolume, commitVolume, setMuted } = volumeBridge;
+  const volume = preview ? MEDIA_PREVIEW.volume : liveVolume;
 
-  const active = pickActive(sessions);
+  const active = preview ? MEDIA_PREVIEW.active : pickActive(sessions);
   const activeKey = active?.key ?? '';
   const artSignature = mediaArtSignature(active?.session);
   const showVolume = showControls && !compact && !tall && volume.supported;
   const artUrl = artAsset.key === activeKey && artAsset.signature === artSignature ? artAsset.url : '';
 
   useEffect(() => {
+    if (preview) return;
     if (!activeKey || compact) return;
     let cancelled = false;
     let blobUrl: string | null = null;
@@ -75,7 +80,7 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
       cancelled = true;
       if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
-  }, [activeKey, artSignature, compact]);
+  }, [preview, activeKey, artSignature, compact]);
 
   const control = (action: string) => {
     if (!active) return;

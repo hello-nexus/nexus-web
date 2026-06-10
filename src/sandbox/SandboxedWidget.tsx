@@ -24,6 +24,9 @@ export interface SandboxedWidgetProps {
   /** Which surface to render: 'cell' (panel tile, default) or 'page' (expanded
    *  full view). The page is a separate worker render of the same bundle. */
   surface?: 'cell' | 'page';
+  /** Catalog preview — host I/O stubbed (persistLocal no-op, dispatch resolves
+   *  { ok: false }); the app branches via the SDK's usePreview(). */
+  preview?: boolean;
   /** Host dispatch for gated control/host actions; returns the dispatch envelope. */
   onDispatch?: (action: string, args?: Record<string, unknown>) => Promise<unknown>;
 }
@@ -46,11 +49,12 @@ interface LiveWidget { handle: SandboxHandle; disposeTimer: ReturnType<typeof se
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
 
-export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, onDispatch }: SandboxedWidgetProps) {
+export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch }: SandboxedWidgetProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   // Cache key includes the surface so a widget's cell and page workers (separate
-  // renders of the same bundle) never collide.
-  const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}`;
+  // renders of the same bundle) never collide; ':preview' keeps a preview worker
+  // from ever being reused for a live mount.
+  const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}${preview ? ':preview' : ''}`;
   // Seed from the keep-alive cache synchronously: on a remount (edit-sheet open/
   // close re-parents the cell) the live worker already exists, so the FIRST
   // render shows the tree — no blank frame / flicker.
@@ -78,17 +82,23 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         instanceId,
         widgetId,
         surface: surface ?? 'cell',
+        preview: !!preview,
         size,
         settings: settings ?? {},
         local: readLocal(widgetId, instanceId),
         netFetch: netFetch ?? [],
         sensorsRead: sensorsRead ?? [],
         api: {
-          persistLocal: (next) => {
-            try { localStorage.setItem(localKey(widgetId, instanceId), JSON.stringify(next)); }
-            catch { /* quota / private mode */ }
-          },
-          dispatch: (action, args) => onDispatch?.(action, args) ?? Promise.resolve(null),
+          persistLocal: preview
+            ? () => { /* preview: no localStorage writes */ }
+            : (next) => {
+                try { localStorage.setItem(localKey(widgetId, instanceId), JSON.stringify(next)); }
+                catch { /* quota / private mode */ }
+              },
+          // Preview: standard envelope, onDispatch never called.
+          dispatch: preview
+            ? () => Promise.resolve({ ok: false })
+            : (action, args) => onDispatch?.(action, args) ?? Promise.resolve(null),
         },
       };
       entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null };
@@ -106,10 +116,11 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         }, KEEP_ALIVE_MS);
       }
     };
-    // Identity is the widget instance + surface; entryUrl/settings change in place
-    // (reused worker is updated, never respawned for a transient blob-url change).
+    // Identity is the widget instance + surface (+ preview); entryUrl/settings
+    // change in place (reused worker is updated, never respawned for a
+    // transient blob-url change).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [widgetId, instanceId, surface]);
+  }, [widgetId, instanceId, surface, preview]);
 
   useEffect(() => {
     handle?.update({ settings: settings ?? {} });

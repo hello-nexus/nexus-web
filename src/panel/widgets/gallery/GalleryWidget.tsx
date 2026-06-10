@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { ImageIcon } from 'lucide-react';
 import type { WidgetProps } from '../types';
+import { usePanelPreview } from '../common/PanelPreviewContext';
+import { previewCoverUri } from '../common/previewAssets';
 import styles from './GalleryWidget.module.scss';
 
 function parseUrls(raw?: string): string[] {
@@ -8,10 +10,15 @@ function parseUrls(raw?: string): string[] {
   return raw.split('\n').map(u => u.trim()).filter(Boolean);
 }
 
+// Catalog preview fixture — one data-URI cover so the slideshow timer never arms.
+const GALLERY_PREVIEW_URLS = [previewCoverUri(210)];
+
 export function GalleryWidget({ widget }: WidgetProps) {
+  const preview = usePanelPreview();
   const mode = ((widget.config?.mode as string | undefined) ?? 'single');
   const interval = (((widget.config?.interval as number | undefined) ?? 10) * 1000);
-  const urls = useMemo(() => parseUrls(widget.config?.urls as string | undefined), [widget.config?.urls]);
+  const configured = useMemo(() => parseUrls(widget.config?.urls as string | undefined), [widget.config?.urls]);
+  const urls = preview && configured.length === 0 ? GALLERY_PREVIEW_URLS : configured;
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [showIndex, setShowIndex] = useState(0);

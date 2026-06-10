@@ -22,6 +22,8 @@ import {
   PanelWidgetTab,
   PanelWidgetTabs,
 } from '../common/PanelWidgetChrome';
+import { usePanelPreview } from '../common/PanelPreviewContext';
+import { DISCORD_PREVIEW } from './discordPreviewData';
 import styles from './DiscordWidget.module.scss';
 
 type DiscordTab = 'activity' | 'voice' | 'servers';
@@ -29,11 +31,13 @@ type DiscordTab = 'activity' | 'voice' | 'servers';
 const POLL_MS = 5000;
 
 export function DiscordWidget({ widget, onConfigure }: WidgetProps) {
-  const [status, setStatus] = useState<DiscordStatusResponse | null>(null);
+  const preview = usePanelPreview();
+  const [status, setStatus] = useState<DiscordStatusResponse | null>(preview ? DISCORD_PREVIEW : null);
   const [activeTab, setActiveTab] = useState<DiscordTab>('activity');
   const privacyMode = ((widget.config?.privacyMode as boolean | undefined) ?? false);
 
   useEffect(() => {
+    if (preview) return;
     let cancelled = false;
     const load = async () => {
       const next = await fetchDiscordStatus();
@@ -45,7 +49,7 @@ export function DiscordWidget({ widget, onConfigure }: WidgetProps) {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [preview]);
 
   const ready = Boolean(status?.ready);
   const notifications = useMemo(() => status?.notifications ?? [], [status?.notifications]);

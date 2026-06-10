@@ -57,6 +57,7 @@ let _ready = new Promise((res) => { _readyResolve = res; });
 let _widgetId = "";
 let _netFetchAllow = [];
 let _settings = {};
+let _preview = false;
 let _rpcId = 1;
 let _subId = 1;
 const _pending = new Map();
@@ -81,6 +82,7 @@ self.addEventListener("message", (ev) => {
       _widgetId = p.widgetId || "";
       _netFetchAllow = p.netFetch || [];
       _settings = Object.freeze(Object.assign({}, p.settings || {}));
+      _preview = !!p.preview;
       _readyResolve();
       break;
     }
@@ -132,6 +134,9 @@ const nexus = {
   log(level, message, data) { _post("nexus.log", { level, message, data }); },
   publish(payload) { _post("nexus.publish", payload); },
   refresh() { _post("nexus.publish", { __refresh_marker__: Date.now() }); if (typeof _lastEveryCb === "function") try { _lastEveryCb(); } catch (_) {} },
+  // Catalog preview render: host I/O is stubbed; imperative authors branch here
+  // (the React path uses the SDK's usePreview()).
+  get preview() { return _preview; },
 
   settings: {
     get current() { return _settings; },

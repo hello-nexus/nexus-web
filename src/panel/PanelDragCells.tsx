@@ -6,6 +6,7 @@ import { sizeToSpan } from './engine/grid';
 import { lookupApp } from './widgets/registry';
 import type { DeckEditView } from './widgets/types';
 import { WidgetCellLabel } from './widgets/common/WidgetCellLabel';
+import { PanelPreviewProvider } from './widgets/common/PanelPreviewContext';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { useTranslation } from '../lib/i18n';
 import type { PanelLayout, PanelSurface, PanelWidget, PanelConfigValue } from './types';
@@ -410,7 +411,9 @@ export function PanelCatalogCell({
       <div className={`panel-card ${styles.cell}`} data-size={widget.size}>
         <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
           <ErrorBoundary label={widget.type}>
-            <Comp widget={widget} surface={surface} />
+            <PanelPreviewProvider value={true}>
+              <Comp widget={widget} surface={surface} />
+            </PanelPreviewProvider>
           </ErrorBoundary>
         </div>
       </div>

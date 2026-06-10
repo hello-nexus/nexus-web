@@ -10,10 +10,13 @@ import {
   type ObsStatusResponse,
 } from '../../../api/obs';
 import type { WidgetProps } from '../types';
+import { usePanelPreview } from '../common/PanelPreviewContext';
+import { OBS_PREVIEW } from './obsPreviewData';
 import styles from './ObsWidget.module.scss';
 
 export function ObsWidget({ widget }: WidgetProps) {
-  const [status, setStatus] = useState<ObsStatusResponse | null>(null);
+  const preview = usePanelPreview();
+  const [status, setStatus] = useState<ObsStatusResponse | null>(preview ? OBS_PREVIEW : null);
   const [busy, setBusy] = useState(false);
   const connected = Boolean(status?.connected && !status.error);
   const compact = widget.size === '2x2';
@@ -24,6 +27,7 @@ export function ObsWidget({ widget }: WidgetProps) {
   }, []);
 
   useEffect(() => {
+    if (preview) return;
     let cancelled = false;
     const tick = async () => {
       const next = await fetchObsStatus();
@@ -35,7 +39,7 @@ export function ObsWidget({ widget }: WidgetProps) {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [preview]);
 
   const run = useCallback(async (action: () => Promise<ObsStatusResponse | unknown | null>) => {
     setBusy(true);

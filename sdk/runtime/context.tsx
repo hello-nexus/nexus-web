@@ -23,6 +23,8 @@ export interface WidgetContextInit {
   /** Which surface this render drives: the panel tile ('cell') or the expanded
    *  full view ('page'). Static for the life of a render. Default 'cell'. */
   surface?: WidgetSurface;
+  /** Catalog preview render: host I/O is stubbed; default false. */
+  preview?: boolean;
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;
@@ -39,6 +41,7 @@ export interface WidgetStore {
   readonly instanceId: string;
   readonly widgetId: string;
   readonly surface: WidgetSurface;
+  readonly preview: boolean;
   readonly api: WidgetHostApi;
   getSnapshot(): WidgetState;
   subscribe(cb: () => void): () => void;
@@ -58,6 +61,7 @@ export function createStore(init: WidgetContextInit): WidgetStore {
     instanceId: init.instanceId,
     widgetId: init.widgetId,
     surface: init.surface ?? 'cell',
+    preview: init.preview ?? false,
     api: init.api,
     getSnapshot: () => state,
     subscribe: (cb) => { subs.add(cb); return () => { subs.delete(cb); }; },

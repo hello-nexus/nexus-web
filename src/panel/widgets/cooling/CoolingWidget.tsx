@@ -20,11 +20,16 @@ import type { GaugeProps } from '../monitoring/gauges/types';
 import type { CurveDef, CurveType, FanState, MixFn, CurvePreset } from '../../../types/cooling';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
+import { usePanelPreview } from '../common/PanelPreviewContext';
 import { CoolingResponseChart } from './CoolingResponseChart';
 import styles from './CoolingWidget.module.scss';
 
 const WIDGET_PRESET_KEYS: CoolingPresetKey[] = ['silent', 'balanced', 'turbo'];
 const TEMP_MAX = 100;
+// Catalog preview shows a deterministic preset (label via the existing
+// cooling.preset.balanced key). Keep in sync with the simple-mode render —
+// see .agents/rules/widget-preview-fixtures.md in the master repo.
+const COOLING_PREVIEW_PRESET: CoolingPresetKey = 'balanced';
 
 interface CoolingSlot {
   key: 'cpu' | 'gpu' | 'fan';
@@ -34,14 +39,16 @@ interface CoolingSlot {
 export function CoolingWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
   const { settings: ui } = useUiSettings();
-  const simpleMode = !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
-  const [active, setActive] = useState<CoolingPresetKey>('custom');
+  const preview = usePanelPreview();
+  // Preview forces simple mode for determinism.
+  const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
+  const [active, setActive] = useState<CoolingPresetKey>(preview ? COOLING_PREVIEW_PRESET : 'custom');
   const [curves, setCurves] = useState<CurveDef[]>([]);
   const [fanStates, setFanStates] = useState<Record<string, FanState>>({});
   const [channels, setChannels] = useState<FanChannel[]>([]);
   const [sources, setSources] = useState<TemperatureSource[]>([]);
 
-  const sensors = useSensors(true);
+  const sensors = useSensors(!preview);
   const tempPrefs = useTempSensorPrefs();
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, tempPrefs.cpuId);
   const gpuTemp = resolveGpuTempSensor(sensors.gpu, tempPrefs.gpuId);
@@ -167,18 +174,25 @@ export function CoolingWidget({ widget }: WidgetProps) {
     refreshCoolingConfig();
   }, [refreshProfiles, refreshCoolingConfig]);
 
-  useEffect(() => { refreshProfiles(); refreshCoolingConfig(); }, [refreshProfiles, refreshCoolingConfig]);
-  useTopicCallback('cooling', true, onCoolingTopic);
+  useEffect(() => {
+    if (preview) return;
+    refreshProfiles();
+    refreshCoolingConfig();
+  }, [preview, refreshProfiles, refreshCoolingConfig]);
+  useTopicCallback('cooling', !preview, onCoolingTopic);
 
-  useEffect(() => subscribeControlSync(event => {
-    if (event.domain !== 'cooling') return;
-    if (Date.now() < presetLockUntilRef.current) return; // honour the lock
-    const next = event.activePreset ?? event.activeProfile;
-    if (next && isCoolingPresetKey(next)) {
-      setActive(next);
-      setCachedCoolingActivePreset(next);
-    }
-  }), []);
+  useEffect(() => {
+    if (preview) return;
+    return subscribeControlSync(event => {
+      if (event.domain !== 'cooling') return;
+      if (Date.now() < presetLockUntilRef.current) return; // honour the lock
+      const next = event.activePreset ?? event.activeProfile;
+      if (next && isCoolingPresetKey(next)) {
+        setActive(next);
+        setCachedCoolingActivePreset(next);
+      }
+    });
+  }, [preview]);
 
   const apply = useCallback((key: CoolingPresetKey) => {
     // Lock first so any topic/control-sync push triggered by *this* write

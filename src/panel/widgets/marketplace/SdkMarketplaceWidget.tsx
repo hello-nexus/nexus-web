@@ -13,6 +13,7 @@ import { postService } from '../../../api/service';
 import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
 import type { AppInstalledListing } from '../../../widgets/types';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
+import { usePanelPreview } from '../common/PanelPreviewContext';
 import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
 import styles from './MarketplaceWidget.module.scss';
 
@@ -23,18 +24,21 @@ export interface SdkMarketplaceWidgetProps {
 }
 
 export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidgetProps) {
+  const preview = usePanelPreview();
   const { entryUrl, failed: bundleFailed } = useSdkBundle(listing.id);
   const { runtimeUrl, failed: runtimeFailed } = useSdkRuntime();
   const failed = bundleFailed || runtimeFailed;
 
-  // Per-instance settings via the shared settings bridge.
+  // Per-instance settings via the shared settings bridge. Preview skips the
+  // bridge entirely — get() fire-and-forgets a network load on first call.
   const settingsBridge = useMemo(() => new WidgetSettingsBridge(instanceId), [instanceId]);
-  const [settings, setSettings] = useState<Record<string, unknown>>(() => settingsBridge.get());
+  const [settings, setSettings] = useState<Record<string, unknown>>(() => (preview ? {} : settingsBridge.get()));
   useEffect(() => {
+    if (preview) return;
     const unsub = settingsBridge.onChange((v) => setSettings({ ...v }));
     void settingsBridge.load();
     return unsub;
-  }, [settingsBridge]);
+  }, [settingsBridge, preview]);
 
   const netFetch = useMemo(() => listing.capabilities['net.fetch'] ?? [], [listing]);
   const sensorsRead = useMemo(() => listing.capabilities['sensors.read'] ?? [], [listing]);
@@ -59,6 +63,7 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
       settings={settings}
       netFetch={netFetch}
       sensorsRead={sensorsRead}
+      preview={preview}
       onDispatch={onDispatch}
     />
   );

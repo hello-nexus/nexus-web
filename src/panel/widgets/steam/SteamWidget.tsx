@@ -24,6 +24,8 @@ import {
   PanelWidgetTab,
   PanelWidgetTabs,
 } from '../common/PanelWidgetChrome';
+import { usePanelPreview } from '../common/PanelPreviewContext';
+import { STEAM_PREVIEW } from './steamPreviewData';
 import styles from './SteamWidget.module.scss';
 
 type SteamTab = 'activity' | 'playing' | 'friends';
@@ -33,13 +35,14 @@ const LISTS_POLL_MS = 30_000;
 
 export function SteamWidget({ widget, onConfigure }: WidgetProps) {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<SteamStatusResponse | null>(null);
-  const [profile, setProfile] = useState<SteamPlayerSummary | null>(null);
-  const [level, setLevel] = useState<number | null>(null);
-  const [recentGames, setRecentGames] = useState<SteamRecentGame[]>([]);
-  const [ownedGames, setOwnedGames] = useState<SteamOwnedGame[]>([]);
-  const [friends, setFriends] = useState<SteamFriendSummary[]>([]);
-  const [achievements, setAchievements] = useState<SteamAchievement[]>([]);
+  const preview = usePanelPreview();
+  const [status, setStatus] = useState<SteamStatusResponse | null>(preview ? STEAM_PREVIEW.status : null);
+  const [profile, setProfile] = useState<SteamPlayerSummary | null>(preview ? STEAM_PREVIEW.profile : null);
+  const [level, setLevel] = useState<number | null>(preview ? STEAM_PREVIEW.level : null);
+  const [recentGames, setRecentGames] = useState<SteamRecentGame[]>(preview ? STEAM_PREVIEW.recentGames : []);
+  const [ownedGames, setOwnedGames] = useState<SteamOwnedGame[]>(preview ? STEAM_PREVIEW.ownedGames : []);
+  const [friends, setFriends] = useState<SteamFriendSummary[]>(preview ? STEAM_PREVIEW.friends : []);
+  const [achievements, setAchievements] = useState<SteamAchievement[]>(preview ? STEAM_PREVIEW.achievements : []);
   const [activeTab, setActiveTab] = useState<SteamTab>('activity');
   const [bannerError, setBannerError] = useState(false);
   const trackedAppId = useRef<number | null>(null);
@@ -55,6 +58,7 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
   // change rarely; the service caches them anyway. Two timers > one combined
   // poll to keep activity-tab data from staling out the auto-switch.
   useEffect(() => {
+    if (preview) return;
     let cancelled = false;
     async function loadProfile() {
       const nextStatus = await fetchSteamStatus();
@@ -72,10 +76,10 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [preview]);
 
   useEffect(() => {
-    if (!status?.ready) return;
+    if (preview || !status?.ready) return;
     let cancelled = false;
     async function loadLists() {
       const [recentResponse, ownedResponse, friendsResponse] = await Promise.all([
@@ -94,7 +98,7 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [status?.ready]);
+  }, [preview, status?.ready]);
 
   useEffect(() => {
     if (!currentGame) {
@@ -114,6 +118,7 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
   }, [currentGame]);
 
   useEffect(() => {
+    if (preview) return;
     let cancelled = false;
     if (!currentGame) {
       // Clear stale achievements when leaving a game. The list is async-
@@ -126,7 +131,7 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
       if (!cancelled && next) setAchievements(next);
     });
     return () => { cancelled = true; };
-  }, [currentGame]);
+  }, [preview, currentGame]);
 
   const ready = Boolean(status?.ready);
   const compact = widget.size === '4x4';

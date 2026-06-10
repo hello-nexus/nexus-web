@@ -37,6 +37,11 @@ export function useSurface(): 'cell' | 'page' {
   return useStore().surface;
 }
 
+/** Catalog preview render: host I/O is stubbed; render co-located sample data. */
+export function usePreview(): boolean {
+  return useStore().preview;
+}
+
 /** Per-instance local state bag. Persisted by the host across reloads; the
  *  setter merges, doing a shallow `localUpdate`-style merge. */
 export function useLocalState<T extends object>(

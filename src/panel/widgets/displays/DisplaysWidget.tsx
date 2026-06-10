@@ -5,6 +5,8 @@ import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { PanelMixerSlider } from '../common/PanelMixerSlider';
 import type { WidgetProps } from '../types';
+import { usePanelPreview } from '../common/PanelPreviewContext';
+import { DISPLAYS_PREVIEW } from './displaysPreviewData';
 import styles from './DisplaysWidget.module.scss';
 
 const REFRESH_MS = 5000;
@@ -13,9 +15,10 @@ const COMPACT_DISPLAY_LIMIT = 2;
 const FULL_DISPLAY_LIMIT = 4;
 
 export function DisplaysWidget({ widget }: WidgetProps) {
-  const [displays, setDisplays] = useState<Display[]>([]);
+  const preview = usePanelPreview();
+  const [displays, setDisplays] = useState<Display[]>(preview ? DISPLAYS_PREVIEW.displays : []);
   const [hint, setHint] = useState<string>('');
-  const [values, setValues] = useState<Record<string, number>>({});
+  const [values, setValues] = useState<Record<string, number>>(preview ? DISPLAYS_PREVIEW.values : {});
   const [errors, setErrors] = useState<Record<string, string>>({});
   // Per-display "always-send-latest" write loop. `pending` holds the most
   // recent finger position waiting to be POSTed; `inflight` is true while a
@@ -69,10 +72,11 @@ export function DisplaysWidget({ widget }: WidgetProps) {
   }, []);
 
   useEffect(() => {
+    if (preview) return;
     hydrate();
     const timer = window.setInterval(hydrate, REFRESH_MS);
     return () => window.clearInterval(timer);
-  }, [hydrate]);
+  }, [preview, hydrate]);
 
   const drainPending = useCallback(async (id: string) => {
     if (inflightRef.current.has(id)) return;

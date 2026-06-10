@@ -42,6 +42,7 @@ import {
 import { buildAllDefaultTemplates, mergeTemplates } from '../../../types/lightingTemplates';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
+import { usePanelPreview } from '../common/PanelPreviewContext';
 import { LightingLivePreview } from './LightingLivePreview';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
@@ -54,11 +55,19 @@ const WIDGET_BUTTONS: { key: WidgetMode; icon: LucideIcon; labelKey: string }[] 
   { key: 'screen',  icon: Monitor,  labelKey: 'lighting.mode.screen'  },
 ];
 
+// Catalog preview pins screen mode (filter defaults to DEFAULT_SCREEN_FILTER):
+// the icon view renders with zero fetch/socket/blob traffic. Keep in sync with
+// the simple-mode render — see .agents/rules/widget-preview-fixtures.md in the
+// master repo.
+const LIGHTING_PREVIEW_MODE: LightingMode = 'screen';
+
 export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?: boolean }) {
   const { t } = useTranslation();
   const { settings: ui } = useUiSettings();
-  const simpleMode = !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
-  const [mode, setMode] = useState<LightingMode>('none');
+  const preview = usePanelPreview();
+  // Preview forces simple mode for determinism.
+  const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
+  const [mode, setMode] = useState<LightingMode>(preview ? LIGHTING_PREVIEW_MODE : 'none');
   const [activeEffect, setActiveEffect] = useState('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>(buildAllDefaultTemplates);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -95,18 +104,20 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, []);
 
   useEffect(() => {
+    if (preview) return;
     // hydrate() fetches initial lighting state over HTTP; its setState
     // calls run after the fetches resolve, not during the effect body.
-     
+
     hydrate();
-  }, [hydrate]);
-  useTopicCallback('lighting', true, hydrate);
+  }, [preview, hydrate]);
+  useTopicCallback('lighting', !preview, hydrate);
 
   // The widget shows one thumbnail at a time (active effect, Prev/Next
   // cycling). Load the active effect's BMP on demand and cache picks as
   // the user cycles, rather than fetching all 60+ on mount.
   const thumbsRef = useRef<Record<string, string>>({});
   useEffect(() => {
+    if (preview) return;
     if (!activeEffect || thumbsRef.current[activeEffect]) return;
     let cancelled = false;
     (async () => {
@@ -118,7 +129,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
       setThumbs(thumbsRef.current);
     })();
     return () => { cancelled = true; };
-  }, [activeEffect]);
+  }, [preview, activeEffect]);
 
   useEffect(() => () => {
     for (const url of Object.values(thumbsRef.current)) URL.revokeObjectURL(url);
@@ -134,12 +145,12 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, []);
 
   useEffect(() => {
-    if (compact || mode !== 'gif') return;
+    if (preview || compact || mode !== 'gif') return;
     // refreshMedia()'s setState runs after the HTTP fetches resolve,
     // not synchronously in the effect.
-     
+
     refreshMedia();
-  }, [compact, mode, refreshMedia]);
+  }, [preview, compact, mode, refreshMedia]);
 
   useEffect(() => () => {
     for (const url of Object.values(mediaThumbsRef.current)) {
@@ -149,7 +160,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, []);
 
   useEffect(() => {
-    if (compact || mode !== 'gif') return;
+    if (preview || compact || mode !== 'gif') return;
     let cancelled = false;
     (async () => {
       for (const item of mediaItems) {
@@ -168,7 +179,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
       }
     })();
     return () => { cancelled = true; };
-  }, [compact, mode, mediaItems]);
+  }, [preview, compact, mode, mediaItems]);
 
   const publishLighting = useCallback((nextMode: LightingMode, rawSync: string, extra?: Partial<Parameters<typeof publishControlSync>[0]>) => {
     publishControlSync({ domain: 'lighting', mode: nextMode, rawSync, ...extra });
