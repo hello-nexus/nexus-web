@@ -801,7 +801,7 @@
   "phonePair.removeSession": "Remover acesso de {name}",
   "phonePair.saving": "Salvando...",
   "phonePair.securityNote": "Emparelhar novamente no mesmo dispositivo atualiza a autorizacao. Dispositivos removidos precisam emparelhar novamente antes de reconectar.",
-  "phonePair.e2eNote": "Criptografia de ponta a ponta por padrão. As chaves nunca saem dos dispositivos e ninguém pode ler o tráfego.",
+  "phonePair.e2eNote": "Criptografia de ponta a ponta — as chaves nunca saem dos seus dispositivos.",
   "phonePair.statusPaired": "Pareado",
   "phonePair.statusRecentlyActive": "Ativo recentemente",
   "phonePair.tab.code": "Pareamento por código",

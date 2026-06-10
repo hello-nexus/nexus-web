@@ -597,7 +597,7 @@
 }
 
 // Trust badge under the pair flow: reassures the user the remote connection
-// is end-to-end encrypted. Lock in the accent color over a soft accent tint.
+// is end-to-end encrypted. Accent lock + accent text over a soft accent tint.
 .phonePairE2e {
   @include text-button;
   display: flex;
@@ -605,17 +605,18 @@
   justify-content: center;
   gap: 0.5rem;
   // Centered, content-width badge (not a full-bleed bar): fit-content sizes the
-  // box to its text up to a cap; margin-inline auto centers it in the modal.
+  // box to its single-line text; margin-inline auto centers it in the modal. No
+  // narrow cap — the copy is one short line, so let it size to its content.
   width: fit-content;
-  max-width: min(360px, 100%);
+  max-width: 100%;
   margin: 0.85rem auto 0;
-  padding: 0.6rem 0.85rem;
+  padding: 0.5rem 0.85rem;
   text-align: center;
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  color: var(--text-faded);
-  line-height: 1.45;
+  // Accent text so the reassurance reads as a trust cue, matching the lock.
+  color: var(--accent);
 
   svg {
     flex: 0 0 auto;
