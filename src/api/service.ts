@@ -62,6 +62,14 @@ const isServedFromService = locationPort === DEFAULT_SERVICE_PORT || locationPor
 // relay from the very first call. Deterministic from the origin, computed once.
 export const isRemoteOrigin = !isServedFromService;
 
+// True when the panel is served from a REMOTE host: a paired phone reaching the
+// PC over LAN (<pc-ip>:9400/9443) or over the relay (hellonexus.com), versus a
+// LOCAL hardwired surface (a Y70/Q60 kiosk or the embedded dashboard, which load
+// from localhost). Gates the "Connected to <PC>" + lock indicator — a hardwired
+// display already knows what it's plugged into, so it's hidden there.
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '']);
+export const isRemotePaired = !LOCAL_HOSTS.has(locationHost);
+
 // If the SPA is served from the service itself, keep the same origin/protocol.
 // If served from Vite or hellonexus.com, fall back to the local HTTP service.
 const SERVICE_PROTOCOL = import.meta.env.VITE_SERVICE_PROTOCOL

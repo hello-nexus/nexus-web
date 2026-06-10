@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { SatelliteDish } from 'lucide-react';
+import { Lock, SatelliteDish } from 'lucide-react';
 import {
   DndContext, DragOverlay, MeasuringStrategy, PointerSensor,
   useSensor, useSensors,
@@ -49,7 +49,7 @@ import { isInsecureBrowserPanel } from './PanelInsecureBanner';
 import { useTranslation } from '../lib/i18n';
 import { applyHtmlChromeTheme } from '../lib/settings';
 import { fetchPanelDevice, setPanelHostName } from '../api/panel';
-import { pingService } from '../api/service';
+import { isRemotePaired, pingService } from '../api/service';
 import { createUuid } from '../lib/uuid';
 import {
   type PanelConfigValue,
@@ -1424,10 +1424,11 @@ export function PanelContent({
                 surfaceRef={rootRef}
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
                 machineName={machineName}
+                remotePaired={isRemotePaired}
               />
             )}
             <div ref={setEditorDockPortalEl} className={styles.editorDockPortal} aria-hidden="true" />
-            {connectionIntroHost && (
+            {connectionIntroHost && isRemotePaired && (
               <>
                 <div className={styles.connectionIntroBackdrop} aria-hidden="true" />
                 <div className={styles.connectionIntroTray} role="status" aria-live="polite">
@@ -1440,6 +1441,11 @@ export function PanelContent({
                   )}
                   <span className={styles.connectionIntroLabel}>{connectionIntroLabel}</span>
                   <span className={styles.connectionIntroName}>{connectionIntroHost}</span>
+                  <Lock
+                    size={13}
+                    className={styles.connectionIntroLock}
+                    aria-label="End-to-end encrypted"
+                  />
                 </div>
               </>
             )}

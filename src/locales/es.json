@@ -801,6 +801,7 @@
   "phonePair.removeSession": "Eliminar acceso de {name}",
   "phonePair.saving": "Guardando...",
   "phonePair.securityNote": "Emparejar de nuevo desde el mismo dispositivo actualiza su autorización. Los dispositivos eliminados deben emparejarse de nuevo antes de volver a conectarse.",
+  "phonePair.e2eNote": "Cifrado de extremo a extremo de forma predeterminada. Las claves nunca salen de los dispositivos y nadie puede leer el tráfico.",
   "phonePair.statusPaired": "Emparejado",
   "phonePair.statusRecentlyActive": "Activo recientemente",
   "phonePair.tab.code": "Emparejamiento por código",

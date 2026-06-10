@@ -801,6 +801,7 @@
   "phonePair.removeSession": "Remove access for {name}",
   "phonePair.saving": "Saving...",
   "phonePair.securityNote": "Pairing again from the same device refreshes its authorization. Removed devices must pair again before reconnecting.",
+  "phonePair.e2eNote": "End-to-end encrypted by default. Your keys never leave your devices, and nobody can read your traffic.",
   "phonePair.statusPaired": "Paired",
   "phonePair.statusRecentlyActive": "Recently active",
   "phonePair.tab.code": "Code Pairing",

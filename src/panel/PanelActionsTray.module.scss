@@ -171,6 +171,14 @@
   min-width: 0;
 }
 
+// Lock by the host name on paired-phone surfaces: the link to the PC is
+// E2E-encrypted (relay / pinned HTTPS). Not shown on local hardwired kiosks.
+.connectedLock {
+  flex: 0 0 auto;
+  align-self: center;
+  color: color-mix(in srgb, var(--panel-text) 55%, transparent);
+}
+
 .actionRow {
   display: flex;
   flex-direction: row;

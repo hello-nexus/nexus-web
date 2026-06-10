@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Smartphone, LogOut, SatelliteDish } from 'lucide-react';
+import { Smartphone, LogOut, SatelliteDish, Lock } from 'lucide-react';
 import classNames from 'classnames';
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
@@ -656,6 +656,10 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
               )}
             </section>
           </div>
+        </div>
+        <div className={styles.phonePairE2e}>
+          <Lock size={15} aria-hidden="true" />
+          <span>{t('phonePair.e2eNote')}</span>
         </div>
       </DeviceModal>
       <ConfirmModal

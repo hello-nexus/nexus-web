@@ -801,6 +801,7 @@
   "phonePair.removeSession": "Rimuovi accesso per {name}",
   "phonePair.saving": "Salvataggio...",
   "phonePair.securityNote": "Un nuovo accoppiamento dallo stesso dispositivo aggiorna la sua autorizzazione. I dispositivi rimossi devono essere nuovamente accoppiati prima di riconnettersi.",
+  "phonePair.e2eNote": "Crittografia end-to-end per impostazione predefinita. Le chiavi non lasciano mai i dispositivi e nessuno può leggere il traffico.",
   "phonePair.statusPaired": "Associato",
   "phonePair.statusRecentlyActive": "Attivo di recente",
   "phonePair.tab.code": "Associazione tramite codice",
