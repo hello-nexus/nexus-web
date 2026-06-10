@@ -132,6 +132,30 @@
   flex-shrink: 0;
 }
 
+// Preset-change feedback: coast-to-stop spin scaled to the chosen level —
+// one turn per bar, +0.5s per bar. Custom/off (no level) gets the 1-turn
+// baseline.
+.simpleFan[data-spinning='true'] {
+  --spin-turns: 360deg;
+  --spin-duration: 1s;
+  animation: fanSpin var(--spin-duration) cubic-bezier(0.25, 1, 0.5, 1) both;
+
+  &[data-level='2'] {
+    --spin-turns: 720deg;
+    --spin-duration: 1.5s;
+  }
+
+  &[data-level='3'] {
+    --spin-turns: 1080deg;
+    --spin-duration: 2s;
+  }
+}
+
+@keyframes fanSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(var(--spin-turns)); }
+}
+
 // When no preset is active (state is 'custom' / 'off'), dim the whole
 // group so the affordance stays visible without implying a fan-speed
 // level. Bars-only would be unreadable in that state.

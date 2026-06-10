@@ -9,6 +9,7 @@ import {
 import { useSensors } from '../../../hooks/useSensors';
 import { useTempSensorPrefs, useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
+import { useStateChangePulse } from '../common/useStateChangePulse';
 import { SignalBarsIcon } from './SignalBarsIcon';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSensorResolver';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -43,6 +44,19 @@ export function CoolingWidget({ widget }: WidgetProps) {
   // Preview forces simple mode for determinism.
   const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
   const [active, setActive] = useState<CoolingPresetKey>(preview ? COOLING_PREVIEW_PRESET : 'custom');
+  // False until the first profiles fetch resolves: preset changes before
+  // that are hydration, not state changes, and must not animate.
+  const [hydrated, setHydrated] = useState(false);
+  const spinPulse = useStateChangePulse(active, !hydrated);
+  // Cleared on animationend: a finished fill-mode animation stays active
+  // on the node (holding a compositor layer) until the attribute drops.
+  const [spinDoneAt, setSpinDoneAt] = useState(0);
+  // Enabled one render after hydration commits, so the bars snap to the
+  // initial server state instead of transitioning to it.
+  const [barsAnimate, setBarsAnimate] = useState(false);
+  useEffect(() => {
+    if (hydrated) setBarsAnimate(true);
+  }, [hydrated]);
   const [curves, setCurves] = useState<CurveDef[]>([]);
   const [fanStates, setFanStates] = useState<Record<string, FanState>>({});
   const [channels, setChannels] = useState<FanChannel[]>([]);
@@ -98,6 +112,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
   const refreshProfiles = useCallback(() => {
     fetchProfiles().then(data => {
       if (!data) return;
+      setHydrated(true);
       if (Date.now() < presetLockUntilRef.current) return; // honour the lock
       if (data.active && isCoolingPresetKey(data.active)) {
         setActive(data.active);
@@ -256,8 +271,17 @@ export function CoolingWidget({ widget }: WidgetProps) {
           />
           <div className={styles.simpleCenter}>
             <div className={`${styles.simpleIconGroup} ${level ? '' : styles.simpleIconMuted}`}>
-              <Fan size={56} aria-hidden className={styles.simpleFan} />
-              <SignalBarsIcon level={level ?? 1} size={56} className={styles.simpleBars} />
+              {/* Keyed remount restarts the spin if the preset changes mid-spin. */}
+              <Fan
+                key={spinPulse}
+                size={56}
+                aria-hidden
+                data-spinning={spinPulse > spinDoneAt ? 'true' : undefined}
+                data-level={level ?? undefined}
+                className={styles.simpleFan}
+                onAnimationEnd={() => setSpinDoneAt(spinPulse)}
+              />
+              <SignalBarsIcon level={level ?? 1} size={56} className={styles.simpleBars} animate={barsAnimate} />
             </div>
             {showLabel && <span className={styles.simpleLabel}>{t(labelKey)}</span>}
           </div>

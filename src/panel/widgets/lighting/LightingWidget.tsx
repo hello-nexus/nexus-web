@@ -42,6 +42,7 @@ import {
 import { buildAllDefaultTemplates, mergeTemplates } from '../../../types/lightingTemplates';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
+import { useStateChangePulse } from '../common/useStateChangePulse';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { LightingLivePreview } from './LightingLivePreview';
 import type { WidgetProps } from '../types';
@@ -78,6 +79,32 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const mediaThumbsRef = useRef<Record<string, string>>({});
   const compact = widget.size === '2x2';
 
+  // False until the first hydrate() resolves: mode/effect/filter sets
+  // before that are hydration, not state changes, and must not animate.
+  const [hydrated, setHydrated] = useState(false);
+  // Discrete selection only — the live-preview canvas and thumbnail blob
+  // loads must never trigger the flash.
+  const flashPulse = useStateChangePulse(
+    mode === 'animate' ? `animate:${activeEffect}`
+      : mode === 'screen' ? `screen:${filter}`
+      : mode,
+    !hydrated,
+  );
+  // Unmounted on animationend: a finished fill-mode animation stays active
+  // on the node (holding a compositor layer) as long as it's rendered.
+  const [flashDoneAt, setFlashDoneAt] = useState(0);
+  const flash = flashPulse > flashDoneAt
+    ? (
+      <span
+        key={flashPulse}
+        className={styles.stateFlash}
+        data-state-flash
+        aria-hidden="true"
+        onAnimationEnd={() => setFlashDoneAt(flashPulse)}
+      />
+    )
+    : null;
+
   const hydrate = useCallback(async () => {
     const [sync, animate, screen] = await Promise.all([
       fetchCurrentSync(),
@@ -101,6 +128,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
 
     setMode(resolveMode(rawSync));
     setFilter(matchScreenFilter(screen) ?? DEFAULT_SCREEN_FILTER);
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -353,7 +381,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
             );
           })}
         </div>
-        <SingleItemView view={view} t={t} showArrows={false} overlay={<LightingLivePreview />} />
+        <SingleItemView view={view} t={t} showArrows={false} overlay={<><LightingLivePreview />{flash}</>} />
       </div>
     );
   }
@@ -364,7 +392,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   if (simpleMode) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-simple="true">
-        <SingleItemView view={view} t={t} showArrows />
+        <SingleItemView view={view} t={t} showArrows overlay={flash} />
       </div>
     );
   }
@@ -372,14 +400,14 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   if (compact) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
-        <SingleItemView view={view} t={t} showArrows={false} />
+        <SingleItemView view={view} t={t} showArrows={false} overlay={flash} />
       </div>
     );
   }
 
   return (
     <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
-      <SingleItemView view={view} t={t} showArrows />
+      <SingleItemView view={view} t={t} showArrows overlay={flash} />
       <div className={styles.modeGrid}>
         {WIDGET_BUTTONS.map(item => (
           <button

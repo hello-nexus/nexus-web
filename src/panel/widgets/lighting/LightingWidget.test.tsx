@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { LightingWidget } from './LightingWidget';
@@ -109,6 +109,20 @@ describe('LightingWidget', () => {
       expect(animateBtn.getAttribute('data-active')).toBe('true');
     });
     expect(screen.getByRole('button', { name: 'Mirror' }).getAttribute('data-active')).toBe('false');
+  });
+
+  it('flashes on mode change but not on initial hydration', async () => {
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+    // Hydration (none → animate:rainbow from fetchCurrentSync) must not flash.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('true');
+    });
+    expect(document.querySelector('[data-state-flash]')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mirror' }));
+    await waitFor(() => {
+      expect(document.querySelector('[data-state-flash]')).toBeInTheDocument();
+    });
   });
 
   describe('simple mode', () => {

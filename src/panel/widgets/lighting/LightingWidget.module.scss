@@ -277,3 +277,19 @@
     background-position: -100% 0;
   }
 }
+
+// State-change feedback: a brief veil over the preview that fades out.
+// Sits above the live-output canvas (z-index 1); clicks pass through.
+.stateFlash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #fff;
+  pointer-events: none;
+  animation: stateFlash 0.45s ease-out both;
+}
+
+@keyframes stateFlash {
+  from { opacity: 0.32; }
+  to { opacity: 0; }
+}

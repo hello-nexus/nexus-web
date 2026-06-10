@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { CoolingWidget } from './CoolingWidget';
@@ -173,6 +173,19 @@ describe('CoolingWidget', () => {
       expect(screen.getByLabelText('Previous fan profile')).toBeInTheDocument();
       expect(screen.getByLabelText('Next fan profile')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Apply Silent cooling profile' })).not.toBeInTheDocument();
+    });
+
+    it('spins the fan on preset change but not on initial hydration', async () => {
+      render(<CoolingWidget widget={coolingWidget('4x2')} />);
+      // Hydration (custom → balanced from fetchProfiles) must not spin.
+      await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
+      expect(document.querySelector('[data-spinning="true"]')).not.toBeInTheDocument();
+
+      // balanced → turbo: spin scales with the target level (3 bars).
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      await waitFor(() => {
+        expect(document.querySelector('[data-spinning="true"][data-level="3"]')).toBeInTheDocument();
+      });
     });
 
     it('per-widget config.advancedMode=true overrides the global default and shows the rich UI', async () => {
