@@ -182,9 +182,10 @@ export function GalleryPage() {
     <div className={styles.app}>
       <ViewHeader title={t('panel.widget.gallery')} />
       <div className={styles.body}>
-        <Card
-          title={t('gallery.page.sources')}
-          actions={
+        {/* Static-width sources column (300px, matching the Lighting /
+            Cooling device-column width); the library fills the rest. */}
+        <div className={styles.sourcesColumn}>
+          <Card title={t('gallery.page.sources')}>
             <div className={styles.sourceActions}>
               <Button size="sm" disabled={pickingDisabled} onClick={() => pickAndAdd('file')}>
                 {picking === 'file' ? t('gallery.page.picking') : t('gallery.page.addFile')}
@@ -211,45 +212,44 @@ export function GalleryPage() {
                 onChange={handleUploadInput}
               />
             </div>
-          }
-        >
-          {actionError && <p className={styles.uploadError}>{actionError}</p>}
-          {sources.length === 0 ? (
-            <EmptyState
-              compact
-              icon={<ImageIcon size={22} />}
-              title={t('gallery.page.noSources')}
-              hint={t('gallery.page.noSourcesHint')}
-            />
-          ) : (
-            <ul className={styles.sourceList}>
-              {sources.map(source => {
-                const Icon = KIND_ICONS[source.kind] ?? FileImage;
-                return (
-                  <li key={source.id} className={styles.sourceRow}>
-                    <Icon size={16} className={styles.sourceIcon} aria-hidden="true" />
-                    <div className={styles.sourceText}>
-                      <span className={styles.sourceName}>{source.name}</span>
-                      {source.kind !== 'upload' && (
-                        <span className={styles.sourcePath}>{source.path}</span>
-                      )}
-                    </div>
-                    <span className={styles.sourceCount}>
-                      {t('gallery.page.itemCount', { count: countFor(source.id) })}
-                    </span>
-                    <Button
-                      size="sm"
-                      tone="ghost"
-                      icon={<Trash2 size={14} />}
-                      aria-label={t('gallery.page.remove')}
-                      onClick={() => setPendingDelete(source)}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
+            {actionError && <p className={styles.uploadError}>{actionError}</p>}
+            {sources.length === 0 ? (
+              <EmptyState
+                compact
+                icon={<ImageIcon size={22} />}
+                title={t('gallery.page.noSources')}
+                hint={t('gallery.page.noSourcesHint')}
+              />
+            ) : (
+              <ul className={styles.sourceList}>
+                {sources.map(source => {
+                  const Icon = KIND_ICONS[source.kind] ?? FileImage;
+                  return (
+                    <li key={source.id} className={styles.sourceRow}>
+                      <Icon size={16} className={styles.sourceIcon} aria-hidden="true" />
+                      <div className={styles.sourceText}>
+                        <span className={styles.sourceName}>{source.name}</span>
+                        {source.kind !== 'upload' && (
+                          <span className={styles.sourcePath}>{source.path}</span>
+                        )}
+                      </div>
+                      <span className={styles.sourceCount}>
+                        {t('gallery.page.itemCount', { count: countFor(source.id) })}
+                      </span>
+                      <Button
+                        size="sm"
+                        tone="ghost"
+                        icon={<Trash2 size={14} />}
+                        aria-label={t('gallery.page.remove')}
+                        onClick={() => setPendingDelete(source)}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Card>
+        </div>
 
         {/* The entire library card is the drop target, not just the grid. */}
         <div
