@@ -172,8 +172,24 @@ export function GalleryPage() {
     await refresh();
   };
 
+  // Whole-page drop target. dragenter/leave fire for every child crossed,
+  // so a depth counter (not a boolean) decides when the pointer truly left.
+  const dragDepth = useRef(0);
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepth.current++;
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setDragOver(false);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    dragDepth.current = 0;
     setDragOver(false);
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
@@ -188,7 +204,13 @@ export function GalleryPage() {
   const countFor = (sourceId: string) => items.filter(i => i.sourceId === sourceId).length;
 
   return (
-    <div className={styles.app}>
+    <div
+      className={`${styles.app} ${dragOver ? styles.dragOver : ''}`}
+      onDragEnter={handleDragEnter}
+      onDragOver={e => e.preventDefault()}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <ViewHeader title={t('panel.widget.gallery')} />
       <div className={styles.body}>
         {/* Static-width sources column (300px, matching the Lighting /
@@ -258,16 +280,7 @@ export function GalleryPage() {
           )}
         </div>
 
-        {/* The entire library card is the drop target. */}
-        <div
-          className={`${styles.dropZone} ${dragOver ? styles.dragOver : ''}`}
-          onDragOver={e => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-        >
+        <div className={styles.dropZone}>
           <Card
             title={t('gallery.page.library')}
             subtitle={t('gallery.page.itemCount', { count: items.length })}
@@ -309,9 +322,10 @@ export function GalleryPage() {
               </div>
             )}
           </Card>
-          {dragOver && <div className={styles.dropHint}>{t('gallery.page.dropHint')}</div>}
         </div>
       </div>
+
+      {dragOver && <div className={styles.dropHint}>{t('gallery.page.dropHint')}</div>}
 
       <ConfirmModal
         open={pendingDelete !== null}
