@@ -114,6 +114,7 @@ const SURFACE_COLS: Record<PanelSurface, number> = {
   phone: 4,
   q60: 2,
   desktop: 8,
+  monitor: 8,
 };
 
 export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface): PanelLayout {

@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchPanelPhoneSessions, fetchPanelStatus, type PanelPhoneSession, type PanelStatus } from '../api/panel';
+import {
+  fetchPanelDevices,
+  fetchPanelPhoneSessions,
+  fetchPanelStatus,
+  type PanelDeviceRecord,
+  type PanelPhoneSession,
+  type PanelStatus,
+} from '../api/panel';
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import {
@@ -47,6 +54,18 @@ const EXTERNAL_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
   touch: true,
 };
 
+// User-promoted OS monitors hosting a kiosk. Layout + theme edit like any
+// panel; no Y70 hardware controls (those are serial/DDC Y70-specific).
+const HOSTED_MONITOR_CAPABILITIES: PanelDeviceCapabilities = {
+  layout: true,
+  theme: true,
+  displayControls: false,
+  launchClose: false,
+  pairing: false,
+  presence: false,
+  touch: false,
+};
+
 const WIDGET_PANEL_PROFILES: Partial<Record<string, {
   surface: PanelSurface;
   width: number;
@@ -74,16 +93,19 @@ export function usePanelDevices(
   const curatedDevices = useDevices(enabled);
   const [status, setStatus] = useState<PanelStatus | null>(null);
   const [phoneSessions, setPhoneSessions] = useState<PanelPhoneSession[]>([]);
+  const [records, setRecords] = useState<PanelDeviceRecord[]>([]);
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const [panelStatus, sessions] = await Promise.all([
+    const [panelStatus, sessions, deviceRecords] = await Promise.all([
       fetchPanelStatus(),
       fetchPanelPhoneSessions(),
+      fetchPanelDevices(),
     ]);
     setStatus(panelStatus ?? null);
     setPhoneSessions(sessions?.sessions ?? []);
+    setRecords(deviceRecords?.devices ?? []);
     setLoading(false);
   }, []);
 
@@ -105,6 +127,7 @@ export function usePanelDevices(
     return buildPanelDevices({
       curatedDevices,
       phoneSessions,
+      records,
       status,
       simulatedPanels,
       labels: {
@@ -117,7 +140,7 @@ export function usePanelDevices(
         simulatedSuffix: t('devices.panels.simulatedSuffix'),
       },
     });
-  }, [curatedDevices, phoneSessions, status, simulatedPanels, t]);
+  }, [curatedDevices, phoneSessions, records, status, simulatedPanels, t]);
 
   return { devices, loading };
 }
@@ -125,12 +148,14 @@ export function usePanelDevices(
 function buildPanelDevices({
   curatedDevices,
   phoneSessions,
+  records,
   status,
   simulatedPanels,
   labels,
 }: {
   curatedDevices: DeviceListItem[];
   phoneSessions: PanelPhoneSession[];
+  records: PanelDeviceRecord[];
   status: PanelStatus | null;
   simulatedPanels: SimulatedPanelDefinition[];
   labels: {
@@ -194,6 +219,37 @@ function buildPanelDevices({
       iconSrc: panelIconForSource(panel.id),
       capabilities: panel.surface === 'y70' ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES,
       modalKind: panel.surface === 'y70' ? 'y70-compat' : 'panel-editor',
+    });
+  }
+
+  // Promoted-monitor panels: backed directly by a display-bound record the
+  // service created on POST /displays/{id}/panel. Hidden while the bound
+  // monitor is unplugged (displayAttached === false); unknown topology
+  // (null/undefined) keeps the row visible rather than flickering it away.
+  for (const record of records) {
+    if (!record.displayId || record.displayAttached === false) continue;
+    const cssWidth = record.capabilities?.cssWidth ?? 0;
+    const cssHeight = record.capabilities?.cssHeight ?? 0;
+    const dpr = record.capabilities?.dpr ?? 1;
+    const resolution = cssWidth > 0 && cssHeight > 0
+      ? `${Math.round(cssWidth * dpr)}x${Math.round(cssHeight * dpr)}`
+      : '';
+    devices.push({
+      id: `display:${record.id}`,
+      panelRecordId: record.id,
+      displayId: record.displayId,
+      name: record.displayName,
+      subtitle: resolution ? `${labels.online} - ${resolution}` : labels.online,
+      status: 'online',
+      statusLabel: labels.online,
+      connectionKind: 'attached-monitor',
+      managementMode: 'managed',
+      surfaceProfileKey: `monitor-${record.id}`,
+      runtimeSurface: (record.capabilities?.surface as PanelSurface | undefined) ?? 'monitor',
+      previewSize: cssWidth > 0 && cssHeight > 0 ? { width: cssWidth, height: cssHeight } : undefined,
+      iconSrc: PANEL_MONITOR_ICON,
+      capabilities: HOSTED_MONITOR_CAPABILITIES,
+      modalKind: 'panel-editor',
     });
   }
 

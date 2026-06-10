@@ -10,6 +10,7 @@ import { appendWidget, replaceWidget } from '../../../panel/engine/panelLayoutOp
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { isSingleWidgetSurface } from '../../../panel/types';
 import { fetchService, postService } from '../../../api/service';
+import { fetchDisplays, setDisplayBrightness } from '../../../api/displays';
 import { fetchPreferences, savePreferences } from '../../../api/profiles';
 import {
   allocatePanelDevice,
@@ -92,7 +93,24 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   const surface = device?.runtimeSurface ?? 'y70';
   const supportsDisplayControls = device?.capabilities.displayControls ?? surface === 'y70';
   const supportsAutoLaunch = device?.capabilities.launchClose ?? surface === 'y70';
-  const settingsAvailable = supportsDisplayControls || supportsAutoLaunch;
+  // Promoted monitors with a DDC/CI-capable display get a brightness-only
+  // settings tab wired to the generic /displays brightness endpoint.
+  const [ddcBrightness, setDdcBrightness] = useState<number | null>(null);
+  const ddcDisplayId = device?.displayId ?? null;
+  useEffect(() => {
+    if (!ddcDisplayId) return;
+    let cancelled = false;
+    fetchDisplays().then(list => {
+      if (cancelled) return;
+      const display = list?.displays.find(d => d.id === ddcDisplayId);
+      if (display?.brightnessControl.supported) {
+        setDdcBrightness(display.brightnessControl.current ?? 50);
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [ddcDisplayId]);
+  const ddcSupported = ddcDisplayId !== null && ddcBrightness !== null;
+  const settingsAvailable = supportsDisplayControls || supportsAutoLaunch || ddcSupported;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -126,9 +144,15 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       if (r) setOrientation(normalizeOrientation(r.orientation));
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
-      // Pick the most recently active device record matching this modal's
-      // surface. The /panel/devices list is sorted by lastSeenAt desc.
-      const match = devices?.devices.find(d => d.capabilities?.surface === surface);
+      // Record-backed entries (promoted monitors) bind by their explicit
+      // record id — several records share the 'monitor' surface, so a
+      // surface scan would grab whichever was last seen. Everything else
+      // (Y70 / Q-series / simulators) keeps the surface match: pick the most
+      // recently active record for this surface (/panel/devices is sorted
+      // by lastSeenAt desc).
+      const match = device?.panelRecordId
+        ? devices?.devices.find(d => d.id === device.panelRecordId)
+        : devices?.devices.find(d => d.capabilities?.surface === surface);
       setEditingDeviceId(match?.id ?? null);
       const cw = match?.capabilities?.cssWidth;
       const ch = match?.capabilities?.cssHeight;
@@ -142,7 +166,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       setLoaded(true);
     }).catch(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
-  }, [surface, supportsDisplayControls]);
+  }, [surface, supportsDisplayControls, device?.panelRecordId]);
 
   const pushBrightness = (value: number) => {
     setBrightness(value);
@@ -194,7 +218,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   // user can place widgets anywhere within these bounds in the editor.
   const editorCapacity = (() => {
     if (surface === 'q60') return { gridCols: 2, pageRows: 4 };
-    if (surface === 'desktop') return { gridCols: 8, pageRows: 6 };
+    if (surface === 'desktop' || surface === 'monitor') return { gridCols: 8, pageRows: 6 };
     if (surface === 'y70') return { gridCols: 4, pageRows: 12 };
     return { gridCols: 4, pageRows: 16 };
   })();
@@ -375,7 +399,16 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       hideWidgetLabelsToggle={singleWidget}
                     />
                   )}
-                  {activeTab === 'settings' && (
+                  {activeTab === 'settings' && ddcSupported && !supportsDisplayControls && !supportsAutoLaunch && (
+                    <MonitorSettingsPanel
+                      brightness={ddcBrightness ?? 50}
+                      onBrightness={(value) => {
+                        setDdcBrightness(value);
+                        if (ddcDisplayId) void setDisplayBrightness(ddcDisplayId, value).catch(() => {});
+                      }}
+                    />
+                  )}
+                  {activeTab === 'settings' && (supportsDisplayControls || supportsAutoLaunch) && (
                     <SettingsPanel
                       brightness={brightness}
                       onBrightness={pushBrightness}
@@ -602,6 +635,33 @@ function InlineWidgetSettings({ widget, surface, themeStyle, themeMode = 'dark',
           {t('peripheral.noCapabilities') || 'No configurable settings.'}
         </div>
       )}
+    </div>
+  );
+}
+
+// --- Monitor (promoted display) settings: DDC/CI brightness only ---
+
+function MonitorSettingsPanel({ brightness, onBrightness }: { brightness: number; onBrightness: (v: number) => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className={styles.settingsContent}>
+      <SectionHeader>{t('devices.y70.display')}</SectionHeader>
+      <div className="device-modal-row">
+        <div className="device-modal-label">{t('devices.y70.brightness')}</div>
+        <div className={styles.brightnessControl}>
+          <Slider
+            orientation="bare"
+            min={0}
+            max={100}
+            value={brightness}
+            trackFill={brightness}
+            onChange={onBrightness}
+            ariaLabel={t('devices.y70.brightness')}
+            className={styles.brightnessSlider}
+          />
+          <span className={styles.brightnessValue}>{brightness}</span>
+        </div>
+      </div>
     </div>
   );
 }

@@ -14,7 +14,10 @@ import { getInstallDefaults } from '../../api/installDefaultsCache';
 
 function buildLayout(surface: PanelLayout['surface']): PanelLayout {
   const defaults = getInstallDefaults();
-  const src = defaults?.panel.layouts[surface];
+  // Promoted monitors seed from the desktop layout — same landscape,
+  // large-canvas shape (mirrors PanelLayoutDefaults in nexus-service).
+  const sourceKey = surface === 'monitor' ? 'desktop' : surface;
+  const src = defaults?.panel.layouts[sourceKey];
   return {
     layoutSchemaVersion: src?.layoutSchemaVersion ?? 2,
     surface,

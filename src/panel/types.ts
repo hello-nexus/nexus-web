@@ -3,7 +3,9 @@
 
 export const PANEL_WIDGET_SIZES = ['1x1', '2x2', '2x4', '4x2', '4x4'] as const;
 export type PanelWidgetSize = typeof PANEL_WIDGET_SIZES[number];
-export type PanelSurface = 'y70' | 'q60' | 'phone' | 'desktop';
+// 'monitor' = a user-promoted OS monitor hosting a fullscreen kiosk
+// (service-stamped surface; see PanelSurfaces.Monitor in nexus-service).
+export type PanelSurface = 'y70' | 'q60' | 'phone' | 'desktop' | 'monitor';
 
 // Whether a surface accepts direct pointer input. Q60 is display-only;
 // desktop, phone, Y70 support interactive widget controls (desktop via mouse).

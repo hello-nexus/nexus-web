@@ -48,6 +48,12 @@ export interface PanelDeviceRecord {
   firstSeenAt: number;
   lastSeenAt: number;
   capabilities?: PanelDeviceCapabilitiesDto;
+  // Stable display id when this record was created by promoting an OS
+  // monitor (POST /displays/{id}/panel). Absent on self-registered panels.
+  displayId?: string;
+  // Response-only: false when the bound monitor is currently unplugged,
+  // undefined/null when topology is unknown (treat as attached).
+  displayAttached?: boolean | null;
 }
 
 export interface PanelDevicePatch {

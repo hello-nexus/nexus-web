@@ -43,10 +43,14 @@ export interface PanelDevice {
   modalKind?: PanelDeviceModalKind;
   sourceId?: string;
   displayId?: string;
+  // Server-side PanelDeviceRecord id when this entry is backed directly by a
+  // record (promoted monitors). The editor binds by this id instead of the
+  // surface-match scan, which breaks with several same-surface records.
+  panelRecordId?: string;
 }
 
 export const PANEL_DEVICE_ICON = '/assets/devices/y70.svg';
-export const PANEL_MONITOR_ICON = '/assets/devices/device.svg';
+export const PANEL_MONITOR_ICON = '/assets/devices/monitor.svg';
 
 // Per-panel-family icon for PanelDevice.iconSrc, so the sidebar DEVICES
 // section shows each panel's own silhouette. Falls back to PANEL_DEVICE_ICON

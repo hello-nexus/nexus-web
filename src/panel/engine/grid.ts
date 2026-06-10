@@ -84,7 +84,9 @@ export function panelGridCapacityForCanvas(
   const canvasW = Math.max(1, width);
   const canvasH = Math.max(1, height);
 
-  if (surface === 'phone' && canvasW > canvasH && columns === undefined && fixedRows == null) {
+  // Phone + promoted-monitor surfaces are fully responsive: in landscape the
+  // short-axis capacity becomes rows and columns derive from the wider axis.
+  if ((surface === 'phone' || surface === 'monitor') && canvasW > canvasH && columns === undefined && fixedRows == null) {
     return phoneLandscapeGridCapacityForCanvas(canvasW, canvasH, defaultColumns, safeGap, safePadding);
   }
 
