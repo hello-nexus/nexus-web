@@ -141,5 +141,7 @@ if (strict) {
   process.exit(1);
 }
 
+// No process.exit() after the listing: stdout to a pipe is async on Linux, and
+// process.exit() drops the unflushed buffer mid-write — truncating this summary
+// line, which callers (the drift-ratchet test) parse. Exit naturally so it flushes.
 console.log(`WARN  ${findings.length} raw declarations - migration in progress, not blocking the build.`);
-process.exit(0);
