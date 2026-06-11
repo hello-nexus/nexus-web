@@ -860,7 +860,7 @@
   width: 100%;
   min-height: 54px;
   border: 1px dashed var(--panel-border);
-  border-radius: var(--panel-card-radius, 16px);
+  border-radius: var(--panel-card-radius, var(--radius-lg));
   background: var(--panel-control-bg);
   color: var(--panel-text-muted);
   cursor: pointer;
@@ -1075,7 +1075,7 @@
   width: 36px;
   height: 36px;
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--panel-control-bg);
   color: var(--panel-text-muted);
   display: grid;
@@ -1107,7 +1107,7 @@
   --icon-label-button-padding-x: 0;
   --icon-label-button-padding-y: 0;
   --icon-label-button-gap: 0;
-  --icon-label-button-radius: 8px;
+  --icon-label-button-radius: var(--radius-sm);
   --icon-label-button-border: var(--panel-border);
   --icon-label-button-bg: var(--panel-control-bg);
   --icon-label-button-bg-hover: var(--panel-element-bg-hover);
@@ -1249,7 +1249,7 @@
     max-height: min(76dvh, 760px);
     border-left: 0;
     border-top: 1px solid var(--panel-border);
-    border-radius: 18px 18px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     box-shadow: 0 -24px 60px rgb(0 0 0 / var(--alpha-medium));
     animation: sheetUp 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
     padding-top: 18px;

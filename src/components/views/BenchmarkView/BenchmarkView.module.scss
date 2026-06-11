@@ -149,7 +149,7 @@
 .overallBar {
   height: 6px;
   background: var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -196,7 +196,7 @@
   grid-row: 1;
   height: 4px;
   background: var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 

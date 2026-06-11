@@ -22,7 +22,7 @@
 .deviceRect {
   position: absolute;
   border: 1.5px solid rgb(255 255 255 / var(--alpha-medium));
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background-color: transparent;
   background-image: radial-gradient(circle, rgb(0 0 0 / var(--alpha-medium)) 0.7px, transparent 1.1px);
   background-size: 4px 4px;

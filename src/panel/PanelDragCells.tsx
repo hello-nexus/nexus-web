@@ -78,7 +78,7 @@ export function DragTargetHighlight({
         background: 'color-mix(in srgb, var(--accent) 18%, transparent)',
         outline: '2px dashed color-mix(in srgb, var(--accent) 80%, transparent)',
         outlineOffset: '-2px',
-        borderRadius: '12px',
+        borderRadius: 'var(--radius)',
         zIndex: 1,
       }}
     />

@@ -3,7 +3,7 @@
 .profile {
   flex-shrink: 0;
   overflow: hidden;
-  border-radius: 11px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
 }
 
@@ -34,7 +34,7 @@
   height: 44px;
   flex-shrink: 0;
   border: 3px solid var(--panel-card-bg);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
 }
 
 .avatar {
@@ -95,7 +95,7 @@
   gap: 8px;
   min-height: 42px;
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
   color: var(--panel-text);
   padding: 6px;
@@ -113,7 +113,7 @@
   width: 30px;
   height: 30px;
   flex-shrink: 0;
-  border-radius: 9px;
+  border-radius: var(--radius);
   object-fit: cover;
   background: var(--panel-element-bg);
 }
@@ -186,7 +186,7 @@
   grid-template-columns: 30px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
   padding: 5px 7px;
 
@@ -212,7 +212,7 @@
   button {
     min-height: 34px;
     border: 1px solid var(--panel-border);
-    border-radius: 10px;
+    border-radius: var(--radius);
     background: var(--panel-element-bg);
     color: var(--panel-text-muted);
   }
@@ -234,7 +234,7 @@
   place-items: center;
   overflow: hidden;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
   color: var(--panel-text);
   padding: 0;

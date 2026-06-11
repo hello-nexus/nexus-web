@@ -29,7 +29,7 @@
   justify-content: center;
   aspect-ratio: 1;
   border: 1px solid var(--panel-border, var(--border));
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--panel-text, var(--text));
   cursor: pointer;
@@ -59,7 +59,7 @@
   font-size: 16px;
   line-height: 1;
   border: 1px solid var(--panel-border, var(--border));
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   cursor: pointer;
 
@@ -82,7 +82,7 @@
   font-size: 20px;
   line-height: 1;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   cursor: pointer;
 

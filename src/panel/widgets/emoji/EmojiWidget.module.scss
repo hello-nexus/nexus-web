@@ -27,7 +27,7 @@
   min-width: 40px;
   height: 36px;
   border: none;
-  border-radius: var(--panel-element-radius, 8px);
+  border-radius: var(--panel-element-radius, var(--radius-sm));
   background: transparent;
   font-size: 20px;
   cursor: pointer;
@@ -63,7 +63,7 @@
   aspect-ratio: 1;
   min-height: 40px;
   border: none;
-  border-radius: var(--panel-element-radius, 8px);
+  border-radius: var(--panel-element-radius, var(--radius-sm));
   background: transparent;
   font-size: 22px;
   cursor: pointer;
@@ -90,7 +90,7 @@
   padding: 6px 16px;
   background: var(--panel-accent);
   color: var(--accent-text);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   pointer-events: none;
   animation: toastIn var(--ease) ease-out;
   z-index: 10;

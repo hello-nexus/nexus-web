@@ -28,7 +28,7 @@
 .filled,
 .empty {
   height: 5px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .filled {

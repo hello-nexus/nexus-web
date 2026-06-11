@@ -23,7 +23,7 @@
   min-height: 3px;
   background: color-mix(in srgb, var(--panel-accent) 28%, transparent);
   border-top: 2px solid var(--panel-accent);
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 
 .info {

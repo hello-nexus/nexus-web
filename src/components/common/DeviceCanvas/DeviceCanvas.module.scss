@@ -50,7 +50,7 @@
 .device {
   position: absolute;
   border: 1.5px solid rgb(255 255 255 / var(--alpha-medium));
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background-color: rgba(255, 255, 255, 0.04);
   background-image: radial-gradient(circle, rgb(255 255 255 / var(--alpha-faint)) 0.8px, transparent 1.2px);
   background-size: 8px 8px;
@@ -113,7 +113,7 @@
   right: -4px;
   width: 9px;
   height: 9px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: var(--accent);
   cursor: se-resize;
   opacity: 0;

@@ -25,7 +25,7 @@
   overflow: hidden;
   container-type: size;
   border: 1px solid color-mix(in srgb, var(--deck-accent, #64748b) 50%, transparent);
-  border-radius: 12px;
+  border-radius: var(--radius);
   // Tinted at rest (not just on hover).
   background: color-mix(in srgb, var(--deck-accent, #64748b) 30%, transparent);
   color: color-mix(in srgb, var(--deck-accent, #64748b) 70%, #ffffff);
@@ -105,7 +105,7 @@
   height: 82%;
   max-height: 100%;
   max-width: 86%;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   object-fit: contain;
 }
 
@@ -131,7 +131,7 @@
   width: 26px;
   height: 26px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, #94a3b8 24%, transparent);
   color: var(--panel-text, #f5f5f5);
   cursor: pointer;

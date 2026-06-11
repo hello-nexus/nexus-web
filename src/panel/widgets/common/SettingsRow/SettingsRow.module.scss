@@ -17,7 +17,7 @@
   min-width: 0;
   height: 32px;
   border: 1px solid var(--panel-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--panel-element-bg);
   color: var(--panel-text);
   padding: 0 9px;
@@ -42,7 +42,7 @@
   @include text-label;
   min-height: 32px;
   border: 1px solid var(--panel-accent);
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: var(--panel-accent-soft);
   color: var(--panel-accent-glow);
   padding: 0 12px;

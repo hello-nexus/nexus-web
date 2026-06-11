@@ -7,7 +7,7 @@
   // Equirectangular projection is 2:1. Lock the aspect so the map
   // never gets squashed — cities would drift off their lat/lon.
   aspect-ratio: 2 / 1;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   overflow: hidden;
   background: var(--surface);
   box-shadow: var(--shadow-sm);

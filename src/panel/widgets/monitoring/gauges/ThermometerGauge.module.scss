@@ -22,7 +22,7 @@
   width: 14px;
   height: 100%;
   background: var(--panel-border);
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   display: flex;
   flex-direction: column;

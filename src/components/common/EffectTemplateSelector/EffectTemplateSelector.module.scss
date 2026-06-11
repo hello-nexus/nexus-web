@@ -1,7 +1,7 @@
 .selector {
   --effect-template-gap: 0.35rem;
   --effect-template-height: 32px;
-  --effect-template-radius: var(--radius-sm, 6px);
+  --effect-template-radius: var(--radius-sm);
   --effect-template-border: var(--panel-border, var(--border));
   --effect-template-hover-border: var(--border-strong, var(--effect-template-border));
   --effect-template-bg: var(--panel-element-bg, var(--surface));

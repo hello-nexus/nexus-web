@@ -48,7 +48,7 @@
 .card {
   width: min(420px, 100%);
   max-height: calc(100dvh - 48px);
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
   background: var(--panel-card-bg, var(--surface));
   border: 1px solid var(--panel-card-border, var(--border));
   padding: 26px 24px;
@@ -123,7 +123,7 @@
 .secondaryButton {
   width: 100%;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 12px 14px;
   font-family: inherit;
   font-size: 14px;

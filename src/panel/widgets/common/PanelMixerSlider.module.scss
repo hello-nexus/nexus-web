@@ -81,7 +81,7 @@
   padding: 0;
   box-sizing: border-box;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius);
   cursor: pointer;
   outline: none;
   touch-action: none;
@@ -106,7 +106,7 @@
   padding: var(--mixer-frame-padding-y) 5px;
   box-sizing: border-box;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--panel-element-bg);
   box-shadow: none;
 }
@@ -118,14 +118,14 @@
   justify-content: stretch;
   width: var(--mixer-segment-width);
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .segment {
   display: block;
   flex: 1 1 0;
   min-height: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--panel-text) 12%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
   transition: background-color 90ms ease, box-shadow 90ms ease, opacity 90ms ease;
@@ -146,7 +146,7 @@
   padding: 0;
   box-sizing: border-box;
   flex-shrink: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--panel-accent-glow);
   background: transparent;
   border: none;

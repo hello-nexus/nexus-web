@@ -80,7 +80,7 @@
   background: var(--text-dim);
   transform: translate(-50%, -50%);
   pointer-events: none;
-  border-radius: 1px;
+  border-radius: var(--radius-sm);
   opacity: 0.8;
 }
 

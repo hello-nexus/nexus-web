@@ -12,7 +12,7 @@
   --icon-label-button-padding-x: 5px;
   --icon-label-button-padding-y: 4px;
   --icon-label-button-gap: 3px;
-  --icon-label-button-radius: var(--radius-sm, 6px);
+  --icon-label-button-radius: var(--radius-sm);
   --icon-label-button-border: var(--clock-settings-border);
   --icon-label-button-bg: var(--clock-settings-bg);
   --icon-label-button-bg-hover: var(--clock-settings-bg-hover);
@@ -44,7 +44,7 @@
   appearance: none;
   background: var(--panel-element-bg);
   border: 1px solid var(--panel-border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--panel-text);
   font-family: inherit;
   font-size: var(--type-mini);

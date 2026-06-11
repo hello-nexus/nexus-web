@@ -23,7 +23,7 @@
   $thumb: var(--border),
   $thumb-hover: var(--border-strong),
   $track: transparent,
-  $radius: 4px
+  $radius: var(--radius-sm)
 ) {
   scrollbar-width: thin;
   scrollbar-color: #{$thumb} #{$track};

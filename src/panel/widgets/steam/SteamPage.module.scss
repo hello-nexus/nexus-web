@@ -39,7 +39,7 @@ $dot-offline: var(--panel-text-faint);
 .avatarFallback {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   flex-shrink: 0;
 }
 
@@ -88,7 +88,7 @@ $dot-offline: var(--panel-text-faint);
   display: grid;
   place-items: center;
   padding: 0 10px;
-  border-radius: var(--radius-pill, 999px);
+  border-radius: var(--radius-pill);
   border: 1px solid var(--panel-accent);
   background: var(--panel-accent-soft);
   color: var(--panel-accent-glow);
@@ -185,7 +185,7 @@ $dot-offline: var(--panel-text-faint);
   flex-direction: column;
   background: var(--panel-card-bg);
   border: 1px solid var(--panel-card-border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   cursor: pointer;
   padding: 0;
   text-align: left;
@@ -208,7 +208,7 @@ $dot-offline: var(--panel-text-faint);
   aspect-ratio: 231 / 87;
   object-fit: cover;
   background: var(--panel-element-bg);
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .gameTileMeta {
@@ -258,7 +258,7 @@ $dot-offline: var(--panel-text-faint);
   // Same source + aspect as the library tile (capsule_231x87).
   aspect-ratio: 231 / 87;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
 }
 
@@ -288,7 +288,7 @@ $dot-offline: var(--panel-text-faint);
   align-items: center;
   gap: 10px;
   padding: 6px 8px;
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
   min-width: 0;
 }
@@ -296,7 +296,7 @@ $dot-offline: var(--panel-text-faint);
 .friendAvatar {
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
   object-fit: cover;
 }
@@ -325,7 +325,7 @@ $dot-offline: var(--panel-text-faint);
 }
 
 .newsRow {
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
 
   &:hover { background: var(--panel-element-bg-hover); }
@@ -380,7 +380,7 @@ $dot-offline: var(--panel-text-faint);
   // object-fit: cover does no cropping.
   max-width: 720px;
   aspect-ratio: 460 / 215;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--panel-element-bg);
   align-self: flex-start;
@@ -466,7 +466,7 @@ $dot-offline: var(--panel-text-faint);
   padding: 12px 14px;
   background: var(--panel-card-bg);
   border: 1px solid var(--panel-card-border);
-  border-radius: 12px;
+  border-radius: var(--radius);
 }
 
 .statTileValue {
@@ -521,7 +521,7 @@ $dot-offline: var(--panel-text-faint);
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
   opacity: 0.7;
 
@@ -566,7 +566,7 @@ $dot-offline: var(--panel-text-faint);
   width: 110px;
   height: 18px;
   background: var(--panel-element-bg-hover, rgba(255,255,255,0.05));
-  border-radius: 9px;
+  border-radius: var(--radius);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -608,7 +608,7 @@ $dot-offline: var(--panel-text-faint);
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
   gap: 10px;
 }
@@ -641,7 +641,7 @@ $dot-offline: var(--panel-text-faint);
   flex-direction: column;
   gap: 2px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
   color: inherit;
   text-decoration: none;

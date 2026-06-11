@@ -14,7 +14,7 @@
   width: 42px;
   height: 42px;
   flex-shrink: 0;
-  border-radius: 10px;
+  border-radius: var(--radius);
 }
 
 .avatar {
@@ -95,7 +95,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
   padding: 5px 7px;
 }
@@ -121,7 +121,7 @@
   width: 24px;
   height: 24px;
   flex-shrink: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   object-fit: cover;
 }
 
@@ -174,7 +174,7 @@
   width: 100%;
   aspect-ratio: 92 / 43;
   min-height: 0;
-  border-radius: 9px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
@@ -217,7 +217,7 @@
 
 .stat {
   min-width: 0;
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: var(--panel-element-bg);
   padding: 7px;
 }

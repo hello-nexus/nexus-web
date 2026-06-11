@@ -16,7 +16,7 @@
   gap: 6px;
   padding: 3px;
   border: 1px solid var(--panel-border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--panel-control-bg);
 }
 
@@ -43,8 +43,8 @@
   --effect-template-height: 42px;
   --effect-template-gap: 7px;
   --effect-template-padding: 6px;
-  --effect-template-radius: 10px;
-  --effect-template-preview-radius: 7px;
+  --effect-template-radius: var(--radius);
+  --effect-template-preview-radius: var(--radius-sm);
   --effect-template-border: var(--panel-border);
   --effect-template-hover-border: var(--panel-accent);
   --effect-template-bg: var(--panel-control-bg);

@@ -7,7 +7,7 @@
 .input {
   appearance: none;
   border: 1px solid var(--panel-border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--panel-control-bg);
   color: var(--panel-text);
   font: 700 14px/1.2 var(--panel-font);

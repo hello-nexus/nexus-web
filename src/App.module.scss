@@ -235,7 +235,7 @@
   position: fixed;
   height: 2px;
   background: var(--accent);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
   pointer-events: none;
   z-index: var(--z-popover);
@@ -823,7 +823,7 @@
   @include text-button;
   appearance: none;
   padding: 0.45rem 0.95rem;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   border: 1px solid var(--border);
 
@@ -1087,7 +1087,7 @@
   color: rgba(255, 255, 255, 0.92);
   background: rgb(255 255 255 / var(--alpha-faint));
   border: 1px solid rgb(255 255 255 / var(--alpha-faint));
-  border-radius: 12px;
+  border-radius: var(--radius);
   cursor: pointer;
 
   &:active {

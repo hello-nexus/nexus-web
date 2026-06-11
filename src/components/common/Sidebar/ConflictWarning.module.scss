@@ -67,7 +67,7 @@
   min-width: 18px;
   height: 18px;
   padding: 0 0.4rem;
-  border-radius: 9px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--warn) 95%, transparent);
   color: #1f2937;
   font-size: var(--type-small);
@@ -83,7 +83,7 @@
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  border-radius: 8px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--warn) 95%, transparent);
   color: #1f2937;
   font-size: 10px;

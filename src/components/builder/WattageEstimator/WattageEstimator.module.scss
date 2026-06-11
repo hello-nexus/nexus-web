@@ -23,13 +23,13 @@
 .track {
   height: 6px;
   background: var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .bar {
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition: width var(--ease-slow) ease;
 }
 

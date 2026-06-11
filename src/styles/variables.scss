@@ -67,11 +67,14 @@
   // If a real new use case appears, add a rung deliberately - don't drift to
   // raw px / rem in component styles.
 
-  // Border radius. 5 rungs covering tiny details to full pill.
-  --radius-sm: 6px;        // chips, small buttons, dense controls
-  --radius: 10px;          // default cards, modals, large buttons
-  --radius-lg: 16px;       // hero cards, primary surfaces
-  --radius-pill: 999px;    // pill chips, status badges
+  // Border radius. 4 rungs, tiny details to full pill — the single source of
+  // truth for every rounded corner in the app. No raw px radii in component
+  // styles: pick the nearest rung. Panel aliases (--panel-card-radius,
+  // --panel-element-radius, --icon-label-button-radius, ...) all resolve here.
+  --radius-sm: 6px;        // bars, ticks, chips, dense controls, small buttons, swatches
+  --radius: 10px;          // default — cards, modals, buttons, inputs, panel elements
+  --radius-lg: 16px;       // hero cards, sheets, overlays, primary surfaces
+  --radius-pill: 999px;    // pills, toggles, status badges, fully-rounded
 
   // Spacing. T-shirt sizing matches `--size-*`. Anything beyond xl is rare
   // enough to be raw with a comment, or compose multiples

@@ -61,7 +61,7 @@
   flex-shrink: 0;
   width: 12px;
   height: 8px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .statCpu .statSwatch {

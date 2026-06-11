@@ -137,7 +137,7 @@ input[type="range"] {
   &::-webkit-slider-runnable-track {
     height: 4px;
     background: var(--border-strong);
-    border-radius: 2px;
+    border-radius: var(--radius-sm);
     border: none;
   }
   // WebKit thumb - centered on a 4px track so margin-top = -(thumb-4)/2
@@ -160,7 +160,7 @@ input[type="range"] {
   &::-moz-range-track {
     height: 4px;
     background: var(--border-strong);
-    border-radius: 2px;
+    border-radius: var(--radius-sm);
     border: none;
   }
   &::-moz-range-thumb {
@@ -200,7 +200,7 @@ input[type="range"][data-fill] {
   &::-webkit-slider-runnable-track,
   &::-moz-range-track {
     height: 6px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     background: linear-gradient(
       to right,
       var(--border-strong) 0,

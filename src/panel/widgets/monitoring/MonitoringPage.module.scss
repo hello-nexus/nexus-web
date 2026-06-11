@@ -136,14 +136,14 @@
 
 .dashBarTrack {
   height: 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   overflow: hidden;
 }
 
 .dashBarFill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition: none;
 }
 
@@ -394,7 +394,7 @@
   align-items: baseline;
   gap: 1rem;
   padding: 0.22rem 0.5rem;
-  border-radius: var(--radius-xs, 4px);
+  border-radius: var(--radius-sm);
 
   // Zebra striping in place of per-row separators.
   &:nth-child(odd) {

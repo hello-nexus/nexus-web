@@ -1,5 +1,5 @@
 .container {
-  border-radius: 12px;
+  border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--border);
   background: #0a0a10;

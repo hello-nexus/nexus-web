@@ -36,7 +36,7 @@
   max-height: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   background: var(--panel-element-bg, rgba(255, 255, 255, 0.05));
   box-shadow: var(--shadow-xl);
 }
@@ -90,7 +90,7 @@
   max-width: 360px;
   height: 4px;
   background: var(--panel-border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -98,7 +98,7 @@
 .seekFill {
   height: 100%;
   background: var(--panel-accent-glow);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   transition: width var(--ease-slow) ease;
 }
 

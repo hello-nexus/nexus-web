@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   padding: 16px 18px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--panel-sheet-bg);
   backdrop-filter: blur(18px);
   border: 1px solid var(--panel-border);
@@ -59,7 +59,7 @@
   width: 36px;
   height: 36px;
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--panel-control-bg);
   color: var(--panel-text-muted);
   display: grid;
@@ -90,7 +90,7 @@
   --icon-label-button-padding-x: 0;
   --icon-label-button-padding-y: 0;
   --icon-label-button-gap: 0;
-  --icon-label-button-radius: 8px;
+  --icon-label-button-radius: var(--radius-sm);
   --icon-label-button-border: var(--panel-border);
   --icon-label-button-bg: var(--panel-control-bg);
   --icon-label-button-bg-hover: var(--panel-element-bg-hover);

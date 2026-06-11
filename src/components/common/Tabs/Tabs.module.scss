@@ -41,7 +41,7 @@
       height: 2px;
       // Same colour as the label text, so it inverts with the light/dark theme.
       background: var(--text);
-      border-radius: 2px;
+      border-radius: var(--radius-sm);
     }
 
     // Icon tabs double as a "mode" picker (Lighting, Cooling): the active one

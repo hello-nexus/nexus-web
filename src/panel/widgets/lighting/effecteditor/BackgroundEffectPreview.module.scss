@@ -3,7 +3,7 @@
   flex-shrink: 0;
   width: 100%;
   height: 132px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   overflow: hidden;
   background: var(--panel-element-bg);
 }

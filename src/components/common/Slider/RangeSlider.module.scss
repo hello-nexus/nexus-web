@@ -81,7 +81,7 @@
   top: 50%;
   height: 6px;
   transform: translateY(-50%);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--border-strong);
   pointer-events: none;
 }
@@ -94,7 +94,7 @@
   top: 50%;
   height: 6px;
   transform: translateY(-50%);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--accent-glow, var(--accent));
   cursor: grab;
   touch-action: none;

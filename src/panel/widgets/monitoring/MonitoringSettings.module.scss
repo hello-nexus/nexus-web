@@ -14,7 +14,7 @@
   --icon-label-button-padding-x: 5px;
   --icon-label-button-padding-y: 4px;
   --icon-label-button-gap: 3px;
-  --icon-label-button-radius: var(--radius-sm, 6px);
+  --icon-label-button-radius: var(--radius-sm);
   --icon-label-button-border: var(--monitoring-settings-border);
   --icon-label-button-bg: var(--monitoring-settings-bg);
   --icon-label-button-bg-hover: var(--monitoring-settings-bg-hover);
@@ -87,7 +87,7 @@
   width: 160px;
   background: var(--monitoring-settings-bg);
   border: 1px solid var(--monitoring-settings-border);
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-sm);
 
   select[class] {
     background: transparent;
@@ -123,7 +123,7 @@
   min-width: 0;
   background: var(--monitoring-settings-bg);
   border: 1px solid var(--monitoring-settings-border);
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-sm);
 
   select[class] {
     background: transparent;

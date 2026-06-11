@@ -82,7 +82,7 @@
 .tooltipDot {
   width: 8px;
   height: 8px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 

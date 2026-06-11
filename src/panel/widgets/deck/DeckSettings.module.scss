@@ -32,7 +32,7 @@
   box-sizing: border-box;
   background: var(--deck-settings-bg);
   border: 1px solid var(--deck-settings-border);
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-sm);
   color: var(--deck-settings-text);
   font-size: var(--type-small, 12px);
   padding: 0.4rem 0.55rem;
@@ -50,7 +50,7 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   width: 100%;
   background: var(--deck-settings-bg);
   border: 1px solid var(--deck-settings-border);
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-sm);
 
   select[class] {
     background: transparent;
@@ -100,7 +100,7 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   align-self: flex-start;
   padding: 6px 12px;
   border: 1px solid var(--deck-settings-border);
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-sm);
   background: var(--deck-settings-bg);
   color: var(--deck-settings-text);
   font-size: var(--type-mini);
@@ -114,7 +114,7 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
 .swatch {
   width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 2px solid transparent;
   cursor: pointer;
 
@@ -134,7 +134,7 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
 
 .step {
   border: 1px solid var(--deck-settings-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 8px;
   display: flex;
   flex-direction: column;
