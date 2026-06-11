@@ -2,11 +2,12 @@ import { lazy } from 'react';
 import { Fan } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { CoolingWidget } from './CoolingWidget';
+import { CoolingTouch } from './CoolingTouch';
 import { AdvancedModeSettings } from '../common/AdvancedModeSettings';
 
 // Code-split: Page only loads when the dashboard navigates into the
-// immersive view. Widget stays eager so panel cells render synchronously
-// and the panel bundle never fetches Page bytes at all.
+// immersive view. Widget + Touch stay eager so panel cells render
+// synchronously and the panel bundle never fetches Page bytes at all.
 const CoolingPage = lazy(() => import('./CoolingPage').then(m => ({ default: m.CoolingPage })));
 
 export const coolingApp: AppManifest = {
@@ -22,5 +23,6 @@ export const coolingApp: AppManifest = {
   },
   Widget: CoolingWidget,
   Page: CoolingPage,
+  Touch: CoolingTouch,
   Settings: AdvancedModeSettings,
 };

@@ -86,7 +86,7 @@ interface TemperatureSourcesResponse {
   sources: TemperatureSource[];
 }
 
-interface CurvesResponse {
+export interface CurvesResponse {
   globalSpeedModifier: number;
   curves: Array<{
     id: string;

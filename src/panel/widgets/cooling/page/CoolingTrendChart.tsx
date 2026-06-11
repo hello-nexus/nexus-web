@@ -22,6 +22,9 @@ interface Props {
   gpuTempValue: number | undefined;
   channels: FanChannel[];
   height?: number;
+  /** Drop the title and let the legend own the row. The immersive cell is
+   *  too narrow for both — the title wraps and eats chart height there. */
+  hideTitle?: boolean;
 }
 
 /**
@@ -31,7 +34,7 @@ interface Props {
  * GPU temperature stacked on top (cpu -> cpu+gpu) so the two never overlap,
  * and a dashed fan-RPM line on its own auto-stepping right-side domain.
  */
-export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height = 140 }: Props) {
+export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height = 140, hideTitle }: Props) {
   const { t } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(440);
@@ -152,8 +155,8 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
   return (
     <div ref={wrapRef} className={styles.chartWrap}>
       <div className={styles.titleRow}>
-        <span className={styles.title}>{t('cooling.trend.title')}</span>
-        <span className={styles.stats}>
+        {!hideTitle && <span className={styles.title}>{t('cooling.trend.title')}</span>}
+        <span className={`${styles.stats}${hideTitle ? ' ' + styles.statsFull : ''}`}>
           <span className={`${styles.stat} ${styles.statCpu}`}>
             <span className={styles.statSwatch} aria-hidden="true" />
             <span className={styles.statLabel}>{t('cooling.status.cpu')}</span>

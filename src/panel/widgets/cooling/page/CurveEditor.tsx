@@ -454,14 +454,18 @@ export const CurveCard = memo(function CurveCard({
           </HoverTooltip>
         </div>
 
-        <HoverTooltip body={t('cooling.wire.dragHint')} side="top">
-          <div
-            ref={nubRef}
-            className={`${styles.curveOutNub}${inUse ? ' ' + styles.nubConnected : ''}`}
-            aria-hidden="true"
-            onPointerDown={onWirePointerDown}
-          />
-        </HoverTooltip>
+        {/* Same gate as FanCard's input nub: no wire layer (immersive view)
+            means no nub to drag from. */}
+        {onWirePointerDown && (
+          <HoverTooltip body={t('cooling.wire.dragHint')} side="top">
+            <div
+              ref={nubRef}
+              className={`${styles.curveOutNub}${inUse ? ' ' + styles.nubConnected : ''}`}
+              aria-hidden="true"
+              onPointerDown={onWirePointerDown}
+            />
+          </HoverTooltip>
+        )}
       </div>
 
       {expanded && (

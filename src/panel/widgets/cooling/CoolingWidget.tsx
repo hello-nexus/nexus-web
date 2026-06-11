@@ -18,7 +18,7 @@ import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './pa
 import { setCachedCoolingActivePreset } from './coolingCache';
 import { MicroBar } from '../monitoring/MicroBar';
 import type { GaugeProps } from '../monitoring/gauges/types';
-import type { CurveDef, CurveType, FanState, MixFn, CurvePreset } from '../../../types/cooling';
+import { curveDefsFromApi, type CurveDef, type FanState } from '../../../types/cooling';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import { usePanelPreview } from '../common/PanelPreviewContext';
@@ -126,11 +126,9 @@ export function CoolingWidget({ widget }: WidgetProps) {
   }, []);
 
   // Load curves + fan-state mapping + temperature sources for the response
-  // chart. Mirrors CoolingPage's normalisation: the API ships curves keyed
-  // by "input.id" / "Flat|Linear|Graph|Mixed" so we adapt to the shared
-  // CurveDef shape that computeCurveSpeed expects. Fan→curve assignment is
-  // derived from each curve's `outputs` plus any channel whose mode is
-  // Manual (those count as a flat baseline at their current duty).
+  // chart. Fan→curve assignment is derived from each curve's `outputs` plus
+  // any channel whose mode is Manual (those count as a flat baseline at
+  // their current duty).
   const refreshCoolingConfig = useCallback(() => {
     Promise.all([fetchFanChannels(), fetchCurves(), fetchTemperatureSources()])
       .then(([fans, saved, temps]) => {
@@ -141,42 +139,11 @@ export function CoolingWidget({ widget }: WidgetProps) {
             if (ch.mode === 'Manual') restored[ch.id] = { softwareControl: true, curveId: null };
           }
         }
-        if (saved?.curves?.length) {
-          const loaded: CurveDef[] = saved.curves.map(c => ({
-            id: c.id,
-            name: c.name,
-            type: (c.type === 'Flat' ? 'flat' : c.type === 'Linear' ? 'linear' : c.type === 'Graph' ? 'graph' : 'mix') as CurveType,
-            sourceId: c.input?.id ?? '',
-            flat: { speed: c.flat?.speed ?? 50 },
-            linear: {
-              responseTime: c.linear?.responseTime ?? 1.5,
-              minTemp: c.linear?.minTemp ?? 35,
-              maxTemp: c.linear?.maxTemp ?? 75,
-              minSpeed: c.linear?.minSpeed ?? 30,
-              maxSpeed: c.linear?.maxSpeed ?? 90,
-            },
-            graph: {
-              responseTime: c.graph?.responseTime ?? 1.5,
-              points: c.graph?.points?.length ? c.graph.points : [
-                { temp: 30, speed: 25 }, { temp: 50, speed: 40 },
-                { temp: 70, speed: 70 }, { temp: 90, speed: 100 },
-              ],
-            },
-            mix: {
-              responseTime: c.mixed?.responseTime ?? 1.0,
-              curveIds: c.mixed?.curveIds ?? [],
-              fn: (c.mixed?.fn ?? 'max') as MixFn,
-            },
-            preset: c.preset ? (c.preset as CurvePreset) : undefined,
-          }));
-          setCurves(loaded);
-          for (const c of saved.curves) {
-            for (const out of c.outputs ?? []) {
-              restored[out.id] = { softwareControl: true, curveId: c.id };
-            }
+        setCurves(curveDefsFromApi(saved));
+        for (const c of saved?.curves ?? []) {
+          for (const out of c.outputs ?? []) {
+            restored[out.id] = { softwareControl: true, curveId: c.id };
           }
-        } else {
-          setCurves([]);
         }
         setFanStates(restored);
         if (temps?.sources) setSources(temps.sources);
