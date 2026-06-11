@@ -43,7 +43,7 @@ import { CoolingSettingsModal } from './page/CoolingSettingsModal';
 import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './page/coolingPresets';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, resolveGpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
-import { newCurve, type CurveDef, type CurvePreset, type CurveType, type FanState, type MixFn } from '../../../types/cooling';
+import { MAX_CURVES, newCurve, type CurveDef, type CurvePreset, type CurveType, type FanState, type MixFn } from '../../../types/cooling';
 import styles from './CoolingPage.module.scss';
 
 /**
@@ -52,10 +52,6 @@ import styles from './CoolingPage.module.scss';
  * (curve definitions + live graph). Keeps CoolingPage focused on flow control
  * instead of every layout detail.
  */
-
-// Hard cap on user-created curves. The picker UI starts to crowd past this,
-// and a curve list has fewer real use cases than fan channels do.
-const MAX_CURVES = 10;
 
 interface CoolingViewProps { serviceOnline: boolean; serviceState: ServiceState; connectionState?: ConnectionState; activeProfileId?: string; }
 

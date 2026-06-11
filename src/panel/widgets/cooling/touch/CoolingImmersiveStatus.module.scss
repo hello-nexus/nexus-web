@@ -1,0 +1,65 @@
+@use '../../../../styles/interactions' as *;
+@use '../../../../styles/text' as *;
+
+.status {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-gap, 8px);
+}
+
+.modes {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+// Same visual language as the cooling widget's preset chips, sized up for
+// a primary touch target with the icon stacked above the label.
+.modeBtn {
+  flex: 1;
+  min-width: 0;
+  min-height: 64px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: var(--panel-element-bg);
+  color: var(--panel-text-muted);
+  padding: 8px 4px;
+  @include text-button;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  @include widget-button-hover;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &[data-active='true'] {
+    border-color: var(--panel-accent);
+    background: var(--panel-accent-soft);
+    color: var(--panel-accent-glow);
+  }
+}
+
+.modeLabel {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chartSlot {
+  flex: 1 1 0;
+  min-height: 0;
+  // First-pass svg height uses an estimated chrome; clip the one frame where
+  // the real (measured) chrome is taller so nothing bleeds into the cell below.
+  overflow: hidden;
+}
