@@ -26,11 +26,6 @@ export function getWebHidPeripheral(id: string): WebHidPeripheral | undefined {
   return PERIPHERAL_REGISTRY.get(id);
 }
 
-/** Alias of getWebHidPeripheral for `getWebHidMouse` call sites. */
-export function getWebHidMouse(id: string): WebHidPeripheral | undefined {
-  return PERIPHERAL_REGISTRY.get(id);
-}
-
 /** Convert a wrapper's snapshot into the shared Peripheral DTO shape. Returns
  *  null if the device fails to snapshot (disconnected mid-session etc.). */
 async function toPeripheralDto(p: WebHidPeripheral): Promise<Peripheral | null> {

@@ -406,7 +406,6 @@ export function deriveAccentVars(hex: string, mode: 'dark' | 'light' = 'dark'): 
     '--accent-soft':        hslCss(h, s, l, softAlpha),
     '--accent-glow-shadow': hslCss(h, s, l, glowShadowAlpha),
     '--accent-text':        needsDarkTextOnHsl(h, s, l) ? '#000000' : '#ffffff',
-    '--accent-glow-text':   needsDarkTextOnHsl(h, baseS, glowL) ? '#000000' : '#ffffff',
     '--accent-deep-text':   needsDarkTextOnHsl(h, deepS, deepL) ? '#000000' : '#ffffff',
   };
 }
@@ -436,7 +435,6 @@ export function applyAccentColor(hex: string): void {
   // Keeps text legible across the full hue range — dark picks keep white text;
   // bright yellows/limes/cyans flip to black.
   const accentText = needsDarkTextOnHsl(h, s, l)             ? '#000000' : '#ffffff';
-  const glowText   = needsDarkTextOnHsl(h, baseS, glowL)     ? '#000000' : '#ffffff';
   const deepText   = needsDarkTextOnHsl(h, deepS, deepL)     ? '#000000' : '#ffffff';
 
   const root = document.documentElement.style;
@@ -446,6 +444,5 @@ export function applyAccentColor(hex: string): void {
   root.setProperty('--accent-soft',        hslCss(h, s, l, softAlpha));
   root.setProperty('--accent-glow-shadow', hslCss(h, s, l, glowShadowAlpha));
   root.setProperty('--accent-text',        accentText);
-  root.setProperty('--accent-glow-text',   glowText);
   root.setProperty('--accent-deep-text',   deepText);
 }

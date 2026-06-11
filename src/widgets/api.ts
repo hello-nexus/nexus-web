@@ -9,7 +9,3 @@ export async function listInstalledApps(): Promise<AppInstalledListing[]> {
   const r = await fetchService<AppInstalledListingResponse>('/apps-api/installed');
   return r?.apps ?? [];
 }
-
-export async function getInstalledApp(id: string): Promise<AppInstalledListing | null> {
-  return fetchService<AppInstalledListing>(`/apps-api/installed/${encodeURIComponent(id)}`);
-}

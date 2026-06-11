@@ -206,9 +206,6 @@ export async function patchPanelDeviceWithStatus(id: string, patch: PanelDeviceP
   }
 }
 
-export const removePanelDevice = (id: string) =>
-  deleteService<{ error?: boolean; msg?: string }>(`/panel/devices/${encodeURIComponent(id)}`);
-
 export interface PanelPhonePairQr {
   url: string;
   qrDataUrl: string;

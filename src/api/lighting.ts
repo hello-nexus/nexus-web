@@ -157,11 +157,6 @@ export const fetchScreenMonitors = () =>
 export const reselectScreen = () =>
   postService('/lighting/screen/reselect', {});
 
-export const startGif = (path: string, speed = 50, mode = 'Loop') =>
-  postService('/lighting/gif/headless-start', {
-    paths: [path], speed, mode,
-  });
-
 export const stopLighting = () =>
   postService('/lighting/stop', {});
 

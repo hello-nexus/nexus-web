@@ -56,22 +56,21 @@ describe('PRESET_ACCENTS', () => {
 });
 
 describe('deriveAccentVars', () => {
-  it('produces all 8 tokens for dark mode', () => {
+  it('produces all 7 tokens for dark mode', () => {
     const vars = deriveAccentVars('#8b5cf6', 'dark');
-    expect(Object.keys(vars)).toHaveLength(8);
+    expect(Object.keys(vars)).toHaveLength(7);
     expect(vars['--accent']).toMatch(/^hsl/);
     expect(vars['--accent-glow']).toMatch(/^hsl/);
     expect(vars['--accent-deep']).toMatch(/^hsl/);
     expect(vars['--accent-soft']).toMatch(/^hsla/);
     expect(vars['--accent-glow-shadow']).toMatch(/^hsla/);
     expect(vars['--accent-text']).toMatch(/^#(000000|ffffff)$/);
-    expect(vars['--accent-glow-text']).toMatch(/^#(000000|ffffff)$/);
     expect(vars['--accent-deep-text']).toMatch(/^#(000000|ffffff)$/);
   });
 
-  it('produces all 8 tokens for light mode', () => {
+  it('produces all 7 tokens for light mode', () => {
     const vars = deriveAccentVars('#8b5cf6', 'light');
-    expect(Object.keys(vars)).toHaveLength(8);
+    expect(Object.keys(vars)).toHaveLength(7);
     expect(vars['--accent']).toMatch(/^hsl/);
   });
 

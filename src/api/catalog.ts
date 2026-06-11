@@ -35,12 +35,6 @@ export interface CatalogCategories {
   categories: Array<{ key: string; count: number }>;
 }
 
-export async function fetchCatalogCategories(): Promise<CatalogCategories> {
-  const res = await fetch(`${API_BASE}/catalog`);
-  if (!res.ok) throw new Error(`Catalog fetch failed: ${res.status}`);
-  return res.json();
-}
-
 export async function searchCatalog(
   category: string,
   params: CatalogSearchParams,

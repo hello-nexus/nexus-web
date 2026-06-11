@@ -1,22 +1,10 @@
 import { useCallback, useRef } from 'react';
 
 /*
- * Generic cadence helpers for rate-limiting work driven by user interaction
+ * Generic cadence helper for rate-limiting work driven by user interaction
  * (typically slider drags or pointer streams). useThrottle keeps the first
- * + latest call in a window; useDebounce coalesces to one trailing call.
+ * + latest call in a window.
  */
-
-/**
- * Generic setTimeout-based debounce hook. Returns a function the caller fires
- * to schedule a callback after `ms` quiet time (each call resets the timer).
- */
-export function useDebounce(ms = 200) {
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  return useCallback((fn: () => void) => {
-    clearTimeout(timer.current);
-    timer.current = setTimeout(fn, ms);
-  }, [ms]);
-}
 
 /**
  * Leading + trailing throttle. The first call in a quiet period fires

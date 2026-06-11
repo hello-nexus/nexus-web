@@ -125,14 +125,7 @@ interface ProfilesResponse {
   active: string;
 }
 
-interface CoolingAllResponse {
-  coolingComponents: CoolingComponent[];
-}
-
 // ── REST wrappers ──
-
-export const fetchCoolingAll = () =>
-  fetchService<CoolingAllResponse>('/cooling/all');
 
 export const fetchCurves = () =>
   fetchService<CurvesResponse>('/cooling/curves');

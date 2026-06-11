@@ -54,7 +54,6 @@
   --accent-soft: rgba(37, 99, 235, 0.12);
   --accent-glow-shadow: rgba(37, 99, 235, 0.45);
   --accent-text: #ffffff;
-  --accent-glow-text: #000000;
   --accent-deep-text: #ffffff;
 
   // Status
@@ -114,12 +113,10 @@
   // in App.module.scss and uses its own 2000+ micro-ladder that this
   // tooltip/modal stack sits below.
   --z-floating:    20;     // sidebar, in-flow floating chrome
-  --z-sticky:      50;     // sticky view headers above scrollable content
   --z-dropdown:   100;     // popover menus, profile dropdown, context menu
   --z-modal:     1000;     // modal backdrop + chrome
   --z-tooltip:   1050;     // hover / info tooltips (above modal so in-modal tooltips read)
   --z-popover:   1100;     // anchored pickers (DatePicker) above tooltips
-  --z-fullscreen: 2500;    // fullscreen overlays (DeviceModal close, etc.)
 
   // Control size scale (heights). Buttons, chips, inputs, status badges,
   // icon-only buttons all pick from this scale. Icon glyphs and avatars
@@ -195,7 +192,6 @@
   --accent-soft: rgba(37, 99, 235, 0.1);
   --accent-glow-shadow: rgba(37, 99, 235, 0.35);
   --accent-text: #ffffff;
-  --accent-glow-text: #ffffff;
   --accent-deep-text: #ffffff;
 
   --good: #059669;

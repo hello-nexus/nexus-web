@@ -131,9 +131,6 @@ export const renameProfile = (id: string, name: string) =>
 export const deleteProfile = (id: string) =>
   deleteService(`/profiles/${encodeURIComponent(id)}`);
 
-export const saveProfile = (id: string) =>
-  postService(`/profiles/${encodeURIComponent(id)}/save`, {});
-
 export const fetchPreferences = () =>
   fetchService<Preferences>('/preferences');
 

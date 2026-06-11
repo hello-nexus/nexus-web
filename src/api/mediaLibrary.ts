@@ -48,10 +48,6 @@ export async function importMedia(file: File): Promise<{ item: MediaItem | null;
   return postServiceForm<{ item: MediaItem | null; error: boolean; msg: string }>('/media/import', form);
 }
 
-export function thumbnailUrl(id: string): string {
-  return `/media/${encodeURIComponent(id)}/thumbnail`;
-}
-
 export async function openMediaFolder(): Promise<boolean> {
   const resp = await postService<{ error?: boolean }>('/media/library/open', {});
   return !!resp && resp.error !== true;
