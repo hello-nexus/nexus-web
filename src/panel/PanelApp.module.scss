@@ -959,9 +959,10 @@
   // for its preview cells (a closer ancestor), so those still scale correctly.
   --panel-scale: 1;
   background: color-mix(in srgb, var(--bg) 58%, transparent);
-  // Start below the app top bar (base rule is inset:0), or the sheet's header —
-  // title + close button — renders behind it and can't be seen/clicked.
-  top: var(--topbar-height, 52px);
+  // Cover the whole app incl. the top bar (like modal Overlays). z-modal lifts
+  // the scrim + sheet header above the top bar (z 40) so they stay clickable,
+  // which is also why the base inset:0 needs no top-bar offset here.
+  z-index: var(--z-modal);
 }
 
 .editorBackdrop[data-surface='desktop'] .editorSheet {
