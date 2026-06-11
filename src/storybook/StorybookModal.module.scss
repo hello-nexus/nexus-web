@@ -87,7 +87,7 @@
 
 .card {
   background: var(--surface);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   padding: 0.85rem 1rem;
   display: flex;
@@ -172,7 +172,7 @@
   padding: 0.4rem 0.8rem;
   background: var(--surface);
   color: var(--text);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: var(--type-small);
@@ -194,7 +194,7 @@
 
 .previewOverlaySurface {
   background: var(--surface);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-lg);
   padding: 1rem 1.25rem;
   width: min(360px, 100%);
@@ -278,7 +278,7 @@
 }
 
 .previewEffectControls {
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   overflow: hidden;
@@ -320,7 +320,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0.7rem;
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);

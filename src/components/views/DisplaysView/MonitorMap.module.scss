@@ -4,7 +4,7 @@
 .map {
   position: relative;
   min-height: 260px;
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-lg);
   background: var(--surface);
 }
