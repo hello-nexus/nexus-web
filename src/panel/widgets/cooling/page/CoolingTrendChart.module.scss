@@ -34,6 +34,14 @@
   flex-shrink: 0;
 }
 
+// Title hidden (immersive): the legend owns the row, groups spread evenly.
+.statsFull {
+  flex: 1;
+  min-width: 0;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
 .stat {
   display: inline-flex;
   align-items: center;

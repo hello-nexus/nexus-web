@@ -8,10 +8,9 @@ import { CoolingTrendChart } from '../page/CoolingTrendChart';
 import type { CoolingImmersiveController } from './useCoolingImmersive';
 import styles from './CoolingImmersiveStatus.module.scss';
 
-// CoolingTrendChart's `height` prop sizes only the SVG; its title row and
+// CoolingTrendChart's `height` prop sizes only the SVG; its legend row and
 // frame padding stack on top. That chrome is measured live once the chart
-// renders (the title can wrap on narrow cells); this is only the pre-render
-// fallback for the first pass.
+// renders; this is only the pre-render fallback for the first pass.
 const CHART_CHROME_FALLBACK_PX = 56;
 const CHART_MIN_SVG_PX = 120;
 
@@ -89,6 +88,7 @@ export function CoolingImmersiveStatus({ cooling }: { cooling: CoolingImmersiveC
             gpuTempValue={gpuTemp?.value}
             channels={cooling.channels}
             height={chartSvgHeight}
+            hideTitle
           />
         )}
       </div>

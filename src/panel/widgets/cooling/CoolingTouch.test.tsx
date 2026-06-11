@@ -103,8 +103,11 @@ describe('CoolingTouch', () => {
       expect(screen.getByRole('button', { name: `cooling.preset.${key}` }))
         .toHaveAttribute('aria-pressed', 'false');
     }
-    // Live trend chart frames cell 1 under the buttons.
-    expect(screen.getByText('cooling.trend.title')).toBeInTheDocument();
+    // Live trend chart frames cell 1 under the buttons: title hidden in the
+    // immersive (too narrow), the CPU/GPU legend carries the row instead.
+    expect(screen.queryByText('cooling.trend.title')).toBeNull();
+    expect(screen.getByText('cooling.status.cpu')).toBeInTheDocument();
+    expect(screen.getByText('cooling.status.gpu')).toBeInTheDocument();
   });
 
   it('shows the Curves | Fans tabs with curve cards on the default tab', async () => {
