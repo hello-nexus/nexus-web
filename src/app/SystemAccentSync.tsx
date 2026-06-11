@@ -26,12 +26,17 @@ export function SystemAccentSync() {
     return unsubscribe;
   }, [source, update]);
 
-  // On switching to system, apply the last-known OS accent immediately.
+  // Re-assert the OS accent whenever 'system' is active and the stored accent
+  // has drifted from it: when the user flips the source to 'system', and when a
+  // profile switch reloads a profile's stored accentColor (frozen at whatever
+  // the OS accent was the last time that profile saved). The accentColor dep is
+  // what makes this re-run on a switch — without it the reloaded stale hex
+  // sticks until the OS accent next changes.
   useEffect(() => {
-    if (source === 'system' && systemHex.current && systemHex.current !== accentRef.current) {
+    if (source === 'system' && systemHex.current && systemHex.current !== settings.accentColor) {
       update({ accentColor: systemHex.current });
     }
-  }, [source, update]);
+  }, [source, settings.accentColor, update]);
 
   return null;
 }
