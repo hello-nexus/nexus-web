@@ -740,7 +740,6 @@ function MonitorSettingsPanel({
               label: t(`devices.y70.orientation.${o}`),
             }))}
             ariaLabel={t('devices.y70.orientation')}
-            size="sm"
           />
         </div>
       )}
@@ -819,7 +818,6 @@ function SettingsPanel({
                 label: t(`devices.y70.orientation.${o}`),
               }))}
               ariaLabel={t('devices.y70.orientation')}
-              size="sm"
             />
           </div>
 

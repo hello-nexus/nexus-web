@@ -1017,7 +1017,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'Select', category: 'inputs',
     filePath: 'src/components/common/Select/Select.tsx',
     description: 'Themed wrapper around native <select>. Custom chevron via background gradient so dark and light themes both stay coherent. Pass options for flat lists or children for optgroups / styled options. Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
-    notes: 'size="sm" for tighter contexts (panel performance settings).',
+    notes: 'One size across the app. variant="ghost" drops the border/background for selects already inside a bordered card (cooling fan / curve rows).',
   },
   {
     name: 'IconLabelButton', category: 'inputs',

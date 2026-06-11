@@ -51,15 +51,6 @@
   color: var(--text);
 }
 
-.sm .select {
-  padding: 0.25rem 1.55rem 0.25rem 0.55rem;
-  font-size: var(--type-mini, 0.7rem);
-}
-
-.sm .chevron {
-  right: 0.4rem;
-}
-
 /* Ghost variant: no border, no background fill — value as plain text with
    the chevron beside it. For selects already inside a bordered card (cooling
    fan / curve rows). */

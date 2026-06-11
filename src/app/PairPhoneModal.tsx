@@ -715,7 +715,6 @@ function PairBroadcastRow({
         value={value.mode}
         onChange={(next) => onChange(next as PairBroadcastState['mode'])}
         ariaLabel={t('phonePair.broadcast.label')}
-        size="sm"
         options={[
           { value: 'never', label: t('phonePair.broadcast.optNever') },
           { value: 'always', label: t('phonePair.broadcast.optAlways') },

@@ -26,7 +26,6 @@ export interface SelectProps {
   disabled?: boolean;
   ariaLabel?: string;
   className?: string;
-  size?: 'sm' | 'md';
   /** 'standard' (default) renders the boxed dropdown chrome. 'ghost'
    *  drops the border and background so the value reads as text with
    *  just the chevron - used in contexts where the dropdown sits
@@ -36,13 +35,12 @@ export interface SelectProps {
 
 export function Select({
   value, onChange, options, children, disabled,
-  ariaLabel, className, size = 'md', variant = 'standard',
+  ariaLabel, className, variant = 'standard',
 }: SelectProps) {
   const handle = (e: ChangeEvent<HTMLSelectElement>) => onChange(e.target.value);
-  const sizeClass = size === 'sm' ? styles.sm : '';
   const variantClass = variant === 'ghost' ? styles.ghost : '';
   return (
-    <span className={`${styles.wrapper} ${sizeClass} ${variantClass} ${className ?? ''}`}>
+    <span className={`${styles.wrapper} ${variantClass} ${className ?? ''}`}>
       <select
         value={value}
         onChange={handle}
@@ -60,7 +58,7 @@ export function Select({
       </select>
       <ChevronDown
         className={styles.chevron}
-        size={size === 'sm' ? 12 : 14}
+        size={14}
         strokeWidth={2}
         aria-hidden="true"
       />

@@ -8,6 +8,7 @@ import { useSystemSpecs, type SystemSpecs } from '../../../hooks/useSystemSpecs'
 import { useTranslation } from '../../../lib/i18n';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Button } from '../../../components/common/Button/Button';
+import { Select } from '../../../components/common/Select/Select';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DevicesSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
@@ -353,18 +354,15 @@ function FirmwareRow({ item, status, anyFlashing, onFlash }: FirmwareRowProps) {
             {lastError && <div className={styles.fwFailed}>{lastError}</div>}
             {DEV_TOOLS ? (
               <span className={styles.fwUpdateRow}>
-                <select
-                  className={styles.fwVersionSelect}
-                  value={sel}
-                  onChange={e => setSel(Number(e.target.value))}
+                <Select
+                  value={String(sel)}
+                  onChange={v => setSel(Number(v))}
                   disabled={anyFlashing}
-                >
-                  {images.map((img, i) => (
-                    <option key={img.firmwareType + img.version} value={i}>
-                      {img.version}{img.firmwareType !== item.firmwareType ? ` (${img.firmwareType})` : ''}
-                    </option>
-                  ))}
-                </select>
+                  options={images.map((img, i) => ({
+                    value: String(i),
+                    label: `${img.version}${img.firmwareType !== item.firmwareType ? ` (${img.firmwareType})` : ''}`,
+                  }))}
+                />
                 <Button
                   type="button"
                   tone="accent"

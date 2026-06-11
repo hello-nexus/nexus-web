@@ -94,7 +94,6 @@ export function KeebSettingsView({
             onChange={v => pushFw({ animationMode: v })}
             options={FW_EFFECTS.map(e => ({ value: e, label: e }))}
             ariaLabel="Firmware lighting effect"
-            size="sm"
           />
         </Row>
         <Row label="Speed">
@@ -103,7 +102,6 @@ export function KeebSettingsView({
             onChange={v => pushFw({ speed: v })}
             options={FW_SPEEDS.map(s => ({ value: s, label: s }))}
             ariaLabel="Firmware lighting speed"
-            size="sm"
           />
         </Row>
         <Row label="Brightness">
@@ -158,7 +156,6 @@ export function KeebSettingsView({
                 onChange={v => pushPassive({ keyReactiveMode: v })}
                 options={KEY_REACTIVE_MODES.map(m => ({ value: m, label: m }))}
                 ariaLabel="Reactive mode"
-                size="sm"
               />
             </Row>
             <Row label="Color">

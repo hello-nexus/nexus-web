@@ -215,7 +215,6 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
           <div className={styles.subLabel}>Device</div>
           <Select
             className={styles.selectWide}
-            size="sm"
             value={microDevice}
             onChange={v => {
               const next = v as DeviceKey;
@@ -236,7 +235,6 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
               <Select
                 key={i}
                 className={styles.selectWide}
-                size="sm"
                 value={selectedSensorValue(microSensorOptions, name)}
                 onChange={v => onUpdate({ [`micro_sensor${i}`]: v })}
                 options={microSensorOptions}
@@ -261,7 +259,6 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
           <div className={styles.sensorRow}>
             <Select
               className={styles.selectSmall}
-              size="sm"
               value={activeConfig.device}
               onChange={v => onUpdate({
                 [`slot${activeSlot}_device`]: v,
@@ -272,7 +269,6 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
             />
             <Select
               className={styles.selectWide}
-              size="sm"
               value={sensorValue}
               onChange={v => onUpdate({ [`slot${activeSlot}_sensor`]: v })}
               options={sensorOptions}

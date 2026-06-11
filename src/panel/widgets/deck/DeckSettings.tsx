@@ -65,7 +65,7 @@ function useServiceOptions(path: string, map: (data: unknown) => { value: string
 function SelectField({ label, value, options, onChange }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
   return (
     <Field label={label}>
-      <Select className={styles.selectWide} size="sm" value={value} options={options} onChange={onChange} ariaLabel={label} />
+      <Select className={styles.selectWide} value={value} options={options} onChange={onChange} ariaLabel={label} />
     </Field>
   );
 }

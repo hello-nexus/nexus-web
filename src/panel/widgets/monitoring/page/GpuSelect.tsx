@@ -33,7 +33,6 @@ export function GpuSelect({ gpus }: { gpus: GpuComponent[] }) {
         onChange={v => update({ preferredGpuId: v })}
         options={options}
         ariaLabel={t('monitoring.gpuSelect.label')}
-        size="sm"
       />
     </label>
   );

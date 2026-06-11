@@ -85,7 +85,7 @@ export function SettingSelect({
 }) {
   return (
     <SettingRow label={label}>
-      <Select value={value} onChange={onChange} options={options} ariaLabel={label} disabled={disabled} size="sm" />
+      <Select value={value} onChange={onChange} options={options} ariaLabel={label} disabled={disabled} />
     </SettingRow>
   );
 }

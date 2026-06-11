@@ -66,7 +66,6 @@ export function KeebRotaryView({
             onChange={() => { /* no-op until AppDetection lands */ }}
             options={[{ value: 'all', label: 'All Applications' }]}
             ariaLabel="App scope"
-            size="sm"
             disabled
           />
         </div>
@@ -78,7 +77,6 @@ export function KeebRotaryView({
             onChange={v => void onSetSensitivity(v)}
             options={ROTARY_SENSITIVITIES.map(s => ({ value: s, label: s }))}
             ariaLabel="Rotary sensitivity"
-            size="sm"
           />
         </div>
 

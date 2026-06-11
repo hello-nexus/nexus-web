@@ -268,7 +268,6 @@ function EntryView({
             onChange={v => setSort(v as SortKey)}
             options={SORT_OPTIONS}
             ariaLabel="Sort library"
-            size="sm"
           />
           <div className={styles.libraryCount}>
             {filtered.length === ownedGames.length
