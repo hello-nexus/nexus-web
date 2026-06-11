@@ -116,12 +116,14 @@ function CurvesTab({ cooling }: { cooling: CoolingImmersiveController }) {
 }
 
 function FansTab({ cooling }: { cooling: CoolingImmersiveController }) {
-  const { channels, curves, fanStates, hubModes } = cooling;
+  const { t } = useTranslation();
+  const { channels, curves, fanStates, hubModes, calibrating } = cooling;
 
   const renderFan = (ch: FanChannel) => (
     <FanCard
       key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
       compact
+      calibrating={calibrating}
       canCreateCurve={cooling.canAddCurve}
       hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
       hubSupportsFirmware={ch.deviceId?.startsWith('np50:')}
@@ -160,7 +162,18 @@ function FansTab({ cooling }: { cooling: CoolingImmersiveController }) {
 
   return (
     <div className={styles.tabPane}>
-      <div className={styles.cardList}>{blocks}</div>
+      {calibrating && <p className={styles.calibratingHint}>{t('cooling.calibrate.locked')}</p>}
+      {/* Same input lock the desktop page applies to its fan rail: a running
+          calibration owns the duty cycle, so every control underneath goes
+          inert until it finishes. React 19 treats inert as a real boolean
+          prop — an empty-string cast renders nothing. */}
+      <div
+        inert={calibrating || undefined}
+        aria-hidden={calibrating || undefined}
+        className={styles.cardList}
+      >
+        {blocks}
+      </div>
     </div>
   );
 }

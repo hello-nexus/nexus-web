@@ -43,6 +43,12 @@
   color: var(--text-dim);
 }
 
+.calibratingHint {
+  margin: 0;
+  @include text-caption;
+  color: var(--text-dim);
+}
+
 .deviceGroupHeader {
   @include text-label;
   color: var(--text-dim);

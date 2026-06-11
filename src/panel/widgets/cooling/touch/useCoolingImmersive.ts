@@ -21,12 +21,13 @@ import {
 } from '../../../../api/minihub';
 import { useCoolingRealtime } from '../../../../hooks/useCooling';
 import { useCoolingCurves } from '../../../../hooks/useCoolingCurves';
-import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
+import { useMultiplex, useTopicCallback } from '../../../../hooks/useMultiplexSocket';
+import { useServiceState } from '../../../../hooks/useServiceState';
 import { useTempSensorPrefs } from '../../../../hooks/useUiSettings';
 import { publishControlSync, subscribeControlSync } from '../../../../lib/controlSync';
 import { defaultCurveSourceId } from '../../../../lib/tempSensorResolver';
 import { curveDefsFromApi, newCurve, MAX_CURVES, type CurveDef, type FanState } from '../../../../types/cooling';
-import { loadCoolingCache, setCachedCoolingActivePreset } from '../coolingCache';
+import { loadCoolingCache, saveCoolingCache, setCachedCoolingActivePreset } from '../coolingCache';
 import { isCoolingPresetKey, type CoolingPresetKey } from '../page/coolingPresets';
 import type { FanCardHubMode } from '../page/FanCard';
 
@@ -43,6 +44,9 @@ export interface CoolingImmersiveController {
   activePreset: CoolingPresetKey | null;
   hubModes: Record<string, FanCardHubMode>;
   canAddCurve: boolean;
+  /** Server calibration in progress — fan controls must lock (same interlock
+   *  as the desktop page's dimmed rail). */
+  calibrating: boolean;
   applyPreset: (key: CoolingPresetKey) => void;
   setFanMode: (fanId: string, value: string) => void;
   createCurveAndAssign: (fanId: string) => void;
@@ -73,6 +77,25 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   const presetLockUntilRef = useRef(0);
   const activeProfileRef = useRef('');
   const tempPrefs = useTempSensorPrefs();
+  const multiplex = useMultiplex();
+  const serviceState = useServiceState(true, multiplex);
+  const calibrating = serviceState.cooling?.calibrating ?? false;
+
+  // The NP50 is the only hub with a mode read-back; re-read it on every
+  // refresh. The hub doesn't broadcast mode changes, so a mode flipped from
+  // another surface can still stay stale until the next cooling event — the
+  // desktop page covers that gap with a 3s poll, the immersive deliberately
+  // doesn't poll. Locked out briefly after our own hub writes so an in-flight
+  // read of the pre-switch mode can't clobber the optimistic write-through.
+  const hubModeLockUntilRef = useRef(0);
+  const refreshNp50HubMode = useCallback(async () => {
+    const state = await getNp50ConnectionState();
+    if (!state?.deviceId) return;
+    if (Date.now() < hubModeLockUntilRef.current) return;
+    const kind = np50HubModeFromName(state.coolingMode);
+    if (!kind) return;
+    setHubModes(prev => prev[state.deviceId] === kind ? prev : { ...prev, [state.deviceId]: kind });
+  }, []);
 
   const refresh = useCallback(async () => {
     const [fans, temps, saved, profiles] = await Promise.all([
@@ -81,6 +104,10 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       fetchCurves(),
       fetchProfiles(),
     ]);
+
+    if (fans?.channels?.some(c => c.deviceId?.startsWith('np50:'))) {
+      void refreshNp50HubMode();
+    }
 
     if (profiles?.active && Date.now() >= presetLockUntilRef.current) {
       activeProfileRef.current = profiles.active;
@@ -102,9 +129,15 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       setFanStates(restored);
     }
     if (temps?.sources) setSources(temps.sources);
-  }, []);
+  }, [refreshNp50HubMode]);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  // Mirror the desktop page's stale-while-revalidate write-back so the next
+  // open (here or on the dashboard) paints from the last-good snapshot.
+  useEffect(() => {
+    saveCoolingCache({ channels, curves, sources, fanStates, activePreset, hubModes });
+  }, [channels, curves, sources, fanStates, activePreset, hubModes]);
 
   // Every cooling-config mutation lands a 'cooling' push from the service.
   const onCoolingTopic = useCallback(() => {
@@ -176,26 +209,6 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       return changed ? next : prev;
     });
   }, [curveCalcs]);
-
-  // Seed the NP50 hub mode once per appearance of an NP50 fan. No coarse
-  // poll here (unlike CoolingPage): our own writes update hubModes directly,
-  // and external changes land a 'cooling' refresh anyway.
-  const hasNp50Fan = useMemo(
-    () => channels.some(c => c.deviceId?.startsWith('np50:')),
-    [channels],
-  );
-  useEffect(() => {
-    if (!hasNp50Fan) return;
-    let cancelled = false;
-    (async () => {
-      const state = await getNp50ConnectionState();
-      if (cancelled || !state?.deviceId) return;
-      const kind = np50HubModeFromName(state.coolingMode);
-      if (!kind) return;
-      setHubModes(prev => prev[state.deviceId] === kind ? prev : { ...prev, [state.deviceId]: kind });
-    })();
-    return () => { cancelled = true; };
-  }, [hasNp50Fan]);
 
   // ── Handlers (ports of CoolingPage's transactional handlers) ─────────────
 
@@ -277,6 +290,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       const wasSw = fanStates[fanId]?.softwareControl ?? false;
       if (wasSw) await toggleSoftwareControl(fanId, false);
       await setNp50FirmwareControl();
+      hubModeLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
       setHubModes(prev => ({ ...prev, [deviceId]: 'firmware' }));
       return;
     }
@@ -284,6 +298,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     if (value === 'bios') {
       if (isMiniHub && deviceId) {
         await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_MOTHERBOARD);
+        hubModeLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
         setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
       }
       const wasSw = fanStates[fanId]?.softwareControl ?? false;
@@ -296,6 +311,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     if (deviceId && hubModes[deviceId] && hubModes[deviceId] !== 'software') {
       if (isNp50) await setNp50LiveCoolingMode(NP50_LIVE_MODE_SOFTWARE);
       else if (isMiniHub) await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_SOFTWARE);
+      hubModeLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
       setHubModes(prev => ({ ...prev, [deviceId]: 'software' }));
     }
 
@@ -392,6 +408,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   return {
     channels, sources, curves, fanStates, activePreset, hubModes,
     canAddCurve: curves.length < MAX_CURVES,
+    calibrating,
     applyPreset,
     setFanMode: (fanId, value) => { void setFanMode(fanId, value); },
     createCurveAndAssign: (fanId) => { void createCurveAndAssign(fanId); },

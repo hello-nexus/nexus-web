@@ -43,7 +43,7 @@ import { CoolingSettingsModal } from './page/CoolingSettingsModal';
 import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './page/coolingPresets';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, resolveGpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
-import { MAX_CURVES, newCurve, type CurveDef, type CurvePreset, type CurveType, type FanState, type MixFn } from '../../../types/cooling';
+import { curveDefsFromApi, MAX_CURVES, newCurve, type CurveDef, type FanState } from '../../../types/cooling';
 import styles from './CoolingPage.module.scss';
 
 /**
@@ -145,47 +145,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         }
       }
 
-      if (saved?.curves?.length) {
-        const loadedCurves: CurveDef[] = saved.curves.map(c => ({
-          id: c.id,
-          name: c.name,
-          type: (c.type === 'Flat' ? 'flat' : c.type === 'Linear' ? 'linear' : c.type === 'Graph' ? 'graph' : 'mix') as CurveType,
-          sourceId: c.input?.id ?? '',
-          flat: { speed: c.flat?.speed ?? 50 },
-          linear: {
-            responseTime: c.linear?.responseTime ?? 1.5,
-            minTemp: c.linear?.minTemp ?? 35,
-            maxTemp: c.linear?.maxTemp ?? 75,
-            minSpeed: c.linear?.minSpeed ?? 30,
-            maxSpeed: c.linear?.maxSpeed ?? 90,
-          },
-          graph: {
-            responseTime: c.graph?.responseTime ?? 1.5,
-            points: c.graph?.points?.length ? c.graph.points : [
-              { temp: 30, speed: 25 }, { temp: 50, speed: 40 },
-              { temp: 70, speed: 70 }, { temp: 90, speed: 100 },
-            ],
-          },
-          mix: {
-            // Default matches the backend MixedCurveData / MixedCurve default
-            // so curves persisted before this field existed don't display a
-            // value the engine isn't actually using.
-            responseTime: c.mixed?.responseTime ?? 1.0,
-            curveIds: c.mixed?.curveIds ?? [],
-            fn: (c.mixed?.fn ?? 'max') as MixFn,
-          },
-          preset: c.preset ? (c.preset as CurvePreset) : undefined,
-          isDefault: c.isDefault ?? undefined,
-        }));
-        setCurves(loadedCurves);
-
-        for (const c of saved.curves) {
-          for (const out of c.outputs ?? []) {
-            restored[out.id] = { softwareControl: true, curveId: c.id };
-          }
+      setCurves(curveDefsFromApi(saved));
+      for (const c of saved?.curves ?? []) {
+        for (const out of c.outputs ?? []) {
+          restored[out.id] = { softwareControl: true, curveId: c.id };
         }
-      } else {
-        setCurves([]);
       }
 
       setFanStates(restored);
@@ -1291,11 +1255,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 </div>
               )}
               <div
-                /* `inert` is the modern way to lock a subtree from every input
-                   path (mouse, keyboard, AT focus). Falls back to the
-                   pointer-events override below for older browsers; together
-                   they make "calibration in progress" actually undefeatable. */
-                {...(calibrating ? { inert: '' as unknown as undefined } : {})}
+                /* `inert` locks the subtree from every input path (mouse,
+                   keyboard, AT focus). React 19 treats it as a real boolean
+                   prop — the old empty-string cast rendered nothing and the
+                   pointer-events override below was doing all the work. */
+                inert={calibrating || undefined}
                 aria-hidden={calibrating || undefined}
                 className={`${styles.fanList} ${calibrating ? styles.fanGridDisabled : ''}`}
               >
