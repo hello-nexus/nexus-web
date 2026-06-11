@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '../../common/Button/Button';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { SettingRow, SettingToggle, SettingSelect } from '../../common/SettingRow/SettingRow';
+import { ThemeTab } from './ThemeTab';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
 import { fetchService, postService } from '../../../api/service';
@@ -131,6 +132,11 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         />
       </div>
 
+      <div className={styles.settingsGroup}>
+        <SectionHeader>{t('settings.theme')}</SectionHeader>
+        <ThemeTab settings={settings} updateGeneral={updateGeneral} />
+      </div>
+
       {(platform === 'windows' || platform === 'macos') && (
         <div className={styles.settingsGroup}>
           <SectionHeader>Startup &amp; tray</SectionHeader>
@@ -221,7 +227,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
       <div className={styles.settingsGroup}>
         <SectionHeader style={{ color: 'var(--bad)' }}>{t('settings.dangerZone')}</SectionHeader>
 
-        {platform === 'windows' && (
+        {(platform === 'windows' || platform === 'macos') && (
           <SettingRow
             label={t('settings.shutDown.label')}
             description={flashing ? t('settings.shutDown.flashBlocked') : t('settings.shutDown.description')}

@@ -80,7 +80,7 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
   const btn = (
     <button
       type="button"
-      className={styles.phonePairBtn}
+      className={classNames(styles.phonePairBtn, { [styles.phonePairBtnCompact]: compact })}
       onClick={onClick}
       disabled={disabled}
       aria-label={compact ? `${t('phonePair.title')} · ${countLabel}` : undefined}

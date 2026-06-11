@@ -61,7 +61,7 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
   };
 
   return (
-    <div className={styles.tabPanel}>
+    <>
       <SettingRow label={t('settings.theme')}>
         <Tabs
           variant="pill"
@@ -106,6 +106,6 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
