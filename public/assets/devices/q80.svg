@@ -1,6 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <!-- HYTE Q80: same chunky-bezelled LCD vocabulary as the Q60,
-       landscape. -->
-  <rect x="4" y="11" width="40" height="26" rx="5" />
-  <rect x="9" y="15" width="30" height="18" rx="2.5" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- HYTE Q-series LCD: portrait body silhouette drawn as a single-
+       stroke outline, with the brand fish filled on the screen. Shared
+       by the Q60 and Q80 (the Q-series uses one portrait mark). -->
+  <rect x="11" y="7" width="26" height="34" rx="6" />
+  <path d="M16 19 L22 21 C27 19 32 21 32 24 C32 27 27 29 22 27 L16 29 L20 24 Z" fill="currentColor" stroke="none" />
 </svg>
