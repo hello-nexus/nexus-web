@@ -38,7 +38,7 @@ import { sanitizePinnedTail } from '../app/sidebarApps';
 export interface UiSettingsValue {
   // Client-scoped (local only, never synced to server)
   startOnLogin: boolean;
-  // Dashboard background style (wallpaper / gradient / flat).
+  // Dashboard background style (glass / gradient / flat).
   backgroundMode: BackgroundMode;
   // Accent source: 'system' tracks the OS accent, 'custom' uses accentColor.
   accentSource: AccentSource;

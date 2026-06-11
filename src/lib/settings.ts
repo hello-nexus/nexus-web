@@ -258,7 +258,7 @@ export function applyThemeMode(mode: ThemeMode): void {
 /**
  * Apply the dashboard background style by toggling `data-bg` on <html> (CSS
  * reads it for the flat base color) and notifying <AppBackdrop> via a window
- * event so it can swap the rendered layer (ribbons / wallpaper / none).
+ * event so it can swap the rendered layer (ribbons / none).
  */
 export function applyBackgroundMode(mode: BackgroundMode): void {
   document.documentElement.setAttribute('data-bg', mode);

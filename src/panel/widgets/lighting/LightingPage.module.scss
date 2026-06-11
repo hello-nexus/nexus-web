@@ -17,7 +17,7 @@
   padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: transparent;
+  background: var(--surface);
   color: var(--text-muted);
   cursor: pointer;
   transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease, background-color var(--ease-fast) ease;
@@ -996,7 +996,8 @@
   flex-direction: column;
   gap: 0.35rem;
   padding-left: 0.5rem;
-  border-left: 2px solid var(--border);
+  // Matches the tab underline: text colour at 25%, inverts with the theme.
+  border-left: 2px solid color-mix(in srgb, var(--text) 25%, transparent);
   margin-left: 0.3rem;
 }
 

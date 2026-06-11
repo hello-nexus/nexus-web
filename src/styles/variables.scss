@@ -32,9 +32,10 @@
   --surface: #0d0d0d;
 
   // App backdrop. --backdrop-base is the grayscale flat surface colour: the whole
-  // canvas in flat mode, AND it flattens the gradient (ribbons sit over it) and
-  // the wallpaper (its veil is this same grey). Ribbon tints reference the live
-  // --accent* vars; color-mix is used elsewhere (tokens.scss).
+  // canvas in flat mode, and it flattens the gradient (ribbons sit over it). In
+  // glass mode the host paints a native frosted backdrop and this is transparent.
+  // Ribbon tints reference the live --accent* vars; color-mix is used elsewhere
+  // (tokens.scss).
   --backdrop-base: #1a1a1a;
   --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 14%, transparent);
   --backdrop-tint-b: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -178,7 +179,7 @@
   --border-strong: #c4c5d3;
   --surface: #fafafa;  // see dark-theme note — near-white activatable surface
 
-  // Light backdrop: grayscale flat surface grey (flattens gradient + wallpaper).
+  // Light backdrop: grayscale flat surface grey (flattens gradient + glass).
   --backdrop-base: #d8d8d8;
   --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 15%, transparent);
   --backdrop-tint-b: color-mix(in srgb, var(--accent) 12%, transparent);
