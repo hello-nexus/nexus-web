@@ -17,8 +17,9 @@ import styles from './MonitoringTouch.module.scss';
  * uses, so state is shared across views (no reset on tap-to-immersive).
  *
  * 1 slot   -> 1 cell, centered on the page.
- * 2 slots  -> 2 cells, stacked portrait / side-by-side landscape.
- * 4 slots  -> paginates (2 cells per page on phone).
+ * 2 slots  -> 2 cells, stacked portrait / side-by-side landscape, centered.
+ * 4 slots  -> all on one page where the panel is tall enough (Y70), else
+ *             paginates (2 cells per page on phone).
  */
 export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
   const slotCount = resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined);
@@ -66,12 +67,20 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
     </div>
   ));
 
+  // Each tile prefers a 4x4 footprint but may compress to a 3-unit floor (see
+  // ImmersiveLayout's flex-shrink) so a tall panel fits the whole set on one
+  // page: Y70 portrait (12 rows) -> 4 tiles/page = the full set; a phone
+  // (~8 rows) -> 2/page and paginates the rest.
+  const longAxis = Math.max(immersiveGrid?.columns ?? 4, immersiveGrid?.rows ?? 8);
+  const cellsPerPage = Math.max(1, Math.floor(longAxis / 3));
+
   return (
     <ImmersiveLayout
       cells={cells}
       gridColumns={immersiveGrid?.columns ?? 4}
       gridRows={immersiveGrid?.rows ?? 8}
       fillLast={false}
+      cellsPerPage={cellsPerPage}
     />
   );
 }

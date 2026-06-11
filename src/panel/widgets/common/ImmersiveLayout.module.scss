@@ -40,6 +40,13 @@
 // grows, so center the group when it doesn't fill the page.
 .layout[data-fixed='true'] {
   justify-content: center;
+
+  // Tiles keep their 4x4 basis but may shrink so a full set shares one page
+  // rather than overflowing: 4 sensors on Y70's 12-row portrait compress to
+  // ~3 rows each. Under-full pages stay 4x4 and center (no grow).
+  .cell {
+    flex-shrink: 1;
+  }
 }
 
 .cell {
