@@ -127,7 +127,7 @@
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width) solid var(--border);
   font-size: var(--type-small);
 }
 

@@ -104,6 +104,7 @@
 
   &.active {
     background: var(--surface);
+    border: var(--border-width) solid var(--border);
     color: var(--text);
 
     .icon {

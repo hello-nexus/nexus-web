@@ -34,7 +34,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.3rem 0.7rem;
-  border: 1px solid var(--border);
+  border: var(--control-border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   // Theme surface (white-ish in light, very dark grey in dark) rather than
   // transparent, so the buttons read as solid controls on the backdrop.

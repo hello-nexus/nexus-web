@@ -127,8 +127,8 @@
   min-width: 148px;
   min-height: 42px;
   border-radius: var(--radius-sm);
-  border-color: var(--border);
   background: var(--surface);
+  border: var(--control-border-width) solid var(--border-strong);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--type-small);

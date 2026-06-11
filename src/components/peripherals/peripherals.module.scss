@@ -57,7 +57,7 @@
 .segBtn {
   padding: 0.4rem 0.85rem;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--control-border-width) solid var(--border-strong);
   border-radius: var(--radius);
   color: var(--text-dim);
   font-family: var(--font-mono);

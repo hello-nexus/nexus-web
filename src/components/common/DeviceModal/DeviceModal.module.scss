@@ -150,7 +150,7 @@
 :global(.device-modal-select) {
   padding: 0.35rem 0.6rem;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: var(--control-border-width) solid var(--border-strong);
   background: var(--surface);
   color: var(--text);
   font-size: var(--type-small);

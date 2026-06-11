@@ -30,15 +30,14 @@
   align-items: center;
   gap: 0.9rem;
   padding: 0.7rem 0.9rem;
-  border: 1px solid var(--border);
+  border: var(--border-width) solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
   cursor: pointer;
-  transition: border-color var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast);
+  transition: background var(--ease-fast), box-shadow var(--ease-fast);
 
   &:hover {
     background: var(--bg-card-hover);
-    border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent-soft);
   }
 
@@ -53,7 +52,6 @@
 
   &:hover {
     background: var(--surface);
-    border-color: var(--border-strong);
     box-shadow: none;
   }
 }
@@ -167,7 +165,7 @@
   gap: 1rem;
   padding: 0.75rem 1rem;
   margin-top: 1rem;
-  border: 1px solid var(--border);
+  border: var(--border-width) solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
   // Cap width so the prompt box doesn't stretch the full page. Shrinks
@@ -233,7 +231,7 @@
 
 .usbTableWrap {
   margin-top: 0.5rem;
-  border: 1px solid var(--border);
+  border: var(--border-width) solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
   width: fit-content;
@@ -378,7 +376,7 @@
 // narrow viewports it shrinks via max-width: 100%.
 .specsCard {
   margin-top: 0.75rem;
-  border: 1px solid var(--border);
+  border: var(--border-width) solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
   padding: 0.4rem 0.9rem;
