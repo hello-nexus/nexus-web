@@ -37,7 +37,7 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-muted);
@@ -233,7 +233,7 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .calibrationResults {
-  border: var(--border-width) solid var(--border); border-radius: var(--radius); background: var(--surface);
+  border: var(--border-width) solid transparent; border-radius: var(--radius); background: var(--surface);
   padding: 0.75rem 1rem; margin-bottom: 0.5rem;
 }
 .calibrationResultsHeader {
@@ -267,7 +267,7 @@
 .fanCard {
   position: relative;
   display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem;
-  border-radius: var(--radius); border: var(--border-width) solid var(--border); background: var(--surface);
+  border-radius: var(--radius); border: var(--border-width) solid transparent; background: var(--surface);
   width: 370px;
   cursor: grab;
   transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, box-shadow var(--ease-fast) ease, opacity var(--ease-fast) ease;
@@ -640,7 +640,7 @@
   // header / body content never sits underneath it.
   padding: 0.85rem 1rem 1.5rem;
   width: 100%;
-  border: var(--border-width) solid var(--border); border-radius: var(--radius);
+  border: var(--border-width) solid transparent; border-radius: var(--radius);
   background: var(--surface);
   cursor: grab;
   transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, opacity var(--ease-fast) ease, box-shadow var(--ease-fast) ease;

@@ -77,7 +77,7 @@
 
   &.active {
     background: var(--surface);
-    border: var(--border-width) solid var(--border);
+    border: var(--border-width) solid transparent;
     color: var(--text);
 
     .icon, .headerIcon { color: var(--accent-glow); }

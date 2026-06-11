@@ -295,7 +295,7 @@
 .modeBtn {
   padding: 0.3rem 0.6rem;
   font-size: var(--type-small);
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-dim);
@@ -333,7 +333,7 @@
   gap: 0.3rem;
   padding: 0.3rem 0.6rem;
   font-size: var(--type-small);
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-faded);
@@ -444,7 +444,7 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-dim);
@@ -467,7 +467,7 @@
 .btn {
   padding: 0.3rem 0.65rem;
   font-size: var(--type-small);
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);

@@ -22,11 +22,10 @@
   --bg-card-hover: #202020;
   --border: #2a2a2a;
   --border-strong: #3a3a3a;
-  // Border widths. Passive containers (cards/panels/modals) use --border-width
-  // and read flat; interactive controls use --control-border-width paired with
-  // --border-strong. Retune either here.
-  --border-width: 0;
-  --control-border-width: 1px;
+  // Single border width, always present so revealing a border on hover never
+  // reflows content. Containers stroke transparent (flat at rest); controls and
+  // hover-highlighted containers stroke --border-strong.
+  --border-width: 1px;
 
   // The one "activatable surface" colour: every interactive element + box
   // container base bg (widgets, top search bar, buttons, profile avatar,

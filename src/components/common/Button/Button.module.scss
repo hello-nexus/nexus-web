@@ -8,7 +8,7 @@
   justify-content: center;
   gap: 0.4rem;
   border-radius: var(--radius-sm);
-  border: var(--control-border-width) solid transparent;
+  border: var(--border-width) solid transparent;
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
@@ -68,7 +68,7 @@
   // The canonical interactive surface (solid; pops against the backdrop) rather
   // than transparent, so every secondary action button reads as a solid control.
   background: var(--surface);
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   color: var(--text-dim);
 
   &:hover:not(:disabled) {

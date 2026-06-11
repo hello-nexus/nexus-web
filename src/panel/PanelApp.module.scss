@@ -694,8 +694,8 @@
   }
 
   .cellWrap[data-clickthrough='true']:hover .cell {
-    background: var(--panel-accent-soft);
-    border-color: var(--panel-accent);
+    background: var(--bg-card-hover);
+    border-color: var(--panel-border-strong);
   }
 }
 
