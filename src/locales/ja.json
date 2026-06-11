@@ -300,6 +300,8 @@
   "displays.panel.active": "Nexus パネル",
   "displays.panel.activeAuto": "Nexus パネル（自動管理）",
   "displays.panel.open": "パネルエディターを開く",
+  "displays.panel.primaryHint": "メインモニターは Nexus パネルとして使用できません。別のモニターを選択してください。",
+  "displays.panel.singleMonitorHint": "2台目のモニターを接続すると、Nexus パネルとして使用できます。",
   "displays.panel.stop": "パネルとしての使用を停止",
   "displays.panel.unsupportedHint": "このシステムではモニターを Nexus パネルにする機能はまだサポートされていません。",
   "displays.panel.use": "Nexus パネルとして使用",

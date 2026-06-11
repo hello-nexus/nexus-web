@@ -164,6 +164,12 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
                       {t('displays.panel.stop')}
                     </Button>
                   </>
+                ) : displays.length <= 1 ? (
+                  // A panel takes over its display fullscreen, so the only/main
+                  // screen can't host one — you'd lose your desktop.
+                  <span className={styles.hint}>{t('displays.panel.singleMonitorHint')}</span>
+                ) : selected.isPrimary ? (
+                  <span className={styles.hint}>{t('displays.panel.primaryHint')}</span>
                 ) : (
                   <>
                     <Button

@@ -300,6 +300,8 @@
   "displays.panel.active": "Nexus 패널",
   "displays.panel.activeAuto": "Nexus 패널(자동 관리)",
   "displays.panel.open": "패널 편집기 열기",
+  "displays.panel.primaryHint": "주 모니터는 Nexus 패널로 사용할 수 없습니다. 다른 모니터를 선택하세요.",
+  "displays.panel.singleMonitorHint": "두 번째 모니터를 연결하면 Nexus 패널로 사용할 수 있습니다.",
   "displays.panel.stop": "패널 사용 중지",
   "displays.panel.unsupportedHint": "이 시스템에서는 아직 모니터를 Nexus 패널로 전환할 수 없습니다.",
   "displays.panel.use": "Nexus 패널로 사용",

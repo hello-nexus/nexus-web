@@ -300,6 +300,8 @@
   "displays.panel.active": "Nexus 面板",
   "displays.panel.activeAuto": "Nexus 面板（自動管理）",
   "displays.panel.open": "開啟面板編輯器",
+  "displays.panel.primaryHint": "主顯示器無法用作 Nexus 面板。請選擇其他顯示器。",
+  "displays.panel.singleMonitorHint": "連接第二台顯示器即可將其用作 Nexus 面板。",
   "displays.panel.stop": "停止用作面板",
   "displays.panel.unsupportedHint": "此系統尚不支援將顯示器轉換為 Nexus 面板。",
   "displays.panel.use": "用作 Nexus 面板",

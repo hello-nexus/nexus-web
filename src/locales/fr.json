@@ -300,6 +300,8 @@
   "displays.panel.active": "Panneau Nexus",
   "displays.panel.activeAuto": "Panneau Nexus (géré automatiquement)",
   "displays.panel.open": "Ouvrir l'éditeur du panneau",
+  "displays.panel.primaryHint": "L'écran principal ne peut pas être utilisé comme panneau Nexus. Choisissez un autre écran.",
+  "displays.panel.singleMonitorHint": "Connectez un deuxième écran pour l'utiliser comme panneau Nexus.",
   "displays.panel.stop": "Ne plus utiliser comme panneau",
   "displays.panel.unsupportedHint": "La transformation des moniteurs en panneaux Nexus n'est pas encore prise en charge sur ce système.",
   "displays.panel.use": "Utiliser comme panneau Nexus",

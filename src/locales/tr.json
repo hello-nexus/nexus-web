@@ -300,6 +300,8 @@
   "displays.panel.active": "Nexus paneli",
   "displays.panel.activeAuto": "Nexus paneli (otomatik yönetilir)",
   "displays.panel.open": "Panel düzenleyicisini aç",
+  "displays.panel.primaryHint": "Birincil ekran Nexus paneli olarak kullanılamaz. Başka bir ekran seçin.",
+  "displays.panel.singleMonitorHint": "Nexus paneli olarak kullanmak için ikinci bir ekran bağlayın.",
   "displays.panel.stop": "Panel olarak kullanmayı bırak",
   "displays.panel.unsupportedHint": "Monitörleri Nexus paneline dönüştürme bu sistemde henüz desteklenmiyor.",
   "displays.panel.use": "Nexus paneli olarak kullan",
