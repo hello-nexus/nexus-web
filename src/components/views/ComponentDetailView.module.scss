@@ -19,7 +19,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: none;
+  border: var(--control-border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -109,6 +109,7 @@
 .specRow {
   &:nth-child(even) {
     background: var(--surface);
+    border: var(--border-width) solid var(--border);
   }
 }
 
@@ -138,6 +139,7 @@
 .priceRow {
   &:nth-child(even) {
     background: var(--surface);
+    border: var(--border-width) solid var(--border);
   }
 }
 

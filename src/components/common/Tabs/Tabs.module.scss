@@ -1,8 +1,9 @@
 .tabs {
   display: flex;
   gap: 0.25rem;
-  // Text colour at 25% so the rule inverts with the theme but reads soft.
-  border-bottom: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
+  // Built from the text colour so the rule inverts with the theme and reads
+  // soft; stroke weight matches the device-tree parent/child connector.
+  border-bottom: 2px solid color-mix(in srgb, var(--text) 18%, transparent);
 }
 
 .tab {
@@ -108,7 +109,7 @@
 
 .tabsPill {
   display: inline-flex;
-  border: 1px solid var(--border);
+  border: var(--control-border-width) solid var(--border-strong);
   border-radius: var(--radius-pill);
   overflow: hidden;
   background: var(--surface);

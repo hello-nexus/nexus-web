@@ -33,7 +33,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.55rem 0.7rem;
-  border: 1px solid var(--border);
+  border: var(--border-width) solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
 }

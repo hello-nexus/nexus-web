@@ -9,7 +9,7 @@
   width: 40px;
   height: 22px;
   border-radius: var(--radius-pill);
-  border: none;
+  border: var(--control-border-width) solid var(--border-strong);
   padding: 0;
   background: var(--surface);
   cursor: pointer;
@@ -32,8 +32,9 @@
 
 .thumb {
   position: absolute;
-  top: 3px;
-  left: 3px;
+  // Inset leaves the knob centred once the surface border is accounted for.
+  top: 2px;
+  left: 2px;
   width: 16px;
   height: 16px;
   border-radius: 50%;

@@ -15,7 +15,7 @@
   appearance: none;
   -webkit-appearance: none;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--control-border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: inherit;

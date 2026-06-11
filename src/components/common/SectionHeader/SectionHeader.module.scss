@@ -8,6 +8,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding-bottom: 0.25rem;
-  // Text colour at 25%, matching the tab rule, so it inverts with the theme.
-  border-bottom: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
+  // Built from the text colour, matching the tab rule, so it inverts with the
+  // theme; stroke weight matches the device-tree parent/child connector.
+  border-bottom: 2px solid color-mix(in srgb, var(--text) 18%, transparent);
 }

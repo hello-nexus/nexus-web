@@ -22,6 +22,11 @@
   --bg-card-hover: #202020;
   --border: #2a2a2a;
   --border-strong: #3a3a3a;
+  // Border widths. Passive containers (cards/panels/modals) use --border-width
+  // and read flat; interactive controls use --control-border-width paired with
+  // --border-strong. Retune either here.
+  --border-width: 0;
+  --control-border-width: 1px;
 
   // The one "activatable surface" colour: every interactive element + box
   // container base bg (widgets, top search bar, buttons, profile avatar,
@@ -179,7 +184,7 @@
   --bg: #e8eaf1;
   --bg-elevated: #ecedf4;
   --bg-card-hover: #f4f5fa;
-  --border: #dcdde7;
+  --border: #c8cad5;
   --border-strong: #c4c5d3;
   --surface: #fafafa;  // see dark-theme note — near-white activatable surface
 

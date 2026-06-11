@@ -1,5 +1,5 @@
 .rankedList {
-  border: 1px solid var(--border);
+  border: var(--border-width) solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
   padding: 0.85rem 1rem;

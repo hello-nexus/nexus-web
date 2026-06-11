@@ -517,7 +517,7 @@
   flex-direction: column;
   gap: 0.65rem;
   padding: 1rem;
-  border: 1px solid var(--border);
+  border: var(--border-width) solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
   min-width: 0;
@@ -536,6 +536,7 @@
 // on one continuous surface with no visible inner box.
 :global([data-theme='dark']) .phonePairFlowCard {
   background: var(--surface);
+  border: var(--border-width) solid var(--border);
   --qr-surface: var(--surface);
 }
 

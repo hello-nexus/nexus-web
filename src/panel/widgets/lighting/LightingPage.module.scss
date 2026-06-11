@@ -15,7 +15,7 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid var(--border);
+  border: var(--control-border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-muted);
@@ -125,7 +125,7 @@
   width: 26px;
   height: 26px;
   padding: 0;
-  border: 1px solid var(--border);
+  border: var(--control-border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-dim);
@@ -153,7 +153,7 @@
   width: 26px;
   height: 26px;
   padding: 0;
-  border: 1px solid var(--border);
+  border: var(--control-border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-dim);
@@ -207,7 +207,7 @@
 
 .categoryChip {
   appearance: none;
-  border: 1px solid var(--border);
+  border: var(--control-border-width) solid var(--border-strong);
   background: var(--surface);
   color: var(--text-dim);
   font-size: 0.78rem;
@@ -257,7 +257,7 @@
   align-items: stretch;
   gap: 0.4rem;
   padding: 0.5rem;
-  border: 1px solid var(--border);
+  border: var(--control-border-width) solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
@@ -811,7 +811,7 @@
   gap: 0.15rem;
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: var(--border-width) solid var(--border);
   background: var(--surface);
   cursor: pointer;
   transition: border-color var(--ease-fast), background var(--ease-fast);
@@ -993,8 +993,8 @@
   flex-direction: column;
   gap: 0.35rem;
   padding-left: 0.5rem;
-  // Matches the tab underline: text colour at 25%, inverts with the theme.
-  border-left: 2px solid color-mix(in srgb, var(--text) 25%, transparent);
+  // Matches the tab/header rule: built from the text colour so it inverts with the theme.
+  border-left: 2px solid color-mix(in srgb, var(--text) 18%, transparent);
   margin-left: 0.3rem;
 }
 
