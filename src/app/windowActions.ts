@@ -127,6 +127,22 @@ export function subscribeSystemAccent(onAccent: (hex: string) => void): () => vo
   return () => window.removeEventListener('message', listener);
 }
 
+/**
+ * Tell the native host the dashboard's resolved light/dark so it themes its own
+ * native chrome — Windows DWM immersive mode + Mica, macOS NSWindow appearance
+ * + vibrancy — instead of following the OS theme. No-op in a plain browser.
+ * Keep the message strings in lockstep with the host handlers (DashboardWindow.cs
+ * OnWebMessageReceived / MacAppWindow.cs DidReceiveScriptMessage).
+ */
+export function postResolvedTheme(dark: boolean): void {
+  const msg = dark ? 'nexus:theme-dark' : 'nexus:theme-light';
+  const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
+  if (wv?.postMessage) { wv.postMessage(msg); return; }
+  const mac = (window as Window & { webkit?: { messageHandlers?: { nexusHost?: { postMessage?: (m: unknown) => void } } } })
+    .webkit?.messageHandlers?.nexusHost;
+  mac?.postMessage?.(msg);
+}
+
 export function postWindowAction(action: NexusWindowAction): void {
   const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
   // postMessage's argument shape varies by host; the shell expects a plain

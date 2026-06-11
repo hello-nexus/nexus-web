@@ -37,9 +37,9 @@
   // Ribbon tints reference the live --accent* vars; color-mix is used elsewhere
   // (tokens.scss).
   --backdrop-base: #1a1a1a;
-  --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 14%, transparent);
-  --backdrop-tint-b: color-mix(in srgb, var(--accent) 12%, transparent);
-  --backdrop-tint-c: color-mix(in srgb, var(--accent-deep) 16%, transparent);
+  --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 26%, transparent);
+  --backdrop-tint-b: color-mix(in srgb, var(--accent) 22%, transparent);
+  --backdrop-tint-c: color-mix(in srgb, var(--accent-deep) 30%, transparent);
 
   // Text — neutral off-whites.
   --text: #f5f5f5;
@@ -181,9 +181,9 @@
 
   // Light backdrop: grayscale flat surface grey (flattens gradient + glass).
   --backdrop-base: #d8d8d8;
-  --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 15%, transparent);
-  --backdrop-tint-b: color-mix(in srgb, var(--accent) 12%, transparent);
-  --backdrop-tint-c: color-mix(in srgb, var(--accent-glow) 11%, transparent);
+  --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 28%, transparent);
+  --backdrop-tint-b: color-mix(in srgb, var(--accent) 24%, transparent);
+  --backdrop-tint-c: color-mix(in srgb, var(--accent-glow) 22%, transparent);
 
   --text: #1a1a2e;
   --text-dim: #5a5a78;
