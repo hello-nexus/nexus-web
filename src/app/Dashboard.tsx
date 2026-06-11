@@ -50,6 +50,8 @@ import { CrossZoneDragProvider } from './CrossZoneDrag';
 import { CommandPaletteProvider } from '../search/CommandPaletteProvider';
 import { PairPhoneModal } from './PairPhoneModal';
 import { IncomingPairModal } from './IncomingPairModal';
+import { ToastProvider } from '../components/common/Toast/Toast';
+import { TransferToasts } from './TransferToasts';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { isWindowsAppShell, isMacAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
 import styles from '../App.module.scss';
@@ -443,6 +445,7 @@ export function Dashboard() {
       >
       <CrossZoneDragProvider>
       <CommandPaletteProvider navigate={navigate} onPairPhone={() => setPairPhoneOpen(true)}>
+      <ToastProvider>
       <div className={classNames(styles.layout, {
         [styles.layoutCompact]: compact,
         [styles.layoutWindowsApp]: isWindowsAppShell(),
@@ -528,6 +531,8 @@ export function Dashboard() {
         {/* Global incoming-pair prompt, at the layout root so it lands on top
             of any section. Pair Remote stays in its own modal below. */}
         <IncomingPairModal />
+        {/* Incoming phone→PC transfer toasts, active regardless of view. */}
+        <TransferToasts />
         <PairPhoneModal
           open={pairPhoneOpen}
           connectedCount={serviceState.panel?.phoneSubscribers ?? 0}
@@ -536,6 +541,7 @@ export function Dashboard() {
           onClose={() => setPairPhoneOpen(false)}
         />
       </div>
+      </ToastProvider>
       </CommandPaletteProvider>
       </CrossZoneDragProvider>
       </UiSettingsProvider>

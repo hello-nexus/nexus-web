@@ -41,6 +41,7 @@ import { deckApp } from './deck';
 import { emojiApp } from './emoji';
 import { galleryApp } from './gallery';
 import { pairingApp } from './pairing';
+import { transferApp } from './transfer';
 
 // Single source of truth for app type -> manifest. "App" is the
 // conceptual unit (one per widget type); the manifest carries up to
@@ -67,6 +68,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   emoji:      emojiApp,
   gallery:    galleryApp,
   pairing:    pairingApp,
+  transfer:   transferApp,
 };
 
 // Whether an app can appear on a given surface. The decision is purely
@@ -82,9 +84,16 @@ export function appAvailableForSurface(
   opts?: { remote?: boolean; deviceTouch?: boolean },
 ): boolean {
   if (meta.touch && !surfaceSupportsTouch(surface, opts?.deviceTouch)) return false;
+  // The phone surface only exists on remotely-connected panels, so it doubles
+  // as the remote default for callers that don't carry the flag (layout
+  // reconcile, PanelApp's render filter).
+  const remote = opts?.remote ?? (surface === 'phone');
   // Local-only widgets (e.g. the pairing QR) are hidden on remotely-connected
   // panels — a remote panel is the thing being paired, not the pairer.
-  if (meta.localOnly && opts?.remote) return false;
+  if (meta.localOnly && remote) return false;
+  // Remote-only widgets (e.g. transfer) act on the host from a paired remote;
+  // on the PC's own surfaces they have nothing to send to.
+  if (meta.remoteOnly && !remote) return false;
   const single = singleWidgetSurfaceSize(surface);
   if (single !== undefined) {
     return meta.sizes.includes(single);

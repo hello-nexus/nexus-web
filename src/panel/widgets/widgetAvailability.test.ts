@@ -110,17 +110,33 @@ describe('appAvailableForSurface', () => {
     // size. Per the canonical rule, availability is determined by touch +
     // sizes only — no per-widget surface allowlist — so every widget in the
     // registry should be reachable from the desktop add-widget picker.
+    // Remote-only widgets are the one exception: desktop is the host's own
+    // surface, so they're hidden there by design.
     for (const [type, def] of Object.entries(APP_REGISTRY)) {
       expect(appAvailableForSurface(def.meta, 'desktop'),
-        `${type} should be available on desktop`).toBe(true);
+        `${type} on desktop`).toBe(!def.meta.remoteOnly);
     }
   });
 
   it('exposes every widget on Y70 (touch + every multi-widget size)', () => {
     for (const [type, def] of Object.entries(APP_REGISTRY)) {
       expect(appAvailableForSurface(def.meta, 'y70'),
-        `${type} should be available on y70`).toBe(true);
+        `${type} on y70`).toBe(!def.meta.remoteOnly);
     }
+  });
+
+  it('hides remote-only widgets (transfer) on the host\'s own panel surfaces', () => {
+    const transfer = APP_REGISTRY.transfer;
+    expect(transfer.meta.remoteOnly).toBe(true);
+    // The phone surface only exists on remotely-connected panels, so it
+    // defaults to remote even when the caller doesn't pass the flag.
+    expect(appAvailableForSurface(transfer.meta, 'phone')).toBe(true);
+    expect(appAvailableForSurface(transfer.meta, 'phone', { remote: true })).toBe(true);
+    expect(appAvailableForSurface(transfer.meta, 'y70')).toBe(false);
+    expect(appAvailableForSurface(transfer.meta, 'desktop')).toBe(false);
+    expect(appAvailableForSurface(transfer.meta, 'y70', { remote: false })).toBe(false);
+    // Non-remote-only widgets are unaffected.
+    expect(appAvailableForSurface(APP_REGISTRY.clock.meta, 'desktop')).toBe(true);
   });
 
   it('classifies the canonical touch-required widgets as touch:true', () => {

@@ -97,6 +97,10 @@ export interface AppMetadata {
   // e.g. the pairing/QR widget: a remote panel is the thing being paired, so
   // showing it a "pair a remote" QR is nonsensical. Defaults to false.
   localOnly?: boolean;
+  // The inverse: the widget acts on the host FROM a paired remote (e.g. the
+  // transfer widget sends the phone's photos/clipboard to the PC), so it's
+  // hidden on the PC's own panel surfaces. Defaults to false.
+  remoteOnly?: boolean;
   // Whether the widget participates in slot selection during editing: the live
   // tile renders selectable cells and the edit sheet edits the selected slot
   // (monitoring, deck). When true, PanelApp/WidgetEditSheet/PanelEditorSheet

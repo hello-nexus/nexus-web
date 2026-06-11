@@ -41,6 +41,7 @@ import { EmptyState } from '../components/common/EmptyState/EmptyState';
 import { Select } from '../components/common/Select/Select';
 import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
 import { Button } from '../components/common/Button/Button';
+import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
 import { defaultStateFor, type EffectState, type EffectTemplateBundle } from '../types/lighting';
@@ -935,6 +936,29 @@ function PreviewIconPicker() {
   );
 }
 
+function PreviewToastInner() {
+  const { push } = useToast();
+  return (
+    <Button
+      onClick={() => push({
+        title: 'IMG_0042.jpg from iPhone',
+        body: 'Saved to Nexus Inbox',
+        action: { label: 'Open folder', onClick: () => {} },
+      })}
+    >
+      Push toast
+    </Button>
+  );
+}
+
+function PreviewToast() {
+  return (
+    <ToastProvider>
+      <PreviewToastInner />
+    </ToastProvider>
+  );
+}
+
 /* ── Registry ────────────────────────────────────────────────────────────── */
 
 export const REGISTRY: StorybookEntry[] = [
@@ -1266,6 +1290,12 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'EmptyState', category: 'status',
     filePath: 'src/components/common/EmptyState/EmptyState.tsx',
     description: 'Centered icon + title + optional hint + optional action. Used by panel widgets when their data source has no entries (no displays, no media playing) and by app views to convey "nothing here yet". Pass `compact` for tight panel widget contexts.', Preview: PreviewEmptyState,
+  },
+  {
+    name: 'Toast', category: 'status',
+    filePath: 'src/components/common/Toast/Toast.tsx',
+    description: 'Transient notifications stacked bottom-right (ToastProvider + useToast().push). Auto-dismiss after 6s, click dismisses, optional accent action button. Used for incoming phone→PC transfer notices at the dashboard root.', Preview: PreviewToast,
+    notes: 'The pushed toast portals to the viewport corner, not inside this card.',
   },
   {
     name: 'BatteryBar', category: 'status',

@@ -1,0 +1,91 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  color: var(--panel-text);
+  gap: 10px;
+  overflow: hidden;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 1.2em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--panel-text-muted);
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  &[data-state='sent'] { color: var(--panel-accent-glow); }
+  &[data-state='failed'] { color: var(--bad); }
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 220px;
+}
+
+.container[data-size='4x2'] .controls {
+  flex-direction: row;
+  max-width: none;
+  justify-content: center;
+}
+
+.actionBtn {
+  padding: 10px 16px;
+  min-height: 44px;
+  flex: 1;
+  font-size: 13px;
+}
+
+.sendBtn:not(:disabled) {
+  background: var(--panel-accent);
+  border-color: var(--panel-accent);
+}
+
+.pasteRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.pasteActions {
+  display: flex;
+  gap: 8px;
+
+  > :first-child { flex: 0 0 auto; }
+}
+
+.pasteInput {
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-card-border);
+  border-radius: var(--panel-element-radius);
+  background: var(--panel-element-bg);
+  color: var(--panel-text);
+  font-family: var(--panel-font);
+  font-size: 13px;
+
+  &:focus-visible { outline: 1px solid var(--panel-accent); }
+}
+
+.hiddenInput {
+  display: none;
+}
