@@ -3,7 +3,7 @@
    chrome (background, border, radius, hover) is consistent app-wide. */
 .root {
   background: var(--surface);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
   display: flex;

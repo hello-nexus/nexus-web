@@ -32,7 +32,7 @@
   flex-direction: column;
   gap: 0.5rem;
   padding: 1rem 1.25rem;
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   background: var(--surface);
   cursor: pointer;
@@ -43,7 +43,7 @@
 
   &:hover {
     background: var(--bg-card-hover);
-    border-color: var(--accent);
+    border: var(--border-width) solid var(--border-strong);
   }
 }
 

@@ -30,7 +30,7 @@
   code {
     @include text-numeric;
     background: var(--surface);
-    border: var(--border-width) solid var(--border);
+    border: var(--border-width) solid transparent;
     padding: 1px 6px;
     border-radius: 4px;
     color: var(--text);
@@ -201,7 +201,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px;
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
 }

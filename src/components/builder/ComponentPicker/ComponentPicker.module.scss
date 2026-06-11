@@ -101,7 +101,7 @@
   font-size: var(--type-small);
   color: var(--text-faded);
   background: var(--surface);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   padding: 0.05rem 0.4rem;
   border-radius: var(--radius-pill);
   min-width: 1.4rem;
@@ -136,7 +136,7 @@
   align-items: center;
   gap: 0.3rem;
   background: var(--surface);
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   padding: 0.25rem 0.4rem;
   margin-bottom: 0.3rem;
@@ -230,7 +230,7 @@
   width: 100%;
   min-width: 0;
   padding: 0.3rem 0.4rem;
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -346,7 +346,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -362,7 +362,7 @@
   align-items: center;
   gap: 0.3rem;
   padding: 0.35rem 0.65rem;
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -407,7 +407,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -442,7 +442,7 @@
   align-items: center;
   gap: 0.4rem;
   background: var(--surface);
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.55rem;
   min-width: 140px;
@@ -533,7 +533,7 @@
 
   &:nth-child(even) {
     background: var(--surface);
-    border: var(--border-width) solid var(--border);
+    border: var(--border-width) solid transparent;
 
     &:hover {
       background: var(--bg-card-hover);
@@ -614,7 +614,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: var(--control-border-width) solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);

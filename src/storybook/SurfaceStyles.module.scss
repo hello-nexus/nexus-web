@@ -28,7 +28,7 @@
   code {
     @include text-numeric;
     background: var(--surface);
-    border: var(--border-width) solid var(--border);
+    border: var(--border-width) solid transparent;
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     color: var(--text);
@@ -58,7 +58,7 @@
   code {
     @include text-numeric;
     background: var(--surface);
-    border: var(--border-width) solid var(--border);
+    border: var(--border-width) solid transparent;
     padding: 0 4px;
     border-radius: var(--radius-sm);
     color: var(--text-dim);
@@ -94,7 +94,7 @@
   width: 64px;
   height: 64px;
   background: var(--surface);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
 }
 
 // ── Spacing ----------------------------------------------------------------
@@ -120,7 +120,7 @@
 
 .sizeBox {
   background: var(--surface);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
 }
 
@@ -128,7 +128,7 @@
   width: 60px;
   height: 14px;
   background: var(--surface);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   transition: background var(--ease) ease, transform var(--ease) ease;
 
@@ -160,7 +160,7 @@
   height: 60px;
   background: var(--surface);
   border-radius: var(--radius);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
 }
 
 // ── Blur -------------------------------------------------------------------
