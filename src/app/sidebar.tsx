@@ -6,6 +6,7 @@ import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { useUiSettings } from '../hooks/useUiSettings';
 import { useConflictApps } from '../hooks/useConflictApps';
+import { useWindowDragRegion } from './useWindowDragRegion';
 import type { ConnectionState } from '../hooks/useServiceStatus';
 import styles from '../App.module.scss';
 
@@ -18,8 +19,10 @@ export function SidebarBrand({ compact, onLogoClick, logoLabel }: {
 }) {
   // The brand logo navigates to the Apps landing. Collapse/expand lives in the
   // top bar now (plus the invisible right-edge strip in SidebarColumn).
+  // The row's empty area drags the window (Windows shell only).
+  const dragRegion = useWindowDragRegion();
   return (
-    <div className={styles.sidebarBrand}>
+    <div className={styles.sidebarBrand} {...dragRegion}>
       <HoverTooltip body={logoLabel} side="right">
         <button
           type="button"

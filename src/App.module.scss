@@ -257,14 +257,10 @@
   flex-shrink: 0;
 }
 
-// Custom-title-bar drag region for the sidebar brand row. Scoped to
-// .layoutWindowsApp (the nexus-overlay shell) so iOS WKWebView doesn't
-// pick up the property and swallow scroll / text-selection on the
-// brand row in mobile contexts.
-.layoutWindowsApp .sidebarBrand {
-  -webkit-app-region: drag;
-  app-region: drag;
-}
+// The sidebar brand row drags the window in the Windows shell, wired in
+// SidebarBrand via useWindowDragRegion (mousedown -> WM_NCLBUTTONDOWN), not
+// `app-region: drag` — that makes it a WebView2 non-client region that
+// black-flickers on resize over the transparent Mica backdrop.
 
 // Compact mode inherits padding + flex-start alignment from .sidebarBrand
 // so the mark stays anchored at the same top-left position as the expanded
@@ -289,9 +285,6 @@
   // No hover-scale; the logo is a static navigation target, not a collapse
   // affordance.
   transition: opacity var(--ease-fast);
-  // Clickable - opt out of the drag region inherited from .sidebarBrand.
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
 
   // Pin the glyph at its natural size. Collapsed renders the compact mark;
   // expanding swaps to the wordmark, which then reveals via the widening

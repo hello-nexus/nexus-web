@@ -12,6 +12,7 @@ import { useTranslation } from '../lib/i18n';
 import { useCommandPaletteOptional } from '../search/CommandPaletteContext';
 import { TopSearch } from '../search/TopSearch';
 import { CaptionButtons } from './CaptionButtons';
+import { useWindowDragRegion } from './useWindowDragRegion';
 import { ConnectedProfileSlot } from './sidebar';
 import type { ConnectionState } from '../hooks/useServiceStatus';
 import type { UseProfilesResult } from '../hooks/useProfiles';
@@ -117,6 +118,8 @@ export function TopBar({
   const { t } = useTranslation();
   const [aboutOpen, setAboutOpen] = useState(false);
   const palette = useCommandPaletteOptional();
+  // Empty areas of the bar drag the window (Windows shell only); see hook.
+  const dragRegion = useWindowDragRegion();
 
   const offlineLabel = connectionState === 'checking'
     ? t('status.checking')
@@ -125,10 +128,13 @@ export function TopBar({
     : t('status.offline');
 
   return (
-    <header className={classNames(styles.topBar, {
-      [styles.topBarMacApp]: isMacApp,
-      [styles.topBarWindowsApp]: isWindowsApp,
-    })}>
+    <header
+      {...dragRegion}
+      className={classNames(styles.topBar, {
+        [styles.topBarMacApp]: isMacApp,
+        [styles.topBarWindowsApp]: isWindowsApp,
+      })}
+    >
       <div className={styles.leftCluster}>
         {hasSidebar && (
           <HoverTooltip body={compact ? t('sidebar.expand') : t('sidebar.collapse')} side="bottom">

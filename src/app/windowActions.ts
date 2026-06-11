@@ -29,6 +29,12 @@ export const NEXUS_RESIZE_EDGES = {
 
 export type NexusResizeEdge = (typeof NEXUS_RESIZE_EDGES)[keyof typeof NEXUS_RESIZE_EDGES];
 
+// Window-drag start. The shell posts WM_NCLBUTTONDOWN(HTCAPTION) so the OS move
+// loop takes over (Aero Snap included) — the title-bar drag without an
+// `app-region: drag` non-client region (which black-flickers on resize over the
+// transparent Mica WebView2). Keep in lockstep with HandleWindowAction.
+export const NEXUS_WINDOW_DRAG = 'nexus:window-drag';
+
 interface NexusShellWebView {
   postMessage?: (msg: unknown) => void;
   postMessageWithAdditionalObjects?: (msg: unknown, objects: unknown) => void;
@@ -154,4 +160,9 @@ export function postWindowAction(action: NexusWindowAction): void {
 export function postResizeStart(edge: NexusResizeEdge): void {
   const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
   wv?.postMessage?.(edge);
+}
+
+export function postWindowDragStart(): void {
+  const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
+  wv?.postMessage?.(NEXUS_WINDOW_DRAG);
 }

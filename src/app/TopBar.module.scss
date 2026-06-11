@@ -24,20 +24,10 @@
   --search-w: 460px;
 }
 
-// Windows --app shell: the whole bar is the window-drag region; interactive
-// controls opt back out with .iconButton / .searchTitle / caption-button
-// no-drag rules below. Targets the body class Dashboard sets on the shell.
-:global(body.nexus-shell-windows-app) .topBar {
-  -webkit-app-region: drag;
-  app-region: drag;
-}
-
-// Neutralize the drag region while any modal is open so the only window-chrome
-// interaction left is the native-style caption buttons (which stay no-drag).
-:global(body.nexus-shell-windows-app:has([aria-modal="true"])) .topBar {
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-}
+// Windows --app shell: empty areas of the bar drag the window. Implemented via
+// a mousedown -> IPC -> WM_NCLBUTTONDOWN(HTCAPTION) handler (useWindowDragRegion),
+// NOT `app-region: drag` — WebView2 would make the bar a non-client region that
+// black-flickers on resize over the transparent Mica backdrop.
 
 // macOS shell: inset the left cluster past the native traffic lights so the
 // collapse toggle clears them. The inset matches the collapsed sidebar rail
@@ -66,8 +56,6 @@
   display: flex;
   align-items: center;
   gap: 0.1rem;
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
 }
 
 .rightCluster {
@@ -101,9 +89,6 @@
   cursor: pointer;
   padding: 0;
   transition: background var(--ease-fast), color var(--ease-fast);
-  // Interactive control inside a bar that may carry app-region: drag.
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
 
   &:hover {
     background: var(--bg-card-hover);
@@ -166,8 +151,6 @@
 .profileSlot {
   display: flex;
   align-items: center;
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
 }
 
 // Offline stand-in for the profile avatar: a round badge with an unplug glyph.
@@ -198,8 +181,6 @@
   position: relative;
   display: flex;
   align-items: center;
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
 }
 
 .menuDropdown {

@@ -185,7 +185,7 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
   const metaKey = useMemo(() => metaKeyLabel(), []);
 
   return (
-    <div className={styles.dock} ref={dockRef}>
+    <div className={styles.dock} ref={dockRef} data-no-window-drag>
       {isOpen ? (
         <div className={classNames(styles.pill, styles.pillActive)}>
           <Search size={15} className={styles.glyph} aria-hidden />
