@@ -249,8 +249,18 @@ export function UiSettingsProvider({
     scheduleServerWrite(patch);
   }, [persistLocal, scheduleServerWrite, setLanguage, manageDom]);
 
-  const reload = useCallback(() => {
+  const reload = useCallback((coalesceWithPendingWrite = false) => {
     if (!serviceOnline) return;
+    // The 'prefs' topic echoes our OWN writes back. A theme toggle makes two
+    // /preferences writes: themeMode (debounced 250ms via scheduleServerWrite)
+    // and, through ResolvedThemeSync, resolvedThemeMode (immediate). The
+    // immediate write's echo arrives before the debounced themeMode write
+    // lands, so re-hydrating now reads the pre-toggle themeMode and re-applies
+    // it — the visible flicker: new theme → snaps back to old → tweens to new
+    // once the real write settles. Skip the round-trip while our own write is
+    // still pending; that write's echo reloads once it flushes, when the
+    // server is consistent. (Mount / profile-switch reloads pass false.)
+    if (coalesceWithPendingWrite && writeTimer.current) return;
     fetchPreferences().then(prefs => {
       if (!prefs) return;
       setSettings(prev => {
@@ -290,8 +300,10 @@ export function UiSettingsProvider({
   // The 'prefs' topic publishes after every /preferences mutation AND after a
   // sharing toggle that changes Theme or Dashboard. Without this subscription
   // the desktop UI would not pick up the new theme until the user manually
-  // switched profiles to force a reload.
-  useTopicCallback('prefs', !!serviceOnline, reload);
+  // switched profiles to force a reload. Pass coalesceWithPendingWrite so an
+  // echo of our own in-flight write doesn't re-apply stale theme (see reload).
+  const reloadFromPrefsTopic = useCallback(() => reload(true), [reload]);
+  useTopicCallback('prefs', !!serviceOnline, reloadFromPrefsTopic);
 
   // Flush any pending write if the app is unmounting.
   useEffect(() => () => {
