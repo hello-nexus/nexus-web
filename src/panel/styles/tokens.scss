@@ -41,10 +41,10 @@
   // here is the pre-runtime fallback.
   --panel-card-bg-opacity: 100%;
   --panel-card-border: var(--panel-border);
-  // iOS-style cast under each widget card. Geometry + color split so the
-  // user-controlled opacity can fade the cast without changing the blur.
-  // Light mode overrides both.
-  --panel-card-shadow-geometry: 0 10px 28px;
+  // iOS-style cast under each widget card, matching the global --shadow-md.
+  // Geometry + color split so the user-controlled opacity can fade the cast
+  // without changing the blur. Uniform across every theme and surface.
+  --panel-card-shadow-geometry: 0 8px 24px;
   --panel-card-shadow-color: rgb(0 0 0 / var(--alpha-medium));
   --panel-card-shadow: var(--panel-card-shadow-geometry) var(--panel-card-shadow-color);
   --panel-card-padding: 14px;
@@ -133,23 +133,6 @@
 
 .panel-root[data-theme='light'] {
   --panel-scrim-bg: rgba(248, 250, 252, 0.48);
-  --panel-card-shadow-geometry: 0 10px 28px;
-  --panel-card-shadow-color: rgba(15, 23, 42, 0.18);
-}
-
-// Desktop overlay widget cards composite per-pixel against the wallpaper.
-// The card surface, border and shadow alphas are driven by the user's
-// --panel-card-bg-opacity (set by the desktop widgets settings opacity
-// slider). The drop shadow is widened so the floating glassy card reads
-// against arbitrary wallpapers.
-.panel-root[data-surface='desktop'] {
-  --panel-card-shadow-geometry: 0 16px 40px;
-  --panel-card-shadow-color: rgb(0 0 0 / 0.42);
-}
-
-.panel-root[data-theme='light'][data-surface='desktop'] {
-  --panel-card-shadow-geometry: 0 16px 40px;
-  --panel-card-shadow-color: rgba(15, 23, 42, 0.22);
 }
 
 // Sensor unit suffix inside any monitoring gauge (% / RPM / GB / °C / etc).
