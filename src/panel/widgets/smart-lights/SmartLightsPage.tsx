@@ -130,7 +130,7 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
   return (
     <div className={styles.page}>
       <ViewHeader title={t('smartLights.title')} />
-      <div className={styles.body} data-panel-scrollable="true">
+      <div className={`${styles.body} pageBody`} data-panel-scrollable="true">
         <Section title={t('smartLights.addLights')}>
           <div className={styles.brandGrid}>
             <button

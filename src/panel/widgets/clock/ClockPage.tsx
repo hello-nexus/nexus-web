@@ -14,7 +14,7 @@ export function ClockPage() {
   return (
     <div className={styles.app}>
       <ViewHeader title={t('nav.clock')} />
-      <ClockWorldView />
+      <div className="pageBodyFill"><ClockWorldView /></div>
     </div>
   );
 }

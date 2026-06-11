@@ -53,29 +53,31 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
       <ViewHeader
         title={t('nav.dashboard')}
       />
-      <div className={styles.headerActions}>
-        <button
-          type="button"
-          className={styles.addWidgetButton}
-          onClick={() => setAddWidgetSignal(value => value + 1)}
-        >
-          <Plus size={14} aria-hidden="true" />
-          <span>{t('devices.y70.editor.addWidget')}</span>
-        </button>
-        <button
-          type="button"
-          className={styles.addWidgetButton}
-          onClick={() => setDesktopModalOpen(true)}
-        >
-          <Monitor size={14} aria-hidden="true" />
-          <span>Desktop Widgets</span>
-          {desktopWidgetCount > 0 && (
-            <span className={styles.widgetCountBadge}>{desktopWidgetCount}</span>
-          )}
-        </button>
-      </div>
-      <div className={styles.panelHost}>
-        <PanelEmbeddedContent openCatalogSignal={addWidgetSignal} appAccentColor={settings.accentColor} onSectionNavigate={onSectionNavigate} />
+      <div className={`${styles.dashboardBody} pageBodyFill`}>
+        <div className={styles.headerActions}>
+          <button
+            type="button"
+            className={styles.addWidgetButton}
+            onClick={() => setAddWidgetSignal(value => value + 1)}
+          >
+            <Plus size={14} aria-hidden="true" />
+            <span>{t('devices.y70.editor.addWidget')}</span>
+          </button>
+          <button
+            type="button"
+            className={styles.addWidgetButton}
+            onClick={() => setDesktopModalOpen(true)}
+          >
+            <Monitor size={14} aria-hidden="true" />
+            <span>Desktop Widgets</span>
+            {desktopWidgetCount > 0 && (
+              <span className={styles.widgetCountBadge}>{desktopWidgetCount}</span>
+            )}
+          </button>
+        </div>
+        <div className={styles.panelHost}>
+          <PanelEmbeddedContent openCatalogSignal={addWidgetSignal} appAccentColor={settings.accentColor} onSectionNavigate={onSectionNavigate} />
+        </div>
       </div>
       <OverlayWidgetsModal open={desktopModalOpen} onClose={() => setDesktopModalOpen(false)} />
     </div>
@@ -87,7 +89,9 @@ function DashboardOffline({ connectionState }: { connectionState?: ConnectionSta
   return (
     <div className={styles.dashboard}>
       <ViewHeader title={t('nav.dashboard')} />
-      <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+      <div className="pageBodyFill">
+        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+      </div>
     </div>
   );
 }

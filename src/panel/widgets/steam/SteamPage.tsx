@@ -149,7 +149,7 @@ export function SteamPage() {
   return (
     <div className={styles.app}>
       <ViewHeader title={t('panel.widget.steam')} />
-      <div className={styles.body}>
+      <div className={`${styles.body} pageBody`}>
         {!status?.ready ? (
           <EmptyState
             icon={<SteamLogo size={40} />}

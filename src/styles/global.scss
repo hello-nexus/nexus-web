@@ -321,13 +321,39 @@ input[type="range"][data-range-knob] {
 
 // Page-width contract. Every view's content root picks one. Constrained caps
 // at the shared --page-content-max so dense label/value reports stay readable;
-// fluid fills the available width.
+// fluid fills the available width. Both center within their column.
 .pageConstrained {
   width: 100%;
   max-width: var(--page-content-max);
+  margin-inline: auto;
 }
 
 .pageFluid {
   width: 100%;
   max-width: none;
+}
+
+// Universal page body wrapper. Sits on the element that follows a page's
+// header (title + tabs + underline). The header stays full width and keeps
+// stretching; everything below caps at --page-max and centers in the content
+// column. Applied to every routed page so the whole app shares one body width.
+.pageBody {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+}
+
+// Fill variant for pages whose body must own the remaining height and scroll
+// internally (e.g. a fixed map + scrolling list, or an absolutely-laid-out
+// widget canvas). Same cap + centering, but participates in the parent's flex
+// column so a `flex:1` child still resolves a height. Use on a NEW wrapper
+// that replaces a full-height child; the page root must be a flex column.
+.pageBodyFill {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }

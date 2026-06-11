@@ -52,7 +52,7 @@ export function ScreentimePage({ serviceOnline, connectionState, tab: urlTab, on
           </Button>
         )}
       />
-      <div className={styles.tabContent}>
+      <div className={`${styles.tabContent} pageBody`}>
         <ScreenTimeBrowse key={browseRefresh} mode={tab} onModeChange={onTabChange} />
       </div>
       <ScreenTimeDataControl

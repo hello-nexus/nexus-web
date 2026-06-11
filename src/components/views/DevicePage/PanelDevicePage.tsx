@@ -372,7 +372,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
         activeTab={activeTab}
         onTabChange={(k) => setTab(k as Tab)}
       />
-      <div className={styles.pageBody}>
+      <div className={`${styles.pageBody} pageBody`}>
       {!loaded ? (
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
       ) : (

@@ -59,13 +59,15 @@ export default function BuilderView({
   if (category) {
     return (
       <section className={styles.builder}>
-        <div className={styles.pickerSection}>
-          <ComponentPicker
-            category={category}
-            onSelect={handleSelect}
-            onClose={handleClosePicker}
-            onViewDetail={onViewDetail}
-          />
+        <div className="pageBody">
+          <div className={styles.pickerSection}>
+            <ComponentPicker
+              category={category}
+              onSelect={handleSelect}
+              onClose={handleClosePicker}
+              onViewDetail={onViewDetail}
+            />
+          </div>
         </div>
       </section>
     );
@@ -73,6 +75,7 @@ export default function BuilderView({
 
   return (
     <section className={styles.builder}>
+      <div className="pageBody">
       <div className={styles.summaryBar}>
         <div className={styles.totalPrice}>
           <span className={styles.totalLabel}>{t('builder.total')}</span>
@@ -97,6 +100,7 @@ export default function BuilderView({
           onToggleOwned={handleToggleOwned}
           onViewDetail={onViewDetail}
         />
+      </div>
       </div>
     </section>
   );

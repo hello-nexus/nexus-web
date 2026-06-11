@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ChevronDown, ChevronRight, Power } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
@@ -19,6 +18,8 @@ export function MotherboardGroup({
   onTogglePower,
   children,
   ariaLabel,
+  collapsed,
+  onToggleCollapsed,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on. Drives the icon state
@@ -30,9 +31,12 @@ export function MotherboardGroup({
   /** Toggle a11y label. Defaults to the motherboard wording; provider groups
    *  (Philips Hue, …) pass their own so this collapsible group reads correctly. */
   ariaLabel?: string;
+  /** Collapse state, owned by the parent so it can be persisted across restarts. */
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(true);
+  const expanded = !collapsed;
   const toggleLabel = ariaLabel ?? t('lighting.devices.motherboardHeader');
 
   return (
@@ -41,7 +45,7 @@ export function MotherboardGroup({
         <button
           type="button"
           className={styles.motherboardGroupToggle}
-          onClick={() => setExpanded(v => !v)}
+          onClick={onToggleCollapsed}
           aria-expanded={expanded}
           aria-label={toggleLabel}
         >

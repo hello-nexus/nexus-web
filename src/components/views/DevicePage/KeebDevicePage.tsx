@@ -77,7 +77,7 @@ export function KeebDevicePage() {
           </div>
         ) : undefined}
       />
-      <div className={pageStyles.pageBody}>
+      <div className={`${pageStyles.pageBody} pageBody`}>
         {showKeyboard && (
           <div className={keebStyles.keyboardStage}>
             <KeebKeyboard

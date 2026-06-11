@@ -104,7 +104,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
   return (
     <div className={styles.settings}>
       <ViewHeader title={t('settings.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} />
-      <div className={styles.tabContent}>
+      <div className={`${styles.tabContent} pageBody`}>
         {renderTab()}
       </div>
     </div>

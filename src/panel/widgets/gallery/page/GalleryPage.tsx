@@ -219,7 +219,7 @@ export function GalleryPage() {
       onDrop={handleDrop}
     >
       <ViewHeader title={t('panel.widget.gallery')} />
-      <div className={styles.body}>
+      <div className={`${styles.body} pageBody`}>
         {/* Static-width sources column (300px, matching the Lighting /
             Cooling device-column width); the library fills the rest. No
             bounding box — each source is its own card, cooling-page style. */}

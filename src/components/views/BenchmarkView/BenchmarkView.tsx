@@ -130,7 +130,9 @@ export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfir
           </div>
           <p className={styles.subtitle}>{t('benchmark.subtitle')}</p>
         </header>
-        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+        <div className="pageBody">
+          <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+        </div>
       </section>
     );
   }
@@ -145,6 +147,7 @@ export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfir
         <p className={styles.subtitle}>{t('benchmark.subtitle')}</p>
       </header>
 
+      <div className="pageBody">
       {status === 'idle' && (
         <div className={styles.intro}>
           <p className={styles.introBody}>{t('benchmark.intro.body')}</p>
@@ -216,6 +219,7 @@ export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfir
           </button>
         </div>
       )}
+      </div>
     </section>
   );
 }

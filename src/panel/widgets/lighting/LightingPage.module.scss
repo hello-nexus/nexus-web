@@ -85,10 +85,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  position: relative; // anchor for the settings drawer (flush to page edge)
-  // App shell (.content) pads 1.25rem on the right. Cancel that on the body so
-  // the device list / drawer dock flush to the viewport edge.
-  margin-right: -1.25rem;
+  position: relative; // anchor for the settings drawer
 }
 
 .main {

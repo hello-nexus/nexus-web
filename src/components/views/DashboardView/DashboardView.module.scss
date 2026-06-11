@@ -6,6 +6,12 @@
   gap: 0.75rem;
 }
 
+// Capped+centered body (via .pageBodyFill) keeps the original gap between the
+// action row and the widget canvas that .dashboard's gap used to provide.
+.dashboardBody {
+  gap: 0.75rem;
+}
+
 .panelHost {
   position: relative;
   flex: 1 1 auto;

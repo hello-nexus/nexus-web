@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Gauge, Plus, Power, SlidersHorizontal } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
+import { usePersistentState } from '../../../hooks/usePersistentState';
 import {
   getNp50ConnectionState,
   np50HubModeFromName,
@@ -81,10 +82,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Manual on any one fan of a hub. Seeded from the same persistent
   // cache so the per-fan dropdowns don't blink to a default on visit.
   const [hubModes, setHubModes] = useState<Record<string, FanCardHubMode>>(() => cachedSeed.hubModes);
-  // Disconnected fans live in a collapsible group at the bottom of the fan
-  // list. Default closed so a calibration-flagged-unresponsive fan doesn't
-  // visually dominate the section.
-  const [disconnectedExpanded, setDisconnectedExpanded] = useState(false);
+  // Per-group collapse state for the fan list (external hub groups + the
+  // Disconnected group), persisted across restarts. Keyed by the group's
+  // deviceId, plus the literal 'disconnected'. Default: only Disconnected
+  // starts collapsed so a calibration-flagged-unresponsive fan doesn't
+  // visually dominate the section; hub groups start expanded.
+  const [collapsedFanGroups, setCollapsedFanGroups] = usePersistentState<string[]>('cooling.collapsedFanGroups', ['disconnected']);
+  const isFanGroupCollapsed = (key: string) => collapsedFanGroups.includes(key);
+  const toggleFanGroup = (key: string) =>
+    setCollapsedFanGroups(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   const activeCoolingProfileRef = useRef('');
   // After an optimistic preset change (user click or Off-guard) we lock the
   // displayed preset for a short window so a stale `/cooling/profiles` poll or
@@ -850,7 +856,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     recomputeRafRef.current = requestAnimationFrame(recomputeWiresImmediate);
   }, [recomputeWiresImmediate]);
 
-  useLayoutEffect(() => { recomputeWiresImmediate(); }, [recomputeWiresImmediate, curves, fanStates, channels, fanOrder, expandedCurveId]);
+  useLayoutEffect(() => { recomputeWiresImmediate(); }, [recomputeWiresImmediate, curves, fanStates, channels, fanOrder, expandedCurveId, collapsedFanGroups]);
   useEffect(() => {
     if (!bodyRef.current) return;
     const ro = new ResizeObserver(() => recomputeWires());
@@ -1182,7 +1188,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           like ~1s on the Y70 panel) before the real UI snapped in.
           Anyone with truly no fans now just sees an empty fan list — that
           is the truth of the state. */}
-        <div className={styles.body} ref={bodyRef}>
+        <div className={`${styles.body} pageBody`} ref={bodyRef}>
           <div className={styles.main}>
             <CoolingTrendChart
               cpuTempValue={cpuTemp?.value}
@@ -1363,26 +1369,39 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                     : key.startsWith('minihub:') ? 'iBUYPOWER MiniHub'
                     : key.startsWith('smarthub:') ? 'HYTE SmartHub'
                     : key;
+                  const hubCollapsed = isFanGroupCollapsed(key);
                   blocks.push(
-                    <div key={`${key}-hdr`} className={styles.deviceGroupHeader}>
-                      <span className={styles.deviceGroupName}>{deviceName}</span>
+                    <button
+                      type="button"
+                      key={`${key}-hdr`}
+                      className={`${styles.deviceGroupHeader} ${styles.disconnectedHeader}`}
+                      aria-expanded={!hubCollapsed}
+                      onClick={() => toggleFanGroup(key)}
+                    >
+                      <span className={styles.deviceGroupName}>
+                        <span className={styles.disconnectedChevron} aria-hidden>
+                          {hubCollapsed ? '▸' : '▾'}
+                        </span>
+                        {' '}{deviceName}
+                      </span>
                       <span className={styles.deviceGroupCount}>{list.length} fan{list.length === 1 ? '' : 's'}</span>
-                    </div>
+                    </button>
                   );
-                  for (const ch of list) blocks.push(renderFan(ch));
+                  if (!hubCollapsed) for (const ch of list) blocks.push(renderFan(ch));
                 }
                 if (disconnected.length > 0) {
+                  const dcCollapsed = isFanGroupCollapsed('disconnected');
                   blocks.push(
                     <button
                       type="button"
                       key="disconnected-hdr"
                       className={`${styles.deviceGroupHeader} ${styles.disconnectedHeader}`}
-                      aria-expanded={disconnectedExpanded}
-                      onClick={() => setDisconnectedExpanded(v => !v)}
+                      aria-expanded={!dcCollapsed}
+                      onClick={() => toggleFanGroup('disconnected')}
                     >
                       <span className={styles.deviceGroupName}>
                         <span className={styles.disconnectedChevron} aria-hidden>
-                          {disconnectedExpanded ? '▾' : '▸'}
+                          {dcCollapsed ? '▸' : '▾'}
                         </span>
                         {' '}Disconnected
                       </span>
@@ -1391,7 +1410,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       </span>
                     </button>
                   );
-                  if (disconnectedExpanded) {
+                  if (!dcCollapsed) {
                     for (const ch of disconnected) blocks.push(renderFan(ch));
                   }
                 }

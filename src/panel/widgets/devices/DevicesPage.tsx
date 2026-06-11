@@ -86,60 +86,65 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
             <Button size="sm" tone="neutral" onClick={() => setSupportedModalOpen(true)}>
               {t('devices.supported.browse')}
             </Button>
-            <Button size="sm" tone="neutral" onClick={() => setConnectedModalOpen(true)}>
-              {t('devices.connected.browse')}
-            </Button>
           </div>
         ) : undefined}
       />
 
-      {availableActive ? (
-        !availableAvailable ? (
-          <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
-        ) : (
-          <>
-            {webhidAvailable && (
-              <div className={styles.webhidToolbar}>
-                <div className={styles.webhidCta}>
-                  <strong>{t('peripheral.webhid.title')}</strong>
-                  <span className={styles.webhidHint}>
-                    {merged.some(p => p.source === 'webhid') ? t('peripheral.webhid.addMore') : t('peripheral.webhid.hint')}
-                  </span>
+      <div className="pageBody">
+        {availableActive ? (
+          !availableAvailable ? (
+            <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
+          ) : (
+            <>
+              {webhidAvailable && (
+                <div className={styles.webhidToolbar}>
+                  <div className={styles.webhidCta}>
+                    <strong>{t('peripheral.webhid.title')}</strong>
+                    <span className={styles.webhidHint}>
+                      {merged.some(p => p.source === 'webhid') ? t('peripheral.webhid.addMore') : t('peripheral.webhid.hint')}
+                    </span>
+                  </div>
+                  <Button type="button" tone="accent" size="md" pill onClick={requestWebHid} className={styles.webhidBtn}>
+                    {t('peripheral.webhid.connect')}
+                  </Button>
                 </div>
-                <Button type="button" tone="accent" size="md" pill onClick={requestWebHid} className={styles.webhidBtn}>
-                  {t('peripheral.webhid.connect')}
+              )}
+
+              {unified.length === 0 ? (
+                <div className={styles.empty}>{t('devices.available.none')}</div>
+              ) : (
+                <div className={styles.list}>
+                  {unified.map(d => (
+                    <DeviceCard key={d.key} device={d} onClick={() => onDeviceSelect(d.key)} />
+                  ))}
+                </div>
+              )}
+
+              <div className={styles.connectedFooter}>
+                <Button size="sm" tone="neutral" onClick={() => setConnectedModalOpen(true)}>
+                  {t('devices.connected.browse')}
                 </Button>
               </div>
-            )}
-
-            {unified.length === 0 ? (
-              <div className={styles.empty}>{t('devices.available.none')}</div>
-            ) : (
-              <div className={styles.grid}>
-                {unified.map(d => (
-                  <DeviceCard key={d.key} device={d} onClick={() => onDeviceSelect(d.key)} />
-                ))}
-              </div>
-            )}
-          </>
-        )
-      ) : tab === 'displays' ? (
-        <DisplaysView
-          serviceOnline={serviceOnline}
-          connectionState={connectionState}
-          onDeviceSelect={onDeviceSelect}
-        />
-      ) : tab === 'firmware' ? (
-        !serviceOnline ? (
+            </>
+          )
+        ) : tab === 'displays' ? (
+          <DisplaysView
+            serviceOnline={serviceOnline}
+            connectionState={connectionState}
+            onDeviceSelect={onDeviceSelect}
+          />
+        ) : tab === 'firmware' ? (
+          !serviceOnline ? (
+            <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
+          ) : (
+            <FirmwarePanel items={firmwareItems} />
+          )
+        ) : !serviceOnline ? (
           <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
         ) : (
-          <FirmwarePanel items={firmwareItems} />
-        )
-      ) : !serviceOnline ? (
-        <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
-      ) : (
-        <SpecsPanel specs={systemSpecs.specs} />
-      )}
+          <SpecsPanel specs={systemSpecs.specs} />
+        )}
+      </div>
 
       <SupportedDevicesModal
         open={supportedModalOpen}
@@ -183,27 +188,40 @@ function ConnectedDevicesModal({ open, onClose, devices, loading, onRefresh }: C
   );
 }
 
+// Secondary line under the device name: category, then firmware and serial
+// when the device record carries them (peripherals expose serial; curated
+// devices and peripherals expose firmware). Joined with middots.
+function deviceMetaLine(device: UnifiedDevice): string {
+  const parts: string[] = [];
+  if (device.subtitle) parts.push(device.subtitle.charAt(0).toUpperCase() + device.subtitle.slice(1));
+  const fw = device.firmwareVersion ?? device.peripheral?.firmwareVersion;
+  if (fw) parts.push(`FW ${fw}`);
+  const serial = device.peripheral?.serial;
+  if (serial) parts.push(`SN ${serial}`);
+  return parts.join('  ·  ');
+}
+
 function DeviceCard({ device, onClick }: { device: UnifiedDevice; onClick: () => void }) {
+  const meta = deviceMetaLine(device);
+  const statusText = device.panelDevice?.statusLabel ?? (device.connected ? 'Connected' : 'Offline');
   const body = (
     <>
-      <div className={styles.cardIcon}>
+      <span className={styles.rowIconTile}>
         <span
-          className={styles.cardIconGlyph}
+          className={styles.rowIcon}
           role="img"
           aria-label={device.category}
           style={{ ['--icon-url' as string]: `url(${device.iconSrc})` }}
         />
+      </span>
+      <div className={styles.rowInfo}>
+        <span className={styles.rowName}>{device.name}</span>
+        {meta && <span className={styles.rowMeta}>{meta}</span>}
       </div>
-      <div className={styles.cardInfo}>
-        <span className={styles.cardName}>{device.name}</span>
-        <span className={styles.cardSub}>{device.subtitle}</span>
-        <span className={styles.statusLine}>
-          <span className={styles.statusDot} />
-          <span className={styles.statusText}>
-            {device.connected ? 'Connected' : 'Offline'}
-          </span>
-        </span>
-      </div>
+      <span className={styles.statusLine}>
+        <span className={styles.statusDot} />
+        <span className={styles.statusText}>{statusText}</span>
+      </span>
     </>
   );
 

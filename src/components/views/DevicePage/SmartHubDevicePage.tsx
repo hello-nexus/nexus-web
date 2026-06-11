@@ -95,7 +95,7 @@ export function SmartHubDevicePage() {
     return (
       <div className={styles.page}>
         <ViewHeader title="HYTE SmartHub" />
-        <div className={styles.pageBody}>
+        <div className={`${styles.pageBody} pageBody`}>
           <Placeholder title="HYTE SmartHub not connected" />
         </div>
       </div>
@@ -119,7 +119,7 @@ export function SmartHubDevicePage() {
         title="HYTE SmartHub"
         actions={saving ? <span className={styles.savingBadge}>Saving…</span> : null}
       />
-      <div className={styles.pageBody}>
+      <div className={`${styles.pageBody} pageBody`}>
         <section className={styles.section}>
           <header className={styles.sectionHead}>
             <h2 className={styles.sectionTitle}>Standalone fan behaviour</h2>

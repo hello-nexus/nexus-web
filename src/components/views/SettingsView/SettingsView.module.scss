@@ -20,9 +20,7 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  // Width comes from the shared .pageConstrained utility (added in
-  // global.scss); this module owns the rest of the panel chrome.
-  max-width: var(--page-content-max);
+  // Width + centering come from the parent .tabContent's .pageBody (global.scss).
 }
 
 // A labelled cluster of settings rows under a SectionHeader. Spacing above

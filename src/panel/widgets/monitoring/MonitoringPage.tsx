@@ -88,7 +88,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
         onTabChange={onTabChange}
         tabActions={showGpuSelect ? <GpuSelect gpus={sensors.gpuComponents} /> : undefined}
       />
-      <div className={styles.tabContent}>
+      <div className={`${styles.tabContent} pageBody`}>
         {renderTab()}
       </div>
     </div>

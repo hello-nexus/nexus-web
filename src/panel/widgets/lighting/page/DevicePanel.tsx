@@ -1,5 +1,6 @@
 import { type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
+import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { ZoneCard, type ZoneCardDrag } from './ZoneCard';
 import { MotherboardGroup } from './MotherboardGroup';
 import styles from '../LightingPage.module.scss';
@@ -57,6 +58,13 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
   dragFor?: (deviceId: string) => ZoneCardDrag | null;
 }) {
   const { t } = useTranslation();
+
+  // Persisted per-group collapse state (survives restart via localStorage).
+  // Keyed by motherboard parentId or smart-brand prefix; default expanded.
+  const [collapsedGroups, setCollapsedGroups] = usePersistentState<string[]>('lighting.collapsedDeviceGroups', []);
+  const isCollapsed = (key: string) => collapsedGroups.includes(key);
+  const toggleCollapsed = (key: string) =>
+    setCollapsedGroups(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
   // Split into native devices (rendered flat / motherboard-grouped, as before)
   // and per-brand buckets (each rendered as a collapsible group). Order within
@@ -135,7 +143,8 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
     const groupOn = g.zones.some(z => z.ledsOn);
     const handleToggle = () => { const target = !groupOn; for (const z of g.zones) onSetPower(z.id, target); };
     return (
-      <MotherboardGroup key={g.parentId + '-' + i} parentName={g.parentName} groupOn={groupOn} onTogglePower={handleToggle}>
+      <MotherboardGroup key={g.parentId + '-' + i} parentName={g.parentName} groupOn={groupOn} onTogglePower={handleToggle}
+        collapsed={isCollapsed(g.parentId)} onToggleCollapsed={() => toggleCollapsed(g.parentId)}>
         {g.zones.map(z => renderCard(z, true, stripParentPrefix(z.name, g.parentName)))}
       </MotherboardGroup>
     );
@@ -154,7 +163,8 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
             const groupOn = group.some(d => d.ledsOn);
             const handleToggle = () => { const target = !groupOn; for (const d of group) onSetPower(d.id, target); };
             return (
-              <MotherboardGroup key={prefix} parentName={label} ariaLabel={label} groupOn={groupOn} onTogglePower={handleToggle}>
+              <MotherboardGroup key={prefix} parentName={label} ariaLabel={label} groupOn={groupOn} onTogglePower={handleToggle}
+                collapsed={isCollapsed(prefix)} onToggleCollapsed={() => toggleCollapsed(prefix)}>
                 {group.map(d => renderCard(d, true))}
               </MotherboardGroup>
             );

@@ -771,7 +771,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         source="lighting"
         detectedVidPids={detectedVidPids}
       />
-      <div className={styles.body}>
+      <div className={`${styles.body} pageBody`}>
         <div className={styles.main}>
           <div className={styles.canvasArea}>
             <DeviceCanvas devices={devices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={mode === 'animate' ? activeEffect : null} shaderState={mode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />

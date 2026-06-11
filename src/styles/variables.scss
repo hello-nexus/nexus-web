@@ -154,10 +154,14 @@
   --weight-display: 800;    // hero numerals, pairing codes
   --weight-small: 400;
 
-  // Page width contract. Constrained surfaces (Settings, Monitoring Detailed)
-  // cap at this value so dense label/value lists stay readable. Fluid
-  // surfaces (Overview, Cooling, Lighting, ...) ignore it.
+  // Page width contract. Constrained surfaces (Monitoring Detailed) cap at
+  // this value so dense label/value lists stay readable.
   --page-content-max: 720px;
+
+  // Universal page body cap. Every page's content below the header (title +
+  // tabs + underline) caps here and centers in the content column; the header
+  // itself stays full width. Tune this one value to retune every page.
+  --page-max: 1200px;
 }
 
 // ── Light theme ──────────────────────────────────────────────────────────────

@@ -10,8 +10,10 @@ export function Placeholder({ title }: PlaceholderProps) {
 
   return (
     <section className={styles.placeholder}>
-      <div className={styles.badge}>{t('placeholder.badge')}</div>
-      <h2>{title}</h2>
+      <div className="pageBody">
+        <div className={styles.badge}>{t('placeholder.badge')}</div>
+        <h2>{title}</h2>
+      </div>
     </section>
   );
 }

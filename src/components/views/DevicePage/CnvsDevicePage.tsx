@@ -69,7 +69,7 @@ export function CnvsDevicePage() {
       <ViewHeader
         title="CNVS"
         />
-      <div className={styles.pageBody}>
+      <div className={`${styles.pageBody} pageBody`}>
         {loading ? null : !settings ? (
           <Placeholder title={error ?? 'CNVS not available'} />
         ) : (

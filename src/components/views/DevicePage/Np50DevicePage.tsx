@@ -120,7 +120,7 @@ export function Np50DevicePage() {
     return (
       <div className={styles.page}>
         <ViewHeader title="HYTE NP50" />
-        <div className={styles.pageBody}>
+        <div className={`${styles.pageBody} pageBody`}>
           <Placeholder title="HYTE NP50 not connected" />
         </div>
       </div>
@@ -146,7 +146,7 @@ export function Np50DevicePage() {
         title="HYTE NP50"
         actions={saving ? <span className={styles.savingBadge}>Saving…</span> : null}
       />
-      <div className={styles.pageBody}>
+      <div className={`${styles.pageBody} pageBody`}>
         <section className={styles.section}>
           <header className={styles.sectionHead}>
             <h2 className={styles.sectionTitle}>Standalone fan behaviour</h2>

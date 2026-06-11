@@ -24,10 +24,6 @@
   min-height: 0;
   overflow-y: auto;
   @include scrollbar-visible;
-  // The app shell (.content) pads 1.25rem on the right; cancel it so the
-  // library stretches to the page edge (same dock as Lighting's device
-  // column).
-  margin-right: -1.25rem;
 }
 
 .sourcesColumn {

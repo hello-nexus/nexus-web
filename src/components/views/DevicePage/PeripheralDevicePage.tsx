@@ -77,7 +77,7 @@ export function PeripheralDevicePage({ peripheral }: PeripheralDevicePageProps) 
   return (
     <section className={styles.page}>
       <ViewHeader title={p.name} />
-      <div className={styles.pageBody}>
+      <div className={`${styles.pageBody} pageBody`}>
       <InfoList className={styles.info}>
         <InfoRow label={t('devices.peripheral.vendor')} value={p.vendor} />
         <InfoRow label={t('devices.peripheral.category')} value={p.category} capitalize />

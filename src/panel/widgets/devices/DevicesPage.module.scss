@@ -15,26 +15,24 @@
   gap: 0.5rem;
 }
 
-// --- Device Grid ---
+// --- Device List ---
 
-.grid {
-  display: grid;
-  // Fixed 140px columns instead of `1fr` minmax — cards keep the same width
-  // as the window resizes; only the number of columns changes when the row
-  // can fit another. Avoids the rubber-banding effect where every card grows
-  // or shrinks together on each resize tick.
-  grid-template-columns: repeat(auto-fill, 140px);
-  gap: 0.75rem;
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   margin-top: 1rem;
 }
 
+// Extra-wide device row: icon tile, name + meta column, status on the right.
 .card {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.7rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
-  overflow: hidden;
   cursor: pointer;
   transition: border-color var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast);
 
@@ -68,23 +66,24 @@
   opacity: 0.5;
 }
 
-.cardIcon {
+.rowIconTile {
   display: flex;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 1;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
   background: var(--bg);
-  padding: 1.5rem;
 }
 
 /* Device glyph rendered as a CSS mask so the icon colour tracks the theme
    text colour (off-white on dark, ink on light). The dynamic SVG URL comes
-   in through --icon-url, set inline on the element. The disconnected card
-   already fades to 0.5 overall, so we don't fade the glyph again here. */
-.cardIconGlyph {
+   in through --icon-url, set inline on the element. */
+.rowIcon {
   display: block;
-  width: 80px;
-  height: 80px;
+  width: 28px;
+  height: 28px;
   background-color: var(--text);
   mask-image: var(--icon-url);
   -webkit-mask-image: var(--icon-url);
@@ -97,14 +96,15 @@
   transition: background-color var(--ease);
 }
 
-.cardInfo {
+.rowInfo {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  padding: 0.6rem 0.75rem 0.75rem;
+  flex: 1;
+  min-width: 0;
 }
 
-.cardName {
+.rowName {
   @include text-body;
   color: var(--text);
   white-space: nowrap;
@@ -112,10 +112,10 @@
   text-overflow: ellipsis;
 }
 
-.cardSub {
+.rowMeta {
   @include text-caption;
+  font-family: var(--font-mono);
   color: var(--text-dim);
-  text-transform: capitalize;
   letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -125,8 +125,8 @@
 .statusLine {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  margin-top: 0.15rem;
+  gap: 0.4rem;
+  flex-shrink: 0;
 }
 
 .statusDot {
@@ -149,6 +149,13 @@
   @include text-label;
   color: var(--text-faded);
   font-family: var(--font-mono);
+}
+
+// Footer below the available list: opens the full connected-USB modal (every
+// device attached to the PC, Nexus-supported or not).
+.connectedFooter {
+  display: flex;
+  margin-top: 1rem;
 }
 
 // --- WebHID Toolbar ---

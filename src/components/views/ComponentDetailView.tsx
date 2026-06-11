@@ -133,6 +133,7 @@ export function ComponentDetailView({
         </button>
       </div>
 
+      <div className="pageBody">
       {/* Title */}
       <div className={styles.titleBlock}>
         <h1 className={styles.componentTitle}>{component.title}</h1>
@@ -206,6 +207,7 @@ export function ComponentDetailView({
             </tbody>
           </table>
         )}
+      </div>
       </div>
     </section>
   );
