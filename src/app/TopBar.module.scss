@@ -15,8 +15,10 @@
   // Minimal left pad so the collapse toggle sits near the top-left corner
   // (Windows). macOS adds the traffic-light inset on .leftCluster below.
   padding: 0 0.5rem;
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border);
+  // No fill or separator — the bar's controls float directly over whatever
+  // backdrop (gradient / wallpaper / flat) is behind the app.
+  background: transparent;
+  border-bottom: none;
   // Width of the centered search pill; shared with the arrow offset below so
   // the arrows always sit just left of the pill's edge.
   --search-w: 460px;
@@ -141,7 +143,7 @@
   padding: 0 1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  background: var(--bg);
+  background: var(--surface);
   overflow: hidden;
 }
 
@@ -176,7 +178,7 @@
   height: 30px;
   border-radius: 50%;
   border: 1px solid var(--border);
-  background: var(--bg-card);
+  background: var(--surface);
 }
 
 .offlineIcon { color: var(--bad); }

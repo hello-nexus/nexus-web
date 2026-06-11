@@ -2,6 +2,11 @@
 
 .layout {
   position: relative;
+  // Own stacking context so <AppBackdrop> can sit at z-index -1 (above this
+  // element's own background fill, below every child) without bumping any
+  // child z-index. Child popovers/tooltips keep resolving against this same
+  // context, so none get trapped under the top bar.
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -9,8 +14,14 @@
   // - the OS-enforced minimum window width matches this so the layout
   // is never asked to shrink below it (no horizontal scrollbar).
   min-width: 1000px;
-  background: var(--bg);
+  // Solid fallback under <AppBackdrop>, which paints the themed ribbon field as
+  // an absolute child. The chrome (top bar, sidebar) and content column are
+  // transparent so the field shows through the whole app.
+  background: var(--backdrop-base);
   color: var(--text);
+  // Dashboard chrome uses the same solid --surface as the rest of the app; the
+  // gradient/wallpaper backdrop reads through the gaps between cards (panel
+  // gap, margins), not through the cards themselves.
   // Height of the full-width application top bar (collapse + nav + search +
   // profile). Consumed by .topBar in TopBar.module.scss.
   --topbar-height: 52px;
@@ -23,6 +34,21 @@
   // macOS shell only: horizontal inset that pushes the top bar's collapse toggle
   // clear of the native traffic lights (centered in the rail) with extra gap.
   --mac-traffic-light-inset: 96px;
+
+  // macOS shell, wallpaper mode: the backdrop is a native behind-window
+  // NSVisualEffectView (real frosted desktop) under the transparent WKWebView,
+  // so drop the opaque fill and let it show through the gaps between cards.
+  :global(html.nexus-shell-mac-app[data-bg='wallpaper']) & {
+    background: transparent;
+  }
+}
+
+// The macOS shell makes the WKWebView transparent (drawsBackground=NO) so the
+// vibrancy shows; the page root must be transparent too. flat/gradient modes
+// still paint an opaque --backdrop-base on .layout over it.
+:global(html.nexus-shell-mac-app),
+:global(html.nexus-shell-mac-app body) {
+  background: transparent;
 }
 
 .layoutCompact {
@@ -187,14 +213,11 @@
   display: flex;
   flex-direction: column;
   width: 240px;
-  background: var(--bg-elevated);
-  // 8px top gutter nudges the Nexus logo into rough vertical alignment
-  // with the page title bar in the web/browser version. The Windows
-  // --app shell overrides this below with a 6px nudge — there the page
-  // title floats inside the 32px drag strip, so a much smaller offset
-  // keeps the brand row visually aligned with it.
-  // Bottom padding lifts the pair-remote box clear of the absolutely-pinned
-  // version label in the bottom-left corner so the two don't crowd.
+  // No container treatment — the sidebar is transparent and its nav items float
+  // directly over the app backdrop.
+  background: transparent;
+  // 8px top gutter aligns the Nexus logo with the page title bar; bottom padding
+  // lifts the pair-remote box clear of the pinned version label.
   padding: 8px 0 1.5rem;
   flex-shrink: 0;
   transition: width var(--ease);
@@ -216,47 +239,6 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
   pointer-events: none;
   z-index: var(--z-popover);
-}
-
-// Right-edge collapse handle. No visible separator at rest - the sidebar
-// and main content read as a continuous surface. On hover/focus a 3px
-// accent line appears so the click target reads as actionable. Click
-// anywhere on the 7px-wide invisible strip toggles compact mode.
-.collapseEdge {
-  position: absolute;
-  top: 0;
-  right: -3px;
-  bottom: 0;
-  width: 7px;
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  z-index: 5;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 3px;
-    bottom: 0;
-    width: 1px;
-    background: transparent;
-    transition: background var(--ease-fast), width var(--ease-fast), right var(--ease-fast);
-  }
-
-  // Highlight the edge stripe when the strip itself is hovered/focused. The
-  // primary collapse affordance now lives in the top bar.
-  &:hover::before,
-  &:focus-visible::before {
-    width: 3px;
-    right: 2px;
-    background: var(--accent);
-  }
-
-  &:focus-visible {
-    outline: none;
-  }
 }
 
 // ── Sidebar brand (logo + wordmark at top of sidebar) ────────────────────
@@ -544,7 +526,7 @@
   padding: 1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-card);
+  background: var(--surface);
   min-width: 0;
 }
 
@@ -554,14 +536,14 @@
   min-height: 360px;
   // Surface the QR / code blend onto (see PairingQrView). Matches the card so
   // they read as part of it, not a separate inner box.
-  --qr-surface: var(--bg-card);
+  --qr-surface: var(--surface);
 }
 
-// Dark theme: drop the whole pairing box below the modal surface (--bg-elevated)
-// and blend the QR / code onto that darker surface, so there's no inner box.
+// Blend the pairing box into the modal surface (--surface) so the QR / code sit
+// on one continuous surface with no visible inner box.
 :global([data-theme='dark']) .phonePairFlowCard {
-  background: var(--bg);
-  --qr-surface: var(--bg);
+  background: var(--surface);
+  --qr-surface: var(--surface);
 }
 
 .phonePairFlowTabs {
@@ -722,7 +704,7 @@
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: var(--qr-surface, var(--bg-card));
+  background: var(--qr-surface, var(--surface));
   // Opaque surface dissolving to reveal the content beneath. No sweep, no scale.
   animation: phonePairRevealFade 0.5s ease-out both;
 }
@@ -827,7 +809,7 @@
   text-align: center;
   padding: 0.7rem 0;
   border-radius: var(--radius-sm);
-  background: var(--surface-low, var(--bg-card));
+  background: var(--surface-low, var(--surface));
   border: 1px solid var(--border);
 }
 
@@ -864,7 +846,7 @@
 
 .phonePairCodeDeny {
   @extend %phonePairCodeBtn;
-  background: var(--surface-raised, var(--bg-card));
+  background: var(--surface-raised, var(--surface));
   color: var(--text);
 }
 

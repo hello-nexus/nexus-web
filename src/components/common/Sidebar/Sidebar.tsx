@@ -36,6 +36,9 @@ interface SidebarProps {
   // `onSectionLabelClick` is also provided the header is a button with the
   // same active accent treatment as a selected item (APPS = dashboard).
   sectionLabel: string;
+  // Icon rendered in the header row's nav-row icon slot (grid for APPS,
+  // usb for DEVICES). Same 18px lucide glyph the nav rows use.
+  sectionIcon?: ReactNode;
   onSectionLabelClick?: () => void;
   sectionLabelActive?: boolean;
   serviceState: ServiceState;
@@ -203,7 +206,7 @@ function SortableRow(props: Omit<RowProps, 'sortableProps'>) {
 }
 
 export function Sidebar({
-  items, active, onChange, sectionLabel, onSectionLabelClick, sectionLabelActive,
+  items, active, onChange, sectionLabel, sectionIcon, onSectionLabelClick, sectionLabelActive,
   serviceState,
   headerSlot, compact = false,
   extraItems, extraSectionLabel, extraActive, extraOnChange,
@@ -327,6 +330,33 @@ export function Sidebar({
     );
   };
 
+  // The section header (APPS / DEVICES landing) reuses the nav row chrome —
+  // icon + label, hover/active highlight — and only layers a divider via
+  // .sectionHeader so it still reads as a heading. Compact collapses to the
+  // icon with a tooltip, exactly like the nav rows.
+  const renderSectionHeader = () => {
+    if (!sectionLabel) return null;
+    if (!onSectionLabelClick) {
+      return !compact ? <div className={styles.sectionLabel}>{sectionLabel}</div> : null;
+    }
+    const btn = (
+      <button
+        type="button"
+        className={classNames(styles.item, styles.sectionHeader, {
+          [styles.active]: sectionLabelActive,
+          [styles.itemCompact]: compact,
+        })}
+        onClick={onSectionLabelClick}
+        aria-label={sectionLabel}
+        aria-pressed={sectionLabelActive}
+      >
+        <span className={styles.icon}>{sectionIcon}</span>
+        {!compact && <span className={styles.label}>{sectionLabel}</span>}
+      </button>
+    );
+    return compact ? <HoverTooltip body={sectionLabel} side="right">{btn}</HoverTooltip> : btn;
+  };
+
   return (
     <div className={classNames(styles.nav, { [styles.navCompact]: compact })}>
       {headerSlot && (
@@ -334,32 +364,7 @@ export function Sidebar({
           {headerSlot}
         </div>
       )}
-      {sectionLabel && (
-        onSectionLabelClick ? (
-          <button
-            type="button"
-            className={classNames(styles.sectionHeader, {
-              [styles.sectionHeaderCompactRow]: compact,
-              [styles.sectionHeaderActive]: sectionLabelActive,
-            })}
-            onClick={onSectionLabelClick}
-            aria-label={sectionLabel}
-          >
-            {/* Compact mode shows the localized first letter ("A" for APPS
-                in English, "Α" in Greek, "应" in Chinese); expanded shows the
-                full uppercase label. The underline pseudo-element below the
-                row marks it as a section heading, not a device row. */}
-            <span className={styles.sectionHeaderLabel}>
-              {compact ? Array.from(sectionLabel)[0]?.toLocaleUpperCase() ?? '' : sectionLabel}
-            </span>
-          </button>
-        ) : (
-          // Non-interactive header — collapses out in compact mode (nothing
-          // to tap). Fallback; every consumer currently passes
-          // onSectionLabelClick.
-          !compact && <div className={styles.sectionLabel}>{sectionLabel}</div>
-        )
-      )}
+      {renderSectionHeader()}
 
       {sortable ? (
         <div className={styles.tailScroll} data-sidebar-tail-scroll="true">

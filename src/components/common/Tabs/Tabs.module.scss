@@ -1,7 +1,8 @@
 .tabs {
   display: flex;
   gap: 0.25rem;
-  border-bottom: 1px solid var(--border);
+  // Text colour at 25% so the rule inverts with the theme but reads soft.
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
 }
 
 .tab {
@@ -38,8 +39,8 @@
       right: 0.5rem;
       bottom: -1px;
       height: 2px;
-      background: var(--accent);
-      box-shadow: 0 0 12px var(--accent-glow-shadow);
+      // Same colour as the label text, so it inverts with the light/dark theme.
+      background: var(--text);
       border-radius: 2px;
     }
 
@@ -100,22 +101,25 @@
 
 // ── Pill variant ───────────────────────────────────────────────────────────
 // Segmented bordered group - single border around the whole bar, internal
-// separators between segments, accent-soft fill on the active pill. Used for
-// secondary in-page toggles (ScreenTime day/week/month/app).
+// separators between segments, SOLID accent fill on the active pill. Text sits
+// one type rung below the underline .tab so the pill toggles read as compact
+// controls. Used for in-page single-select toggles (settings theme/bg/
+// accent, panel theme, icon picker, pair-remote, ScreenTime).
 
 .tabsPill {
   display: inline-flex;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   overflow: hidden;
-  background: var(--bg-card);
+  background: var(--surface);
   gap: 0; // segments share borders; no gap
 }
 
 .pillTab {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.85rem;
   font-size: var(--type-small);
   font-weight: var(--weight-body);
+  line-height: 1.5;
   background: transparent;
   color: var(--text-dim);
   border: none;
@@ -124,7 +128,6 @@
 
   &:hover:not(:disabled):not(.pillActive) {
     color: var(--text);
-    background: var(--bg-card-hover);
   }
 
   &:disabled {
@@ -134,9 +137,8 @@
 }
 
 .pillActive {
-  background: var(--accent-soft);
-  color: var(--accent-glow);
-  font-weight: var(--weight-heading);
+  background: var(--accent);
+  color: var(--accent-text);
 }
 
 // ── Full-width ───────────────────────────────────────────────────────────

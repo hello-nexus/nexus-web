@@ -59,7 +59,7 @@ export function Frame(p: HostProps) {
     padding: num(p.padding) ?? 12,
     alignItems: alignValue(str(p.align), 'stretch'),
     justifyContent: justifyValue(str(p.justify), 'flex-start'),
-    background: p.tone ? toneVar(str(p.tone)) : 'var(--bg-card, rgba(255,255,255,0.05))',
+    background: p.tone ? toneVar(str(p.tone)) : 'var(--surface, rgba(255,255,255,0.05))',
     borderRadius: num(p.radius) ?? 12,
     border: p.border ? '1px solid var(--border, rgba(255,255,255,0.10))' : undefined,
     flex: p.grow ? 1 : undefined,
@@ -265,7 +265,7 @@ export function Stepper(p: HostProps) {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     width: 26, height: 18, padding: 0, lineHeight: 1, fontSize: 11,
     border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 6,
-    background: 'var(--bg-card, rgba(255,255,255,0.06))', color: 'inherit',
+    background: 'var(--surface, rgba(255,255,255,0.06))', color: 'inherit',
     cursor: disabled ? 'default' : 'pointer',
   };
   const atMax = max != null && value >= max;
@@ -292,7 +292,7 @@ export function Button(p: HostProps) {
     padding: p.size === 'sm' ? '5px 9px' : p.size === 'lg' ? '11px 16px' : '8px 12px',
     borderRadius: 10, cursor: disabled ? 'default' : 'pointer',
     border: variant === 'ghost' ? '1px solid transparent' : '1px solid var(--border, rgba(255,255,255,0.12))',
-    background: variant === 'solid' ? tone : variant === 'ghost' ? 'transparent' : 'var(--bg-card, rgba(255,255,255,0.06))',
+    background: variant === 'solid' ? tone : variant === 'ghost' ? 'transparent' : 'var(--surface, rgba(255,255,255,0.06))',
     color: variant === 'solid' ? 'var(--bg, #080808)' : tone,
     opacity: disabled ? 0.4 : 1, font: 'inherit', fontWeight: 600, lineHeight: 1,
   };
@@ -357,7 +357,7 @@ export function Input(p: HostProps) {
     width: '100%', boxSizing: 'border-box',
     padding: p.size === 'sm' ? '5px 8px' : '8px 10px',
     borderRadius: 8, border: '1px solid var(--border, rgba(255,255,255,0.14))',
-    background: 'var(--bg-card, rgba(255,255,255,0.05))',
+    background: 'var(--surface, rgba(255,255,255,0.05))',
     color: toneVar(str(p.tone), 'var(--text, currentColor)'),
     font: 'inherit', fontFamily: p.mono ? 'ui-monospace, monospace' : undefined,
     textAlign: TEXT_ALIGN[str(p.align) ?? ''], outline: 'none',

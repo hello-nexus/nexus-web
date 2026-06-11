@@ -40,6 +40,9 @@ import type { ComponentCategory, ComponentOption } from '../types/builder';
 import { NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
 import { PageVersionLabel } from './sidebar';
 import { TopBar } from './TopBar';
+import { AppBackdrop } from './AppBackdrop';
+import { SystemAccentSync } from './SystemAccentSync';
+import { ResolvedThemeSync } from './ResolvedThemeSync';
 import { SplashPage } from './SplashPage';
 import { getSidebarAppMeta } from './sidebarApps';
 import { SidebarColumn } from './SidebarColumn';
@@ -210,6 +213,9 @@ export function Dashboard() {
   // button gutter without each consumer re-detecting the shell.
   useEffect(() => {
     document.body.classList.toggle('nexus-shell-windows-app', isWindowsAppShell());
+    // Mark <html> for the macOS shell so wallpaper mode can drop the opaque
+    // backdrop and let the native behind-window vibrancy show through.
+    document.documentElement.classList.toggle('nexus-shell-mac-app', isMacAppShell());
   }, []);
   // Idle-time prefetch of the four most-used Page chunks (cooling, lighting,
   // monitoring, devices) plus the shared registry chunk they pull in. Fires
@@ -437,6 +443,9 @@ export function Dashboard() {
         [styles.layoutCompact]: compact,
         [styles.layoutWindowsApp]: isWindowsAppShell(),
       })}>
+        <AppBackdrop />
+        <SystemAccentSync />
+        <ResolvedThemeSync />
         <OpenInAppBanner />
         {/* Nexus Windows shell only: window-resize grab strips along each
             edge. The drag region + caption buttons now live in the top bar
@@ -479,7 +488,6 @@ export function Dashboard() {
           {hasSidebar && (
             <SidebarColumn
               compact={compact}
-              onToggleCompact={() => setManualOverride(!sidebarCompact)}
               online={online}
               serviceState={serviceState}
               serviceNavActive={serviceNavActive}

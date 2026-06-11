@@ -88,7 +88,7 @@ export function buildEmbeddedPanelThemeVars(appAccentColor: string | undefined, 
   const accentVars = deriveAccentVars(appAccentColor || DEFAULT_ACCENT, resolvedThemeMode);
   return {
     ...accentVars,
-    '--panel-card-bg': 'var(--bg-card)',
+    '--panel-card-bg': 'var(--surface)',
     '--panel-card-bg-opacity': '100%',
     '--panel-accent': accentVars['--accent'],
     '--panel-accent-glow': accentVars['--accent-glow'],
@@ -107,7 +107,7 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
   const widgetOpacityPct = Math.round(normalizePanelWidgetOpacity(theme.widgetOpacity) * 100);
   const vars: Record<string, string> = {
     ...accentVars,
-    '--panel-card-bg': 'var(--bg-card)',
+    '--panel-card-bg': 'var(--surface)',
     '--panel-card-bg-opacity': `${widgetOpacityPct}%`,
     '--panel-accent': accentVars['--accent'],
     '--panel-accent-glow': accentVars['--accent-glow'],
@@ -151,6 +151,7 @@ export function usePanelLanguageSync(enabled = true) {
 export function usePanelTheme(deviceId: string | null | undefined, enabled = true, persist = true) {
   const [theme, setTheme] = useState<PanelThemeState>({
     appThemeMode: 'system',
+    appResolvedThemeMode: '',
     themeSyncWithDesktop: true,
     themeMode: 'system',
     appAccentColor: DEFAULT_ACCENT,
@@ -168,7 +169,12 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     widgetBlur: defaultPanelWidgetBlur(),
   });
   const resolvedMode = useResolvedPanelThemeMode(
-    theme.themeSyncWithDesktop ? theme.appThemeMode : theme.themeMode,
+    // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
+    // tracking the desktop OS). Fall back to appThemeMode when unpublished —
+    // 'system' there would re-resolve against THIS device's OS (wrong OS).
+    theme.themeSyncWithDesktop
+      ? (theme.appResolvedThemeMode || theme.appThemeMode)
+      : theme.themeMode,
   );
   const resolvedModeRef = useRef<ResolvedPanelThemeMode>(resolvedMode);
   useEffect(() => { resolvedModeRef.current = resolvedMode; }, [resolvedMode]);
@@ -187,6 +193,8 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
       const r = record;
       setTheme({
         appThemeMode: normalizePanelThemeMode(t?.themeMode),
+        appResolvedThemeMode: t?.resolvedThemeMode === 'dark' || t?.resolvedThemeMode === 'light'
+          ? t.resolvedThemeMode : '',
         themeSyncWithDesktop: normalizePanelDesktopSync(r?.themeSyncWithDesktop),
         themeMode: normalizePanelThemeMode(r?.themeMode),
         appAccentColor: t?.accentColor || DEFAULT_ACCENT,

@@ -4,7 +4,7 @@
   --effect-template-radius: var(--radius-sm, 6px);
   --effect-template-border: var(--panel-border, var(--border));
   --effect-template-hover-border: var(--border-strong, var(--effect-template-border));
-  --effect-template-bg: var(--panel-element-bg, var(--bg-card));
+  --effect-template-bg: var(--panel-element-bg, var(--surface));
   --effect-template-text: var(--panel-text-muted, var(--text-dim));
   --effect-template-active-border: var(--panel-accent, var(--accent));
   --effect-template-active-bg: var(--effect-template-bg);

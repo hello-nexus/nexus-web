@@ -44,6 +44,15 @@ export const LANGUAGE_FLAGS: Record<Language, string> = {
 export const THEME_MODES = ['system', 'dark', 'light'] as const;
 export type ThemeMode = (typeof THEME_MODES)[number];
 
+// Dashboard background style. 'wallpaper' = blurred OS desktop wallpaper,
+// 'gradient' = flowing accent ribbons, 'flat' = solid theme color.
+export const BACKGROUND_MODES = ['wallpaper', 'gradient', 'flat'] as const;
+export type BackgroundMode = (typeof BACKGROUND_MODES)[number];
+
+// Accent source. 'system' tracks the OS accent colour (pushed by the native
+// shell); 'custom' uses the user-picked accentColor.
+export type AccentSource = 'system' | 'custom';
+
 // Accent color — user-selectable in Settings, hex #rrggbb. Other accent
 // tokens (glow, deep, soft, glow-shadow, the --accent-text variants) derive
 // from it per-theme in applyAccentColor(). First-paint fallback before
@@ -95,6 +104,8 @@ export interface GeneralSettings {
   language: Language;
   themeMode: ThemeMode;
   accentColor: string;
+  backgroundMode: BackgroundMode;
+  accentSource: AccentSource;
   startOnLogin: boolean;
   disableConflictAlerts: boolean;
   monitoringShowAverage: boolean;
@@ -129,6 +140,8 @@ export function getDefaultSettings(): NexusSettings {
       language: 'en',
       themeMode: 'system',
       accentColor: DEFAULT_ACCENT,
+      backgroundMode: 'wallpaper',
+      accentSource: 'system',
       startOnLogin: false,
       disableConflictAlerts: false,
       monitoringShowAverage: true,
@@ -209,11 +222,12 @@ export function resolveTheme(mode: ThemeMode): 'dark' | 'light' {
 // thread the accent through.
 let currentAccent = DEFAULT_ACCENT;
 
-// Match the --bg surface tokens in src/styles/variables.scss. Kept in sync
-// manually so the iOS Safari URL bar / overscroll area painted via the
-// theme-color meta matches the body background the user actually sees.
+// Match the --bg-elevated chrome tokens in src/styles/variables.scss (the top
+// bar is what sits under the URL bar). Kept in sync manually so the iOS Safari
+// URL bar / overscroll area painted via the theme-color meta matches the
+// chrome the user actually sees at the top edge.
 const THEME_COLOR_DARK = '#0f0f0f';
-const THEME_COLOR_LIGHT = '#f4f4f8';
+const THEME_COLOR_LIGHT = '#ecedf4';
 
 /**
  * Set the html `data-theme` attribute and the iOS Safari / Chrome address-bar
@@ -238,6 +252,16 @@ export function applyThemeMode(mode: ThemeMode): void {
   applyHtmlChromeTheme(resolveTheme(mode));
   // Re-derive accent shades for the newly effective theme mode.
   applyAccentColor(currentAccent);
+}
+
+/**
+ * Apply the dashboard background style by toggling `data-bg` on <html> (CSS
+ * reads it for the flat base color) and notifying <AppBackdrop> via a window
+ * event so it can swap the rendered layer (ribbons / wallpaper / none).
+ */
+export function applyBackgroundMode(mode: BackgroundMode): void {
+  document.documentElement.setAttribute('data-bg', mode);
+  window.dispatchEvent(new CustomEvent('nexus:bg-mode', { detail: mode }));
 }
 
 /** Listen for OS theme changes when mode is 'system'. Returns a cleanup function. */

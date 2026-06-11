@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
-import { Pin, PinOff } from 'lucide-react';
+import { LayoutGrid, Pin, PinOff } from 'lucide-react';
 import { Sidebar } from '../components/common/Sidebar/Sidebar';
-import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useUiSettings } from '../hooks/useUiSettings';
 import type { ServiceState } from '../hooks/useServiceState';
 import { useTranslation } from '../lib/i18n';
@@ -13,6 +12,7 @@ import {
 import { PairPhoneButton } from './PairPhoneModal';
 import { SidebarContextMenu } from './SidebarContextMenu';
 import { SidebarDevicesSection } from './SidebarDevicesSection';
+import { ICON_SIZE } from './sidebarNav';
 import {
   DASHBOARD_APP_KEY,
   getSidebarAppMeta,
@@ -31,7 +31,6 @@ interface ExtraNavItem {
 
 interface SidebarColumnProps {
   compact: boolean;
-  onToggleCompact: () => void;
   online: boolean;
   serviceState: ServiceState;
   serviceNavActive: string;
@@ -57,7 +56,6 @@ interface SidebarColumnProps {
 
 export function SidebarColumn({
   compact,
-  onToggleCompact,
   online,
   serviceState,
   serviceNavActive,
@@ -153,6 +151,7 @@ export function SidebarColumn({
         active={serviceNavActive}
         onChange={onServiceNavChange}
         sectionLabel={t('sidebar.section.apps')}
+        sectionIcon={<LayoutGrid size={ICON_SIZE} />}
         onSectionLabelClick={() => onServiceNavChange(DASHBOARD_APP_KEY)}
         sectionLabelActive={serviceNavActive === DASHBOARD_APP_KEY}
         serviceState={serviceState}
@@ -184,14 +183,6 @@ export function SidebarColumn({
         onClick={onPairPhoneOpen}
       />
       <SidebarConflictSlot serviceOnline={online} compact={compact} />
-      <HoverTooltip body={compact ? t('sidebar.expand') : t('sidebar.collapse')} side="right">
-        <button
-          type="button"
-          className={styles.collapseEdge}
-          onClick={onToggleCompact}
-          aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')}
-        />
-      </HoverTooltip>
       {ctxMenu && (
         <SidebarContextMenu
           x={ctxMenu.x}

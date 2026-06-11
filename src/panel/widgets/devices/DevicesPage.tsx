@@ -82,12 +82,12 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
         tabsDisabled={!serviceOnline && !webhidAvailable}
         tabActions={serviceOnline ? (
           <div className={styles.headerActions}>
-            <button type="button" className={styles.catalogBtn} onClick={() => setSupportedModalOpen(true)}>
+            <Button size="sm" tone="neutral" onClick={() => setSupportedModalOpen(true)}>
               {t('devices.supported.browse')}
-            </button>
-            <button type="button" className={styles.catalogBtn} onClick={() => setConnectedModalOpen(true)}>
+            </Button>
+            <Button size="sm" tone="neutral" onClick={() => setConnectedModalOpen(true)}>
               {t('devices.connected.browse')}
-            </button>
+            </Button>
           </div>
         ) : undefined}
       />

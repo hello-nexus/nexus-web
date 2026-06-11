@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Button } from '../../../components/common/Button/Button';
 import { ChevronLeft, FolderInput } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { DECK_SWATCHES } from '../../../lib/settings';
@@ -185,9 +186,9 @@ function SequenceEditor({ action, onChange }: { action: Extract<DeckAction, { ty
           <Field label={t('panel.settings.deck.sequence.gapMs')}><input className={styles.input} type="number" min={0} value={step.gapAfterMs ?? 60} onChange={e => setSteps(steps.map((s, j) => (j === i ? { ...s, gapAfterMs: Math.max(0, Number(e.target.value)) } : s)))} /></Field>
         </div>
       ))}
-      <button type="button" className={styles.addBtn} onClick={() => setSteps([...steps, { action: defaultActionFor('system'), gapAfterMs: 60 }])}>
+      <Button type="button" size="sm" tone="neutral" onClick={() => setSteps([...steps, { action: defaultActionFor('system'), gapAfterMs: 60 }])}>
         {t('panel.settings.deck.sequence.addStep')}
-      </button>
+      </Button>
     </div>
   );
 }

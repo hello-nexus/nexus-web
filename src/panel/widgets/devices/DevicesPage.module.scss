@@ -15,24 +15,6 @@
   gap: 0.5rem;
 }
 
-.catalogBtn {
-  padding: 0.4rem 0.6rem;
-  background: transparent;
-  border: 1px dashed var(--border-strong);
-  border-radius: 4px;
-  color: var(--text-dim);
-  font-size: var(--type-mini);
-  cursor: pointer;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
-
-  &:hover {
-    color: var(--text);
-    border-color: var(--accent);
-    border-style: solid;
-    background: var(--accent-soft);
-  }
-}
-
 // --- Device Grid ---
 
 .grid {
@@ -51,7 +33,7 @@
   flex-direction: column;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--bg-card);
+  background: var(--surface);
   overflow: hidden;
   cursor: pointer;
   transition: border-color var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast);
@@ -72,7 +54,7 @@
   cursor: default;
 
   &:hover {
-    background: var(--bg-card);
+    background: var(--surface);
     border-color: var(--border-strong);
     box-shadow: none;
   }
@@ -180,7 +162,7 @@
   margin-top: 1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--bg-card);
+  background: var(--surface);
   // Cap width so the prompt box doesn't stretch the full page. Shrinks
   // on small viewports via max-width: 100%.
   max-width: 560px;
@@ -246,7 +228,7 @@
   margin-top: 0.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--bg-card);
+  background: var(--surface);
   width: fit-content;
   max-width: 100%;
 }
@@ -344,7 +326,7 @@
 
 // Dev-only version picker.
 .fwVersionSelect {
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border-strong);
   border-radius: 4px;
@@ -402,7 +384,7 @@
   margin-top: 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--bg-card);
+  background: var(--surface);
   padding: 0.4rem 0.9rem;
   max-width: 640px;
 }

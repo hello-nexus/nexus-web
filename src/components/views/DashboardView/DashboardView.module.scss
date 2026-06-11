@@ -11,7 +11,8 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-  background: var(--bg);
+  // Transparent so the app backdrop shows through, same as every other page.
+  background: transparent;
 }
 
 // Row of page-level action buttons (Add widget, Desktop Widgets) under the
@@ -29,7 +30,9 @@
   padding: 0.3rem 0.7rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: transparent;
+  // Theme surface (white-ish in light, very dark grey in dark) rather than
+  // transparent, so the buttons read as solid controls on the backdrop.
+  background: var(--surface);
   color: var(--text-dim);
   font: inherit;
   font-size: var(--type-small);
@@ -40,6 +43,7 @@
   &:focus-visible {
     color: var(--accent);
     border-color: var(--accent);
+    background: var(--bg-card-hover);
   }
 
   &:focus-visible {

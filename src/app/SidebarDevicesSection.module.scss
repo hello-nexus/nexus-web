@@ -10,73 +10,37 @@
   margin-top: 1.25rem;
 }
 
-// Section header — item-row highlight chrome plus a full-width divider so
-// it reads as a section heading and a clickable destination. Matches
-// `.sectionHeader` in Sidebar.module.scss.
+// Section header (DEVICES → all-devices landing). Reuses the device-row .item
+// chrome (icon + label, font, alignment, hover/active) and only layers a divider
+// so it still reads as a heading — matching the APPS header. Divider rides
+// currentColor so line + label + icon are one colour.
 .headerBtn {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0.5rem 0.75rem;
-  margin: 0;
-  border-radius: var(--radius-sm);
-  font-size: var(--type-small);
-  font-weight: var(--weight-heading);
-  color: var(--text-faded);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  width: 100%;
-  position: relative;
-  transition: background var(--ease-fast), color var(--ease-fast);
-
-  &::after {
+  // Small dot in the left gutter (before the icon) marks this as a section
+  // header — matching the APPS header; no underline, no layout shift.
+  &::before {
     content: '';
     position: absolute;
-    left: 0.6rem;
-    right: 0.6rem;
-    bottom: 4px;
-    height: 1px;
-    background: var(--border);
-    transition: background var(--ease-fast);
-  }
-
-  &:hover {
-    background: var(--bg-card-hover);
-    color: var(--text);
-    &::after { background: var(--border-strong); }
+    left: 9px;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    margin-top: -2.5px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.55;
+    pointer-events: none;
   }
 }
 
-.headerCompactRow {
-  // Center the single collapsed letter on the rail centerline (matching APPS).
+// Lucide glyph slot for the header (usb). The device rows use the mask-based
+// .icon for their SVG assets; this is the plain flex box the lucide header icon
+// needs, sized to match the rows so it lines up under them.
+.headerIcon {
+  display: flex;
+  align-items: center;
   justify-content: center;
-  &::after {
-    left: 0.4rem;
-    right: 0.4rem;
-  }
-  .headerLabel {
-    padding-left: 0;
-  }
-}
-
-.headerActive {
-  background: var(--accent-soft);
-  color: var(--text);
-  &:hover { background: var(--accent-soft); }
-  &::after { background: var(--accent); }
-  &:hover::after { background: var(--accent); }
-}
-
-.headerLabel {
-  display: inline-block;
-  padding-bottom: 0.3rem;
-  // Indent so the single collapsed letter reads as centred in the narrow
-  // rail; on the label (not the header) so the underline stays put.
-  padding-left: 0.5rem;
+  width: 20px;
+  flex-shrink: 0;
 }
 
 .empty {
@@ -107,15 +71,15 @@
   position: relative;
 
   &:hover {
-    background: var(--bg-card-hover);
+    background: color-mix(in srgb, var(--surface) 50%, transparent);
     color: var(--text);
   }
 
   &.active {
-    background: var(--accent-soft);
+    background: var(--surface);
     color: var(--text);
 
-    .icon { color: var(--accent-glow); }
+    .icon, .headerIcon { color: var(--accent-glow); }
   }
 }
 

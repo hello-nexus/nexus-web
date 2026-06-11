@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Button } from '../../../../components/common/Button/Button';
 import type { HardwareSensor } from '../../../../hooks/useSensors';
 import { useUiSettings } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
@@ -73,14 +74,9 @@ export function CoolingSettingsModal({ open, onClose, cpuSensors, gpuSensors }: 
       />
 
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.resetBtn}
-          onClick={reset}
-          disabled={!canReset}
-        >
+        <Button type="button" size="sm" tone="neutral" onClick={reset} disabled={!canReset}>
           {t('cooling.settings.reset')}
-        </button>
+        </Button>
         <button type="button" className={styles.confirmBtn} onClick={onClose}>
           {t('cooling.settings.close')}
         </button>

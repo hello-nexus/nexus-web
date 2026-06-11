@@ -1,4 +1,10 @@
 {
+  "settings.accent.system": "システム",
+  "settings.accent.custom": "カスタム",
+  "settings.background": "背景",
+  "settings.background.wallpaper": "壁紙",
+  "settings.background.gradient": "グラデーション",
+  "settings.background.flat": "フラット",
   "app.window.close": "閉じる",
   "app.window.maximize": "最大化",
   "app.window.minimize": "最小化",

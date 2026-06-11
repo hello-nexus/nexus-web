@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Gauge, Plus, Power, SlidersHorizontal } from 'lucide-react';
+import { Button } from '../../../components/common/Button/Button';
 import {
   getNp50ConnectionState,
   np50HubModeFromName,
@@ -1197,19 +1198,16 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 </h3>
                 {curves.length >= MAX_CURVES ? (
                   <HoverTooltip body={t('cooling.curves.maxReached')} side="left">
-                    <button type="button" className={styles.addCurveBtn}
-                      onClick={addCurve}
-                      disabled>
-                      <Plus size={14} aria-hidden />
-                      <span>{t('cooling.curves.add')}</span>
-                    </button>
+                    <Button type="button" size="sm" tone="neutral" icon={<Plus size={14} aria-hidden />}
+                      onClick={addCurve} disabled>
+                      {t('cooling.curves.add')}
+                    </Button>
                   </HoverTooltip>
                 ) : (
-                  <button type="button" className={styles.addCurveBtn}
+                  <Button type="button" size="sm" tone="neutral" icon={<Plus size={14} aria-hidden />}
                     onClick={addCurve}>
-                    <Plus size={14} aria-hidden />
-                    <span>{t('cooling.curves.add')}</span>
-                  </button>
+                    {t('cooling.curves.add')}
+                  </Button>
                 )}
               </div>
               <div className={styles.curvesScroll}>
@@ -1403,11 +1401,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             </div>
 
             <div className={styles.fanPanelFooter}>
-              <button type="button" className={calibrating ? styles.cancelCalBtn : styles.calibrateBtn}
+              <Button type="button" size="sm" tone={calibrating ? 'danger' : 'neutral'}
+                icon={<Gauge size={14} aria-hidden />}
                 onClick={runCalibration} disabled={calibrating}>
-                <Gauge size={14} aria-hidden />
-                <span>{calibrating ? t('cooling.calibrate.running').split('-')[0].trim() : t('cooling.calibrate.button')}</span>
-              </button>
+                {calibrating ? t('cooling.calibrate.running').split('-')[0].trim() : t('cooling.calibrate.button')}
+              </Button>
             </div>
           </aside>
 

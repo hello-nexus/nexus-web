@@ -11,7 +11,7 @@
   border-radius: 11px;
   border: none;
   padding: 0;
-  background: var(--border-strong);
+  background: var(--surface);
   cursor: pointer;
   flex-shrink: 0;
   transition: background var(--ease) ease;
@@ -37,10 +37,14 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #fff;
-  transition: transform var(--ease) ease;
+  // Knob contrasts the off track (--surface): dark over the light-theme
+  // near-white, light over the dark-theme near-black. Fades to white when on
+  // (sitting over the accent track).
+  background: var(--text);
+  transition: transform var(--ease) ease, background var(--ease) ease;
 }
 
 .toggle[data-on='true'] .thumb {
   transform: translateX(18px);
+  background: #fff;
 }

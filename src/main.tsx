@@ -7,7 +7,7 @@ import App from './App';
 import { ContextMenuManager } from './components/common/ContextMenu/ContextMenuManager';
 import './styles/variables.scss';
 import './styles/global.scss';
-import { loadSettings, applyThemeMode, applyAccentColor, watchSystemTheme } from './lib/settings';
+import { loadSettings, applyThemeMode, applyAccentColor, applyBackgroundMode, watchSystemTheme } from './lib/settings';
 import { bootDebugFont } from './lib/debugFont';
 import { preloadInstallDefaults } from './api/installDefaultsCache';
 
@@ -16,6 +16,7 @@ import { preloadInstallDefaults } from './api/installDefaultsCache';
 const { general } = loadSettings();
 applyThemeMode(general.themeMode);
 applyAccentColor(general.accentColor);
+applyBackgroundMode(general.backgroundMode);
 watchSystemTheme(general.themeMode);
 bootDebugFont();
 

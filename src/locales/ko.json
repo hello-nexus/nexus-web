@@ -1,4 +1,10 @@
 {
+  "settings.accent.system": "시스템",
+  "settings.accent.custom": "사용자 지정",
+  "settings.background": "배경",
+  "settings.background.wallpaper": "배경화면",
+  "settings.background.gradient": "그라데이션",
+  "settings.background.flat": "단색",
   "app.window.close": "닫기",
   "app.window.maximize": "최대화",
   "app.window.minimize": "최소화",

@@ -297,7 +297,7 @@
   font-size: var(--type-small);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text-dim);
   cursor: pointer;
   transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast);
@@ -335,7 +335,7 @@
   font-size: var(--type-small);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text-faded);
   cursor: pointer;
   transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast), opacity var(--ease-fast);
@@ -446,7 +446,7 @@
   padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text-dim);
   cursor: pointer;
   transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast);
@@ -460,7 +460,7 @@
   &:disabled {
     opacity: 0.3;
     cursor: not-allowed;
-    &:hover { background: var(--bg-card); border-color: var(--border); color: var(--text-dim); }
+    &:hover { background: var(--surface); border-color: var(--border); color: var(--text-dim); }
   }
 }
 
@@ -469,7 +469,7 @@
   font-size: var(--type-small);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   cursor: pointer;
   transition: background var(--ease-fast), border-color var(--ease-fast);

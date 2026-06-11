@@ -86,7 +86,7 @@
 }
 
 .card {
-  background: var(--bg-card);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 0.85rem 1rem;
@@ -170,7 +170,7 @@
 
 .previewBtn {
   padding: 0.4rem 0.8rem;
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -193,7 +193,7 @@
 }
 
 .previewOverlaySurface {
-  background: var(--bg-elevated);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 1rem 1.25rem;
@@ -229,7 +229,7 @@
 }
 
 .previewIconLabelRow {
-  --icon-label-button-bg: var(--bg-card);
+  --icon-label-button-bg: var(--surface);
   --icon-label-button-bg-hover: var(--bg-card-hover);
   --icon-label-button-border: var(--border);
   --icon-label-button-text: var(--text-dim);
@@ -244,7 +244,7 @@
   --panel-text: var(--text);
   --panel-text-faint: var(--text-faded);
   --panel-border: var(--border);
-  --panel-element-bg: var(--bg-card);
+  --panel-element-bg: var(--surface);
   --panel-element-bg-hover: var(--bg-card-hover);
   --panel-accent: var(--accent);
   --panel-accent-glow: var(--accent-glow);
@@ -280,7 +280,7 @@
 .previewEffectControls {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   overflow: hidden;
 }
 
@@ -322,7 +322,7 @@
   padding: 0.5rem 0.7rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   font-size: var(--type-small);
 

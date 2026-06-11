@@ -1,7 +1,7 @@
 .settingsRoot {
   --monitoring-settings-border: var(--panel-border, var(--border));
   --monitoring-settings-border-strong: var(--panel-border-strong, var(--border-strong));
-  --monitoring-settings-bg: var(--panel-element-bg, var(--bg-card));
+  --monitoring-settings-bg: var(--panel-element-bg, var(--surface));
   --monitoring-settings-bg-hover: var(--panel-element-bg-hover, var(--bg-card-hover));
   --monitoring-settings-text: var(--panel-text, var(--text));
   --monitoring-settings-muted: var(--panel-text-muted, var(--text-dim));

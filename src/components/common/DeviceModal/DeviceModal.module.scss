@@ -3,7 +3,7 @@
 @use '../../../styles/interactions' as *;
 
 .modal {
-  background: var(--bg-elevated);
+  background: var(--backdrop-base);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   width: min(480px, 100%);
@@ -70,8 +70,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.65rem 1.25rem;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  background: var(--backdrop-base);
   flex-shrink: 0;
 }
 
@@ -152,7 +151,7 @@
   padding: 0.35rem 0.6rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   font-size: var(--type-small);
   cursor: pointer;

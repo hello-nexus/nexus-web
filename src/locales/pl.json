@@ -1,4 +1,10 @@
 {
+  "settings.accent.system": "Systemowy",
+  "settings.accent.custom": "Niestandardowy",
+  "settings.background": "Tło",
+  "settings.background.wallpaper": "Tapeta",
+  "settings.background.gradient": "Gradient",
+  "settings.background.flat": "Jednolity",
   "app.window.close": "Zamknij",
   "app.window.maximize": "Maksymalizuj",
   "app.window.minimize": "Minimalizuj",

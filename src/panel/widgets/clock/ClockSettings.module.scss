@@ -1,6 +1,6 @@
 .container {
   --clock-settings-border: var(--panel-border, var(--border));
-  --clock-settings-bg: var(--panel-element-bg, var(--bg-card));
+  --clock-settings-bg: var(--panel-element-bg, var(--surface));
   --clock-settings-bg-hover: var(--panel-element-bg-hover, var(--bg-card-hover));
   --clock-settings-text: var(--panel-text, var(--text));
   --clock-settings-faint: var(--panel-text-faint, var(--text-faded));

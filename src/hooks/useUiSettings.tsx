@@ -6,8 +6,8 @@ import {
 } from 'react';
 import {
   loadSettings, saveSettings, cachePreferencesLocally,
-  applyThemeMode, applyAccentColor,
-  type NexusSettings, type ThemeMode, type Language,
+  applyThemeMode, applyAccentColor, applyBackgroundMode,
+  type NexusSettings, type ThemeMode, type Language, type BackgroundMode, type AccentSource,
 } from '../lib/settings';
 import {
   fetchPreferences, savePreferences,
@@ -38,6 +38,10 @@ import { sanitizePinnedTail } from '../app/sidebarApps';
 export interface UiSettingsValue {
   // Client-scoped (local only, never synced to server)
   startOnLogin: boolean;
+  // Dashboard background style (wallpaper / gradient / flat).
+  backgroundMode: BackgroundMode;
+  // Accent source: 'system' tracks the OS accent, 'custom' uses accentColor.
+  accentSource: AccentSource;
 
   // Profile-scoped (server is source of truth; localStorage mirrors)
   language: Language;
@@ -83,6 +87,8 @@ const UiSettingsContext = createContext<UiSettingsContextValue | null>(null);
 function fromNexusSettings(src: NexusSettings): UiSettingsValue {
   return {
     startOnLogin: src.general.startOnLogin,
+    backgroundMode: src.general.backgroundMode,
+    accentSource: src.general.accentSource,
     language: src.general.language,
     themeMode: src.general.themeMode,
     accentColor: src.general.accentColor,
@@ -106,6 +112,8 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       language: src.language,
       themeMode: src.themeMode,
       accentColor: src.accentColor,
+      backgroundMode: src.backgroundMode,
+      accentSource: src.accentSource,
       startOnLogin: src.startOnLogin,
       disableConflictAlerts: src.disableConflictAlerts,
       monitoringShowAverage: src.monitoringShowAverage,
@@ -232,6 +240,7 @@ export function UiSettingsProvider({
       if (manageDom) {
         if (patch.themeMode !== undefined) applyThemeMode(patch.themeMode);
         if (patch.accentColor !== undefined) applyAccentColor(patch.accentColor);
+        if (patch.backgroundMode !== undefined) applyBackgroundMode(patch.backgroundMode);
         if (patch.language !== undefined) setLanguage(patch.language);
       }
 

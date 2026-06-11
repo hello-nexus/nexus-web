@@ -20,6 +20,10 @@ export interface ThemeSettings {
   language: string;
   themeMode: string;
   accentColor: string;
+  // Desktop app's resolved theme ('dark'|'light'), republished on change so
+  // synced remote panels follow the desktop OS instead of their own. Optional:
+  // older services omit it; '' means not yet published (fall back to themeMode).
+  resolvedThemeMode?: string;
 }
 
 export interface MonitoringSettings {

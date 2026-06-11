@@ -27,7 +27,7 @@
 
   code {
     @include text-numeric;
-    background: var(--bg-card);
+    background: var(--surface);
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     color: var(--text);
@@ -56,7 +56,7 @@
 
   code {
     @include text-numeric;
-    background: var(--bg-card);
+    background: var(--surface);
     padding: 0 4px;
     border-radius: var(--radius-sm);
     color: var(--text-dim);
@@ -91,7 +91,7 @@
 .radiusBox {
   width: 64px;
   height: 64px;
-  background: var(--bg-card);
+  background: var(--surface);
   border: 1px solid var(--border-strong);
 }
 
@@ -117,7 +117,7 @@
 }
 
 .sizeBox {
-  background: var(--bg-card);
+  background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
 }
@@ -125,7 +125,7 @@
 .timingSwatch {
   width: 60px;
   height: 14px;
-  background: var(--bg-card);
+  background: var(--surface);
   border-radius: var(--radius-sm);
   transition: background var(--ease) ease, transform var(--ease) ease;
 
@@ -155,7 +155,7 @@
 .shadowSwatch {
   width: 100%;
   height: 60px;
-  background: var(--bg-card);
+  background: var(--surface);
   border-radius: var(--radius);
   border: 1px solid var(--border);
 }

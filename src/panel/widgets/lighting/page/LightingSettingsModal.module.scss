@@ -1,5 +1,5 @@
 .modal {
-  background: var(--bg-elevated);
+  background: var(--backdrop-base);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   width: min(520px, 100%);
@@ -35,7 +35,7 @@
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-card);
+  background: var(--surface);
 }
 
 .rowLabel {

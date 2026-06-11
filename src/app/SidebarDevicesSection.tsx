@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import classNames from 'classnames';
-import { FlaskConical } from 'lucide-react';
+import { FlaskConical, Usb } from 'lucide-react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { useTranslation } from '../lib/i18n';
+import { ICON_SIZE } from './sidebarNav';
 import styles from './SidebarDevicesSection.module.scss';
 
 /**
@@ -61,23 +62,27 @@ export function SidebarDevicesSection({
   }, [unified]);
 
   const label = t('sidebar.section.devices');
+  // Header reuses the device-row .item chrome (font, alignment, hover/active)
+  // and layers .headerBtn's divider — matching the APPS header. Compact shows
+  // the usb glyph only, with a tooltip, like the rows below it.
+  const headerBtn = (
+    <button
+      type="button"
+      className={classNames(styles.item, styles.headerBtn, {
+        [styles.active]: headerActive,
+        [styles.itemCompact]: compact,
+      })}
+      onClick={onHeaderClick}
+      aria-label={label}
+      aria-pressed={headerActive}
+    >
+      <span className={styles.headerIcon}><Usb size={ICON_SIZE} /></span>
+      {!compact && <span className={styles.label}>{label}</span>}
+    </button>
+  );
   return (
     <section className={styles.section}>
-      <button
-        type="button"
-        className={classNames(styles.headerBtn, {
-          [styles.headerActive]: headerActive,
-          [styles.headerCompactRow]: compact,
-        })}
-        onClick={onHeaderClick}
-        aria-label={label}
-      >
-        {/* Compact: localized first letter; expanded: full label. The
-            .headerLabel underline marks it as a section heading, not a row. */}
-        <span className={styles.headerLabel}>
-          {compact ? Array.from(label)[0]?.toLocaleUpperCase() ?? '' : label}
-        </span>
-      </button>
+      {compact ? <HoverTooltip body={label} side="right">{headerBtn}</HoverTooltip> : headerBtn}
 
       {sorted.length === 0 ? (
         !compact && (

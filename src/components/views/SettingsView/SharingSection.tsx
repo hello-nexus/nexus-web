@@ -1,5 +1,6 @@
 import { RotateCcw } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
+import { Tabs } from '../../common/Tabs/Tabs';
 import { PROFILE_CATEGORIES, type ProfileCategory } from '../../../api/profiles';
 import { useProfileSharing, type UseProfilesResult } from '../../../hooks/useProfiles';
 import { useTranslation } from '../../../lib/i18n';
@@ -37,28 +38,20 @@ export function SharingSection({ profiles, sharing, primaryId, sharedCats, onlyO
                 <span className={styles.rowDesc}>{t(`settings.profiles.sharing.cat.${category}.desc`)}</span>
               </div>
               <div className={styles.sharingControls}>
-                <div className={styles.segmented} role="radiogroup" aria-label={t(`settings.profiles.sharing.cat.${category}.label`)}>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={!isShared}
-                    className={`${styles.segmentedOption} ${!isShared ? styles.segmentedOptionActive : ''}`}
-                    onClick={() => { if (isShared) sharing.setCategoryShared(category, false); }}
-                    disabled={onlyOneProfile}
-                  >
-                    {t('settings.profiles.sharing.perProfile')}
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={isShared}
-                    className={`${styles.segmentedOption} ${isShared ? styles.segmentedOptionActive : ''}`}
-                    onClick={() => { if (!isShared) onShareCategory(category); }}
-                    disabled={onlyOneProfile}
-                  >
-                    {t('settings.profiles.sharing.shared')}
-                  </button>
-                </div>
+                <Tabs
+                  variant="pill"
+                  ariaLabel={t(`settings.profiles.sharing.cat.${category}.label`)}
+                  disabled={onlyOneProfile}
+                  activeKey={isShared ? 'shared' : 'perProfile'}
+                  onChange={key => {
+                    if (key === 'shared' && !isShared) onShareCategory(category);
+                    else if (key === 'perProfile' && isShared) sharing.setCategoryShared(category, false);
+                  }}
+                  tabs={[
+                    { key: 'perProfile', label: t('settings.profiles.sharing.perProfile') },
+                    { key: 'shared', label: t('settings.profiles.sharing.shared') },
+                  ]}
+                />
                 <Button
                   type="button"
                   tone="ghost"

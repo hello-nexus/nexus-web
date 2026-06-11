@@ -1,7 +1,7 @@
 @use '../styles/text' as *;
 
 .modal {
-  background: var(--bg-elevated);
+  background: var(--backdrop-base);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   width: min(360px, 100%);

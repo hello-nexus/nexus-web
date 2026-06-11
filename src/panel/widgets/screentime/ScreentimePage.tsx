@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button } from '../../../components/common/Button/Button';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
@@ -46,9 +47,9 @@ export function ScreentimePage({ serviceOnline, connectionState, tab: urlTab, on
         activeTab={tab}
         onTabChange={onTabChange}
         tabActions={(
-          <button type="button" className={styles.manageBtn} onClick={() => setDataControlOpen(true)}>
+          <Button size="sm" tone="neutral" onClick={() => setDataControlOpen(true)}>
             {t('screentime.manageData')}
-          </button>
+          </Button>
         )}
       />
       <div className={styles.tabContent}>

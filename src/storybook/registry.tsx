@@ -791,7 +791,7 @@ function PreviewSectionHeader() {
 
 function PreviewPanelThemeSettings() {
   const [theme, setTheme] = useState<PanelThemeSettingsState>({
-    appThemeMode: 'dark', themeSyncWithDesktop: false, themeMode: 'dark',
+    appThemeMode: 'dark', appResolvedThemeMode: 'dark', themeSyncWithDesktop: false, themeMode: 'dark',
     appAccentColor: '#8b5cf6', accentSyncWithDesktop: false, accentColor: '#8b5cf6',
     backgroundColor: '', backgroundColorLight: '',
     // Solid keeps the (thumbnail-fetching) animation picker out of the preview.

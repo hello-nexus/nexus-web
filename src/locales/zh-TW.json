@@ -1,4 +1,10 @@
 {
+  "settings.accent.system": "系統",
+  "settings.accent.custom": "自訂",
+  "settings.background": "背景",
+  "settings.background.wallpaper": "桌布",
+  "settings.background.gradient": "漸層",
+  "settings.background.flat": "純色",
   "app.window.close": "關閉",
   "app.window.maximize": "最大化",
   "app.window.minimize": "最小化",

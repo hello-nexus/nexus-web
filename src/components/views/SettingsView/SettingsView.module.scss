@@ -72,52 +72,23 @@
   line-height: 1.4;
 }
 
-// ── Theme radio options ──────────────────────────────────────────────────────
-
-.themeOptions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.themeOption {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: border-color var(--ease-fast), background var(--ease-fast);
-  background: var(--bg-elevated);
-
-  &:hover {
-    border-color: var(--border-strong);
-  }
-
-  &:has(.themeRadio:checked) {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-  }
-}
-
-.themeRadio {
-  accent-color: var(--accent);
-  margin: 0;
-}
-
-.themeLabel {
-  @include text-body;
-  color: var(--text);
-}
-
 // ── Accent color section ─────────────────────────────────────────────────────
 
-.accentSection {
+// ColorPickerWithPresets is a width:100% block (10-col fill grid). Pin it to
+// the full-swatch width so it right-aligns in the SettingRow's shrink-to-fit
+// control instead of collapsing to microscopic swatches.
+// Swatch picker revealed below the accent row when Custom is selected. A
+// separate row (not inside the SettingRow) so picking Custom doesn't re-center
+// the "Accent color" label. Right-aligned to sit under the segmented control.
+.accentPickerRow {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.85rem 0;
-  border-bottom: 1px solid var(--border);
+  justify-content: flex-end;
+  margin-top: -0.25rem;
+}
+
+.accentPicker {
+  width: calc(10 * 38px + 9 * 0.3rem);
+  max-width: 100%;
 }
 
 .colorRow {
@@ -155,7 +126,7 @@
 
   &.swatchSelected {
     border-color: var(--text);
-    box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent);
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
   }
 }
 
@@ -188,8 +159,10 @@
   padding: 0.45rem 0.95rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text);
+  // Matches the shared Button (tone-neutral): surfaced control, not transparent.
+  // This is a link (<a>), so it can't be the Button component, but reads the same.
+  background: var(--surface);
+  color: var(--text-dim);
   text-decoration: none;
   flex-shrink: 0;
   cursor: pointer;
@@ -222,7 +195,7 @@
   padding: 0.7rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   transition: border-color var(--ease-fast), box-shadow var(--ease-fast), background var(--ease-fast);
   cursor: pointer;
 
@@ -328,7 +301,7 @@
   padding: 0.7rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
 }
 
 .sharingExplain {
@@ -352,7 +325,7 @@
   padding: 0.6rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
 }
 
 .sharingControls {
@@ -360,37 +333,5 @@
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
-}
-
-.segmented {
-  display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--bg-elevated);
-  overflow: hidden;
-}
-
-.segmentedOption {
-  @include text-button;
-  padding: 0.35rem 0.75rem;
-  background: transparent;
-  border: 0;
-  color: var(--text-faded);
-  cursor: pointer;
-  transition: background var(--ease-fast), color var(--ease-fast);
-
-  &:hover:not(:disabled) {
-    color: var(--text);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-
-  &.segmentedOptionActive {
-    background: var(--accent);
-    color: var(--accent-text);
-  }
 }
 

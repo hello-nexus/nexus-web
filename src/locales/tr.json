@@ -1,4 +1,10 @@
 {
+  "settings.accent.system": "Sistem",
+  "settings.accent.custom": "Özel",
+  "settings.background": "Arka plan",
+  "settings.background.wallpaper": "Duvar kağıdı",
+  "settings.background.gradient": "Degrade",
+  "settings.background.flat": "Düz",
   "app.window.close": "Kapat",
   "app.window.maximize": "Ekranı Kapla",
   "app.window.minimize": "Simge Durumuna Küçült",

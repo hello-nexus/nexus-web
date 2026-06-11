@@ -1,6 +1,6 @@
 .settingsRoot {
   --deck-settings-border: var(--panel-border, var(--border));
-  --deck-settings-bg: var(--panel-element-bg, var(--bg-card));
+  --deck-settings-bg: var(--panel-element-bg, var(--surface));
   --deck-settings-bg-hover: var(--panel-element-bg-hover, var(--bg-card-hover));
   --deck-settings-text: var(--panel-text, var(--text));
   --deck-settings-faint: var(--panel-text-faint, var(--text-faded));

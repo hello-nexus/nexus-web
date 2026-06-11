@@ -51,84 +51,28 @@
   text-transform: uppercase;
 }
 
-// Section header — the row itself routes somewhere (APPS →
-// dashboard, DEVICES → all-devices landing). Shares the item-row
-// chrome (rounded background highlight on hover, accent-soft on
-// active) so the selected-state treatment matches every other
-// sidebar entry. On top of that the row carries a full-width
-// horizontal divider line so it still reads as a section
-// heading, not a device row. Compact mode collapses the label to
-// the localized first letter but keeps the divider + tap target.
+// Section header (APPS → dashboard, DEVICES → all-devices landing). Reuses the
+// .item row chrome (icon + label, font, alignment, hover/active highlight) so it
+// reads like every other sidebar entry; only layers a divider so it still parses
+// as a section heading. The divider rides currentColor, so line + label + icon
+// are one colour and track hover/active together.
 .sectionHeader {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0.5rem 0.75rem;
-  margin: 0;
-  border-radius: var(--radius-sm);
-  color: var(--text-faded);
-  font-size: var(--type-small);
-  font-weight: var(--weight-heading);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  position: relative;
-  transition: background var(--ease-fast), color var(--ease-fast);
-
-  // Full-width horizontal divider sitting just below the label
-  // baseline. Pseudo-element pinned inside the rounded background
-  // so the highlight rectangle on hover/active stretches across
-  // the row and the divider stretches with it.
-  &::after {
+  // .item supplies layout / font / colour / hover / active. A small dot in the
+  // left gutter (before the icon) marks this row as a section header — no
+  // underline, no layout shift; rides currentColor like the rest of the row.
+  &::before {
     content: '';
     position: absolute;
-    left: 0.6rem;
-    right: 0.6rem;
-    bottom: 4px;
-    height: 1px;
-    background: var(--border);
-    transition: background var(--ease-fast);
+    left: 9px;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    margin-top: -2.5px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.55;
+    pointer-events: none;
   }
-
-  &:hover {
-    background: var(--bg-card-hover);
-    color: var(--text);
-    &::after { background: var(--border-strong); }
-  }
-}
-
-.sectionHeaderCompactRow {
-  // Center the single collapsed letter on the rail centerline (matching the nav
-  // icons). Drop the label's expanded indent so the glyph itself is centered.
-  justify-content: center;
-  &::after {
-    left: 0.4rem;
-    right: 0.4rem;
-  }
-  .sectionHeaderLabel {
-    padding-left: 0;
-  }
-}
-
-.sectionHeaderActive {
-  background: var(--accent-soft);
-  color: var(--text);
-  &:hover { background: var(--accent-soft); }
-  &::after { background: var(--accent); }
-  &:hover::after { background: var(--accent); }
-}
-
-.sectionHeaderLabel {
-  display: inline-block;
-  padding-bottom: 0.3rem;
-  // Indent the label so the single collapsed letter reads as centred in the
-  // narrow rail. Lives on the label (not the header) so the underline
-  // pseudo-element stays put. Retained when expanded for a stable position.
-  padding-left: 0.5rem;
 }
 
 .item {
@@ -154,12 +98,12 @@
   position: relative;
 
   &:hover {
-    background: var(--bg-card-hover);
+    background: color-mix(in srgb, var(--surface) 50%, transparent);
     color: var(--text);
   }
 
   &.active {
-    background: var(--accent-soft);
+    background: var(--surface);
     color: var(--text);
 
     .icon {

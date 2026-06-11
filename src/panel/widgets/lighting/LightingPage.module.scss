@@ -130,7 +130,7 @@
   padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text-dim);
   cursor: pointer;
   display: flex;
@@ -158,7 +158,7 @@
   padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text-dim);
   cursor: pointer;
   display: flex;
@@ -211,7 +211,7 @@
 .categoryChip {
   appearance: none;
   border: 1px solid var(--border);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text-dim);
   font-size: 0.78rem;
   padding: 0.25rem 0.7rem;
@@ -262,7 +262,7 @@
   padding: 0.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   cursor: pointer;
   transition: border-color var(--ease-fast), background var(--ease-fast), transform var(--ease-fast);
@@ -291,7 +291,7 @@
   background: linear-gradient(
     100deg,
     var(--bg-elevated) 0%,
-    var(--bg-card) 40%,
+    var(--surface) 40%,
     var(--bg-elevated) 80%
   );
   background-size: 200% 100%;
@@ -402,7 +402,7 @@
   cursor: pointer;
   border-radius: var(--radius-sm);
 
-  &:hover { background: var(--bg-card); color: var(--text); }
+  &:hover { background: var(--surface); color: var(--text); }
 }
 
 // Row of 4 preset swatch buttons under the drawer title. Each button's
@@ -414,7 +414,7 @@
   --effect-template-radius: var(--radius-sm);
   --effect-template-border: var(--border);
   --effect-template-hover-border: var(--border-strong);
-  --effect-template-bg: var(--bg-card);
+  --effect-template-bg: var(--surface);
   --effect-template-active-border: var(--accent);
   --effect-template-active-shadow: 0 0 0 1px var(--accent), 0 0 8px var(--accent-glow-shadow);
 
@@ -815,7 +815,7 @@
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--bg-card);
+  background: var(--surface);
   cursor: pointer;
   transition: border-color var(--ease-fast), background var(--ease-fast);
 

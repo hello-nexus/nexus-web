@@ -1,0 +1,55 @@
+// Sits behind every dashboard surface. .layout isolates a stacking context, so
+// z-index -1 lands this above .layout's own --backdrop-base fill but below every
+// child. The content column + chrome are transparent/glass, so it reads through
+// the whole app.
+.backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ribbons {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  // Fade the ribbons out toward the top so the area behind the (transparent)
+  // top bar resolves cleanly to the flat base — no band or abrupt edge there.
+  mask-image: linear-gradient(to bottom, transparent, #000 22%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 22%);
+}
+
+// Desktop wallpaper, screen-anchored. The image is a tiny (~64px) texture; CSS
+// upscales it to cover the monitor-sized layer (that upscale IS the blur — no
+// filter needed). The layer is translated by the window's on-screen position
+// (--wp-* from AppBackdrop.tsx) so the visible slice matches the real desktop;
+// translate3d is compositor-only, so dragging is a cheap GPU move, not a re-blur.
+// .backdrop's overflow:hidden clips the over-sized layer to the viewport.
+.wallpaper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--wp-w, 100vw);
+  height: var(--wp-h, 100vh);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  // Soften the upscaled tiny texture into a seamless wash. One-time + cached on
+  // the transform-anchored layer (not re-run per move); the veil hides any edge
+  // fringe the blur leaves at the layer bounds.
+  filter: blur(30px);
+  transform: translate3d(var(--wp-x, 0px), var(--wp-y, 0px), 0);
+  will-change: transform;
+}
+
+// Theme veil over the wallpaper — darkens (dark) / lightens (light) so widgets
+// and text keep contrast, matching Win11's glass treatment.
+.wallpaperVeil {
+  position: absolute;
+  inset: 0;
+  background: var(--wallpaper-veil);
+}

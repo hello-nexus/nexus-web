@@ -1,4 +1,10 @@
 {
+  "settings.accent.system": "Sistema",
+  "settings.accent.custom": "Personalizzato",
+  "settings.background": "Sfondo",
+  "settings.background.wallpaper": "Sfondo del desktop",
+  "settings.background.gradient": "Gradiente",
+  "settings.background.flat": "Tinta unita",
   "app.window.close": "Chiudi",
   "app.window.maximize": "Ingrandisci",
   "app.window.minimize": "Riduci a icona",

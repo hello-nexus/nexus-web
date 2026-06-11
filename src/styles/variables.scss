@@ -19,10 +19,29 @@
   // dark rather than mid-grey on the dark theme.
   --bg: #080808;
   --bg-elevated: #0f0f0f;
-  --bg-card: #161616;
   --bg-card-hover: #202020;
   --border: #2a2a2a;
   --border-strong: #3a3a3a;
+
+  // The one "activatable surface" colour: every interactive element + box
+  // container base bg (widgets, top search bar, buttons, profile avatar,
+  // deselected pills, toggle-off track, dropdown menus, pair box, and ALL
+  // page/widget cards). Super-dark-almost-black so controls read as dark wells
+  // against the lighter --backdrop-base canvas; light theme = near-white.
+  // Used directly everywhere (no --bg-card indirection).
+  --surface: #0d0d0d;
+
+  // App backdrop. --backdrop-base is the grayscale flat surface colour: the whole
+  // canvas in flat mode, AND it flattens the gradient (ribbons sit over it) and
+  // the wallpaper (its veil is this same grey). Ribbon tints reference the live
+  // --accent* vars; color-mix is used elsewhere (tokens.scss).
+  --backdrop-base: #1a1a1a;
+  --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 14%, transparent);
+  --backdrop-tint-b: color-mix(in srgb, var(--accent) 12%, transparent);
+  --backdrop-tint-c: color-mix(in srgb, var(--accent-deep) 16%, transparent);
+  // Wallpaper veil = the flat grey at high opacity, so wallpaper mode reads as the
+  // flat surface with only a faint, heavily-blurred texture under it.
+  --wallpaper-veil: color-mix(in srgb, var(--backdrop-base) 90%, transparent);
 
   // Text — neutral off-whites.
   --text: #f5f5f5;
@@ -148,12 +167,26 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg: #f4f4f8;
-  --bg-elevated: #ffffff;
-  --bg-card: #ffffff;
-  --bg-card-hover: #f0f0f5;
-  --border: #d8d8e4;
-  --border-strong: #c0c0d0;
+  // Mirrors the dark theme's depth ordering (bg < bg-elevated < bg-card by
+  // lightness): the page content is the bright extreme (white, painted by the
+  // backdrop) and the chrome recedes into grey. So sidebar/top bar/modals read
+  // as a soft grey frame around white content, and cards stay pure white and
+  // pop off both the grey chrome and the white canvas via their border/shadow.
+  // --bg is the recessed control fill (chips, inputs) — kept greyest so it
+  // still sits below cards, same role it plays on dark.
+  --bg: #e8eaf1;
+  --bg-elevated: #ecedf4;
+  --bg-card-hover: #f4f5fa;
+  --border: #dcdde7;
+  --border-strong: #c4c5d3;
+  --surface: #fafafa;  // see dark-theme note — near-white activatable surface
+
+  // Light backdrop: grayscale flat surface grey (flattens gradient + wallpaper).
+  --backdrop-base: #d8d8d8;
+  --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 15%, transparent);
+  --backdrop-tint-b: color-mix(in srgb, var(--accent) 12%, transparent);
+  --backdrop-tint-c: color-mix(in srgb, var(--accent-glow) 11%, transparent);
+  --wallpaper-veil: color-mix(in srgb, var(--backdrop-base) 90%, transparent);
 
   --text: #1a1a2e;
   --text-dim: #5a5a78;

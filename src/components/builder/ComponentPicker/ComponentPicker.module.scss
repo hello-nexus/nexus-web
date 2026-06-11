@@ -100,7 +100,7 @@
 .filterSectionCount {
   font-size: var(--type-small);
   color: var(--text-faded);
-  background: var(--bg-card);
+  background: var(--surface);
   padding: 0.05rem 0.4rem;
   border-radius: var(--radius-pill);
   min-width: 1.4rem;
@@ -134,7 +134,7 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  background: var(--bg-card);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 0.25rem 0.4rem;
@@ -231,7 +231,7 @@
   padding: 0.3rem 0.4rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   font-size: var(--type-small);
   font-family: var(--font-sans);
@@ -347,7 +347,7 @@
   height: 32px;
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   cursor: pointer;
 
@@ -363,7 +363,7 @@
   padding: 0.35rem 0.65rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   font-size: var(--type-small);
   font-family: var(--font-sans);
@@ -408,7 +408,7 @@
   height: 32px;
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   cursor: pointer;
   flex-shrink: 0;
@@ -440,7 +440,7 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  background: var(--bg-card);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.55rem;
@@ -531,7 +531,7 @@
   }
 
   &:nth-child(even) {
-    background: var(--bg-card);
+    background: var(--surface);
 
     &:hover {
       background: var(--bg-card-hover);
@@ -614,7 +614,7 @@
   height: 32px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   cursor: pointer;
 

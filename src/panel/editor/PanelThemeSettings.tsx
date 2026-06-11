@@ -26,6 +26,10 @@ export type ResolvedPanelThemeMode = 'dark' | 'light';
 
 export interface PanelThemeSettingsState {
   appThemeMode: ThemeMode;
+  // Desktop app's resolved theme from prefs.theme.resolvedThemeMode. '' when the
+  // service/desktop hasn't published one; sync mode then falls back to
+  // appThemeMode. Concrete value here = follow the desktop OS, not the panel's.
+  appResolvedThemeMode: '' | ResolvedPanelThemeMode;
   themeSyncWithDesktop: boolean;
   themeMode: ThemeMode;
   appAccentColor: string;

@@ -16,7 +16,7 @@ export function toneVar(tone: UiTone | string | undefined, fallback = 'currentCo
     case 'text-dim':     return 'var(--text-dim, var(--panel-text-muted, currentColor))';
     case 'text-faded':   return 'var(--text-faded, currentColor)';
     case 'border':       return 'var(--border, currentColor)';
-    case 'bg-card':      return 'var(--bg-card, transparent)';
+    case 'bg-card':      return 'var(--surface, transparent)';
     case '':             return fallback;
     case 'currentcolor': return 'currentColor';
     default:             return fallback;

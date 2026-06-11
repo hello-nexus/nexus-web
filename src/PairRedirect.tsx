@@ -295,7 +295,7 @@ const card: React.CSSProperties = {
   width: '100%',
   padding: 32,
   borderRadius: 'var(--radius-lg)',
-  background: 'var(--bg-card)',
+  background: 'var(--surface)',
   border: '1px solid var(--border)',
   textAlign: 'center',
 };

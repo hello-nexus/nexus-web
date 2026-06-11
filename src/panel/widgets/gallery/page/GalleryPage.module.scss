@@ -73,7 +73,7 @@
   padding: 0.55rem 0.7rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--bg-card);
+  background: var(--surface);
   transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease;
 
   &:hover {

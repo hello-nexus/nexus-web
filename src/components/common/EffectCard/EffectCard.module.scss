@@ -12,7 +12,7 @@
   padding: 0.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   cursor: pointer;
   transition: border-color var(--ease-fast), background var(--ease-fast), transform var(--ease-fast);
@@ -104,7 +104,7 @@
   background: linear-gradient(
     100deg,
     var(--bg-elevated) 0%,
-    var(--bg-card) 40%,
+    var(--surface) 40%,
     var(--bg-elevated) 80%
   );
   background-size: 200% 100%;

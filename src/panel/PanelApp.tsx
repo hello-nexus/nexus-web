@@ -235,8 +235,11 @@ export function PanelContent({
     [baseTheme, surface],
   );
   usePanelLanguageSync(kioskBehavior);
+  // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
+  // tracking the desktop OS); fall back to appThemeMode when unpublished —
+  // 'system' there would re-resolve against THIS device's OS (the wrong OS).
   const effectiveThemeMode = effectiveTheme.themeSyncWithDesktop
-    ? effectiveTheme.appThemeMode
+    ? (effectiveTheme.appResolvedThemeMode || effectiveTheme.appThemeMode)
     : effectiveTheme.themeMode;
   const panelResolvedThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
   const desktopResolvedThemeMode = useDocumentResolvedThemeMode(embedded);

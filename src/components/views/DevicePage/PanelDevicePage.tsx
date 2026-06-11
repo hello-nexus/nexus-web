@@ -141,7 +141,9 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   // service's persisted state.
   const panelTheme = usePanelTheme(editingDeviceId);
   const theme = panelTheme.theme;
-  const effectiveThemeMode = theme.themeSyncWithDesktop ? theme.appThemeMode : theme.themeMode;
+  const effectiveThemeMode = theme.themeSyncWithDesktop
+    ? (theme.appResolvedThemeMode || theme.appThemeMode)
+    : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
   // CSS variables driving the panel theme (--panel-accent and the full
   // --accent family). This page lives in desktop chrome where --accent is

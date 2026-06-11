@@ -411,11 +411,15 @@
   --panel-columns: 8;
   --panel-rows: 8;
   --panel-gap: 10px;
-  --panel-page-padding: 16px;
-  --panel-page-padding-top: 16px;
-  --panel-page-padding-right: 16px;
-  --panel-page-padding-bottom: 16px;
-  --panel-page-padding-left: 16px;
+  // No page padding on the embedded desktop grid: it lives inside the shared
+  // .content wrapper (which already insets every view), so the grid sits flush
+  // with the ViewHeader title and every other page's content. Extra padding
+  // here would double-inset it.
+  --panel-page-padding: 0px;
+  --panel-page-padding-top: 0px;
+  --panel-page-padding-right: 0px;
+  --panel-page-padding-bottom: 0px;
+  --panel-page-padding-left: 0px;
   --panel-card-radius: var(--radius);
   width: 100%;
   height: 100%;
@@ -601,8 +605,10 @@
 
 // Two-class specificity so the global `.panel-card` rule in tokens.scss
 // (`transition: background-color 300ms`, loaded later) doesn't shorthand-reset
-// the transform transition. background-color is kept so the cell still
-// cross-fades on theme switches.
+// the transform transition. background-color rides --ease-fast here so the
+// clickthrough hover highlight (.cellWrap:hover .cell → accent-soft) snaps in
+// AND out — this rule outranks the hover rule's own transition (0,5,0 vs 0,3,0),
+// so the hover timing has to live here. Theme-switch crossfade rides it too.
 //
 // :not() exclusions: those states have transforms driven elsewhere
 // (@keyframes for dock in/out). Running this transition concurrently
@@ -610,7 +616,7 @@
 .panelRoot .cell:not(.cellEditorDocked):not(.cellEditorDockClosing):not(.cellResizeMotion) {
   transition:
     transform var(--panel-press-duration) cubic-bezier(0.32, 0.72, 0, 1),
-    background-color var(--ease-slow),
+    background-color var(--ease-fast),
     box-shadow var(--ease-fast) ease-out,
     border-color var(--ease-fast) ease-out,
     opacity 140ms ease-out,

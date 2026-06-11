@@ -124,7 +124,7 @@ const icon: React.CSSProperties = {
   width: 34,
   height: 34,
   borderRadius: 'var(--radius-sm)',
-  background: 'var(--bg-card)',
+  background: 'var(--surface)',
   color: 'var(--text)',
   flexShrink: 0,
 };

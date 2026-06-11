@@ -65,7 +65,9 @@
 // Neutral (default): bordered + transparent bg. Hovers to a lifted card
 // background and full-strength text color.
 .tone-neutral {
-  background: transparent;
+  // The canonical interactive surface (solid; pops against the backdrop) rather
+  // than transparent, so every secondary action button reads as a solid control.
+  background: var(--surface);
   border-color: var(--border);
   color: var(--text-dim);
 

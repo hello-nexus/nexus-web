@@ -19,6 +19,8 @@
 }
 .panel-root[data-surface='phone'] { --panel-scale: var(--panel-widget-scale, 1); } // measured live by usePhoneContentScale
 .panel-root[data-surface='q60']   { --panel-scale: 2.5; } // Chrome 83 can't parse CSS trig; 480px ÷ 2col ÷ 90 ≈ 2.5
+// Dashboard widgets sit flat on the app backdrop — drop their shadow (phone/kiosk keep theirs).
+.panel-root[data-surface='desktop'] { --panel-card-shadow-color: transparent; }
 
 .panel-root {
   --panel-text: var(--text);
@@ -33,20 +35,17 @@
   --panel-scrim-bg: rgb(0 0 0 / var(--alpha-strong));
 
   --panel-card-radius: var(--radius);
-  --panel-card-bg: var(--bg-card);
+  // Widget cards use the shared --surface token (the app-wide activatable bg).
+  --panel-card-bg: var(--surface);
   // User-controlled widget surface alpha. Applied via color-mix on
   // .panel-card so only the background, border, and shadow fade with the
   // slider; contents (text, icons, charts) stay fully opaque. Written as
   // a percentage string by buildPanelThemeVars in PanelApp.tsx; the value
   // here is the pre-runtime fallback.
   --panel-card-bg-opacity: 100%;
-  --panel-card-border: var(--panel-border);
-  // iOS-style cast under each widget card, matching the global --shadow-md.
-  // Geometry + color split so the user-controlled opacity can fade the cast
-  // without changing the blur. Uniform across every theme and surface.
-  --panel-card-shadow-geometry: 0 8px 24px;
-  --panel-card-shadow-color: rgb(0 0 0 / var(--alpha-medium));
-  --panel-card-shadow: var(--panel-card-shadow-geometry) var(--panel-card-shadow-color);
+  // Hairline, deliberately fainter than the app's --border. Light theme
+  // overrides below.
+  --panel-card-border: rgba(255, 255, 255, 0.08);
   --panel-card-padding: 14px;
 
   --panel-gap: 12px;
@@ -133,6 +132,7 @@
 
 .panel-root[data-theme='light'] {
   --panel-scrim-bg: rgba(248, 250, 252, 0.48);
+  --panel-card-border: rgba(0, 0, 0, 0.08);
 }
 
 // Sensor unit suffix inside any monitoring gauge (% / RPM / GB / °C / etc).
@@ -150,13 +150,13 @@
 
 .panel-card {
   background-color: color-mix(in srgb, var(--panel-card-bg) var(--panel-card-bg-opacity, 100%), transparent);
-  // Border + shadow fade with the user's widget opacity slider so a 0%
-  // widget has zero visible chrome - just the contents floating over the
-  // panel background. .panel-chip and other consumers of --panel-card-border
-  // are intentionally not affected.
+  // Border fades with the user's widget opacity slider so a 0% widget has zero
+  // visible chrome - just the contents floating over the panel background.
+  // .panel-chip and other consumers of --panel-card-border are intentionally
+  // not affected. Widget cards are flat - no drop-shadow (border + fill only,
+  // matching the desktop monitoring boxes).
   border: 1px solid color-mix(in srgb, var(--panel-card-border) var(--panel-card-bg-opacity, 100%), transparent);
   border-radius: var(--panel-card-radius);
-  box-shadow: var(--panel-card-shadow-geometry) color-mix(in srgb, var(--panel-card-shadow-color) var(--panel-card-bg-opacity, 100%), transparent);
   overflow: hidden;
   position: relative;
   transition: background-color var(--ease-slow);

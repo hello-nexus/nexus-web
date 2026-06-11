@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Button } from '../../../../components/common/Button/Button';
 import { Minus, TrendingUp, Activity, Combine, Trash2, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import type { CurvePoint, TemperatureSource } from '../../../../api/cooling';
 import { useTranslation } from '../../../../lib/i18n';
@@ -524,20 +525,20 @@ export const CurveCard = memo(function CurveCard({
         <div className={styles.curveCardFooterActions}>
           {isPreset && onResetPreset && (
             <HoverTooltip body={t('cooling.curves.resetToDefaults')} side="top">
-              <button type="button" className={styles.curveCardResetBtn}
+              <Button type="button" size="sm" tone="neutral"
+                icon={<RotateCcw size={12} aria-hidden />}
                 onClick={e => { e.stopPropagation(); onResetPreset(); }}
                 disabled={!isPresetCurveDirty(curve)}>
-                <RotateCcw size={12} aria-hidden />
-                <span>{t('cooling.curves.resetBtn')}</span>
-              </button>
+                {t('cooling.curves.resetBtn')}
+              </Button>
             </HoverTooltip>
           )}
           <HoverTooltip body={t('cooling.curves.delete')} side="top">
-            <button type="button" className={styles.curveCardRemoveBtn}
+            <Button type="button" size="sm" tone="danger"
+              icon={<Trash2 size={12} aria-hidden />}
               onClick={e => { e.stopPropagation(); onDelete(); }}>
-              <Trash2 size={12} aria-hidden />
-              <span>{t('cooling.curves.removeBtn')}</span>
-            </button>
+              {t('cooling.curves.removeBtn')}
+            </Button>
           </HoverTooltip>
         </div>
       </div>

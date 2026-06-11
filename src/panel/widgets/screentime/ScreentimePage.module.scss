@@ -17,18 +17,3 @@
   flex-direction: column;
   padding-bottom: 1rem;
 }
-
-.manageBtn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius);
-  font-size: var(--type-small);
-  cursor: pointer;
-
-  &:hover {
-    color: var(--text);
-    border-color: var(--border-strong);
-  }
-}

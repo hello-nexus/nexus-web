@@ -1,4 +1,10 @@
 {
+  "settings.accent.system": "Системный",
+  "settings.accent.custom": "Пользовательский",
+  "settings.background": "Фон",
+  "settings.background.wallpaper": "Обои",
+  "settings.background.gradient": "Градиент",
+  "settings.background.flat": "Сплошной",
   "app.window.close": "Закрыть",
   "app.window.maximize": "Развернуть",
   "app.window.minimize": "Свернуть",

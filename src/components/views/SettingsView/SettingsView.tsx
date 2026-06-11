@@ -50,6 +50,8 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       language: ui.language,
       themeMode: ui.themeMode,
       accentColor: ui.accentColor,
+      backgroundMode: ui.backgroundMode,
+      accentSource: ui.accentSource,
       startOnLogin: ui.startOnLogin,
       disableConflictAlerts: ui.disableConflictAlerts,
       monitoringShowAverage: ui.monitoringShowAverage,

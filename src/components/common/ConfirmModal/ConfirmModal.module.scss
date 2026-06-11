@@ -1,5 +1,5 @@
 .modal {
-  background: var(--bg-elevated);
+  background: var(--backdrop-base);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   width: min(420px, 100%);
@@ -59,7 +59,7 @@
   margin: 0.25rem 0 0;
   padding: 0.55rem 0.7rem;
   border-left: 2px solid var(--border-strong);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text-dim);
   font-size: var(--type-small);
   line-height: 1.4;

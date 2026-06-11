@@ -21,7 +21,7 @@
   height: 32px;
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--bg-card);
+  background: var(--surface);
   color: var(--text);
   cursor: pointer;
   flex-shrink: 0;
@@ -108,7 +108,7 @@
 
 .specRow {
   &:nth-child(even) {
-    background: var(--bg-card);
+    background: var(--surface);
   }
 }
 
@@ -137,7 +137,7 @@
 
 .priceRow {
   &:nth-child(even) {
-    background: var(--bg-card);
+    background: var(--surface);
   }
 }
 

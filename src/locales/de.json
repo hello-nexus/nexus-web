@@ -1,4 +1,10 @@
 {
+  "settings.accent.system": "System",
+  "settings.accent.custom": "Benutzerdefiniert",
+  "settings.background": "Hintergrund",
+  "settings.background.wallpaper": "Hintergrundbild",
+  "settings.background.gradient": "Verlauf",
+  "settings.background.flat": "Einfarbig",
   "app.window.close": "Schließen",
   "app.window.maximize": "Maximieren",
   "app.window.minimize": "Minimieren",
