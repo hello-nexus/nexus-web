@@ -44,9 +44,10 @@ export const LANGUAGE_FLAGS: Record<Language, string> = {
 export const THEME_MODES = ['system', 'dark', 'light'] as const;
 export type ThemeMode = (typeof THEME_MODES)[number];
 
-// Dashboard background style. 'wallpaper' = blurred OS desktop wallpaper,
-// 'gradient' = flowing accent ribbons, 'flat' = solid theme color.
-export const BACKGROUND_MODES = ['wallpaper', 'gradient', 'flat'] as const;
+// Dashboard background style. 'glass' = transparent backdrop revealing the
+// native OS frosted-glass material, 'gradient' = flowing accent ribbons,
+// 'flat' = solid theme color.
+export const BACKGROUND_MODES = ['glass', 'gradient', 'flat'] as const;
 export type BackgroundMode = (typeof BACKGROUND_MODES)[number];
 
 // Accent source. 'system' tracks the OS accent colour (pushed by the native
@@ -140,7 +141,7 @@ export function getDefaultSettings(): NexusSettings {
       language: 'en',
       themeMode: 'system',
       accentColor: DEFAULT_ACCENT,
-      backgroundMode: 'wallpaper',
+      backgroundMode: 'glass',
       accentSource: 'system',
       startOnLogin: false,
       disableConflictAlerts: false,

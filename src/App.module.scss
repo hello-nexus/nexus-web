@@ -20,8 +20,8 @@
   background: var(--backdrop-base);
   color: var(--text);
   // Dashboard chrome uses the same solid --surface as the rest of the app; the
-  // gradient/wallpaper backdrop reads through the gaps between cards (panel
-  // gap, margins), not through the cards themselves.
+  // gradient backdrop reads through the gaps between cards (panel gap,
+  // margins), not through the cards themselves.
   // Height of the full-width application top bar (collapse + nav + search +
   // profile). Consumed by .topBar in TopBar.module.scss.
   --topbar-height: 52px;
@@ -35,19 +35,19 @@
   // clear of the native traffic lights (centered in the rail) with extra gap.
   --mac-traffic-light-inset: 96px;
 
-  // macOS shell, wallpaper mode: the backdrop is a native behind-window
-  // NSVisualEffectView (real frosted desktop) under the transparent WKWebView,
-  // so drop the opaque fill and let it show through the gaps between cards.
-  :global(html.nexus-shell-mac-app[data-bg='wallpaper']) & {
+  // Native glass shell, glass mode: the backdrop is the native behind-window
+  // frosted material under the transparent web view, so drop the opaque fill
+  // and let it show through the gaps between cards.
+  :global(html.nexus-shell-native-glass[data-bg='glass']) & {
     background: transparent;
   }
 }
 
-// The macOS shell makes the WKWebView transparent (drawsBackground=NO) so the
-// vibrancy shows; the page root must be transparent too. flat/gradient modes
+// The native glass shells make the web view transparent so the OS frosted
+// material shows; the page root must be transparent too. flat/gradient modes
 // still paint an opaque --backdrop-base on .layout over it.
-:global(html.nexus-shell-mac-app),
-:global(html.nexus-shell-mac-app body) {
+:global(html.nexus-shell-native-glass),
+:global(html.nexus-shell-native-glass body) {
   background: transparent;
 }
 

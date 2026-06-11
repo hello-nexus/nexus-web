@@ -892,7 +892,7 @@
   "settings.background": "Background",
   "settings.background.flat": "Flat",
   "settings.background.gradient": "Gradient",
-  "settings.background.wallpaper": "Wallpaper",
+  "settings.background.glass": "Glass",
   "settings.dangerZone": "Danger zone",
   "settings.factoryReset.button": "Reset Nexus",
   "settings.factoryReset.confirmButton": "Reset everything",

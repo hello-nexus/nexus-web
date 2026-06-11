@@ -213,9 +213,13 @@ export function Dashboard() {
   // button gutter without each consumer re-detecting the shell.
   useEffect(() => {
     document.body.classList.toggle('nexus-shell-windows-app', isWindowsAppShell());
-    // Mark <html> for the macOS shell so wallpaper mode can drop the opaque
-    // backdrop and let the native behind-window vibrancy show through.
+    // Mark <html> for the macOS shell so its top chrome can inset below the
+    // native traffic lights.
     document.documentElement.classList.toggle('nexus-shell-mac-app', isMacAppShell());
+    // Mark <html> for any shell with a native behind-window frosted material
+    // (macOS + Windows) so glass mode drops the opaque backdrop and lets it
+    // show through.
+    document.documentElement.classList.toggle('nexus-shell-native-glass', isMacAppShell() || isWindowsAppShell());
   }, []);
   // Idle-time prefetch of the four most-used Page chunks (cooling, lighting,
   // monitoring, devices) plus the shared registry chunk they pull in. Fires

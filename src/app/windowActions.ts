@@ -93,81 +93,18 @@ export function isMacAppShell(): boolean {
   return platform === 'mac-app';
 }
 
-// Window-origin bridge for the wallpaper backdrop. The host (DashboardWindow.cs)
-// pushes the window's content origin + monitor size (CSS px) on every move and
-// on request, so the wallpaper can anchor to the desktop instead of the window.
-export const NEXUS_WINDOW_ORIGIN = 'nexus:window-origin';
-export const NEXUS_REQUEST_WINDOW_ORIGIN = 'nexus:request-window-origin';
-
-export interface WindowOrigin { x: number; y: number; w: number; h: number }
-
-// The macOS shell (WKWebView) has no chrome.webview. It exposes a
-// webkit.messageHandlers.nexusHost channel for web→host and pushes host→web
-// updates as standard window 'message' events. Keep the "nexusHost" name in
-// lockstep with the addScriptMessageHandler:name: call in MacAppWindow.cs.
-interface MacHostBridge { postMessage?: (msg: unknown) => void }
-function macHostBridge(): MacHostBridge | undefined {
-  return (window as Window & { webkit?: { messageHandlers?: { nexusHost?: MacHostBridge } } })
-    .webkit?.messageHandlers?.nexusHost;
-}
-
-/** Ask the host to push the current window origin. False if no host bridge. */
-export function requestWindowOrigin(): boolean {
-  const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
-  if (wv?.postMessage) { wv.postMessage(NEXUS_REQUEST_WINDOW_ORIGIN); return true; }
-  const mac = macHostBridge();
-  if (mac?.postMessage) { mac.postMessage(NEXUS_REQUEST_WINDOW_ORIGIN); return true; }
-  return false;
-}
-
-/** Subscribe to host-pushed window-origin updates. Returns the unsubscribe. */
-export function subscribeWindowOrigin(onOrigin: (o: WindowOrigin) => void): () => void {
-  const handle = (data: unknown) => {
-    const d = data as { type?: string; x?: unknown; y?: unknown; w?: unknown; h?: unknown } | undefined;
-    if (d?.type === NEXUS_WINDOW_ORIGIN
-      && typeof d.x === 'number' && typeof d.y === 'number'
-      && typeof d.w === 'number' && typeof d.h === 'number') {
-      onOrigin({ x: d.x, y: d.y, w: d.w, h: d.h });
-    }
-  };
-  const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
-  if (wv?.addEventListener) {
-    const listener = (e: { data?: unknown }) => handle(e.data);
-    wv.addEventListener('message', listener);
-    return () => wv.removeEventListener?.('message', listener);
-  }
-  // macOS shell (and plain browser): the host dispatches window 'message' events.
-  const listener = (e: MessageEvent) => handle(e.data);
-  window.addEventListener('message', listener);
-  return () => window.removeEventListener('message', listener);
-}
-
-export const NEXUS_WALLPAPER_CHANGED = 'nexus:wallpaper-changed';
 export const NEXUS_SYSTEM_ACCENT = 'nexus:system-accent';
 export const NEXUS_REQUEST_SYSTEM_ACCENT = 'nexus:request-system-accent';
-
-/** Fires when the host signals the OS desktop wallpaper changed. */
-export function subscribeWallpaperChanged(onChange: () => void): () => void {
-  const handle = (data: unknown) => {
-    if ((data as { type?: string } | undefined)?.type === NEXUS_WALLPAPER_CHANGED) onChange();
-  };
-  const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
-  if (wv?.addEventListener) {
-    const listener = (e: { data?: unknown }) => handle(e.data);
-    wv.addEventListener('message', listener);
-    return () => wv.removeEventListener?.('message', listener);
-  }
-  // macOS shell: the host dispatches a window 'message' event on OS change.
-  const listener = (e: MessageEvent) => handle(e.data);
-  window.addEventListener('message', listener);
-  return () => window.removeEventListener('message', listener);
-}
 
 /** Ask the host to push the OS accent colour. False if no host bridge. */
 export function requestSystemAccent(): boolean {
   const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
   if (wv?.postMessage) { wv.postMessage(NEXUS_REQUEST_SYSTEM_ACCENT); return true; }
-  const mac = macHostBridge();
+  // The macOS shell (WKWebView) has no chrome.webview; it exposes a
+  // webkit.messageHandlers.nexusHost channel for web→host. Keep the "nexusHost"
+  // name in lockstep with addScriptMessageHandler:name: in MacAppWindow.cs.
+  const mac = (window as Window & { webkit?: { messageHandlers?: { nexusHost?: { postMessage?: (m: unknown) => void } } } })
+    .webkit?.messageHandlers?.nexusHost;
   if (mac?.postMessage) { mac.postMessage(NEXUS_REQUEST_SYSTEM_ACCENT); return true; }
   return false;
 }
