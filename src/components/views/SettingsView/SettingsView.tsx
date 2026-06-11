@@ -9,13 +9,12 @@ import { useTranslation } from '../../../lib/i18n';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import type { NexusSettings } from '../../../lib/settings';
 import { GeneralTab } from './GeneralTab';
-import { ThemeTab } from './ThemeTab';
 import { ProfilesTab } from './ProfilesTab';
 import { ToolsView } from '../ToolsView';
 import styles from './SettingsView.module.scss';
 
-type SettingsTab = 'general' | 'theme' | 'profiles' | 'tools';
-const VALID_TABS: SettingsTab[] = ['general', 'theme', 'profiles', 'tools'];
+type SettingsTab = 'general' | 'profiles' | 'tools';
+const VALID_TABS: SettingsTab[] = ['general', 'profiles', 'tools'];
 
 interface SettingsViewProps {
   serviceOnline: boolean;
@@ -65,7 +64,6 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
 
   const tabs = [
     { key: 'general', label: t('settings.general') },
-    { key: 'theme', label: t('settings.theme') },
     { key: 'profiles', label: t('settings.tab.profiles') },
     { key: 'tools', label: t('settings.tab.tools') },
   ];
@@ -90,8 +88,6 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
     switch (tab) {
       case 'general':
         return <GeneralTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} platform={platform} />;
-      case 'theme':
-        return <ThemeTab settings={settings} updateGeneral={updateGeneral} />;
       case 'profiles':
         return <ProfilesTab profiles={profilesHook} onPreferencesChanged={onPreferencesChanged} />;
       case 'tools':

@@ -23,12 +23,17 @@
   // Width + centering come from the parent .tabContent's .pageBody (global.scss).
 }
 
-// A labelled cluster of settings rows under a SectionHeader. Spacing above
-// separates one group from the next; the first group sits flush with the top.
+// Each settings category is a bounding box: the SectionHeader sits inside it,
+// above the rows it labels. Subtle like the dashboard monitoring cards — the
+// surface fill defines the box; the border stays transparent (flat at rest).
 .settingsGroup {
   display: flex;
   flex-direction: column;
-  margin-top: 1.75rem;
+  padding: 0.5rem 1.1rem 0.85rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-top: 1rem;
 
   &:first-child {
     margin-top: 0;

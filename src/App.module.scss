@@ -430,6 +430,13 @@
   }
 }
 
+// Collapsed sidebar: only the icon renders, so collapse the text column and
+// center the icon in the button box instead of pinning it left.
+.phonePairBtnCompact {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
 .phonePairIcon {
   position: relative;
   display: grid;
