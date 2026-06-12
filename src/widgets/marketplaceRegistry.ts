@@ -22,6 +22,9 @@ export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
   'com.hellonexus.displays',
   'com.hellonexus.clock',
   'com.hellonexus.media',
+  // OEM app — preinstalled on iBUYPOWER systems; in the catalog so it can be
+  // re-added if the user removes it.
+  'com.ibuypower.control',
 ]);
 
 export function isMarketplaceIdEnabled(id: string): boolean {
@@ -53,6 +56,18 @@ export function getMarketplaceListing(id: string): AppInstalledListing | undefin
 
 export function getAllMarketplaceListings(): AppInstalledListing[] {
   return [...cache.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * `marketplace:<id>` types for installed apps flagged `preinstalled` that ship a
+ * page surface — the OEM bake-in set the sidebar auto-pins on a fresh profile.
+ * Empty until the registry has loaded and only non-empty on a build that
+ * actually bundles such an app, so non-OEM builds are unaffected.
+ */
+export function getPreinstalledPageAppTypes(): string[] {
+  return getAllMarketplaceListings()
+    .filter(app => app.preinstalled && app.page)
+    .map(app => typeForMarketplace(app.id));
 }
 
 export function subscribeMarketplaceRegistry(fn: () => void): () => void {
