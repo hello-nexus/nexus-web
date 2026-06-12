@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { Camera, SwitchCamera, Video, VideoOff } from 'lucide-react';
 import { isTunnelActive } from '../../../api/service';
-import { isNativeApp } from '../../panelNativeBridge';
+import { isNativeApp } from '../../device/panelNativeBridge';
 import { useTranslation } from '../../../lib/i18n';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
 import { usePanelPreview } from '../common/PanelPreviewContext';
