@@ -46,7 +46,7 @@
   cursor: pointer;
   transition: border-color var(--ease-fast), background var(--ease-fast);
 
-  &:hover:not([data-disabled]):not(:disabled) {
+  &:hover:not(:disabled) {
     border-color: var(--accent);
     background: var(--bg-card-hover);
   }
@@ -55,7 +55,6 @@
     border-color: var(--accent);
   }
 
-  &[data-disabled='true'],
   &:disabled {
     cursor: default;
     opacity: 0.5;
