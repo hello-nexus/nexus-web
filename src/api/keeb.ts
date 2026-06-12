@@ -139,10 +139,6 @@ export async function getKeebState(layer: KeebLayer = 0): Promise<KeyboardState 
   return await fetchService<KeyboardState>(`/keeb/state?layer=${layer}`);
 }
 
-export async function getKeebLayer(layer: KeebLayer): Promise<KeyboardState | null> {
-  return await fetchService<KeyboardState>(`/keeb/layer/${layer}`);
-}
-
 export async function setKeebLayerKey(layer: KeebLayer, body: SetLayerKeyBody): Promise<KeyboardState | null> {
   return await postService<KeyboardState>(`/keeb/layer/${layer}/key`, body);
 }

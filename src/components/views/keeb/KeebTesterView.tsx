@@ -13,15 +13,12 @@ interface TouchEntry {
   timestamp: number;
 }
 
-export interface KeebTesterViewProps {
-  /** Whether the modal is currently open — gates the global key listener. */
-  open: boolean;
-}
-
 /// Key Tester tab body. The firmware-driven `keeb.tester` WebSocket topic
 /// isn't wired (Phase 7 in plans/keeb-support.md), so this runs in Local
 /// Mode: it listens to window keydown events, testable without hardware.
-export function KeebTesterView({ open }: KeebTesterViewProps) {
+/// The page mounts this view only on the tester tab, so the mount lifetime
+/// gates the global key listener.
+export function KeebTesterView() {
   const { t } = useTranslation();
   const [history, setHistory] = useState<TouchEntry[]>([]);
 
@@ -38,10 +35,9 @@ export function KeebTesterView({ open }: KeebTesterViewProps) {
   }, []);
 
   useEffect(() => {
-    if (!open) return;
     window.addEventListener('keydown', handler);
     return () => { window.removeEventListener('keydown', handler); };
-  }, [open, handler]);
+  }, [handler]);
 
   const onReset = () => setHistory([]);
   const latest = history[0];

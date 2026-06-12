@@ -164,8 +164,17 @@ export function KeebDevicePage() {
               resetLayer={async () => { reportWrite(await keeb.resetLayer()); }}
             />
           )}
-          {tab === 'macros' && <KeebMacroView open />}
-          {tab === 'tester' && <KeebTesterView open={tab === 'tester'} />}
+          {tab === 'macros' && (
+            <KeebMacroView
+              loadMacro={keeb.loadMacro}
+              saveMacro={async (i, keys) => {
+                const r = await keeb.saveMacro(i, keys);
+                reportWrite(r !== null);
+                return r;
+              }}
+            />
+          )}
+          {tab === 'tester' && <KeebTesterView />}
           {tab === 'settings' && (
             <KeebSettingsView
               settings={keeb.settings}

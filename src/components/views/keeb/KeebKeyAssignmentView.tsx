@@ -51,7 +51,7 @@ export function KeebKeyAssignmentView({
     [t],
   );
 
-  const categories = useMemo(() => getAssignmentCategories(), []);
+  const categories = getAssignmentCategories();
   const groups = category === 'Keyboard' ? [] : categories[category];
 
   const onTile = async (keyFunction: string, mode: SetLayerKeyBody['mode'], input?: number | null) => {

@@ -1,16 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Circle, ListVideo, RefreshCw, Square as StopIcon } from 'lucide-react';
-import {
-  getKeebMacro,
-  setKeebMacro,
-  type KeebMacro,
-  type MacroKey,
-} from '../../../api/keeb';
+import type { KeebMacro, MacroKey } from '../../../api/keeb';
 import { Button } from '../../common/Button/Button';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { Tabs, type TabDef } from '../../common/Tabs/Tabs';
-import { useToast } from '../../common/Toast/Toast';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebMacroView.module.scss';
 
@@ -20,17 +14,16 @@ type DelayMode = 'record' | 'custom';
 const normalize = (ms: number) => Math.max(10, Math.round(ms / 10) * 10);
 
 export interface KeebMacroViewProps {
-  /** Whether the modal is currently open — used to gate the recorder. */
-  open: boolean;
+  loadMacro: (index: number) => Promise<KeebMacro | null>;
+  saveMacro: (index: number, keys: MacroKey[]) => Promise<KeebMacro | null>;
 }
 
-/// Macro tab body. Slot list on the left (1–16), editor on the right.
-/// Recording attaches window key listeners and pushes Make/Break pairs;
-/// durations snap to 10 ms multiples.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- props (open gate) kept for signature stability
-export function KeebMacroView(_: KeebMacroViewProps) {
+/// Macro tab body. Slot list on the left, editor on the right. Recording
+/// attaches window key listeners and pushes Make/Break pairs; durations snap
+/// to a coarse grid. Persistence flows through the loadMacro/saveMacro props;
+/// the page owns failure toasts.
+export function KeebMacroView({ loadMacro, saveMacro }: KeebMacroViewProps) {
   const { t } = useTranslation();
-  const { push } = useToast();
   const [index, setIndex] = useState(0);
   const [macro, setMacro] = useState<KeebMacro | null>(null);
   const [delayMode, setDelayMode] = useState<DelayMode>('record');
@@ -56,13 +49,13 @@ export function KeebMacroView(_: KeebMacroViewProps) {
   // Slot fetch on selection change.
   useEffect(() => {
     let cancelled = false;
-    void getKeebMacro(index).then(m => {
+    void loadMacro(index).then(m => {
       if (cancelled) return;
       setMacro(m);
       setRecordings(m?.keys ?? []);
     });
     return () => { cancelled = true; };
-  }, [index]);
+  }, [index, loadMacro]);
 
   const record = useCallback((event: KeyboardEvent) => {
     if (tailTimer.current !== null) {
@@ -138,24 +131,17 @@ export function KeebMacroView(_: KeebMacroViewProps) {
   useEffect(() => () => { stopListening(); }, [stopListening]);
 
   /// Persist a recording set. On failure, roll the editor back to the last
-  /// server-acknowledged macro and tell the user - the keyboard never got it.
-  /// One toast per failure burst (an outage fails every save in a sequence
-  /// like stop-recording + duration edits).
-  const lastFailToastRef = useRef(0);
+  /// server-acknowledged macro - the keyboard never got it. The page owns
+  /// failure toasts.
   const save = useCallback(async (keys: MacroKey[]) => {
-    const saved = await setKeebMacro(index, keys);
+    const saved = await saveMacro(index, keys);
     if (saved) {
       setMacro(saved);
       setRecordings(saved.keys);
       return;
     }
     setRecordings(macro?.keys ?? []);
-    const now = Date.now();
-    if (now - lastFailToastRef.current > 4000) {
-      lastFailToastRef.current = now;
-      push({ title: t('keeb.write.failedTitle'), body: t('keeb.write.failedBody') });
-    }
-  }, [index, macro, push, t]);
+  }, [index, macro, saveMacro]);
 
   const onToggleRecord = async () => {
     if (!isRecording) {
