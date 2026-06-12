@@ -17,7 +17,7 @@ const sdkDist = join(webRoot, 'sdk', 'dist');
 // App widget.mjs bundles are built in place in the apps repo (apps/<id>/).
 const appsDir = process.env.NEXUS_APPS_DIR
   ? join(process.env.NEXUS_APPS_DIR, 'apps')
-  : join(webRoot, '..', 'nexus-widgets-sdk-panel', 'apps');
+  : join(webRoot, '..', 'nexus-apps', 'apps');
 const PORT = Number(process.env.SANDBOX_PORT ?? 4317);
 
 // Blessed composites (ui-worldclock/ui-clockface) render real native components
