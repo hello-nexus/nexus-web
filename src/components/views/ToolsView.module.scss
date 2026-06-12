@@ -1,10 +1,23 @@
 @use '../../styles/text' as *;
+@use '../../styles/scrollbar' as *;
 
-/* Debug Tools page, rendered as a tab inside the Settings page, so the
-   layout matches the rest of the settings tabs: a single column constrained
-   to var(--page-content-max), one card per row. Card chrome lives on the
-   shared Card primitive; this file owns the page layout + kv/btn
-   affordances inside cards. */
+/* Debug Tools page, reached from the top-bar "..." menu. Mirrors the settings
+   page chrome (full-height column + internal scroller) so it reads identically:
+   a single column constrained to var(--page-content-max), one card per row.
+   Card chrome lives on the shared Card primitive; this file owns the page
+   layout + kv/btn affordances inside cards. */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.scroller {
+  flex: 1;
+  overflow-y: auto;
+  @include scrollbar-visible;
+}
+
 .tools {
   display: flex;
   flex-direction: column;

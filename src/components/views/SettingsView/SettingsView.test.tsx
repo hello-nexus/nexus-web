@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SettingsView } from './SettingsView';
-import type { UseProfilesResult } from '../../../hooks/useProfiles';
 
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn().mockResolvedValue(null),
@@ -38,43 +37,14 @@ vi.mock('../ScreenTimeBrowse/ScreenTimeDataControl', () => ({
   ScreenTimeDataControl: () => null,
 }));
 
-const profiles: UseProfilesResult = {
-  profiles: [],
-  activeId: '',
-  switchProfile: vi.fn(),
-  createProfile: vi.fn(),
-  renameProfile: vi.fn(),
-  deleteProfile: vi.fn(),
-  exportProfile: vi.fn(),
-  importProfile: vi.fn(),
-  reorderProfiles: vi.fn(),
-  refresh: vi.fn(),
-  loading: false,
-};
-
 describe('SettingsView', () => {
   it('renders service-required after the service goes offline', () => {
-    const onTabChange = vi.fn();
     const { rerender } = render(
-      <SettingsView
-        serviceOnline
-        connectionState="online"
-        platform="windows"
-        tab={null}
-        onTabChange={onTabChange}
-        profiles={profiles}
-      />,
+      <SettingsView serviceOnline connectionState="online" platform="windows" />,
     );
 
     rerender(
-      <SettingsView
-        serviceOnline={false}
-        connectionState="offline-installed"
-        platform=""
-        tab={null}
-        onTabChange={onTabChange}
-        profiles={profiles}
-      />,
+      <SettingsView serviceOnline={false} connectionState="offline-installed" platform="" />,
     );
 
     expect(screen.getByText('service.required.badge')).toBeInTheDocument();

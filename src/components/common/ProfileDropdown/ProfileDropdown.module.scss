@@ -147,13 +147,15 @@
   top: 0;
 }
 
+// New category-header treatment, matching the SectionHeader component (a muted,
+// non-caps body label) instead of the old all-caps eyebrow. Sized to
+// --type-small so every row in the menu reads at one size (matches the actions
+// below, e.g. "Manage profiles").
 .dropdownHeader {
-  padding: 0.55rem 0.75rem 0.65rem;
+  padding: 0.55rem 0.75rem 0.5rem;
   font-size: var(--type-small);
-  font-weight: var(--weight-heading);
-  color: var(--text-faded);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: var(--weight-body);
+  color: var(--text-dim);
 }
 
 .profileList {
@@ -171,7 +173,7 @@
   border-radius: calc(var(--radius-sm) - 2px);
   background: transparent;
   color: var(--text-dim);
-  font-size: var(--type-body);
+  font-size: var(--type-small);
   cursor: pointer;
   text-align: left;
   transition: background var(--ease-fast), color var(--ease-fast);

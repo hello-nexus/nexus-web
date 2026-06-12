@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ChevronDown, Plus, Download, Upload, Settings, UserRound } from 'lucide-react';
+import { ChevronDown, Plus, Download, Upload, UsersRound, UserRound } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../../lib/i18n';
 import { useClickOutside } from '../../../hooks/useClickOutside';
@@ -176,7 +176,7 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
             </button>
             <div className={styles.actionSep} />
             <button type="button" className={styles.actionBtn} onClick={handleManage}>
-              <Settings size={14} /> {t('profile.manage')}
+              <UsersRound size={14} /> {t('profile.manage')}
             </button>
           </div>
           <input ref={fileRef} type="file" accept=".json" className={styles.hiddenInput} onChange={handleFileChange} />

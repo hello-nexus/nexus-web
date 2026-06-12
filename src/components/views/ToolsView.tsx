@@ -39,30 +39,37 @@ interface PawnIoStatus {
 }
 
 /*
- * Internal Debug Tools page, rendered as the "Dev tools" tab inside the
- * Settings page. The tab label supplies the page heading, so this view
- * starts straight at the card grid. Cards here are diagnostics + developer
- * utilities only.
+ * Internal Debug Tools page, reached from the top-bar "..." menu. The top bar
+ * supplies the page heading, so this view starts straight at the card grid.
+ * Cards here are diagnostics + developer utilities only.
  */
 export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
   if (!serviceOnline) {
     return (
-      <div className={styles.tools}>
-        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+      <div className={styles.page}>
+        <div className={`${styles.scroller} pageBody`}>
+          <div className={styles.tools}>
+            <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.tools}>
-      <div className={styles.grid}>
-        <StorybookCard />
-        <WidgetSdkCard />
-        <TelemetryEventsCard />
-        <InstallDefaultsCard />
-        <PawnIoCard />
-        <PanelSimulatorCard />
-        <FontDebugCard />
+    <div className={styles.page}>
+      <div className={`${styles.scroller} pageBody`}>
+        <div className={styles.tools}>
+          <div className={styles.grid}>
+            <StorybookCard />
+            <WidgetSdkCard />
+            <TelemetryEventsCard />
+            <InstallDefaultsCard />
+            <PawnIoCard />
+            <PanelSimulatorCard />
+            <FontDebugCard />
+          </div>
+        </div>
       </div>
     </div>
   );

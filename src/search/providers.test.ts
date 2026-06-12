@@ -57,11 +57,11 @@ describe('buildEntries', () => {
     expect(find('toggle:menubar').toggle).toBe(false); // showMacStatusBarIcon = false
   });
 
-  it('switches profiles (action) — Settings › Profiles is the open half', () => {
+  it('switches profiles (action); the Profiles page is the open half', () => {
     const ids = idsOf(true);
     expect(ids.has('profile:default')).toBe(true);
     expect(ids.has('profile:gaming')).toBe(true);
-    expect(ids.has('settings:profiles')).toBe(true);
+    expect(ids.has('page:profiles')).toBe(true);
   });
 
   it('omits device-control + remote + profiles when offline, keeps navigation', () => {

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Anchor, Download, RotateCcw, Trash2, Upload } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { EditableText } from '../../common/Editable/EditableText';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
@@ -128,8 +129,10 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
 
   return (
     <div className={styles.tabPanel}>
-      <p className={styles.note}>{t('settings.profiles.description')}</p>
-
+      <SettingsSection
+        title={t('settings.tab.profiles')}
+        description={t('settings.profiles.description')}
+      >
       {profiles.profiles.length === 0 ? (
         <p className={styles.note}>{t('settings.profiles.noProfiles')}</p>
       ) : (
@@ -291,6 +294,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
       </div>
       {atLimit && <p className={styles.note}>{t('profile.maxReached')}</p>}
+      </SettingsSection>
 
       <PromptModal
         open={createOpen}

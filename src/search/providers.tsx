@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower, SlidersHorizontal, UserRound } from 'lucide-react';
+import { Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower, SlidersHorizontal, UserRound, FlaskConical } from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
 import { LANGUAGES, LANGUAGE_LABELS, PRESET_ACCENTS, type ThemeMode } from '../lib/settings';
 import { applyProfile } from '../api/cooling';
@@ -69,11 +69,12 @@ const navDisplays: SearchSource = (ctx) => [go('nav:displays', {
   to: () => ctx.host.goView('devices', 'displays'),
 })];
 
+// Settings is one scroller now (no sub-tabs), so these all deep-link to the
+// single Settings page. Profiles and Dev tools moved to their own pages - see
+// `standalonePages` below.
 const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
   { tab: 'general',  labelKey: 'settings.general',      keywords: ['startup', 'tray', 'login', 'language'] },
   { tab: 'theme',    labelKey: 'settings.theme',        keywords: ['appearance', 'dark', 'light', 'accent', 'color'] },
-  { tab: 'profiles', labelKey: 'settings.tab.profiles', keywords: ['profile', 'preset', 'switch'] },
-  { tab: 'tools',    labelKey: 'settings.tab.tools',    keywords: ['developer', 'debug', 'advanced'] },
 ];
 
 // Individual settings, indexed by their real label so "tray" finds the actual
@@ -135,15 +136,31 @@ const navigation: SearchSource = (ctx) =>
 const settingsTabs: SearchSource = (ctx) =>
   SETTINGS_TABS.map((s) => go(`settings:${s.tab}`, {
     title: `${ctx.t('settings.title')} › ${ctx.t(s.labelKey)}`, icon: NAV_ICONS.settings, keywords: s.keywords,
-    to: () => ctx.host.goView('settings', s.tab),
+    to: () => ctx.host.goView('settings'),
   }));
 
 const settingsItems: SearchSource = (ctx) =>
   SETTINGS_ITEMS.map((s) => go(`setting:${s.labelKey}`, {
     title: ctx.t(s.labelKey), subtitle: `${ctx.t('settings.title')} › ${ctx.t(s.tabLabelKey)}`,
     icon: NAV_ICONS.settings, keywords: s.keywords,
-    to: () => ctx.host.goView('settings', s.tab),
+    to: () => ctx.host.goView('settings'),
   }));
+
+// Standalone pages that used to be Settings tabs: Profiles (top-bar profile
+// menu) and Dev tools (top-bar "..." menu). Indexed here so search still
+// reaches them.
+const standalonePages: SearchSource = (ctx) => [
+  go('page:profiles', {
+    title: ctx.t('settings.tab.profiles'), icon: <UserRound size={18} />,
+    keywords: ['profile', 'profiles', 'preset', 'switch', 'manage'],
+    to: () => ctx.host.goView('profiles'),
+  }),
+  go('page:tools', {
+    title: ctx.t('settings.tab.tools'), icon: <FlaskConical size={18} />,
+    keywords: ['developer', 'dev tools', 'debug', 'advanced', 'storybook', 'diagnostics'],
+    to: () => ctx.host.goView('tools'),
+  }),
+];
 
 const devices: SearchSource = (ctx) =>
   ctx.devices.map((d) => go(`device:${d.key}`, {
@@ -267,7 +284,7 @@ const settingsToggles: SearchSource = (ctx) =>
     isOn: ctx.settings[field], set: (en) => ctx.updateSettings({ [field]: en } as Partial<typeof ctx.settings>),
   }));
 
-// Switch the active profile directly; "Settings › Profiles" is the open half.
+// Switch the active profile directly; the Profiles page is the open half.
 const profilesSource: SearchSource = (ctx) => {
   if (!ctx.online) return [];
   return ctx.profiles.map((p) => act(`profile:${p.id}`, {
@@ -283,7 +300,7 @@ const profilesSource: SearchSource = (ctx) => {
 // Add a source here to add a category of results. Order is cosmetic — entries
 // are ranked by relevance, not source order.
 export const SOURCES: SearchSource[] = [
-  navigation, navDisplays, settingsTabs, settingsItems, devices, profilesSource,
+  navigation, navDisplays, settingsTabs, settingsItems, standalonePages, devices, profilesSource,
   cooling, lightingModes, lightingEffects, appearance,
   actions, remoteAccess, settingsToggles,
 ];
