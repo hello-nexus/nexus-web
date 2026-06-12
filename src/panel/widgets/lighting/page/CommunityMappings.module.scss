@@ -1,12 +1,13 @@
-// Community layouts tab inside the LED map editor: header action row,
+// Community layouts modal stacked on the LED map editor: header action row,
 // ranked mapping list with LED-dot previews, and the publish dialog fields.
 
 .panel {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  // Stable modal size comes from the editor pane (LedMapEditor's tabPanels
-  // overlay); this panel just scrolls within whatever space that defines.
+  // The stacked DeviceModal (large variant) bounds the panel's width and
+  // caps its height; the panel only needs to shrink so the mapping list
+  // can scroll within that space.
   min-height: 0;
 }
 

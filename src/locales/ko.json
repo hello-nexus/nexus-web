@@ -826,6 +826,7 @@
   "lighting.ledMap.zoneSplitTitle": "영역 분할",
   "lighting.ledMap.zoneWallTooltip": "이 영역은 LED 수를 조정할 수 있어 별도 영역으로 유지됩니다",
   "lighting.ledMap.zones": "영역",
+  "lighting.ledMap.zonesSavedMapFailed": "영역은 저장되었지만 LED 위치는 저장되지 않았습니다. 다시 저장해 주세요.",
   "lighting.ledMap.zonesUpdateFailed": "영역을 업데이트할 수 없습니다",
   "lighting.mappings.adopters": "사용자 {count}명",
   "lighting.mappings.anonymous": "익명",

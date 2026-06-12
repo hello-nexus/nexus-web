@@ -826,6 +826,7 @@
   "lighting.ledMap.zoneSplitTitle": "Podziel strefę",
   "lighting.ledMap.zoneWallTooltip": "Liczba LED-ów tej strefy jest regulowana, dlatego pozostaje osobną strefą",
   "lighting.ledMap.zones": "Strefy",
+  "lighting.ledMap.zonesSavedMapFailed": "Strefy zostały zapisane, ale pozycje LED-ów nie. Spróbuj zapisać ponownie.",
   "lighting.ledMap.zonesUpdateFailed": "Nie udało się zaktualizować stref",
   "lighting.mappings.adopters": "{count} użytkowników",
   "lighting.mappings.anonymous": "anonim",

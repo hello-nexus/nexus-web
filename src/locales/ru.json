@@ -826,6 +826,7 @@
   "lighting.ledMap.zoneSplitTitle": "Разделить зону",
   "lighting.ledMap.zoneWallTooltip": "Количество светодиодов этой зоны настраивается, поэтому она остаётся отдельной зоной",
   "lighting.ledMap.zones": "Зоны",
+  "lighting.ledMap.zonesSavedMapFailed": "Зоны сохранены, но позиции светодиодов сохранить не удалось. Попробуйте сохранить ещё раз.",
   "lighting.ledMap.zonesUpdateFailed": "Не удалось обновить зоны",
   "lighting.mappings.adopters": "{count} пользователей",
   "lighting.mappings.anonymous": "аноним",

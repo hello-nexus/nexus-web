@@ -35,7 +35,7 @@ import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
 import { DevicePanel } from './page/DevicePanel';
 import { LedMapEditor } from './page/LedMapEditor';
-import { isCardFullyParked } from './page/zoneUtils';
+import { visibleCards } from './page/zoneUtils';
 import { RescanDevicesButton } from './page/RescanDevicesButton';
 import { RgbStatusCard } from './page/RgbStatusCard';
 import { LightingSettingsModal } from './page/LightingSettingsModal';
@@ -132,9 +132,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     try { localStorage.setItem(RIGHT_PANE_TAB_KEY, activeRightTab); } catch { /* persist best-effort */ }
   }, [activeRightTab]);
   // Cards whose LEDs are all user-disabled disappear from the listing and
-  // the canvas; a motherboard / brand group whose children are all hidden
-  // disappears with them (the group is built from this filtered list).
-  const visibleDevices = useMemo(() => devices.filter(d => !isCardFullyParked(d)), [devices]);
+  // the canvas, but a device always keeps at least one card visible: a
+  // fully parked device shows one card with its zero-enabled badge so it
+  // stays selectable and its LED map editor remains reachable.
+  const visibleDevices = useMemo(() => visibleCards(devices), [devices]);
   const hiddenFrameIds = useMemo(() => {
     const set = new Set<string>();
     if (activeRightTab === 'effect') {

@@ -81,13 +81,41 @@ export function cardEnabledLedCount(card: { ledCount: number; enabledLedCount?: 
 }
 
 /**
- * True when a card has LEDs but every one of them is disabled; such cards
- * are hidden from the device listing and the canvas. Cards reporting no
- * LEDs at all are NOT fully parked - they keep their existing unavailable /
- * configure-LED-count affordances.
+ * True when a card has LEDs but every one of them is disabled. Cards
+ * reporting no LEDs at all are NOT fully parked - they keep their existing
+ * unavailable / configure-LED-count affordances. Whether a fully parked
+ * card actually hides is decided per device by visibleCards.
  */
 export function isCardFullyParked(card: { ledCount: number; enabledLedCount?: number }): boolean {
   return card.ledCount > 0 && cardEnabledLedCount(card) === 0;
+}
+
+/** Owning enumeration-unit device id of a card; falls back to the card id for single-zone standalone devices and older services. */
+function cardOwningDeviceId(card: { id: string; deviceId?: string }): string {
+  return card.deviceId || card.id;
+}
+
+/**
+ * Listing/canvas visibility filter: fully parked zone cards hide, but never
+ * a device's last visible card. A device whose cards would all hide keeps
+ * its first card (in list order) showing its zero-enabled badge, so the
+ * device stays reachable and its LED map editor entry point survives.
+ */
+export function visibleCards<T extends { id: string; deviceId?: string; ledCount: number; enabledLedCount?: number }>(
+  cards: T[],
+): T[] {
+  const devicesWithVisible = new Set<string>();
+  for (const card of cards) {
+    if (!isCardFullyParked(card)) devicesWithVisible.add(cardOwningDeviceId(card));
+  }
+  const keptFallback = new Set<string>();
+  return cards.filter(card => {
+    if (!isCardFullyParked(card)) return true;
+    const dev = cardOwningDeviceId(card);
+    if (devicesWithVisible.has(dev) || keptFallback.has(dev)) return false;
+    keptFallback.add(dev);
+    return true;
+  });
 }
 
 /** Device-space indices covered by a zone, in zone-local order. */

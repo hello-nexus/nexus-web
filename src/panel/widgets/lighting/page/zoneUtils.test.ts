@@ -26,6 +26,7 @@ import {
   stagedZoneId,
   toZoneLocalIndices,
   undoHistory,
+  visibleCards,
   zoneDeviceIndices,
   zoneEnabledCounts,
   zoneLedCount,
@@ -558,21 +559,69 @@ describe('cardEnabledLedCount', () => {
 });
 
 describe('isCardFullyParked', () => {
-  it('hides cards whose LEDs are all disabled', () => {
+  it('marks cards whose LEDs are all disabled', () => {
     expect(isCardFullyParked({ ledCount: 10, enabledLedCount: 0 })).toBe(true);
   });
 
-  it('keeps cards with any enabled LED', () => {
+  it('does not mark cards with any enabled LED', () => {
     expect(isCardFullyParked({ ledCount: 10, enabledLedCount: 1 })).toBe(false);
     expect(isCardFullyParked({ ledCount: 10, enabledLedCount: 10 })).toBe(false);
   });
 
-  it('keeps zero-LED cards (unconfigured or detection-failed, not parked)', () => {
+  it('does not mark zero-LED cards (unconfigured or detection-failed, not parked)', () => {
     expect(isCardFullyParked({ ledCount: 0, enabledLedCount: 0 })).toBe(false);
     expect(isCardFullyParked({ ledCount: 0 })).toBe(false);
   });
 
-  it('keeps cards from older services without the field', () => {
+  it('does not mark cards from older services without the field', () => {
     expect(isCardFullyParked({ ledCount: 10 })).toBe(false);
+  });
+});
+
+describe('visibleCards', () => {
+  const card = (id: string, deviceId: string | undefined, enabled: number, total = 10) => ({
+    id,
+    deviceId,
+    ledCount: total,
+    enabledLedCount: enabled,
+  });
+
+  it('hides a fully parked zone card while a sibling card of the device stays visible', () => {
+    const cards = [card('a-1', 'a', 0), card('a-2', 'a', 5)];
+    expect(visibleCards(cards).map(c => c.id)).toEqual(['a-2']);
+  });
+
+  it('keeps the first card of a device whose cards are all fully parked', () => {
+    const cards = [card('a-1', 'a', 0), card('a-2', 'a', 0), card('a-3', 'a', 0)];
+    expect(visibleCards(cards).map(c => c.id)).toEqual(['a-1']);
+  });
+
+  it('never hides a fully parked single-zone device', () => {
+    const cards = [card('solo', 'solo', 0)];
+    expect(visibleCards(cards).map(c => c.id)).toEqual(['solo']);
+  });
+
+  it('falls back to the card id as the device id for older services', () => {
+    const cards = [card('legacy', undefined, 0)];
+    expect(visibleCards(cards).map(c => c.id)).toEqual(['legacy']);
+  });
+
+  it('decides visibility per device, not across devices', () => {
+    const cards = [
+      card('a-1', 'a', 0),
+      card('a-2', 'a', 0),
+      card('b-1', 'b', 0),
+      card('b-2', 'b', 3),
+    ];
+    expect(visibleCards(cards).map(c => c.id)).toEqual(['a-1', 'b-2']);
+  });
+
+  it('keeps non-parked cards untouched (zero-LED and older-service cards included)', () => {
+    const cards = [
+      card('a-1', 'a', 4),
+      { id: 'b-1', deviceId: 'b', ledCount: 0, enabledLedCount: 0 },
+      { id: 'c-1', deviceId: 'c', ledCount: 10 },
+    ];
+    expect(visibleCards(cards).map(c => c.id)).toEqual(['a-1', 'b-1', 'c-1']);
   });
 });

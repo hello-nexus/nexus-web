@@ -826,6 +826,7 @@
   "lighting.ledMap.zoneSplitTitle": "Bölgeyi böl",
   "lighting.ledMap.zoneWallTooltip": "Bu bölgenin LED sayısı ayarlanabilir olduğundan ayrı bir bölge olarak kalır",
   "lighting.ledMap.zones": "Bölgeler",
+  "lighting.ledMap.zonesSavedMapFailed": "Bölgeler kaydedildi ancak LED konumları kaydedilemedi. Yeniden kaydetmeyi deneyin.",
   "lighting.ledMap.zonesUpdateFailed": "Bölgeler güncellenemedi",
   "lighting.mappings.adopters": "{count} kullanıcı",
   "lighting.mappings.anonymous": "anonim",

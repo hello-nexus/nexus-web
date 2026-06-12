@@ -1089,6 +1089,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       rectRatio,
       loadedRatio: loadedRatioRef.current,
     });
+    // Device-space anchor for re-selecting the active zone after the
+    // service reassigns zone ids on a partition change.
+    const selIdx = activeZone ? firstDeviceIndexOf(activeZone) : undefined;
     if (plan.partition) {
       // Partition first: the service drops per-zone prefs / layouts and
       // reassigns zone ids on a partition change, so the map overrides must
@@ -1102,19 +1105,63 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         push({ title: t('lighting.ledMap.zonesUpdateFailed') });
         return;
       }
+      // The partition is persisted now; commit it client-side BEFORE the
+      // map POST so a map failure cannot leave the editor holding staged
+      // zones (and dead zone ids) for a partition that already landed. The
+      // refetched structure carries the service-assigned ids every live
+      // per-card call (highlight, test pattern, brightness, clear) uses
+      // from here on.
+      const st = await fetchDeviceStructure(deviceId);
+      if (st) {
+        setStructure(st);
+        const offs = segmentOffsets(st.segments);
+        setLeds(prev => relabelLedZones(prev, st.zones, offs));
+        // A staged reset's zone shapes were a client-side guess, so the
+        // LED selection may straddle the real zones; clearing it is the
+        // cheap way to re-establish the active-zone invariant.
+        setSelected(new Set());
+        let nextZone = selIdx !== undefined
+          ? st.zones.find(z => zoneDeviceIndices(z, offs).includes(selIdx))
+          : undefined;
+        if (!nextZone) nextZone = orderZones(st.zones, offs)[0];
+        if (nextZone) {
+          setSelectedZoneId(nextZone.id);
+          setZoneMultiSel(new Set([nextZone.id]));
+        }
+        // History snapshots reference pre-partition zone ids that no longer
+        // exist; drop them with the staged partition rather than let an
+        // undo resurrect a server-committed partition.
+        setStagedPartition(null);
+        historyRef.current = emptyHistory();
+        setUndoLen(0);
+        setRedoLen(0);
+      } else {
+        // Without the refreshed structure the new zone ids are unknowable;
+        // keep the partition staged so a retry re-posts it (id-free,
+        // harmless) and the post-save reload restores the real ids. History
+        // still drops: snapshots carry the partition, so an undo would swap
+        // the staged value away from what the server already committed.
+        historyRef.current = emptyHistory();
+        setUndoLen(0);
+        setRedoLen(0);
+        loadFailedNoteRef.current();
+      }
     }
     const resp = await saveDeviceMap(deviceId, plan.map.overrides, plan.map.aspectRatio);
     // On failure keep the dirty state and snapshots untouched so the
-    // unsaved edits stay marked and a retry posts the same delta.
+    // unsaved map delta stays marked and a retry posts it again. With a
+    // partition already committed above only the map delta remains staged,
+    // and the toast says so.
     if (!resp || resp.error) {
       setSaving(false);
-      push({ title: t('lighting.ledMap.saveFailed') });
+      push({
+        title: t(plan.partition ? 'lighting.ledMap.zonesSavedMapFailed' : 'lighting.ledMap.saveFailed'),
+      });
       return;
     }
     if (plan.partition) {
-      // Zone ids were reassigned service-side; refetch and re-select the
-      // zone covering the active zone's first LED.
-      const selIdx = activeZone ? firstDeviceIndexOf(activeZone) : undefined;
+      // Full reload: per-zone prefs / layouts were dropped with the
+      // partition, so the resolved baseline may have changed too.
       await load(selIdx);
       setSaving(false);
       return;

@@ -826,6 +826,7 @@
   "lighting.ledMap.zoneSplitTitle": "拆分区域",
   "lighting.ledMap.zoneWallTooltip": "此区域的 LED 数量可调，因此保持为独立区域",
   "lighting.ledMap.zones": "区域",
+  "lighting.ledMap.zonesSavedMapFailed": "区域已保存，但 LED 位置未保存。请重新保存。",
   "lighting.ledMap.zonesUpdateFailed": "无法更新区域",
   "lighting.mappings.adopters": "{count} 位用户",
   "lighting.mappings.anonymous": "匿名",

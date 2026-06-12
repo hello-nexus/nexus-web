@@ -826,6 +826,7 @@
   "lighting.ledMap.zoneSplitTitle": "Diviser la zone",
   "lighting.ledMap.zoneWallTooltip": "Le nombre de LEDs de cette zone est réglable, elle reste donc une zone à part",
   "lighting.ledMap.zones": "Zones",
+  "lighting.ledMap.zonesSavedMapFailed": "Les zones ont été enregistrées, mais pas les positions des LEDs. Réessayez d'enregistrer.",
   "lighting.ledMap.zonesUpdateFailed": "Impossible de mettre à jour les zones",
   "lighting.mappings.adopters": "{count} utilisateurs",
   "lighting.mappings.anonymous": "anonyme",

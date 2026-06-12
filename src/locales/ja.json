@@ -826,6 +826,7 @@
   "lighting.ledMap.zoneSplitTitle": "ゾーンを分割",
   "lighting.ledMap.zoneWallTooltip": "このゾーンはLED数を変更できるため、独立したゾーンのままになります",
   "lighting.ledMap.zones": "ゾーン",
+  "lighting.ledMap.zonesSavedMapFailed": "ゾーンは保存されましたが、LEDの位置は保存できませんでした。もう一度保存してください。",
   "lighting.ledMap.zonesUpdateFailed": "ゾーンを更新できませんでした",
   "lighting.mappings.adopters": "{count}人のユーザー",
   "lighting.mappings.anonymous": "匿名",
