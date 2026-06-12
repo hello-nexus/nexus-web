@@ -29,15 +29,16 @@
   }
 }
 
-// Surface fill + a subtle border so the box reads as a bounding box in every
-// context — including surface-on-surface (the device modal, where panel card
-// tokens aren't in scope). --panel-card-border is the kiosk's card stroke;
-// it falls back to the app --border (defined everywhere) outside .panel-root.
+// Surface fill, no visible stroke — the box reads via its lighter --surface
+// fill against the darker page bg (matches the cooling cards). The transparent
+// border keeps the 1px in the box model so layout is unchanged. Note: in a
+// surface-on-surface context (the device/pair modal sits on --surface) the box
+// has no separation from its backdrop — that surround must supply the contrast.
 .box {
   display: flex;
   flex-direction: column;
   padding: 0.5rem 1.1rem 0.85rem;
-  border: var(--border-width) solid var(--panel-card-border, var(--border));
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   background: var(--surface);
 }
