@@ -112,4 +112,13 @@ describe('MappingAppliedToasts', () => {
     emit({ revision: 2 });
     expect(screen.queryByText('lighting.mappings.autoAppliedTitle')).toBeNull();
   });
+
+  it('falls back to the device id and drops the count clause on partial frames', () => {
+    const { emit } = renderWithMultiplex();
+    emit({ revision: 3, deviceId: 'openrgb-9', mappingId: 'map-9', mappingName: 'Bare frame' });
+
+    expect(screen.getByText(
+      'lighting.mappings.autoAppliedBodyNoCount name=Bare frame device=openrgb-9',
+    )).toBeTruthy();
+  });
 });

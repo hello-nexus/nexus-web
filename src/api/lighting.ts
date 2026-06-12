@@ -301,9 +301,11 @@ export const fetchLedMap = (id: string) =>
 export const fetchLedMapDefaults = (id: string) =>
   fetchService<LedMapResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/led-map?defaults=true`);
 
-// Groups ride along on every save: null/omitted would leave the stored groups
-// untouched, while a list (even empty) replaces them - the editor always sends
-// its current list so deletions persist.
+// Saves the user-delta layer only. Omitted groups leave the stored user
+// groups untouched while a list (even empty) replaces them; a zero aspect
+// ratio is ignored by the service while a positive one persists as a user
+// delta. The editor sends groups / a ratio only when the user edited them
+// this session so an applied community mapping never bakes into the delta.
 export const saveLedMap = (
   id: string,
   overrides: { ledIndex: number; u: number; v: number; disabled?: boolean }[],

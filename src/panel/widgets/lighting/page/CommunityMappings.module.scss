@@ -206,6 +206,15 @@
   color: var(--text-dim);
 }
 
+// Registry-fetch failure state; distinct from the "no layouts yet" empty
+// note so a service error never reads as an empty registry.
+.errorNote {
+  padding: 1.25rem 0.5rem;
+  text-align: center;
+  font-size: var(--type-small);
+  color: var(--warn);
+}
+
 .iconBtn {
   display: flex;
   align-items: center;

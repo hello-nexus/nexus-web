@@ -18,7 +18,7 @@ import { Slider } from '../../../../components/common/Slider/Slider';
 import { Tabs } from '../../../../components/common/Tabs/Tabs';
 import { useThrottle } from '../../../../hooks/cadence';
 import { CommunityMappingsPanel } from './CommunityMappingsPanel';
-import { collapseToRanges, expandRanges } from './mappingUtils';
+import { buildLedMapSaveBody, collapseToRanges, expandRanges } from './mappingUtils';
 import styles from './LedMapEditor.module.scss';
 
 const isMac = /mac/i.test(navigator.userAgent);
@@ -119,22 +119,34 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
   // (non-empty deviceKey); the device card carries it, with the led-map
   // response as a fallback for stale cards.
   const [activeTab, setActiveTab] = useState<LedMapEditorTab>(initialTab ?? 'editor');
-  const activeTabRef = useRef(activeTab);
-  activeTabRef.current = activeTab;
   const [mapDeviceKey, setMapDeviceKey] = useState('');
   const communityEnabled = (device.deviceKey || mapDeviceKey) !== '';
+  // Without a device key the community tab does not exist, so clamp the
+  // effective tab to the editor; otherwise a community initialTab would leave
+  // the ref stuck on a tab that never renders and the canvas keyboard
+  // shortcuts would stay disabled.
+  const effectiveTab: LedMapEditorTab = communityEnabled ? activeTab : 'editor';
+  const activeTabRef = useRef(effectiveTab);
+  activeTabRef.current = effectiveTab;
 
-  // Named LED groups. Edits ride the normal save flow (dirty + Save); the
-  // full list is sent on every save so deletions persist.
+  // Named LED groups. Edits ride the normal save flow (dirty + Save). The
+  // list is only sent on save when the user edited groups this session, so
+  // an applied mapping's resolved groups never become a user delta.
   const [groups, setGroups] = useState<LedGroup[]>([]);
   const groupsRef = useRef(groups);
   groupsRef.current = groups;
+  const groupsEditedRef = useRef(false);
   const [groupPrompt, setGroupPrompt] = useState<GroupPrompt | null>(null);
-  // While the publish dialog (community tab) or a group prompt is open, the
-  // editor modal must ignore the Esc that closes them.
+  // Pending community-tab action (apply / import / remove) held behind the
+  // unsaved-edits confirm. Those actions replace the resolved map and reload
+  // the editor, which would silently discard any unsaved edits.
+  const [pendingMapAction, setPendingMapAction] = useState<(() => void) | null>(null);
+  // While the publish dialog (community tab), a group prompt, or the
+  // discard-edits confirm is open, the editor modal must ignore the Esc that
+  // closes them.
   const [communityDialogOpen, setCommunityDialogOpen] = useState(false);
   const childDialogOpenRef = useRef(false);
-  childDialogOpenRef.current = groupPrompt !== null || communityDialogOpen;
+  childDialogOpenRef.current = groupPrompt !== null || communityDialogOpen || pendingMapAction !== null;
 
   const [editorMode, setEditorMode] = useState<EditorMode>('animation');
 
@@ -156,6 +168,12 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
   } | null>(null);
   const rectResizeRef = useRef<{ startX: number; startY: number; rect: typeof devRect } | null>(null);
   const [rectRatio, setRectRatio] = useState(DEFAULT_RATIO);
+  // Ratio as it arrived on load. It may originate from an applied community
+  // mapping rather than a stored user delta, so the save flow only sends the
+  // live ratio once it diverges from this baseline.
+  const loadedRatioRef = useRef(DEFAULT_RATIO);
+  // True while a community / file mapping is applied to this device.
+  const appliedMappingRef = useRef(false);
 
   const undoStackRef = useRef<Snapshot[]>([]);
   const redoStackRef = useRef<Snapshot[]>([]);
@@ -405,7 +423,10 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
       if (resp.aspectRatio > 0) {
         setRectRatio(resp.aspectRatio);
       }
+      loadedRatioRef.current = resp.aspectRatio > 0 ? resp.aspectRatio : DEFAULT_RATIO;
+      appliedMappingRef.current = resp.applied != null;
       setGroups(resp.groups ?? []);
+      groupsEditedRef.current = false;
       setMapDeviceKey(resp.deviceKey ?? '');
     }
     if (defResp) {
@@ -488,6 +509,23 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
     clearLedEditor(deviceId);
     onClose();
   }, [deviceId, onClose]);
+
+  // Community-tab actions that replace the resolved map go through here so a
+  // confirm can interpose while the editor holds unsaved edits; with a clean
+  // editor the action runs immediately.
+  const confirmDiscardEdits = useCallback((proceed: () => void) => {
+    if (!dirtyRef.current) {
+      proceed();
+      return;
+    }
+    setPendingMapAction(() => proceed);
+  }, []);
+
+  const handlePendingMapActionConfirm = useCallback(() => {
+    const run = pendingMapAction;
+    setPendingMapAction(null);
+    run?.();
+  }, [pendingMapAction]);
 
   const isMultiKey = (e: React.PointerEvent | React.MouseEvent) =>
     isMac ? e.metaKey : e.ctrlKey;
@@ -833,29 +871,30 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
 
   const handleSave = async () => {
     setSaving(true);
-    const defs = defaultLedsRef.current;
-    const overrides: { ledIndex: number; u: number; v: number; disabled?: boolean }[] = [];
-    for (const led of leds) {
-      // Save when position was customized OR the LED is disabled. A disabled
-      // LED without any other custom change must still round-trip so the
-      // parked state survives a reload.
-      if (!led.isCustom && !led.disabled) continue;
-      const def = defs.find(d => d.index === led.index);
-      const posUnchanged = def && Math.abs(led.u - def.u) < 0.0001 && Math.abs(led.v - def.v) < 0.0001;
-      if (posUnchanged && !led.disabled) continue;
-      overrides.push({
-        ledIndex: led.index,
-        u: led.u,
-        v: led.v,
-        ...(led.disabled ? { disabled: true } : {}),
-      });
-    }
-    await saveLedMap(deviceId, overrides, rectRatio, groups);
+    // The body builder keeps applied-mapping state (mapping-disabled LEDs,
+    // mapping ratio, mapping groups) out of the user delta: only LEDs the
+    // user owns (isCustom), a ratio the user adjusted, and groups the user
+    // edited this session are posted.
+    const body = buildLedMapSaveBody({
+      leds,
+      defaults: defaultLedsRef.current,
+      rectRatio,
+      loadedRatio: loadedRatioRef.current,
+      groups,
+      groupsEdited: groupsEditedRef.current,
+    });
+    await saveLedMap(deviceId, body.overrides, body.aspectRatio, body.groups);
     // The everything-default fast path resets the stored map entirely; a
-    // reset also wipes groups, so only take it when there are none.
-    if (overrides.length === 0 && rectRatio === DEFAULT_RATIO && groups.length === 0) {
+    // reset also wipes groups, so only take it when there are none. Never
+    // take it while a mapping is applied - the user delta being empty does
+    // not mean the device is back to factory state.
+    if (body.overrides.length === 0 && rectRatio === DEFAULT_RATIO && groups.length === 0
+      && !appliedMappingRef.current) {
       await resetLedMap(deviceId);
     }
+    // What was just sent is now the stored baseline.
+    if (body.aspectRatio > 0) loadedRatioRef.current = body.aspectRatio;
+    groupsEditedRef.current = false;
     // Re-snapshot so the dashed "unsaved" rings disappear now that what the
     // user sees matches what the service has persisted.
     const snap = new Map<number, { u: number; v: number; disabled: boolean }>();
@@ -1108,11 +1147,13 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
     } else {
       setGroups(prev => prev.map((g, i) => i === prompt.index ? { ...g, name } : g));
     }
+    groupsEditedRef.current = true;
     setDirty(true);
   }, [groupPrompt, selected]);
 
   const handleGroupDelete = useCallback((index: number) => {
     setGroups(prev => prev.filter((_, i) => i !== index));
+    groupsEditedRef.current = true;
     setDirty(true);
   }, []);
 
@@ -1310,17 +1351,18 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
                 { key: 'editor', label: t('lighting.ledMap.tabEditor') },
                 { key: 'community', label: t('lighting.ledMap.tabCommunity') },
               ]}
-              activeKey={activeTab}
+              activeKey={effectiveTab}
               onChange={k => setActiveTab(k as LedMapEditorTab)}
               ariaLabel={t('lighting.ledMap.title')}
             />
           )}
-          {activeTab === 'community' && communityEnabled ? (
+          {effectiveTab === 'community' ? (
             <CommunityMappingsPanel
               deviceId={deviceId}
               deviceName={deviceName}
               onLedMapChanged={() => { void load(); }}
               onDialogOpenChange={setCommunityDialogOpen}
+              confirmDiscardEdits={confirmDiscardEdits}
             />
           ) : (
           <>
@@ -1773,6 +1815,16 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
         destructive
         onConfirm={handleDiscardAndClose}
         onCancel={() => setShowUnsavedConfirm(false)}
+      />
+      <ConfirmModal
+        open={pendingMapAction !== null}
+        title={t('lighting.ledMap.unsavedTitle')}
+        message={t('lighting.mappings.discardEditsMessage')}
+        confirmLabel={t('lighting.ledMap.discard')}
+        cancelLabel={t('lighting.ledMap.keepEditing')}
+        destructive
+        onConfirm={handlePendingMapActionConfirm}
+        onCancel={() => setPendingMapAction(null)}
       />
       <PromptModal
         open={groupPrompt !== null}

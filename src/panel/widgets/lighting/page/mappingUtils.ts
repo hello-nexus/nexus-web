@@ -1,8 +1,8 @@
-// Pure helpers for the community LED mapping UI: group range packing and
-// artifact -> preview-dot projection. Kept free of React/DOM so they are
-// unit-testable.
+// Pure helpers for the community LED mapping UI: group range packing,
+// artifact -> preview-dot projection, and save-body construction. Kept free
+// of React/DOM so they are unit-testable.
 
-import type { LedGroupRange, MappingArtifact } from '../../../../api/lighting';
+import type { LedGroup, LedGroupRange, LedMapEntry, MappingArtifact } from '../../../../api/lighting';
 
 /**
  * Collapse a set of LED indices into sorted, inclusive, contiguous ranges.
@@ -90,4 +90,71 @@ export function looksLikeMappingArtifact(value: unknown): value is MappingArtifa
 export function sanitizeFileName(name: string): string {
   const cleaned = name.replace(/[\\/:*?"<>|]/g, '-').trim();
   return cleaned.length > 0 ? cleaned : 'layout';
+}
+
+// Tolerance below which two normalized coordinates count as the same spot.
+const SAME_POSITION_EPSILON = 0.0001;
+// Tolerance below which two aspect ratios count as unchanged.
+const SAME_RATIO_EPSILON = 0.0001;
+
+export interface LedMapSaveOverride {
+  ledIndex: number;
+  u: number;
+  v: number;
+  disabled?: boolean;
+}
+
+export interface LedMapSaveBody {
+  overrides: LedMapSaveOverride[];
+  /** Zero when the user did not adjust the ratio this session; the service ignores zero and keeps whatever is stored. */
+  aspectRatio: number;
+  /** Present only when the user edited groups this session; omitting the field leaves the stored user groups untouched. */
+  groups?: LedGroup[];
+}
+
+/**
+ * Build the led-map save body without baking an applied community mapping
+ * into the user delta. `isCustom` is the user-ownership marker: the service
+ * sets it only on stored user overrides and every editor mutation sets it
+ * locally, so entries without it (mapping-positioned or mapping-disabled
+ * LEDs) must not be re-posted as user data.
+ */
+export function buildLedMapSaveBody(args: {
+  leds: LedMapEntry[];
+  defaults: LedMapEntry[];
+  /** Current editor aspect ratio. */
+  rectRatio: number;
+  /** Ratio as it arrived on load, which may originate from an applied mapping. */
+  loadedRatio: number;
+  groups: LedGroup[];
+  /** True when the user created, renamed, or deleted a group this session. */
+  groupsEdited: boolean;
+}): LedMapSaveBody {
+  const overrides: LedMapSaveOverride[] = [];
+  for (const led of args.leds) {
+    if (!led.isCustom) continue;
+    const def = args.defaults.find(d => d.index === led.index);
+    const posUnchanged = def
+      && Math.abs(led.u - def.u) < SAME_POSITION_EPSILON
+      && Math.abs(led.v - def.v) < SAME_POSITION_EPSILON;
+    // An enabled override sitting at its default position is a no-op for the
+    // user map; a user-disabled LED must still round-trip so the parked
+    // state survives a reload.
+    if (posUnchanged && !led.disabled) continue;
+    overrides.push({
+      ledIndex: led.index,
+      u: led.u,
+      v: led.v,
+      ...(led.disabled ? { disabled: true } : {}),
+    });
+  }
+  // Re-posting the loaded ratio would convert a mapping-supplied ratio into
+  // a user delta, so only send the live value once it diverges from the
+  // loaded one (i.e. the user adjusted it this session).
+  const ratioChanged = Math.abs(args.rectRatio - args.loadedRatio) > SAME_RATIO_EPSILON;
+  return {
+    overrides,
+    aspectRatio: ratioChanged ? args.rectRatio : 0,
+    ...(args.groupsEdited ? { groups: args.groups } : {}),
+  };
 }

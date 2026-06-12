@@ -4,7 +4,7 @@ import {
   applyDeviceMapping, exportDeviceMapping, fetchDeviceMappings, importDeviceMapping,
   publishDeviceMapping, revertDeviceMapping,
   PUBLISH_NEEDS_ANONYMOUS_MSG,
-  type CommunityMapping, type DeviceMappingsResponse,
+  type CommunityMapping, type DeviceMappingsResponse, type MappingArtifact,
 } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { useToast } from '../../../../components/common/Toast/Toast';
@@ -19,18 +19,21 @@ import styles from './CommunityMappings.module.scss';
  * previews, apply/revert, refresh, publish, and .nexusmap import/export.
  * Only rendered for devices with a non-empty deviceKey.
  */
-export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, onDialogOpenChange }: {
+export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, onDialogOpenChange, confirmDiscardEdits }: {
   deviceId: string;
   deviceName: string;
   /** Called after any action that changes the device's resolved LED map so the editor refetches. */
   onLedMapChanged: () => void;
   /** Mirrors the publish dialog's open state up so the editor modal ignores Esc while it is open. */
   onDialogOpenChange: (open: boolean) => void;
+  /** Routes apply / import / remove through the editor's unsaved-edits confirm; runs the action immediately when the editor is clean. */
+  confirmDiscardEdits: (proceed: () => void) => void;
 }) {
   const { t } = useTranslation();
   const { push } = useToast();
   const [data, setData] = useState<DeviceMappingsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -49,6 +52,9 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
     const resp = await fetchDeviceMappings(deviceId, refresh);
     if (!mountedRef.current) return;
     setData(resp);
+    // A null response is a service error, not "no layouts" - the two need
+    // distinct empty states so a failure doesn't read as an empty registry.
+    setLoadFailed(resp === null || resp.error);
     setLoading(false);
     setRefreshing(false);
   }, [deviceId]);
@@ -67,7 +73,7 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
   const appliedOutsideList = data?.applied != null
     && !items.some(item => item.id === appliedId);
 
-  const handleApply = async (mapping: CommunityMapping) => {
+  const applyMapping = async (mapping: CommunityMapping) => {
     setBusyId(mapping.id);
     const resp = await applyDeviceMapping(deviceId, mapping.id);
     if (!mountedRef.current) return;
@@ -80,7 +86,11 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
     onLedMapChanged();
   };
 
-  const handleRevert = async () => {
+  const handleApply = (mapping: CommunityMapping) => {
+    confirmDiscardEdits(() => { void applyMapping(mapping); });
+  };
+
+  const revertMapping = async () => {
     setBusyId('revert');
     const resp = await revertDeviceMapping(deviceId, 'switched');
     if (!mountedRef.current) return;
@@ -91,6 +101,10 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
     }
     await load(false);
     onLedMapChanged();
+  };
+
+  const handleRevert = () => {
+    confirmDiscardEdits(() => { void revertMapping(); });
   };
 
   const handleExport = async () => {
@@ -108,19 +122,7 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
     URL.revokeObjectURL(url);
   };
 
-  const handleImportFile = async (file: File) => {
-    let artifact;
-    try {
-      const parsed: unknown = JSON.parse(await file.text());
-      if (!looksLikeMappingArtifact(parsed)) {
-        push({ title: t('lighting.mappings.importInvalid') });
-        return;
-      }
-      artifact = parsed;
-    } catch {
-      push({ title: t('lighting.mappings.importInvalid') });
-      return;
-    }
+  const importArtifact = async (artifact: MappingArtifact) => {
     const resp = await importDeviceMapping(deviceId, artifact);
     if (!mountedRef.current) return;
     if (!resp || resp.error) {
@@ -132,12 +134,31 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
     onLedMapChanged();
   };
 
+  const handleImportFile = async (file: File) => {
+    let artifact: MappingArtifact;
+    try {
+      const parsed: unknown = JSON.parse(await file.text());
+      if (!looksLikeMappingArtifact(parsed)) {
+        push({ title: t('lighting.mappings.importInvalid') });
+        return;
+      }
+      artifact = parsed;
+    } catch {
+      push({ title: t('lighting.mappings.importInvalid') });
+      return;
+    }
+    // Confirm only after the file parsed: an invalid pick should not ask the
+    // user to discard their edits for nothing.
+    confirmDiscardEdits(() => { void importArtifact(artifact); });
+  };
+
   const handlePublish = async (fields: PublishMappingFields) => {
     setPublishing(true);
     const resp = await publishDeviceMapping(deviceId, fields);
     if (!mountedRef.current) return;
     setPublishing(false);
-    setPublishDialogOpen(false);
+    // Keep the dialog (and the user's typed name / description) open on
+    // failure so a retry doesn't start from scratch; close only on success.
     if (!resp) {
       push({ title: t('lighting.mappings.publishFailedTitle'), body: t('lighting.mappings.publishFailedBody') });
       return;
@@ -151,6 +172,7 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
       });
       return;
     }
+    setPublishDialogOpen(false);
     if (resp.alreadyExisted) {
       push({ title: t('lighting.mappings.publishExistsTitle'), body: t('lighting.mappings.publishExistsBody') });
     } else {
@@ -159,6 +181,9 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
     // The fresh publish (or its existing twin) should appear in the list.
     void load(true);
   };
+
+  const toggleExpanded = (id: string) =>
+    setExpandedId(prev => prev === id ? null : id);
 
   const renderItem = (mapping: CommunityMapping) => {
     const isApplied = appliedId !== null && mapping.id === appliedId;
@@ -184,7 +209,16 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
           {mapping.description && (
             <p
               className={`${styles.itemDescription} ${expandedId === mapping.id ? styles.itemDescriptionExpanded : ''}`}
-              onClick={() => setExpandedId(prev => prev === mapping.id ? null : mapping.id)}
+              role="button"
+              tabIndex={0}
+              aria-expanded={expandedId === mapping.id}
+              onClick={() => toggleExpanded(mapping.id)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleExpanded(mapping.id);
+                }
+              }}
             >
               {mapping.description}
             </p>
@@ -203,7 +237,7 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
             </>
           ) : (
             <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} disabled={busy}
-              onClick={() => { void handleApply(mapping); }}>
+              onClick={() => handleApply(mapping)}>
               {t('lighting.mappings.apply')}
             </button>
           )}
@@ -255,6 +289,8 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
 
       {loading ? (
         <div className={styles.loadingNote}>{t('lighting.mappings.loading')}</div>
+      ) : loadFailed ? (
+        <div className={styles.errorNote}>{t('lighting.mappings.loadFailed')}</div>
       ) : items.length === 0 ? (
         <div className={styles.emptyNote}>{t('lighting.mappings.empty')}</div>
       ) : (

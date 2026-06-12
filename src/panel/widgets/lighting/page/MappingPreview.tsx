@@ -28,9 +28,11 @@ export function MappingPreview({ artifact, label }: {
       role="img"
       aria-label={label}
     >
-      {dots.map(d => (
+      {/* Key by array position: a malformed payload can repeat LED indices,
+          and duplicate keys would drop dots from the render. */}
+      {dots.map((d, i) => (
         <circle
-          key={d.i}
+          key={i}
           cx={PAD + d.u * (VIEW_W - 2 * PAD)}
           cy={PAD + d.v * (VIEW_H - 2 * PAD)}
           r={r}
