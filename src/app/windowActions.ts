@@ -99,6 +99,17 @@ export function isMacAppShell(): boolean {
   return platform === 'mac-app';
 }
 
+/**
+ * The 'glass' background paints the web transparent and relies on the native
+ * shell's behind-window material (Windows Mica, macOS vibrancy). Only the
+ * Windows/macOS app shells provide it — in a plain browser tab or the Linux
+ * Chromium --app spawn there's no native blur, so glass silently shows the flat
+ * base. Callers use this to hide glass where it can't render.
+ */
+export function hostSupportsGlass(): boolean {
+  return isWindowsAppShell() || isMacAppShell();
+}
+
 export const NEXUS_SYSTEM_ACCENT = 'nexus:system-accent';
 export const NEXUS_REQUEST_SYSTEM_ACCENT = 'nexus:request-system-accent';
 
