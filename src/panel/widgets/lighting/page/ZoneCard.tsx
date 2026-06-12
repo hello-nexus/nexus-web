@@ -4,6 +4,7 @@ import {
   identifyLightingDevice,
   type LightingDevice,
 } from '../../../../api/lighting';
+import { cardEnabledLedCount } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import styles from '../LightingPage.module.scss';
@@ -118,7 +119,8 @@ export function ZoneCard({
           <span className={styles.deviceMeta}>
             {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
             <Lightbulb className={styles.deviceMetaIcon} aria-hidden="true" />
-            <span className={styles.deviceMetaCount}>{device.ledCount}</span>
+            {/* Active (enabled) LEDs, not the zone total. */}
+            <span className={styles.deviceMetaCount}>{cardEnabledLedCount(device)}</span>
           </span>
         )}
         {!unavailable && communityCount != null && communityCount > 0 && (

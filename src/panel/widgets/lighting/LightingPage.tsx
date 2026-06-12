@@ -34,6 +34,7 @@ import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
 import { DevicePanel } from './page/DevicePanel';
 import { LedMapEditor } from './page/LedMapEditor';
+import { isCardFullyParked } from './page/zoneUtils';
 import { RescanDevicesButton } from './page/RescanDevicesButton';
 import { RgbStatusCard } from './page/RgbStatusCard';
 import { LightingSettingsModal } from './page/LightingSettingsModal';
@@ -124,30 +125,50 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   useEffect(() => {
     try { localStorage.setItem(RIGHT_PANE_TAB_KEY, activeRightTab); } catch { /* persist best-effort */ }
   }, [activeRightTab]);
+  // Cards whose LEDs are all user-disabled disappear from the listing and
+  // the canvas; a motherboard / brand group whose children are all hidden
+  // disappears with them (the group is built from this filtered list).
+  const visibleDevices = useMemo(() => devices.filter(d => !isCardFullyParked(d)), [devices]);
   const hiddenFrameIds = useMemo(() => {
     const set = new Set<string>();
     if (activeRightTab === 'effect') {
-      for (const d of devices) set.add(d.id);
+      for (const d of visibleDevices) set.add(d.id);
       return set;
     }
-    for (const d of devices) if (!d.ledsOn) set.add(d.id);
+    for (const d of visibleDevices) if (!d.ledsOn) set.add(d.id);
     return set;
-  }, [devices, activeRightTab]);
+  }, [visibleDevices, activeRightTab]);
 
   // LED map editor - lifted here so both the canvas settings button and the
-  // ZoneCard settings button can open it. The community badge deep-links to
-  // the editor's Community tab via editorInitialTab.
-  const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
-  const [editorInitialTab, setEditorInitialTab] = useState<'editor' | 'community'>('editor');
-  const editingDevice = editingDeviceId ? devices.find(d => d.id === editingDeviceId) ?? null : null;
+  // ZoneCard settings button can open it. Every card routes to the editor of
+  // its OWNING device with that card's zone preselected; the community badge
+  // deep-links to the editor with the community modal already stacked open.
+  const [editorTarget, setEditorTarget] = useState<{
+    deviceId: string;
+    zoneId: string;
+    zoneCustomizable: boolean;
+  } | null>(null);
+  const [editorCommunityOpen, setEditorCommunityOpen] = useState(false);
+  const devicesRef = useRef<LightingDevice[]>([]);
+  devicesRef.current = devices;
+  const openEditorFor = useCallback((cardId: string, communityOpen: boolean) => {
+    const card = devicesRef.current.find(d => d.id === cardId);
+    if (!card) return;
+    setEditorCommunityOpen(communityOpen);
+    setEditorTarget({
+      // deviceId falls back to the card id for services that predate the
+      // zones model (single-zone behavior).
+      deviceId: card.deviceId || card.id,
+      zoneId: card.id,
+      zoneCustomizable: card.zoneCustomizable === true,
+    });
+  }, []);
   const handleOpenSettings = useCallback((id: string) => {
-    setEditorInitialTab('editor');
-    setEditingDeviceId(id);
-  }, []);
+    openEditorFor(id, false);
+  }, [openEditorFor]);
   const handleOpenCommunity = useCallback((id: string) => {
-    setEditorInitialTab('community');
-    setEditingDeviceId(id);
-  }, []);
+    openEditorFor(id, true);
+  }, [openEditorFor]);
 
   // Cached community-layout counts for the device-card badges. Cache-only on
   // the service side, so a single fetch per page mount is enough.
@@ -172,7 +193,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       if (!cancelled && data) setSelectedDeviceLeds(data.leds);
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [primaryDeviceId, editingDeviceId, activeProfileId]);
+  }, [primaryDeviceId, editorTarget, activeProfileId]);
 
   const [musicReactive, setMusicReactiveState] = useState(false);
   const audioRef = useAudioState(musicReactive && mode === 'animate');
@@ -589,8 +610,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [mode]);
 
-  const devicesRef = useRef<LightingDevice[]>([]);
-  devicesRef.current = devices;
   // Per-zone toggle (flips one device's current state). Paired with the
   // absolute handleSetPower below: a per-zone toggle applied to a whole
   // group would re-enable already-off zones in a partially-lit group.
@@ -628,18 +647,18 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     });
   }, [devices]);
   const orderedDevices = useMemo(() => {
-    if (devices.length === 0) return devices;
-    if (deviceOrder.length === 0) return devices;
-    const byId = new Map(devices.map(d => [d.id, d]));
+    if (visibleDevices.length === 0) return visibleDevices;
+    if (deviceOrder.length === 0) return visibleDevices;
+    const byId = new Map(visibleDevices.map(d => [d.id, d]));
     const out: LightingDevice[] = [];
     const seen = new Set<string>();
     for (const id of deviceOrder) {
       const d = byId.get(id);
       if (d) { out.push(d); seen.add(id); }
     }
-    for (const d of devices) if (!seen.has(d.id)) out.push(d);
+    for (const d of visibleDevices) if (!seen.has(d.id)) out.push(d);
     return out;
-  }, [devices, deviceOrder]);
+  }, [visibleDevices, deviceOrder]);
   const [dragDeviceId, setDragDeviceId] = useState<string | null>(null);
   const [dragOverDeviceId, setDragOverDeviceId] = useState<string | null>(null);
   const dropDeviceOn = useCallback((targetId: string) => {
@@ -796,7 +815,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       <div className={`${styles.body} pageBody`}>
         <div className={styles.main}>
           <div className={styles.canvasArea}>
-            <DeviceCanvas devices={devices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={mode === 'animate' ? activeEffect : null} shaderState={mode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
+            <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={mode === 'animate' ? activeEffect : null} shaderState={mode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
             {mode === 'animate' && activeEffect && currentState && (
               <>
                 {EFFECTS.find(e => e.key === activeEffect)?.audio && (
@@ -907,8 +926,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onNext={handleNextEffect}
         />
       )}
-      {editingDevice && (
-        <LedMapEditor device={editingDevice} initialTab={editorInitialTab} onClose={() => setEditingDeviceId(null)} />
+      {editorTarget && (
+        <LedMapEditor
+          deviceId={editorTarget.deviceId}
+          initialZoneId={editorTarget.zoneId}
+          devices={devices}
+          zoneCustomizable={editorTarget.zoneCustomizable}
+          initialCommunityOpen={editorCommunityOpen}
+          onClose={() => setEditorTarget(null)}
+        />
       )}
     </div>
   );
