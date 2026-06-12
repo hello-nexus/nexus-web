@@ -34,15 +34,15 @@ describe('KeebKeyboard - render', () => {
   it('renders every layout cell as a button with its function in the title attribute', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
     // ANSI cell count by row:
-    //   0:1 (RGB)  1:9 (media)  2:18 (Esc + F12 + nav + None/PassThrough)
-    //   3:21 (numbers + Backspace + Ins/Home/PgUp + NumLock-row of numpad)
-    //   4:21 (Tab/QWERTY top + Backslash + Del/End/PgDn + numpad row + KeypadPlus)
-    //   5:16 (CapsLock + ASDF + Return + numpad row)
-    //   6:17 (LeftShift + ZXC + RightShift + UpArrow + numpad + KeypadEqual)
-    //   7:13 (bottom-row modifiers + Space + arrows + Keypad0 + KeypadPeriodDelete)
-    // Total cells = 116, plus 2 wheel buttons = 118.
+    //   0:1 (RGB)  1:18 (Esc + F12 + nav + None/PassThrough)
+    //   2:21 (numbers + Backspace + Ins/Home/PgUp + NumLock-row of numpad)
+    //   3:21 (Tab/QWERTY top + Backslash + Del/End/PgDn + numpad row + KeypadPlus)
+    //   4:16 (CapsLock + ASDF + Return + numpad row)
+    //   5:17 (LeftShift + ZXC + RightShift + UpArrow + numpad + KeypadEqual)
+    //   6:13 (bottom-row modifiers + Space + arrows + Keypad0 + KeypadPeriodDelete)
+    // Total cells = 107, plus 2 wheel buttons = 109.
     const buttons = container.querySelectorAll('button');
-    expect(buttons.length).toBe(118);
+    expect(buttons.length).toBe(109);
   });
 
   it('renders the two rotary wheel buttons inline on row 0', () => {
@@ -58,22 +58,19 @@ describe('KeebKeyboard - render', () => {
     expect(rgb.className).toMatch(/keyMiddle/);
   });
 
-  it('applies the media-key visual class to all 9 row-1 cells', () => {
+  it('renders no media-key buttons (the TKL has no physical media row)', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
-    const media = ['Stop', 'ScanPreviousTrack', 'PlayAndPause', 'ScanNextTrack', 'Mute', 'VolumeUp', 'VolumeDown', 'Rewind', 'FastForward'];
-    for (const fn of media) {
-      const btn = container.querySelector(`button[title="${fn}"]`) as HTMLButtonElement;
-      expect(btn, fn).not.toBeNull();
-      expect(btn.className, fn).toMatch(/keyMedia/);
+    for (const fn of ['Stop', 'ScanPreviousTrack', 'PlayAndPause', 'ScanNextTrack', 'Mute', 'VolumeUp', 'VolumeDown', 'Rewind', 'FastForward']) {
+      expect(container.querySelector(`button[title="${fn}"]`), fn).toBeNull();
     }
   });
 
-  it('does NOT apply media/middle class to row 2+ keys (Esc, F1, Tab, etc.)', () => {
+  it('does NOT apply the middle class to row 1+ keys (Esc, F1, Tab, etc.)', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
     for (const fn of ['Escape', 'F1', 'Tab', 'A', 'LeftShift', 'Space']) {
       const btn = container.querySelector(`button[title="${fn}"]`) as HTMLButtonElement;
       expect(btn, fn).not.toBeNull();
-      expect(btn.className, fn).not.toMatch(/keyMedia|keyMiddle/);
+      expect(btn.className, fn).not.toMatch(/keyMiddle/);
     }
   });
 
@@ -120,30 +117,30 @@ describe('KeebKeyboard - render', () => {
   });
 
   it('uses the layer-state assigned function when present (overrides the printed legend)', () => {
-    // Override row 2 col 1 (F1 default) with a Macro1 assignment from the
+    // Override row 1 col 1 (F1 default) with a Macro1 assignment from the
     // firmware. The cell's `title` should reflect the assigned function, not
     // the default.
-    const keys = Array.from({ length: 8 }, () => [] as { mode: string; function: string; input: number | null }[]);
-    keys[2] = [
+    const keys = Array.from({ length: 7 }, () => [] as { mode: string; function: string; input: number | null }[]);
+    keys[1] = [
       { mode: 'StandardKey', function: 'Escape', input: null },
       { mode: 'MacroKey', function: 'Macro1', input: 1 },
     ];
     const { container } = render(<KeebKeyboard state={buildState({ keys })} />);
-    // The button at row 2 col 1 should show Macro1, not F1.
+    // The button at row 1 col 1 should show Macro1, not F1.
     const buttons = container.querySelectorAll('button[title="Macro1"]');
     expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
 
   it('with `useDefaults`, ignores state.keys assignments and renders the printed-legend layout', () => {
     // Same override as the previous test, but `useDefaults` should make the
-    // rendered button title revert to F1 (the printed default at row 2 col 1).
-    const keys = Array.from({ length: 8 }, () => [] as { mode: string; function: string; input: number | null }[]);
-    keys[2] = [
+    // rendered button title revert to F1 (the printed default at row 1 col 1).
+    const keys = Array.from({ length: 7 }, () => [] as { mode: string; function: string; input: number | null }[]);
+    keys[1] = [
       { mode: 'StandardKey', function: 'Escape', input: null },
       { mode: 'MacroKey', function: 'Macro1', input: 1 },
     ];
     const { container } = render(<KeebKeyboard state={buildState({ keys })} useDefaults />);
-    // F1 default should still render at (2, 1); the Macro1 override is suppressed.
+    // F1 default should still render at (1, 1); the Macro1 override is suppressed.
     expect(container.querySelector('button[title="F1"]')).not.toBeNull();
     expect(container.querySelector('button[title="Macro1"]')).toBeNull();
   });
@@ -155,8 +152,8 @@ describe('KeebKeyboard - selection', () => {
     const { container } = render(<KeebKeyboard state={buildState()} onSelect={onSelect} />);
     const a = container.querySelector('button[title="A"]') as HTMLButtonElement;
     fireEvent.click(a);
-    // A is on row 5 col 1 in ANSI (CapsLock at col 0).
-    expect(onSelect).toHaveBeenCalledWith({ kind: 'key', x: 5, y: 1 });
+    // A is on row 4 col 1 in ANSI (CapsLock at col 0).
+    expect(onSelect).toHaveBeenCalledWith({ kind: 'key', x: 4, y: 1 });
   });
 
   it('fires onSelect with the wheel side when a wheel is clicked', () => {
@@ -169,7 +166,7 @@ describe('KeebKeyboard - selection', () => {
   });
 
   it('marks the selected key visually (and only that key)', () => {
-    const selected: KeebSelection = { kind: 'key', x: 5, y: 1 };
+    const selected: KeebSelection = { kind: 'key', x: 4, y: 1 };
     const { container } = render(<KeebKeyboard state={buildState()} selected={selected} />);
     const a = container.querySelector('button[title="A"]') as HTMLButtonElement;
     expect(a.className).toMatch(/keySelected/);

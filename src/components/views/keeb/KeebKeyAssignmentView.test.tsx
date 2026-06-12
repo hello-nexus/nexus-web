@@ -141,7 +141,7 @@ describe('KeebKeyAssignmentView - source keyboard highlight reflects current map
   function stateWithAssignment(x: number, y: number, fn: string): KeyboardState {
     // Sparse keys array - only the target row needs to be populated for the
     // highlight lookup.
-    const keys: KeyboardState['keys'] = Array.from({ length: 8 }, () => []);
+    const keys: KeyboardState['keys'] = Array.from({ length: 7 }, () => []);
     keys[x] = [];
     for (let i = 0; i <= y; i++) {
       keys[x][i] = { mode: 'StandardKey', function: i === y ? fn : '', input: null };
@@ -157,16 +157,16 @@ describe('KeebKeyAssignmentView - source keyboard highlight reflects current map
   });
 
   it('selecting a target with its default mapping highlights that key on the source keyboard', () => {
-    // Target (5, 1) defaults to A. With no override, source A should highlight.
-    render(<KeebKeyAssignmentView selected={{ x: 5, y: 1 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />);
+    // Target (4, 1) defaults to A. With no override, source A should highlight.
+    render(<KeebKeyAssignmentView selected={{ x: 4, y: 1 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />);
     const a = document.body.querySelector('button[title="A"]') as HTMLButtonElement;
     expect(a.className).toMatch(/keySelected/);
   });
 
   it('selecting a target that has been remapped highlights the *new* mapping on the source keyboard', () => {
-    // Target (5, 1) (the A cell) currently has Q assigned to it.
+    // Target (4, 1) (the A cell) currently has Q assigned to it.
     // Source A should NOT highlight; source Q should.
-    render(<KeebKeyAssignmentView selected={{ x: 5, y: 1 }} state={stateWithAssignment(5, 1, 'Q')} setKey={setKey} resetLayer={resetLayer} />);
+    render(<KeebKeyAssignmentView selected={{ x: 4, y: 1 }} state={stateWithAssignment(4, 1, 'Q')} setKey={setKey} resetLayer={resetLayer} />);
     const a = document.body.querySelector('button[title="A"]') as HTMLButtonElement;
     const q = document.body.querySelector('button[title="Q"]') as HTMLButtonElement;
     expect(a.className).not.toMatch(/keySelected/);
@@ -180,25 +180,25 @@ describe('KeebKeyAssignmentView - source keyboard highlight reflects current map
   });
 
   it('clicking a different source key while a remap is highlighted rebinds the target', () => {
-    // Target (5, 1) currently mapped to Q. User clicks Z on the source -> setKey
+    // Target (4, 1) currently mapped to Q. User clicks Z on the source -> setKey
     // should be called with Z's StandardKey definition.
-    render(<KeebKeyAssignmentView selected={{ x: 5, y: 1 }} state={stateWithAssignment(5, 1, 'Q')} setKey={setKey} resetLayer={resetLayer} />);
+    render(<KeebKeyAssignmentView selected={{ x: 4, y: 1 }} state={stateWithAssignment(4, 1, 'Q')} setKey={setKey} resetLayer={resetLayer} />);
     const z = document.body.querySelector('button[title="Z"]') as HTMLButtonElement;
     expect(z).not.toBeNull();
     fireEvent.click(z);
-    expect(setKey).toHaveBeenCalledWith({ x: 5, y: 1, func: 'Z', mode: 'StandardKey' });
+    expect(setKey).toHaveBeenCalledWith({ x: 4, y: 1, func: 'Z', mode: 'StandardKey' });
   });
 
   it('highlight updates when the user picks a different top-keyboard cell', () => {
     const { rerender } = render(
-      <KeebKeyAssignmentView selected={{ x: 5, y: 1 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />,
+      <KeebKeyAssignmentView selected={{ x: 4, y: 1 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />,
     );
-    // A is highlighted because (5,1) defaults to A.
+    // A is highlighted because (4,1) defaults to A.
     expect((document.body.querySelector('button[title="A"]') as HTMLButtonElement).className).toMatch(/keySelected/);
 
-    // Switch target to (5, 2) -> defaults to S.
+    // Switch target to (4, 2) -> defaults to S.
     rerender(
-      <KeebKeyAssignmentView selected={{ x: 5, y: 2 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />,
+      <KeebKeyAssignmentView selected={{ x: 4, y: 2 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />,
     );
     expect((document.body.querySelector('button[title="A"]') as HTMLButtonElement).className).not.toMatch(/keySelected/);
     expect((document.body.querySelector('button[title="S"]') as HTMLButtonElement).className).toMatch(/keySelected/);
