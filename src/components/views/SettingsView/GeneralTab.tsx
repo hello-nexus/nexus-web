@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../common/Button/Button';
-import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle, SettingSelect } from '../../common/SettingRow/SettingRow';
 import { ThemeTab } from './ThemeTab';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -116,8 +116,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
   return (
     <div className={styles.tabPanel}>
-      <div className={styles.settingsGroup}>
-        <SectionHeader>General</SectionHeader>
+      <SettingsSection title="General">
         <SettingSelect
           label={t('settings.language')}
           value={settings.general.language}
@@ -130,16 +129,14 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           checked={settings.general.disableConflictAlerts}
           onChange={() => updateGeneral({ disableConflictAlerts: !settings.general.disableConflictAlerts })}
         />
-      </div>
+      </SettingsSection>
 
-      <div className={styles.settingsGroup}>
-        <SectionHeader>{t('settings.theme')}</SectionHeader>
+      <SettingsSection title={t('settings.theme')}>
         <ThemeTab settings={settings} updateGeneral={updateGeneral} />
-      </div>
+      </SettingsSection>
 
       {(platform === 'windows' || platform === 'macos') && (
-        <div className={styles.settingsGroup}>
-          <SectionHeader>Startup &amp; tray</SectionHeader>
+        <SettingsSection title="Startup & tray">
           {platform === 'windows' && autoStart !== null && (
             <SettingToggle
               label={t('settings.systemStartup.label')}
@@ -165,11 +162,10 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
               onChange={() => updateGeneral({ showMacStatusBarIcon: !settings.general.showMacStatusBarIcon })}
             />
           )}
-        </div>
+        </SettingsSection>
       )}
 
-      <div className={styles.settingsGroup}>
-        <SectionHeader>Privacy</SectionHeader>
+      <SettingsSection title="Privacy">
         {telemetryOn !== null && (
           <SettingToggle
             label="Share anonymous usage data"
@@ -193,10 +189,9 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             {t('settings.screentime.openButton')}
           </Button>
         </SettingRow>
-      </div>
+      </SettingsSection>
 
-      <div className={styles.settingsGroup}>
-        <SectionHeader>Diagnostics &amp; support</SectionHeader>
+      <SettingsSection title="Diagnostics & support">
         <SettingRow
           label="Logs"
           description="Open the folder with Nexus log files to share for diagnostics"
@@ -222,11 +217,9 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             {t('settings.feedback.report')}
           </a>
         </SettingRow>
-      </div>
+      </SettingsSection>
 
-      <div className={styles.settingsGroup}>
-        <SectionHeader style={{ color: 'var(--bad)' }}>{t('settings.dangerZone')}</SectionHeader>
-
+      <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
         {(platform === 'windows' || platform === 'macos') && (
           <SettingRow
             label={t('settings.shutDown.label')}
@@ -258,7 +251,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             {t('settings.factoryReset.button')}
           </Button>
         </SettingRow>
-      </div>
+      </SettingsSection>
 
       <ConfirmModal
         open={stopConfirmOpen}

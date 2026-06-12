@@ -133,8 +133,10 @@
   left: 0;
   z-index: var(--z-dropdown);
   min-width: 200px;
-  background: var(--surface);
-  border: var(--border-width) solid var(--border-strong);
+  // Match the top-bar "..." menu (.menuDropdown) chrome so popovers read
+  // identically: elevated surface + subtle --border (not --border-strong).
+  background: var(--bg-elevated);
+  border: var(--border-width) solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-xl);
   overflow: hidden;

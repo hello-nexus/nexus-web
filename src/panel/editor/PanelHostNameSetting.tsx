@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { SectionHeader } from '../../components/common/SectionHeader/SectionHeader';
+import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
 import styles from './PanelHostNameSetting.module.scss';
 
 interface PanelHostNameSettingProps {
@@ -37,8 +37,7 @@ export function PanelHostNameSetting({ machineName, onCommit }: PanelHostNameSet
   };
 
   return (
-    <div className={styles.section}>
-      <SectionHeader>Computer name</SectionHeader>
+    <SettingsSection title="Computer name">
       <input
         ref={inputRef}
         id="panel-host-name-input"
@@ -62,6 +61,6 @@ export function PanelHostNameSetting({ machineName, onCommit }: PanelHostNameSet
         spellCheck={false}
       />
       <div className={styles.hint}>Shown to paired phones and in the panel tray.</div>
-    </div>
+    </SettingsSection>
   );
 }
