@@ -42,6 +42,7 @@ import { emojiApp } from './emoji';
 import { galleryApp } from './gallery';
 import { pairingApp } from './pairing';
 import { transferApp } from './transfer';
+import { cameraApp } from './camera';
 
 // Single source of truth for app type -> manifest. "App" is the
 // conceptual unit (one per widget type); the manifest carries up to
@@ -69,6 +70,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   gallery:    galleryApp,
   pairing:    pairingApp,
   transfer:   transferApp,
+  camera:     cameraApp,
 };
 
 // Whether an app can appear on a given surface. The decision is purely

@@ -1,0 +1,116 @@
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  gap: 10px;
+  color: var(--panel-text);
+  overflow: hidden;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+
+  &[data-fit='cover'] { object-fit: cover; }
+  &[data-fit='contain'] { object-fit: contain; background: #000; }
+}
+
+.inUse {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--panel-element-radius);
+  background: var(--panel-element-bg);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.inUseDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bad);
+  animation: cameraInUsePulse 2s ease-in-out infinite;
+}
+
+@keyframes cameraInUsePulse {
+  50% { opacity: 0.4; }
+}
+
+.hud {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 220px;
+}
+
+// Over live video the controls sink to the bottom edge so the frame stays clear.
+.container[data-live='true'] .hud {
+  margin-top: auto;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 1.2em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--panel-text-muted);
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  &[data-phase='streaming'] { color: var(--panel-accent-glow); }
+  &[data-phase='error'] { color: var(--bad); white-space: normal; text-align: center; }
+}
+
+.container[data-live='true'] .status {
+  padding: 2px 8px;
+  border-radius: var(--panel-element-radius);
+  background: var(--panel-element-bg);
+}
+
+.actionBtn {
+  padding: 10px 16px;
+  min-height: 44px;
+  font-size: 13px;
+  width: 100%;
+
+  &[data-live='true'] {
+    width: auto;
+    align-self: center;
+  }
+}
+
+.container[data-size='4x2'] .hud {
+  flex-direction: row;
+  justify-content: center;
+  max-width: none;
+}
+
+.container[data-size='4x2'] .actionBtn {
+  width: auto;
+  flex: 0 0 auto;
+}
