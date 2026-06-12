@@ -2,28 +2,32 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useKeeb } from './useKeeb';
 import {
+  type KeebMacro,
   type KeebSettings,
   type KeyboardState,
   type SetLayerKeyBody,
+  getKeebMacro,
   getKeebSettings,
   getKeebState,
   resetKeebLayer,
   setKeebFirmwareLighting,
   setKeebGameMode,
   setKeebLayerKey,
+  setKeebMacro,
   setKeebPassiveLighting,
   setKeebRotary,
   setKeebRotarySensitivity,
 } from '../api/keeb';
 
 vi.mock('../api/keeb', () => ({
-  getKeebLayer: vi.fn(),
+  getKeebMacro: vi.fn(),
   getKeebSettings: vi.fn(),
   getKeebState: vi.fn(),
   resetKeebLayer: vi.fn(),
   setKeebFirmwareLighting: vi.fn(),
   setKeebGameMode: vi.fn(),
   setKeebLayerKey: vi.fn(),
+  setKeebMacro: vi.fn(),
   setKeebPassiveLighting: vi.fn(),
   setKeebRotary: vi.fn(),
   setKeebRotarySensitivity: vi.fn(),
@@ -33,6 +37,8 @@ const mockState = vi.mocked(getKeebState);
 const mockSettings = vi.mocked(getKeebSettings);
 const mockSetKey = vi.mocked(setKeebLayerKey);
 const mockReset = vi.mocked(resetKeebLayer);
+const mockGetMacro = vi.mocked(getKeebMacro);
+const mockSetMacro = vi.mocked(setKeebMacro);
 const mockFw = vi.mocked(setKeebFirmwareLighting);
 const mockPassive = vi.mocked(setKeebPassiveLighting);
 const mockGameMode = vi.mocked(setKeebGameMode);
@@ -336,6 +342,73 @@ describe('useKeeb', () => {
     expect(mockSensitivity).toHaveBeenCalledWith('High');
     // The failed sensitivity write scheduled a resync fetch.
     expect(mockState).toHaveBeenCalledTimes(2);
+  });
+
+  it('saveMacro returns the acked macro and suppresses the poll while in flight', async () => {
+    const { result } = await renderKeeb();
+    expect(mockState).toHaveBeenCalledTimes(1);
+
+    const write = deferred<KeebMacro | null>();
+    mockSetMacro.mockReturnValue(write.promise);
+    let pending!: Promise<KeebMacro | null>;
+    act(() => { pending = result.current.saveMacro(2, []); });
+    expect(mockSetMacro).toHaveBeenCalledWith(2, []);
+
+    await advance(1500);
+    await advance(1500);
+    // The interval fired twice but no fetch went out while the save was pending.
+    expect(mockState).toHaveBeenCalledTimes(1);
+    expect(mockSettings).toHaveBeenCalledTimes(1);
+
+    const macro: KeebMacro = { index: 2, keys: [] };
+    let saved: KeebMacro | null = null;
+    await act(async () => {
+      write.resolve(macro);
+      saved = await pending;
+    });
+    expect(saved).toBe(macro);
+
+    // Acked: polling resumes, no resync was needed.
+    await advance(1500);
+    expect(mockState).toHaveBeenCalledTimes(2);
+  });
+
+  it('saveMacro null triggers the state/settings resync', async () => {
+    const { result } = await renderKeeb();
+    expect(mockState).toHaveBeenCalledTimes(1);
+
+    mockSetMacro.mockResolvedValue(null);
+    let saved: KeebMacro | null = { index: 0, keys: [] };
+    await act(async () => { saved = await result.current.saveMacro(1, []); });
+    await flush();
+
+    expect(saved).toBeNull();
+    // The failed write scheduled an immediate refetch of state + settings.
+    expect(mockState).toHaveBeenCalledTimes(2);
+    expect(mockSettings).toHaveBeenCalledTimes(2);
+  });
+
+  it('loadMacro passes through and does NOT suppress polling', async () => {
+    const { result } = await renderKeeb();
+    expect(mockState).toHaveBeenCalledTimes(1);
+
+    const read = deferred<KeebMacro | null>();
+    mockGetMacro.mockReturnValue(read.promise);
+    let pending!: Promise<KeebMacro | null>;
+    act(() => { pending = result.current.loadMacro(3); });
+    expect(mockGetMacro).toHaveBeenCalledWith(3);
+
+    // A poll lands while the read is still in flight.
+    await advance(1500);
+    expect(mockState).toHaveBeenCalledTimes(2);
+
+    const macro: KeebMacro = { index: 3, keys: [] };
+    let loaded: KeebMacro | null = null;
+    await act(async () => {
+      read.resolve(macro);
+      loaded = await pending;
+    });
+    expect(loaded).toBe(macro);
   });
 
   it('stops polling after unmount', async () => {

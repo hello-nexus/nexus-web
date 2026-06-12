@@ -100,7 +100,7 @@ export function KeebDevicePage() {
         onTabChange={(k) => setTab(k as Tab)}
         tabActions={tab === 'key-assignment' ? (
           <div className={pageStyles.layerChips} aria-label={t('keeb.layer')}>
-            <LayersIcon size={14} className={pageStyles.layerChipsIcon} aria-hidden="true" />
+            <LayersIcon size={14} className={pageStyles.layerChipsIcon} aria-hidden />
             {KEEB_LAYERS.map(l => (
               <IconLabelButton
                 key={l}
@@ -164,8 +164,17 @@ export function KeebDevicePage() {
               resetLayer={async () => { reportWrite(await keeb.resetLayer()); }}
             />
           )}
-          {tab === 'macros' && <KeebMacroView open />}
-          {tab === 'tester' && <KeebTesterView open={tab === 'tester'} />}
+          {tab === 'macros' && (
+            <KeebMacroView
+              loadMacro={keeb.loadMacro}
+              saveMacro={async (i, keys) => {
+                const r = await keeb.saveMacro(i, keys);
+                reportWrite(r !== null);
+                return r;
+              }}
+            />
+          )}
+          {tab === 'tester' && <KeebTesterView />}
           {tab === 'settings' && (
             <KeebSettingsView
               settings={keeb.settings}

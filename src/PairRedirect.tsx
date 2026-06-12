@@ -184,11 +184,18 @@ export function PairRedirect() {
     return () => { cancelled = true; };
   }, [valid, host, httpPort, pair, region]);
 
+  // NOTE: this component is mounted by App.tsx at /r/pair WITHOUT an
+  // I18nProvider ancestor, so useTranslation()'s t() would return raw keys
+  // instead of copy. The phone-landing strings below therefore stay literal
+  // English until this route is given an i18n context; the lint disables mark
+  // that intentional gap.
   if (!valid) {
     return (
       <Frame>
+        {/* eslint-disable i18next/no-literal-string -- renders outside I18nProvider, see file note */}
         <Title>Invalid pairing link</Title>
         <Sub>This link is missing pairing information. Re-scan the QR from your dashboard.</Sub>
+        {/* eslint-enable i18next/no-literal-string */}
       </Frame>
     );
   }
@@ -196,8 +203,10 @@ export function PairRedirect() {
   if (phase.state === 'rejected') {
     return (
       <Frame>
+        {/* eslint-disable i18next/no-literal-string -- renders outside I18nProvider, see file note */}
         <Title>Pairing expired</Title>
         <Sub>Generate a new QR from the Nexus dashboard ("Pair Phone") and scan it again.</Sub>
+        {/* eslint-enable i18next/no-literal-string */}
         {phase.error && <Sub mono>{phase.error}</Sub>}
       </Frame>
     );
@@ -206,11 +215,13 @@ export function PairRedirect() {
   if (phase.state === 'unreachable') {
     return (
       <Frame>
+        {/* eslint-disable i18next/no-literal-string -- renders outside I18nProvider, see file note */}
         <Title>Couldn't reach your PC</Title>
         <Sub>
           Make sure Nexus is running on your PC and that "Pair Remote" (and the cloud relay) are
           enabled in the dashboard, then re-scan the QR.
         </Sub>
+        {/* eslint-enable i18next/no-literal-string */}
       </Frame>
     );
   }
@@ -218,8 +229,10 @@ export function PairRedirect() {
   if (phase.state === 'relay') {
     return (
       <Frame>
+        {/* eslint-disable i18next/no-literal-string -- renders outside I18nProvider, see file note */}
         <Title>Connecting over the internet…</Title>
-        <Sub>{phase.machineName ? `Paired with ${phase.machineName}` : 'Paired — opening your panel.'}</Sub>
+        <Sub>{phase.machineName ? `Paired with ${phase.machineName}` : 'Paired - opening your panel.'}</Sub>
+        {/* eslint-enable i18next/no-literal-string */}
       </Frame>
     );
   }
@@ -230,9 +243,11 @@ export function PairRedirect() {
   const lanURL = phase.state === 'lan' ? phase.lanURL : '';
   return (
     <Frame>
+      {/* eslint-disable-next-line i18next/no-literal-string -- renders outside I18nProvider, see file note */}
       <Title>Connecting to your PC…</Title>
       <Sub mono>{`${host}:${httpPort}`}</Sub>
       {lanURL && (
+        // eslint-disable-next-line i18next/no-literal-string -- renders outside I18nProvider, see file note
         <a href={lanURL} style={fallbackLink}>
           Continue
         </a>

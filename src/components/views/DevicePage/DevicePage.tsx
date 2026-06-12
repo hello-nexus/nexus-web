@@ -9,6 +9,7 @@ import { KeebDevicePage } from './KeebDevicePage';
 import { Np50DevicePage } from './Np50DevicePage';
 import { SmartHubDevicePage } from './SmartHubDevicePage';
 import { CnvsDevicePage } from './CnvsDevicePage';
+import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 
 /**
@@ -32,6 +33,7 @@ interface DevicePageProps {
 }
 
 export function DevicePage({ deviceKey, serviceOnline, connectionState }: DevicePageProps) {
+  const { t } = useTranslation();
   const { unified } = useUnifiedDevices(serviceOnline);
   const device = useMemo<UnifiedDevice | undefined>(
     () => unified.find(d => d.key === deviceKey),
@@ -45,8 +47,8 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
   if (!device) {
     return (
       <section>
-        <ViewHeader title="Device" />
-        <Placeholder title="Device not found" />
+        <ViewHeader title={t('devices.page.title')} />
+        <Placeholder title={t('devices.page.notFound')} />
       </section>
     );
   }
@@ -87,7 +89,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
   return (
     <section>
       <ViewHeader title={device.name} />
-      <Placeholder title={`No page yet for ${device.category}`} />
+      <Placeholder title={t('devices.page.noPageYet', { category: device.category })} />
     </section>
   );
 }

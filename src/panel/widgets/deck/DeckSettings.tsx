@@ -99,6 +99,7 @@ function ActionFields({ action, onChange }: { action: DeckAction; onChange: (a: 
     case 'launchApp':
       return <Field label={t('panel.settings.deck.action.launchApp')}><AppPicker selectedId={action.appId} onSelect={app => onChange({ type: 'launchApp', appId: app.id })} /></Field>;
     case 'openUrl':
+      // eslint-disable-next-line i18next/no-literal-string -- example URL placeholder
       return <Field label={t('panel.settings.url')}><input className={styles.input} type="text" value={action.url} placeholder="https://example.com" onChange={e => onChange({ ...action, url: e.target.value })} /></Field>;
     case 'openFile':
     case 'openFolder':
@@ -123,6 +124,7 @@ function ActionFields({ action, onChange }: { action: DeckAction; onChange: (a: 
       return (
         <>
           <Field label={t('panel.settings.deck.text')}><textarea className={styles.input} value={action.text} rows={2} onChange={e => onChange({ ...action, text: e.target.value })} /></Field>
+          {/* eslint-disable-next-line i18next/no-literal-string -- option enum values */}
           <SelectField label={t('panel.settings.deck.paste')} value={(action.paste ?? true) ? 'yes' : 'no'} options={[{ value: 'yes', label: t('panel.settings.deck.pasteOn') }, { value: 'no', label: t('panel.settings.deck.pasteOff') }]} onChange={v => onChange({ ...action, paste: v === 'yes' })} />
         </>
       );
@@ -156,9 +158,11 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
       {a.op === 'rgbEffect' && <Field label={t('panel.settings.deck.effect')}><input className={styles.input} type="text" value={a.effect ?? ''} onChange={e => set({ effect: e.target.value })} /></Field>}
       {a.op === 'rgbScene' && <Field label={t('panel.settings.deck.scene')}><input className={styles.input} type="text" value={a.profileId ?? ''} onChange={e => set({ profileId: e.target.value })} /></Field>}
       {a.op === 'lightingBrightness' && <Field label={t('panel.settings.deck.value')}><input className={styles.input} type="number" min={0} max={100} value={Math.round((a.value ?? 1) * 100)} onChange={e => set({ value: clamp(Number(e.target.value) / 100, 0, 1) })} /></Field>}
+      {/* eslint-disable-next-line i18next/no-literal-string -- option enum values */}
       {a.op === 'lightingPower' && <><Field label={t('panel.settings.deck.device')}><input className={styles.input} type="text" value={a.deviceId ?? ''} onChange={e => set({ deviceId: e.target.value })} /></Field><SelectField label={t('panel.settings.deck.on')} value={(a.on ?? true) ? 'yes' : 'no'} options={[{ value: 'yes', label: t('panel.settings.deck.stateOn') }, { value: 'no', label: t('panel.settings.deck.stateOff') }]} onChange={v => set({ on: v === 'yes' })} /></>}
       {a.op === 'fanProfile' && <SelectField label={t('panel.settings.deck.fanProfile')} value={a.profile ?? 'Balanced'} options={['Silent', 'Balanced', 'Performance', 'auto'].map(p => ({ value: p, label: p }))} onChange={profile => set({ profile })} />}
       {a.op === 'fanSpeed' && <><Field label={t('panel.settings.deck.fan')}><input className={styles.input} type="text" value={a.fanId ?? ''} onChange={e => set({ fanId: e.target.value })} /></Field><Field label={t('panel.settings.deck.value')}><input className={styles.input} type="number" min={0} max={100} value={a.value ?? 0} onChange={e => set({ value: clamp(Number(e.target.value), 0, 100) })} /></Field></>}
+      {/* eslint-disable-next-line i18next/no-literal-string -- option enum values */}
       {a.op === 'y70Power' && <SelectField label={t('panel.settings.deck.on')} value={(a.on ?? true) ? 'yes' : 'no'} options={[{ value: 'yes', label: t('panel.settings.deck.stateOn') }, { value: 'no', label: t('panel.settings.deck.stateOff') }]} onChange={v => set({ on: v === 'yes' })} />}
       {a.op === 'y70Brightness' && <Field label={t('panel.settings.deck.value')}><input className={styles.input} type="number" min={0} max={100} value={a.value ?? 0} onChange={e => set({ value: clamp(Number(e.target.value), 0, 100) })} /></Field>}
       {a.op === 'y70Rotation' && <SelectField label={t('panel.settings.deck.orientation')} value={a.orientation ?? 'landscape'} options={['landscape', 'portrait'].map(o => ({ value: o, label: t(`panel.settings.deck.${o}`) }))} onChange={orientation => set({ orientation })} />}

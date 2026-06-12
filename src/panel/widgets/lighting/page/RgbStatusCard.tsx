@@ -1,3 +1,4 @@
+import { useTranslation } from '../../../../lib/i18n';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import styles from '../LightingPage.module.scss';
 
@@ -24,7 +25,8 @@ export function RgbStatusCard({ rgbRunning, onClick, title }: {
   onClick?: () => void;
   title?: string;
 }) {
-  const status = rgbRunning ? 'OpenRGB running' : 'OpenRGB not running';
+  const { t } = useTranslation();
+  const status = rgbRunning ? t('lighting.openrgb.running') : t('lighting.openrgb.notRunning');
   const dot = (
     <span className={`${styles.statusDot} ${rgbRunning ? styles.statusDotOnline : styles.statusDotOffline}`} />
   );
@@ -37,6 +39,7 @@ export function RgbStatusCard({ rgbRunning, onClick, title }: {
         aria-label={title ?? status}
       >
         <OpenRgbGlyph />
+        {/* eslint-disable-next-line i18next/no-literal-string -- OpenRGB brand name */}
         <span className={styles.statusBadgeLabel}>OpenRGB</span>
         {dot}
       </button>
@@ -46,6 +49,7 @@ export function RgbStatusCard({ rgbRunning, onClick, title }: {
   return (
     <div className={styles.statusCard} role="status" aria-label={status}>
       <OpenRgbGlyph />
+      {/* eslint-disable-next-line i18next/no-literal-string -- OpenRGB brand name */}
       <span className={styles.statusBadgeLabel}>OpenRGB</span>
       {dot}
     </div>

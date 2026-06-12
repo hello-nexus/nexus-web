@@ -40,7 +40,7 @@ export function SmartLightsWidget({ widget, onSectionNavigate }: WidgetProps) {
   return (
     <div className={styles.widget} data-size={widget.size}>
       <div className={styles.header}>
-        <LampCeiling size={compact ? 18 : 20} aria-hidden="true" />
+        <LampCeiling size={compact ? 18 : 20} aria-hidden />
         <span className={styles.title}>{t('panel.widget.smart-lights')}</span>
       </div>
       <div className={styles.stats}>

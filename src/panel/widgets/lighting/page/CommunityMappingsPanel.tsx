@@ -10,7 +10,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { useToast } from '../../../../components/common/Toast/Toast';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { MappingPreview } from './MappingPreview';
-import { PublishMappingDialog, type PublishMappingFields } from './PublishMappingDialog';
+import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { looksLikeMappingArtifact, sanitizeFileName } from './mappingUtils';
 import styles from './CommunityMappings.module.scss';
 
@@ -152,13 +152,11 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
     confirmDiscardEdits(() => { void importArtifact(artifact); });
   };
 
-  const handlePublish = async (fields: PublishMappingFields) => {
+  const handlePublish = async () => {
     setPublishing(true);
-    const resp = await publishDeviceMapping(deviceId, fields);
+    const resp = await publishDeviceMapping(deviceId);
     if (!mountedRef.current) return;
     setPublishing(false);
-    // Keep the dialog (and the user's typed name / description) open on
-    // failure so a retry doesn't start from scratch; close only on success.
     if (!resp) {
       push({ title: t('lighting.mappings.publishFailedTitle'), body: t('lighting.mappings.publishFailedBody') });
       return;
@@ -172,7 +170,6 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
       });
       return;
     }
-    setPublishDialogOpen(false);
     if (resp.alreadyExisted) {
       push({ title: t('lighting.mappings.publishExistsTitle'), body: t('lighting.mappings.publishExistsBody') });
     } else {
@@ -257,14 +254,14 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
         )}
         <div className={styles.spacer} />
         <button type="button" className={styles.btn} onClick={() => fileInputRef.current?.click()}>
-          <Upload size={13} aria-hidden />
+          <Download size={13} aria-hidden />
           {t('lighting.mappings.import')}
         </button>
         <button type="button" className={styles.btn} onClick={() => { void handleExport(); }}>
-          <Download size={13} aria-hidden />
+          <Upload size={13} aria-hidden />
           {t('lighting.mappings.export')}
         </button>
-        <button type="button" className={`${styles.btn} ${styles.btnPrimary}`}
+        <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} disabled={publishing}
           onClick={() => setPublishDialogOpen(true)}>
           {t('lighting.mappings.publish')}
         </button>
@@ -312,10 +309,17 @@ export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, 
         }}
       />
 
-      <PublishMappingDialog
+      <ConfirmModal
         open={publishOpen}
-        busy={publishing}
-        onSubmit={fields => { void handlePublish(fields); }}
+        title={t('lighting.mappings.publishTitle')}
+        message={t('lighting.mappings.publishConfirmMessage', { device: deviceName })}
+        note={t('lighting.mappings.publishConfirmNote')}
+        confirmLabel={t('lighting.mappings.publish')}
+        destructive={false}
+        onConfirm={() => {
+          setPublishDialogOpen(false);
+          void handlePublish();
+        }}
         onCancel={() => setPublishDialogOpen(false)}
       />
     </div>

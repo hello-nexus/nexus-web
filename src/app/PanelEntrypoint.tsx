@@ -12,6 +12,7 @@ import { storePhoneToken } from '../api/auth';
 import { getDeviceId } from '../api/deviceId';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
+import { useTranslation } from '../lib/i18n';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { PANEL_DEVICE_ID_KEY, PHONE_PANEL_PWA_KEY } from './panelRouting';
 import styles from '../App.module.scss';
@@ -69,6 +70,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
   // local-origin scan — fall back to this origin's own stable id.
   pairDeviceId: string | null;
 }) {
+  const { t } = useTranslation();
   const needsPhoneClaim = isPhonePair && Boolean(pairToken);
   const [state, setState] = useState<PanelEntrypointState>(() =>
     needsPhoneClaim
@@ -151,7 +153,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       // not-yet-paired symptom in practice.
       const kind: PanelFailureKind = result.status === 401 || result.status === 403 ? 'auth' : 'network';
       setFailureKind(kind);
-      setFailureDetail(result.status ? `HTTP ${result.status}` : 'Network error');
+      setFailureDetail(result.status ? `HTTP ${result.status}` : t('panel.gate.networkError'));
       setState('failed');
     };
 
@@ -181,7 +183,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       finish(cached);
     })();
     return () => { cancelled = true; };
-  }, [state, inferredSurface, viewportCapabilities, allocAttempt]);
+  }, [state, inferredSurface, viewportCapabilities, allocAttempt, t]);
 
   const retry = useCallback(() => {
     setFailureDetail('');
@@ -190,10 +192,10 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
   }, []);
 
   if (state === 'claiming') {
-    return <div className={styles.panelPairGate}>Pairing phone...</div>;
+    return <div className={styles.panelPairGate}>{t('panel.gate.pairingPhone')}</div>;
   }
   if (state === 'allocating') {
-    return <div className={styles.panelPairGate}>Registering panel...</div>;
+    return <div className={styles.panelPairGate}>{t('panel.gate.registering')}</div>;
   }
   if (state === 'failed') {
     return (
@@ -206,7 +208,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
     );
   }
   if (!deviceId) {
-    return <div className={styles.panelPairGate}>No device id</div>;
+    return <div className={styles.panelPairGate}>{t('panel.gate.noDeviceId')}</div>;
   }
   return <PanelWrapper deviceId={deviceId} />;
 }
@@ -217,19 +219,20 @@ function PanelEntrypointFailure({ kind, detail, isPhone, onRetry }: {
   isPhone: boolean;
   onRetry: () => void;
 }) {
-  let headline = 'Could not register this panel';
+  const { t } = useTranslation();
+  let headline = t('panel.gate.fail.registerHeadline');
   let body = '';
   if (kind === 'auth') {
-    headline = isPhone ? 'Pair this phone first' : 'This panel needs to be authorized';
+    headline = isPhone ? t('panel.gate.fail.pairPhoneHeadline') : t('panel.gate.fail.authHeadline');
     body = isPhone
-      ? 'On your PC, open the Nexus dashboard, tap "Pair Phone" in the sidebar, and scan the QR code with this phone. Then tap Retry below.'
-      : 'Open this URL with a service token (?token=...), or load it from the local machine where nexus-service is running.';
+      ? t('panel.gate.fail.pairPhoneBody')
+      : t('panel.gate.fail.authBody');
   } else if (kind === 'pair-expired') {
-    headline = 'Pairing expired';
-    body = 'Generate a new QR from the Nexus dashboard ("Pair Phone") and scan it again.';
+    headline = t('panel.gate.fail.expiredHeadline');
+    body = t('panel.gate.fail.expiredBody');
   } else {
-    headline = 'Could not reach the service';
-    body = 'Check that nexus-service is running, then retry.';
+    headline = t('panel.gate.fail.serviceHeadline');
+    body = t('panel.gate.fail.serviceBody');
   }
 
   return (
@@ -239,7 +242,7 @@ function PanelEntrypointFailure({ kind, detail, isPhone, onRetry }: {
         <p className={styles.panelPairGateBody}>{body}</p>
         {detail && <p className={styles.panelPairGateDetail}>{detail}</p>}
         <button type="button" className={styles.panelPairGateRetry} onClick={onRetry}>
-          Retry
+          {t('panel.gate.retry')}
         </button>
       </div>
     </div>

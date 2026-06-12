@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { computeCurveSpeed } from './page/CurveEditor';
 import type { CurveDef, FanState } from '../../../types/cooling';
 import type { FanChannel, TemperatureSource } from '../../../api/cooling';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './CoolingResponseChart.module.scss';
 
 const TEMP_MIN = 20;
@@ -58,6 +59,7 @@ export function CoolingResponseChart({
   curves, fanStates, channels, sources,
   cpuTemp, gpuTemp, avgDuty,
 }: Props) {
+  const { t } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
   const fanReadoutRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(220);
@@ -136,7 +138,7 @@ export function CoolingResponseChart({
     return (
       <div ref={wrapRef} className={styles.chart}>
         {hasFanReadout && (
-          <div ref={fanReadoutRef} className={styles.fanReadout} aria-label="Average fan duty">
+          <div ref={fanReadoutRef} className={styles.fanReadout} aria-label={t('cooling.response.avgFanDuty')}>
             <span className={styles.fanLabel}>FANS</span>
             <span className={styles.fanValue}>{Math.round(avgDuty!)}%</span>
           </div>
@@ -205,7 +207,7 @@ export function CoolingResponseChart({
   return (
     <div ref={wrapRef} className={styles.chart} data-synthetic={isSynthetic ? 'true' : undefined}>
       {hasFanReadout && (
-        <div ref={fanReadoutRef} className={styles.fanReadout} aria-label="Average fan duty">
+        <div ref={fanReadoutRef} className={styles.fanReadout} aria-label={t('cooling.response.avgFanDuty')}>
           <span className={styles.fanLabel}>FANS</span>
           <span className={styles.fanValue}>{Math.round(avgDuty!)}%</span>
         </div>

@@ -146,7 +146,9 @@ export function PanelThemeSettings({
       variant="pill"
       fullWidth
       tabs={[
+        // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
         { key: 'solid', label: label('panel.settings.backgroundMode.solid', 'Solid') },
+        // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
         { key: 'shader', label: label('panel.settings.backgroundMode.animations', 'Animations') },
       ]}
       activeKey={theme.backgroundMode}
@@ -171,6 +173,7 @@ export function PanelThemeSettings({
           onChange={onWidgetBlurCommit}
         />
         <Slider
+          // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
           orientation="stacked"
           label={label('panel.settings.widgetOpacity', 'Widget opacity')}
           value={widgetOpacityPercent}
@@ -188,7 +191,7 @@ export function PanelThemeSettings({
         />
       </SettingsSection>
 
-      <SettingsSection title={t('settings.theme') || 'Theme'} boxClassName={styles.themeBox}>
+      <SettingsSection title={label('settings.theme', 'Theme')} boxClassName={styles.themeBox}>
         <SettingToggle
           label={syncWithDesktopLabel}
           checked={theme.themeSyncWithDesktop}
@@ -203,13 +206,13 @@ export function PanelThemeSettings({
             }))}
             activeKey={theme.themeMode}
             onChange={key => onThemeModeCommit(key as ThemeMode)}
-            ariaLabel={t('settings.theme') || 'Theme'}
+            ariaLabel={label('settings.theme', 'Theme')}
             className={styles.themeModeTabs}
           />
         )}
       </SettingsSection>
 
-      <SettingsSection title={t('devices.y70.theme.accent') || 'Accent Color'} boxClassName={styles.themeBox}>
+      <SettingsSection title={label('devices.y70.theme.accent', 'Accent Color')} boxClassName={styles.themeBox}>
         <SettingToggle
           label={syncWithDesktopLabel}
           checked={theme.accentSyncWithDesktop}
@@ -230,7 +233,7 @@ export function PanelThemeSettings({
           effect grid, not a simple settings card. Header restyles via the
           shared SectionHeader. */}
       <div className={styles.themeSection}>
-        <SectionHeader>{t('devices.y70.theme.background') || 'Background'}</SectionHeader>
+        <SectionHeader>{label('devices.y70.theme.background', 'Background')}</SectionHeader>
         {theme.backgroundMode === 'solid' ? (
           <>
             {backgroundModeTabs}
@@ -255,7 +258,9 @@ export function PanelThemeSettings({
                 variant="pill"
                 fullWidth
                 tabs={[
+                  // eslint-disable-next-line i18next/no-literal-string -- editor tab id
                   { key: 'options', label: t('lighting.editor.options') },
+                  // eslint-disable-next-line i18next/no-literal-string -- editor tab id
                   { key: 'effect', label: t('lighting.rightPane.effect') },
                 ]}
                 activeKey={editorTab}
@@ -296,6 +301,7 @@ export function PanelThemeSettings({
                   panelSlots={panelUsage.slotsByEffect.get(backgroundController.effect)}
                 />
                 <Slider
+                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
                   orientation="stacked"
                   label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
                   value={backgroundOpacityPercent}

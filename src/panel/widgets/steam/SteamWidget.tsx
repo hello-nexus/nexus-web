@@ -143,10 +143,10 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
       <PanelWidgetShell size={widget.size} className={styles.widget}>
         <PanelWidgetSetup
           icon={<Gamepad2 size={28} />}
-          message={status?.reason || 'Add a Steam Web API key in widget settings.'}
+          message={status?.reason || t('steam.setup.message')}
           actions={onConfigure ? (
             <button type="button" className="panel-chip" onClick={onConfigure}>
-              Settings
+              {t('steam.setup.settings')}
             </button>
           ) : undefined}
         />
@@ -163,20 +163,21 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
           <div className={styles.avatarFallback}><Gamepad2 size={22} /></div>
         )}
         <div className={styles.profileText}>
+          {/* eslint-disable-next-line i18next/no-literal-string -- Steam brand-name fallback */}
           <div className={styles.name}>{profile?.personaName || 'Steam'}</div>
           <div className={styles.statusLine}>
             <PanelStatusDot tone={personaStatusKey(profile?.personaState)} />
-            <span>{personaStatusLabel(profile?.personaState)}</span>
-            {currentGame && <span className={styles.nowPlaying}>Playing {currentGame.name}</span>}
+            <span>{personaStatusLabel(t, profile?.personaState)}</span>
+            {currentGame && <span className={styles.nowPlaying}>{t('steam.playing', { name: currentGame.name })}</span>}
           </div>
         </div>
         {level !== null && <div className={styles.level}>{level}</div>}
       </header>
 
-      <PanelWidgetTabs ariaLabel="Steam widget views" compact={compact}>
-        <PanelWidgetTab active={activeTab === 'activity'} onClick={() => setActiveTab('activity')} icon={<Gamepad2 size={14} />} label="Activity" tooltip="Activity" />
-        <PanelWidgetTab active={activeTab === 'playing'} onClick={() => setActiveTab('playing')} icon={<Play size={14} />} label="Playing" tooltip="Playing" />
-        <PanelWidgetTab active={activeTab === 'friends'} onClick={() => setActiveTab('friends')} icon={<Users size={14} />} label="Friends" tooltip="Friends" />
+      <PanelWidgetTabs ariaLabel={t('steam.tabs.ariaLabel')} compact={compact}>
+        <PanelWidgetTab active={activeTab === 'activity'} onClick={() => setActiveTab('activity')} icon={<Gamepad2 size={14} />} label={t('steam.tab.activity')} tooltip={t('steam.tab.activity')} />
+        <PanelWidgetTab active={activeTab === 'playing'} onClick={() => setActiveTab('playing')} icon={<Play size={14} />} label={t('steam.tab.playing')} tooltip={t('steam.tab.playing')} />
+        <PanelWidgetTab active={activeTab === 'friends'} onClick={() => setActiveTab('friends')} icon={<Users size={14} />} label={t('steam.tab.friends')} tooltip={t('steam.tab.friends')} />
       </PanelWidgetTabs>
 
       <main className={styles.content}>
@@ -218,13 +219,13 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
               </div>
               <div className={styles.playingName}>{currentGame.name}</div>
               <div className={styles.stats}>
-                <Stat label="Total" value={formatMinutes(ownedGames.find(g => g.appId === currentGame.appId)?.playtimeForever ?? 0)} />
-                <Stat label="2 weeks" value={formatMinutes(ownedGames.find(g => g.appId === currentGame.appId)?.playtime2Weeks ?? 0)} />
+                <Stat label={t('steam.stat.total')} value={formatMinutes(ownedGames.find(g => g.appId === currentGame.appId)?.playtimeForever ?? 0)} />
+                <Stat label={t('steam.stat.twoWeeks')} value={formatMinutes(ownedGames.find(g => g.appId === currentGame.appId)?.playtime2Weeks ?? 0)} />
               </div>
-              <AchievementBar achievements={achievements} />
+              <AchievementBar achievements={achievements} t={t} />
             </div>
           ) : (
-            <PanelWidgetEmpty icon={<Play size={22} />} title="Not currently in a game" />
+            <PanelWidgetEmpty icon={<Play size={22} />} title={t('steam.empty.notInGame')} />
           )
         )}
 
@@ -235,12 +236,12 @@ export function SteamWidget({ widget, onConfigure }: WidgetProps) {
                 <img className={styles.friendAvatar} src={friend.avatarMedium} alt="" />
                 <div className={styles.friendInfo}>
                   <span className={styles.rowTitle}>{friend.personaName}</span>
-                  <span className={styles.rowSub}>{friend.gameExtraInfo ? `Playing ${friend.gameExtraInfo}` : personaStatusLabel(friend.personaState)}</span>
+                  <span className={styles.rowSub}>{friend.gameExtraInfo ? t('steam.playing', { name: friend.gameExtraInfo }) : personaStatusLabel(t, friend.personaState)}</span>
                 </div>
                 <PanelStatusDot tone={personaStatusKey(friend.personaState)} />
               </div>
             )) : (
-              <PanelWidgetEmpty icon={<Users size={22} />} title="No friends found" />
+              <PanelWidgetEmpty icon={<Users size={22} />} title={t('steam.empty.noFriends')} />
             )}
           </div>
         )}
@@ -258,14 +259,14 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function AchievementBar({ achievements }: { achievements: SteamAchievement[] }) {
+function AchievementBar({ achievements, t }: { achievements: SteamAchievement[]; t: (key: string) => string }) {
   if (achievements.length === 0) return null;
   const unlocked = achievements.filter(a => a.achieved === 1).length;
   const pct = Math.round((unlocked / achievements.length) * 100);
   return (
     <div className={styles.achievements}>
       <div className={styles.achievementTop}>
-        <span>Achievements</span>
+        <span>{t('steam.achievements')}</span>
         <span>{unlocked}/{achievements.length}</span>
       </div>
       <div className={styles.achievementTrack}>
@@ -298,22 +299,22 @@ function personaStatusKey(state: number | undefined): 'online' | 'away' | 'busy'
   return 'offline';
 }
 
-function personaStatusLabel(state: number | undefined) {
+function personaStatusLabel(t: (key: string) => string, state: number | undefined) {
   switch (state) {
     case 1:
-      return 'Online';
+      return t('steam.persona.online');
     case 2:
-      return 'Busy';
+      return t('steam.persona.busy');
     case 3:
-      return 'Away';
+      return t('steam.persona.away');
     case 4:
-      return 'Snooze';
+      return t('steam.persona.snooze');
     case 5:
-      return 'Trading';
+      return t('steam.persona.trading');
     case 6:
-      return 'Looking';
+      return t('steam.persona.looking');
     default:
-      return 'Offline';
+      return t('steam.persona.offline');
   }
 }
 

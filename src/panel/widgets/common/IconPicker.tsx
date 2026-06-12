@@ -46,8 +46,11 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
         activeKey={tab}
         onChange={onTab}
         tabs={[
+          // eslint-disable-next-line i18next/no-literal-string -- tab id, not display text
           { key: 'auto', label: t('panel.iconPicker.auto') },
+          // eslint-disable-next-line i18next/no-literal-string -- tab id, not display text
           { key: 'icons', label: t('panel.iconPicker.icons') },
+          // eslint-disable-next-line i18next/no-literal-string -- tab id, not display text
           { key: 'emoji', label: t('panel.iconPicker.emoji') },
         ]}
       />

@@ -205,7 +205,7 @@ export function PanelWidgetCatalog({
 
   const marketplaceHeader = (
     <div className={styles.sectionHeader}>
-      <span className={styles.sectionHeaderLabel}>Marketplace</span>
+      <span className={styles.sectionHeaderLabel}>{t('panel.add.marketplace')}</span>
       <span className={styles.sectionHeaderTag}>BETA</span>
     </div>
   );

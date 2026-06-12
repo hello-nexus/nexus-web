@@ -110,10 +110,10 @@ export function PanelEditorSheet({
   const { t } = useTranslation();
   const def = editingWidget ? lookupApp(editingWidget.type) : undefined;
   const title = mode === 'panelSettings'
-    ? 'Settings'
+    ? t('panel.actions.settings')
     : mode === 'settings' && editingWidget && def
     ? t(def.meta.i18nKey) || editingWidget.type
-    : 'Add a widget';
+    : t('panel.editor.addWidgetTitle');
   const Settings = def?.Settings;
   const isMonitoringWidget = editingWidget?.type === 'monitoring';
   const usesSlotSelection = !!def?.meta.usesSlotSelection;
@@ -208,7 +208,7 @@ export function PanelEditorSheet({
         <span className={styles.editorSheetGrabber} aria-hidden="true" />
         <header className={styles.editorHeader}>
           <div className={styles.editorTitle}>{title}</div>
-          <button type="button" className={styles.editorIconButton} onClick={onClose} aria-label="Close">
+          <button type="button" className={styles.editorIconButton} onClick={onClose} aria-label={t('app.window.close')}>
             <X size={17} />
           </button>
         </header>
@@ -230,7 +230,7 @@ export function PanelEditorSheet({
               {(widgetSizes.length > 1 || slotCountOptions.length > 1) && (
                 <div className={styles.controlPicker}>
                   {widgetSizes.length > 1 && (
-                    <WidgetControlGroup title={isMonitoringWidget ? 'Layout' : 'Size'}>
+                    <WidgetControlGroup title={isMonitoringWidget ? t('panel.editor.layout') : t('panel.editor.size')}>
                       {widgetSizes.map(size => {
                         const SizeIcon = SIZE_ICONS[size];
                         return (
@@ -239,7 +239,7 @@ export function PanelEditorSheet({
                             className={styles.editorControlButton}
                             active={size === editingWidget.size}
                             icon={SizeIcon ? <SizeIcon aria-hidden="true" /> : undefined}
-                            ariaLabel={`${isMonitoringWidget ? 'Layout' : 'Size'} ${size}`}
+                            ariaLabel={`${isMonitoringWidget ? t('panel.editor.layout') : t('panel.editor.size')} ${size}`}
                             onPress={() => handleResize(size)}
                             title={size}
                           />
@@ -248,18 +248,23 @@ export function PanelEditorSheet({
                     </WidgetControlGroup>
                   )}
                   {isMonitoringWidget && slotCountOptions.length > 0 && (
-                    <WidgetControlGroup title="Slots">
-                      {slotCountOptions.map(n => (
-                        <IconLabelButton
-                          key={n}
-                          className={styles.editorControlButton}
-                          active={n === slotCount}
-                          icon={<SlotCountIcon count={n} size={editingWidget.size} aria-hidden="true" />}
-                          ariaLabel={`${n} ${n === 1 ? 'slot' : 'slots'}`}
-                          title={`${n} ${n === 1 ? 'slot' : 'slots'}`}
-                          onPress={() => handleSlotCount(n)}
-                        />
-                      ))}
+                    <WidgetControlGroup title={t('panel.editor.slots')}>
+                      {slotCountOptions.map(n => {
+                        const slotLabel = n === 1
+                          ? t('panel.editor.slotCount.one', { count: n })
+                          : t('panel.editor.slotCount.other', { count: n });
+                        return (
+                          <IconLabelButton
+                            key={n}
+                            className={styles.editorControlButton}
+                            active={n === slotCount}
+                            icon={<SlotCountIcon count={n} size={editingWidget.size} aria-hidden="true" />}
+                            ariaLabel={slotLabel}
+                            title={slotLabel}
+                            onPress={() => handleSlotCount(n)}
+                          />
+                        );
+                      })}
                     </WidgetControlGroup>
                   )}
                 </div>
@@ -268,7 +273,7 @@ export function PanelEditorSheet({
                 type="button"
                 className={styles.removeButton}
                 onClick={() => onRemove(editingWidget.id)}
-                aria-label="Remove widget"
+                aria-label={t('panel.editor.removeWidget')}
               >
                 <Trash2 size={15} />
               </button>
@@ -288,7 +293,7 @@ export function PanelEditorSheet({
             ) : (
               <div className={styles.settingsEmpty}>
                 <Settings2 size={18} />
-                <span>No settings</span>
+                <span>{t('panel.editor.noSettings')}</span>
               </div>
             )}
           </>

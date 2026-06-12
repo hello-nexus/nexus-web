@@ -12,6 +12,7 @@ import { IconLabelButton } from '../../../components/common/IconLabelButton/Icon
 import type { WidgetSettingsProps } from '../types';
 import { CLOCK_DESIGNS } from '../clock/designs';
 import { SettingsRow, SettingsToggle, SettingsSection, SettingsSelect } from '../common/SettingsRow/SettingsRow';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './ClockSettings.module.scss';
 
 const DESIGN_KEYS = Object.keys(CLOCK_DESIGNS);
@@ -26,6 +27,7 @@ const DESIGN_ICONS: Record<string, LucideIcon> = {
 };
 
 export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
+  const { t } = useTranslation();
   const currentDesign = ((widget.config?.design as string | undefined) ?? 'digital');
   const format = ((widget.config?.format as string | undefined) ?? '24h');
   const showSeconds = ((widget.config?.showSeconds as boolean | undefined) ?? false);
@@ -59,7 +61,7 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
 
   return (
     <div className={styles.container}>
-      <SettingsSection title="Design">
+      <SettingsSection title={t('panel.widget.clock.settings.design')}>
         <div className={styles.designRow}>
           {DESIGN_KEYS.map(key => {
             const Icon = DESIGN_ICONS[key];
@@ -77,41 +79,43 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Display">
+      <SettingsSection title={t('panel.widget.clock.settings.display')}>
         <SettingsSelect
-          label="Time format"
+          label={t('panel.widget.clock.settings.timeFormat')}
           value={format}
           options={[
-            { value: '24h', label: '24-hour' },
-            { value: '12h', label: '12-hour' },
+            // eslint-disable-next-line i18next/no-literal-string -- enum value
+            { value: '24h', label: t('panel.widget.clock.settings.format24h') },
+            // eslint-disable-next-line i18next/no-literal-string -- enum value
+            { value: '12h', label: t('panel.widget.clock.settings.format12h') },
           ]}
           onChange={setFormat}
         />
         <SettingsToggle
-          label="Show seconds"
+          label={t('panel.widget.clock.settings.showSeconds')}
           checked={showSeconds}
           onChange={setShowSeconds}
         />
         <SettingsToggle
-          label="Show date"
+          label={t('panel.widget.clock.settings.showDate')}
           checked={showDate}
           onChange={setShowDate}
         />
         <SettingsToggle
-          label="Use accent color"
+          label={t('panel.widget.clock.settings.useAccentColor')}
           checked={useAccentColor}
           onChange={setUseAccentColor}
         />
       </SettingsSection>
 
-      <SettingsSection title="Timezone">
-        <SettingsRow label="Timezone">
+      <SettingsSection title={t('panel.widget.clock.settings.timezone')}>
+        <SettingsRow label={t('panel.widget.clock.settings.timezone')}>
           <input
             type="text"
             className={styles.textInput}
             value={timezone}
             onChange={e => setTimezone(e.target.value)}
-            placeholder="Auto (local)"
+            placeholder={t('panel.widget.clock.settings.timezoneAuto')}
             spellCheck={false}
           />
         </SettingsRow>

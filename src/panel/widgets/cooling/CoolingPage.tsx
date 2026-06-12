@@ -1325,8 +1325,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 for (const key of deviceKeys) {
                   const list = groups.get(key)!;
                   const deviceName =
+                    // eslint-disable-next-line i18next/no-literal-string -- hardware product name
                     key.startsWith('np50:') ? 'HYTE NP50'
+                    // eslint-disable-next-line i18next/no-literal-string -- hardware product name
                     : key.startsWith('minihub:') ? 'iBUYPOWER MiniHub'
+                    // eslint-disable-next-line i18next/no-literal-string -- hardware product name
                     : key.startsWith('smarthub:') ? 'HYTE SmartHub'
                     : key;
                   const hubCollapsed = isFanGroupCollapsed(key);

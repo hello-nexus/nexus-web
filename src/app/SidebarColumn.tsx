@@ -189,6 +189,7 @@ export function SidebarColumn({
           y={ctxMenu.y}
           items={ctxMenu.pinned ? [
             {
+              // eslint-disable-next-line i18next/no-literal-string -- menu item id
               key: 'unpin',
               label: t('sidebar.unpin'),
               icon: <PinOff size={14} />,
@@ -197,6 +198,7 @@ export function SidebarColumn({
             },
           ] : [
             {
+              // eslint-disable-next-line i18next/no-literal-string -- menu item id
               key: 'pin',
               label: t('sidebar.pin'),
               icon: <Pin size={14} />,

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import classNames from 'classnames';
 import {
   ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
-  MoreHorizontal, Settings, CircleHelp, Info, Unplug,
+  MoreHorizontal, Settings, FlaskConical, CircleHelp, Info, Unplug,
 } from 'lucide-react';
 import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDropdown';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
@@ -43,7 +43,9 @@ interface TopBarProps {
   profiles: UseProfilesResult;
   onPreferencesChanged: (prefs: Preferences) => void;
   onNavigateSettings: () => void;
-  // Profile dropdown's "Manage profiles" target (Profiles tab, not General).
+  // The "..." menu's "Dev tools" target (standalone developer page).
+  onNavigateTools: () => void;
+  // Profile dropdown's "Manage profiles" target (standalone Profiles page).
   onManageProfiles: () => void;
   // True only inside the Nexus Windows --app shell (custom caption buttons).
   isWindowsApp: boolean;
@@ -52,9 +54,10 @@ interface TopBarProps {
   isMacApp: boolean;
 }
 
-// The "..." overflow menu: Settings / Help / About.
-function TopBarMenu({ onNavigateSettings, onOpenAbout }: {
+// The "..." overflow menu: Settings / Dev tools / Help / About.
+function TopBarMenu({ onNavigateSettings, onNavigateTools, onOpenAbout }: {
   onNavigateSettings: () => void;
+  onNavigateTools: () => void;
   onOpenAbout: () => void;
 }) {
   const { t } = useTranslation();
@@ -83,6 +86,10 @@ function TopBarMenu({ onNavigateSettings, onOpenAbout }: {
           <button type="button" className={styles.menuItem} role="menuitem"
             onClick={() => { close(); onNavigateSettings(); }}>
             <Settings size={14} /> {t('nav.settings')}
+          </button>
+          <button type="button" className={styles.menuItem} role="menuitem"
+            onClick={() => { close(); onNavigateTools(); }}>
+            <FlaskConical size={14} /> {t('settings.tab.tools')}
           </button>
           <a className={styles.menuItem} role="menuitem"
             href={HELP_URL} target="_blank" rel="noopener noreferrer"
@@ -114,6 +121,7 @@ export function TopBar({
   profiles,
   onPreferencesChanged,
   onNavigateSettings,
+  onNavigateTools,
   onManageProfiles,
   isWindowsApp,
   isMacApp,
@@ -185,7 +193,7 @@ export function TopBar({
       )}
 
       <div className={styles.rightCluster}>
-        <TopBarMenu onNavigateSettings={onNavigateSettings} onOpenAbout={() => setAboutOpen(true)} />
+        <TopBarMenu onNavigateSettings={onNavigateSettings} onNavigateTools={onNavigateTools} onOpenAbout={() => setAboutOpen(true)} />
         <div className={styles.profileSlot}>
           {online ? (
             <ConnectedProfileSlot connectEpoch={connectEpoch}>

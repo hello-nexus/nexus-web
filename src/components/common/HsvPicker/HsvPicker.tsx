@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from '../../../lib/i18n';
 import { hexToHsv, hsvToHex } from '../../../lib/settings';
 import styles from './HsvPicker.module.scss';
 
@@ -20,6 +21,7 @@ export interface HsvPickerProps {
 }
 
 export function HsvPicker({ value, onPreview, onCommit }: HsvPickerProps) {
+  const { t } = useTranslation();
   const { h, s, v } = hexToHsv(value);
   const [hexInput, setHexInput] = useState(value.toUpperCase());
   const svRef = useRef<HTMLDivElement>(null);
@@ -101,7 +103,7 @@ export function HsvPicker({ value, onPreview, onCommit }: HsvPickerProps) {
         onBlur={() => setHexInput(value.toUpperCase())}
         spellCheck={false}
         maxLength={7}
-        aria-label="Hex color"
+        aria-label={t('common.hexColor')}
       />
     </div>
   );

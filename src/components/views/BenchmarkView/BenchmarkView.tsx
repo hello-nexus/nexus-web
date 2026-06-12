@@ -202,7 +202,7 @@ export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfir
 
       {status === 'failed' && (
         <div className={styles.error}>
-          <p>{t('benchmark.failed')}: {error ?? 'unknown error'}</p>
+          <p>{t('benchmark.failed')}: {error ?? t('benchmark.unknownError')}</p>
           <button type="button" className={styles.ghost} onClick={reset}>
             <RotateCcw size={14} />
             <span>{t('benchmark.rerun')}</span>

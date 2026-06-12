@@ -20,7 +20,9 @@ export function GallerySettings({ widget, onUpdate }: WidgetSettingsProps) {
           label={t('gallery.settings.mode')}
           value={mode}
           options={[
+            // eslint-disable-next-line i18next/no-literal-string -- config enum value
             { value: 'single', label: t('gallery.settings.single') },
+            // eslint-disable-next-line i18next/no-literal-string -- config enum value
             { value: 'slideshow', label: t('gallery.settings.slideshow') },
           ]}
           onChange={v => onUpdate({ mode: v })}

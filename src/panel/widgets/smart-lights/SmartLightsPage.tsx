@@ -281,7 +281,7 @@ function CollapsibleCategory({ label, count, children }: { label: string; count:
   return (
     <div className={styles.category}>
       <button type="button" className={styles.categoryHeader} aria-expanded={open} onClick={() => setOpen(o => !o)}>
-        {open ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
+        {open ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
         <span className={styles.categoryLabel}>{label}</span>
         <span className={styles.categoryCount}>{count}</span>
       </button>

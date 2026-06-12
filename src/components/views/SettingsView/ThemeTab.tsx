@@ -103,7 +103,9 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
           activeKey={settings.general.accentSource}
           onChange={k => handleAccentSourceChange(k as AccentSource)}
           tabs={[
+            // eslint-disable-next-line i18next/no-literal-string -- accent source enum value
             { key: 'system', label: t('settings.accent.system') },
+            // eslint-disable-next-line i18next/no-literal-string -- accent source enum value
             { key: 'custom', label: t('settings.accent.custom') },
           ]}
         />

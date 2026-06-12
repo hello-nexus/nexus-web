@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { usePanelSheetSwipe } from '../engine/usePanelSheetSwipe';
+import { useTranslation } from '../../lib/i18n';
 import styles from './PanelImmersiveOverlay.module.scss';
 
 interface PanelImmersiveOverlayProps {
@@ -17,6 +18,7 @@ interface PanelImmersiveOverlayProps {
 const EXIT_MS = 200;
 
 export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface }: PanelImmersiveOverlayProps) {
+  const { t } = useTranslation();
   const [mountState, setMountState] = useState<'mounted' | 'exiting' | 'unmounted'>(
     open ? 'mounted' : 'unmounted',
   );
@@ -125,7 +127,7 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
         // onClick races the snap-back, and the overlay sticks partway down
         // on Y70 WebView2.
         data-panel-no-sheet-swipe="true"
-        aria-label="Close immersive view"
+        aria-label={t('panel.immersive.close')}
       />
     </div>
   );

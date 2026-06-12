@@ -110,11 +110,12 @@ export function OverviewTab({ frame, hist, onNavigate }: {
               <span className={`${styles.dashValue} ${styles.dashValuePercent}`}>{cpuParts.value}</span>
               <span className={styles.dashUnit}>{cpuParts.unit}</span>
             </div>
+            {/* eslint-disable-next-line i18next/no-literal-string -- CSS color variable */}
             <Sparkline className={styles.sparkline} values={cpuHistory} width="100%" height={32} color="var(--accent-glow)" strokeColor="var(--accent)" sampleCount={60} padding={2} />
           </div>
           <div className={styles.dashSecondary}>
             {cpuTemp && <span>{cpuTemp.formatted}</span>}
-            {cpuCores && <span>{cpuCores.formatted} cores</span>}
+            {cpuCores && <span>{t('monitoring.overview.cores', { value: cpuCores.formatted })}</span>}
           </div>
         </button>
 
@@ -128,6 +129,7 @@ export function OverviewTab({ frame, hist, onNavigate }: {
               <span className={`${styles.dashValue} ${styles.dashValuePercent}`}>{gpuParts ? gpuParts.value : '—'}</span>
               <span className={styles.dashUnit}>{gpuParts ? gpuParts.unit : ''}</span>
             </div>
+            {/* eslint-disable-next-line i18next/no-literal-string -- CSS color variable */}
             <Sparkline className={styles.sparkline} values={gpuHistory} width="100%" height={32} color="var(--accent-glow)" strokeColor="var(--accent)" sampleCount={60} padding={2} />
           </div>
           <div className={styles.dashSecondary}>
@@ -164,6 +166,7 @@ export function OverviewTab({ frame, hist, onNavigate }: {
                 <span className={styles.dashNetValue}>{rateInParts.value}</span>
                 <span className={styles.dashNetUnit}>{rateInParts.unit}</span>
               </div>
+              {/* eslint-disable-next-line i18next/no-literal-string -- CSS color variable */}
               <Sparkline className={styles.sparkline} values={netDownHistory} width="100%" height={20} color="var(--accent-glow)" strokeColor="var(--accent)" sampleCount={60} padding={2} />
             </div>
             <div className={styles.dashNetRow}>
@@ -172,6 +175,7 @@ export function OverviewTab({ frame, hist, onNavigate }: {
                 <span className={styles.dashNetValue}>{rateOutParts.value}</span>
                 <span className={styles.dashNetUnit}>{rateOutParts.unit}</span>
               </div>
+              {/* eslint-disable-next-line i18next/no-literal-string -- CSS color variable */}
               <Sparkline className={styles.sparkline} values={netUpHistory} width="100%" height={20} color="var(--accent)" strokeColor="var(--accent-deep)" sampleCount={60} padding={2} />
             </div>
           </div>

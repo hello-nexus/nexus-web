@@ -116,7 +116,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
   return (
     <div className={styles.tabPanel}>
-      <SettingsSection title="General">
+      <SettingsSection title={t('settings.general')}>
         <SettingSelect
           label={t('settings.language')}
           value={settings.general.language}
@@ -136,7 +136,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
       </SettingsSection>
 
       {(platform === 'windows' || platform === 'macos') && (
-        <SettingsSection title="Startup & tray">
+        <SettingsSection title={t('settings.startupTray.title')}>
           {platform === 'windows' && autoStart !== null && (
             <SettingToggle
               label={t('settings.systemStartup.label')}
@@ -165,11 +165,11 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         </SettingsSection>
       )}
 
-      <SettingsSection title="Privacy">
+      <SettingsSection title={t('settings.privacy.title')}>
         {telemetryOn !== null && (
           <SettingToggle
-            label="Share anonymous usage data"
-            description="Helps us make Nexus better. Always anonymous and encrypted."
+            label={t('settings.telemetry.label')}
+            description={t('settings.telemetry.description')}
             checked={telemetryOn}
             onChange={toggleTelemetry}
             disabled={!serviceOnline || telemetryLoading}
@@ -191,10 +191,10 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         </SettingRow>
       </SettingsSection>
 
-      <SettingsSection title="Diagnostics & support">
+      <SettingsSection title={t('settings.diagnostics.title')}>
         <SettingRow
-          label="Logs"
-          description="Open the folder with Nexus log files to share for diagnostics"
+          label={t('settings.diagnostics.logsLabel')}
+          description={t('settings.diagnostics.logsDescription')}
         >
           <Button
             type="button"
@@ -203,7 +203,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             onClick={openLogs}
             disabled={!serviceOnline}
           >
-            Open logs folder
+            {t('settings.diagnostics.openLogsButton')}
           </Button>
         </SettingRow>
 
@@ -219,6 +219,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         </SettingRow>
       </SettingsSection>
 
+      {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
       <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
         {(platform === 'windows' || platform === 'macos') && (
           <SettingRow
@@ -269,6 +270,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         message={t('settings.factoryReset.confirmMessage')}
         bullets={t('settings.factoryReset.wipeList').split('\n')}
         note={t('settings.factoryReset.confirmNote')}
+        // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
         noteTone="danger"
         confirmLabel={t('settings.factoryReset.confirmButton')}
         destructive

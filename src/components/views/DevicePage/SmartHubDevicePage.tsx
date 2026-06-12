@@ -18,6 +18,7 @@ import {
   type SmartHubFwAnimationKind,
   type SmartHubFwSetting,
 } from '../../../api/smarthub';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './SmartHubDevicePage.module.scss';
 
 /**
@@ -33,6 +34,7 @@ import styles from './SmartHubDevicePage.module.scss';
  * setting read.
  */
 export function SmartHubDevicePage() {
+  const { t } = useTranslation();
   // Tri-state: 'unknown' = still loading, 'connected' = hub up,
   // 'disconnected' = explicit not-connected response. The placeholder
   // only renders on the 'disconnected' arm.
@@ -95,9 +97,10 @@ export function SmartHubDevicePage() {
   if (connection === 'disconnected') {
     return (
       <div className={styles.page}>
+        {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
         <ViewHeader title="HYTE SmartHub" />
         <div className={`${styles.pageBody} pageBody`}>
-          <Placeholder title="HYTE SmartHub not connected" />
+          <Placeholder title={t('devices.smartHub.notConnected')} />
         </div>
       </div>
     );
@@ -117,29 +120,30 @@ export function SmartHubDevicePage() {
   return (
     <div className={styles.page}>
       <ViewHeader
+        // eslint-disable-next-line i18next/no-literal-string -- brand + model name
         title="HYTE SmartHub"
-        actions={saving ? <span className={styles.savingBadge}>Saving…</span> : null}
+        actions={saving ? <span className={styles.savingBadge}>{t('devices.saving')}</span> : null}
       />
       <div className={`${styles.pageBody} pageBody`}>
         <SettingsSection
-          title="Standalone fan behaviour"
+          title={t('devices.smartHub.fanSection')}
           description={(
             <>
-              <p>Persisted to the hub's flash. 5 seconds after the last host fan write, the hub applies this duty to all four PWM ports — the PC is off, asleep, or the service stopped.</p>
-              <p>This hub has no motherboard PWM input; live fan control comes from Nexus cooling.</p>
+              <p>{t('devices.smartHub.fanSectionDescription1')}</p>
+              <p>{t('devices.smartHub.fanSectionDescription2')}</p>
             </>
           )}
           boxClassName={styles.sectionBox}
         >
           <div className={`${styles.row} ${!settingLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>Standalone fan %</span>
+            <span className={styles.rowLabel}>{t('devices.smartHub.standaloneFanPercent')}</span>
             <Slider
               className={styles.slider}
               value={setting?.fanPercent ?? 50}
               min={0}
               max={100}
               step={1}
-              ariaLabel="Standalone fan percent"
+              ariaLabel={t('devices.smartHub.standaloneFanPercentAria')}
               onChange={(v: number) => {
                 if (!setting) return;
                 setSetting({ ...setting, fanPercent: Math.round(v) });
@@ -153,12 +157,12 @@ export function SmartHubDevicePage() {
         </SettingsSection>
 
         <SettingsSection
-          title="Standalone LED animation"
-          description="What the hub's onboard LEDs show when Nexus isn't streaming lighting frames."
+          title={t('devices.smartHub.ledSection')}
+          description={t('devices.smartHub.ledSectionDescription')}
           boxClassName={styles.sectionBox}
         >
           <div className={`${styles.row} ${!settingLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>Effect</span>
+            <span className={styles.rowLabel}>{t('devices.fwAnimation.effect')}</span>
             <Select
               value={String(animKind)}
               onChange={v => {
@@ -167,24 +171,24 @@ export function SmartHubDevicePage() {
                 void commitSetting({ ...setting, animation: k });
               }}
               options={[
-                { value: String(SMARTHUB_FW_ANIMATION_COLOR), label: 'Solid color' },
-                { value: String(SMARTHUB_FW_ANIMATION_RAINBOW), label: 'Rainbow cycle' },
-                { value: String(SMARTHUB_FW_ANIMATION_BREATHE), label: 'Breathing' },
-                { value: String(SMARTHUB_FW_ANIMATION_RAINBOW_GRADIENT), label: 'Rainbow gradient' },
+                { value: String(SMARTHUB_FW_ANIMATION_COLOR), label: t('devices.fwAnimation.solidColor') },
+                { value: String(SMARTHUB_FW_ANIMATION_RAINBOW), label: t('devices.fwAnimation.rainbowCycle') },
+                { value: String(SMARTHUB_FW_ANIMATION_BREATHE), label: t('devices.fwAnimation.breathing') },
+                { value: String(SMARTHUB_FW_ANIMATION_RAINBOW_GRADIENT), label: t('devices.fwAnimation.rainbowGradient') },
               ]}
               disabled={!settingLoaded}
-              ariaLabel="SmartHub firmware animation"
+              ariaLabel={t('devices.smartHub.firmwareAnimationAria')}
             />
           </div>
           <div className={`${styles.row} ${!settingLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>Brightness</span>
+            <span className={styles.rowLabel}>{t('devices.y70.brightness')}</span>
             <Slider
               className={styles.slider}
               value={setting?.brightness ?? 100}
               min={0}
               max={100}
               step={1}
-              ariaLabel="Brightness"
+              ariaLabel={t('devices.y70.brightness')}
               onChange={(v: number) => {
                 if (!setting) return;
                 setSetting({ ...setting, brightness: Math.round(v) });

@@ -255,7 +255,15 @@ async function startSession(config: CameraConfig): Promise<void> {
     },
   }, {
     arm: async (w, h, c) => {
-      const res = await startWebcam(w, h, c);
+      let res = await startWebcam(w, h, c);
+      if (!res && gen === runtime.generation) {
+        // First webcam enable on a Windows PC grants the OS desktop-camera
+        // permission and refuses that one start (the camera service can't create
+        // the device until the grant propagates). A second start then succeeds —
+        // retry once after a short beat so the user never sees that hand-off.
+        await new Promise((r) => setTimeout(r, 1200));
+        if (gen === runtime.generation) res = await startWebcam(w, h, c);
+      }
       if (res && gen === runtime.generation) setState({ cameraName: res.cameraName });
       return res !== null;
     },

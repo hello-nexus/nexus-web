@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
+import { useTranslation } from '../../lib/i18n';
 import styles from './PanelHostNameSetting.module.scss';
 
 interface PanelHostNameSettingProps {
@@ -15,6 +16,7 @@ interface PanelHostNameSettingProps {
  * Environment.MachineName.
  */
 export function PanelHostNameSetting({ machineName, onCommit }: PanelHostNameSettingProps) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [draft, setDraft] = useState(machineName);
 
@@ -37,15 +39,15 @@ export function PanelHostNameSetting({ machineName, onCommit }: PanelHostNameSet
   };
 
   return (
-    <SettingsSection title="Computer name">
+    <SettingsSection title={t('panel.editor.hostName.title')}>
       <input
         ref={inputRef}
         id="panel-host-name-input"
-        aria-label="Computer name"
+        aria-label={t('panel.editor.hostName.title')}
         className={styles.input}
         type="text"
         value={draft}
-        placeholder={machineName || 'this PC'}
+        placeholder={machineName || t('panel.editor.hostName.placeholder')}
         maxLength={64}
         onChange={e => setDraft(e.target.value)}
         onBlur={commit}
@@ -60,7 +62,7 @@ export function PanelHostNameSetting({ machineName, onCommit }: PanelHostNameSet
         autoComplete="off"
         spellCheck={false}
       />
-      <div className={styles.hint}>Shown to paired phones and in the panel tray.</div>
+      <div className={styles.hint}>{t('panel.editor.hostName.hint')}</div>
     </SettingsSection>
   );
 }

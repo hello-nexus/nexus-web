@@ -159,8 +159,12 @@ export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, on
 }) {
   const layoutState = useDashboardLayout();
   return (
-    <ErrorBoundary label="Dashboard">
+    <ErrorBoundary
+      // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
+      label="Dashboard"
+    >
       <PanelContent
+        // eslint-disable-next-line i18next/no-literal-string -- panel surface enum
         surface="desktop"
         layoutState={layoutState}
         embedded
@@ -175,7 +179,10 @@ export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, on
 function PanelKioskContent({ deviceId, surface, deviceTouch }: { deviceId: string; surface: PanelSurface; deviceTouch?: boolean }) {
   const layoutState = usePanelLayout(deviceId, surface, deviceTouch);
   return (
-    <ErrorBoundary label="Panel">
+    <ErrorBoundary
+      // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
+      label="Panel"
+    >
       <PanelContent surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} layoutState={layoutState} />
     </ErrorBoundary>
   );
@@ -558,6 +565,11 @@ export function PanelContent({
     const label = t('panel.connectedTo');
     return label === 'panel.connectedTo' ? 'Connected to' : label;
   })();
+  // A phone is always a remote-paired device, even when the Android wrapper
+  // serves the panel through its loopback proxy (origin 127.0.0.1, which
+  // isRemotePaired reads as a hardwired-kiosk localhost). Show the "connected
+  // to <PC>" identity for it the same as the LAN-IP / relay phone origins.
+  const connectionIdentityVisible = isRemotePaired || surface === 'phone';
   // The live connection is running over the cloud relay (not the direct LAN
   // /ws socket). Surface a satellite badge so the user knows traffic is going
   // through the relay; LAN connections show nothing extra.
@@ -1138,7 +1150,7 @@ export function PanelContent({
           />
         )}
         {!loaded ? (
-          <div className={styles.loading}>loading panel...</div>
+          <div className={styles.loading}>{t('panel.loadingPanel')}</div>
         ) : (
           <>
             <div className={styles.panelStage}>
@@ -1231,11 +1243,11 @@ export function PanelContent({
                 surfaceRef={rootRef}
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
                 machineName={machineName}
-                remotePaired={isRemotePaired}
+                remotePaired={connectionIdentityVisible}
               />
             )}
             <div ref={setEditorDockPortalEl} className={styles.editorDockPortal} aria-hidden="true" />
-            {connectionIntroHost && isRemotePaired && (
+            {connectionIntroHost && connectionIdentityVisible && (
               <>
                 <div className={styles.connectionIntroBackdrop} aria-hidden="true" />
                 <div className={styles.connectionIntroTray} role="status" aria-live="polite">
@@ -1251,7 +1263,7 @@ export function PanelContent({
                   <Lock
                     size={13}
                     className={styles.connectionIntroLock}
-                    aria-label="End-to-end encrypted"
+                    aria-label={t('panel.actions.e2eEncrypted')}
                   />
                 </div>
               </>
@@ -1263,6 +1275,7 @@ export function PanelContent({
                 aria-label={relayModeLabel}
                 title={relayModeLabel}
               >
+                {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
                 <SatelliteDish size={15} aria-hidden="true" />
               </div>
             )}
@@ -1273,6 +1286,7 @@ export function PanelContent({
       {touch.ctxMenu && (() => {
         const def = lookupApp(touch.ctxMenu.widget.type);
         if (!def) return null;
+        // eslint-disable-next-line i18next/no-literal-string -- orientation enum key
         const orientationKey = isLandscape ? 'landscape' : 'portrait';
         const immersiveAvailable = Boolean(def.Touch)
           && def.meta.supportsImmersive[orientationKey];
@@ -1447,7 +1461,9 @@ export function PanelContent({
             // and backdrop-filter over flat colour instead of the real surface
             // (shader, gradient). Force transparent so the clone matches the
             // in-grid cell.
+            // eslint-disable-next-line i18next/no-literal-string -- css color value
             background: 'transparent',
+            // eslint-disable-next-line i18next/no-literal-string -- css color value
             '--panel-background-solid': 'transparent',
           } as CSSProperties;
           return (

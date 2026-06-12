@@ -115,7 +115,7 @@ function MediaPlayer({
         )}
       </div>
       <div className={styles.meta}>
-        <div className={styles.title}>{session.song.title || 'Unknown title'}</div>
+        <div className={styles.title}>{session.song.title || t('panel.media.unknownTitle')}</div>
         <div className={styles.artist}>{session.song.artist || ''}</div>
         {session.song.album && <div className={styles.album}>{session.song.album}</div>}
       </div>
@@ -130,16 +130,16 @@ function MediaPlayer({
           onClick={() => control('shuffle')}
           disabled={!session.controls.isShuffleEnabled}
           className={`${styles.btn} ${styles.toggle} ${session.playback.shuffled ? styles.toggleOn : ''}`}
-          aria-label="Shuffle"
+          aria-label={t('panel.media.shuffle')}
           aria-pressed={!!session.playback.shuffled}
         ><Shuffle strokeWidth={1.8} /></button>
-        <button type="button" onClick={() => control('previous')} disabled={!session.controls.isPrevEnabled} className={styles.btn} aria-label="Previous">
+        <button type="button" onClick={() => control('previous')} disabled={!session.controls.isPrevEnabled} className={styles.btn} aria-label={t('panel.media.previous')}>
           <SkipBack strokeWidth={1.8} />
         </button>
-        <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? 'Pause' : 'Play'}>
+        <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? t('panel.media.pause') : t('panel.media.play')}>
           {playing ? <Pause strokeWidth={2} /> : <Play strokeWidth={2} />}
         </button>
-        <button type="button" onClick={() => control('next')} disabled={!session.controls.isNextEnabled} className={styles.btn} aria-label="Next">
+        <button type="button" onClick={() => control('next')} disabled={!session.controls.isNextEnabled} className={styles.btn} aria-label={t('panel.media.next')}>
           <SkipForward strokeWidth={1.8} />
         </button>
         <button
@@ -147,7 +147,7 @@ function MediaPlayer({
           onClick={() => control('repeatmode')}
           disabled={!session.controls.isRepeatModeEnabled}
           className={`${styles.btn} ${styles.toggle} ${repeatActive ? styles.toggleOn : ''}`}
-          aria-label="Repeat"
+          aria-label={t('panel.media.repeat')}
           aria-pressed={repeatActive}
         ><RepeatIcon strokeWidth={1.8} /></button>
       </div>

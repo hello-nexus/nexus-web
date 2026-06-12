@@ -94,167 +94,170 @@ const macros = (): AssignmentFunction[] => {
   return out;
 };
 
+// The catalog is static; build it once at module scope.
+const ASSIGNMENT_CATEGORY_TREE: AssignmentCategories = {
+  Keyboard: [],
+  Mouse: [
+    {
+      titleKey: 'keeb.group.mouse',
+      sections: [
+        {
+          titleKey: 'keeb.section.button',
+          functions: [
+            fn('keeb.fn.MouseLButton', 'MouseLButton', 'MouseKey'),
+            fn('keeb.fn.MouseRButton', 'MouseRButton', 'MouseKey'),
+            fn('keeb.fn.MouseMButton', 'MouseMButton', 'MouseKey'),
+            fn('keeb.fn.MouseB4Button', 'MouseB4Button', 'MouseKey'),
+            fn('keeb.fn.MouseB5Button', 'MouseB5Button', 'MouseKey'),
+          ],
+        },
+        {
+          titleKey: 'keeb.section.wheel',
+          functions: [
+            fn('keeb.fn.MouseWheelUp', 'MouseWheelUp', 'MouseKey'),
+            fn('keeb.fn.MouseWheelDown', 'MouseWheelDown', 'MouseKey'),
+            fn('keeb.fn.MouseACPanLeft', 'MouseACPanLeft', 'MouseKey'),
+            fn('keeb.fn.MouseACPanRight', 'MouseACPanRight', 'MouseKey'),
+          ],
+        },
+      ],
+    },
+    {
+      titleKey: 'keeb.group.panControls',
+      sections: [
+        {
+          titleKey: 'keeb.section.pan',
+          functions: [
+            fn('keeb.fn.MouseXPanLeft', 'MouseXPanLeft', 'MouseKey'),
+            fn('keeb.fn.MouseXPanRight', 'MouseXPanRight', 'MouseKey'),
+            fn('keeb.fn.MouseXPanUp', 'MouseXPanUp', 'MouseKey'),
+            fn('keeb.fn.MouseXPanDown', 'MouseXPanDown', 'MouseKey'),
+          ],
+        },
+      ],
+    },
+  ],
+
+  'Lighting & Profiles': [
+    {
+      titleKey: 'keeb.group.rgbControl',
+      sections: [
+        {
+          titleKey: 'keeb.section.fwEffect',
+          functions: [
+            fn('keeb.fn.RGBEffectValue', 'RGBEffectValue', 'RGBKey'),
+            fn('keeb.fn.RGBOnOff', 'RGBOnOff', 'RGBKey'),
+            fn('keeb.fn.RGBEffectLoop', 'RGBEffectLoop', 'RGBKey'),
+            fn('keeb.fn.DirectionLoop', 'DirectionLoop', 'RGBKey'),
+          ],
+        },
+        {
+          titleKey: 'keeb.section.fwBrightness',
+          functions: [
+            fn('keeb.fn.BrightnessIncrease', 'BrightnessIncrease', 'RGBKey'),
+            fn('keeb.fn.BrightnessDecrease', 'BrightnessDecrease', 'RGBKey'),
+          ],
+        },
+        {
+          titleKey: 'keeb.section.fwSpeed',
+          functions: [
+            fn('keeb.fn.SpeedIncrease', 'SpeedIncrease', 'RGBKey'),
+            fn('keeb.fn.SpeedDecrease', 'SpeedDecrease', 'RGBKey'),
+            fn('keeb.fn.SpeedLoop', 'SpeedLoop', 'RGBKey'),
+          ],
+        },
+      ],
+    },
+    {
+      titleKey: 'keeb.group.layersProfiles',
+      sections: [
+        {
+          titleKey: 'keeb.section.layerSwitches',
+          functions: [
+            fn('keeb.fn.MOSwitch', 'MOSwitch', 'LayerKey'),
+            fn('keeb.fn.TGSwitch', 'TGSwitch', 'LayerKey'),
+            fn('keeb.fn.TOSwitch', 'TOSwitch', 'LayerKey'),
+            fn('keeb.fn.DFSwitch', 'DFSwitch', 'LayerKey'),
+          ],
+        },
+        {
+          titleKey: 'keeb.section.profiles',
+          functions: [
+            fn('keeb.fn.ProfileMinus', 'ProfileMinus', 'ProfileKey'),
+            fn('keeb.fn.ProfilePlus', 'ProfilePlus', 'ProfileKey'),
+            fn('keeb.fn.ProfilePlusLoop', 'ProfilePlusLoop', 'ProfileKey'),
+            fn('keeb.fn.ProfileValue', 'ProfileValue', 'ProfileKey'),
+          ],
+        },
+      ],
+    },
+  ],
+
+  Macros: [
+    {
+      titleKey: 'keeb.group.macros',
+      sections: [
+        {
+          titleKey: 'keeb.section.macroKeys',
+          functions: macros(),
+        },
+      ],
+    },
+  ],
+
+  'System & Apps': [
+    {
+      titleKey: 'keeb.group.systemControls',
+      sections: [
+        {
+          titleKey: 'keeb.section.windowsControl',
+          functions: [
+            fn('keeb.fn.Power', 'Power', 'SystemKey'),
+            fn('keeb.fn.Sleep', 'Sleep', 'SystemKey'),
+            fn('keeb.fn.Wake', 'Wake', 'SystemKey'),
+            fn('keeb.fn.WebSearch', 'WebSearch', 'WebMediaKey'),
+          ],
+        },
+      ],
+    },
+    {
+      titleKey: 'keeb.group.appsSystem',
+      sections: [
+        {
+          titleKey: 'keeb.section.webBrowser',
+          functions: [
+            fn('keeb.fn.WebHome', 'WebHome', 'WebMediaKey'),
+            fn('keeb.fn.WebBack', 'WebBack', 'WebMediaKey'),
+            fn('keeb.fn.WebForward', 'WebForward', 'WebMediaKey'),
+            fn('keeb.fn.WebStop', 'WebStop', 'WebMediaKey'),
+            fn('keeb.fn.WebRefresh', 'WebRefresh', 'WebMediaKey'),
+            fn('keeb.fn.WebFavorite', 'WebFavorite', 'WebMediaKey'),
+          ],
+        },
+      ],
+    },
+    {
+      titleKey: 'keeb.group.systemApps',
+      sections: [
+        {
+          titleKey: 'keeb.section.launchSystemApps',
+          functions: [
+            fn('keeb.fn.MediaSelect', 'MediaSelect', 'SystemMediaKey'),
+            fn('keeb.fn.Mail', 'Mail', 'SystemMediaKey'),
+            fn('keeb.fn.Calculator', 'Calculator', 'SystemMediaKey'),
+            fn('keeb.fn.MyComputer', 'MyComputer', 'SystemMediaKey'),
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 /// Returns the categories tree consumed by `KeebKeyAssignmentView`. The
 /// `Keyboard` category is an empty entry; the view handles it separately by
 /// rendering a second `KeebKeyboard` as a click-to-pick source.
 export function getAssignmentCategories(): AssignmentCategories {
-  return {
-    Keyboard: [],
-    Mouse: [
-      {
-        titleKey: 'keeb.group.mouse',
-        sections: [
-          {
-            titleKey: 'keeb.section.button',
-            functions: [
-              fn('keeb.fn.MouseLButton', 'MouseLButton', 'MouseKey'),
-              fn('keeb.fn.MouseRButton', 'MouseRButton', 'MouseKey'),
-              fn('keeb.fn.MouseMButton', 'MouseMButton', 'MouseKey'),
-              fn('keeb.fn.MouseB4Button', 'MouseB4Button', 'MouseKey'),
-              fn('keeb.fn.MouseB5Button', 'MouseB5Button', 'MouseKey'),
-            ],
-          },
-          {
-            titleKey: 'keeb.section.wheel',
-            functions: [
-              fn('keeb.fn.MouseWheelUp', 'MouseWheelUp', 'MouseKey'),
-              fn('keeb.fn.MouseWheelDown', 'MouseWheelDown', 'MouseKey'),
-              fn('keeb.fn.MouseACPanLeft', 'MouseACPanLeft', 'MouseKey'),
-              fn('keeb.fn.MouseACPanRight', 'MouseACPanRight', 'MouseKey'),
-            ],
-          },
-        ],
-      },
-      {
-        titleKey: 'keeb.group.panControls',
-        sections: [
-          {
-            titleKey: 'keeb.section.pan',
-            functions: [
-              fn('keeb.fn.MouseXPanLeft', 'MouseXPanLeft', 'MouseKey'),
-              fn('keeb.fn.MouseXPanRight', 'MouseXPanRight', 'MouseKey'),
-              fn('keeb.fn.MouseXPanUp', 'MouseXPanUp', 'MouseKey'),
-              fn('keeb.fn.MouseXPanDown', 'MouseXPanDown', 'MouseKey'),
-            ],
-          },
-        ],
-      },
-    ],
-
-    'Lighting & Profiles': [
-      {
-        titleKey: 'keeb.group.rgbControl',
-        sections: [
-          {
-            titleKey: 'keeb.section.fwEffect',
-            functions: [
-              fn('keeb.fn.RGBEffectValue', 'RGBEffectValue', 'RGBKey'),
-              fn('keeb.fn.RGBOnOff', 'RGBOnOff', 'RGBKey'),
-              fn('keeb.fn.RGBEffectLoop', 'RGBEffectLoop', 'RGBKey'),
-              fn('keeb.fn.DirectionLoop', 'DirectionLoop', 'RGBKey'),
-            ],
-          },
-          {
-            titleKey: 'keeb.section.fwBrightness',
-            functions: [
-              fn('keeb.fn.BrightnessIncrease', 'BrightnessIncrease', 'RGBKey'),
-              fn('keeb.fn.BrightnessDecrease', 'BrightnessDecrease', 'RGBKey'),
-            ],
-          },
-          {
-            titleKey: 'keeb.section.fwSpeed',
-            functions: [
-              fn('keeb.fn.SpeedIncrease', 'SpeedIncrease', 'RGBKey'),
-              fn('keeb.fn.SpeedDecrease', 'SpeedDecrease', 'RGBKey'),
-              fn('keeb.fn.SpeedLoop', 'SpeedLoop', 'RGBKey'),
-            ],
-          },
-        ],
-      },
-      {
-        titleKey: 'keeb.group.layersProfiles',
-        sections: [
-          {
-            titleKey: 'keeb.section.layerSwitches',
-            functions: [
-              fn('keeb.fn.MOSwitch', 'MOSwitch', 'LayerKey'),
-              fn('keeb.fn.TGSwitch', 'TGSwitch', 'LayerKey'),
-              fn('keeb.fn.TOSwitch', 'TOSwitch', 'LayerKey'),
-              fn('keeb.fn.DFSwitch', 'DFSwitch', 'LayerKey'),
-            ],
-          },
-          {
-            titleKey: 'keeb.section.profiles',
-            functions: [
-              fn('keeb.fn.ProfileMinus', 'ProfileMinus', 'ProfileKey'),
-              fn('keeb.fn.ProfilePlus', 'ProfilePlus', 'ProfileKey'),
-              fn('keeb.fn.ProfilePlusLoop', 'ProfilePlusLoop', 'ProfileKey'),
-              fn('keeb.fn.ProfileValue', 'ProfileValue', 'ProfileKey'),
-            ],
-          },
-        ],
-      },
-    ],
-
-    Macros: [
-      {
-        titleKey: 'keeb.group.macros',
-        sections: [
-          {
-            titleKey: 'keeb.section.macroKeys',
-            functions: macros(),
-          },
-        ],
-      },
-    ],
-
-    'System & Apps': [
-      {
-        titleKey: 'keeb.group.systemControls',
-        sections: [
-          {
-            titleKey: 'keeb.section.windowsControl',
-            functions: [
-              fn('keeb.fn.Power', 'Power', 'SystemKey'),
-              fn('keeb.fn.Sleep', 'Sleep', 'SystemKey'),
-              fn('keeb.fn.Wake', 'Wake', 'SystemKey'),
-              fn('keeb.fn.WebSearch', 'WebSearch', 'WebMediaKey'),
-            ],
-          },
-        ],
-      },
-      {
-        titleKey: 'keeb.group.appsSystem',
-        sections: [
-          {
-            titleKey: 'keeb.section.webBrowser',
-            functions: [
-              fn('keeb.fn.WebHome', 'WebHome', 'WebMediaKey'),
-              fn('keeb.fn.WebBack', 'WebBack', 'WebMediaKey'),
-              fn('keeb.fn.WebForward', 'WebForward', 'WebMediaKey'),
-              fn('keeb.fn.WebStop', 'WebStop', 'WebMediaKey'),
-              fn('keeb.fn.WebRefresh', 'WebRefresh', 'WebMediaKey'),
-              fn('keeb.fn.WebFavorite', 'WebFavorite', 'WebMediaKey'),
-            ],
-          },
-        ],
-      },
-      {
-        titleKey: 'keeb.group.systemApps',
-        sections: [
-          {
-            titleKey: 'keeb.section.launchSystemApps',
-            functions: [
-              fn('keeb.fn.MediaSelect', 'MediaSelect', 'SystemMediaKey'),
-              fn('keeb.fn.Mail', 'Mail', 'SystemMediaKey'),
-              fn('keeb.fn.Calculator', 'Calculator', 'SystemMediaKey'),
-              fn('keeb.fn.MyComputer', 'MyComputer', 'SystemMediaKey'),
-            ],
-          },
-        ],
-      },
-    ],
-  };
+  return ASSIGNMENT_CATEGORY_TREE;
 }
 
 /// Locale key carrying the human label for a rotary function the service

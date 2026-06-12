@@ -6,6 +6,7 @@ import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { useUiSettings } from '../hooks/useUiSettings';
 import { useConflictApps } from '../hooks/useConflictApps';
+import { useTranslation } from '../lib/i18n';
 import { useWindowDragRegion } from './useWindowDragRegion';
 import type { ConnectionState } from '../hooks/useServiceStatus';
 import styles from '../App.module.scss';
@@ -123,5 +124,6 @@ export function SidebarConflictSlot({ serviceOnline, compact }: {
 
 // Version label pinned to the bottom-left of the layout.
 export function PageVersionLabel() {
-  return <span className={styles.pageVersion}>{__APP_VERSION__} alpha</span>;
+  const { t } = useTranslation();
+  return <span className={styles.pageVersion}>{t('app.version', { version: __APP_VERSION__ })}</span>;
 }

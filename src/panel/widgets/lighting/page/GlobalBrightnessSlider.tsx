@@ -78,6 +78,7 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
         min={0}
         max={100}
         step={1}
+        // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
         orientation="bare"
         onChange={handleChange}
         onCommit={handleCommit}

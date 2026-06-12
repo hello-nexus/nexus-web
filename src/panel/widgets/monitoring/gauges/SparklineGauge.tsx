@@ -13,6 +13,7 @@ export function SparklineGauge({ formatted, label, history, historyDomain }: Gau
           values={history}
           domain={historyDomain}
           color="var(--panel-accent-glow)"
+          // eslint-disable-next-line i18next/no-literal-string -- CSS color variable
           strokeColor="var(--panel-accent)"
           strokeWidth={2.4}
           sampleCount={PERF_HISTORY_SAMPLES}

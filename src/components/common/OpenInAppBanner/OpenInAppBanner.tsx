@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../../../lib/i18n';
 import { NexusMark } from '../../icons/NexusBrand';
 
 // Bumping the version suffix invalidates older "dismissed" state.
@@ -18,6 +19,7 @@ type AppPlatform = 'ios' | 'android';
  * (PairRedirect owns that flow), or on /panel/phone (the app's home).
  */
 export function OpenInAppBanner() {
+  const { t } = useTranslation();
   const [platform, setPlatform] = useState<AppPlatform | null>(null);
 
   useEffect(() => {
@@ -63,11 +65,13 @@ export function OpenInAppBanner() {
     setPlatform(null);
   };
 
-  const titleText = platform === 'android' ? 'Nexus for Android' : 'Nexus for iPhone';
+  const titleText = platform === 'android'
+    ? t('openInApp.titleAndroid')
+    : t('openInApp.titleIos');
 
   return (
-    <div style={banner} role="region" aria-label="Nexus app">
-      <button type="button" style={dismissBtn} onClick={dismiss} aria-label="Dismiss">
+    <div style={banner} role="region" aria-label={t('openInApp.region')}>
+      <button type="button" style={dismissBtn} onClick={dismiss} aria-label={t('openInApp.dismiss')}>
         <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
           <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
         </svg>
@@ -77,10 +81,10 @@ export function OpenInAppBanner() {
       </div>
       <div style={text}>
         <div style={title}>{titleText}</div>
-        <div style={sub}>Open this page in the Nexus app.</div>
+        <div style={sub}>{t('openInApp.subtitle')}</div>
       </div>
       <button type="button" style={openBtn} onClick={openInApp}>
-        Open
+        {t('openInApp.open')}
       </button>
     </div>
   );

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { LayoutDashboard, Star } from 'lucide-react';
 import type { TopologyDisplay } from '../../../api/displays';
+import { useTranslation } from '../../../lib/i18n';
 import { displayNumberLabel, layoutMonitorRects } from './monitorMapLayout';
 import styles from './MonitorMap.module.scss';
 
@@ -17,6 +18,7 @@ interface MonitorMapProps {
  * virtual-desktop bounds (or rowed when the platform reports none).
  */
 export function MonitorMap({ displays, selectedId, onSelect }: MonitorMapProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -34,7 +36,7 @@ export function MonitorMap({ displays, selectedId, onSelect }: MonitorMapProps) 
   const rects = layoutMonitorRects(displays, size.width, size.height);
 
   return (
-    <div ref={containerRef} className={styles.map} role="listbox" aria-label="displays">
+    <div ref={containerRef} className={styles.map} role="listbox" aria-label={t('displays.mapAria')}>
       {rects.map((rect, i) => {
         const display = displays[i];
         const isPanel = display.isY70 || display.assignedPanelDeviceId !== null;

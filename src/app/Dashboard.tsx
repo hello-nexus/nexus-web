@@ -7,6 +7,8 @@ import { BenchmarkView } from '../components/views/BenchmarkView/BenchmarkView';
 import { DashboardView } from '../components/views/DashboardView/DashboardView';
 import { OpenInAppBanner } from '../components/common/OpenInAppBanner/OpenInAppBanner';
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
+import { ProfilesView } from '../components/views/SettingsView/ProfilesView';
+import { ToolsView } from '../components/views/ToolsView';
 import { DevicePage } from '../components/views/DevicePage/DevicePage';
 // Widget Pages are code-split: the dashboard only loads the immersive view
 // when the user navigates into it. Cuts ~500KB off the main bundle so the
@@ -125,13 +127,19 @@ export function Dashboard() {
   }, [setLanguage]);
 
   const handleNavigateSettings = useCallback(() => {
-    navigate('system', 'settings', 'general');
+    navigate('system', 'settings');
   }, [navigate]);
 
-  // The profile dropdown's "Manage profiles" lands on the Profiles tab, not
-  // the General settings the "..." menu opens.
+  // The profile dropdown's "Manage profiles" lands on the standalone Profiles
+  // page, not Settings.
   const handleManageProfiles = useCallback(() => {
-    navigate('system', 'settings', 'profiles');
+    navigate('system', 'profiles');
+  }, [navigate]);
+
+  // The "..." overflow menu's "Dev tools" entry opens the standalone developer
+  // diagnostics page.
+  const handleNavigateTools = useCallback(() => {
+    navigate('system', 'tools');
   }, [navigate]);
 
   const handleServiceNavChange = useCallback((key: string) => {
@@ -194,6 +202,8 @@ export function Dashboard() {
   const pageTitle = (() => {
     if (section !== 'system') return t(`nav.section.${section}`);
     if (activeView === 'settings') return t('settings.title');
+    if (activeView === 'profiles') return t('settings.tab.profiles');
+    if (activeView === 'tools') return t('settings.tab.tools');
     // A specific device page shows the device's own name; the all-devices
     // landing keeps the generic "Devices" label.
     if (activeView === 'device') {
@@ -415,7 +425,9 @@ export function Dashboard() {
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;
-      case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} profiles={profilesHook} />;
+      case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} />;
+      case 'profiles':   return <ProfilesView serviceOnline={online} connectionState={status.state} profiles={profilesHook} />;
+      case 'tools':      return <ToolsView serviceOnline={online} connectionState={status.state} />;
       default: {
         // Page-capable marketplace (SDK) widget: render its bundle's page surface
         // as a section view (e.g. the clock's world map). The synthetic manifest
@@ -493,6 +505,7 @@ export function Dashboard() {
           profiles={profilesHook}
           onPreferencesChanged={handlePreferencesChanged}
           onNavigateSettings={handleNavigateSettings}
+          onNavigateTools={handleNavigateTools}
           onManageProfiles={handleManageProfiles}
           isWindowsApp={isWindowsAppShell()}
           isMacApp={isMacAppShell()}

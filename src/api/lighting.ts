@@ -444,8 +444,10 @@ export const importDeviceMapping = (id: string, artifact: MappingArtifact) =>
 export const exportDeviceMapping = (id: string) =>
   fetchService<ExportMappingResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/mapping/export`);
 
-export const publishDeviceMapping = (id: string, body: { name: string; description?: string; authorName?: string }) =>
-  postService<PublishMappingResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/mappings/publish`, body);
+// Publish carries no user-authored text: the service derives the public name
+// from the device itself, so there is nothing to sanitize.
+export const publishDeviceMapping = (id: string) =>
+  postService<PublishMappingResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/mappings/publish`, {});
 
 /** Cache-only count lookup for the device-card badges; never hits the network. */
 export const fetchAvailableMappings = () =>

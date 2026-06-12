@@ -113,7 +113,7 @@ describe('MonitoringSettings - Micro mode', () => {
     const updates: Record<string, PanelConfigValue>[] = [];
     render(<MicroHarness initial={microWidget(4)} onUpdate={cfg => updates.push(cfg)} />);
 
-    const deviceSelect = screen.getByRole('combobox', { name: 'Device' });
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' });
     act(() => {
       fireEvent.change(deviceSelect, { target: { value: 'gpu' } });
     });
@@ -132,7 +132,7 @@ describe('MonitoringSettings - Micro mode', () => {
   it('disables device options that cannot fill the active slot count', () => {
     render(<MicroHarness initial={microWidget(3)} />);
 
-    const deviceSelect = screen.getByRole('combobox', { name: 'Device' }) as HTMLSelectElement;
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
     const optionByValue = (value: string) =>
       Array.from(deviceSelect.options).find(o => o.value === value)!;
 
@@ -148,7 +148,7 @@ describe('MonitoringSettings - Micro mode', () => {
   it('hides Network from the picker at count=4 (only 3 distinct network sensors exist)', () => {
     render(<MicroHarness initial={microWidget(4)} />);
 
-    const deviceSelect = screen.getByRole('combobox', { name: 'Device' }) as HTMLSelectElement;
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
     const optionByValue = (value: string) =>
       Array.from(deviceSelect.options).find(o => o.value === value)!;
 

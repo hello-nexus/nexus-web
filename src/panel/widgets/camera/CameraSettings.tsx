@@ -62,8 +62,11 @@ export function CameraSettings({ widget, onUpdate }: WidgetSettingsProps) {
           label={t('panel.widget.camera.settings.codec')}
           value={config.codec}
           options={[
+            // eslint-disable-next-line i18next/no-literal-string -- codec enum value
             { value: 'auto', label: t('panel.widget.camera.settings.codecAuto') },
+            // eslint-disable-next-line i18next/no-literal-string -- codec enum value
             { value: 'h264', label: 'H.264' },
+            // eslint-disable-next-line i18next/no-literal-string -- codec enum value
             { value: 'mjpeg', label: 'MJPEG' },
           ]}
           onChange={v => onUpdate({ codec: v })}

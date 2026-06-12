@@ -11,10 +11,12 @@ import {
 } from '../../../api/obs';
 import type { WidgetProps } from '../types';
 import { usePanelPreview } from '../common/PanelPreviewContext';
+import { useTranslation } from '../../../lib/i18n';
 import { OBS_PREVIEW } from './obsPreviewData';
 import styles from './ObsWidget.module.scss';
 
 export function ObsWidget({ widget }: WidgetProps) {
+  const { t } = useTranslation();
   const preview = usePanelPreview();
   const [status, setStatus] = useState<ObsStatusResponse | null>(preview ? OBS_PREVIEW : null);
   const [busy, setBusy] = useState(false);
@@ -63,7 +65,7 @@ export function ObsWidget({ widget }: WidgetProps) {
           <div>
             <div className={styles.statusLine}>
               <span className={styles.dot} />
-              <span>{connected ? 'Connected' : status?.msg || 'Disconnected'}</span>
+              <span>{connected ? t('panel.widget.obs.connected') : status?.msg || t('panel.widget.obs.disconnected')}</span>
             </div>
           </div>
         </div>
@@ -72,7 +74,7 @@ export function ObsWidget({ widget }: WidgetProps) {
           className={styles.iconButton}
           onClick={() => run(connectObs)}
           disabled={busy}
-          aria-label="Reconnect OBS"
+          aria-label={t('panel.widget.obs.reconnect')}
         >
           <RefreshCw size={15} />
         </button>
@@ -83,7 +85,7 @@ export function ObsWidget({ widget }: WidgetProps) {
           <section className={styles.controlPanel}>
             <div className={styles.sceneNow}>
               <Clapperboard size={15} />
-              <span>{status?.activeScene || 'No scene'}</span>
+              <span>{status?.activeScene || t('panel.widget.obs.noScene')}</span>
             </div>
             <div className={styles.actionGrid}>
               <button
@@ -94,7 +96,7 @@ export function ObsWidget({ widget }: WidgetProps) {
                 disabled={busy}
               >
                 <Radio size={15} />
-                <span>{status?.streaming ? 'Live' : 'Stream'}</span>
+                <span>{status?.streaming ? t('panel.widget.obs.live') : t('panel.widget.obs.stream')}</span>
                 {status?.streaming && <em>{formatDuration(status.streamingDurationMs)}</em>}
               </button>
               <button
@@ -105,14 +107,14 @@ export function ObsWidget({ widget }: WidgetProps) {
                 disabled={busy}
               >
                 <Video size={15} />
-                <span>{status?.recording ? 'Rec' : 'Record'}</span>
+                <span>{status?.recording ? t('panel.widget.obs.rec') : t('panel.widget.obs.record')}</span>
                 {status?.recording && <em>{formatDuration(status.recordingDurationMs)}</em>}
               </button>
             </div>
           </section>
 
           {!compact && (
-            <section className={styles.scenes} aria-label="OBS scenes">
+            <section className={styles.scenes} aria-label={t('panel.widget.obs.scenes')}>
               {(status?.scenes ?? []).map(scene => {
                 const active = scene.name === status?.activeScene;
                 return (
@@ -133,13 +135,13 @@ export function ObsWidget({ widget }: WidgetProps) {
         </div>
       ) : (
         <div className={styles.empty}>
-          <div className={styles.emptyText}>{status?.msg || 'OBS WebSocket is not connected'}</div>
+          <div className={styles.emptyText}>{status?.msg || t('panel.widget.obs.notConnected')}</div>
           <div className={styles.emptyActions}>
             <button type="button" className="panel-chip" onClick={() => run(connectObs)} disabled={busy}>
-              Connect
+              {t('panel.widget.obs.connect')}
             </button>
             <button type="button" className="panel-chip" onClick={() => run(launchObs)} disabled={busy}>
-              Launch
+              {t('panel.widget.obs.launch')}
             </button>
           </div>
         </div>

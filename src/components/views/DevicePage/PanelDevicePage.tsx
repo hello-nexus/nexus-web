@@ -585,7 +585,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
   return (
     <div className={styles.inlineSettings}>
       <div className={styles.inlineSettingsHeader}>
-        <button type="button" className={styles.backBtn} onClick={onBack} aria-label="Back">
+        <button type="button" className={styles.backBtn} onClick={onBack} aria-label={t('devices.panels.widgetSettings.back')}>
           <ArrowLeft size={16} />
         </button>
         <div className={styles.inlineSettingsTitle}>
@@ -597,7 +597,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
             type="button"
             className={styles.inlineRemoveBtn}
             onClick={() => onRemove(widget.id)}
-            aria-label="Remove"
+            aria-label={t('devices.panels.widgetSettings.remove')}
           >
             <Trash2 size={14} />
           </button>
@@ -607,7 +607,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
       {(sizes.length > 1 || slotCountOptions.length > 1) && (
         <div className={styles.inlineControlsRow}>
           {sizes.length > 1 && (
-            <WidgetControlGroup title={isMonitoringWidget ? 'Layout' : 'Size'}>
+            <WidgetControlGroup title={isMonitoringWidget ? t('devices.panels.widgetSettings.layout') : t('devices.panels.widgetSettings.size')}>
               {sizes.map(s => {
                 const SizeIcon = SIZE_ICONS[s];
                 return (
@@ -616,7 +616,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
                     className={styles.inlineIconButton}
                     active={s === widget.size}
                     icon={SizeIcon ? <SizeIcon aria-hidden="true" /> : undefined}
-                    ariaLabel={`${isMonitoringWidget ? 'Layout' : 'Size'} ${s}`}
+                    ariaLabel={`${isMonitoringWidget ? t('devices.panels.widgetSettings.layout') : t('devices.panels.widgetSettings.size')} ${s}`}
                     onPress={() => handleResize(s)}
                     title={s}
                   />
@@ -625,15 +625,15 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
             </WidgetControlGroup>
           )}
           {isMonitoringWidget && slotCountOptions.length > 0 && (
-            <WidgetControlGroup title="Slots">
+            <WidgetControlGroup title={t('devices.panels.widgetSettings.slots')}>
               {slotCountOptions.map(n => (
                 <IconLabelButton
                   key={n}
                   className={styles.inlineIconButton}
                   active={n === slotCount}
                   icon={<SlotCountIcon count={n} size={widget.size} aria-hidden="true" />}
-                  ariaLabel={`${n} ${n === 1 ? 'slot' : 'slots'}`}
-                  title={`${n} ${n === 1 ? 'slot' : 'slots'}`}
+                  ariaLabel={t('devices.panels.widgetSettings.slotCount', { count: n })}
+                  title={t('devices.panels.widgetSettings.slotCount', { count: n })}
                   onPress={() => handleSlotCount(n)}
                 />
               ))}
@@ -680,7 +680,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
         </div>
       ) : (
         <div className={styles.inlineSettingsEmpty}>
-          {t('peripheral.noCapabilities') || 'No configurable settings.'}
+          {t('peripheral.noCapabilities') || t('devices.panels.widgetSettings.noConfigurableSettings')}
         </div>
       )}
     </div>
@@ -717,6 +717,7 @@ function MonitorSettingsPanel({
           <div className="device-modal-label">{t('devices.y70.brightness')}</div>
           <div className={styles.brightnessControl}>
             <Slider
+              // eslint-disable-next-line i18next/no-literal-string -- slider layout variant
               orientation="bare"
               min={0}
               max={100}
@@ -795,6 +796,7 @@ function SettingsPanel({
             <div className="device-modal-label">{t('devices.y70.brightness')}</div>
             <div className={styles.brightnessControl}>
               <Slider
+                // eslint-disable-next-line i18next/no-literal-string -- slider layout variant
                 orientation="bare"
                 min={0}
                 max={100}
@@ -824,7 +826,7 @@ function SettingsPanel({
           <div className="device-modal-row">
             <div>
               <div className="device-modal-label">{t('devices.y70.screen')}</div>
-              <div className="device-modal-hint">{screenOn ? 'On' : 'Off'}</div>
+              <div className="device-modal-hint">{screenOn ? t('devices.y70.screenOn') : t('devices.y70.screenOff')}</div>
             </div>
             <Toggle checked={screenOn} onChange={onScreenToggle} ariaLabel={t('devices.y70.screen')} />
           </div>

@@ -663,6 +663,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
           </div>
         </div>
         <div className={styles.phonePairE2e}>
+          {/* eslint-disable-next-line i18next/no-literal-string -- aria attribute value */}
           <Lock size={15} aria-hidden="true" />
           <span>{t('phonePair.e2eNote')}</span>
         </div>
@@ -721,8 +722,11 @@ function PairBroadcastRow({
         onChange={(next) => onChange(next as PairBroadcastState['mode'])}
         ariaLabel={t('phonePair.broadcast.label')}
         options={[
+          // eslint-disable-next-line i18next/no-literal-string -- broadcast mode enum
           { value: 'never', label: t('phonePair.broadcast.optNever') },
+          // eslint-disable-next-line i18next/no-literal-string -- broadcast mode enum
           { value: 'always', label: t('phonePair.broadcast.optAlways') },
+          // eslint-disable-next-line i18next/no-literal-string -- broadcast mode enum
           { value: 'until', label: t('phonePair.broadcast.optTen') },
         ]}
       />

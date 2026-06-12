@@ -116,6 +116,7 @@ export function ZoneCard({
           </HoverTooltip>
         ) : (
           <span className={styles.deviceMeta}>
+            {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
             <Lightbulb className={styles.deviceMetaIcon} aria-hidden="true" />
             <span className={styles.deviceMetaCount}>{device.ledCount}</span>
           </span>

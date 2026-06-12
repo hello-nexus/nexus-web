@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../../lib/i18n';
 import styles from './PanelPageIndicator.module.scss';
 
 interface PanelPageIndicatorProps {
@@ -13,6 +14,7 @@ interface PanelPageIndicatorProps {
 const FADE_HOLD_MS = 1500;
 
 export function PanelPageIndicator({ total, active, visibilityToken, className }: PanelPageIndicatorProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function PanelPageIndicator({ total, active, visibilityToken, className }
       className={`${styles.indicator}${className ? ` ${className}` : ''}`}
       data-fade={visible ? undefined : 'true'}
       role="tablist"
-      aria-label="Panel pages"
+      aria-label={t('panel.pages.label')}
     >
       {Array.from({ length: total }).map((_, idx) => (
         <span

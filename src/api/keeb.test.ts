@@ -8,7 +8,6 @@ import {
   type SetLayerKeyBody,
   type SetPassiveLightingBody,
   type SetRotaryWheelsBody,
-  getKeebLayer,
   getKeebMacro,
   getKeebRotaryFunctions,
   getKeebSettings,
@@ -199,12 +198,6 @@ describe('state and settings pass-throughs', () => {
     mockFetch.mockResolvedValue(null);
     await expect(getKeebState()).resolves.toBeNull();
     expect(mockFetch).toHaveBeenCalledWith('/keeb/state?layer=0');
-  });
-
-  it('getKeebLayer fetches the layer endpoint', async () => {
-    mockFetch.mockResolvedValue(state);
-    await expect(getKeebLayer(1)).resolves.toBe(state);
-    expect(mockFetch).toHaveBeenCalledWith('/keeb/layer/1');
   });
 
   it('getKeebSettings fetches the settings endpoint', async () => {

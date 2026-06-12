@@ -20,8 +20,8 @@ const root = dirname(fileURLToPath(import.meta.url));
 const runtimeDir = join(root, 'runtime');
 const outDir = join(root, 'dist');
 // The apps repo. Each app is one unit: apps/<id>/ holds the author source
-// (index.tsx), manifest.json, assets, AND the built widget.mjs — built in place.
-const appsRepo = process.env.NEXUS_APPS_DIR || join(root, '..', '..', 'nexus-widgets-sdk-panel');
+// (index.tsx), manifest.json, assets, AND the built widget.mjs - built in place.
+const appsRepo = process.env.NEXUS_APPS_DIR || join(root, '..', '..', 'nexus-apps');
 const appsDir = join(appsRepo, 'apps');
 
 const alias = {

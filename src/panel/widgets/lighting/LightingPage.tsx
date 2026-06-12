@@ -823,6 +823,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       <SupportedDevicesModal
         open={catalogOpen}
         onClose={() => setCatalogOpen(false)}
+        // eslint-disable-next-line i18next/no-literal-string -- catalog source enum
         source="lighting"
         detectedVidPids={detectedVidPids}
       />

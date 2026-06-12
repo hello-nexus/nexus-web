@@ -114,7 +114,7 @@ describe('MonitoringSettings', () => {
     fireEvent.click(screen.getByRole('button', { name: /select gpu core/i }));
     expect(screen.getByRole('button', { name: /select gpu core/i })).toHaveAttribute('aria-pressed', 'true');
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Device' }), { target: { value: 'fan' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device' }), { target: { value: 'fan' } });
 
     expect(onUpdate).toHaveBeenLastCalledWith({
       slot1_device: 'fan',
@@ -126,7 +126,7 @@ describe('MonitoringSettings', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Device' }), { target: { value: 'network' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device' }), { target: { value: 'network' } });
 
     expect(onUpdate).toHaveBeenLastCalledWith({
       slot0_device: 'network',
@@ -136,7 +136,7 @@ describe('MonitoringSettings', () => {
     expect(screen.getByText('1.5')).toBeInTheDocument();
     expect(screen.getByText('MB/s')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Sensor' }), { target: { value: 'Network In' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.sensor' }), { target: { value: 'Network In' } });
     expect(onUpdate).toHaveBeenLastCalledWith({
       slot0_sensor: 'Network In',
     });
@@ -145,8 +145,8 @@ describe('MonitoringSettings', () => {
   it('filters sensor choices to the selected category', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
 
-    const deviceSelect = screen.getByRole('combobox', { name: 'Device' });
-    const sensorSelect = screen.getByRole('combobox', { name: 'Sensor' });
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' });
+    const sensorSelect = screen.getByRole('combobox', { name: 'monitoring.settings.sensor' });
 
     expect(optionLabels(sensorSelect)).toEqual(['Total (Load)']);
 

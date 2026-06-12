@@ -1,4 +1,4 @@
-// Layout data tests — pin the physical layout shape of the Keeb TKL render
+// Layout data tests - pin the physical layout shape of the Keeb TKL render
 // against the legacy nexus app exactly. The byte indices, gaps, oversized
 // keys, and ANSI/ISO-conditional cells are firmware contract; a typo or a
 // well-meaning cleanup that changes a marginLeft would silently swap which
@@ -7,7 +7,9 @@
 import { describe, it, expect } from 'vitest';
 import { getKeebLayoutRows } from './keebLayout';
 
-describe('keebLayout — row shape', () => {
+const MEDIA_ROW_FUNCTIONS = ['Stop', 'ScanPreviousTrack', 'PlayAndPause', 'ScanNextTrack', 'Mute'];
+
+describe('keebLayout - row shape', () => {
   it('returns 8 rows for ANSI', () => {
     expect(getKeebLayoutRows('ANSI')).toHaveLength(8);
   });
@@ -22,13 +24,13 @@ describe('keebLayout — row shape', () => {
     expect(rows[0][0].mode).toBe('RGBKey');
   });
 
-  it('row 1 has the 9 media keys in order', () => {
+  it('row 1 has the 5 physical media buttons in order', () => {
     const rows = getKeebLayoutRows('ANSI');
-    expect(rows[1].map(k => k.function)).toEqual([
-      'Stop', 'ScanPreviousTrack', 'PlayAndPause', 'ScanNextTrack',
-      'Mute', 'VolumeUp', 'VolumeDown', 'Rewind', 'FastForward',
-    ]);
-    rows[1].forEach(k => expect(k.mode).toBe('MediaKey'));
+    expect(rows[1].map(k => k.function)).toEqual(MEDIA_ROW_FUNCTIONS);
+    rows[1].forEach(k => {
+      expect(k.mode).toBe('MediaKey');
+      expect(k.style).toBeUndefined();
+    });
   });
 
   it('row 2 starts with Escape and includes the F-row gaps', () => {
@@ -118,23 +120,31 @@ describe('keebLayout — row shape', () => {
     expect(r.find(k => k.function === 'Keypad0Insert')?.style).toMatchObject({ width: 161, marginLeft: 33 });
   });
 
+  it('the only media-key cells are the five physical media buttons on row 1', () => {
+    for (const layout of ['ANSI', 'ISO'] as const) {
+      const mediaCells = getKeebLayoutRows(layout).flat().filter(k => k.mode === 'MediaKey');
+      expect(mediaCells.map(k => k.function)).toEqual(MEDIA_ROW_FUNCTIONS);
+    }
+  });
+
   it('total cell count is stable across ANSI / ISO (ISO adds NonUsBackslash, removes Backslash)', () => {
     const ansiTotal = getKeebLayoutRows('ANSI').reduce((n, r) => n + r.length, 0);
     const isoTotal = getKeebLayoutRows('ISO').reduce((n, r) => n + r.length, 0);
-    // Row 4: ANSI has Backslash, ISO has Return — same count.
-    // Row 5: ANSI has Return, ISO has NonUsPound — same count.
+    // Row 4: ANSI has Backslash, ISO has Return - same count.
+    // Row 5: ANSI has Return, ISO has NonUsPound - same count.
     // Row 6: ISO inserts NonUsBackslash (one extra cell).
-    // Row 7: ANSI Application vs ISO RightGUI — same count.
+    // Row 7: ANSI Application vs ISO RightGUI - same count.
+    expect(ansiTotal).toBe(112);
     expect(isoTotal).toBe(ansiTotal + 1);
   });
 });
 
-describe('keebLayout — visual class hint per mode/position', () => {
-  // Legacy nexus's `Key/index.tsx` derives the visual shape from row/index:
-  //   row === 0 && key === 0  → middle button (pill, 60×80)
-  //   row === 1               → media key   (80×45 rounded)
-  //   otherwise               → standard    (75×70)
-  // These tests pin those positional rules at the data level so the renderer
+describe('keebLayout - visual class hint per mode/position', () => {
+  // The renderer derives the visual shape from row/index:
+  //   row === 0 && key === 0  → middle button (pill)
+  //   row === 1               → media key (wide-short rounded)
+  //   otherwise               → standard key
+  // These tests pin the positional rules at the data level so the renderer
   // can keep applying them deterministically.
 
   it('first cell of row 0 is the firmware-supplied RGB-cycle key (middle-button role)', () => {

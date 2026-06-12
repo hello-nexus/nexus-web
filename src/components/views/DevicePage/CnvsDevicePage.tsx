@@ -8,6 +8,7 @@ import {
   setCnvsSettings,
   type CnvsSettings,
 } from '../../../api/cnvs';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './CnvsDevicePage.module.scss';
 
 /**
@@ -34,6 +35,7 @@ import styles from './CnvsDevicePage.module.scss';
  * `GetCnvsSettings` so this component can branch on it.
  */
 export function CnvsDevicePage() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<CnvsSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +46,7 @@ export function CnvsDevicePage() {
       const s = await getCnvsSettings();
       if (cancelled) return;
       if (!s) {
-        setError('Could not read CNVS settings.');
+        setError(t('devices.cnvs.readFailed'));
       } else {
         setSettings(s);
         setError(null);
@@ -52,7 +54,7 @@ export function CnvsDevicePage() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [t]);
 
   const commit = useCallback(async (next: CnvsSettings) => {
     const snapshot = settings;
@@ -61,9 +63,9 @@ export function CnvsDevicePage() {
     const result = await setCnvsSettings(next);
     if (result === null) {
       setSettings(snapshot);
-      setError('Saving CNVS settings failed.');
+      setError(t('devices.cnvs.saveFailed'));
     }
-  }, [settings]);
+  }, [settings, t]);
 
   return (
     <section className={styles.page}>
@@ -72,22 +74,22 @@ export function CnvsDevicePage() {
         />
       <div className={`${styles.pageBody} pageBody`}>
         {loading ? null : !settings ? (
-          <Placeholder title={error ?? 'CNVS not available'} />
+          <Placeholder title={error ?? t('devices.cnvs.notAvailable')} />
         ) : (
           <SettingsSection
-            title="Firmware behaviour"
-            description="Settings that the CNVS keeps even when Nexus isn't running."
+            title={t('devices.cnvs.firmwareSection')}
+            description={t('devices.cnvs.firmwareSectionDescription')}
             boxClassName={styles.sectionBox}
           >
             <SettingRow
-              label="Disable connection animation"
-              hint="Skip the firmware boot animation when the CNVS connects to this PC."
+              label={t('devices.cnvs.disableConnectionAnimation')}
+              hint={t('devices.cnvs.disableConnectionAnimationHint')}
               checked={settings.playAnimation}
               onChange={(disabled) => commit({ ...settings, playAnimation: disabled })} />
 
             <SettingRow
-              label="Keep LEDs on when PC is off"
-              hint="CNVS LEDs stay lit on the last frame after a shutdown. Drains a bit of standby power."
+              label={t('devices.cnvs.keepLedsOnWhenPcOff')}
+              hint={t('devices.cnvs.keepLedsOnWhenPcOffHint')}
               checked={settings.playWhenPCOff}
               onChange={(on) => commit({ ...settings, playWhenPCOff: on })} />
 

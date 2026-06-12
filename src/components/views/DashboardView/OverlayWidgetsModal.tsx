@@ -184,65 +184,67 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
   }), [widgets, t]);
 
   return (
-    <Overlay open={open} onClose={onClose} ariaLabel="Desktop widgets" className={styles.surface}>
+    <Overlay open={open} onClose={onClose} ariaLabel={t('dashboard.desktopWidgets')} className={styles.surface}>
       <header className={styles.header}>
-        <h2 className={styles.title}>Desktop widgets</h2>
-        <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
-          <X size={16} aria-hidden="true" />
+        <h2 className={styles.title}>{t('dashboard.desktopWidgets')}</h2>
+        <button type="button" className={styles.closeBtn} onClick={onClose} aria-label={t('app.window.close')}>
+          <X size={16} aria-hidden />
         </button>
       </header>
 
       {!loaded ? (
-        <div className={styles.loading}>Loading…</div>
+        <div className={styles.loading}>{t('overlayWidgets.loading')}</div>
       ) : (
         <div className={styles.body}>
           <section className={styles.section}>
             <div className={styles.row}>
-              <span className={styles.rowLabel}>Enable</span>
+              <span className={styles.rowLabel}>{t('overlayWidgets.enable')}</span>
               <Toggle
                 checked={enabled}
                 onChange={handleToggleEnabled}
-                ariaLabel="Enable desktop widgets"
+                ariaLabel={t('overlayWidgets.enableAria')}
               />
             </div>
           </section>
 
           <section className={styles.section}>
             <div className={styles.row}>
-              <span className={styles.rowLabel}>Monitor</span>
+              <span className={styles.rowLabel}>{t('devices.specs.row.monitor')}</span>
               <Select
                 value={String(monitor)}
                 onChange={(v) => { void handleMonitorChange(v); }}
                 options={monitorOptions}
-                ariaLabel="Desktop widget monitor"
+                ariaLabel={t('overlayWidgets.monitorAria')}
               />
             </div>
             <Slider
-              label="Scale"
+              label={t('displays.scale')}
               value={scale}
               min={SCALE_MIN}
               max={SCALE_MAX}
               step={5}
+              // eslint-disable-next-line i18next/no-literal-string -- layout orientation enum
               orientation="inline"
               formatValue={(v) => `${v}%`}
               onChange={(v) => setScale(v)}
               onCommit={(v) => { void handleScaleCommit(v); }}
-              ariaLabel="Desktop widget scale"
+              ariaLabel={t('overlayWidgets.scaleAria')}
               trackFill
             />
             <Slider
-              label="Opacity"
+              label={t('overlayWidgets.opacity')}
               value={opacity}
               min={OPACITY_MIN}
               max={OPACITY_MAX}
               step={5}
+              // eslint-disable-next-line i18next/no-literal-string -- layout orientation enum
               orientation="inline"
               formatValue={(v) => `${v}%`}
               onPointerDown={() => { isDraggingOpacityRef.current = true; }}
               onPointerCancel={() => { isDraggingOpacityRef.current = false; }}
               onChange={(v) => { setOpacity(v); livePostOpacity(v); }}
               onCommit={(v) => { void handleOpacityCommit(v); }}
-              ariaLabel="Desktop widget opacity"
+              ariaLabel={t('overlayWidgets.opacityAria')}
               trackFill
             />
           </section>
@@ -250,17 +252,19 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
           <section className={styles.section}>
             <div className={styles.listHeader}>
               <span>
-                {widgets.length === 1 ? '1 widget pinned' : `${widgets.length} widgets pinned`}
+                {widgets.length === 1
+                  ? t('overlayWidgets.pinnedCount.one')
+                  : t('overlayWidgets.pinnedCount.other', { count: widgets.length })}
               </span>
               {widgets.length > 0 && (
                 <button type="button" className={styles.linkBtn} onClick={handleUnpinAll}>
-                  Unpin all
+                  {t('overlayWidgets.unpinAll')}
                 </button>
               )}
             </div>
             {widgets.length === 0 ? (
               <div className={styles.empty}>
-                Right-click any widget on the dashboard, then choose <em>Add to desktop</em>.
+                {t('overlayWidgets.emptyPrefix')}<em>{t('overlayWidgets.emptyAction')}</em>{t('overlayWidgets.emptySuffix')}
               </div>
             ) : (
               <ul className={styles.list}>

@@ -60,7 +60,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
             className={styles.addWidgetButton}
             onClick={() => setAddWidgetSignal(value => value + 1)}
           >
-            <Plus size={14} aria-hidden="true" />
+            <Plus size={14} aria-hidden />
             <span>{t('devices.y70.editor.addWidget')}</span>
           </button>
           <button
@@ -68,8 +68,8 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
             className={styles.addWidgetButton}
             onClick={() => setDesktopModalOpen(true)}
           >
-            <Monitor size={14} aria-hidden="true" />
-            <span>Desktop Widgets</span>
+            <Monitor size={14} aria-hidden />
+            <span>{t('dashboard.desktopWidgets')}</span>
             {desktopWidgetCount > 0 && (
               <span className={styles.widgetCountBadge}>{desktopWidgetCount}</span>
             )}

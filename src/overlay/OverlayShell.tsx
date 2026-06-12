@@ -11,6 +11,7 @@ import { sizesForSurface, APP_REGISTRY } from '../panel/widgets/registry';
 import { normalizePanelWidgetSize, type PanelConfigValue, type PanelWidget, type PanelWidgetSize } from '../panel/types';
 import { buildEmbeddedPanelThemeVars } from '../panel/theme/panelTheme';
 import { applyAccentColor, applyThemeMode, type ThemeMode } from '../lib/settings';
+import { useTranslation } from '../lib/i18n';
 import { WidgetContextMenu } from '../panel/widgets/common/WidgetContextMenu';
 import { WidgetEditSheet } from '../panel/widgets/common/WidgetEditSheet';
 import { postToHost } from './hostBridge';
@@ -106,6 +107,7 @@ function reportLayoutWithPopover(
 }
 
 export default function OverlayShell() {
+  const { t } = useTranslation();
   const { monitor } = useMemo(() => readMonitorParams(), []);
   const [scale, setScale] = useState(100);
   const scaleFactor = useMemo(() => scale / 100, [scale]);
@@ -413,7 +415,9 @@ export default function OverlayShell() {
         const sizes = entry && def ? sizesForSurface(def.meta, 'desktop') : [];
         const currentSize = entry
           ? normalizePanelWidgetSize(entry.size) as PanelWidgetSize
+          // eslint-disable-next-line i18next/no-literal-string -- widget size enum
           : '2x2';
+        // eslint-disable-next-line i18next/no-literal-string -- theme mode enum
         const resolvedMode = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
         const hasConfig = Boolean(def?.Settings);
         return (
@@ -423,10 +427,11 @@ export default function OverlayShell() {
             currentSize={currentSize}
             sizes={sizes}
             hasConfig={hasConfig}
+            // eslint-disable-next-line i18next/no-literal-string -- surface id
             surface="desktop"
             themeMode={resolvedMode}
             themeStyle={themeStyle}
-            removeLabel="Unpin"
+            removeLabel={t('overlay.unpin')}
             alwaysOnTop={alwaysOnTop}
             onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
             onOpenDashboard={handleOpenDashboard}
@@ -451,6 +456,7 @@ export default function OverlayShell() {
           row: 0,
           config: entry.config,
         };
+        // eslint-disable-next-line i18next/no-literal-string -- theme mode enum
         const resolvedMode = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
         // Tile rect drives the popover anchor, computed the same way the
         // tile renders itself: cell origin shifted by the widget inset so
@@ -464,6 +470,7 @@ export default function OverlayShell() {
         return (
           <WidgetEditSheet
             widget={widget}
+            // eslint-disable-next-line i18next/no-literal-string -- surface id
             surface="desktop"
             themeMode={resolvedMode}
             themeStyle={themeStyle}
@@ -604,6 +611,7 @@ function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlo
         style={{ zoom: contentZoom }}
       >
         <Suspense fallback={null}>
+          {/* eslint-disable-next-line i18next/no-literal-string -- surface id */}
           <Component widget={widget} surface="desktop" selectedSlot={selectedSlot} onSelectSlot={onSelectSlot} />
         </Suspense>
       </div>

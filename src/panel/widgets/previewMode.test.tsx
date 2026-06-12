@@ -77,7 +77,7 @@ const multiplexStub: MultiplexContextValue = {
 // load-bearing fixture fields — fails when a widget's UI stops rendering them.
 const PREVIEW_CONTENT: Record<string, string[]> = {
   steam: ['Nova', 'Star Voyager', 'Driftline'],
-  discord: ['Nova', '3 notifications'],
+  discord: ['Nova', 'discord.notificationCount'],
   obs: ['Gameplay'],
   media: ['Midnight Drive', 'The Wavelengths'],
   screentime: ['Figma', 'Chrome'],

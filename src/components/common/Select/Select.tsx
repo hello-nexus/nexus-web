@@ -60,6 +60,7 @@ export function Select({
         className={styles.chevron}
         size={14}
         strokeWidth={2}
+        // eslint-disable-next-line i18next/no-literal-string -- decorative-icon aria flag
         aria-hidden="true"
       />
     </span>

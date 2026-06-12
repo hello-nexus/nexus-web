@@ -39,30 +39,37 @@ interface PawnIoStatus {
 }
 
 /*
- * Internal Debug Tools page, rendered as the "Dev tools" tab inside the
- * Settings page. The tab label supplies the page heading, so this view
- * starts straight at the card grid. Cards here are diagnostics + developer
- * utilities only.
+ * Internal Debug Tools page, reached from the top-bar "..." menu. The top bar
+ * supplies the page heading, so this view starts straight at the card grid.
+ * Cards here are diagnostics + developer utilities only.
  */
 export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
   if (!serviceOnline) {
     return (
-      <div className={styles.tools}>
-        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+      <div className={styles.page}>
+        <div className={`${styles.scroller} pageBody`}>
+          <div className={styles.tools}>
+            <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.tools}>
-      <div className={styles.grid}>
-        <StorybookCard />
-        <WidgetSdkCard />
-        <TelemetryEventsCard />
-        <InstallDefaultsCard />
-        <PawnIoCard />
-        <PanelSimulatorCard />
-        <FontDebugCard />
+    <div className={styles.page}>
+      <div className={`${styles.scroller} pageBody`}>
+        <div className={styles.tools}>
+          <div className={styles.grid}>
+            <StorybookCard />
+            <WidgetSdkCard />
+            <TelemetryEventsCard />
+            <InstallDefaultsCard />
+            <PawnIoCard />
+            <PanelSimulatorCard />
+            <FontDebugCard />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -91,15 +98,13 @@ function StorybookCard() {
  * and dispatch action with live previews.
  */
 function WidgetSdkCard() {
+  const { t } = useTranslation();
   return (
-    <Card title="Widget SDK reference">
-      <span className={styles.dim}>
-        Every UI primitive, SDK hook, dispatch action, capability — with live previews.
-        Acts as the reference for the app SDK and 3rd-party app authors.
-      </span>
+    <Card title={t('tools.widgetSdk.title')}>
+      <span className={styles.dim}>{t('tools.widgetSdk.label')}</span>
       <Button tone="accent" size="sm" onClick={() => {
         window.open('/widget-reference', '_blank', 'noopener,noreferrer');
-      }}>Open reference</Button>
+      }}>{t('tools.openReference')}</Button>
     </Card>
   );
 }
@@ -109,15 +114,13 @@ function WidgetSdkCard() {
  * event sent to PostHog, what it means, when it fires, and its parameters.
  */
 function TelemetryEventsCard() {
+  const { t } = useTranslation();
   return (
-    <Card title="Telemetry events">
-      <span className={styles.dim}>
-        Every product-analytics event the app sends to PostHog — what it records, when it
-        fires, and its parameters. The API lookup for our telemetry.
-      </span>
+    <Card title={t('tools.telemetryEvents.title')}>
+      <span className={styles.dim}>{t('tools.telemetryEvents.label')}</span>
       <Button tone="accent" size="sm" onClick={() => {
         window.open('/telemetry-reference', '_blank', 'noopener,noreferrer');
-      }}>Open reference</Button>
+      }}>{t('tools.openReference')}</Button>
     </Card>
   );
 }
@@ -164,15 +167,18 @@ function PawnIoCard() {
 //
 // "dashboard" is a virtual row mapping to panel.layouts.desktop.
 function InstallDefaultsCard() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   return (
-    <Card title="Install defaults">
+    <Card title={t('tools.installDefaults.title')}>
       <span className={styles.dim}>
-        Open the snapshot, copy any section's current values, and paste over the matching
-        block in <code>nexus-service/data/install-defaults.json</code> to make them the new defaults.
+        {t('tools.installDefaults.cardIntro')}{' '}
+        {/* eslint-disable-next-line i18next/no-literal-string -- service config file path */}
+        <code>nexus-service/data/install-defaults.json</code>{' '}
+        {t('tools.installDefaults.cardOutro')}
       </span>
-      <Button tone="accent" size="sm" onClick={() => setOpen(true)}>Open snapshot</Button>
+      <Button tone="accent" size="sm" onClick={() => setOpen(true)}>{t('tools.installDefaults.openSnapshot')}</Button>
       <InstallDefaultsModal open={open} onClose={() => setOpen(false)} />
     </Card>
   );
@@ -198,6 +204,7 @@ const SECTIONS: SectionDef[] = [
 ];
 
 function InstallDefaultsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<'current' | 'defaults'>('current');
   const [snapshot, setSnapshot] = useState<InstallDefaultsDocument | null>(null);
   const [canonical, setCanonical] = useState<InstallDefaultsDocument | null>(null);
@@ -219,22 +226,24 @@ function InstallDefaultsModal({ open, onClose }: { open: boolean; onClose: () =>
   const doc = tab === 'current' ? snapshot : canonical;
 
   return (
-    <DeviceModal open={open} onClose={onClose} wide title="Install defaults">
+    <DeviceModal open={open} onClose={onClose} wide title={t('tools.installDefaults.title')}>
       <div className={styles.installDefaultsModal}>
         <p className={styles.dim}>
-          Copy any section's values and paste over the matching block in
-          <code> nexus-service/data/install-defaults.json</code> to make them the new defaults.
+          {t('tools.installDefaults.modalIntro')}
+          {/* eslint-disable-next-line i18next/no-literal-string -- service config file path */}
+          <code> nexus-service/data/install-defaults.json</code>{' '}
+          {t('tools.installDefaults.modalOutro')}
         </p>
         <div className={styles.installDefaultsTabs} role="tablist">
           <button type="button" role="tab" aria-selected={tab === 'current'}
             className={`${styles.installDefaultsTab} ${tab === 'current' ? styles.installDefaultsTabActive : ''}`}
-            onClick={() => setTab('current')}>Current</button>
+            onClick={() => setTab('current')}>{t('tools.installDefaults.tabCurrent')}</button>
           <button type="button" role="tab" aria-selected={tab === 'defaults'}
             className={`${styles.installDefaultsTab} ${tab === 'defaults' ? styles.installDefaultsTabActive : ''}`}
-            onClick={() => setTab('defaults')}>Defaults</button>
+            onClick={() => setTab('defaults')}>{t('tools.installDefaults.tabDefaults')}</button>
         </div>
         {!doc ? (
-          <p className={styles.dim}>Loading…</p>
+          <p className={styles.dim}>{t('tools.installDefaults.loading')}</p>
         ) : (
           <InstallDefaultsTabBody doc={doc} tab={tab} />
         )}
@@ -244,6 +253,7 @@ function InstallDefaultsModal({ open, onClose }: { open: boolean; onClose: () =>
 }
 
 function InstallDefaultsTabBody({ doc, tab }: { doc: InstallDefaultsDocument; tab: 'current' | 'defaults' }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState<string | null>(null);
 
   const formatFragment = (key: string, value: unknown) => {
@@ -264,7 +274,13 @@ function InstallDefaultsTabBody({ doc, tab }: { doc: InstallDefaultsDocument; ta
     <>
       <div className={styles.installDefaultsTopBar}>
         <Button tone="accent" size="sm" onClick={() => copy(copyAllId, allText)}>
-          {copied === copyAllId ? 'Copied!' : `Copy entire ${tab === 'current' ? 'snapshot' : 'defaults'}`}
+          {copied === copyAllId
+            ? t('builder.copied')
+            : t('tools.installDefaults.copyEntire', {
+                kind: tab === 'current'
+                  ? t('tools.installDefaults.kindSnapshot')
+                  : t('tools.installDefaults.kindDefaults'),
+              })}
         </Button>
       </div>
       <div className={styles.installDefaultsSections}>
@@ -284,7 +300,7 @@ function InstallDefaultsTabBody({ doc, tab }: { doc: InstallDefaultsDocument; ta
                     className={styles.installDefaultsCopy}
                     onClick={e => { e.stopPropagation(); copy(id, fragment); }}
                   >
-                    {copied === id ? 'Copied!' : 'Copy'}
+                    {copied === id ? t('builder.copied') : t('devices.specs.copy')}
                   </button>
                 </span>
               </summary>
@@ -298,6 +314,7 @@ function InstallDefaultsTabBody({ doc, tab }: { doc: InstallDefaultsDocument; ta
 }
 
 function PanelSimulatorCard() {
+  const { t } = useTranslation();
   const [connectedIds, setConnectedIds] = useState(() => getConnectedSimulatedPanelIds());
   const [customWidth, setCustomWidth] = useState(() => getCustomSimulatedPanel().width);
   const [customHeight, setCustomHeight] = useState(() => getCustomSimulatedPanel().height);
@@ -332,11 +349,11 @@ function PanelSimulatorCard() {
   };
 
   return (
-    <Card title="Panel test devices">
-      <span className={styles.dim}>Fake-connect panel targets for local screenshots, videos, and touch/editor testing.</span>
+    <Card title={t('tools.panelSim.title')}>
+      <span className={styles.dim}>{t('tools.panelSim.label')}</span>
       <div className={styles.simTuningRow}>
         <label className={styles.tuningField}>
-          <span>Short-side jump</span>
+          <span>{t('tools.panelSim.shortSideJump')}</span>
           <input
             className={styles.dimensionInput}
             type="number"
@@ -344,11 +361,11 @@ function PanelSimulatorCard() {
             max={16}
             step={0.1}
             value={gridSizing.shortSideJumpAtInches}
-            aria-label="Short-side grid jump inches"
+            aria-label={t('tools.panelSim.shortSideJumpAria')}
             onChange={e => updateJumpAtInches(Number(e.target.value))}
           />
         </label>
-        <span className={styles.dim}>in short side</span>
+        <span className={styles.dim}>{t('tools.panelSim.inShortSide')}</span>
       </div>
       <div className={styles.simList}>
         {getAllSimulatedPanels().map(panel => {

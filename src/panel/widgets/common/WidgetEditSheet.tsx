@@ -8,6 +8,7 @@ import {
   type CSSProperties,
 } from 'react';
 import { Trash2, X } from 'lucide-react';
+import { useTranslation } from '../../../lib/i18n';
 import { lookupApp, sizesForSurface } from '../registry';
 import { SIZE_ICONS } from './SizeIcons';
 import { WidgetControlGroup } from './WidgetControlGroup';
@@ -111,6 +112,7 @@ export function WidgetEditSheet({
   onSelectedSlotChange: externalOnSelectedSlotChange,
   keepOpenOnTarget,
 }: WidgetEditSheetProps) {
+  const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const Settings = def?.Settings;
   const sizes = def ? sizesForSurface(def.meta, surface) : [];
@@ -246,7 +248,7 @@ export function WidgetEditSheet({
           type="button"
           className={styles.iconButton}
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('app.window.close')}
         >
           <X size={17} />
         </button>
@@ -257,7 +259,7 @@ export function WidgetEditSheet({
       <div className={styles.actions}>
         <div className={styles.controlPicker}>
           {sizes.length > 1 && (
-            <WidgetControlGroup title={isMonitoringWidget ? 'Layout' : 'Size'}>
+            <WidgetControlGroup title={isMonitoringWidget ? t('panel.widget.editSheet.layout') : t('panel.widget.editSheet.size')}>
               {sizes.map(size => {
                 const Icon = SIZE_ICONS[size];
                 return (
@@ -266,7 +268,7 @@ export function WidgetEditSheet({
                     className={styles.controlButton}
                     active={size === widget.size}
                     icon={Icon ? <Icon aria-hidden="true" /> : undefined}
-                    ariaLabel={`${isMonitoringWidget ? 'Layout' : 'Size'} ${size}`}
+                    ariaLabel={`${isMonitoringWidget ? t('panel.widget.editSheet.layout') : t('panel.widget.editSheet.size')} ${size}`}
                     title={size}
                     onPress={() => handleResize(size)}
                   />
@@ -275,7 +277,7 @@ export function WidgetEditSheet({
             </WidgetControlGroup>
           )}
           {isMonitoringWidget && slotCountOptions.length > 0 && (
-            <WidgetControlGroup title="Slots">
+            <WidgetControlGroup title={t('panel.widget.editSheet.slots')}>
               {slotCountOptions.map(n => (
                 <IconLabelButton
                   key={n}
@@ -294,7 +296,7 @@ export function WidgetEditSheet({
           type="button"
           className={styles.removeButton}
           onClick={() => onRemove(widget.id)}
-          aria-label="Remove widget"
+          aria-label={t('panel.widget.editSheet.removeWidget')}
         >
           <Trash2 size={15} />
         </button>
@@ -313,7 +315,7 @@ export function WidgetEditSheet({
           </Suspense>
         </div>
       ) : (
-        <div className={styles.empty}>No settings</div>
+        <div className={styles.empty}>{t('panel.widget.editSheet.noSettings')}</div>
       )}
     </div>
   );

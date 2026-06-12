@@ -34,15 +34,15 @@ describe('KeebKeyboard - render', () => {
   it('renders every layout cell as a button with its function in the title attribute', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
     // ANSI cell count by row:
-    //   0:1 (RGB)  1:9 (media)  2:18 (Esc + F12 + nav + None/PassThrough)
+    //   0:1 (RGB)  1:5 (media)  2:18 (Esc + F12 + nav + None/PassThrough)
     //   3:21 (numbers + Backspace + Ins/Home/PgUp + NumLock-row of numpad)
     //   4:21 (Tab/QWERTY top + Backslash + Del/End/PgDn + numpad row + KeypadPlus)
     //   5:16 (CapsLock + ASDF + Return + numpad row)
     //   6:17 (LeftShift + ZXC + RightShift + UpArrow + numpad + KeypadEqual)
     //   7:13 (bottom-row modifiers + Space + arrows + Keypad0 + KeypadPeriodDelete)
-    // Total cells = 116, plus 2 wheel buttons = 118.
+    // Total cells = 112, plus 2 wheel buttons = 114.
     const buttons = container.querySelectorAll('button');
-    expect(buttons.length).toBe(118);
+    expect(buttons.length).toBe(114);
   });
 
   it('renders the two rotary wheel buttons inline on row 0', () => {
@@ -58,13 +58,20 @@ describe('KeebKeyboard - render', () => {
     expect(rgb.className).toMatch(/keyMiddle/);
   });
 
-  it('applies the media-key visual class to all 9 row-1 cells', () => {
+  it('applies the media-key visual class to all 5 row-1 cells', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
-    const media = ['Stop', 'ScanPreviousTrack', 'PlayAndPause', 'ScanNextTrack', 'Mute', 'VolumeUp', 'VolumeDown', 'Rewind', 'FastForward'];
+    const media = ['Stop', 'ScanPreviousTrack', 'PlayAndPause', 'ScanNextTrack', 'Mute'];
     for (const fn of media) {
       const btn = container.querySelector(`button[title="${fn}"]`) as HTMLButtonElement;
       expect(btn, fn).not.toBeNull();
       expect(btn.className, fn).toMatch(/keyMedia/);
+    }
+  });
+
+  it('renders none of the phantom media keys (volume/seek were never physical switches)', () => {
+    const { container } = render(<KeebKeyboard state={buildState()} />);
+    for (const fn of ['VolumeUp', 'VolumeDown', 'Rewind', 'FastForward']) {
+      expect(container.querySelector(`button[title="${fn}"]`), fn).toBeNull();
     }
   });
 

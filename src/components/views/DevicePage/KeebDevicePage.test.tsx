@@ -15,6 +15,8 @@ const h = vi.hoisted(() => ({
   saveGameMode: vi.fn(),
   saveRotary: vi.fn(),
   saveRotarySensitivity: vi.fn(),
+  loadMacro: vi.fn(),
+  saveMacro: vi.fn(),
   state: null as unknown as KeyboardState,
   settings: null,
   layer: 0,
@@ -23,6 +25,7 @@ const h = vi.hoisted(() => ({
     assignment: [] as any[],
     rotary: [] as any[],
     settings: [] as any[],
+    macro: [] as any[],
   },
 }));
 
@@ -45,9 +48,10 @@ vi.mock('../../../hooks/useKeeb', () => ({
     loading: false,
     layer: h.layer,
     setLayer: h.setLayer,
-    refresh: vi.fn(),
     setKey: h.setKey,
     resetLayer: h.resetLayer,
+    loadMacro: h.loadMacro,
+    saveMacro: h.saveMacro,
     saveFirmwareLighting: h.saveFirmwareLighting,
     savePassiveLighting: h.savePassiveLighting,
     saveGameMode: h.saveGameMode,
@@ -95,7 +99,10 @@ vi.mock('../keeb/KeebRotaryView', () => ({
 }));
 
 vi.mock('../keeb/KeebMacroView', () => ({
-  KeebMacroView: () => <div data-testid="macro-stub" />,
+  KeebMacroView: (props: any) => {
+    h.captured.macro.push(props);
+    return <div data-testid="macro-stub" />;
+  },
 }));
 
 vi.mock('../keeb/KeebTesterView', () => ({
@@ -109,6 +116,7 @@ function connectedState(): KeyboardState {
 const lastKeyboard = () => h.captured.keyboard[h.captured.keyboard.length - 1];
 const lastAssignment = () => h.captured.assignment[h.captured.assignment.length - 1];
 const lastRotary = () => h.captured.rotary[h.captured.rotary.length - 1];
+const lastMacro = () => h.captured.macro[h.captured.macro.length - 1];
 
 function selectWheel() {
   fireEvent.click(screen.getByRole('button', { name: 'stub-select-wheel' }));
@@ -127,6 +135,7 @@ beforeEach(() => {
   h.captured.assignment.length = 0;
   h.captured.rotary.length = 0;
   h.captured.settings.length = 0;
+  h.captured.macro.length = 0;
   h.push.mockClear();
   h.setLayer.mockClear();
   for (const fn of [
@@ -141,6 +150,10 @@ beforeEach(() => {
     fn.mockReset();
     fn.mockResolvedValue(true);
   }
+  h.loadMacro.mockReset();
+  h.loadMacro.mockResolvedValue(null);
+  h.saveMacro.mockReset();
+  h.saveMacro.mockImplementation(async (index: number, keys: any[]) => ({ index, keys }));
   h.state = connectedState();
   h.settings = null;
   h.layer = 0;
@@ -196,11 +209,15 @@ describe('KeebDevicePage', () => {
       expect(lastKeyboard().selected).toBeNull();
     });
 
-    it('macros tab shows no keyboard', () => {
+    it('macros tab shows no keyboard and wires the macro persistence props', () => {
       render(<KeebDevicePage />);
       clickTab('keeb.tab.macros');
       expect(screen.queryByTestId('keyboard-stub')).not.toBeInTheDocument();
       expect(screen.getByTestId('macro-stub')).toBeInTheDocument();
+      // loadMacro is the hook's function untouched; saveMacro is the page's
+      // wrapper that routes failures into the toast throttle.
+      expect(lastMacro().loadMacro).toBe(h.loadMacro);
+      expect(typeof lastMacro().saveMacro).toBe('function');
     });
   });
 
@@ -286,6 +303,35 @@ describe('KeebDevicePage', () => {
         nowSpy.mockReturnValue(base + 5000);
         await act(async () => { await setKey(body); });
         expect(h.push).toHaveBeenCalledTimes(2);
+      } finally {
+        nowSpy.mockRestore();
+      }
+    });
+
+    it('macro save failure routes through the page toast throttle', async () => {
+      h.saveMacro.mockResolvedValue(null);
+      const base = Date.now();
+      const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(base);
+      try {
+        render(<KeebDevicePage />);
+        clickTab('keeb.tab.macros');
+        const saveMacro = lastMacro().saveMacro;
+
+        let saved: unknown = 'sentinel';
+        await act(async () => { saved = await saveMacro(0, []); });
+        expect(h.saveMacro).toHaveBeenCalledWith(0, []);
+        // The wrapper surfaces the hook's null result to the view...
+        expect(saved).toBeNull();
+        // ...and pushes the shared throttled failure toast exactly once.
+        expect(h.push).toHaveBeenCalledTimes(1);
+        expect(h.push).toHaveBeenCalledWith({
+          title: 'keeb.write.failedTitle',
+          body: 'keeb.write.failedBody',
+        });
+
+        nowSpy.mockReturnValue(base + 1000);
+        await act(async () => { await saveMacro(0, []); });
+        expect(h.push).toHaveBeenCalledTimes(1);
       } finally {
         nowSpy.mockRestore();
       }

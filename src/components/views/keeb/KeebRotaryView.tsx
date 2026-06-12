@@ -80,6 +80,7 @@ export function KeebRotaryView({
           <Select
             value="all"
             onChange={() => { /* no-op until AppDetection lands */ }}
+            // eslint-disable-next-line i18next/no-literal-string -- option value id
             options={[{ value: 'all', label: t('keeb.rotary.allApps') }]}
             ariaLabel={t('keeb.rotary.scopeAria')}
             disabled

@@ -146,6 +146,6 @@ mode is not built yet; it is the recommended next milestone after the shared run
   tests + 4 sandbox e2e tests green.
 - Not yet: data-driven widgets (weather/screentime need `nexus.*` sensor/fetch wiring into
   the SDK host), the host-provided shared runtime, inline/trusted mode, control components
-  (`useControl`) end-to-end, relocation of widgets into `nexus-widgets` with its own build.
+  (`useControl`) end-to-end.
 - Known refinement: the `Stepper` host component is wider than the native vertical-chevron
   stepper and can overflow a narrow timer cell.

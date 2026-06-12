@@ -21,13 +21,13 @@ afterEach(() => { cleanup(); });
 
 describe('KeebTesterView - local-mode key capture', () => {
   it('renders the Local Mode explainer when no keys have been pressed', () => {
-    render(<KeebTesterView open />);
+    render(<KeebTesterView />);
     expect(screen.getByText('keeb.tester.localMode')).toBeInTheDocument();
     expect(screen.getByText('keeb.tester.empty')).toBeInTheDocument();
   });
 
   it('a keydown updates the Latest panel + adds a history row', () => {
-    render(<KeebTesterView open />);
+    render(<KeebTesterView />);
     fireEvent.keyDown(window, { key: 'a', keyCode: 65 });
     // Single-char keys render as uppercase per the view's normalization.
     expect(screen.queryByText('keeb.tester.empty')).toBeNull();
@@ -35,7 +35,7 @@ describe('KeebTesterView - local-mode key capture', () => {
   });
 
   it('repeats do NOT pile new rows into the history', () => {
-    render(<KeebTesterView open />);
+    render(<KeebTesterView />);
     fireEvent.keyDown(window, { key: 'a', keyCode: 65 });
     fireEvent.keyDown(window, { key: 'a', keyCode: 65, repeat: true });
     fireEvent.keyDown(window, { key: 'a', keyCode: 65, repeat: true });
@@ -46,7 +46,7 @@ describe('KeebTesterView - local-mode key capture', () => {
   });
 
   it('Reset button clears the captured history and Latest panel', () => {
-    render(<KeebTesterView open />);
+    render(<KeebTesterView />);
     fireEvent.keyDown(window, { key: 'a', keyCode: 65 });
     expect(screen.getAllByText('A').length).toBeGreaterThanOrEqual(1);
 
@@ -54,14 +54,21 @@ describe('KeebTesterView - local-mode key capture', () => {
     expect(screen.getByText('keeb.tester.empty')).toBeInTheDocument();
   });
 
-  it('listener is detached when open prop flips false', () => {
-    const { rerender } = render(<KeebTesterView open />);
-    fireEvent.keyDown(window, { key: 'a', keyCode: 65 });
-    expect(screen.getAllByText('A').length).toBeGreaterThanOrEqual(1);
+  it('detaches the keydown listener on unmount', () => {
+    const addSpy = vi.spyOn(window, 'addEventListener');
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+    try {
+      const { unmount } = render(<KeebTesterView />);
+      const handler = addSpy.mock.calls.find(([type]) => type === 'keydown')?.[1];
+      expect(handler).toBeDefined();
 
-    rerender(<KeebTesterView open={false} />);
-    // After re-render with open=false, further keys shouldn't be captured.
-    fireEvent.keyDown(window, { key: 'b', keyCode: 66 });
-    expect(screen.queryByText(/^B \(kc 66\)$/)).toBeNull();
+      unmount();
+      expect(removeSpy.mock.calls.some(
+        ([type, fn]) => type === 'keydown' && fn === handler,
+      )).toBe(true);
+    } finally {
+      addSpy.mockRestore();
+      removeSpy.mockRestore();
+    }
   });
 });

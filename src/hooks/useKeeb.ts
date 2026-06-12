@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   type KeebLayer,
+  type KeebMacro,
   type KeebSettings,
   type KeyboardState,
+  type MacroKey,
   type SetFirmwareLightingBody,
   type SetGameModeBody,
   type SetLayerKeyBody,
   type SetPassiveLightingBody,
   type SetRotaryWheelsBody,
-  getKeebLayer,
+  getKeebMacro,
   getKeebSettings,
   getKeebState,
   resetKeebLayer,
   setKeebFirmwareLighting,
   setKeebGameMode,
   setKeebLayerKey,
+  setKeebMacro,
   setKeebPassiveLighting,
   setKeebRotary,
   setKeebRotarySensitivity,
@@ -37,9 +40,10 @@ export interface UseKeebApi {
   loading: boolean;
   layer: KeebLayer;
   setLayer: (layer: KeebLayer) => void;
-  refresh: () => Promise<void>;
   setKey: (body: SetLayerKeyBody) => Promise<boolean>;
   resetLayer: () => Promise<boolean>;
+  loadMacro: (index: number) => Promise<KeebMacro | null>;
+  saveMacro: (index: number, keys: MacroKey[]) => Promise<KeebMacro | null>;
   saveFirmwareLighting: (body: SetFirmwareLightingBody) => Promise<boolean>;
   savePassiveLighting: (body: SetPassiveLightingBody) => Promise<boolean>;
   saveGameMode: (body: SetGameModeBody) => Promise<boolean>;
@@ -145,10 +149,6 @@ export function useKeeb(enabled: boolean): UseKeebApi {
     setLayerState(next);
   }, []);
 
-  const refresh = useCallback(async () => {
-    await fetchAll(layer);
-  }, [fetchAll, layer]);
-
   /// Optimistic: the cell flips immediately, then the write runs. On ack the
   /// service returns the authoritative layer state, which replaces the
   /// optimistic one; on failure runWrite refetches and the cell reverts.
@@ -174,6 +174,23 @@ export function useKeeb(enabled: boolean): UseKeebApi {
       return r !== null;
     });
   }, [layer, runWrite]);
+
+  // Plain read - does not count as a write, so polling is not suppressed.
+  const loadMacro = useCallback(async (index: number) => {
+    return getKeebMacro(index);
+  }, []);
+
+  /// Counts as a pending write (the poll skips while it is in flight); a null
+  /// ack schedules the standard resync. Returns the acked macro so the caller
+  /// can adopt the server copy.
+  const saveMacro = useCallback(async (index: number, keys: MacroKey[]) => {
+    let saved: KeebMacro | null = null;
+    await runWrite(async () => {
+      saved = await setKeebMacro(index, keys);
+      return saved !== null;
+    });
+    return saved;
+  }, [runWrite]);
 
   const saveFirmwareLighting = useCallback(async (body: SetFirmwareLightingBody) => {
     setSettings(prev => prev ? { ...prev, ...body } : prev);
@@ -210,9 +227,10 @@ export function useKeeb(enabled: boolean): UseKeebApi {
     loading,
     layer,
     setLayer,
-    refresh,
     setKey,
     resetLayer,
+    loadMacro,
+    saveMacro,
     saveFirmwareLighting,
     savePassiveLighting,
     saveGameMode,
@@ -220,7 +238,3 @@ export function useKeeb(enabled: boolean): UseKeebApi {
     saveRotarySensitivity,
   };
 }
-
-// Re-export the layer fetch helper for callers that need a one-shot read
-// (key assignment view uses this on tab switch).
-export { getKeebLayer };

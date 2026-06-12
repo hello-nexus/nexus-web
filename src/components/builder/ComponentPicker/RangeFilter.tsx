@@ -1,3 +1,4 @@
+import { useTranslation } from '../../../lib/i18n';
 import styles from './ComponentPicker.module.scss';
 
 interface RangeFilterProps {
@@ -9,13 +10,14 @@ interface RangeFilterProps {
 }
 
 export function RangeFilter({ min, max, onChange, unit, placeholder }: RangeFilterProps) {
+  const { t } = useTranslation();
   return (
     <div className={styles.rangeFilter}>
       <div className={styles.rangeInputWrap}>
         <input
           type="number"
           className={styles.rangeInput}
-          placeholder={placeholder?.min ?? 'Min'}
+          placeholder={placeholder?.min ?? t('builder.range.min')}
           value={min}
           onChange={e => onChange(e.target.value, max)}
         />
@@ -26,7 +28,7 @@ export function RangeFilter({ min, max, onChange, unit, placeholder }: RangeFilt
         <input
           type="number"
           className={styles.rangeInput}
-          placeholder={placeholder?.max ?? 'Max'}
+          placeholder={placeholder?.max ?? t('builder.range.max')}
           value={max}
           onChange={e => onChange(min, e.target.value)}
         />

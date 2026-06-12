@@ -110,7 +110,7 @@
 .tabsPill {
   display: inline-flex;
   border: var(--border-width) solid var(--border-strong);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   overflow: hidden;
   background: var(--surface);
   gap: 0; // segments share borders; no gap
