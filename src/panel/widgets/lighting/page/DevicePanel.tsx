@@ -39,7 +39,7 @@ type DeviceGroup =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, dragFor }: {
+export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, dragFor, communityCounts, onOpenCommunity }: {
   devices: LightingDevice[];
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
@@ -56,6 +56,10 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
   onOpenSettings: (id: string) => void;
   /** Builds a per-card HTML5 drag handler. Returning null disables drag for that card. */
   dragFor?: (deviceId: string) => ZoneCardDrag | null;
+  /** Device id -> available community layout count, for the card badge. */
+  communityCounts?: Record<string, number>;
+  /** Badge click: open the LED map editor on its Community tab. */
+  onOpenCommunity?: (id: string) => void;
 }) {
   const { t } = useTranslation();
 
@@ -135,6 +139,8 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
       onTogglePower={() => onTogglePower(d.id)}
       onOpenSettings={() => onOpenSettings(d.id)}
       drag={dragFor?.(d.id) ?? undefined}
+      communityCount={communityCounts?.[d.id]}
+      onOpenCommunity={onOpenCommunity ? () => onOpenCommunity(d.id) : undefined}
     />
   );
 

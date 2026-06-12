@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Settings, Power, Eye, Lightbulb } from 'lucide-react';
+import { Settings, Power, Eye, Lightbulb, Users } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -34,6 +34,8 @@ export function ZoneCard({
   onTogglePower,
   onOpenSettings,
   drag,
+  communityCount,
+  onOpenCommunity,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -48,6 +50,10 @@ export function ZoneCard({
   onOpenSettings: () => void;
   /** Optional HTML5 drag/drop wiring for reorderable lists. */
   drag?: ZoneCardDrag;
+  /** Available community layout count; the badge renders only when positive. */
+  communityCount?: number;
+  /** Badge click; routes into the LED map editor's Community tab. */
+  onOpenCommunity?: () => void;
 }) {
   const { t } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
@@ -113,6 +119,19 @@ export function ZoneCard({
             <Lightbulb className={styles.deviceMetaIcon} aria-hidden="true" />
             <span className={styles.deviceMetaCount}>{device.ledCount}</span>
           </span>
+        )}
+        {!unavailable && communityCount != null && communityCount > 0 && (
+          <HoverTooltip body={t('lighting.mappings.badgeTooltip', { count: communityCount })} side="top">
+            <button
+              type="button"
+              className={styles.communityBadge}
+              aria-label={t('lighting.mappings.badgeTooltip', { count: communityCount })}
+              onClick={e => { e.stopPropagation(); onOpenCommunity?.(); }}
+            >
+              <Users aria-hidden />
+              {communityCount}
+            </button>
+          </HoverTooltip>
         )}
         {!unavailable && (
           <div className={styles.deviceCardActions}>

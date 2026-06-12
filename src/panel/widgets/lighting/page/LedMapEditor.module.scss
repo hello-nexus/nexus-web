@@ -507,3 +507,107 @@
   color: var(--text-dim);
   font-size: var(--type-small);
 }
+
+// Editor | Community pill switcher at the top of the modal body.
+.tabsBar {
+  align-self: flex-start;
+}
+
+// Named LED groups: one compact chip row between the hint and the canvas.
+.groupsBar {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.groupsLabel {
+  font-size: var(--type-small);
+  color: var(--text-faded);
+  margin-right: 0.15rem;
+  white-space: nowrap;
+}
+
+.groupChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.1rem 0.25rem 0.1rem 0;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  transition: border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.groupChipActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.groupChipName {
+  padding: 0.15rem 0.3rem 0.15rem 0.6rem;
+  font-size: var(--type-small);
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupChipBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    color: var(--text);
+    background: var(--bg-card-hover);
+  }
+}
+
+.groupAddBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  font-size: var(--type-small);
+  border: var(--border-width) dashed var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+
+    &:hover {
+      color: var(--text-dim);
+      border-color: var(--border-strong);
+      background: transparent;
+    }
+  }
+}
