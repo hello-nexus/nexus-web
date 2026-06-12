@@ -27,11 +27,11 @@ afterEach(() => _resetMarketplaceRegistryForTests());
 describe('getPreinstalledPageAppTypes', () => {
   it('returns only preinstalled apps that ship a page surface', () => {
     _seedMarketplaceRegistryForTests([
-      listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true, page: true }),
+      listing({ id: 'com.example.oem', name: 'OEM App', preinstalled: true, page: true }),
       listing({ id: 'a.preinstalled.nopage', name: 'NoPage', preinstalled: true, page: false }),
       listing({ id: 'b.page.not-preinstalled', name: 'Page', preinstalled: false, page: true }),
     ]);
-    expect(getPreinstalledPageAppTypes()).toEqual([typeForMarketplace('com.ibuypower.control')]);
+    expect(getPreinstalledPageAppTypes()).toEqual([typeForMarketplace('com.example.oem')]);
   });
 
   it('is empty on a build that bundles no preinstalled app (non-OEM)', () => {
@@ -40,8 +40,14 @@ describe('getPreinstalledPageAppTypes', () => {
   });
 });
 
-describe('catalog allowlist', () => {
-  it('includes the iBUYPOWER app so a removed copy can be re-added', () => {
-    expect(isMarketplaceIdEnabled('com.ibuypower.control')).toBe(true);
+describe('isMarketplaceIdEnabled', () => {
+  it('enables a preinstalled app so a removed copy can be re-added', () => {
+    _seedMarketplaceRegistryForTests([listing({ id: 'com.example.oem', name: 'OEM App', preinstalled: true, page: true })]);
+    expect(isMarketplaceIdEnabled('com.example.oem')).toBe(true);
+  });
+
+  it('does not enable an unknown, non-preinstalled app', () => {
+    _seedMarketplaceRegistryForTests([listing({ id: 'com.example.other', name: 'Other', preinstalled: false })]);
+    expect(isMarketplaceIdEnabled('com.example.other')).toBe(false);
   });
 });

@@ -22,13 +22,13 @@ export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
   'com.hellonexus.displays',
   'com.hellonexus.clock',
   'com.hellonexus.media',
-  // OEM app — preinstalled on iBUYPOWER systems; in the catalog so it can be
-  // re-added if the user removes it.
-  'com.ibuypower.control',
 ]);
 
 export function isMarketplaceIdEnabled(id: string): boolean {
-  return ENABLED_MARKETPLACE_IDS.has(id);
+  if (ENABLED_MARKETPLACE_IDS.has(id)) return true;
+  // Preinstalled (OEM bake-in) apps are catalog-visible too, so a removed copy can
+  // be re-added — derived from the registry, no specific app named here.
+  return getMarketplaceListing(id)?.preinstalled === true;
 }
 
 export function isMarketplaceType(type: string | null | undefined): boolean {

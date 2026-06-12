@@ -28,7 +28,7 @@ export function isPinnableAppKey(s: string): boolean {
 export const DEFAULT_PINNED_TAIL: string[] = ['monitoring', 'lighting', 'cooling'];
 
 // Default tail for a fresh profile: the curated base plus any preinstalled
-// page-app (OEM bake-in — e.g. the iBUYPOWER app on an IBP system). The
+// page-app (OEM bake-in — e.g. a bundled device app). The
 // preinstalled set is registry-derived, so it's empty until the marketplace
 // registry loads and only non-empty on a build that bundles such an app; the
 // sidebar re-renders on registry load (same path as user-pinned SDK apps).
