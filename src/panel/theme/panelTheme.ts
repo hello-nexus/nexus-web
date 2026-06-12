@@ -16,7 +16,6 @@ import {
   defaultPanelWidgetLabels,
   defaultPanelWidgetOpacity,
   normalizePanelBackgroundEffect,
-  normalizePanelBackgroundEffectState,
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
   normalizePanelBackgroundTemplate,
@@ -27,6 +26,8 @@ import {
   panelBackgroundState,
   type PanelBackgroundMode,
 } from '../background/panelBackground';
+import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
+import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
 
@@ -181,6 +182,17 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
   const themeRef = useRef(theme);
   useEffect(() => { themeRef.current = theme; }, [theme]);
 
+  // Universal preset source for the background. The wallpaper renders the global
+  // Templates slot for the per-panel selection, and editing a background preset
+  // writes here — so it stays in lockstep with the LED lighting and every panel.
+  const { templates: globalTemplates } = useAnimateTemplates(enabled);
+  const globalTemplatesRef = useRef(globalTemplates);
+  useEffect(() => { globalTemplatesRef.current = globalTemplates; }, [globalTemplates]);
+  // Live wallpaper preview while editing a slider; cleared whenever the global
+  // presets refresh (the committed look has landed, or another surface edited it).
+  const [draftBackgroundState, setDraftBackgroundState] = useState<EffectState | null>(null);
+  useEffect(() => { setDraftBackgroundState(null); }, [globalTemplates]);
+
   const fetchTheme = useCallback(() => {
     if (!enabled) return;
     Promise.all([
@@ -206,12 +218,11 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         backgroundEffect: normalizePanelBackgroundEffect(r?.backgroundEffect),
         backgroundTemplate: normalizePanelBackgroundTemplate(r?.backgroundTemplate),
         backgroundOpacity: normalizePanelBackgroundOpacity(r?.backgroundOpacity),
-        backgroundEffectState: normalizePanelBackgroundEffectState(
-          r?.backgroundEffectState,
-          panelBackgroundState(
-            normalizePanelBackgroundEffect(r?.backgroundEffect),
-            normalizePanelBackgroundTemplate(r?.backgroundTemplate),
-          ),
+        // Static fallback; the returned value below is derived from the global
+        // presets + the live draft.
+        backgroundEffectState: panelBackgroundState(
+          normalizePanelBackgroundEffect(r?.backgroundEffect),
+          normalizePanelBackgroundTemplate(r?.backgroundTemplate),
         ),
         widgetOpacity: normalizePanelWidgetOpacity(r?.widgetOpacity),
         widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
@@ -289,27 +300,36 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     persistPatch({ backgroundMode: mode });
   }, [persistPatch]);
 
-  // Changing the effect or template reseeds the custom state to that
-  // effect/template's default — the override is always a concrete state and
-  // never leaks across effects.
+  // Effect / template are the per-panel SELECTION (which universal preset this
+  // panel points at). Persisted on the device record; clear the draft so the
+  // newly-selected slot's global look shows.
   const commitBackgroundEffect = useCallback((effect: string) => {
     const nextEffect = normalizePanelBackgroundEffect(effect);
-    const nextState = panelBackgroundState(nextEffect, themeRef.current.backgroundTemplate);
-    setTheme(prev => ({ ...prev, backgroundEffect: nextEffect, backgroundEffectState: nextState }));
-    persistPatch({ backgroundEffect: nextEffect, backgroundEffectState: nextState });
+    setDraftBackgroundState(null);
+    setTheme(prev => ({ ...prev, backgroundEffect: nextEffect }));
+    persistPatch({ backgroundEffect: nextEffect });
   }, [persistPatch]);
 
   const commitBackgroundTemplate = useCallback((template: number) => {
     const nextTemplate = normalizePanelBackgroundTemplate(template);
-    const nextState = panelBackgroundState(themeRef.current.backgroundEffect, nextTemplate);
-    setTheme(prev => ({ ...prev, backgroundTemplate: nextTemplate, backgroundEffectState: nextState }));
-    persistPatch({ backgroundTemplate: nextTemplate, backgroundEffectState: nextState });
+    setDraftBackgroundState(null);
+    setTheme(prev => ({ ...prev, backgroundTemplate: nextTemplate }));
+    persistPatch({ backgroundTemplate: nextTemplate });
   }, [persistPatch]);
 
+  // Editing the background preset's params writes the UNIVERSAL slot (global
+  // Templates) — so it also moves the LEDs when this is the live preset. The
+  // draft shows it live until the global refresh lands.
   const commitBackgroundEffectState = useCallback((state: EffectState) => {
-    setTheme(prev => ({ ...prev, backgroundEffectState: state }));
-    persistPatch({ backgroundEffectState: state });
-  }, [persistPatch]);
+    const { backgroundEffect: effect, backgroundTemplate: template } = themeRef.current;
+    const gt = globalTemplatesRef.current;
+    const bundle = gt[effect];
+    if (!bundle) return;
+    const slots = bundle.slots.slice();
+    slots[Math.min(Math.max(template, 0), slots.length - 1)] = state;
+    setDraftBackgroundState(state);
+    saveAnimateTemplates({ ...gt, [effect]: { ...bundle, slots } }).catch(() => {});
+  }, []);
 
   const commitBackgroundOpacity = useCallback((opacity: number) => {
     const nextOpacity = normalizePanelBackgroundOpacity(opacity);
@@ -335,8 +355,13 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     persistPatch({ widgetBlur: next });
   }, [persistPatch]);
 
+  // The background's live render state: a draft while editing, else the global
+  // preset slot for the per-panel selection.
+  const backgroundEffectState = draftBackgroundState
+    ?? panelBackgroundState(theme.backgroundEffect, theme.backgroundTemplate, globalTemplates[theme.backgroundEffect] ?? null);
+
   return {
-    theme,
+    theme: { ...theme, backgroundEffectState },
     commitThemeSync,
     commitThemeMode,
     commitAccentSync,
@@ -351,7 +376,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     commitBackgroundMode,
     commitBackgroundEffect,
     commitBackgroundTemplate,
-    previewBackgroundEffectState: (state: EffectState) => setTheme(prev => ({ ...prev, backgroundEffectState: state })),
+    previewBackgroundEffectState: (state: EffectState) => setDraftBackgroundState(state),
     commitBackgroundEffectState,
     previewBackgroundOpacity: (opacity: number) => setTheme(prev => (
       { ...prev, backgroundOpacity: normalizePanelBackgroundOpacity(opacity) }

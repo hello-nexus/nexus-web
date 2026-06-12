@@ -16,7 +16,6 @@ import { EditableText } from '../components/common/Editable/EditableText';
 import { EditableNumber } from '../components/common/Editable/EditableNumber';
 import { HsvPicker } from '../components/common/HsvPicker/HsvPicker';
 import { PaletteRing } from '../components/common/PaletteRing/PaletteRing';
-import { PresetSwatch } from '../components/common/PresetSwatch/PresetSwatch';
 import { EffectTemplateSelector } from '../components/common/EffectTemplateSelector/EffectTemplateSelector';
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { CardDeleteButton } from '../components/common/CardDeleteButton/CardDeleteButton';
@@ -469,33 +468,17 @@ function mergePreviewEffectState(prev: EffectState, patch: Partial<EffectState>)
   };
 }
 
-function PreviewPresetSwatch() {
-  // Four common slot states: full rainbow, mono-warm, mono-cool, B+W high-contrast.
-  const slots: Array<{ label: string; hue: number; colorize: number; saturation: number; contrast: number }> = [
-    { label: 'rainbow',   hue: 0.00, colorize: 0.00, saturation: 1.0, contrast: 1.0 },
-    { label: 'warm mono', hue: 0.08, colorize: 0.75, saturation: 1.1, contrast: 1.05 },
-    { label: 'cool mono', hue: 0.62, colorize: 0.75, saturation: 1.0, contrast: 1.0 },
-    { label: 'B+W stark', hue: 0.00, colorize: 0.00, saturation: 0.0, contrast: 1.65 },
-  ];
-  return <div className={styles.previewPresetSwatchRow}>
-    {slots.map(s => (
-      <div key={s.label} className={styles.previewPresetSwatchCell}>
-        <PresetSwatch hue={s.hue} colorize={s.colorize} saturation={s.saturation} contrast={s.contrast} />
-      </div>
-    ))}
-  </div>;
-}
-
 function PreviewEffectTemplateSelector() {
   const [activeIndex, setActiveIndex] = useState(0);
   const bundle = buildDefaultTemplates(EFFECT_TEMPLATE_PREVIEW_EFFECT);
   return (
     <EffectTemplateSelector
       className={styles.previewTemplateSelector}
+      effect={EFFECT_TEMPLATE_PREVIEW_EFFECT}
       slots={bundle.slots}
       activeIndex={activeIndex}
       onSelect={setActiveIndex}
-      ariaLabel="Swatch-only template preview"
+      ariaLabel="Preset thumbnails preview"
     />
   );
 }
@@ -1140,14 +1123,9 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'Colorize caps at 0.75 so even the tightest arc still shows a touch of palette variation.',
   },
   {
-    name: 'PresetSwatch', category: 'status',
-    filePath: 'src/components/common/PresetSwatch/PresetSwatch.tsx',
-    description: 'CSS-only preview of a lighting preset slot. Stacks a fixed rainbow gradient + solid hue overlay (opacity = colorize), then re-applies saturation + contrast so previews track the shader post-process. Used by EffectTemplateSelector across desktop lighting, panel quick lighting, and panel theme backgrounds.', Preview: PreviewPresetSwatch,
-  },
-  {
     name: 'EffectTemplateSelector', category: 'inputs',
     filePath: 'src/components/common/EffectTemplateSelector/EffectTemplateSelector.tsx',
-    description: 'Shared row of four animate-template buttons, each backed by PresetSwatch so hue, colorize, saturation, and contrast stay consistent across desktop lighting, panel quick lighting, and the panel theme background sheet.', Preview: PreviewEffectTemplateSelector,
+    description: 'Shared row of four preset buttons, each showing the real generated thumbnail for that universal slot, across desktop lighting, panel quick lighting, and the panel theme background sheet.', Preview: PreviewEffectTemplateSelector,
     notes: 'Styling is driven by --effect-template-* custom properties so app and panel surfaces share markup without sharing chrome tokens.',
   },
   {

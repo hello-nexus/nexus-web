@@ -39,7 +39,7 @@ import {
   type EffectTemplateBundle,
   type LightingMode,
 } from '../../../types/lighting';
-import { buildAllDefaultTemplates, effectThumbVersion, mergeTemplates } from '../../../types/lightingTemplates';
+import { buildAllDefaultTemplates, mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
@@ -140,12 +140,14 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, [preview, hydrate]);
   useTopicCallback('lighting', !preview, hydrate);
 
-  // Cache-bust token for the active effect's thumbnail: changes when its saved
-  // look is edited (on this surface via re-hydrate, on others via the lighting
-  // topic broadcast), so the preview tile refetches the customised BMP.
+  // The tile shows the active effect's selected universal slot. Its content hash
+  // changes when that slot's saved look is edited (re-hydrate here, or the
+  // lighting broadcast from another surface), so the tile refetches the BMP.
+  const activeSlot = templates[activeEffect]?.selected ?? 0;
   const activeVersion = useMemo(() => {
     const b = templates[activeEffect];
-    return b ? effectThumbVersion(b) : undefined;
+    if (!b || b.slots.length === 0) return '0';
+    return slotThumbSignature(b.slots[Math.min(Math.max(b.selected, 0), b.slots.length - 1)]);
   }, [templates, activeEffect]);
 
   // The widget shows one thumbnail at a time (active effect, Prev/Next
@@ -160,7 +162,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     if (loadedVersionRef.current[activeEffect] === want) return;
     let cancelled = false;
     (async () => {
-      const blob = await fetchServiceBlob(effectThumbnailPath(activeEffect, activeVersion));
+      const blob = await fetchServiceBlob(effectThumbnailPath(activeEffect, activeSlot, activeVersion));
       if (cancelled || !blob) return;
       const url = URL.createObjectURL(blob);
       const prev = thumbsRef.current[activeEffect];
@@ -170,7 +172,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
       if (prev) URL.revokeObjectURL(prev);
     })();
     return () => { cancelled = true; };
-  }, [preview, activeEffect, activeVersion]);
+  }, [preview, activeEffect, activeSlot, activeVersion]);
 
   useEffect(() => () => {
     for (const url of Object.values(thumbsRef.current)) URL.revokeObjectURL(url);

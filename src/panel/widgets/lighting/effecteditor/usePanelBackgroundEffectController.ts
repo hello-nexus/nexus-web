@@ -1,13 +1,14 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { TEMPLATE_COUNT, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
-import { panelBackgroundState, panelBackgroundStateEquals } from '../../../background/panelBackground';
+import { buildDefaultTemplates, slotMatchesDefault } from '../../../../types/lightingTemplates';
+import { useAnimateTemplates } from '../../../../hooks/useAnimateTemplates';
 import type { AnimateController } from './types';
 
 /**
- * Adapts the per-panel background fields (effect key + template index + custom
- * EffectState) into the shared AnimateController the EffectEditor's animate
- * bodies consume. Writes go through the panelTheme preview/commit callbacks —
- * the same per-device persistence path as every other background field.
+ * Adapts the per-panel background (effect key + template index + live state)
+ * into the shared AnimateController. Presets are universal: the row shows the
+ * global slots for the effect, and edits flow through the panelTheme callbacks,
+ * which write the global Templates (so the background and the LEDs stay in sync).
  */
 export function usePanelBackgroundEffectController({
   effect,
@@ -26,15 +27,17 @@ export function usePanelBackgroundEffectController({
   onPreview: (state: EffectState) => void;
   onCommit: (state: EffectState) => void;
 }): AnimateController {
-  // The template selector shows the 4 default presets for the effect; the
-  // active editable state is the panel's saved custom state.
-  const bundle = useMemo<EffectTemplateBundle>(() => ({
-    selected: template,
-    slots: Array.from({ length: TEMPLATE_COUNT }, (_, i) => panelBackgroundState(effect, i)),
-  }), [effect, template]);
+  const { templates: globalTemplates } = useAnimateTemplates();
 
-  const templateDefault = useMemo(() => panelBackgroundState(effect, template), [effect, template]);
-  const canReset = !panelBackgroundStateEquals(effectState, templateDefault);
+  // The 4 universal slots for this effect (the real saved presets), so the
+  // preset buttons render the actual shared thumbnails.
+  const bundle = useMemo<EffectTemplateBundle>(() => {
+    const g = globalTemplates[effect];
+    return { selected: template, slots: g ? g.slots : buildDefaultTemplates(effect).slots };
+  }, [globalTemplates, effect, template]);
+
+  const idx = Math.min(Math.max(template, 0), TEMPLATE_COUNT - 1);
+  const canReset = !slotMatchesDefault(effect, idx, effectState);
 
   const stateRef = useRef(effectState);
   stateRef.current = effectState;
@@ -51,7 +54,7 @@ export function usePanelBackgroundEffectController({
   }, [onCommit, onPreview]);
 
   const handleCommit = useCallback(() => { onCommit(stateRef.current); }, [onCommit]);
-  const handleReset = useCallback(() => { onCommit(panelBackgroundState(effect, template)); }, [effect, template, onCommit]);
+  const handleReset = useCallback(() => { onCommit(buildDefaultTemplates(effect).slots[idx]); }, [effect, idx, onCommit]);
 
   return {
     effect,

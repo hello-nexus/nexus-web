@@ -18,6 +18,7 @@ export const EffectControls = memo(function EffectControls({
   effect, state, bundle,
   onTemplateSelect, canReset,
   onChange, onCommit, onReset,
+  rgbActiveSlot,
 }: {
   effect: string;
   state: EffectState;
@@ -27,6 +28,8 @@ export const EffectControls = memo(function EffectControls({
   onChange: (patch: Partial<EffectState>, commit?: boolean) => void;
   onCommit: () => void;
   onReset: () => void;
+  /** Preset slot live on the RGB hardware (bulb badge). Panels only. */
+  rgbActiveSlot?: number | null;
 }) {
   const { t } = useTranslation();
   const def = EFFECTS.find(e => e.key === effect);
@@ -36,10 +39,12 @@ export const EffectControls = memo(function EffectControls({
     <div className={styles.effectControls}>
       <EffectTemplateSelector
         className={styles.drawerTemplates}
+        effect={effect}
         slots={bundle.slots}
         activeIndex={selected}
         onSelect={onTemplateSelect}
         ariaLabel="Presets"
+        rgbActiveSlot={rgbActiveSlot}
       />
       <div className={styles.drawerSliders}>
         <div className={styles.paletteRingWrap}>

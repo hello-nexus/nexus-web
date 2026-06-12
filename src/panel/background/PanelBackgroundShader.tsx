@@ -15,8 +15,9 @@ interface PanelBackgroundShaderProps {
   effect: string;
   template: number;
   opacity: number;
-  // Per-panel custom state layered on the template default. Undefined renders
-  // the plain template (legacy records / no customization).
+  // The universal preset's render state (resolved upstream from the global
+  // Templates for the selected slot). Undefined falls back to the built-in
+  // default before that has hydrated.
   effectState?: EffectState;
 }
 
@@ -27,9 +28,9 @@ export function PanelBackgroundShader({ effect, template, opacity, effectState }
   // The render loop reads stateRef.current each frame, so an effect push is
   // picked up next frame. Initialize with the same normalized inputs so the
   // first frame doesn't render stale state.
-  const stateRef = useRef(panelBackgroundState(normalizedEffect, normalizedTemplate, effectState));
+  const stateRef = useRef(effectState ?? panelBackgroundState(normalizedEffect, normalizedTemplate));
   useEffect(() => {
-    stateRef.current = panelBackgroundState(normalizedEffect, normalizedTemplate, effectState);
+    stateRef.current = effectState ?? panelBackgroundState(normalizedEffect, normalizedTemplate);
   }, [normalizedEffect, normalizedTemplate, effectState]);
   const { ready, error } = useShaderRenderer(
     canvasRef,

@@ -640,20 +640,4 @@ export function slotThumbSignature(slot: EffectState): string {
   return (h >>> 0).toString(36);
 }
 
-/** Cache-bust token for an effect's thumbnail: the signature of its selected slot. */
-export function effectThumbVersion(bundle: EffectTemplateBundle): string {
-  const idx = Math.min(Math.max(bundle.selected, 0), bundle.slots.length - 1);
-  const slot = bundle.slots[idx];
-  return slot ? slotThumbSignature(slot) : '0';
-}
-
-/** Per-effect thumbnail tokens for a whole templates record (one per effect). */
-export function buildThumbVersions(
-  templates: Record<string, EffectTemplateBundle>,
-): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const key of Object.keys(templates)) out[key] = effectThumbVersion(templates[key]);
-  return out;
-}
-
 export { BASE_DEFAULTS };

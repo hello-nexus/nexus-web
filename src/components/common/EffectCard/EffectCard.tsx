@@ -23,6 +23,8 @@ interface EffectCardProps {
   asDiv?: boolean;
   /** Overlay rendered inside the thumbnail, centred (used for the importing spinner). */
   thumbOverlay?: ReactNode;
+  /** Small node pinned to the thumbnail's top-right (e.g. the live-on-RGB bulb). */
+  cornerBadge?: ReactNode;
   ariaLabel?: string;
   /** Optional data attribute, used by AnimateGrid for auto-scroll-to-selected. */
   dataEffectKey?: string;
@@ -38,7 +40,7 @@ interface EffectCardProps {
 export function EffectCard({
   label, thumbUrl, active, onClick,
   audio, meta, onDelete, deleteAriaLabel,
-  asDiv, thumbOverlay, ariaLabel, dataEffectKey, overlay,
+  asDiv, thumbOverlay, cornerBadge, ariaLabel, dataEffectKey, overlay,
 }: EffectCardProps) {
   const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''}`;
   const inner = (
@@ -54,6 +56,7 @@ export function EffectCard({
           </svg>
         )}
         {thumbOverlay}
+        {cornerBadge}
         {onDelete && (
           <CardDeleteButton
             className={styles.deleteBtnSlot}

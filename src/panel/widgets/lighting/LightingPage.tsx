@@ -28,7 +28,7 @@ import {
   EFFECTS, MODES, defaultStateFor,
   type EffectState, type EffectTemplateBundle, type LightingMode,
 } from '../../../types/lighting';
-import { buildAllDefaultTemplates, buildThumbVersions, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
+import { buildAllDefaultTemplates, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
 import { AnimateGrid } from './page/AnimateGrid';
 import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
@@ -114,10 +114,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const [activeEffect, setActiveEffect] = useState<string>('');
   const [effectTemplates, setEffectTemplates] = useState<Record<string, EffectTemplateBundle>>({});
-  // Per-effect thumbnail cache-bust tokens. Unlike effectTemplates (which churns
-  // on every slider drag), these are bumped only after a save lands, so the grid
-  // refetches the customised thumbnail once the new look is persisted.
-  const [thumbVersions, setThumbVersions] = useState<Record<string, string>>({});
+  // Committed snapshot: updated on hydrate, on preset switch, and after a param
+  // save lands — never during a drag. The grid + preset thumbnails (and the
+  // selected highlight) read from this, so they refetch on commit, not per slider
+  // frame (effectTemplates churns during drag for the live RGB preview).
+  const [committedTemplates, setCommittedTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   // Canvas hides the frame for any device with LEDs off, and hides all
   // frames while the Effect tab is showing (frames are a Devices-tab
@@ -243,7 +244,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       saveAnimateTemplates(merged).catch(() => { /* best-effort */ });
     }
     setEffectTemplates(merged);
-    setThumbVersions(buildThumbVersions(merged));
+    setCommittedTemplates(merged);
     if (EFFECTS.some(e => e.key === data.effect)) {
       setActiveEffect(data.effect);
     }
@@ -495,9 +496,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     localAnimateEditUntilRef.current = Date.now() + 1500;
     const clamped = Math.min(Math.max(idx, 0), bundle.slots.length - 1);
     const nextBundle: EffectTemplateBundle = { ...bundle, selected: clamped };
-    const selectedSlot = nextBundle.slots[clamped];
-    writeTemplates({ ...effectTemplates, [activeEffect]: nextBundle }, activeEffect, true)
-      .then(() => setThumbVersions(v => ({ ...v, [activeEffect]: slotThumbSignature(selectedSlot) })));
+    const nextTemplates = { ...effectTemplates, [activeEffect]: nextBundle };
+    writeTemplates(nextTemplates, activeEffect, true);
+    // Selection is instant and the slot's params are unchanged, so the committed
+    // snapshot can advance immediately (no save race).
+    setCommittedTemplates(nextTemplates);
     publishControlSync({
       domain: 'lighting',
       mode: 'animate',
@@ -541,8 +544,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const idx = Math.min(Math.max(bundle.selected, 0), bundle.slots.length - 1);
     const latest = bundle.slots[idx];
     if (!latest) return;
+    // Advance the committed snapshot only after the save lands, so the thumbnail
+    // refetch can't race ahead of the persisted look.
     saveAnimateTemplates(freshTemplates)
-      .then(() => setThumbVersions(v => ({ ...v, [activeEffect]: slotThumbSignature(latest) })))
+      .then(() => setCommittedTemplates(freshTemplates))
       .catch(() => { /* best-effort */ });
     applyAnimate(activeEffect, latest, true);
   }, [activeEffect, applyAnimate]);
@@ -556,9 +561,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const nextSlots = bundle.slots.slice();
     nextSlots[idx] = defaults.slots[idx];
     const nextBundle: EffectTemplateBundle = { ...bundle, slots: nextSlots };
-    writeTemplates({ ...effectTemplates, [activeEffect]: nextBundle }, activeEffect, true)
-      .then(() => setThumbVersions(v => ({ ...v, [activeEffect]: slotThumbSignature(nextSlots[idx]) })));
+    const nextTemplates = { ...effectTemplates, [activeEffect]: nextBundle };
+    writeTemplates(nextTemplates, activeEffect, true)
+      .then(() => setCommittedTemplates(nextTemplates));
   }, [activeEffect, effectTemplates, writeTemplates]);
+
+  // Grid cell = this surface's selected slot + its content hash, both from the
+  // committed snapshot so thumbnails track commits, not drag frames.
+  const slotForEffect = useCallback((e: string) => committedTemplates[e]?.selected ?? 0, [committedTemplates]);
+  const versionForEffect = useCallback((e: string) => {
+    const b = committedTemplates[e];
+    if (!b || b.slots.length === 0) return '0';
+    return slotThumbSignature(b.slots[Math.min(Math.max(b.selected, 0), b.slots.length - 1)]);
+  }, [committedTemplates]);
 
   const postProcessRef = useRef({ screen: screenPP, media: mediaPP });
   postProcessRef.current = { screen: screenPP, media: mediaPP };
@@ -839,7 +854,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             )}
           </div>
           {mode === 'animate' ? (
-            <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} versions={thumbVersions} />
+            <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} />
           ) : (
             <div className={styles.controls}>
               <ModeControls
@@ -889,7 +904,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 mode={mode}
                 effect={activeEffect}
                 state={currentState}
-                bundle={activeEffect ? effectTemplates[activeEffect] ?? null : null}
+                bundle={activeEffect ? committedTemplates[activeEffect] ?? null : null}
                 canReset={canReset}
                 onTemplateSelect={handleTemplateSelect}
                 onAnimateChange={handleStatePatch}
@@ -904,11 +919,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           )}
         </div>
       </div>
-      {fullscreenOpen && activeEffect && currentState && effectTemplates[activeEffect] && (
+      {fullscreenOpen && activeEffect && currentState && committedTemplates[activeEffect] && (
         <FullscreenShader
           effect={activeEffect}
           state={currentState}
-          bundle={effectTemplates[activeEffect]}
+          bundle={committedTemplates[activeEffect]}
           canReset={canReset}
           audioRef={audioRef}
           onTemplateSelect={handleTemplateSelect}

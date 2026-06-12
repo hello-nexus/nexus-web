@@ -26,7 +26,7 @@ import {
   type EffectTemplateBundle,
   type LightingMode,
 } from '../../../types/lighting';
-import { buildAllDefaultTemplates, buildThumbVersions, mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
+import { buildAllDefaultTemplates, mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
 import type { WidgetProps } from '../types';
 
 const DEFAULT_PP: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
@@ -72,7 +72,15 @@ function renderImmersiveEditor(
     if (!animate) return null;
     return (
       <EffectEditor
-        options={<AnimateGrid effect={animate.effect} onSelect={animate.onSelectEffect} versions={animate.versions} />}
+        options={(
+          <AnimateGrid
+            effect={animate.effect}
+            onSelect={animate.onSelectEffect}
+            slotFor={animate.slotFor}
+            versionFor={animate.versionFor}
+            rgbActiveEffect={animate.effect}
+          />
+        )}
         effect={(
           <EffectControls
             effect={animate.effect}
@@ -83,6 +91,7 @@ function renderImmersiveEditor(
             onChange={animate.onChange}
             onCommit={animate.onCommit}
             onReset={animate.onReset}
+            rgbActiveSlot={animate.bundle.selected}
           />
         )}
       />
@@ -116,7 +125,8 @@ interface ImmersiveAnimateController {
   state: EffectState;
   bundle: EffectTemplateBundle;
   canReset: boolean;
-  versions: Record<string, string>;
+  slotFor: (key: string) => number;
+  versionFor: (key: string) => string;
   onSelectEffect: (key: string) => void;
   onTemplateSelect: (idx: number) => void;
   onChange: (patch: Partial<EffectState>, commit?: boolean) => void;
@@ -127,9 +137,6 @@ interface ImmersiveAnimateController {
 function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAnimateController | null } {
   const [active, setActive] = useState<string>('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>(buildAllDefaultTemplates);
-  // Per-effect thumbnail cache-bust tokens, bumped only after a save lands so a
-  // refetch never races ahead of the persisted look. Seeded from server state.
-  const [thumbVersions, setThumbVersions] = useState<Record<string, string>>(() => buildThumbVersions(buildAllDefaultTemplates()));
   const [mode, setMode] = useState<LightingMode>('none');
   const stagedRef = useRef<EffectState | null>(null);
   const [, force] = useState(0);
@@ -146,7 +153,6 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
       }
     }
     setTemplates(next);
-    setThumbVersions(buildThumbVersions(next));
     const rawSync = sync?.sync || 'none';
     setMode(rawSync === 'screen' ? 'screen' : (rawSync === 'media' ? 'gif' : (rawSync === 'none' ? 'none' : 'animate')));
     if (EFFECTS.some(e => e.key === rawSync)) setActive(rawSync);
@@ -181,9 +187,7 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
       const nextBundle: EffectTemplateBundle = { ...bundle, slots };
       const nextTemplates = { ...templates, [active]: nextBundle };
       setTemplates(nextTemplates);
-      saveAnimateTemplates(nextTemplates)
-        .then(() => setThumbVersions(v => ({ ...v, [active]: slotThumbSignature(s) })))
-        .catch(() => { /* best-effort */ });
+      saveAnimateTemplates(nextTemplates).catch(() => { /* best-effort */ });
     }
   }, [active, bundle, templates]);
 
@@ -195,9 +199,7 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     setTemplates(nextTemplates);
     stagedRef.current = null;
     const next = nextBundle.slots[clamped];
-    saveAnimateTemplates(nextTemplates)
-      .then(() => { if (next) setThumbVersions(v => ({ ...v, [active]: slotThumbSignature(next) })); })
-      .catch(() => { /* best-effort */ });
+    saveAnimateTemplates(nextTemplates).catch(() => { /* best-effort */ });
     if (next) {
       void startAnimate(active, next.speed, next.intensity, next.hue, next.colorize, next.saturation, next.contrast, next.params, true);
     }
@@ -227,7 +229,13 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
       state: liveState,
       bundle,
       canReset: stagedRef.current !== null,
-      versions: thumbVersions,
+      slotFor: (e: string) => templates[e]?.selected ?? 0,
+      versionFor: (e: string) => {
+        const b = templates[e];
+        return b && b.slots.length
+          ? slotThumbSignature(b.slots[Math.min(Math.max(b.selected, 0), b.slots.length - 1)])
+          : '0';
+      },
       onSelectEffect,
       onTemplateSelect,
       onChange,

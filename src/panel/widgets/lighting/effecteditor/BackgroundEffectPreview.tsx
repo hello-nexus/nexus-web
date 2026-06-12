@@ -25,9 +25,9 @@ export function BackgroundEffectPreview({ effect, template, effectState }: {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fx = normalizePanelBackgroundEffect(effect);
   const tpl = normalizePanelBackgroundTemplate(template);
-  const stateRef = useRef(panelBackgroundState(fx, tpl, effectState));
+  const stateRef = useRef(effectState ?? panelBackgroundState(fx, tpl));
   useEffect(() => {
-    stateRef.current = panelBackgroundState(fx, tpl, effectState);
+    stateRef.current = effectState ?? panelBackgroundState(fx, tpl);
   }, [fx, tpl, effectState]);
   const { ready, error } = useShaderRenderer(canvasRef, fx, stateRef, undefined, RENDER_OPTIONS);
 
