@@ -7,7 +7,8 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { Tabs, type TabDef } from '../../common/Tabs/Tabs';
 import { useTranslation } from '../../../lib/i18n';
-import { KeebKeyboard, type KeebSelection } from './KeebKeyboard';
+import { KEEB_RENDER_WIDTH, KeebKeyboard, type KeebSelection } from './KeebKeyboard';
+import { useFitZoom } from './useFitZoom';
 import { getKeebLayoutRows } from './keebLayout';
 import {
   ASSIGNMENT_CATEGORIES,
@@ -42,6 +43,8 @@ export function KeebKeyAssignmentView({
   const { t } = useTranslation();
   const [category, setCategory] = useState<KeebAssignmentCategory>('Keyboard');
   const [confirmReset, setConfirmReset] = useState(false);
+  // Fit the source-keyboard render to the window width.
+  const sourceStage = useFitZoom(KEEB_RENDER_WIDTH, 0.48);
 
   const categoryTabs: TabDef[] = useMemo(
     () => ASSIGNMENT_CATEGORIES.map(cat => ({ key: cat, label: t(CATEGORY_LABEL_KEYS[cat]) })),
@@ -133,20 +136,22 @@ export function KeebKeyAssignmentView({
       )}
 
       {category === 'Keyboard' && (
-        <div className={styles.sourceStage}>
-          <KeebKeyboard
-            state={state}
-            disabled={disabled}
-            // Highlight reflects what the target is currently mapped to; a
-            // click on a different source key rebinds. Wheels are hidden
-            // because picking a wheel-as-source isn't a valid rebind here.
-            // useDefaults keeps the picker showing the printed-legend layout
-            // even after the firmware has been remapped.
-            selected={sourceSelected}
-            hideWheels
-            useDefaults
-            onSelect={onSourceSelect}
-          />
+        <div ref={sourceStage.ref} className={styles.sourceStageWrap}>
+          <div className={styles.sourceStage} style={{ zoom: sourceStage.zoom }}>
+            <KeebKeyboard
+              state={state}
+              disabled={disabled}
+              // Highlight reflects what the target is currently mapped to; a
+              // click on a different source key rebinds. Wheels are hidden
+              // because picking a wheel-as-source isn't a valid rebind here.
+              // useDefaults keeps the picker showing the printed-legend layout
+              // even after the firmware has been remapped.
+              selected={sourceSelected}
+              hideWheels
+              useDefaults
+              onSelect={onSourceSelect}
+            />
+          </div>
         </div>
       )}
 

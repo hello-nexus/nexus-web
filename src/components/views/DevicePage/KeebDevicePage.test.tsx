@@ -57,6 +57,7 @@ vi.mock('../../../hooks/useKeeb', () => ({
 }));
 
 vi.mock('../keeb/KeebKeyboard', () => ({
+  KEEB_RENDER_WIDTH: 2030,
   KeebKeyboard: (props: any) => {
     h.captured.keyboard.push(props);
     return (
@@ -141,6 +142,7 @@ beforeEach(() => {
     fn.mockResolvedValue(true);
   }
   h.state = connectedState();
+  h.settings = null;
   h.layer = 0;
 });
 
@@ -235,6 +237,28 @@ describe('KeebDevicePage', () => {
       selectKey();
       expect(screen.getByTestId('assignment-stub')).toBeInTheDocument();
       expect(lastAssignment().selected).toEqual({ x: 2, y: 3 });
+    });
+
+    it('mirrors persisted rotary state from the settings response', () => {
+      h.settings = {
+        rotaryLeft: 'Scale',
+        rotaryRight: 'AltTab',
+        rotarySensitivity: 'Fast',
+      } as any;
+      render(<KeebDevicePage />);
+      selectWheel();
+      expect(lastRotary().left).toBe('Scale');
+      expect(lastRotary().right).toBe('AltTab');
+      expect(lastRotary().sensitivity).toBe('Fast');
+    });
+
+    it('keeps the rotary defaults when the service omits the fields', () => {
+      h.settings = {} as any;
+      render(<KeebDevicePage />);
+      selectWheel();
+      expect(lastRotary().left).toBe('VolumeAdjustment');
+      expect(lastRotary().right).toBe('ScrollY');
+      expect(lastRotary().sensitivity).toBe('Balanced');
     });
   });
 

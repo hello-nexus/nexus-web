@@ -26,7 +26,8 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  // Two columns of group cards, collapsing to one on a narrow window.
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
   gap: var(--space-md);
 }
 
@@ -55,9 +56,13 @@
 
 // Source-keyboard stage (Keyboard category): a second KeebKeyboard render
 // sized smaller than the main one above, used as a click-to-pick picker.
+// useFitZoom measures the wrapper and applies the `zoom` inline.
+.sourceStageWrap {
+  width: 100%;
+}
+
 .sourceStage {
   display: flex;
   justify-content: center;
   padding: 4px 0 0;
-  zoom: 0.48;
 }

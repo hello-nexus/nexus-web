@@ -2,7 +2,9 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  // Three columns on a wide window, wrapping down to two/one as the window
+  // narrows so the sections never overflow.
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   // Sections size to their own content; differing description wrap must not
   // stretch the sibling boxes.
   align-items: start;

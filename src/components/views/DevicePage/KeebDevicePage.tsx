@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Layers as LayersIcon } from 'lucide-react';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
@@ -6,7 +6,8 @@ import { useToast } from '../../common/Toast/Toast';
 import { useTranslation } from '../../../lib/i18n';
 import { useKeeb } from '../../../hooks/useKeeb';
 import { type KeebLayer, KEEB_LAYERS } from '../../../api/keeb';
-import { KeebKeyboard, type KeebSelection } from '../keeb/KeebKeyboard';
+import { KEEB_RENDER_WIDTH, KeebKeyboard, type KeebSelection } from '../keeb/KeebKeyboard';
+import { useFitZoom } from '../keeb/useFitZoom';
 import { KeebSettingsView } from '../keeb/KeebSettingsView';
 import { KeebKeyAssignmentView } from '../keeb/KeebKeyAssignmentView';
 import { KeebRotaryView } from '../keeb/KeebRotaryView';
@@ -43,9 +44,23 @@ export function KeebDevicePage() {
   const [rotaryRight, setRotaryRight] = useState('ScrollY');
   const [sensitivity, setSensitivity] = useState('Balanced');
 
+  // Rotary state mirrors the persisted server values (services that predate
+  // the rotary fields omit them - keep the defaults then). The poll pauses
+  // while writes are in flight, so this never fights an optimistic edit.
+  useEffect(() => {
+    const s = keeb.settings;
+    if (!s) return;
+    if (s.rotaryLeft) setRotaryLeft(s.rotaryLeft);
+    if (s.rotaryRight) setRotaryRight(s.rotaryRight);
+    if (s.rotarySensitivity) setSensitivity(s.rotarySensitivity);
+  }, [keeb.settings]);
+
+  // Fit the fixed-pixel keyboard render to the window width.
+  const stage = useFitZoom(KEEB_RENDER_WIDTH, 0.55);
+
   // Sequence guards: a slow failing rotary write must not revert a newer
-  // value the user has since picked (rotary state is never refetched, so a
-  // wrong revert would stick).
+  // value the user has since picked (a wrong revert would stand until the
+  // settings poll mirrors the server value back).
   const rotarySeqRef = useRef(0);
   const sensitivitySeqRef = useRef(0);
 
@@ -101,14 +116,16 @@ export function KeebDevicePage() {
       />
       <div className={`${pageStyles.pageBody} pageBody`}>
         {showKeyboard && (
-          <div className={pageStyles.keyboardStage}>
-            <KeebKeyboard
-              state={keeb.state}
-              offlineCopy={offlineCopy}
-              disabled={!keyboardInteractive}
-              onSelect={keyboardInteractive ? setSelected : undefined}
-              selected={keyboardInteractive ? selected : null}
-            />
+          <div ref={stage.ref} className={pageStyles.keyboardStageWrap}>
+            <div className={pageStyles.keyboardStage} style={{ zoom: stage.zoom }}>
+              <KeebKeyboard
+                state={keeb.state}
+                offlineCopy={offlineCopy}
+                disabled={!keyboardInteractive}
+                onSelect={keyboardInteractive ? setSelected : undefined}
+                selected={keyboardInteractive ? selected : null}
+              />
+            </div>
           </div>
         )}
 

@@ -45,6 +45,10 @@ export interface KeebSettings {
   windowsKeyDisabled: boolean;
   altF4Disabled: boolean;
   altTabDisabled: boolean;
+  // Absent on services that predate rotary state in the settings response.
+  rotaryLeft?: string;
+  rotaryRight?: string;
+  rotarySensitivity?: string;
   animationMode: string;
   speed: string;
   direction: string;

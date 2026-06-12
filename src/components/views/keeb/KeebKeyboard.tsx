@@ -5,6 +5,13 @@ import { getKeyGlyph, type KeebLayoutKind } from './keebGlyphs';
 import { getKeebLayoutRows } from './keebLayout';
 import styles from './KeebKeyboard.module.scss';
 
+/// Width of the fixed-pixel render at zoom 1: the widest layout row (cell
+/// widths + margins + flex gaps) plus the chassis padding and border, with a
+/// little slack. Stages divide their container width by this to compute the
+/// fit zoom; overestimating only costs a sliver of size, underestimating
+/// clips the board.
+export const KEEB_RENDER_WIDTH = 2030;
+
 /// What the user has selected on the keyboard. Either a physical key (drives
 /// function-category writes) or one of the two rotary wheels (drives rotary
 /// function writes). `null` means no selection — the views render hint copy.

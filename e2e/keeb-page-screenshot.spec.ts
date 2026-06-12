@@ -209,10 +209,52 @@ test('walks every Keeb page tab', async ({ page }) => {
   await expect(page.getByText('Local Mode')).toBeVisible();
   await page.screenshot({ path: join(SCREENSHOT_DIR, 'keeb-05-tester.png') });
 
-  // Settings: three cards on SettingRows.
+  // Settings: three sections on SettingRows.
   await page.getByRole('tab', { name: 'Settings' }).click();
   await page.waitForTimeout(300);
   await expect(page.getByText('Firmware Lighting')).toBeVisible();
   await expect(page.getByText('Game Mode')).toBeVisible();
   await page.screenshot({ path: join(SCREENSHOT_DIR, 'keeb-06-settings.png') });
+});
+
+test.describe('small window', () => {
+  test.use({ viewport: { width: 1100, height: 720 } });
+
+  test('keyboard and grids fit without horizontal overflow', async ({ page }) => {
+    await mockService(page);
+    await page.goto('/');
+    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+
+    const sidebar = page.locator('[class*="sidebarColumn"]');
+    await expect(sidebar).toBeVisible({ timeout: 10_000 });
+    const keebBtn = sidebar.locator('button[aria-label="Keeb"], button:has-text("Keeb")').first();
+    await expect(keebBtn).toBeVisible({ timeout: 10_000 });
+    await keebBtn.click();
+    await page.waitForTimeout(1000);
+
+    const overflow = () => page.evaluate(() => {
+      const doc = document.scrollingElement!;
+      return doc.scrollWidth - doc.clientWidth;
+    });
+    // The keyboard chassis itself must fit its stage - page-level overflow
+    // alone misses a board clipped inside a non-scrolling wrapper. Walk
+    // wrap > stage > chassis structurally; class-substring matching is
+    // ambiguous here (every hashed class in the chain contains "keyboard").
+    const keyboardOverhang = () => page.evaluate(() => {
+      const wrap = document.querySelector('[class*="keyboardStageWrap"]') as HTMLElement | null;
+      const board = wrap?.firstElementChild?.firstElementChild as HTMLElement | null;
+      if (!wrap || !board) return null;
+      return board.getBoundingClientRect().width - wrap.getBoundingClientRect().width;
+    });
+
+    await expect(page.getByRole('tab', { name: 'Key Assignment' })).toBeVisible();
+    expect(await overflow()).toBeLessThanOrEqual(0);
+    expect(await keyboardOverhang()).toBeLessThanOrEqual(0);
+    await page.screenshot({ path: join(SCREENSHOT_DIR, 'keeb-07-small-assignment.png') });
+
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.waitForTimeout(300);
+    expect(await overflow()).toBeLessThanOrEqual(0);
+    await page.screenshot({ path: join(SCREENSHOT_DIR, 'keeb-08-small-settings.png') });
+  });
 });

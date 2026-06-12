@@ -19,13 +19,17 @@
   overflow-y: auto;
 }
 
-// Keyboard render is ~1400px wide at source size. Scale via `zoom` to fit
-// the page at laptop widths.
+// Keyboard render is fixed-pixel at source size; useFitZoom measures this
+// wrapper and applies an inline `zoom` on the stage so the board always fits
+// the window width.
+.keyboardStageWrap {
+  width: 100%;
+}
+
 .keyboardStage {
   display: flex;
   justify-content: center;
   padding: var(--space-xs) 0;
-  zoom: 0.55;
 }
 
 .tabBody {
