@@ -34,6 +34,8 @@
   line-height: 1.4;
 }
 
+// Catalog group label — plain muted text, no underline, matching the settings
+// "header outside the box" look (these stay grid dividers, not cards).
 .sectionHeader {
   grid-column: 1 / -1;
   display: flex;
@@ -42,17 +44,8 @@
   padding: 18px 4px 6px;
   color: var(--panel-text-muted);
   font-family: var(--panel-font);
-  font-size: var(--type-tiny);
-  font-weight: var(--weight-strong);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-
-  &::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--panel-border);
-  }
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
 }
 
 .sectionHeaderLabel {

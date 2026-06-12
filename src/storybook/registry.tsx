@@ -57,6 +57,7 @@ import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
 import { pairingPreviewQr } from '../panel/widgets/pairing/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
+import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
 import { SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
@@ -790,6 +791,20 @@ function PreviewSectionHeader() {
   );
 }
 
+function PreviewSettingsSection() {
+  return (
+    <div style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <SettingsSection title="General" description="Optional muted description under the title.">
+        <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Language</div>
+        <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Hide conflict warnings</div>
+      </SettingsSection>
+      <SettingsSection title="Danger zone" titleStyle={{ color: 'var(--bad)' }}>
+        <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Shut down · Reset to defaults</div>
+      </SettingsSection>
+    </div>
+  );
+}
+
 function PreviewPanelThemeSettings() {
   const [theme, setTheme] = useState<PanelThemeSettingsState>({
     appThemeMode: 'dark', appResolvedThemeMode: 'dark', themeSyncWithDesktop: false, themeMode: 'dark',
@@ -1381,8 +1396,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SectionHeader', category: 'panel-kit',
     filePath: 'src/components/common/SectionHeader/SectionHeader.tsx',
-    description: 'Canonical settings section header: uppercase label + full-width rule. The single header every settings section uses (panel editor sheet, widget settings panes, device Settings tab) so they read identically. Token fallbacks (--panel-* → --text-dim/--border) keep it correct inside .panel-root and on the dashboard. Replaced the per-pane bespoke headers and the former global .device-modal-section.',
+    description: 'Canonical settings header: a muted body-type label (no underline). Usually rendered by SettingsSection, which sits it above a surface box. Token fallback (--panel-text-muted → --text-dim) keeps it correct inside .panel-root and on the dashboard.',
     Preview: PreviewSectionHeader,
+  },
+  {
+    name: 'SettingsSection', category: 'panel-kit',
+    filePath: 'src/components/common/SettingsSection/SettingsSection.tsx',
+    description: 'Canonical settings group: a muted body-type header (optional description) sitting outside/above a surface-filled, subtly-bordered box that holds the section rows. The one header-outside-box pattern every settings surface uses (dashboard Settings, panel editor, widget settings, device pages, pairing modal). titleStyle recolours the header (e.g. the danger zone); boxClassName tunes the box (per-surface row gap).',
+    Preview: PreviewSettingsSection,
   },
   {
     name: 'PanelThemeSettings', category: 'panel-kit',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { Placeholder } from '../Placeholder';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Toggle } from '../../common/Toggle/Toggle';
 import {
   getCnvsSettings,
@@ -73,14 +74,11 @@ export function CnvsDevicePage() {
         {loading ? null : !settings ? (
           <Placeholder title={error ?? 'CNVS not available'} />
         ) : (
-          <div className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>Firmware behaviour</h2>
-              <p className={styles.sectionHint}>
-                Settings that the CNVS keeps even when Nexus isn&apos;t running.
-              </p>
-            </div>
-
+          <SettingsSection
+            title="Firmware behaviour"
+            description="Settings that the CNVS keeps even when Nexus isn't running."
+            boxClassName={styles.sectionBox}
+          >
             <SettingRow
               label="Disable connection animation"
               hint="Skip the firmware boot animation when the CNVS connects to this PC."
@@ -94,7 +92,7 @@ export function CnvsDevicePage() {
               onChange={(on) => commit({ ...settings, playWhenPCOff: on })} />
 
             {error && <div className={styles.errorRow}>{error}</div>}
-          </div>
+          </SettingsSection>
         )}
       </div>
     </section>

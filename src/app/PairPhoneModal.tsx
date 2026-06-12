@@ -9,7 +9,7 @@ import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { PairingOffState } from '../components/common/PairingQr/PairingOffState';
 import { EditableText } from '../components/common/Editable/EditableText';
 import { Select } from '../components/common/Select/Select';
-import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
+import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import {
@@ -464,8 +464,11 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
         <div className={styles.phonePairLayout} data-remote-enabled={remoteEnabled ? 'true' : 'false'}>
           {/* ── Left column: remote-control toggle + authorized device list ── */}
           <div className={styles.phonePairCol}>
-            <section className={styles.phonePairCard} aria-label={t('phonePair.connectionOptions')}>
-              <SectionHeader>{t('phonePair.connectionOptions')}</SectionHeader>
+            <SettingsSection
+              title={t('phonePair.connectionOptions')}
+              ariaLabel={t('phonePair.connectionOptions')}
+              boxClassName={styles.phonePairBox}
+            >
               <SettingToggle
                 label={t('phonePair.killswitch.label')}
                 description={remoteEnabled
@@ -483,10 +486,10 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                 disabled={!remoteEnabled}
               />
               <PairBroadcastRow value={broadcast} onChange={updateBroadcast} now={now} />
-            </section>
+            </SettingsSection>
 
 
-            <section className={styles.phonePairCard + ' ' + styles.phonePairSessionsPanel} aria-label={t('phonePair.ariaSessions')} data-disabled={remoteEnabled ? 'false' : 'true'}>
+            <div className={styles.phonePairSessions} aria-label={t('phonePair.ariaSessions')} data-disabled={remoteEnabled ? 'false' : 'true'}>
             <div className={styles.phonePairSessionsHeader}>
               <div>
                 <h3>{t('phonePair.authorizedDevices')}</h3>
@@ -503,6 +506,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
               </button>
             </div>
 
+            <section className={styles.phonePairCard + ' ' + styles.phonePairSessionsPanel}>
             {sessionsLoading && sessionList.length === 0 ? (
               <div className={styles.phonePairEmpty}>{t('phonePair.loadingSessions')}</div>
             ) : sessionList.length === 0 ? (
@@ -591,6 +595,7 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
               </div>
             )}
           </section>
+          </div>
           </div>
 
           {/* ── Right column: pairing flow (QR or Code), tabbed ────────── */}

@@ -127,6 +127,12 @@ export function Dashboard() {
     navigate('system', 'settings', 'general');
   }, [navigate]);
 
+  // The profile dropdown's "Manage profiles" lands on the Profiles tab, not
+  // the General settings the "..." menu opens.
+  const handleManageProfiles = useCallback(() => {
+    navigate('system', 'settings', 'profiles');
+  }, [navigate]);
+
   const handleServiceNavChange = useCallback((key: string) => {
     if (section === 'system') {
       setView(key);
@@ -486,6 +492,7 @@ export function Dashboard() {
           profiles={profilesHook}
           onPreferencesChanged={handlePreferencesChanged}
           onNavigateSettings={handleNavigateSettings}
+          onManageProfiles={handleManageProfiles}
           isWindowsApp={isWindowsAppShell()}
           isMacApp={isMacAppShell()}
         />
