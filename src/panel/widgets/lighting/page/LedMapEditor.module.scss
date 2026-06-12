@@ -534,7 +534,7 @@
   gap: 0.1rem;
   padding: 0.1rem 0.25rem 0.1rem 0;
   border: var(--border-width) solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius);
   background: var(--surface);
   transition: border-color var(--ease-fast), background var(--ease-fast);
 
