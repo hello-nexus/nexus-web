@@ -53,6 +53,34 @@ The app routes a small set of top-level surfaces from the URL path:
 `/touch` and `/panel/q60` are legacy aliases that land in the panel
 allocation flow.
 
+## Project layout
+
+Everything ships from `src/`. Top-level folders:
+
+| Folder | Contents |
+|---|---|
+| `api/` | Typed REST/WS clients for `nexus-service` + the cloud API — one file per domain (`cooling`, `lighting`, `displays`, `keeb`, `gallery`, `panel`, `internetPairing`…). Host resolution lives in `api/service.ts`. |
+| `app/` | Desktop **dashboard shell**: `Dashboard.tsx`, sidebar, pairing modals, panel entrypoint + routing, window caption buttons. |
+| `components/` | Shared React components — `common/` (design-system primitives), `views/` (full dashboard sections), `builder/` (PC-builder UI), `peripherals/`, `icons/`. |
+| `hooks/` | Reusable hooks, mostly data/state (`useDevices`, `useCooling`, `useMultiplexSocket`…). |
+| `lib/` | Non-React utilities + stores (`appStore`, `monitoringStore`, `i18n`, `settings`, `webhid/`, codecs, sensor resolvers). |
+| `locales/` | The i18n JSON bundles (en + 13 others). |
+| `overlay/` | The `/overlay` surface — per-monitor overlay shell + bridge to `nexus-overlay.exe`. |
+| `panel/` | The kiosk/phone **panel** surface and its own rendering engine (`engine/`, `editor/`, `chrome/`, `theme/`, `dnd/`, `background/`, `overlays/`, `embed/` simulator). `panel/widgets/` holds the built-in widget implementations. |
+| `sandbox/` | Host runtime for **sandboxed SDK widgets** ("Nexus apps"): boots a hardened Web Worker per widget, installs the `nexus.*` API, and renders the worker's remote-dom tree. This is what executes third-party app bundles. |
+| `search/` | Global command palette / top search (providers, fuzzy match, frecency). |
+| `storybook/` | In-app component gallery — **not** the npm Storybook tool; a dev surface that previews design-system components. |
+| `styles/` | Global SCSS (variables, text, scrollbar, interactions, reset). |
+| `telemetry/` | Analytics events + a reference view listing them. |
+| `types/` | Shared TS types + ambient declarations (`scss.d.ts`, `global.d.ts`). |
+| `widgets/` | Client glue for the **marketplace/SDK app layer** — wire types, installed-apps API, marketplace registry, settings bridge. Feeds installed apps into the panel picker. |
+| `__tests__/` | Cross-cutting test suites + vitest setup. |
+
+Three "widget/app" layers are easy to confuse: `panel/widgets/` is the built-in
+widgets; `widgets/` is the marketplace feed that injects installed SDK apps into
+the panel picker; `sandbox/` is the runtime that hosts those SDK apps. The app
+bundle **sources** live outside this repo, in the sibling `nexus-apps/`.
+
 ## Scripts
 
 ```
