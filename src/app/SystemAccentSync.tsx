@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { useUiSettings } from '../hooks/useUiSettings';
 import { requestSystemAccent, subscribeSystemAccent } from './windowActions';
+import { fetchSystemAccent } from '../api/service';
 
 // When accentSource === 'system', mirror the OS accent into accentColor so it
 // bubbles everywhere that reads it: the desktop app, the embedded panel widgets
 // (DashboardView passes settings.accentColor as appAccentColor), and the phone
-// panels (which sync prefs.theme.accentColor). The native shell pushes the OS
-// accent on request + whenever it changes; in a plain browser there's no host,
-// so the stored accent simply stays.
+// panels (which sync prefs.theme.accentColor). The Windows/macOS native shell
+// pushes the OS accent on request + whenever it changes; with no shell (the
+// Linux dashboard is a browser) the service reads the accent from the XDG
+// portal and we fetch it instead.
 export function SystemAccentSync() {
   const { settings, update } = useUiSettings();
   const source = settings.accentSource;
@@ -18,12 +20,17 @@ export function SystemAccentSync() {
   accentRef.current = settings.accentColor;
 
   useEffect(() => {
-    const unsubscribe = subscribeSystemAccent(hex => {
+    const apply = (hex: string) => {
       systemHex.current = hex;
       if (source === 'system' && hex !== accentRef.current) update({ accentColor: hex });
-    });
-    requestSystemAccent();
-    return unsubscribe;
+    };
+    const unsubscribe = subscribeSystemAccent(apply);
+    // A native shell answers the request by pushing through subscribeSystemAccent.
+    if (requestSystemAccent()) return unsubscribe;
+    // No shell — pull the host OS accent from the service (Linux / browser).
+    let cancelled = false;
+    void fetchSystemAccent().then(hex => { if (!cancelled && hex) apply(hex); });
+    return () => { cancelled = true; unsubscribe(); };
   }, [source, update]);
 
   // Re-assert the OS accent whenever 'system' is active and the stored accent
