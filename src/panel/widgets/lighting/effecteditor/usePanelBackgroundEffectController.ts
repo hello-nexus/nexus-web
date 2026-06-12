@@ -13,6 +13,7 @@ import type { AnimateController } from './types';
 export function usePanelBackgroundEffectController({
   effect,
   template,
+  templatesByEffect,
   effectState,
   onSelectEffect,
   onTemplateSelect,
@@ -21,6 +22,8 @@ export function usePanelBackgroundEffectController({
 }: {
   effect: string;
   template: number;
+  /** This panel's preset selection per shader (effect key → preset index). */
+  templatesByEffect: Record<string, number>;
   effectState: EffectState;
   onSelectEffect: (key: string) => void;
   onTemplateSelect: (idx: number) => void;
@@ -66,14 +69,14 @@ export function usePanelBackgroundEffectController({
     onChange,
     onCommit: handleCommit,
     onReset: handleReset,
-    // The background uses one selected slot index across all effects; the grid
-    // cell + preset thumbnails render the global slot for it.
-    slotFor: () => idx,
+    // Each shader's cell shows THIS panel's remembered preset for that shader
+    // (per-panel, per-shader selection; default 0). Switching shaders keeps it.
+    slotFor: (key: string) => Math.min(Math.max(templatesByEffect[key] ?? 0, 0), TEMPLATE_COUNT - 1),
     versionFor: (key: string) => {
       const b = globalTemplates[key];
-      return b && b.slots.length
-        ? slotThumbSignature(b.slots[Math.min(Math.max(template, 0), b.slots.length - 1)])
-        : '0';
+      if (!b || b.slots.length === 0) return '0';
+      const s = Math.min(Math.max(templatesByEffect[key] ?? 0, 0), b.slots.length - 1);
+      return slotThumbSignature(b.slots[s]);
     },
     // Bulb: which effect/slot is live on the RGB. The preset-row bulb only shows
     // when the background effect is the one currently driving the LEDs.

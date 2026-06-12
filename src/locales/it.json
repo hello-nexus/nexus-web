@@ -530,6 +530,8 @@
   "keeb.titleOffline": "Keeb TKL (offline)",
   "keeb.write.failedBody": "Nexus non è riuscito ad applicare la modifica al tuo Keeb.",
   "keeb.write.failedTitle": "Modifica della tastiera non riuscita",
+  "lighting.badge.liveOnLeds": "Attivo sui tuoi LED",
+  "lighting.badge.usedByPanel": "Usato da un pannello",
   "lighting.category.all": "Tutti",
   "lighting.category.audio": "Audio",
   "lighting.category.cosmic": "Cosmico",

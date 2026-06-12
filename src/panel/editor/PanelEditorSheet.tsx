@@ -25,6 +25,7 @@ export type SheetMode = 'catalog' | 'settings' | 'panelSettings';
 export function PanelEditorSheet({
   mode,
   surface,
+  deviceId,
   deviceTouch,
   editingWidget,
   panelTheme,
@@ -65,6 +66,8 @@ export function PanelEditorSheet({
 }: {
   mode: SheetMode;
   surface: PanelSurface;
+  // This panel's device id, forwarded to the theme editor's cross-panel badge.
+  deviceId?: string;
   // Per-device touch capability (promoted monitors) for catalog/size gating.
   deviceTouch?: boolean;
   editingWidget: PanelWidget | null;
@@ -299,6 +302,7 @@ export function PanelEditorSheet({
             />
             <PanelThemeSettings
               theme={panelTheme}
+              deviceId={deviceId}
               resolvedThemeMode={resolvedThemeMode}
               onThemeSyncCommit={onThemeSyncCommit}
               onThemeModeCommit={onThemeModeCommit}

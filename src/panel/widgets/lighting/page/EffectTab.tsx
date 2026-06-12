@@ -18,6 +18,7 @@ export function EffectTab({
   // animate props
   effect, state, bundle, canReset,
   onTemplateSelect, onAnimateChange, onAnimateCommit, onAnimateReset,
+  panelSlots,
   // media + screen props
   postProcess, onPostProcessChange, onPostProcessCommit, onPostProcessReset,
 }: {
@@ -30,6 +31,8 @@ export function EffectTab({
   onAnimateChange: (patch: Partial<EffectState>, commit?: boolean) => void;
   onAnimateCommit: () => void;
   onAnimateReset: () => void;
+  /** Preset slots used as a background by ≥1 panel (panel badge). */
+  panelSlots?: Set<number> | null;
   postProcess: PostProcessState;
   onPostProcessChange: (patch: Partial<PostProcessState>, commit: boolean) => void;
   onPostProcessCommit: () => void;
@@ -54,6 +57,7 @@ export function EffectTab({
           onChange={onAnimateChange}
           onCommit={onAnimateCommit}
           onReset={onAnimateReset}
+          panelSlots={panelSlots}
         />
       </>
     );

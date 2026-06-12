@@ -530,6 +530,8 @@
   "keeb.titleOffline": "Keeb TKL（オフライン）",
   "keeb.write.failedBody": "NexusはKeebに変更を適用できませんでした。",
   "keeb.write.failedTitle": "キーボードの変更に失敗しました",
+  "lighting.badge.liveOnLeds": "LEDで点灯中",
+  "lighting.badge.usedByPanel": "パネルで使用中",
   "lighting.category.all": "すべて",
   "lighting.category.audio": "オーディオ",
   "lighting.category.cosmic": "宇宙",

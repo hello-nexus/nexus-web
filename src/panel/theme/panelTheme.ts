@@ -163,6 +163,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     backgroundMode: 'solid',
     backgroundEffect: DEFAULT_PANEL_BACKGROUND_EFFECT,
     backgroundTemplate: DEFAULT_PANEL_BACKGROUND_TEMPLATE,
+    backgroundTemplates: {},
     backgroundOpacity: DEFAULT_PANEL_BACKGROUND_OPACITY,
     backgroundEffectState: panelBackgroundState(DEFAULT_PANEL_BACKGROUND_EFFECT, DEFAULT_PANEL_BACKGROUND_TEMPLATE),
     widgetOpacity: defaultPanelWidgetOpacity(),
@@ -203,6 +204,14 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
       // theme. Absent record fields fall back to defaults via normalize*.
       const t = prefs?.theme;
       const r = record;
+      // Per-shader preset map. Back-compat: seed the active shader's entry from
+      // the legacy scalar when the map doesn't carry it (old records, or a fresh
+      // record that only wrote backgroundTemplate).
+      const effect = normalizePanelBackgroundEffect(r?.backgroundEffect);
+      const templates: Record<string, number> = { ...(r?.backgroundTemplates ?? {}) };
+      if (templates[effect] === undefined) {
+        templates[effect] = normalizePanelBackgroundTemplate(r?.backgroundTemplate);
+      }
       setTheme({
         appThemeMode: normalizePanelThemeMode(t?.themeMode),
         appResolvedThemeMode: t?.resolvedThemeMode === 'dark' || t?.resolvedThemeMode === 'light'
@@ -215,15 +224,13 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         backgroundColor: r?.backgroundColor ?? '',
         backgroundColorLight: r?.backgroundColorLight ?? '',
         backgroundMode: normalizePanelBackgroundMode(r?.backgroundMode),
-        backgroundEffect: normalizePanelBackgroundEffect(r?.backgroundEffect),
-        backgroundTemplate: normalizePanelBackgroundTemplate(r?.backgroundTemplate),
+        backgroundEffect: effect,
+        backgroundTemplate: normalizePanelBackgroundTemplate(templates[effect]),
+        backgroundTemplates: templates,
         backgroundOpacity: normalizePanelBackgroundOpacity(r?.backgroundOpacity),
         // Static fallback; the returned value below is derived from the global
         // presets + the live draft.
-        backgroundEffectState: panelBackgroundState(
-          normalizePanelBackgroundEffect(r?.backgroundEffect),
-          normalizePanelBackgroundTemplate(r?.backgroundTemplate),
-        ),
+        backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),
         widgetOpacity: normalizePanelWidgetOpacity(r?.widgetOpacity),
         widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
         widgetBlur: normalizePanelWidgetBlur(r?.widgetBlur),
@@ -306,15 +313,24 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
   const commitBackgroundEffect = useCallback((effect: string) => {
     const nextEffect = normalizePanelBackgroundEffect(effect);
     setDraftBackgroundState(null);
-    setTheme(prev => ({ ...prev, backgroundEffect: nextEffect }));
-    persistPatch({ backgroundEffect: nextEffect });
+    if (themeRef.current.backgroundEffect === nextEffect) return;
+    // Switch to this panel's REMEMBERED preset for that shader (default 0) — the
+    // selection is per-panel, per-shader, so switching never resets it.
+    const nextTemplate = normalizePanelBackgroundTemplate(
+      themeRef.current.backgroundTemplates[nextEffect] ?? DEFAULT_PANEL_BACKGROUND_TEMPLATE,
+    );
+    setTheme(prev => ({ ...prev, backgroundEffect: nextEffect, backgroundTemplate: nextTemplate }));
+    persistPatch({ backgroundEffect: nextEffect, backgroundTemplate: nextTemplate });
   }, [persistPatch]);
 
   const commitBackgroundTemplate = useCallback((template: number) => {
     const nextTemplate = normalizePanelBackgroundTemplate(template);
     setDraftBackgroundState(null);
-    setTheme(prev => ({ ...prev, backgroundTemplate: nextTemplate }));
-    persistPatch({ backgroundTemplate: nextTemplate });
+    const effect = themeRef.current.backgroundEffect;
+    // Record the choice for THIS shader on this panel; send the whole map.
+    const nextTemplates = { ...themeRef.current.backgroundTemplates, [effect]: nextTemplate };
+    setTheme(prev => ({ ...prev, backgroundTemplate: nextTemplate, backgroundTemplates: nextTemplates }));
+    persistPatch({ backgroundTemplate: nextTemplate, backgroundTemplates: nextTemplates });
   }, [persistPatch]);
 
   // Editing the background preset's params writes the UNIVERSAL slot (global

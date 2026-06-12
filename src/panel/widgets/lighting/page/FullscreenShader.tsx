@@ -18,11 +18,13 @@ interface FullscreenShaderProps {
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
+  /** Preset slots used as a background by ≥1 panel (panel badge). */
+  panelSlots?: Set<number> | null;
 }
 
 export function FullscreenShader({
   effect, state, bundle, canReset, audioRef,
-  onTemplateSelect, onChange, onCommit, onReset, onClose, onPrev, onNext,
+  onTemplateSelect, onChange, onCommit, onReset, onClose, onPrev, onNext, panelSlots,
 }: FullscreenShaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -114,6 +116,7 @@ export function FullscreenShader({
           onClose={closeDrawer}
           closing={drawerClosing}
           onAnimationEnd={finishDrawerClose}
+          panelSlots={panelSlots}
         />
       )}
     </div>

@@ -19,6 +19,7 @@ import {
   startAnimate,
 } from '../../../api/lighting';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
+import { usePanelBackgroundUsage, type PanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
   EFFECTS,
   defaultStateFor,
@@ -44,6 +45,7 @@ export function LightingTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   const fullsizeWidget = useMemo(() => ({ ...widget, size: '4x4' as const }), [widget]);
   const { mode, animate } = useImmersiveAnimateState();
   const post = useImmersivePostProcess(mode);
+  const panelUsage = usePanelBackgroundUsage();
 
   const cells: ReactNode[] = [
     <LightingWidget widget={fullsizeWidget} surface={surface} immersive />,
@@ -51,7 +53,7 @@ export function LightingTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   // Always keep a second (fill) cell below the fixed 4x4 preview so the preview
   // stays a 4x4 even when there's no editor (off mode). The spacer just holds
   // the leftover height; otherwise the lone preview becomes the fill cell.
-  const editor = renderImmersiveEditor(mode, animate, post);
+  const editor = renderImmersiveEditor(mode, animate, post, panelUsage);
   cells.push(editor ?? <div key="imm-fill" />);
 
   return (
@@ -67,6 +69,7 @@ function renderImmersiveEditor(
   mode: LightingMode,
   animate: ImmersiveAnimateController | null,
   post: ImmersivePostProcess,
+  panelUsage: PanelBackgroundUsage,
 ): ReactNode | null {
   if (mode === 'animate') {
     if (!animate) return null;
@@ -79,6 +82,7 @@ function renderImmersiveEditor(
             slotFor={animate.slotFor}
             versionFor={animate.versionFor}
             rgbActiveEffect={animate.effect}
+            panelEffects={panelUsage.effects}
           />
         )}
         effect={(
@@ -92,6 +96,7 @@ function renderImmersiveEditor(
             onCommit={animate.onCommit}
             onReset={animate.onReset}
             rgbActiveSlot={animate.bundle.selected}
+            panelSlots={panelUsage.slotsByEffect.get(animate.effect)}
           />
         )}
       />

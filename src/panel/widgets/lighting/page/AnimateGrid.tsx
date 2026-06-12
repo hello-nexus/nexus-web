@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb, Monitor } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import {
   EFFECTS, EFFECT_CATEGORIES, categoryOf,
   type EffectCategory, type EffectDef,
@@ -42,16 +43,19 @@ export function AnimateCategoryChips({ effects = EFFECTS, value, onChange }: {
   );
 }
 
-function AnimateGridCell({ fx, slot, version, active, live, label, onSelect }: {
+function AnimateGridCell({ fx, slot, version, active, live, panel, label, onSelect }: {
   fx: EffectDef;
   slot: number;
   version: string;
   active: boolean;
   live: boolean;
+  panel: boolean;
   label: string;
   onSelect: () => void;
 }) {
+  const { t } = useTranslation();
   const url = useEffectThumbnail(fx.key, slot, version);
+  const hints = [live && t('lighting.badge.liveOnLeds'), panel && t('lighting.badge.usedByPanel')].filter(Boolean) as string[];
   return (
     <EffectCard
       overlay
@@ -61,7 +65,14 @@ function AnimateGridCell({ fx, slot, version, active, live, label, onSelect }: {
       active={active}
       onClick={onSelect}
       audio={fx.audio}
-      cornerBadge={live ? <span className={styles.cellBulb}><Lightbulb aria-hidden="true" /></span> : undefined}
+      cornerBadge={hints.length ? (
+        <HoverTooltip title={hints.length > 1 ? hints[0] : undefined} body={hints.length > 1 ? hints[1] : hints[0]} side="top">
+          <span className={styles.cellBadges}>
+            {live && <Lightbulb aria-hidden="true" />}
+            {panel && <Monitor aria-hidden="true" />}
+          </span>
+        </HoverTooltip>
+      ) : undefined}
     />
   );
 }
@@ -72,7 +83,7 @@ function AnimateGridCell({ fx, slot, version, active, live, label, onSelect }: {
  * serves every surface). On panels, the effect currently driving the RGB
  * hardware gets a bulb. A category chip row above the grid filters families.
  */
-export function AnimateGrid({ effect, onSelect, effects = EFFECTS, filter: controlledFilter, slotFor, versionFor, rgbActiveEffect }: {
+export function AnimateGrid({ effect, onSelect, effects = EFFECTS, filter: controlledFilter, slotFor, versionFor, rgbActiveEffect, panelEffects }: {
   effect: string;
   onSelect: (key: string) => void;
   /** Effect pool to show. Defaults to the full RGB set; panel backgrounds pass
@@ -87,6 +98,8 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, filter: contr
   versionFor?: (key: string) => string;
   /** Effect currently driving the RGB LEDs — its cell shows a bulb (panels only). */
   rgbActiveEffect?: string | null;
+  /** Effects used as a background by ≥1 panel — those cells show a panel icon. */
+  panelEffects?: Set<string> | null;
 }) {
   const { t } = useTranslation();
   const [internalFilter, setInternalFilter] = useState<AnimateFilter>('all');
@@ -131,6 +144,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, filter: contr
             version={versionFor ? versionFor(fx.key) : '0'}
             active={fx.key === effect}
             live={!!rgbActiveEffect && fx.key === rgbActiveEffect}
+            panel={!!panelEffects && panelEffects.has(fx.key)}
             label={t(fx.labelKey)}
             onSelect={() => onSelect(fx.key)}
           />

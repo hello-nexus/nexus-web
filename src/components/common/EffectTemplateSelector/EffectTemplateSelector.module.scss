@@ -76,14 +76,20 @@
   background: var(--effect-template-bg);
 }
 
-// "Live on RGB" marker: this preset is currently driving the physical LEDs.
-.bulb {
+// Usage markers: bulb = this preset drives the physical LEDs; monitor = a panel
+// uses it as a background. Stacked so the user sees every surface an edit hits.
+.badges {
   position: absolute;
   top: 2px;
   right: 2px;
-  width: 11px;
-  height: 11px;
-  color: #fff;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.85));
+  display: flex;
+  gap: 2px;
   pointer-events: none;
+
+  svg {
+    width: 11px;
+    height: 11px;
+    color: #fff;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.85));
+  }
 }

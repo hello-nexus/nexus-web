@@ -530,6 +530,8 @@
   "keeb.titleOffline": "Keeb TKL（離線）",
   "keeb.write.failedBody": "Nexus 無法將變更套用到您的 Keeb。",
   "keeb.write.failedTitle": "鍵盤變更失敗",
+  "lighting.badge.liveOnLeds": "正在你的燈光上執行",
+  "lighting.badge.usedByPanel": "被某個面板使用",
   "lighting.category.all": "全部",
   "lighting.category.audio": "音訊",
   "lighting.category.cosmic": "宇宙",

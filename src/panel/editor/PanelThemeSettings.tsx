@@ -19,6 +19,7 @@ import {
 } from '../background/panelBackground';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
 import { usePanelBackgroundEffectController } from '../widgets/lighting/effecteditor/usePanelBackgroundEffectController';
+import { usePanelBackgroundUsage } from '../../hooks/usePanelBackgroundUsage';
 import { AnimateCategoryChips, AnimateGrid, type AnimateFilter } from '../widgets/lighting/page/AnimateGrid';
 import { EffectControls } from '../widgets/lighting/page/EffectControls';
 import styles from './PanelThemeSettings.module.scss';
@@ -41,6 +42,9 @@ export interface PanelThemeSettingsState {
   backgroundMode: PanelBackgroundMode;
   backgroundEffect: string;
   backgroundTemplate: number;
+  // Per-shader preset selection for this panel (effect key → preset index).
+  // backgroundTemplate is the active shader's entry; this holds every shader's.
+  backgroundTemplates: Record<string, number>;
   backgroundOpacity: number;
   backgroundEffectState: EffectState;
   widgetOpacity: number;
@@ -72,11 +76,15 @@ export interface PanelThemeSettingsProps {
   /** Hide the widget-labels toggle. Single-widget surfaces (q-series) lock
    * labels off. */
   hideWidgetLabelsToggle?: boolean;
+  /** This panel's device id, excluded from the "used by a panel" badge so its
+   * own background never badges itself. */
+  deviceId?: string | null;
 }
 
 export function PanelThemeSettings({
   theme,
   resolvedThemeMode,
+  deviceId,
   onThemeSyncCommit,
   onThemeModeCommit,
   onAccentSyncCommit,
@@ -119,12 +127,17 @@ export function PanelThemeSettings({
   const backgroundController = usePanelBackgroundEffectController({
     effect: backgroundEffect,
     template: backgroundTemplate,
+    templatesByEffect: theme.backgroundTemplates,
     effectState: theme.backgroundEffectState,
     onSelectEffect: onBackgroundEffectCommit,
     onTemplateSelect: onBackgroundTemplateCommit,
     onPreview: onBackgroundEffectStatePreview,
     onCommit: onBackgroundEffectStateCommit,
   });
+
+  // Cross-panel usage drives the "used by a panel" badge on the grid + presets,
+  // excluding this panel so its own selection never badges itself.
+  const panelUsage = usePanelBackgroundUsage(deviceId);
 
   // Rendered in normal flow for solid mode, inside the sticky dock for shader
   // mode (one instance keeps the pill state/animation continuous).
@@ -266,6 +279,7 @@ export function PanelThemeSettings({
                 slotFor={backgroundController.slotFor}
                 versionFor={backgroundController.versionFor}
                 rgbActiveEffect={backgroundController.rgbActiveEffect}
+                panelEffects={panelUsage.effects}
               />
             ) : (
               <>
@@ -279,6 +293,7 @@ export function PanelThemeSettings({
                   onCommit={backgroundController.onCommit}
                   onReset={backgroundController.onReset}
                   rgbActiveSlot={backgroundController.rgbActiveSlot}
+                  panelSlots={panelUsage.slotsByEffect.get(backgroundController.effect)}
                 />
                 <Slider
                   orientation="stacked"

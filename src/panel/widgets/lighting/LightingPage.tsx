@@ -24,6 +24,7 @@ import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSke
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
 import { useUsbDevices } from '../../../hooks/useUsbDevices';
+import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
   EFFECTS, MODES, defaultStateFor,
   type EffectState, type EffectTemplateBundle, type LightingMode,
@@ -566,6 +567,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       .then(() => setCommittedTemplates(nextTemplates));
   }, [activeEffect, effectTemplates, writeTemplates]);
 
+  // Cross-panel usage drives the "used by a panel" badge. No exclusion: the
+  // desktop page isn't a panel, so every panel background counts.
+  const panelUsage = usePanelBackgroundUsage();
+
   // Grid cell = this surface's selected slot + its content hash, both from the
   // committed snapshot so thumbnails track commits, not drag frames.
   const slotForEffect = useCallback((e: string) => committedTemplates[e]?.selected ?? 0, [committedTemplates]);
@@ -854,7 +859,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             )}
           </div>
           {mode === 'animate' ? (
-            <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} />
+            <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} />
           ) : (
             <div className={styles.controls}>
               <ModeControls
@@ -910,6 +915,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onAnimateChange={handleStatePatch}
                 onAnimateCommit={handleStateCommit}
                 onAnimateReset={handleStateReset}
+                panelSlots={panelUsage.slotsByEffect.get(activeEffect)}
                 postProcess={postProcess}
                 onPostProcessChange={handlePostProcessChange}
                 onPostProcessCommit={handlePostProcessCommit}
@@ -930,6 +936,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onChange={handleStatePatch}
           onCommit={handleStateCommit}
           onReset={handleStateReset}
+          panelSlots={panelUsage.slotsByEffect.get(activeEffect)}
           onClose={() => setFullscreenOpen(false)}
           onPrev={handlePrevEffect}
           onNext={handleNextEffect}

@@ -17,7 +17,7 @@ import styles from '../LightingPage.module.scss';
 export function AnimateDrawer({
   effect, state, bundle,
   onTemplateSelect, canReset,
-  onChange, onCommit, onReset, onClose, closing, onAnimationEnd,
+  onChange, onCommit, onReset, onClose, closing, onAnimationEnd, panelSlots,
 }: {
   effect: string;
   state: EffectState;
@@ -30,6 +30,8 @@ export function AnimateDrawer({
   onClose: () => void;
   closing: boolean;
   onAnimationEnd: () => void;
+  /** Preset slots used as a background by ≥1 panel (panel badge). */
+  panelSlots?: Set<number> | null;
 }) {
   const { t } = useTranslation();
   const def = EFFECTS.find(e => e.key === effect);
@@ -67,6 +69,7 @@ export function AnimateDrawer({
         onChange={onChange}
         onCommit={onCommit}
         onReset={onReset}
+        panelSlots={panelSlots}
       />
     </aside>
   );

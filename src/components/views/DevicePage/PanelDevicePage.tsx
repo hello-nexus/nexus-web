@@ -411,6 +411,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                   {activeTab === 'theme' && (
                     <PanelThemeSettings
                       theme={theme}
+                      deviceId={editingDeviceId}
                       resolvedThemeMode={resolvedPanelThemeMode}
                       onThemeSyncCommit={panelTheme.commitThemeSync}
                       onThemeModeCommit={panelTheme.commitThemeMode}

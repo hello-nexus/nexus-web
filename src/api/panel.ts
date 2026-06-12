@@ -34,6 +34,10 @@ export interface PanelDeviceRecord {
   backgroundMode?: string;
   backgroundEffect?: string;
   backgroundTemplate?: number;
+  // Per-shader preset selection for THIS panel (effect key → preset index).
+  // The panel remembers its preset choice for every shader; contents stay
+  // central. Absent shaders default to preset 0.
+  backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
   widgetOpacity?: number;
   widgetLabels?: boolean;
@@ -66,6 +70,8 @@ export interface PanelDevicePatch {
   backgroundMode?: string | null;
   backgroundEffect?: string | null;
   backgroundTemplate?: number;
+  // Full per-shader preset map (client sends the whole map).
+  backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
   widgetOpacity?: number;
   widgetLabels?: boolean;

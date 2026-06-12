@@ -1,7 +1,8 @@
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb, Monitor } from 'lucide-react';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { useEffectThumbnail } from '../../../hooks/useEffectThumbnail';
 import { slotThumbSignature } from '../../../types/lightingTemplates';
+import { useTranslation } from '../../../lib/i18n';
 import type { EffectState } from '../../../types/lighting';
 import styles from './EffectTemplateSelector.module.scss';
 
@@ -21,22 +22,34 @@ interface EffectTemplateSelectorProps {
    * page (there the active preset is the RGB by definition).
    */
   rgbActiveSlot?: number | null;
+  /**
+   * Slots used as a background by ≥1 panel — each shows a panel icon (stacked
+   * with the bulb) so the user knows editing it changes those panels. Panels
+   * only.
+   */
+  panelSlots?: Set<number> | null;
 }
 
 function PresetThumbButton({
-  effect, slot, state, selected, live, label, onSelect,
+  effect, slot, state, selected, live, panel, label, onSelect,
 }: {
   effect: string;
   slot: number;
   state: EffectState;
   selected: boolean;
   live: boolean;
+  panel: boolean;
   label: string;
   onSelect: () => void;
 }) {
+  const { t } = useTranslation();
   const url = useEffectThumbnail(effect, slot, slotThumbSignature(state));
+  // Badge meaning rides the existing preset tooltip: label becomes the bold
+  // title, the live/panel hints the body (so hovering explains the icons).
+  const hints = [live && t('lighting.badge.liveOnLeds'), panel && t('lighting.badge.usedByPanel')].filter(Boolean) as string[];
+  const tip = hints.length ? { title: label, body: hints.join(' · ') } : { body: label };
   return (
-    <HoverTooltip body={label} side="top">
+    <HoverTooltip {...tip} side="top">
       <button
         type="button"
         role="radio"
@@ -50,7 +63,12 @@ function PresetThumbButton({
           {url
             ? <img className={styles.thumb} src={url} alt="" draggable={false} />
             : <span className={styles.skeleton} aria-hidden="true" />}
-          {live && <Lightbulb className={styles.bulb} aria-hidden="true" />}
+          {(live || panel) && (
+            <span className={styles.badges}>
+              {live && <Lightbulb aria-hidden="true" />}
+              {panel && <Monitor aria-hidden="true" />}
+            </span>
+          )}
         </span>
       </button>
     </HoverTooltip>
@@ -71,6 +89,7 @@ export function EffectTemplateSelector({
   buttonAriaLabelPrefix = 'Preset',
   className,
   rgbActiveSlot,
+  panelSlots,
 }: EffectTemplateSelectorProps) {
   return (
     <div
@@ -86,6 +105,7 @@ export function EffectTemplateSelector({
           state={slot}
           selected={index === activeIndex}
           live={rgbActiveSlot === index}
+          panel={!!panelSlots && panelSlots.has(index)}
           label={`${buttonAriaLabelPrefix} ${index + 1}`}
           onSelect={() => onSelect(index)}
         />

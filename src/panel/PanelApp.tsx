@@ -1373,6 +1373,7 @@ export function PanelContent({
         <PanelEditorSheet
           mode={sheetMode}
           surface={surface}
+          deviceId={deviceId}
           deviceTouch={deviceTouch}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
           panelTheme={panelTheme.theme}

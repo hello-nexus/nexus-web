@@ -18,7 +18,7 @@ export const EffectControls = memo(function EffectControls({
   effect, state, bundle,
   onTemplateSelect, canReset,
   onChange, onCommit, onReset,
-  rgbActiveSlot,
+  rgbActiveSlot, panelSlots,
 }: {
   effect: string;
   state: EffectState;
@@ -30,6 +30,8 @@ export const EffectControls = memo(function EffectControls({
   onReset: () => void;
   /** Preset slot live on the RGB hardware (bulb badge). Panels only. */
   rgbActiveSlot?: number | null;
+  /** Preset slots used as a background by ≥1 panel (panel badge). Panels only. */
+  panelSlots?: Set<number> | null;
 }) {
   const { t } = useTranslation();
   const def = EFFECTS.find(e => e.key === effect);
@@ -45,6 +47,7 @@ export const EffectControls = memo(function EffectControls({
         onSelect={onTemplateSelect}
         ariaLabel="Presets"
         rgbActiveSlot={rgbActiveSlot}
+        panelSlots={panelSlots}
       />
       <div className={styles.drawerSliders}>
         <div className={styles.paletteRingWrap}>

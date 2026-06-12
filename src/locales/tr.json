@@ -530,6 +530,8 @@
   "keeb.titleOffline": "Keeb TKL (çevrimdışı)",
   "keeb.write.failedBody": "Nexus değişikliği Keeb'inize uygulayamadı.",
   "keeb.write.failedTitle": "Klavye değişikliği başarısız oldu",
+  "lighting.badge.liveOnLeds": "LED'lerinizde etkin",
+  "lighting.badge.usedByPanel": "Bir panel kullanıyor",
   "lighting.category.all": "Tümü",
   "lighting.category.audio": "Ses",
   "lighting.category.cosmic": "Kozmik",

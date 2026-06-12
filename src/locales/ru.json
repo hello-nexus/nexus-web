@@ -530,6 +530,8 @@
   "keeb.titleOffline": "Keeb TKL (офлайн)",
   "keeb.write.failedBody": "Nexus не смог применить изменение к вашему Keeb.",
   "keeb.write.failedTitle": "Не удалось изменить клавиатуру",
+  "lighting.badge.liveOnLeds": "Активно на светодиодах",
+  "lighting.badge.usedByPanel": "Используется панелью",
   "lighting.category.all": "Все",
   "lighting.category.audio": "Аудио",
   "lighting.category.cosmic": "Космос",

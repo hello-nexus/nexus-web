@@ -794,7 +794,7 @@ function PreviewPanelThemeSettings() {
     appAccentColor: '#8b5cf6', accentSyncWithDesktop: false, accentColor: '#8b5cf6',
     backgroundColor: '', backgroundColorLight: '',
     // Solid keeps the (thumbnail-fetching) animation picker out of the preview.
-    backgroundMode: 'solid', backgroundEffect: 'aurora', backgroundTemplate: 0,
+    backgroundMode: 'solid', backgroundEffect: 'aurora', backgroundTemplate: 0, backgroundTemplates: {},
     backgroundOpacity: 0.4,
     backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
     widgetOpacity: 1, widgetLabels: true, widgetBlur: true,

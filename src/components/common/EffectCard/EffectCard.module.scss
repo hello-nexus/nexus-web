@@ -42,9 +42,20 @@
 // label drawn on top. No padding / caption row - the image fills edge to
 // edge and the card clips it to the rounded corners.
 .cardOverlay {
+  // Thicker highlight ring (see box-shadow). Retune thickness here.
+  --effect-card-ring: 4px;
   padding: 0;
   gap: 0;
   overflow: hidden;
+  // External ring: a constant-width OUTSET shadow sitting just outside the card
+  // edge (in the grid gap). It never touches the box model, so the card never
+  // shrinks OR moves — only the colour changes (transparent idle → accent on
+  // hover/selected). The grid gap is tightened (.animateGrid) to absorb the
+  // extra outer width so cards still read as evenly spaced.
+  border-color: transparent;
+  box-shadow: 0 0 0 var(--effect-card-ring) transparent;
+  // Transition the ring only — NOT transform — so hovering never nudges the card.
+  transition: box-shadow var(--ease-fast);
 
   .thumbWrap {
     width: 100%;
@@ -57,6 +68,21 @@
     border-radius: 0;
     height: 100%;
   }
+
+  // No lift on hover: cancel the base card's translateY so the card stays put.
+  // Hover ring is a muted neutral (NOT the accent) so it's a quiet hint — the
+  // accent ring is reserved for the actual selection below.
+  &:hover {
+    transform: none;
+    box-shadow: 0 0 0 var(--effect-card-ring) var(--border-strong);
+  }
+}
+
+// Selected shader card: the prominent accent ring (wins over the hover ring
+// when a selected card is also hovered, via source order).
+.cardOverlay.cardActive {
+  border-color: transparent;
+  box-shadow: 0 0 0 var(--effect-card-ring) var(--accent);
 }
 
 // Caption in the lower third: white fill, dark outline, drop shadow so it

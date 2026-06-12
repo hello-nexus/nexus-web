@@ -43,7 +43,12 @@
   flex-direction: column;
   gap: 10px;
   padding-bottom: 4px;
-  background: var(--panel-sheet-bg, var(--bg));
+  // Fully-opaque, and matched to the SAME backdrop the effect grid scrolls over
+  // (the app-shell --backdrop-base, not a card/elevated surface) so the pinned
+  // dock reads as empty scroll space instead of a raised box. The old
+  // --panel-sheet-bg was the elevated surface at 98% opacity — a lighter bar
+  // that also let scrolled thumbnails ghost through the 2% gap.
+  background: var(--backdrop-base);
 }
 
 .backgroundTemplateRow {
