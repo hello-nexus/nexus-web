@@ -2,18 +2,23 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
   Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square, Sun, SunDim,
+  Pencil, Plus, X,
 } from 'lucide-react';
 import {
   fetchLedMap, fetchLedMapDefaults, saveLedMap, resetLedMap, highlightLeds, testLedPattern, clearLedEditor,
   setZoneLedCount, setLightingDeviceBrightness,
-  type LedMapEntry, type LightingDevice,
+  type LedGroup, type LedMapEntry, type LightingDevice,
 } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceModal';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
+import { PromptModal } from '../../../../components/common/PromptModal/PromptModal';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
+import { Tabs } from '../../../../components/common/Tabs/Tabs';
 import { useThrottle } from '../../../../hooks/cadence';
+import { CommunityMappingsPanel } from './CommunityMappingsPanel';
+import { buildLedMapSaveBody, collapseToRanges, expandRanges } from './mappingUtils';
 import styles from './LedMapEditor.module.scss';
 
 const isMac = /mac/i.test(navigator.userAgent);
@@ -33,7 +38,14 @@ const NUDGE_STEP_UV_COARSE = 0.025;
 
 type EditorMode = 'animation' | 'horizontal' | 'vertical' | 'none';
 
+export type LedMapEditorTab = 'editor' | 'community';
+
 type Snapshot = { leds: LedMapEntry[]; rectRatio: number; ledCount: number };
+
+type GroupPrompt = { mode: 'create' } | { mode: 'rename'; index: number };
+
+// Mirrors the artifact schema's group-name cap enforced by the service.
+const MAX_GROUP_NAME_LENGTH = 40;
 
 const SELECTION_HANDLE_CLASS: Record<'nw' | 'ne' | 'sw' | 'se', string> = {
   nw: styles.selectionHandleNW,
@@ -45,9 +57,11 @@ const SELECTION_HANDLE_CLASS: Record<'nw' | 'ne' | 'sw' | 'se', string> = {
 interface Props {
   device: LightingDevice;
   onClose: () => void;
+  /** Open directly on a tab; the device-card community badge deep-links here. */
+  initialTab?: LedMapEditorTab;
 }
 
-export function LedMapEditor({ device, onClose }: Props) {
+export function LedMapEditor({ device, onClose, initialTab }: Props) {
   const deviceId = device.id;
   const deviceName = device.name;
   const [liveLedCount, setLiveLedCount] = useState<number>(device.ledCount);
@@ -101,6 +115,39 @@ export function LedMapEditor({ device, onClose }: Props) {
   const marqueeAdditiveRef = useRef(false);
   const preMarqueeSelectionRef = useRef<Set<number>>(new Set());
 
+  // Editor | Community tab. Community only exists for fingerprintable devices
+  // (non-empty deviceKey); the device card carries it, with the led-map
+  // response as a fallback for stale cards.
+  const [activeTab, setActiveTab] = useState<LedMapEditorTab>(initialTab ?? 'editor');
+  const [mapDeviceKey, setMapDeviceKey] = useState('');
+  const communityEnabled = (device.deviceKey || mapDeviceKey) !== '';
+  // Without a device key the community tab does not exist, so clamp the
+  // effective tab to the editor; otherwise a community initialTab would leave
+  // the ref stuck on a tab that never renders and the canvas keyboard
+  // shortcuts would stay disabled.
+  const effectiveTab: LedMapEditorTab = communityEnabled ? activeTab : 'editor';
+  const activeTabRef = useRef(effectiveTab);
+  activeTabRef.current = effectiveTab;
+
+  // Named LED groups. Edits ride the normal save flow (dirty + Save). The
+  // list is only sent on save when the user edited groups this session, so
+  // an applied mapping's resolved groups never become a user delta.
+  const [groups, setGroups] = useState<LedGroup[]>([]);
+  const groupsRef = useRef(groups);
+  groupsRef.current = groups;
+  const groupsEditedRef = useRef(false);
+  const [groupPrompt, setGroupPrompt] = useState<GroupPrompt | null>(null);
+  // Pending community-tab action (apply / import / remove) held behind the
+  // unsaved-edits confirm. Those actions replace the resolved map and reload
+  // the editor, which would silently discard any unsaved edits.
+  const [pendingMapAction, setPendingMapAction] = useState<(() => void) | null>(null);
+  // While the publish dialog (community tab), a group prompt, or the
+  // discard-edits confirm is open, the editor modal must ignore the Esc that
+  // closes them.
+  const [communityDialogOpen, setCommunityDialogOpen] = useState(false);
+  const childDialogOpenRef = useRef(false);
+  childDialogOpenRef.current = groupPrompt !== null || communityDialogOpen || pendingMapAction !== null;
+
   const [editorMode, setEditorMode] = useState<EditorMode>('animation');
 
   // Zone layer toggles - all enabled by default
@@ -121,6 +168,12 @@ export function LedMapEditor({ device, onClose }: Props) {
   } | null>(null);
   const rectResizeRef = useRef<{ startX: number; startY: number; rect: typeof devRect } | null>(null);
   const [rectRatio, setRectRatio] = useState(DEFAULT_RATIO);
+  // Ratio as it arrived on load. It may originate from an applied community
+  // mapping rather than a stored user delta, so the save flow only sends the
+  // live ratio once it diverges from this baseline.
+  const loadedRatioRef = useRef(DEFAULT_RATIO);
+  // True while a community / file mapping is applied to this device.
+  const appliedMappingRef = useRef(false);
 
   const undoStackRef = useRef<Snapshot[]>([]);
   const redoStackRef = useRef<Snapshot[]>([]);
@@ -281,6 +334,9 @@ export function LedMapEditor({ device, onClose }: Props) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Canvas shortcuts only act while the editor tab is showing; on the
+      // community tab a stray Delete must not park LEDs behind the user's back.
+      if (activeTabRef.current !== 'editor') return;
       // Ignore keys when focus is in an editable field so the EditableNumber
       // count input and any future text inputs don't hijack arrows / delete.
       const target = e.target as HTMLElement | null;
@@ -367,6 +423,11 @@ export function LedMapEditor({ device, onClose }: Props) {
       if (resp.aspectRatio > 0) {
         setRectRatio(resp.aspectRatio);
       }
+      loadedRatioRef.current = resp.aspectRatio > 0 ? resp.aspectRatio : DEFAULT_RATIO;
+      appliedMappingRef.current = resp.applied != null;
+      setGroups(resp.groups ?? []);
+      groupsEditedRef.current = false;
+      setMapDeviceKey(resp.deviceKey ?? '');
     }
     if (defResp) {
       defaultLedsRef.current = defResp.leds;
@@ -432,7 +493,9 @@ export function LedMapEditor({ device, onClose }: Props) {
   showUnsavedConfirmRef.current = showUnsavedConfirm;
   const handleClose = useCallback(() => {
     // Confirm dialog owns Escape while it's open - don't loop the prompt.
-    if (showUnsavedConfirmRef.current) return;
+    // Same for the group-name prompt and the community publish dialog: the
+    // Esc that closes them must not also close (or confirm-close) the editor.
+    if (showUnsavedConfirmRef.current || childDialogOpenRef.current) return;
     if (dirtyRef.current) {
       setShowUnsavedConfirm(true);
       return;
@@ -446,6 +509,23 @@ export function LedMapEditor({ device, onClose }: Props) {
     clearLedEditor(deviceId);
     onClose();
   }, [deviceId, onClose]);
+
+  // Community-tab actions that replace the resolved map go through here so a
+  // confirm can interpose while the editor holds unsaved edits; with a clean
+  // editor the action runs immediately.
+  const confirmDiscardEdits = useCallback((proceed: () => void) => {
+    if (!dirtyRef.current) {
+      proceed();
+      return;
+    }
+    setPendingMapAction(() => proceed);
+  }, []);
+
+  const handlePendingMapActionConfirm = useCallback(() => {
+    const run = pendingMapAction;
+    setPendingMapAction(null);
+    run?.();
+  }, [pendingMapAction]);
 
   const isMultiKey = (e: React.PointerEvent | React.MouseEvent) =>
     isMac ? e.metaKey : e.ctrlKey;
@@ -791,27 +871,30 @@ export function LedMapEditor({ device, onClose }: Props) {
 
   const handleSave = async () => {
     setSaving(true);
-    const defs = defaultLedsRef.current;
-    const overrides: { ledIndex: number; u: number; v: number; disabled?: boolean }[] = [];
-    for (const led of leds) {
-      // Save when position was customized OR the LED is disabled. A disabled
-      // LED without any other custom change must still round-trip so the
-      // parked state survives a reload.
-      if (!led.isCustom && !led.disabled) continue;
-      const def = defs.find(d => d.index === led.index);
-      const posUnchanged = def && Math.abs(led.u - def.u) < 0.0001 && Math.abs(led.v - def.v) < 0.0001;
-      if (posUnchanged && !led.disabled) continue;
-      overrides.push({
-        ledIndex: led.index,
-        u: led.u,
-        v: led.v,
-        ...(led.disabled ? { disabled: true } : {}),
-      });
-    }
-    await saveLedMap(deviceId, overrides, rectRatio);
-    if (overrides.length === 0 && rectRatio === DEFAULT_RATIO) {
+    // The body builder keeps applied-mapping state (mapping-disabled LEDs,
+    // mapping ratio, mapping groups) out of the user delta: only LEDs the
+    // user owns (isCustom), a ratio the user adjusted, and groups the user
+    // edited this session are posted.
+    const body = buildLedMapSaveBody({
+      leds,
+      defaults: defaultLedsRef.current,
+      rectRatio,
+      loadedRatio: loadedRatioRef.current,
+      groups,
+      groupsEdited: groupsEditedRef.current,
+    });
+    await saveLedMap(deviceId, body.overrides, body.aspectRatio, body.groups);
+    // The everything-default fast path resets the stored map entirely; a
+    // reset also wipes groups, so only take it when there are none. Never
+    // take it while a mapping is applied - the user delta being empty does
+    // not mean the device is back to factory state.
+    if (body.overrides.length === 0 && rectRatio === DEFAULT_RATIO && groups.length === 0
+      && !appliedMappingRef.current) {
       await resetLedMap(deviceId);
     }
+    // What was just sent is now the stored baseline.
+    if (body.aspectRatio > 0) loadedRatioRef.current = body.aspectRatio;
+    groupsEditedRef.current = false;
     // Re-snapshot so the dashed "unsaved" rings disappear now that what the
     // user sees matches what the service has persisted.
     const snap = new Map<number, { u: number; v: number; disabled: boolean }>();
@@ -1038,6 +1121,63 @@ export function LedMapEditor({ device, onClose }: Props) {
     setDirty(true);
   }, [pushUndo]);
 
+  // ── Named LED groups ──────────────────────────────────────────────────
+  // Clicking a chip selects the group's LEDs (only ones that still exist and
+  // whose zone layer is enabled, so the selection matches what align/test
+  // ops can actually touch).
+  const handleGroupSelect = useCallback((group: LedGroup) => {
+    const next = new Set<number>();
+    const byIndex = new Map(leds.map(l => [l.index, l]));
+    for (const idx of expandRanges(group.ranges)) {
+      const led = byIndex.get(idx);
+      if (led && enabledZones.has(led.zoneType)) next.add(idx);
+    }
+    setSelected(next);
+  }, [leds, enabledZones]);
+
+  const handleGroupPromptConfirm = useCallback((value: string) => {
+    const prompt = groupPrompt;
+    setGroupPrompt(null);
+    const name = value.trim();
+    if (!prompt || !name) return;
+    if (prompt.mode === 'create') {
+      const ranges = collapseToRanges(selected);
+      if (ranges.length === 0) return;
+      setGroups(prev => [...prev, { name, ranges }]);
+    } else {
+      setGroups(prev => prev.map((g, i) => i === prompt.index ? { ...g, name } : g));
+    }
+    groupsEditedRef.current = true;
+    setDirty(true);
+  }, [groupPrompt, selected]);
+
+  const handleGroupDelete = useCallback((index: number) => {
+    setGroups(prev => prev.filter((_, i) => i !== index));
+    groupsEditedRef.current = true;
+    setDirty(true);
+  }, []);
+
+  const validateGroupName = useCallback((value: string): string | null => {
+    const name = value.trim();
+    if (!name) return null;
+    const renamingIndex = groupPrompt?.mode === 'rename' ? groupPrompt.index : -1;
+    const taken = groupsRef.current.some((g, i) => i !== renamingIndex && g.name === name);
+    return taken ? t('lighting.ledMap.groupNameTaken') : null;
+  }, [groupPrompt, t]);
+
+  // A chip highlights when the current selection is exactly its LED set.
+  const activeGroupIndices = useMemo(() => {
+    const active = new Set<number>();
+    if (selected.size === 0) return active;
+    groups.forEach((g, i) => {
+      const indices = expandRanges(g.ranges);
+      if (indices.length === selected.size && indices.every(idx => selected.has(idx))) {
+        active.add(i);
+      }
+    });
+    return active;
+  }, [groups, selected]);
+
   const hasDisabled = useMemo(() => leds.some(l => l.disabled), [leds]);
 
   // Set of LED indices that differ from the last-saved snapshot. Only these
@@ -1203,6 +1343,29 @@ export function LedMapEditor({ device, onClose }: Props) {
         <div className={styles.loading}>{t('lighting.ledMap.title')}...</div>
       ) : (
         <div className={styles.content}>
+          {communityEnabled && (
+            <Tabs
+              variant="pill"
+              className={styles.tabsBar}
+              tabs={[
+                { key: 'editor', label: t('lighting.ledMap.tabEditor') },
+                { key: 'community', label: t('lighting.ledMap.tabCommunity') },
+              ]}
+              activeKey={effectiveTab}
+              onChange={k => setActiveTab(k as LedMapEditorTab)}
+              ariaLabel={t('lighting.ledMap.title')}
+            />
+          )}
+          {effectiveTab === 'community' ? (
+            <CommunityMappingsPanel
+              deviceId={deviceId}
+              deviceName={deviceName}
+              onLedMapChanged={() => { void load(); }}
+              onDialogOpenChange={setCommunityDialogOpen}
+              confirmDiscardEdits={confirmDiscardEdits}
+            />
+          ) : (
+          <>
           <div className={styles.toolbar}>
             <div className={styles.modeBtns}>
               <span className={styles.modeBtnsLabel}>{t('lighting.ledMap.testSection')}</span>
@@ -1347,6 +1510,58 @@ export function LedMapEditor({ device, onClose }: Props) {
 
           <div className={styles.hint}>
             {leds.length} LEDs - {t('lighting.ledMap.dragHint')} - {isMac ? 'Cmd' : 'Ctrl'}+{t('lighting.ledMap.clickMulti')} - {t('lighting.ledMap.deleteHint')}
+          </div>
+
+          <div className={styles.groupsBar}>
+            <span className={styles.groupsLabel}>{t('lighting.ledMap.groups')}</span>
+            {groups.map((g, i) => (
+              <div
+                key={`${g.name}-${i}`}
+                className={`${styles.groupChip} ${activeGroupIndices.has(i) ? styles.groupChipActive : ''}`}
+              >
+                <button
+                  type="button"
+                  className={styles.groupChipName}
+                  onClick={() => handleGroupSelect(g)}
+                >
+                  {g.name}
+                </button>
+                <HoverTooltip body={t('lighting.ledMap.groupRename')} side="top">
+                  <button
+                    type="button"
+                    className={styles.groupChipBtn}
+                    aria-label={t('lighting.ledMap.groupRename')}
+                    onClick={() => setGroupPrompt({ mode: 'rename', index: i })}
+                  >
+                    <Pencil size={11} />
+                  </button>
+                </HoverTooltip>
+                <HoverTooltip body={t('lighting.ledMap.groupDelete')} side="top">
+                  <button
+                    type="button"
+                    className={styles.groupChipBtn}
+                    aria-label={t('lighting.ledMap.groupDelete')}
+                    onClick={() => handleGroupDelete(i)}
+                  >
+                    <X size={11} />
+                  </button>
+                </HoverTooltip>
+              </div>
+            ))}
+            <HoverTooltip
+              body={selected.size === 0 ? t('lighting.ledMap.groupCreateHint') : t('lighting.ledMap.groupCreate')}
+              side="top"
+            >
+              <button
+                type="button"
+                className={styles.groupAddBtn}
+                disabled={selected.size === 0}
+                onClick={() => setGroupPrompt({ mode: 'create' })}
+              >
+                <Plus size={12} />
+                {t('lighting.ledMap.groupCreate')}
+              </button>
+            </HoverTooltip>
           </div>
 
           <div
@@ -1587,6 +1802,8 @@ export function LedMapEditor({ device, onClose }: Props) {
               );
             })()}
           </div>
+          </>
+          )}
         </div>
       )}
       <ConfirmModal
@@ -1598,6 +1815,27 @@ export function LedMapEditor({ device, onClose }: Props) {
         destructive
         onConfirm={handleDiscardAndClose}
         onCancel={() => setShowUnsavedConfirm(false)}
+      />
+      <ConfirmModal
+        open={pendingMapAction !== null}
+        title={t('lighting.ledMap.unsavedTitle')}
+        message={t('lighting.mappings.discardEditsMessage')}
+        confirmLabel={t('lighting.ledMap.discard')}
+        cancelLabel={t('lighting.ledMap.keepEditing')}
+        destructive
+        onConfirm={handlePendingMapActionConfirm}
+        onCancel={() => setPendingMapAction(null)}
+      />
+      <PromptModal
+        open={groupPrompt !== null}
+        title={groupPrompt?.mode === 'rename' ? t('lighting.ledMap.groupRename') : t('lighting.ledMap.groupCreateTitle')}
+        message={t('lighting.ledMap.groupNameMessage')}
+        placeholder={t('lighting.ledMap.groupNamePlaceholder')}
+        initialValue={groupPrompt?.mode === 'rename' ? groups[groupPrompt.index]?.name ?? '' : ''}
+        maxLength={MAX_GROUP_NAME_LENGTH}
+        validate={validateGroupName}
+        onConfirm={handleGroupPromptConfirm}
+        onCancel={() => setGroupPrompt(null)}
       />
     </DeviceModal>
   );

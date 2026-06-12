@@ -1,5 +1,5 @@
 import { act, render } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SystemAccentSync } from './SystemAccentSync';
 
 // Drive the component in isolation: a mocked useUiSettings whose `settings` the
@@ -10,7 +10,9 @@ const h = vi.hoisted(() => ({
   update: vi.fn(),
   settings: { accentSource: 'system' as 'system' | 'custom', accentColor: '#0000ff' },
   accentCb: null as null | ((hex: string) => void),
+  topicCb: null as null | ((frame: unknown) => void),
   requestSystemAccent: vi.fn(),
+  fetchSystemAccent: vi.fn(),
 }));
 
 vi.mock('../hooks/useUiSettings', () => ({
@@ -23,11 +25,23 @@ vi.mock('./windowActions', () => ({
     return () => { h.accentCb = null; };
   },
 }));
+vi.mock('../api/service', () => ({ fetchSystemAccent: h.fetchSystemAccent }));
+vi.mock('../hooks/useMultiplexSocket', () => ({
+  useTopicCallback: (_t: string, _e: boolean, onFrame: (frame: unknown) => void) => { h.topicCb = onFrame; },
+}));
+
+beforeEach(() => {
+  // A native shell handled the request by default — the no-shell fetch path
+  // is opt-in per test.
+  h.requestSystemAccent.mockReturnValue(true);
+  h.fetchSystemAccent.mockResolvedValue(null);
+});
 
 afterEach(() => {
   vi.clearAllMocks();
   h.settings = { accentSource: 'system', accentColor: '#0000ff' };
   h.accentCb = null;
+  h.topicCb = null;
 });
 
 describe('SystemAccentSync', () => {
@@ -69,6 +83,48 @@ describe('SystemAccentSync', () => {
     // Switching to a profile whose stored accent is already the OS accent.
     h.settings = { accentSource: 'system', accentColor: '#0000ff' };
     rerender(<SystemAccentSync />);
+
+    expect(h.update).not.toHaveBeenCalled();
+  });
+
+  it('applies the host OS accent fetched from the service when there is no native shell', async () => {
+    // Linux dashboard / plain browser: no shell answers the request, so the
+    // accent comes from the service (which read the XDG portal).
+    h.requestSystemAccent.mockReturnValue(false);
+    h.fetchSystemAccent.mockResolvedValue('#569fcc');
+    h.settings = { accentSource: 'system', accentColor: '#0000ff' };
+
+    await act(async () => { render(<SystemAccentSync />); });
+
+    expect(h.fetchSystemAccent).toHaveBeenCalled();
+    expect(h.update).toHaveBeenCalledWith({ accentColor: '#569fcc' });
+  });
+
+  it('applies a live OS accent pushed over the WebSocket (Linux real-time)', () => {
+    h.settings = { accentSource: 'system', accentColor: '#0000ff' };
+    render(<SystemAccentSync />);
+
+    // The Linux service pushes a new accent on the system/accent topic.
+    act(() => h.topicCb!({ hex: '#875aa4' }));
+
+    expect(h.update).toHaveBeenCalledWith({ accentColor: '#875aa4' });
+  });
+
+  it('ignores a live WS accent when the source is custom', () => {
+    h.settings = { accentSource: 'custom', accentColor: '#112233' };
+    render(<SystemAccentSync />);
+
+    act(() => h.topicCb!({ hex: '#875aa4' }));
+
+    expect(h.update).not.toHaveBeenCalled();
+  });
+
+  it('ignores the fetched accent when the source is custom', async () => {
+    h.requestSystemAccent.mockReturnValue(false);
+    h.fetchSystemAccent.mockResolvedValue('#569fcc');
+    h.settings = { accentSource: 'custom', accentColor: '#112233' };
+
+    await act(async () => { render(<SystemAccentSync />); });
 
     expect(h.update).not.toHaveBeenCalled();
   });

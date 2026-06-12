@@ -5,7 +5,7 @@ import {
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
-  fetchCurrentSync,
+  fetchCurrentSync, fetchAvailableMappings,
   type LightingDevice, type LedMapEntry, type PostProcessSettings,
 } from '../../../api/lighting';
 import { playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
@@ -135,10 +135,31 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [devices, activeRightTab]);
 
   // LED map editor - lifted here so both the canvas settings button and the
-  // ZoneCard settings button can open it.
+  // ZoneCard settings button can open it. The community badge deep-links to
+  // the editor's Community tab via editorInitialTab.
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
+  const [editorInitialTab, setEditorInitialTab] = useState<'editor' | 'community'>('editor');
   const editingDevice = editingDeviceId ? devices.find(d => d.id === editingDeviceId) ?? null : null;
-  const handleOpenSettings = useCallback((id: string) => setEditingDeviceId(id), []);
+  const handleOpenSettings = useCallback((id: string) => {
+    setEditorInitialTab('editor');
+    setEditingDeviceId(id);
+  }, []);
+  const handleOpenCommunity = useCallback((id: string) => {
+    setEditorInitialTab('community');
+    setEditingDeviceId(id);
+  }, []);
+
+  // Cached community-layout counts for the device-card badges. Cache-only on
+  // the service side, so a single fetch per page mount is enough.
+  const [mappingCounts, setMappingCounts] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!serviceOnline) return;
+    let cancelled = false;
+    fetchAvailableMappings().then(data => {
+      if (!cancelled && data && !data.error) setMappingCounts(data.counts ?? {});
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [serviceOnline]);
 
   // LED positions for the selected device - fetched when a device is selected
   // so the canvas can show small dots indicating where each active LED is.
@@ -836,6 +857,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 lightingOff={mode === 'none'}
                 onOpenSettings={handleOpenSettings}
                 dragFor={dragForDevice}
+                communityCounts={mappingCounts}
+                onOpenCommunity={handleOpenCommunity}
               />
               {mode !== 'none' && (
                 <RescanDevicesButton rgbRunning={rgb.running} scanning={rgb.scanning} />
@@ -884,7 +907,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         />
       )}
       {editingDevice && (
-        <LedMapEditor device={editingDevice} onClose={() => setEditingDeviceId(null)} />
+        <LedMapEditor device={editingDevice} initialTab={editorInitialTab} onClose={() => setEditingDeviceId(null)} />
       )}
     </div>
   );

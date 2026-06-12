@@ -52,6 +52,7 @@ vi.mock('../../../api/lighting', async importOriginal => {
     fetchMediaEffect: vi.fn(() => Promise.resolve({ hue: 0, colorize: 0, saturation: 1, contrast: 1 })),
     fetchLightingDevices: vi.fn(() => Promise.resolve({ isInit: true, devices: [] })),
     fetchLedMap: vi.fn(() => Promise.resolve(null)),
+    fetchAvailableMappings: vi.fn(() => Promise.resolve(null)),
     saveAnimateTemplates: vi.fn(() => Promise.resolve(null)),
     startAnimate: vi.fn(() => Promise.resolve(null)),
     startStatic: vi.fn(() => Promise.resolve(null)),

@@ -5,7 +5,7 @@
 // curated here (one design choice we don't want to derive).
 
 import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
-import { isMarketplaceType } from '../widgets/marketplaceRegistry';
+import { getPreinstalledPageAppTypes, isMarketplaceType } from '../widgets/marketplaceRegistry';
 
 export const DASHBOARD_APP_KEY = 'dashboard' as const;
 export type SidebarAppKey = string; // any app type that has a Page, or 'dashboard'
@@ -27,11 +27,24 @@ export function isPinnableAppKey(s: string): boolean {
 // dedicated DEVICES section instead.
 export const DEFAULT_PINNED_TAIL: string[] = ['monitoring', 'lighting', 'cooling'];
 
+// Default tail for a fresh profile: the curated base plus any preinstalled
+// page-app (OEM bake-in — e.g. a bundled device app). The
+// preinstalled set is registry-derived, so it's empty until the marketplace
+// registry loads and only non-empty on a build that bundles such an app; the
+// sidebar re-renders on registry load (same path as user-pinned SDK apps).
+function defaultPinnedTail(): string[] {
+  const out = [...DEFAULT_PINNED_TAIL];
+  for (const type of getPreinstalledPageAppTypes()) {
+    if (!out.includes(type) && isPinnableAppKey(type)) out.push(type);
+  }
+  return out;
+}
+
 // Normalize a tail array read from settings/server: drop unknown
 // keys (apps that no longer exist, or never did), dedupe while
 // preserving first-occurrence order. Returns a brand-new array.
 export function sanitizePinnedTail(input: readonly unknown[] | undefined): string[] {
-  if (!input || !Array.isArray(input)) return [...DEFAULT_PINNED_TAIL];
+  if (!input || !Array.isArray(input)) return defaultPinnedTail();
   const out: string[] = [];
   const seen = new Set<string>();
   for (const entry of input) {
