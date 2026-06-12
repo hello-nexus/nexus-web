@@ -68,8 +68,8 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, onSele
       cornerBadge={hints.length ? (
         <HoverTooltip title={hints.length > 1 ? hints[0] : undefined} body={hints.length > 1 ? hints[1] : hints[0]} side="top">
           <span className={styles.cellBadges}>
-            {live && <Lightbulb aria-hidden="true" />}
-            {panel && <Monitor aria-hidden="true" />}
+            {live && <Lightbulb aria-hidden={true} />}
+            {panel && <Monitor aria-hidden={true} />}
           </span>
         </HoverTooltip>
       ) : undefined}

@@ -65,8 +65,8 @@ function PresetThumbButton({
             : <span className={styles.skeleton} aria-hidden="true" />}
           {(live || panel) && (
             <span className={styles.badges}>
-              {live && <Lightbulb aria-hidden="true" />}
-              {panel && <Monitor aria-hidden="true" />}
+              {live && <Lightbulb aria-hidden={true} />}
+              {panel && <Monitor aria-hidden={true} />}
             </span>
           )}
         </span>
