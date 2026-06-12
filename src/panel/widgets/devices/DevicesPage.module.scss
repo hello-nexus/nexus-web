@@ -6,15 +6,6 @@
   // full width.
 }
 
-// Tertiary "browse supported devices" affordance on the Devices view, lives
-// in the ViewHeader's tabActions slot (right-aligned at tab level). Lighting
-// exposes the same modal via the OpenRGB indicator in its device pane.
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 // --- Device List ---
 
 .list {
@@ -149,57 +140,12 @@
   font-family: var(--font-mono);
 }
 
-// Footer below the available list: opens the full connected-USB modal (every
-// device attached to the PC, Nexus-supported or not).
-.connectedFooter {
+// Action row at the top of the available list: connect a browser device,
+// open the full connected-USB modal, and browse the supported-devices catalog.
+.deviceActions {
   display: flex;
-  margin-top: 1rem;
-}
-
-// --- WebHID Toolbar ---
-
-.webhidToolbar {
-  display: flex;
-  align-items: center;
-  // Button on the left, explainer text to the right of it.
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  margin-top: 1rem;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  // Cap width so the prompt box doesn't stretch the full page. Shrinks
-  // on small viewports via max-width: 100%.
-  max-width: 560px;
-}
-
-.webhidCta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-  min-width: 0;
-  // Visual order 2: sits to the right of the button. DOM order stays
-  // text-first so screen readers hear the description before the action.
-  order: 2;
-
-  strong {
-    @include text-body;
-    color: var(--text);
-  }
-}
-
-.webhidHint {
-  @include text-button;
-  color: var(--text-dim);
-}
-
-// Layout-only override; chrome lives on the canonical Button primitive.
-.webhidBtn {
-  // Visual order 1 (left of the CTA text) while DOM order stays text-first
-  // so screen readers hear the description before the action.
-  order: 1;
-  flex-shrink: 0;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 // --- Misc ---

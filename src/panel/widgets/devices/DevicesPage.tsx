@@ -81,13 +81,6 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
         activeTab={tab}
         onTabChange={(k) => setTab(k as TabKey)}
         tabsDisabled={!serviceOnline && !webhidAvailable}
-        tabActions={serviceOnline ? (
-          <div className={styles.headerActions}>
-            <Button size="sm" tone="neutral" onClick={() => setSupportedModalOpen(true)}>
-              {t('devices.supported.browse')}
-            </Button>
-          </div>
-        ) : undefined}
       />
 
       <div className="pageBody">
@@ -96,19 +89,21 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
             <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
           ) : (
             <>
-              {webhidAvailable && (
-                <div className={styles.webhidToolbar}>
-                  <div className={styles.webhidCta}>
-                    <strong>{t('peripheral.webhid.title')}</strong>
-                    <span className={styles.webhidHint}>
-                      {merged.some(p => p.source === 'webhid') ? t('peripheral.webhid.addMore') : t('peripheral.webhid.hint')}
-                    </span>
-                  </div>
-                  <Button type="button" tone="accent" size="md" pill onClick={requestWebHid} className={styles.webhidBtn}>
+              <div className={styles.deviceActions}>
+                {webhidAvailable && (
+                  <Button size="sm" tone="neutral" onClick={requestWebHid}>
                     {t('peripheral.webhid.connect')}
                   </Button>
-                </div>
-              )}
+                )}
+                <Button size="sm" tone="neutral" onClick={() => setConnectedModalOpen(true)}>
+                  {t('devices.connected.browse')}
+                </Button>
+                {serviceOnline && (
+                  <Button size="sm" tone="neutral" onClick={() => setSupportedModalOpen(true)}>
+                    {t('devices.supported.browse')}
+                  </Button>
+                )}
+              </div>
 
               {unified.length === 0 ? (
                 <div className={styles.empty}>{t('devices.available.none')}</div>
@@ -119,12 +114,6 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
                   ))}
                 </div>
               )}
-
-              <div className={styles.connectedFooter}>
-                <Button size="sm" tone="neutral" onClick={() => setConnectedModalOpen(true)}>
-                  {t('devices.connected.browse')}
-                </Button>
-              </div>
             </>
           )
         ) : tab === 'displays' ? (
