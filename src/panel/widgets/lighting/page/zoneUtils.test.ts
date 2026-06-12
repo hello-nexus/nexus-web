@@ -146,6 +146,29 @@ describe('checkMerge', () => {
     expect(checkMerge(new Set(['a', 'b']), zones, segments, offsets)).toEqual({ ok: true, reason: null });
     expect(checkMerge(new Set(['b', 'c']), zones, segments, offsets)).toEqual({ ok: true, reason: null });
   });
+
+  it('rejects a selection containing a disjoint-slice zone', () => {
+    // Zone d's slices are not device-contiguous (a hole owned by e sits
+    // between them). d and e are consecutive in first-slice order, so only
+    // the device-contiguity guard blocks the merge.
+    const disjoint = [
+      zone('d', [{ segment: 0, start: 0, count: 1 }, { segment: 0, start: 2, count: 2 }]),
+      zone('e', [{ segment: 0, start: 1, count: 1 }]),
+      zone('c', [{ segment: 1, start: 0, count: 3 }]),
+    ];
+    expect(checkMerge(new Set(['d', 'e']), disjoint, segments, offsets)).toEqual({ ok: false, reason: 'adjacency' });
+  });
+
+  it('rejects positionally adjacent zones split by another zone tail', () => {
+    // x starts first and ends last, so f and g sit consecutively in the
+    // first-slice ordering while x's tail interleaves between them.
+    const interleaved = [
+      zone('x', [{ segment: 0, start: 0, count: 1 }, { segment: 1, start: 0, count: 1 }]),
+      zone('f', [{ segment: 0, start: 1, count: 3 }]),
+      zone('g', [{ segment: 1, start: 1, count: 2 }]),
+    ];
+    expect(checkMerge(new Set(['f', 'g']), interleaved, segments, offsets)).toEqual({ ok: false, reason: 'adjacency' });
+  });
 });
 
 describe('mergeZoneSlices', () => {
@@ -241,8 +264,13 @@ describe('baselineFrom', () => {
       led({ index: 0, u: 0.1, v: 0.2 }),
       led({ index: 1, u: 0.3, v: 0.4, isCustom: true }),
     ]);
-    expect(baseline.get(0)).toEqual({ u: 0.1, v: 0.2 });
+    expect(baseline.get(0)).toEqual({ u: 0.1, v: 0.2, disabled: false });
     expect(baseline.has(1)).toBe(false);
+  });
+
+  it('records the disabled state so a restore-in-place is detectable', () => {
+    const baseline = baselineFrom([led({ index: 0, disabled: true })]);
+    expect(baseline.get(0)).toEqual({ u: 0.5, v: 0.5, disabled: true });
   });
 });
 
@@ -263,12 +291,15 @@ describe('buildDeviceMapSaveBody', () => {
 
   it('keeps overrides as segment-local addresses', () => {
     const leds = [led({ segment: 1, ledIndex: 2, index: 6, u: 0.2, v: 0.3, isCustom: true })];
-    const body = buildDeviceMapSaveBody({ ...baseArgs, leds, baseline: new Map([[6, { u: 0.5, v: 0.5 }]]) });
+    const body = buildDeviceMapSaveBody({ ...baseArgs, leds, baseline: new Map([[6, { u: 0.5, v: 0.5, disabled: false }]]) });
     expect(body.overrides).toEqual([{ segment: 1, ledIndex: 2, u: 0.2, v: 0.3, disabled: false }]);
   });
 
-  it('drops a touched LED returned to its baseline spot, unless disabled', () => {
-    const baseline = new Map([[0, { u: 0.5, v: 0.5 }], [1, { u: 0.5, v: 0.5 }]]);
+  it('drops a touched LED returned to its baseline spot, unless parked', () => {
+    const baseline = new Map([
+      [0, { u: 0.5, v: 0.5, disabled: false }],
+      [1, { u: 0.5, v: 0.5, disabled: false }],
+    ]);
     const body = buildDeviceMapSaveBody({
       ...baseArgs,
       leds: [
@@ -278,6 +309,28 @@ describe('buildDeviceMapSaveBody', () => {
       baseline,
     });
     expect(body.overrides).toEqual([{ segment: 0, ledIndex: 1, u: 0.5, v: 0.5, disabled: true }]);
+  });
+
+  it('persists a mapping-disabled LED restored without being moved', () => {
+    // Baseline parked, session re-enabled at the same u,v: only the
+    // disabled flag diverges, and that alone must round-trip.
+    const baseline = new Map([[0, { u: 0.5, v: 0.5, disabled: true }]]);
+    const body = buildDeviceMapSaveBody({
+      ...baseArgs,
+      leds: [led({ index: 0, isCustom: true })],
+      baseline,
+    });
+    expect(body.overrides).toEqual([{ segment: 0, ledIndex: 0, u: 0.5, v: 0.5, disabled: false }]);
+  });
+
+  it('drops a restore-then-park round trip back to the parked baseline', () => {
+    const baseline = new Map([[0, { u: 0.5, v: 0.5, disabled: true }]]);
+    const body = buildDeviceMapSaveBody({
+      ...baseArgs,
+      leds: [led({ index: 0, isCustom: true, disabled: true })],
+      baseline,
+    });
+    expect(body.overrides).toEqual([]);
   });
 
   it('re-posts stored overrides so a full-replace save preserves them', () => {

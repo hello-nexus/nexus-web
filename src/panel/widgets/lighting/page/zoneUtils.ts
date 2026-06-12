@@ -117,6 +117,15 @@ export interface MergeCheck {
  * zones forming a contiguous block in device order, none of which touches
  * a resizable segment (index stability: a resized segment would shift the
  * concatenated indices of anything merged across it).
+ *
+ * Relies on the service invariant that every zone's slices form one
+ * unbroken device-space run and the partition fully covers the segments,
+ * which is what makes positional adjacency (consecutive in device order)
+ * equal real index abutment. A guard re-verifies it on the selection: if
+ * the selected zones' concatenated device indices are not strictly
+ * consecutive (a disjoint-slice zone, or another zone's slice interleaved
+ * inside the block), the merge is refused rather than producing a merged
+ * zone interleaved with foreign LEDs.
  */
 export function checkMerge(
   selectedIds: Set<string>,
@@ -132,6 +141,11 @@ export function checkMerge(
   if (positions.length !== selectedIds.size) return { ok: false, reason: 'selection' };
   const contiguous = positions.every((p, i) => i === 0 || p === positions[i - 1] + 1);
   if (!contiguous) return { ok: false, reason: 'adjacency' };
+  const memberIndices = ordered
+    .filter(z => selectedIds.has(z.id))
+    .flatMap(z => zoneDeviceIndices(z, offsets));
+  const consecutive = memberIndices.every((idx, i) => i === 0 || idx === memberIndices[i - 1] + 1);
+  if (!consecutive) return { ok: false, reason: 'adjacency' };
   const walled = ordered.some(z => selectedIds.has(z.id) && zoneTouchesResizable(z, segments));
   if (walled) return { ok: false, reason: 'wall' };
   return { ok: true, reason: null };
@@ -267,15 +281,23 @@ const SAME_POSITION_EPSILON = 0.0001;
 // Tolerance below which two aspect ratios count as unchanged.
 const SAME_RATIO_EPSILON = 0.0001;
 
+/** Per-LED resolved state captured on load: position plus disabled flag. */
+export interface BaselineEntry {
+  u: number;
+  v: number;
+  disabled: boolean;
+}
+
 /**
- * Loaded positions of LEDs that carried no stored user override: the
- * resolved baseline. A session edit that lands an LED back on its baseline
- * is a no-op and must not become an override.
+ * Loaded state of LEDs that carried no stored user override: the resolved
+ * baseline. A session edit that lands an LED back on its baseline (same
+ * position AND same disabled state) is a no-op and must not become an
+ * override.
  */
-export function baselineFrom(leds: EditorLed[]): Map<number, { u: number; v: number }> {
-  const baseline = new Map<number, { u: number; v: number }>();
+export function baselineFrom(leds: EditorLed[]): Map<number, BaselineEntry> {
+  const baseline = new Map<number, BaselineEntry>();
   for (const led of leds) {
-    if (!led.isCustom) baseline.set(led.index, { u: led.u, v: led.v });
+    if (!led.isCustom) baseline.set(led.index, { u: led.u, v: led.v, disabled: led.disabled });
   }
   return baseline;
 }
@@ -295,7 +317,7 @@ export interface DeviceMapSaveBody {
  */
 export function buildDeviceMapSaveBody(args: {
   leds: EditorLed[];
-  baseline: Map<number, { u: number; v: number }>;
+  baseline: Map<number, BaselineEntry>;
   /** Current editor aspect ratio. */
   rectRatio: number;
   /** Ratio as it arrived on load, which may originate from an applied mapping. */
@@ -305,13 +327,16 @@ export function buildDeviceMapSaveBody(args: {
   for (const led of args.leds) {
     if (!led.isCustom) continue;
     const base = args.baseline.get(led.index);
+    // An override matching its baseline in both position and disabled
+    // state is a no-op for the user map. A flipped disabled state must
+    // round-trip even at the baseline spot: user-parked LEDs survive a
+    // reload, and a mapping-disabled LED restored without being moved
+    // still persists as re-enabled.
     const atBaseline = base
       && Math.abs(led.u - base.u) < SAME_POSITION_EPSILON
-      && Math.abs(led.v - base.v) < SAME_POSITION_EPSILON;
-    // An enabled override sitting at its baseline position is a no-op for
-    // the user map; a user-disabled LED must still round-trip so the parked
-    // state survives a reload.
-    if (atBaseline && !led.disabled) continue;
+      && Math.abs(led.v - base.v) < SAME_POSITION_EPSILON
+      && led.disabled === base.disabled;
+    if (atBaseline) continue;
     overrides.push({
       segment: led.segment,
       ledIndex: led.ledIndex,

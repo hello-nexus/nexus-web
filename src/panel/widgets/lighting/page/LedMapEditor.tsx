@@ -24,7 +24,7 @@ import {
   baselineFrom, buildDeviceMapSaveBody, buildMergeZonesBody, buildSplitZonesBody,
   checkMerge, flattenDeviceMap, orderZones, segmentOffsets, splitZone,
   toZoneLocalIndices, zoneDeviceIndices, zoneLedCount, zoneTouchesResizable,
-  type EditorLed,
+  type BaselineEntry, type EditorLed,
 } from './zoneUtils';
 import styles from './LedMapEditor.module.scss';
 
@@ -84,9 +84,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   const [structure, setStructure] = useState<DeviceStructureResponse | null>(null);
   const [leds, setLeds] = useState<EditorLed[]>([]);
-  // Loaded positions of LEDs without a stored user override: the resolved
-  // baseline a session edit can return to without creating an override.
-  const baselineRef = useRef<Map<number, { u: number; v: number }>>(new Map());
+  // Loaded state (position + disabled flag) of LEDs without a stored user
+  // override: the resolved baseline a session edit can return to without
+  // creating an override.
+  const baselineRef = useRef<Map<number, BaselineEntry>>(new Map());
   // Snapshot of the last-saved state per device-space LED index. Anything
   // that diverges from this snapshot counts as "unsaved" and earns the
   // dashed outline in the editor; it is also what Revert restores.
@@ -242,8 +243,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // Until the structure resolves there is no zone membership to scope by;
   // everything stays editable (matches single-zone devices).
   const zoneScoped = structure !== null && structure.zones.length > 0;
+  // Reads the zone id from state, not the ref, so memos keyed on this
+  // callback (hasRestorable) recompute on a clean zone switch.
   const isLedEnabled = useCallback((led: EditorLed) =>
-    !zoneScoped || led.zoneId === selectedZoneIdRef.current, [zoneScoped]);
+    !zoneScoped || led.zoneId === selectedZoneId, [zoneScoped, selectedZoneId]);
 
   const mergeCheck = useMemo(
     () => checkMerge(zoneMultiSel, structure?.zones ?? [], structure?.segments ?? [], offsets),
@@ -351,6 +354,12 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   // ── Load ──────────────────────────────────────────────────────────────
 
+  // Latest toast closure for load() failures, so load keeps its stable
+  // identity (its consumers' effects refetch when it changes) without
+  // depending on the t / push identities.
+  const loadFailedNoteRef = useRef(() => { });
+  loadFailedNoteRef.current = () => push({ title: t('lighting.ledMap.loadFailed') });
+
   // Fetches structure + whole-device map. selectDeviceIndex picks the zone
   // containing that device-space LED after a partition edit (zone ids can be
   // reassigned by the service); otherwise the current selection is kept when
@@ -361,7 +370,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       fetchDeviceStructure(deviceId),
       fetchDeviceMap(deviceId),
     ]);
-    setStructure(st);
+    // A failed structure refetch must not blank the zone list: zoneScoped
+    // would flip off and every zone's LEDs would become editable at once.
+    // Keep the previous structure and surface the failure instead.
+    if (st) setStructure(st);
+    if (!st || !dm) loadFailedNoteRef.current();
     if (dm) {
       let flat = flattenDeviceMap(dm);
       const active = flat.filter(l => !l.disabled);
@@ -1009,7 +1022,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       rectRatio,
       loadedRatio: loadedRatioRef.current,
     });
-    await saveDeviceMap(deviceId, body.overrides, body.aspectRatio);
+    const resp = await saveDeviceMap(deviceId, body.overrides, body.aspectRatio);
+    // On failure keep the dirty state and snapshots untouched so the
+    // unsaved edits stay marked and a retry posts the same delta.
+    if (!resp || resp.error) {
+      setSaving(false);
+      push({ title: t('lighting.ledMap.saveFailed') });
+      return;
+    }
     // What was just sent is now the stored baseline.
     if (body.aspectRatio > 0) loadedRatioRef.current = body.aspectRatio;
     // Re-snapshot so the dashed "unsaved" rings disappear now that what the
@@ -1024,7 +1044,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // Editable LED count for resizable motherboard zones. Sends RESIZEZONE to
   // OpenRGB; the service persists the new count and rebuilds the partition,
   // so the editor refetches structure + map (which clears history - the old
-  // device-space indices no longer line up).
+  // device-space indices no longer line up). That reload discards unsaved
+  // edits, so the resize rides the same dirty confirm as every other
+  // map-replacing action.
   const activeZoneLedCount = activeZone ? zoneLedCount(activeZone) : leds.length;
   const activeZoneLedCountRef = useRef(activeZoneLedCount);
   activeZoneLedCountRef.current = activeZoneLedCount;
@@ -1034,24 +1056,31 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const canEditLedCount = zoneCard?.zoneResizable === true;
   useEffect(() => { setLedCountDraft(String(activeZoneLedCount)); }, [activeZoneLedCount, selectedZoneId]);
 
-  const handleLedCountCommit = useCallback(async (n: number) => {
+  const handleLedCountCommit = useCallback((n: number) => {
     const clamped = Math.max(1, Math.min(300, n));
     if (!canEditLedCount || resizingCountRef.current) return;
     if (clamped === activeZoneLedCountRef.current) {
       setLedCountDraft(String(clamped));
       return;
     }
-    resizingCountRef.current = true;
-    setLedCountDraft(String(clamped));
-    try {
-      await setZoneLedCount(selectedZoneIdRef.current, clamped);
-      await load();
-    } catch {
-      setLedCountDraft(String(activeZoneLedCountRef.current));
-    } finally {
-      resizingCountRef.current = false;
-    }
-  }, [canEditLedCount, load]);
+    // Show the live count while the confirm is pending; a declined confirm
+    // then leaves the field truthful instead of stuck on the typed value.
+    setLedCountDraft(String(activeZoneLedCountRef.current));
+    confirmDiscardEdits(() => {
+      resizingCountRef.current = true;
+      setLedCountDraft(String(clamped));
+      void (async () => {
+        try {
+          await setZoneLedCount(selectedZoneIdRef.current, clamped);
+          await load();
+        } catch {
+          setLedCountDraft(String(activeZoneLedCountRef.current));
+        } finally {
+          resizingCountRef.current = false;
+        }
+      })();
+    });
+  }, [canEditLedCount, confirmDiscardEdits, load]);
 
   // Factory reset: the service drops the device's stored LED overrides and
   // aspect ratio, then the editor refetches structure + map. load() keeps
