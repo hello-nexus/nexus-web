@@ -10,6 +10,7 @@ const h = vi.hoisted(() => ({
   update: vi.fn(),
   settings: { accentSource: 'system' as 'system' | 'custom', accentColor: '#0000ff' },
   accentCb: null as null | ((hex: string) => void),
+  topicCb: null as null | ((frame: unknown) => void),
   requestSystemAccent: vi.fn(),
   fetchSystemAccent: vi.fn(),
 }));
@@ -25,6 +26,9 @@ vi.mock('./windowActions', () => ({
   },
 }));
 vi.mock('../api/service', () => ({ fetchSystemAccent: h.fetchSystemAccent }));
+vi.mock('../hooks/useMultiplexSocket', () => ({
+  useTopicCallback: (_t: string, _e: boolean, onFrame: (frame: unknown) => void) => { h.topicCb = onFrame; },
+}));
 
 beforeEach(() => {
   // A native shell handled the request by default — the no-shell fetch path
@@ -37,6 +41,7 @@ afterEach(() => {
   vi.clearAllMocks();
   h.settings = { accentSource: 'system', accentColor: '#0000ff' };
   h.accentCb = null;
+  h.topicCb = null;
 });
 
 describe('SystemAccentSync', () => {
@@ -93,6 +98,25 @@ describe('SystemAccentSync', () => {
 
     expect(h.fetchSystemAccent).toHaveBeenCalled();
     expect(h.update).toHaveBeenCalledWith({ accentColor: '#569fcc' });
+  });
+
+  it('applies a live OS accent pushed over the WebSocket (Linux real-time)', () => {
+    h.settings = { accentSource: 'system', accentColor: '#0000ff' };
+    render(<SystemAccentSync />);
+
+    // The Linux service pushes a new accent on the system/accent topic.
+    act(() => h.topicCb!({ hex: '#875aa4' }));
+
+    expect(h.update).toHaveBeenCalledWith({ accentColor: '#875aa4' });
+  });
+
+  it('ignores a live WS accent when the source is custom', () => {
+    h.settings = { accentSource: 'custom', accentColor: '#112233' };
+    render(<SystemAccentSync />);
+
+    act(() => h.topicCb!({ hex: '#875aa4' }));
+
+    expect(h.update).not.toHaveBeenCalled();
   });
 
   it('ignores the fetched accent when the source is custom', async () => {
