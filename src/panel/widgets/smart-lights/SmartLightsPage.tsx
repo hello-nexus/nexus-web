@@ -26,15 +26,22 @@ interface SmartLightsPageProps {
   onSectionNavigate?: DashboardSectionNavigate;
 }
 
-// Hue is wired to the backend. Nanoleaf + Govee are the planned next brands,
-// shown as disabled "coming soon" tiles; every other brand stays hidden until
-// it's planned/shipped.
-const HUE_BRAND = 'hue';
-const COMING_SOON_BRANDS = ['Nanoleaf', 'Govee'];
+// Brands with a shipped backend driver, each scannable from its own tile.
+// Every other brand stays hidden until it's planned/shipped.
+const ACTIVE_BRANDS: ReadonlyArray<readonly [brand: string, labelKey: string]> = [
+  ['hue', 'smartLights.brandHue'],
+  ['nanoleaf', 'smartLights.brandNanoleaf'],
+  ['govee', 'smartLights.brandGovee'],
+];
 
-// The Hue pair flow needs the user to press the bridge button; the backend
-// reports that as this error string and we re-call pair after the press.
-const LINK_BUTTON_ERROR = 'link-button';
+// Pair errors that mean "the user must do something on the device/app, then
+// retry": Hue's bridge button, Nanoleaf's pairing window (hold the power
+// button), Govee's LAN Control app toggle. Anything else renders as a failure.
+const ACTION_NEEDED_COPY: Record<string, string> = {
+  'link-button': 'smartLights.pressBridgeButton',
+  'pairing-mode': 'smartLights.holdPowerButton',
+  'lan-control': 'smartLights.enableLanControl',
+};
 
 // Paired lights are grouped under a collapsible category per brand. Labels are
 // proper nouns (not localized).
@@ -53,21 +60,21 @@ const BRAND_CATEGORIES: ReadonlyArray<readonly [brand: string, label: string]> =
 type PairState =
   | { kind: 'idle' }
   | { kind: 'pairing'; host: string }
-  | { kind: 'link-button'; brand: string; host: string; stableKey: string; name: string }
+  | { kind: 'action-needed'; copyKey: string; brand: string; host: string; stableKey: string; name: string }
   | { kind: 'added'; count: number }
   | { kind: 'error'; message: string };
 
 /**
- * Smart-lights management page: brand picker, Hue discovery + pairing, and the
- * paired-device list. Color / brightness / power for paired lights live on the
- * Lighting page (the existing lighting-devices routes); this page only adds and
- * removes them.
+ * Smart-lights management page: brand picker, per-brand discovery + pairing
+ * (Hue, Nanoleaf, Govee), and the paired-device list. Color / brightness /
+ * power for paired lights live on the Lighting page (the existing
+ * lighting-devices routes); this page only adds and removes them.
  */
 export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
   const { t } = useTranslation();
   const [paired, setPaired] = useState<SmartLight[]>([]);
   const [discovered, setDiscovered] = useState<DiscoveredSmartLight[]>([]);
-  const [scanning, setScanning] = useState(false);
+  const [scanningBrand, setScanningBrand] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [pairState, setPairState] = useState<PairState>({ kind: 'idle' });
 
@@ -84,12 +91,13 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
   // Lighting page or another client) — those routes broadcast the 'lighting' topic.
   useTopicCallback('lighting', true, () => { void refreshPaired(); });
 
-  const handleScan = useCallback(async () => {
-    setScanning(true);
+  const handleScan = useCallback(async (brand: string) => {
+    setScanningBrand(brand);
     setScanError(null);
     setPairState({ kind: 'idle' });
-    const res = await discoverSmartLights(HUE_BRAND);
-    setScanning(false);
+    setDiscovered([]); // the previous brand's rows must not stay pairable mid-scan
+    const res = await discoverSmartLights(brand);
+    setScanningBrand(null);
     if (!res || !res.ok) {
       setScanError(res?.error || t('smartLights.scanFailed'));
       setDiscovered([]);
@@ -106,8 +114,11 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
       await refreshPaired();
       return;
     }
-    if (res?.error === LINK_BUTTON_ERROR) {
-      setPairState({ kind: 'link-button', brand, host, stableKey, name });
+    const copyKey = res?.error && Object.hasOwn(ACTION_NEEDED_COPY, res.error)
+      ? ACTION_NEEDED_COPY[res.error]
+      : undefined;
+    if (copyKey) {
+      setPairState({ kind: 'action-needed', copyKey, brand, host, stableKey, name });
       return;
     }
     setPairState({ kind: 'error', message: res?.error || t('smartLights.pairFailed') });
@@ -133,31 +144,30 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
       <div className={`${styles.body} pageBody`} data-panel-scrollable="true">
         <Section title={t('smartLights.addLights')}>
           <div className={styles.brandGrid}>
-            <button
-              type="button"
-              className={styles.brandTile}
-              data-active={scanning ? 'true' : undefined}
-              onClick={handleScan}
-              disabled={scanning}
-            >
-              <LampCeiling size={22} aria-hidden="true" />
-              <span className={styles.brandName}>{t('smartLights.brandHue')}</span>
-              <span className={styles.brandSub}>{scanning ? t('smartLights.scanning') : t('smartLights.scan')}</span>
-            </button>
-            {COMING_SOON_BRANDS.map(brand => (
-              <div key={brand} className={styles.brandTile} data-disabled="true" aria-disabled="true">
-                <LampCeiling size={22} aria-hidden="true" />
-                <span className={styles.brandName}>{brand}</span>
-                <span className={styles.brandSub}>{t('smartLights.comingSoon')}</span>
-              </div>
-            ))}
+            {ACTIVE_BRANDS.map(([brand, labelKey]) => {
+              const scanning = scanningBrand === brand;
+              return (
+                <button
+                  key={brand}
+                  type="button"
+                  className={styles.brandTile}
+                  data-active={scanning ? 'true' : undefined}
+                  onClick={() => void handleScan(brand)}
+                  disabled={scanningBrand !== null}
+                >
+                  <LampCeiling size={22} aria-hidden="true" />
+                  <span className={styles.brandName}>{t(labelKey)}</span>
+                  <span className={styles.brandSub}>{scanning ? t('smartLights.scanning') : t('smartLights.scan')}</span>
+                </button>
+              );
+            })}
           </div>
 
           {scanError && <p className={styles.error}>{scanError}</p>}
 
-          {pairState.kind === 'link-button' && (
+          {pairState.kind === 'action-needed' && (
             <div className={styles.notice}>
-              <p className={styles.noticeText}>{t('smartLights.pressBridgeButton')}</p>
+              <p className={styles.noticeText}>{t(pairState.copyKey)}</p>
               <Button
                 size="sm"
                 tone="accent"
@@ -188,6 +198,7 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
                       size="sm"
                       tone="accent"
                       loading={pairing}
+                      disabled={scanningBrand !== null}
                       onClick={() => void doPair(d.brand, d.host, d.stableKey, d.name)}
                     >
                       {pairing ? t('smartLights.pairing') : d.alreadyPaired ? t('smartLights.rePair') : t('smartLights.pair')}

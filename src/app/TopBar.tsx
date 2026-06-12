@@ -43,6 +43,8 @@ interface TopBarProps {
   profiles: UseProfilesResult;
   onPreferencesChanged: (prefs: Preferences) => void;
   onNavigateSettings: () => void;
+  // Profile dropdown's "Manage profiles" target (Profiles tab, not General).
+  onManageProfiles: () => void;
   // True only inside the Nexus Windows --app shell (custom caption buttons).
   isWindowsApp: boolean;
   // True only inside the Nexus macOS shell. The native traffic lights overlay
@@ -112,6 +114,7 @@ export function TopBar({
   profiles,
   onPreferencesChanged,
   onNavigateSettings,
+  onManageProfiles,
   isWindowsApp,
   isMacApp,
 }: TopBarProps) {
@@ -189,7 +192,7 @@ export function TopBar({
               <ProfileDropdown
                 profiles={profiles}
                 onPreferencesChanged={onPreferencesChanged}
-                onNavigateSettings={onNavigateSettings}
+                onNavigateSettings={onManageProfiles}
                 variant="avatar"
               />
             </ConnectedProfileSlot>

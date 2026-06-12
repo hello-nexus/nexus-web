@@ -38,7 +38,9 @@ export interface DiscoverResponse {
 
 export interface PairResponse {
   ok: boolean;
-  // 'link-button' ⇒ the bridge needs its physical button pressed first.
+  // Action-needed hints the page maps to instructions + retry:
+  // 'link-button' (Hue bridge button), 'pairing-mode' (Nanoleaf pairing
+  // window), 'lan-control' (Govee Home app LAN Control toggle).
   error?: string;
   added?: number;
   message?: string;

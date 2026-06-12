@@ -10,6 +10,13 @@
   gap: 10px;
 }
 
+// Per-section spacing for the SettingsSection box: these sections stack
+// toggles + sliders + tabs + pickers (not self-padded rows), so the box needs
+// an explicit gap the way .themeSection used to provide.
+.themeBox {
+  gap: 10px;
+}
+
 .themeModeTabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
