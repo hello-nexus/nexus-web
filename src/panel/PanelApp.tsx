@@ -558,6 +558,11 @@ export function PanelContent({
     const label = t('panel.connectedTo');
     return label === 'panel.connectedTo' ? 'Connected to' : label;
   })();
+  // A phone is always a remote-paired device, even when the Android wrapper
+  // serves the panel through its loopback proxy (origin 127.0.0.1, which
+  // isRemotePaired reads as a hardwired-kiosk localhost). Show the "connected
+  // to <PC>" identity for it the same as the LAN-IP / relay phone origins.
+  const connectionIdentityVisible = isRemotePaired || surface === 'phone';
   // The live connection is running over the cloud relay (not the direct LAN
   // /ws socket). Surface a satellite badge so the user knows traffic is going
   // through the relay; LAN connections show nothing extra.
@@ -1231,11 +1236,11 @@ export function PanelContent({
                 surfaceRef={rootRef}
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
                 machineName={machineName}
-                remotePaired={isRemotePaired}
+                remotePaired={connectionIdentityVisible}
               />
             )}
             <div ref={setEditorDockPortalEl} className={styles.editorDockPortal} aria-hidden="true" />
-            {connectionIntroHost && isRemotePaired && (
+            {connectionIntroHost && connectionIdentityVisible && (
               <>
                 <div className={styles.connectionIntroBackdrop} aria-hidden="true" />
                 <div className={styles.connectionIntroTray} role="status" aria-live="polite">
