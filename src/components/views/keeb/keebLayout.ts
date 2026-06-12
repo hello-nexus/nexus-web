@@ -11,7 +11,8 @@
 // /keeb/layer/{n}/key writes.
 //
 // Row 0 is the top LED strip (the renderer adds the rotary wheels around
-// it) - not user-assignable, but still drawn.
+// it) - not user-assignable, but still drawn. Row 1 is the physical
+// media-button strip under the wheels at the board's top left.
 
 import type { CSSProperties } from 'react';
 import type { KeyAssignmentMode } from '../../../api/keeb';
@@ -31,7 +32,16 @@ export function getKeebLayoutRows(layout: KeebLayoutKind): KeebLayoutRow[] {
     // Row 0 - top LED strip (purely cosmetic on this surface).
     [{ function: 'RGBEffectLoop', mode: 'RGBKey', style: { position: 'absolute', left: 210 } }],
 
-    // Row 1 - Esc + F-row + nav + None/PassThrough split keys.
+    // Row 1 - physical media buttons under the rotary wheels.
+    [
+      { function: 'Stop', mode: 'MediaKey' },
+      { function: 'ScanPreviousTrack', mode: 'MediaKey' },
+      { function: 'PlayAndPause', mode: 'MediaKey' },
+      { function: 'ScanNextTrack', mode: 'MediaKey' },
+      { function: 'Mute', mode: 'MediaKey' },
+    ],
+
+    // Row 2 - Esc + F-row + nav + None/PassThrough split keys.
     [
       { function: 'Escape', mode: 'StandardKey' },
       { function: 'F1', mode: 'StandardKey', style: { marginLeft: 85 } },
@@ -53,7 +63,7 @@ export function getKeebLayoutRows(layout: KeebLayoutKind): KeebLayoutRow[] {
       { function: 'PassThrough', mode: 'StandardKey', style: { width: 160 } },
     ],
 
-    // Row 2 - number row + nav + start of numpad.
+    // Row 3 - number row + nav + start of numpad.
     [
       { function: 'Backtick', mode: 'StandardKey' },
       { function: 'Number1', mode: 'StandardKey' },
@@ -78,7 +88,7 @@ export function getKeebLayoutRows(layout: KeebLayoutKind): KeebLayoutRow[] {
       { function: 'KeypadMinus', mode: 'StandardKey' },
     ],
 
-    // Row 3 - Tab row + QWERTY top half + Del/End/PgDn + numpad continuation.
+    // Row 4 - Tab row + QWERTY top half + Del/End/PgDn + numpad continuation.
     [
       { function: 'Tab', mode: 'StandardKey', style: { width: 140 } },
       { function: 'Q', mode: 'StandardKey' },
@@ -105,7 +115,7 @@ export function getKeebLayoutRows(layout: KeebLayoutKind): KeebLayoutRow[] {
       { function: 'KeypadPlus', mode: 'StandardKey', style: { marginTop: 80, marginLeft: -1, height: 145 } },
     ],
 
-    // Row 4 - Caps + ASDF.
+    // Row 5 - Caps + ASDF.
     [
       { function: 'CapsLock', mode: 'StandardKey', style: { width: layout === 'ISO' ? 170 : 158 } },
       { function: 'A', mode: 'StandardKey' },
@@ -127,7 +137,7 @@ export function getKeebLayoutRows(layout: KeebLayoutKind): KeebLayoutRow[] {
       { function: 'Keypad6RightArrow', mode: 'StandardKey' },
     ],
 
-    // Row 5 - Shift row.
+    // Row 6 - Shift row.
     [
       { function: 'LeftShift', mode: 'StandardKey', style: { width: layout === 'ISO' ? 114 : 200 } },
       ...(layout === 'ISO' ? [{ function: 'NonUsBackslash', mode: 'StandardKey' as KeyAssignmentMode }] : []),
@@ -149,7 +159,7 @@ export function getKeebLayoutRows(layout: KeebLayoutKind): KeebLayoutRow[] {
       { function: 'KeypadEqual', mode: 'StandardKey', style: { marginTop: 80, height: 140 } },
     ],
 
-    // Row 6 - bottom row (modifiers + space).
+    // Row 7 - bottom row (modifiers + space).
     [
       { function: 'LeftControl', mode: 'StandardKey', style: { width: 105 } },
       { function: 'LeftGUI', mode: 'StandardKey', style: { width: 105 } },
