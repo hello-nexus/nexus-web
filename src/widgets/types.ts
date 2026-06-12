@@ -72,6 +72,9 @@ export interface AppInstalledListing {
   defaultSize?: string;
   source: 'dev' | 'user' | 'bundled' | string;
   trusted: boolean;
+  /** OEM bake-in: a bundled app to treat as active at first boot (its page
+   *  section is auto-pinned), no user "add" required. */
+  preinstalled?: boolean;
 }
 
 export interface AppInstalledListingResponse {
