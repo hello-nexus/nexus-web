@@ -4,6 +4,7 @@ import { Placeholder } from '../Placeholder';
 import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import {
   getNp50ConnectionState,
   getNp50FirmwareAnimation,
@@ -147,15 +148,11 @@ export function Np50DevicePage() {
         actions={saving ? <span className={styles.savingBadge}>Saving…</span> : null}
       />
       <div className={`${styles.pageBody} pageBody`}>
-        <section className={styles.section}>
-          <header className={styles.sectionHead}>
-            <h2 className={styles.sectionTitle}>Standalone fan behaviour</h2>
-            <p className={styles.sectionHint}>
-              Persisted to the hub's EEPROM. Used when Nexus isn't running —
-              the PC is off, the service stopped, or the hub is in firmware
-              control mode.
-            </p>
-          </header>
+        <SettingsSection
+          title="Standalone fan behaviour"
+          description="Persisted to the hub's EEPROM. Used when Nexus isn't running — the PC is off, the service stopped, or the hub is in firmware control mode."
+          boxClassName={styles.sectionBox}
+        >
           <div className={`${styles.row} ${!defaultsLoaded ? styles.rowDisabled : ''}`}>
             <span className={styles.rowLabel}>Default mode</span>
             <Select
@@ -192,16 +189,13 @@ export function Np50DevicePage() {
             />
             <span className={styles.rowValue}>{defaults?.staticFanPercent ?? 50}%</span>
           </div>
-        </section>
+        </SettingsSection>
 
-        <section className={styles.section}>
-          <header className={styles.sectionHead}>
-            <h2 className={styles.sectionTitle}>Standalone LED animation</h2>
-            <p className={styles.sectionHint}>
-              What the connected light strips show when Nexus isn't
-              streaming lighting frames.
-            </p>
-          </header>
+        <SettingsSection
+          title="Standalone LED animation"
+          description="What the connected light strips show when Nexus isn't streaming lighting frames."
+          boxClassName={styles.sectionBox}
+        >
           <div className={`${styles.row} ${!animationLoaded ? styles.rowDisabled : ''}`}>
             <span className={styles.rowLabel}>Effect</span>
             <Select
@@ -257,7 +251,7 @@ export function Np50DevicePage() {
               />
             </div>
           )}
-        </section>
+        </SettingsSection>
       </div>
     </div>
   );

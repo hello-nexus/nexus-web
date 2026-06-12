@@ -82,7 +82,9 @@
   // Horizontal pad centers the icon on the collapsed rail and is identical in
   // both states so the icon never shifts when the sidebar toggles.
   padding: 0.6rem var(--rail-item-pad);
-  border: none;
+  // Reserve the border in every state (transparent here) so the active row's
+  // border doesn't change the box size — no shift between selected/hovered.
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-dim);
@@ -104,7 +106,6 @@
 
   &.active {
     background: var(--surface);
-    border: var(--border-width) solid transparent;
     color: var(--text);
 
     .icon {

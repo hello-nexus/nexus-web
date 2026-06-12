@@ -4,6 +4,7 @@ import { Placeholder } from '../Placeholder';
 import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import {
   getSmartHubConnectionState,
   getSmartHubFwSetting,
@@ -120,19 +121,16 @@ export function SmartHubDevicePage() {
         actions={saving ? <span className={styles.savingBadge}>Saving…</span> : null}
       />
       <div className={`${styles.pageBody} pageBody`}>
-        <section className={styles.section}>
-          <header className={styles.sectionHead}>
-            <h2 className={styles.sectionTitle}>Standalone fan behaviour</h2>
-            <p className={styles.sectionHint}>
-              Persisted to the hub's flash. 5 seconds after the last host
-              fan write, the hub applies this duty to all four PWM ports —
-              the PC is off, asleep, or the service stopped.
-            </p>
-            <p className={styles.sectionHint}>
-              This hub has no motherboard PWM input; live fan control comes
-              from Nexus cooling.
-            </p>
-          </header>
+        <SettingsSection
+          title="Standalone fan behaviour"
+          description={(
+            <>
+              <p>Persisted to the hub's flash. 5 seconds after the last host fan write, the hub applies this duty to all four PWM ports — the PC is off, asleep, or the service stopped.</p>
+              <p>This hub has no motherboard PWM input; live fan control comes from Nexus cooling.</p>
+            </>
+          )}
+          boxClassName={styles.sectionBox}
+        >
           <div className={`${styles.row} ${!settingLoaded ? styles.rowDisabled : ''}`}>
             <span className={styles.rowLabel}>Standalone fan %</span>
             <Slider
@@ -152,16 +150,13 @@ export function SmartHubDevicePage() {
             />
             <span className={styles.rowValue}>{setting?.fanPercent ?? 50}%</span>
           </div>
-        </section>
+        </SettingsSection>
 
-        <section className={styles.section}>
-          <header className={styles.sectionHead}>
-            <h2 className={styles.sectionTitle}>Standalone LED animation</h2>
-            <p className={styles.sectionHint}>
-              What the hub's onboard LEDs show when Nexus isn't streaming
-              lighting frames.
-            </p>
-          </header>
+        <SettingsSection
+          title="Standalone LED animation"
+          description="What the hub's onboard LEDs show when Nexus isn't streaming lighting frames."
+          boxClassName={styles.sectionBox}
+        >
           <div className={`${styles.row} ${!settingLoaded ? styles.rowDisabled : ''}`}>
             <span className={styles.rowLabel}>Effect</span>
             <Select
@@ -217,7 +212,7 @@ export function SmartHubDevicePage() {
               />
             </div>
           )}
-        </section>
+        </SettingsSection>
       </div>
     </div>
   );

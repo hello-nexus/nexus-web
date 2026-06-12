@@ -359,6 +359,12 @@
   gap: 0.75rem;
 }
 
+// Row spacing inside a SettingsSection box (device-modal-row has no gap of its
+// own — it relied on the .settingsContent gap before being boxed).
+.deviceSettingsBox {
+  gap: 0.5rem;
+}
+
 .brightnessControl {
   display: flex;
   align-items: center;
