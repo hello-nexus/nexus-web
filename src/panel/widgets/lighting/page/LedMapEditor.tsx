@@ -1693,7 +1693,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               </label>
             )}
             <div className={styles.hint}>
-              {leds.length} LEDs - {t('lighting.ledMap.dragHint')} - {isMac ? 'Cmd' : 'Ctrl'}+{t('lighting.ledMap.clickMulti')} - {t('lighting.ledMap.deleteHint')}
+              {t('lighting.ledMap.hint', {
+                count: leds.length,
+                drag: t('lighting.ledMap.dragHint'),
+                mod: isMac ? 'Cmd' : 'Ctrl',
+                multi: t('lighting.ledMap.clickMulti'),
+                del: t('lighting.ledMap.deleteHint'),
+              })}
             </div>
             <div className={styles.spacer} />
             {hasRestorable && (
@@ -1709,11 +1715,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               </HoverTooltip>
             )}
             <div className={styles.separator} />
+            {/* eslint-disable-next-line i18next/no-literal-string -- keyboard modifier key label */}
             <HoverTooltip body={`${t('lighting.ledMap.undo')} (${isMac ? 'Cmd' : 'Ctrl'}+Z)`} side="bottom">
               <button type="button" className={styles.iconBtn} onClick={handleUndo} disabled={undoLen === 0} aria-label={t('lighting.ledMap.undo')}>
                 <Undo2 size={15} />
               </button>
             </HoverTooltip>
+            {/* eslint-disable-next-line i18next/no-literal-string -- keyboard modifier key label */}
             <HoverTooltip body={`${t('lighting.ledMap.redo')} (${isMac ? 'Cmd' : 'Ctrl'}+Shift+Z)`} side="bottom">
               <button type="button" className={styles.iconBtn} onClick={handleRedo} disabled={redoLen === 0} aria-label={t('lighting.ledMap.redo')}>
                 <Redo2 size={15} />
@@ -1765,6 +1773,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                   min={0}
                   max={100}
                   step={1}
+                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
                   orientation="bare"
                   onChange={handleBrightnessChange}
                   onCommit={handleBrightnessCommit}
@@ -1778,6 +1787,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             </div>
             <div className={styles.spacer} />
             <div className={styles.controlGroup}>
+              {/* eslint-disable-next-line i18next/no-literal-string -- keyboard modifier key label */}
               <HoverTooltip body={`${t('lighting.ledMap.selectAll')} (${isMac ? 'Cmd' : 'Ctrl'}+A)`} side="bottom">
                 <button
                   type="button"
