@@ -3,6 +3,7 @@ import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithP
 import { Slider } from '../../components/common/Slider/Slider';
 import { Tabs } from '../../components/common/Tabs/Tabs';
 import { SectionHeader } from '../../components/common/SectionHeader/SectionHeader';
+import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
 import { SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
@@ -15,7 +16,7 @@ import {
   panelBackgroundPresets,
   resolvePanelBackground,
   type PanelBackgroundMode,
-} from '../panelBackground';
+} from '../background/panelBackground';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
 import { usePanelBackgroundEffectController } from '../widgets/lighting/effecteditor/usePanelBackgroundEffectController';
 import { AnimateCategoryChips, AnimateGrid, type AnimateFilter } from '../widgets/lighting/page/AnimateGrid';
@@ -143,8 +144,7 @@ export function PanelThemeSettings({
 
   return (
     <div className={styles.themePanel}>
-      <div className={styles.themeSection}>
-        <SectionHeader>{label('panel.settings.widgets', 'Widgets')}</SectionHeader>
+      <SettingsSection title={label('panel.settings.widgets', 'Widgets')} boxClassName={styles.themeBox}>
         {!hideWidgetLabelsToggle && (
           <SettingToggle
             label={label('panel.settings.widgetLabels', 'Widget labels')}
@@ -173,10 +173,9 @@ export function PanelThemeSettings({
           }}
           onCommit={v => onWidgetOpacityCommit(v / 100)}
         />
-      </div>
+      </SettingsSection>
 
-      <div className={styles.themeSection}>
-        <SectionHeader>{t('settings.theme') || 'Theme'}</SectionHeader>
+      <SettingsSection title={t('settings.theme') || 'Theme'} boxClassName={styles.themeBox}>
         <SettingToggle
           label={syncWithDesktopLabel}
           checked={theme.themeSyncWithDesktop}
@@ -195,10 +194,9 @@ export function PanelThemeSettings({
             className={styles.themeModeTabs}
           />
         )}
-      </div>
+      </SettingsSection>
 
-      <div className={styles.themeSection}>
-        <SectionHeader>{t('devices.y70.theme.accent') || 'Accent Color'}</SectionHeader>
+      <SettingsSection title={t('devices.y70.theme.accent') || 'Accent Color'} boxClassName={styles.themeBox}>
         <SettingToggle
           label={syncWithDesktopLabel}
           checked={theme.accentSyncWithDesktop}
@@ -213,8 +211,11 @@ export function PanelThemeSettings({
             onCommit={onAccentCommit}
           />
         )}
-      </div>
+      </SettingsSection>
 
+      {/* Background stays unboxed: a sticky live-preview dock + scrolling
+          effect grid, not a simple settings card. Header restyles via the
+          shared SectionHeader. */}
       <div className={styles.themeSection}>
         <SectionHeader>{t('devices.y70.theme.background') || 'Background'}</SectionHeader>
         {theme.backgroundMode === 'solid' ? (

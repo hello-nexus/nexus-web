@@ -57,14 +57,15 @@ import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
 import { pairingPreviewQr } from '../panel/widgets/pairing/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
+import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
 import { SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { NexusAppIcon } from '../components/icons/NexusAppIcon';
-import { PanelArrowButton } from '../panel/PanelArrowButton';
-import { PanelPageIndicator } from '../panel/PanelPageIndicator';
+import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
+import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
@@ -790,6 +791,20 @@ function PreviewSectionHeader() {
   );
 }
 
+function PreviewSettingsSection() {
+  return (
+    <div style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <SettingsSection title="General" description="Optional muted description under the title.">
+        <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Language</div>
+        <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Hide conflict warnings</div>
+      </SettingsSection>
+      <SettingsSection title="Danger zone" titleStyle={{ color: 'var(--bad)' }}>
+        <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Shut down · Reset to defaults</div>
+      </SettingsSection>
+    </div>
+  );
+}
+
 function PreviewPanelThemeSettings() {
   const [theme, setTheme] = useState<PanelThemeSettingsState>({
     appThemeMode: 'dark', appResolvedThemeMode: 'dark', themeSyncWithDesktop: false, themeMode: 'dark',
@@ -1362,7 +1377,7 @@ export const REGISTRY: StorybookEntry[] = [
   },
   {
     name: 'PanelCatalogCell', category: 'panel-kit',
-    filePath: 'src/panel/PanelDragCells.tsx',
+    filePath: 'src/panel/dnd/PanelDragCells.tsx',
     description: 'Tile shown in the add-widget catalog. Reuses the live panel cell (card + content scaler + label strip) so the catalog renders a widget identically to the panel grid. Used by the panel add-widget search.',
     notes: 'No live preview - the cell instantiates a real panel widget at panel scale.',
   },
@@ -1381,8 +1396,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SectionHeader', category: 'panel-kit',
     filePath: 'src/components/common/SectionHeader/SectionHeader.tsx',
-    description: 'Canonical settings section header: uppercase label + full-width rule. The single header every settings section uses (panel editor sheet, widget settings panes, device Settings tab) so they read identically. Token fallbacks (--panel-* → --text-dim/--border) keep it correct inside .panel-root and on the dashboard. Replaced the per-pane bespoke headers and the former global .device-modal-section.',
+    description: 'Canonical settings header: a muted body-type label (no underline). Usually rendered by SettingsSection, which sits it above a surface box. Token fallback (--panel-text-muted → --text-dim) keeps it correct inside .panel-root and on the dashboard.',
     Preview: PreviewSectionHeader,
+  },
+  {
+    name: 'SettingsSection', category: 'panel-kit',
+    filePath: 'src/components/common/SettingsSection/SettingsSection.tsx',
+    description: 'Canonical settings group: a muted body-type header (optional description) sitting outside/above a surface-filled, subtly-bordered box that holds the section rows. The one header-outside-box pattern every settings surface uses (dashboard Settings, panel editor, widget settings, device pages, pairing modal). titleStyle recolours the header (e.g. the danger zone); boxClassName tunes the box (per-surface row gap).',
+    Preview: PreviewSettingsSection,
   },
   {
     name: 'PanelThemeSettings', category: 'panel-kit',
@@ -1399,21 +1420,21 @@ export const REGISTRY: StorybookEntry[] = [
   },
   {
     name: 'PanelArrowButton', category: 'panel-kit',
-    filePath: 'src/panel/PanelArrowButton.tsx',
+    filePath: 'src/panel/chrome/PanelArrowButton.tsx',
     description: 'Naked chevron nav arrow shared by the cooling/lighting widgets and the panel device-page preview. Absolutely positioned by data-side; the caller\'s container must be position: relative.',
     Preview: PreviewPanelArrowButtons,
     notes: 'Pass a caller class for per-surface size/position tweaks - the base look stays in the shared module.',
   },
   {
     name: 'PanelPageIndicator', category: 'panel-kit',
-    filePath: 'src/panel/PanelPageIndicator.tsx',
+    filePath: 'src/panel/chrome/PanelPageIndicator.tsx',
     description: 'Fading dot page indicator. Un-fades for 1.5s whenever visibilityToken or the active page changes, then fades back out. Renders nothing when total <= 1.',
     Preview: PreviewPanelPageIndicator,
     notes: 'Click "Next page" to bump the token and watch the un-fade cycle.',
   },
   {
     name: 'PanelPager', category: 'panel-kit',
-    filePath: 'src/panel/PanelPager.tsx',
+    filePath: 'src/panel/chrome/PanelPager.tsx',
     description: 'Horizontal swipeable pager container: edge-swipe gesture handling, per-page render callback, momentum snapping. Hosts the panel page grid and the immersive overlay pages.',
     notes: 'No live preview - owns pointer-gesture state and needs page content to mean anything.',
   },

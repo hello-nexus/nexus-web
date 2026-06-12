@@ -10,7 +10,7 @@ import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { OverlayWidgetsModal } from './OverlayWidgetsModal';
 import { listOverlayWidgets } from '../../../api/overlay';
-import type { DashboardSectionNavigate } from '../../../panel/panelLayoutHelpers';
+import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
 import styles from './DashboardView.module.scss';
 
 interface DashboardViewProps {

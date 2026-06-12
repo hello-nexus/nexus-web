@@ -5,7 +5,7 @@ import {
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundTemplate,
   panelBackgroundState,
-} from '../../../panelBackground';
+} from '../../../background/panelBackground';
 import styles from './BackgroundEffectPreview.module.scss';
 
 const RENDER_OPTIONS = { maxDevicePixelRatio: 1 };

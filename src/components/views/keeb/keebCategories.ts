@@ -4,9 +4,9 @@
 // not a tile grid. The four remaining categories drive the assignment view's
 // grid below the keyboard render.
 //
-// `name`, `keyFunction`, `mode`, `input` mirror the firmware contract;
-// `KeyAssignmentMode` strings match nexus-service's `KeyAssignmentMode`
-// DTO.
+// `keyFunction`, `mode`, `input` mirror the firmware contract;
+// `KeyAssignmentMode` strings match nexus-service's `KeyAssignmentMode` DTO.
+// Display text is i18n: `labelKey`/`titleKey` resolve through t().
 
 import type { KeyAssignmentMode } from '../../../api/keeb';
 
@@ -25,20 +25,31 @@ export const ASSIGNMENT_CATEGORIES: readonly KeebAssignmentCategory[] = [
   'Macros',
 ] as const;
 
+/// Locale key for each category tab label. Category ids stay stable (they are
+/// record keys and test fixtures); only the rendered label localizes.
+export const CATEGORY_LABEL_KEYS: Record<KeebAssignmentCategory, string> = {
+  Keyboard: 'keeb.category.keyboard',
+  Mouse: 'keeb.category.mouse',
+  'System & Apps': 'keeb.category.systemApps',
+  'Lighting & Profiles': 'keeb.category.lightingProfiles',
+  Macros: 'keeb.category.macros',
+};
+
 export interface AssignmentFunction {
-  name: string;
+  labelKey: string;
+  labelParams?: Record<string, string | number>;
   keyFunction: string;
   mode: KeyAssignmentMode;
   input?: number | null;
 }
 
 export interface AssignmentSection {
-  title: string;
+  titleKey: string;
   functions: AssignmentFunction[];
 }
 
 export interface AssignmentGroup {
-  title: string;
+  titleKey: string;
   sections: AssignmentSection[];
 }
 
@@ -66,11 +77,19 @@ const DEFAULT_INPUTS: Record<string, number> = {
   Macro9: 1, Macro10: 1, Macro11: 1, Macro12: 1, Macro13: 1, Macro14: 1, Macro15: 1, Macro16: 1,
 };
 
+const fn = (labelKey: string, keyFunction: string, mode: KeyAssignmentMode): AssignmentFunction =>
+  ({ labelKey, keyFunction, mode, input: DEFAULT_INPUTS[keyFunction] });
+
 const macros = (): AssignmentFunction[] => {
   const out: AssignmentFunction[] = [];
   for (let i = 1; i <= 16; i++) {
-    const fn = `Macro${i}`;
-    out.push({ name: `Macro ${i}`, keyFunction: fn, mode: 'MacroKey', input: DEFAULT_INPUTS[fn] });
+    out.push({
+      labelKey: 'keeb.fn.macroN',
+      labelParams: { n: i },
+      keyFunction: `Macro${i}`,
+      mode: 'MacroKey',
+      input: DEFAULT_INPUTS[`Macro${i}`],
+    });
   }
   return out;
 };
@@ -83,39 +102,39 @@ export function getAssignmentCategories(): AssignmentCategories {
     Keyboard: [],
     Mouse: [
       {
-        title: 'Mouse',
+        titleKey: 'keeb.group.mouse',
         sections: [
           {
-            title: 'Button',
+            titleKey: 'keeb.section.button',
             functions: [
-              { name: 'Left Click', keyFunction: 'MouseLButton', mode: 'MouseKey' },
-              { name: 'Right Click', keyFunction: 'MouseRButton', mode: 'MouseKey' },
-              { name: 'Middle Click', keyFunction: 'MouseMButton', mode: 'MouseKey' },
-              { name: 'Button 4', keyFunction: 'MouseB4Button', mode: 'MouseKey' },
-              { name: 'Button 5', keyFunction: 'MouseB5Button', mode: 'MouseKey' },
+              fn('keeb.fn.MouseLButton', 'MouseLButton', 'MouseKey'),
+              fn('keeb.fn.MouseRButton', 'MouseRButton', 'MouseKey'),
+              fn('keeb.fn.MouseMButton', 'MouseMButton', 'MouseKey'),
+              fn('keeb.fn.MouseB4Button', 'MouseB4Button', 'MouseKey'),
+              fn('keeb.fn.MouseB5Button', 'MouseB5Button', 'MouseKey'),
             ],
           },
           {
-            title: 'Wheel',
+            titleKey: 'keeb.section.wheel',
             functions: [
-              { name: 'Scroll Up', keyFunction: 'MouseWheelUp', mode: 'MouseKey', input: DEFAULT_INPUTS.MouseWheelUp },
-              { name: 'Scroll Down', keyFunction: 'MouseWheelDown', mode: 'MouseKey', input: DEFAULT_INPUTS.MouseWheelDown },
-              { name: 'Scroll Left', keyFunction: 'MouseACPanLeft', mode: 'MouseKey', input: DEFAULT_INPUTS.MouseACPanLeft },
-              { name: 'Scroll Right', keyFunction: 'MouseACPanRight', mode: 'MouseKey', input: DEFAULT_INPUTS.MouseACPanRight },
+              fn('keeb.fn.MouseWheelUp', 'MouseWheelUp', 'MouseKey'),
+              fn('keeb.fn.MouseWheelDown', 'MouseWheelDown', 'MouseKey'),
+              fn('keeb.fn.MouseACPanLeft', 'MouseACPanLeft', 'MouseKey'),
+              fn('keeb.fn.MouseACPanRight', 'MouseACPanRight', 'MouseKey'),
             ],
           },
         ],
       },
       {
-        title: 'Pan Controls',
+        titleKey: 'keeb.group.panControls',
         sections: [
           {
-            title: 'Pan',
+            titleKey: 'keeb.section.pan',
             functions: [
-              { name: 'Pan Left', keyFunction: 'MouseXPanLeft', mode: 'MouseKey', input: DEFAULT_INPUTS.MouseXPanLeft },
-              { name: 'Pan Right', keyFunction: 'MouseXPanRight', mode: 'MouseKey', input: DEFAULT_INPUTS.MouseXPanRight },
-              { name: 'Pan Up', keyFunction: 'MouseXPanUp', mode: 'MouseKey', input: DEFAULT_INPUTS.MouseXPanUp },
-              { name: 'Pan Down', keyFunction: 'MouseXPanDown', mode: 'MouseKey', input: DEFAULT_INPUTS.MouseXPanDown },
+              fn('keeb.fn.MouseXPanLeft', 'MouseXPanLeft', 'MouseKey'),
+              fn('keeb.fn.MouseXPanRight', 'MouseXPanRight', 'MouseKey'),
+              fn('keeb.fn.MouseXPanUp', 'MouseXPanUp', 'MouseKey'),
+              fn('keeb.fn.MouseXPanDown', 'MouseXPanDown', 'MouseKey'),
             ],
           },
         ],
@@ -124,53 +143,53 @@ export function getAssignmentCategories(): AssignmentCategories {
 
     'Lighting & Profiles': [
       {
-        title: 'RGB Control',
+        titleKey: 'keeb.group.rgbControl',
         sections: [
           {
-            title: 'Firmware Lighting Effect',
+            titleKey: 'keeb.section.fwEffect',
             functions: [
-              { name: 'Set to a static effect', keyFunction: 'RGBEffectValue', mode: 'RGBKey', input: DEFAULT_INPUTS.RGBEffectValue },
-              { name: 'Toggle Lighting ON/OFF', keyFunction: 'RGBOnOff', mode: 'RGBKey' },
-              { name: 'Cycle through Lighting Effects', keyFunction: 'RGBEffectLoop', mode: 'RGBKey' },
-              { name: 'Lighting Direction', keyFunction: 'DirectionLoop', mode: 'RGBKey' },
+              fn('keeb.fn.RGBEffectValue', 'RGBEffectValue', 'RGBKey'),
+              fn('keeb.fn.RGBOnOff', 'RGBOnOff', 'RGBKey'),
+              fn('keeb.fn.RGBEffectLoop', 'RGBEffectLoop', 'RGBKey'),
+              fn('keeb.fn.DirectionLoop', 'DirectionLoop', 'RGBKey'),
             ],
           },
           {
-            title: 'Firmware Lighting Brightness',
+            titleKey: 'keeb.section.fwBrightness',
             functions: [
-              { name: 'Increase', keyFunction: 'BrightnessIncrease', mode: 'RGBKey' },
-              { name: 'Decrease', keyFunction: 'BrightnessDecrease', mode: 'RGBKey' },
+              fn('keeb.fn.BrightnessIncrease', 'BrightnessIncrease', 'RGBKey'),
+              fn('keeb.fn.BrightnessDecrease', 'BrightnessDecrease', 'RGBKey'),
             ],
           },
           {
-            title: 'Firmware Lighting Speed',
+            titleKey: 'keeb.section.fwSpeed',
             functions: [
-              { name: 'Increase', keyFunction: 'SpeedIncrease', mode: 'RGBKey' },
-              { name: 'Decrease', keyFunction: 'SpeedDecrease', mode: 'RGBKey' },
-              { name: 'Cycle', keyFunction: 'SpeedLoop', mode: 'RGBKey' },
+              fn('keeb.fn.SpeedIncrease', 'SpeedIncrease', 'RGBKey'),
+              fn('keeb.fn.SpeedDecrease', 'SpeedDecrease', 'RGBKey'),
+              fn('keeb.fn.SpeedLoop', 'SpeedLoop', 'RGBKey'),
             ],
           },
         ],
       },
       {
-        title: 'Layers & Profiles',
+        titleKey: 'keeb.group.layersProfiles',
         sections: [
           {
-            title: 'Layer Switches',
+            titleKey: 'keeb.section.layerSwitches',
             functions: [
-              { name: 'Momentary', keyFunction: 'MOSwitch', mode: 'LayerKey', input: DEFAULT_INPUTS.MOSwitch },
-              { name: 'Toggle ON/OFF', keyFunction: 'TGSwitch', mode: 'LayerKey', input: DEFAULT_INPUTS.TGSwitch },
-              { name: 'Toggle ON', keyFunction: 'TOSwitch', mode: 'LayerKey', input: DEFAULT_INPUTS.TOSwitch },
-              { name: 'Top Layer', keyFunction: 'DFSwitch', mode: 'LayerKey', input: DEFAULT_INPUTS.DFSwitch },
+              fn('keeb.fn.MOSwitch', 'MOSwitch', 'LayerKey'),
+              fn('keeb.fn.TGSwitch', 'TGSwitch', 'LayerKey'),
+              fn('keeb.fn.TOSwitch', 'TOSwitch', 'LayerKey'),
+              fn('keeb.fn.DFSwitch', 'DFSwitch', 'LayerKey'),
             ],
           },
           {
-            title: 'Profiles',
+            titleKey: 'keeb.section.profiles',
             functions: [
-              { name: 'Previous', keyFunction: 'ProfileMinus', mode: 'ProfileKey' },
-              { name: 'Next', keyFunction: 'ProfilePlus', mode: 'ProfileKey' },
-              { name: 'Cycle', keyFunction: 'ProfilePlusLoop', mode: 'ProfileKey' },
-              { name: 'Set', keyFunction: 'ProfileValue', mode: 'ProfileKey', input: DEFAULT_INPUTS.ProfileValue },
+              fn('keeb.fn.ProfileMinus', 'ProfileMinus', 'ProfileKey'),
+              fn('keeb.fn.ProfilePlus', 'ProfilePlus', 'ProfileKey'),
+              fn('keeb.fn.ProfilePlusLoop', 'ProfilePlusLoop', 'ProfileKey'),
+              fn('keeb.fn.ProfileValue', 'ProfileValue', 'ProfileKey'),
             ],
           },
         ],
@@ -179,10 +198,10 @@ export function getAssignmentCategories(): AssignmentCategories {
 
     Macros: [
       {
-        title: 'Macros',
+        titleKey: 'keeb.group.macros',
         sections: [
           {
-            title: 'Macro Keys',
+            titleKey: 'keeb.section.macroKeys',
             functions: macros(),
           },
         ],
@@ -191,45 +210,45 @@ export function getAssignmentCategories(): AssignmentCategories {
 
     'System & Apps': [
       {
-        title: 'System Controls',
+        titleKey: 'keeb.group.systemControls',
         sections: [
           {
-            title: 'Windows Control',
+            titleKey: 'keeb.section.windowsControl',
             functions: [
-              { name: 'Power Off', keyFunction: 'Power', mode: 'SystemKey' },
-              { name: 'Put PC To Sleep', keyFunction: 'Sleep', mode: 'SystemKey' },
-              { name: 'Wake PC', keyFunction: 'Wake', mode: 'SystemKey' },
-              { name: 'Windows Search', keyFunction: 'WebSearch', mode: 'WebMediaKey' },
+              fn('keeb.fn.Power', 'Power', 'SystemKey'),
+              fn('keeb.fn.Sleep', 'Sleep', 'SystemKey'),
+              fn('keeb.fn.Wake', 'Wake', 'SystemKey'),
+              fn('keeb.fn.WebSearch', 'WebSearch', 'WebMediaKey'),
             ],
           },
         ],
       },
       {
-        title: 'Apps & System',
+        titleKey: 'keeb.group.appsSystem',
         sections: [
           {
-            title: 'Web Browser',
+            titleKey: 'keeb.section.webBrowser',
             functions: [
-              { name: 'Open Default Web Browser', keyFunction: 'WebHome', mode: 'WebMediaKey' },
-              { name: 'Back a Page', keyFunction: 'WebBack', mode: 'WebMediaKey' },
-              { name: 'Forward a Page', keyFunction: 'WebForward', mode: 'WebMediaKey' },
-              { name: 'Stop', keyFunction: 'WebStop', mode: 'WebMediaKey' },
-              { name: 'Refresh Page', keyFunction: 'WebRefresh', mode: 'WebMediaKey' },
-              { name: 'Favorite Page', keyFunction: 'WebFavorite', mode: 'WebMediaKey' },
+              fn('keeb.fn.WebHome', 'WebHome', 'WebMediaKey'),
+              fn('keeb.fn.WebBack', 'WebBack', 'WebMediaKey'),
+              fn('keeb.fn.WebForward', 'WebForward', 'WebMediaKey'),
+              fn('keeb.fn.WebStop', 'WebStop', 'WebMediaKey'),
+              fn('keeb.fn.WebRefresh', 'WebRefresh', 'WebMediaKey'),
+              fn('keeb.fn.WebFavorite', 'WebFavorite', 'WebMediaKey'),
             ],
           },
         ],
       },
       {
-        title: 'System Apps',
+        titleKey: 'keeb.group.systemApps',
         sections: [
           {
-            title: 'Launch System Apps',
+            titleKey: 'keeb.section.launchSystemApps',
             functions: [
-              { name: 'Default Media Player', keyFunction: 'MediaSelect', mode: 'SystemMediaKey' },
-              { name: 'Default Email App', keyFunction: 'Mail', mode: 'SystemMediaKey' },
-              { name: 'Calculator', keyFunction: 'Calculator', mode: 'SystemMediaKey' },
-              { name: 'File Explorer', keyFunction: 'MyComputer', mode: 'SystemMediaKey' },
+              fn('keeb.fn.MediaSelect', 'MediaSelect', 'SystemMediaKey'),
+              fn('keeb.fn.Mail', 'Mail', 'SystemMediaKey'),
+              fn('keeb.fn.Calculator', 'Calculator', 'SystemMediaKey'),
+              fn('keeb.fn.MyComputer', 'MyComputer', 'SystemMediaKey'),
             ],
           },
         ],
@@ -238,27 +257,16 @@ export function getAssignmentCategories(): AssignmentCategories {
   };
 }
 
-// Human-readable tooltip for each rotary function. Used by `KeebRotaryView`.
-export function getRotaryFunctionTooltip(type: string): string {
-  switch (type) {
-    case 'VolumeAdjustment': return 'System Volume';
-    case 'BrightnessAdjustment': return 'Lighting Brightness';
-    case 'Scale': return 'Zoom';
-    case 'AltTab': return 'App Switch';
-    case 'CtrlTab': return 'Tab Switch';
-    case 'ScrollX': return 'Scroll Left/Right';
-    case 'ScrollY': return 'Scroll Up/Down';
-    case 'WaveAdjustment': return 'Lighting DJ';
-    case 'ScrubAdobeTimeline': return 'Scrub Timeline in Video Editor';
-    case 'ScrollAdobeTimeline': return 'Scroll Timeline in Video Editor';
-    case 'AdobeBrushSize': return 'Adjust Brush Size in Adobe';
-    case 'ScrollAdobeToolList': return 'Cycle Tool List in Adobe';
-    case 'MediaForwardsOrBackwards': return 'Media Forwards/Backwards';
-    case 'UndoOrRedo': return 'Undo/Redo';
-    case 'Q60PageControl': return 'Cycle pages on your Q60';
-    case 'Y70PageControl': return 'Cycle pages on your Y70';
-    default: return type;
-  }
+/// Locale key carrying the human label for a rotary function the service
+/// reports. Functions without a key (future firmware additions) fall back to
+/// the camelCase-split name in the view.
+export function getRotaryFunctionLabelKey(type: string): string {
+  return `keeb.rotaryFn.${type}`;
+}
+
+/// Locale key carrying the tooltip for a rotary function.
+export function getRotaryFunctionTooltipKey(type: string): string {
+  return `keeb.rotaryTip.${type}`;
 }
 
 export const ROTARY_SENSITIVITIES: readonly string[] = [

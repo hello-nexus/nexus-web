@@ -21,7 +21,7 @@ import {
   PANEL_MONITOR_ICON,
   type PanelDevice,
   type PanelDeviceCapabilities,
-} from '../panel/panelDevices';
+} from '../panel/device/panelDevices';
 import type { PanelSurface } from '../panel/types';
 
 const Y70_CAPABILITIES: PanelDeviceCapabilities = {

@@ -4,9 +4,9 @@ import {
   defaultStateFor,
   type EffectDef,
   type EffectState,
-} from '../types/lighting';
-import { buildDefaultTemplates } from '../types/lightingTemplates';
-import { getInstallDefaults } from '../api/installDefaultsCache';
+} from '../../types/lighting';
+import { buildDefaultTemplates } from '../../types/lightingTemplates';
+import { getInstallDefaults } from '../../api/installDefaultsCache';
 
 export type PanelBackgroundMode = 'solid' | 'shader';
 export type PanelResolvedTheme = 'dark' | 'light';

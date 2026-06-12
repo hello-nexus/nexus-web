@@ -1,15 +1,17 @@
+@use '../../../styles/text' as *;
+
 .container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 8px 12px 12px;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md) var(--space-md);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .hint {
@@ -18,19 +20,20 @@
   border-radius: var(--radius-sm);
   background: var(--panel-card-bg, rgba(255, 255, 255, 0.03));
   border: 1px dashed var(--panel-card-border, rgba(255, 255, 255, 0.1));
-  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+  color: var(--text-dim);
   font-size: var(--type-mini);
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  // Two columns of group cards, collapsing to one on a narrow window.
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: var(--space-md);
 }
 
 .groupCard {
   // Card supplies the chrome; we just need section spacing inside it.
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .section {
@@ -40,11 +43,9 @@
 }
 
 .sectionTitle {
+  @include text-label;
   margin: 0;
-  font-size: var(--type-tiny);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+  color: var(--text-dim);
 }
 
 .tiles {
@@ -55,9 +56,13 @@
 
 // Source-keyboard stage (Keyboard category): a second KeebKeyboard render
 // sized smaller than the main one above, used as a click-to-pick picker.
+// useFitZoom measures the wrapper and applies the `zoom` inline.
+.sourceStageWrap {
+  width: 100%;
+}
+
 .sourceStage {
   display: flex;
   justify-content: center;
   padding: 4px 0 0;
-  zoom: 0.48;
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { usePanelSheetSwipe } from './engine/usePanelSheetSwipe';
+import { usePanelSheetSwipe } from '../engine/usePanelSheetSwipe';
 import styles from './PanelImmersiveOverlay.module.scss';
 
 interface PanelImmersiveOverlayProps {

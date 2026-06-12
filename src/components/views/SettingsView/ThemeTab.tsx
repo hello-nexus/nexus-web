@@ -3,6 +3,7 @@ import { ColorPickerWithPresets } from '../../common/ColorPickerWithPresets/Colo
 import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { Tabs } from '../../common/Tabs/Tabs';
 import { useTranslation } from '../../../lib/i18n';
+import { hostSupportsGlass } from '../../../app/windowActions';
 import {
   PRESET_ACCENTS, THEME_MODES, BACKGROUND_MODES,
   applyAccentColor, applyThemeMode, applyBackgroundMode, watchSystemTheme,
@@ -37,6 +38,19 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
     updateGeneral({ backgroundMode: mode });
     applyBackgroundMode(mode);
   };
+
+  // Hide 'glass' where the host can't render translucency (Linux / browser).
+  // The stored value is left untouched so a Windows/macOS app shell still gets
+  // real glass; here a persisted 'glass' just reads as 'flat' (its actual
+  // render) so the picker shows a coherent selection.
+  const supportsGlass = hostSupportsGlass();
+  const backgroundModes = supportsGlass
+    ? BACKGROUND_MODES
+    : BACKGROUND_MODES.filter(mode => mode !== 'glass');
+  const backgroundActiveKey =
+    !supportsGlass && settings.general.backgroundMode === 'glass'
+      ? 'flat'
+      : settings.general.backgroundMode;
 
   const handleAccentSourceChange = (source: AccentSource) => {
     if (source === 'system') {
@@ -76,9 +90,9 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
         <Tabs
           variant="pill"
           ariaLabel={t('settings.background')}
-          activeKey={settings.general.backgroundMode}
+          activeKey={backgroundActiveKey}
           onChange={k => handleBackgroundChange(k as BackgroundMode)}
-          tabs={BACKGROUND_MODES.map(mode => ({ key: mode, label: t(`settings.background.${mode}`) }))}
+          tabs={backgroundModes.map(mode => ({ key: mode, label: t(`settings.background.${mode}`) }))}
         />
       </SettingRow>
 

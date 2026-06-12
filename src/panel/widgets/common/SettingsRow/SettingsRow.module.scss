@@ -1,15 +1,8 @@
 @use '../../../../styles/text' as *;
 
 // .row / .label / .control live in the canonical components/common/SettingRow.
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-// Section header uses the shared <SectionHeader> component
-// (components/common/SectionHeader).
+// The section wrapper (header-above-box) is the shared components/common/
+// SettingsSection.
 
 .input {
   @include text-button;

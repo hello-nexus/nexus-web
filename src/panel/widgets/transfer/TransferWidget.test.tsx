@@ -12,7 +12,7 @@ vi.mock('../../../api/service', () => ({
 
 import { TransferWidget } from './TransferWidget';
 import { PanelPreviewProvider } from '../common/PanelPreviewContext';
-import { NATIVE_TRANSFER_STATE_EVENT, type NativeTransferState } from '../../panelNativeBridge';
+import { NATIVE_TRANSFER_STATE_EVENT, type NativeTransferState } from '../../device/panelNativeBridge';
 import { TRANSFER_CLIPBOARD_PATH, TRANSFER_ITEMS_PATH } from '../../../api/transfer';
 import type { PanelWidget } from '../../types';
 

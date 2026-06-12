@@ -937,6 +937,31 @@
   font-style: italic;
 }
 
+// Community-layouts pill on a device card: shown when the registry has
+// cached layouts for this device. Click deep-links to the LED map editor's
+// Community tab.
+.communityBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent 55%);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 20%, transparent 80%);
+  }
+
+  svg { width: 11px; height: 11px; }
+}
+
 .motherboardGroup {
   display: flex;
   flex-direction: column;

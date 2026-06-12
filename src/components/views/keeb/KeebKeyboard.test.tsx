@@ -1,12 +1,23 @@
 // Render tests for the keeb keyboard graphic. Asserts the visual classes
 // land on the right positional cells, the wheels are clickable on row 0,
 // and the user-facing layer key (function name on every cell) actually
-// renders for the canonical default state.
+// renders for the canonical default state. Wheel aria-labels resolve through
+// the key-echo i18n mock, so queries use the keeb.keyboard.* locale keys.
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import type { KeyboardState } from '../../../api/keeb';
 import { KeebKeyboard, type KeebSelection } from './KeebKeyboard';
+
+vi.mock('../../../lib/i18n', () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string | number>) => {
+      let text = key;
+      if (params) for (const [k, v] of Object.entries(params)) text += ` ${k}=${v}`;
+      return text;
+    },
+  }),
+}));
 
 function buildState(overrides: Partial<KeyboardState> = {}): KeyboardState {
   return {
@@ -19,7 +30,7 @@ function buildState(overrides: Partial<KeyboardState> = {}): KeyboardState {
   };
 }
 
-describe('KeebKeyboard — render', () => {
+describe('KeebKeyboard - render', () => {
   it('renders every layout cell as a button with its function in the title attribute', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
     // ANSI cell count by row:
@@ -36,8 +47,8 @@ describe('KeebKeyboard — render', () => {
 
   it('renders the two rotary wheel buttons inline on row 0', () => {
     render(<KeebKeyboard state={buildState()} />);
-    expect(screen.getByRole('button', { name: 'Left rotary wheel' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Right rotary wheel' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'keeb.keyboard.leftWheel' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'keeb.keyboard.rightWheel' })).toBeInTheDocument();
   });
 
   it('applies the middle-button visual class to the RGB-cycle key (row 0, col 0)', () => {
@@ -138,7 +149,7 @@ describe('KeebKeyboard — render', () => {
   });
 });
 
-describe('KeebKeyboard — selection', () => {
+describe('KeebKeyboard - selection', () => {
   it('fires onSelect with the (x, y) when a key is clicked', () => {
     const onSelect = vi.fn();
     const { container } = render(<KeebKeyboard state={buildState()} onSelect={onSelect} />);
@@ -151,9 +162,9 @@ describe('KeebKeyboard — selection', () => {
   it('fires onSelect with the wheel side when a wheel is clicked', () => {
     const onSelect = vi.fn();
     render(<KeebKeyboard state={buildState()} onSelect={onSelect} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Left rotary wheel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'keeb.keyboard.leftWheel' }));
     expect(onSelect).toHaveBeenLastCalledWith({ kind: 'wheel', side: 'left' });
-    fireEvent.click(screen.getByRole('button', { name: 'Right rotary wheel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'keeb.keyboard.rightWheel' }));
     expect(onSelect).toHaveBeenLastCalledWith({ kind: 'wheel', side: 'right' });
   });
 
@@ -169,8 +180,8 @@ describe('KeebKeyboard — selection', () => {
 
   it('marks the selected wheel visually', () => {
     const { rerender } = render(<KeebKeyboard state={buildState()} selected={{ kind: 'wheel', side: 'left' }} />);
-    const left = screen.getByRole('button', { name: 'Left rotary wheel' });
-    const right = screen.getByRole('button', { name: 'Right rotary wheel' });
+    const left = screen.getByRole('button', { name: 'keeb.keyboard.leftWheel' });
+    const right = screen.getByRole('button', { name: 'keeb.keyboard.rightWheel' });
     expect(left.className).toMatch(/wheelSelected/);
     expect(right.className).not.toMatch(/wheelSelected/);
 

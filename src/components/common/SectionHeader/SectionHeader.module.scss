@@ -1,14 +1,10 @@
-// Canonical settings section header — see SectionHeader.tsx. The --panel-*
-// aliases resolve inside .panel-root (kiosk) and fall back to the app globals
-// in the dashboard, so the header reads identically in both contexts.
+@use '../../../styles/text' as *;
+
+// Canonical settings header — see SectionHeader.tsx. A muted body-type label;
+// spacing + alignment are owned by the parent (e.g. SettingsSection). The
+// --panel-text-muted alias resolves inside .panel-root (kiosk) and falls back
+// to the app globals in the dashboard, so the header reads identically in both.
 .sectionHeader {
+  @include text-body;
   color: var(--panel-text-muted, var(--text-dim));
-  font-size: var(--type-small);
-  font-weight: var(--weight-heading);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding-bottom: 0.25rem;
-  // Built from the text colour, matching the tab rule, so it inverts with the
-  // theme; stroke weight matches the device-tree parent/child connector.
-  border-bottom: 2px solid color-mix(in srgb, var(--text) 18%, transparent);
 }

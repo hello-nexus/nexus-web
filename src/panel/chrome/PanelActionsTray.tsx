@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Lock, Plus, QrCode, Settings2 } from 'lucide-react';
-import { usePanelTraySwipe } from './engine/usePanelTraySwipe';
-import { isNativeApp } from './panelNativeBridge';
-import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
+import { usePanelTraySwipe } from '../engine/usePanelTraySwipe';
+import { isNativeApp } from '../device/panelNativeBridge';
+import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import styles from './PanelActionsTray.module.scss';
 
 interface PanelActionsTrayProps {

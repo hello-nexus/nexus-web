@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Fan } from 'lucide-react';
-import { PanelArrowButton } from '../../PanelArrowButton';
+import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import {
   applyProfile, fetchProfiles,
   fetchCurves, fetchFanChannels, fetchTemperatureSources,

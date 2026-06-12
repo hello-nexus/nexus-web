@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { PanelPager } from '../../PanelPager';
-import { PanelPageIndicator } from '../../PanelPageIndicator';
+import { PanelPager } from '../../chrome/PanelPager';
+import { PanelPageIndicator } from '../../chrome/PanelPageIndicator';
 import styles from './ImmersiveLayout.module.scss';
 
 interface ImmersiveLayoutProps {

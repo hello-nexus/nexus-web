@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { GESTURE_AXIS_DOMINANCE, GESTURE_ENGAGE_PX } from './gestureThresholds';
 import { claimGestureAxis, resetGestureAxis } from './gestureAxisLock';
-import { triggerHaptic } from '../panelNativeBridge';
+import { triggerHaptic } from '../device/panelNativeBridge';
 
 /**
  * Light upward-swipe gesture that reveals the panel actions tray. Lands

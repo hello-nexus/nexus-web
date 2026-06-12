@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Circle, RefreshCw, Square as StopIcon } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Circle, ListVideo, RefreshCw, Square as StopIcon } from 'lucide-react';
 import {
   getKeebMacro,
   setKeebMacro,
@@ -7,14 +7,12 @@ import {
   type MacroKey,
 } from '../../../api/keeb';
 import { Button } from '../../common/Button/Button';
+import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { Tabs, type TabDef } from '../../common/Tabs/Tabs';
+import { useToast } from '../../common/Toast/Toast';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebMacroView.module.scss';
-
-const DELAY_MODE_TABS: readonly TabDef[] = [
-  { key: 'record', label: 'Record Delay' },
-  { key: 'custom', label: 'Custom Delay' },
-];
 
 const MACRO_COUNT = 16;
 type DelayMode = 'record' | 'custom';
@@ -31,10 +29,16 @@ export interface KeebMacroViewProps {
 /// durations snap to 10 ms multiples.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- props (open gate) kept for signature stability
 export function KeebMacroView(_: KeebMacroViewProps) {
+  const { t } = useTranslation();
+  const { push } = useToast();
   const [index, setIndex] = useState(0);
   const [macro, setMacro] = useState<KeebMacro | null>(null);
-  const [name, setName] = useState('');
   const [delayMode, setDelayMode] = useState<DelayMode>('record');
+
+  const delayModeTabs: readonly TabDef[] = useMemo(() => [
+    { key: 'record', label: t('keeb.macro.recordDelay') },
+    { key: 'custom', label: t('keeb.macro.customDelay') },
+  ], [t]);
   const [customDelay, setCustomDelay] = useState(50);
   const [recordings, setRecordings] = useState<MacroKey[]>([]);
   const [isRecording, setIsRecording] = useState(false);
@@ -56,7 +60,6 @@ export function KeebMacroView(_: KeebMacroViewProps) {
       if (cancelled) return;
       setMacro(m);
       setRecordings(m?.keys ?? []);
-      setName(`Macro ${index + 1}`);
     });
     return () => { cancelled = true; };
   }, [index]);
@@ -134,6 +137,26 @@ export function KeebMacroView(_: KeebMacroViewProps) {
 
   useEffect(() => () => { stopListening(); }, [stopListening]);
 
+  /// Persist a recording set. On failure, roll the editor back to the last
+  /// server-acknowledged macro and tell the user - the keyboard never got it.
+  /// One toast per failure burst (an outage fails every save in a sequence
+  /// like stop-recording + duration edits).
+  const lastFailToastRef = useRef(0);
+  const save = useCallback(async (keys: MacroKey[]) => {
+    const saved = await setKeebMacro(index, keys);
+    if (saved) {
+      setMacro(saved);
+      setRecordings(saved.keys);
+      return;
+    }
+    setRecordings(macro?.keys ?? []);
+    const now = Date.now();
+    if (now - lastFailToastRef.current > 4000) {
+      lastFailToastRef.current = now;
+      push({ title: t('keeb.write.failedTitle'), body: t('keeb.write.failedBody') });
+    }
+  }, [index, macro, push, t]);
+
   const onToggleRecord = async () => {
     if (!isRecording) {
       window.addEventListener('keydown', record);
@@ -144,17 +167,12 @@ export function KeebMacroView(_: KeebMacroViewProps) {
     stopListening();
     times.current = {};
     setIsRecording(false);
-    const saved = await setKeebMacro(index, recordings);
-    if (saved) {
-      setMacro(saved);
-      setRecordings(saved.keys);
-    }
+    await save(recordings);
   };
 
   const onClear = async () => {
     setRecordings([]);
-    const saved = await setKeebMacro(index, []);
-    if (saved) setMacro(saved);
+    await save([]);
   };
 
   const onDurationEdit = (i: number, raw: string) => {
@@ -172,21 +190,20 @@ export function KeebMacroView(_: KeebMacroViewProps) {
     if (!next[i]) return;
     next[i] = { ...next[i], duration: normalize(next[i].duration) };
     setRecordings(next);
-    const saved = await setKeebMacro(index, next);
-    if (saved) setMacro(saved);
+    await save(next);
   };
 
   const visibleKeys = isRecording ? recordings : (macro?.keys ?? recordings);
 
   return (
     <div className={styles.container}>
-      <aside className={styles.slots} aria-label="Macro slots">
+      <aside className={styles.slots} aria-label={t('keeb.macro.slotsAria')}>
         {Array.from({ length: MACRO_COUNT }, (_, i) => (
           <IconLabelButton
             key={i}
-            label={`Macro ${i + 1}`}
+            label={t('keeb.macro.slotN', { n: i + 1 })}
             active={index === i}
-            ariaLabel={`Macro slot ${i + 1}`}
+            ariaLabel={t('keeb.macro.slotAriaN', { n: i + 1 })}
             className={styles.slotBtn}
             onPress={() => setIndex(i)}
           />
@@ -195,24 +212,13 @@ export function KeebMacroView(_: KeebMacroViewProps) {
 
       <section className={styles.editor}>
         <header className={styles.editorHeader}>
-          <label className={styles.nameField}>
-            <span>Name</span>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className={styles.nameInput}
-              aria-label="Macro name"
-            />
-          </label>
-
           <div className={styles.delayBlock}>
             <Tabs
-              tabs={DELAY_MODE_TABS}
+              tabs={delayModeTabs}
               activeKey={delayMode}
               onChange={k => setDelayMode(k as DelayMode)}
               variant="pill"
-              ariaLabel="Delay mode"
+              ariaLabel={t('keeb.macro.delayModeAria')}
             />
             {delayMode === 'custom' && (
               <div className={styles.delayRow}>
@@ -223,9 +229,9 @@ export function KeebMacroView(_: KeebMacroViewProps) {
                   value={customDelay}
                   onChange={e => setCustomDelay(Math.max(10, Number(e.target.value) || 10))}
                   className={styles.customInput}
-                  aria-label="Custom delay in milliseconds"
+                  aria-label={t('keeb.macro.customDelayAria')}
                 />
-                <span className={styles.unit}>ms</span>
+                <span className={styles.unit}>{t('keeb.macro.ms')}</span>
               </div>
             )}
           </div>
@@ -238,7 +244,7 @@ export function KeebMacroView(_: KeebMacroViewProps) {
                 icon={<RefreshCw size={14} aria-hidden="true" />}
                 onClick={() => void onClear()}
               >
-                Clear
+                {t('keeb.macro.clear')}
               </Button>
             )}
             <Button
@@ -247,14 +253,19 @@ export function KeebMacroView(_: KeebMacroViewProps) {
               icon={isRecording ? <StopIcon size={14} aria-hidden="true" /> : <Circle size={14} aria-hidden="true" />}
               onClick={() => void onToggleRecord()}
             >
-              {isRecording ? 'Stop' : 'Start Recording'}
+              {isRecording ? t('keeb.macro.stop') : t('keeb.macro.start')}
             </Button>
           </div>
         </header>
 
-        <div className={styles.recordingList} role="list">
+        <div className={styles.recordingList} role="list" aria-live="polite">
           {visibleKeys.length === 0 && (
-            <p className={styles.empty}>No keys captured yet. Start recording to capture key presses.</p>
+            <EmptyState
+              icon={<ListVideo size={24} aria-hidden="true" />}
+              title={t('keeb.macro.emptyTitle')}
+              hint={t('keeb.macro.emptyHint')}
+              compact
+            />
           )}
           {visibleKeys.map((k, i) => (
             <div key={`${k.key}-${k.type}-${i}`} className={styles.recordRow} role="listitem">
@@ -268,9 +279,9 @@ export function KeebMacroView(_: KeebMacroViewProps) {
                 onChange={e => onDurationEdit(i, e.target.value)}
                 onBlur={() => void onDurationCommit(i)}
                 className={styles.recordDuration}
-                aria-label={`Duration for ${k.key} ${k.type}`}
+                aria-label={t('keeb.macro.durationAria', { key: k.key, type: k.type })}
               />
-              <span className={styles.unit}>ms</span>
+              <span className={styles.unit}>{t('keeb.macro.ms')}</span>
             </div>
           ))}
         </div>

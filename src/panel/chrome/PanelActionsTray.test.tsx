@@ -2,7 +2,7 @@ import { act, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PanelActionsTray } from './PanelActionsTray';
-import { resetGestureAxis } from './engine/gestureAxisLock';
+import { resetGestureAxis } from '../engine/gestureAxisLock';
 
 function Harness() {
   const surfaceRef = useRef<HTMLDivElement | null>(null);

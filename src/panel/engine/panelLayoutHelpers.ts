@@ -1,7 +1,7 @@
 import type { CollisionDetection } from '@dnd-kit/core';
-import { snapStride } from './engine/grid';
-import type { PanelLayout, PanelWidget } from './types';
-import { isPinnableAppKey } from '../app/sidebarAppKeys';
+import { snapStride } from './grid';
+import type { PanelLayout, PanelWidget } from '../types';
+import { isPinnableAppKey } from '../../app/sidebarAppKeys';
 
 // A click on a dashboard widget tile navigates to the widget's app page, keyed
 // off the App registry (manifest.Page) like the sidebar pin list. Adding a

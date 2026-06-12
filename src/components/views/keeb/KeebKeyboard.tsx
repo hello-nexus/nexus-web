@@ -1,8 +1,16 @@
 import { useMemo, type CSSProperties } from 'react';
 import type { KeebKey, KeyboardState } from '../../../api/keeb';
+import { useTranslation } from '../../../lib/i18n';
 import { getKeyGlyph, type KeebLayoutKind } from './keebGlyphs';
 import { getKeebLayoutRows } from './keebLayout';
 import styles from './KeebKeyboard.module.scss';
+
+/// Width of the fixed-pixel render at zoom 1: the widest layout row (cell
+/// widths + margins + flex gaps) plus the chassis padding and border, with a
+/// little slack. Stages divide their container width by this to compute the
+/// fit zoom; overestimating only costs a sliver of size, underestimating
+/// clips the board.
+export const KEEB_RENDER_WIDTH = 2030;
 
 /// What the user has selected on the keyboard. Either a physical key (drives
 /// function-category writes) or one of the two rotary wheels (drives rotary
@@ -64,6 +72,7 @@ export function KeebKeyboard({
   hideWheels,
   useDefaults,
 }: KeebKeyboardProps) {
+  const { t } = useTranslation();
   const layout: KeebLayoutKind = state.layout === 'ISO' ? 'ISO' : 'ANSI';
   const rows = useMemo(() => getKeebLayoutRows(layout), [layout]);
 
@@ -74,9 +83,14 @@ export function KeebKeyboard({
     const assigned: KeebKey | undefined = useDefaults ? undefined : state.keys[x]?.[y];
     const func = assigned?.function || cell.function;
     const isSelected = selected?.kind === 'key' && selected.x === x && selected.y === y;
+    const glyph = getKeyGlyph(func, layout);
+    // Long text legends on caps without a width override clip at full legend
+    // size; render them dense instead.
+    const dense = typeof glyph === 'string' && glyph.length >= 4 && cell.style?.width === undefined;
     const cls = [
       styles.key,
       keyVariant(x, y),
+      dense ? styles.keyDense : '',
       isSelected ? styles.keySelected : '',
       disabled ? styles.keyDisabled : '',
     ].filter(Boolean).join(' ');
@@ -100,7 +114,7 @@ export function KeebKeyboard({
         disabled={disabled}
         onClick={() => onSelect?.({ kind: 'key', x, y })}
       >
-        {getKeyGlyph(func, layout)}
+        {glyph}
       </button>
     );
   };
@@ -122,7 +136,7 @@ export function KeebKeyboard({
                   type="button"
                   className={`${styles.wheel} ${leftWheelSelected ? styles.wheelSelected : ''}`}
                   disabled={disabled}
-                  aria-label="Left rotary wheel"
+                  aria-label={t('keeb.keyboard.leftWheel')}
                   aria-pressed={leftWheelSelected}
                   onClick={() => onSelect?.({ kind: 'wheel', side: 'left' })}
                 >
@@ -135,7 +149,7 @@ export function KeebKeyboard({
                   type="button"
                   className={`${styles.wheel} ${rightWheelSelected ? styles.wheelSelected : ''}`}
                   disabled={disabled}
-                  aria-label="Right rotary wheel"
+                  aria-label={t('keeb.keyboard.rightWheel')}
                   aria-pressed={rightWheelSelected}
                   onClick={() => onSelect?.({ kind: 'wheel', side: 'right' })}
                 >

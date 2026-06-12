@@ -11,7 +11,7 @@ import {
   getConnectedSimulatedPanels,
   PANEL_SIMULATION_CHANGED_EVENT,
 } from '../lib/panelSimulation';
-import { isRemotePanel, type PanelDevice } from '../panel/panelDevices';
+import { isRemotePanel, type PanelDevice } from '../panel/device/panelDevices';
 
 export type UnifiedDeviceKind = 'panel' | 'curated' | 'peripheral';
 

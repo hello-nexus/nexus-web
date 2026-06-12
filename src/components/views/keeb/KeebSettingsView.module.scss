@@ -1,36 +1,25 @@
+@use '../../../styles/text' as *;
+
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  padding: 8px;
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 0;
-}
-
-.rowLabel {
-  font-size: var(--type-small);
-  color: var(--text-dim, rgba(255, 255, 255, 0.7));
-}
-
-.rowControl {
-  display: flex;
-  justify-content: flex-start;
+  // Three columns on a wide window, wrapping down to two/one as the window
+  // narrows so the sections never overflow.
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  // Sections size to their own content; differing description wrap must not
+  // stretch the sibling boxes.
+  align-items: start;
+  gap: var(--space-lg);
+  padding: var(--space-sm);
 }
 
 .iconGroup {
   display: flex;
-  gap: 6px;
+  gap: var(--space-xs);
 }
 
 .loading {
-  padding: 32px;
+  padding: var(--space-xl);
   text-align: center;
-  color: var(--text-dim, rgba(255, 255, 255, 0.55));
-  font-size: 14px;
+  color: var(--text-dim);
+  @include text-body;
 }

@@ -2,18 +2,18 @@ import { createPortal } from 'react-dom';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import type { CSSProperties } from 'react';
-import { sizeToSpan } from './engine/grid';
-import { lookupApp } from './widgets/registry';
-import type { DeckEditView } from './widgets/types';
-import { WidgetCellLabel } from './widgets/common/WidgetCellLabel';
-import { PanelPreviewProvider } from './widgets/common/PanelPreviewContext';
-import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
-import { useTranslation } from '../lib/i18n';
-import type { PanelLayout, PanelSurface, PanelWidget, PanelConfigValue } from './types';
-import { findWidgetById, readCellMetrics, type DashboardSectionNavigate } from './panelLayoutHelpers';
-import type { EditorDockMotion } from './panelEditorDock';
-import type { ResolvedPanelThemeMode } from './editor/PanelThemeSettings';
-import styles from './PanelApp.module.scss';
+import { sizeToSpan } from '../engine/grid';
+import { lookupApp } from '../widgets/registry';
+import type { DeckEditView } from '../widgets/types';
+import { WidgetCellLabel } from '../widgets/common/WidgetCellLabel';
+import { PanelPreviewProvider } from '../widgets/common/PanelPreviewContext';
+import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBoundary';
+import { useTranslation } from '../../lib/i18n';
+import type { PanelLayout, PanelSurface, PanelWidget, PanelConfigValue } from '../types';
+import { findWidgetById, readCellMetrics, type DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
+import type { EditorDockMotion } from '../editor/panelEditorDock';
+import type { ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
+import styles from '../PanelApp.module.scss';
 
 // Highlights the cells the dragged widget would land on if dropped now.
 // Reads currentOverIdRef + the active widget's size to compute the

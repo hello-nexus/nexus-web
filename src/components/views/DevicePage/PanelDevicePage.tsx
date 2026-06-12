@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
 import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../../../panel/widgets/monitoring/perfSlots';
@@ -26,9 +26,9 @@ import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
-import { PanelArrowButton } from '../../../panel/PanelArrowButton';
+import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
-import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/panelTheme';
+import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
 import { lookupApp, sizesForSurface } from '../../../panel/widgets/registry';
 import { sizeToSpan } from '../../../panel/engine/grid';
@@ -40,7 +40,7 @@ import {
   type PanelWidgetSize,
   type PanelConfigValue,
 } from '../../../panel/types';
-import { isRemotePanel, type PanelDevice } from '../../../panel/panelDevices';
+import { isRemotePanel, type PanelDevice } from '../../../panel/device/panelDevices';
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
 import { PanelWidgetCatalog } from '../../../panel/editor/PanelWidgetCatalog';
 import '../../../panel/styles/tokens.scss';
@@ -710,7 +710,7 @@ function MonitorSettingsPanel({
   const { t } = useTranslation();
   return (
     <div className={styles.settingsContent}>
-      <SectionHeader>{t('devices.y70.display')}</SectionHeader>
+      <SettingsSection title={t('devices.y70.display')} boxClassName={styles.deviceSettingsBox}>
       {brightness !== null && (
         <div className="device-modal-row">
           <div className="device-modal-label">{t('devices.y70.brightness')}</div>
@@ -752,6 +752,7 @@ function MonitorSettingsPanel({
           <Toggle checked={reserveMonitor} onChange={onReserveMonitorToggle} ariaLabel={t('devices.y70.reserveMonitor')} />
         </div>
       )}
+      </SettingsSection>
     </div>
   );
 }
@@ -788,9 +789,7 @@ function SettingsPanel({
   return (
     <div className={styles.settingsContent}>
       {showDisplayControls && (
-        <>
-          <SectionHeader>{t('devices.y70.display')}</SectionHeader>
-
+        <SettingsSection title={t('devices.y70.display')} boxClassName={styles.deviceSettingsBox}>
           <div className="device-modal-row">
             <div className="device-modal-label">{t('devices.y70.brightness')}</div>
             <div className={styles.brightnessControl}>
@@ -828,31 +827,27 @@ function SettingsPanel({
             </div>
             <Toggle checked={screenOn} onChange={onScreenToggle} ariaLabel={t('devices.y70.screen')} />
           </div>
-        </>
+        </SettingsSection>
       )}
 
       {showAutoLaunch && (
-        <SectionHeader style={{ marginTop: showDisplayControls ? 8 : 0 }}>{t('devices.y70.panel')}</SectionHeader>
-      )}
-
-      {showAutoLaunch && (
-        <div className="device-modal-row">
-          <div>
-            <div className="device-modal-label">{t('devices.y70.panelAutoLaunch')}</div>
-            <div className="device-modal-hint">{t('devices.y70.panelAutoLaunchHint')}</div>
+        <SettingsSection title={t('devices.y70.panel')} boxClassName={styles.deviceSettingsBox}>
+          <div className="device-modal-row">
+            <div>
+              <div className="device-modal-label">{t('devices.y70.panelAutoLaunch')}</div>
+              <div className="device-modal-hint">{t('devices.y70.panelAutoLaunchHint')}</div>
+            </div>
+            <Toggle checked={autoLaunch} onChange={onAutoLaunchToggle} ariaLabel={t('devices.y70.panelAutoLaunch')} />
           </div>
-          <Toggle checked={autoLaunch} onChange={onAutoLaunchToggle} ariaLabel={t('devices.y70.panelAutoLaunch')} />
-        </div>
-      )}
 
-      {showAutoLaunch && (
-        <div className="device-modal-row">
-          <div>
-            <div className="device-modal-label">{t('devices.y70.reserveMonitor')}</div>
-            <div className="device-modal-hint">{t('devices.y70.reserveMonitorHint')}</div>
+          <div className="device-modal-row">
+            <div>
+              <div className="device-modal-label">{t('devices.y70.reserveMonitor')}</div>
+              <div className="device-modal-hint">{t('devices.y70.reserveMonitorHint')}</div>
+            </div>
+            <Toggle checked={reserveMonitor} onChange={onReserveMonitorToggle} ariaLabel={t('devices.y70.reserveMonitor')} />
           </div>
-          <Toggle checked={reserveMonitor} onChange={onReserveMonitorToggle} ariaLabel={t('devices.y70.reserveMonitor')} />
-        </div>
+        </SettingsSection>
       )}
     </div>
   );

@@ -178,6 +178,8 @@ export interface LightingDevice {
   ledsOn: boolean;
   brightness?: number;
   ledCount: number;
+  /** Cross-install hardware fingerprint for community mapping lookup. Empty when the device cannot be fingerprinted; all community mapping UI hides itself then. */
+  deviceKey?: string;
   canvasX: number;
   canvasY: number;
   canvasW: number;
@@ -256,12 +258,41 @@ export interface LedMapEntry {
   disabled: boolean;
 }
 
+/** Inclusive LED index range. */
+export interface LedGroupRange {
+  start: number;
+  end: number;
+}
+
+/** Named LED segment inside a device's map ("Fan 1"). */
+export interface LedGroup {
+  name: string;
+  ranges: LedGroupRange[];
+}
+
+/** Local apply state for a community / file mapping on one device. */
+export interface AppliedMappingSummary {
+  /** Registry id when the mapping came from the community; null for file imports. */
+  mappingId: string | null;
+  name: string;
+  /** "community" | "file" */
+  source: string;
+  contentHash: string;
+  autoApplied: boolean;
+  appliedAtMs: number;
+}
+
 export interface LedMapResponse {
   id: string;
   ledCount: number;
   leds: LedMapEntry[];
   hasCustomOverrides: boolean;
   aspectRatio: number;
+  /** Named LED segments (resolved: user delta wins over the applied mapping's groups). */
+  groups?: LedGroup[];
+  /** Set when a community/file mapping is applied to this device. */
+  applied?: AppliedMappingSummary | null;
+  deviceKey?: string;
 }
 
 export const fetchLedMap = (id: string) =>
@@ -270,8 +301,22 @@ export const fetchLedMap = (id: string) =>
 export const fetchLedMapDefaults = (id: string) =>
   fetchService<LedMapResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/led-map?defaults=true`);
 
-export const saveLedMap = (id: string, overrides: { ledIndex: number; u: number; v: number; disabled?: boolean }[], aspectRatio: number) =>
-  postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-map`, { overrides, aspectRatio });
+// Saves the user-delta layer only. Omitted groups leave the stored user
+// groups untouched while a list (even empty) replaces them; a zero aspect
+// ratio is ignored by the service while a positive one persists as a user
+// delta. The editor sends groups / a ratio only when the user edited them
+// this session so an applied community mapping never bakes into the delta.
+export const saveLedMap = (
+  id: string,
+  overrides: { ledIndex: number; u: number; v: number; disabled?: boolean }[],
+  aspectRatio: number,
+  groups?: LedGroup[],
+) =>
+  postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-map`, {
+    overrides,
+    aspectRatio,
+    ...(groups !== undefined ? { groups } : {}),
+  });
 
 export const resetLedMap = (id: string) =>
   deleteService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-map`);
@@ -284,3 +329,118 @@ export const testLedPattern = (id: string, pattern: string) =>
 
 export const clearLedEditor = (id: string) =>
   deleteService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-editor`);
+
+// --- Community LED mappings ---
+
+/** Base response envelope shared by the mapping mutation endpoints. */
+export interface ApiEnvelope {
+  error: boolean;
+  msg: string;
+}
+
+export interface MappingArtifactLed {
+  i: number;
+  u: number;
+  v: number;
+}
+
+export interface MappingArtifactZone {
+  zoneIndex: number;
+  /** Target LED count. Null = keep the device default. */
+  ledCount?: number | null;
+  aspectRatio?: number | null;
+  leds: MappingArtifactLed[];
+  disabled?: number[];
+  groups?: LedGroup[];
+}
+
+/** The shareable unit: a device's full LED layout, names, and groups. */
+export interface MappingArtifact {
+  schemaVersion: number;
+  name: string;
+  description?: string;
+  device: { key: string; match?: unknown };
+  zones: MappingArtifactZone[];
+}
+
+export interface CommunityMapping {
+  id: string;
+  name: string;
+  description?: string;
+  deviceKey: string;
+  contentHash: string;
+  origin: 'community' | 'verified';
+  autoApply: boolean;
+  score: number;
+  adopterCount: number;
+  authorName?: string;
+  payload?: MappingArtifact | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DeviceMappingsResponse extends ApiEnvelope {
+  deviceKey: string;
+  /** True when the registry was unreachable and items come from the disk cache. */
+  offline: boolean;
+  items: CommunityMapping[];
+  applied: AppliedMappingSummary | null;
+  /** True when the user undid an auto-apply on this device. */
+  autoApplyDeclined: boolean;
+}
+
+export interface PublishMappingResponse extends ApiEnvelope {
+  mappingId?: string | null;
+  /** True when the registry already had an identical artifact and returned the existing row. */
+  alreadyExisted: boolean;
+}
+
+export interface ExportMappingResponse extends ApiEnvelope {
+  artifact: MappingArtifact | null;
+}
+
+export interface MappingsAvailableResponse extends ApiEnvelope {
+  /** Device id -> cached community mapping count (only nonzero entries). */
+  counts: Record<string, number>;
+}
+
+// Must match the publish-failure msg in nexus-service MappingRoutes.cs; it is
+// the only failure the UI maps to a friendlier localized explanation.
+export const PUBLISH_NEEDS_ANONYMOUS_MSG = 'publish failed or anonymous data is disabled';
+
+/** Multiplex topic announcing a silent auto-apply on a newly seen device. */
+export const MAPPING_APPLIED_TOPIC = 'lighting/mapping-applied';
+
+export interface MappingAppliedFrame {
+  revision: number;
+  deviceId: string;
+  deviceName: string;
+  mappingId: string;
+  mappingName: string;
+  adopterCount: number;
+}
+
+export const fetchDeviceMappings = (id: string, refresh = false) =>
+  fetchService<DeviceMappingsResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/mappings?refresh=${refresh}`);
+
+export const applyDeviceMapping = (id: string, mappingId: string) =>
+  postService<ApiEnvelope>(`/devices/lighting-devices/${encodeURIComponent(id)}/mappings/apply`, { mappingId });
+
+// reason feeds the registry quality loop: "undo" only from the auto-apply
+// toast, "switched" when the user picks another mapping or goes back to the
+// default from the list.
+export const revertDeviceMapping = (id: string, reason: 'undo' | 'switched' | 'reset') =>
+  deleteService<ApiEnvelope>(`/devices/lighting-devices/${encodeURIComponent(id)}/mapping?reason=${reason}`);
+
+export const importDeviceMapping = (id: string, artifact: MappingArtifact) =>
+  postService<ApiEnvelope>(`/devices/lighting-devices/${encodeURIComponent(id)}/mappings/import`, artifact);
+
+export const exportDeviceMapping = (id: string) =>
+  fetchService<ExportMappingResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/mapping/export`);
+
+export const publishDeviceMapping = (id: string, body: { name: string; description?: string; authorName?: string }) =>
+  postService<PublishMappingResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/mappings/publish`, body);
+
+/** Cache-only count lookup for the device-card badges; never hits the network. */
+export const fetchAvailableMappings = () =>
+  fetchService<MappingsAvailableResponse>('/devices/lighting-devices/mappings/available');

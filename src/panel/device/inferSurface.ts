@@ -1,4 +1,4 @@
-import type { PanelSurface } from './types';
+import type { PanelSurface } from '../types';
 
 /**
  * Pick the surface classification for a freshly-registering device from its

@@ -1,7 +1,7 @@
 import { useEffect, useState, type RefObject } from 'react';
-import { panelGridCapacityForCanvas, type PanelGridCapacity } from './engine/grid';
-import type { PanelSurface } from './types';
-import { getPanelGridSizingSettings, PANEL_SIMULATION_CHANGED_EVENT } from '../lib/panelSimulation';
+import { panelGridCapacityForCanvas, type PanelGridCapacity } from './grid';
+import type { PanelSurface } from '../types';
+import { getPanelGridSizingSettings, PANEL_SIMULATION_CHANGED_EVENT } from '../../lib/panelSimulation';
 
 // Reference cell size (pre-scale) used for the phone surface and as a
 // canonical desktop cell baseline. The runtime grid is scaled around this.

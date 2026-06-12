@@ -1,8 +1,8 @@
 import type { CSSProperties } from 'react';
-import { sizeToSpan } from './engine/grid';
-import type { PanelSurface, PanelWidget } from './types';
-import { DESKTOP_GRID_PADDING, PHONE_WIDGET_REFERENCE_CELL, clampNumber, readSafeAreaInsets } from './panelGrid';
-import { readPhoneGridCellSize } from './panelPhone';
+import { sizeToSpan } from '../engine/grid';
+import type { PanelSurface, PanelWidget } from '../types';
+import { DESKTOP_GRID_PADDING, PHONE_WIDGET_REFERENCE_CELL, clampNumber, readSafeAreaInsets } from '../engine/panelGrid';
+import { readPhoneGridCellSize } from '../device/panelPhone';
 
 export interface EditorDockSourceRect {
   left: number;

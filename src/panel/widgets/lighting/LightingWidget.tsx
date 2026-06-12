@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Film, Lightbulb, Monitor, Sparkles } from 'lucide-react';
-import { PanelArrowButton } from '../../PanelArrowButton';
+import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import type { LucideIcon } from 'lucide-react';
 import {
   effectThumbnailPath,

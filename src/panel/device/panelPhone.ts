@@ -1,7 +1,7 @@
 import { useEffect, useState, type RefObject } from 'react';
-import type { PanelSurface } from './types';
-import { PHONE_WIDGET_REFERENCE_CELL, readSafeAreaInsets } from './panelGrid';
-import styles from './PanelApp.module.scss';
+import type { PanelSurface } from '../types';
+import { PHONE_WIDGET_REFERENCE_CELL, readSafeAreaInsets } from '../engine/panelGrid';
+import styles from '../PanelApp.module.scss';
 
 export const PHONE_PANEL_PWA_KEY = 'nexus_phone_panel_pwa';
 

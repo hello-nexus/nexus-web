@@ -46,7 +46,7 @@
   cursor: pointer;
   transition: border-color var(--ease-fast), background var(--ease-fast);
 
-  &:hover:not([data-disabled]):not(:disabled) {
+  &:hover:not(:disabled) {
     border-color: var(--accent);
     background: var(--bg-card-hover);
   }
@@ -55,7 +55,6 @@
     border-color: var(--accent);
   }
 
-  &[data-disabled='true'],
   &:disabled {
     cursor: default;
     opacity: 0.5;
@@ -150,8 +149,8 @@
   gap: 10px;
 }
 
-// Classic section-header look (matches SectionHeader: uppercase + bottom rule),
-// plus a chevron for collapse and a count pushed to the right.
+// Matches the shared SectionHeader look (muted body-type, no underline), plus
+// a chevron for collapse and a count pushed to the right.
 .categoryHeader {
   display: flex;
   align-items: center;
@@ -159,7 +158,6 @@
   width: 100%;
   padding: 0 0 0.25rem;
   border: none;
-  border-bottom: 1px solid var(--border);
   background: none;
   cursor: pointer;
   color: var(--text-dim);
@@ -169,10 +167,8 @@
 }
 
 .categoryLabel {
-  font-size: var(--type-small);
-  font-weight: var(--weight-heading);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
 }
 
 .categoryCount {

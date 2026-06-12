@@ -4,6 +4,7 @@ import { Button } from '../../common/Button/Button';
 import { Card } from '../../common/Card/Card';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebTesterView.module.scss';
 
 interface TouchEntry {
@@ -21,6 +22,7 @@ export interface KeebTesterViewProps {
 /// isn't wired (Phase 7 in plans/keeb-support.md), so this runs in Local
 /// Mode: it listens to window keydown events, testable without hardware.
 export function KeebTesterView({ open }: KeebTesterViewProps) {
+  const { t } = useTranslation();
   const [history, setHistory] = useState<TouchEntry[]>([]);
 
   const handler = useCallback((event: KeyboardEvent) => {
@@ -47,29 +49,29 @@ export function KeebTesterView({ open }: KeebTesterViewProps) {
   return (
     <div className={styles.container}>
       <Card
-        title="Local Mode"
-        subtitle="Live key testing arrives with the HID driver. For now this listens to your browser's keydown events so the UI is testable."
+        title={t('keeb.tester.localMode')}
+        subtitle={t('keeb.tester.localModeHint')}
         actions={
           <Button size="sm" tone="neutral" icon={<RefreshCw size={14} aria-hidden="true" />} onClick={onReset}>
-            Reset
+            {t('keeb.tester.reset')}
           </Button>
         }
       >
         <InfoList>
-          <InfoRow label="Key" value={latest?.key ?? '—'} />
-          <InfoRow label="Keycode" value={latest?.keycode ?? '—'} />
+          <InfoRow label={t('keeb.tester.key')} value={latest?.key ?? '-'} />
+          <InfoRow label={t('keeb.tester.keycode')} value={latest?.keycode ?? '-'} />
           <InfoRow
-            label="Time"
-            value={latest ? new Date(latest.timestamp).toLocaleTimeString() : '—'}
+            label={t('keeb.tester.time')}
+            value={latest ? new Date(latest.timestamp).toLocaleTimeString() : '-'}
           />
         </InfoList>
       </Card>
 
-      <Card title="History">
+      <Card title={t('keeb.tester.history')}>
         {history.length === 0 ? (
           <EmptyState
             icon={<Keyboard size={24} aria-hidden="true" />}
-            title="Press any key to populate the history."
+            title={t('keeb.tester.empty')}
             compact
           />
         ) : (

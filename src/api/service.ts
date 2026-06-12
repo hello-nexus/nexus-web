@@ -401,6 +401,18 @@ export async function fetchService<T>(path: string): Promise<T | null> {
   return r ? (await r.json()) as T : null;
 }
 
+/**
+ * The host's OS accent as #RRGGBB, or null when unavailable. Used by
+ * SystemAccentSync where there's no native shell to push it (Linux dashboard /
+ * plain browser); the service reads it from the XDG desktop portal. Windows and
+ * macOS app shells push the accent directly and return empty here.
+ */
+export async function fetchSystemAccent(): Promise<string | null> {
+  const res = await fetchService<{ accent?: string }>('/system/accent');
+  const hex = res?.accent;
+  return hex && /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : null;
+}
+
 export async function postService<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T | null> {
   const r = await authFetch(path, { method: 'POST', body, signal });
   return r ? (await r.json()) as T : null;

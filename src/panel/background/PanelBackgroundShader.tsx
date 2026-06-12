@@ -1,13 +1,13 @@
 import { useEffect, useRef, type CSSProperties } from 'react';
-import { useShaderRenderer } from '../hooks/useShaderRenderer';
-import type { EffectState } from '../types/lighting';
+import { useShaderRenderer } from '../../hooks/useShaderRenderer';
+import type { EffectState } from '../../types/lighting';
 import {
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundOpacity,
   normalizePanelBackgroundTemplate,
   panelBackgroundState,
 } from './panelBackground';
-import styles from './PanelApp.module.scss';
+import styles from '../PanelApp.module.scss';
 
 const PANEL_BACKGROUND_RENDER_OPTIONS = { maxDevicePixelRatio: 1 };
 

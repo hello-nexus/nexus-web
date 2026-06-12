@@ -1,7 +1,7 @@
 import { describe, expect, it, afterEach } from 'vitest';
 import { buildEditorDockMotionStyle } from './panelEditorDock';
-import { buildWidgetResizeMotionStyle } from './engine/widgetResizeMotion';
-import type { PanelWidget } from './types';
+import { buildWidgetResizeMotionStyle } from '../engine/widgetResizeMotion';
+import type { PanelWidget } from '../types';
 
 const originalViewport = {
   width: window.innerWidth,
