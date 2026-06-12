@@ -223,57 +223,131 @@ export function splitZone(
   };
 }
 
+// ── Staged partition edits ──────────────────────────────────────────────
+// Zone split / merge / rename / reset are staged locally (same undo stack
+// and Save flow as LED drags) and only persist on Save. Zones created by a
+// staged edit carry client-side temp ids so the rail stays interactive;
+// the ids never reach the service (the POST body is id-free) and are
+// replaced by service-assigned ids on the post-save refetch.
+
+const STAGED_ZONE_ID_PREFIX = 'staged:';
+
+export const stagedZoneId = (seq: number): string => `${STAGED_ZONE_ID_PREFIX}${seq}`;
+
+/** True for client-side temp ids; per-card endpoints (highlight, test pattern, brightness) must not be called with these. */
+export const isStagedZoneId = (id: string): boolean => id.startsWith(STAGED_ZONE_ID_PREFIX);
+
+/** Locally staged replacement of the device's partition, rendered by the rail until Save persists it. */
+export interface StagedPartition {
+  /** 'reset' persists as the partition DELETE on Save; 'edited' as an explicit zones POST. */
+  kind: 'edited' | 'reset';
+  zones: DeviceZone[];
+}
+
+export function renameZone(zones: DeviceZone[], zoneId: string, name: string): DeviceZone[] {
+  return zones.map(z => (z.id === zoneId ? { ...z, name } : z));
+}
+
 /**
- * Full partition POST body with one zone replaced by its split parts. The
- * remainder parts keep the original zone's name; the split-out run gets the
- * user-provided one.
+ * Staged partition with the selected zones collapsed into one. The merged
+ * zone sits at the block's device-order position, keeps the first member's
+ * name, and carries the provided temp id; unselected zones keep their ids.
  */
-export function buildSplitZonesBody(
+export function mergeStagedZones(
+  zones: DeviceZone[],
+  offsets: Map<number, number>,
+  selectedIds: Set<string>,
+  mergedId: string,
+): DeviceZone[] {
+  const ordered = orderZones(zones, offsets);
+  const members = ordered.filter(z => selectedIds.has(z.id));
+  const merged: DeviceZone = { id: mergedId, name: members[0]?.name ?? '', slices: mergeZoneSlices(members) };
+  const out: DeviceZone[] = [];
+  let inserted = false;
+  for (const zone of ordered) {
+    if (selectedIds.has(zone.id)) {
+      if (!inserted) {
+        out.push(merged);
+        inserted = true;
+      }
+      continue;
+    }
+    out.push(zone);
+  }
+  return out;
+}
+
+/**
+ * Staged partition with one zone replaced by its split parts. The remainder
+ * parts keep the original zone's name; the split-out run gets the
+ * user-provided one. All parts are new shapes, so all get temp ids; the
+ * split-out run's id is returned for selection.
+ */
+export function splitStagedZones(
   zones: DeviceZone[],
   offsets: Map<number, number>,
   zoneId: string,
   parts: SplitParts,
   newZoneName: string,
-): DeviceZoneDef[] {
-  const body: DeviceZoneDef[] = [];
+  nextId: () => string,
+): { zones: DeviceZone[]; newZoneId: string } {
+  const out: DeviceZone[] = [];
+  let newZoneId = '';
   for (const zone of orderZones(zones, offsets)) {
     if (zone.id !== zoneId) {
-      body.push({ name: zone.name, slices: zone.slices });
+      out.push(zone);
       continue;
     }
-    if (parts.before.length > 0) body.push({ name: zone.name, slices: parts.before });
-    body.push({ name: newZoneName, slices: parts.selected });
-    if (parts.after.length > 0) body.push({ name: zone.name, slices: parts.after });
+    if (parts.before.length > 0) out.push({ id: nextId(), name: zone.name, slices: parts.before });
+    newZoneId = nextId();
+    out.push({ id: newZoneId, name: newZoneName, slices: parts.selected });
+    if (parts.after.length > 0) out.push({ id: nextId(), name: zone.name, slices: parts.after });
   }
-  return body;
+  return { zones: out, newZoneId };
 }
 
 /**
- * Full partition POST body with the selected zones collapsed into one. The
- * merged zone sits at the block's device-order position and keeps the first
- * member's name.
+ * Best-effort default partition for a staged reset. When the loaded
+ * partition is already the default it is returned as-is (exact, original
+ * ids - reachable when staged edits sit on top of a default partition).
+ * Otherwise the true default lives service-side only, so the rail shows
+ * one zone per segment: exact for split motherboards and the Keeb; devices
+ * whose default is a single whole-device zone show finer-grained zones
+ * until the post-save refetch returns the real default.
  */
-export function buildMergeZonesBody(
+export function defaultPartitionGuess(
+  structure: { segments: DeviceSegment[]; zones: DeviceZone[]; isDefaultPartition: boolean },
+  nextId: () => string,
+): DeviceZone[] {
+  if (structure.isDefaultPartition) return structure.zones;
+  return [...structure.segments]
+    .sort((a, b) => a.index - b.index)
+    .map(s => ({
+      id: nextId(),
+      name: s.name,
+      slices: [{ segment: s.index, start: 0, count: s.ledCount }],
+    }));
+}
+
+/** Reassign each LED's zone membership from a (staged) partition. Positions, disabled state, and isCustom are untouched. */
+export function relabelLedZones(
+  leds: EditorLed[],
   zones: DeviceZone[],
   offsets: Map<number, number>,
-  selectedIds: Set<string>,
-): DeviceZoneDef[] {
-  const ordered = orderZones(zones, offsets);
-  const members = ordered.filter(z => selectedIds.has(z.id));
-  const merged: DeviceZoneDef = { name: members[0]?.name ?? '', slices: mergeZoneSlices(members) };
-  const body: DeviceZoneDef[] = [];
-  let inserted = false;
-  for (const zone of ordered) {
-    if (selectedIds.has(zone.id)) {
-      if (!inserted) {
-        body.push(merged);
-        inserted = true;
-      }
-      continue;
-    }
-    body.push({ name: zone.name, slices: zone.slices });
+): EditorLed[] {
+  const zoneByDevice = new Map<number, string>();
+  for (const z of zones) {
+    for (const idx of zoneDeviceIndices(z, offsets)) zoneByDevice.set(idx, z.id);
   }
-  return body;
+  return leds.map(l => {
+    const zoneId = zoneByDevice.get(l.index);
+    return zoneId !== undefined && zoneId !== l.zoneId ? { ...l, zoneId } : l;
+  });
+}
+
+/** Id-free partition POST body in device order. */
+export function partitionSaveBody(zones: DeviceZone[], offsets: Map<number, number>): DeviceZoneDef[] {
+  return orderZones(zones, offsets).map(z => ({ name: z.name, slices: z.slices }));
 }
 
 // Tolerance below which two normalized coordinates count as the same spot.
@@ -349,5 +423,92 @@ export function buildDeviceMapSaveBody(args: {
   return {
     overrides,
     aspectRatio: ratioChanged ? args.rectRatio : 0,
+  };
+}
+
+// ── Save plan ───────────────────────────────────────────────────────────
+
+export type SavePlanPartition =
+  | { kind: 'reset' }
+  | { kind: 'edited'; zones: DeviceZoneDef[] };
+
+/**
+ * Everything a Save must post, in order: the partition first (when one is
+ * staged), then the device-map overrides. The partition POST drops the
+ * device's per-zone prefs / layouts and reassigns zone ids service-side,
+ * so the map delta has to land after it and the editor must refetch.
+ */
+export interface SavePlan {
+  partition: SavePlanPartition | null;
+  map: DeviceMapSaveBody;
+}
+
+export function buildSavePlan(args: {
+  staged: StagedPartition | null;
+  offsets: Map<number, number>;
+  leds: EditorLed[];
+  baseline: Map<number, BaselineEntry>;
+  rectRatio: number;
+  loadedRatio: number;
+}): SavePlan {
+  const partition: SavePlanPartition | null = args.staged === null
+    ? null
+    : args.staged.kind === 'reset'
+      ? { kind: 'reset' }
+      : { kind: 'edited', zones: partitionSaveBody(args.staged.zones, args.offsets) };
+  return {
+    partition,
+    map: buildDeviceMapSaveBody(args),
+  };
+}
+
+// ── Undo / redo history ─────────────────────────────────────────────────
+// Snapshots carry the LED state and the staged partition together so a
+// single undo step reverts a partition op (split / merge / rename / reset)
+// along with the LED relabeling it caused.
+
+export interface EditorSnapshot {
+  leds: EditorLed[];
+  rectRatio: number;
+  partition: StagedPartition | null;
+}
+
+export interface EditorHistory {
+  undo: EditorSnapshot[];
+  redo: EditorSnapshot[];
+}
+
+export const emptyHistory = (): EditorHistory => ({ undo: [], redo: [] });
+
+/** Record a snapshot before a mutation; clears the redo branch. Oldest entries fall off beyond maxDepth. */
+export function pushHistory(h: EditorHistory, snapshot: EditorSnapshot, maxDepth: number): EditorHistory {
+  const undo = [...h.undo, snapshot];
+  if (undo.length > maxDepth) undo.shift();
+  return { undo, redo: [] };
+}
+
+/** Pop the last undo snapshot, pushing the current state onto redo. Null when there is nothing to undo. */
+export function undoHistory(
+  h: EditorHistory,
+  current: EditorSnapshot,
+): { history: EditorHistory; restored: EditorSnapshot } | null {
+  if (h.undo.length === 0) return null;
+  const restored = h.undo[h.undo.length - 1];
+  return {
+    history: { undo: h.undo.slice(0, -1), redo: [...h.redo, current] },
+    restored,
+  };
+}
+
+/** Pop the last redo snapshot, pushing the current state onto undo. Null when there is nothing to redo. */
+export function redoHistory(
+  h: EditorHistory,
+  current: EditorSnapshot,
+): { history: EditorHistory; restored: EditorSnapshot } | null {
+  if (h.redo.length === 0) return null;
+  const restored = h.redo[h.redo.length - 1];
+  return {
+    history: { undo: [...h.undo, current], redo: h.redo.slice(0, -1) },
+    restored,
   };
 }

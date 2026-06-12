@@ -655,6 +655,7 @@
   "lighting.fullscreen": "全螢幕",
   "lighting.ledMap.alignGrid": "對齊為格狀",
   "lighting.ledMap.alignHorizontal": "對齊為條帶",
+  "lighting.ledMap.appliesOnSave": "儲存時生效。",
   "lighting.ledMap.clickMulti": "點擊多選",
   "lighting.ledMap.delete": "從映射移除",
   "lighting.ledMap.deleteHint": "Del 鍵移除",

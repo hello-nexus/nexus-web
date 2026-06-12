@@ -655,6 +655,7 @@
   "lighting.fullscreen": "Полный экран",
   "lighting.ledMap.alignGrid": "Выровнять в сетку",
   "lighting.ledMap.alignHorizontal": "Выровнять в полосу",
+  "lighting.ledMap.appliesOnSave": "Будет применено при сохранении.",
   "lighting.ledMap.clickMulti": "Клик для множественного выбора",
   "lighting.ledMap.delete": "Удалить с карты",
   "lighting.ledMap.deleteHint": "Del для удаления",

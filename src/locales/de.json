@@ -655,6 +655,7 @@
   "lighting.fullscreen": "Vollbild",
   "lighting.ledMap.alignGrid": "Als Raster ausrichten",
   "lighting.ledMap.alignHorizontal": "Als Leiste ausrichten",
+  "lighting.ledMap.appliesOnSave": "Wird beim Speichern übernommen.",
   "lighting.ledMap.clickMulti": "Klicken zur Mehrfachauswahl",
   "lighting.ledMap.delete": "Aus Map entfernen",
   "lighting.ledMap.deleteHint": "Entf zum Entfernen",

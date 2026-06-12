@@ -655,6 +655,7 @@
   "lighting.fullscreen": "Schermo intero",
   "lighting.ledMap.alignGrid": "Allinea a griglia",
   "lighting.ledMap.alignHorizontal": "Allinea a striscia",
+  "lighting.ledMap.appliesOnSave": "Verrà applicato al salvataggio.",
   "lighting.ledMap.clickMulti": "Clic per selezione multipla",
   "lighting.ledMap.delete": "Rimuovi dalla mappa",
   "lighting.ledMap.deleteHint": "Canc per rimuovere",

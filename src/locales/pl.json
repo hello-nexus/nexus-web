@@ -655,6 +655,7 @@
   "lighting.fullscreen": "Pelny ekran",
   "lighting.ledMap.alignGrid": "Wyrownaj w siatke",
   "lighting.ledMap.alignHorizontal": "Wyrownaj w pasek",
+  "lighting.ledMap.appliesOnSave": "Zostanie zastosowane przy zapisie.",
   "lighting.ledMap.clickMulti": "Kliknij, aby wybrac wiele",
   "lighting.ledMap.delete": "Usun z mapy",
   "lighting.ledMap.deleteHint": "Del aby usunac",

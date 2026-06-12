@@ -655,6 +655,7 @@
   "lighting.fullscreen": "Pantalla completa",
   "lighting.ledMap.alignGrid": "Alinear en cuadricula",
   "lighting.ledMap.alignHorizontal": "Alinear en tira",
+  "lighting.ledMap.appliesOnSave": "Se aplicará al guardar.",
   "lighting.ledMap.clickMulti": "Clic para seleccion multiple",
   "lighting.ledMap.delete": "Quitar del mapa",
   "lighting.ledMap.deleteHint": "Supr para quitar",

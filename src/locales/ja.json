@@ -655,6 +655,7 @@
   "lighting.fullscreen": "全画面",
   "lighting.ledMap.alignGrid": "グリッドに整列",
   "lighting.ledMap.alignHorizontal": "ストリップに整列",
+  "lighting.ledMap.appliesOnSave": "保存時に適用されます。",
   "lighting.ledMap.clickMulti": "クリックで複数選択",
   "lighting.ledMap.delete": "マップから削除",
   "lighting.ledMap.deleteHint": "Delキーで削除",

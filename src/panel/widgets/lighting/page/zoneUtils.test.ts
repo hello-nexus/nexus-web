@@ -3,19 +3,31 @@ import type { DeviceMapResponse, DeviceSegment, DeviceZone } from '../../../../a
 import {
   baselineFrom,
   buildDeviceMapSaveBody,
-  buildMergeZonesBody,
-  buildSplitZonesBody,
+  buildSavePlan,
   checkMerge,
+  defaultPartitionGuess,
+  emptyHistory,
   flattenDeviceMap,
+  isStagedZoneId,
+  mergeStagedZones,
   mergeZoneSlices,
   orderZones,
+  partitionSaveBody,
+  pushHistory,
+  redoHistory,
+  relabelLedZones,
+  renameZone,
   segmentOffsets,
+  splitStagedZones,
   splitZone,
+  stagedZoneId,
   toZoneLocalIndices,
+  undoHistory,
   zoneDeviceIndices,
   zoneLedCount,
   zoneTouchesResizable,
   type EditorLed,
+  type EditorSnapshot,
 } from './zoneUtils';
 
 const segment = (index: number, ledCount: number, resizable = false): DeviceSegment => ({
@@ -225,7 +237,7 @@ describe('splitZone', () => {
   });
 });
 
-describe('partition POST bodies', () => {
+describe('staged partition edits', () => {
   const offsets = segmentOffsets(segments);
   const zones = [
     zone('a', [{ segment: 0, start: 0, count: 2 }], 'Keys left'),
@@ -234,27 +246,176 @@ describe('partition POST bodies', () => {
     zone('w', [{ segment: 2, start: 0, count: 5 }], 'Header'),
   ];
 
-  it('builds a merge body that keeps device order and the first member name', () => {
-    const body = buildMergeZonesBody(zones, offsets, new Set(['a', 'b']));
-    expect(body).toEqual([
-      { name: 'Keys left', slices: [{ segment: 0, start: 0, count: 4 }] },
+  const idSeq = () => {
+    let n = 0;
+    return () => stagedZoneId(n++);
+  };
+
+  it('marks staged temp ids and nothing else', () => {
+    expect(isStagedZoneId(stagedZoneId(3))).toBe(true);
+    expect(isStagedZoneId('dev-1')).toBe(false);
+  });
+
+  it('renames one zone in place, keeping ids', () => {
+    const renamed = renameZone(zones, 'c', 'Logo strip');
+    expect(renamed.map(z => z.id)).toEqual(['a', 'b', 'c', 'w']);
+    expect(renamed[2]).toMatchObject({ id: 'c', name: 'Logo strip' });
+    expect(renamed[0].name).toBe('Keys left');
+  });
+
+  it('merges into a temp-id zone at the block position with the first member name', () => {
+    const merged = mergeStagedZones(zones, offsets, new Set(['a', 'b']), stagedZoneId(0));
+    expect(merged).toEqual([
+      { id: stagedZoneId(0), name: 'Keys left', slices: [{ segment: 0, start: 0, count: 4 }] },
+      zones[2],
+      zones[3],
+    ]);
+  });
+
+  it('splits into temp-id parts in place and reports the split-out id', () => {
+    const parts = splitZone(zones[2], offsets, new Set([5]));
+    expect(parts).not.toBeNull();
+    const res = splitStagedZones(zones, offsets, 'c', parts!, 'Logo', idSeq());
+    expect(res.newZoneId).toBe(stagedZoneId(1));
+    expect(res.zones).toEqual([
+      zones[0],
+      zones[1],
+      { id: stagedZoneId(0), name: 'Underglow', slices: [{ segment: 1, start: 0, count: 1 }] },
+      { id: stagedZoneId(1), name: 'Logo', slices: [{ segment: 1, start: 1, count: 1 }] },
+      { id: stagedZoneId(2), name: 'Underglow', slices: [{ segment: 1, start: 2, count: 1 }] },
+      zones[3],
+    ]);
+  });
+
+  it('builds an id-free partition save body in device order', () => {
+    const shuffled = [zones[2], zones[0], zones[3], zones[1]];
+    expect(partitionSaveBody(shuffled, offsets)).toEqual([
+      { name: 'Keys left', slices: [{ segment: 0, start: 0, count: 2 }] },
+      { name: 'Keys right', slices: [{ segment: 0, start: 2, count: 2 }] },
       { name: 'Underglow', slices: [{ segment: 1, start: 0, count: 3 }] },
       { name: 'Header', slices: [{ segment: 2, start: 0, count: 5 }] },
     ]);
   });
 
-  it('builds a split body replacing the zone with named parts in place', () => {
-    const parts = splitZone(zones[2], offsets, new Set([5]));
-    expect(parts).not.toBeNull();
-    const body = buildSplitZonesBody(zones, offsets, 'c', parts!, 'Logo');
-    expect(body).toEqual([
-      { name: 'Keys left', slices: [{ segment: 0, start: 0, count: 2 }] },
-      { name: 'Keys right', slices: [{ segment: 0, start: 2, count: 2 }] },
-      { name: 'Underglow', slices: [{ segment: 1, start: 0, count: 1 }] },
-      { name: 'Logo', slices: [{ segment: 1, start: 1, count: 1 }] },
-      { name: 'Underglow', slices: [{ segment: 1, start: 2, count: 1 }] },
-      { name: 'Header', slices: [{ segment: 2, start: 0, count: 5 }] },
+  it('guesses the reset default as the loaded zones when they already are the default', () => {
+    const structure = { segments, zones, isDefaultPartition: true };
+    expect(defaultPartitionGuess(structure, idSeq())).toBe(zones);
+  });
+
+  it('guesses one zone per segment otherwise, named after the segment', () => {
+    const structure = { segments, zones, isDefaultPartition: false };
+    const guess = defaultPartitionGuess(structure, idSeq());
+    expect(guess).toEqual([
+      { id: stagedZoneId(0), name: 'Segment 0', slices: [{ segment: 0, start: 0, count: 4 }] },
+      { id: stagedZoneId(1), name: 'Segment 1', slices: [{ segment: 1, start: 0, count: 3 }] },
+      { id: stagedZoneId(2), name: 'Segment 2', slices: [{ segment: 2, start: 0, count: 5 }] },
     ]);
+  });
+
+  it('relabels LED zone membership without touching positions or ownership', () => {
+    const merged = mergeStagedZones(zones, offsets, new Set(['a', 'b']), stagedZoneId(0));
+    const leds = [
+      led({ index: 0, zoneId: 'a', u: 0.1 }),
+      led({ index: 3, zoneId: 'b', isCustom: true }),
+      led({ index: 5, zoneId: 'c' }),
+    ];
+    const relabeled = relabelLedZones(leds, merged, offsets);
+    expect(relabeled.map(l => l.zoneId)).toEqual([stagedZoneId(0), stagedZoneId(0), 'c']);
+    expect(relabeled[0].u).toBe(0.1);
+    expect(relabeled[1].isCustom).toBe(true);
+    // Untouched membership keeps the same object.
+    expect(relabeled[2]).toBe(leds[2]);
+  });
+});
+
+describe('buildSavePlan', () => {
+  const offsets = segmentOffsets(segments);
+  const zones = [
+    zone('a', [{ segment: 0, start: 0, count: 2 }], 'Left'),
+    zone('b', [{ segment: 0, start: 2, count: 2 }], 'Right'),
+  ];
+  const mapArgs = {
+    offsets,
+    leds: [led({ segment: 0, ledIndex: 1, index: 1, u: 0.2, v: 0.3, isCustom: true })],
+    baseline: new Map(),
+    rectRatio: 2,
+    loadedRatio: 16 / 9,
+  };
+
+  it('posts nothing for zones when no partition is staged', () => {
+    const plan = buildSavePlan({ ...mapArgs, staged: null });
+    expect(plan.partition).toBeNull();
+    expect(plan.map.overrides).toEqual([{ segment: 0, ledIndex: 1, u: 0.2, v: 0.3, disabled: false }]);
+    expect(plan.map.aspectRatio).toBe(2);
+  });
+
+  it('carries an id-free zones body for a staged edit alongside the map delta', () => {
+    const plan = buildSavePlan({ ...mapArgs, staged: { kind: 'edited', zones } });
+    expect(plan.partition).toEqual({
+      kind: 'edited',
+      zones: [
+        { name: 'Left', slices: [{ segment: 0, start: 0, count: 2 }] },
+        { name: 'Right', slices: [{ segment: 0, start: 2, count: 2 }] },
+      ],
+    });
+    expect(plan.map.overrides).toHaveLength(1);
+  });
+
+  it('marks a staged reset as the partition DELETE', () => {
+    const plan = buildSavePlan({ ...mapArgs, staged: { kind: 'reset', zones } });
+    expect(plan.partition).toEqual({ kind: 'reset' });
+    expect(plan.map.overrides).toHaveLength(1);
+  });
+});
+
+describe('editor history', () => {
+  const snap = (over: Partial<EditorSnapshot>): EditorSnapshot => ({
+    leds: [],
+    rectRatio: 16 / 9,
+    partition: null,
+    ...over,
+  });
+
+  it('caps the undo depth and clears redo on push', () => {
+    let h = emptyHistory();
+    h = pushHistory(h, snap({ rectRatio: 1 }), 2);
+    h = pushHistory(h, snap({ rectRatio: 2 }), 2);
+    h = pushHistory(h, snap({ rectRatio: 3 }), 2);
+    expect(h.undo.map(s => s.rectRatio)).toEqual([2, 3]);
+    expect(h.redo).toEqual([]);
+  });
+
+  it('round-trips a partition op through undo and redo', () => {
+    const before = snap({ leds: [led({ index: 0, zoneId: 'a' })], partition: null });
+    const afterSplit = snap({
+      leds: [led({ index: 0, zoneId: stagedZoneId(0) })],
+      partition: { kind: 'edited', zones: [zone(stagedZoneId(0), [{ segment: 0, start: 0, count: 4 }])] },
+    });
+
+    // Stage the split: push the pre-op snapshot.
+    let h = pushHistory(emptyHistory(), before, 10);
+
+    // Undo: restores the pre-op snapshot (leds + partition together).
+    const undone = undoHistory(h, afterSplit);
+    expect(undone).not.toBeNull();
+    expect(undone!.restored.partition).toBeNull();
+    expect(undone!.restored.leds[0].zoneId).toBe('a');
+    h = undone!.history;
+    expect(h.undo).toHaveLength(0);
+    expect(h.redo).toHaveLength(1);
+
+    // Redo: restores the staged partition and the relabeled leds.
+    const redone = redoHistory(h, before);
+    expect(redone).not.toBeNull();
+    expect(redone!.restored.partition).toEqual(afterSplit.partition);
+    expect(redone!.restored.leds[0].zoneId).toBe(stagedZoneId(0));
+    expect(redone!.history.undo).toHaveLength(1);
+    expect(redone!.history.redo).toHaveLength(0);
+  });
+
+  it('returns null when there is nothing to undo or redo', () => {
+    expect(undoHistory(emptyHistory(), snap({}))).toBeNull();
+    expect(redoHistory(emptyHistory(), snap({}))).toBeNull();
   });
 });
 

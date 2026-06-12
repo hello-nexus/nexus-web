@@ -655,6 +655,7 @@
   "lighting.fullscreen": "Tam ekran",
   "lighting.ledMap.alignGrid": "Izgara hizala",
   "lighting.ledMap.alignHorizontal": "Seridi hizala",
+  "lighting.ledMap.appliesOnSave": "Kaydedildiğinde uygulanır.",
   "lighting.ledMap.clickMulti": "Coklu secim icin tikla",
   "lighting.ledMap.delete": "Haritadan kaldir",
   "lighting.ledMap.deleteHint": "Kaldirmak icin Del",

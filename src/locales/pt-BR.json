@@ -655,6 +655,7 @@
   "lighting.fullscreen": "Tela cheia",
   "lighting.ledMap.alignGrid": "Alinhar em grade",
   "lighting.ledMap.alignHorizontal": "Alinhar em tira",
+  "lighting.ledMap.appliesOnSave": "Será aplicado ao salvar.",
   "lighting.ledMap.clickMulti": "Clique para selecionar varios",
   "lighting.ledMap.delete": "Remover do mapa",
   "lighting.ledMap.deleteHint": "Del para remover",

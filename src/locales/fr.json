@@ -655,6 +655,7 @@
   "lighting.fullscreen": "Plein ecran",
   "lighting.ledMap.alignGrid": "Aligner en grille",
   "lighting.ledMap.alignHorizontal": "Aligner en bande",
+  "lighting.ledMap.appliesOnSave": "Sera appliqué lors de l'enregistrement.",
   "lighting.ledMap.clickMulti": "Clic pour selection multiple",
   "lighting.ledMap.delete": "Retirer de la carte",
   "lighting.ledMap.deleteHint": "Suppr pour retirer",
