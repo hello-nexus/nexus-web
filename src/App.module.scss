@@ -516,15 +516,16 @@
   min-width: 0;
 }
 
-// Bounded card containers used for every region inside the layout, so
-// the killswitch, device list, and pairing flow all share the same
-// chrome (border + radius + padding).
+// Region containers for every group in the layout (killswitch, device list,
+// pairing flow). No visible stroke — same borderless treatment as the shared
+// SettingsSection box; the transparent border just reserves the 1px so layout
+// is unchanged. The device rows inside carry their own chrome.
 .phonePairCard {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
   padding: 1rem;
-  border: var(--border-width) solid var(--panel-card-border, var(--border));
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   background: var(--surface);
   min-width: 0;
