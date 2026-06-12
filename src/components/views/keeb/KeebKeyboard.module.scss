@@ -39,8 +39,17 @@ $wheel-size: 110px;
   padding-right: 20px;
 }
 
-// Two visual key sizes:
+// Media-key row is shorter than standard rows because the media buttons are
+// shorter than standard caps; drop the row height to match so the F-row
+// directly underneath doesn't gain extra padding. No horizontal padding:
+// the row stays left-aligned under the wheels, like the physical board.
+.mediaRow {
+  height: 49px;
+}
+
+// Three visual key sizes:
 //   .key           - standard (alphabetic + nav + numpad + modifiers)
+//   .key.media     - row 1 media buttons, wide-short rounded
 //   .key.middle    - row 0 col 0 (firmware mode-cycle key), tall pill
 // The renderer picks between them by (row, col), positionally not by mode.
 
@@ -69,6 +78,13 @@ $wheel-size: 110px;
   transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, transform var(--ease-fast) ease;
   overflow: hidden;
   white-space: nowrap;
+}
+
+.keyMedia {
+  width: 80px;
+  height: 45px;
+  border-radius: var(--radius);
+  font-size: 18px;
 }
 
 // Long text legends (PrtSc, Num Lock, PgUp...) on standard-width caps: the

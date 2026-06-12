@@ -46,9 +46,11 @@ export interface KeebKeyboardProps {
 }
 
 /// Visual class for a (row, col) cell: row 0 col 0 is the firmware mode-cycle
-/// key (pill), everything else is the standard key shape.
+/// key (pill), row 1 is the media strip (wide-short rounded), everything else
+/// is the standard key shape.
 function keyVariant(row: number, col: number): string {
   if (row === 0 && col === 0) return styles.keyMiddle;
+  if (row === 1) return styles.keyMedia;
   return '';
 }
 
@@ -158,8 +160,12 @@ export function KeebKeyboard({
           );
         }
 
+        // Row 1 holds the physical media buttons; their `.keyMedia`
+        // shrunk-rounded shape is applied via `keyVariant`. The row stays
+        // left-aligned: the physical buttons sit top-left under the wheels.
+        const isMediaRow = x === 1;
         return (
-          <div key={x} className={styles.row}>
+          <div key={x} className={`${styles.row} ${isMediaRow ? styles.mediaRow : ''}`}>
             {row.map((cell, y) => renderKey(cell, x, y))}
           </div>
         );
