@@ -192,6 +192,10 @@ export interface LightingDevice {
   zoneIndex?: number;
   zoneType?: 'single' | 'linear' | 'matrix' | string;
   zoneResizable?: boolean;
+  /** Enumeration-unit device id that owns this card's zone; routing target for the device-scoped LED map editor. Equals `id` for single-zone standalone devices. */
+  deviceId?: string;
+  /** False for smart lights / 1-LED devices; the editor hides all zone management then. */
+  zoneCustomizable?: boolean;
 }
 
 export interface LightingDevicesResponse {
@@ -298,29 +302,6 @@ export interface LedMapResponse {
 export const fetchLedMap = (id: string) =>
   fetchService<LedMapResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/led-map`);
 
-export const fetchLedMapDefaults = (id: string) =>
-  fetchService<LedMapResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/led-map?defaults=true`);
-
-// Saves the user-delta layer only. Omitted groups leave the stored user
-// groups untouched while a list (even empty) replaces them; a zero aspect
-// ratio is ignored by the service while a positive one persists as a user
-// delta. The editor sends groups / a ratio only when the user edited them
-// this session so an applied community mapping never bakes into the delta.
-export const saveLedMap = (
-  id: string,
-  overrides: { ledIndex: number; u: number; v: number; disabled?: boolean }[],
-  aspectRatio: number,
-  groups?: LedGroup[],
-) =>
-  postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-map`, {
-    overrides,
-    aspectRatio,
-    ...(groups !== undefined ? { groups } : {}),
-  });
-
-export const resetLedMap = (id: string) =>
-  deleteService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-map`);
-
 export const highlightLeds = (id: string, indices: number[]) =>
   postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-highlight`, { indices });
 
@@ -329,6 +310,110 @@ export const testLedPattern = (id: string, pattern: string) =>
 
 export const clearLedEditor = (id: string) =>
   deleteService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-editor`);
+
+// --- Device structure & zones (device-scoped LED map editor) ---
+
+/** One zone slice, local to a segment: a contiguous run of that segment's LEDs. */
+export interface ZoneSlice {
+  segment: number;
+  start: number;
+  count: number;
+}
+
+/** Hardware-reported subdivision of a device's LED space. */
+export interface DeviceSegment {
+  index: number;
+  name: string;
+  ledCount: number;
+  /** True when the protocol lets the user re-wire the LED count (motherboard ARGB headers); such segments are partition walls. */
+  resizable: boolean;
+  zoneType: string;
+}
+
+/** User-defined run of the device's LED space; maps 1:1 to a lighting card. */
+export interface DeviceZone {
+  /** Card id of this zone (legacy card ids for default partitions, `{deviceId}:z{ordinal}` for custom ones). */
+  id: string;
+  name: string;
+  slices: ZoneSlice[];
+}
+
+export interface DeviceStructureResponse {
+  id: string;
+  name: string;
+  deviceKey: string;
+  segments: DeviceSegment[];
+  zones: DeviceZone[];
+  isDefaultPartition: boolean;
+}
+
+/** Zone definition as posted back to the service (ids are service-assigned). */
+export interface DeviceZoneDef {
+  name: string;
+  slices: ZoneSlice[];
+}
+
+export const fetchDeviceStructure = (deviceId: string) =>
+  fetchService<DeviceStructureResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/structure`);
+
+// Replaces the device's partition with the posted zone list. The service
+// validates full segment cover, rebuilds cards/frames, drops stale per-zone
+// state, and broadcasts a lighting refresh.
+export const saveDeviceZones = (deviceId: string, zones: DeviceZoneDef[]) =>
+  postService<ApiEnvelope>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/zones`, { zones });
+
+export const resetDeviceZones = (deviceId: string) =>
+  deleteService<ApiEnvelope>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/zones`);
+
+// --- Device-scoped LED map ---
+
+export interface DeviceMapLed {
+  /** Segment-local LED index (the override key). */
+  index: number;
+  u: number;
+  v: number;
+  disabled: boolean;
+  /** Id of the zone this LED currently belongs to. */
+  zoneId: string;
+  /** True when a stored user override owns this LED's position / disabled state. */
+  isCustom: boolean;
+}
+
+export interface DeviceMapSegment {
+  index: number;
+  name: string;
+  resizable: boolean;
+  ledCount: number;
+  leds: DeviceMapLed[];
+}
+
+export interface DeviceMapResponse {
+  id: string;
+  segments: DeviceMapSegment[];
+  aspectRatio: number;
+}
+
+/** Segment-local LED override as posted to the device-scoped map endpoint. */
+export interface DeviceMapOverride {
+  segment: number;
+  ledIndex: number;
+  u: number;
+  v: number;
+  disabled: boolean;
+}
+
+export const fetchDeviceMap = (deviceId: string) =>
+  fetchService<DeviceMapResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/device-map`);
+
+// Saves the user-delta layer only: touched LEDs as segment-local overrides,
+// plus the aspect ratio when the user adjusted it this session (zero is
+// ignored by the service so a mapping-supplied ratio never bakes into the
+// user delta).
+export const saveDeviceMap = (deviceId: string, overrides: DeviceMapOverride[], aspectRatio: number) =>
+  postService<ApiEnvelope>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/device-map`, {
+    overrides,
+    aspectRatio,
+  });
 
 // --- Community LED mappings ---
 

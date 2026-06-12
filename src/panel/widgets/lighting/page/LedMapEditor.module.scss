@@ -322,58 +322,6 @@
   margin: 0 0.15rem;
 }
 
-.zoneBtns {
-  display: flex;
-  gap: 0.3rem;
-}
-
-.zoneBtn {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.6rem;
-  font-size: var(--type-small);
-  border: var(--border-width) solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-faded);
-  cursor: pointer;
-  transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast), opacity var(--ease-fast);
-  opacity: 0.5;
-
-  &:hover {
-    background: var(--bg-card-hover);
-    border-color: var(--border-strong);
-  }
-}
-
-.zoneBtnActive {
-  opacity: 1;
-  color: var(--text);
-  border-color: var(--border-strong);
-}
-
-.legend {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.7rem;
-  color: var(--text-dim);
-}
-
-.legendDot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 0.25rem;
-  vertical-align: middle;
-}
-
-.legendDotMatrix { background: var(--accent); }
-.legendDotLinear { background: var(--good); }
-.legendDotSingle { background: var(--warn); }
-
 .ledCountField {
   display: inline-flex;
   align-items: center;
@@ -513,22 +461,23 @@
   align-self: flex-start;
 }
 
-// Named LED groups: one compact chip row between the hint and the canvas.
-.groupsBar {
+// Zone rail: one compact chip row listing the device's zones, plus the
+// partition actions (rename / merge / split / reset) at the right edge.
+.zonesBar {
   display: flex;
   align-items: center;
   gap: 0.3rem;
   flex-wrap: wrap;
 }
 
-.groupsLabel {
+.zonesLabel {
   font-size: var(--type-small);
   color: var(--text-faded);
   margin-right: 0.15rem;
   white-space: nowrap;
 }
 
-.groupChip {
+.zoneChip {
   display: inline-flex;
   align-items: center;
   gap: 0.1rem;
@@ -543,12 +492,22 @@
   }
 }
 
-.groupChipActive {
+// Marked for merge (modifier+click). Accent border only, so the editable
+// (active) zone's filled treatment stays distinguishable.
+.zoneChipMarked {
+  border-color: var(--accent);
+}
+
+// The zone whose LEDs are editable on the canvas.
+.zoneChipActive {
   border-color: var(--accent);
   background: var(--accent-soft);
 }
 
-.groupChipName {
+.zoneChipName {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.15rem 0.3rem 0.15rem 0.6rem;
   font-size: var(--type-small);
   border: none;
@@ -561,53 +520,18 @@
   text-overflow: ellipsis;
 }
 
-.groupChipBtn {
+// LED count beside the zone name.
+.zoneChipCount {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+// Lock affordance for zones pinned to a resizable segment (partition wall).
+.zoneChipLock {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 18px;
   height: 18px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
   color: var(--text-dim);
-  cursor: pointer;
-  transition: color var(--ease-fast), background var(--ease-fast);
-
-  &:hover {
-    color: var(--text);
-    background: var(--bg-card-hover);
-  }
-}
-
-.groupAddBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.2rem 0.6rem;
-  font-size: var(--type-small);
-  border: var(--border-width) dashed var(--border-strong);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
-
-  &:hover {
-    color: var(--text);
-    border-color: var(--accent);
-    background: var(--accent-soft);
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-
-    &:hover {
-      color: var(--text-dim);
-      border-color: var(--border-strong);
-      background: transparent;
-    }
-  }
 }

@@ -2,14 +2,16 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
   Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square, Sun, SunDim,
-  Pencil, Plus, X,
+  Pencil, Merge, Scissors, ListRestart, Lock,
 } from 'lucide-react';
 import {
-  fetchLedMap, fetchLedMapDefaults, saveLedMap, resetLedMap, highlightLeds, testLedPattern, clearLedEditor,
+  fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceZones,
+  highlightLeds, testLedPattern, clearLedEditor,
   setZoneLedCount, setLightingDeviceBrightness,
-  type LedGroup, type LedMapEntry, type LightingDevice,
+  type DeviceStructureResponse, type DeviceZone, type DeviceZoneDef, type LightingDevice,
 } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
+import { useToast } from '../../../../components/common/Toast/Toast';
 import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceModal';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { PromptModal } from '../../../../components/common/PromptModal/PromptModal';
@@ -18,7 +20,12 @@ import { Slider } from '../../../../components/common/Slider/Slider';
 import { Tabs } from '../../../../components/common/Tabs/Tabs';
 import { useThrottle } from '../../../../hooks/cadence';
 import { CommunityMappingsPanel } from './CommunityMappingsPanel';
-import { buildLedMapSaveBody, collapseToRanges, expandRanges } from './mappingUtils';
+import {
+  baselineFrom, buildDeviceMapSaveBody, buildMergeZonesBody, buildSplitZonesBody,
+  checkMerge, flattenDeviceMap, orderZones, segmentOffsets, splitZone,
+  toZoneLocalIndices, zoneDeviceIndices, zoneLedCount, zoneTouchesResizable,
+  type EditorLed,
+} from './zoneUtils';
 import styles from './LedMapEditor.module.scss';
 
 const isMac = /mac/i.test(navigator.userAgent);
@@ -40,12 +47,15 @@ type EditorMode = 'animation' | 'horizontal' | 'vertical' | 'none';
 
 export type LedMapEditorTab = 'editor' | 'community';
 
-type Snapshot = { leds: LedMapEntry[]; rectRatio: number; ledCount: number };
+type Snapshot = { leds: EditorLed[]; rectRatio: number };
 
-type GroupPrompt = { mode: 'create' } | { mode: 'rename'; index: number };
+type SavedLedState = { u: number; v: number; disabled: boolean; isCustom: boolean };
 
-// Mirrors the artifact schema's group-name cap enforced by the service.
-const MAX_GROUP_NAME_LENGTH = 40;
+type ZonePrompt = { mode: 'rename' } | { mode: 'split' };
+
+// Sane client-side cap for zone names; mirrors the artifact name caps
+// enforced service-side.
+const MAX_ZONE_NAME_LENGTH = 40;
 
 const SELECTION_HANDLE_CLASS: Record<'nw' | 'ne' | 'sw' | 'se', string> = {
   nw: styles.selectionHandleNW,
@@ -55,51 +65,47 @@ const SELECTION_HANDLE_CLASS: Record<'nw' | 'ne' | 'sw' | 'se', string> = {
 };
 
 interface Props {
-  device: LightingDevice;
+  /** Enumeration-unit device whose whole LED space the editor renders. */
+  deviceId: string;
+  /** Zone preselected on open; the card whose settings button launched the editor. */
+  initialZoneId: string;
+  /** Live card list, used to resolve the selected zone's card (brightness, deviceKey, resizability). */
+  devices: LightingDevice[];
+  /** False hides every zone-management affordance (single-zone smart lights etc.). */
+  zoneCustomizable: boolean;
   onClose: () => void;
   /** Open directly on a tab; the device-card community badge deep-links here. */
   initialTab?: LedMapEditorTab;
 }
 
-export function LedMapEditor({ device, onClose, initialTab }: Props) {
-  const deviceId = device.id;
-  const deviceName = device.name;
-  const [liveLedCount, setLiveLedCount] = useState<number>(device.ledCount);
-  const liveLedCountRef = useRef(liveLedCount);
-  liveLedCountRef.current = liveLedCount;
-  const [ledCountDraft, setLedCountDraft] = useState(String(device.ledCount));
-  const ledCountEscapeRef = useRef(false);
-  const countChangingRef = useRef(false);
-  // Per-device brightness multiplier (0..100). Multiplies the global brightness
-  // slider so the effective output is `global * device / 100`. Default 100% so
-  // existing devices light up at full brightness until the user dials it down.
-  const [brightness, setBrightness] = useState<number>(device.brightness ?? 100);
-  const brightnessThrottle = useThrottle();
-  const sendBrightness = useCallback((value: number) => {
-    setLightingDeviceBrightness(device.id, value).catch(() => { /* best-effort */ });
-  }, [device.id]);
-  const handleBrightnessChange = useCallback((value: number) => {
-    setBrightness(value);
-    brightnessThrottle(() => sendBrightness(value));
-  }, [brightnessThrottle, sendBrightness]);
-  const handleBrightnessCommit = useCallback((value: number) => {
-    sendBrightness(value);
-  }, [sendBrightness]);
-  // Only motherboard ARGB zones with the `zoneResizable` flag accept
-  // resize opcodes; keyboard matrices, GPU strips, etc. have fixed counts.
-  const canEditLedCount = device.zoneResizable === true;
+export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizable, onClose, initialTab }: Props) {
   const { t } = useTranslation();
-  const [leds, setLeds] = useState<LedMapEntry[]>([]);
-  const defaultLedsRef = useRef<LedMapEntry[]>([]);
-  // Snapshot of the last-saved (u, v, disabled) per LED index. Anything
+  const { push } = useToast();
+
+  const [structure, setStructure] = useState<DeviceStructureResponse | null>(null);
+  const [leds, setLeds] = useState<EditorLed[]>([]);
+  // Loaded positions of LEDs without a stored user override: the resolved
+  // baseline a session edit can return to without creating an override.
+  const baselineRef = useRef<Map<number, { u: number; v: number }>>(new Map());
+  // Snapshot of the last-saved state per device-space LED index. Anything
   // that diverges from this snapshot counts as "unsaved" and earns the
-  // dashed outline in the editor. Reset on load and on save-complete so
-  // persisted customisations no longer carry the dashed ring.
-  const [savedLedsMap, setSavedLedsMap] = useState<Map<number, { u: number; v: number; disabled: boolean }>>(new Map());
+  // dashed outline in the editor; it is also what Revert restores.
+  const [savedLedsMap, setSavedLedsMap] = useState<Map<number, SavedLedState>>(new Map());
   const [loading, setLoading] = useState(true);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hoveredLed, setHoveredLed] = useState<number | null>(null);
+
+  // The zone whose LEDs are editable; every other zone renders dimmed.
+  const [selectedZoneId, setSelectedZoneId] = useState(initialZoneId);
+  const selectedZoneIdRef = useRef(selectedZoneId);
+  selectedZoneIdRef.current = selectedZoneId;
+  // Zones marked for merge (modifier+click on chips). Always contains the
+  // active zone after a plain selection.
+  const [zoneMultiSel, setZoneMultiSel] = useState<Set<string>>(() => new Set([initialZoneId]));
+  const [zonePrompt, setZonePrompt] = useState<ZonePrompt | null>(null);
+  const [resetPartitionConfirm, setResetPartitionConfirm] = useState(false);
+  const [partitionBusy, setPartitionBusy] = useState(false);
 
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [dragging, setDragging] = useState(false);
@@ -115,12 +121,15 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
   const marqueeAdditiveRef = useRef(false);
   const preMarqueeSelectionRef = useRef<Set<number>>(new Set());
 
-  // Editor | Community tab. Community only exists for fingerprintable devices
-  // (non-empty deviceKey); the device card carries it, with the led-map
-  // response as a fallback for stale cards.
+  // The selected zone's card. Zone ids are card ids, so brightness, LED
+  // count resizability, and the community deviceKey all resolve through it.
+  const zoneCard = devices.find(d => d.id === selectedZoneId);
+
+  // Editor | Community tab. Community only exists for fingerprintable zones
+  // (non-empty card deviceKey); custom-partition zones have empty keys so
+  // the tab hides for them.
   const [activeTab, setActiveTab] = useState<LedMapEditorTab>(initialTab ?? 'editor');
-  const [mapDeviceKey, setMapDeviceKey] = useState('');
-  const communityEnabled = (device.deviceKey || mapDeviceKey) !== '';
+  const communityEnabled = (zoneCard?.deviceKey ?? '') !== '';
   // Without a device key the community tab does not exist, so clamp the
   // effective tab to the editor; otherwise a community initialTab would leave
   // the ref stuck on a tab that never renders and the canvas keyboard
@@ -129,29 +138,19 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
   const activeTabRef = useRef(effectiveTab);
   activeTabRef.current = effectiveTab;
 
-  // Named LED groups. Edits ride the normal save flow (dirty + Save). The
-  // list is only sent on save when the user edited groups this session, so
-  // an applied mapping's resolved groups never become a user delta.
-  const [groups, setGroups] = useState<LedGroup[]>([]);
-  const groupsRef = useRef(groups);
-  groupsRef.current = groups;
-  const groupsEditedRef = useRef(false);
-  const [groupPrompt, setGroupPrompt] = useState<GroupPrompt | null>(null);
-  // Pending community-tab action (apply / import / remove) held behind the
-  // unsaved-edits confirm. Those actions replace the resolved map and reload
-  // the editor, which would silently discard any unsaved edits.
-  const [pendingMapAction, setPendingMapAction] = useState<(() => void) | null>(null);
-  // While the publish dialog (community tab), a group prompt, or the
-  // discard-edits confirm is open, the editor modal must ignore the Esc that
-  // closes them.
+  // Pending action (community apply / import / remove, zone switch, or a
+  // partition edit) held behind the unsaved-edits confirm. Those actions
+  // replace or reload the resolved map, which would silently discard any
+  // unsaved edits.
+  const [pendingDiscardAction, setPendingDiscardAction] = useState<(() => void) | null>(null);
+  // While the publish dialog (community tab), a zone prompt, or any confirm
+  // is open, the editor modal must ignore the Esc that closes them.
   const [communityDialogOpen, setCommunityDialogOpen] = useState(false);
   const childDialogOpenRef = useRef(false);
-  childDialogOpenRef.current = groupPrompt !== null || communityDialogOpen || pendingMapAction !== null;
+  childDialogOpenRef.current = zonePrompt !== null || communityDialogOpen
+    || pendingDiscardAction !== null || resetPartitionConfirm;
 
   const [editorMode, setEditorMode] = useState<EditorMode>('animation');
-
-  // Zone layer toggles - all enabled by default
-  const [enabledZones, setEnabledZones] = useState<Set<string>>(new Set());
 
   const [devRect, setDevRect] = useState({ x: 10, y: 10, w: 80, h: 80 });
   const [rectResizing, setRectResizing] = useState(false);
@@ -172,8 +171,6 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
   // mapping rather than a stored user delta, so the save flow only sends the
   // live ratio once it diverges from this baseline.
   const loadedRatioRef = useRef(DEFAULT_RATIO);
-  // True while a community / file mapping is applied to this device.
-  const appliedMappingRef = useRef(false);
 
   const undoStackRef = useRef<Snapshot[]>([]);
   const redoStackRef = useRef<Snapshot[]>([]);
@@ -200,122 +197,97 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
 
-  // Distinct zone types present in this device
-  const zoneTypes = useMemo(() => {
-    const types = new Set<string>();
-    for (const l of leds) {
-      if (l.zoneType) types.add(l.zoneType);
+  // ── Derived structure lookups ─────────────────────────────────────────
+
+  const offsets = useMemo(
+    () => segmentOffsets(structure?.segments ?? []),
+    [structure],
+  );
+
+  const zonesOrdered = useMemo(
+    () => orderZones(structure?.zones ?? [], offsets),
+    [structure, offsets],
+  );
+
+  const activeZone: DeviceZone | null = zonesOrdered.find(z => z.id === selectedZoneId) ?? null;
+
+  const walledZoneIds = useMemo(() => {
+    const segs = structure?.segments ?? [];
+    return new Set(zonesOrdered.filter(z => zoneTouchesResizable(z, segs)).map(z => z.id));
+  }, [zonesOrdered, structure]);
+  const activeZoneWalled = activeZone !== null && walledZoneIds.has(activeZone.id);
+
+  const zoneNameById = useMemo(
+    () => new Map(zonesOrdered.map(z => [z.id, z.name])),
+    [zonesOrdered],
+  );
+
+  // Zone-local label per device-space index, so each zone's LEDs keep the
+  // per-card numbering users know from the device list.
+  const zoneLocalByDevice = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const z of zonesOrdered) {
+      zoneDeviceIndices(z, offsets).forEach((devIdx, local) => map.set(devIdx, local));
     }
-    return Array.from(types);
-  }, [leds]);
+    return map;
+  }, [zonesOrdered, offsets]);
 
-  // Initialize enabledZones once when LEDs first load
-  const zonesInitialized = useRef(false);
-  useEffect(() => {
-    if (zoneTypes.length > 0 && !zonesInitialized.current) {
-      zonesInitialized.current = true;
-      setEnabledZones(new Set(zoneTypes));
-    }
-  }, [zoneTypes]);
+  const segmentTypeByIndex = useMemo(
+    () => new Map((structure?.segments ?? []).map(s => [s.index, s.zoneType])),
+    [structure],
+  );
 
-  const isLedEnabled = useCallback((led: LedMapEntry) =>
-    enabledZones.has(led.zoneType), [enabledZones]);
+  // Until the structure resolves there is no zone membership to scope by;
+  // everything stays editable (matches single-zone devices).
+  const zoneScoped = structure !== null && structure.zones.length > 0;
+  const isLedEnabled = useCallback((led: EditorLed) =>
+    !zoneScoped || led.zoneId === selectedZoneIdRef.current, [zoneScoped]);
 
-  const zoneLabel = (z: string) => {
-    switch (z) {
-      case 'matrix': return t('lighting.ledMap.zoneMatrix');
-      case 'linear': return t('lighting.ledMap.zoneLinear');
-      case 'single': return t('lighting.ledMap.zoneSingle');
-      default: return z;
-    }
-  };
+  const mergeCheck = useMemo(
+    () => checkMerge(zoneMultiSel, structure?.zones ?? [], structure?.segments ?? [], offsets),
+    [zoneMultiSel, structure, offsets],
+  );
 
-  const toggleZone = (zone: string) => {
-    let nextEnabled: Set<string>;
-    setEnabledZones(prev => {
-      nextEnabled = new Set(prev);
-      if (nextEnabled.has(zone)) {
-        nextEnabled.delete(zone);
-      } else {
-        nextEnabled.add(zone);
-      }
-      return nextEnabled;
-    });
-    setSelected(prev => {
-      const next = new Set<number>();
-      for (const idx of prev) {
-        const led = leds.find(l => l.index === idx);
-        if (led && nextEnabled!.has(led.zoneType)) next.add(idx);
-      }
-      return next;
-    });
-  };
+  // Split candidate from the current LED selection. Hidden entirely inside
+  // resizable segments (header sub-split is a recorded v2 follow-up).
+  const splitParts = useMemo(() => {
+    if (!activeZone || activeZoneWalled || partitionBusy) return null;
+    return splitZone(activeZone, offsets, selected);
+  }, [activeZone, activeZoneWalled, partitionBusy, offsets, selected]);
+
+  // ── Undo / redo ───────────────────────────────────────────────────────
 
   const pushUndo = useCallback(() => {
-    undoStackRef.current.push({ leds: ledsRef.current.map(l => ({ ...l })), rectRatio: rectRatioRef.current, ledCount: liveLedCountRef.current });
+    undoStackRef.current.push({ leds: ledsRef.current.map(l => ({ ...l })), rectRatio: rectRatioRef.current });
     if (undoStackRef.current.length > MAX_HISTORY) undoStackRef.current.shift();
     redoStackRef.current = [];
     setUndoLen(undoStackRef.current.length);
     setRedoLen(0);
   }, []);
 
-  const handleUndo = useCallback(async () => {
+  const handleUndo = useCallback(() => {
     const stack = undoStackRef.current;
-    if (stack.length === 0 || countChangingRef.current) return;
+    if (stack.length === 0) return;
     const snap = stack.pop()!;
-    const current: Snapshot = { leds: ledsRef.current.map(l => ({ ...l })), rectRatio: rectRatioRef.current, ledCount: liveLedCountRef.current };
-    redoStackRef.current.push(current);
-    if (snap.ledCount !== current.ledCount) {
-      countChangingRef.current = true;
-      setLiveLedCount(snap.ledCount);
-      try {
-        await setZoneLedCount(deviceId, snap.ledCount);
-      } catch {
-        stack.push(snap);
-        redoStackRef.current.pop();
-        setLiveLedCount(current.ledCount);
-        setUndoLen(stack.length);
-        setRedoLen(redoStackRef.current.length);
-        countChangingRef.current = false;
-        return;
-      }
-      countChangingRef.current = false;
-    }
+    redoStackRef.current.push({ leds: ledsRef.current.map(l => ({ ...l })), rectRatio: rectRatioRef.current });
     setLeds(snap.leds);
     setRectRatio(snap.rectRatio);
     setDirty(true);
     setUndoLen(stack.length);
     setRedoLen(redoStackRef.current.length);
-  }, [deviceId]);
+  }, []);
 
-  const handleRedo = useCallback(async () => {
+  const handleRedo = useCallback(() => {
     const stack = redoStackRef.current;
-    if (stack.length === 0 || countChangingRef.current) return;
+    if (stack.length === 0) return;
     const snap = stack.pop()!;
-    const current: Snapshot = { leds: ledsRef.current.map(l => ({ ...l })), rectRatio: rectRatioRef.current, ledCount: liveLedCountRef.current };
-    undoStackRef.current.push(current);
-    if (snap.ledCount !== current.ledCount) {
-      countChangingRef.current = true;
-      setLiveLedCount(snap.ledCount);
-      try {
-        await setZoneLedCount(deviceId, snap.ledCount);
-      } catch {
-        stack.push(snap);
-        undoStackRef.current.pop();
-        setLiveLedCount(current.ledCount);
-        setUndoLen(undoStackRef.current.length);
-        setRedoLen(stack.length);
-        countChangingRef.current = false;
-        return;
-      }
-      countChangingRef.current = false;
-    }
+    undoStackRef.current.push({ leds: ledsRef.current.map(l => ({ ...l })), rectRatio: rectRatioRef.current });
     setLeds(snap.leds);
     setRectRatio(snap.rectRatio);
     setDirty(true);
     setUndoLen(undoStackRef.current.length);
     setRedoLen(stack.length);
-  }, [deviceId]);
+  }, []);
 
   // Holds the latest shortcut handlers so the keydown effect can run without
   // depending on handler identity (some of those handlers are declared further
@@ -375,15 +347,22 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const load = useCallback(async (preserveHistory = false) => {
+  // ── Load ──────────────────────────────────────────────────────────────
+
+  // Fetches structure + whole-device map. selectDeviceIndex picks the zone
+  // containing that device-space LED after a partition edit (zone ids can be
+  // reassigned by the service); otherwise the current selection is kept when
+  // it survives, falling back to the first zone in device order.
+  const load = useCallback(async (selectDeviceIndex?: number) => {
     setLoading(true);
-    const [resp, defResp] = await Promise.all([
-      fetchLedMap(deviceId),
-      fetchLedMapDefaults(deviceId),
+    const [st, dm] = await Promise.all([
+      fetchDeviceStructure(deviceId),
+      fetchDeviceMap(deviceId),
     ]);
-    if (resp) {
-      const active = resp.leds.filter(l => !l.disabled);
-      let ledsToSet = resp.leds;
+    setStructure(st);
+    if (dm) {
+      let flat = flattenDeviceMap(dm);
+      const active = flat.filter(l => !l.disabled);
       // If all active LEDs are piled on the same point (no saved layout yet),
       // spread them into a grid so the user has something to work with.
       if (active.length > 1) {
@@ -409,49 +388,50 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
               v: rows > 1 ? pad + (r / (rows - 1)) * (1 - 2 * pad) : 0.5,
             });
           });
-          ledsToSet = resp.leds.map(l => {
+          flat = flat.map(l => {
             const g = gridMap.get(l.index);
             return g ? { ...l, u: g.u, v: g.v } : l;
           });
         }
       }
-      setLeds(ledsToSet);
-      setLiveLedCount(resp.ledCount);
-      const snap = new Map<number, { u: number; v: number; disabled: boolean }>();
-      for (const l of ledsToSet) snap.set(l.index, { u: l.u, v: l.v, disabled: l.disabled });
+      setLeds(flat);
+      baselineRef.current = baselineFrom(flat);
+      const snap = new Map<number, SavedLedState>();
+      for (const l of flat) snap.set(l.index, { u: l.u, v: l.v, disabled: l.disabled, isCustom: l.isCustom });
       setSavedLedsMap(snap);
-      if (resp.aspectRatio > 0) {
-        setRectRatio(resp.aspectRatio);
+      setRectRatio(dm.aspectRatio > 0 ? dm.aspectRatio : DEFAULT_RATIO);
+      loadedRatioRef.current = dm.aspectRatio > 0 ? dm.aspectRatio : DEFAULT_RATIO;
+    }
+    if (st) {
+      const offs = segmentOffsets(st.segments);
+      let nextZone: DeviceZone | undefined;
+      if (selectDeviceIndex !== undefined) {
+        nextZone = st.zones.find(z => zoneDeviceIndices(z, offs).includes(selectDeviceIndex));
       }
-      loadedRatioRef.current = resp.aspectRatio > 0 ? resp.aspectRatio : DEFAULT_RATIO;
-      appliedMappingRef.current = resp.applied != null;
-      setGroups(resp.groups ?? []);
-      groupsEditedRef.current = false;
-      setMapDeviceKey(resp.deviceKey ?? '');
+      if (!nextZone) nextZone = st.zones.find(z => z.id === selectedZoneIdRef.current);
+      if (!nextZone) nextZone = orderZones(st.zones, offs)[0];
+      if (nextZone) {
+        setSelectedZoneId(nextZone.id);
+        setZoneMultiSel(new Set([nextZone.id]));
+      }
     }
-    if (defResp) {
-      defaultLedsRef.current = defResp.leds;
-    }
-    if (!preserveHistory) {
-      undoStackRef.current = [];
-      redoStackRef.current = [];
-      setUndoLen(0);
-      setRedoLen(0);
-    }
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    setUndoLen(0);
+    setRedoLen(0);
     setLoading(false);
     setDirty(false);
     setSelected(new Set());
-    setEnabledZones(new Set());
-    zonesInitialized.current = false;
   }, [deviceId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
-  useEffect(() => { setLedCountDraft(String(liveLedCount)); }, [liveLedCount]);
-
+  // Per-zone editor state on the service (highlight + test pattern) follows
+  // the selected zone; clear the previous zone's on switch and on unmount.
   useEffect(() => {
-    return () => { clearLedEditor(deviceId); };
-  }, [deviceId]);
+    const zoneId = selectedZoneId;
+    return () => { clearLedEditor(zoneId); };
+  }, [selectedZoneId]);
 
   // Animate the sweep line when a directional test pattern is active.
   // Phase resets to 0 on each mode activation so the UI bar starts at the
@@ -472,12 +452,17 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
     return () => cancelAnimationFrame(raf);
   }, [editorMode, selected.size]);
 
+  // Highlights speak the per-card protocol, so device-space indices are
+  // translated to the selected zone's local space before posting.
   const sendHighlight = useCallback((sel: Set<number>) => {
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     highlightTimerRef.current = setTimeout(() => {
-      highlightLeds(deviceId, Array.from(sel));
+      const indices = activeZone
+        ? toZoneLocalIndices(activeZone, offsets, sel)
+        : Array.from(sel);
+      highlightLeds(selectedZoneIdRef.current, indices);
     }, 30);
-  }, [deviceId]);
+  }, [activeZone, offsets]);
 
   useEffect(() => {
     sendHighlight(selected);
@@ -485,50 +470,189 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
 
   useEffect(() => {
     if (selected.size === 0) {
-      testLedPattern(deviceId, editorMode);
+      testLedPattern(selectedZoneId, editorMode);
     }
-  }, [editorMode, selected.size, deviceId]);
+  }, [editorMode, selected.size, selectedZoneId]);
+
+  // ── Per-zone brightness ───────────────────────────────────────────────
+
+  // Per-zone brightness multiplier (0..100). Multiplies the global
+  // brightness slider so the effective output is `global * zone / 100`.
+  const [brightness, setBrightness] = useState<number>(() => zoneCard?.brightness ?? 100);
+  const devicesRef = useRef(devices);
+  devicesRef.current = devices;
+  useEffect(() => {
+    const card = devicesRef.current.find(d => d.id === selectedZoneId);
+    setBrightness(card?.brightness ?? 100);
+  }, [selectedZoneId]);
+  const brightnessThrottle = useThrottle();
+  const sendBrightness = useCallback((value: number) => {
+    setLightingDeviceBrightness(selectedZoneIdRef.current, value).catch(() => { /* best-effort */ });
+  }, []);
+  const handleBrightnessChange = useCallback((value: number) => {
+    setBrightness(value);
+    brightnessThrottle(() => sendBrightness(value));
+  }, [brightnessThrottle, sendBrightness]);
+  const handleBrightnessCommit = useCallback((value: number) => {
+    sendBrightness(value);
+  }, [sendBrightness]);
+
+  // ── Close / discard confirms ──────────────────────────────────────────
 
   const showUnsavedConfirmRef = useRef(showUnsavedConfirm);
   showUnsavedConfirmRef.current = showUnsavedConfirm;
   const handleClose = useCallback(() => {
     // Confirm dialog owns Escape while it's open - don't loop the prompt.
-    // Same for the group-name prompt and the community publish dialog: the
-    // Esc that closes them must not also close (or confirm-close) the editor.
+    // Same for the zone prompt and the community publish dialog: the Esc
+    // that closes them must not also close (or confirm-close) the editor.
     if (showUnsavedConfirmRef.current || childDialogOpenRef.current) return;
     if (dirtyRef.current) {
       setShowUnsavedConfirm(true);
       return;
     }
-    clearLedEditor(deviceId);
+    clearLedEditor(selectedZoneIdRef.current);
     onClose();
-  }, [deviceId, onClose]);
+  }, [onClose]);
 
   const handleDiscardAndClose = useCallback(() => {
     setShowUnsavedConfirm(false);
-    clearLedEditor(deviceId);
+    clearLedEditor(selectedZoneIdRef.current);
     onClose();
-  }, [deviceId, onClose]);
+  }, [onClose]);
 
-  // Community-tab actions that replace the resolved map go through here so a
-  // confirm can interpose while the editor holds unsaved edits; with a clean
-  // editor the action runs immediately.
+  // Actions that replace or reload the resolved map (community apply /
+  // import / remove, zone switch, partition edits) go through here so a
+  // confirm can interpose while the editor holds unsaved edits; with a
+  // clean editor the action runs immediately.
   const confirmDiscardEdits = useCallback((proceed: () => void) => {
     if (!dirtyRef.current) {
       proceed();
       return;
     }
-    setPendingMapAction(() => proceed);
+    setPendingDiscardAction(() => proceed);
   }, []);
 
-  const handlePendingMapActionConfirm = useCallback(() => {
-    const run = pendingMapAction;
-    setPendingMapAction(null);
+  const handlePendingDiscardConfirm = useCallback(() => {
+    const run = pendingDiscardAction;
+    setPendingDiscardAction(null);
     run?.();
-  }, [pendingMapAction]);
+  }, [pendingDiscardAction]);
+
+  // ── Zone rail actions ─────────────────────────────────────────────────
+
+  const firstDeviceIndexOf = (zone: DeviceZone): number | undefined => {
+    const first = zone.slices[0];
+    if (!first) return undefined;
+    return (offsets.get(first.segment) ?? 0) + first.start;
+  };
+
+  // Partition edits replace the whole zone list; on success the editor
+  // refetches structure + map and re-selects the zone covering selectIndex.
+  const postPartition = async (zonesBody: DeviceZoneDef[], selectIndex?: number) => {
+    setPartitionBusy(true);
+    const resp = await saveDeviceZones(deviceId, zonesBody);
+    if (!resp || resp.error) {
+      setPartitionBusy(false);
+      push({ title: t('lighting.ledMap.zonesUpdateFailed') });
+      return;
+    }
+    await load(selectIndex);
+    setPartitionBusy(false);
+  };
 
   const isMultiKey = (e: React.PointerEvent | React.MouseEvent) =>
     isMac ? e.metaKey : e.ctrlKey;
+
+  const handleZoneChipClick = (zoneId: string, multi: boolean) => {
+    if (partitionBusy) return;
+    if (multi) {
+      setZoneMultiSel(prev => {
+        const next = new Set(prev);
+        if (next.has(zoneId)) next.delete(zoneId);
+        else next.add(zoneId);
+        return next;
+      });
+      return;
+    }
+    if (zoneId === selectedZoneId) {
+      setZoneMultiSel(new Set([zoneId]));
+      return;
+    }
+    const proceed = () => {
+      setSelectedZoneId(zoneId);
+      setZoneMultiSel(new Set([zoneId]));
+      setSelected(new Set());
+    };
+    if (dirtyRef.current) {
+      // Switching the editable zone discards unsaved edits (the reload
+      // restores the persisted map), so it rides the same confirm as the
+      // community actions.
+      confirmDiscardEdits(() => {
+        proceed();
+        void load();
+      });
+      return;
+    }
+    proceed();
+  };
+
+  const handleRenameClick = () => {
+    if (!activeZone || partitionBusy) return;
+    confirmDiscardEdits(() => setZonePrompt({ mode: 'rename' }));
+  };
+
+  const handleMergeClick = () => {
+    if (!mergeCheck.ok || !structure || partitionBusy) return;
+    confirmDiscardEdits(() => {
+      const members = orderZones(structure.zones, offsets).filter(z => zoneMultiSel.has(z.id));
+      if (members.length < 2) return;
+      const body = buildMergeZonesBody(structure.zones, offsets, zoneMultiSel);
+      void postPartition(body, firstDeviceIndexOf(members[0]));
+    });
+  };
+
+  const handleSplitClick = () => {
+    if (!splitParts) return;
+    confirmDiscardEdits(() => setZonePrompt({ mode: 'split' }));
+  };
+
+  const handleZonePromptConfirm = (value: string) => {
+    const prompt = zonePrompt;
+    setZonePrompt(null);
+    const name = value.trim();
+    if (!prompt || !name || !structure || !activeZone) return;
+    if (prompt.mode === 'rename') {
+      if (name === activeZone.name) return;
+      const body = orderZones(structure.zones, offsets)
+        .map(z => ({ name: z.id === activeZone.id ? name : z.name, slices: z.slices }));
+      void postPartition(body, firstDeviceIndexOf(activeZone));
+      return;
+    }
+    // The selection cannot have changed while the prompt was open, but the
+    // parts are recomputed from live state to be safe.
+    const parts = splitZone(activeZone, offsets, selected);
+    if (!parts) return;
+    const body = buildSplitZonesBody(structure.zones, offsets, activeZone.id, parts, name);
+    const target = zoneDeviceIndices(activeZone, offsets).find(i => selected.has(i));
+    void postPartition(body, target);
+  };
+
+  const handleResetPartitionConfirm = () => {
+    setResetPartitionConfirm(false);
+    void (async () => {
+      setPartitionBusy(true);
+      const resp = await resetDeviceZones(deviceId);
+      if (!resp || resp.error) {
+        setPartitionBusy(false);
+        push({ title: t('lighting.ledMap.zonesUpdateFailed') });
+        return;
+      }
+      await load(0);
+      setPartitionBusy(false);
+    })();
+  };
+
+  // ── Canvas geometry ───────────────────────────────────────────────────
 
   const getCanvasPercent = (e: React.PointerEvent) => {
     if (!canvasRef.current) return { x: 0, y: 0 };
@@ -572,7 +696,7 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
   // so the user can see which number maps to which parked circle.
   // disabledOrder: the sorted list of disabled LED indices in the current
   // map, so each disabled LED knows its slot + the total number of slots.
-  const getLedCanvasPos = useCallback((led: LedMapEntry, disabledOrder: number[], dragOverride?: { du: number; dv: number }) => {
+  const getLedCanvasPos = useCallback((led: EditorLed, disabledOrder: number[], dragOverride?: { du: number; dv: number }) => {
     if (parkedDrag && parkedDrag.index === led.index) {
       return { cx: parkedDrag.cx, cy: parkedDrag.cy };
     }
@@ -618,7 +742,7 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
 
     const inBox = new Set<number>();
     for (const led of leds) {
-      if (!enabledZones.has(led.zoneType)) continue;
+      if (!isLedEnabled(led)) continue;
       let cx: number, cy: number;
       if (led.disabled) {
         const slot = parkedIndices.indexOf(led.index);
@@ -641,7 +765,7 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
       return merged;
     }
     return inBox;
-  }, [leds, uvToCanvas, enabledZones, devRect]);
+  }, [leds, uvToCanvas, isLedEnabled, devRect]);
 
   const handleLedPointerDown = (e: React.PointerEvent, ledIndex: number) => {
     e.preventDefault();
@@ -869,75 +993,74 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
     setRectResizing(true);
   };
 
+  // ── Save / revert ─────────────────────────────────────────────────────
+
   const handleSave = async () => {
     setSaving(true);
     // The body builder keeps applied-mapping state (mapping-disabled LEDs,
-    // mapping ratio, mapping groups) out of the user delta: only LEDs the
-    // user owns (isCustom), a ratio the user adjusted, and groups the user
-    // edited this session are posted.
-    const body = buildLedMapSaveBody({
+    // mapping ratio) out of the user delta: only LEDs the user owns
+    // (isCustom) and a ratio the user adjusted this session are posted, as
+    // segment-local overrides.
+    const body = buildDeviceMapSaveBody({
       leds,
-      defaults: defaultLedsRef.current,
+      baseline: baselineRef.current,
       rectRatio,
       loadedRatio: loadedRatioRef.current,
-      groups,
-      groupsEdited: groupsEditedRef.current,
     });
-    await saveLedMap(deviceId, body.overrides, body.aspectRatio, body.groups);
-    // The everything-default fast path resets the stored map entirely; a
-    // reset also wipes groups, so only take it when there are none. Never
-    // take it while a mapping is applied - the user delta being empty does
-    // not mean the device is back to factory state.
-    if (body.overrides.length === 0 && rectRatio === DEFAULT_RATIO && groups.length === 0
-      && !appliedMappingRef.current) {
-      await resetLedMap(deviceId);
-    }
+    await saveDeviceMap(deviceId, body.overrides, body.aspectRatio);
     // What was just sent is now the stored baseline.
     if (body.aspectRatio > 0) loadedRatioRef.current = body.aspectRatio;
-    groupsEditedRef.current = false;
     // Re-snapshot so the dashed "unsaved" rings disappear now that what the
     // user sees matches what the service has persisted.
-    const snap = new Map<number, { u: number; v: number; disabled: boolean }>();
-    for (const l of leds) snap.set(l.index, { u: l.u, v: l.v, disabled: l.disabled });
+    const snap = new Map<number, SavedLedState>();
+    for (const l of leds) snap.set(l.index, { u: l.u, v: l.v, disabled: l.disabled, isCustom: l.isCustom });
     setSavedLedsMap(snap);
     setSaving(false);
     setDirty(false);
   };
 
   // Editable LED count for resizable motherboard zones. Sends RESIZEZONE to
-  // OpenRGB; the service persists the new count in zone.ledCount (mirrored
-  // to the device list) and returns a fresh LED map with len == count.
-  // Optimistic update is rolled back on API failure so the input can't drift
-  // out of sync with the actual device state.
+  // OpenRGB; the service persists the new count and rebuilds the partition,
+  // so the editor refetches structure + map (which clears history - the old
+  // device-space indices no longer line up).
+  const activeZoneLedCount = activeZone ? zoneLedCount(activeZone) : leds.length;
+  const activeZoneLedCountRef = useRef(activeZoneLedCount);
+  activeZoneLedCountRef.current = activeZoneLedCount;
+  const [ledCountDraft, setLedCountDraft] = useState(String(activeZoneLedCount));
+  const ledCountEscapeRef = useRef(false);
+  const resizingCountRef = useRef(false);
+  const canEditLedCount = zoneCard?.zoneResizable === true;
+  useEffect(() => { setLedCountDraft(String(activeZoneLedCount)); }, [activeZoneLedCount, selectedZoneId]);
+
   const handleLedCountCommit = useCallback(async (n: number) => {
     const clamped = Math.max(1, Math.min(300, n));
-    if (!canEditLedCount || clamped === liveLedCountRef.current || countChangingRef.current) return;
-    const prev = liveLedCountRef.current;
-    // Snapshot redo stack before pushUndo clears it so we can restore on failure.
-    const savedRedo = redoStackRef.current.map(s => ({ ...s, leds: s.leds.map(l => ({ ...l })) }));
-    pushUndo();
-    countChangingRef.current = true;
-    setLiveLedCount(clamped);
-    try {
-      await setZoneLedCount(deviceId, clamped);
-      await load(true);
-    } catch {
-      undoStackRef.current.pop();
-      setUndoLen(undoStackRef.current.length);
-      redoStackRef.current = savedRedo;
-      setRedoLen(savedRedo.length);
-      setLiveLedCount(prev);
-    } finally {
-      countChangingRef.current = false;
+    if (!canEditLedCount || resizingCountRef.current) return;
+    if (clamped === activeZoneLedCountRef.current) {
+      setLedCountDraft(String(clamped));
+      return;
     }
-  }, [canEditLedCount, deviceId, load, pushUndo]);
+    resizingCountRef.current = true;
+    setLedCountDraft(String(clamped));
+    try {
+      await setZoneLedCount(selectedZoneIdRef.current, clamped);
+      await load();
+    } catch {
+      setLedCountDraft(String(activeZoneLedCountRef.current));
+    } finally {
+      resizingCountRef.current = false;
+    }
+  }, [canEditLedCount, load]);
 
+  // Revert the canvas to the last-saved state. The device-map endpoint has
+  // no defaults variant, so "reset" means dropping this session's edits, as
+  // an undoable local op.
   const handleReset = () => {
     pushUndo();
-    if (defaultLedsRef.current.length > 0) {
-      setLeds(defaultLedsRef.current.map(l => ({ ...l, isCustom: true })));
-    }
-    setRectRatio(DEFAULT_RATIO);
+    setLeds(prev => prev.map(l => {
+      const s = savedLedsMap.get(l.index);
+      return s ? { ...l, u: s.u, v: s.v, disabled: s.disabled, isCustom: s.isCustom } : l;
+    }));
+    setRectRatio(loadedRatioRef.current);
     setDevRect({ x: 10, y: 10, w: 80, h: 80 });
     setDirty(true);
     setSelected(new Set());
@@ -947,7 +1070,7 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
   // All three reshape the selected LEDs in UV space. Sort by LED index so
   // "arrange 0-N in a strip / grid" respects the firmware ordering, which is
   // what users are usually trying to match with the physical hardware.
-  const getSelectedSorted = useCallback((): LedMapEntry[] => {
+  const getSelectedSorted = useCallback((): EditorLed[] => {
     // Disabled LEDs don't participate in bbox / align / rotate operations -
     // their "position" is the parking slot, not a real (u,v) the user cares
     // about. Restoring them is the one way to bring them back into ops.
@@ -1039,21 +1162,14 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
 
   const handleRestoreSelected = useCallback(() => {
     if (selected.size === 0) return;
-    const defs = defaultLedsRef.current;
     pushUndo();
-    setLeds(prev => prev.map(l => {
-      if (!selected.has(l.index) || !l.disabled) return l;
-      // Restore the default position so the re-enabled LED lands at a
-      // valid spot regardless of its last custom u,v.
-      const def = defs.find(d => d.index === l.index);
-      return {
-        ...l,
-        disabled: false,
-        u: def ? def.u : l.u,
-        v: def ? def.v : l.v,
-        isCustom: true,
-      };
-    }));
+    // Re-enable at the LED's stored u,v; parked drag-back-in is the way to
+    // pick an exact new spot.
+    setLeds(prev => prev.map(l =>
+      selected.has(l.index) && l.disabled
+        ? { ...l, disabled: false, isCustom: true }
+        : l,
+    ));
     setDirty(true);
   }, [selected, pushUndo]);
 
@@ -1089,96 +1205,32 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
 
   const handleResetSelected = useCallback(() => {
     if (selected.size === 0) return;
-    const defs = defaultLedsRef.current;
-    if (defs.length === 0) return;
     pushUndo();
     setLeds(prev => prev.map(l => {
       if (!selected.has(l.index)) return l;
-      const def = defs.find(d => d.index === l.index);
-      return def ? { ...l, u: def.u, v: def.v, disabled: false, isCustom: true } : l;
+      const s = savedLedsMap.get(l.index);
+      return s ? { ...l, u: s.u, v: s.v, disabled: s.disabled, isCustom: s.isCustom } : l;
     }));
     setDirty(true);
-  }, [selected, pushUndo]);
+  }, [selected, savedLedsMap, pushUndo]);
 
   const handleSelectAll = useCallback(() => {
-    setSelected(new Set(leds.filter(l => enabledZones.has(l.zoneType)).map(l => l.index)));
-  }, [leds, enabledZones]);
+    setSelected(new Set(leds.filter(l => isLedEnabled(l)).map(l => l.index)));
+  }, [leds, isLedEnabled]);
 
   const handleRestoreAll = useCallback(() => {
-    const defs = defaultLedsRef.current;
     pushUndo();
     setLeds(prev => prev.map(l => {
-      if (!l.disabled) return l;
-      const def = defs.find(d => d.index === l.index);
-      return {
-        ...l,
-        disabled: false,
-        u: def ? def.u : l.u,
-        v: def ? def.v : l.v,
-        isCustom: true,
-      };
+      if (!l.disabled || !isLedEnabled(l)) return l;
+      return { ...l, disabled: false, isCustom: true };
     }));
     setDirty(true);
-  }, [pushUndo]);
+  }, [pushUndo, isLedEnabled]);
 
-  // ── Named LED groups ──────────────────────────────────────────────────
-  // Clicking a chip selects the group's LEDs (only ones that still exist and
-  // whose zone layer is enabled, so the selection matches what align/test
-  // ops can actually touch).
-  const handleGroupSelect = useCallback((group: LedGroup) => {
-    const next = new Set<number>();
-    const byIndex = new Map(leds.map(l => [l.index, l]));
-    for (const idx of expandRanges(group.ranges)) {
-      const led = byIndex.get(idx);
-      if (led && enabledZones.has(led.zoneType)) next.add(idx);
-    }
-    setSelected(next);
-  }, [leds, enabledZones]);
-
-  const handleGroupPromptConfirm = useCallback((value: string) => {
-    const prompt = groupPrompt;
-    setGroupPrompt(null);
-    const name = value.trim();
-    if (!prompt || !name) return;
-    if (prompt.mode === 'create') {
-      const ranges = collapseToRanges(selected);
-      if (ranges.length === 0) return;
-      setGroups(prev => [...prev, { name, ranges }]);
-    } else {
-      setGroups(prev => prev.map((g, i) => i === prompt.index ? { ...g, name } : g));
-    }
-    groupsEditedRef.current = true;
-    setDirty(true);
-  }, [groupPrompt, selected]);
-
-  const handleGroupDelete = useCallback((index: number) => {
-    setGroups(prev => prev.filter((_, i) => i !== index));
-    groupsEditedRef.current = true;
-    setDirty(true);
-  }, []);
-
-  const validateGroupName = useCallback((value: string): string | null => {
-    const name = value.trim();
-    if (!name) return null;
-    const renamingIndex = groupPrompt?.mode === 'rename' ? groupPrompt.index : -1;
-    const taken = groupsRef.current.some((g, i) => i !== renamingIndex && g.name === name);
-    return taken ? t('lighting.ledMap.groupNameTaken') : null;
-  }, [groupPrompt, t]);
-
-  // A chip highlights when the current selection is exactly its LED set.
-  const activeGroupIndices = useMemo(() => {
-    const active = new Set<number>();
-    if (selected.size === 0) return active;
-    groups.forEach((g, i) => {
-      const indices = expandRanges(g.ranges);
-      if (indices.length === selected.size && indices.every(idx => selected.has(idx))) {
-        active.add(i);
-      }
-    });
-    return active;
-  }, [groups, selected]);
-
-  const hasDisabled = useMemo(() => leds.some(l => l.disabled), [leds]);
+  // Any parked LED at all keeps the parking-row separator visible; the
+  // restore-all affordance only counts the editable zone's parked LEDs.
+  const hasParked = useMemo(() => leds.some(l => l.disabled), [leds]);
+  const hasRestorable = useMemo(() => leds.some(l => l.disabled && isLedEnabled(l)), [leds, isLedEnabled]);
 
   // Set of LED indices that differ from the last-saved snapshot. Only these
   // render with the dashed "unsaved change" ring; persisted customisations
@@ -1325,9 +1377,16 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
   };
   selectedSizeRef.current = selected.size;
 
-  const getLedPosition = (led: LedMapEntry) => {
+  const getLedPosition = (led: EditorLed) => {
     const dragOverride = dragging && dragDelta ? dragDelta : undefined;
     return getLedCanvasPos(led, disabledOrder, dragOverride);
+  };
+
+  const ledTypeClass = (led: EditorLed) => {
+    const type = segmentTypeByIndex.get(led.segment);
+    if (type === 'matrix') return styles.ledMatrix;
+    if (type === 'single') return styles.ledSingle;
+    return styles.ledLinear;
   };
 
   const modes: { key: EditorMode; label: string }[] = [
@@ -1337,8 +1396,23 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
     { key: 'none', label: t('lighting.ledMap.modeNone') },
   ];
 
+  const mergeTooltip = mergeCheck.ok
+    ? t('lighting.ledMap.zoneMerge')
+    : mergeCheck.reason === 'wall'
+      ? t('lighting.ledMap.zoneMergeWall')
+      : mergeCheck.reason === 'adjacency'
+        ? t('lighting.ledMap.zoneMergeAdjacentOnly')
+        : t('lighting.ledMap.zoneMergeHint', { mod: isMac ? 'Cmd' : 'Ctrl' });
+
+  const showZonesBar = zoneCustomizable && zonesOrdered.length > 0;
+
   return (
-    <DeviceModal open onClose={handleClose} title={`${deviceName} - ${t('lighting.ledMap.title')}`} wide>
+    <DeviceModal
+      open
+      onClose={handleClose}
+      title={structure ? `${structure.name} - ${t('lighting.ledMap.title')}` : t('lighting.ledMap.title')}
+      wide
+    >
       {loading ? (
         <div className={styles.loading}>{t('lighting.ledMap.title')}...</div>
       ) : (
@@ -1356,10 +1430,98 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
               ariaLabel={t('lighting.ledMap.title')}
             />
           )}
+          {showZonesBar && (
+            <div className={styles.zonesBar}>
+              <span className={styles.zonesLabel}>{t('lighting.ledMap.zones')}</span>
+              {zonesOrdered.map(z => {
+                const active = z.id === selectedZoneId;
+                const marked = zoneMultiSel.has(z.id);
+                const walled = walledZoneIds.has(z.id);
+                return (
+                  <div
+                    key={z.id}
+                    className={[
+                      styles.zoneChip,
+                      marked ? styles.zoneChipMarked : '',
+                      active ? styles.zoneChipActive : '',
+                    ].filter(Boolean).join(' ')}
+                  >
+                    <button
+                      type="button"
+                      className={styles.zoneChipName}
+                      onClick={e => handleZoneChipClick(z.id, isMultiKey(e))}
+                    >
+                      {z.name}
+                      <span className={styles.zoneChipCount}>{zoneLedCount(z)}</span>
+                    </button>
+                    {walled && (
+                      <HoverTooltip body={t('lighting.ledMap.zoneWallTooltip')} side="top">
+                        <span className={styles.zoneChipLock}>
+                          <Lock size={11} aria-label={t('lighting.ledMap.zoneWallTooltip')} />
+                        </span>
+                      </HoverTooltip>
+                    )}
+                  </div>
+                );
+              })}
+              <div className={styles.spacer} />
+              <HoverTooltip body={t('lighting.ledMap.zoneRename')} side="top">
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  disabled={!activeZone || partitionBusy}
+                  aria-label={t('lighting.ledMap.zoneRename')}
+                  onClick={handleRenameClick}
+                >
+                  <Pencil size={13} />
+                </button>
+              </HoverTooltip>
+              <HoverTooltip body={mergeTooltip} side="top">
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  disabled={!mergeCheck.ok || partitionBusy}
+                  aria-label={t('lighting.ledMap.zoneMerge')}
+                  onClick={handleMergeClick}
+                >
+                  <Merge size={13} />
+                </button>
+              </HoverTooltip>
+              {!activeZoneWalled && (
+                <HoverTooltip
+                  body={splitParts ? t('lighting.ledMap.zoneSplit') : t('lighting.ledMap.zoneSplitHint')}
+                  side="top"
+                >
+                  <button
+                    type="button"
+                    className={styles.iconBtn}
+                    disabled={!splitParts}
+                    aria-label={t('lighting.ledMap.zoneSplit')}
+                    onClick={handleSplitClick}
+                  >
+                    <Scissors size={13} />
+                  </button>
+                </HoverTooltip>
+              )}
+              {structure && !structure.isDefaultPartition && (
+                <HoverTooltip body={t('lighting.ledMap.zoneResetPartition')} side="top">
+                  <button
+                    type="button"
+                    className={styles.iconBtn}
+                    disabled={partitionBusy}
+                    aria-label={t('lighting.ledMap.zoneResetPartition')}
+                    onClick={() => setResetPartitionConfirm(true)}
+                  >
+                    <ListRestart size={13} />
+                  </button>
+                </HoverTooltip>
+              )}
+            </div>
+          )}
           {effectiveTab === 'community' ? (
             <CommunityMappingsPanel
-              deviceId={deviceId}
-              deviceName={deviceName}
+              deviceId={selectedZoneId}
+              deviceName={zoneCard?.name ?? structure?.name ?? ''}
               onLedMapChanged={() => { void load(); }}
               onDialogOpenChange={setCommunityDialogOpen}
               confirmDiscardEdits={confirmDiscardEdits}
@@ -1380,24 +1542,6 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
                 </button>
               ))}
             </div>
-            {zoneTypes.length > 1 && (
-              <>
-                <div className={styles.separator} />
-                <div className={styles.zoneBtns}>
-                  {zoneTypes.map(z => (
-                    <button
-                      key={z}
-                      type="button"
-                      className={`${styles.zoneBtn} ${enabledZones.has(z) ? styles.zoneBtnActive : ''}`}
-                      onClick={() => toggleZone(z)}
-                    >
-                      <span className={`${styles.legendDot} ${z === 'matrix' ? styles.legendDotMatrix : z === 'linear' ? styles.legendDotLinear : styles.legendDotSingle}`} />
-                      {zoneLabel(z)}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
             {canEditLedCount && (
               <>
                 <div className={styles.separator} />
@@ -1413,9 +1557,9 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
                     onChange={e => setLedCountDraft(e.target.value)}
                     onBlur={e => {
                       if (ledCountEscapeRef.current) { ledCountEscapeRef.current = false; return; }
-                      if (countChangingRef.current) { setLedCountDraft(String(liveLedCountRef.current)); return; }
+                      if (resizingCountRef.current) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
                       const n = parseInt(e.currentTarget.value, 10);
-                      if (isNaN(n)) { setLedCountDraft(String(liveLedCountRef.current)); return; }
+                      if (isNaN(n)) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
                       handleLedCountCommit(n);
                     }}
                     onKeyDown={e => {
@@ -1423,7 +1567,7 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
                       if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
                       if (e.key === 'Escape') {
                         ledCountEscapeRef.current = true;
-                        setLedCountDraft(String(liveLedCountRef.current));
+                        setLedCountDraft(String(activeZoneLedCountRef.current));
                         (e.target as HTMLInputElement).blur();
                       }
                     }}
@@ -1472,7 +1616,7 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
                 <Square size={15} />
               </button>
             </HoverTooltip>
-            {hasDisabled && (
+            {hasRestorable && (
               <HoverTooltip body={t('lighting.ledMap.restoreAll')} side="bottom">
                 <button
                   type="button"
@@ -1512,58 +1656,6 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
             {leds.length} LEDs - {t('lighting.ledMap.dragHint')} - {isMac ? 'Cmd' : 'Ctrl'}+{t('lighting.ledMap.clickMulti')} - {t('lighting.ledMap.deleteHint')}
           </div>
 
-          <div className={styles.groupsBar}>
-            <span className={styles.groupsLabel}>{t('lighting.ledMap.groups')}</span>
-            {groups.map((g, i) => (
-              <div
-                key={`${g.name}-${i}`}
-                className={`${styles.groupChip} ${activeGroupIndices.has(i) ? styles.groupChipActive : ''}`}
-              >
-                <button
-                  type="button"
-                  className={styles.groupChipName}
-                  onClick={() => handleGroupSelect(g)}
-                >
-                  {g.name}
-                </button>
-                <HoverTooltip body={t('lighting.ledMap.groupRename')} side="top">
-                  <button
-                    type="button"
-                    className={styles.groupChipBtn}
-                    aria-label={t('lighting.ledMap.groupRename')}
-                    onClick={() => setGroupPrompt({ mode: 'rename', index: i })}
-                  >
-                    <Pencil size={11} />
-                  </button>
-                </HoverTooltip>
-                <HoverTooltip body={t('lighting.ledMap.groupDelete')} side="top">
-                  <button
-                    type="button"
-                    className={styles.groupChipBtn}
-                    aria-label={t('lighting.ledMap.groupDelete')}
-                    onClick={() => handleGroupDelete(i)}
-                  >
-                    <X size={11} />
-                  </button>
-                </HoverTooltip>
-              </div>
-            ))}
-            <HoverTooltip
-              body={selected.size === 0 ? t('lighting.ledMap.groupCreateHint') : t('lighting.ledMap.groupCreate')}
-              side="top"
-            >
-              <button
-                type="button"
-                className={styles.groupAddBtn}
-                disabled={selected.size === 0}
-                onClick={() => setGroupPrompt({ mode: 'create' })}
-              >
-                <Plus size={12} />
-                {t('lighting.ledMap.groupCreate')}
-              </button>
-            </HoverTooltip>
-          </div>
-
           <div
             ref={canvasRef}
             className={styles.canvas}
@@ -1591,7 +1683,7 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
             {/* Parking-row separator so the boundary between "live" LEDs and
                 deleted ones is obvious. A subtle line across the canvas just
                 below the device frame. */}
-            {hasDisabled && (
+            {hasParked && (
               <div
                 className={styles.parkSeparator}
                 style={{ top: `${devRect.y + devRect.h}%` }}
@@ -1609,9 +1701,7 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
                   data-led="1"
                   className={[
                     styles.led,
-                    led.zoneType === 'matrix' ? styles.ledMatrix
-                      : led.zoneType === 'linear' ? styles.ledLinear
-                      : styles.ledSingle,
+                    ledTypeClass(led),
                     unsavedLedSet.has(led.index) ? styles.ledCustom : '',
                     isSelected ? styles.ledSelected : '',
                     (dragging && isSelected) || beingParkedDragged ? styles.ledDragging : '',
@@ -1623,7 +1713,9 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
                   onPointerEnter={() => setHoveredLed(led.index)}
                   onPointerLeave={() => setHoveredLed(null)}
                 >
-                  <span className={styles.ledIndex} aria-hidden>{led.index + 1}</span>
+                  <span className={styles.ledIndex} aria-hidden>
+                    {(zoneLocalByDevice.get(led.index) ?? led.index) + 1}
+                  </span>
                 </div>
               );
             })}
@@ -1789,12 +1881,14 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
 
             {hoveredEntry && !dragging && !parkedDrag && (() => {
               const { cx, cy } = getLedPosition(hoveredEntry);
+              const zoneName = zoneNameById.get(hoveredEntry.zoneId);
+              const local = (zoneLocalByDevice.get(hoveredEntry.index) ?? hoveredEntry.index) + 1;
               return (
                 <div
                   className={styles.tooltip}
                   style={{ left: `${cx}%`, top: `${cy}%` }}
                 >
-                  {hoveredEntry.name} #{hoveredEntry.index + 1}
+                  {zoneName ? `${zoneName} #${local}` : `#${local}`}
                   {hoveredEntry.disabled && (
                     <span className={styles.tooltipMeta}> - {t('lighting.ledMap.parkedTooltip')}</span>
                   )}
@@ -1817,25 +1911,34 @@ export function LedMapEditor({ device, onClose, initialTab }: Props) {
         onCancel={() => setShowUnsavedConfirm(false)}
       />
       <ConfirmModal
-        open={pendingMapAction !== null}
+        open={pendingDiscardAction !== null}
         title={t('lighting.ledMap.unsavedTitle')}
         message={t('lighting.mappings.discardEditsMessage')}
         confirmLabel={t('lighting.ledMap.discard')}
         cancelLabel={t('lighting.ledMap.keepEditing')}
         destructive
-        onConfirm={handlePendingMapActionConfirm}
-        onCancel={() => setPendingMapAction(null)}
+        onConfirm={handlePendingDiscardConfirm}
+        onCancel={() => setPendingDiscardAction(null)}
+      />
+      <ConfirmModal
+        open={resetPartitionConfirm}
+        title={t('lighting.ledMap.zoneResetTitle')}
+        message={t('lighting.ledMap.zoneResetMessage')}
+        confirmLabel={t('lighting.ledMap.zoneResetPartition')}
+        cancelLabel={t('lighting.ledMap.keepEditing')}
+        destructive
+        onConfirm={handleResetPartitionConfirm}
+        onCancel={() => setResetPartitionConfirm(false)}
       />
       <PromptModal
-        open={groupPrompt !== null}
-        title={groupPrompt?.mode === 'rename' ? t('lighting.ledMap.groupRename') : t('lighting.ledMap.groupCreateTitle')}
-        message={t('lighting.ledMap.groupNameMessage')}
-        placeholder={t('lighting.ledMap.groupNamePlaceholder')}
-        initialValue={groupPrompt?.mode === 'rename' ? groups[groupPrompt.index]?.name ?? '' : ''}
-        maxLength={MAX_GROUP_NAME_LENGTH}
-        validate={validateGroupName}
-        onConfirm={handleGroupPromptConfirm}
-        onCancel={() => setGroupPrompt(null)}
+        open={zonePrompt !== null}
+        title={zonePrompt?.mode === 'split' ? t('lighting.ledMap.zoneSplitTitle') : t('lighting.ledMap.zoneRename')}
+        message={t('lighting.ledMap.zoneNameMessage')}
+        placeholder={t('lighting.ledMap.zoneNamePlaceholder')}
+        initialValue={zonePrompt?.mode === 'rename' ? activeZone?.name ?? '' : ''}
+        maxLength={MAX_ZONE_NAME_LENGTH}
+        onConfirm={handleZonePromptConfirm}
+        onCancel={() => setZonePrompt(null)}
       />
     </DeviceModal>
   );

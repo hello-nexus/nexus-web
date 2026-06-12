@@ -135,19 +135,35 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [devices, activeRightTab]);
 
   // LED map editor - lifted here so both the canvas settings button and the
-  // ZoneCard settings button can open it. The community badge deep-links to
-  // the editor's Community tab via editorInitialTab.
-  const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
+  // ZoneCard settings button can open it. Every card routes to the editor of
+  // its OWNING device with that card's zone preselected; the community badge
+  // deep-links to the editor's Community tab via editorInitialTab.
+  const [editorTarget, setEditorTarget] = useState<{
+    deviceId: string;
+    zoneId: string;
+    zoneCustomizable: boolean;
+  } | null>(null);
   const [editorInitialTab, setEditorInitialTab] = useState<'editor' | 'community'>('editor');
-  const editingDevice = editingDeviceId ? devices.find(d => d.id === editingDeviceId) ?? null : null;
+  const devicesRef = useRef<LightingDevice[]>([]);
+  devicesRef.current = devices;
+  const openEditorFor = useCallback((cardId: string, tab: 'editor' | 'community') => {
+    const card = devicesRef.current.find(d => d.id === cardId);
+    if (!card) return;
+    setEditorInitialTab(tab);
+    setEditorTarget({
+      // deviceId falls back to the card id for services that predate the
+      // zones model (single-zone behavior).
+      deviceId: card.deviceId || card.id,
+      zoneId: card.id,
+      zoneCustomizable: card.zoneCustomizable === true,
+    });
+  }, []);
   const handleOpenSettings = useCallback((id: string) => {
-    setEditorInitialTab('editor');
-    setEditingDeviceId(id);
-  }, []);
+    openEditorFor(id, 'editor');
+  }, [openEditorFor]);
   const handleOpenCommunity = useCallback((id: string) => {
-    setEditorInitialTab('community');
-    setEditingDeviceId(id);
-  }, []);
+    openEditorFor(id, 'community');
+  }, [openEditorFor]);
 
   // Cached community-layout counts for the device-card badges. Cache-only on
   // the service side, so a single fetch per page mount is enough.
@@ -172,7 +188,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       if (!cancelled && data) setSelectedDeviceLeds(data.leds);
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [primaryDeviceId, editingDeviceId, activeProfileId]);
+  }, [primaryDeviceId, editorTarget, activeProfileId]);
 
   const [musicReactive, setMusicReactiveState] = useState(false);
   const audioRef = useAudioState(musicReactive && mode === 'animate');
@@ -589,8 +605,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [mode]);
 
-  const devicesRef = useRef<LightingDevice[]>([]);
-  devicesRef.current = devices;
   // Per-zone toggle (flips one device's current state). Paired with the
   // absolute handleSetPower below: a per-zone toggle applied to a whole
   // group would re-enable already-off zones in a partially-lit group.
@@ -906,8 +920,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onNext={handleNextEffect}
         />
       )}
-      {editingDevice && (
-        <LedMapEditor device={editingDevice} initialTab={editorInitialTab} onClose={() => setEditingDeviceId(null)} />
+      {editorTarget && (
+        <LedMapEditor
+          deviceId={editorTarget.deviceId}
+          initialZoneId={editorTarget.zoneId}
+          devices={devices}
+          zoneCustomizable={editorTarget.zoneCustomizable}
+          initialTab={editorInitialTab}
+          onClose={() => setEditorTarget(null)}
+        />
       )}
     </div>
   );
