@@ -3,6 +3,9 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  // Sections size to their own content; differing description wrap must not
+  // stretch the sibling boxes.
+  align-items: start;
   gap: var(--space-lg);
   padding: var(--space-sm);
 }

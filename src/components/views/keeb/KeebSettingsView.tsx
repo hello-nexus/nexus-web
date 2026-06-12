@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from 'lucide-react';
 import type { KeebSettings, RGBA } from '../../../api/keeb';
-import { Card } from '../../common/Card/Card';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Slider } from '../../common/Slider/Slider';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebSettingsView.module.scss';
@@ -90,7 +90,7 @@ export function KeebSettingsView({
 
   return (
     <div className={styles.grid}>
-      <Card title={t('keeb.settings.firmware.title')} subtitle={t('keeb.settings.firmware.subtitle')}>
+      <SettingsSection title={t('keeb.settings.firmware.title')} description={t('keeb.settings.firmware.subtitle')}>
         <SettingSelect
           label={t('keeb.settings.effect')}
           value={local.animationMode}
@@ -130,9 +130,9 @@ export function KeebSettingsView({
             ))}
           </div>
         </SettingRow>
-      </Card>
+      </SettingsSection>
 
-      <Card title={t('keeb.settings.passive.title')} subtitle={t('keeb.settings.passive.subtitle')}>
+      <SettingsSection title={t('keeb.settings.passive.title')} description={t('keeb.settings.passive.subtitle')}>
         <SettingToggle
           label={t('keeb.settings.typeReactive')}
           checked={local.keyReactive}
@@ -161,9 +161,9 @@ export function KeebSettingsView({
             </SettingRow>
           </>
         )}
-      </Card>
+      </SettingsSection>
 
-      <Card title={t('keeb.settings.game.title')} subtitle={t('keeb.settings.game.subtitle')}>
+      <SettingsSection title={t('keeb.settings.game.title')} description={t('keeb.settings.game.subtitle')}>
         <SettingToggle
           label={t('keeb.settings.game.altF4')}
           checked={local.altF4Disabled}
@@ -184,7 +184,7 @@ export function KeebSettingsView({
           checked={local.windowsKeyDisabled}
           onChange={v => pushGameMode({ windowsKeyDisabled: v })}
         />
-      </Card>
+      </SettingsSection>
     </div>
   );
 }
