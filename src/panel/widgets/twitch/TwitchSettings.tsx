@@ -11,6 +11,7 @@ export function TwitchSettings({ widget, onUpdate }: WidgetSettingsProps) {
       <input
         type="text"
         value={channel}
+        // eslint-disable-next-line i18next/no-literal-string -- channel handle format hint
         placeholder="channel_name"
         onChange={e => onUpdate({ channel: e.target.value })}
       />

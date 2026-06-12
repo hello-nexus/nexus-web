@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Play, Pause, Square, RotateCcw } from 'lucide-react';
 import { useCountdown } from '../common/useCountdown';
+import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import styles from './TimerWidget.module.scss';
 
@@ -19,6 +20,7 @@ function formatMs(ms: number): { h: string; m: string; s: string } {
 type Phase = 'setup' | 'running';
 
 export function TimerWidget({ widget }: WidgetProps) {
+  const { t } = useTranslation();
   const { ms, isRunning, isComplete, start, pause, resume, stop, reset } = useCountdown();
   const [phase, setPhase] = useState<Phase>('setup');
   const [hours, setHours] = useState(0);
@@ -55,11 +57,11 @@ export function TimerWidget({ widget }: WidgetProps) {
     return (
       <div className={`${styles.container} ${isWide ? styles.wide : styles.compact}`}>
         <div className={styles.pickers}>
-          <Stepper label="H" value={hours} min={0} max={23} onChange={setHours} />
+          <Stepper label="H" value={hours} min={0} max={23} onChange={setHours} t={t} />
           <span className={styles.separator}>:</span>
-          <Stepper label="M" value={minutes} min={0} max={59} onChange={setMinutes} />
+          <Stepper label="M" value={minutes} min={0} max={59} onChange={setMinutes} t={t} />
           <span className={styles.separator}>:</span>
-          <Stepper label="S" value={seconds} min={0} max={59} onChange={setSeconds} />
+          <Stepper label="S" value={seconds} min={0} max={59} onChange={setSeconds} t={t} />
         </div>
         <button
           type="button"
@@ -68,7 +70,7 @@ export function TimerWidget({ widget }: WidgetProps) {
           disabled={hours === 0 && minutes === 0 && seconds === 0}
         >
           <Play size={16} />
-          {isWide && <span>Start</span>}
+          {isWide && <span>{t('panel.stopwatch.start')}</span>}
         </button>
       </div>
     );
@@ -113,7 +115,7 @@ export function TimerWidget({ widget }: WidgetProps) {
             onClick={handleReset}
           >
             <RotateCcw size={16} />
-            {isWide && <span>Reset</span>}
+            {isWide && <span>{t('panel.stopwatch.reset')}</span>}
           </button>
         )}
       </div>
@@ -128,19 +130,22 @@ interface StepperProps {
   min: number;
   max: number;
   onChange: (v: number) => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-function Stepper({ label, value, min, max, onChange }: StepperProps) {
+function Stepper({ label, value, min, max, onChange, t }: StepperProps) {
   const inc = () => onChange(value >= max ? min : value + 1);
   const dec = () => onChange(value <= min ? max : value - 1);
 
   return (
     <div className={styles.stepper}>
-      <button type="button" className={styles.stepBtn} onClick={inc} aria-label={`Increase ${label}`}>
+      {/* eslint-disable-next-line i18next/no-literal-string -- decorative arrow glyph */}
+      <button type="button" className={styles.stepBtn} onClick={inc} aria-label={t('panel.widget.timer.increase', { unit: label })}>
         &#x25B2;
       </button>
       <span className={styles.stepValue}>{pad(value)}</span>
-      <button type="button" className={styles.stepBtn} onClick={dec} aria-label={`Decrease ${label}`}>
+      {/* eslint-disable-next-line i18next/no-literal-string -- decorative arrow glyph */}
+      <button type="button" className={styles.stepBtn} onClick={dec} aria-label={t('panel.widget.timer.decrease', { unit: label })}>
         &#x25BC;
       </button>
     </div>

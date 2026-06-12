@@ -20,7 +20,7 @@ export function PollingPicker({ peripheral, state, onChanged }: PollingPickerPro
     <div className={styles.row}>
       <div className={styles.labelCol}>
         <span className={styles.label}>{t('peripheral.polling')}</span>
-        <span className={styles.value}>{state.currentHz} Hz</span>
+        <span className={styles.value}>{t('peripheral.pollingHz', { hz: state.currentHz })}</span>
       </div>
       <div className={styles.segment}>
         {state.supportedHz.map(hz => (

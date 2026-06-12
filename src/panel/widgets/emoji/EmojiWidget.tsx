@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import styles from './EmojiWidget.module.scss';
 
@@ -16,6 +17,7 @@ export const CATEGORY_KEYS = Object.keys(CATEGORIES);
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match WidgetProps for the registry
 export function EmojiWidget(_props: WidgetProps) {
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(CATEGORY_KEYS[0]);
   const [toast, setToast] = useState(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -62,7 +64,7 @@ export function EmojiWidget(_props: WidgetProps) {
           </button>
         ))}
       </div>
-      {toast && <div className={styles.toast}>Copied!</div>}
+      {toast && <div className={styles.toast}>{t('emoji.copied')}</div>}
     </div>
   );
 }

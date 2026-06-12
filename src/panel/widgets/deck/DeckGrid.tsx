@@ -8,6 +8,7 @@ import styles from './DeckGrid.module.scss';
 
 function renderLucide(name: string) {
   const Comp = DECK_ICONS[name] ?? Plus;
+  // eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute
   return <Comp aria-hidden="true" />;
 }
 

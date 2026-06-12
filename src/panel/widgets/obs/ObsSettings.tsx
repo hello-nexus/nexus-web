@@ -9,9 +9,11 @@ import {
   SettingsSaved,
   SettingsSection,
 } from '../common/SettingsRow/SettingsRow';
+import { useTranslation } from '../../../lib/i18n';
 
 export function ObsSettings(props: WidgetSettingsProps) {
   void props;
+  const { t } = useTranslation();
   const [host, setHost] = useState('127.0.0.1');
   const [port, setPort] = useState('4455');
   const [password, setPassword] = useState('');
@@ -41,8 +43,8 @@ export function ObsSettings(props: WidgetSettingsProps) {
   };
 
   return (
-    <SettingsSection title="OBS WebSocket">
-      <SettingsRow label="Host">
+    <SettingsSection title={t('panel.widget.obs.settings.title')}>
+      <SettingsRow label={t('panel.widget.obs.settings.host')}>
         <SettingsInput
           type="text"
           value={host}
@@ -51,7 +53,7 @@ export function ObsSettings(props: WidgetSettingsProps) {
           placeholder="127.0.0.1"
         />
       </SettingsRow>
-      <SettingsRow label="Port">
+      <SettingsRow label={t('panel.widget.obs.settings.port')}>
         <SettingsInput
           type="number"
           min={1}
@@ -62,24 +64,24 @@ export function ObsSettings(props: WidgetSettingsProps) {
           placeholder="4455"
         />
       </SettingsRow>
-      <SettingsRow label="Password">
+      <SettingsRow label={t('panel.widget.obs.settings.password')}>
         <SettingsInput
           type="password"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          placeholder={hasPassword ? 'configured' : 'optional'}
+          placeholder={hasPassword ? t('panel.widget.obs.settings.passwordConfigured') : t('panel.widget.obs.settings.passwordOptional')}
         />
       </SettingsRow>
       <SettingsActions>
         <SettingsButton onClick={() => save()}>
-          Save
+          {t('panel.widget.obs.settings.save')}
         </SettingsButton>
         {hasPassword && (
           <SettingsButton variant="muted" onClick={() => save(true)}>
-            Clear password
+            {t('panel.widget.obs.settings.clearPassword')}
           </SettingsButton>
         )}
-        {saved && <SettingsSaved>Saved</SettingsSaved>}
+        {saved && <SettingsSaved>{t('panel.widget.obs.settings.saved')}</SettingsSaved>}
       </SettingsActions>
     </SettingsSection>
   );

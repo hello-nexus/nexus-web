@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from '../../../lib/i18n';
 import { useSensors } from '../../../hooks/useSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
 import type { WidgetSettingsProps } from '../types';
@@ -168,6 +169,7 @@ function microNormalizationPatch(
 }
 
 export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: WidgetSettingsProps) {
+  const { t } = useTranslation();
   const sensors = useSensors(true);
   const count = resolvedSlotCountForSize(widget.size, (widget.config?.slotCount as number | undefined));
   const activeSlot = Math.max(0, Math.min(selectedSlot, count - 1));
@@ -212,7 +214,7 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
     return (
       <div className={styles.settingsRoot}>
         <div className={styles.editorBlock}>
-          <div className={styles.subLabel}>Device</div>
+          <div className={styles.subLabel}>{t('monitoring.settings.device')}</div>
           <Select
             className={styles.selectWide}
             value={microDevice}
@@ -226,10 +228,10 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
               onUpdate(patch);
             }}
             options={microDeviceOptions}
-            ariaLabel="Device"
+            ariaLabel={t('monitoring.settings.device')}
           />
 
-          <div className={styles.subLabel}>Sensors</div>
+          <div className={styles.subLabel}>{t('monitoring.settings.sensors')}</div>
           <div className={styles.microSensorList}>
             {microSensorNames.map((name, i) => (
               <Select
@@ -255,7 +257,7 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
     <div className={styles.settingsRoot}>
       {activeConfig && (
         <div className={styles.editorBlock}>
-          <div className={styles.subLabel}>Sensor</div>
+          <div className={styles.subLabel}>{t('monitoring.settings.sensor')}</div>
           <div className={styles.sensorRow}>
             <Select
               className={styles.selectSmall}
@@ -265,18 +267,18 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
                 [`slot${activeSlot}_sensor`]: defaultSensorForDevice(v as DeviceKey, sensors, networkSensors),
               })}
               options={DEVICE_OPTIONS}
-              ariaLabel="Device"
+              ariaLabel={t('monitoring.settings.device')}
             />
             <Select
               className={styles.selectWide}
               value={sensorValue}
               onChange={v => onUpdate({ [`slot${activeSlot}_sensor`]: v })}
               options={sensorOptions}
-              ariaLabel="Sensor"
+              ariaLabel={t('monitoring.settings.sensor')}
             />
           </div>
 
-          <div className={styles.subLabel}>Design</div>
+          <div className={styles.subLabel}>{t('monitoring.settings.design')}</div>
           <div className={styles.designRow}>
             {GAUGE_DESIGN_KEYS.map(k => {
               const Icon = DESIGN_ICONS[k];
@@ -296,7 +298,7 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
 
           {designSupportsScale(activeConfig.design) && (
             <>
-              <div className={styles.subLabel}>Range</div>
+              <div className={styles.subLabel}>{t('monitoring.settings.range')}</div>
               <div className={styles.scaleRow}>
                 {SCALE_OPTIONS.map(opt => (
                   <IconLabelButton

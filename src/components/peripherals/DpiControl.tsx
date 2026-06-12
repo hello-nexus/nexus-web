@@ -33,6 +33,7 @@ export function DpiControl({ peripheral, state, onChanged }: {
   return (
     <div className={styles.rowFull}>
       <Slider
+        // eslint-disable-next-line i18next/no-literal-string -- layout enum value
         orientation="stacked"
         label={t('peripheral.dpi')}
         value={value}

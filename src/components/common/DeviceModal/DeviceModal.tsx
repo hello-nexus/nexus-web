@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import styles from './DeviceModal.module.scss';
 
@@ -18,6 +19,7 @@ interface DeviceModalProps {
 }
 
 export function DeviceModal({ open, onClose, title, icon, large, wide, fullscreen, fit, headerRight, children }: DeviceModalProps) {
+  const { t } = useTranslation();
   const variantClass = fullscreen ? styles.modalFullscreen
     : wide ? styles.modalWide
     : large ? styles.modalLarge
@@ -37,7 +39,7 @@ export function DeviceModal({ open, onClose, title, icon, large, wide, fullscree
         </div>
         <div className={styles.headerRight}>
           {headerRight}
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
+          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label={t('app.window.close')}>
             <X size={18} />
           </button>
         </div>

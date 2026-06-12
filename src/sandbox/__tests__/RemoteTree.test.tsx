@@ -101,7 +101,7 @@ describe('RemoteTree host renderer', () => {
       ] as never);
     });
     // The native HSV picker's hex field commits on a valid entry.
-    fireEvent.change(screen.getByLabelText('Hex color'), { target: { value: '#ff8800' } });
+    fireEvent.change(screen.getByLabelText('common.hexColor'), { target: { value: '#ff8800' } });
     expect(onChange).toHaveBeenCalledWith('#ff8800');
   });
 

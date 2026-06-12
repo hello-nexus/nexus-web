@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
+import { useTranslation } from '../../../lib/i18n';
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import type { WidgetProps } from '../types';
 import { DeckGrid } from './DeckGrid';
@@ -13,6 +14,7 @@ import type { DeckAction, DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
 export function DeckWidget({ widget, selectedSlot, onSelectSlot, editView, onEditViewChange, onUpdate }: WidgetProps) {
+  const { t } = useTranslation();
   const preview = usePanelPreview();
   const parsed = readDeckConfig(widget);
   const deck = preview && parsed.slots.length === 0 ? DECK_PREVIEW_CONFIG : parsed;
@@ -97,7 +99,8 @@ export function DeckWidget({ widget, selectedSlot, onSelectSlot, editView, onEdi
   return (
     <div className={styles.root}>
       {inFolder ? (
-        <button type="button" className={styles.back} aria-label="Back" onClick={e => { e.stopPropagation(); setFolderPath(folderPath.slice(0, -1)); }}>
+        <button type="button" className={styles.back} aria-label={t('panel.settings.deck.back')} onClick={e => { e.stopPropagation(); setFolderPath(folderPath.slice(0, -1)); }}>
+          {/* eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute */}
           <ChevronLeft aria-hidden="true" />
         </button>
       ) : null}

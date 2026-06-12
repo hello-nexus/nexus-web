@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sun, Monitor } from 'lucide-react';
+import { useTranslation } from '../../../lib/i18n';
 import { fetchDisplays, fetchDisplayBrightness, setDisplayBrightness, type Display } from '../../../api/displays';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
@@ -15,6 +16,7 @@ const COMPACT_DISPLAY_LIMIT = 2;
 const FULL_DISPLAY_LIMIT = 4;
 
 export function DisplaysWidget({ widget }: WidgetProps) {
+  const { t } = useTranslation();
   const preview = usePanelPreview();
   const [displays, setDisplays] = useState<Display[]>(preview ? DISPLAYS_PREVIEW.displays : []);
   const [hint, setHint] = useState<string>('');
@@ -156,7 +158,7 @@ export function DisplaysWidget({ widget }: WidgetProps) {
       <EmptyState
         compact
         icon={<Monitor strokeWidth={1.4} />}
-        title="No displays detected"
+        title={t('displays.empty')}
         hint={hint || undefined}
       />
     );

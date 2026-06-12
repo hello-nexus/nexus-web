@@ -21,7 +21,8 @@ export function AboutModal({ open, onClose }: AboutModalProps) {
         <NexusMark size={40} />
         <NexusWordmark height={22} />
       </div>
-      <div className={styles.version}>{__APP_VERSION__} alpha</div>
+      <div className={styles.version}>{t('about.versionAlpha', { version: __APP_VERSION__ })}</div>
+      {/* eslint-disable-next-line i18next/no-literal-string -- brand domain */}
       <a className={styles.link} href="https://hellonexus.com" target="_blank" rel="noopener noreferrer">
         hellonexus.com
       </a>

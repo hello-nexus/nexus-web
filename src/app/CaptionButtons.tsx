@@ -58,7 +58,7 @@ export function CaptionButtons() {
 
   const maxLabel = maximized ? t('app.window.restore') : t('app.window.maximize');
   return (
-    <div className={styles.bar} aria-label="Window controls">
+    <div className={styles.bar} aria-label={t('app.window.controls')}>
       <HoverTooltip body={t('app.window.minimize')} side="bottom">
         <button
           type="button"

@@ -3,6 +3,7 @@ import { Lock, Plus, QrCode, Settings2 } from 'lucide-react';
 import { usePanelTraySwipe } from '../engine/usePanelTraySwipe';
 import { isNativeApp } from '../device/panelNativeBridge';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
+import { useTranslation } from '../../lib/i18n';
 import styles from './PanelActionsTray.module.scss';
 
 interface PanelActionsTrayProps {
@@ -43,6 +44,7 @@ export function PanelActionsTray({
   machineName,
   remotePaired = false,
 }: PanelActionsTrayProps) {
+  const { t } = useTranslation();
   const trayRef = useRef<HTMLDivElement | null>(null);
 
   const handleCommit = useCallback(() => {
@@ -102,13 +104,13 @@ export function PanelActionsTray({
             ? { transform: `translateY(max(0px, calc(100% - ${swipe.offset}px))) scale(var(--panel-scale, 1))` }
             : undefined
         }
-        aria-label="Panel actions"
+        aria-label={t('panel.actions.label')}
       >
         {machineName && remotePaired && (
           <div className={styles.connectedTo}>
-            <span className={styles.connectedLabel}>Connected to</span>
+            <span className={styles.connectedLabel}>{t('panel.connectedTo')}</span>
             <span className={styles.connectedName}>{machineName}</span>
-            <Lock size={12} className={styles.connectedLock} aria-label="End-to-end encrypted" />
+            <Lock size={12} className={styles.connectedLock} aria-label={t('panel.actions.e2eEncrypted')} />
           </div>
         )}
         <div className={styles.actionRow}>
@@ -118,7 +120,7 @@ export function PanelActionsTray({
           onClick={() => { onAddWidget(); onClose(); }}
         >
           <Plus size={18} />
-          <span>Add widget</span>
+          <span>{t('panel.actions.addWidget')}</span>
         </button>
         {onSettings && (
           <button
@@ -127,22 +129,22 @@ export function PanelActionsTray({
             onClick={() => { onSettings(); onClose(); }}
           >
             <Settings2 size={18} />
-            <span>Settings</span>
+            <span>{t('panel.actions.settings')}</span>
           </button>
         )}
         {/* The pairing button triggers a native pairing dialog that only
             exists inside the iOS app wrapper. In a plain browser it's a
             no-op, so hide the whole button unless we're running natively. */}
         {pairAvailable && onPair && isNativeApp() && (
-          <HoverTooltip body="Pairing" side="top">
+          <HoverTooltip body={t('panel.actions.pairing')} side="top">
             <button
               type="button"
               className={`${styles.actionButton} ${styles.actionButtonCompact}`}
               onClick={() => { onPair(); onClose(); }}
-              aria-label="Pairing"
+              aria-label={t('panel.actions.pairing')}
             >
               <QrCode size={17} />
-              <span>Pairing</span>
+              <span>{t('panel.actions.pairing')}</span>
             </button>
           </HoverTooltip>
         )}

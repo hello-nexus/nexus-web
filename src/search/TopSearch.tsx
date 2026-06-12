@@ -203,6 +203,7 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
             aria-expanded
             aria-controls="top-search-list"
           />
+          {/* eslint-disable-next-line i18next/no-literal-string -- keyboard keycap label */}
           <kbd className={styles.escHint}>esc</kbd>
         </div>
       ) : (

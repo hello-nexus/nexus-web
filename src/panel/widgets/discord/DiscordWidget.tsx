@@ -15,6 +15,7 @@ import {
   type DiscordStatusResponse,
 } from '../../../api/discord';
 import type { WidgetProps } from '../types';
+import { useTranslation } from '../../../lib/i18n';
 import {
   PanelWidgetEmpty,
   PanelWidgetSetup,
@@ -31,6 +32,7 @@ type DiscordTab = 'activity' | 'voice' | 'servers';
 const POLL_MS = 5000;
 
 export function DiscordWidget({ widget, onConfigure }: WidgetProps) {
+  const { t } = useTranslation();
   const preview = usePanelPreview();
   const [status, setStatus] = useState<DiscordStatusResponse | null>(preview ? DISCORD_PREVIEW : null);
   const [activeTab, setActiveTab] = useState<DiscordTab>('activity');
@@ -63,7 +65,7 @@ export function DiscordWidget({ widget, onConfigure }: WidgetProps) {
       <PanelWidgetShell size={widget.size} className={styles.widget}>
         <PanelWidgetSetup
           icon={<MessageCircle size={28} />}
-          message={status?.reason || 'Discord is not connected'}
+          message={status?.reason || t('discord.notConnected')}
           actions={(
             <div className={styles.setupActions}>
               {/* When OAuth isn't configured the only useful action is "open
@@ -71,17 +73,17 @@ export function DiscordWidget({ widget, onConfigure }: WidgetProps) {
                   the Discord client so the RPC handshake can happen. */}
               {needsConfig && onConfigure ? (
                 <button type="button" className="panel-chip" onClick={onConfigure}>
-                  Settings
+                  {t('discord.settings')}
                 </button>
               ) : (
                 <button type="button" className="panel-chip" onClick={() => { void launchDiscord(); }}>
-                  Launch
+                  {t('discord.launch')}
                 </button>
               )}
               {needsConfig && (
                 <span className={styles.configHint}>
                   <Shield size={12} />
-                  OAuth setup required
+                  {t('discord.oauthSetupRequired')}
                 </span>
               )}
             </div>
@@ -106,19 +108,20 @@ export function DiscordWidget({ widget, onConfigure }: WidgetProps) {
             <div className={styles.avatarFallback}><MessageCircle size={22} /></div>
           )}
           <div className={styles.userText}>
-            <div className={styles.name}>{privacyMode ? 'Discord User' : user?.globalName || user?.username || 'Discord'}</div>
+            {/* eslint-disable-next-line i18next/no-literal-string -- Discord brand name fallback */}
+            <div className={styles.name}>{privacyMode ? t('discord.privacyUser') : user?.globalName || user?.username || 'Discord'}</div>
             <div className={styles.meta}>
-              <span>{notifications.length} notifications</span>
-              {mentions > 0 && <span>{mentions} mentions</span>}
+              <span>{t('discord.notificationCount', { count: notifications.length })}</span>
+              {mentions > 0 && <span>{t('discord.mentionCount', { count: mentions })}</span>}
             </div>
           </div>
         </div>
       </header>
 
-      <PanelWidgetTabs ariaLabel="Discord widget views" compact={widget.size === '4x4'}>
-        <PanelWidgetTab active={activeTab === 'activity'} icon={<Bell size={14} />} label="Activity" onClick={() => setActiveTab('activity')} />
-        <PanelWidgetTab active={activeTab === 'voice'} icon={<Mic size={14} />} label="Voice" onClick={() => setActiveTab('voice')} />
-        <PanelWidgetTab active={activeTab === 'servers'} icon={<Compass size={14} />} label="Servers" onClick={() => setActiveTab('servers')} />
+      <PanelWidgetTabs ariaLabel={t('discord.viewsLabel')} compact={widget.size === '4x4'}>
+        <PanelWidgetTab active={activeTab === 'activity'} icon={<Bell size={14} />} label={t('discord.tab.activity')} onClick={() => setActiveTab('activity')} />
+        <PanelWidgetTab active={activeTab === 'voice'} icon={<Mic size={14} />} label={t('discord.tab.voice')} onClick={() => setActiveTab('voice')} />
+        <PanelWidgetTab active={activeTab === 'servers'} icon={<Compass size={14} />} label={t('discord.tab.servers')} onClick={() => setActiveTab('servers')} />
       </PanelWidgetTabs>
 
       <main className={styles.content}>
@@ -129,8 +132,8 @@ export function DiscordWidget({ widget, onConfigure }: WidgetProps) {
           status?.voiceState ? (
             <div className={styles.voice}>
               <div className={styles.voiceHeader}>
-                <span>{privacyMode ? 'Voice Channel' : status.voiceState.channelName}</span>
-                <small>{privacyMode ? 'Server' : status.voiceState.guildName}</small>
+                <span>{privacyMode ? t('discord.voiceChannel') : status.voiceState.channelName}</span>
+                <small>{privacyMode ? t('discord.server') : status.voiceState.guildName}</small>
               </div>
               <div className={styles.participants}>
                 {status.voiceState.participants.map((participant, index) => (
@@ -140,7 +143,7 @@ export function DiscordWidget({ widget, onConfigure }: WidgetProps) {
                     ) : (
                       <span className={styles.participantAvatar}>{privacyMode ? '?' : participant.username[0]?.toUpperCase()}</span>
                     )}
-                    <span>{privacyMode ? `User ${index + 1}` : participant.globalName || participant.username}</span>
+                    <span>{privacyMode ? t('discord.userNumber', { number: index + 1 }) : participant.globalName || participant.username}</span>
                     <div className={styles.participantIcons}>
                       {participant.mute && <MicOff size={12} />}
                       {participant.deaf && <Headphones size={12} />}
@@ -149,19 +152,19 @@ export function DiscordWidget({ widget, onConfigure }: WidgetProps) {
                 ))}
               </div>
               <div className={styles.voiceControls}>
-                <button type="button" onClick={() => { void setDiscordMute(!status.voiceState?.selfMute); }} aria-label="Mute">
+                <button type="button" onClick={() => { void setDiscordMute(!status.voiceState?.selfMute); }} aria-label={t('discord.mute')}>
                   {status.voiceState.selfMute ? <MicOff size={15} /> : <Mic size={15} />}
                 </button>
-                <button type="button" onClick={() => { void setDiscordDeaf(!status.voiceState?.selfDeaf); }} aria-label="Deafen">
+                <button type="button" onClick={() => { void setDiscordDeaf(!status.voiceState?.selfDeaf); }} aria-label={t('discord.deafen')}>
                   <Headphones size={15} />
                 </button>
-                <button type="button" onClick={() => { void disconnectDiscordVoice(); }} aria-label="Leave">
+                <button type="button" onClick={() => { void disconnectDiscordVoice(); }} aria-label={t('discord.leave')}>
                   <PhoneOff size={15} />
                 </button>
               </div>
             </div>
           ) : (
-            <PanelWidgetEmpty icon={<Headphones size={22} />} title="No voice channel" text="Join voice in Discord to show controls." />
+            <PanelWidgetEmpty icon={<Headphones size={22} />} title={t('discord.empty.voice.title')} text={t('discord.empty.voice.text')} />
           )
         )}
         {activeTab === 'servers' && (
@@ -177,9 +180,10 @@ function ActivityTab({ notifications, privacyMode, compact }: {
   privacyMode: boolean;
   compact: boolean;
 }) {
+  const { t } = useTranslation();
   const items = compact ? notifications.slice(0, 3) : notifications.slice(0, 8);
   if (items.length === 0) {
-    return <PanelWidgetEmpty icon={<BellOff size={22} />} title="All caught up" text="New messages and mentions will appear here." />;
+    return <PanelWidgetEmpty icon={<BellOff size={22} />} title={t('discord.empty.activity.title')} text={t('discord.empty.activity.text')} />;
   }
   return (
     <div className={styles.notificationList}>
@@ -193,8 +197,8 @@ function ActivityTab({ notifications, privacyMode, compact }: {
         >
           <img className={privacyMode ? `${styles.notificationIcon} ${styles.blurred}` : styles.notificationIcon} src={item.iconUrl} alt="" />
           <div className={styles.notificationText}>
-            <div className={styles.notificationTitle}>{privacyMode ? 'Notification' : item.title}</div>
-            {item.body && <div className={styles.notificationBody}>{privacyMode ? 'New message' : item.body}</div>}
+            <div className={styles.notificationTitle}>{privacyMode ? t('discord.privacyNotification') : item.title}</div>
+            {item.body && <div className={styles.notificationBody}>{privacyMode ? t('discord.privacyNewMessage') : item.body}</div>}
           </div>
           {(item.mentionEveryone || item.mentionUser) && <span className={styles.mentionBadge}>@</span>}
         </button>
@@ -204,8 +208,9 @@ function ActivityTab({ notifications, privacyMode, compact }: {
 }
 
 function ServersTab({ guilds, privacyMode }: { guilds: DiscordGuild[]; privacyMode: boolean }) {
+  const { t } = useTranslation();
   if (guilds.length === 0) {
-    return <PanelWidgetEmpty icon={<Compass size={22} />} title="No servers" text="Servers appear after Discord authorization." />;
+    return <PanelWidgetEmpty icon={<Compass size={22} />} title={t('discord.empty.servers.title')} text={t('discord.empty.servers.text')} />;
   }
   return (
     <div className={styles.serverGrid}>
@@ -215,7 +220,7 @@ function ServersTab({ guilds, privacyMode }: { guilds: DiscordGuild[]; privacyMo
           type="button"
           className={styles.server}
           onClick={() => { void openDiscordPath(`channels/${guild.id}`); }}
-          aria-label={privacyMode ? 'Server' : guild.name}
+          aria-label={privacyMode ? t('discord.server') : guild.name}
         >
           {guild.iconUrl ? (
             <img className={privacyMode ? styles.blurred : undefined} src={guild.iconUrl} alt="" />

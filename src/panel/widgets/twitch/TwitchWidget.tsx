@@ -23,7 +23,8 @@ export function TwitchWidget({ widget }: WidgetProps) {
       <div className={styles.container}>
         <div className={styles.mock}>
           <div className={styles.mockHeader}>
-            <Tv size={16} strokeWidth={1.5} aria-hidden="true" />
+            <Tv size={16} strokeWidth={1.5} aria-hidden />
+            {/* eslint-disable-next-line i18next/no-literal-string -- mock preview channel handle */}
             <span className={styles.channelName}>nova_streams</span>
             <span className={styles.liveBadge}>LIVE</span>
           </div>
@@ -59,7 +60,7 @@ export function TwitchWidget({ widget }: WidgetProps) {
         className={styles.frame}
         src={src}
         sandbox="allow-scripts allow-same-origin allow-popups"
-        title="Twitch chat"
+        title={t('twitch.chatTitle')}
       />
     </div>
   );

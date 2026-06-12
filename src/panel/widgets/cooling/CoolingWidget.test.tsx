@@ -142,7 +142,7 @@ describe('CoolingWidget', () => {
 
     // Avg duty readout in the chart's top-right corner (40 + 60) / 2 = 50%.
     await waitFor(() => {
-      expect(screen.getByLabelText('Average fan duty')).toHaveTextContent('50%');
+      expect(screen.getByLabelText('cooling.response.avgFanDuty')).toHaveTextContent('50%');
     });
 
     await waitFor(() => {

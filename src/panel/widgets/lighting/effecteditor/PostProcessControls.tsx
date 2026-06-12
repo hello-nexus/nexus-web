@@ -31,6 +31,7 @@ export function PostProcessControls({ value, onChange, onCommit, onReset }: {
           />
         </div>
         <Slider
+          // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
           orientation="stacked"
           editable
           label={t('lighting.controls.saturation')}
@@ -41,6 +42,7 @@ export function PostProcessControls({ value, onChange, onCommit, onReset }: {
           onCommit={onCommit}
         />
         <Slider
+          // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
           orientation="stacked"
           editable
           label={t('lighting.controls.contrast')}

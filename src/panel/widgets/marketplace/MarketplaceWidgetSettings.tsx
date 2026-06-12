@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from '../../../lib/i18n';
 import type { WidgetSettingsProps } from '../types';
 import {
   SettingsRow,
@@ -66,6 +67,7 @@ const DEBOUNCE_MS = 200;
  * and the bridge's `nexus.settings.changed` notification re-runs the widget.
  */
 export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
+  const { t } = useTranslation();
   const id = marketplaceIdFromType(widget.type) ?? '';
 
   const [listing, setListing] = useState(() => (id ? getMarketplaceListing(id) : undefined));
@@ -124,9 +126,9 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
     }
   }, [bridge]);
 
-  if (!id) return <div className={styles.empty}>missing widget id</div>;
-  if (!listing) return <div className={styles.empty}>loading…</div>;
-  if (schema.length === 0) return <div className={styles.empty}>this widget has no settings.</div>;
+  if (!id) return <div className={styles.empty}>{t('marketplace.settings.missingId')}</div>;
+  if (!listing) return <div className={styles.empty}>{t('marketplace.settings.loading')}</div>;
+  if (schema.length === 0) return <div className={styles.empty}>{t('marketplace.settings.noSettings')}</div>;
 
   return (
     <SettingsSection title={listing.name}>

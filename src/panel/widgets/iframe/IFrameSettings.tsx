@@ -11,6 +11,7 @@ export function IFrameSettings({ widget, onUpdate }: WidgetSettingsProps) {
       <input
         type="text"
         value={url}
+        // eslint-disable-next-line i18next/no-literal-string -- URL format hint
         placeholder="https://example.com"
         onChange={e => onUpdate({ url: e.target.value })}
       />

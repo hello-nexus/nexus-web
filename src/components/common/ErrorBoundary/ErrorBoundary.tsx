@@ -41,6 +41,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <div style={{ padding: '2rem', color: 'var(--bad)', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+          {/* eslint-disable-next-line i18next/no-literal-string -- class component cannot use the t() hook; diagnostic crash fallback */}
           <h3 style={{ color: 'var(--bad)' }}>{this.props.label ? `${this.props.label} crashed` : 'Render error'}</h3>
           <div>{this.state.error.message}</div>
           <div style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '1rem' }}>{this.state.error.stack}</div>

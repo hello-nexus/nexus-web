@@ -24,6 +24,7 @@ import {
   type Np50FirmwareDefaults,
   type Np50FwAnimationKind,
 } from '../../../api/np50';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './Np50DevicePage.module.scss';
 
 /**
@@ -39,6 +40,7 @@ import styles from './Np50DevicePage.module.scss';
  * `connected === false`, never to a null EEPROM read.
  */
 export function Np50DevicePage() {
+  const { t } = useTranslation();
   // Tri-state: 'unknown' = still loading, 'connected' = hub up,
   // 'disconnected' = explicit not-connected response. The placeholder
   // only renders on the 'disconnected' arm.
@@ -120,9 +122,10 @@ export function Np50DevicePage() {
   if (connection === 'disconnected') {
     return (
       <div className={styles.page}>
+        {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
         <ViewHeader title="HYTE NP50" />
         <div className={`${styles.pageBody} pageBody`}>
-          <Placeholder title="HYTE NP50 not connected" />
+          <Placeholder title={t('devices.np50.notConnected')} />
         </div>
       </div>
     );
@@ -144,17 +147,18 @@ export function Np50DevicePage() {
   return (
     <div className={styles.page}>
       <ViewHeader
+        // eslint-disable-next-line i18next/no-literal-string -- brand + model name
         title="HYTE NP50"
-        actions={saving ? <span className={styles.savingBadge}>Saving…</span> : null}
+        actions={saving ? <span className={styles.savingBadge}>{t('devices.saving')}</span> : null}
       />
       <div className={`${styles.pageBody} pageBody`}>
         <SettingsSection
-          title="Standalone fan behaviour"
-          description="Persisted to the hub's EEPROM. Used when Nexus isn't running — the PC is off, the service stopped, or the hub is in firmware control mode."
+          title={t('devices.np50.fanSection')}
+          description={t('devices.np50.fanSectionDescription')}
           boxClassName={styles.sectionBox}
         >
           <div className={`${styles.row} ${!defaultsLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>Default mode</span>
+            <span className={styles.rowLabel}>{t('devices.np50.defaultMode')}</span>
             <Select
               value={String(defaults?.defaultMode ?? NP50_DEFAULT_MODE_STATIC)}
               onChange={v => {
@@ -163,22 +167,22 @@ export function Np50DevicePage() {
                 void commitDefaults({ ...defaults, defaultMode: m });
               }}
               options={[
-                { value: String(NP50_DEFAULT_MODE_STATIC), label: 'Static setpoint' },
-                { value: String(NP50_DEFAULT_MODE_MOTHERBOARD), label: 'Motherboard PWM' },
+                { value: String(NP50_DEFAULT_MODE_STATIC), label: t('devices.np50.modeStaticSetpoint') },
+                { value: String(NP50_DEFAULT_MODE_MOTHERBOARD), label: t('devices.np50.modeMotherboardPwm') },
               ]}
               disabled={!defaultsLoaded}
-              ariaLabel="NP50 default cooling mode"
+              ariaLabel={t('devices.np50.defaultCoolingModeAria')}
             />
           </div>
           <div className={`${styles.row} ${!defaultsLoaded || !isStatic ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>Static fan %</span>
+            <span className={styles.rowLabel}>{t('devices.np50.staticFanPercent')}</span>
             <Slider
               className={styles.slider}
               value={defaults?.staticFanPercent ?? 50}
               min={0}
               max={100}
               step={1}
-              ariaLabel="Static fan percent"
+              ariaLabel={t('devices.np50.staticFanPercentAria')}
               onChange={(v: number) => {
                 if (!defaults) return;
                 setDefaults({ ...defaults, staticFanPercent: Math.round(v) });
@@ -192,12 +196,12 @@ export function Np50DevicePage() {
         </SettingsSection>
 
         <SettingsSection
-          title="Standalone LED animation"
-          description="What the connected light strips show when Nexus isn't streaming lighting frames."
+          title={t('devices.np50.ledSection')}
+          description={t('devices.np50.ledSectionDescription')}
           boxClassName={styles.sectionBox}
         >
           <div className={`${styles.row} ${!animationLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>Effect</span>
+            <span className={styles.rowLabel}>{t('devices.fwAnimation.effect')}</span>
             <Select
               value={String(animKind)}
               onChange={v => {
@@ -206,24 +210,24 @@ export function Np50DevicePage() {
                 void commitAnimation({ ...animation, animation: k });
               }}
               options={[
-                { value: String(NP50_FW_ANIMATION_COLOR), label: 'Solid color' },
-                { value: String(NP50_FW_ANIMATION_RAINBOW), label: 'Rainbow cycle' },
-                { value: String(NP50_FW_ANIMATION_BREATHE), label: 'Breathing' },
-                { value: String(NP50_FW_ANIMATION_RAINBOW_GRADIENT), label: 'Rainbow gradient' },
+                { value: String(NP50_FW_ANIMATION_COLOR), label: t('devices.fwAnimation.solidColor') },
+                { value: String(NP50_FW_ANIMATION_RAINBOW), label: t('devices.fwAnimation.rainbowCycle') },
+                { value: String(NP50_FW_ANIMATION_BREATHE), label: t('devices.fwAnimation.breathing') },
+                { value: String(NP50_FW_ANIMATION_RAINBOW_GRADIENT), label: t('devices.fwAnimation.rainbowGradient') },
               ]}
               disabled={!animationLoaded}
-              ariaLabel="NP50 firmware animation"
+              ariaLabel={t('devices.np50.firmwareAnimationAria')}
             />
           </div>
           <div className={`${styles.row} ${!animationLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>Brightness</span>
+            <span className={styles.rowLabel}>{t('devices.y70.brightness')}</span>
             <Slider
               className={styles.slider}
               value={animation?.brightness ?? 100}
               min={0}
               max={100}
               step={1}
-              ariaLabel="Brightness"
+              ariaLabel={t('devices.y70.brightness')}
               onChange={(v: number) => {
                 if (!animation) return;
                 setAnimation({ ...animation, brightness: Math.round(v) });

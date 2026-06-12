@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
 import type { EffectState, EffectTemplateBundle } from '../../../../types/lighting';
 import { useShaderRenderer } from '../../../../hooks/useShaderRenderer';
+import { useTranslation } from '../../../../lib/i18n';
 import { AnimateDrawer } from './AnimateDrawer';
 import styles from './FullscreenShader.module.scss';
 
@@ -24,6 +25,7 @@ export function FullscreenShader({
   effect, state, bundle, canReset, audioRef,
   onTemplateSelect, onChange, onCommit, onReset, onClose, onPrev, onNext,
 }: FullscreenShaderProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef(state);
@@ -78,21 +80,21 @@ export function FullscreenShader({
   return (
     <div ref={containerRef} className={styles.container} onMouseMove={handleMouseMove}>
       <canvas ref={canvasRef} className={styles.canvas} onClick={handleCanvasClick} />
-      {loading && <div className={styles.overlay}>Loading shader...</div>}
+      {loading && <div className={styles.overlay}>{t('lighting.fullscreen.loadingShader')}</div>}
       {error && <div className={styles.overlay}>{error}</div>}
-      <button type="button" aria-label="Previous effect" className={`${styles.navZone} ${styles.navZoneLeft}`} onClick={onPrev}>
+      <button type="button" aria-label={t('lighting.fullscreen.prevEffect')} className={`${styles.navZone} ${styles.navZoneLeft}`} onClick={onPrev}>
         <svg className={styles.navArrow} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15,18 9,12 15,6" />
         </svg>
       </button>
-      <button type="button" aria-label="Next effect" className={`${styles.navZone} ${styles.navZoneRight}`} onClick={onNext}>
+      <button type="button" aria-label={t('lighting.fullscreen.nextEffect')} className={`${styles.navZone} ${styles.navZoneRight}`} onClick={onNext}>
         <svg className={styles.navArrow} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9,18 15,12 9,6" />
         </svg>
       </button>
       <button
         type="button"
-        aria-label="Exit fullscreen"
+        aria-label={t('lighting.fullscreen.exit')}
         className={`${styles.closeBtn} ${closeVisible ? styles.closeBtnVisible : ''}`}
         onClick={() => document.exitFullscreen?.().catch(() => onClose())}
       >

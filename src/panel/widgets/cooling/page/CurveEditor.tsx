@@ -89,9 +89,11 @@ export function computeCurveSpeed(
 function ResponseTimeSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const { t } = useTranslation();
   return (
-    <Slider orientation="stacked" editable label={t('cooling.curve.response')} value={value}
+    <Slider
+      // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+      orientation="stacked" editable label={t('cooling.curve.response')} value={value}
       min={0.1} max={5.0} step={0.1} trackFill
-      formatValue={v => v.toFixed(1) + 's'} onChange={onChange} />
+      formatValue={v => t('cooling.curve.responseSeconds', { value: v.toFixed(1) })} onChange={onChange} />
   );
 }
 
@@ -111,6 +113,7 @@ function CurveGraph({ points, currentTemp, onChange }: {
   currentTemp?: number;
   onChange: (pts: CurvePoint[]) => void;
 }) {
+  const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<number | null>(null);
   const [width, setWidth] = useState(400);
@@ -190,7 +193,7 @@ function CurveGraph({ points, currentTemp, onChange }: {
               className={styles.tempLine} />
             <rect x={tempToX(currentTemp) - 22} y={PAD.top - 2} width="44" height="14" rx="2" className={styles.tempBadge} />
             <text x={tempToX(currentTemp)} y={PAD.top + 8} className={styles.tempBadgeText} textAnchor="middle">
-              {currentTemp.toFixed(1)}°C
+              {t('cooling.curve.tempBadge', { temp: currentTemp.toFixed(1) })}
             </text>
           </g>
         )}

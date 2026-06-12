@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from '../../../lib/i18n';
 import { CardDeleteButton } from '../CardDeleteButton/CardDeleteButton';
 import styles from './EffectCard.module.scss';
 
@@ -40,6 +41,7 @@ export function EffectCard({
   audio, meta, onDelete, deleteAriaLabel,
   asDiv, thumbOverlay, ariaLabel, dataEffectKey, overlay,
 }: EffectCardProps) {
+  const { t } = useTranslation();
   const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''}`;
   const inner = (
     <>
@@ -58,7 +60,7 @@ export function EffectCard({
           <CardDeleteButton
             className={styles.deleteBtnSlot}
             onDelete={onDelete}
-            ariaLabel={deleteAriaLabel ?? 'Delete'}
+            ariaLabel={deleteAriaLabel ?? t('common.delete')}
           />
         )}
         {overlay && <span className={styles.labelOverlay}>{label}</span>}

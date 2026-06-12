@@ -139,13 +139,13 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
           </div>
           {showControls && (
             <div className={styles.controls}>
-              <button type="button" onClick={() => control('previous')} disabled={!s.controls.isPrevEnabled} className={styles.btn} aria-label="Previous">
+              <button type="button" onClick={() => control('previous')} disabled={!s.controls.isPrevEnabled} className={styles.btn} aria-label={t('panel.media.previous')}>
                 <SkipBack strokeWidth={1.8} />
               </button>
-              <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? 'Pause' : 'Play'}>
+              <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? t('panel.media.pause') : t('panel.media.play')}>
                 {playing ? <Pause strokeWidth={2} /> : <Play strokeWidth={2} />}
               </button>
-              <button type="button" onClick={() => control('next')} disabled={!s.controls.isNextEnabled} className={styles.btn} aria-label="Next">
+              <button type="button" onClick={() => control('next')} disabled={!s.controls.isNextEnabled} className={styles.btn} aria-label={t('panel.media.next')}>
                 <SkipForward strokeWidth={1.8} />
               </button>
             </div>
@@ -183,18 +183,18 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
                   onClick={() => control('shuffle')}
                   disabled={!s.controls.isShuffleEnabled}
                   className={`${styles.btn} ${styles.toggle} ${s.playback.shuffled ? styles.toggleOn : ''}`}
-                  aria-label="Shuffle"
+                  aria-label={t('panel.media.shuffle')}
                   aria-pressed={!!s.playback.shuffled}
                 >
                   <Shuffle strokeWidth={1.8} />
                 </button>
-                <button type="button" onClick={() => control('previous')} disabled={!s.controls.isPrevEnabled} className={styles.btn} aria-label="Previous">
+                <button type="button" onClick={() => control('previous')} disabled={!s.controls.isPrevEnabled} className={styles.btn} aria-label={t('panel.media.previous')}>
                   <SkipBack strokeWidth={1.8} />
                 </button>
-                <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? 'Pause' : 'Play'}>
+                <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? t('panel.media.pause') : t('panel.media.play')}>
                   {playing ? <Pause strokeWidth={2} /> : <Play strokeWidth={2} />}
                 </button>
-                <button type="button" onClick={() => control('next')} disabled={!s.controls.isNextEnabled} className={styles.btn} aria-label="Next">
+                <button type="button" onClick={() => control('next')} disabled={!s.controls.isNextEnabled} className={styles.btn} aria-label={t('panel.media.next')}>
                   <SkipForward strokeWidth={1.8} />
                 </button>
                 <button
@@ -202,7 +202,7 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
                   onClick={() => control('repeatmode')}
                   disabled={!s.controls.isRepeatModeEnabled}
                   className={`${styles.btn} ${styles.toggle} ${repeatActive ? styles.toggleOn : ''}`}
-                  aria-label="Repeat"
+                  aria-label={t('panel.media.repeat')}
                   aria-pressed={repeatActive}
                 >
                   {repeatMode === 'Track' ? <Repeat1 strokeWidth={1.8} /> : <Repeat strokeWidth={1.8} />}

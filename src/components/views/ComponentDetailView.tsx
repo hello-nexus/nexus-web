@@ -82,7 +82,7 @@ export function ComponentDetailView({
           <button type="button" className={styles.backBtn} onClick={onBack}>
             <ArrowLeft size={18} />
           </button>
-          <span className={styles.backLabel}>Loading...</span>
+          <span className={styles.backLabel}>{t('common.loading')}</span>
         </div>
       </section>
     );

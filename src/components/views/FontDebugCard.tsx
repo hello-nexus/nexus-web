@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../../lib/i18n';
 import { Card } from '../common/Card/Card';
 import {
   DEBUG_FONTS,
@@ -13,6 +14,7 @@ import sharedStyles from './ToolsView.module.scss';
 import styles from './FontDebugCard.module.scss';
 
 export function FontDebugCard() {
+  const { t } = useTranslation();
   const [state, setState] = useState<DebugFontState | null>(() => loadDebugFont());
 
   useEffect(() => { ensureAllPreviewFonts(); }, []);
@@ -28,9 +30,9 @@ export function FontDebugCard() {
   const activeId = state?.fontId ?? DEFAULT_FONT_ID;
 
   return (
-    <Card title="Debug font" className={sharedStyles.wide}>
+    <Card title={t('tools.fontDebug.title')} className={sharedStyles.wide}>
       <span className={sharedStyles.dim}>
-        Audition chunky font candidates across the desktop chrome and the panel kiosk surface in lockstep. Pick the first tile to revert to defaults.
+        {t('tools.fontDebug.description')}
       </span>
       <div className={styles.fontGrid}>
         {DEBUG_FONTS.map(f => {

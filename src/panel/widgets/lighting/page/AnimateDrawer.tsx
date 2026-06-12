@@ -56,7 +56,7 @@ export function AnimateDrawer({
     >
       <div className={styles.drawerHeader}>
         <h3 className={styles.drawerTitle}>{t(def.labelKey)}</h3>
-        <button type="button" className={styles.drawerClose} onClick={onClose} aria-label="Close">×</button>
+        <button type="button" className={styles.drawerClose} onClick={onClose} aria-label={t('app.window.close')}>×</button>
       </div>
       <EffectControls
         effect={effect}

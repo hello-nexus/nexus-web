@@ -5,6 +5,7 @@
 // content area with its remote tree — e.g. the clock's day/night world map.
 
 import { useCallback, useMemo } from 'react';
+import { useTranslation } from '../../../lib/i18n';
 import { postService } from '../../../api/service';
 import { getMarketplaceListing, marketplaceIdFromType } from '../../../widgets/marketplaceRegistry';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
@@ -17,6 +18,7 @@ export interface SdkMarketplacePageProps {
 }
 
 export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
+  const { t } = useTranslation();
   const id = marketplaceIdFromType(type) ?? '';
   const listing = getMarketplaceListing(id);
   const { entryUrl, failed: bundleFailed } = useSdkBundle(id);
@@ -36,15 +38,16 @@ export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
   return (
     <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0, width: '100%', height: '100%' }}>
       {failed ? (
-        <div className={styles.empty}>Failed to load {listing.name}</div>
+        <div className={styles.empty}>{t('marketplace.failedToLoad', { name: listing.name })}</div>
       ) : !entryUrl || !runtimeUrl ? (
-        <div className={styles.empty}>Loading {listing.name}…</div>
+        <div className={styles.empty}>{t('marketplace.loading', { name: listing.name })}</div>
       ) : (
         <SandboxedWidget
           runtimeUrl={runtimeUrl}
           entryUrl={entryUrl}
           widgetId={id}
           instanceId={`${id}:page`}
+          // eslint-disable-next-line i18next/no-literal-string -- render surface id
           surface="page"
           settings={{}}
           netFetch={netFetch}

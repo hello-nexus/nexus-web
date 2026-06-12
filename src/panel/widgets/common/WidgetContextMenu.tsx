@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { Check, ExternalLink, Maximize2, Monitor, MonitorOff, Pin, PinOff, Settings, Trash2 } from 'lucide-react';
+import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
 import type { PanelSurface, PanelWidgetSize } from '../../types';
@@ -71,6 +72,7 @@ export function WidgetContextMenu({
   onOpenDashboard,
   onBoundsChange,
 }: WidgetContextMenuProps) {
+  const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [pos, setPos] = useState({ x, y });
@@ -194,7 +196,7 @@ export function WidgetContextMenu({
           onClick={() => runAndClose(onToggleAlwaysOnTop)}
         >
           <Pin size={14} />
-          <span>Always on top</span>
+          <span>{t('panel.widget.menu.alwaysOnTop')}</span>
           {alwaysOnTop && <Check size={14} className={styles.itemCheck} />}
         </button>
       )}
@@ -202,48 +204,48 @@ export function WidgetContextMenu({
       {hasConfig && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
           <Settings size={14} />
-          <span>Edit</span>
+          <span>{t('panel.widget.menu.edit')}</span>
         </button>
       )}
 
       {onImmersive && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onImmersive)}>
           <Maximize2 size={14} />
-          <span>Immersive mode</span>
+          <span>{t('panel.widget.menu.immersive')}</span>
         </button>
       )}
 
       {onAddToDesktop && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onAddToDesktop)}>
           <Monitor size={14} />
-          <span>Add to desktop</span>
+          <span>{t('panel.widget.menu.addToDesktop')}</span>
         </button>
       )}
 
       {onRemoveFromDesktop && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onRemoveFromDesktop)}>
           <MonitorOff size={14} />
-          <span>Remove from desktop</span>
+          <span>{t('panel.widget.menu.removeFromDesktop')}</span>
         </button>
       )}
 
       {onPinToSidebar && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onPinToSidebar)}>
           <Pin size={14} />
-          <span>Pin to Sidebar</span>
+          <span>{t('sidebar.pin')}</span>
         </button>
       )}
 
       {onUnpinFromSidebar && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onUnpinFromSidebar)}>
           <PinOff size={14} />
-          <span>Unpin from Sidebar</span>
+          <span>{t('sidebar.unpin')}</span>
         </button>
       )}
 
       <button type="button" className={`${styles.item} ${styles.itemDanger}`} onClick={() => runAndClose(onRemove)}>
         <Trash2 size={14} />
-        <span>{removeLabel ?? 'Remove'}</span>
+        <span>{removeLabel ?? t('panel.widget.menu.remove')}</span>
       </button>
 
       {onOpenDashboard && (
@@ -251,7 +253,7 @@ export function WidgetContextMenu({
           <div className={styles.divider} />
           <button type="button" className={styles.item} onClick={() => runAndClose(onOpenDashboard)}>
             <ExternalLink size={14} />
-            <span>Open dashboard</span>
+            <span>{t('panel.widget.menu.openDashboard')}</span>
           </button>
         </>
       )}

@@ -7,6 +7,7 @@ import styles from './PairingOffState.module.scss';
 export function PairingOffState({ label }: { label: string }) {
   return (
     <div className={styles.off}>
+      {/* eslint-disable-next-line i18next/no-literal-string -- decorative-icon aria flag */}
       <QrCode size={40} aria-hidden="true" />
       <span>{label}</span>
     </div>

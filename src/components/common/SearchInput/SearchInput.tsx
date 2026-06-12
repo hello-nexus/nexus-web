@@ -1,5 +1,6 @@
 import { Search, X } from 'lucide-react';
 import type { ChangeEvent } from 'react';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './SearchInput.module.scss';
 
 /**
@@ -23,9 +24,11 @@ export interface SearchInputProps {
 export function SearchInput({
   value, onChange, placeholder, autoFocus, ariaLabel, className,
 }: SearchInputProps) {
+  const { t } = useTranslation();
   const hasValue = value.length > 0;
   return (
     <div className={`${styles.root} ${className ?? ''}`}>
+      {/* eslint-disable-next-line i18next/no-literal-string -- decorative-icon aria flag */}
       <Search size={14} className={styles.icon} aria-hidden="true" />
       <input
         type="text"
@@ -41,7 +44,7 @@ export function SearchInput({
           type="button"
           className={styles.clear}
           onClick={() => onChange('')}
-          aria-label="Clear search"
+          aria-label={t('common.clearSearch')}
         >
           <X size={12} />
         </button>

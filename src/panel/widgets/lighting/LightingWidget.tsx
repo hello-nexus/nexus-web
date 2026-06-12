@@ -439,6 +439,7 @@ function SingleItemView({ view, t, showArrows, overlay }: { view: SingleView; t:
       <div className={styles.thumbBox}>
         <span className={styles.thumb}>
           <span className={styles.thumbIconWrap}>
+            {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
             <Lightbulb className={styles.thumbIcon} aria-hidden="true" />
             <span className={styles.thumbCaption}>{view.label}</span>
           </span>
@@ -470,6 +471,7 @@ function SingleItemView({ view, t, showArrows, overlay }: { view: SingleView; t:
       <span className={styles.thumb}>
         {view.kind === 'icon' && (
           <span className={styles.thumbIconWrap}>
+            {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
             <view.icon className={styles.thumbIcon} aria-hidden="true" />
             <span className={styles.thumbCaption}>{view.label}</span>
           </span>

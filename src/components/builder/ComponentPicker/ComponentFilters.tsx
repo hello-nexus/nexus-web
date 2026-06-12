@@ -132,6 +132,7 @@ export function ComponentFilters({ category, filterOptions, filters, onChange }:
         <RangeFilter {...getRange('tdp')} onChange={(min, max) => setRange('tdp', min, max)} unit="W" />
       </FilterSection>
       <FilterSection title={t('builder.col.length')} defaultOpen={false}>
+        {/* eslint-disable-next-line i18next/no-literal-string -- measurement unit symbol */}
         <RangeFilter {...getRange('lengthMm')} onChange={(min, max) => setRange('lengthMm', min, max)} unit="mm" />
       </FilterSection>
       {renderPriceAndStock()}
@@ -165,6 +166,7 @@ export function ComponentFilters({ category, filterOptions, filters, onChange }:
       {checkSection(t('builder.col.type'), 'ddrType', opts('ddrType'))}
       {checkSection(t('builder.col.capacity'), 'capacityGb', opts('capacityGb'))}
       <FilterSection title={t('builder.col.speed')} defaultOpen={false}>
+        {/* eslint-disable-next-line i18next/no-literal-string -- measurement unit symbol */}
         <RangeFilter {...getRange('speed')} onChange={(min, max) => setRange('speed', min, max)} unit="MHz" />
       </FilterSection>
       <FilterSection title={t('builder.col.cas')} defaultOpen={false}>
@@ -211,9 +213,11 @@ export function ComponentFilters({ category, filterOptions, filters, onChange }:
       {checkSection(t('builder.filters.brand'), 'brand', opts('brand'))}
       {checkSection(t('builder.col.formFactor'), 'formFactors', opts('formFactors'))}
       <FilterSection title={t('builder.col.maxGpuLength')} defaultOpen={false}>
+        {/* eslint-disable-next-line i18next/no-literal-string -- measurement unit symbol */}
         <RangeFilter {...getRange('maxGpuLengthMm')} onChange={(min, max) => setRange('maxGpuLengthMm', min, max)} unit="mm" />
       </FilterSection>
       <FilterSection title={t('builder.col.maxCoolerHeight')} defaultOpen={false}>
+        {/* eslint-disable-next-line i18next/no-literal-string -- measurement unit symbol */}
         <RangeFilter {...getRange('maxCoolerHeightMm')} onChange={(min, max) => setRange('maxCoolerHeightMm', min, max)} unit="mm" />
       </FilterSection>
       <FilterSection title={t('builder.filters.driveBays35')} defaultOpen={false}>

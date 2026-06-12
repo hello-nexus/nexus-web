@@ -9,6 +9,7 @@
 // runs locally in the panel's browser.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from '../../../lib/i18n';
 import { postService } from '../../../api/service';
 import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
 import type { AppInstalledListing } from '../../../widgets/types';
@@ -24,6 +25,7 @@ export interface SdkMarketplaceWidgetProps {
 }
 
 export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidgetProps) {
+  const { t } = useTranslation();
   const preview = usePanelPreview();
   const { entryUrl, failed: bundleFailed } = useSdkBundle(listing.id);
   const { runtimeUrl, failed: runtimeFailed } = useSdkRuntime();
@@ -51,8 +53,8 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
     [listing.id],
   );
 
-  if (failed) return <div className={styles.empty}>Failed to load {listing.name}</div>;
-  if (!entryUrl || !runtimeUrl) return <div className={styles.empty}>Loading {listing.name}…</div>;
+  if (failed) return <div className={styles.empty}>{t('marketplace.failedToLoad', { name: listing.name })}</div>;
+  if (!entryUrl || !runtimeUrl) return <div className={styles.empty}>{t('marketplace.loading', { name: listing.name })}</div>;
 
   return (
     <SandboxedWidget

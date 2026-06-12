@@ -243,6 +243,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
                 key={spinPulse}
                 size={56}
                 aria-hidden
+                // eslint-disable-next-line i18next/no-literal-string -- data attribute boolean
                 data-spinning={spinPulse > spinDoneAt ? 'true' : undefined}
                 data-level={level ?? undefined}
                 className={styles.simpleFan}

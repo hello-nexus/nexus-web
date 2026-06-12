@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NexusWordmark } from '../components/icons/NexusBrand';
+import { useTranslation } from '../lib/i18n';
 
 /**
  * Public pre-launch splash for hellonexus.com — the coming-soon page (later this
@@ -7,6 +8,7 @@ import { NexusWordmark } from '../components/icons/NexusBrand';
  * colored mark (an iPhone-welcome nod), with the NEXUS wordmark + teaser below.
  */
 export function SplashPage() {
+  const { t } = useTranslation();
   // Gentle mount fade so the stack doesn't pop in.
   const [shown, setShown] = useState(false);
   useEffect(() => {
@@ -18,6 +20,7 @@ export function SplashPage() {
     <div style={frame}>
       <style>{HELLO_STYLE}</style>
       {/* Diffused gradient "hello" glow behind the mark. Decorative only. */}
+      {/* eslint-disable-next-line i18next/no-literal-string -- decorative cursive glyph */}
       <div className="nx-hello" aria-hidden="true">hello</div>
       <div style={{ ...stack, opacity: shown ? 1 : 0 }}>
         {/* Colored brand mark (transparent ColorAlpha master). Decorative: the
@@ -26,7 +29,7 @@ export function SplashPage() {
         <span style={wordmark}>
           <NexusWordmark height={40} />
         </span>
-        <p style={tagline}>The next generation of Nexus is almost here.</p>
+        <p style={tagline}>{t('splash.tagline')}</p>
       </div>
     </div>
   );

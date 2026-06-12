@@ -253,7 +253,7 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
           fill="var(--text-faded)" fontSize="11" fontFamily="var(--font-mono)"
           textAnchor="start"
         >
-          -60s
+          {t('chart.minus60s')}
         </text>
         <text
           x={width - PAD.right} y={height - 6}

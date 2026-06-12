@@ -52,11 +52,13 @@ const TILE_IMAGE_ASPECT_H_OVER_W = 87 / 231;
 // header images for off-screen tiles.
 const OVERSCAN_ROWS = 0;
 
-const SORT_OPTIONS = [
-  { value: 'recent', label: 'Recent' },
-  { value: 'playtime', label: 'Total playtime' },
-  { value: 'name', label: 'A–Z' },
-] as const;
+// Sort `value`s are stable internal ids (SortKey); only `label` is display.
+const SORT_KEYS = ['recent', 'playtime', 'name'] as const;
+const SORT_LABEL_KEYS: Record<SortKey, string> = {
+  recent: 'steam.sort.recent',
+  playtime: 'steam.sort.playtime',
+  name: 'steam.sort.name',
+};
 
 /**
  * Desktop app page for the Steam widget: page chrome (ViewHeader +
@@ -153,8 +155,8 @@ export function SteamPage() {
         {!status?.ready ? (
           <EmptyState
             icon={<SteamLogo size={40} />}
-            title="Steam not configured"
-            hint={status?.reason || 'Add a Steam Web API key in the Steam widget settings.'}
+            title={t('steam.notConfigured.title')}
+            hint={status?.reason || t('steam.notConfigured.hint')}
           />
         ) : (
           <>
@@ -196,6 +198,7 @@ function ProfileStrip({
   level: number | null;
   currentGame: { appId: number; name: string } | null;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={styles.profileStrip}>
       {profile?.avatarFull ? (
@@ -204,11 +207,12 @@ function ProfileStrip({
         <div className={styles.avatarFallback}><SteamLogo size={24} /></div>
       )}
       <div className={styles.profileText}>
+        {/* eslint-disable-next-line i18next/no-literal-string -- Steam brand-name fallback */}
         <div className={styles.profileName}>{profile?.personaName || 'Steam'}</div>
         <div className={styles.profileStatus}>
           <PersonaDot state={profile?.personaState} />
-          <span>{personaStatusLabel(profile?.personaState)}</span>
-          {currentGame && <span className={styles.profilePlaying}>· Playing {currentGame.name}</span>}
+          <span>{personaStatusLabel(t, profile?.personaState)}</span>
+          {currentGame && <span className={styles.profilePlaying}>{t('steam.profilePlaying', { name: currentGame.name })}</span>}
         </div>
       </div>
       {level !== null && <div className={styles.level}>{level}</div>}
@@ -237,6 +241,7 @@ function EntryView({
   setSort: (s: SortKey) => void;
   onOpenGame: (appId: number, name: string) => void;
 }) {
+  const { t } = useTranslation();
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const base = q ? ownedGames.filter(g => g.name.toLowerCase().includes(q)) : ownedGames;
@@ -251,6 +256,11 @@ function EntryView({
     return sorted;
   }, [ownedGames, search, sort]);
 
+  const sortOptions = useMemo(
+    () => SORT_KEYS.map(value => ({ value, label: t(SORT_LABEL_KEYS[value]) })),
+    [t],
+  );
+
   const onlineFriends = useMemo(() => friends.filter(f => f.personaState !== 0).slice(0, 12), [friends]);
 
   return (
@@ -260,26 +270,26 @@ function EntryView({
           <SearchInput
             value={search}
             onChange={setSearch}
-            placeholder="Search library"
+            placeholder={t('steam.library.searchPlaceholder')}
             className={styles.searchInput}
           />
           <Select
             value={sort}
             onChange={v => setSort(v as SortKey)}
-            options={SORT_OPTIONS}
-            ariaLabel="Sort library"
+            options={sortOptions}
+            ariaLabel={t('steam.library.sortAriaLabel')}
           />
           <div className={styles.libraryCount}>
             {filtered.length === ownedGames.length
-              ? `${filtered.length} games`
-              : `${filtered.length} of ${ownedGames.length}`}
+              ? t('steam.library.count', { count: filtered.length })
+              : t('steam.library.countFiltered', { count: filtered.length, total: ownedGames.length })}
           </div>
         </div>
         {filtered.length === 0 ? (
           <div className={styles.libraryEmptyWrap}>
             <EmptyState
               icon={<SteamLogo size={28} />}
-              title={search ? `No games match "${search}"` : 'No games in your library'}
+              title={search ? t('steam.library.noMatch', { query: search }) : t('steam.library.empty')}
               compact
             />
           </div>
@@ -289,7 +299,7 @@ function EntryView({
       </main>
 
       <aside className={styles.rail}>
-        <Card title={<RailTitle icon={<Play size={14} />} label="Now Playing" />}>
+        <Card title={<RailTitle icon={<Play size={14} />} label={t('steam.rail.nowPlaying')} />}>
           {currentGame ? (
             <div className={styles.nowPlaying}>
               <img
@@ -300,19 +310,19 @@ function EntryView({
               <div className={styles.nowPlayingName}>{currentGame.name}</div>
               <div className={styles.nowPlayingActions}>
                 <Button size="sm" tone="accent" onClick={() => { void launchSteam(currentGame.appId); }}>
-                  Launch
+                  {t('steam.action.launch')}
                 </Button>
                 <Button size="sm" tone="neutral" onClick={() => onOpenGame(currentGame.appId, currentGame.name)}>
-                  Details
+                  {t('steam.action.details')}
                 </Button>
               </div>
             </div>
           ) : (
-            <EmptyState icon={<Play size={20} />} title="Not in a game" compact />
+            <EmptyState icon={<Play size={20} />} title={t('steam.empty.notInGame')} compact />
           )}
         </Card>
 
-        <Card title={<RailTitle icon={<Users size={14} />} label="Friends online" />}>
+        <Card title={<RailTitle icon={<Users size={14} />} label={t('steam.rail.friendsOnline')} />}>
           {onlineFriends.length > 0 ? (
             <ul className={styles.friendList}>
               {onlineFriends.map(f => (
@@ -321,7 +331,7 @@ function EntryView({
                   <div className={styles.friendInfo}>
                     <span className={styles.friendName}>{f.personaName}</span>
                     <span className={styles.friendSub}>
-                      {f.gameExtraInfo ? `Playing ${f.gameExtraInfo}` : personaStatusLabel(f.personaState)}
+                      {f.gameExtraInfo ? t('steam.playing', { name: f.gameExtraInfo }) : personaStatusLabel(t, f.personaState)}
                     </span>
                   </div>
                   <PersonaDot state={f.personaState} />
@@ -329,11 +339,11 @@ function EntryView({
               ))}
             </ul>
           ) : (
-            <EmptyState icon={<Users size={20} />} title="No friends online" compact />
+            <EmptyState icon={<Users size={20} />} title={t('steam.empty.noFriendsOnline')} compact />
           )}
         </Card>
 
-        <Card title={<RailTitle icon={<Newspaper size={14} />} label="Latest news" />}>
+        <Card title={<RailTitle icon={<Newspaper size={14} />} label={t('steam.rail.latestNews')} />}>
           {news.length > 0 ? (
             <ul className={styles.newsList}>
               {news.map(item => (
@@ -346,7 +356,7 @@ function EntryView({
               ))}
             </ul>
           ) : (
-            <EmptyState icon={<Newspaper size={20} />} title="No recent news" compact />
+            <EmptyState icon={<Newspaper size={20} />} title={t('steam.empty.noNews')} compact />
           )}
         </Card>
       </aside>
@@ -550,6 +560,7 @@ function DrillView({
   ownedGames: SteamOwnedGame[];
   onBack: () => void;
 }) {
+  const { t } = useTranslation();
   const [details, setDetails] = useState<SteamAppDetails | null>(null);
   const [achievements, setAchievements] = useState<SteamAchievement[]>([]);
   const [globalRarity, setGlobalRarity] = useState<Map<string, number>>(new Map());
@@ -623,10 +634,10 @@ function DrillView({
     <div className={styles.drillRoot}>
       <div className={styles.drillTopBar}>
         <Button size="sm" tone="ghost" icon={<ArrowLeft size={14} />} onClick={onBack}>
-          Back
+          {t('steam.action.back')}
         </Button>
         <Button size="sm" tone="accent" onClick={() => { void launchSteam(appId); }}>
-          Launch
+          {t('steam.action.launch')}
         </Button>
       </div>
 
@@ -654,13 +665,13 @@ function DrillView({
               {details.releaseDate && <span>{details.releaseDate}</span>}
               {details.genres.length > 0 && <span>{details.genres.join(' · ')}</span>}
               {typeof details.metacriticScore === 'number' && (
-                <span className={styles.metacritic}>★ {details.metacriticScore}</span>
+                <span className={styles.metacritic}>{t('steam.drill.metacritic', { score: details.metacriticScore })}</span>
               )}
             </div>
           )}
           {playerCount !== null && playerCount > 0 && (
             <div className={styles.drillLive}>
-              <span className={styles.liveDot} /> {playerCount.toLocaleString()} playing now
+              <span className={styles.liveDot} /> {t('steam.drill.playingNow', { count: playerCount.toLocaleString() })}
             </div>
           )}
         </div>
@@ -671,14 +682,14 @@ function DrillView({
       )}
 
       <section className={styles.drillStatsRow}>
-        <StatTile label="Total" value={formatMinutes(owned?.playtimeForever ?? 0)} />
-        <StatTile label="Last 2 weeks" value={formatMinutes(owned?.playtime2Weeks ?? 0)} />
+        <StatTile label={t('steam.stat.total')} value={formatMinutes(owned?.playtimeForever ?? 0)} />
+        <StatTile label={t('steam.stat.lastTwoWeeks')} value={formatMinutes(owned?.playtime2Weeks ?? 0)} />
         <StatTile
-          label="Achievements"
+          label={t('steam.achievements')}
           value={achievements.length > 0 ? `${unlockedCount} / ${achievements.length}` : '—'}
         />
         <StatTile
-          label="Players now"
+          label={t('steam.stat.playersNow')}
           value={playerCount !== null ? playerCount.toLocaleString() : '—'}
         />
       </section>
@@ -686,7 +697,7 @@ function DrillView({
       <div className={styles.drillColumns}>
         <section className={styles.drillCol}>
           <Card
-            title="Achievements"
+            title={t('steam.achievements')}
             actions={
               achievements.length > 0 ? (
                 <label className={styles.drillToggle}>
@@ -695,13 +706,13 @@ function DrillView({
                     checked={hideUnlocked}
                     onChange={e => setHideUnlocked(e.target.checked)}
                   />
-                  Hide unlocked
+                  {t('steam.drill.hideUnlocked')}
                 </label>
               ) : undefined
             }
           >
             {achievements.length === 0 ? (
-              <EmptyState title="This game has no achievements." compact />
+              <EmptyState title={t('steam.drill.noAchievements')} compact />
             ) : (
               <ul className={styles.achievementList}>
                 {sortedAchievements.map(a => (
@@ -712,7 +723,7 @@ function DrillView({
                     </div>
                     <div className={styles.achievementRight}>
                       {a.rarity !== null && (
-                        <HoverTooltip body={`${a.rarity.toFixed(1)}% of players have this`} side="top">
+                        <HoverTooltip body={t('steam.drill.rarityTooltip', { percent: a.rarity.toFixed(1) })} side="top">
                           <div className={styles.rarityBar}>
                             <div className={styles.rarityFill} style={{ width: `${Math.min(100, Math.max(2, a.rarity))}%` }} />
                             <span className={styles.rarityText}>{a.rarity.toFixed(0)}%</span>
@@ -730,7 +741,7 @@ function DrillView({
           </Card>
 
           {stats.length > 0 && (
-            <Card title="Your stats">
+            <Card title={t('steam.drill.yourStats')}>
               <ul className={styles.statList}>
                 {stats.map(s => (
                   <li key={s.name} className={styles.statRow}>
@@ -744,9 +755,9 @@ function DrillView({
         </section>
 
         <section className={styles.drillCol}>
-          <Card title="News">
+          <Card title={t('steam.rail.news')}>
             {news.length === 0 ? (
-              <EmptyState title="No recent announcements." compact />
+              <EmptyState title={t('steam.drill.noAnnouncements')} compact />
             ) : (
               <ul className={styles.drillNewsList}>
                 {news.map(item => (
@@ -761,9 +772,9 @@ function DrillView({
             )}
           </Card>
 
-          <Card title="Friends in this game">
+          <Card title={t('steam.drill.friendsInGame')}>
             {friendsInGame.length === 0 ? (
-              <EmptyState title="No friends are playing right now." compact />
+              <EmptyState title={t('steam.drill.noFriendsPlaying')} compact />
             ) : (
               <ul className={styles.friendList}>
                 {friendsInGame.map(f => (
@@ -771,7 +782,7 @@ function DrillView({
                     <img className={styles.friendAvatar} src={f.avatarMedium} alt="" />
                     <div className={styles.friendInfo}>
                       <span className={styles.friendName}>{f.personaName}</span>
-                      <span className={styles.friendSub}>Playing {f.gameExtraInfo}</span>
+                      <span className={styles.friendSub}>{t('steam.playing', { name: f.gameExtraInfo ?? '' })}</span>
                     </div>
                     <PersonaDot state={f.personaState} />
                   </li>
@@ -805,15 +816,15 @@ function personaToneKey(state: number | undefined): 'online' | 'away' | 'busy' |
   return 'offline';
 }
 
-function personaStatusLabel(state: number | undefined) {
+function personaStatusLabel(t: (key: string) => string, state: number | undefined) {
   switch (state) {
-    case 1: return 'Online';
-    case 2: return 'Busy';
-    case 3: return 'Away';
-    case 4: return 'Snooze';
-    case 5: return 'Trading';
-    case 6: return 'Looking';
-    default: return 'Offline';
+    case 1: return t('steam.persona.online');
+    case 2: return t('steam.persona.busy');
+    case 3: return t('steam.persona.away');
+    case 4: return t('steam.persona.snooze');
+    case 5: return t('steam.persona.trading');
+    case 6: return t('steam.persona.looking');
+    default: return t('steam.persona.offline');
   }
 }
 

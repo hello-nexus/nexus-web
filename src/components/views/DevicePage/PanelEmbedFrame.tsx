@@ -17,6 +17,7 @@ import {
   type SimulatorTheme,
 } from '../../../panel/embed/simulatorProtocol';
 import type { PanelLayout, PanelSurface, PanelWidget } from '../../../panel/types';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './PanelEmbedFrame.module.scss';
 
 interface PanelEmbedFrameProps {
@@ -97,6 +98,7 @@ export function PanelEmbedFrame({
   screenOn,
   showPanel,
 }: PanelEmbedFrameProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [childReady, setChildReady] = useState(false);
@@ -258,7 +260,7 @@ export function PanelEmbedFrame({
         ref={iframeRef}
         className={styles.frame}
         src={src}
-        title="Panel simulator"
+        title={t('devices.panels.simulatorFrameTitle')}
         style={{
           width: canvasW,
           height: canvasH,

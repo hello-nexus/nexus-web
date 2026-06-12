@@ -31,7 +31,7 @@ describe('PanelActionsTray swipe-to-open', () => {
   it('keeps tracking the finger during the pre-release drag (no reset)', () => {
     render(<Harness />);
     const surface = screen.getByTestId('surface');
-    const tray = screen.getByLabelText('Panel actions');
+    const tray = screen.getByLabelText('panel.actions.label');
 
     act(() => {
       // Above the iOS home-indicator band (>28px from the 768px jsdom viewport
@@ -49,7 +49,7 @@ describe('PanelActionsTray swipe-to-open', () => {
   it('ignores a horizontal-dominant swipe', () => {
     render(<Harness />);
     const surface = screen.getByTestId('surface');
-    const tray = screen.getByLabelText('Panel actions');
+    const tray = screen.getByLabelText('panel.actions.label');
 
     act(() => {
       // 200px across, only 20px up: past the 16px engage but nowhere near

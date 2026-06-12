@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchDiscordConfig, saveDiscordConfig } from '../../../api/discord';
 import type { WidgetSettingsProps } from '../types';
+import { useTranslation } from '../../../lib/i18n';
 import {
   SettingsActions,
   SettingsButton,
@@ -13,6 +14,7 @@ import {
 } from '../common/SettingsRow/SettingsRow';
 
 export function DiscordSettings({ widget, onUpdate }: WidgetSettingsProps) {
+  const { t } = useTranslation();
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
   const [hasClientSecret, setHasClientSecret] = useState(false);
@@ -45,47 +47,48 @@ export function DiscordSettings({ widget, onUpdate }: WidgetSettingsProps) {
 
   return (
     <>
-      <SettingsSection title="Discord">
+      <SettingsSection title={t('discord.section.title')}>
         <SettingsToggle
-          label="Privacy mode"
+          label={t('discord.privacyMode')}
           checked={privacyMode}
           onChange={checked => onUpdate({ privacyMode: checked })}
         />
       </SettingsSection>
-      <SettingsSection title="OAuth">
+      <SettingsSection title={t('discord.oauth.title')}>
         <SettingsHint>
-          Create an app at{' '}
+          {t('discord.oauth.hint.createAppAt')}{' '}
+          {/* eslint-disable-next-line i18next/no-literal-string -- link text is a URL */}
           <a href="https://discord.com/developers/applications" target="_blank" rel="noreferrer noopener">
             discord.com/developers/applications
           </a>
-          {' '}&rarr; <em>New Application</em>. The <em>Application ID</em> on the General Information page is your Client ID. For the secret, open <em>OAuth2</em> &rarr; <em>Reset Secret</em> and copy the value (Discord only shows it once). Required for the RPC OAuth token exchange.
+          {' '}&rarr; <em>{t('discord.oauth.hint.newApplication')}</em>{t('discord.oauth.hint.applicationIdIntro')} <em>{t('discord.oauth.hint.applicationId')}</em> {t('discord.oauth.hint.applicationIdOutro')} <em>{t('discord.oauth.hint.oauth2')}</em> &rarr; <em>{t('discord.oauth.hint.resetSecret')}</em> {t('discord.oauth.hint.secretOutro')}
         </SettingsHint>
-        <SettingsRow label="Client ID">
+        <SettingsRow label={t('discord.clientId')}>
           <SettingsInput
             type="text"
             value={clientId}
             onChange={e => setClientId(e.target.value)}
-            placeholder="required"
+            placeholder={t('discord.placeholder.required')}
           />
         </SettingsRow>
-        <SettingsRow label="Secret">
+        <SettingsRow label={t('discord.secret')}>
           <SettingsInput
             type="password"
             value={clientSecret}
             onChange={e => setClientSecret(e.target.value)}
-            placeholder={hasClientSecret ? 'configured' : 'required'}
+            placeholder={hasClientSecret ? t('discord.placeholder.configured') : t('discord.placeholder.required')}
           />
         </SettingsRow>
         <SettingsActions>
           <SettingsButton onClick={() => save()}>
-            Save
+            {t('discord.save')}
           </SettingsButton>
           {hasClientSecret && (
             <SettingsButton variant="muted" onClick={() => save(true)}>
-              Clear secret
+              {t('discord.clearSecret')}
             </SettingsButton>
           )}
-          {saved && <SettingsSaved>Saved</SettingsSaved>}
+          {saved && <SettingsSaved>{t('discord.saved')}</SettingsSaved>}
         </SettingsActions>
       </SettingsSection>
     </>

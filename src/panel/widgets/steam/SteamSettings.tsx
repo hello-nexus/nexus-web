@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchSteamConfig, saveSteamConfig } from '../../../api/steam';
+import { useTranslation } from '../../../lib/i18n';
 import type { WidgetSettingsProps } from '../types';
 import {
   SettingsActions,
@@ -13,6 +14,7 @@ import {
 
 export function SteamSettings(props: WidgetSettingsProps) {
   void props;
+  const { t } = useTranslation();
   const [apiKey, setApiKey] = useState('');
   const [steamId, setSteamId] = useState('');
   const [autoDetectedSteamId, setAutoDetectedSteamId] = useState('');
@@ -45,23 +47,27 @@ export function SteamSettings(props: WidgetSettingsProps) {
 
   return (
     <>
-      <SettingsSection title="Steam API">
+      <SettingsSection title={t('steam.settings.apiTitle')}>
         <SettingsHint>
-          Sign in at{' '}
+          {t('steam.settings.apiKeyHint.before')}{' '}
+          {/* eslint-disable-next-line i18next/no-literal-string -- URL link text */}
           <a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noreferrer noopener">
             steamcommunity.com/dev/apikey
           </a>
-          {' '}to register a personal key. Any non-empty domain (e.g. <code>localhost</code>) is accepted &mdash; it&apos;s a label, not validated.
+          {' '}{t('steam.settings.apiKeyHint.middle')}{' '}
+          {/* eslint-disable-next-line i18next/no-literal-string -- technical example value */}
+          <code>localhost</code>
+          {t('steam.settings.apiKeyHint.after')}
         </SettingsHint>
-        <SettingsRow label="API key">
+        <SettingsRow label={t('steam.settings.apiKeyLabel')}>
           <SettingsInput
             type="password"
             value={apiKey}
             onChange={e => setApiKey(e.target.value)}
-            placeholder={hasApiKey ? 'configured' : 'required'}
+            placeholder={hasApiKey ? t('steam.settings.apiKeyConfigured') : t('steam.settings.apiKeyRequired')}
           />
         </SettingsRow>
-        <SettingsRow label="SteamID64">
+        <SettingsRow label={t('steam.settings.steamIdLabel')}>
           <SettingsInput
             type="text"
             value={steamId}
@@ -70,31 +76,33 @@ export function SteamSettings(props: WidgetSettingsProps) {
           />
         </SettingsRow>
         <SettingsHint>
-          Your 17-digit ID. Find it via{' '}
+          {t('steam.settings.steamIdHint.before')}{' '}
           <a href="https://steamcommunity.com/my/profile" target="_blank" rel="noreferrer noopener">
-            your profile page
+            {t('steam.settings.steamIdHint.profileLink')}
           </a>
-          {' '}&rarr; profile menu &rarr; <em>Copy page URL</em>, or paste your vanity URL into{' '}
-          <a href="https://steamid.io/" target="_blank" rel="noreferrer noopener">steamid.io</a>.
+          {' '}{t('steam.settings.steamIdHint.middle')} <em>{t('steam.settings.steamIdHint.copyUrl')}</em>{t('steam.settings.steamIdHint.afterCopy')}{' '}
+          {/* eslint-disable-next-line i18next/no-literal-string -- URL link text */}
+          <a href="https://steamid.io/" target="_blank" rel="noreferrer noopener">steamid.io</a>
+          {t('steam.settings.steamIdHint.after')}
         </SettingsHint>
         {autoDetectedSteamId && (
-          <SettingsHint>Detected local SteamID64: {autoDetectedSteamId}</SettingsHint>
+          <SettingsHint>{t('steam.settings.detected', { id: autoDetectedSteamId })}</SettingsHint>
         )}
         <SettingsActions>
           <SettingsButton onClick={() => save()}>
-            Save
+            {t('steam.settings.save')}
           </SettingsButton>
           {autoDetectedSteamId && (
             <SettingsButton variant="muted" onClick={() => setSteamId(autoDetectedSteamId)}>
-              Use detected
+              {t('steam.settings.useDetected')}
             </SettingsButton>
           )}
           {hasApiKey && (
             <SettingsButton variant="muted" onClick={() => save(true)}>
-              Clear key
+              {t('steam.settings.clearKey')}
             </SettingsButton>
           )}
-          {saved && <SettingsSaved>Saved</SettingsSaved>}
+          {saved && <SettingsSaved>{t('steam.settings.saved')}</SettingsSaved>}
         </SettingsActions>
       </SettingsSection>
     </>

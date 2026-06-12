@@ -99,6 +99,7 @@ export function NetworkTab({ network, showAverage, onToggle }: {
         series={series}
         sampleCount={SAMPLE_COUNT}
         yMax={yMax}
+        // eslint-disable-next-line i18next/no-literal-string -- data-rate unit
         yUnit="KB/s"
         xSeconds={60}
       />

@@ -19,6 +19,7 @@ export function IFrameWidget({ widget }: WidgetProps) {
             <span className={styles.chromeDot} />
             <span className={styles.chromeDot} />
             <span className={styles.chromeDot} />
+            {/* eslint-disable-next-line i18next/no-literal-string -- mock preview domain */}
             <span className={styles.urlPill}>example.com</span>
           </div>
           <div className={styles.mockBody}>
@@ -52,7 +53,7 @@ export function IFrameWidget({ widget }: WidgetProps) {
         src={url}
         sandbox="allow-scripts allow-popups"
         allow="autoplay"
-        title="Embedded content"
+        title={t('iframe.frameTitle')}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import { SdkMarketplaceWidget } from './SdkMarketplaceWidget';
 import {
@@ -15,6 +16,7 @@ import styles from './MarketplaceWidget.module.scss';
  * `WidgetProps` to the SDK host.
  */
 export function MarketplaceWidget({ widget }: WidgetProps) {
+  const { t } = useTranslation();
   const id = marketplaceIdFromType(widget.type) ?? '';
   const [listing, setListing] = useState(() => (id ? getMarketplaceListing(id) : undefined));
 
@@ -33,7 +35,7 @@ export function MarketplaceWidget({ widget }: WidgetProps) {
   }, [id]);
 
   if (!listing) {
-    return <div className={styles.empty}>{id ? `Loading ${id}…` : 'Marketplace widget missing id'}</div>;
+    return <div className={styles.empty}>{id ? t('marketplace.loading', { name: id }) : t('marketplace.missingId')}</div>;
   }
 
   return <SdkMarketplaceWidget listing={listing} size={widget.size} instanceId={widget.id} />;
