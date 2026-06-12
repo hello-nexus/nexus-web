@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import PanelApp from '../panel/PanelApp';
 import { PanelSimulatorContent } from '../panel/embed/PanelSimulatorContent';
 import OverlayShell from '../overlay/OverlayShell';
-import { inferSurfaceFromViewport } from '../panel/inferSurface';
+import { inferSurfaceFromViewport } from '../panel/device/inferSurface';
 import {
   allocatePanelDeviceWithStatus,
   patchPanelDeviceWithStatus,

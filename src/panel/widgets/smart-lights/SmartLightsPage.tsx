@@ -16,7 +16,7 @@ import {
   type DiscoveredSmartLight,
   type SmartLight,
 } from '../../../api/smartLights';
-import type { DashboardSectionNavigate } from '../../panelLayoutHelpers';
+import type { DashboardSectionNavigate } from '../../engine/panelLayoutHelpers';
 import styles from './SmartLightsPage.module.scss';
 
 // Standalone Page props: rendered by the dashboard (not the panel grid), so it

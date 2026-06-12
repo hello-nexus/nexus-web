@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'reac
 import { Check, ClipboardCopy, Image as ImageIcon, X } from 'lucide-react';
 import { pingService } from '../../../api/service';
 import { sendTransferClipboard, uploadTransferItems } from '../../../api/transfer';
-import { useNativeTransferBridge, type NativeTransferState } from '../../panelNativeBridge';
+import { useNativeTransferBridge, type NativeTransferState } from '../../device/panelNativeBridge';
 import { useTranslation } from '../../../lib/i18n';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import type { WidgetProps } from '../types';

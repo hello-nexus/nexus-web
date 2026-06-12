@@ -2,8 +2,8 @@
 // both to decide + render in one place.
  
 import { ShieldAlert } from 'lucide-react';
-import { useTranslation } from '../lib/i18n';
-import { APP_STORE_URL } from '../lib/appStore';
+import { useTranslation } from '../../lib/i18n';
+import { APP_STORE_URL } from '../../lib/appStore';
 import styles from './PanelInsecureBanner.module.scss';
 
 /**

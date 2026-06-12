@@ -1,8 +1,8 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Lock, QrCode, RefreshCw, Smartphone } from 'lucide-react';
-import { useTranslation } from '../lib/i18n';
-import type { ConnectionState } from '../hooks/useServiceStatus';
-import type { PanelSurface } from './types';
+import { useTranslation } from '../../lib/i18n';
+import type { ConnectionState } from '../../hooks/useServiceStatus';
+import type { PanelSurface } from '../types';
 import styles from './PanelOfflineOverlay.module.scss';
 
 interface PanelOfflineOverlayProps {

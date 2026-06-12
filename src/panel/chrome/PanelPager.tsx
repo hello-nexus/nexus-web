@@ -1,5 +1,5 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
-import { usePanelHorizontalSwipe } from './engine/usePanelHorizontalSwipe';
+import { usePanelHorizontalSwipe } from '../engine/usePanelHorizontalSwipe';
 import styles from './PanelPager.module.scss';
 
 interface PanelPagerProps<T extends { id: string }> {

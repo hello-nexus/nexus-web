@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImageIcon } from 'lucide-react';
-import { PanelArrowButton } from '../../PanelArrowButton';
+import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { previewWallpaperUri } from '../common/previewAssets';

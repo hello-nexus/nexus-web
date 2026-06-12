@@ -64,8 +64,8 @@ import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { NexusAppIcon } from '../components/icons/NexusAppIcon';
-import { PanelArrowButton } from '../panel/PanelArrowButton';
-import { PanelPageIndicator } from '../panel/PanelPageIndicator';
+import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
+import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
@@ -1377,7 +1377,7 @@ export const REGISTRY: StorybookEntry[] = [
   },
   {
     name: 'PanelCatalogCell', category: 'panel-kit',
-    filePath: 'src/panel/PanelDragCells.tsx',
+    filePath: 'src/panel/dnd/PanelDragCells.tsx',
     description: 'Tile shown in the add-widget catalog. Reuses the live panel cell (card + content scaler + label strip) so the catalog renders a widget identically to the panel grid. Used by the panel add-widget search.',
     notes: 'No live preview - the cell instantiates a real panel widget at panel scale.',
   },
@@ -1420,21 +1420,21 @@ export const REGISTRY: StorybookEntry[] = [
   },
   {
     name: 'PanelArrowButton', category: 'panel-kit',
-    filePath: 'src/panel/PanelArrowButton.tsx',
+    filePath: 'src/panel/chrome/PanelArrowButton.tsx',
     description: 'Naked chevron nav arrow shared by the cooling/lighting widgets and the panel device-page preview. Absolutely positioned by data-side; the caller\'s container must be position: relative.',
     Preview: PreviewPanelArrowButtons,
     notes: 'Pass a caller class for per-surface size/position tweaks - the base look stays in the shared module.',
   },
   {
     name: 'PanelPageIndicator', category: 'panel-kit',
-    filePath: 'src/panel/PanelPageIndicator.tsx',
+    filePath: 'src/panel/chrome/PanelPageIndicator.tsx',
     description: 'Fading dot page indicator. Un-fades for 1.5s whenever visibilityToken or the active page changes, then fades back out. Renders nothing when total <= 1.',
     Preview: PreviewPanelPageIndicator,
     notes: 'Click "Next page" to bump the token and watch the un-fade cycle.',
   },
   {
     name: 'PanelPager', category: 'panel-kit',
-    filePath: 'src/panel/PanelPager.tsx',
+    filePath: 'src/panel/chrome/PanelPager.tsx',
     description: 'Horizontal swipeable pager container: edge-swipe gesture handling, per-page render callback, momentum snapping. Hosts the panel page grid and the immersive overlay pages.',
     notes: 'No live preview - owns pointer-gesture state and needs page content to mean anything.',
   },

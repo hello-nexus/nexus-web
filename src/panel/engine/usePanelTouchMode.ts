@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLongPress } from './useLongPress';
-import { triggerHaptic } from '../panelNativeBridge';
+import { triggerHaptic } from '../device/panelNativeBridge';
 import type { PanelWidget } from '../types';
 
 const PRESS_MOVE_THRESHOLD = 12;

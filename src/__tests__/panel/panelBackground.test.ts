@@ -8,7 +8,7 @@ import {
   panelBackgroundPair,
   panelBackgroundPresets,
   resolvePanelBackground,
-} from '../../panel/panelBackground';
+} from '../../panel/background/panelBackground';
 
 describe('panel background presets', () => {
   it('keeps dark and light palettes as paired two-row grids', () => {

@@ -10,7 +10,11 @@ import {
 import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
-import { useKioskWatchdog } from './engine/useKioskWatchdog';
+import { useFlashWidgets } from './engine/useFlashWidgets';
+import { useMachineName } from './engine/useMachineName';
+import { useEdgeAdvance } from './engine/useEdgeAdvance';
+import { usePageSync } from './engine/usePageSync';
+import { useConnectionIntro } from './engine/useConnectionIntro';
 import { PANEL_CONTEXT_MENU_TRIGGER_MS, usePanelTouchMode } from './engine/usePanelTouchMode';
 import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
@@ -25,12 +29,11 @@ import {
   removeWidgetById,
   tryResizeWidget,
 } from './engine/panelLayoutOps';
-import { PANEL_EDGE_ADVANCE_DWELL_MS } from './engine/dragConstants';
 import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
-import { PanelPager } from './PanelPager';
-import { PanelPageIndicator } from './PanelPageIndicator';
-import { PanelActionsTray } from './PanelActionsTray';
-import { PanelImmersiveOverlay } from './PanelImmersiveOverlay';
+import { PanelPager } from './chrome/PanelPager';
+import { PanelPageIndicator } from './chrome/PanelPageIndicator';
+import { PanelActionsTray } from './chrome/PanelActionsTray';
+import { PanelImmersiveOverlay } from './overlays/PanelImmersiveOverlay';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from './widgets/registry';
 import type { DeckEditView } from './widgets/types';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
@@ -44,12 +47,12 @@ import {
   sanitizePinnedTail,
 } from '../app/sidebarApps';
 import { useCrossZoneDrag } from '../app/CrossZoneDrag';
-import { PanelOfflineOverlay } from './PanelOfflineOverlay';
-import { isInsecureBrowserPanel } from './PanelInsecureBanner';
+import { PanelOfflineOverlay } from './overlays/PanelOfflineOverlay';
+import { isInsecureBrowserPanel } from './overlays/PanelInsecureBanner';
 import { useTranslation } from '../lib/i18n';
 import { applyHtmlChromeTheme } from '../lib/settings';
-import { fetchPanelDevice, setPanelHostName } from '../api/panel';
-import { isRemotePaired, pingService } from '../api/service';
+import { fetchPanelDevice } from '../api/panel';
+import { isRemotePaired } from '../api/service';
 import { createUuid } from '../lib/uuid';
 import {
   type PanelConfigValue,
@@ -59,9 +62,9 @@ import {
   type PanelWidgetSize,
 } from './types';
 import { isSingleWidgetSurface, surfaceSupportsTouch } from './types';
-import { inferSurfaceFromViewport } from './inferSurface';
-import { PanelBackgroundShader } from './PanelBackgroundShader';
-import { resolvePanelBackground } from './panelBackground';
+import { inferSurfaceFromViewport } from './device/inferSurface';
+import { PanelBackgroundShader } from './background/PanelBackgroundShader';
+import { resolvePanelBackground } from './background/panelBackground';
 import type { SimulatorTheme } from './embed/simulatorProtocol';
 import './styles/tokens.scss';
 import styles from './PanelApp.module.scss';
@@ -75,25 +78,25 @@ import {
   noopCellPointers,
   parseDragTarget,
   trimTrailingEmptyPages,
-} from './panelLayoutHelpers';
+} from './engine/panelLayoutHelpers';
 import {
   DESKTOP_ACTION_TRAY_HEIGHT,
   MAX_PANEL_PAGES,
   useRuntimePanelGrid,
   usePanelPageScrollLock,
-} from './panelGrid';
+} from './engine/panelGrid';
 import {
   useIsLandscape,
   usePhoneContentScale,
   usePhonePanelManifest,
-} from './panelPhone';
-import { useNativeSettingsBridge } from './panelNativeBridge';
+} from './device/panelPhone';
+import { useNativeSettingsBridge } from './device/panelNativeBridge';
 import {
   type EditorDockMotion,
   buildEditorDockMotionStyle,
   readEditorDockSlotRect,
   toEditorDockSourceRect,
-} from './panelEditorDock';
+} from './editor/panelEditorDock';
 import {
   buildEmbeddedPanelThemeVars,
   buildPanelThemeVars,
@@ -101,14 +104,14 @@ import {
   usePanelLanguageSync,
   usePanelTheme,
   useResolvedPanelThemeMode,
-} from './panelTheme';
-import { PanelEditorSheet, type SheetMode } from './PanelEditorSheet';
+} from './theme/panelTheme';
+import { PanelEditorSheet, type SheetMode } from './editor/PanelEditorSheet';
 import {
   DragTargetHighlight,
   EmptyCellDroppable,
   PanelDragOverlayCell,
   PanelTouchCell,
-} from './PanelDragCells';
+} from './dnd/PanelDragCells';
 
 // Window during which the closing keyframe (or hand-driven swipe glide) plays
 // before the editor sheet unmounts. Matches the SETTLE_MS / settling transition
@@ -116,7 +119,6 @@ import {
 // is removed.
 const EDITOR_EXIT_MS = 240;
 const WIDGET_RESIZE_MOTION_MS = 220;
-const CONNECTION_INTRO_MS = 2700;
 
 interface PanelLayoutState {
   layout: PanelLayout;
@@ -292,45 +294,13 @@ export function PanelContent({
   const isOffline = kioskBehavior && (serviceStatus.state === 'offline' || serviceStatus.state === 'offline-installed');
   const rootRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
-  const connectionIntroTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
-  const connectionIntroAnnouncedRef = useRef(false);
   const [sheetMode, setSheetMode] = useState<SheetMode | null>(null);
   const [sheetClosing, setSheetClosing] = useState(false);
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
   const [deckEditView, setDeckEditView] = useState<DeckEditView>({ folderPath: [] });
   const [editorDockMotion, setEditorDockMotion] = useState<EditorDockMotion | null>(null);
-  // Widgets whose last action was rejected (e.g. resize didn't fit anywhere).
-  // Drives a brief shake/flash on the cell, auto-cleared by a timer. Plural
-  // keyset so simultaneous rejections each play.
-  const [flashedWidgets, setFlashedWidgets] = useState<ReadonlySet<string>>(() => new Set());
-  const flashTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const triggerFlash = useCallback((widgetId: string) => {
-    setFlashedWidgets(prev => {
-      if (prev.has(widgetId)) return prev;
-      const next = new Set(prev);
-      next.add(widgetId);
-      return next;
-    });
-    const existing = flashTimersRef.current.get(widgetId);
-    if (existing) window.clearTimeout(existing);
-    const handle = window.setTimeout(() => {
-      flashTimersRef.current.delete(widgetId);
-      setFlashedWidgets(prev => {
-        if (!prev.has(widgetId)) return prev;
-        const next = new Set(prev);
-        next.delete(widgetId);
-        return next;
-      });
-    }, 600);
-    flashTimersRef.current.set(widgetId, handle);
-  }, []);
-  useEffect(() => () => {
-    const timers = flashTimersRef.current;
-    for (const handle of timers.values()) window.clearTimeout(handle);
-    timers.clear();
-  }, []);
-  const [connectionIntroHost, setConnectionIntroHost] = useState<string | null>(null);
+  const { flashedWidgets, triggerFlash } = useFlashWidgets();
   // Portal target for the editor-docked cell. The pager track's transform on
   // non-active pages traps `position: fixed` descendants, hiding the docked
   // cell when editing a widget on page 2+. Portal into this untransformed
@@ -339,36 +309,7 @@ export function PanelContent({
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const [trayOpen, setTrayOpen] = useState(false);
   const { t } = useTranslation();
-  // Host PC display name in the tray. Kiosk watchdog (3s ping) keeps it fresh;
-  // phone (no watchdog) seeds it with one ping on mount.
-  const [machineName, setMachineName] = useState<string>('');
-  const phoneSeed = kioskBehavior && surface === 'phone';
-  useEffect(() => {
-    if (!phoneSeed) return;
-    let cancelled = false;
-    pingService().then(res => {
-      if (!cancelled && res?.machineName) setMachineName(res.machineName);
-    });
-    return () => { cancelled = true; };
-  }, [phoneSeed]);
-  useKioskWatchdog({
-    enabled: kioskBehavior && surface !== 'phone',
-    onPing: response => {
-      if (response.machineName) setMachineName(response.machineName);
-    },
-  });
-  useEffect(() => {
-    const next = serviceStatus.ping?.machineName?.trim();
-    if (next) setMachineName(next);
-  }, [serviceStatus.ping?.machineName]);
-  const onMachineNameCommit = useCallback((next: string) => {
-    // Optimistic update; the next ping overwrites with the server's
-    // normalised value (trim, dedup whitespace, OS-name fallback if cleared).
-    setMachineName(next);
-    setPanelHostName(next).then(res => {
-      if (res?.machineName) setMachineName(res.machineName);
-    }).catch(() => {});
-  }, []);
+  const { machineName, onMachineNameCommit } = useMachineName(kioskBehavior, surface, serviceStatus.ping?.machineName);
   const lastCatalogSignalRef = useRef(openCatalogSignal);
   const [immersiveWidgetId, setImmersiveWidgetId] = useState<string | null>(null);
   // Bumped on each immersive open so the overlay's React key changes between
@@ -381,23 +322,6 @@ export function PanelContent({
   const handleImmersiveExit = useCallback(() => {
     setImmersiveWidgetId(null);
   }, []);
-  const clearConnectionIntro = useCallback(() => {
-    if (connectionIntroTimerRef.current) {
-      window.clearTimeout(connectionIntroTimerRef.current);
-      connectionIntroTimerRef.current = null;
-    }
-    setConnectionIntroHost(null);
-  }, []);
-  const startConnectionIntro = useCallback((host: string) => {
-    clearConnectionIntro();
-    setTrayOpen(false);
-    setConnectionIntroHost(host);
-    connectionIntroTimerRef.current = window.setTimeout(() => {
-      connectionIntroTimerRef.current = null;
-      setConnectionIntroHost(null);
-    }, CONNECTION_INTRO_MS);
-  }, [clearConnectionIntro]);
-  useEffect(() => () => clearConnectionIntro(), [clearConnectionIntro]);
   const { resizeMotionWidgetId, beginResizeMotion } = useWidgetResizeMotion(
     rootRef,
     styles.cellResizeMotion,
@@ -544,80 +468,15 @@ export function PanelContent({
   // so overIndex stays -1 and the memo doesn't reliably re-fire. Use a no-op
   // strategy and project widgets via React state below.
   const projectedLayoutStrategy = useMemo<SortingStrategy>(() => () => null, []);
-  const [activePageIndex, setActivePageIndex] = useState(0);
-  useEffect(() => {
-    if (activePageIndex > pageCount - 1) setActivePageIndex(pageCount - 1);
-  }, [activePageIndex, pageCount]);
-  // Read in dnd handlers (edge-advance) without restarting the pointermove
-  // subscription on every page change.
-  const pageCountRef = useRef(pageCount);
-  useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
-  // Active page index mirrored to a ref so the once-built collision detector
-  // reads it without rebuilding. The detector locks the snap target to this
-  // page; the pager's edge-advance dwell handles cross-page navigation, so
-  // the snap never picks a cell on another page from a drifting rect.
-  const activePageIndexRef = useRef(activePageIndex);
-  useEffect(() => { activePageIndexRef.current = activePageIndex; }, [activePageIndex]);
-
-  // --- Current-page sync via layout.activePageId ---------------------------
-  // The active page rides in the layout so the device-page preview, the
-  // on-device panel, and sibling tabs track the same page (propagated by the
-  // panel/device refetch path, same as widget moves). Page changes never
-  // survive a relaunch: a fresh panel start shows the first page.
-  //
-  // Honoring an external page (effect below) and persisting a local page
-  // (handlePageChange) are kept strictly apart. An earlier version reacted to
-  // activePageIndex with a *write* effect; because setActivePageIndex hadn't
-  // applied yet in the same commit, that effect read the stale index and wrote
-  // the previous page back, ping-ponging the two effects. The persist now
-  // lives at the pager's onActiveChange, which fires only on a user swipe and
-  // carries the new index explicitly, so no effect both reads the index and
-  // writes the layout from it.
-  const pageBootRef = useRef(false);
-  const lastSeenPageIdRef = useRef<string | undefined>(undefined);
-  const pageDragging = Boolean(activeDragId || dragArmedId);
-  useEffect(() => {
-    if (!loaded || pageDragging) return;
-    const pages = paginatedLayout.pages;
-    if (pages.length === 0) return;
-    if (!pageBootRef.current) {
-      pageBootRef.current = true;
-      if (kioskBehavior && pages.length > 1) {
-        // Fresh panel start: show the first page and clear any page the last
-        // session left in the record.
-        lastSeenPageIdRef.current = pages[0].id;
-        if (activePageIndex !== 0) setActivePageIndex(0);
-        if (layout.activePageId !== pages[0].id) setLayout({ ...layout, activePageId: pages[0].id });
-      } else {
-        // Viewer (device-page preview / simulator) or single-page kiosk: adopt
-        // whatever page the record already points at.
-        lastSeenPageIdRef.current = layout.activePageId;
-        const idx = layout.activePageId ? pages.findIndex(p => p.id === layout.activePageId) : 0;
-        if (idx > 0 && idx !== activePageIndex) setActivePageIndex(idx);
-      }
-      return;
-    }
-    // Post-boot: honor a page change pushed from another client only. Skipped
-    // during a drag so edge-advance owns the page.
-    const target = layout.activePageId;
-    if (!target || target === lastSeenPageIdRef.current) return;
-    lastSeenPageIdRef.current = target;
-    const idx = pages.findIndex(p => p.id === target);
-    if (idx >= 0 && idx !== activePageIndex) setActivePageIndex(idx);
-  }, [loaded, kioskBehavior, paginatedLayout, layout, pageDragging, activePageIndex, setLayout]);
-
-  // Persist a user-driven page change (swipe) into the layout so other clients
-  // follow. Carries the new index from the pager so it never reads a stale
-  // render value, and marks it seen so the honor effect won't echo it back.
-  const handlePageChange = useCallback((idx: number) => {
-    setActivePageIndex(idx);
-    const pages = paginatedLayout.pages;
-    if (pages.length <= 1) return;
-    const id = pages[Math.min(Math.max(idx, 0), pages.length - 1)]?.id;
-    if (!id) return;
-    lastSeenPageIdRef.current = id;
-    if (layout.activePageId !== id) setLayout({ ...layout, activePageId: id });
-  }, [paginatedLayout, layout, setLayout]);
+  const { activePageIndex, setActivePageIndex, activePageIndexRef, pageCountRef, handlePageChange } = usePageSync({
+    loaded,
+    kioskBehavior,
+    paginatedLayout,
+    layout,
+    setLayout,
+    pageCount,
+    pageDragging: Boolean(activeDragId || dragArmedId),
+  });
   // Frozen snapshot of the dragged cell's pixel size + runtime CSS vars at
   // drag start. Captured once in onDragStart and reused every overlay render
   // so the clone never re-measures mid-drag (which would pick up
@@ -686,6 +545,15 @@ export function PanelContent({
       || activeDragId
       || immersiveWidgetId,
   );
+  const { connectionIntroHost, clearConnectionIntro, resetAnnounced } = useConnectionIntro({
+    blocked: connectionIntroBlocked,
+    embedded,
+    loaded,
+    isOffline,
+    online: serviceStatus.state === 'online',
+    machineName,
+    setTrayOpen,
+  });
   const connectionIntroLabel = (() => {
     const label = t('panel.connectedTo');
     return label === 'panel.connectedTo' ? 'Connected to' : label;
@@ -740,28 +608,6 @@ export function PanelContent({
     e.preventDefault();
     setTrayOpen(true);
   }, [backgroundPressBlocked]);
-
-  useEffect(() => {
-    if (embedded || !loaded || isOffline || serviceStatus.state !== 'online') return;
-    if (connectionIntroAnnouncedRef.current) return;
-    const host = machineName.trim();
-    if (!host) return;
-    connectionIntroAnnouncedRef.current = true;
-    if (connectionIntroBlocked) return;
-    startConnectionIntro(host);
-  }, [
-    connectionIntroBlocked,
-    embedded,
-    isOffline,
-    loaded,
-    machineName,
-    serviceStatus.state,
-    startConnectionIntro,
-  ]);
-  useEffect(() => {
-    if (!connectionIntroHost || !connectionIntroBlocked) return;
-    clearConnectionIntro();
-  }, [clearConnectionIntro, connectionIntroBlocked, connectionIntroHost]);
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -836,7 +682,7 @@ export function PanelContent({
   const hasCtxMenu = Boolean(touch.ctxMenu);
   useEffect(() => {
     if (!isOffline) return;
-    connectionIntroAnnouncedRef.current = false;
+    resetAnnounced();
     clearConnectionIntro();
     setTrayOpen(false);
     const handle = window.setTimeout(() => {
@@ -849,7 +695,7 @@ export function PanelContent({
       if (hasCtxMenu) touchCloseCtxMenu();
     }, 0);
     return () => window.clearTimeout(handle);
-  }, [isOffline, clearCloseTimer, clearConnectionIntro, hasCtxMenu, touchCloseCtxMenu]);
+  }, [isOffline, clearCloseTimer, clearConnectionIntro, resetAnnounced, hasCtxMenu, touchCloseCtxMenu]);
 
   // The iOS bottom-edge backgrounding swipe sometimes commits the tray, so
   // it's open on return. Close on hide (plus pagehide for iOS Safari) rather
@@ -894,7 +740,7 @@ export function PanelContent({
       setPendingScrollId(null);
     }, 60);
     return () => window.clearTimeout(handle);
-  }, [pendingScrollId, sheetMode, allFiltered, activePageIndex]);
+  }, [pendingScrollId, sheetMode, allFiltered, activePageIndex, setActivePageIndex]);
 
   const addWidget = useCallback((type: string, size: PanelWidgetSize) => {
     const next: PanelWidget = {
@@ -1032,22 +878,7 @@ export function PanelContent({
     ),
   );
 
-  // Auto-advance the pager when the dragged widget dwells near the left/right
-  // edge (~600ms in the edge zone). Re-arming requires leaving and re-entering
-  // the zone, so parking near an edge doesn't churn pages.
-  const EDGE_ADVANCE_PX = 64;
-  const EDGE_ADVANCE_DWELL_MS = PANEL_EDGE_ADVANCE_DWELL_MS;
-  const edgeAdvanceRef = useRef<{
-    side: 'left' | 'right' | null;
-    timer: number | null;
-  }>({ side: null, timer: null });
-  const clearEdgeAdvance = useCallback(() => {
-    if (edgeAdvanceRef.current.timer !== null) {
-      window.clearTimeout(edgeAdvanceRef.current.timer);
-      edgeAdvanceRef.current.timer = null;
-    }
-    edgeAdvanceRef.current.side = null;
-  }, []);
+  const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
   const handleDndDragMove = useCallback((event: DragMoveEvent) => {
     // Drag visuals (lift, source-cell hide, menu dismiss) engage only past
     // PANEL_DRAG_START_THRESHOLD_PX from the long-press anchor. Mirrors the
@@ -1066,34 +897,8 @@ export function PanelContent({
       setDragSnapshot(snap);
     }
     touch.handleDragMove();
-    const rect = event.active.rect.current.translated;
-    if (!rect) {
-      clearEdgeAdvance();
-      return;
-    }
-    const centerX = (rect.left + rect.right) / 2;
-    const viewportWidth = window.innerWidth;
-    const inLeft = centerX < EDGE_ADVANCE_PX;
-    const inRight = centerX > viewportWidth - EDGE_ADVANCE_PX;
-    const desiredSide: 'left' | 'right' | null = inLeft ? 'left' : inRight ? 'right' : null;
-    if (desiredSide === edgeAdvanceRef.current.side) return;
-    clearEdgeAdvance();
-    edgeAdvanceRef.current.side = desiredSide;
-    if (!desiredSide) return;
-    edgeAdvanceRef.current.timer = window.setTimeout(() => {
-      edgeAdvanceRef.current.timer = null;
-      // Leave `side` latched: the next onDragMove in this band short-circuits
-      // via desiredSide === side. clearEdgeAdvance() unlatches when the cursor
-      // leaves the band or the drag ends — else the pager advances one page
-      // per dwell until lift-off. side stays latched on a no-op end-clamp so
-      // the user can keep pressing without re-arming.
-      setActivePageIndex(prev => {
-        const count = pageCountRef.current;
-        if (desiredSide === 'left') return Math.max(0, prev - 1);
-        return Math.min(count - 1, prev + 1);
-      });
-    }, EDGE_ADVANCE_DWELL_MS);
-  }, [clearEdgeAdvance, touch, EDGE_ADVANCE_DWELL_MS]);
+    evaluateEdgeAdvance(event.active.rect.current.translated ?? null);
+  }, [touch, evaluateEdgeAdvance]);
   // Gesture refs for the collision detector. startX/Y is dnd-kit's press
   // origin, against which PANEL_DRAG_START_THRESHOLD_PX is gated. lastOverId
   // gives hysteresis — the over flips only when the cursor leaves the band.
@@ -1107,9 +912,8 @@ export function PanelContent({
   // refs are read via the closure. The useMemo body never dereferences
   // `.current` — only the returned function does, at call time.
   const panelCollisionDetection = useMemo(
-     
     () => buildPanelCollisionDetection(dragGestureRef, activePageIndexRef),
-    [],
+    [activePageIndexRef],
   );
 
   // Tick incremented when the over target changes. The highlight overlay

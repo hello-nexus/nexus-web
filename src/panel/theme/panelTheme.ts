@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { useTopicCallback } from '../hooks/useMultiplexSocket';
-import { useTranslation } from '../lib/i18n';
+import { useTopicCallback } from '../../hooks/useMultiplexSocket';
+import { useTranslation } from '../../lib/i18n';
 import {
   DEFAULT_ACCENT, LANGUAGES, THEME_MODES, deriveAccentVars, resolveTheme,
   type Language, type ThemeMode,
-} from '../lib/settings';
-import { fetchPreferences } from '../api/profiles';
-import { fetchPanelDevice, patchPanelDevice, type PanelDevicePatch } from '../api/panel';
-import { broadcastLayoutChanged, onLayoutChanged } from './engine/panelSync';
+} from '../../lib/settings';
+import { fetchPreferences } from '../../api/profiles';
+import { fetchPanelDevice, patchPanelDevice, type PanelDevicePatch } from '../../api/panel';
+import { broadcastLayoutChanged, onLayoutChanged } from '../engine/panelSync';
 import {
   DEFAULT_PANEL_BACKGROUND_EFFECT,
   DEFAULT_PANEL_BACKGROUND_OPACITY,
@@ -26,9 +26,9 @@ import {
   panelBackgroundPair,
   panelBackgroundState,
   type PanelBackgroundMode,
-} from './panelBackground';
-import type { EffectState } from '../types/lighting';
-import type { PanelThemeSettingsState, ResolvedPanelThemeMode } from './editor/PanelThemeSettings';
+} from '../background/panelBackground';
+import type { EffectState } from '../../types/lighting';
+import type { PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
 
 export type PanelThemeState = PanelThemeSettingsState;
 

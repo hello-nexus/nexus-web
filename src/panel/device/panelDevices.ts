@@ -1,4 +1,4 @@
-import type { PanelSurface } from './types';
+import type { PanelSurface } from '../types';
 
 // 'remote' is a panel that connects over the network — a paired phone/browser
 // or the native app (a WKWebView around /panel/phone), all the same remote

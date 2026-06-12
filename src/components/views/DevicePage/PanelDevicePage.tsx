@@ -26,9 +26,9 @@ import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
-import { PanelArrowButton } from '../../../panel/PanelArrowButton';
+import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
-import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/panelTheme';
+import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
 import { lookupApp, sizesForSurface } from '../../../panel/widgets/registry';
 import { sizeToSpan } from '../../../panel/engine/grid';
@@ -40,7 +40,7 @@ import {
   type PanelWidgetSize,
   type PanelConfigValue,
 } from '../../../panel/types';
-import { isRemotePanel, type PanelDevice } from '../../../panel/panelDevices';
+import { isRemotePanel, type PanelDevice } from '../../../panel/device/panelDevices';
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
 import { PanelWidgetCatalog } from '../../../panel/editor/PanelWidgetCatalog';
 import '../../../panel/styles/tokens.scss';

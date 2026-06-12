@@ -3,7 +3,7 @@ import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { useTranslation } from '../../lib/i18n';
 import type { PanelLayout, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
 import { PANEL_GRID_GAP, sizeToSpan } from '../engine/grid';
-import { PHONE_WIDGET_REFERENCE_CELL } from '../panelGrid';
+import { PHONE_WIDGET_REFERENCE_CELL } from '../engine/panelGrid';
 import { appendWidget } from '../engine/panelLayoutOps';
 import { getCatalogEntries, pickerSizeFor, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
 import {
@@ -14,7 +14,7 @@ import {
   marketplaceIdFromType,
   subscribeMarketplaceRegistry,
 } from '../../widgets/marketplaceRegistry';
-import { PanelCatalogCell } from '../PanelDragCells';
+import { PanelCatalogCell } from '../dnd/PanelDragCells';
 import panelStyles from '../PanelApp.module.scss';
 import styles from './PanelWidgetCatalog.module.scss';
 

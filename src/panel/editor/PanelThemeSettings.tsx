@@ -16,7 +16,7 @@ import {
   panelBackgroundPresets,
   resolvePanelBackground,
   type PanelBackgroundMode,
-} from '../panelBackground';
+} from '../background/panelBackground';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
 import { usePanelBackgroundEffectController } from '../widgets/lighting/effecteditor/usePanelBackgroundEffectController';
 import { AnimateCategoryChips, AnimateGrid, type AnimateFilter } from '../widgets/lighting/page/AnimateGrid';

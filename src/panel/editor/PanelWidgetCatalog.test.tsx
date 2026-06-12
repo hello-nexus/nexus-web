@@ -63,7 +63,7 @@ vi.mock('../../widgets/marketplaceRegistry', () => ({
   isMarketplaceIdEnabled: () => true,
 }));
 
-vi.mock('../PanelDragCells', () => ({
+vi.mock('../dnd/PanelDragCells', () => ({
   PanelCatalogCell: ({
     label,
     onClick,

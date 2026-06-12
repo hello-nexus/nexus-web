@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { TEMPLATE_COUNT, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
-import { panelBackgroundState, panelBackgroundStateEquals } from '../../../panelBackground';
+import { panelBackgroundState, panelBackgroundStateEquals } from '../../../background/panelBackground';
 import type { AnimateController } from './types';
 
 /**
