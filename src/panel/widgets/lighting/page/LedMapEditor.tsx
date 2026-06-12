@@ -5,7 +5,7 @@ import {
   Pencil, Merge, Scissors, ListRestart, Lock,
 } from 'lucide-react';
 import {
-  fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceZones,
+  fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
   highlightLeds, testLedPattern, clearLedEditor,
   setZoneLedCount, setLightingDeviceBrightness,
   type DeviceStructureResponse, type DeviceZone, type DeviceZoneDef, type LightingDevice,
@@ -106,6 +106,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [zonePrompt, setZonePrompt] = useState<ZonePrompt | null>(null);
   const [resetPartitionConfirm, setResetPartitionConfirm] = useState(false);
   const [partitionBusy, setPartitionBusy] = useState(false);
+  const [resetMapConfirm, setResetMapConfirm] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
 
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [dragging, setDragging] = useState(false);
@@ -148,7 +150,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [communityDialogOpen, setCommunityDialogOpen] = useState(false);
   const childDialogOpenRef = useRef(false);
   childDialogOpenRef.current = zonePrompt !== null || communityDialogOpen
-    || pendingDiscardAction !== null || resetPartitionConfirm;
+    || pendingDiscardAction !== null || resetPartitionConfirm || resetMapConfirm;
 
   const [editorMode, setEditorMode] = useState<EditorMode>('animation');
 
@@ -1051,19 +1053,25 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     }
   }, [canEditLedCount, load]);
 
-  // Revert the canvas to the last-saved state. The device-map endpoint has
-  // no defaults variant, so "reset" means dropping this session's edits, as
-  // an undoable local op.
-  const handleReset = () => {
-    pushUndo();
-    setLeds(prev => prev.map(l => {
-      const s = savedLedsMap.get(l.index);
-      return s ? { ...l, u: s.u, v: s.v, disabled: s.disabled, isCustom: s.isCustom } : l;
-    }));
-    setRectRatio(loadedRatioRef.current);
-    setDevRect({ x: 10, y: 10, w: 80, h: 80 });
-    setDirty(true);
-    setSelected(new Set());
+  // Factory reset: the service drops the device's stored LED overrides and
+  // aspect ratio, then the editor refetches structure + map. load() keeps
+  // the current zone selection when it still exists and clears the dirty
+  // flag, the LED selection, and the undo history; the device rect returns
+  // to its default shape since the stored ratio is gone.
+  const handleResetMapConfirm = () => {
+    setResetMapConfirm(false);
+    void (async () => {
+      setResetBusy(true);
+      const resp = await resetDeviceMap(deviceId);
+      if (!resp || resp.error) {
+        setResetBusy(false);
+        push({ title: t('lighting.ledMap.resetFailed') });
+        return;
+      }
+      await load();
+      setDevRect({ x: 10, y: 10, w: 80, h: 80 });
+      setResetBusy(false);
+    })();
   };
 
   // ── Multi-select group ops ────────────────────────────────────────────
@@ -1639,7 +1647,12 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                 <Redo2 size={15} />
               </button>
             </HoverTooltip>
-            <button type="button" className={styles.btn} onClick={handleReset}>
+            <button
+              type="button"
+              className={styles.btn}
+              onClick={() => setResetMapConfirm(true)}
+              disabled={resetBusy}
+            >
               {t('lighting.ledMap.reset')}
             </button>
             <button
@@ -1929,6 +1942,16 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         destructive
         onConfirm={handleResetPartitionConfirm}
         onCancel={() => setResetPartitionConfirm(false)}
+      />
+      <ConfirmModal
+        open={resetMapConfirm}
+        title={t('lighting.ledMap.resetTitle')}
+        message={t('lighting.ledMap.resetMessage')}
+        confirmLabel={t('lighting.ledMap.reset')}
+        cancelLabel={t('lighting.ledMap.keepEditing')}
+        destructive
+        onConfirm={handleResetMapConfirm}
+        onCancel={() => setResetMapConfirm(false)}
       />
       <PromptModal
         open={zonePrompt !== null}
