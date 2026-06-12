@@ -8,6 +8,7 @@ import type {
   CompatibilityIssue, WattageEstimate,
 } from '../types/builder';
 import { checkCompatibility } from '../lib/compatibility';
+import { createUuid } from '../lib/uuid';
 import { estimateWattage } from '../lib/wattage';
 
 const STORAGE_KEY = 'nexus_builder_current';
@@ -41,7 +42,7 @@ function createEmptyBuild(): Build {
   const now = new Date().toISOString();
   return {
     schemaVersion: 1,
-    id: crypto.randomUUID(),
+    id: createUuid(),
     name: 'New Build',
     slots,
     ownedSlots: [],
