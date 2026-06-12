@@ -66,20 +66,17 @@
 // (drag) on the response; resize HT codes are dropped. The mousedown +
 // PostMessage path is the canonical workaround Microsoft Store / Edge use.
 //
-// 6px wide invisible strip is enough for an unambiguous cursor target;
-// page UI has its own padding well outside this band.
-// Resize strips sit above the modal backdrop (z-index 1000) so resize
-// gestures work normally. When a modal is open, the body-level `:has`
-// rule at the bottom of this file disables all of them so only the
-// native min/max/close caption buttons remain interactive.
-.windowResizeStrip {
-  position: absolute;
-  z-index: 2001;
-  background: transparent;
-}
-
+// The strips are portaled to <body> (Dashboard.tsx) and position: fixed so
+// they live in the root stacking context, above the modal backdrop (which
+// also portals to <body> at --z-modal). Keeping them hit-testable while a
+// modal is open is what lets the user resize the window with a dialog up;
+// the backdrop still owns every pixel inside the edge bands, so modals
+// keep blocking the page behind them.
+//
+// The strip is an invisible band wide enough for an unambiguous cursor
+// target; page UI has its own padding well outside it.
 .windowResizeStripLeft {
-  position: absolute;
+  position: fixed;
   z-index: 2001;
   background: transparent;
   top: 0;
@@ -97,7 +94,7 @@
 // where chrome would otherwise win the hit-test. Increased thickness
 // to 8px for easier grabbing on high-DPI displays.
 .windowResizeStripRight {
-  position: absolute;
+  position: fixed;
   z-index: 2004;
   background: transparent;
   top: 0;
@@ -108,7 +105,7 @@
 }
 
 .windowResizeStripTop {
-  position: absolute;
+  position: fixed;
   z-index: 2004;
   background: transparent;
   top: 0;
@@ -119,7 +116,7 @@
 }
 
 .windowResizeStripBottom {
-  position: absolute;
+  position: fixed;
   z-index: 2001;
   background: transparent;
   bottom: 0;
@@ -137,7 +134,7 @@
 // OS-close button visually occupies the same pixels. The very edge
 // always wins on native Windows — we mirror that.
 .windowResizeCornerTopLeft {
-  position: absolute;
+  position: fixed;
   z-index: 2005;
   background: transparent;
   top: 0;
@@ -148,7 +145,7 @@
 }
 
 .windowResizeCornerTopRight {
-  position: absolute;
+  position: fixed;
   z-index: 2005;
   background: transparent;
   top: 0;
@@ -159,7 +156,7 @@
 }
 
 .windowResizeCornerBottomLeft {
-  position: absolute;
+  position: fixed;
   z-index: 2005;
   background: transparent;
   bottom: 0;
@@ -170,7 +167,7 @@
 }
 
 .windowResizeCornerBottomRight {
-  position: absolute;
+  position: fixed;
   z-index: 2005;
   background: transparent;
   bottom: 0;
@@ -178,23 +175,6 @@
   width: 14px;
   height: 14px;
   cursor: nwse-resize;
-}
-
-// Modal-open suppression. Native min/max/close caption buttons (defined
-// in CaptionButtons.module.scss) are intentionally NOT in this list, so
-// the user can still operate the window while any modal is open.
-:global(body:has([aria-modal="true"])) {
-  .windowResizeStrip,
-  .windowResizeStripLeft,
-  .windowResizeStripRight,
-  .windowResizeStripTop,
-  .windowResizeStripBottom,
-  .windowResizeCornerTopLeft,
-  .windowResizeCornerTopRight,
-  .windowResizeCornerBottomLeft,
-  .windowResizeCornerBottomRight {
-    pointer-events: none;
-  }
 }
 
 // ── Body row: sidebar + content side by side ────────────────────────────

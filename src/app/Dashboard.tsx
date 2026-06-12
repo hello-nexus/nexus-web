@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import classNames from 'classnames';
 import { Placeholder } from '../components/views/Placeholder';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
@@ -476,8 +477,11 @@ export function Dashboard() {
         {/* Nexus Windows shell only: window-resize grab strips along each
             edge. The drag region + caption buttons now live in the top bar
             below; these strips IPC nexus-overlay to start the native resize
-            loop. */}
-        {isWindowsAppShell() && (
+            loop. Portaled to <body> (position: fixed, z-index above
+            --z-modal) so they escape .layout's isolated stacking context
+            and stay grabbable above modal backdrops - resizing the window
+            must keep working while a dialog is open. */}
+        {isWindowsAppShell() && createPortal(
           <>
             <ResizeStrip className={styles.windowResizeStripLeft} edge={NEXUS_RESIZE_EDGES.left} />
             <ResizeStrip className={styles.windowResizeStripRight} edge={NEXUS_RESIZE_EDGES.right} />
@@ -488,7 +492,8 @@ export function Dashboard() {
                 Resize via the top or right edge instead. */}
             <ResizeStrip className={styles.windowResizeCornerBottomLeft} edge={NEXUS_RESIZE_EDGES.bottomLeft} />
             <ResizeStrip className={styles.windowResizeCornerBottomRight} edge={NEXUS_RESIZE_EDGES.bottomRight} />
-          </>
+          </>,
+          document.body,
         )}
         <TopBar
           hasSidebar={hasSidebar}
