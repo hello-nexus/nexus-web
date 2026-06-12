@@ -711,6 +711,7 @@
   "panel.widget.camera.error.noCamera": "카메라를 찾을 수 없습니다",
   "panel.widget.camera.error.permission": "카메라 접근이 거부되었습니다",
   "panel.widget.camera.error.start": "PC에서 카메라를 시작할 수 없습니다",
+  "panel.widget.camera.flip": "카메라 전환",
   "panel.widget.camera.inUse": "카메라 사용 중",
   "panel.widget.camera.notLan": "카메라 스트리밍에는 로컬 네트워크 연결이 필요합니다",
   "panel.widget.camera.openInApp": "카메라를 사용하려면 Nexus 앱에서 이 패널을 여세요",

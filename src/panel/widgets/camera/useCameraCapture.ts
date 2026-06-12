@@ -30,6 +30,8 @@ export interface CameraCaptureApi {
   state: CameraCaptureState;
   start(): void;
   stop(): void;
+  /** Toggle front/back capture; restarts a live session. No-op effect when an explicit device is configured. */
+  flip(): void;
 }
 
 export const CAMERA_IDLE_STATE: CameraCaptureState = {
@@ -79,6 +81,7 @@ interface SessionRuntime {
   // Bumped on every stop; in-flight async steps compare and bail.
   generation: number;
   configKey: string;
+  lastConfig: CameraConfig | null;
   stream: MediaStream | null;
   streamer: WebcamStreamer | null;
   encoder: VideoEncoder | null;
@@ -100,6 +103,7 @@ interface SessionRuntime {
 const runtime: SessionRuntime = {
   generation: 0,
   configKey: '',
+  lastConfig: null,
   stream: null,
   streamer: null,
   encoder: null,
@@ -129,10 +133,41 @@ function trackProcessorCtor(): TrackProcessorCtor | undefined {
 
 // --- session control ------------------------------------------------------
 
+// Front/back preference - session-scoped with localStorage persistence; an
+// explicit deviceId in settings overrides it. Not widget config: live tiles
+// cannot persist config outside edit mode.
+export type CameraFacing = 'user' | 'environment';
+const FACING_KEY = 'nexus.camera.facing';
+
+function loadFacing(): CameraFacing {
+  try {
+    return localStorage.getItem(FACING_KEY) === 'environment' ? 'environment' : 'user';
+  } catch {
+    return 'user';
+  }
+}
+
+let facing: CameraFacing = loadFacing();
+
+function flipFacing(): void {
+  // A pinned device ignores facingMode - flipping would only blip the stream.
+  if (runtime.lastConfig?.deviceId && (state.phase === 'starting' || state.phase === 'streaming')) return;
+  facing = facing === 'user' ? 'environment' : 'user';
+  try {
+    localStorage.setItem(FACING_KEY, facing);
+  } catch { /* persist best-effort */ }
+  if (state.phase === 'starting' || state.phase === 'streaming') {
+    const config = runtime.lastConfig;
+    stopSession();
+    if (config) void startSession(config);
+  }
+}
+
 async function startSession(config: CameraConfig): Promise<void> {
   if (state.phase === 'starting' || state.phase === 'streaming') return;
   const gen = ++runtime.generation;
   runtime.configKey = cameraConfigKey(config);
+  runtime.lastConfig = config;
   runtime.everStreamed = false;
   setState({ phase: 'starting', error: null, codec: null, cameraName: '', stream: null });
 
@@ -147,7 +182,7 @@ async function startSession(config: CameraConfig): Promise<void> {
     stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
       video: {
-        ...(config.deviceId ? { deviceId: { exact: config.deviceId } } : {}),
+        ...(config.deviceId ? { deviceId: { exact: config.deviceId } } : { facingMode: facing }),
         width: { ideal: ideal.width },
         height: { ideal: ideal.height },
       },
@@ -611,11 +646,16 @@ export function useCameraCapture(config: CameraConfig): CameraCaptureApi {
     stopSession();
   }, []);
 
-  return { state: snapshot, start, stop };
+  const flip = useCallback(() => {
+    flipFacing();
+  }, []);
+
+  return { state: snapshot, start, stop, flip };
 }
 
 /** Test-only: drop the shared session back to idle between cases. */
 export function resetCameraCaptureForTests(): void {
+  facing = 'user';
   const streamer = runtime.streamer;
   teardownRuntime();
   streamer?.stop();

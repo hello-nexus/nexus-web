@@ -711,6 +711,7 @@
   "panel.widget.camera.error.noCamera": "找不到相機",
   "panel.widget.camera.error.permission": "相機存取遭拒",
   "panel.widget.camera.error.start": "無法在電腦上啟動相機",
+  "panel.widget.camera.flip": "切換相機",
   "panel.widget.camera.inUse": "相機使用中",
   "panel.widget.camera.notLan": "相機串流需要區域網路連線",
   "panel.widget.camera.openInApp": "請在 Nexus 應用程式中打開此面板以使用相機",

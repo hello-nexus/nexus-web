@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Camera, Video, VideoOff } from 'lucide-react';
+import { Camera, SwitchCamera, Video, VideoOff } from 'lucide-react';
 import { isTunnelActive } from '../../../api/service';
 import { isNativeApp } from '../../panelNativeBridge';
 import { useTranslation } from '../../../lib/i18n';
@@ -32,7 +32,7 @@ export function CameraWidget({ widget, immersive = false }: WidgetProps & { imme
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const config = useMemo(() => readCameraConfig(widget.config), [widget.config]);
-  const { state: liveState, start, stop } = useCameraCapture(config);
+  const { state: liveState, start, stop, flip } = useCameraCapture(config);
   // The catalog preview tile must stay static even while a real session runs.
   const state = preview ? CAMERA_IDLE_STATE : liveState;
 
@@ -117,6 +117,16 @@ export function CameraWidget({ widget, immersive = false }: WidgetProps & { imme
           {capturing ? <VideoOff size={16} /> : <Video size={16} />}
           <span>{capturing ? t('panel.widget.camera.stop') : t('panel.widget.camera.start')}</span>
         </button>
+        {!config.deviceId && (
+          <button
+            type="button"
+            className={`panel-chip ${styles.actionBtn}`}
+            aria-label={t('panel.widget.camera.flip')}
+            onClick={() => { if (!preview) flip(); }}
+          >
+            <SwitchCamera size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

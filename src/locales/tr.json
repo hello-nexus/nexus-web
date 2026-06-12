@@ -711,6 +711,7 @@
   "panel.widget.camera.error.noCamera": "Kamera bulunamadı",
   "panel.widget.camera.error.permission": "Kamera erişimi reddedildi",
   "panel.widget.camera.error.start": "PC'de kamera başlatılamadı",
+  "panel.widget.camera.flip": "Kamerayı değiştir",
   "panel.widget.camera.inUse": "Kamera kullanımda",
   "panel.widget.camera.notLan": "Kamera yayını yerel ağ bağlantısı gerektirir",
   "panel.widget.camera.openInApp": "Kamerayı kullanmak için bu paneli Nexus uygulamasında açın",

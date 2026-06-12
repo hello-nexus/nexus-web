@@ -711,6 +711,7 @@
   "panel.widget.camera.error.noCamera": "Aucune caméra détectée",
   "panel.widget.camera.error.permission": "Accès à la caméra refusé",
   "panel.widget.camera.error.start": "Impossible de démarrer la caméra sur le PC",
+  "panel.widget.camera.flip": "Changer de caméra",
   "panel.widget.camera.inUse": "Caméra en cours d'utilisation",
   "panel.widget.camera.notLan": "La diffusion de la caméra nécessite une connexion au réseau local",
   "panel.widget.camera.openInApp": "Ouvrez ce panneau dans l'application Nexus pour utiliser la caméra",

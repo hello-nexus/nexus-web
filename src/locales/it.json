@@ -711,6 +711,7 @@
   "panel.widget.camera.error.noCamera": "Nessuna fotocamera trovata",
   "panel.widget.camera.error.permission": "Accesso alla fotocamera negato",
   "panel.widget.camera.error.start": "Impossibile avviare la fotocamera sul PC",
+  "panel.widget.camera.flip": "Cambia fotocamera",
   "panel.widget.camera.inUse": "Fotocamera in uso",
   "panel.widget.camera.notLan": "Lo streaming della fotocamera richiede una connessione alla rete locale",
   "panel.widget.camera.openInApp": "Apri questo pannello nell'app Nexus per usare la fotocamera",

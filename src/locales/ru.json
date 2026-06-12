@@ -711,6 +711,7 @@
   "panel.widget.camera.error.noCamera": "Камера не найдена",
   "panel.widget.camera.error.permission": "Доступ к камере запрещён",
   "panel.widget.camera.error.start": "Не удалось запустить камеру на ПК",
+  "panel.widget.camera.flip": "Сменить камеру",
   "panel.widget.camera.inUse": "Камера используется",
   "panel.widget.camera.notLan": "Для трансляции с камеры требуется подключение к локальной сети",
   "panel.widget.camera.openInApp": "Откройте эту панель в приложении Nexus, чтобы использовать камеру",

@@ -34,6 +34,27 @@ describe('CameraWidget', () => {
     delete (window as BridgeWindow).nexusNative;
   });
 
+  it('offers the camera flip unless settings pin an explicit device', () => {
+    const { rerender } = render(<CameraWidget widget={widget} />);
+    expect(screen.getByLabelText('panel.widget.camera.flip')).toBeTruthy();
+
+    rerender(<CameraWidget widget={{ ...widget, config: { deviceId: 'cam-2' } }} />);
+    expect(screen.queryByLabelText('panel.widget.camera.flip')).toBeNull();
+  });
+
+  it('flip toggles and persists the facing preference without starting capture', () => {
+    localStorage.removeItem('nexus.camera.facing');
+    render(<CameraWidget widget={widget} />);
+    const flip = screen.getByLabelText('panel.widget.camera.flip');
+
+    fireEvent.click(flip);
+    expect(localStorage.getItem('nexus.camera.facing')).toBe('environment');
+    fireEvent.click(flip);
+    expect(localStorage.getItem('nexus.camera.facing')).toBe('user');
+    // Idle flips only store the preference - nothing is armed.
+    expect(postService).not.toHaveBeenCalled();
+  });
+
   it('shows the open-in-app state outside the wrapper', () => {
     delete (window as BridgeWindow).nexusNative;
     render(<CameraWidget widget={widget} />);

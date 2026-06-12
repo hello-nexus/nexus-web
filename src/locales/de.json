@@ -711,6 +711,7 @@
   "panel.widget.camera.error.noCamera": "Keine Kamera gefunden",
   "panel.widget.camera.error.permission": "Kamerazugriff verweigert",
   "panel.widget.camera.error.start": "Kamera konnte auf dem PC nicht gestartet werden",
+  "panel.widget.camera.flip": "Kamera wechseln",
   "panel.widget.camera.inUse": "Kamera aktiv",
   "panel.widget.camera.notLan": "Kamera-Streaming erfordert eine lokale Netzwerkverbindung",
   "panel.widget.camera.openInApp": "Öffne dieses Panel in der Nexus-App, um die Kamera zu nutzen",

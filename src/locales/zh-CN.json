@@ -711,6 +711,7 @@
   "panel.widget.camera.error.noCamera": "未找到相机",
   "panel.widget.camera.error.permission": "相机访问被拒绝",
   "panel.widget.camera.error.start": "无法在电脑上启动相机",
+  "panel.widget.camera.flip": "切换相机",
   "panel.widget.camera.inUse": "相机使用中",
   "panel.widget.camera.notLan": "相机串流需要本地网络连接",
   "panel.widget.camera.openInApp": "请在 Nexus 应用中打开此面板以使用相机",

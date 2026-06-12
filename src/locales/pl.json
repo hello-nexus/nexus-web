@@ -711,6 +711,7 @@
   "panel.widget.camera.error.noCamera": "Nie znaleziono kamery",
   "panel.widget.camera.error.permission": "Odmówiono dostępu do kamery",
   "panel.widget.camera.error.start": "Nie udało się uruchomić kamery na komputerze",
+  "panel.widget.camera.flip": "Przełącz kamerę",
   "panel.widget.camera.inUse": "Kamera w użyciu",
   "panel.widget.camera.notLan": "Strumieniowanie z kamery wymaga połączenia z siecią lokalną",
   "panel.widget.camera.openInApp": "Otwórz ten panel w aplikacji Nexus, aby korzystać z kamery",
