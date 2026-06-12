@@ -263,6 +263,9 @@ export function PanelThemeSettings({
                 onSelect={onBackgroundEffectCommit}
                 effects={PANEL_BACKGROUND_EFFECTS}
                 filter={animationFilter}
+                slotFor={backgroundController.slotFor}
+                versionFor={backgroundController.versionFor}
+                rgbActiveEffect={backgroundController.rgbActiveEffect}
               />
             ) : (
               <>
@@ -275,6 +278,7 @@ export function PanelThemeSettings({
                   onChange={backgroundController.onChange}
                   onCommit={backgroundController.onCommit}
                   onReset={backgroundController.onReset}
+                  rgbActiveSlot={backgroundController.rgbActiveSlot}
                 />
                 <Slider
                   orientation="stacked"

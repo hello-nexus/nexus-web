@@ -251,6 +251,24 @@
   @include scrollbar-visible($thumb: var(--border-strong));
 }
 
+// "Live on RGB" marker pinned to a grid cell's thumbnail (panels only): this
+// effect is the one currently driving the physical LEDs.
+.cellBulb {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  z-index: 2;
+  pointer-events: none;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    color: #fff;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.85));
+  }
+}
+
 .effectCard {
   display: flex;
   flex-direction: column;

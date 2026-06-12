@@ -33,4 +33,12 @@ export interface AnimateController {
   onChange: (patch: Partial<EffectState>, commit?: boolean) => void;
   onCommit: () => void;
   onReset: () => void;
+  /** Preset slot each effect's grid cell shows (this surface's selection). */
+  slotFor: (key: string) => number;
+  /** Content hash of that slot, for thumbnail cache-busting. */
+  versionFor: (key: string) => string;
+  /** Effect currently driving the RGB LEDs — its grid cell shows a bulb. '' = none. */
+  rgbActiveEffect: string;
+  /** Slot live on the RGB hardware for this controller's effect (preset-row bulb), or null. */
+  rgbActiveSlot: number | null;
 }

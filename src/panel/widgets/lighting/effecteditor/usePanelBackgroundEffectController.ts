@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { TEMPLATE_COUNT, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
-import { buildDefaultTemplates, slotMatchesDefault } from '../../../../types/lightingTemplates';
+import { buildDefaultTemplates, slotMatchesDefault, slotThumbSignature } from '../../../../types/lightingTemplates';
 import { useAnimateTemplates } from '../../../../hooks/useAnimateTemplates';
 import type { AnimateController } from './types';
 
@@ -27,7 +27,7 @@ export function usePanelBackgroundEffectController({
   onPreview: (state: EffectState) => void;
   onCommit: (state: EffectState) => void;
 }): AnimateController {
-  const { templates: globalTemplates } = useAnimateTemplates();
+  const { templates: globalTemplates, rgbActiveEffect } = useAnimateTemplates();
 
   // The 4 universal slots for this effect (the real saved presets), so the
   // preset buttons render the actual shared thumbnails.
@@ -66,5 +66,18 @@ export function usePanelBackgroundEffectController({
     onChange,
     onCommit: handleCommit,
     onReset: handleReset,
+    // The background uses one selected slot index across all effects; the grid
+    // cell + preset thumbnails render the global slot for it.
+    slotFor: () => idx,
+    versionFor: (key: string) => {
+      const b = globalTemplates[key];
+      return b && b.slots.length
+        ? slotThumbSignature(b.slots[Math.min(Math.max(template, 0), b.slots.length - 1)])
+        : '0';
+    },
+    // Bulb: which effect/slot is live on the RGB. The preset-row bulb only shows
+    // when the background effect is the one currently driving the LEDs.
+    rgbActiveEffect,
+    rgbActiveSlot: effect === rgbActiveEffect ? (globalTemplates[rgbActiveEffect]?.selected ?? 0) : null,
   };
 }
