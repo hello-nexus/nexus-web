@@ -48,7 +48,7 @@ export function AnimateCategoryChips({ effects = EFFECTS, value, onChange }: {
  * parent's right-pane Effect tab when the Devices tab is showing. A
  * category chip row above the grid filters to one effect family.
  */
-export function AnimateGrid({ effect, onSelect, effects = EFFECTS, filter: controlledFilter }: {
+export function AnimateGrid({ effect, onSelect, effects = EFFECTS, filter: controlledFilter, versions }: {
   effect: string;
   onSelect: (key: string) => void;
   /** Effect pool to show. Defaults to the full RGB set; panel backgrounds pass
@@ -58,9 +58,16 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, filter: contr
    *  and the host renders AnimateCategoryChips itself (e.g. in the panel
    *  settings sticky dock). */
   filter?: AnimateFilter;
+  /** Per-effect thumbnail cache-bust tokens. When an effect's token changes
+   *  (its saved look was edited), only that one thumbnail refetches. */
+  versions?: Record<string, string>;
 }) {
   const { t } = useTranslation();
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  // The object URL + version each thumb was last fetched at, so a token change
+  // refetches just that effect instead of the whole grid.
+  const thumbUrlsRef = useRef<Record<string, string>>({});
+  const loadedVersionsRef = useRef<Record<string, string>>({});
   const [internalFilter, setInternalFilter] = useState<AnimateFilter>('all');
   const filter = controlledFilter ?? internalFilter;
   const gridRef = useRef<HTMLDivElement>(null);
@@ -86,23 +93,32 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, filter: contr
 
   useEffect(() => {
     let cancelled = false;
-    const urls: string[] = [];
     (async () => {
       for (const fx of effects) {
-        const blob = await fetchServiceBlob(effectThumbnailPath(fx.key));
+        // When the host supplies versions, wait for this effect's token before
+        // fetching so we don't load the plain thumbnail then immediately refetch.
+        if (versions && versions[fx.key] === undefined) continue;
+        const want = versions?.[fx.key] ?? '';
+        if (loadedVersionsRef.current[fx.key] === want) continue;
+        const blob = await fetchServiceBlob(effectThumbnailPath(fx.key, versions?.[fx.key]));
         if (cancelled) return;
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          urls.push(url);
-          setThumbs(prev => ({ ...prev, [fx.key]: url }));
-        }
+        if (!blob) continue;
+        const url = URL.createObjectURL(blob);
+        const prev = thumbUrlsRef.current[fx.key];
+        thumbUrlsRef.current = { ...thumbUrlsRef.current, [fx.key]: url };
+        loadedVersionsRef.current = { ...loadedVersionsRef.current, [fx.key]: want };
+        setThumbs({ ...thumbUrlsRef.current });
+        if (prev) URL.revokeObjectURL(prev);
       }
     })();
-    return () => {
-      cancelled = true;
-      urls.forEach(u => URL.revokeObjectURL(u));
-    };
-  }, [effects]);
+    return () => { cancelled = true; };
+  }, [effects, versions]);
+
+  // Revoke every object URL on unmount.
+  useEffect(() => () => {
+    for (const url of Object.values(thumbUrlsRef.current)) URL.revokeObjectURL(url);
+    thumbUrlsRef.current = {};
+  }, []);
 
   const visible = useMemo(
     () => filter === 'all' ? effects : effects.filter(fx => categoryOf(fx.key) === filter),

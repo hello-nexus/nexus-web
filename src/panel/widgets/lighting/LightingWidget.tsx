@@ -39,7 +39,7 @@ import {
   type EffectTemplateBundle,
   type LightingMode,
 } from '../../../types/lighting';
-import { buildAllDefaultTemplates, mergeTemplates } from '../../../types/lightingTemplates';
+import { buildAllDefaultTemplates, effectThumbVersion, mergeTemplates } from '../../../types/lightingTemplates';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
@@ -140,24 +140,37 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, [preview, hydrate]);
   useTopicCallback('lighting', !preview, hydrate);
 
+  // Cache-bust token for the active effect's thumbnail: changes when its saved
+  // look is edited (on this surface via re-hydrate, on others via the lighting
+  // topic broadcast), so the preview tile refetches the customised BMP.
+  const activeVersion = useMemo(() => {
+    const b = templates[activeEffect];
+    return b ? effectThumbVersion(b) : undefined;
+  }, [templates, activeEffect]);
+
   // The widget shows one thumbnail at a time (active effect, Prev/Next
   // cycling). Load the active effect's BMP on demand and cache picks as
-  // the user cycles, rather than fetching all 60+ on mount.
+  // the user cycles, rather than fetching all 60+ on mount. Refetch when the
+  // active effect's token changes.
   const thumbsRef = useRef<Record<string, string>>({});
+  const loadedVersionRef = useRef<Record<string, string>>({});
   useEffect(() => {
-    if (preview) return;
-    if (!activeEffect || thumbsRef.current[activeEffect]) return;
+    if (preview || !activeEffect) return;
+    const want = activeVersion ?? '';
+    if (loadedVersionRef.current[activeEffect] === want) return;
     let cancelled = false;
     (async () => {
-      const blob = await fetchServiceBlob(effectThumbnailPath(activeEffect));
+      const blob = await fetchServiceBlob(effectThumbnailPath(activeEffect, activeVersion));
       if (cancelled || !blob) return;
-      if (thumbsRef.current[activeEffect]) return;
       const url = URL.createObjectURL(blob);
+      const prev = thumbsRef.current[activeEffect];
       thumbsRef.current = { ...thumbsRef.current, [activeEffect]: url };
+      loadedVersionRef.current = { ...loadedVersionRef.current, [activeEffect]: want };
       setThumbs(thumbsRef.current);
+      if (prev) URL.revokeObjectURL(prev);
     })();
     return () => { cancelled = true; };
-  }, [preview, activeEffect]);
+  }, [preview, activeEffect, activeVersion]);
 
   useEffect(() => () => {
     for (const url of Object.values(thumbsRef.current)) URL.revokeObjectURL(url);

@@ -8,14 +8,19 @@ export async function lightingOutputUrl(): Promise<string> {
 
 // --- Effect thumbnails ---
 
-// Effect thumbnails are served with a 24h browser cache. This token cache-
-// busts them: increment on any shader edit that alters how an effect looks,
-// so every client refetches the new URL once then re-caches.
-export const EFFECT_THUMB_VERSION = 2;
+// Effect thumbnails are served with a 24h browser cache. EFFECT_THUMB_VERSION is
+// the global token (bump to invalidate every thumbnail at once, e.g. a shader or
+// render-path change); the optional per-effect `version` busts a single effect's
+// thumbnail when its saved look changes. See effectThumbVersion in lightingTemplates.
+export const EFFECT_THUMB_VERSION = 3;
 
-/** Path to an effect's preview thumbnail, cache-busted by EFFECT_THUMB_VERSION. */
-export const effectThumbnailPath = (key: string) =>
-  `/lighting/effects/${encodeURIComponent(key)}/thumbnail.bmp?v=${EFFECT_THUMB_VERSION}`;
+/**
+ * Path to an effect's preview thumbnail. `version` is the per-effect cache-bust
+ * token (a signature of the saved selected-slot look); omit it for the plain
+ * signature thumbnail.
+ */
+export const effectThumbnailPath = (key: string, version?: string) =>
+  `/lighting/effects/${encodeURIComponent(key)}/thumbnail.bmp?v=${version ? `${EFFECT_THUMB_VERSION}.${version}` : EFFECT_THUMB_VERSION}`;
 
 // --- Shader source (for client-side WebGL rendering) ---
 

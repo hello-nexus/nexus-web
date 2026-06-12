@@ -28,7 +28,7 @@ import {
   EFFECTS, MODES, defaultStateFor,
   type EffectState, type EffectTemplateBundle, type LightingMode,
 } from '../../../types/lighting';
-import { buildAllDefaultTemplates, mergeTemplates, slotMatchesDefault } from '../../../types/lightingTemplates';
+import { buildAllDefaultTemplates, buildThumbVersions, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
 import { AnimateGrid } from './page/AnimateGrid';
 import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
@@ -114,6 +114,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const [activeEffect, setActiveEffect] = useState<string>('');
   const [effectTemplates, setEffectTemplates] = useState<Record<string, EffectTemplateBundle>>({});
+  // Per-effect thumbnail cache-bust tokens. Unlike effectTemplates (which churns
+  // on every slider drag), these are bumped only after a save lands, so the grid
+  // refetches the customised thumbnail once the new look is persisted.
+  const [thumbVersions, setThumbVersions] = useState<Record<string, string>>({});
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   // Canvas hides the frame for any device with LEDs off, and hides all
   // frames while the Effect tab is showing (frames are a Devices-tab
@@ -239,6 +243,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       saveAnimateTemplates(merged).catch(() => { /* best-effort */ });
     }
     setEffectTemplates(merged);
+    setThumbVersions(buildThumbVersions(merged));
     if (EFFECTS.some(e => e.key === data.effect)) {
       setActiveEffect(data.effect);
     }
@@ -446,9 +451,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         applyAnimate(runningEffect, bundle.slots[idx], persist);
       }
     }
+    // Return the save promise so callers can bump the thumbnail token only after
+    // the new look is persisted (else the refetch races the write and re-caches
+    // the old look).
     if (persist) {
-      saveAnimateTemplates(next).catch(() => { /* best-effort; UI already updated */ });
+      return saveAnimateTemplates(next).catch(() => { /* best-effort; UI already updated */ });
     }
+    return Promise.resolve();
   }, [applyAnimate]);
 
   // Clicking an effect on the Devices tab pulses the Effect tab label
@@ -486,7 +495,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     localAnimateEditUntilRef.current = Date.now() + 1500;
     const clamped = Math.min(Math.max(idx, 0), bundle.slots.length - 1);
     const nextBundle: EffectTemplateBundle = { ...bundle, selected: clamped };
-    writeTemplates({ ...effectTemplates, [activeEffect]: nextBundle }, activeEffect, true);
+    const selectedSlot = nextBundle.slots[clamped];
+    writeTemplates({ ...effectTemplates, [activeEffect]: nextBundle }, activeEffect, true)
+      .then(() => setThumbVersions(v => ({ ...v, [activeEffect]: slotThumbSignature(selectedSlot) })));
     publishControlSync({
       domain: 'lighting',
       mode: 'animate',
@@ -530,7 +541,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const idx = Math.min(Math.max(bundle.selected, 0), bundle.slots.length - 1);
     const latest = bundle.slots[idx];
     if (!latest) return;
-    saveAnimateTemplates(freshTemplates).catch(() => { /* best-effort */ });
+    saveAnimateTemplates(freshTemplates)
+      .then(() => setThumbVersions(v => ({ ...v, [activeEffect]: slotThumbSignature(latest) })))
+      .catch(() => { /* best-effort */ });
     applyAnimate(activeEffect, latest, true);
   }, [activeEffect, applyAnimate]);
 
@@ -543,7 +556,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const nextSlots = bundle.slots.slice();
     nextSlots[idx] = defaults.slots[idx];
     const nextBundle: EffectTemplateBundle = { ...bundle, slots: nextSlots };
-    writeTemplates({ ...effectTemplates, [activeEffect]: nextBundle }, activeEffect, true);
+    writeTemplates({ ...effectTemplates, [activeEffect]: nextBundle }, activeEffect, true)
+      .then(() => setThumbVersions(v => ({ ...v, [activeEffect]: slotThumbSignature(nextSlots[idx]) })));
   }, [activeEffect, effectTemplates, writeTemplates]);
 
   const postProcessRef = useRef({ screen: screenPP, media: mediaPP });
@@ -825,7 +839,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             )}
           </div>
           {mode === 'animate' ? (
-            <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} />
+            <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} versions={thumbVersions} />
           ) : (
             <div className={styles.controls}>
               <ModeControls

@@ -616,4 +616,44 @@ export function slotMatchesDefault(effectKey: string, slotIndex: number, slot: E
  *  but the UI doesn't clamp further edits. */
 export const MAX_COLORIZE = 1.0;
 
+/**
+ * Short stable signature of a slot's render-affecting fields. The service renders
+ * a thumbnail from the saved selected slot, so this becomes the per-effect
+ * cache-bust token (see effectThumbnailPath): it changes exactly when the saved
+ * look changes, which is what triggers a thumbnail refetch. Floats are rounded so
+ * round-trip noise doesn't churn the token.
+ */
+export function slotThumbSignature(slot: EffectState): string {
+  const r = (n: number) => Math.round(n * 1000);
+  const parts: (string | number)[] = [
+    r(slot.speed), r(slot.intensity), r(slot.hue),
+    r(slot.colorize), r(slot.saturation), r(slot.contrast),
+  ];
+  for (const k of Object.keys(slot.params).sort()) parts.push(k, r(slot.params[k]));
+  // FNV-1a 32-bit over the joined fields, emitted base36.
+  let h = 0x811c9dc5;
+  const str = parts.join(',');
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
+
+/** Cache-bust token for an effect's thumbnail: the signature of its selected slot. */
+export function effectThumbVersion(bundle: EffectTemplateBundle): string {
+  const idx = Math.min(Math.max(bundle.selected, 0), bundle.slots.length - 1);
+  const slot = bundle.slots[idx];
+  return slot ? slotThumbSignature(slot) : '0';
+}
+
+/** Per-effect thumbnail tokens for a whole templates record (one per effect). */
+export function buildThumbVersions(
+  templates: Record<string, EffectTemplateBundle>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const key of Object.keys(templates)) out[key] = effectThumbVersion(templates[key]);
+  return out;
+}
+
 export { BASE_DEFAULTS };
