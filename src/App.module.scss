@@ -524,10 +524,17 @@
   flex-direction: column;
   gap: 0.65rem;
   padding: 1rem;
-  border: var(--border-width) solid transparent;
+  border: var(--border-width) solid var(--panel-card-border, var(--border));
   border-radius: var(--radius);
   background: var(--surface);
   min-width: 0;
+}
+
+// boxClassName for the "Connection options" SettingsSection box — restores the
+// card's control gap + padding (the shared box defaults to tighter spacing).
+.phonePairBox {
+  gap: 0.65rem;
+  padding: 1rem;
 }
 
 .phonePairFlowCard {
@@ -640,6 +647,15 @@
   min-width: 0;
 }
 
+// Header-above-box wrapper for the authorized-devices list, mirroring the
+// SettingsSection layout used by the Connection options group.
+.phonePairSessions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
 .phonePairQrPanel {
   display: flex;
   flex-direction: column;
@@ -650,6 +666,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  // Align with the box content edge (matches SettingsSection's header inset).
+  padding: 0 1.1rem;
 }
 
 .phonePairQrBox {
@@ -852,11 +870,10 @@
 }
 
 .phonePairSessionsHeader {
-  margin-bottom: 0.75rem;
-
   h3 {
-    @include text-button;
+    @include text-body;
     margin: 0;
+    color: var(--panel-text-muted, var(--text-dim));
   }
 
   span {
@@ -1001,7 +1018,7 @@
 // While the killswitch is OFF, the QR + sessions sections render dimmed so the
 // user sees the preserved list without thinking it's still actively reachable.
 .phonePairQrPanel[data-disabled='true'],
-.phonePairSessionsPanel[data-disabled='true'] {
+.phonePairSessions[data-disabled='true'] {
   opacity: 0.55;
   pointer-events: auto;
 

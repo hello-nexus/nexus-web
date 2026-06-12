@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
-import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
+import { SettingsSection as SettingsSectionBase } from '../../../../components/common/SettingsSection/SettingsSection';
 import styles from './SettingsRow.module.scss';
 
 // The settings row / toggle / select come from the canonical shared component
@@ -14,13 +14,9 @@ export {
   SettingSelect as SettingsSelect,
 } from '../../../../components/common/SettingRow/SettingRow';
 
+// Header-above-box settings group, shared with the dashboard Settings pages.
 export function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className={styles.section}>
-      <SectionHeader>{title}</SectionHeader>
-      {children}
-    </div>
-  );
+  return <SettingsSectionBase title={title}>{children}</SettingsSectionBase>;
 }
 
 export function SettingsInput(props: InputHTMLAttributes<HTMLInputElement>) {

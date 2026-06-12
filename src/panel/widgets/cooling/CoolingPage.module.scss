@@ -188,20 +188,19 @@
 .empty { color: var(--text-dim); font-size: var(--type-body); text-align: center; padding: 3rem 0; }
 
 // ── Section titles ─────────────────────────────────────────────────────────
-// Header row visually mirrors the ViewHeader tab bar - same typography,
-// same padding, same full-width underline - so Fans / Curves read as a
-// tab-style section marker even though they aren't clickable.
+// Plain muted label sitting above its box - no underline - matching the
+// settings "header outside the box" pattern. Fans / Curves read as quiet
+// section markers, not tab-style headers.
 .sectionHeader {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.5rem;
 }
 .sectionTitle {
   flex: 1;
   margin: 0;
-  padding: 0.55rem 0.9rem;
+  padding: 0 0.25rem;
   font-size: var(--type-body);
   font-weight: var(--weight-body);
   color: var(--text-dim);

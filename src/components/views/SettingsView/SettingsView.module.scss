@@ -19,25 +19,10 @@
 .tabPanel {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  // Width + centering come from the parent .tabContent's .pageBody (global.scss).
-}
-
-// Each settings category is a bounding box: the SectionHeader sits inside it,
-// above the rows it labels. Subtle like the dashboard monitoring cards — the
-// surface fill defines the box; the border stays transparent (flat at rest).
-.settingsGroup {
-  display: flex;
-  flex-direction: column;
-  padding: 0.5rem 1.1rem 0.85rem;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius);
-  background: var(--surface);
-  margin-top: 1rem;
-
-  &:first-child {
-    margin-top: 0;
-  }
+  // Spacing between the SettingsSection groups (each renders its own
+  // header-above-box). Width + centering come from the parent .tabContent's
+  // .pageBody (global.scss).
+  gap: 1.5rem;
 }
 
 // ── Unified row ──────────────────────────────────────────────────────────────

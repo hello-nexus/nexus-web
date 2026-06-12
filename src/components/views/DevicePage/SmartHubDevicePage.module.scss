@@ -28,34 +28,9 @@
   color: var(--accent);
 }
 
-.section {
-  display: flex;
-  flex-direction: column;
+// Header + box come from the shared SettingsSection (header-above-box).
+.sectionBox {
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.sectionHead {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.sectionTitle {
-  font-size: var(--type-body);
-  font-weight: var(--weight-strong);
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.sectionHint {
-  @include text-body;
-  font-size: var(--type-mini);
-  margin: 0;
-  color: rgba(255, 255, 255, 0.55);
 }
 
 .row {
@@ -73,7 +48,7 @@
 .rowLabel {
   flex: 0 0 9.5rem;
   font-size: var(--type-small);
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-dim);
 }
 
 .rowValue {
@@ -81,7 +56,7 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-size: var(--type-small);
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text);
 }
 
 .slider {

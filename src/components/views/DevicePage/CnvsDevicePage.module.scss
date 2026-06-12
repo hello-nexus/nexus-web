@@ -18,34 +18,9 @@
   overflow-y: auto;
 }
 
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.sectionHead {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.sectionTitle {
-  font-size: 0.95rem;
-  font-weight: var(--weight-strong);
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.sectionHint {
-  margin: 0;
-  font-size: var(--type-mini);
-  line-height: 1.4;
-  color: rgba(255, 255, 255, 0.55);
+// Header + box come from the shared SettingsSection (header-above-box).
+.sectionBox {
+  gap: 0.75rem;
 }
 
 .row {
@@ -65,13 +40,13 @@
 
 .rowLabel {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text);
 }
 
 .rowHint {
   font-size: 0.72rem;
   line-height: 1.4;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-faded);
 }
 
 .errorRow {
