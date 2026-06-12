@@ -1,13 +1,23 @@
-// Rotary view tests — verifies the wheel/side editing flow, picking a
+// Rotary view tests - verifies the wheel/side editing flow, picking a
 // function updates the correct side in the SetRotaryWheelsBody, the
 // sensitivity Select drives onSetSensitivity, and the App-scope dropdown
-// is disabled (until AppDetection lands).
+// is disabled (until AppDetection lands). Header copy and aria-labels are
+// asserted against locale keys via the key-echo i18n mock; tile labels fall
+// back to the camelCase split when t() echoes the key.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { KeebRotaryView } from './KeebRotaryView';
 
-afterEach(() => { cleanup(); });
+vi.mock('../../../lib/i18n', () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string | number>) => {
+      let text = key;
+      if (params) for (const [k, v] of Object.entries(params)) text += ` ${k}=${v}`;
+      return text;
+    },
+  }),
+}));
 
 vi.mock('../../../api/keeb', async () => {
   const actual = await vi.importActual<typeof import('../../../api/keeb')>('../../../api/keeb');
@@ -18,6 +28,8 @@ vi.mock('../../../api/keeb', async () => {
     ],
   };
 });
+
+afterEach(() => { cleanup(); });
 
 async function tick() {
   await new Promise(r => setTimeout(r, 0));
@@ -43,7 +55,7 @@ describe('KeebRotaryView', () => {
         onSetSensitivity={onSetSensitivity}
       />
     );
-    expect(screen.getByText(/Left Wheel/)).toBeInTheDocument();
+    expect(screen.getByText('keeb.rotary.editingLeft')).toBeInTheDocument();
 
     rerender(
       <KeebRotaryView
@@ -55,7 +67,7 @@ describe('KeebRotaryView', () => {
         onSetSensitivity={onSetSensitivity}
       />
     );
-    expect(screen.getByText(/Right Wheel/)).toBeInTheDocument();
+    expect(screen.getByText('keeb.rotary.editingRight')).toBeInTheDocument();
   });
 
   it('app-scope dropdown is disabled until AppDetection lands', () => {
@@ -69,7 +81,7 @@ describe('KeebRotaryView', () => {
         onSetSensitivity={onSetSensitivity}
       />
     );
-    const scope = screen.getByLabelText('App scope') as HTMLSelectElement;
+    const scope = screen.getByLabelText('keeb.rotary.scopeAria') as HTMLSelectElement;
     expect(scope).toBeDisabled();
   });
 
@@ -90,6 +102,25 @@ describe('KeebRotaryView', () => {
     // Active = left wheel's current value
     expect(screen.getByRole('button', { name: 'BrightnessAdjustment' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'VolumeAdjustment' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('tile labels fall back to the camelCase split when t() echoes the locale key', async () => {
+    render(
+      <KeebRotaryView
+        wheel="left"
+        left="VolumeAdjustment"
+        right="ScrollY"
+        sensitivity="Balanced"
+        onSetRotary={onSetRotary}
+        onSetSensitivity={onSetSensitivity}
+      />
+    );
+    await tick();
+    // keeb.rotaryFn.* resolves to its key under the mock, so the view splits
+    // the firmware name instead of showing the raw key.
+    expect(screen.getByText('Volume Adjustment')).toBeInTheDocument();
+    expect(screen.getByText('Scroll Y')).toBeInTheDocument();
+    expect(screen.queryByText('keeb.rotaryFn.VolumeAdjustment')).toBeNull();
   });
 
   it('clicking a function tile while editing the left wheel sends body { left: <picked>, right: <unchanged>, apps: [] }', async () => {
@@ -135,7 +166,7 @@ describe('KeebRotaryView', () => {
         onSetSensitivity={onSetSensitivity}
       />
     );
-    const sens = screen.getByLabelText('Rotary sensitivity') as HTMLSelectElement;
+    const sens = screen.getByLabelText('keeb.rotary.sensitivityAria') as HTMLSelectElement;
     fireEvent.change(sens, { target: { value: 'Turbo' } });
     expect(onSetSensitivity).toHaveBeenCalledWith('Turbo');
   });

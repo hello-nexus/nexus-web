@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Layers as LayersIcon } from 'lucide-react';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
+import { useToast } from '../../common/Toast/Toast';
+import { useTranslation } from '../../../lib/i18n';
 import { useKeeb } from '../../../hooks/useKeeb';
 import { type KeebLayer, KEEB_LAYERS } from '../../../api/keeb';
 import { KeebKeyboard, type KeebSelection } from '../keeb/KeebKeyboard';
@@ -10,7 +12,6 @@ import { KeebKeyAssignmentView } from '../keeb/KeebKeyAssignmentView';
 import { KeebRotaryView } from '../keeb/KeebRotaryView';
 import { KeebMacroView } from '../keeb/KeebMacroView';
 import { KeebTesterView } from '../keeb/KeebTesterView';
-import keebStyles from '../keeb/KeebDeviceModal.module.scss';
 import pageStyles from './KeebDevicePage.module.scss';
 
 /**
@@ -21,24 +22,45 @@ import pageStyles from './KeebDevicePage.module.scss';
  */
 type Tab = 'key-assignment' | 'macros' | 'tester' | 'settings';
 
-const TABS = [
-  { key: 'key-assignment', label: 'Key Assignment' },
-  { key: 'macros', label: 'Macros' },
-  { key: 'tester', label: 'Tester' },
-  { key: 'settings', label: 'Settings' },
+const TAB_KEYS: readonly { key: Tab; labelKey: string }[] = [
+  { key: 'key-assignment', labelKey: 'keeb.tab.keyAssignment' },
+  { key: 'macros', labelKey: 'keeb.tab.macros' },
+  { key: 'tester', labelKey: 'keeb.tab.tester' },
+  { key: 'settings', labelKey: 'keeb.tab.settings' },
 ] as const;
 
 export function KeebDevicePage() {
   const [tab, setTab] = useState<Tab>('key-assignment');
+  const { t } = useTranslation();
+  const { push } = useToast();
   // useKeeb's `open` flag means "stay subscribed". On a routed page
   // the component lives only while the user is on the page, so we
-  // pass true throughout — unmount tears the subscription down.
+  // pass true throughout - unmount tears the subscription down.
   const keeb = useKeeb(true);
 
   const [selected, setSelected] = useState<KeebSelection>(null);
   const [rotaryLeft, setRotaryLeft] = useState('VolumeAdjustment');
   const [rotaryRight, setRotaryRight] = useState('ScrollY');
   const [sensitivity, setSensitivity] = useState('Balanced');
+
+  // Sequence guards: a slow failing rotary write must not revert a newer
+  // value the user has since picked (rotary state is never refetched, so a
+  // wrong revert would stick).
+  const rotarySeqRef = useRef(0);
+  const sensitivitySeqRef = useRef(0);
+
+  // One toast per failure burst: a failing service makes every write fail,
+  // and a slider commit can fire several in quick succession.
+  const lastFailToastRef = useRef(0);
+  const reportWrite = useCallback((ok: boolean) => {
+    if (ok) return ok;
+    const now = Date.now();
+    if (now - lastFailToastRef.current > 4000) {
+      lastFailToastRef.current = now;
+      push({ title: t('keeb.write.failedTitle'), body: t('keeb.write.failedBody') });
+    }
+    return ok;
+  }, [push, t]);
 
   const onLayerChange = (next: KeebLayer) => {
     keeb.setLayer(next);
@@ -47,30 +69,30 @@ export function KeebDevicePage() {
 
   const offlineCopy = keeb.state.isConnected
     ? undefined
-    : 'Connect your Keeb TKL — the settings tab still works offline.';
+    : t('keeb.offlineCopy');
 
   const showKeyboard = tab === 'key-assignment' || tab === 'tester';
   const keyboardInteractive = tab === 'key-assignment';
 
-  const title = keeb.state.isConnected ? 'Keeb TKL' : 'Keeb TKL (offline)';
+  const title = keeb.state.isConnected ? t('keeb.title') : t('keeb.titleOffline');
 
   return (
     <section className={pageStyles.page}>
       <ViewHeader
         title={title}
-        tabs={TABS}
+        tabs={TAB_KEYS.map(tb => ({ key: tb.key, label: t(tb.labelKey) }))}
         activeTab={tab}
         onTabChange={(k) => setTab(k as Tab)}
         tabActions={tab === 'key-assignment' ? (
-          <div className={keebStyles.layerChips} aria-label="Layer">
-            <LayersIcon size={14} className={keebStyles.layerChipsIcon} aria-hidden="true" />
+          <div className={pageStyles.layerChips} aria-label={t('keeb.layer')}>
+            <LayersIcon size={14} className={pageStyles.layerChipsIcon} aria-hidden="true" />
             {KEEB_LAYERS.map(l => (
               <IconLabelButton
                 key={l}
                 label={(l + 1).toString()}
                 active={keeb.layer === l}
-                ariaLabel={`Layer ${l + 1}`}
-                className={keebStyles.layerChip}
+                ariaLabel={t('keeb.layerN', { n: l + 1 })}
+                className={pageStyles.layerChip}
                 onPress={() => onLayerChange(l)}
               />
             ))}
@@ -79,7 +101,7 @@ export function KeebDevicePage() {
       />
       <div className={`${pageStyles.pageBody} pageBody`}>
         {showKeyboard && (
-          <div className={keebStyles.keyboardStage}>
+          <div className={pageStyles.keyboardStage}>
             <KeebKeyboard
               state={keeb.state}
               offlineCopy={offlineCopy}
@@ -90,7 +112,7 @@ export function KeebDevicePage() {
           </div>
         )}
 
-        <div className={keebStyles.tabBody}>
+        <div className={pageStyles.tabBody}>
           {tab === 'key-assignment' && selected?.kind === 'wheel' && (
             <KeebRotaryView
               wheel={selected.side}
@@ -98,13 +120,22 @@ export function KeebDevicePage() {
               right={rotaryRight}
               sensitivity={sensitivity}
               onSetRotary={async body => {
+                const seq = ++rotarySeqRef.current;
+                const prev = { left: rotaryLeft, right: rotaryRight };
                 setRotaryLeft(body.left);
                 setRotaryRight(body.right);
-                await keeb.saveRotary(body);
+                if (!reportWrite(await keeb.saveRotary(body)) && seq === rotarySeqRef.current) {
+                  setRotaryLeft(prev.left);
+                  setRotaryRight(prev.right);
+                }
               }}
               onSetSensitivity={async s => {
+                const seq = ++sensitivitySeqRef.current;
+                const prev = sensitivity;
                 setSensitivity(s);
-                await keeb.saveRotarySensitivity(s);
+                if (!reportWrite(await keeb.saveRotarySensitivity(s)) && seq === sensitivitySeqRef.current) {
+                  setSensitivity(prev);
+                }
               }}
             />
           )}
@@ -112,8 +143,8 @@ export function KeebDevicePage() {
             <KeebKeyAssignmentView
               selected={selected?.kind === 'key' ? { x: selected.x, y: selected.y } : null}
               state={keeb.state}
-              setKey={keeb.setKey}
-              resetLayer={keeb.resetLayer}
+              setKey={async body => { reportWrite(await keeb.setKey(body)); }}
+              resetLayer={async () => { reportWrite(await keeb.resetLayer()); }}
             />
           )}
           {tab === 'macros' && <KeebMacroView open />}
@@ -121,9 +152,9 @@ export function KeebDevicePage() {
           {tab === 'settings' && (
             <KeebSettingsView
               settings={keeb.settings}
-              onSaveFirmwareLighting={keeb.saveFirmwareLighting}
-              onSavePassiveLighting={keeb.savePassiveLighting}
-              onSaveGameMode={keeb.saveGameMode}
+              onSaveFirmwareLighting={async body => { reportWrite(await keeb.saveFirmwareLighting(body)); }}
+              onSavePassiveLighting={async body => { reportWrite(await keeb.savePassiveLighting(body)); }}
+              onSaveGameMode={async body => { reportWrite(await keeb.saveGameMode(body)); }}
             />
           )}
         </div>

@@ -114,8 +114,11 @@ export interface KeebMacro {
   keys: MacroKey[];
 }
 
+// nexus-service's ApiResponse envelope: Ok() serializes { error: false,
+// msg: "Ok" }; Fail() sets error: true.
 interface ApiResponseWrapper {
-  success: boolean;
+  error?: boolean;
+  msg?: string;
 }
 
 interface GetMacroResponse extends ApiResponseWrapper {
@@ -148,16 +151,23 @@ export async function getKeebSettings(): Promise<KeebSettings | null> {
   return await fetchService<KeebSettings>('/keeb/settings');
 }
 
-export async function setKeebFirmwareLighting(body: SetFirmwareLightingBody): Promise<void> {
-  await postService('/keeb/firmware/lighting', body);
+// A write is acked only by a 2xx whose envelope doesn't carry error:true -
+// every current failure is a non-2xx (null here), but a future 200 +
+// ApiResponse.Fail must not read as an ack.
+function acked(r: ApiResponseWrapper | null): boolean {
+  return r !== null && r.error !== true;
 }
 
-export async function setKeebPassiveLighting(body: SetPassiveLightingBody): Promise<void> {
-  await postService('/keeb/passive-lighting', body);
+export async function setKeebFirmwareLighting(body: SetFirmwareLightingBody): Promise<boolean> {
+  return acked(await postService<ApiResponseWrapper>('/keeb/firmware/lighting', body));
 }
 
-export async function setKeebGameMode(body: SetGameModeBody): Promise<void> {
-  await postService('/keeb/game-mode', body);
+export async function setKeebPassiveLighting(body: SetPassiveLightingBody): Promise<boolean> {
+  return acked(await postService<ApiResponseWrapper>('/keeb/passive-lighting', body));
+}
+
+export async function setKeebGameMode(body: SetGameModeBody): Promise<boolean> {
+  return acked(await postService<ApiResponseWrapper>('/keeb/game-mode', body));
 }
 
 export async function getKeebRotaryFunctions(): Promise<string[]> {
@@ -165,12 +175,12 @@ export async function getKeebRotaryFunctions(): Promise<string[]> {
   return r?.functions ?? [];
 }
 
-export async function setKeebRotary(body: SetRotaryWheelsBody): Promise<void> {
-  await postService('/keeb/rotary', body);
+export async function setKeebRotary(body: SetRotaryWheelsBody): Promise<boolean> {
+  return acked(await postService<ApiResponseWrapper>('/keeb/rotary', body));
 }
 
-export async function setKeebRotarySensitivity(sensitivity: string): Promise<void> {
-  await postService('/keeb/rotary/sensitivity', { sensitivity });
+export async function setKeebRotarySensitivity(sensitivity: string): Promise<boolean> {
+  return acked(await postService<ApiResponseWrapper>('/keeb/rotary/sensitivity', { sensitivity }));
 }
 
 export async function getKeebMacro(index: number): Promise<KeebMacro | null> {

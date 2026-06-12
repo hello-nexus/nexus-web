@@ -1,13 +1,24 @@
-// Settings view tests — verifies the three Card sections (Firmware Lighting,
+// Settings view tests - verifies the three Card sections (Firmware Lighting,
 // Passive Lighting, Game Mode) each write to the right onSave* callback with
-// the correct body shape, the brightness slider commits on release, the
-// direction icon-buttons toggle, and the passive-lighting Mask + Color show
-// up only when Type Reactive is on.
+// the correct body shape, the direction icon-buttons toggle, and the
+// passive-lighting Mask + Mode controls show up only when Type Reactive is
+// on. Controls are queried by their aria-labels, which are locale keys under
+// the key-echo i18n mock; the option VALUES stay raw firmware enums.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import type { KeebSettings } from '../../../api/keeb';
 import { KeebSettingsView } from './KeebSettingsView';
+
+vi.mock('../../../lib/i18n', () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string | number>) => {
+      let text = key;
+      if (params) for (const [k, v] of Object.entries(params)) text += ` ${k}=${v}`;
+      return text;
+    },
+  }),
+}));
 
 afterEach(() => { cleanup(); });
 
@@ -18,19 +29,19 @@ function defaultSettings(overrides: Partial<KeebSettings> = {}): KeebSettings {
     altF4Disabled: false,
     altTabDisabled: false,
     animationMode: 'Static',
-    speed: 'Medium',
+    speed: 'Standard',
     direction: 'LeftToRight',
     brightness: 50,
     keyIndicator: false,
     keyReactive: false,
     keyReactiveMask: false,
-    keyReactiveMode: 'Off',
+    keyReactiveMode: 'SingleKey',
     keyReactiveColor: { r: 200, g: 100, b: 50, a: 255 },
     ...overrides,
   };
 }
 
-describe('KeebSettingsView — loading state', () => {
+describe('KeebSettingsView - loading state', () => {
   it('renders the loading placeholder when settings is null', () => {
     render(
       <KeebSettingsView
@@ -40,11 +51,11 @@ describe('KeebSettingsView — loading state', () => {
         onSaveGameMode={async () => {}}
       />
     );
-    expect(screen.getByText(/Loading/i)).toBeInTheDocument();
+    expect(screen.getByText('keeb.loading')).toBeInTheDocument();
   });
 });
 
-describe('KeebSettingsView — firmware lighting', () => {
+describe('KeebSettingsView - firmware lighting', () => {
   let onSaveFw: ReturnType<typeof vi.fn>;
   let onSavePassive: ReturnType<typeof vi.fn>;
   let onSaveGame: ReturnType<typeof vi.fn>;
@@ -64,8 +75,8 @@ describe('KeebSettingsView — firmware lighting', () => {
         onSaveGameMode={onSaveGame}
       />
     );
-    const effect = screen.getByLabelText('Firmware lighting effect') as HTMLSelectElement;
-    const speed = screen.getByLabelText('Firmware lighting speed') as HTMLSelectElement;
+    const effect = screen.getByLabelText('keeb.settings.effect') as HTMLSelectElement;
+    const speed = screen.getByLabelText('keeb.settings.speed') as HTMLSelectElement;
     expect(effect.value).toBe('Rainbow');
     expect(speed.value).toBe('Energetic');
   });
@@ -79,7 +90,7 @@ describe('KeebSettingsView — firmware lighting', () => {
         onSaveGameMode={onSaveGame}
       />
     );
-    const effect = screen.getByLabelText('Firmware lighting effect') as HTMLSelectElement;
+    const effect = screen.getByLabelText('keeb.settings.effect') as HTMLSelectElement;
     fireEvent.change(effect, { target: { value: 'PingPong' } });
     expect(onSaveFw).toHaveBeenCalledWith(expect.objectContaining({ animationMode: 'PingPong' }));
   });
@@ -93,12 +104,12 @@ describe('KeebSettingsView — firmware lighting', () => {
         onSaveGameMode={onSaveGame}
       />
     );
-    fireEvent.click(screen.getByLabelText('Right to left'));
+    fireEvent.click(screen.getByLabelText('keeb.dir.RightToLeft'));
     expect(onSaveFw).toHaveBeenCalledWith(expect.objectContaining({ direction: 'RightToLeft' }));
   });
 });
 
-describe('KeebSettingsView — passive lighting', () => {
+describe('KeebSettingsView - passive lighting', () => {
   let onSavePassive: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -114,8 +125,8 @@ describe('KeebSettingsView — passive lighting', () => {
         onSaveGameMode={async () => {}}
       />
     );
-    expect(screen.queryByLabelText('Mask over lighting effect')).toBeNull();
-    expect(screen.queryByLabelText('Reactive mode')).toBeNull();
+    expect(screen.queryByLabelText('keeb.settings.maskEffect')).toBeNull();
+    expect(screen.queryByLabelText('keeb.settings.mode')).toBeNull();
   });
 
   it('flipping Type Reactive ON saves with keyReactive:true and reveals the sub-controls', () => {
@@ -127,12 +138,12 @@ describe('KeebSettingsView — passive lighting', () => {
         onSaveGameMode={async () => {}}
       />
     );
-    const toggle = screen.getByLabelText('Type Reactive');
+    const toggle = screen.getByLabelText('keeb.settings.typeReactive');
     fireEvent.click(toggle);
     expect(onSavePassive).toHaveBeenCalledWith(expect.objectContaining({ keyReactive: true }));
     // Sub-controls now visible.
-    expect(screen.getByLabelText('Mask over lighting effect')).toBeInTheDocument();
-    expect(screen.getByLabelText('Reactive mode')).toBeInTheDocument();
+    expect(screen.getByLabelText('keeb.settings.maskEffect')).toBeInTheDocument();
+    expect(screen.getByLabelText('keeb.settings.mode')).toBeInTheDocument();
   });
 
   it('changing reactive mode select sends the new mode', () => {
@@ -144,12 +155,12 @@ describe('KeebSettingsView — passive lighting', () => {
         onSaveGameMode={async () => {}}
       />
     );
-    fireEvent.change(screen.getByLabelText('Reactive mode'), { target: { value: 'Ripple' } });
+    fireEvent.change(screen.getByLabelText('keeb.settings.mode'), { target: { value: 'Ripple' } });
     expect(onSavePassive).toHaveBeenCalledWith(expect.objectContaining({ keyReactiveMode: 'Ripple' }));
   });
 });
 
-describe('KeebSettingsView — game mode', () => {
+describe('KeebSettingsView - game mode', () => {
   let onSaveGame: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -165,16 +176,16 @@ describe('KeebSettingsView — game mode', () => {
         onSaveGameMode={onSaveGame}
       />
     );
-    fireEvent.click(screen.getByLabelText('Disable ALT F4'));
+    fireEvent.click(screen.getByLabelText('keeb.settings.game.altF4'));
     expect(onSaveGame).toHaveBeenCalledWith(expect.objectContaining({ altF4: true }));
 
-    fireEvent.click(screen.getByLabelText('Disable Shift Tab'));
+    fireEvent.click(screen.getByLabelText('keeb.settings.game.shiftTab'));
     expect(onSaveGame).toHaveBeenLastCalledWith(expect.objectContaining({ shiftTab: true }));
 
-    fireEvent.click(screen.getByLabelText('Disable Windows Key'));
+    fireEvent.click(screen.getByLabelText('keeb.settings.game.windowsKey'));
     expect(onSaveGame).toHaveBeenLastCalledWith(expect.objectContaining({ windowsKey: true }));
 
-    fireEvent.click(screen.getByLabelText('Disable ALT Tab'));
+    fireEvent.click(screen.getByLabelText('keeb.settings.game.altTab'));
     expect(onSaveGame).toHaveBeenLastCalledWith(expect.objectContaining({ altTab: true }));
   });
 });

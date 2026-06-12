@@ -18,3 +18,40 @@
   padding: 1rem 0 1.25rem;
   overflow-y: auto;
 }
+
+// Keyboard render is ~1400px wide at source size. Scale via `zoom` to fit
+// the page at laptop widths.
+.keyboardStage {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-xs) 0;
+  zoom: 0.55;
+}
+
+.tabBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.layerChips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 6px var(--space-sm);
+}
+
+.layerChipsIcon {
+  color: var(--text-dim);
+  margin-right: var(--space-xs);
+}
+
+// Shorter + wider layer chips than default IconLabelButton sizing, tuned via
+// the CSS variables the component exposes for its dimensions.
+.layerChip {
+  --icon-label-button-height: 24px;
+  --icon-label-button-min-width: 44px;
+  --icon-label-button-padding-x: 12px;
+  --icon-label-button-padding-y: 2px;
+  --icon-label-label-size: 12px;
+}

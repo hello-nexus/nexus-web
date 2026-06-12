@@ -3,18 +3,19 @@ import { RotateCcw } from 'lucide-react';
 import type { KeyboardState, SetLayerKeyBody } from '../../../api/keeb';
 import { Button } from '../../common/Button/Button';
 import { Card } from '../../common/Card/Card';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { Tabs, type TabDef } from '../../common/Tabs/Tabs';
+import { useTranslation } from '../../../lib/i18n';
 import { KeebKeyboard, type KeebSelection } from './KeebKeyboard';
 import { getKeebLayoutRows } from './keebLayout';
 import {
   ASSIGNMENT_CATEGORIES,
+  CATEGORY_LABEL_KEYS,
   getAssignmentCategories,
   type KeebAssignmentCategory,
 } from './keebCategories';
 import styles from './KeebKeyAssignmentView.module.scss';
-
-const CATEGORY_TABS: readonly TabDef[] = ASSIGNMENT_CATEGORIES.map(cat => ({ key: cat, label: cat }));
 
 export interface KeebKeyAssignmentViewProps {
   selected: { x: number; y: number } | null;
@@ -38,8 +39,14 @@ export function KeebKeyAssignmentView({
   setKey,
   resetLayer,
 }: KeebKeyAssignmentViewProps) {
+  const { t } = useTranslation();
   const [category, setCategory] = useState<KeebAssignmentCategory>('Keyboard');
   const [confirmReset, setConfirmReset] = useState(false);
+
+  const categoryTabs: TabDef[] = useMemo(
+    () => ASSIGNMENT_CATEGORIES.map(cat => ({ key: cat, label: t(CATEGORY_LABEL_KEYS[cat]) })),
+    [t],
+  );
 
   const categories = useMemo(() => getAssignmentCategories(), []);
   const groups = category === 'Keyboard' ? [] : categories[category];
@@ -85,41 +92,43 @@ export function KeebKeyAssignmentView({
     return null;
   })();
 
-  const onReset = async () => {
-    if (!confirmReset) {
-      setConfirmReset(true);
-      window.setTimeout(() => setConfirmReset(false), 3000);
-      return;
-    }
-    setConfirmReset(false);
-    await resetLayer();
-  };
-
   const disabled = !selected;
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <Tabs
-          tabs={CATEGORY_TABS}
+          tabs={categoryTabs}
           activeKey={category}
           onChange={k => setCategory(k as KeebAssignmentCategory)}
           variant="pill"
-          ariaLabel="Assignment categories"
+          ariaLabel={t('keeb.assign.categoriesAria')}
         />
         <Button
           size="sm"
-          tone={confirmReset ? 'danger' : 'neutral'}
+          tone="neutral"
           icon={<RotateCcw size={14} aria-hidden="true" />}
-          onClick={onReset}
+          onClick={() => setConfirmReset(true)}
         >
-          {confirmReset ? 'Are you sure?' : 'Reset Layer'}
+          {t('keeb.assign.reset')}
         </Button>
       </header>
 
+      <ConfirmModal
+        open={confirmReset}
+        title={t('keeb.assign.resetTitle')}
+        message={t('keeb.assign.resetMessage', { layer: state.layer + 1 })}
+        confirmLabel={t('keeb.assign.reset')}
+        onConfirm={() => {
+          setConfirmReset(false);
+          void resetLayer();
+        }}
+        onCancel={() => setConfirmReset(false)}
+      />
+
       {disabled && (
-        <p className={styles.hint}>
-          Click a key on the keyboard above first, then pick a function to assign.
+        <p className={styles.hint} aria-live="polite">
+          {t('keeb.assign.hint')}
         </p>
       )}
 
@@ -144,18 +153,18 @@ export function KeebKeyAssignmentView({
       {category !== 'Keyboard' && (
         <div className={styles.grid}>
           {groups.map(group => (
-            <Card key={group.title} title={group.title} className={styles.groupCard}>
+            <Card key={group.titleKey} title={t(group.titleKey)} className={styles.groupCard}>
               {group.sections.map(section => (
-                <div key={section.title} className={styles.section}>
-                  <h4 className={styles.sectionTitle}>{section.title}</h4>
+                <div key={section.titleKey} className={styles.section}>
+                  <h4 className={styles.sectionTitle}>{t(section.titleKey)}</h4>
                   <div className={styles.tiles}>
                     {section.functions.map(fn => (
                       <IconLabelButton
                         key={fn.keyFunction}
-                        label={fn.name}
+                        label={t(fn.labelKey, fn.labelParams)}
                         disabled={disabled}
                         title={fn.keyFunction}
-                        ariaLabel={fn.name}
+                        ariaLabel={t(fn.labelKey, fn.labelParams)}
                         onPress={() => void onTile(fn.keyFunction, fn.mode, fn.input)}
                       />
                     ))}

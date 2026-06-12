@@ -1,25 +1,36 @@
-// Tester view tests — local-mode capture (no HID driver wired yet). Verifies
+// Tester view tests - local-mode capture (no HID driver wired yet). Verifies
 // keydown is captured into the latest panel + history, repeat events are
-// ignored, and Reset clears state.
+// ignored, and Reset clears state. Copy is asserted against locale keys via
+// the key-echo i18n mock.
 
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { KeebTesterView } from './KeebTesterView';
 
+vi.mock('../../../lib/i18n', () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string | number>) => {
+      let text = key;
+      if (params) for (const [k, v] of Object.entries(params)) text += ` ${k}=${v}`;
+      return text;
+    },
+  }),
+}));
+
 afterEach(() => { cleanup(); });
 
-describe('KeebTesterView — local-mode key capture', () => {
+describe('KeebTesterView - local-mode key capture', () => {
   it('renders the Local Mode explainer when no keys have been pressed', () => {
     render(<KeebTesterView open />);
-    expect(screen.getByText(/Local Mode/)).toBeInTheDocument();
-    expect(screen.getByText(/Press any key to populate the history/i)).toBeInTheDocument();
+    expect(screen.getByText('keeb.tester.localMode')).toBeInTheDocument();
+    expect(screen.getByText('keeb.tester.empty')).toBeInTheDocument();
   });
 
   it('a keydown updates the Latest panel + adds a history row', () => {
     render(<KeebTesterView open />);
     fireEvent.keyDown(window, { key: 'a', keyCode: 65 });
     // Single-char keys render as uppercase per the view's normalization.
-    expect(screen.queryByText(/Press any key to populate the history/i)).toBeNull();
+    expect(screen.queryByText('keeb.tester.empty')).toBeNull();
     expect(screen.getAllByText('A').length).toBeGreaterThanOrEqual(1);
   });
 
@@ -39,8 +50,8 @@ describe('KeebTesterView — local-mode key capture', () => {
     fireEvent.keyDown(window, { key: 'a', keyCode: 65 });
     expect(screen.getAllByText('A').length).toBeGreaterThanOrEqual(1);
 
-    fireEvent.click(screen.getByRole('button', { name: /Reset/i }));
-    expect(screen.getByText(/Press any key to populate the history/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'keeb.tester.reset' }));
+    expect(screen.getByText('keeb.tester.empty')).toBeInTheDocument();
   });
 
   it('listener is detached when open prop flips false', () => {

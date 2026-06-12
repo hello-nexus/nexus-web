@@ -3,9 +3,11 @@ import type { SetRotaryWheelsBody } from '../../../api/keeb';
 import { getKeebRotaryFunctions } from '../../../api/keeb';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { Select } from '../../common/Select/Select';
+import { useTranslation } from '../../../lib/i18n';
 import {
   ROTARY_SENSITIVITIES,
-  getRotaryFunctionTooltip,
+  getRotaryFunctionLabelKey,
+  getRotaryFunctionTooltipKey,
 } from './keebCategories';
 import styles from './KeebRotaryView.module.scss';
 
@@ -36,6 +38,7 @@ export function KeebRotaryView({
   onSetRotary,
   onSetSensitivity,
 }: KeebRotaryViewProps) {
+  const { t } = useTranslation();
   const [functions, setFunctions] = useState<string[]>([]);
 
   useEffect(() => {
@@ -49,10 +52,23 @@ export function KeebRotaryView({
   const active = wheel === 'left' ? left : right;
   const fallbackActive = active || DEFAULT_FN;
 
-  const handlePick = async (fn: string) => {
+  // The function list comes from the service; firmware additions this build
+  // doesn't know yet fall back from the locale key to a camelCase split.
+  const functionLabel = (fnName: string): string => {
+    const key = getRotaryFunctionLabelKey(fnName);
+    const label = t(key);
+    return label === key ? fnName.replace(/([A-Z])/g, ' $1').trim() : label;
+  };
+  const functionTooltip = (fnName: string): string | undefined => {
+    const key = getRotaryFunctionTooltipKey(fnName);
+    const tip = t(key);
+    return tip === key ? undefined : tip;
+  };
+
+  const handlePick = async (fnName: string) => {
     const body: SetRotaryWheelsBody = wheel === 'left'
-      ? { left: fn, right, apps: [] }
-      : { left, right: fn, apps: [] };
+      ? { left: fnName, right, apps: [] }
+      : { left, right: fnName, apps: [] };
     await onSetRotary(body);
   };
 
@@ -60,40 +76,40 @@ export function KeebRotaryView({
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>Scope</span>
+          <span className={styles.fieldLabel}>{t('keeb.rotary.scope')}</span>
           <Select
             value="all"
             onChange={() => { /* no-op until AppDetection lands */ }}
-            options={[{ value: 'all', label: 'All Applications' }]}
-            ariaLabel="App scope"
+            options={[{ value: 'all', label: t('keeb.rotary.allApps') }]}
+            ariaLabel={t('keeb.rotary.scopeAria')}
             disabled
           />
         </div>
 
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>Sensitivity</span>
+          <span className={styles.fieldLabel}>{t('keeb.rotary.sensitivity')}</span>
           <Select
             value={sensitivity || 'Balanced'}
             onChange={v => void onSetSensitivity(v)}
-            options={ROTARY_SENSITIVITIES.map(s => ({ value: s, label: s }))}
-            ariaLabel="Rotary sensitivity"
+            options={ROTARY_SENSITIVITIES.map(s => ({ value: s, label: t(`keeb.sens.${s}`) }))}
+            ariaLabel={t('keeb.rotary.sensitivityAria')}
           />
         </div>
 
-        <div className={styles.wheelBadge}>
-          Editing: <strong>{wheel === 'left' ? 'Left' : 'Right'} Wheel</strong>
+        <div className={styles.wheelBadge} aria-live="polite">
+          {wheel === 'left' ? t('keeb.rotary.editingLeft') : t('keeb.rotary.editingRight')}
         </div>
       </header>
 
       <div className={styles.tiles}>
-        {functions.map(fn => (
+        {functions.map(fnName => (
           <IconLabelButton
-            key={fn}
-            label={fn.replace(/([A-Z])/g, ' $1').trim()}
-            active={fallbackActive === fn}
-            title={getRotaryFunctionTooltip(fn)}
-            ariaLabel={fn}
-            onPress={() => void handlePick(fn)}
+            key={fnName}
+            label={functionLabel(fnName)}
+            active={fallbackActive === fnName}
+            title={functionTooltip(fnName)}
+            ariaLabel={fnName}
+            onPress={() => void handlePick(fnName)}
           />
         ))}
       </div>

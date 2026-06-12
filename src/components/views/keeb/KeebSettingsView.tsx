@@ -4,20 +4,22 @@ import type { KeebSettings, RGBA } from '../../../api/keeb';
 import { Card } from '../../common/Card/Card';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
-import { Select } from '../../common/Select/Select';
+import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { Slider } from '../../common/Slider/Slider';
-import { Toggle } from '../../common/Toggle/Toggle';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebSettingsView.module.scss';
 
+// Firmware enum values (wire contract). Display labels come from the
+// keeb.fx.* / keeb.speed.* / keeb.reactive.* locale keys.
 const FW_EFFECTS = ['Static', 'Breathe', 'Rainbow', 'Wave', 'Flow', 'PingPong'];
 const FW_SPEEDS = ['Slow', 'LaidBack', 'Standard', 'Energetic', 'Rapid'];
 const KEY_REACTIVE_MODES = ['SingleKey', 'HorizontalLine', 'VerticalLine', 'Ripple'];
 
-const DIRECTIONS: { value: string; icon: ReactNode; aria: string }[] = [
-  { value: 'LeftToRight', icon: <ArrowRight size={16} aria-hidden="true" />, aria: 'Left to right' },
-  { value: 'RightToLeft', icon: <ArrowLeft size={16} aria-hidden="true" />, aria: 'Right to left' },
-  { value: 'TopToBottom', icon: <ArrowDown size={16} aria-hidden="true" />, aria: 'Top to bottom' },
-  { value: 'BottomToTop', icon: <ArrowUp size={16} aria-hidden="true" />, aria: 'Bottom to top' },
+const DIRECTIONS: { value: string; icon: ReactNode }[] = [
+  { value: 'LeftToRight', icon: <ArrowRight size={16} aria-hidden="true" /> },
+  { value: 'RightToLeft', icon: <ArrowLeft size={16} aria-hidden="true" /> },
+  { value: 'TopToBottom', icon: <ArrowDown size={16} aria-hidden="true" /> },
+  { value: 'BottomToTop', icon: <ArrowUp size={16} aria-hidden="true" /> },
 ];
 
 export interface KeebSettingsViewProps {
@@ -36,6 +38,7 @@ export function KeebSettingsView({
   onSavePassiveLighting,
   onSaveGameMode,
 }: KeebSettingsViewProps) {
+  const { t } = useTranslation();
   // Mirror server state locally so sliders feel instant. We push through to
   // the server on commit (slider release / select change).
   const [local, setLocal] = useState<KeebSettings | null>(settings);
@@ -48,7 +51,7 @@ export function KeebSettingsView({
   }, []);
 
   if (!local) {
-    return <div className={styles.loading}>Loading…</div>;
+    return <div className={styles.loading}>{t('keeb.loading')}</div>;
   }
 
   const pushFw = (patch: Partial<KeebSettings>) => {
@@ -87,24 +90,20 @@ export function KeebSettingsView({
 
   return (
     <div className={styles.grid}>
-      <Card title="Firmware Lighting" subtitle="Applies on the keyboard itself when nexus isn't actively driving the LEDs.">
-        <Row label="Effect">
-          <Select
-            value={local.animationMode}
-            onChange={v => pushFw({ animationMode: v })}
-            options={FW_EFFECTS.map(e => ({ value: e, label: e }))}
-            ariaLabel="Firmware lighting effect"
-          />
-        </Row>
-        <Row label="Speed">
-          <Select
-            value={local.speed}
-            onChange={v => pushFw({ speed: v })}
-            options={FW_SPEEDS.map(s => ({ value: s, label: s }))}
-            ariaLabel="Firmware lighting speed"
-          />
-        </Row>
-        <Row label="Brightness">
+      <Card title={t('keeb.settings.firmware.title')} subtitle={t('keeb.settings.firmware.subtitle')}>
+        <SettingSelect
+          label={t('keeb.settings.effect')}
+          value={local.animationMode}
+          onChange={v => pushFw({ animationMode: v })}
+          options={FW_EFFECTS.map(e => ({ value: e, label: t(`keeb.fx.${e}`) }))}
+        />
+        <SettingSelect
+          label={t('keeb.settings.speed')}
+          value={local.speed}
+          onChange={v => pushFw({ speed: v })}
+          options={FW_SPEEDS.map(s => ({ value: s, label: t(`keeb.speed.${s}`) }))}
+        />
+        <SettingRow label={t('keeb.settings.brightness')}>
           <Slider
             min={0}
             max={100}
@@ -113,85 +112,79 @@ export function KeebSettingsView({
               setLocalField('brightness', v);
               if (commit) pushFw({ brightness: v });
             }}
-            ariaLabel="Firmware lighting brightness"
+            ariaLabel={t('keeb.settings.brightness')}
             formatValue={v => `${v}%`}
           />
-        </Row>
-        <Row label="Direction">
+        </SettingRow>
+        <SettingRow label={t('keeb.settings.direction')}>
           <div className={styles.iconGroup}>
             {DIRECTIONS.map(d => (
               <IconLabelButton
                 key={d.value}
                 icon={d.icon}
                 active={local.direction === d.value}
-                ariaLabel={d.aria}
-                title={d.value}
+                ariaLabel={t(`keeb.dir.${d.value}`)}
+                title={t(`keeb.dir.${d.value}`)}
                 onPress={() => pushFw({ direction: d.value })}
               />
             ))}
           </div>
-        </Row>
+        </SettingRow>
       </Card>
 
-      <Card title="Passive Lighting" subtitle="Reacts to keypresses on top of (or as a mask over) the firmware effect.">
-        <Row label="Type Reactive">
-          <Toggle
-            checked={local.keyReactive}
-            onChange={v => pushPassive({ keyReactive: v, keyReactiveMask: v ? local.keyReactiveMask : false })}
-            ariaLabel="Type Reactive"
-          />
-        </Row>
+      <Card title={t('keeb.settings.passive.title')} subtitle={t('keeb.settings.passive.subtitle')}>
+        <SettingToggle
+          label={t('keeb.settings.typeReactive')}
+          checked={local.keyReactive}
+          onChange={v => pushPassive({ keyReactive: v, keyReactiveMask: v ? local.keyReactiveMask : false })}
+        />
         {local.keyReactive && (
           <>
-            <Row label="Mask Effect">
-              <Toggle
-                checked={local.keyReactiveMask}
-                onChange={v => pushPassive({ keyReactiveMask: v })}
-                ariaLabel="Mask over lighting effect"
-              />
-            </Row>
-            <Row label="Mode">
-              <Select
-                value={local.keyReactiveMode}
-                onChange={v => pushPassive({ keyReactiveMode: v })}
-                options={KEY_REACTIVE_MODES.map(m => ({ value: m, label: m }))}
-                ariaLabel="Reactive mode"
-              />
-            </Row>
-            <Row label="Color">
+            <SettingToggle
+              label={t('keeb.settings.maskEffect')}
+              description={t('keeb.settings.maskEffectHint')}
+              checked={local.keyReactiveMask}
+              onChange={v => pushPassive({ keyReactiveMask: v })}
+            />
+            <SettingSelect
+              label={t('keeb.settings.mode')}
+              value={local.keyReactiveMode}
+              onChange={v => pushPassive({ keyReactiveMode: v })}
+              options={KEY_REACTIVE_MODES.map(m => ({ value: m, label: t(`keeb.reactive.${m}`) }))}
+            />
+            <SettingRow label={t('keeb.settings.color')}>
               <HsvPicker
                 value={rgbToHex(local.keyReactiveColor)}
                 onPreview={hex => setLocalField('keyReactiveColor', hexToRgba(hex, local.keyReactiveColor.a))}
                 onCommit={hex => pushPassive({ keyReactiveColor: hexToRgba(hex, local.keyReactiveColor.a) })}
               />
-            </Row>
+            </SettingRow>
           </>
         )}
       </Card>
 
-      <Card title="Game Mode" subtitle="Disable accidental escape-from-game keys at the firmware level.">
-        <Row label="Disable ALT+F4">
-          <Toggle checked={local.altF4Disabled} onChange={v => pushGameMode({ altF4Disabled: v })} ariaLabel="Disable ALT F4" />
-        </Row>
-        <Row label="Disable ALT+Tab">
-          <Toggle checked={local.altTabDisabled} onChange={v => pushGameMode({ altTabDisabled: v })} ariaLabel="Disable ALT Tab" />
-        </Row>
-        <Row label="Disable Shift+Tab">
-          <Toggle checked={local.shiftKeyDisabled} onChange={v => pushGameMode({ shiftKeyDisabled: v })} ariaLabel="Disable Shift Tab" />
-        </Row>
-        <Row label="Disable Windows Key">
-          <Toggle checked={local.windowsKeyDisabled} onChange={v => pushGameMode({ windowsKeyDisabled: v })} ariaLabel="Disable Windows Key" />
-        </Row>
+      <Card title={t('keeb.settings.game.title')} subtitle={t('keeb.settings.game.subtitle')}>
+        <SettingToggle
+          label={t('keeb.settings.game.altF4')}
+          checked={local.altF4Disabled}
+          onChange={v => pushGameMode({ altF4Disabled: v })}
+        />
+        <SettingToggle
+          label={t('keeb.settings.game.altTab')}
+          checked={local.altTabDisabled}
+          onChange={v => pushGameMode({ altTabDisabled: v })}
+        />
+        <SettingToggle
+          label={t('keeb.settings.game.shiftTab')}
+          checked={local.shiftKeyDisabled}
+          onChange={v => pushGameMode({ shiftKeyDisabled: v })}
+        />
+        <SettingToggle
+          label={t('keeb.settings.game.windowsKey')}
+          checked={local.windowsKeyDisabled}
+          onChange={v => pushGameMode({ windowsKeyDisabled: v })}
+        />
       </Card>
-    </div>
-  );
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className={styles.row}>
-      <span className={styles.rowLabel}>{label}</span>
-      <span className={styles.rowControl}>{children}</span>
     </div>
   );
 }

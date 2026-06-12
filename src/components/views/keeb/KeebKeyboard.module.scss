@@ -85,6 +85,15 @@ $wheel-size: 110px;
   font-size: 18px;
 }
 
+// Long text legends (PrtSc, Num Lock, PgUp...) on standard-width caps: the
+// full-size legend type clips at the cap edge, so step down and let two-word
+// legends wrap.
+.keyDense {
+  font-size: 17px;
+  line-height: 1.15;
+  white-space: normal;
+}
+
 .keyMiddle {
   width: 60px;
   height: 80px;

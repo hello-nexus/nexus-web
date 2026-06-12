@@ -57,7 +57,7 @@ export function getKeyGlyph(func: string, layout: KeebLayoutKind = 'ANSI'): Reac
     case 'Number8': return '8 *';
     case 'Number9': return '9 (';
     case 'Number0': return '0 )';
-    case 'Minus': return '— -';
+    case 'Minus': return '- _';
     case 'Equals': return '= +';
     case 'Insert': return 'Ins';
     case 'PageUp': return 'PgUp';
