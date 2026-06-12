@@ -657,6 +657,8 @@
   "lighting.ledMap.alignHorizontal": "Alinhar em tira",
   "lighting.ledMap.appliesOnSave": "Será aplicado ao salvar.",
   "lighting.ledMap.clickMulti": "Clique para selecionar varios",
+  "lighting.ledMap.community": "Comunidade",
+  "lighting.ledMap.communityUnavailable": "Os layouts da comunidade não estão disponíveis para esta zona",
   "lighting.ledMap.delete": "Remover do mapa",
   "lighting.ledMap.deleteHint": "Del para remover",
   "lighting.ledMap.discard": "Descartar alteracoes",

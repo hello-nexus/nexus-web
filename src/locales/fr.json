@@ -657,6 +657,8 @@
   "lighting.ledMap.alignHorizontal": "Aligner en bande",
   "lighting.ledMap.appliesOnSave": "Sera appliqué lors de l'enregistrement.",
   "lighting.ledMap.clickMulti": "Clic pour selection multiple",
+  "lighting.ledMap.community": "Communauté",
+  "lighting.ledMap.communityUnavailable": "Les dispositions communautaires ne sont pas disponibles pour cette zone",
   "lighting.ledMap.delete": "Retirer de la carte",
   "lighting.ledMap.deleteHint": "Suppr pour retirer",
   "lighting.ledMap.discard": "Annuler les modifications",

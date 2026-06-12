@@ -657,6 +657,8 @@
   "lighting.ledMap.alignHorizontal": "Wyrownaj w pasek",
   "lighting.ledMap.appliesOnSave": "Zostanie zastosowane przy zapisie.",
   "lighting.ledMap.clickMulti": "Kliknij, aby wybrac wiele",
+  "lighting.ledMap.community": "Społeczność",
+  "lighting.ledMap.communityUnavailable": "Układy społeczności nie są dostępne dla tej strefy",
   "lighting.ledMap.delete": "Usun z mapy",
   "lighting.ledMap.deleteHint": "Del aby usunac",
   "lighting.ledMap.discard": "Odrzuc zmiany",

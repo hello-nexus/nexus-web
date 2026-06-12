@@ -657,6 +657,8 @@
   "lighting.ledMap.alignHorizontal": "ストリップに整列",
   "lighting.ledMap.appliesOnSave": "保存時に適用されます。",
   "lighting.ledMap.clickMulti": "クリックで複数選択",
+  "lighting.ledMap.community": "コミュニティ",
+  "lighting.ledMap.communityUnavailable": "このゾーンではコミュニティレイアウトを利用できません",
   "lighting.ledMap.delete": "マップから削除",
   "lighting.ledMap.deleteHint": "Delキーで削除",
   "lighting.ledMap.discard": "変更を破棄",

@@ -657,6 +657,8 @@
   "lighting.ledMap.alignHorizontal": "對齊為條帶",
   "lighting.ledMap.appliesOnSave": "儲存時生效。",
   "lighting.ledMap.clickMulti": "點擊多選",
+  "lighting.ledMap.community": "社群",
+  "lighting.ledMap.communityUnavailable": "此區域不支援社群配置",
   "lighting.ledMap.delete": "從映射移除",
   "lighting.ledMap.deleteHint": "Del 鍵移除",
   "lighting.ledMap.discard": "放棄變更",

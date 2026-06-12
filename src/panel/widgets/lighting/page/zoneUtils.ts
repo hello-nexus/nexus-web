@@ -60,6 +60,36 @@ export function zoneLedCount(zone: { slices: ZoneSlice[] }): number {
   return zone.slices.reduce((sum, s) => sum + s.count, 0);
 }
 
+/** Enabled (non-parked) LED count per zone id in the current editor state. */
+export function zoneEnabledCounts(leds: { zoneId: string; disabled: boolean }[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const led of leds) {
+    if (led.disabled) continue;
+    counts.set(led.zoneId, (counts.get(led.zoneId) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** Zone chip count label: "enabled/total" while some of the zone's LEDs are parked, collapsing to just the total when none are. */
+export function formatZoneChipCount(enabled: number, total: number): string {
+  return enabled === total ? String(total) : `${enabled}/${total}`;
+}
+
+/** Enabled LED count of a device card, falling back to the total for services that predate the field. */
+export function cardEnabledLedCount(card: { ledCount: number; enabledLedCount?: number }): number {
+  return card.enabledLedCount ?? card.ledCount;
+}
+
+/**
+ * True when a card has LEDs but every one of them is disabled; such cards
+ * are hidden from the device listing and the canvas. Cards reporting no
+ * LEDs at all are NOT fully parked - they keep their existing unavailable /
+ * configure-LED-count affordances.
+ */
+export function isCardFullyParked(card: { ledCount: number; enabledLedCount?: number }): boolean {
+  return card.ledCount > 0 && cardEnabledLedCount(card) === 0;
+}
+
 /** Device-space indices covered by a zone, in zone-local order. */
 export function zoneDeviceIndices(zone: { slices: ZoneSlice[] }, offsets: Map<number, number>): number[] {
   const indices: number[] = [];

@@ -657,6 +657,8 @@
   "lighting.ledMap.alignHorizontal": "Als Leiste ausrichten",
   "lighting.ledMap.appliesOnSave": "Wird beim Speichern übernommen.",
   "lighting.ledMap.clickMulti": "Klicken zur Mehrfachauswahl",
+  "lighting.ledMap.community": "Community",
+  "lighting.ledMap.communityUnavailable": "Für diese Zone sind keine Community-Layouts verfügbar",
   "lighting.ledMap.delete": "Aus Map entfernen",
   "lighting.ledMap.deleteHint": "Entf zum Entfernen",
   "lighting.ledMap.discard": "Aenderungen verwerfen",

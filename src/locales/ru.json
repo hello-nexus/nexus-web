@@ -657,6 +657,8 @@
   "lighting.ledMap.alignHorizontal": "Выровнять в полосу",
   "lighting.ledMap.appliesOnSave": "Будет применено при сохранении.",
   "lighting.ledMap.clickMulti": "Клик для множественного выбора",
+  "lighting.ledMap.community": "Сообщество",
+  "lighting.ledMap.communityUnavailable": "Раскладки сообщества недоступны для этой зоны",
   "lighting.ledMap.delete": "Удалить с карты",
   "lighting.ledMap.deleteHint": "Del для удаления",
   "lighting.ledMap.discard": "Отменить изменения",

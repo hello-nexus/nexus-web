@@ -657,6 +657,8 @@
   "lighting.ledMap.alignHorizontal": "Seridi hizala",
   "lighting.ledMap.appliesOnSave": "Kaydedildiğinde uygulanır.",
   "lighting.ledMap.clickMulti": "Coklu secim icin tikla",
+  "lighting.ledMap.community": "Topluluk",
+  "lighting.ledMap.communityUnavailable": "Bu bölge için topluluk düzenleri kullanılamaz",
   "lighting.ledMap.delete": "Haritadan kaldir",
   "lighting.ledMap.deleteHint": "Kaldirmak icin Del",
   "lighting.ledMap.discard": "Degisiklikleri iptal et",

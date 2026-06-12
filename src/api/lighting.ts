@@ -178,6 +178,8 @@ export interface LightingDevice {
   ledsOn: boolean;
   brightness?: number;
   ledCount: number;
+  /** LEDs not disabled by the user map. Undefined on older services; the UI falls back to ledCount then. */
+  enabledLedCount?: number;
   /** Cross-install hardware fingerprint for community mapping lookup. Empty when the device cannot be fingerprinted; all community mapping UI hides itself then. */
   deviceKey?: string;
   canvasX: number;

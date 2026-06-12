@@ -281,31 +281,23 @@
   flex-wrap: wrap;
 }
 
-// Control groups floated over the canvas: preview tooling (test patterns +
-// brightness) top-left, selection tooling top-right. Same chrome family as
-// the floating selection toolbar; translucent so the dotted canvas reads
-// through without compromising control contrast.
-.canvasOverlay {
-  position: absolute;
-  top: 10px;
+// Compact control groups in the row above the canvas: preview tooling
+// (test patterns + brightness) on the left, selection tooling on the right.
+.controlsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.controlGroup {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.3rem 0.45rem;
-  background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 4px 14px rgb(0 0 0 / var(--alpha-medium));
-  cursor: default;
-  z-index: 30;
-}
-
-.canvasOverlayLeft {
-  left: 10px;
-}
-
-.canvasOverlayRight {
-  right: 10px;
 }
 
 .modeBtns {
@@ -473,6 +465,13 @@
   }
 }
 
+// Zone-rail community button: icon + label inside the standard .btn chrome.
+.communityBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .hint {
   font-size: 0.65rem;
   color: var(--text-faded);
@@ -485,40 +484,9 @@
   font-size: var(--type-small);
 }
 
-// ── Tab panels ──────────────────────────────────────────────────────────
-// The editor pane is always laid out and defines the modal's height; the
-// community pane overlays it absolutely and scrolls within. Switching tabs
-// therefore never changes the modal's dimensions.
-.tabPanels {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.editorPane {
-  display: flex;
-  flex-direction: column;
-  // Mirrors .content's stack rhythm between toolbar and canvas.
-  gap: 0.75rem;
-  min-width: 0;
-}
-
-// Hidden but still laid out (size donor for the community overlay);
-// visibility also drops it from hit-testing and the a11y tree.
-.editorPaneHidden {
-  visibility: hidden;
-}
-
-.communityPane {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
 // Zone rail: one compact chip row listing the device's zones, plus the
-// partition actions (rename / merge / split / reset) at the right edge.
+// partition actions (rename / merge / split / reset) and the community
+// layouts button at the right edge.
 .zonesBar {
   display: flex;
   align-items: center;

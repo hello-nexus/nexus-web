@@ -15,9 +15,10 @@ import { looksLikeMappingArtifact, sanitizeFileName } from './mappingUtils';
 import styles from './CommunityMappings.module.scss';
 
 /**
- * Community tab of the LED map editor: ranked registry layouts with live
- * previews, apply/revert, refresh, publish, and .nexusmap import/export.
- * Only rendered for devices with a non-empty deviceKey.
+ * Community layouts panel, shown in a modal stacked on the LED map editor:
+ * ranked registry layouts with live previews, apply/revert, refresh,
+ * publish, and .nexusmap import/export. Only rendered for devices with a
+ * non-empty deviceKey.
  */
 export function CommunityMappingsPanel({ deviceId, deviceName, onLedMapChanged, onDialogOpenChange, confirmDiscardEdits }: {
   deviceId: string;

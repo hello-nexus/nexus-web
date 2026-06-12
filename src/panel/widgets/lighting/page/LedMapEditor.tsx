@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
   Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square, Sun, SunDim,
-  Pencil, Merge, Scissors, ListRestart, Lock,
+  Pencil, Merge, Scissors, ListRestart, Lock, Users,
 } from 'lucide-react';
 import {
   fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
@@ -17,25 +17,24 @@ import { ConfirmModal } from '../../../../components/common/ConfirmModal/Confirm
 import { PromptModal } from '../../../../components/common/PromptModal/PromptModal';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
-import { Tabs } from '../../../../components/common/Tabs/Tabs';
 import { useThrottle } from '../../../../hooks/cadence';
 import { CommunityMappingsPanel } from './CommunityMappingsPanel';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
-  flattenDeviceMap, isStagedZoneId, mergeStagedZones, orderZones,
+  flattenDeviceMap, formatZoneChipCount, isStagedZoneId, mergeStagedZones, orderZones,
   pushHistory, redoHistory, relabelLedZones, renameZone, segmentOffsets, splitStagedZones,
   splitZone, stagedZoneId, toZoneLocalIndices, undoHistory, zoneDeviceIndices,
-  zoneLedCount, zoneTouchesResizable,
+  zoneEnabledCounts, zoneLedCount, zoneTouchesResizable,
   type BaselineEntry, type EditorHistory, type EditorLed, type EditorSnapshot, type StagedPartition,
 } from './zoneUtils';
 import styles from './LedMapEditor.module.scss';
 
 const isMac = /mac/i.test(navigator.userAgent);
 const DEFAULT_RATIO = 16 / 9;
-// Canvas box shape: slightly taller than the classic widescreen frame so the
-// preview / selection control groups overlaid along the top edge get a band
-// of their own. Applied as an inline style so TS owns the single source.
-const CANVAS_RATIO = 16 / 10;
+// Canvas box shape. Applied as an inline style so TS owns the single source;
+// the device frame's default placement derives from it below so the
+// frame-to-edge gap is identical on all four sides.
+const CANVAS_RATIO = 16 / 9;
 // Default gap between the device frame and the canvas edges, as a percent of
 // canvas height; the horizontal percent is derived from CANVAS_RATIO so the
 // pixel gap is identical on all four sides.
@@ -60,8 +59,6 @@ const NUDGE_STEP_UV = 0.005;
 const NUDGE_STEP_UV_COARSE = 0.025;
 
 type EditorMode = 'animation' | 'horizontal' | 'vertical' | 'none';
-
-export type LedMapEditorTab = 'editor' | 'community';
 
 type SavedLedState = { u: number; v: number; disabled: boolean; isCustom: boolean };
 
@@ -88,11 +85,11 @@ interface Props {
   /** False hides every zone-management affordance (single-zone smart lights etc.). */
   zoneCustomizable: boolean;
   onClose: () => void;
-  /** Open directly on a tab; the device-card community badge deep-links here. */
-  initialTab?: LedMapEditorTab;
+  /** Open with the community modal already stacked on top; the device-card community badge deep-links here. */
+  initialCommunityOpen?: boolean;
 }
 
-export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizable, onClose, initialTab }: Props) {
+export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizable, onClose, initialCommunityOpen }: Props) {
   const { t } = useTranslation();
   const { push } = useToast();
 
@@ -151,18 +148,15 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // count resizability, and the community deviceKey all resolve through it.
   const zoneCard = devices.find(d => d.id === selectedZoneId);
 
-  // Editor | Community tab. Community only exists for fingerprintable zones
-  // (non-empty card deviceKey); custom-partition zones have empty keys so
-  // the tab hides for them.
-  const [activeTab, setActiveTab] = useState<LedMapEditorTab>(initialTab ?? 'editor');
+  // Community layouts modal, stacked on top of the editor modal. Community
+  // only exists for fingerprintable zones (non-empty card deviceKey);
+  // custom-partition zones have empty keys so the rail button disables and
+  // a requested open (deep link) is clamped shut for them.
+  const [communityRequested, setCommunityRequested] = useState(initialCommunityOpen ?? false);
   const communityEnabled = (zoneCard?.deviceKey ?? '') !== '';
-  // Without a device key the community tab does not exist, so clamp the
-  // effective tab to the editor; otherwise a community initialTab would leave
-  // the ref stuck on a tab that never renders and the canvas keyboard
-  // shortcuts would stay disabled.
-  const effectiveTab: LedMapEditorTab = communityEnabled ? activeTab : 'editor';
-  const activeTabRef = useRef(effectiveTab);
-  activeTabRef.current = effectiveTab;
+  const communityModalOpen = communityEnabled && communityRequested;
+  const communityModalOpenRef = useRef(communityModalOpen);
+  communityModalOpenRef.current = communityModalOpen;
 
   // Pending action (community apply / import / remove, zone switch, or a
   // partition edit) held behind the unsaved-edits confirm. Those actions
@@ -265,6 +259,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     () => new Map((structure?.segments ?? []).map(s => [s.index, s.zoneType])),
     [structure],
   );
+
+  // Enabled-LED count per zone for the chip labels, tracking the staged
+  // editor state live as the user parks / restores LEDs.
+  const enabledByZone = useMemo(() => zoneEnabledCounts(leds), [leds]);
 
   // Until the structure resolves there is no zone membership to scope by;
   // everything stays editable (matches single-zone devices).
@@ -372,9 +370,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Canvas shortcuts only act while the editor tab is showing; on the
-      // community tab a stray Delete must not park LEDs behind the user's back.
-      if (activeTabRef.current !== 'editor') return;
+      // Canvas shortcuts only act while the editor is the top modal; with the
+      // community modal stacked on it a stray Delete must not park LEDs
+      // behind the user's back.
+      if (communityModalOpenRef.current) return;
       // Ignore keys when focus is in an editable field so the EditableNumber
       // count input and any future text inputs don't hijack arrows / delete.
       const target = e.target as HTMLElement | null;
@@ -587,9 +586,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   showUnsavedConfirmRef.current = showUnsavedConfirm;
   const handleClose = useCallback(() => {
     // Confirm dialog owns Escape while it's open - don't loop the prompt.
-    // Same for the zone prompt and the community publish dialog: the Esc
-    // that closes them must not also close (or confirm-close) the editor.
-    if (showUnsavedConfirmRef.current || childDialogOpenRef.current) return;
+    // Same for the zone prompt, the community publish dialog, and the
+    // stacked community modal: the Esc that closes them must not also close
+    // (or confirm-close) the editor underneath.
+    if (showUnsavedConfirmRef.current || childDialogOpenRef.current || communityModalOpenRef.current) return;
     if (dirtyRef.current) {
       setShowUnsavedConfirm(true);
       return;
@@ -603,6 +603,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     if (!isStagedZoneId(selectedZoneIdRef.current)) clearLedEditor(selectedZoneIdRef.current);
     onClose();
   }, [onClose]);
+
+  // Close for the stacked community modal. The Esc that closes a dialog
+  // sitting above it (publish confirm, discard-edits confirm) must not also
+  // close the community modal.
+  const handleCommunityClose = useCallback(() => {
+    if (childDialogOpenRef.current) return;
+    setCommunityRequested(false);
+  }, []);
 
   // Actions that replace or reload the resolved map (community apply /
   // import / remove, zone switch, partition edits) go through here so a
@@ -1542,17 +1550,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         <div className={styles.loading}>{t('lighting.ledMap.title')}...</div>
       ) : (
         <div className={styles.content}>
-          {communityEnabled && (
-            <Tabs
-              tabs={[
-                { key: 'editor', label: t('lighting.ledMap.tabEditor') },
-                { key: 'community', label: t('lighting.ledMap.tabCommunity') },
-              ]}
-              activeKey={effectiveTab}
-              onChange={k => setActiveTab(k as LedMapEditorTab)}
-              ariaLabel={t('lighting.ledMap.title')}
-            />
-          )}
           {showZonesBar && (
             <div className={styles.zonesBar}>
               <span className={styles.zonesLabel}>{t('lighting.ledMap.zones')}</span>
@@ -1575,7 +1572,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                       onClick={e => handleZoneChipClick(z.id, isMultiKey(e))}
                     >
                       {z.name}
-                      <span className={styles.zoneChipCount}>{zoneLedCount(z)}</span>
+                      <span className={styles.zoneChipCount}>
+                        {formatZoneChipCount(enabledByZone.get(z.id) ?? 0, zoneLedCount(z))}
+                      </span>
                     </button>
                     {walled && (
                       <HoverTooltip body={t('lighting.ledMap.zoneWallTooltip')} side="top">
@@ -1639,15 +1638,28 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                   </button>
                 </HoverTooltip>
               )}
+              <div className={styles.separator} />
+              {/* Community layouts for the selected zone, in a modal stacked
+                  on the editor. Zones without a deviceKey (custom partitions,
+                  staged temp zones) cannot be fingerprinted, so the button
+                  disables with an explanatory tooltip for them. */}
+              <HoverTooltip
+                body={communityEnabled ? t('lighting.ledMap.community') : t('lighting.ledMap.communityUnavailable')}
+                side="top"
+              >
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.communityBtn}`}
+                  disabled={!communityEnabled || saving}
+                  aria-label={t('lighting.ledMap.community')}
+                  onClick={() => setCommunityRequested(true)}
+                >
+                  <Users size={13} aria-hidden />
+                  {t('lighting.ledMap.community')}
+                </button>
+              </HoverTooltip>
             </div>
           )}
-          {/* Both tab panels share one sizing context: the editor pane is
-              always laid out (hidden, not unmounted, on the community tab)
-              and defines the modal's height; the community pane overlays it
-              absolutely and scrolls within, so switching tabs never resizes
-              the modal. */}
-          <div className={styles.tabPanels}>
-          <div className={`${styles.editorPane} ${effectiveTab === 'community' ? styles.editorPaneHidden : ''}`}>
           {/* General tooling: history, restore, reset, save. */}
           <div className={styles.toolbar}>
             {canEditLedCount && (
@@ -1725,19 +1737,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             </button>
           </div>
 
-          <div
-            ref={canvasRef}
-            className={styles.canvas}
-            style={{ aspectRatio: String(CANVAS_RATIO) }}
-            onPointerDown={handleCanvasPointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={e => handlePointerUp(e)}
-            onPointerLeave={() => handlePointerUp()}
-          >
-            {/* Preview tooling overlaid top-left: test pattern toggles +
-                per-zone brightness. stopPropagation keeps clicks on the
-                group from starting a marquee underneath. */}
-            <div className={`${styles.canvasOverlay} ${styles.canvasOverlayLeft}`} onPointerDown={e => e.stopPropagation()}>
+          {/* Preview + selection tooling above the canvas, as two compact
+              grouped sections: test pattern toggles + per-zone brightness on
+              the left, select all / clear selection on the right. */}
+          <div className={styles.controlsRow}>
+            <div className={styles.controlGroup}>
               <div className={styles.modeBtns}>
                 <span className={styles.modeBtnsLabel}>{t('lighting.ledMap.testSection')}</span>
                 {modes.map(m => (
@@ -1772,9 +1776,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                 <span className={styles.brightnessValue}>{brightness}%</span>
               </div>
             </div>
-
-            {/* Selection tooling overlaid top-right. */}
-            <div className={`${styles.canvasOverlay} ${styles.canvasOverlayRight}`} onPointerDown={e => e.stopPropagation()}>
+            <div className={styles.spacer} />
+            <div className={styles.controlGroup}>
               <HoverTooltip body={`${t('lighting.ledMap.selectAll')} (${isMac ? 'Cmd' : 'Ctrl'}+A)`} side="bottom">
                 <button
                   type="button"
@@ -1797,7 +1800,17 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                 </button>
               </HoverTooltip>
             </div>
+          </div>
 
+          <div
+            ref={canvasRef}
+            className={styles.canvas}
+            style={{ aspectRatio: String(CANVAS_RATIO) }}
+            onPointerDown={handleCanvasPointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={e => handlePointerUp(e)}
+            onPointerLeave={() => handlePointerUp()}
+          >
             <div
               className={styles.deviceRect}
               style={{
@@ -2030,20 +2043,26 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               );
             })()}
           </div>
-          </div>
-          {effectiveTab === 'community' && (
-            <div className={styles.communityPane}>
-              <CommunityMappingsPanel
-                deviceId={selectedZoneId}
-                deviceName={zoneCard?.name ?? structure?.name ?? ''}
-                onLedMapChanged={() => { void load(); }}
-                onDialogOpenChange={setCommunityDialogOpen}
-                confirmDiscardEdits={confirmDiscardEdits}
-              />
-            </div>
-          )}
-          </div>
         </div>
+      )}
+      {/* Community layouts, stacked on the editor modal. The dialogs the
+          panel raises (publish confirm, discard-edits confirm) mount later
+          and therefore stack above it in turn. */}
+      {!loading && communityModalOpen && (
+        <DeviceModal
+          open
+          onClose={handleCommunityClose}
+          title={`${zoneCard?.name ?? structure?.name ?? ''} - ${t('lighting.ledMap.community')}`}
+          large
+        >
+          <CommunityMappingsPanel
+            deviceId={selectedZoneId}
+            deviceName={zoneCard?.name ?? structure?.name ?? ''}
+            onLedMapChanged={() => { void load(); }}
+            onDialogOpenChange={setCommunityDialogOpen}
+            confirmDiscardEdits={confirmDiscardEdits}
+          />
+        </DeviceModal>
       )}
       <ConfirmModal
         open={showUnsavedConfirm}

@@ -4,10 +4,13 @@ import {
   baselineFrom,
   buildDeviceMapSaveBody,
   buildSavePlan,
+  cardEnabledLedCount,
   checkMerge,
   defaultPartitionGuess,
   emptyHistory,
   flattenDeviceMap,
+  formatZoneChipCount,
+  isCardFullyParked,
   isStagedZoneId,
   mergeStagedZones,
   mergeZoneSlices,
@@ -24,6 +27,7 @@ import {
   toZoneLocalIndices,
   undoHistory,
   zoneDeviceIndices,
+  zoneEnabledCounts,
   zoneLedCount,
   zoneTouchesResizable,
   type EditorLed,
@@ -510,5 +514,65 @@ describe('buildDeviceMapSaveBody', () => {
     expect(unchanged.aspectRatio).toBe(0);
     const changed = buildDeviceMapSaveBody({ leds: [], baseline: new Map(), rectRatio: 2, loadedRatio: 16 / 9 });
     expect(changed.aspectRatio).toBe(2);
+  });
+});
+
+describe('zoneEnabledCounts', () => {
+  it('counts only enabled LEDs per zone', () => {
+    const counts = zoneEnabledCounts([
+      led({ index: 0, zoneId: 'a' }),
+      led({ index: 1, zoneId: 'a', disabled: true }),
+      led({ index: 2, zoneId: 'b' }),
+      led({ index: 3, zoneId: 'b' }),
+    ]);
+    expect(counts.get('a')).toBe(1);
+    expect(counts.get('b')).toBe(2);
+  });
+
+  it('omits zones whose LEDs are all parked', () => {
+    const counts = zoneEnabledCounts([led({ index: 0, zoneId: 'a', disabled: true })]);
+    expect(counts.get('a')).toBeUndefined();
+  });
+});
+
+describe('formatZoneChipCount', () => {
+  it('collapses to just the total when every LED is enabled', () => {
+    expect(formatZoneChipCount(8, 8)).toBe('8');
+  });
+
+  it('shows enabled/total while some LEDs are parked', () => {
+    expect(formatZoneChipCount(3, 8)).toBe('3/8');
+    expect(formatZoneChipCount(0, 8)).toBe('0/8');
+  });
+});
+
+describe('cardEnabledLedCount', () => {
+  it('prefers the service-reported enabled count', () => {
+    expect(cardEnabledLedCount({ ledCount: 10, enabledLedCount: 4 })).toBe(4);
+    expect(cardEnabledLedCount({ ledCount: 10, enabledLedCount: 0 })).toBe(0);
+  });
+
+  it('falls back to the total when an older service omits the field', () => {
+    expect(cardEnabledLedCount({ ledCount: 10 })).toBe(10);
+  });
+});
+
+describe('isCardFullyParked', () => {
+  it('hides cards whose LEDs are all disabled', () => {
+    expect(isCardFullyParked({ ledCount: 10, enabledLedCount: 0 })).toBe(true);
+  });
+
+  it('keeps cards with any enabled LED', () => {
+    expect(isCardFullyParked({ ledCount: 10, enabledLedCount: 1 })).toBe(false);
+    expect(isCardFullyParked({ ledCount: 10, enabledLedCount: 10 })).toBe(false);
+  });
+
+  it('keeps zero-LED cards (unconfigured or detection-failed, not parked)', () => {
+    expect(isCardFullyParked({ ledCount: 0, enabledLedCount: 0 })).toBe(false);
+    expect(isCardFullyParked({ ledCount: 0 })).toBe(false);
+  });
+
+  it('keeps cards from older services without the field', () => {
+    expect(isCardFullyParked({ ledCount: 10 })).toBe(false);
   });
 });
