@@ -141,6 +141,21 @@ export const setMediaEffect = (v: PostProcessSettings, persist = true) =>
     persist,
   });
 
+// --- Render GPU (which card runs the lighting shaders) ---
+// Machine-specific (the GPU model name), so it lives in the service config, not
+// the cloud-synced UI prefs. Restart-to-apply: setRenderGpu persists + writes
+// the OS preference; restartService applies it.
+export interface RenderGpuState { value: string; }
+
+export const fetchRenderGpu = () =>
+  fetchService<RenderGpuState>('/lighting/render-gpu');
+
+export const setRenderGpu = (value: string) =>
+  postService('/lighting/render-gpu', { value });
+
+export const restartService = () =>
+  postService('/service/restart', {});
+
 // --- Screen monitor enumeration ---
 
 export interface ScreenMonitor {

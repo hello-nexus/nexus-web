@@ -31,6 +31,7 @@ vi.mock('../../../hooks/useAudioState', () => ({
 
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
   useTopicCallback: vi.fn(),
+  useTopic: vi.fn(() => null),
 }));
 
 vi.mock('../../../lib/controlSync', () => ({

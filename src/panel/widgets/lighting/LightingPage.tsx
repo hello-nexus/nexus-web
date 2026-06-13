@@ -24,6 +24,7 @@ import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSke
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
 import { useUsbDevices } from '../../../hooks/useUsbDevices';
+import { useSensors } from '../../../hooks/useSensors';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
   EFFECTS, MODES, defaultStateFor,
@@ -56,6 +57,7 @@ interface LightingViewProps {
   serviceState: ServiceState;
   connectionState?: ConnectionState;
   activeProfileId?: string;
+  platform?: string;
 }
 
 const DEFAULT_POST_PROCESS: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
@@ -80,8 +82,9 @@ function loadDeviceOrder(): string[] {
   return [];
 }
 
-export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId }: LightingViewProps) {
+export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '' }: LightingViewProps) {
   const { t } = useTranslation();
+  const sensors = useSensors(serviceOnline);
   const { mode, setMode, rawSync, setRawSync, synced } = useLightingSync(serviceOnline, activeProfileId);
   const frames = useLightingFrames();
   // Read RGB running/scanning off useServiceState (already subscribed
@@ -826,6 +829,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         serviceOnline={serviceOnline}
+        platform={platform}
+        gpus={sensors.gpuComponents}
       />
       <SupportedDevicesModal
         open={catalogOpen}

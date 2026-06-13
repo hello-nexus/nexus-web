@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { resetDeviceLayouts } from '../../../../api/lighting';
+import { resetDeviceLayouts, fetchRenderGpu, setRenderGpu, restartService } from '../../../../api/lighting';
 import { Overlay } from '../../../../components/common/Overlay/Overlay';
 import { Button } from '../../../../components/common/Button/Button';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
+import { Select, type SelectOption } from '../../../../components/common/Select/Select';
+import type { GpuComponent } from '../../../../lib/gpuResolver';
 import { useTranslation } from '../../../../lib/i18n';
 import { GlobalBrightnessSlider } from './GlobalBrightnessSlider';
 import styles from './LightingSettingsModal.module.scss';
@@ -11,42 +13,73 @@ interface LightingSettingsModalProps {
   open: boolean;
   onClose: () => void;
   serviceOnline: boolean;
+  platform?: string;
+  gpus?: GpuComponent[];
 }
 
 /**
- * Settings dialog for the lighting page: master brightness slider plus
- * a "reset positions" action that clears every persisted canvas
- * position/size/rotation. Matches the cooling page's settings modal.
+ * Settings dialog for the lighting page: master brightness, an optional
+ * render-GPU picker (which card runs the lighting shaders, Windows/Linux with
+ * 2+ GPUs only), and a "reset positions" action. The render-GPU choice is
+ * restart-to-apply, so changing it opens a restart confirm.
  */
-export function LightingSettingsModal({ open, onClose, serviceOnline }: LightingSettingsModalProps) {
+export function LightingSettingsModal({
+  open, onClose, serviceOnline, platform = '', gpus = [],
+}: LightingSettingsModalProps) {
   const { t } = useTranslation();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [renderGpu, setRenderGpuValue] = useState('auto');
+  const [restartOpen, setRestartOpen] = useState(false);
 
-  // Reset the destructive-confirm flow whenever the parent modal closes.
-  // Guards against a "Done" click while ConfirmModal is open leaving stale
-  // confirmOpen=true that would flash the confirm back up on next open.
+  // Only meaningful on Windows/Linux with more than one GPU to choose between.
+  const showGpuPicker = (platform === 'windows' || platform === 'linux') && gpus.length > 1;
+
   useEffect(() => {
-    if (!open) { setConfirmOpen(false); setResetting(false); }
+    if (!open) { setConfirmOpen(false); setResetting(false); setRestartOpen(false); }
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !showGpuPicker || !serviceOnline) return;
+    let cancelled = false;
+    fetchRenderGpu()
+      .then(r => { if (!cancelled) setRenderGpuValue(r?.value || 'auto'); })
+      .catch(() => { /* keep default */ });
+    return () => { cancelled = true; };
+  }, [open, showGpuPicker, serviceOnline]);
 
   const handleReset = async () => {
     setResetting(true);
-    try {
-      await resetDeviceLayouts();
-    } finally {
-      setResetting(false);
-      setConfirmOpen(false);
-    }
+    try { await resetDeviceLayouts(); }
+    finally { setResetting(false); setConfirmOpen(false); }
+  };
+
+  const handleGpuChange = async (value: string) => {
+    setRenderGpuValue(value);
+    try { await setRenderGpu(value); } catch { /* persist may retry; UI keeps the pick */ }
+    setRestartOpen(true);
+  };
+
+  const handleRestart = async () => {
+    try { await restartService(); } catch { /* the socket drops as the service restarts */ }
+    setRestartOpen(false);
   };
 
   if (!open) return null;
+
+  const gpuOptions: SelectOption[] = [
+    { value: 'auto', label: t('lighting.renderGpu.auto') },
+    ...gpus.map(g => ({
+      value: g.name,
+      label: g.integrated ? `${g.name} (${t('monitoring.gpuSelect.integrated')})` : g.name,
+    })),
+  ];
 
   return (
     <>
       <Overlay open={open} onClose={onClose} variant="dialog"
         className={styles.modal} ariaLabel={t('lighting.settings.title')}
-        noEscDismiss={confirmOpen}>
+        noEscDismiss={confirmOpen || restartOpen}>
         <h2 className={styles.title}>{t('lighting.settings.title')}</h2>
         <p className={styles.description}>{t('lighting.settings.description')}</p>
 
@@ -56,6 +89,22 @@ export function LightingSettingsModal({ open, onClose, serviceOnline }: Lighting
             <GlobalBrightnessSlider serviceOnline={serviceOnline} />
           </div>
         </div>
+
+        {showGpuPicker && (
+          <label className={styles.row}>
+            <div className={styles.resetLabelGroup}>
+              <span className={styles.rowLabel}>{t('lighting.renderGpu.label')}</span>
+              <span className={styles.resetHint}>{t('lighting.renderGpu.hint')}</span>
+            </div>
+            <Select
+              className={styles.select}
+              value={renderGpu}
+              onChange={handleGpuChange}
+              options={gpuOptions}
+              ariaLabel={t('lighting.renderGpu.label')}
+            />
+          </label>
+        )}
 
         <div className={styles.row}>
           <div className={styles.resetLabelGroup}>
@@ -87,6 +136,15 @@ export function LightingSettingsModal({ open, onClose, serviceOnline }: Lighting
         destructive
         onConfirm={handleReset}
         onCancel={() => setConfirmOpen(false)}
+      />
+      <ConfirmModal
+        open={restartOpen}
+        title={t('lighting.renderGpu.confirmTitle')}
+        message={t('lighting.renderGpu.confirmMessage')}
+        confirmLabel={t('lighting.renderGpu.confirmButton')}
+        destructive={false}
+        onConfirm={handleRestart}
+        onCancel={() => setRestartOpen(false)}
       />
     </>
   );
