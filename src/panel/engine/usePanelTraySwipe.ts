@@ -29,6 +29,9 @@ export type TraySwipeState = 'idle' | 'dragging' | 'settling';
 interface TraySwipeOptions {
   enabled: boolean;
   surfaceRef: RefObject<HTMLElement | null>;
+  // Dead zone the drag must clear before it engages and starts counting toward
+  // the commit distance. Default GESTURE_ENGAGE_PX (shared with the pager).
+  engageDistancePx?: number;
   // Pixels the user must lift past before the gesture commits. Default 48.
   commitDistancePx?: number;
   // Pixels per ms upward flick that commits regardless of distance. Default 0.45.
@@ -54,6 +57,7 @@ const SETTLE_MS = 220;
 export function usePanelTraySwipe({
   enabled,
   surfaceRef,
+  engageDistancePx = GESTURE_ENGAGE_PX,
   commitDistancePx = 48,
   commitVelocity = 0.45,
   bottomEdgeIgnorePx = 28,
@@ -65,11 +69,13 @@ export function usePanelTraySwipe({
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onCommitRef = useRef(onCommit);
   const onCancelRef = useRef(onCancel);
+  const engageDistanceRef = useRef(engageDistancePx);
   const commitDistanceRef = useRef(commitDistancePx);
   const commitVelocityRef = useRef(commitVelocity);
   const bottomEdgeIgnoreRef = useRef(bottomEdgeIgnorePx);
   useEffect(() => { onCommitRef.current = onCommit; }, [onCommit]);
   useEffect(() => { onCancelRef.current = onCancel; }, [onCancel]);
+  useEffect(() => { engageDistanceRef.current = engageDistancePx; }, [engageDistancePx]);
   useEffect(() => { commitDistanceRef.current = commitDistancePx; }, [commitDistancePx]);
   useEffect(() => { commitVelocityRef.current = commitVelocity; }, [commitVelocity]);
   useEffect(() => { bottomEdgeIgnoreRef.current = bottomEdgeIgnorePx; }, [bottomEdgeIgnorePx]);
@@ -151,7 +157,7 @@ export function usePanelTraySwipe({
       const deltaX = t.clientX - startX;
 
       if (!isDragging) {
-        if (deltaY <= GESTURE_ENGAGE_PX) return;
+        if (deltaY <= engageDistanceRef.current) return;
         // Engage only on a clearly vertical-up drag; near-diagonal stays
         // unclaimed so a mostly-horizontal swipe is left to the pager.
         if (deltaY <= Math.abs(deltaX) * GESTURE_AXIS_DOMINANCE) return;
@@ -168,7 +174,7 @@ export function usePanelTraySwipe({
         if (dt > 0) velocity = (lastY - t.clientY) / dt; // upward = positive
         lastY = t.clientY;
         lastTime = e.timeStamp;
-        const lifted = Math.max(0, deltaY - GESTURE_ENGAGE_PX);
+        const lifted = Math.max(0, deltaY - engageDistanceRef.current);
         lastOffset = lifted;
         setOffset(lifted);
         if (lifted > commitDistanceRef.current) {

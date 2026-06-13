@@ -15,6 +15,7 @@ function Harness() {
         onAddWidget={vi.fn()}
         pairAvailable={false}
         surfaceRef={surfaceRef}
+        surface="phone"
       />
     </div>
   );
@@ -34,9 +35,9 @@ describe('PanelActionsTray swipe-to-open', () => {
     const tray = screen.getByLabelText('panel.actions.label');
 
     act(() => {
-      // Above the iOS home-indicator band (>28px from the 768px jsdom viewport
-      // bottom), lift 50px straight up — past GESTURE_ENGAGE_PX (16) and
-      // clearly vertical-dominant.
+      // Above the iOS home-indicator band (clear of the bottom-edge ignore
+      // zone), lift straight up past the engage dead zone, clearly
+      // vertical-dominant, so the tray engages.
       dispatchTouch(surface, 'touchstart', 100, 700, 0);
       dispatchTouch(surface, 'touchmove', 100, 650, 16);
     });
@@ -52,7 +53,7 @@ describe('PanelActionsTray swipe-to-open', () => {
     const tray = screen.getByLabelText('panel.actions.label');
 
     act(() => {
-      // 200px across, only 20px up: past the 16px engage but nowhere near
+      // Mostly horizontal (200px across, little vertical lift): not
       // vertical-dominant, so the tray leaves it to the pager.
       dispatchTouch(surface, 'touchstart', 100, 700, 0);
       dispatchTouch(surface, 'touchmove', 300, 680, 16);
