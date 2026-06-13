@@ -4,6 +4,7 @@ import { Button } from '../../../components/common/Button/Button';
 import { Card } from '../../../components/common/Card/Card';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
+import { Select } from '../../../components/common/Select/Select';
 import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
@@ -77,6 +78,10 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
   const [scanningBrand, setScanningBrand] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [pairState, setPairState] = useState<PairState>({ kind: 'idle' });
+  // Manual add-by-IP fallback: multicast discovery is unreliable for Govee over
+  // WiFi, so the user can pair a known IP directly. Defaults to Govee.
+  const [ipBrand, setIpBrand] = useState<string>('govee');
+  const [ipHost, setIpHost] = useState<string>('');
 
   const refreshPaired = useCallback(async () => {
     const res = await fetchSmartLights();
@@ -124,6 +129,13 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
     setPairState({ kind: 'error', message: res?.error || t('smartLights.pairFailed') });
   }, [refreshPaired, t]);
 
+  const handleAddByIp = useCallback(() => {
+    const host = ipHost.trim();
+    if (!host) return;
+    // Empty stableKey + name: the service resolves them (Govee probes the IP).
+    void doPair(ipBrand, host, '', '');
+  }, [doPair, ipBrand, ipHost]);
+
   const handleToggleEnabled = useCallback(async (id: string, enabled: boolean) => {
     setPaired(prev => prev.map(d => (d.id === id ? { ...d, enabled } : d))); // optimistic
     const res = await setSmartLightEnabled(id, enabled);
@@ -162,6 +174,37 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
               );
             })}
           </div>
+
+          <form
+            className={styles.ipForm}
+            onSubmit={e => { e.preventDefault(); handleAddByIp(); }}
+          >
+            <span className={styles.ipLabel}>{t('smartLights.addByIp')}</span>
+            <Select
+              value={ipBrand}
+              onChange={setIpBrand}
+              options={ACTIVE_BRANDS.map(([brand, labelKey]) => ({ value: brand, label: t(labelKey) }))}
+              ariaLabel={t('smartLights.addByIp')}
+              className={styles.ipBrandSelect}
+            />
+            <input
+              type="text"
+              className={styles.ipInput}
+              value={ipHost}
+              onChange={e => setIpHost(e.target.value)}
+              placeholder="192.168.1.50"
+              aria-label={t('smartLights.ipAddress')}
+            />
+            <Button
+              type="submit"
+              size="sm"
+              tone="accent"
+              loading={pairState.kind === 'pairing'}
+              disabled={!ipHost.trim() || scanningBrand !== null}
+            >
+              {t('smartLights.add')}
+            </Button>
+          </form>
 
           {scanError && <p className={styles.error}>{scanError}</p>}
 

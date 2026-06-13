@@ -72,6 +72,42 @@
   color: var(--text-faded);
 }
 
+// ---------- Add by IP ----------
+
+.ipForm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ipLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.ipBrandSelect {
+  width: 9rem;
+}
+
+.ipInput {
+  flex: 1;
+  min-width: 8rem;
+  padding: 6px 10px;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+  transition: border-color var(--ease-fast);
+
+  &:hover { border-color: var(--border-strong); }
+  &:focus { border-color: var(--accent); }
+}
+
 // ---------- Discovered list ----------
 
 .discoverList {

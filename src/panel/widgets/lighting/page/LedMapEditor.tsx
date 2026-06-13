@@ -2,12 +2,12 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
   Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square, Sun, SunDim,
-  Pencil, Merge, Scissors, ListRestart, Lock, Users,
+  Pencil, Merge, Scissors, ListRestart, Lock, Users, Palette, Droplet,
 } from 'lucide-react';
 import {
   fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
   highlightLeds, testLedPattern, clearLedEditor,
-  setZoneLedCount, setLightingDeviceBrightness,
+  setZoneLedCount, setLightingDeviceBrightness, setLightingDeviceColor,
   type DeviceStructureResponse, type DeviceZone, type LightingDevice,
 } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
@@ -31,6 +31,15 @@ import styles from './LedMapEditor.module.scss';
 
 const isMac = /mac/i.test(navigator.userAgent);
 const DEFAULT_RATIO = 16 / 9;
+
+// Smart-light card ids are brand-prefixed (`govee:…`, `hue:…`); the brand set
+// mirrors SmartLightsPage's categories. PC / OpenRGB device ids never carry one
+// of these prefixes, so the color sliders stay hidden for them.
+const SMART_LIGHT_BRANDS = [
+  'govee', 'hue', 'nanoleaf', 'wled', 'lifx', 'twinkly', 'wiz', 'yeelight', 'elgato',
+] as const;
+const isSmartLightId = (id: string) =>
+  SMART_LIGHT_BRANDS.some(brand => id.startsWith(`${brand}:`));
 // Canvas box shape. Applied as an inline style so TS owns the single source;
 // the device frame's default placement derives from it below so the
 // frame-to-edge gap is identical on all four sides.
@@ -559,11 +568,23 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // Per-zone brightness multiplier (0..100). Multiplies the global
   // brightness slider so the effective output is `global * zone / 100`.
   const [brightness, setBrightness] = useState<number>(() => zoneCard?.brightness ?? 100);
+  // Per-zone color, shown only for smart lights. Local state is degrees /
+  // percent for the sliders; the service wants 0..1 floats. The card carries
+  // hue/saturation as 0..1.
+  const [hueDeg, setHueDeg] = useState<number>(() => (zoneCard?.hue ?? 0) * 360);
+  const [satPct, setSatPct] = useState<number>(() => (zoneCard?.saturation ?? 1) * 100);
+  // Latest hue/sat so a change to one slider sends the other's current value.
+  const hueDegRef = useRef(hueDeg);
+  hueDegRef.current = hueDeg;
+  const satPctRef = useRef(satPct);
+  satPctRef.current = satPct;
   const devicesRef = useRef(devices);
   devicesRef.current = devices;
   useEffect(() => {
     const card = devicesRef.current.find(d => d.id === selectedZoneId);
     setBrightness(card?.brightness ?? 100);
+    setHueDeg((card?.hue ?? 0) * 360);
+    setSatPct((card?.saturation ?? 1) * 100);
   }, [selectedZoneId]);
   const brightnessThrottle = useThrottle();
   const sendBrightness = useCallback((value: number) => {
@@ -579,6 +600,23 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const handleBrightnessCommit = useCallback((value: number) => {
     sendBrightness(value);
   }, [sendBrightness]);
+
+  const colorThrottle = useThrottle();
+  const sendColor = useCallback(() => {
+    if (isStagedZoneId(selectedZoneIdRef.current)) return;
+    setLightingDeviceColor(selectedZoneIdRef.current, hueDegRef.current / 360, satPctRef.current / 100)
+      .catch(() => { /* best-effort */ });
+  }, []);
+  const handleHueChange = useCallback((value: number) => {
+    setHueDeg(value);
+    hueDegRef.current = value;
+    colorThrottle(sendColor);
+  }, [colorThrottle, sendColor]);
+  const handleSaturationChange = useCallback((value: number) => {
+    setSatPct(value);
+    satPctRef.current = value;
+    colorThrottle(sendColor);
+  }, [colorThrottle, sendColor]);
 
   // ── Close / discard confirms ──────────────────────────────────────────
 
@@ -1831,6 +1869,47 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                 />
                 <span className={styles.brightnessValue}>{brightness}%</span>
               </div>
+              {isSmartLightId(selectedZoneId) && (
+                <>
+                  <div className={styles.separator} />
+                  <div className={styles.brightnessField}>
+                    <Palette size={14} strokeWidth={1.7} className={styles.brightnessIcon} aria-hidden />
+                    <Slider
+                      value={hueDeg}
+                      min={0}
+                      max={360}
+                      step={1}
+                      // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+                      orientation="bare"
+                      onChange={handleHueChange}
+                      onCommit={handleHueChange}
+                      trackFill
+                      disabled={!zoneCard}
+                      ariaLabel={t('lighting.devices.hue')}
+                      className={styles.brightnessTrack}
+                    />
+                    <span className={styles.brightnessValue}>{hueDeg}°</span>
+                  </div>
+                  <div className={styles.brightnessField}>
+                    <Droplet size={14} strokeWidth={1.7} className={styles.brightnessIcon} aria-hidden />
+                    <Slider
+                      value={satPct}
+                      min={0}
+                      max={100}
+                      step={1}
+                      // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+                      orientation="bare"
+                      onChange={handleSaturationChange}
+                      onCommit={handleSaturationChange}
+                      trackFill
+                      disabled={!zoneCard}
+                      ariaLabel={t('lighting.devices.saturation')}
+                      className={styles.brightnessTrack}
+                    />
+                    <span className={styles.brightnessValue}>{satPct}%</span>
+                  </div>
+                </>
+              )}
             </div>
             <div className={styles.spacer} />
             <div className={styles.controlGroup}>

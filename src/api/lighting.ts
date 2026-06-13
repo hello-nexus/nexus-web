@@ -183,6 +183,10 @@ export interface LightingDevice {
   iconType?: string;
   ledsOn: boolean;
   brightness?: number;
+  /** Current hue, 0..1. Set only for color-capable smart lights. */
+  hue?: number;
+  /** Current saturation, 0..1. Set only for color-capable smart lights. */
+  saturation?: number;
   ledCount: number;
   /** LEDs not disabled by the user map. Undefined on older services; the UI falls back to ledCount then. */
   enabledLedCount?: number;
@@ -231,6 +235,11 @@ export const setLightingDevicePower = (id: string, on: boolean) =>
 // canvas preview stays at full brightness while the LED output dims.
 export const setLightingDeviceBrightness = (id: string, brightness: number) =>
   postService('/devices/lighting-devices/brightness', { id, brightness });
+
+// Per-device color for color-capable smart lights. Hue + saturation are floats
+// in 0..1; both are sent on every call so the service has the full HS pair.
+export const setLightingDeviceColor = (id: string, hue: number, saturation: number) =>
+  postService('/devices/lighting-devices/color', { id, hue, saturation });
 
 // Master brightness multiplier (0..1). Multiplies every per-device value so
 // the effective brightness for an LED is `global * device / 100`.
