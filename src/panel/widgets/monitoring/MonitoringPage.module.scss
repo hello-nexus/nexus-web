@@ -415,18 +415,3 @@
   color: var(--text);
   flex-shrink: 0;
 }
-
-// Primary-GPU picker in the ViewHeader tabActions slot (shown only with >1 GPU).
-.gpuSelect {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.gpuSelectLabel {
-  font-size: 0.72rem;
-  font-weight: var(--weight-strong);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-faded);
-}

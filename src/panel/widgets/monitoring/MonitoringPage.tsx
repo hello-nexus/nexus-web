@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useMonitoringFrame } from '../../../hooks/useMonitoringFrame';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
@@ -15,7 +15,8 @@ import { CpuTab } from './page/CpuTab';
 import { MemoryTab } from './page/MemoryTab';
 import { NetworkTab } from './page/NetworkTab';
 import { DetailedTab } from './page/DetailedTab';
-import { GpuSelect } from './page/GpuSelect';
+import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
+import { usePageSettingsAction } from '../../../app/PageChrome';
 import styles from './MonitoringPage.module.scss';
 
 type MonitoringTab = 'overview' | 'cpu' | 'memory' | 'network' | 'detailed';
@@ -41,10 +42,20 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
 
   const { settings, update } = useUiSettings();
   const showAverage = settings.monitoringShowAverage;
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const toggleMode = useCallback(() => {
     update({ monitoringShowAverage: !showAverage });
   }, [showAverage, update]);
+
+  // The settings affordance lives in the top bar (right of the search pill).
+  // Its only control is the primary-GPU picker, so register it only when more
+  // than one GPU is present - there's nothing to choose otherwise.
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
+  usePageSettingsAction(
+    { onOpen: openSettings, label: t('monitoring.settings.open') },
+    serviceOnline && sensors.gpuComponents.length > 1,
+  );
 
   const tabs = [
     { key: 'overview', label: t('monitoring.tab.overview') },
@@ -75,18 +86,18 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     }
   };
 
-  // The GPU picker is global but only relevant where GPU sensors show, and only
-  // useful when there's a choice to make (iGPU + dGPU).
-  const showGpuSelect = (tab === 'overview' || tab === 'detailed') && sensors.gpuComponents.length > 1;
-
   return (
     <div className={styles.monitoring}>
+      <MonitoringSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        gpus={sensors.gpuComponents}
+      />
       <ViewHeader
         title={t('nav.monitoring')}
         tabs={tabs}
         activeTab={tab}
         onTabChange={onTabChange}
-        tabActions={showGpuSelect ? <GpuSelect gpus={sensors.gpuComponents} /> : undefined}
       />
       <div className={`${styles.tabContent} pageBody`}>
         {renderTab()}
