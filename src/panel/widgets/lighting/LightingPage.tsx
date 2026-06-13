@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SlidersHorizontal } from 'lucide-react';
 import {
   startAnimate, startScreenMirror, stopLighting,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
@@ -19,6 +18,7 @@ import { publishControlSync, subscribeControlSync } from '../../../lib/controlSy
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { usePageSettingsAction } from '../../../app/PageChrome';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
@@ -806,6 +806,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // it renders an empty state and the tab header is disabled.
   const effectTabDisabled = mode === 'none';
 
+  // The settings affordance lives in the top bar (right of the search pill);
+  // register it while online so it opens this page's LightingSettingsModal.
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
+  usePageSettingsAction({ onOpen: openSettings, label: t('lighting.settings.open') }, serviceOnline);
+
   if (!serviceOnline) {
     return (
       <div className={styles.lighting}>
@@ -817,24 +822,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   return (
     <div className={styles.lighting}>
-      <ViewHeader
-        title={t('lighting.title')}
-        tabs={modeTabs}
-        activeTab={synced ? mode : undefined}
-        onTabChange={k => handleModeChange(k as LightingMode)}
-        tabActions={
-          <HoverTooltip body={t('lighting.settings.open')} side="bottom">
-            <button
-              type="button"
-              className={styles.settingsBtn}
-              onClick={() => setSettingsOpen(true)}
-              aria-label={t('lighting.settings.open')}
-            >
-              <SlidersHorizontal size={16} aria-hidden />
-            </button>
-          </HoverTooltip>
-        }
-      />
       <LightingSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -847,7 +834,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         source="lighting"
         detectedVidPids={detectedVidPids}
       />
+      {/* ViewHeader lives in the left grid column so the device column (right)
+          can rise to the very top of the page, level with the mode tabs. */}
       <div className={`${styles.body} pageBody`}>
+        <div className={styles.headerCell}>
+          <ViewHeader
+            title={t('lighting.title')}
+            tabs={modeTabs}
+            activeTab={synced ? mode : undefined}
+            onTabChange={k => handleModeChange(k as LightingMode)}
+          />
+        </div>
         <div className={styles.main}>
           <div className={styles.canvasArea}>
             <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={mode === 'animate' ? activeEffect : null} shaderState={mode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />

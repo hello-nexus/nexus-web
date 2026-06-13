@@ -58,6 +58,48 @@
   gap: 0.1rem;
 }
 
+// Mirror of .navArrows on the opposite side: pinned just right of the
+// centered search pill. Opted out of the window drag region so the button
+// receives clicks directly (Windows shell).
+.pageSettings {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: calc(50% + (var(--search-w) / 2) + 0.4rem);
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+// Round button echoing the search pill: same surface fill, strong border, and
+// 34px height, but a circle. Hover/focus mirror the in-page settings button.
+.pageSettingsButton {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}
+
 .rightCluster {
   display: flex;
   align-items: center;

@@ -6,35 +6,6 @@
   height: 100%;
 }
 
-// Sliders icon in the ViewHeader top-right; opens LightingSettingsModal.
-// Visual weight matches the cooling page's settingsBtn.
-.settingsBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: var(--border-width) solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease, background-color var(--ease-fast) ease;
-
-  &:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: var(--accent-soft);
-  }
-
-  &:focus-visible {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px var(--accent-soft);
-  }
-}
-
 // Compact icon-track-value layout for the master brightness slider in
 // the ViewHeader's tabActions slot. Reserved width (min/max) keeps the
 // underline from jumping while the value hydrates and stops the slider
@@ -81,14 +52,25 @@
   display: grid;
   // Device column 300px, matching CoolingPage's right-pane width.
   grid-template-columns: 1fr 300px;
-  grid-template-rows: minmax(0, 1fr);
+  // Row 1 holds the mode tabs in the left column; the device column spans
+  // both rows so it starts at the very top of the page next to the tabs.
+  grid-template-rows: auto minmax(0, 1fr);
   flex: 1;
   min-height: 0;
   overflow: hidden;
   position: relative; // anchor for the settings drawer
 }
 
+// Mode-tabs cell: top-left of the body grid.
+.headerCell {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
 .main {
+  grid-column: 1;
+  grid-row: 2;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -100,6 +82,8 @@
 }
 
 .rightPane {
+  grid-column: 2;
+  grid-row: 1 / span 2;
   position: relative;
   min-height: 0;
   display: flex;

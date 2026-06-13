@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Gauge, Plus, Power, SlidersHorizontal } from 'lucide-react';
+import { Gauge, Plus, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { usePersistentState } from '../../../hooks/usePersistentState';
 import {
@@ -40,6 +40,7 @@ import { FanCard, type FanCardHubMode } from './page/FanCard';
 import { CurveCard, computeCurveSpeed } from './page/CurveEditor';
 import { CoolingTrendChart } from './page/CoolingTrendChart';
 import { CoolingSettingsModal } from './page/CoolingSettingsModal';
+import { usePageSettingsAction } from '../../../app/PageChrome';
 import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './page/coolingPresets';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, resolveGpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
@@ -1095,6 +1096,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     </div>
   ) : null;
 
+  // The settings affordance lives in the top bar (right of the search pill);
+  // register it while online so it opens this page's CoolingSettingsModal.
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
+  usePageSettingsAction({ onOpen: openSettings, label: t('cooling.settings.open') }, serviceOnline);
+
   if (!serviceOnline) {
     return (
       <div className={styles.cooling}>
@@ -1112,30 +1118,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   return (
     <div className={styles.cooling}>
-      <ViewHeader
-        title={t('cooling.title')}
-        tabs={presetTabs}
-        activeTab={activePreset ?? undefined}
-        onTabChange={k => handlePresetChange(k)}
-        tabActions={
-          <HoverTooltip body={t('cooling.settings.open')} side="bottom">
-            <button
-              type="button"
-              className={styles.settingsBtn}
-              onClick={() => setSettingsOpen(true)}
-              aria-label={t('cooling.settings.open')}
-            >
-              <SlidersHorizontal size={16} aria-hidden />
-            </button>
-          </HoverTooltip>
-        }
-      />
-
       <CoolingSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         cpuSensors={sensors.cpu}
         gpuSensors={sensors.gpu}
+      />
+
+      <ViewHeader
+        title={t('cooling.title')}
+        tabs={presetTabs}
+        activeTab={activePreset ?? undefined}
+        onTabChange={k => handlePresetChange(k)}
       />
 
       {/* Render the body chrome unconditionally so the chart + sections paint

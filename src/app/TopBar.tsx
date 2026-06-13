@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import {
   ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
   MoreHorizontal, Settings, FlaskConical, CircleHelp, Info, Unplug,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDropdown';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
@@ -12,6 +13,7 @@ import { useTranslation } from '../lib/i18n';
 import { useCommandPaletteOptional } from '../search/CommandPaletteContext';
 import { TopSearch } from '../search/TopSearch';
 import { CaptionButtons } from './CaptionButtons';
+import { usePageChrome } from './PageChrome';
 import { useWindowDragRegion } from './useWindowDragRegion';
 import { ConnectedProfileSlot } from './sidebar';
 import type { ConnectionState } from '../hooks/useServiceStatus';
@@ -129,6 +131,9 @@ export function TopBar({
   const { t } = useTranslation();
   const [aboutOpen, setAboutOpen] = useState(false);
   const palette = useCommandPaletteOptional();
+  // Settings affordance for the active page (Lighting / Cooling register one),
+  // surfaced as a round button just right of the search pill.
+  const pageSettings = usePageChrome()?.settings ?? null;
   // Empty areas of the bar drag the window (Windows shell only); see hook.
   const dragRegion = useWindowDragRegion();
 
@@ -189,6 +194,24 @@ export function TopBar({
       ) : (
         <div className={styles.searchBar}>
           <h1 className={styles.searchTitle}>{pageTitle}</h1>
+        </div>
+      )}
+
+      {/* Page settings, pinned just right of the centered search pill (mirrors
+          the history arrows on its left). Round to echo the pill; shown only
+          when the active page registers a settings action. */}
+      {pageSettings && (
+        <div className={styles.pageSettings}>
+          <HoverTooltip body={pageSettings.label} side="bottom">
+            <button
+              type="button"
+              className={styles.pageSettingsButton}
+              onClick={pageSettings.onOpen}
+              aria-label={pageSettings.label}
+            >
+              <SlidersHorizontal size={16} aria-hidden />
+            </button>
+          </HoverTooltip>
         </div>
       )}
 

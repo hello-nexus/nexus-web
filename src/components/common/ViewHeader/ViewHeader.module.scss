@@ -3,6 +3,12 @@
 .header {
   display: flex;
   flex-direction: column;
+  // Cap + center the tab bar at the same --page-max the body uses, so the tabs
+  // track the body when the window stretches past the cap instead of staying
+  // pinned to the left edge.
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
 }
 
 // Row holding the page's right-aligned action widget(s). The page title that
