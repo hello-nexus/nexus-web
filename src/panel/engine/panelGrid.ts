@@ -169,3 +169,18 @@ export function estimateRuntimePanelDpi(surface: PanelSurface): number {
   if (dpr >= 1.75) return 326;
   return 160;
 }
+
+// CSS px spanning one physical millimeter on this surface — lets a gesture
+// threshold be set as real finger travel instead of raw CSS px. A CSS px is not
+// a fixed physical size: a phone's mobile viewport anchors it near the
+// reference density, but on the Y70 Edge kiosk devicePixelRatio is only the
+// Windows display-scaling factor (~1.5), not the panel's ~337 PPI, so the same
+// CSS px is far less finger travel there. estimateRuntimePanelDpi is native
+// px/inch; gesture coordinates are CSS px, hence the /dpr.
+export function cssPxPerMm(surface: PanelSurface): number {
+  if (typeof window === 'undefined') return DEFAULT_SURFACE_DPI[surface] / 25.4;
+  const dpr = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0
+    ? window.devicePixelRatio
+    : 1;
+  return estimateRuntimePanelDpi(surface) / 25.4 / dpr;
+}

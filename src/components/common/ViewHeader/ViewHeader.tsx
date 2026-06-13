@@ -12,9 +12,14 @@ interface ViewHeaderProps {
   tabsDisabled?: boolean;
   actions?: ReactNode;
   /** Right-aligned widget at the same vertical level as the tabs. Overlaid via
-   *  absolute positioning so the tabs' underline bar stays full width. */
+   *  absolute positioning so it doesn't stretch the tab bar's width. */
   tabActions?: ReactNode;
 }
+
+// Page-level tabs use the shared Tabs primitive's segmented `pill` chrome -
+// the same treatment as the in-page Effect/Devices selector - so every tab
+// bar in the app reads as one control. Text-only and icon+text tabs both
+// flow through the single component.
 
 export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, actions, tabActions }: ViewHeaderProps) {
   return (
@@ -33,6 +38,7 @@ export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, 
             disabled={tabsDisabled}
             className={styles.viewHeaderTabs}
             ariaLabel={title}
+            variant="pill"
           />
           {tabActions && <div className={styles.tabActions}>{tabActions}</div>}
         </div>

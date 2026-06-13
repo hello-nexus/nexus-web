@@ -334,9 +334,10 @@ input[type="range"][data-range-knob] {
 }
 
 // Universal page body wrapper. Sits on the element that follows a page's
-// header (title + tabs + underline). The header stays full width and keeps
-// stretching; everything below caps at --page-max and centers in the content
-// column. Applied to every routed page so the whole app shares one body width.
+// header (title + tabs). Both the header (capped in ViewHeader) and the body
+// cap at --page-max and center in the content column, so tabs and content
+// stay aligned when the window stretches past the cap. Applied to every
+// routed page so the whole app shares one body width.
 .pageBody {
   width: 100%;
   max-width: var(--page-max);

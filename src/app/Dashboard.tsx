@@ -43,6 +43,7 @@ import type { ComponentCategory, ComponentOption } from '../types/builder';
 import { NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
 import { PageVersionLabel } from './sidebar';
 import { TopBar } from './TopBar';
+import { PageChromeProvider } from './PageChrome';
 import { AppBackdrop } from './AppBackdrop';
 import { SystemAccentSync } from './SystemAccentSync';
 import { ResolvedThemeSync } from './ResolvedThemeSync';
@@ -466,6 +467,7 @@ export function Dashboard() {
       <CrossZoneDragProvider>
       <CommandPaletteProvider navigate={navigate} onPairPhone={() => setPairPhoneOpen(true)}>
       <ToastProvider>
+      <PageChromeProvider>
       <div className={classNames(styles.layout, {
         [styles.layoutCompact]: compact,
         [styles.layoutWindowsApp]: isWindowsAppShell(),
@@ -569,6 +571,7 @@ export function Dashboard() {
           onClose={() => setPairPhoneOpen(false)}
         />
       </div>
+      </PageChromeProvider>
       </ToastProvider>
       </CommandPaletteProvider>
       </CrossZoneDragProvider>

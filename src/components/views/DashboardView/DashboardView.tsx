@@ -5,7 +5,6 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { PanelEmbeddedContent } from '../../../panel/PanelApp';
-import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { OverlayWidgetsModal } from './OverlayWidgetsModal';
@@ -50,9 +49,6 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
 
   return (
     <div className={styles.dashboard}>
-      <ViewHeader
-        title={t('nav.dashboard')}
-      />
       <div className={`${styles.dashboardBody} pageBodyFill`}>
         <div className={styles.headerActions}>
           <button
@@ -85,10 +81,8 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
 }
 
 function DashboardOffline({ connectionState }: { connectionState?: ConnectionState }) {
-  const { t } = useTranslation();
   return (
     <div className={styles.dashboard}>
-      <ViewHeader title={t('nav.dashboard')} />
       <div className="pageBodyFill">
         <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
       </div>

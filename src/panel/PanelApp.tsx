@@ -1241,6 +1241,7 @@ export function PanelContent({
                 onPair={nativePairingAvailable ? nativeSettings.open : undefined}
                 pairAvailable={nativePairingAvailable}
                 surfaceRef={rootRef}
+                surface={surface}
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
                 machineName={machineName}
                 remotePaired={connectionIdentityVisible}

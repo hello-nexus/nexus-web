@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Lock, Plus, QrCode, Settings2 } from 'lucide-react';
 import { usePanelTraySwipe } from '../engine/usePanelTraySwipe';
+import { cssPxPerMm } from '../engine/panelGrid';
+import { TRAY_COMMIT_FLICK_MM_PER_MS, TRAY_COMMIT_TRAVEL_MM, TRAY_ENGAGE_TRAVEL_MM } from '../engine/gestureThresholds';
 import { isNativeApp } from '../device/panelNativeBridge';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../lib/i18n';
+import type { PanelSurface } from '../types';
 import styles from './PanelActionsTray.module.scss';
 
 interface PanelActionsTrayProps {
@@ -18,6 +21,9 @@ interface PanelActionsTrayProps {
   // touch targets for [data-panel-scrollable="true"] ancestors and
   // yields to the widget's own scroller when found.
   surfaceRef: React.RefObject<HTMLElement | null>;
+  // Panel surface kind, used to convert the open-gesture thresholds from
+  // physical finger travel to this surface's CSS px (see cssPxPerMm).
+  surface: PanelSurface;
   // Disable interactions (sheet open, immersive, offline).
   disabled?: boolean;
   // When true, the tray is always rendered open (editor preview).
@@ -39,6 +45,7 @@ export function PanelActionsTray({
   onPair,
   pairAvailable,
   surfaceRef,
+  surface,
   disabled = false,
   pinnedOpen = false,
   machineName,
@@ -52,9 +59,15 @@ export function PanelActionsTray({
     onOpen();
   }, [onOpen, pinnedOpen]);
 
+  // Pin the open gesture to a real-world finger-travel distance: a fixed CSS-px
+  // threshold is far shorter physically on the dense Y70 than on a phone.
+  const pxPerMm = useMemo(() => cssPxPerMm(surface), [surface]);
   const swipe = usePanelTraySwipe({
     enabled: !disabled && !open && !pinnedOpen,
     surfaceRef,
+    engageDistancePx: TRAY_ENGAGE_TRAVEL_MM * pxPerMm,
+    commitDistancePx: TRAY_COMMIT_TRAVEL_MM * pxPerMm,
+    commitVelocity: TRAY_COMMIT_FLICK_MM_PER_MS * pxPerMm,
     onCommit: handleCommit,
   });
 

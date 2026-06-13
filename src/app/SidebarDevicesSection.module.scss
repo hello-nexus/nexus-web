@@ -58,7 +58,10 @@
   gap: 0.65rem;
   // Center the icon on the collapsed rail; identical expanded so it never moves.
   padding: 0.6rem var(--rail-item-pad);
-  border: none;
+  // Reserve the border in every state (transparent here) so the active row's
+  // border doesn't change the box size — matches the APPS rows, no shift
+  // between selected/hovered.
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-dim);
@@ -77,7 +80,6 @@
 
   &.active {
     background: var(--surface);
-    border: var(--border-width) solid transparent;
     color: var(--text);
 
     .icon, .headerIcon { color: var(--accent-glow); }
