@@ -203,14 +203,13 @@
   gap: 0.25rem;
 }
 
-.gpuVitals {
+.vitals {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
 }
 
-.gpuVital {
+.vital {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -220,7 +219,7 @@
   background: var(--surface);
 }
 
-.gpuVitalValue {
+.vitalValue {
   @include text-heading;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -228,7 +227,7 @@
   line-height: 1;
 }
 
-.gpuVitalLabel {
+.vitalLabel {
   @include text-caption;
   color: var(--text-dim);
 }

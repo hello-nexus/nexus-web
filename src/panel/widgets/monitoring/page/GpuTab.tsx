@@ -2,6 +2,7 @@ import type { HardwareSensor, SensorState } from '../../../../hooks/useSensors';
 import { useTranslation } from '../../../../lib/i18n';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { useSharedSensorHistory } from '../../common/useSharedSensorHistory';
+import { VitalsStrip, type Vital } from './VitalsStrip';
 import styles from '../MonitoringPage.module.scss';
 
 const N = 60;
@@ -68,26 +69,17 @@ export function GpuTab({ sensors }: { sensors: SensorState }) {
   const temp = val(g, 'Temperature', 'GPU Core');
   const power = val(g, 'Power', 'GPU Package');
   const clock = val(g, 'Clock', 'GPU Core');
-  const fanSensor = g.find(s => s.type === 'Fan');
 
-  const vitals: { label: string; value: string }[] = [
-    { label: t('monitoring.gpu.usage'), value: `${overall}%` },
+  const vitals: Vital[] = [
+    { label: t('monitoring.vital.usage'), value: `${overall}%` },
   ];
-  if (temp != null) vitals.push({ label: t('monitoring.gpu.temp'), value: `${Math.round(temp)}°C` });
-  if (power != null) vitals.push({ label: t('monitoring.gpu.power'), value: `${Math.round(power)} W` });
-  if (clock != null) vitals.push({ label: t('monitoring.gpu.clock'), value: `${Math.round(clock)} MHz` });
-  if (fanSensor != null) vitals.push({ label: t('monitoring.gpu.fan'), value: `${Math.round(fanSensor.value)} ${fanSensor.units || ''}`.trim() });
+  if (temp != null) vitals.push({ label: t('monitoring.vital.temp'), value: `${Math.round(temp)}°C` });
+  if (power != null) vitals.push({ label: t('monitoring.vital.power'), value: `${Math.round(power)} W` });
+  if (clock != null) vitals.push({ label: t('monitoring.vital.clock'), value: `${Math.round(clock)} MHz` });
 
   return (
     <>
-      <div className={styles.gpuVitals}>
-        {vitals.map(v => (
-          <div key={v.label} className={styles.gpuVital}>
-            <span className={styles.gpuVitalValue}>{v.value}</span>
-            <span className={styles.gpuVitalLabel}>{v.label}</span>
-          </div>
-        ))}
-      </div>
+      <VitalsStrip vitals={vitals} />
       <StackedChart
         title={t('monitoring.gpu.engines')}
         titleRight={
