@@ -293,6 +293,29 @@ export function ingestScreenTime(frame: { focus: FocusSession | null; history: A
 export function getMonitoringFrame() { return latestFrame; }
 export function getOverviewHist() { return overviewHist; }
 
+// ── Per-process GPU (gpu-processes topic) ──────────────────────────────────
+// Reuses the same per-name history machinery as CPU/mem processes, so the GPU
+// tab can plot top processes over time. gpuPercent rides the cpuPercent slot.
+const gpuProcHist = new Map<string, HistEntry>();
+let latestGpuProcs: Array<{ name: string; gpuPercent: number; dedicatedMb: number }> = [];
+
+export function ingestGpuProcesses(procs: Array<{ name: string; gpuPercent: number; dedicatedMb: number }>) {
+  latestGpuProcs = procs;
+  const seen = new Set<string>();
+  for (const p of procs) { pushHist(gpuProcHist, p.name, p.gpuPercent); seen.add(p.name); }
+  fillUnseen(gpuProcHist, seen);
+  evictStaleHistEntries(gpuProcHist);
+  notify();
+}
+
+export function getGpuProcessData() {
+  const mapped = latestGpuProcs.map(p => ({ name: p.name, cpuPercent: p.gpuPercent, memoryMb: p.dedicatedMb }));
+  return {
+    series: buildSeries(gpuProcHist, mapped, 'cpuPercent', 6),
+    ranked: latestGpuProcs,
+  };
+}
+
 export function getProcessData() {
   const procs = latestFrame?.processes;
   const cpuSeries = buildSeries(cpuHist, procs?.processes ?? [], 'cpuPercent', TOP_PROCS);
