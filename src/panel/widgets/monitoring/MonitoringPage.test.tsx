@@ -24,6 +24,7 @@ vi.mock('../../../hooks/useProcessMonitor', () => ({
     totalCpu: 0,
     totalMemMb: 0,
   }),
+  useGpuProcessFeed: () => {},
 }));
 
 const sensorState = {
