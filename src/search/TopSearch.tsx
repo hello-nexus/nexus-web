@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { ArrowUpRight, Calculator, Search, Zap } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../lib/i18n';
@@ -8,6 +8,7 @@ import { useProfiles } from '../hooks/useProfiles';
 import { usePanelToggles } from './usePanelToggles';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useCommandPalette } from './CommandPaletteContext';
+import { subscribeMarketplaceRegistry } from '../widgets/marketplaceRegistry';
 import type { CommandContext, PaletteDevice, SearchEntry } from './types';
 import { buildEntries } from './providers';
 import { scoreEntry } from './match';
@@ -49,6 +50,11 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
 
   useClickOutside(dockRef, close, isOpen);
 
+  // Rebuild entries when the marketplace registry refreshes (install/uninstall):
+  // the installed-apps source reads a module-level cache React can't observe.
+  const [marketTick, bumpMarket] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => subscribeMarketplaceRegistry(bumpMarket), []);
+
   // Snapshot frecency + clock when search opens (Date.now() in an effect, never
   // during render). Reset the query and focus the input.
   const [snap, setSnap] = useState<{ map: FrecencyMap; now: number }>({ map: {}, now: 0 });
@@ -77,7 +83,9 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
     switchProfile: (id) => { void switchProfile(id); },
   }), [t, online, devices, settings, update, host, close, panel, profiles, activeId, switchProfile]);
 
-  const entries = useMemo(() => buildEntries(ctx), [ctx]);
+  // marketTick busts the memo when the marketplace registry refreshes (the
+  // installed-apps source reads a module cache that isn't part of ctx).
+  const entries = useMemo(() => { void marketTick; return buildEntries(ctx); }, [ctx, marketTick]);
   const calc = useMemo(() => tryCalc(query), [query]);
 
   const results = useMemo<SearchEntry[]>(() => {
