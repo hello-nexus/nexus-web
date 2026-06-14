@@ -67,8 +67,15 @@ export function LightingSettingsModal({
 
   if (!open) return null;
 
+  // Auto = the OS default for offscreen GL, which on a hybrid rig is the
+  // integrated GPU. Show that card so the user sees what Auto lands on, like the
+  // monitoring GPU picker does.
+  const autoName = gpus.find(g => g.integrated)?.name ?? gpus[0]?.name ?? '';
   const gpuOptions: SelectOption[] = [
-    { value: 'auto', label: t('lighting.renderGpu.auto') },
+    {
+      value: 'auto',
+      label: autoName ? t('monitoring.gpuSelect.auto', { name: autoName }) : t('lighting.renderGpu.auto'),
+    },
     ...gpus.map(g => ({
       value: g.name,
       label: g.integrated ? `${g.name} (${t('monitoring.gpuSelect.integrated')})` : g.name,
