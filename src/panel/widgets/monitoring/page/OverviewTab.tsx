@@ -121,7 +121,7 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
         </button>
 
         {gpuSupported && (
-          <button type="button" className={styles.dashCard} onClick={() => onNavigate('detailed')}>
+          <button type="button" className={styles.dashCard} onClick={() => onNavigate('gpu')}>
             <div className={styles.dashCardHeader}>
               <span className={styles.dashCardTitle}>{t('monitoring.detailed.gpu')}</span>
               <span className={styles.dashCardSub}>{gpuName}</span>

@@ -347,8 +347,8 @@
 //
 // Plain in-flow sections. Click anywhere on the header to expand or collapse
 // its body. No sticky positioning -- headers scroll with content along with
-// the rest of the page. Width is capped by the global .pageConstrained
-// utility so the report sits in the same column as Settings.
+// the rest of the page. Fills the parent .pageBody, so the report shares the
+// app-wide page width and left edge instead of a narrower centered column.
 
 .detailedRoot {
   display: flex;

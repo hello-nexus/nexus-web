@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import classNames from 'classnames';
 import type { HardwareSensor, useSensors } from '../../../../hooks/useSensors';
 import { useSensorExtras, type ExtrasComponent } from '../../../../hooks/useSensorExtras';
 import { useSystemSpecs } from '../../../../hooks/useSystemSpecs';
@@ -76,7 +75,7 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
   pushExtras('ec', t('monitoring.detailed.ec'), extras.embeddedControllers);
 
   return (
-    <div className={classNames(styles.detailedRoot, 'pageConstrained')}>
+    <div className={styles.detailedRoot}>
       {entries.map(entry => (
         <DetailSection
           key={entry.id}
