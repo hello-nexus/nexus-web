@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
@@ -344,11 +344,11 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
     updateLayout({ ...layout, activePageId: pages[next].id });
   }, [layout, updateLayout]);
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'widgets', label: t('devices.y70.tab.widgets') },
-    { key: 'theme', label: t('devices.y70.tab.theme') },
+  const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
+    { key: 'widgets', label: t('devices.y70.tab.widgets'), icon: <LayoutGrid size={14} /> },
+    { key: 'theme', label: t('devices.y70.tab.theme'), icon: <Palette size={14} /> },
     ...(settingsAvailable
-      ? [{ key: 'settings' as const, label: t('devices.y70.tab.settings') }]
+      ? [{ key: 'settings' as const, label: t('devices.y70.tab.settings'), icon: <Settings size={14} /> }]
       : []),
   ];
 

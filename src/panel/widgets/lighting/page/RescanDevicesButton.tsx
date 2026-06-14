@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { rescanLightingDevices } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
+import { Button } from '../../../../components/common/Button/Button';
 import styles from '../LightingPage.module.scss';
 
 /**
- * Full-width labelled rescan action: forces OpenRGB to re-enumerate
- * devices (hot-plug is otherwise automatic). Three-state: subprocess
- * off (static disabled), scanning (spinning disabled), ready.
+ * Labelled rescan action: forces OpenRGB to re-enumerate devices (hot-plug
+ * is otherwise automatic). Three-state: subprocess off (disabled), scanning
+ * (spinning, disabled), ready.
  */
 export function RescanDevicesButton({ rgbRunning, scanning }: {
   /** True when the OpenRGB subprocess is alive. */
@@ -36,14 +37,15 @@ export function RescanDevicesButton({ rgbRunning, scanning }: {
   };
 
   return (
-    <button
-      type="button"
+    <Button
+      size="sm"
+      tone="neutral"
       className={styles.rescanDevicesBtn}
+      icon={<RefreshCw size={14} className={busy ? styles.rescanIconSpinning : undefined} aria-hidden />}
       onClick={handleClick}
       disabled={disabled}
     >
-      <RefreshCw size={14} className={busy ? styles.rescanIconSpinning : undefined} aria-hidden />
-      <span>{t(labelKey)}</span>
-    </button>
+      {t(labelKey)}
+    </Button>
   );
 }

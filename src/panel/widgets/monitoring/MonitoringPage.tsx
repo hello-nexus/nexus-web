@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { ChartColumn, Cpu, Gpu, MemoryStick, Network, List } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useMonitoringFrame } from '../../../hooks/useMonitoringFrame';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
@@ -76,12 +77,12 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   );
 
   const tabs = ([
-    { key: 'overview', label: t('monitoring.tab.overview') },
-    { key: 'cpu', label: t('monitoring.tab.cpu') },
-    { key: 'gpu', label: t('monitoring.tab.gpu') },
-    { key: 'memory', label: t('monitoring.tab.memory') },
-    { key: 'network', label: t('monitoring.tab.network') },
-    { key: 'detailed', label: t('monitoring.tab.detailed') },
+    { key: 'overview', label: t('monitoring.tab.overview'), icon: <ChartColumn size={14} /> },
+    { key: 'cpu', label: t('monitoring.tab.cpu'), icon: <Cpu size={14} /> },
+    { key: 'gpu', label: t('monitoring.tab.gpu'), icon: <Gpu size={14} /> },
+    { key: 'memory', label: t('monitoring.tab.memory'), icon: <MemoryStick size={14} /> },
+    { key: 'network', label: t('monitoring.tab.network'), icon: <Network size={14} /> },
+    { key: 'detailed', label: t('monitoring.tab.detailed'), icon: <List size={14} /> },
   ] as const).filter(tb => tb.key !== 'gpu' || gpuSupported);
 
   const tab: MonitoringTab = urlTab && tabs.some(tb => tb.key === urlTab)
