@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useMonitoringFrame } from '../../../hooks/useMonitoringFrame';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
-import { useProcessMonitor } from '../../../hooks/useProcessMonitor';
+import { useProcessMonitor, useGpuProcessFeed } from '../../../hooks/useProcessMonitor';
 import { useSensors } from '../../../hooks/useSensors';
 import { useTranslation } from '../../../lib/i18n';
 import { useUiSettings } from '../../../hooks/useUiSettings';
@@ -43,6 +43,10 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const gpuSupported = sensors.gpu.some(
     s => s.type === 'Load' && (s.name === 'GPU Core' || s.name.startsWith('D3D')),
   );
+
+  // Subscribe at page level (not in GpuTab) so per-process GPU history keeps
+  // collecting across tab switches, the same as the always-on CPU/memory feeds.
+  useGpuProcessFeed(gpuSupported);
 
   const { settings, update } = useUiSettings();
   const showAverage = settings.monitoringShowAverage;

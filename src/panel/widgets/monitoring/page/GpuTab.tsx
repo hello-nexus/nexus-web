@@ -2,7 +2,7 @@ import type { HardwareSensor, SensorState } from '../../../../hooks/useSensors';
 import { useTranslation } from '../../../../lib/i18n';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
-import { useGpuProcesses } from '../../../../hooks/useProcessMonitor';
+import { useGpuProcessData } from '../../../../hooks/useProcessMonitor';
 import { colorFor } from '../../../../lib/monitoringStore';
 import { VitalsStrip, type Vital } from './VitalsStrip';
 import styles from '../MonitoringPage.module.scss';
@@ -31,8 +31,8 @@ export function GpuTab({ sensors }: { sensors: SensorState }) {
 
   const vramUsed = val(g, 'SmallData', 'GPU Memory Used') ?? 0;
   const vramTotal = val(g, 'SmallData', 'GPU Memory Total') ?? 0;
-  // Subscribing only while this tab is mounted gates the PDH backend collector.
-  const { utilSeries, memSeries, ranked: procRanked } = useGpuProcesses(true);
+  // Feed is mounted at page level; here we only read the accumulated history.
+  const { utilSeries, memSeries, ranked: procRanked } = useGpuProcessData();
 
   if (!model || g.length === 0) return null;
 

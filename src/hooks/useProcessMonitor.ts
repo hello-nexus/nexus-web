@@ -12,6 +12,12 @@ export interface SeriesEntry {
 
 export interface GpuProcess { name: string; gpuPercent: number; dedicatedMb: number; }
 
+export interface GpuProcessData {
+  utilSeries: SeriesEntry[];
+  memSeries: SeriesEntry[];
+  ranked: GpuProcess[];
+}
+
 export interface MonitorData {
   cpuSeries: SeriesEntry[];
   memSeries: SeriesEntry[];
@@ -31,15 +37,25 @@ export function useProcessMonitor(): MonitorData {
 }
 
 /**
- * Per-process GPU history. Subscribing only while the GPU tab is mounted gates
- * the PDH backend collector. Returns top-N series (GPU% over time) for a chart
- * plus the current ranked snapshot (with VRAM).
+ * Subscribes to the gpu-processes topic and ingests each frame into the store.
+ * Mounted at monitoring-page level (not per-tab) so the PDH backend collector
+ * stays warm and per-process history accrues across tab switches. Exactly one
+ * feed may be mounted: a second concurrent subscriber double-ingests and halves
+ * the 60s history window. Ingest-only (no re-render) - read via useGpuProcessData.
  */
-export function useGpuProcesses(enabled: boolean): { utilSeries: SeriesEntry[]; memSeries: SeriesEntry[]; ranked: GpuProcess[] } {
-  const [, bump] = useState(0);
+export function useGpuProcessFeed(enabled: boolean): void {
   useTopicCallback('gpu-processes', enabled, (data) => {
     store.ingestGpuProcesses((data as { processes?: GpuProcess[] }).processes ?? []);
   });
+}
+
+/**
+ * Reads the accumulated per-process GPU series (GPU% + VRAM over time) and the
+ * current ranked snapshot, re-rendering on each ingested frame. Requires a
+ * mounted useGpuProcessFeed to supply the data.
+ */
+export function useGpuProcessData(): GpuProcessData {
+  const [, bump] = useState(0);
   useEffect(() => {
     const fn = () => bump(v => v + 1);
     store.subscribe(fn);
