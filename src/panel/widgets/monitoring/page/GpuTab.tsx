@@ -2,8 +2,10 @@ import type { HardwareSensor, SensorState } from '../../../../hooks/useSensors';
 import { useTranslation } from '../../../../lib/i18n';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
+import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { useGpuProcessData } from '../../../../hooks/useProcessMonitor';
 import { colorFor } from '../../../../lib/monitoringStore';
+import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
 import { VitalsStrip, type Vital } from './VitalsStrip';
 import styles from '../MonitoringPage.module.scss';
 
@@ -24,15 +26,23 @@ function load3d(g: HardwareSensor[]): number {
  * broken down per process (top processes from the PDH-backed gpu-processes
  * topic), and a ranked "Top GPU processes" list. Shows the picker-selected GPU.
  */
-export function GpuTab({ sensors }: { sensors: SensorState }) {
+export function GpuTab({ sensors, preferredGpuId, onGpuChange }: {
+  sensors: SensorState;
+  preferredGpuId: string;
+  onGpuChange: (value: string) => void;
+}) {
   const { t } = useTranslation();
   const g = sensors.gpu;
   const model = sensors.gpuModel;
+  const gpus = sensors.gpuComponents;
 
   const vramUsed = val(g, 'SmallData', 'GPU Memory Used') ?? 0;
   const vramTotal = val(g, 'SmallData', 'GPU Memory Total') ?? 0;
-  // Feed is mounted at page level; here we only read the accumulated history.
-  const { utilSeries, memSeries, ranked: procRanked } = useGpuProcessData();
+  // Scope the per-process charts to the picked GPU's adapter (so e.g. the iGPU
+  // view doesn't include the dGPU's VRAM); "" falls back to all adapters. Feed
+  // is mounted at page level; here we only read the accumulated history.
+  const selectedLuid = resolvePrimaryGpu(gpus, preferredGpuId)?.adapterLuid ?? '';
+  const { utilSeries, memSeries, ranked: procRanked } = useGpuProcessData(selectedLuid);
 
   if (!model || g.length === 0) return null;
 
@@ -46,8 +56,31 @@ export function GpuTab({ sensors }: { sensors: SensorState }) {
   if (power != null) vitals.push({ label: t('monitoring.vital.power'), value: `${Math.round(power)} W` });
   if (clock != null) vitals.push({ label: t('monitoring.vital.clock'), value: `${Math.round(clock)} MHz` });
 
+  const autoName = resolvePrimaryGpu(gpus, '')?.name ?? '';
+  const gpuOptions: SelectOption[] = [
+    { value: '', label: t('monitoring.gpuSelect.auto', { name: autoName }) },
+    ...gpus.map(gp => ({
+      value: gp.name,
+      label: gp.integrated ? `${gp.name} (${t('monitoring.gpuSelect.integrated')})` : gp.name,
+    })),
+  ];
+
   return (
     <>
+      <div className={styles.tabHeader}>
+        {gpus.length > 1 ? (
+          <Select
+            className={styles.tabHeaderPicker}
+            value={preferredGpuId}
+            onChange={onGpuChange}
+            options={gpuOptions}
+            ariaLabel={t('monitoring.gpuSelect.label')}
+            variant="ghost"
+          />
+        ) : (
+          <span className={styles.tabHeaderName}>{model}</span>
+        )}
+      </div>
       <VitalsStrip vitals={vitals} />
       <div className={styles.chartRow}>
         <StackedChart
