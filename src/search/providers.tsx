@@ -7,6 +7,7 @@ import { setPanelRemoteControlEnabled, setPanelRelay, setPanelPairBroadcast } fr
 import { startAnimate, stopLighting, startScreenMirror } from '../api/lighting';
 import { COOLING_PRESETS, type CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
+import { getCatalogEntries } from '../panel/widgets/registry';
 import type { CommandContext, SearchEntry, SearchSource } from './types';
 import styles from './TopSearch.module.scss';
 
@@ -162,6 +163,23 @@ const standalonePages: SearchSource = (ctx) => [
   }),
 ];
 
+// Every installed app that ships a page - built-ins plus installed marketplace
+// (SDK) apps. Widget placement on the dashboard is irrelevant: an app has one
+// page, listed whenever its manifest carries a `Page`. Apps already surfaced by
+// the curated NAV rows above (their page-open carries hand-tuned keywords paired
+// with the cooling/lighting action entries) are skipped so they list once.
+const CURATED_APP_VIEWS = new Set(NAV.map((n) => n.view));
+const installedApps: SearchSource = (ctx) =>
+  getCatalogEntries()
+    .filter(([type, m]) => !!m.Page && !CURATED_APP_VIEWS.has(type))
+    .map(([type, m]) => {
+      const Icon = m.meta.icon;
+      return go(`app:${type}`, {
+        title: ctx.t(m.meta.i18nKey), icon: <Icon size={18} />, keywords: ['app'],
+        to: () => ctx.host.goView(type),
+      });
+    });
+
 const devices: SearchSource = (ctx) =>
   ctx.devices.map((d) => go(`device:${d.key}`, {
     title: d.name, keywords: ['device'],
@@ -300,7 +318,7 @@ const profilesSource: SearchSource = (ctx) => {
 // Add a source here to add a category of results. Order is cosmetic — entries
 // are ranked by relevance, not source order.
 export const SOURCES: SearchSource[] = [
-  navigation, navDisplays, settingsTabs, settingsItems, standalonePages, devices, profilesSource,
+  navigation, navDisplays, settingsTabs, settingsItems, standalonePages, installedApps, devices, profilesSource,
   cooling, lightingModes, lightingEffects, appearance,
   actions, remoteAccess, settingsToggles,
 ];
