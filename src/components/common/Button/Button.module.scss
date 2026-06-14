@@ -169,3 +169,22 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+// ── Status dot ────────────────────────────────────────────────────────────
+// Trailing live-state indicator (e.g. the OpenRGB subprocess: green up, red down).
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusOnline {
+  background: var(--good);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--good) 60%, transparent);
+}
+
+.statusOffline {
+  background: var(--bad);
+}

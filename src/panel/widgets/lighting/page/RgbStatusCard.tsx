@@ -1,5 +1,5 @@
 import { useTranslation } from '../../../../lib/i18n';
-import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { Button } from '../../../../components/common/Button/Button';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -21,37 +21,26 @@ function OpenRgbGlyph({ size = 14 }: { size?: number }) {
 
 export function RgbStatusCard({ rgbRunning, onClick, title }: {
   rgbRunning: boolean;
-  /** When provided, the card renders as a button (opens the supported-devices modal). */
+  /** When provided, the button opens the supported-devices modal. */
   onClick?: () => void;
   title?: string;
 }) {
   const { t } = useTranslation();
   const status = rgbRunning ? t('lighting.openrgb.running') : t('lighting.openrgb.notRunning');
-  const dot = (
-    <span className={`${styles.statusDot} ${rgbRunning ? styles.statusDotOnline : styles.statusDotOffline}`} />
-  );
-  if (onClick) {
-    const btn = (
-      <button
-        type="button"
-        className={styles.statusCard}
-        onClick={onClick}
-        aria-label={title ?? status}
-      >
-        <OpenRgbGlyph />
-        {/* eslint-disable-next-line i18next/no-literal-string -- OpenRGB brand name */}
-        <span className={styles.statusBadgeLabel}>OpenRGB</span>
-        {dot}
-      </button>
-    );
-    return title ? <HoverTooltip body={title} side="top">{btn}</HoverTooltip> : btn;
-  }
+  const dotStatus = rgbRunning ? 'online' : 'offline';
   return (
-    <div className={styles.statusCard} role="status" aria-label={status}>
-      <OpenRgbGlyph />
+    <Button
+      size="sm"
+      tone="neutral"
+      className={styles.statusCard}
+      icon={<OpenRgbGlyph />}
+      status={dotStatus}
+      onClick={onClick}
+      title={title ?? status}
+      aria-label={title ?? status}
+    >
       {/* eslint-disable-next-line i18next/no-literal-string -- OpenRGB brand name */}
-      <span className={styles.statusBadgeLabel}>OpenRGB</span>
-      {dot}
-    </div>
+      <span>OpenRGB</span>
+    </Button>
   );
 }

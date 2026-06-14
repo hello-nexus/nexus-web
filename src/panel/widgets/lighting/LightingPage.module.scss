@@ -708,73 +708,18 @@
   min-height: 0;
 }
 
-// Bottom-of-panel labelled rescan, between the device list and the
-// OpenRGB indicator. Same dashed-border pattern as the indicator below.
+// Bottom-of-panel rescan, between the device list and the OpenRGB indicator.
+// Standard Button; this only positions it.
 .rescanDevicesBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
   margin: 0.4rem 1rem 0 2.5rem;
-  padding: 0.45rem 0.7rem;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  font-size: 0.78rem;
-  cursor: pointer;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
   flex-shrink: 0;
-
-  &:hover:not(:disabled) {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: var(--accent-soft);
-  }
-
-  &:disabled {
-    cursor: default;
-    opacity: 0.55;
-  }
 }
 
-// Bottom-of-pane OpenRGB indicator: a plain badge (status only), or a
-// button that opens the supported-devices catalogue when given an
-// onClick. Same dashed footer treatment as the rescan button above.
+// Bottom-of-pane OpenRGB launcher/indicator. Standard Button; this only
+// positions it.
 .statusCard {
   margin: 0.5rem 1rem 0.85rem 2.5rem;
-  padding: 0.4rem 0.7rem;
-  background: transparent;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  font-size: var(--type-mini);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  cursor: default;
   flex-shrink: 0;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
-
-  // Button variant lights up on hover.
-  &[type='button'] {
-    cursor: pointer;
-
-    &:hover {
-      color: var(--text);
-      border-color: var(--accent);
-      border-style: solid;
-      background: var(--accent-soft);
-    }
-  }
-}
-
-.statusBadgeLabel {
-  font-size: 0.78rem;
-  font-weight: var(--weight-strong);
-  color: var(--text);
-  letter-spacing: 0.02em;
 }
 
 .rescanIconSpinning {
@@ -785,22 +730,6 @@
 @keyframes deviceRescanSpin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-}
-
-.statusDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.statusDotOnline {
-  background: var(--good);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--good) 60%, transparent);
-}
-
-.statusDotOffline {
-  background: var(--bad);
 }
 
 .deviceEmpty {

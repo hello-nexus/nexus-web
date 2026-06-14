@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Layers as LayersIcon } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Layers as LayersIcon, Keyboard, Repeat, Activity, Settings } from 'lucide-react';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useToast } from '../../common/Toast/Toast';
@@ -23,12 +23,12 @@ import pageStyles from './KeebDevicePage.module.scss';
  */
 type Tab = 'key-assignment' | 'macros' | 'tester' | 'settings';
 
-const TAB_KEYS: readonly { key: Tab; labelKey: string }[] = [
-  { key: 'key-assignment', labelKey: 'keeb.tab.keyAssignment' },
-  { key: 'macros', labelKey: 'keeb.tab.macros' },
-  { key: 'tester', labelKey: 'keeb.tab.tester' },
-  { key: 'settings', labelKey: 'keeb.tab.settings' },
-] as const;
+const TAB_KEYS: readonly { key: Tab; labelKey: string; icon: ReactNode }[] = [
+  { key: 'key-assignment', labelKey: 'keeb.tab.keyAssignment', icon: <Keyboard size={14} /> },
+  { key: 'macros', labelKey: 'keeb.tab.macros', icon: <Repeat size={14} /> },
+  { key: 'tester', labelKey: 'keeb.tab.tester', icon: <Activity size={14} /> },
+  { key: 'settings', labelKey: 'keeb.tab.settings', icon: <Settings size={14} /> },
+];
 
 export function KeebDevicePage() {
   const [tab, setTab] = useState<Tab>('key-assignment');
@@ -95,7 +95,7 @@ export function KeebDevicePage() {
     <section className={pageStyles.page}>
       <ViewHeader
         title={title}
-        tabs={TAB_KEYS.map(tb => ({ key: tb.key, label: t(tb.labelKey) }))}
+        tabs={TAB_KEYS.map(tb => ({ key: tb.key, label: t(tb.labelKey), icon: tb.icon }))}
         activeTab={tab}
         onTabChange={(k) => setTab(k as Tab)}
         tabActions={tab === 'key-assignment' ? (

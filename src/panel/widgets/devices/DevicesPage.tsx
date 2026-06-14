@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Usb, Monitor, Microchip, FileText, Plug, Cable, BookOpen } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
@@ -67,10 +68,10 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   const availableAvailable = serviceOnline || webhidAvailable;
 
   const tabs = [
-    { key: 'available', label: t('devices.tabs.available') },
-    { key: 'displays', label: t('displays.title') },
-    { key: 'firmware', label: t('devices.tabs.firmware') },
-    { key: 'specs', label: t('devices.tabs.specs') },
+    { key: 'available', label: t('devices.tabs.available'), icon: <Usb size={14} /> },
+    { key: 'displays', label: t('displays.title'), icon: <Monitor size={14} /> },
+    { key: 'firmware', label: t('devices.tabs.firmware'), icon: <Microchip size={14} /> },
+    { key: 'specs', label: t('devices.tabs.specs'), icon: <FileText size={14} /> },
   ] as const;
 
   return (
@@ -91,15 +92,15 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
             <>
               <div className={styles.deviceActions}>
                 {webhidAvailable && (
-                  <Button size="sm" tone="neutral" onClick={requestWebHid}>
+                  <Button size="sm" tone="neutral" icon={<Plug size={14} />} onClick={requestWebHid}>
                     {t('peripheral.webhid.connect')}
                   </Button>
                 )}
-                <Button size="sm" tone="neutral" onClick={() => setConnectedModalOpen(true)}>
+                <Button size="sm" tone="neutral" icon={<Cable size={14} />} onClick={() => setConnectedModalOpen(true)}>
                   {t('devices.connected.browse')}
                 </Button>
                 {serviceOnline && (
-                  <Button size="sm" tone="neutral" onClick={() => setSupportedModalOpen(true)}>
+                  <Button size="sm" tone="neutral" icon={<BookOpen size={14} />} onClick={() => setSupportedModalOpen(true)}>
                     {t('devices.supported.browse')}
                   </Button>
                 )}

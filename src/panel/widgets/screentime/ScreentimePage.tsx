@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { CalendarDays, CalendarRange, Calendar, AppWindow } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
@@ -12,6 +13,13 @@ import {
 } from '../../../components/views/ScreenTimeBrowse/ScreenTimeBrowse';
 import { ScreenTimeDataControl } from '../../../components/views/ScreenTimeBrowse/ScreenTimeDataControl';
 import styles from './ScreentimePage.module.scss';
+
+const SCREEN_TIME_TAB_ICONS: Record<ScreenTimeMode, ReactNode> = {
+  day: <CalendarDays size={14} />,
+  week: <CalendarRange size={14} />,
+  month: <Calendar size={14} />,
+  app: <AppWindow size={14} />,
+};
 
 interface ScreentimePageProps {
   serviceOnline: boolean;
@@ -28,7 +36,7 @@ export function ScreentimePage({ serviceOnline, connectionState, tab: urlTab, on
   const [dataControlOpen, setDataControlOpen] = useState(false);
   const [browseRefresh, setBrowseRefresh] = useState(0);
 
-  const tabs = SCREEN_TIME_MODES.map(m => ({ key: m, label: t(`screentime.tab.${m}`) }));
+  const tabs = SCREEN_TIME_MODES.map(m => ({ key: m, label: t(`screentime.tab.${m}`), icon: SCREEN_TIME_TAB_ICONS[m] }));
 
   if (!serviceOnline) {
     return (
