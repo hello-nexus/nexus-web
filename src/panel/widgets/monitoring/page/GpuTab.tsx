@@ -2,7 +2,6 @@ import type { HardwareSensor, SensorState } from '../../../../hooks/useSensors';
 import { useTranslation } from '../../../../lib/i18n';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
-import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { useGpuProcessData } from '../../../../hooks/useProcessMonitor';
 import { colorFor } from '../../../../lib/monitoringStore';
 import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
@@ -26,10 +25,10 @@ function load3d(g: HardwareSensor[]): number {
  * broken down per process (top processes from the PDH-backed gpu-processes
  * topic), and a ranked "Top GPU processes" list. Shows the picker-selected GPU.
  */
-export function GpuTab({ sensors, preferredGpuId, onGpuChange }: {
+export function GpuTab({ sensors, preferredGpuId, onOpenSettings }: {
   sensors: SensorState;
   preferredGpuId: string;
-  onGpuChange: (value: string) => void;
+  onOpenSettings: () => void;
 }) {
   const { t } = useTranslation();
   const g = sensors.gpu;
@@ -56,29 +55,14 @@ export function GpuTab({ sensors, preferredGpuId, onGpuChange }: {
   if (power != null) vitals.push({ label: t('monitoring.vital.power'), value: `${Math.round(power)} W` });
   if (clock != null) vitals.push({ label: t('monitoring.vital.clock'), value: `${Math.round(clock)} MHz` });
 
-  const autoName = resolvePrimaryGpu(gpus, '')?.name ?? '';
-  const gpuOptions: SelectOption[] = [
-    { value: '', label: t('monitoring.gpuSelect.auto', { name: autoName }) },
-    ...gpus.map(gp => ({
-      value: gp.name,
-      label: gp.integrated ? `${gp.name} (${t('monitoring.gpuSelect.integrated')})` : gp.name,
-    })),
-  ];
-
   return (
     <>
       <div className={styles.tabHeader}>
-        {gpus.length > 1 ? (
-          <Select
-            className={styles.tabHeaderPicker}
-            value={preferredGpuId}
-            onChange={onGpuChange}
-            options={gpuOptions}
-            ariaLabel={t('monitoring.gpuSelect.label')}
-            variant="ghost"
-          />
-        ) : (
-          <span className={styles.tabHeaderName}>{model}</span>
+        <span className={styles.tabHeaderName}>{model}</span>
+        {gpus.length > 1 && (
+          <button type="button" className={styles.tabHeaderChange} onClick={onOpenSettings}>
+            {t('monitoring.gpu.change')}
+          </button>
         )}
       </div>
       <VitalsStrip vitals={vitals} />

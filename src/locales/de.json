@@ -965,6 +965,7 @@
   "monitoring.settings.title": "Überwachungseinstellungen",
   "monitoring.tab.gpu": "GPU",
   "monitoring.gpu.byProcess": "GPU-Nutzung pro Prozess",
+  "monitoring.gpu.change": "Ändern",
   "monitoring.gpu.memByProcess": "GPU-Speicher pro Prozess",
   "monitoring.gpu.topProcesses": "Top GPU-Prozesse",
   "monitoring.vital.usage": "Auslastung",
