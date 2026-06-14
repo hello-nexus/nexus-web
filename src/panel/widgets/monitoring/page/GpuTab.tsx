@@ -65,7 +65,7 @@ export function GpuTab({ sensors }: { sensors: SensorState }) {
           xSeconds={60}
         />
         <StackedChart
-          title={t('monitoring.gpu.vram')}
+          title={t('monitoring.gpu.memByProcess')}
           titleRight={
             <div className={styles.chartStat}>
               <span className={styles.chartStatValue}>{Math.round(vramUsed)}</span>
