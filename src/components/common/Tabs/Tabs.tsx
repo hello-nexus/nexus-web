@@ -19,7 +19,7 @@ export type TabsVariant = 'underline' | 'pill';
 export interface TabsProps {
   tabs: readonly TabDef[];
   activeKey: string;
-  onChange: (key: string) => void;
+  onChange: (key: string, origin: HTMLButtonElement) => void;
   /** Disables every tab. Use TabDef.disabled for a single tab. */
   disabled?: boolean;
   /** aria-label for the <nav> element. Defaults to "Tabs" if omitted. */
@@ -64,7 +64,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
           aria-selected={tab.key === activeKey}
           className={classNames(tabClass, { [activeClass]: tab.key === activeKey })}
           disabled={disabled || tab.disabled}
-          onClick={() => onChange(tab.key)}
+          onClick={e => onChange(tab.key, e.currentTarget)}
         >
           <span className={styles.tabInner}>
             {tab.icon && <span className={styles.tabIcon} aria-hidden="true">{tab.icon}</span>}

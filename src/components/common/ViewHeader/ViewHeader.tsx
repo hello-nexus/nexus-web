@@ -8,7 +8,7 @@ interface ViewHeaderProps {
   title: string;
   tabs?: readonly TabDef[];
   activeTab?: string;
-  onTabChange?: (key: string) => void;
+  onTabChange?: (key: string, origin?: HTMLButtonElement) => void;
   tabsDisabled?: boolean;
   actions?: ReactNode;
   /** Right-aligned widget at the same vertical level as the tabs. Overlaid via
@@ -34,7 +34,7 @@ export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, 
           <Tabs
             tabs={tabs}
             activeKey={activeTab ?? ''}
-            onChange={k => onTabChange?.(k)}
+            onChange={(k, origin) => onTabChange?.(k, origin)}
             disabled={tabsDisabled}
             className={styles.viewHeaderTabs}
             ariaLabel={title}

@@ -31,6 +31,7 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
+import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { InfoTooltip } from '../../../components/common/InfoTooltip/InfoTooltip';
@@ -1129,7 +1130,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         title={t('cooling.title')}
         tabs={presetTabs}
         activeTab={activePreset ?? undefined}
-        onTabChange={k => handlePresetChange(k)}
+        onTabChange={(k, origin) => {
+          // Status-change bloom only on an actual preset switch, from the pressed tab.
+          if (origin && isCoolingPresetKey(k) && k !== activePreset) emitRadialBloomFromElement(origin, k === 'off');
+          void handlePresetChange(k);
+        }}
       />
 
       {/* Render the body chrome unconditionally so the chart + sections paint
