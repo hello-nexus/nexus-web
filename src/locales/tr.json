@@ -965,6 +965,7 @@
   "monitoring.settings.title": "İzleme ayarları",
   "monitoring.tab.gpu": "GPU",
   "monitoring.gpu.byProcess": "İşleme göre GPU kullanımı",
+  "monitoring.gpu.change": "Değiştir",
   "monitoring.gpu.memByProcess": "İşleme göre GPU belleği",
   "monitoring.gpu.topProcesses": "En cok GPU kullanan islemler",
   "monitoring.vital.usage": "Kullanım",
