@@ -6,6 +6,8 @@ export interface RankedItem {
   name: string;
   color: string;
   value: number;
+  /** Optional dimmed secondary value shown after the main value (e.g. VRAM). */
+  sub?: string;
 }
 
 interface RankedListProps {
@@ -46,6 +48,7 @@ export function RankedList({ title, subtitle, items, formatValue, emptyMessage }
               />
             </span>
             <span className={styles.val}>{formatValue(s.value)}</span>
+            {s.sub && <span className={styles.sub}>{s.sub}</span>}
           </div>
         );
       })}

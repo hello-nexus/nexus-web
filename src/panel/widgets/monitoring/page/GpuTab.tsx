@@ -1,11 +1,17 @@
 import type { HardwareSensor, SensorState } from '../../../../hooks/useSensors';
 import { useTranslation } from '../../../../lib/i18n';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
+import { RankedList } from '../../../../components/common/RankedList/RankedList';
+import { useTopic } from '../../../../hooks/useMultiplexSocket';
 import { useSharedSensorHistory } from '../../common/useSharedSensorHistory';
 import { VitalsStrip, type Vital } from './VitalsStrip';
 import styles from '../MonitoringPage.module.scss';
 
 const N = 60;
+const PROC_COLOR = '#5b8cff';
+
+interface GpuProcess { name: string; gpuPercent: number; dedicatedMb: number; }
+interface GpuProcessFrame { processes: GpuProcess[]; }
 
 function padLeft(arr: readonly number[]): number[] {
   if (arr.length >= N) return arr.slice(-N);
@@ -55,6 +61,10 @@ export function GpuTab({ sensors }: { sensors: SensorState }) {
   const vramUsed = val(g, 'SmallData', 'GPU Memory Used') ?? 0;
   const vramTotal = val(g, 'SmallData', 'GPU Memory Total') ?? 0;
   const hVram = useSharedSensorHistory(`gpu:${model}:vram`, vramUsed);
+
+  // Per-process GPU (Windows PDH, vendor-agnostic). Subscribing only while this
+  // tab is mounted gates the backend collector. Aggregated across both GPUs.
+  const gpuProcs = useTopic<GpuProcessFrame>('gpu-processes', true);
 
   if (!model || g.length === 0) return null;
 
@@ -107,6 +117,18 @@ export function GpuTab({ sensors }: { sensors: SensorState }) {
         yMax={vramTotal || undefined}
         yUnit="MB"
         xSeconds={60}
+      />
+      <RankedList
+        title={t('monitoring.gpu.topProcesses')}
+        subtitle={null}
+        items={(gpuProcs?.processes ?? []).map(p => ({
+          name: p.name,
+          color: PROC_COLOR,
+          value: p.gpuPercent,
+          sub: p.dedicatedMb >= 1 ? `${Math.round(p.dedicatedMb)} MB` : undefined,
+        }))}
+        formatValue={v => `${Math.round(v)}%`}
+        emptyMessage={t('monitoring.ranked.empty')}
       />
     </>
   );

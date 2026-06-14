@@ -97,3 +97,12 @@
   text-align: right;
   flex-shrink: 0;
 }
+
+.sub {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  min-width: 66px;
+  text-align: right;
+  flex-shrink: 0;
+}

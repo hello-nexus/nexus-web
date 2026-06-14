@@ -965,6 +965,7 @@
   "monitoring.settings.title": "Настройки мониторинга",
   "monitoring.tab.gpu": "GPU",
   "monitoring.gpu.engines": "Загрузка движков",
+  "monitoring.gpu.topProcesses": "Процессы по нагрузке на GPU",
   "monitoring.gpu.vram": "Видеопамять",
   "monitoring.vital.usage": "Загрузка",
   "monitoring.vital.temp": "Темп.",

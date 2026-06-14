@@ -965,6 +965,7 @@
   "monitoring.settings.title": "İzleme ayarları",
   "monitoring.tab.gpu": "GPU",
   "monitoring.gpu.engines": "Motor kullanımı",
+  "monitoring.gpu.topProcesses": "GPU'ya göre en çok kullanan işlemler",
   "monitoring.gpu.vram": "Video belleği",
   "monitoring.vital.usage": "Kullanım",
   "monitoring.vital.temp": "Sıcaklık",

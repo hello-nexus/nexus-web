@@ -965,6 +965,7 @@
   "monitoring.settings.title": "監控設定",
   "monitoring.tab.gpu": "GPU",
   "monitoring.gpu.engines": "引擎使用率",
+  "monitoring.gpu.topProcesses": "GPU 使用率最高的程序",
   "monitoring.gpu.vram": "顯示記憶體",
   "monitoring.vital.usage": "使用率",
   "monitoring.vital.temp": "溫度",

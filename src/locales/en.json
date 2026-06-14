@@ -965,6 +965,7 @@
   "monitoring.settings.title": "Monitoring settings",
   "monitoring.tab.gpu": "GPU",
   "monitoring.gpu.engines": "Engine utilization",
+  "monitoring.gpu.topProcesses": "Top processes by GPU",
   "monitoring.gpu.vram": "Video memory",
   "monitoring.vital.usage": "Usage",
   "monitoring.vital.temp": "Temp",
