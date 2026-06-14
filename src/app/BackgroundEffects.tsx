@@ -11,12 +11,14 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
 
-// Active radial-bloom look: 'a' = soft bloom wash, 'b' = shockwave ring.
-const RADIAL_VARIANT: 'a' | 'b' = 'b';
+// Active radial-bloom look: 'a' = soft bloom wash, 'b' = shockwave ring,
+// 'c' = refined bloom wash (softer/slower than A).
+const RADIAL_VARIANT: 'a' | 'b' | 'c' = 'c';
 
 function radialClass(inverse: boolean): string {
   if (RADIAL_VARIANT === 'a') return inverse ? styles.bloomInverse : styles.bloom;
-  return inverse ? styles.ringImplode : styles.ringExpand;
+  if (RADIAL_VARIANT === 'b') return inverse ? styles.ringImplode : styles.ringExpand;
+  return inverse ? styles.bloomElegantInverse : styles.bloomElegant;
 }
 
 // Full-window layer behind the dashboard (sibling of <AppBackdrop>, same
