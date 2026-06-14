@@ -66,6 +66,15 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
 
   const availableAvailable = serviceOnline || webhidAvailable;
 
+  // Non-navigable devices (no settings page — MiniHub, capability-less
+  // peripherals) sort to the bottom so the list leads with the cards you can
+  // open. sort() is stable, so each group keeps the order useUnifiedDevices
+  // emitted.
+  const orderedDevices = useMemo(
+    () => [...unified].sort((a, b) => Number(b.navigable) - Number(a.navigable)),
+    [unified],
+  );
+
   const tabs = [
     { key: 'available', label: t('devices.tabs.available') },
     { key: 'displays', label: t('displays.title') },
@@ -109,7 +118,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
                 <div className={styles.empty}>{t('devices.available.none')}</div>
               ) : (
                 <div className={styles.list}>
-                  {unified.map(d => (
+                  {orderedDevices.map(d => (
                     <DeviceCard key={d.key} device={d} onClick={() => onDeviceSelect(d.key)} />
                   ))}
                 </div>
