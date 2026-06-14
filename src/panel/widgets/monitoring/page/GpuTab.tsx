@@ -38,8 +38,11 @@ export function GpuTab({ sensors, preferredGpuId, onGpuChange }: {
 
   const vramUsed = val(g, 'SmallData', 'GPU Memory Used') ?? 0;
   const vramTotal = val(g, 'SmallData', 'GPU Memory Total') ?? 0;
-  // Feed is mounted at page level; here we only read the accumulated history.
-  const { utilSeries, memSeries, ranked: procRanked } = useGpuProcessData();
+  // Scope the per-process charts to the picked GPU's adapter (so e.g. the iGPU
+  // view doesn't include the dGPU's VRAM); "" falls back to all adapters. Feed
+  // is mounted at page level; here we only read the accumulated history.
+  const selectedLuid = resolvePrimaryGpu(gpus, preferredGpuId)?.adapterLuid ?? '';
+  const { utilSeries, memSeries, ranked: procRanked } = useGpuProcessData(selectedLuid);
 
   if (!model || g.length === 0) return null;
 

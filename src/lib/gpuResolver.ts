@@ -7,6 +7,8 @@ export interface GpuComponent {
   name: string;
   vendor?: string;
   integrated?: boolean;
+  /** Windows adapter LUID ("HighPart:LowPart"); absent off Windows / unmatched. */
+  adapterLuid?: string;
   sensors: HardwareSensor[];
 }
 
