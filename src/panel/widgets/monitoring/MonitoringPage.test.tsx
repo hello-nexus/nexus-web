@@ -30,7 +30,7 @@ const sensorState = {
   cpu: [
     { id: 'cpu/load', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'cpu' } },
   ],
-  gpu: [],
+  gpu: [] as Array<{ id: string; name: string; type: string; value: number; units: string; formatted: string; parent: { id: string; name: string } }>,
   gpuComponents: [],
   memory: [],
   storage: [],
@@ -147,5 +147,24 @@ describe('MonitoringPage', () => {
     // Click toggles collapse and persists the section id through useUiSettings.
     fireEvent.click(cpuHeader);
     expect(updateMock).toHaveBeenCalledWith({ monitoringDetailedCollapsed: ['cpu'] });
+  });
+
+  it('hides the GPU tab when no live GPU load sensor is present (macOS / AMD-Linux)', () => {
+    sensorState.gpu = [];
+    render(
+      <MonitoringPage serviceOnline={true} connectionState="online" tab={null} onTabChange={vi.fn()} />,
+    );
+    expect(screen.queryByRole('tab', { name: 'monitoring.tab.gpu' })).toBeNull();
+  });
+
+  it('shows the GPU tab when a live GPU load sensor is present (Windows / NVIDIA-Linux)', () => {
+    sensorState.gpu = [
+      { id: 'gpu/0/load', name: 'GPU Core', type: 'Load', value: 30, units: '%', formatted: '30%', parent: { id: 'gpu/0', name: 'gpu' } },
+    ];
+    render(
+      <MonitoringPage serviceOnline={true} connectionState="online" tab={null} onTabChange={vi.fn()} />,
+    );
+    expect(screen.getByRole('tab', { name: 'monitoring.tab.gpu' })).toBeInTheDocument();
+    sensorState.gpu = [];
   });
 });

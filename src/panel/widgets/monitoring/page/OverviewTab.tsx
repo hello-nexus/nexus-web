@@ -13,9 +13,10 @@ export interface OverviewHist {
   cpu: number[]; gpu: number[]; mem: number[]; netDown: number[]; netUp: number[];
 }
 
-export function OverviewTab({ frame, hist, onNavigate }: {
+export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
   frame: MonitoringFrame | null;
   hist: OverviewHist;
+  gpuSupported: boolean;
   onNavigate: (tab: string) => void;
 }) {
   const { t } = useTranslation();
@@ -119,24 +120,26 @@ export function OverviewTab({ frame, hist, onNavigate }: {
           </div>
         </button>
 
-        <button type="button" className={styles.dashCard} onClick={() => onNavigate('detailed')}>
-          <div className={styles.dashCardHeader}>
-            <span className={styles.dashCardTitle}>{t('monitoring.detailed.gpu')}</span>
-            <span className={styles.dashCardSub}>{gpuName}</span>
-          </div>
-          <div className={styles.dashCardBody}>
-            <div className={styles.dashMetric}>
-              <span className={`${styles.dashValue} ${styles.dashValuePercent}`}>{gpuParts ? gpuParts.value : '—'}</span>
-              <span className={styles.dashUnit}>{gpuParts ? gpuParts.unit : ''}</span>
+        {gpuSupported && (
+          <button type="button" className={styles.dashCard} onClick={() => onNavigate('detailed')}>
+            <div className={styles.dashCardHeader}>
+              <span className={styles.dashCardTitle}>{t('monitoring.detailed.gpu')}</span>
+              <span className={styles.dashCardSub}>{gpuName}</span>
             </div>
-            {/* eslint-disable-next-line i18next/no-literal-string -- CSS color variable */}
-            <Sparkline className={styles.sparkline} values={gpuHistory} width="100%" height={32} color="var(--accent-glow)" strokeColor="var(--accent)" sampleCount={60} padding={2} />
-          </div>
-          <div className={styles.dashSecondary}>
-            {gpuTemp && <span>{gpuTemp.formatted}</span>}
-            {gpuVram && <span>{gpuVram.formatted}</span>}
-          </div>
-        </button>
+            <div className={styles.dashCardBody}>
+              <div className={styles.dashMetric}>
+                <span className={`${styles.dashValue} ${styles.dashValuePercent}`}>{gpuParts ? gpuParts.value : '—'}</span>
+                <span className={styles.dashUnit}>{gpuParts ? gpuParts.unit : ''}</span>
+              </div>
+              {/* eslint-disable-next-line i18next/no-literal-string -- CSS color variable */}
+              <Sparkline className={styles.sparkline} values={gpuHistory} width="100%" height={32} color="var(--accent-glow)" strokeColor="var(--accent)" sampleCount={60} padding={2} />
+            </div>
+            <div className={styles.dashSecondary}>
+              {gpuTemp && <span>{gpuTemp.formatted}</span>}
+              {gpuVram && <span>{gpuVram.formatted}</span>}
+            </div>
+          </button>
+        )}
       </div>
 
       {/* Middle row: RAM + Network + Storage */}
