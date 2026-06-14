@@ -297,17 +297,24 @@ export function getOverviewHist() { return overviewHist; }
 // Reuses the same per-name history machinery as CPU/mem processes, so the GPU
 // tab can plot top processes over time, once by utilization and once by VRAM.
 // gpuPercent rides the cpuPercent slot; dedicatedMb rides the memoryMb slot.
+// History keyed by `${adapterLuid}::${name}` so a process spanning both GPUs is
+// tracked per physical adapter; the GPU tab scopes to the picked GPU's LUID.
 const gpuProcHist = new Map<string, HistEntry>();
 const gpuMemHist = new Map<string, HistEntry>();
-let latestGpuProcs: Array<{ name: string; gpuPercent: number; dedicatedMb: number }> = [];
+type GpuProc = { name: string; gpuPercent: number; dedicatedMb: number; adapterLuid: string };
+let latestGpuProcs: GpuProc[] = [];
 
-export function ingestGpuProcesses(procs: Array<{ name: string; gpuPercent: number; dedicatedMb: number }>) {
+function gpuKey(luid: string, name: string) { return `${luid}::${name}`; }
+function stripGpuKey(key: string) { const i = key.indexOf('::'); return i >= 0 ? key.slice(i + 2) : key; }
+
+export function ingestGpuProcesses(procs: GpuProc[]) {
   latestGpuProcs = procs;
   const seen = new Set<string>();
   for (const p of procs) {
-    pushHist(gpuProcHist, p.name, p.gpuPercent);
-    pushHist(gpuMemHist, p.name, p.dedicatedMb);
-    seen.add(p.name);
+    const k = gpuKey(p.adapterLuid ?? '', p.name);
+    pushHist(gpuProcHist, k, p.gpuPercent);
+    pushHist(gpuMemHist, k, p.dedicatedMb);
+    seen.add(k);
   }
   fillUnseen(gpuProcHist, seen);
   fillUnseen(gpuMemHist, seen);
@@ -316,13 +323,46 @@ export function ingestGpuProcesses(procs: Array<{ name: string; gpuPercent: numb
   notify();
 }
 
-export function getGpuProcessData() {
-  const mapped = latestGpuProcs.map(p => ({ name: p.name, cpuPercent: p.gpuPercent, memoryMb: p.dedicatedMb }));
+// `luid` scopes to one physical GPU; "" returns every adapter's processes (the
+// fallback when the picked GPU resolved no LUID, i.e. today's combined view).
+export function getGpuProcessData(luid = '') {
+  const scoped = luid ? latestGpuProcs.filter(p => p.adapterLuid === luid) : latestGpuProcs;
+  const mapped = scoped.map(p => ({ name: p.name, cpuPercent: p.gpuPercent, memoryMb: p.dedicatedMb }));
   return {
-    utilSeries: buildSeries(gpuProcHist, mapped, 'cpuPercent', 6),
-    memSeries: buildSeries(gpuMemHist, mapped, 'memoryMb', 6),
-    ranked: latestGpuProcs,
+    utilSeries: buildGpuSeries(gpuProcHist, mapped, 'cpuPercent', luid, 6),
+    memSeries: buildGpuSeries(gpuMemHist, mapped, 'memoryMb', luid, 6),
+    ranked: scoped,
   };
+}
+
+// Like buildSeries but keys are `${luid}::${name}`: filter to the requested
+// adapter (or all when luid==="") and display the bare process name.
+function buildGpuSeries(
+  map: Map<string, HistEntry>,
+  procs: Array<{ name: string; cpuPercent: number; memoryMb: number }>,
+  field: 'cpuPercent' | 'memoryMb',
+  luid: string,
+  topN: number,
+): SeriesEntry[] {
+  const prefix = `${luid}::`;
+  const result: SeriesEntry[] = [];
+  for (const [key, entry] of map) {
+    if (luid && !key.startsWith(prefix)) continue;
+    const name = stripGpuKey(key);
+    const vals = entry.values;
+    const sum = vals.reduce((a, b) => a + b, 0);
+    const avg = vals.length > 0 ? sum / vals.length : 0;
+    if (avg < 0.01 && vals[vals.length - 1] === 0) continue;
+    const latest = procs.find(p => p.name === name);
+    result.push({
+      name, color: colorFor(name),
+      values: padLeft(vals),
+      current: latest?.[field] ?? 0,
+      avg: Math.round(avg * 10) / 10,
+    });
+  }
+  result.sort((a, b) => b.avg - a.avg);
+  return result.slice(0, topN);
 }
 
 export function getProcessData() {
