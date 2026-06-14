@@ -18,6 +18,7 @@ import { NetworkTab } from './page/NetworkTab';
 import { DetailedTab } from './page/DetailedTab';
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
 import { usePageSettingsAction } from '../../../app/PageChrome';
+import { useSensorHistoryFeed } from '../common/useSharedSensorHistory';
 import styles from './MonitoringPage.module.scss';
 
 type MonitoringTab = 'overview' | 'cpu' | 'gpu' | 'memory' | 'network' | 'detailed';
@@ -47,6 +48,15 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   // Subscribe at page level (not in GpuTab) so per-process GPU history keeps
   // collecting across tab switches, the same as the always-on CPU/memory feeds.
   useGpuProcessFeed(gpuSupported);
+
+  // Sample the headline CPU/memory/network sparklines at page level so they
+  // keep filling across tab switches; each tab's chart reads the same buffer.
+  // Keys + value derivations mirror CpuTab / MemoryTab / NetworkTab.
+  const cpuTotal = sensors.cpu.find(s => s.name === 'CPU Total')?.value ?? 0;
+  const memUsed = sensors.memory.find(s => s.name === 'Memory Used');
+  useSensorHistoryFeed('cpu::CPU Total', cpuTotal);
+  useSensorHistoryFeed('memory::Memory Used MB', memUsed ? memUsed.value * 1024 : 0);
+  useSensorHistoryFeed('network::Network Total KBs', network.totalRate / 1024);
 
   const { settings, update } = useUiSettings();
   const showAverage = settings.monitoringShowAverage;

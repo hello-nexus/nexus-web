@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   getFrameTick,
   getPanelSensorHist,
@@ -43,4 +43,21 @@ export function useSharedSensorHistory(key: string, value: number): readonly num
   }, [key]);
 
   return getPanelSensorHist(key);
+}
+
+/**
+ * Sample-only companion to useSharedSensorHistory: pushes `value` into the
+ * key's buffer on every monitoring frame, without reading it back or
+ * re-rendering the host. Mount at page level so a sensor's sparkline keeps
+ * filling across tab switches. pushPanelSensorSample dedups by key+frameTick,
+ * so pairing this with a tab's own useSharedSensorHistory never double-samples.
+ */
+export function useSensorHistoryFeed(key: string, value: number): void {
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  useEffect(() => {
+    const fn = () => pushPanelSensorSample(key, valueRef.current);
+    subscribe(fn);
+    return () => unsubscribe(fn);
+  }, [key]);
 }
