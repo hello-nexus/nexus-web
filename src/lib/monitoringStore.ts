@@ -295,23 +295,32 @@ export function getOverviewHist() { return overviewHist; }
 
 // ── Per-process GPU (gpu-processes topic) ──────────────────────────────────
 // Reuses the same per-name history machinery as CPU/mem processes, so the GPU
-// tab can plot top processes over time. gpuPercent rides the cpuPercent slot.
+// tab can plot top processes over time, once by utilization and once by VRAM.
+// gpuPercent rides the cpuPercent slot; dedicatedMb rides the memoryMb slot.
 const gpuProcHist = new Map<string, HistEntry>();
+const gpuMemHist = new Map<string, HistEntry>();
 let latestGpuProcs: Array<{ name: string; gpuPercent: number; dedicatedMb: number }> = [];
 
 export function ingestGpuProcesses(procs: Array<{ name: string; gpuPercent: number; dedicatedMb: number }>) {
   latestGpuProcs = procs;
   const seen = new Set<string>();
-  for (const p of procs) { pushHist(gpuProcHist, p.name, p.gpuPercent); seen.add(p.name); }
+  for (const p of procs) {
+    pushHist(gpuProcHist, p.name, p.gpuPercent);
+    pushHist(gpuMemHist, p.name, p.dedicatedMb);
+    seen.add(p.name);
+  }
   fillUnseen(gpuProcHist, seen);
+  fillUnseen(gpuMemHist, seen);
   evictStaleHistEntries(gpuProcHist);
+  evictStaleHistEntries(gpuMemHist);
   notify();
 }
 
 export function getGpuProcessData() {
   const mapped = latestGpuProcs.map(p => ({ name: p.name, cpuPercent: p.gpuPercent, memoryMb: p.dedicatedMb }));
   return {
-    series: buildSeries(gpuProcHist, mapped, 'cpuPercent', 6),
+    utilSeries: buildSeries(gpuProcHist, mapped, 'cpuPercent', 6),
+    memSeries: buildSeries(gpuMemHist, mapped, 'memoryMb', 6),
     ranked: latestGpuProcs,
   };
 }

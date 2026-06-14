@@ -35,7 +35,7 @@ export function useProcessMonitor(): MonitorData {
  * the PDH backend collector. Returns top-N series (GPU% over time) for a chart
  * plus the current ranked snapshot (with VRAM).
  */
-export function useGpuProcesses(enabled: boolean): { series: SeriesEntry[]; ranked: GpuProcess[] } {
+export function useGpuProcesses(enabled: boolean): { utilSeries: SeriesEntry[]; memSeries: SeriesEntry[]; ranked: GpuProcess[] } {
   const [, bump] = useState(0);
   useTopicCallback('gpu-processes', enabled, (data) => {
     store.ingestGpuProcesses((data as { processes?: GpuProcess[] }).processes ?? []);

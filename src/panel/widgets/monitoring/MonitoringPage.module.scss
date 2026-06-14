@@ -12,6 +12,20 @@
   gap: 0.75rem;
 }
 
+// Two charts side by side (GPU usage left, VRAM right); stacks below the
+// 220px-per-chart minimum the StackedChart SVG enforces.
+.chartRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 560px) {
+  .chartRow {
+    grid-template-columns: 1fr;
+  }
+}
+
 // ── Overview Dashboard ────────────────────────────────────────────────────
 
 .overview {
