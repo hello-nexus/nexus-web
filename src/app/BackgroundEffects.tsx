@@ -11,6 +11,14 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
 
+// Active radial-bloom look: 'a' = soft bloom wash, 'b' = shockwave ring.
+const RADIAL_VARIANT: 'a' | 'b' = 'b';
+
+function radialClass(inverse: boolean): string {
+  if (RADIAL_VARIANT === 'a') return inverse ? styles.bloomInverse : styles.bloom;
+  return inverse ? styles.ringImplode : styles.ringExpand;
+}
+
 // Full-window layer behind the dashboard (sibling of <AppBackdrop>, same
 // z-index:-1 inside .layout's isolated stacking context), rendering transient
 // effects emitted on the backgroundEffects bus. position: fixed, so emitted
@@ -50,7 +58,7 @@ function RadialBloom({ effect, onDone }: { effect: RadialBloomEffect; onDone: ()
   );
   return (
     <span
-      className={effect.inverse ? styles.bloomInverse : styles.bloom}
+      className={radialClass(effect.inverse ?? false)}
       style={{ left: effect.x, top: effect.y, width: reach * 2, height: reach * 2 }}
       onAnimationEnd={onDone}
     />
