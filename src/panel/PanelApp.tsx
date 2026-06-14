@@ -1147,6 +1147,7 @@ export function PanelContent({
             template={effectiveTheme.backgroundTemplate}
             opacity={effectiveTheme.backgroundOpacity}
             effectState={effectiveTheme.backgroundEffectState}
+            surface={surface}
           />
         )}
         {!loaded ? (

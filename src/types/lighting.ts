@@ -175,7 +175,7 @@ export const EFFECTS: EffectDef[] = [
   { key: 'radar',        labelKey: 'lighting.controls.radar',        params: [{ name: 'u_ringRate', label: 'Ring rate', min: 0.05, max: 1, step: 0.02, defaultValue: 0.25 }] },
   { key: 'pulse',        labelKey: 'lighting.controls.pulse',        showIntensity: true, params: [{ name: 'u_size', label: 'Size', min: 0.4, max: 1.8, step: 0.02, defaultValue: 1.2 }] },
   { key: 'watercolor',  labelKey: 'lighting.controls.watercolor',  params: [
-      { name: 'u_blobs',    label: 'Blobs',    min: 2,   max: 12,  step: 1,    defaultValue: 6 },
+      { name: 'u_blobs',    label: 'Blobs',    min: 2,   max: 6,   step: 1,    defaultValue: 3 },
       { name: 'u_softness', label: 'Softness', min: 0.1, max: 1.0, step: 0.02, defaultValue: 0.5 },
   ]},
   { key: 'jellyfish',   labelKey: 'lighting.controls.jellyfish',   params: [

@@ -1,6 +1,7 @@
-import { useEffect, useRef, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { useShaderRenderer } from '../../hooks/useShaderRenderer';
 import type { EffectState } from '../../types/lighting';
+import type { PanelSurface } from '../types';
 import {
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundOpacity,
@@ -8,8 +9,6 @@ import {
   panelBackgroundState,
 } from './panelBackground';
 import styles from '../PanelApp.module.scss';
-
-const PANEL_BACKGROUND_RENDER_OPTIONS = { maxDevicePixelRatio: 1 };
 
 interface PanelBackgroundShaderProps {
   effect: string;
@@ -19,9 +18,10 @@ interface PanelBackgroundShaderProps {
   // Templates for the selected slot). Undefined falls back to the built-in
   // default before that has hydrated.
   effectState?: EffectState;
+  surface?: PanelSurface;
 }
 
-export function PanelBackgroundShader({ effect, template, opacity, effectState }: PanelBackgroundShaderProps) {
+export function PanelBackgroundShader({ effect, template, opacity, effectState, surface }: PanelBackgroundShaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const normalizedEffect = normalizePanelBackgroundEffect(effect);
   const normalizedTemplate = normalizePanelBackgroundTemplate(template);
@@ -32,12 +32,21 @@ export function PanelBackgroundShader({ effect, template, opacity, effectState }
   useEffect(() => {
     stateRef.current = effectState ?? panelBackgroundState(normalizedEffect, normalizedTemplate);
   }, [normalizedEffect, normalizedTemplate, effectState]);
+  // The Q-series AIO panel renders the background shader at half resolution:
+  // its GPU can't hold frame rate on heavy shaders at full res, and the small
+  // panel hides the resolution drop. Other surfaces render at native. NOTE:
+  // 'q60' is the single surface for the whole Q-series -- the Q60 and Q80 are
+  // the same 720x1280 LCD and both infer to 'q60' (there is no 'q80' surface),
+  // so this gate covers both.
+  const renderOptions = useMemo(() => (
+    { maxDevicePixelRatio: surface === 'q60' ? 0.5 : 1 }
+  ), [surface]);
   const { ready, error } = useShaderRenderer(
     canvasRef,
     normalizedEffect,
     stateRef,
     undefined,
-    PANEL_BACKGROUND_RENDER_OPTIONS,
+    renderOptions,
   );
   const style = {
     '--panel-background-opacity': normalizePanelBackgroundOpacity(opacity),
