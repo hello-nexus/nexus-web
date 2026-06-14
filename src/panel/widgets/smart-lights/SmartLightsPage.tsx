@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronDown, ChevronRight, LampCeiling, RefreshCw } from 'lucide-react';
+import { LampCeiling, Lightbulb, RefreshCw } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { Card } from '../../../components/common/Card/Card';
+import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { Select } from '../../../components/common/Select/Select';
 import { Toggle } from '../../../components/common/Toggle/Toggle';
@@ -10,9 +12,10 @@ import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import {
-  discoverSmartLights,
   fetchSmartLights,
   pairSmartLight,
+  scanSmartLights,
+  setBrandEnabled,
   setSmartLightEnabled,
   type DiscoveredSmartLight,
   type SmartLight,
@@ -74,7 +77,11 @@ type PairState =
 export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
   const { t } = useTranslation();
   const [paired, setPaired] = useState<SmartLight[]>([]);
+  const [brandEnabled, setBrandEnabledState] = useState<Record<string, boolean>>({});
   const [discovered, setDiscovered] = useState<DiscoveredSmartLight[]>([]);
+  // Which brand's scan/pair feedback (discovered list, errors, action notices) is
+  // currently shown - it renders inside that brand's card.
+  const [resultBrand, setResultBrand] = useState<string | null>(null);
   const [scanningBrand, setScanningBrand] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [pairState, setPairState] = useState<PairState>({ kind: 'idle' });
@@ -86,6 +93,7 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
   const refreshPaired = useCallback(async () => {
     const res = await fetchSmartLights();
     if (res?.devices) setPaired(res.devices);
+    if (res?.brandEnabled) setBrandEnabledState(res.brandEnabled);
   }, []);
 
   useEffect(() => {
@@ -98,10 +106,13 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
 
   const handleScan = useCallback(async (brand: string) => {
     setScanningBrand(brand);
+    setResultBrand(brand);
     setScanError(null);
     setPairState({ kind: 'idle' });
     setDiscovered([]); // the previous brand's rows must not stay pairable mid-scan
-    const res = await discoverSmartLights(brand);
+    // Scan reconciles the brand's list (prunes lights no longer present) and
+    // returns discovery candidates; the prune broadcasts 'lighting' -> refreshPaired.
+    const res = await scanSmartLights(brand);
     setScanningBrand(null);
     if (!res || !res.ok) {
       setScanError(res?.error || t('smartLights.scanFailed'));
@@ -111,11 +122,18 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
     setDiscovered(res.devices ?? []);
   }, [t]);
 
+  const handleBrandToggle = useCallback(async (brand: string, enabled: boolean) => {
+    setBrandEnabledState(prev => ({ ...prev, [brand]: enabled })); // optimistic
+    await setBrandEnabled(brand, enabled);
+    if (enabled) void handleScan(brand); // turning a brand on auto-scans
+  }, [handleScan]);
+
   const doPair = useCallback(async (brand: string, host: string, stableKey: string, name: string) => {
     setPairState({ kind: 'pairing', host });
     const res = await pairSmartLight(brand, host, stableKey, name);
     if (res?.ok) {
       setPairState({ kind: 'added', count: res.added ?? 0 });
+      setDiscovered([]); // the candidate is paired now - drop the pairing block
       await refreshPaired();
       return;
     }
@@ -132,6 +150,10 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
   const handleAddByIp = useCallback(() => {
     const host = ipHost.trim();
     if (!host) return;
+    // Route this pair's feedback into the chosen brand's card.
+    setResultBrand(ipBrand);
+    setScanError(null);
+    setDiscovered([]);
     // Empty stableKey + name: the service resolves them (Govee probes the IP).
     void doPair(ipBrand, host, '', '');
   }, [doPair, ipBrand, ipHost]);
@@ -154,32 +176,105 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
     <div className={styles.page}>
       <ViewHeader title={t('smartLights.title')} />
       <div className={`${styles.body} pageBody`} data-panel-scrollable="true">
-        <Section title={t('smartLights.addLights')}>
-          <div className={styles.brandGrid}>
+        <div className={styles.addColumn}>
+          <SectionHeader className={styles.colHeader}>{t('smartLights.addLights')}</SectionHeader>
+          <div className={styles.brandList}>
             {ACTIVE_BRANDS.map(([brand, labelKey]) => {
+              const on = brandEnabled[brand] === true;
               const scanning = scanningBrand === brand;
+              const mark = `url(/assets/brands/${brand}.svg)`;
+              const showResults = resultBrand === brand;
+              const found = showResults ? discovered.filter(d => d.brand === brand) : [];
+              // Only show the results block (and its divider) when it actually
+              // has content - an empty scan must not leave a bare separator.
+              const hasResults = showResults && (
+                !!scanError
+                || (pairState.kind === 'action-needed' && pairState.brand === brand)
+                || pairState.kind === 'added'
+                || pairState.kind === 'error'
+                || found.length > 0
+              );
               return (
-                <button
-                  key={brand}
-                  type="button"
-                  className={styles.brandTile}
-                  data-active={scanning ? 'true' : undefined}
-                  onClick={() => void handleScan(brand)}
-                  disabled={scanningBrand !== null}
-                >
-                  <LampCeiling size={22} aria-hidden="true" />
-                  <span className={styles.brandName}>{t(labelKey)}</span>
-                  <span className={styles.brandSub}>{scanning ? t('smartLights.scanning') : t('smartLights.scan')}</span>
-                </button>
+                <div key={brand} className={styles.brandCard} data-on={on ? 'true' : undefined}>
+                  <div className={styles.brandRow}>
+                    <span
+                      className={styles.brandMark}
+                      style={{ maskImage: mark, WebkitMaskImage: mark }}
+                      aria-hidden="true"
+                    />
+                    <span className={styles.brandName}>{t(labelKey)}</span>
+                    <Toggle
+                      checked={on}
+                      onChange={enabled => void handleBrandToggle(brand, enabled)}
+                      ariaLabel={t(labelKey)}
+                    />
+                    <HoverTooltip body={t('smartLights.scan')} side="top">
+                      <Button
+                        size="sm"
+                        tone="ghost"
+                        icon={<RefreshCw size={14} />}
+                        aria-label={scanning ? t('smartLights.scanning') : t('smartLights.scan')}
+                        loading={scanning}
+                        disabled={!on || scanningBrand !== null}
+                        onClick={() => void handleScan(brand)}
+                      />
+                    </HoverTooltip>
+                  </div>
+
+                  {hasResults && (
+                    <div className={styles.brandResults}>
+                      {scanError && <p className={styles.error}>{scanError}</p>}
+                      {pairState.kind === 'action-needed' && pairState.brand === brand && (
+                        <div className={styles.notice}>
+                          <p className={styles.noticeText}>{t(pairState.copyKey)}</p>
+                          <Button
+                            size="sm"
+                            tone="accent"
+                            icon={<RefreshCw size={14} />}
+                            onClick={() => void doPair(pairState.brand, pairState.host, pairState.stableKey, pairState.name)}
+                          >
+                            {t('smartLights.retry')}
+                          </Button>
+                        </div>
+                      )}
+                      {pairState.kind === 'added' && (
+                        <p className={styles.success}>{t('smartLights.addedNLights', { count: pairState.count })}</p>
+                      )}
+                      {pairState.kind === 'error' && <p className={styles.error}>{pairState.message}</p>}
+                      {found.length > 0 && (
+                        <ul className={styles.discoverList}>
+                          {found.map(d => {
+                            const pairing = pairState.kind === 'pairing' && pairState.host === d.host;
+                            return (
+                              <li key={d.stableKey} className={styles.discoverRow}>
+                                <div className={styles.discoverInfo}>
+                                  <span className={styles.deviceName}>{d.name}</span>
+                                  <span className={styles.deviceHost}>{d.host}</span>
+                                </div>
+                                {d.alreadyPaired && <span className={styles.badge}>{t('smartLights.paired')}</span>}
+                                <Button
+                                  size="sm"
+                                  tone="accent"
+                                  loading={pairing}
+                                  disabled={scanningBrand !== null}
+                                  onClick={() => void doPair(d.brand, d.host, d.stableKey, d.name)}
+                                >
+                                  {pairing ? t('smartLights.pairing') : d.alreadyPaired ? t('smartLights.rePair') : t('smartLights.pair')}
+                                </Button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
 
-          <form
-            className={styles.ipForm}
-            onSubmit={e => { e.preventDefault(); handleAddByIp(); }}
-          >
-            <span className={styles.ipLabel}>{t('smartLights.addByIp')}</span>
+          <SectionHeader className={styles.colHeader}>{t('smartLights.addByIp')}</SectionHeader>
+          <form className={styles.ipBox} onSubmit={e => { e.preventDefault(); handleAddByIp(); }}>
             <Select
               value={ipBrand}
               onChange={setIpBrand}
@@ -187,73 +282,42 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
               ariaLabel={t('smartLights.addByIp')}
               className={styles.ipBrandSelect}
             />
-            <input
-              type="text"
-              className={styles.ipInput}
-              value={ipHost}
-              onChange={e => setIpHost(e.target.value)}
-              placeholder="192.168.1.50"
-              aria-label={t('smartLights.ipAddress')}
-            />
-            <Button
-              type="submit"
-              size="sm"
-              tone="accent"
-              loading={pairState.kind === 'pairing'}
-              disabled={!ipHost.trim() || scanningBrand !== null}
-            >
-              {t('smartLights.add')}
-            </Button>
-          </form>
-
-          {scanError && <p className={styles.error}>{scanError}</p>}
-
-          {pairState.kind === 'action-needed' && (
-            <div className={styles.notice}>
-              <p className={styles.noticeText}>{t(pairState.copyKey)}</p>
+            <div className={styles.ipRow}>
+              <input
+                type="text"
+                className={styles.ipInput}
+                value={ipHost}
+                onChange={e => setIpHost(e.target.value)}
+                placeholder="192.168.1.50"
+                aria-label={t('smartLights.ipAddress')}
+              />
               <Button
+                type="submit"
                 size="sm"
                 tone="accent"
-                icon={<RefreshCw size={14} />}
-                onClick={() => void doPair(pairState.brand, pairState.host, pairState.stableKey, pairState.name)}
+                loading={pairState.kind === 'pairing'}
+                disabled={!ipHost.trim() || scanningBrand !== null}
               >
-                {t('smartLights.retry')}
+                {t('smartLights.add')}
               </Button>
             </div>
-          )}
-          {pairState.kind === 'added' && (
-            <p className={styles.success}>{t('smartLights.addedNLights', { count: pairState.count })}</p>
-          )}
-          {pairState.kind === 'error' && <p className={styles.error}>{pairState.message}</p>}
+          </form>
 
-          {discovered.length > 0 && (
-            <ul className={styles.discoverList}>
-              {discovered.map(d => {
-                const pairing = pairState.kind === 'pairing' && pairState.host === d.host;
-                return (
-                  <li key={d.stableKey} className={styles.discoverRow}>
-                    <div className={styles.discoverInfo}>
-                      <span className={styles.deviceName}>{d.name}</span>
-                      <span className={styles.deviceHost}>{d.host}</span>
-                    </div>
-                    {d.alreadyPaired && <span className={styles.badge}>{t('smartLights.paired')}</span>}
-                    <Button
-                      size="sm"
-                      tone="accent"
-                      loading={pairing}
-                      disabled={scanningBrand !== null}
-                      onClick={() => void doPair(d.brand, d.host, d.stableKey, d.name)}
-                    >
-                      {pairing ? t('smartLights.pairing') : d.alreadyPaired ? t('smartLights.rePair') : t('smartLights.pair')}
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
+          {onSectionNavigate && (
+            <Button
+              className={styles.lightingLink}
+              size="sm"
+              tone="neutral"
+              icon={<Lightbulb size={14} />}
+              onClick={() => onSectionNavigate('lighting')}
+            >
+              {t('smartLights.colorOnLightingPage')}
+            </Button>
           )}
-        </Section>
+        </div>
 
-        <Section title={t('smartLights.paired')}>
+        <div className={styles.pairedColumn}>
+          <SectionHeader className={styles.colHeader}>{t('smartLights.paired')}</SectionHeader>
           {paired.length === 0 ? (
             <EmptyState
               icon={<LampCeiling size={28} />}
@@ -290,46 +354,24 @@ export function SmartLightsPage({ onSectionNavigate }: SmartLightsPageProps) {
               })}
             </div>
           )}
-          {onSectionNavigate ? (
-            <button
-              type="button"
-              className={styles.linkNote}
-              onClick={() => onSectionNavigate('lighting')}
-            >
-              {t('smartLights.colorOnLightingPage')}
-            </button>
-          ) : (
-            <p className={styles.note}>{t('smartLights.colorOnLightingPage')}</p>
-          )}
-        </Section>
+        </div>
       </div>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className={styles.section}>
-      <SectionHeader>{title}</SectionHeader>
-      {children}
-    </section>
-  );
-}
-
-// Collapsible brand category: chevron + label + count header that folds the
-// grid away. No shared Collapsible primitive exists, so this is composed from
-// the standard chevron icon + the section-label typography.
+// Collapsible brand category folding the paired-light grid away.
 function CollapsibleCategory({ label, count, children }: { label: string; count: number; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className={styles.category}>
-      <button type="button" className={styles.categoryHeader} aria-expanded={open} onClick={() => setOpen(o => !o)}>
-        {open ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
-        <span className={styles.categoryLabel}>{label}</span>
-        <span className={styles.categoryCount}>{count}</span>
-      </button>
-      {open && <div className={styles.pairedGrid}>{children}</div>}
-    </div>
+    <CollapsibleSection
+      title={label}
+      open={open}
+      onToggle={() => setOpen(o => !o)}
+      right={<span className={styles.categoryCount}>{count}</span>}
+    >
+      <div className={styles.pairedGrid}>{children}</div>
+    </CollapsibleSection>
   );
 }
 

@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { ChevronDown } from 'lucide-react';
-import classNames from 'classnames';
+import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import type { HardwareSensor } from '../../../../hooks/useSensors';
 import { useTranslation } from '../../../../lib/i18n';
 import { groupByType } from './shared';
@@ -43,35 +42,27 @@ export function DetailSection({
 }) {
   const groups = useMemo(() => groupByType(sensors), [sensors]);
   return (
-    <section className={styles.detailSection} data-section-id={id}>
-      <button
-        type="button"
-        className={styles.detailHeader}
-        onClick={() => onToggle(id)}
-        aria-expanded={!collapsed}
-      >
-        <ChevronDown
-          size={16}
-          className={classNames(styles.detailChevron, { [styles.detailChevronCollapsed]: collapsed })}
-        />
-        <span className={styles.detailTitle}>{title}</span>
-        {subtitle && <span className={styles.detailSubtitle}>{subtitle}</span>}
-      </button>
-      {!collapsed && (
-        <div className={styles.detailBody}>
-          {groups.map(group => (
-            <div key={group.type} className={styles.detailGroup}>
-              <div className={styles.detailGroupLabel}>{groupTypeLabel(group.type)}</div>
-              {group.sensors.map(s => (
-                <div key={s.id} className={styles.detailRow}>
-                  <span className={styles.detailRowLabel}>{s.name}</span>
-                  <span className={styles.detailRowValue}>{s.formatted || `${s.value}`}</span>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
+    <CollapsibleSection
+      className={styles.detailSection}
+      sectionId={id}
+      title={title}
+      open={!collapsed}
+      onToggle={() => onToggle(id)}
+      right={subtitle ? <span className={styles.detailSubtitle}>{subtitle}</span> : undefined}
+    >
+      <div className={styles.detailBody}>
+        {groups.map(group => (
+          <div key={group.type} className={styles.detailGroup}>
+            <div className={styles.detailGroupLabel}>{groupTypeLabel(group.type)}</div>
+            {group.sensors.map(s => (
+              <div key={s.id} className={styles.detailRow}>
+                <span className={styles.detailRowLabel}>{s.name}</span>
+                <span className={styles.detailRowValue}>{s.formatted || `${s.value}`}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </CollapsibleSection>
   );
 }

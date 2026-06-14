@@ -90,15 +90,15 @@
 // pre-NP50 UI shape is preserved for users with no hub.
 .deviceGroupHeader {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0.5rem 0.25rem;
+  padding: 0.35rem 0.5rem;
   margin-top: 0.5rem;
+  border-radius: var(--radius-sm);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: rgba(255, 255, 255, 0.45);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 .deviceGroupName {
   font-weight: var(--weight-strong);
@@ -116,13 +116,21 @@
   width: 100%;
   background: none;
   border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
   cursor: pointer;
   font: inherit;
   text-align: left;
   color: inherit;
-  &:hover .deviceGroupName {
-    color: rgba(255, 255, 255, 0.9);
+  transition: background var(--ease-fast);
+  // Same hover fill as the sidebar nav tabs.
+  &:hover {
+    background: color-mix(in srgb, var(--surface) 50%, transparent);
+  }
+  // A collapsed group keeps a fainter version of that fill.
+  &[aria-expanded='false'] {
+    background: color-mix(in srgb, var(--surface) 25%, transparent);
+    &:hover {
+      background: color-mix(in srgb, var(--surface) 50%, transparent);
+    }
   }
 }
 .disconnectedChevron {

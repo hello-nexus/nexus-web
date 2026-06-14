@@ -56,6 +56,7 @@ import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
 import { pairingPreviewQr } from '../panel/widgets/pairing/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
+import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
 import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
 import { SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
@@ -774,6 +775,32 @@ function PreviewSectionHeader() {
   );
 }
 
+function PreviewCollapsibleSection() {
+  const [open, setOpen] = useState(true);
+  const [openCompact, setOpenCompact] = useState(false);
+  return (
+    <div style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <CollapsibleSection
+        title="Philips Hue"
+        open={open}
+        onToggle={() => setOpen(o => !o)}
+        right={<span style={{ fontVariantNumeric: 'tabular-nums' }}>3</span>}
+      >
+        <div style={{ color: 'var(--text-dim)', padding: '4px 8px' }}>Two paired lights</div>
+      </CollapsibleSection>
+      <CollapsibleSection
+        compact
+        title="CPU sensors"
+        open={openCompact}
+        onToggle={() => setOpenCompact(o => !o)}
+        right={<span style={{ fontVariantNumeric: 'tabular-nums' }}>12</span>}
+      >
+        <div style={{ color: 'var(--text-dim)', padding: '4px 8px' }}>Compact (smaller) variant</div>
+      </CollapsibleSection>
+    </div>
+  );
+}
+
 function PreviewSettingsSection() {
   return (
     <div style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -1376,6 +1403,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/SectionHeader/SectionHeader.tsx',
     description: 'Canonical settings header: a muted body-type label (no underline). Usually rendered by SettingsSection, which sits it above a surface box. Token fallback (--panel-text-muted → --text-dim) keeps it correct inside .panel-root and on the dashboard.',
     Preview: PreviewSectionHeader,
+  },
+  {
+    name: 'CollapsibleSection', category: 'panel-kit',
+    filePath: 'src/components/common/CollapsibleSection/CollapsibleSection.tsx',
+    description: 'Canonical collapsible group header: chevron + title on the left, optional values/buttons on the right, a hover background bar, no borders. The one treatment for paired smart lights, monitoring detail, and lighting/cooling device groups. compact is the smaller uppercase variant the lighting/cooling groups use.',
+    Preview: PreviewCollapsibleSection,
   },
   {
     name: 'SettingsSection', category: 'panel-kit',

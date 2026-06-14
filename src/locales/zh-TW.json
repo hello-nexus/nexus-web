@@ -1519,7 +1519,7 @@
   "smartLights.brandGovee": "Govee",
   "smartLights.brandHue": "Philips Hue",
   "smartLights.brandNanoleaf": "Nanoleaf",
-  "smartLights.colorOnLightingPage": "顏色與亮度位於「燈光」頁面",
+  "smartLights.colorOnLightingPage": "顏色與亮度",
   "smartLights.enableLanControl": "在 Govee Home 應用程式中為該裝置開啟「區域網路控制」，然後重試",
   "smartLights.holdPowerButton": "長按 Nanoleaf 控制器的電源鍵 5-7 秒，直到燈光閃爍，然後重試",
   "smartLights.ipAddress": "IP 位址",

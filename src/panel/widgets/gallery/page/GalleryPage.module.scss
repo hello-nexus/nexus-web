@@ -158,6 +158,21 @@
   flex: 1 1 auto;
 }
 
+// Library title sits above the box (like the Sources header), with the image
+// count inline beside it.
+.libraryHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.libraryCount {
+  color: var(--text-faded);
+  font-size: var(--type-mini);
+  font-weight: var(--weight-body);
+}
+
 // Layout wrapper for the library card; fills the width left of the
 // sources column. (The drop target is the whole page, not this box.)
 .dropZone {

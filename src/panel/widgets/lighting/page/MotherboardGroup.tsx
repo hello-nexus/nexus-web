@@ -1,5 +1,6 @@
-import { ChevronDown, ChevronRight, Power } from 'lucide-react';
+import { Power } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
+import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import styles from '../LightingPage.module.scss';
 
@@ -40,18 +41,14 @@ export function MotherboardGroup({
   const toggleLabel = ariaLabel ?? t('lighting.devices.motherboardHeader');
 
   return (
-    <div className={styles.motherboardGroup}>
-      <div className={styles.motherboardGroupHeader}>
-        <button
-          type="button"
-          className={styles.motherboardGroupToggle}
-          onClick={onToggleCollapsed}
-          aria-expanded={expanded}
-          aria-label={toggleLabel}
-        >
-          {expanded ? <ChevronDown /> : <ChevronRight />}
-          <span className={styles.motherboardGroupName}>{parentName}</span>
-        </button>
+    <CollapsibleSection
+      compact
+      className={styles.motherboardGroup}
+      title={parentName}
+      open={expanded}
+      onToggle={onToggleCollapsed}
+      ariaLabel={toggleLabel}
+      right={
         <HoverTooltip body={t(groupOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
           <button
             type="button"
@@ -64,12 +61,11 @@ export function MotherboardGroup({
             <Power />
           </button>
         </HoverTooltip>
+      }
+    >
+      <div className={styles.motherboardGroupChildren}>
+        {children}
       </div>
-      {expanded && (
-        <div className={styles.motherboardGroupChildren}>
-          {children}
-        </div>
-      )}
-    </div>
+    </CollapsibleSection>
   );
 }

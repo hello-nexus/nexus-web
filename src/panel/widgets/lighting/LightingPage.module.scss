@@ -985,46 +985,6 @@
   &:hover .deviceSettingsBtn { opacity: 1; }
 }
 
-.motherboardGroupHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.2rem;
-  border-radius: var(--radius-sm);
-
-  &:hover { background: var(--bg-card-hover); }
-}
-
-// Chevron + parent-name clickable area. Sibling of the group power button so
-// neither lives inside the other (button-in-button isn't valid HTML).
-.motherboardGroupToggle {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 0.7rem;
-  font-weight: var(--weight-body);
-  text-align: left;
-  cursor: pointer;
-  padding: 0;
-
-  &:hover { color: var(--text); }
-
-  svg { width: 13px; height: 13px; }
-}
-
-.motherboardGroupName {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-transform: uppercase; // category-header convention (matches cooling)
-}
-
 .motherboardGroupChildren {
   display: flex;
   flex-direction: column;

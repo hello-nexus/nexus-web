@@ -19,6 +19,8 @@ export interface SmartLight {
 
 export interface SmartLightsResponse {
   devices: SmartLight[];
+  // Per-brand scan/probe/visibility toggle; a brand absent here is off.
+  brandEnabled?: Record<string, boolean>;
 }
 
 // A candidate found during a discovery scan (not yet paired).
@@ -56,6 +58,17 @@ export const fetchSmartLights = () =>
 
 export const discoverSmartLights = (brand: string) =>
   postService<DiscoverResponse>('/smart-lights/discover', { brand });
+
+// Scan + reconcile a brand: discovers, prunes that brand's paired lights no
+// longer present (the way to drop a removed light), and returns the discovery
+// candidates for the pair UI. Pruned lights keep their LED mappings.
+export const scanSmartLights = (brand: string) =>
+  postService<DiscoverResponse>('/smart-lights/scan', { brand });
+
+// Turn a whole brand on or off. Off brands are not scanned, not probed, and
+// their lights leave the lighting canvas. Default off.
+export const setBrandEnabled = (brand: string, enabled: boolean) =>
+  postService<RemoveResponse>('/smart-lights/brand-enable', { brand, enabled });
 
 export const pairSmartLight = (brand: string, host: string, stableKey: string, name: string) =>
   postService<PairResponse>('/smart-lights/pair', { brand, host, stableKey, name });

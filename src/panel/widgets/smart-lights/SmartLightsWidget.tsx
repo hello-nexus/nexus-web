@@ -10,15 +10,14 @@ import styles from './SmartLightsWidget.module.scss';
 const REFRESH_MS = 15_000;
 
 /**
- * Glanceable smart-lights tile: total paired + how many are online. On the
- * desktop dashboard a tap opens the management Page (onSectionNavigate);
+ * Glanceable smart-lights tile: a large smart-light icon over the online count.
+ * On the desktop dashboard a tap opens the management Page (onSectionNavigate);
  * elsewhere the tile is summary-only and the panel handles fullscreen entry.
  */
 export function SmartLightsWidget({ widget, onSectionNavigate }: WidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const [devices, setDevices] = useState<SmartLight[]>(preview ? SMART_LIGHTS_PREVIEW : []);
-  const compact = widget.size === '2x2';
 
   useEffect(() => {
     if (preview) return;
@@ -36,29 +35,31 @@ export function SmartLightsWidget({ widget, onSectionNavigate }: WidgetProps) {
 
   const total = devices.length;
   const online = devices.filter(d => d.online).length;
+  const iconSize = widget.size === '2x2' ? 44 : 56;
+  const label = total === 0
+    ? t('smartLights.noLightsYet')
+    : t('smartLights.onlineOfTotal', { online, total });
+
+  const content = (
+    <>
+      <LampCeiling size={iconSize} className={styles.icon} aria-hidden />
+      <span className={styles.label}>{label}</span>
+    </>
+  );
 
   return (
     <div className={styles.widget} data-size={widget.size}>
-      <div className={styles.header}>
-        <LampCeiling size={compact ? 18 : 20} aria-hidden />
-        <span className={styles.title}>{t('panel.widget.smart-lights')}</span>
-      </div>
-      <div className={styles.stats}>
-        <span className={styles.count}>{total}</span>
-        <span className={styles.label}>
-          {total === 0
-            ? t('smartLights.noLightsYet')
-            : t('smartLights.onlineOfTotal', { online, total })}
-        </span>
-      </div>
-      {!compact && onSectionNavigate && (
+      {onSectionNavigate ? (
         <button
           type="button"
-          className={styles.openButton}
+          className={styles.center}
+          data-clickable="true"
           onClick={() => onSectionNavigate('smart-lights')}
         >
-          {t('smartLights.title')}
+          {content}
         </button>
+      ) : (
+        <div className={styles.center}>{content}</div>
       )}
     </div>
   );

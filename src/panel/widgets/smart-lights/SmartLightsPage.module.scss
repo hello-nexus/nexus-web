@@ -10,86 +10,116 @@
 
 .body {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  align-items: flex-start;
+  gap: 1rem;
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
 }
 
-.section {
+// Add-lights docked column on the left (matches the Gallery sources column);
+// the paired list fills the rest on the right.
+.addColumn {
+  flex: 0 0 320px;
+  min-width: 0;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 14px;
+}
+
+.pairedColumn {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.colHeader {
+  margin-bottom: 0.35rem;
 }
 
 
 // ---------- Brand picker ----------
 
-.brandGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+.brandList {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.brandTile {
+// Classic container box: surface fill, transparent border, no special chrome.
+.brandCard {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 14px;
-  border: var(--border-width) solid var(--border-strong);
+  padding: 10px 12px 10px 14px;
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  transition: border-color var(--ease-fast), background var(--ease-fast);
+}
 
-  &:hover:not(:disabled) {
-    border-color: var(--accent);
-    background: var(--bg-card-hover);
-  }
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-  &[data-active='true'] {
-    border-color: var(--accent);
-  }
+// Per-brand scan/pair output (discovered lights, errors, action notices),
+// tucked inside the card below its header row.
+.brandResults {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: var(--border-width) solid var(--border);
+}
 
-  &:disabled {
-    cursor: default;
-    opacity: 0.5;
-  }
-
-  svg { color: var(--text-dim); }
+// The brand logo, vectorized from its PNG and masked so it renders in the
+// current text color regardless of the source artwork's colors.
+.brandMark {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 30px;
+  background: currentColor;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
 }
 
 .brandName {
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: var(--weight-heading);
 }
 
-.brandSub {
-  font-size: var(--type-mini);
-  color: var(--text-faded);
+// Color & brightness shortcut, full-width directly under the Add-by-IP box.
+.lightingLink {
+  width: 100%;
 }
 
 // ---------- Add by IP ----------
 
-.ipForm {
+.ipBox {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
-.ipLabel {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  white-space: nowrap;
+.ipRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .ipBrandSelect {
-  width: 9rem;
+  width: 100%;
 }
 
 .ipInput {
@@ -177,34 +207,6 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.category {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-// Matches the shared SectionHeader look (muted body-type, no underline), plus
-// a chevron for collapse and a count pushed to the right.
-.categoryHeader {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 0 0 0.25rem;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--text-dim);
-
-  svg { flex-shrink: 0; }
-  &:hover { color: var(--text); }
-}
-
-.categoryLabel {
-  font-size: var(--type-body);
-  font-weight: var(--weight-body);
 }
 
 .categoryCount {

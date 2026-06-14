@@ -1,78 +1,45 @@
-@use '../../../styles/interactions' as *;
-
 .widget {
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px;
   box-sizing: border-box;
   color: var(--panel-text);
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--panel-text-muted);
-
-  svg { flex-shrink: 0; }
-}
-
-.title {
-  font: 700 12px/1 var(--panel-font);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stats {
+// Large icon centered over the online count, matching the cooling/lighting
+// simple tile. No title chrome.
+.center {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 10px;
+  padding: 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
 }
 
-.count {
-  font: 700 40px/1 var(--panel-font);
+.center[data-clickable='true'] {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.icon {
+  flex-shrink: 0;
   color: var(--panel-text);
 }
 
 .label {
-  font: 600 12px/1.2 var(--panel-font);
+  font: 600 13px/1.2 var(--panel-font);
   color: var(--panel-text-muted);
+  text-align: center;
 }
 
-.openButton {
-  flex-shrink: 0;
-  min-height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-sm);
-  background: var(--panel-element-bg);
-  color: var(--panel-text-muted);
-  padding: 0 10px;
-  font: 700 11px/1 var(--panel-font);
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-
-  @include widget-button-hover;
-}
-
-// 2x2: drop the open button, shrink the big number to fit.
-.widget[data-size='2x2'] {
-  padding: 12px;
-  gap: 6px;
-
-  .count { font-size: 30px; }
-}
+.widget[data-size='2x2'] .label { font-size: 12px; }

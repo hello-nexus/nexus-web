@@ -83,6 +83,7 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   screentime: ['Figma', 'Chrome'],
   displays: ['DISPLAY 1', 'DISPLAY 2', '72', '45'],
   cooling: ['cooling.preset.balanced'],
+  'smart-lights': ['smartLights.onlineOfTotal'],
   deck: ['Stream', 'Lights'],
   twitch: ['nova_streams', 'LIVE'],
   iframe: ['example.com'],

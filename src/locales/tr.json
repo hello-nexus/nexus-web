@@ -1519,7 +1519,7 @@
   "smartLights.brandGovee": "Govee",
   "smartLights.brandHue": "Philips Hue",
   "smartLights.brandNanoleaf": "Nanoleaf",
-  "smartLights.colorOnLightingPage": "Renk ve parlaklık Aydınlatma sayfasında bulunur",
+  "smartLights.colorOnLightingPage": "Renk ve parlaklık",
   "smartLights.enableLanControl": "Govee Home uygulamasında bu cihaz için \"LAN Kontrolü\"nü açın, ardından tekrar deneyin",
   "smartLights.holdPowerButton": "Nanoleaf denetleyicisinin güç düğmesini ışıklar yanıp sönene kadar 5-7 saniye basılı tutun, ardından tekrar deneyin",
   "smartLights.ipAddress": "IP adresi",

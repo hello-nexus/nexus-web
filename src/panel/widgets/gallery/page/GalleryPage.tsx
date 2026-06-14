@@ -288,11 +288,11 @@ export function GalleryPage() {
         </div>
 
         <div className={styles.dropZone}>
-          <Card
-            title={t('gallery.page.library')}
-            subtitle={t('gallery.page.itemCount', { count: items.length })}
-            className={styles.libraryCard}
-          >
+          <SectionHeader className={styles.libraryHeader}>
+            {t('gallery.page.library')}
+            <span className={styles.libraryCount}>{t('gallery.page.itemCount', { count: items.length })}</span>
+          </SectionHeader>
+          <Card className={styles.libraryCard}>
             {items.length === 0 ? (
               <EmptyState
                 compact

@@ -1519,7 +1519,7 @@
   "smartLights.brandGovee": "Govee",
   "smartLights.brandHue": "Philips Hue",
   "smartLights.brandNanoleaf": "Nanoleaf",
-  "smartLights.colorOnLightingPage": "A cor e o brilho ficam na página de Iluminação",
+  "smartLights.colorOnLightingPage": "Cor e brilho",
   "smartLights.enableLanControl": "Ative o \"Controlo LAN\" para este dispositivo na app Govee Home e tente novamente",
   "smartLights.holdPowerButton": "Mantenha premido o botão de energia do controlador Nanoleaf durante 5-7 segundos até as luzes piscarem e tente novamente",
   "smartLights.ipAddress": "Endereço IP",
