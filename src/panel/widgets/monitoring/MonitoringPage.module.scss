@@ -203,6 +203,36 @@
   gap: 0.25rem;
 }
 
+.gpuVitals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.gpuVital {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.7rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.gpuVitalValue {
+  @include text-heading;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  line-height: 1;
+}
+
+.gpuVitalLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
 .chartStatValue {
   @include text-heading;
   font-family: var(--font-mono);

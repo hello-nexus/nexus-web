@@ -12,6 +12,7 @@ import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { MonitoringSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { OverviewTab } from './page/OverviewTab';
 import { CpuTab } from './page/CpuTab';
+import { GpuTab } from './page/GpuTab';
 import { MemoryTab } from './page/MemoryTab';
 import { NetworkTab } from './page/NetworkTab';
 import { DetailedTab } from './page/DetailedTab';
@@ -19,8 +20,8 @@ import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
 import { usePageSettingsAction } from '../../../app/PageChrome';
 import styles from './MonitoringPage.module.scss';
 
-type MonitoringTab = 'overview' | 'cpu' | 'memory' | 'network' | 'detailed';
-const VALID_TABS: MonitoringTab[] = ['overview', 'cpu', 'memory', 'network', 'detailed'];
+type MonitoringTab = 'overview' | 'cpu' | 'gpu' | 'memory' | 'network' | 'detailed';
+const VALID_TABS: MonitoringTab[] = ['overview', 'cpu', 'gpu', 'memory', 'network', 'detailed'];
 
 interface MonitoringViewProps {
   serviceOnline: boolean;
@@ -60,6 +61,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const tabs = [
     { key: 'overview', label: t('monitoring.tab.overview') },
     { key: 'cpu', label: t('monitoring.tab.cpu') },
+    { key: 'gpu', label: t('monitoring.tab.gpu') },
     { key: 'memory', label: t('monitoring.tab.memory') },
     { key: 'network', label: t('monitoring.tab.network') },
     { key: 'detailed', label: t('monitoring.tab.detailed') },
@@ -80,6 +82,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
         <OverviewTab frame={monitoringFrame} hist={overviewHist} onNavigate={onTabChange} />
       );
       case 'cpu': return <CpuTab cpuSeries={cpuSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;
+      case 'gpu': return <GpuTab sensors={sensors} />;
       case 'memory': return <MemoryTab memSeries={memSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;
       case 'network': return <NetworkTab network={network} showAverage={showAverage} onToggle={toggleMode} />;
       case 'detailed': return <DetailedTab sensors={sensors} />;
