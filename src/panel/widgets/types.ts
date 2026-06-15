@@ -54,6 +54,9 @@ export interface DeckEditView {
 
 export interface WidgetSettingsProps {
   widget: PanelWidget;
+  // The surface the panel being edited runs on (desktop/phone/y70/q60). Gates
+  // free-text fields (e.g. the icon search) off keyboard-less surfaces.
+  surface?: PanelSurface;
   onUpdate: (config: Record<string, PanelConfigValue>) => void;
   onResize: (size: PanelWidgetSize) => void;
   selectedSlot?: number;

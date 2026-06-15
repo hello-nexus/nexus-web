@@ -681,6 +681,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
         <div className={styles.inlineSettingsBody}>
           <Settings
             widget={widget}
+            surface={surface}
             onUpdate={handleConfigUpdate}
             onResize={handleResize}
             selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
