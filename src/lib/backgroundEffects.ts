@@ -1,11 +1,6 @@
-// Module-level bus for one-shot, full-window background effects. Any code can
-// emit; <BackgroundEffects> (mounted once behind the dashboard) renders them.
-// Decoupled like controlSync: no provider, no prop drilling. Add a new effect
-// by extending the BackgroundEffect union and handling its `kind` in
-// <BackgroundEffects>.
+// Module-level bus; <BackgroundEffects> renders emitted effects.
 
-// A radial accent bloom centered on (x, y) in viewport pixels. `inverse`
-// collapses the bloom inward (the Off tabs) instead of blooming it outward.
+// Radial accent bloom centered on (x, y) in viewport px; inverse collapses it inward.
 export interface RadialBloomEffect {
   readonly kind: 'radial-bloom';
   readonly x: number;
@@ -27,8 +22,7 @@ export function subscribeBackgroundEffects(listener: Listener): () => void {
   return () => { listeners.delete(listener); };
 }
 
-// Convenience: bloom from the center of an element (e.g. a pressed status tab),
-// resolved to viewport pixels for the fixed-position effects layer.
+// Emit a bloom from an element's center, in viewport px.
 export function emitRadialBloomFromElement(el: HTMLElement, inverse = false): void {
   const r = el.getBoundingClientRect();
   emitBackgroundEffect({
