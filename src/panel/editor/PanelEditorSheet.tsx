@@ -16,6 +16,7 @@ import { useTranslation } from '../../lib/i18n';
 import type { ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
+import { isSingleWidgetSurface } from '../types';
 import type { PanelBackgroundMode } from '../background/panelBackground';
 import type { PanelThemeState } from '../theme/panelTheme';
 import styles from '../PanelApp.module.scss';
@@ -327,6 +328,7 @@ export function PanelEditorSheet({
               onWidgetOpacityCommit={onThemeWidgetOpacityCommit}
               onWidgetLabelsCommit={onThemeWidgetLabelsCommit}
               onWidgetBlurCommit={onThemeWidgetBlurCommit}
+              hideWidgetChromeControls={isSingleWidgetSurface(surface)}
             />
           </div>
         )}
