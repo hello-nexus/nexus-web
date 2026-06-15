@@ -562,9 +562,9 @@ export function PanelContent({
     machineName,
     setTrayOpen,
   });
-  const homeIntroActive = useHomeIntro(
-    embedded && surface === 'desktop' && loaded && serviceStatus.state === 'online',
-  );
+  // Embedded desktop only mounts once the service is online (DashboardOnline),
+  // so layout `loaded` is the readiness signal; serviceStatus is kiosk-only here.
+  const homeIntroActive = useHomeIntro(embedded && surface === 'desktop' && loaded);
   const connectionIntroLabel = (() => {
     const label = t('panel.connectedTo');
     return label === 'panel.connectedTo' ? 'Connected to' : label;
