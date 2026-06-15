@@ -220,6 +220,12 @@
   animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+// Desktop home replays the panel-open entrance once on first app launch.
+.panelRoot[data-home-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) {
+  transform-origin: center;
+  animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .connectionIntroBackdrop {
     animation: none;
@@ -232,7 +238,8 @@
     transform: translate(-50%, 0);
   }
 
-  .panelRoot[data-connection-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) {
+  .panelRoot[data-connection-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell),
+  .panelRoot[data-home-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) {
     animation: none;
     opacity: 1;
     filter: none;
@@ -932,15 +939,13 @@
   --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
 }
 
-// Promoted-monitor kiosks are wide (>900px), so their add-widget sheet takes
-// the base right-slide path — which inherits the live panel's --panel-scale
-// (a content zoom, e.g. ~1.57x on a 1920px monitor) and the sheet transform
-// `scale(var(--panel-scale))` blows the whole drawer up by that factor. The
-// sheet is fixed-size chrome, not scaled panel content; neutralise like the
-// desktop drawer does. The catalog grid sets its own --panel-scale for its
-// preview cells (closer ancestor), so those still scale correctly. Narrow
-// rotated monitors (≤900px) keep the bottom-sheet path, whose rules divide
-// by --panel-scale=1 — a no-op, also correct.
+// A promoted monitor's add-widget / edit sheet is fixed-size chrome, not scaled
+// panel content, so neutralise the live panel's --panel-scale (a content zoom,
+// e.g. ~1.57x on a 1920px monitor) the way the desktop drawer does; otherwise
+// the sheet transform scale(var(--panel-scale)) blows it up. The catalog grid
+// sets its own --panel-scale for its preview cells (a closer ancestor), so
+// those still scale correctly. Whether this surface shows a bottom sheet or a
+// side drawer is decided by orientation below (portrait monitor -> bottom).
 .editorBackdrop[data-surface='monitor'] {
   --panel-scale: 1;
 }
@@ -1234,16 +1239,19 @@
   to { transform: translateY(100%) scale(var(--panel-scale, 1)); }
 }
 
-@media (max-width: 900px) {
-  // Bottom-sheet layout for panel surfaces (phone / Y70 / Q60). The embedded
-  // desktop dashboard keeps its side-drawer at every width, so each rule
-  // below scopes out data-surface='desktop'.
-  .editorBackdrop:not([data-surface='desktop']) {
-    align-items: flex-end;
-    justify-content: stretch;
-  }
+// Bottom-sheet layout, decided by SURFACE - not the CSS-px viewport width. A
+// kiosk's CSS width tracks its Windows display-scaling (DPR), so a px
+// breakpoint (the former `@media (max-width: 900px)`) flipped the Y70 to the
+// desktop side-drawer at 100% scaling, where its CSS width exceeds 900. The
+// dedicated panel surfaces (phone / Y70 / Q60) always slide up from the bottom;
+// the embedded desktop dashboard keeps its side-drawer; a promoted monitor gets
+// the bottom sheet only when portrait (its width is a real screen size, not a
+// scaling artifact). Phone's own landscape side-drawer override follows below.
+@mixin editorBottomSheet {
+  align-items: flex-end;
+  justify-content: stretch;
 
-  .editorBackdrop:not([data-surface='desktop']) .editorSheet {
+  .editorSheet {
     width: 100%;
     height: auto;
     max-height: min(76dvh, 760px);
@@ -1255,28 +1263,11 @@
     padding-top: 18px;
   }
 
-  // Monitor-attached panels (not phone/desktop): width / max-height shrink
-  // by 1/s so the post-scale sheet fills the target area. margin-inline:
-  // auto centers the shrunk box and `bottom center` origin scales
-  // symmetrically — without them the layout center sits at 25vw
-  // (flex-start of a half-width child) and 2x scaling pushes it off-left.
-  //
-  // Visual max-height: drawer rises to a 3:1 height-to-width aspect (3 ×
-  // viewport width), capped at 100dvh. On a tall portrait Y70 (~734 × 2560)
-  // that's ~2200 CSS px ≈ 86dvh; near-square/wide viewports cap at screen
-  // height. Phone keeps the :not(desktop) rule's min(76dvh, 760px).
-  .editorBackdrop:not([data-surface='phone']):not([data-surface='desktop']) .editorSheet {
-    width: calc(100% / var(--panel-scale, 1));
-    max-height: calc(min(300vw, 100dvh) / var(--panel-scale, 1));
-    margin-inline: auto;
-    transform-origin: bottom center;
-  }
-
-  .editorBackdrop:not([data-surface='desktop'])[data-state='closing'] .editorSheet {
+  &[data-state='closing'] .editorSheet {
     animation: sheetDown 220ms cubic-bezier(0.32, 0.72, 0, 1) both;
   }
 
-  .editorBackdrop:not([data-surface='desktop']) .editorSheetGrabber {
+  .editorSheetGrabber {
     display: block;
     position: absolute;
     top: 6px;
@@ -1288,35 +1279,70 @@
     transform: translateX(-50%);
     pointer-events: none;
   }
+}
 
-  .editorBackdrop[data-surface='phone'][data-mode='settings'] .editorSheet {
-    // Pin the top edge at the 2-row (4x2) detent so the drawer slides to the
-    // same Y for any widget. Taller widgets (4x4) render full size and are
-    // partially overlapped, matching iOS modal-sheet behavior.
-    position: absolute;
-    top: calc(max(8px, env(safe-area-inset-top)) + 2 * var(--panel-cell-size) + var(--panel-gap) + 24px);
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: auto;
-    height: auto;
-    max-height: none;
-    padding-top: 14px;
+// Scaled surfaces (Y70 / Q60 / portrait monitor): the sheet is scaled panel
+// content (--panel-scale), so shrink width / max-height by 1/s and re-grow from
+// bottom center - the post-scale box then fills the target area and stays
+// centered. Without it the half-width child sits at flex-start (25vw) and 2x
+// scaling pushes it off-left. Visual max-height rises to a 3:1 aspect (3 ×
+// viewport width), capped at 100dvh. Phone is not scaled (keeps min(76dvh, 760px)).
+@mixin editorBottomSheetScaled {
+  .editorSheet {
+    width: calc(100% / var(--panel-scale, 1));
+    max-height: calc(min(300vw, 100dvh) / var(--panel-scale, 1));
+    margin-inline: auto;
+    transform-origin: bottom center;
   }
+}
 
-  .editorBackdrop[data-surface='phone'][data-mode='catalog'] .editorSheet,
-  .editorBackdrop[data-surface='phone'][data-mode='panelSettings'] .editorSheet {
-    height: calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));
-    max-height: none;
-    margin-bottom: max(8px, env(safe-area-inset-bottom));
-    border-radius: 0;
-    padding:
-      14px
-      max(14px, env(safe-area-inset-right))
-      14px
-      max(14px, env(safe-area-inset-left));
+.editorBackdrop[data-surface='phone'],
+.editorBackdrop[data-surface='y70'],
+.editorBackdrop[data-surface='q60'] {
+  @include editorBottomSheet;
+}
+
+.editorBackdrop[data-surface='y70'],
+.editorBackdrop[data-surface='q60'] {
+  @include editorBottomSheetScaled;
+}
+
+// Promoted monitor: bottom sheet only when portrait; a wide/landscape monitor
+// keeps the side drawer. Aspect-ratio, not px width - a monitor's CSS width is
+// a real screen size.
+@media (orientation: portrait) {
+  .editorBackdrop[data-surface='monitor'] {
+    @include editorBottomSheet;
+    @include editorBottomSheetScaled;
   }
+}
 
+.editorBackdrop[data-surface='phone'][data-mode='settings'] .editorSheet {
+  // Pin the top edge at the 2-row (4x2) detent so the drawer slides to the
+  // same Y for any widget. Taller widgets (4x4) render full size and are
+  // partially overlapped, matching iOS modal-sheet behavior.
+  position: absolute;
+  top: calc(max(8px, env(safe-area-inset-top)) + 2 * var(--panel-cell-size) + var(--panel-gap) + 24px);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  height: auto;
+  max-height: none;
+  padding-top: 14px;
+}
+
+.editorBackdrop[data-surface='phone'][data-mode='catalog'] .editorSheet,
+.editorBackdrop[data-surface='phone'][data-mode='panelSettings'] .editorSheet {
+  height: calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));
+  max-height: none;
+  margin-bottom: max(8px, env(safe-area-inset-bottom));
+  border-radius: 0;
+  padding:
+    14px
+    max(14px, env(safe-area-inset-right))
+    14px
+    max(14px, env(safe-area-inset-left));
 }
 
 @media (orientation: landscape) {

@@ -15,6 +15,7 @@ import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
+import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
@@ -847,7 +848,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             title={t('lighting.title')}
             tabs={modeTabs}
             activeTab={synced ? mode : undefined}
-            onTabChange={k => handleModeChange(k as LightingMode)}
+            onTabChange={(k, origin) => {
+              // Status-change bloom only on an actual mode switch, from the pressed tab.
+              if (origin && k !== (synced ? mode : null)) emitRadialBloomFromElement(origin, k === 'none');
+              void handleModeChange(k as LightingMode);
+            }}
           />
         </div>
         <div className={styles.main}>

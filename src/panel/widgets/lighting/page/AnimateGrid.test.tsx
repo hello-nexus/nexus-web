@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AnimateGrid } from './AnimateGrid';
 
@@ -63,5 +63,36 @@ describe('AnimateGrid live-on-RGB bulb', () => {
       />,
     );
     expect(container.querySelectorAll('svg.lucide-monitor').length).toBe(0);
+  });
+});
+
+describe('AnimateGrid category sections', () => {
+  const has = (c: HTMLElement, key: string) => !!c.querySelector(`[data-effect-key="${key}"]`);
+
+  it('lists every effect under pre-expanded category groups (no filtering)', () => {
+    const { container } = render(<AnimateGrid effect="" onSelect={() => {}} />);
+    expect(has(container, 'fire')).toBe(true);         // organic
+    expect(has(container, 'boxtunnel')).toBe(true);    // geometric
+    expect(has(container, 'spectrumbars')).toBe(true); // audio
+  });
+
+  it('orders sections simple, organic, then the rest with audio last', () => {
+    const { container } = render(<AnimateGrid effect="" onSelect={() => {}} />);
+    const text = container.textContent || '';
+    const order = ['simple', 'organic', 'cosmic', 'geometric', 'pattern', 'audio'];
+    const idxs = order.map(c => text.indexOf(`lighting.category.${c}`));
+    expect(idxs.every(i => i >= 0)).toBe(true);
+    expect(idxs).toEqual([...idxs].sort((a, b) => a - b));
+  });
+
+  it('collapses and re-expands a category when its header is clicked', () => {
+    const { container } = render(<AnimateGrid effect="" onSelect={() => {}} />);
+    expect(has(container, 'fire')).toBe(true); // organic, expanded by default
+    const header = screen.getByRole('button', { name: /lighting\.category\.organic/ });
+    fireEvent.click(header);
+    expect(header.getAttribute('aria-expanded')).toBe('false');
+    expect(has(container, 'fire')).toBe(false);
+    fireEvent.click(header);
+    expect(has(container, 'fire')).toBe(true);
   });
 });

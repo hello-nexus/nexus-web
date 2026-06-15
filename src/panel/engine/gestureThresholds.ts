@@ -17,6 +17,6 @@ export const GESTURE_AXIS_DOMINANCE = 1.3;
 // gesture across surfaces (and tracks live Windows display scaling, since
 // cssPxPerMm divides by devicePixelRatio). The engage dead zone is converted
 // the same way so both halves of the open drag are physical.
-export const TRAY_ENGAGE_TRAVEL_MM = 2.5;
-export const TRAY_COMMIT_TRAVEL_MM = 10;
-export const TRAY_COMMIT_FLICK_MM_PER_MS = 0.075;
+export const TRAY_ENGAGE_TRAVEL_MM = 4;
+export const TRAY_COMMIT_TRAVEL_MM = 20;
+export const TRAY_COMMIT_FLICK_MM_PER_MS = 0.16;

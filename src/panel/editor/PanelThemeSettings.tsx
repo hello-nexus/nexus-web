@@ -20,7 +20,7 @@ import {
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
 import { usePanelBackgroundEffectController } from '../widgets/lighting/effecteditor/usePanelBackgroundEffectController';
 import { usePanelBackgroundUsage } from '../../hooks/usePanelBackgroundUsage';
-import { AnimateCategoryChips, AnimateGrid, type AnimateFilter } from '../widgets/lighting/page/AnimateGrid';
+import { AnimateGrid } from '../widgets/lighting/page/AnimateGrid';
 import { EffectControls } from '../widgets/lighting/page/EffectControls';
 import styles from './PanelThemeSettings.module.scss';
 
@@ -124,7 +124,6 @@ export function PanelThemeSettings({
   // EffectEditor shell) so the preview + tab bars + chips can sit in one
   // sticky dock while the grid / controls scroll with the page.
   const [editorTab, setEditorTab] = useState<'options' | 'effect'>('options');
-  const [animationFilter, setAnimationFilter] = useState<AnimateFilter>('all');
 
   // The same Options | Effect editing surface as the immersive lighting view,
   // here targeting this panel's per-device background effect (animate-only).
@@ -274,20 +273,12 @@ export function PanelThemeSettings({
                 onChange={key => setEditorTab(key as 'options' | 'effect')}
                 ariaLabel={t('lighting.rightPane.label')}
               />
-              {editorTab === 'options' && (
-                <AnimateCategoryChips
-                  effects={PANEL_BACKGROUND_EFFECTS}
-                  value={animationFilter}
-                  onChange={setAnimationFilter}
-                />
-              )}
             </div>
             {editorTab === 'options' ? (
               <AnimateGrid
                 effect={backgroundEffect}
                 onSelect={onBackgroundEffectCommit}
                 effects={PANEL_BACKGROUND_EFFECTS}
-                filter={animationFilter}
                 slotFor={backgroundController.slotFor}
                 versionFor={backgroundController.versionFor}
                 rgbActiveEffect={backgroundController.rgbActiveEffect}

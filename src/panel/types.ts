@@ -17,6 +17,16 @@ export function surfaceSupportsTouch(surface: PanelSurface, deviceTouch?: boolea
   return surface !== 'q60';
 }
 
+// Whether the operator at this surface has a usable text-entry method: desktop
+// (physical keyboard) and phone/tablet (on-screen keyboard). The Y70 kiosk is
+// touch-only with no keyboard and the Q-series is display-only, so neither
+// should render text inputs. Gate any free-text field on this; when the panel
+// is edited remotely from a desktop modal the operator's own keyboard applies,
+// not the target surface's.
+export function surfaceSupportsTextInput(surface: PanelSurface): boolean {
+  return surface === 'desktop' || surface === 'phone';
+}
+
 // Surfaces hosting one widget at a fixed size. Add a surface by adding an
 // entry here; nothing else should branch on a literal surface name. Q-series
 // LCD: ~240x800 portrait strip, no touch, room for one tile.

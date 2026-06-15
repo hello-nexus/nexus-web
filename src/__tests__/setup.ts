@@ -23,6 +23,11 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 
+// jsdom has no layout engine, so scrollIntoView is undefined. No-op it so
+// components that keep an active item in view (Select listbox, TopSearch) don't
+// throw under test.
+Element.prototype.scrollIntoView ??= function () {};
+
 // Clear localStorage between tests
 afterEach(() => {
   localStorage.clear();

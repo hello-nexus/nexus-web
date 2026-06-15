@@ -6,6 +6,21 @@ import { MonitoringWidget } from '../monitoring/MonitoringWidget';
 import { GAUGE_DESIGN_KEYS } from '../monitoring/gauges';
 import { MonitoringSettings } from './MonitoringSettings';
 
+// Drive the dropdown as a native <select> here: these tests exercise the
+// widget's sensor wiring, not the custom Select's open/close mechanics (those
+// live in Select.test.tsx).
+vi.mock('../../../components/common/Select/Select', () => ({
+  Select: ({ value, onChange, options, children, ariaLabel, disabled }: {
+    value: string; onChange: (v: string) => void;
+    options?: { value: string; label: string; disabled?: boolean }[]; children?: React.ReactNode;
+    ariaLabel?: string; disabled?: boolean;
+  }) => (
+    <select aria-label={ariaLabel} value={value} disabled={disabled} onChange={e => onChange(e.target.value)}>
+      {options ? options.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>) : children}
+    </select>
+  ),
+}));
+
 vi.mock('../../../hooks/useSensors', () => ({
   useSensors: () => ({
     cpu: [{ id: 'cpu-total', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'CPU' } }],

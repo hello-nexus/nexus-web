@@ -185,48 +185,22 @@
   isolation: isolate;
 }
 
-.categoryChips {
-  flex-shrink: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  padding: 0.6rem 0.25rem 0.2rem;
-}
-
-.categoryChip {
-  appearance: none;
-  border: var(--border-width) solid var(--border-strong);
-  background: var(--surface);
-  color: var(--text-dim);
-  font-size: 0.78rem;
-  padding: 0.25rem 0.7rem;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
-  text-transform: capitalize;
-
-  &:hover {
-    color: var(--text);
-    border-color: var(--border-strong);
-  }
-}
-
-.categoryChipActive {
-  color: var(--accent-glow);
-  background: var(--accent-soft);
-  border-color: var(--accent-glow-shadow);
-
-  &:hover {
-    color: var(--accent-glow);
-    background: var(--accent-soft);
-    border-color: var(--accent);
-  }
-}
-
+// Scroll container: a vertical stack of CollapsibleSection category groups.
 .animateGrid {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  // Vertical-only: pin overflow-x (a bare overflow-y lets the spec compute it
+  // to `auto`, scrolling the thumbnail grid sideways on touch).
+  overflow: hidden auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0.3rem 1rem;
+  @include scrollbar-visible($thumb: var(--border-strong), $gutter: false);
+}
+
+// Per-category cell grid inside each collapsible section body.
+.animateGridSection {
   display: grid;
   // Compact cell width fits more thumbnails per row.
   grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
@@ -234,11 +208,10 @@
   // stretches each row to fill the remaining vertical space.
   grid-auto-rows: max-content;
   align-content: start;
-  // Tightened from 0.6rem to absorb the cards' 4px external selection ring
-  // (EffectCard .cardOverlay) so highlighted + idle cards still read evenly spaced.
+  // Tightened to absorb the cards' 4px external selection ring
+  // (EffectCard .cardOverlay) so highlighted + idle cards read evenly spaced.
   gap: 0.4rem;
-  padding: 0.75rem 0.3rem 1rem;
-  @include scrollbar-visible($thumb: var(--border-strong), $gutter: false);
+  padding: 0 0.2rem 0.2rem;
 }
 
 // Usage markers pinned to a grid cell's thumbnail (panels only): bulb = this

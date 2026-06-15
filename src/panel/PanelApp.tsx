@@ -15,6 +15,7 @@ import { useMachineName } from './engine/useMachineName';
 import { useEdgeAdvance } from './engine/useEdgeAdvance';
 import { usePageSync } from './engine/usePageSync';
 import { useConnectionIntro } from './engine/useConnectionIntro';
+import { useHomeIntro } from './engine/useHomeIntro';
 import { PANEL_CONTEXT_MENU_TRIGGER_MS, usePanelTouchMode } from './engine/usePanelTouchMode';
 import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
@@ -566,6 +567,9 @@ export function PanelContent({
     machineName,
     setTrayOpen,
   });
+  // Embedded desktop only mounts once the service is online (DashboardOnline),
+  // so layout `loaded` is the readiness signal; serviceStatus is kiosk-only here.
+  const homeIntroActive = useHomeIntro(embedded && surface === 'desktop' && loaded);
   const connectionIntroLabel = (() => {
     const label = t('panel.connectedTo');
     return label === 'panel.connectedTo' ? 'Connected to' : label;
@@ -1135,6 +1139,7 @@ export function PanelContent({
         data-context-menu-open={contextMenuWidgetId ? 'true' : undefined}
         data-editing={surface === 'phone' && sheetMode === 'settings' ? 'true' : undefined}
         data-connection-intro={connectionIntroHost ? 'active' : undefined}
+        data-home-intro={homeIntroActive ? 'active' : undefined}
         data-simulator-selected={simulator && simulatorSelectedWidgetId ? simulatorSelectedWidgetId : undefined}
         style={panelRootStyle}
         onClick={simulator ? (e) => {
@@ -1426,6 +1431,7 @@ export function PanelContent({
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
           onThemeWidgetBlurCommit={panelTheme.commitWidgetBlur}
           machineName={machineName}
+          showHostName={connectionIdentityVisible}
           onMachineNameCommit={onMachineNameCommit}
           onAdd={addWidget}
           onResize={resizeWidget}
