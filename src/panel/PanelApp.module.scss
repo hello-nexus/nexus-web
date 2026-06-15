@@ -226,6 +226,14 @@
   animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+// A single just-added widget plays the same intro pop so it appears the way
+// widgets do on panel launch. Per-cell (not the root intro selector) so only
+// the new tile animates.
+.cellEntrance {
+  transform-origin: center;
+  animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .connectionIntroBackdrop {
     animation: none;
@@ -238,6 +246,7 @@
     transform: translate(-50%, 0);
   }
 
+  .cellEntrance,
   .panelRoot[data-connection-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell),
   .panelRoot[data-home-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) {
     animation: none;
@@ -330,6 +339,12 @@
   --panel-page-padding-right: 0px;
   --panel-page-padding-bottom: 8px;
   --panel-page-padding-left: 0px;
+  // Fit all --panel-rows into the canvas height. Without this the grid falls
+  // back to square rows (grid-auto-rows: --panel-cell-size); at 16 rows that's
+  // taller than the panel, so the bottom rows clip off-screen and read as if
+  // they paginated. Rows fill the height instead (slightly shorter than wide).
+  --panel-row-size: calc((100vh - var(--panel-page-padding-top) - var(--panel-page-padding-bottom) - (var(--panel-rows) - 1) * var(--panel-gap, 8px)) / var(--panel-rows));
+  --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
 }
 
 .panelRoot[data-surface='phone'] {

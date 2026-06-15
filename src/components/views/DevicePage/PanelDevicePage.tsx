@@ -6,7 +6,14 @@ import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
 import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../../../panel/widgets/monitoring/perfSlots';
 import { SlotCountIcon } from '../../../panel/widgets/monitoring/SlotCountIcons';
-import { appendWidget, replaceWidget } from '../../../panel/engine/panelLayoutOps';
+import {
+  appendWidget,
+  patchWidgetById,
+  removeWidgetById,
+  replaceWidget,
+  tryResizeWidget,
+} from '../../../panel/engine/panelLayoutOps';
+import { MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { isSingleWidgetSurface } from '../../../panel/types';
 import { fetchService, postService } from '../../../api/service';
@@ -91,6 +98,9 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   // attached.
   const [liveCanvas, setLiveCanvas] = useState<{ width: number; height: number } | null>(null);
   const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
+  // One-shot flash request forwarded to the preview iframe when an edit is
+  // rejected (a resize that can't fit). nonce re-fires repeat rejections.
+  const [flashSignal, setFlashSignal] = useState<{ widgetId: string; nonce: number } | null>(null);
   // Per-panel persisted settings off the device record (promoted monitors).
   const [recordReserve, setRecordReserve] = useState(true);
   const [recordTouch, setRecordTouch] = useState<boolean | undefined>(undefined);
@@ -248,12 +258,12 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   // Editor capacity is the surface default - the live runtime may
   // recompute based on physical size. With explicit (col, row) the
   // user can place widgets anywhere within these bounds in the editor.
-  const editorCapacity = (() => {
+  const editorCapacity = useMemo(() => {
     if (surface === 'q60') return { gridCols: 2, pageRows: 4 };
     if (surface === 'desktop' || surface === 'monitor') return { gridCols: 8, pageRows: 6 };
-    if (surface === 'y70') return { gridCols: 4, pageRows: 12 };
+    if (surface === 'y70') return { gridCols: 4, pageRows: 16 };
     return { gridCols: 4, pageRows: 16 };
-  })();
+  }, [surface]);
 
   const singleWidget = isSingleWidgetSurface(surface);
   const currentSingleWidget: PanelWidget | undefined = singleWidget
@@ -283,55 +293,46 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       col: 0,
       row: 0,
     };
-    updateLayout(appendWidget(layout, next, editorCapacity));
+    const appended = appendWidget(layout, next, editorCapacity);
+    // Jump the preview to the page the widget landed on - appendWidget spills
+    // to a later page when the active one is full, so the new tile would
+    // otherwise appear off-screen.
+    const landingPage = appended.pages.find(p => p.widgets.some(w => w.id === next.id));
+    updateLayout(landingPage ? { ...appended, activePageId: landingPage.id } : appended);
   }, [editorCapacity, layout, singleWidget, updateLayout]);
 
   const handleRemoveWidget = useCallback((widgetId: string) => {
-    const page = layout.pages[0];
-    if (!page) return;
-    updateLayout({
-      ...layout,
-      pages: [{ ...page, widgets: page.widgets.filter(w => w.id !== widgetId) }],
-    });
-  }, [layout, updateLayout]);
+    updateLayout(removeWidgetById(layout, widgetId, editorCapacity));
+  }, [editorCapacity, layout, updateLayout]);
 
   const handleConfigureWidget = useCallback((widget: PanelWidget) => {
     setConfiguringWidget(widget);
   }, []);
 
   const handleUpdateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
-    const page = layout.pages[0];
-    if (!page) return;
-    const next: PanelLayout = {
-      ...layout,
-      pages: [{
-        ...page,
-        widgets: page.widgets.map(w =>
-          w.id === widgetId ? { ...w, config } : w,
-        ),
-      }],
-    };
-    updateLayout(next);
+    updateLayout(patchWidgetById(layout, widgetId, w => ({ ...w, config }), editorCapacity));
     setConfiguringWidget(prev => prev?.id === widgetId ? { ...prev, config } : prev);
-  }, [layout, updateLayout]);
+  }, [editorCapacity, layout, updateLayout]);
 
   const handleResizeWidget = useCallback((widgetId: string, size: PanelWidgetSize) => {
-    const page = layout.pages[0];
-    if (!page) return;
-    const current = page.widgets.find(w => w.id === widgetId);
-    if (!current || current.size === size) return;
-    const next: PanelLayout = {
-      ...layout,
-      pages: [{
-        ...page,
-        widgets: page.widgets.map(w =>
-          w.id === widgetId ? { ...w, size } : w,
-        ),
-      }],
-    };
+    // Cascade siblings across pages (creating pages up to MAX_PANEL_PAGES), the
+    // same engine op the on-device runtime uses. An over-capacity page has no
+    // identical representation across the runtime paginator (bounded rows) and
+    // the editor normalizer (unbounded repack) - they ping-pong via the
+    // simulator postMessage sync and the resize never settles, so a grow MUST
+    // paginate, never overflow a page in place. null = the size can't fit
+    // anywhere; reject it.
+    const next = tryResizeWidget(layout, widgetId, size, editorCapacity, MAX_PANEL_PAGES);
+    if (!next) {
+      // Doesn't fit even after cascading across pages: flash the tile in the
+      // preview rather than swallow the click silently.
+      setFlashSignal(prev => ({ widgetId, nonce: (prev?.nonce ?? 0) + 1 }));
+      return;
+    }
+    if (next === layout) return;
     updateLayout(next);
     setConfiguringWidget(prev => prev?.id === widgetId ? { ...prev, size } : prev);
-  }, [layout, updateLayout]);
+  }, [editorCapacity, layout, updateLayout]);
 
   // Page navigation. The active page rides in layout.activePageId; writing it
   // moves the preview iframe (via set-layout) and the on-device panel (via the
@@ -524,6 +525,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                 theme={theme}
                 themeMode={resolvedPanelThemeMode}
                 selectedWidgetId={configuringWidget?.id ?? null}
+                flashSignal={flashSignal}
                 onLayoutChange={updateLayout}
                 onWidgetClicked={handleConfigureWidget}
                 onBackgroundClicked={() => setConfiguringWidget(null)}

@@ -11,6 +11,7 @@ import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
 import { useFlashWidgets } from './engine/useFlashWidgets';
+import { useAddedWidgetEntrance } from './engine/useAddedWidgetEntrance';
 import { useMachineName } from './engine/useMachineName';
 import { useEdgeAdvance } from './engine/useEdgeAdvance';
 import { usePageSync } from './engine/usePageSync';
@@ -83,6 +84,7 @@ import {
 import {
   DESKTOP_ACTION_TRAY_HEIGHT,
   MAX_PANEL_PAGES,
+  PHONE_WIDGET_REFERENCE_CELL,
   useRuntimePanelGrid,
   usePanelPageScrollLock,
 } from './engine/panelGrid';
@@ -199,6 +201,7 @@ export function PanelContent({
   simulatorTheme,
   simulatorThemeMode,
   simulatorSelectedWidgetId,
+  simulatorFlashSignal,
   onSimulatorWidgetClicked,
   onSimulatorBackgroundClicked,
   openCatalogSignal,
@@ -216,6 +219,9 @@ export function PanelContent({
   simulatorTheme?: SimulatorTheme;
   simulatorThemeMode?: 'dark' | 'light';
   simulatorSelectedWidgetId?: string | null;
+  // Parent-driven one-shot flash (e.g. a resize the editor rejected). The
+  // nonce re-fires the flash for repeat rejections of the same widget.
+  simulatorFlashSignal?: { widgetId: string; nonce: number } | null;
   onSimulatorWidgetClicked?: (id: string) => void;
   onSimulatorBackgroundClicked?: () => void;
   openCatalogSignal?: number;
@@ -314,6 +320,15 @@ export function PanelContent({
   const [deckEditView, setDeckEditView] = useState<DeckEditView>({ folderPath: [] });
   const [editorDockMotion, setEditorDockMotion] = useState<EditorDockMotion | null>(null);
   const { flashedWidgets, triggerFlash } = useFlashWidgets();
+  // Flash the widget when the simulator parent rejects an action (e.g. a resize
+  // that can't fit). nonce identity drives the one-shot, so repeat rejections
+  // of the same widget re-fire.
+  const flashNonce = simulatorFlashSignal?.nonce;
+  useEffect(() => {
+    if (!simulatorFlashSignal) return;
+    triggerFlash(simulatorFlashSignal.widgetId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire per nonce, not on object identity
+  }, [flashNonce]);
   // Portal target for the editor-docked cell. The pager track's transform on
   // non-active pages traps `position: fixed` descendants, hiding the docked
   // cell when editing a widget on page 2+. Portal into this untransformed
@@ -345,6 +360,15 @@ export function PanelContent({
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   usePhoneContentScale(surface === 'phone' && loaded, rootRef);
   const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator);
+  // WebKit (Safari / macOS WKWebView) miscomputes the tokens.scss
+  // tan(atan2(cell, 90px)) length-ratio used for --panel-scale, returning a
+  // negative number that flips every --panel-scale-driven element 180deg
+  // (cellScaler content + the context menu). Compute the ratio in JS (exact in
+  // every engine) and set it inline. Phone (live --panel-widget-scale) and q60
+  // (Chrome-83 hardcoded 2.5) keep their own --panel-scale.
+  const webkitSafePanelScale = surface !== 'phone' && surface !== 'q60'
+    ? runtimeGrid.contentScale / PHONE_WIDGET_REFERENCE_CELL
+    : null;
   const panelThemeVars = useMemo(
     () => embedded ? buildEmbeddedPanelThemeVars(appAccentColor, resolvedThemeMode) : buildPanelThemeVars(effectiveTheme, resolvedThemeMode),
     [appAccentColor, embedded, effectiveTheme, resolvedThemeMode],
@@ -364,6 +388,7 @@ export function PanelContent({
       '--panel-background-solid': effectiveBackground,
       '--panel-columns': runtimeGrid.columns,
       '--panel-rows': runtimeGrid.rows,
+      ...(webkitSafePanelScale != null ? { '--panel-scale': webkitSafePanelScale } : {}),
       ...(surface === 'desktop' ? {
         '--panel-cell-size': `${runtimeGrid.cellSize}px`,
         '--panel-row-size': `${runtimeGrid.rowSize}px`,
@@ -380,6 +405,7 @@ export function PanelContent({
       runtimeGrid.rowSize,
       runtimeGrid.rows,
       surface,
+      webkitSafePanelScale,
     ],
   );
 
@@ -475,6 +501,10 @@ export function PanelContent({
   // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
   // every page so dnd-kit's hover detection works across pages.
   const allFlatIds = useMemo(() => allFiltered.flatMap(p => p.widgets.map(w => w.id)), [allFiltered]);
+  // Newly-added widgets play the launch-style pop-in (covers kiosk + simulator
+  // add paths; the simulator add round-trips through set-layout, where the new
+  // id still surfaces as a single-widget delta).
+  const entranceWidgets = useAddedWidgetEntrance(allFlatIds);
   const pageCount = Math.max(1, allFiltered.length);
   // SortableContext memoizes its strategy by [strategy, rects, activeIndex,
   // overIndex, index]. Our over is always a non-sortable empty-cell droppable,
@@ -1192,6 +1222,7 @@ export function PanelContent({
                               editorDockMotion={editorDockSupported && sheetMode === 'settings' && editorDockMotion?.widgetId === w.id ? editorDockMotion : null}
                               editorDockPortal={editorDockPortalEl}
                               flash={flashedWidgets.has(w.id)}
+                              entrance={entranceWidgets.has(w.id)}
                               isDragSource={activeDragId === w.id}
                               resizeMotion={!sheetMode && resizeMotionWidgetId === w.id}
                               selectedSlot={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? selectedMonitoringSlot : undefined}
@@ -1333,7 +1364,7 @@ export function PanelContent({
             hasConfig
             surface={surface}
             themeMode={resolvedThemeMode}
-            themeStyle={panelThemeVars}
+            themeStyle={webkitSafePanelScale != null ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale } as CSSProperties : panelThemeVars}
             onResize={size => resizeWidget(ctxWidget.id, size, { animateFromContextMenu: true })}
             onEdit={() => openWidgetSettings(ctxWidget, ctxPoint)}
             onRemove={() => removeWidget(ctxWidget.id)}
