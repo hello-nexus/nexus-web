@@ -221,7 +221,7 @@ export function Dashboard() {
       if (name) return name;
     }
     const meta = getSidebarAppMeta(activeView);
-    return meta ? t(meta.i18nKey) : t('nav.dashboard');
+    return meta ? t(meta.i18nKey) : t('sidebar.section.apps');
   })();
   // null = auto (follow viewport), true = user-collapsed, false = user-expanded
   const [manualOverride, setManualOverride] = useState<boolean | null>(null);

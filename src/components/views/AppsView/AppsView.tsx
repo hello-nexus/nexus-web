@@ -27,7 +27,7 @@ export function AppsView({ serviceOnline, connectionState, onSectionNavigate }: 
   return (
     <section className="appsView">
       <ViewHeader
-        title={t('nav.dashboard')}
+        title={t('sidebar.section.apps')}
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={(k) => setActiveTab(k as TabKey)}
