@@ -44,14 +44,8 @@ export function PanelMixerSlider({
 }: PanelMixerSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
-  const segmentCount = 10;
   const clampedValue = clamp(value, min, max);
   const pct = max === min ? 0 : (clampedValue - min) / (max - min);
-  const filledSegments = clampedValue <= min ? 0 : Math.max(1, Math.ceil(pct * segmentCount));
-  const segmentNodes = Array.from({ length: segmentCount }, (_, i) => {
-    const active = i >= segmentCount - filledSegments;
-    return <span key={i} className={styles.segment} data-active={active ? 'true' : 'false'} />;
-  });
 
   const valueFromY = (clientY: number): number => {
     const rect = trackRef.current?.getBoundingClientRect();
@@ -169,13 +163,6 @@ export function PanelMixerSlider({
       data-disabled={disabled ? 'true' : 'false'}
       data-panel-scrollable="true"
     >
-      {/* Tooltip restores the full label when ellipsis-truncated in a
-          too-narrow cell. */}
-      {labelText && (
-        <HoverTooltip body={labelText} side="top">
-          <div className={styles.label}>{labelText}</div>
-        </HoverTooltip>
-      )}
       <div
         className={styles.hitbox}
         onPointerDown={handlePointerDown}
@@ -183,29 +170,31 @@ export function PanelMixerSlider({
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
       >
-        <div className={styles.frame}>
-          <div className={styles.value}>{formattedValue}</div>
-          <div
-            ref={trackRef}
-            className={styles.track}
-            role="slider"
-            tabIndex={disabled ? -1 : 0}
-            aria-orientation="vertical"
-            aria-label={ariaLabel}
-            aria-valuemin={min}
-            aria-valuemax={max}
-            aria-valuenow={Math.round(clampedValue)}
-            aria-valuetext={formattedValue}
-            aria-disabled={disabled || undefined}
-            onKeyDown={handleKeyDown}
-          >
-            <div className={styles.segments} aria-hidden="true">
-              {segmentNodes}
-            </div>
-          </div>
+        <div
+          ref={trackRef}
+          className={styles.track}
+          role="slider"
+          tabIndex={disabled ? -1 : 0}
+          aria-orientation="vertical"
+          aria-label={ariaLabel}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={Math.round(clampedValue)}
+          aria-valuetext={formattedValue}
+          aria-disabled={disabled || undefined}
+          onKeyDown={handleKeyDown}
+        >
+          <div className={styles.fill} style={{ height: `${pct * 100}%` }} aria-hidden="true" />
           {iconNode}
         </div>
       </div>
+      {/* Tooltip restores the full label when ellipsis-truncated in a
+          too-narrow cell. */}
+      {labelText && (
+        <HoverTooltip body={labelText} side="top">
+          <div className={styles.label}>{labelText}</div>
+        </HoverTooltip>
+      )}
     </div>
   );
 }
