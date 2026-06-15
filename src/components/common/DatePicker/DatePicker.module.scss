@@ -158,11 +158,6 @@
   background: var(--accent);
   color: var(--accent-text);
   font-weight: var(--weight-heading);
-
-  &:hover {
-    background: var(--accent-deep);
-    color: var(--accent-deep-text);
-  }
 }
 
 .cellDisabled {

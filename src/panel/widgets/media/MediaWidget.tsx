@@ -163,7 +163,6 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
                     <Music strokeWidth={1.4} />
                   </div>
                 )}
-                {playing && <Eq />}
               </div>
               <div className={styles.metadata}>
                 <div className={styles.title}>{s.song.title || '-'}</div>
@@ -282,17 +281,6 @@ function MediaVolumeSlider({
       }}
       className={styles.volumeMixer}
     />
-  );
-}
-
-function Eq() {
-  return (
-    <div className={styles.eqBars} aria-hidden="true">
-      <span className={styles.eqBar} style={{ animationDelay: '0s' }} />
-      <span className={styles.eqBar} style={{ animationDelay: '0.12s' }} />
-      <span className={styles.eqBar} style={{ animationDelay: '0.24s' }} />
-      <span className={styles.eqBar} style={{ animationDelay: '0.36s' }} />
-    </div>
   );
 }
 

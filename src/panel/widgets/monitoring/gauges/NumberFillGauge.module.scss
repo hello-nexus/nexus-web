@@ -28,7 +28,7 @@
 
 .textDim {
   // Same hue as the fill, alpha'd down, matching the Sparkline gauge.
-  color: color-mix(in srgb, var(--panel-accent) 28%, transparent);
+  color: color-mix(in srgb, var(--panel-accent) 40%, transparent);
 }
 
 .textBright {

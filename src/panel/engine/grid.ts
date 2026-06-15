@@ -106,7 +106,11 @@ export function panelGridCapacityForCanvas(
     rows: safeRows,
     cellSize,
     rowSize,
-    contentScale: Math.min(cellSize, rowSize),
+    // contentScale drives --panel-scale (the widget render scale ratio). Use
+    // cellSize rather than min(cell, row) so fixed-row surfaces (y70, q60) with
+    // short rows don't shrink widget content; the cellScaler CSS override handles
+    // the non-square card height per-surface.
+    contentScale: cellSize,
   };
 }
 

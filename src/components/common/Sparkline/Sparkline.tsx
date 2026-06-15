@@ -46,7 +46,7 @@ export function Sparkline({
   domain,
   padding = 0,
   showFill = true,
-  fillOpacity = 0.22,
+  fillOpacity = 0.4,
   className,
   style,
 }: SparklineProps) {

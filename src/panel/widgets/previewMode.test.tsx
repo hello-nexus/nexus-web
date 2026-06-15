@@ -81,7 +81,7 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   obs: ['Gameplay'],
   media: ['Midnight Drive', 'The Wavelengths'],
   screentime: ['Figma', 'Chrome'],
-  displays: ['DISPLAY 1', 'DISPLAY 2', '72', '45'],
+  displays: ['DISPLAY 1', 'DISPLAY 2'],
   cooling: ['cooling.preset.balanced'],
   'smart-lights': ['smartLights.onlineOfTotal'],
   deck: ['Stream', 'Lights'],
