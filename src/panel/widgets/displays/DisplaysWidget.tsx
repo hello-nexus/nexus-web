@@ -35,6 +35,7 @@ export function DisplaysWidget({ widget }: WidgetProps) {
   // Updated whenever the user lands on a non-zero value.
   const lastNonZeroRef = useRef<Record<string, number>>({});
   const compact = widget.size === '2x2';
+  const savedOrder = (widget.config?.displayOrder as string[] | undefined) ?? [];
 
   const hydrate = useCallback(async () => {
     const list = await fetchDisplays();
@@ -164,7 +165,8 @@ export function DisplaysWidget({ widget }: WidgetProps) {
     );
   }
 
-  const visibleDisplays = displays.slice(0, compact ? COMPACT_DISPLAY_LIMIT : FULL_DISPLAY_LIMIT);
+  const orderedDisplays = applyDisplayOrder(displays, savedOrder);
+  const visibleDisplays = orderedDisplays.slice(0, compact ? COMPACT_DISPLAY_LIMIT : FULL_DISPLAY_LIMIT);
 
   return (
     <div className={styles.displays} data-size={widget.size}>
@@ -242,6 +244,20 @@ function DisplayBrightnessSlider({
     </div>
     </HoverTooltip>
   );
+}
+
+function applyDisplayOrder(displays: Display[], order: string[]): Display[] {
+  if (order.length === 0) return displays;
+  const byId = new Map(displays.map(d => [d.id, d]));
+  const result: Display[] = [];
+  for (const id of order) {
+    const d = byId.get(id);
+    if (d) result.push(d);
+  }
+  for (const d of displays) {
+    if (!result.includes(d)) result.push(d);
+  }
+  return result;
 }
 
 function sameDisplays(a: Display[], b: Display[]): boolean {
