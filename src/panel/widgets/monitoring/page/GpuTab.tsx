@@ -44,9 +44,10 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, o
   // view doesn't include the dGPU's VRAM); "" falls back to all adapters. Feed
   // is mounted at page level; here we only read the accumulated history.
   const selectedLuid = resolvePrimaryGpu(gpus, preferredGpuId)?.adapterLuid ?? '';
-  const { utilSeries, memSeries, procSeries, ranked: procRanked } = useGpuProcessData(selectedLuid);
+  const { utilSeries, memSeries, procSeries, procMemSeries } = useGpuProcessData(selectedLuid);
   const { ranked, key } = rankSeries(procSeries, showAverage);
-  const vramByName = new Map(procRanked.map(p => [p.name, p.dedicatedMb]));
+  // VRAM sub follows the same live/60s key as the GPU% it sits next to.
+  const vramByName = new Map(procMemSeries.map(s => [s.name, s[key]]));
 
   if (!model || g.length === 0) return null;
 
