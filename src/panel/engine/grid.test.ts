@@ -22,7 +22,7 @@ describe('sizeToSpan', () => {
       rows: 4,
       cellSize: 348,
       rowSize: 310,
-      contentScale: 310,
+      contentScale: 348,
     });
   });
 

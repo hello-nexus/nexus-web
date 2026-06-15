@@ -352,7 +352,7 @@
   // taller than the panel, so the bottom rows clip off-screen and read as if
   // they paginated. Rows fill the height instead (slightly shorter than wide).
   --panel-row-size: calc((100vh - var(--panel-page-padding-top) - var(--panel-page-padding-bottom) - (var(--panel-rows) - 1) * var(--panel-gap, 8px)) / var(--panel-rows));
-  --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
+  --panel-content-scale: var(--panel-cell-size);
 }
 
 .panelRoot[data-surface='phone'] {
@@ -433,6 +433,14 @@
 // as a border. Size the content box per-axis from the real cell dims so it
 // fills the card. (Scale is --panel-scale: 2.5, set in tokens.scss for Chrome 83.)
 .panelRoot[data-surface='q60'] .cellScaler {
+  --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
+  --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
+}
+
+// Y70 cells are non-square (wider than tall at 16 rows); override --_grid-h
+// from the real row size so the content box fills the card height instead of
+// being clipped to the square --panel-content-scale reference.
+.panelRoot[data-surface='y70'] .cellScaler {
   --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
   --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
 }
