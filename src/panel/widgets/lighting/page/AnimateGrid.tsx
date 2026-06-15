@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Lightbulb, Monitor } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import {
   EFFECTS, EFFECT_CATEGORIES, categoryOf,
   type EffectCategory, type EffectDef,
@@ -9,39 +10,6 @@ import {
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
 import styles from '../LightingPage.module.scss';
-
-export type AnimateFilter = EffectCategory | 'all';
-
-/**
- * Category chip row. Chips derive from the effect pool, so a category with no
- * effects in it never renders (panel backgrounds exclude audio-reactive
- * effects, dropping the Audio chip).
- */
-export function AnimateCategoryChips({ effects = EFFECTS, value, onChange }: {
-  effects?: EffectDef[];
-  value: AnimateFilter;
-  onChange: (filter: AnimateFilter) => void;
-}) {
-  const { t } = useTranslation();
-  const filters = useMemo<AnimateFilter[]>(
-    () => ['all', ...EFFECT_CATEGORIES.filter(c => effects.some(fx => categoryOf(fx.key) === c))],
-    [effects],
-  );
-  return (
-    <div className={styles.categoryChips}>
-      {filters.map(f => (
-        <button
-          key={f}
-          type="button"
-          className={`${styles.categoryChip} ${value === f ? styles.categoryChipActive : ''}`}
-          onClick={() => onChange(f)}
-        >
-          {t(`lighting.category.${f}`)}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function AnimateGridCell({ fx, slot, version, active, live, panel, label, onSelect }: {
   fx: EffectDef;
@@ -81,17 +49,15 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, onSele
  * Effect picker. Each cell shows the universal thumbnail for the slot this
  * device has selected for that effect (presets are shared, so the same render
  * serves every surface). On panels, the effect currently driving the RGB
- * hardware gets a bulb. A category chip row above the grid filters families.
+ * hardware gets a bulb. Effects are listed in pre-expanded category groups
+ * (EFFECT_CATEGORIES order), each under a header in the cooling-panel style.
  */
-export function AnimateGrid({ effect, onSelect, effects = EFFECTS, filter: controlledFilter, slotFor, versionFor, rgbActiveEffect, panelEffects }: {
+export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, versionFor, rgbActiveEffect, panelEffects }: {
   effect: string;
   onSelect: (key: string) => void;
   /** Effect pool to show. Defaults to the full RGB set; panel backgrounds pass
    *  PANEL_BACKGROUND_EFFECTS (no audio-reactive effects). */
   effects?: EffectDef[];
-  /** Controlled category filter. When set, the internal chip row is omitted
-   *  and the host renders AnimateCategoryChips itself. */
-  filter?: AnimateFilter;
   /** Preset slot to show per effect (this device's selection). Defaults to 0. */
   slotFor?: (key: string) => number;
   /** Content hash of that slot, for cache-busting. Defaults to '0'. */
@@ -102,10 +68,9 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, filter: contr
   panelEffects?: Set<string> | null;
 }) {
   const { t } = useTranslation();
-  const [internalFilter, setInternalFilter] = useState<AnimateFilter>('all');
-  const filter = controlledFilter ?? internalFilter;
   const gridRef = useRef<HTMLDivElement>(null);
   const hasAutoScrolledRef = useRef(false);
+  const [collapsed, setCollapsed] = useState<ReadonlySet<EffectCategory>>(() => new Set());
 
   useEffect(() => {
     if (hasAutoScrolledRef.current) return;
@@ -125,29 +90,48 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, filter: contr
     hasAutoScrolledRef.current = true;
   }, [effect]);
 
-  const visible = useMemo(
-    () => filter === 'all' ? effects : effects.filter(fx => categoryOf(fx.key) === filter),
-    [filter, effects],
+  // Group by category in section order; categories with no effects in the pool
+  // (e.g. audio on panel backgrounds) drop out.
+  const groups = useMemo(
+    () => EFFECT_CATEGORIES
+      .map(cat => ({ cat, items: effects.filter(fx => categoryOf(fx.key) === cat) }))
+      .filter(g => g.items.length > 0),
+    [effects],
   );
+
+  const toggle = (c: EffectCategory) => setCollapsed(prev => {
+    const next = new Set(prev);
+    if (next.has(c)) next.delete(c); else next.add(c);
+    return next;
+  });
 
   return (
     <div className={styles.animateGridWrap}>
-      {controlledFilter === undefined && (
-        <AnimateCategoryChips effects={effects} value={filter} onChange={setInternalFilter} />
-      )}
       <div ref={gridRef} className={styles.animateGrid}>
-        {visible.map(fx => (
-          <AnimateGridCell
-            key={fx.key}
-            fx={fx}
-            slot={slotFor ? slotFor(fx.key) : 0}
-            version={versionFor ? versionFor(fx.key) : '0'}
-            active={fx.key === effect}
-            live={!!rgbActiveEffect && fx.key === rgbActiveEffect}
-            panel={!!panelEffects && panelEffects.has(fx.key)}
-            label={t(fx.labelKey)}
-            onSelect={() => onSelect(fx.key)}
-          />
+        {groups.map(g => (
+          <CollapsibleSection
+            key={g.cat}
+            compact
+            title={t(`lighting.category.${g.cat}`)}
+            open={!collapsed.has(g.cat)}
+            onToggle={() => toggle(g.cat)}
+          >
+            <div className={styles.animateGridSection}>
+              {g.items.map(fx => (
+                <AnimateGridCell
+                  key={fx.key}
+                  fx={fx}
+                  slot={slotFor ? slotFor(fx.key) : 0}
+                  version={versionFor ? versionFor(fx.key) : '0'}
+                  active={fx.key === effect}
+                  live={!!rgbActiveEffect && fx.key === rgbActiveEffect}
+                  panel={!!panelEffects && panelEffects.has(fx.key)}
+                  label={t(fx.labelKey)}
+                  onSelect={() => onSelect(fx.key)}
+                />
+              ))}
+            </div>
+          </CollapsibleSection>
         ))}
       </div>
     </div>

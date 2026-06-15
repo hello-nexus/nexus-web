@@ -29,16 +29,14 @@ export type EffectCategory =
   | 'simple'
   | 'audio'
   | 'cosmic'
-  | 'energy'
   | 'organic'
   | 'geometric'
   | 'pattern';
 
-// "simple" leads: near-solid colour fills. "atmospheric" is merged into
-// neighbouring families (mood pieces are mostly pattern-driven); "energy" +
-// electric effects stay their own family.
+// Section order for the effect listing: simple fills first, then organic, then
+// the rest, with the audio-reactive set last.
 export const EFFECT_CATEGORIES: EffectCategory[] = [
-  'simple', 'audio', 'cosmic', 'energy', 'organic', 'geometric', 'pattern',
+  'simple', 'organic', 'cosmic', 'geometric', 'pattern', 'audio',
 ];
 
 // The "simple" family: one cheap solid-fill shader (simple.frag) reused for
@@ -71,40 +69,38 @@ export function categoryOf(key: string): EffectCategory {
 // anything also tagged audio"). When borderline (e.g. starpath could be
 // either cosmic or atmospheric), pick the dominant visual character.
 export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
-  // Simple solid-colour fills.
+  // Simple solid-colour fills (8).
   simplered: 'simple', simpleorange: 'simple', simpleyellow: 'simple',
   simplegreen: 'simple', simplecyan: 'simple', simpleblue: 'simple',
   simpleviolet: 'simple', simplepink: 'simple',
-  // Audio-reactive set.
+  // Audio-reactive set (8).
   spectrumbars: 'audio', spectrumradial: 'audio', scope: 'audio',
   basspulse: 'audio', beatstrobe: 'audio', harmonicstar: 'audio',
   audiotunnel: 'audio', bassbloom: 'audio',
-  // Cosmic / sky.
+  // Cosmic: space, sky, electric (13).
   aurora: 'cosmic', starfield: 'cosmic', nebula: 'cosmic', cosmicdust: 'cosmic',
-  caustics: 'cosmic', galaxy: 'cosmic', starpath: 'cosmic',
-  // Energy / electric.
-  neonrain: 'energy', bursts: 'energy', lavafissure: 'energy',
-  plasmaglobe: 'energy', lightning: 'energy',
-  // Organic / fluid / texture.
+  caustics: 'cosmic', galaxy: 'cosmic', starpath: 'cosmic', meteor: 'cosmic',
+  bokeh: 'cosmic', bursts: 'cosmic', lightning: 'cosmic', plasmaglobe: 'cosmic',
+  neonrain: 'cosmic',
+  // Organic: fluid, fire, smoke, natural texture (16).
   plasma: 'organic', fire: 'organic', watercolor: 'organic', jellyfish: 'organic',
   lavalamp: 'organic', inkbloom: 'organic', oilslick: 'organic',
-  ferrofluid: 'organic', liquidchrome: 'organic',
-  // Geometric / structural.
+  ferrofluid: 'organic', liquidchrome: 'organic', flowfield: 'organic',
+  bubbles: 'organic', silkwave: 'organic', vapor: 'organic', satinflow: 'organic',
+  lavafissure: 'organic', sandstorm: 'organic',
+  // Geometric: tunnels, lattices, fractals, structured (18).
   spiral: 'geometric', voronoi: 'geometric', kaleidoscope: 'geometric',
-  wormhole: 'geometric', sacredgeometry: 'geometric',
-  tessellation: 'geometric', chromaspiral: 'geometric', neongrid: 'geometric',
-  hextunnel: 'geometric', mandelbrot: 'geometric',
-  circuit: 'geometric', crystaltunnel: 'geometric',
-  // Pattern / animation / waves.
-  rainbow: 'pattern', matrix: 'pattern', meteor: 'pattern', ripple: 'pattern',
-  wave: 'pattern', gradientwave: 'pattern', ball: 'pattern', radar: 'pattern',
-  pulse: 'pattern', interference: 'pattern', domainwarp: 'pattern',
-  dotmatrix: 'pattern', prismwave: 'pattern', ribbonflow: 'pattern',
-  // Atmospheric / mood pieces folded into neighbouring families. Bokeh and
-  // sandstorm are visually pattern-driven; flowfield is closer to organic
-  // motion than to anything geometric.
-  flowfield: 'organic', bokeh: 'pattern', sandstorm: 'pattern',
-  bubbles: 'organic', silkwave: 'organic',
+  wormhole: 'geometric', sacredgeometry: 'geometric', tessellation: 'geometric',
+  chromaspiral: 'geometric', neongrid: 'geometric', hextunnel: 'geometric',
+  mandelbrot: 'geometric', circuit: 'geometric', crystaltunnel: 'geometric',
+  ringtunnel: 'geometric', vortextunnel: 'geometric', helixtunnel: 'geometric',
+  boxtunnel: 'geometric', harlequin: 'geometric', mosaic: 'geometric',
+  // Pattern: waves, gradients, abstract graphic shapes (18).
+  rainbow: 'pattern', matrix: 'pattern', ripple: 'pattern', wave: 'pattern',
+  gradientwave: 'pattern', ball: 'pattern', radar: 'pattern', pulse: 'pattern',
+  interference: 'pattern', domainwarp: 'pattern', dotmatrix: 'pattern',
+  prismwave: 'pattern', ribbonflow: 'pattern', meshgradient: 'pattern',
+  tide: 'pattern', ridgeline: 'pattern', chevron: 'pattern', terrace: 'pattern',
 };
 
 export const BASE_DEFAULTS: Omit<EffectState, 'params'> = {
@@ -372,6 +368,71 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_ribbons',    label: 'Ribbons',    min: 2,   max: 14,  step: 1,    defaultValue: 7 },
       { name: 'u_turbulence', label: 'Turbulence', min: 0.1, max: 3.5, step: 0.05, defaultValue: 1.2 },
       { name: 'u_glow',       label: 'Glow',       min: 0.2, max: 3.0, step: 0.05, defaultValue: 1.0 },
+  ]},
+  { key: 'ringtunnel',    labelKey: 'lighting.controls.ringtunnel',   params: [
+      { name: 'u_rings', label: 'Rings', min: 0.5, max: 4.0, step: 0.1,  defaultValue: 2 },
+      { name: 'u_zoom',  label: 'Zoom',  min: 0.3, max: 3.0, step: 0.05, defaultValue: 1.0 },
+      { name: 'u_neon',  label: 'Neon',  min: 0.3, max: 2.0, step: 0.05, defaultValue: 1.0 },
+  ]},
+  { key: 'vortextunnel',  labelKey: 'lighting.controls.vortextunnel', params: [
+      { name: 'u_twist', label: 'Twist', min: 0.0, max: 2.0, step: 0.05, defaultValue: 0.8 },
+      { name: 'u_churn', label: 'Churn', min: 0.2, max: 2.0, step: 0.05, defaultValue: 1.0 },
+      { name: 'u_depth', label: 'Depth', min: 0.4, max: 3.0, step: 0.05, defaultValue: 1.2 },
+  ]},
+  { key: 'helixtunnel',   labelKey: 'lighting.controls.helixtunnel',  params: [
+      { name: 'u_pitch',   label: 'Pitch',   min: 1,   max: 6,   step: 0.1,  defaultValue: 3 },
+      { name: 'u_strands', label: 'Strands', min: 2,   max: 4,   step: 1,    defaultValue: 2 },
+      { name: 'u_glow',    label: 'Glow',    min: 0.3, max: 2.0, step: 0.05, defaultValue: 1.0 },
+  ]},
+  { key: 'boxtunnel',     labelKey: 'lighting.controls.boxtunnel',    params: [
+      { name: 'u_depth',  label: 'Depth',  min: 0.5, max: 4.0, step: 0.05, defaultValue: 1.2 },
+      { name: 'u_square', label: 'Square', min: 0.0, max: 1.0, step: 0.02, defaultValue: 1.0 },
+      { name: 'u_glow',   label: 'Glow',   min: 0.3, max: 2.0, step: 0.05, defaultValue: 1.0 },
+  ]},
+  { key: 'meshgradient',  labelKey: 'lighting.controls.meshgradient', params: [
+      { name: 'u_blobs',    label: 'Blobs',    min: 3,   max: 6,   step: 1,    defaultValue: 5 },
+      { name: 'u_spread',   label: 'Spread',   min: 0.3, max: 1.2, step: 0.02, defaultValue: 0.8 },
+      { name: 'u_softness', label: 'Softness', min: 0.3, max: 1.5, step: 0.02, defaultValue: 0.8 },
+  ]},
+  { key: 'tide',          labelKey: 'lighting.controls.tide',         params: [
+      { name: 'u_layers', label: 'Layers',    min: 2,    max: 7,    step: 1,     defaultValue: 5 },
+      { name: 'u_amp',    label: 'Height',    min: 0.02, max: 0.18, step: 0.005, defaultValue: 0.08 },
+      { name: 'u_freq',   label: 'Frequency', min: 1,    max: 8,    step: 0.5,   defaultValue: 4 },
+  ]},
+  { key: 'vapor',         labelKey: 'lighting.controls.vapor',        params: [
+      { name: 'u_density', label: 'Density', min: 0.3, max: 2.0, step: 0.05, defaultValue: 1.0 },
+      { name: 'u_scale',   label: 'Scale',   min: 0.5, max: 3.0, step: 0.05, defaultValue: 1.5 },
+      { name: 'u_drift',   label: 'Drift',   min: 0.2, max: 2.0, step: 0.05, defaultValue: 1.0 },
+  ]},
+  { key: 'satinflow',     labelKey: 'lighting.controls.satinflow',    params: [
+      { name: 'u_folds', label: 'Folds', min: 2,   max: 8,   step: 1,    defaultValue: 5 },
+      { name: 'u_flow',  label: 'Flow',  min: 0.2, max: 2.0, step: 0.05, defaultValue: 1.0 },
+      { name: 'u_sheen', label: 'Sheen', min: 0.2, max: 2.0, step: 0.05, defaultValue: 1.0 },
+  ]},
+  { key: 'ridgeline',     labelKey: 'lighting.controls.ridgeline',    params: [
+      { name: 'u_layers', label: 'Layers', min: 2,    max: 7,    step: 1,     defaultValue: 5 },
+      { name: 'u_jag',    label: 'Jag',    min: 1,    max: 8,    step: 0.1,   defaultValue: 4 },
+      { name: 'u_height', label: 'Height', min: 0.05, max: 0.4,  step: 0.01,  defaultValue: 0.18 },
+  ]},
+  { key: 'chevron',       labelKey: 'lighting.controls.chevron',      params: [
+      { name: 'u_bands', label: 'Bands', min: 4,    max: 40,  step: 1,    defaultValue: 14 },
+      { name: 'u_angle', label: 'Angle', min: 0.0,  max: 2.0, step: 0.05, defaultValue: 1.0 },
+      { name: 'u_width', label: 'Width', min: 0.05, max: 0.5, step: 0.01, defaultValue: 0.18 },
+  ]},
+  { key: 'terrace',       labelKey: 'lighting.controls.terrace',      params: [
+      { name: 'u_levels', label: 'Levels', min: 3,   max: 16,  step: 1,    defaultValue: 8 },
+      { name: 'u_scale',  label: 'Scale',  min: 0.5, max: 3.0, step: 0.05, defaultValue: 1.4 },
+      { name: 'u_line',   label: 'Lines',  min: 0.0, max: 1.0, step: 0.05, defaultValue: 0.5 },
+  ]},
+  { key: 'harlequin',     labelKey: 'lighting.controls.harlequin',    params: [
+      { name: 'u_cells', label: 'Cells', min: 3,   max: 20,  step: 1,    defaultValue: 8 },
+      { name: 'u_skew',  label: 'Skew',  min: 0.3, max: 2.0, step: 0.05, defaultValue: 1.0 },
+      { name: 'u_shift', label: 'Shift', min: 0.0, max: 2.0, step: 0.05, defaultValue: 1.0 },
+  ]},
+  { key: 'mosaic',        labelKey: 'lighting.controls.mosaic',       params: [
+      { name: 'u_cells', label: 'Cells', min: 3,   max: 18,  step: 1,    defaultValue: 9 },
+      { name: 'u_wave',  label: 'Wave',  min: 0.5, max: 4.0, step: 0.05, defaultValue: 1.5 },
+      { name: 'u_pop',   label: 'Pop',   min: 0.0, max: 1.5, step: 0.05, defaultValue: 0.7 },
   ]},
   { key: 'spectrumbars',   labelKey: 'lighting.controls.spectrumbars',   audio: true, params: [
       { name: 'u_bars',       label: 'Bars',            min: 8,   max: 16,  step: 1,    defaultValue: 16 },
