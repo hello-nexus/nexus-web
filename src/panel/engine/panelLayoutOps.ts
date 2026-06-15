@@ -96,7 +96,16 @@ export function removeWidgetById(
     if (page.widgets.length === 0 && idx > 0) return;
     pruned.push(page);
   });
-  return { ...layout, pages: pruned.length === 0 ? [pagesAfter[0]] : pruned };
+  const pages = pruned.length === 0 ? [pagesAfter[0]] : pruned;
+  // Repoint activePageId when pruning dropped the active page so id-based
+  // consumers (the desktop preview arrows) resolve the same page the on-device
+  // pager lands on via its index clamp, min(oldIndex, lastIndex).
+  let activePageId = layout.activePageId;
+  if (activePageId && !pages.some(p => p.id === activePageId)) {
+    const prevIdx = layout.pages.findIndex(p => p.id === activePageId);
+    activePageId = pages[Math.min(Math.max(prevIdx, 0), pages.length - 1)]?.id;
+  }
+  return { ...layout, pages, activePageId };
 }
 
 /**
