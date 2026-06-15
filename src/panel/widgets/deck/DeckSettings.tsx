@@ -217,7 +217,7 @@ function ToggleEditor({ action, onChange }: { action: Extract<DeckAction, { type
   );
 }
 
-export function DeckSettings({ widget, onUpdate, selectedSlot, onSelectedSlotChange, editView, onEditViewChange }: WidgetSettingsProps) {
+export function DeckSettings({ widget, surface, onUpdate, selectedSlot, onSelectedSlotChange, editView, onEditViewChange }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const deck = readDeckConfig(widget);
   const { count } = innerGridForSize(widget.size);
@@ -248,10 +248,8 @@ export function DeckSettings({ widget, onUpdate, selectedSlot, onSelectedSlotCha
         </div>
       )}
 
-      <div className={styles.hint}>{t('panel.settings.deck.selectHint')}</div>
-
       <SettingsSection title={t('panel.settings.icon')}>
-        <IconPicker value={slot.icon} appId={appIdForIcon} onChange={icon => writeSlot({ ...slot, icon })} />
+        <IconPicker value={slot.icon} appId={appIdForIcon} surface={surface} onChange={icon => writeSlot({ ...slot, icon })} />
       </SettingsSection>
 
       <SettingsSection title={t('panel.settings.deck.color')}>

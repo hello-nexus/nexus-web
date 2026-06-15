@@ -6,6 +6,8 @@
   "app.window.maximize": "최대화",
   "app.window.minimize": "최소화",
   "app.window.restore": "이전 크기로 복원",
+  "apps.store.comingSoon": "Nexus Store 출시 예정",
+  "apps.tabs.store": "Nexus Store",
   "benchmark.cancel": "취소",
   "benchmark.cancelled": "벤치마크가 취소되었습니다.",
   "benchmark.failed": "벤치마크 실패",

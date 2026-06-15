@@ -73,3 +73,16 @@
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
+
+.storePlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+}
+
+.storePlaceholderText {
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}

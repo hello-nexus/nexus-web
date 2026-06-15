@@ -5,7 +5,7 @@ import { Placeholder } from '../components/views/Placeholder';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ComponentDetailView } from '../components/views/ComponentDetailView';
 import { BenchmarkView } from '../components/views/BenchmarkView/BenchmarkView';
-import { DashboardView } from '../components/views/DashboardView/DashboardView';
+import { AppsView } from '../components/views/AppsView/AppsView';
 import { OpenInAppBanner } from '../components/common/OpenInAppBanner/OpenInAppBanner';
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
 import { ProfilesView } from '../components/views/SettingsView/ProfilesView';
@@ -221,7 +221,7 @@ export function Dashboard() {
       if (name) return name;
     }
     const meta = getSidebarAppMeta(activeView);
-    return meta ? t(meta.i18nKey) : t('nav.dashboard');
+    return meta ? t(meta.i18nKey) : t('sidebar.section.apps');
   })();
   // null = auto (follow viewport), true = user-collapsed, false = user-expanded
   const [manualOverride, setManualOverride] = useState<boolean | null>(null);
@@ -389,7 +389,7 @@ export function Dashboard() {
   const renderSystemView = () => {
     switch (activeView) {
       case 'dashboard':  return (
-        <DashboardView
+        <AppsView
           serviceOnline={online}
           connectionState={status.state}
           onSectionNavigate={(target, payload) => {

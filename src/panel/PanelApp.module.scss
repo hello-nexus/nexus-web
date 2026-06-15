@@ -300,6 +300,14 @@
 .editorDockPortal > * {
   pointer-events: auto;
 }
+// Desktop only: the desktop edit backdrop is z-modal (it must cover the app top
+// bar), which would otherwise blur over the docked widget that sits in this
+// portal. Lift the portal one rung above the backdrop so the edited widget stays
+// sharp. Touch surfaces keep no z here on purpose - their backdrop has no
+// z-index and the bottom sheet must still paint over the widget's lower rows.
+.panelRoot[data-surface='desktop'] .editorDockPortal {
+  z-index: calc(var(--z-modal) + 1);
+}
 
 .panelStagePages {
   position: relative;

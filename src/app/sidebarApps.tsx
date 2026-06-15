@@ -23,12 +23,13 @@ interface SidebarAppMeta {
   i18nKey: string;
 }
 
-// Dashboard isn't a registered App — it's the surface that hosts the
-// app picker, not an app itself. Hardcode its sidebar meta here. Every
-// other pinnable app derives its icon + label from its AppManifest.
+// The home surface (AppsView) isn't a registered App - it hosts the app picker
+// and the Dashboard / Nexus Store tabs. Hardcode its meta here. Its title shares
+// the sidebar "Apps" section label so the top bar and the sidebar read the same.
+// Every other pinnable app derives its icon + label from its AppManifest.
 const DASHBOARD_META: SidebarAppMeta = {
   icon: <LayoutDashboard size={ICON_SIZE} />,
-  i18nKey: 'nav.dashboard',
+  i18nKey: 'sidebar.section.apps',
 };
 
 /**
