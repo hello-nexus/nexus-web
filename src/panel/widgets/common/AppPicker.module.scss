@@ -16,7 +16,7 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 2px;
   align-content: start;
-  @include scrollbar-visible($thumb: var(--border-strong));
+  @include scrollbar-visible($thumb: var(--border-strong), $gutter: false);
 }
 
 .empty {

@@ -18,15 +18,25 @@
 // Default thumb maps to var(--border); hover lifts to var(--border-strong).
 // Width is symmetric for vertical and horizontal axes. Pass any parameter to
 // override; pass none for the canonical app scrollbar.
+//
+// $gutter reserves a stable gutter so a scrollbar appearing on overflow does
+// not reflow content. The global * rule and the panel/touch callers pass false:
+// scrollbar-gutter also reserves space on overflow:hidden boxes (scroll
+// containers per spec), and the touch panels keep their bare, gutter-free layout.
 @mixin scrollbar-visible(
   $width: 8px,
   $thumb: var(--border),
   $thumb-hover: var(--border-strong),
   $track: transparent,
-  $radius: var(--radius-sm)
+  $radius: var(--radius-sm),
+  $gutter: true
 ) {
   scrollbar-width: thin;
   scrollbar-color: #{$thumb} #{$track};
+
+  @if $gutter {
+    scrollbar-gutter: stable;
+  }
 
   &::-webkit-scrollbar {
     // Explicitly re-enable: the global hidden default sets display: none on
