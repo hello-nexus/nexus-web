@@ -78,13 +78,10 @@ export function PanelOfflineOverlay({
   const { t } = useTranslation();
   const secondsLeft = useCountdownSeconds(nextAttemptAt);
 
-  // The Q-series LCD has no touch input, so a "connection lost / retry"
-  // card with buttons is unactionable. qshell (the Android host) detects
-  // the disconnect on its own /ping monitor and falls back to the OEM
-  // rainbow-gradient "THICC Q60/Q80" splash. Showing this overlay first
-  // flashes a useless card on screen for ~1 s before qshell unmounts the
-  // WebView. Returning null here removes the flash: panel
-  // straight to OEM splash, no intermediate state.
+  // Q-series stays mounted across host outages (qshell keeps the WebView) and
+  // has no touch, so it shows no overlay: the panel itself swaps its rendered
+  // widget to the clock on disconnect (see PanelApp's allFiltered) and keeps
+  // its background, then restores the configured widgets on reconnect.
   if (surface === 'q60') return null;
 
   if (sessionRevoked) {

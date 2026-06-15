@@ -63,6 +63,7 @@ import {
   type PanelWidgetSize,
 } from './types';
 import { isSingleWidgetSurface, surfaceSupportsTouch } from './types';
+import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { resolvePanelBackground } from './background/panelBackground';
@@ -458,19 +459,28 @@ export function PanelContent({
     };
   }, [paginatedLayout, activeDragId, dragExtraPageId]);
 
-  const allFiltered = useMemo(() => dragLayout.pages.map(page => ({
-    id: page.id,
-    widgets: page.widgets
-      .filter(w => {
-        const def = lookupApp(w.type);
-        if (!def) return true;
-        return appAvailableForSurface(def.meta, surface, { deviceTouch });
-      })
-      .slice()
-      // Row-major (col, row) sort so the focus walk and DOM order match the
-      // visual layout; placement itself is via inline style, not source order.
-      .sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col),
-  })), [dragLayout.pages, surface, deviceTouch]);
+  const allFiltered = useMemo(() => {
+    // q60 offline failsafe: keep the panel exactly as-is (background animation,
+    // theme, chrome) and swap only the rendered widgets for the clock widget.
+    // Render-only - paginatedLayout (persistence) is untouched, so the real
+    // widgets return on reconnect.
+    if (surface === 'q60' && isOffline) {
+      return q60OfflineClockPages(dragLayout.pages, surface);
+    }
+    return dragLayout.pages.map(page => ({
+      id: page.id,
+      widgets: page.widgets
+        .filter(w => {
+          const def = lookupApp(w.type);
+          if (!def) return true;
+          return appAvailableForSurface(def.meta, surface, { deviceTouch });
+        })
+        .slice()
+        // Row-major (col, row) sort so the focus walk and DOM order match the
+        // visual layout; placement itself is via inline style, not source order.
+        .sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col),
+    }));
+  }, [dragLayout.pages, surface, deviceTouch, isOffline]);
 
   // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
   // every page so dnd-kit's hover detection works across pages.
