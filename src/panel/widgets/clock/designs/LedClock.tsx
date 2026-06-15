@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatTime, getAmPm } from './timeFormat';
+import { useFitWidth } from '../useFitWidth';
 import styles from './LedClock.module.scss';
 
 // Seven-segment display: segments labeled a-g
@@ -54,6 +55,7 @@ function LedClock({ now, tz, showSeconds, showDate, size, hour12, useAccentColor
   const ampm = getAmPm(now, tz, hour12);
   const colonVisible = now.getSeconds() % 2 === 0;
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
+  const { boxRef, contentRef, scale } = useFitWidth();
 
   const dateStr = showDate ? new Intl.DateTimeFormat(undefined, {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -74,9 +76,11 @@ function LedClock({ now, tz, showSeconds, showDate, size, hour12, useAccentColor
 
   return (
     <div className={`${styles.container} ${sizeClass} ${useAccentColor ? styles.accent : ''}`}>
-      <div className={styles.row}>
-        {elements}
-        {ampm && <div className={styles.ampm}>{ampm}</div>}
+      <div ref={boxRef} className={styles.fitBox}>
+        <div ref={contentRef} className={styles.row} style={{ transform: `scale(${scale})` }}>
+          {elements}
+          {ampm && <div className={styles.ampm}>{ampm}</div>}
+        </div>
       </div>
       {dateStr && <div className={styles.date}>{dateStr}</div>}
     </div>

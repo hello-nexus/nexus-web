@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { ChartColumn, Cpu, Gpu, MemoryStick, Network, List } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useMonitoringFrame } from '../../../hooks/useMonitoringFrame';
@@ -17,6 +17,8 @@ import { GpuTab } from './page/GpuTab';
 import { MemoryTab } from './page/MemoryTab';
 import { NetworkTab } from './page/NetworkTab';
 import { DetailedTab } from './page/DetailedTab';
+import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
+import { usePageSettingsAction } from '../../../app/PageChrome';
 import { useSensorHistoryFeed } from '../common/useSharedSensorHistory';
 import styles from './MonitoringPage.module.scss';
 
@@ -64,6 +66,15 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     update({ monitoringShowAverage: !showAverage });
   }, [showAverage, update]);
 
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
+  // Top-bar settings gear opens the GPU picker modal; register only when there
+  // is more than one GPU to choose from (same modal the GPU tab's Change opens).
+  usePageSettingsAction(
+    { onOpen: openSettings, label: t('monitoring.settings.open') },
+    serviceOnline && sensors.gpuComponents.length > 1,
+  );
+
   const tabs = ([
     { key: 'overview', label: t('monitoring.tab.overview'), icon: <ChartColumn size={14} /> },
     { key: 'cpu', label: t('monitoring.tab.cpu'), icon: <Cpu size={14} /> },
@@ -95,7 +106,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
         <GpuTab
           sensors={sensors}
           preferredGpuId={settings.preferredGpuId}
-          onGpuChange={v => update({ preferredGpuId: v })}
+          onOpenSettings={openSettings}
         />
       );
       case 'memory': return <MemoryTab memSeries={memSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;
@@ -106,6 +117,11 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
 
   return (
     <div className={styles.monitoring}>
+      <MonitoringSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        gpus={sensors.gpuComponents}
+      />
       <ViewHeader
         title={t('nav.monitoring')}
         tabs={tabs}

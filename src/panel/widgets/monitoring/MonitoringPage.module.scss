@@ -218,11 +218,11 @@
 }
 
 // CPU/GPU tab header: the fully-qualified processor / GPU name. On the GPU tab
-// with more than one GPU the name is a ghost <select> that re-picks the primary.
+// with more than one GPU a "Change" button beside it opens the GPU picker.
 .tabHeader {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.6rem;
   min-width: 0;
 }
 
@@ -234,14 +234,20 @@
   white-space: nowrap;
 }
 
-// Render the picker's value at heading size so the chosen GPU reads as the
-// tab title rather than a small form control.
-.tabHeaderPicker {
-  min-width: 0;
+.tabHeaderChange {
+  @include text-button;
+  flex-shrink: 0;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease;
 
-  select {
-    @include text-heading;
+  &:hover {
     color: var(--text);
+    border-color: var(--accent);
   }
 }
 

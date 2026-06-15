@@ -879,6 +879,7 @@
   min-height: 0;
   max-height: 220px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
@@ -1117,4 +1118,5 @@
   flex: 1;
   padding: 0 1.25rem;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }

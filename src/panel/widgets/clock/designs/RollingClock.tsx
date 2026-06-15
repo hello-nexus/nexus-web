@@ -1,5 +1,6 @@
 import type { ClockDesignProps } from './types';
 import { formatTime, getAmPm } from './timeFormat';
+import { useFitWidth } from '../useFitWidth';
 import styles from './RollingClock.module.scss';
 
 const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -23,6 +24,7 @@ function RollingClock({ now, tz, showSeconds, showDate, size, hour12, useAccentC
   const time = formatTime(now, tz, showSeconds, hour12);
   const ampm = getAmPm(now, tz, hour12);
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
+  const { boxRef, contentRef, scale } = useFitWidth();
 
   const dateStr = showDate ? new Intl.DateTimeFormat(undefined, {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -50,20 +52,22 @@ function RollingClock({ now, tz, showSeconds, showDate, size, hour12, useAccentC
 
   return (
     <div className={`${styles.container} ${sizeClass} ${useAccentColor ? styles.accent : ''}`}>
-      <div className={styles.row}>
-        {segments.map((seg, si) =>
-          seg.type === 'colon' ? (
-            <div key={si} className={styles.colon}>
-              <span className={styles.colonDot} />
-              <span className={styles.colonDot} />
-            </div>
-          ) : (
-            seg.chars.map((ch, ci) => (
-              <RollingDigit key={`${si}-${ci}`} digit={parseInt(ch, 10)} />
-            ))
-          )
-        )}
-        {ampm && <div className={styles.ampm}>{ampm}</div>}
+      <div ref={boxRef} className={styles.fitBox}>
+        <div ref={contentRef} className={styles.row} style={{ transform: `scale(${scale})` }}>
+          {segments.map((seg, si) =>
+            seg.type === 'colon' ? (
+              <div key={si} className={styles.colon}>
+                <span className={styles.colonDot} />
+                <span className={styles.colonDot} />
+              </div>
+            ) : (
+              seg.chars.map((ch, ci) => (
+                <RollingDigit key={`${si}-${ci}`} digit={parseInt(ch, 10)} />
+              ))
+            )
+          )}
+          {ampm && <div className={styles.ampm}>{ampm}</div>}
+        </div>
       </div>
       {dateStr && <div className={styles.date}>{dateStr}</div>}
     </div>
