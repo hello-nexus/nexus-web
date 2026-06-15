@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const HOME_INTRO_MS = 1200;
-// Module-level so the once-per-launch gate survives the DashboardView remount
+// Module-level so the once-per-launch gate survives the AppsView remount
 // that navigating away from and back to home triggers.
 let played = false;
 

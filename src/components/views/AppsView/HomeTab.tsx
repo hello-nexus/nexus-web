@@ -10,22 +10,22 @@ import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { OverlayWidgetsModal } from './OverlayWidgetsModal';
 import { listOverlayWidgets } from '../../../api/overlay';
 import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
-import styles from './DashboardView.module.scss';
+import styles from './AppsView.module.scss';
 
-interface DashboardViewProps {
+interface HomeTabProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
   onSectionNavigate?: DashboardSectionNavigate;
 }
 
-export function DashboardView({ serviceOnline, connectionState, onSectionNavigate }: DashboardViewProps) {
+export function HomeTab({ serviceOnline, connectionState, onSectionNavigate }: HomeTabProps) {
   if (!serviceOnline) {
-    return <DashboardOffline connectionState={connectionState} />;
+    return <HomeTabOffline connectionState={connectionState} />;
   }
-  return <DashboardOnline onSectionNavigate={onSectionNavigate} />;
+  return <HomeTabOnline onSectionNavigate={onSectionNavigate} />;
 }
 
-function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardSectionNavigate }) {
+function HomeTabOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardSectionNavigate }) {
   const { t } = useTranslation();
   const { settings } = useUiSettings();
   const [addWidgetSignal, setAddWidgetSignal] = useState(0);
@@ -41,7 +41,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
     // Initial fetch + refresh when the (stable) refresher changes. The
     // refresher itself sets state; the lint rule sees that through the
     // closure.
-     
+
     void refreshDesktopWidgetCount();
   }, [refreshDesktopWidgetCount]);
 
@@ -80,7 +80,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
   );
 }
 
-function DashboardOffline({ connectionState }: { connectionState?: ConnectionState }) {
+function HomeTabOffline({ connectionState }: { connectionState?: ConnectionState }) {
   return (
     <div className={styles.dashboard}>
       <div className="pageBodyFill">
