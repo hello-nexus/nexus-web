@@ -9,7 +9,7 @@ const SYSTEM_ACCENT_TOPIC = 'system/accent';
 
 // When accentSource === 'system', mirror the OS accent into accentColor so it
 // bubbles everywhere that reads it: the desktop app, the embedded panel widgets
-// (AppsView's HomeTab passes settings.accentColor as appAccentColor), and the phone
+// (AppsView's DashboardTab passes settings.accentColor as appAccentColor), and the phone
 // panels (which sync prefs.theme.accentColor). The Windows/macOS native shell
 // pushes the OS accent on request + whenever it changes; with no shell (the
 // Linux dashboard is a browser) the service reads the accent from the XDG

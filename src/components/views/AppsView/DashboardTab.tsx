@@ -12,20 +12,20 @@ import { listOverlayWidgets } from '../../../api/overlay';
 import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
 import styles from './AppsView.module.scss';
 
-interface HomeTabProps {
+interface DashboardTabProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
   onSectionNavigate?: DashboardSectionNavigate;
 }
 
-export function HomeTab({ serviceOnline, connectionState, onSectionNavigate }: HomeTabProps) {
+export function DashboardTab({ serviceOnline, connectionState, onSectionNavigate }: DashboardTabProps) {
   if (!serviceOnline) {
-    return <HomeTabOffline connectionState={connectionState} />;
+    return <DashboardOffline connectionState={connectionState} />;
   }
-  return <HomeTabOnline onSectionNavigate={onSectionNavigate} />;
+  return <DashboardOnline onSectionNavigate={onSectionNavigate} />;
 }
 
-function HomeTabOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardSectionNavigate }) {
+function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardSectionNavigate }) {
   const { t } = useTranslation();
   const { settings } = useUiSettings();
   const [addWidgetSignal, setAddWidgetSignal] = useState(0);
@@ -80,7 +80,7 @@ function HomeTabOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardSec
   );
 }
 
-function HomeTabOffline({ connectionState }: { connectionState?: ConnectionState }) {
+function DashboardOffline({ connectionState }: { connectionState?: ConnectionState }) {
   return (
     <div className={styles.dashboard}>
       <div className="pageBodyFill">

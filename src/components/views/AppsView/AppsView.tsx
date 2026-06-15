@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { House, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
-import { HomeTab } from './HomeTab';
+import { DashboardTab } from './DashboardTab';
 import { StoreTab } from './StoreTab';
 
-type TabKey = 'home' | 'store';
+type TabKey = 'dashboard' | 'store';
 
 interface AppsViewProps {
   serviceOnline: boolean;
@@ -17,10 +17,10 @@ interface AppsViewProps {
 
 export function AppsView({ serviceOnline, connectionState, onSectionNavigate }: AppsViewProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<TabKey>('home');
+  const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
 
   const tabs = [
-    { key: 'home', label: t('apps.tabs.home'), icon: <House size={14} /> },
+    { key: 'dashboard', label: t('nav.dashboard'), icon: <LayoutDashboard size={14} /> },
     { key: 'store', label: t('apps.tabs.store'), icon: <ShoppingBag size={14} /> },
   ] as const;
 
@@ -32,8 +32,8 @@ export function AppsView({ serviceOnline, connectionState, onSectionNavigate }: 
         activeTab={activeTab}
         onTabChange={(k) => setActiveTab(k as TabKey)}
       />
-      {activeTab === 'home' && (
-        <HomeTab
+      {activeTab === 'dashboard' && (
+        <DashboardTab
           serviceOnline={serviceOnline}
           connectionState={connectionState}
           onSectionNavigate={onSectionNavigate}
