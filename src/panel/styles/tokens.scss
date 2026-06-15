@@ -24,6 +24,10 @@
 
 .panel-root {
   --panel-text: var(--text);
+  // One step off primary, for secondary glyphs that read as the same ink only
+  // dimmer (clock date / AM-PM / colon). --panel-text-muted is a larger drop
+  // for de-emphasised labels.
+  --panel-text-secondary: color-mix(in srgb, var(--text) 80%, var(--text-dim));
   --panel-text-muted: var(--text-dim);
   --panel-text-faint: var(--text-faded);
   --panel-border: var(--border);

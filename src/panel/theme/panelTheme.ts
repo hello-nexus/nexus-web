@@ -30,6 +30,7 @@ import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
+import { isSingleWidgetSurface, type PanelSurface } from '../types';
 
 export type PanelThemeState = PanelThemeSettingsState;
 
@@ -204,10 +205,17 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
       // theme. Absent record fields fall back to defaults via normalize*.
       const t = prefs?.theme;
       const r = record;
+      // Single-widget immersive surfaces (q60) fill the screen with one tile, so
+      // a solid background or an opaque widget would hide the lighting. Their
+      // unset theme fields default to a plasma shader behind a transparent
+      // widget; an explicit per-device value always wins.
+      const single = isSingleWidgetSurface(r?.capabilities?.surface as PanelSurface);
       // Per-shader preset map. Back-compat: seed the active shader's entry from
       // the legacy scalar when the map doesn't carry it (old records, or a fresh
       // record that only wrote backgroundTemplate).
-      const effect = normalizePanelBackgroundEffect(r?.backgroundEffect);
+      const effect = r?.backgroundEffect == null && single
+        ? 'plasma'
+        : normalizePanelBackgroundEffect(r?.backgroundEffect);
       const templates: Record<string, number> = { ...(r?.backgroundTemplates ?? {}) };
       if (templates[effect] === undefined) {
         templates[effect] = normalizePanelBackgroundTemplate(r?.backgroundTemplate);
@@ -223,7 +231,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         accentColor: r?.accentColor ?? '',
         backgroundColor: r?.backgroundColor ?? '',
         backgroundColorLight: r?.backgroundColorLight ?? '',
-        backgroundMode: normalizePanelBackgroundMode(r?.backgroundMode),
+        backgroundMode: r?.backgroundMode == null && single ? 'shader' : normalizePanelBackgroundMode(r?.backgroundMode),
         backgroundEffect: effect,
         backgroundTemplate: normalizePanelBackgroundTemplate(templates[effect]),
         backgroundTemplates: templates,
@@ -231,7 +239,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         // Static fallback; the returned value below is derived from the global
         // presets + the live draft.
         backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),
-        widgetOpacity: normalizePanelWidgetOpacity(r?.widgetOpacity),
+        widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
         widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
         widgetBlur: normalizePanelWidgetBlur(r?.widgetBlur),
       });

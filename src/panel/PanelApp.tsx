@@ -1148,6 +1148,7 @@ export function PanelContent({
             opacity={effectiveTheme.backgroundOpacity}
             effectState={effectiveTheme.backgroundEffectState}
             surface={surface}
+            fullRes={simulator}
           />
         )}
         {!loaded ? (

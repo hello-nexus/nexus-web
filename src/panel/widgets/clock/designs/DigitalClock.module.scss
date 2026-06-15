@@ -10,10 +10,21 @@
   line-height: 1.3;
   box-sizing: border-box;
 
-  &.size-2x2  { font-size: 1.9em; padding: 10px; }
-  &.size-2x4  { font-size: 2.6em; }
-  &.size-4x2  { font-size: 3em; }
-  &.size-4x4  { font-size: 2.8em; }
+  // Horizontal padding is the left/right margin the time text fits within.
+  &.size-2x2  { font-size: 1.9em; padding: 10px 8px; }
+  &.size-2x4  { font-size: 2.6em; padding: 12px 8px; }
+  &.size-4x2  { font-size: 3em;   padding: 12px 8px; }
+  &.size-4x4  { font-size: 2.8em; padding: 12px 8px; }
+}
+
+// Full-width track the time scales within; clips the unscaled overflow before
+// useFitWidth applies the transform on first paint.
+.fitBox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
 }
 
 .time {
@@ -22,9 +33,10 @@
   letter-spacing: -0.03em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  max-width: 100%;
+  width: max-content;
   text-align: center;
   white-space: nowrap;
+  transform-origin: center;
 }
 
 .date {
@@ -33,7 +45,7 @@
   font-weight: var(--weight-body);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--panel-text-faint);
+  color: var(--panel-text-secondary);
 }
 
 .accent .time {

@@ -141,14 +141,14 @@
   width: 0.4em;
   font-size: 1em;
   font-weight: var(--weight-display);
-  color: var(--panel-text-faint);
+  color: var(--panel-text-secondary);
   padding-bottom: 0.1em;
 }
 
 .ampm {
   font-size: 0.35em;
   font-weight: var(--weight-heading);
-  color: var(--panel-text-faint);
+  color: var(--panel-text-secondary);
   margin-left: 0.3em;
   align-self: flex-end;
   padding-bottom: 0.3em;
@@ -160,7 +160,7 @@
   font-weight: var(--weight-body);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--panel-text-faint);
+  color: var(--panel-text-secondary);
   text-align: center;
 }
 
