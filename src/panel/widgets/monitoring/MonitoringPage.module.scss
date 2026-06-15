@@ -89,10 +89,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  // "CPU — <model>" on one line; the dash renders only when a model sub exists
-  // (the RAM / Network / Storage cards carry a title only).
-  &::before {
-    content: '—';
+  // "CPU - <model>" on one line. :not(:empty) guards the separator so a card
+  // with no model (and the title-only RAM / Network / Storage cards) shows no
+  // orphan dash.
+  &:not(:empty)::before {
+    content: '-';
     margin-right: 0.3rem;
   }
 }
