@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchPanelDeviceWithStatus, patchPanelDeviceWithStatus } from '../../api/panel';
-import { useTopicCallback } from '../../hooks/useMultiplexSocket';
+import { useMultiplex, useTopicCallback } from '../../hooks/useMultiplexSocket';
 import {
   isSingleWidgetSurface,
   normalizePanelWidgetSizeForSurface,
@@ -219,6 +219,19 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface, deviceTo
     const frame = raw as { deviceId?: string } | null;
     if (frame?.deviceId === deviceId) fetchLayout();
   });
+
+  // Re-pull the record when the live socket reconnects after an outage: picks
+  // up layout/theme edits made while offline, and bumps the device's
+  // LastSeenAt so the host (the Q-series watcher) can tell the panel
+  // reconnected on its own and skip a recovery reboot. useMultiplex is null
+  // outside the kiosk tree (editor/simulator), where there's nothing to
+  // reconnect.
+  const connected = useMultiplex()?.connected ?? false;
+  const prevConnectedRef = useRef(connected);
+  useEffect(() => {
+    if (connected && !prevConnectedRef.current) fetchLayout();
+    prevConnectedRef.current = connected;
+  }, [connected, fetchLayout]);
 
   const setLayout = useCallback((next: PanelLayout) => {
     const normalized = normalizePanelLayout(next, surface, deviceTouch);

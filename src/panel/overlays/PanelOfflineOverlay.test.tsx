@@ -115,6 +115,16 @@ describe('PanelOfflineOverlay', () => {
     expect(screen.getByText('connection.lost.notInstalled')).toBeInTheDocument();
   });
 
+  it('q60 renders no overlay in any state (the panel swaps its own widget to a clock)', () => {
+    for (const state of ['online', 'checking', 'offline-installed', 'offline'] as const) {
+      const { container, unmount } = render(
+        <PanelOfflineOverlay {...baseProps} state={state} surface="q60" />,
+      );
+      expect(container).toBeEmptyDOMElement();
+      unmount();
+    }
+  });
+
   it('shows the countdown status when nextAttemptAt is in the future, and falls back to the in-flight string when null', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-29T20:00:00.000Z'));

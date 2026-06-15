@@ -317,6 +317,7 @@ export function WidgetEditSheet({
           <Suspense fallback={null}>
             <Settings
               widget={widget}
+              surface={surface}
               onUpdate={config => onUpdate(widget.id, config)}
               onResize={handleResize}
               selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}

@@ -6,6 +6,8 @@
   "app.window.maximize": "最大化",
   "app.window.minimize": "最小化",
   "app.window.restore": "还原",
+  "apps.store.comingSoon": "Nexus Store 即将推出",
+  "apps.tabs.store": "Nexus Store",
   "benchmark.cancel": "取消",
   "benchmark.cancelled": "已取消基准测试。",
   "benchmark.failed": "基准测试失败",

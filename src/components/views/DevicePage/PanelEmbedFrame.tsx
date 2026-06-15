@@ -26,6 +26,9 @@ interface PanelEmbedFrameProps {
   theme: SimulatorTheme;
   themeMode: 'dark' | 'light';
   selectedWidgetId: string | null;
+  // One-shot flash request for a widget the parent rejected (e.g. a resize
+  // that can't fit). The nonce re-fires repeats; null until the first reject.
+  flashSignal?: { widgetId: string; nonce: number } | null;
   onLayoutChange: (layout: PanelLayout) => void;
   onWidgetClicked: (widget: PanelWidget) => void;
   onBackgroundClicked: () => void;
@@ -88,6 +91,7 @@ export function PanelEmbedFrame({
   theme,
   themeMode,
   selectedWidgetId,
+  flashSignal,
   onLayoutChange,
   onWidgetClicked,
   onBackgroundClicked,
@@ -238,6 +242,15 @@ export function PanelEmbedFrame({
     if (!childReady) return;
     post({ type: 'simulator/set-selection', widgetId: selectedWidgetId });
   }, [childReady, selectedWidgetId, post]);
+
+  // Forward a reject flash to the iframe. Keyed on the nonce so it fires once
+  // per reject, not on the initial null or on childReady toggling.
+  const flashNonce = flashSignal?.nonce;
+  useEffect(() => {
+    if (!childReady || !flashSignal) return;
+    post({ type: 'simulator/flash-widget', widgetId: flashSignal.widgetId, nonce: flashSignal.nonce });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire per nonce
+  }, [childReady, flashNonce, post]);
 
   useEffect(() => {
     if (!childReady) return;

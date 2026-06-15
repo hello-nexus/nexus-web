@@ -113,6 +113,7 @@ export function PanelTouchCell({
   editorDockMotion = null,
   editorDockPortal = null,
   flash = false,
+  entrance = false,
   isDragSource = false,
   resizeMotion = false,
   selectedSlot,
@@ -136,6 +137,7 @@ export function PanelTouchCell({
   editorDockMotion?: EditorDockMotion | null;
   editorDockPortal?: HTMLElement | null;
   flash?: boolean;
+  entrance?: boolean;
   isDragSource?: boolean;
   resizeMotion?: boolean;
   selectedSlot?: number;
@@ -246,7 +248,7 @@ export function PanelTouchCell({
         data-panel-cell-col-span={span.cols}
         data-panel-cell-row-span={span.rows}
         data-clickthrough={clickthrough ? 'true' : undefined}
-        className={`${styles.cellWrap} ${dimmed ? styles.cellContextDimmed : ''} ${isDragSource ? styles.cellDragSource : ''} ${flash ? styles.cellFlash : ''}`}
+        className={`${styles.cellWrap} ${dimmed ? styles.cellContextDimmed : ''} ${isDragSource ? styles.cellDragSource : ''} ${flash ? styles.cellFlash : ''} ${entrance ? styles.cellEntrance : ''}`}
         style={{
           ...wrapStyle,
           // Make-room transform comes from previewLayout, not from
@@ -299,7 +301,7 @@ export function PanelTouchCell({
       data-panel-cell-row-span={span.rows}
       data-cell-state={editorDockMotion ? 'docked' : undefined}
       data-clickthrough={clickthrough && !editorDockMotion ? 'true' : undefined}
-      className={`${styles.cellWrap} ${editorDockMotion ? styles.cellEditorDocked : ''} ${resizeMotion ? styles.cellResizeMotion : ''} ${editorDockMotion?.phase === 'closing' ? styles.cellEditorDockClosing : ''} ${dimmed ? styles.cellContextDimmed : ''} ${flash ? styles.cellFlash : ''}`}
+      className={`${styles.cellWrap} ${editorDockMotion ? styles.cellEditorDocked : ''} ${resizeMotion ? styles.cellResizeMotion : ''} ${editorDockMotion?.phase === 'closing' ? styles.cellEditorDockClosing : ''} ${dimmed ? styles.cellContextDimmed : ''} ${flash ? styles.cellFlash : ''} ${entrance ? styles.cellEntrance : ''}`}
       style={{
         ...wrapStyle,
         // Make-room transform comes from previewLayout, not dnd-kit's strategy.

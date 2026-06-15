@@ -31,6 +31,7 @@ export function PanelSimulatorContent() {
           simulatorTheme={sim.theme}
           simulatorThemeMode={sim.themeMode}
           simulatorSelectedWidgetId={sim.selectedWidgetId}
+          simulatorFlashSignal={sim.flashSignal}
           onSimulatorWidgetClicked={sim.onWidgetClicked}
           onSimulatorBackgroundClicked={sim.onBackgroundClicked}
         />

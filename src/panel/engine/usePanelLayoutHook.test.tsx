@@ -11,6 +11,7 @@ vi.mock('../../api/panel', () => ({
 
 vi.mock('../../hooks/useMultiplexSocket', () => ({
   useTopicCallback: () => {},
+  useMultiplex: () => null,
 }));
 
 vi.mock('./panelSync', () => ({

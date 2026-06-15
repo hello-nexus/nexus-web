@@ -6,6 +6,8 @@
   "app.window.maximize": "Maksymalizuj",
   "app.window.minimize": "Minimalizuj",
   "app.window.restore": "Przywróć",
+  "apps.store.comingSoon": "Nexus Store wkrótce",
+  "apps.tabs.store": "Nexus Store",
   "benchmark.cancel": "Anuluj",
   "benchmark.cancelled": "Benchmark anulowany.",
   "benchmark.failed": "Benchmark nie powiodl sie",
