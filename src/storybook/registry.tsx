@@ -312,22 +312,8 @@ function PreviewViewHeader() {
 }
 
 function PreviewTabs() {
-  const [active, setActive] = useState('animate');
-  return <Tabs
-    tabs={[
-      { key: 'animate', label: 'Animate', icon: <Sparkles size={14} /> },
-      { key: 'screen', label: 'Screen', icon: <Monitor size={14} /> },
-      { key: 'static', label: 'Static', icon: <Palette size={14} /> },
-    ]}
-    activeKey={active}
-    onChange={setActive}
-  />;
-}
-
-function PreviewTabsPill() {
   const [active, setActive] = useState('day');
   return <Tabs
-    variant="pill"
     tabs={[
       { key: 'day', label: 'Day' },
       { key: 'week', label: 'Week' },
@@ -1270,16 +1256,10 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Page heading + integrated tab bar. Canonical header for every primary view.', Preview: PreviewViewHeader,
   },
   {
-    name: 'Tabs (underline)', category: 'navigation',
+    name: 'Tabs', category: 'navigation',
     filePath: 'src/components/common/Tabs/Tabs.tsx',
-    description: 'Horizontal tab bar with accent underline on the active tab. Supports optional leading icons through TabDef.icon - when present, the active tab\'s icon is wrapped in a solid accent disc so the tabs read as mode pickers (Lighting modes, Cooling presets) rather than plain nav. Used inside ViewHeader for page-level mode tabs and standalone for secondary nav. Per-tab disable via TabDef.disabled.', Preview: PreviewTabs,
+    description: 'Bordered segmented tab group - one shared border around the whole bar, solid accent fill on the active tab. Supports optional leading icons through TabDef.icon and per-tab disable via TabDef.disabled. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
     notes: 'Pairs with ViewHeader - do not roll your own tab bars. Disabled tabs get opacity 0.4 + not-allowed cursor.',
-  },
-  {
-    name: 'Tabs (pill)', category: 'navigation',
-    filePath: 'src/components/common/Tabs/Tabs.tsx',
-    description: 'Bordered segmented-group variant of the same Tabs primitive. One shared border around the whole bar, accent-soft fill on the active segment. Used for in-page secondary toggles (panel theme settings, icon picker). Set variant="pill" on Tabs to activate.', Preview: PreviewTabsPill,
-    notes: 'Same component as the underline variant - pass variant="pill" to render this chrome.',
   },
   {
     name: 'Sidebar', category: 'navigation',

@@ -14,8 +14,6 @@ export interface TabDef {
   readonly disabled?: boolean;
 }
 
-export type TabsVariant = 'underline' | 'pill';
-
 export interface TabsProps {
   tabs: readonly TabDef[];
   activeKey: string;
@@ -26,34 +24,18 @@ export interface TabsProps {
   ariaLabel?: string;
   /** Optional extra class on the <nav>, e.g. for tighter margins in constrained layouts. */
   className?: string;
-  /**
-   * Visual treatment:
-   * - `underline` (default): accent underline on the active tab, neutral
-   *   border-bottom on the bar. Used for page-level primary nav.
-   * - `pill`: bordered segmented group with accent-soft fill on the active
-   *   pill. Used for secondary in-page toggles (panel theme settings, icon picker).
-   */
-  variant?: TabsVariant;
   /** Stretch the bar to 100% width with each tab sharing the width equally. */
   fullWidth?: boolean;
 }
 
 /**
- * Horizontal tab bar. The canonical primary-nav affordance across every
- * primary view. Active tab underlines with the accent in the default variant;
- * inactive tabs are neutral-dim and hover to plain text. The `pill` variant
- * renders a segmented toggle group instead of an underline bar - same
- * semantics, different chrome, same component.
+ * Horizontal tab bar - the canonical tab affordance across the app. A bordered
+ * segmented group with a solid accent fill on the active tab; inactive tabs are
+ * neutral-dim and hover to plain text. Text-only and icon+text tabs both flow
+ * through this one component.
  */
-export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', className, variant = 'underline', fullWidth = false }: TabsProps) {
-  const navClass = classNames(
-    styles.tabs,
-    variant === 'pill' && styles.tabsPill,
-    fullWidth && styles.fullWidth,
-    className,
-  );
-  const tabClass = variant === 'pill' ? styles.pillTab : styles.tab;
-  const activeClass = variant === 'pill' ? styles.pillActive : styles.active;
+export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', className, fullWidth = false }: TabsProps) {
+  const navClass = classNames(styles.tabs, fullWidth && styles.fullWidth, className);
   return (
     <nav className={navClass} role="tablist" aria-label={ariaLabel}>
       {tabs.map(tab => (
@@ -62,7 +44,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
           type="button"
           role="tab"
           aria-selected={tab.key === activeKey}
-          className={classNames(tabClass, { [activeClass]: tab.key === activeKey })}
+          className={classNames(styles.tab, { [styles.active]: tab.key === activeKey })}
           disabled={disabled || tab.disabled}
           onClick={() => onChange(tab.key)}
         >

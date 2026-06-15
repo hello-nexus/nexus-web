@@ -41,7 +41,6 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
   return (
     <div className={styles.picker}>
       <Tabs
-        variant="pill"
         ariaLabel={t('panel.settings.icon')}
         activeKey={tab}
         onChange={onTab}

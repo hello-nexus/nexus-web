@@ -143,7 +143,6 @@ export function PanelThemeSettings({
   // mode (one instance keeps the pill state/animation continuous).
   const backgroundModeTabs = (
     <Tabs
-      variant="pill"
       fullWidth
       tabs={[
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
@@ -199,7 +198,6 @@ export function PanelThemeSettings({
         />
         {!theme.themeSyncWithDesktop && (
           <Tabs
-            variant="pill"
             tabs={THEME_MODES.map(mode => ({
               key: mode,
               label: t(`settings.theme.${mode}`) || (mode === 'system' ? 'System' : mode === 'dark' ? 'Dark' : 'Light'),
@@ -255,7 +253,6 @@ export function PanelThemeSettings({
                 effectState={theme.backgroundEffectState}
               />
               <Tabs
-                variant="pill"
                 fullWidth
                 tabs={[
                   // eslint-disable-next-line i18next/no-literal-string -- editor tab id
