@@ -170,7 +170,7 @@ export function DisplaysWidget({ widget }: WidgetProps) {
 
   return (
     <div className={styles.displays} data-size={widget.size}>
-      <div className={styles.sliderGrid} data-count={visibleDisplays.length}>
+      <div className={styles.sliderGrid}>
         {visibleDisplays.map((d, i) => {
           const brightness = values[d.id] ?? d.brightnessControl?.current ?? 0;
           return (

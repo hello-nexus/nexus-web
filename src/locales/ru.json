@@ -419,7 +419,7 @@
   "displays.resolution": "Разрешение",
   "displays.scale": "Масштаб",
   "displays.title": "Дисплеи",
-  "displays.settings.hint": "Перетащите для изменения порядка. Виджет 2×2 показывает первые 2 экрана, 4×2 — первые 4.",
+  "displays.settings.hint": "Перетащите для изменения порядка. Виджет 2×2 показывает первые 2 экрана, 4×2 показывает первые 4.",
   "displays.settings.reorder": "Переместить {name}",
   "displays.settings.title": "Порядок экранов",
   "displays.touch": "Сенсорный экран",
