@@ -1096,7 +1096,7 @@
 .settingsBody {
   min-height: 0;
   overflow-y: auto;
-  @include scrollbar-visible($thumb: var(--panel-border), $thumb-hover: var(--panel-border-strong), $gutter: false);
+  @include scrollbar-visible($gutter: false);
 }
 
 .panelSettingsStack {

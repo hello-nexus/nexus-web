@@ -196,7 +196,7 @@
   flex-direction: column;
   gap: 0.4rem;
   padding: 0.5rem 0.3rem 1rem;
-  @include scrollbar-visible($thumb: var(--border-strong), $gutter: false);
+  @include scrollbar-visible($gutter: false);
 }
 
 // Per-category cell grid inside each collapsible section body.
@@ -525,7 +525,7 @@
   padding: 0.25rem 0.25rem 0.5rem;
   overflow-y: auto;
   min-height: 0;
-  @include scrollbar-visible($thumb: var(--border-strong), $gutter: false);
+  @include scrollbar-visible($gutter: false);
 }
 
 .mediaMeta {
