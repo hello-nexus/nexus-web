@@ -1,6 +1,6 @@
 // Module-level bus for one-shot, full-window background effects. Any code can
 // emit; <BackgroundEffects> (mounted once behind the dashboard) renders them.
-// Decoupled like controlSync — no provider, no prop drilling. Add a new effect
+// Decoupled like controlSync: no provider, no prop drilling. Add a new effect
 // by extending the BackgroundEffect union and handling its `kind` in
 // <BackgroundEffects>.
 

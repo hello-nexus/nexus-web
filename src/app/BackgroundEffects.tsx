@@ -12,7 +12,7 @@ function prefersReducedMotion(): boolean {
 }
 
 // Active radial-bloom look: 'a' = soft bloom wash, 'b' = shockwave ring,
-// 'c' = refined bloom wash (softer/slower than A).
+// 'c' = softened bloom wash (lower peak, slower expand than A).
 const RADIAL_VARIANT: 'a' | 'b' | 'c' = 'c';
 
 function radialClass(inverse: boolean): string {
