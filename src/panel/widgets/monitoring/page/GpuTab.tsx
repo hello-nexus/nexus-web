@@ -4,6 +4,7 @@ import { StackedChart } from '../../../../components/common/StackedChart/Stacked
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
 import { useGpuProcessData } from '../../../../hooks/useProcessMonitor';
 import { colorFor } from '../../../../lib/monitoringStore';
+import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
 import { VitalsStrip, type Vital } from './VitalsStrip';
 import styles from '../MonitoringPage.module.scss';
 
@@ -24,15 +25,23 @@ function load3d(g: HardwareSensor[]): number {
  * broken down per process (top processes from the PDH-backed gpu-processes
  * topic), and a ranked "Top GPU processes" list. Shows the picker-selected GPU.
  */
-export function GpuTab({ sensors }: { sensors: SensorState }) {
+export function GpuTab({ sensors, preferredGpuId, onOpenSettings }: {
+  sensors: SensorState;
+  preferredGpuId: string;
+  onOpenSettings: () => void;
+}) {
   const { t } = useTranslation();
   const g = sensors.gpu;
   const model = sensors.gpuModel;
+  const gpus = sensors.gpuComponents;
 
   const vramUsed = val(g, 'SmallData', 'GPU Memory Used') ?? 0;
   const vramTotal = val(g, 'SmallData', 'GPU Memory Total') ?? 0;
-  // Feed is mounted at page level; here we only read the accumulated history.
-  const { utilSeries, memSeries, ranked: procRanked } = useGpuProcessData();
+  // Scope the per-process charts to the picked GPU's adapter (so e.g. the iGPU
+  // view doesn't include the dGPU's VRAM); "" falls back to all adapters. Feed
+  // is mounted at page level; here we only read the accumulated history.
+  const selectedLuid = resolvePrimaryGpu(gpus, preferredGpuId)?.adapterLuid ?? '';
+  const { utilSeries, memSeries, ranked: procRanked } = useGpuProcessData(selectedLuid);
 
   if (!model || g.length === 0) return null;
 
@@ -48,6 +57,14 @@ export function GpuTab({ sensors }: { sensors: SensorState }) {
 
   return (
     <>
+      <div className={styles.tabHeader}>
+        <span className={styles.tabHeaderName}>{model}</span>
+        {gpus.length > 1 && (
+          <button type="button" className={styles.tabHeaderChange} onClick={onOpenSettings}>
+            {t('monitoring.gpu.change')}
+          </button>
+        )}
+      </div>
       <VitalsStrip vitals={vitals} />
       <div className={styles.chartRow}>
         <StackedChart

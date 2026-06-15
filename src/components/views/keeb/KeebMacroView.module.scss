@@ -18,6 +18,7 @@
   background: var(--panel-card-bg, rgba(255, 255, 255, 0.03));
   border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.06));
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 // Slots read as a compact list, not a tile grid: pull the IconLabelButton
@@ -89,6 +90,7 @@
   background: var(--panel-card-bg, rgba(255, 255, 255, 0.02));
   border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.06));
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .recordRow {

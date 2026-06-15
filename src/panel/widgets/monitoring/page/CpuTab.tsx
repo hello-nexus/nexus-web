@@ -68,6 +68,11 @@ export function CpuTab({ cpuSeries, sensors, showAverage, onToggle }: {
 
   return (
     <>
+      {sensors.cpuModel && (
+        <div className={styles.tabHeader}>
+          <span className={styles.tabHeaderName}>{sensors.cpuModel}</span>
+        </div>
+      )}
       <VitalsStrip vitals={vitals} />
       <StackedChart
         title={t('monitoring.tab.cpu')}

@@ -16,6 +16,7 @@
   gap: 1.25rem;
   padding: 1rem 0 1.25rem;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 // Header + box come from the shared SettingsSection (header-above-box).

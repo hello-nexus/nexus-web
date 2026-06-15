@@ -61,16 +61,15 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
 
   const { settings, update } = useUiSettings();
   const showAverage = settings.monitoringShowAverage;
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const toggleMode = useCallback(() => {
     update({ monitoringShowAverage: !showAverage });
   }, [showAverage, update]);
 
-  // The settings affordance lives in the top bar (right of the search pill).
-  // Its only control is the primary-GPU picker, so register it only when more
-  // than one GPU is present - there's nothing to choose otherwise.
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
+  // Top-bar settings gear opens the GPU picker modal; register only when there
+  // is more than one GPU to choose from (same modal the GPU tab's Change opens).
   usePageSettingsAction(
     { onOpen: openSettings, label: t('monitoring.settings.open') },
     serviceOnline && sensors.gpuComponents.length > 1,
@@ -103,7 +102,13 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
         <OverviewTab frame={monitoringFrame} hist={overviewHist} gpuSupported={gpuSupported} onNavigate={onTabChange} />
       );
       case 'cpu': return <CpuTab cpuSeries={cpuSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;
-      case 'gpu': return <GpuTab sensors={sensors} />;
+      case 'gpu': return (
+        <GpuTab
+          sensors={sensors}
+          preferredGpuId={settings.preferredGpuId}
+          onOpenSettings={openSettings}
+        />
+      );
       case 'memory': return <MemoryTab memSeries={memSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;
       case 'network': return <NetworkTab network={network} showAverage={showAverage} onToggle={toggleMode} />;
       case 'detailed': return <DetailedTab sensors={sensors} />;

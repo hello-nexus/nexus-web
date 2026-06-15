@@ -10,7 +10,7 @@ export interface SeriesEntry {
   avg: number;
 }
 
-export interface GpuProcess { name: string; gpuPercent: number; dedicatedMb: number; }
+export interface GpuProcess { name: string; gpuPercent: number; dedicatedMb: number; adapterLuid: string; }
 
 export interface GpuProcessData {
   utilSeries: SeriesEntry[];
@@ -52,14 +52,15 @@ export function useGpuProcessFeed(enabled: boolean): void {
 /**
  * Reads the accumulated per-process GPU series (GPU% + VRAM over time) and the
  * current ranked snapshot, re-rendering on each ingested frame. Requires a
- * mounted useGpuProcessFeed to supply the data.
+ * mounted useGpuProcessFeed to supply the data. `luid` scopes to one physical
+ * GPU (the picked adapter); "" shows every adapter combined.
  */
-export function useGpuProcessData(): GpuProcessData {
+export function useGpuProcessData(luid = ''): GpuProcessData {
   const [, bump] = useState(0);
   useEffect(() => {
     const fn = () => bump(v => v + 1);
     store.subscribe(fn);
     return () => store.unsubscribe(fn);
   }, []);
-  return store.getGpuProcessData();
+  return store.getGpuProcessData(luid);
 }

@@ -31,7 +31,9 @@
   flex: 1;
   overflow-y: auto;
   padding: 0 0.25rem;
-  @include scrollbar-visible;
+  // Shared with panel/touch (DevicesPage, LightingPage); no gutter so those
+  // kiosk surfaces keep their bare layout.
+  @include scrollbar-visible($gutter: false);
 }
 
 .empty {

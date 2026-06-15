@@ -238,7 +238,7 @@
   // (EffectCard .cardOverlay) so highlighted + idle cards still read evenly spaced.
   gap: 0.4rem;
   padding: 0.75rem 0.3rem 1rem;
-  @include scrollbar-visible($thumb: var(--border-strong));
+  @include scrollbar-visible($thumb: var(--border-strong), $gutter: false);
 }
 
 // Usage markers pinned to a grid cell's thumbnail (panels only): bulb = this
@@ -552,7 +552,7 @@
   padding: 0.25rem 0.25rem 0.5rem;
   overflow-y: auto;
   min-height: 0;
-  @include scrollbar-visible($thumb: var(--border-strong));
+  @include scrollbar-visible($thumb: var(--border-strong), $gutter: false);
 }
 
 .mediaMeta {

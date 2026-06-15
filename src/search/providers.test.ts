@@ -79,6 +79,29 @@ describe('buildEntries', () => {
     expect([...idsOf(true)].some((id) => id.includes('music'))).toBe(false);
   });
 
+  it('lists every built-in app that ships a page, opening that page', () => {
+    const entries = buildEntries(ctx(true));
+    const find = (id: string) => entries.find((e) => e.id === id);
+    // Page-bearing apps not already covered by a curated NAV row.
+    for (const type of ['clock', 'gallery', 'steam', 'smart-lights']) {
+      expect(find(`app:${type}`)?.kind).toBe('navigate');
+    }
+    // Page-less apps are never listed.
+    for (const type of ['calculator', 'emoji', 'timer', 'iframe']) {
+      expect(find(`app:${type}`)).toBeUndefined();
+    }
+    // Apps with a curated NAV row are not duplicated under app:*.
+    for (const type of ['cooling', 'lighting', 'monitoring', 'screentime']) {
+      expect(find(`app:${type}`)).toBeUndefined();
+    }
+  });
+
+  it('lists app pages regardless of service connectivity', () => {
+    const ids = idsOf(false);
+    expect(ids.has('app:clock')).toBe(true);
+    expect(ids.has('app:steam')).toBe(true);
+  });
+
   it('applies directly vs opens the page per the action/navigate rule', () => {
     const entries = buildEntries(ctx(true));
     const kind = (id: string) => entries.find((e) => e.id === id)?.kind;
