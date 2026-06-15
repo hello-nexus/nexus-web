@@ -331,7 +331,13 @@ export function getGpuProcessData(luid = '') {
   return {
     utilSeries: buildGpuSeries(gpuProcHist, mapped, 'cpuPercent', luid, 6),
     memSeries: buildGpuSeries(gpuMemHist, mapped, 'memoryMb', luid, 6),
-    ranked: scoped,
+    // Ranked-list series carry current + 60s-avg so the list's live/60s toggle
+    // re-ranks GPU% (procSeries) and averages its VRAM sub (procMemSeries) like
+    // CPU/memory; the charts above stay at the top 6. procMemSeries is a VRAM
+    // lookup keyed by name (never a top-N list), so it stays uncapped to cover
+    // every process the GPU%-ranked rows can show.
+    procSeries: buildGpuSeries(gpuProcHist, mapped, 'cpuPercent', luid, TOP_PROCS),
+    procMemSeries: buildGpuSeries(gpuMemHist, mapped, 'memoryMb', luid, Infinity),
   };
 }
 

@@ -1,10 +1,8 @@
 @use '../../../styles/text' as *;
 
 // Canonical settings header — see SectionHeader.tsx. A muted body-type label;
-// spacing + alignment are owned by the parent (e.g. SettingsSection). The
-// --panel-text-muted alias resolves inside .panel-root (kiosk) and falls back
-// to the app globals in the dashboard, so the header reads identically in both.
+// spacing + alignment are owned by the parent (e.g. SettingsSection).
 .sectionHeader {
   @include text-body;
-  color: var(--panel-text-muted, var(--text-dim));
+  color: var(--text-dim);
 }

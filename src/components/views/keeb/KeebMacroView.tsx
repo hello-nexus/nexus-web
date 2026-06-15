@@ -203,7 +203,6 @@ export function KeebMacroView({ loadMacro, saveMacro }: KeebMacroViewProps) {
               tabs={delayModeTabs}
               activeKey={delayMode}
               onChange={k => setDelayMode(k as DelayMode)}
-              variant="pill"
               ariaLabel={t('keeb.macro.delayModeAria')}
             />
             {delayMode === 'custom' && (

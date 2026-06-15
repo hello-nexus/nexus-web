@@ -15,7 +15,8 @@ export interface GpuProcess { name: string; gpuPercent: number; dedicatedMb: num
 export interface GpuProcessData {
   utilSeries: SeriesEntry[];
   memSeries: SeriesEntry[];
-  ranked: GpuProcess[];
+  procSeries: SeriesEntry[];
+  procMemSeries: SeriesEntry[];
 }
 
 export interface MonitorData {
@@ -50,8 +51,8 @@ export function useGpuProcessFeed(enabled: boolean): void {
 }
 
 /**
- * Reads the accumulated per-process GPU series (GPU% + VRAM over time) and the
- * current ranked snapshot, re-rendering on each ingested frame. Requires a
+ * Reads the accumulated per-process GPU series (GPU% + VRAM over time, each
+ * carrying current + 60s-avg), re-rendering on each ingested frame. Requires a
  * mounted useGpuProcessFeed to supply the data. `luid` scopes to one physical
  * GPU (the picked adapter); "" shows every adapter combined.
  */

@@ -10,8 +10,7 @@ import styles from './SettingsSection.module.scss';
  * SectionHeader-with-underline-inside-a-card look.
  *
  * Renders correctly both in the dashboard and inside `.panel-root` (kiosk):
- * the header colour falls back through SectionHeader's `--panel-text-muted`
- * alias, and the box surface uses `--surface` (defined in both contexts).
+ * SectionHeader uses `--text-dim` and the box surface uses `--surface`.
  */
 export function SettingsSection({
   title,

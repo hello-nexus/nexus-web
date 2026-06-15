@@ -21,7 +21,7 @@
   position: relative;
   width: 14px;
   height: 100%;
-  background: var(--panel-border);
+  background: var(--gauge-track);
   border-radius: var(--radius-sm);
   overflow: hidden;
   display: flex;
@@ -47,14 +47,14 @@
   font-weight: var(--weight-display);
   letter-spacing: -0.02em;
   line-height: 1;
-  color: var(--panel-text);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
 .label {
   font-size: var(--type-tiny);
   font-weight: var(--weight-strong);
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }

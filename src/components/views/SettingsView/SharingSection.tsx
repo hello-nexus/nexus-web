@@ -36,7 +36,6 @@ export function SharingSection({ profiles, sharing, primaryId, sharedCats, onlyO
             description={t(`settings.profiles.sharing.cat.${category}.desc`)}
           >
             <Tabs
-              variant="pill"
               ariaLabel={t(`settings.profiles.sharing.cat.${category}.label`)}
               disabled={onlyOneProfile}
               activeKey={isShared ? 'shared' : 'perProfile'}

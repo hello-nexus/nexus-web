@@ -23,9 +23,6 @@
 .panel-root[data-surface='desktop'] { --panel-card-shadow-color: transparent; }
 
 .panel-root {
-  --panel-text: var(--text);
-  --panel-text-muted: var(--text-dim);
-  --panel-text-faint: var(--text-faded);
   --panel-border: var(--border);
   --panel-border-strong: var(--border-strong);
   --panel-control-bg: var(--bg-card-hover);
@@ -87,7 +84,7 @@
   --panel-status-away:   var(--status-away);
 
   font-family: var(--panel-font);
-  color: var(--panel-text);
+  color: var(--text);
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -143,7 +140,7 @@
   font-size: 0.55em;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   vertical-align: baseline;
 }
 
@@ -159,7 +156,7 @@
   overflow: hidden;
   position: relative;
   transition: background-color var(--ease-slow);
-  color: var(--panel-text);
+  color: var(--text);
   font-family: var(--panel-font);
 }
 
@@ -172,7 +169,7 @@
   border: 1px solid var(--panel-card-border);
   border-radius: var(--panel-element-radius);
   background: var(--panel-element-bg);
-  color: var(--panel-text);
+  color: var(--text);
   font-family: var(--panel-font);
   font-size: 12px;
   font-weight: 700;

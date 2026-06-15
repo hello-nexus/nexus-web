@@ -104,7 +104,6 @@ export function KeebKeyAssignmentView({
           tabs={categoryTabs}
           activeKey={category}
           onChange={k => setCategory(k as KeebAssignmentCategory)}
-          variant="pill"
           ariaLabel={t('keeb.assign.categoriesAria')}
         />
         <Button

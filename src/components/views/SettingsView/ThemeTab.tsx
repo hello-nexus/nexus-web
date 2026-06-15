@@ -78,7 +78,6 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
     <>
       <SettingRow label={t('settings.theme')}>
         <Tabs
-          variant="pill"
           ariaLabel={t('settings.theme')}
           activeKey={settings.general.themeMode}
           onChange={k => handleThemeChange(k as ThemeMode)}
@@ -88,7 +87,6 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
 
       <SettingRow label={t('settings.background')}>
         <Tabs
-          variant="pill"
           ariaLabel={t('settings.background')}
           activeKey={backgroundActiveKey}
           onChange={k => handleBackgroundChange(k as BackgroundMode)}
@@ -98,7 +96,6 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
 
       <SettingRow label={t('settings.accent')}>
         <Tabs
-          variant="pill"
           ariaLabel={t('settings.accent')}
           activeKey={settings.general.accentSource}
           onChange={k => handleAccentSourceChange(k as AccentSource)}

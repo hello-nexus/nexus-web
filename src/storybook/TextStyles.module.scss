@@ -99,16 +99,16 @@
 
   thead th {
     @include text-label;
-    color: var(--text-faded);
+    color: var(--text-dim);
     text-align: left;
     padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--separator);
     white-space: nowrap;
   }
 
   tbody td {
     padding: 12px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--separator);
     vertical-align: top;
   }
 
@@ -140,7 +140,7 @@
 
 .specMeta {
   @include text-caption;
-  color: var(--text-faded);
+  color: var(--text-dim);
   margin-bottom: 4px;
 }
 
@@ -221,6 +221,6 @@
 
 .swatchAlias {
   @include text-caption;
-  color: var(--text-faded);
+  color: var(--text-dim);
   margin-left: auto;
 }

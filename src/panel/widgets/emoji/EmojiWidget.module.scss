@@ -17,7 +17,7 @@
   padding: 6px 8px;
   overflow-x: auto;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--separator);
 }
 
 .tab {
@@ -52,7 +52,7 @@
   padding: 8px;
   overflow-y: auto;
   flex: 1;
-  @include scrollbar-visible($thumb: var(--panel-border), $thumb-hover: var(--panel-border-strong));
+  @include scrollbar-visible($thumb: var(--panel-border), $thumb-hover: var(--panel-border-strong), $gutter: false);
 }
 
 .emojiBtn {

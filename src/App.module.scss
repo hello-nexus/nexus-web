@@ -430,7 +430,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--text-faded);
+  background: var(--text-dim);
   box-shadow: 0 0 0 2px var(--bg);
 
   // Devices connected. When remote is OFF the dot isn't rendered at all, so
@@ -462,7 +462,7 @@
 .phonePairState {
   @include text-caption;
   grid-column: 2;
-  color: var(--text-faded);
+  color: var(--text-dim);
   line-height: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -544,7 +544,7 @@
 .phonePairFlowHint {
   @include text-button;
   margin: 0;
-  color: var(--text-faded);
+  color: var(--text-dim);
   line-height: 1.45;
 }
 
@@ -562,9 +562,9 @@
   @include text-button;
   margin: auto 0 0;
   padding-top: 0.5rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
   line-height: 1.45;
-  border-top: 1px solid var(--border-soft, var(--border));
+  border-top: 1px solid var(--separator);
 }
 
 // Trust badge under the pair flow: reassures the user the remote connection
@@ -619,7 +619,7 @@
 .phonePairIntro {
   @include text-button;
   margin: 0;
-  color: var(--text-faded);
+  color: var(--text-dim);
   line-height: 1.45;
 }
 
@@ -733,13 +733,13 @@
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .phonePairSecurityNote {
   @include text-button;
   margin: 0.75rem 0 0;
-  color: var(--text-faded);
+  color: var(--text-dim);
   line-height: 1.45;
 }
 
@@ -772,13 +772,13 @@
 // direct LAN claim (only the QR path can route through the relay).
 .phonePairCodeLocalOnly {
   @include text-caption;
-  color: var(--text-faded);
+  color: var(--text-dim);
   text-align: center;
 }
 
 .phonePairCodeFieldLabel {
   @include text-caption;
-  color: var(--text-faded);
+  color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -815,7 +815,7 @@
 
 .phonePairCodeMeta {
   @include text-caption;
-  color: var(--text-faded);
+  color: var(--text-dim);
   text-align: center;
 }
 
@@ -854,14 +854,14 @@
   h3 {
     @include text-body;
     margin: 0;
-    color: var(--panel-text-muted, var(--text-dim));
+    color: var(--text-dim);
   }
 
   span {
     @include text-button;
     display: block;
     margin-top: 0.2rem;
-    color: var(--text-faded);
+    color: var(--text-dim);
   }
 }
 
@@ -872,13 +872,14 @@
   min-height: 96px;
   border: 1px dashed var(--border);
   border-radius: var(--radius-sm);
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .phonePairSessionList {
   min-height: 0;
   max-height: 220px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
@@ -895,7 +896,7 @@
   padding: 0.55rem 0.65rem;
 
   & + & {
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--separator);
   }
 }
 
@@ -938,7 +939,7 @@
 .phonePairSessionSaving {
   @include text-caption;
   flex-shrink: 0;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .phonePairSessionMeta {
@@ -948,7 +949,7 @@
   gap: 0.2rem 0.45rem;
   min-width: 0;
   margin-top: 0.18rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
 
   span {
     min-width: 0;
@@ -960,7 +961,7 @@
   span + span::before {
     content: '·';
     margin-right: 0.45rem;
-    color: var(--text-faded);
+    color: var(--text-dim);
   }
 }
 
@@ -970,7 +971,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   padding: 0.14rem 0.4rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
   white-space: nowrap;
 }
 
@@ -1117,4 +1118,5 @@
   flex: 1;
   padding: 0 1.25rem;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }

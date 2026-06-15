@@ -15,7 +15,7 @@
   color-scheme: dark;
 
   // Surfaces — pure grayscale to mirror light mode's neutral whites. Kept
-  // deliberately deep: modal bodies (--bg-elevated) and cards (--bg-card) read
+  // deliberately deep: modal bodies (--bg-elevated) and cards (--surface) read
   // dark rather than mid-grey on the dark theme.
   --bg: #080808;
   --bg-elevated: #0f0f0f;
@@ -26,6 +26,11 @@
   // reflows content. Containers stroke transparent (flat at rest); controls and
   // hover-highlighted containers stroke --border-strong.
   --border-width: 1px;
+
+  // Gauge track: the unfilled portion of monitoring gauges. Transparent black so
+  // it reads as a recessed channel that blends on translucent widgets rather than
+  // a flat grey ring; the accent fill carries the contrast.
+  --gauge-track: rgba(0, 0, 0, 0.25);
 
   // The one "activatable surface" colour: every interactive element + box
   // container base bg (widgets, top search bar, buttons, profile avatar,
@@ -45,10 +50,13 @@
   --backdrop-tint-b: color-mix(in srgb, var(--accent) 22%, transparent);
   --backdrop-tint-c: color-mix(in srgb, var(--accent-deep) 30%, transparent);
 
-  // Text — neutral off-whites.
+  // Text — two ink tiers. rgba, NOT color-mix(): Q60 WebView is Chromium 83.
+  // Keep the rgb triplet in sync with --text.
   --text: #f5f5f5;
-  --text-dim: #a0a0a0;
-  --text-faded: #6a6a6a;
+  --text-dim: rgba(245, 245, 245, 0.6);
+  // Separator/divider lines - the text hue at low alpha. The single source for
+  // every dividing rule (app + panel). Keep the triplet synced with --text.
+  --separator: rgba(245, 245, 245, 0.2);
 
   // Accent — deep blue (fallback; runtime values come from applyAccentColor()
   // which sets these same custom properties on <html>).
@@ -186,6 +194,7 @@
   --border: #c8cad5;
   --border-strong: #c4c5d3;
   --surface: #fafafa;  // see dark-theme note — near-white activatable surface
+  --gauge-track: rgba(0, 0, 0, 0.1);
 
   // Light backdrop: grayscale flat surface grey (flattens gradient + glass).
   --backdrop-base: #d8d8d8;
@@ -194,8 +203,9 @@
   --backdrop-tint-c: color-mix(in srgb, var(--accent-glow) 22%, transparent);
 
   --text: #1a1a2e;
-  --text-dim: #5a5a78;
-  --text-faded: #9090a8;
+  // Two ink tiers; keep the rgb triplet in sync with --text above.
+  --text-dim: rgba(26, 26, 46, 0.6);
+  --separator: rgba(26, 26, 46, 0.2);
 
   --accent: #2563eb;
   --accent-glow: #3b82f6;

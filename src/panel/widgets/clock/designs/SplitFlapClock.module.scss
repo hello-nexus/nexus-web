@@ -50,7 +50,7 @@
   justify-content: center;
   overflow: hidden;
   background: var(--panel-element-bg);
-  color: var(--panel-text);
+  color: var(--text);
   line-height: 1;
   z-index: 1;
 }
@@ -81,7 +81,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: var(--panel-border);
+  background: var(--separator);
   z-index: 5;
 }
 
@@ -96,7 +96,7 @@
   justify-content: center;
   overflow: hidden;
   background: var(--panel-element-bg);
-  color: var(--panel-text);
+  color: var(--text);
   border-radius: 0.08em 0.08em 0 0;
   transform-origin: bottom center;
   animation: flapDown 110ms cubic-bezier(0.45, 0, 0.75, 0.45) forwards;
@@ -115,7 +115,7 @@
   justify-content: center;
   overflow: hidden;
   background: var(--panel-element-bg-hover);
-  color: var(--panel-text);
+  color: var(--text);
   border-radius: 0 0 0.08em 0.08em;
   transform-origin: top center;
   transform: rotateX(90deg);
@@ -141,14 +141,14 @@
   width: 0.4em;
   font-size: 1em;
   font-weight: var(--weight-display);
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
   padding-bottom: 0.1em;
 }
 
 .ampm {
   font-size: 0.35em;
   font-weight: var(--weight-heading);
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
   margin-left: 0.3em;
   align-self: flex-end;
   padding-bottom: 0.3em;
@@ -160,7 +160,7 @@
   font-weight: var(--weight-body);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
   text-align: center;
 }
 

@@ -368,9 +368,9 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
     <section className={styles.page}>
       <ViewHeader
         title={pageTitle}
-        tabs={configuringWidget ? undefined : tabs}
+        tabs={tabs}
         activeTab={activeTab}
-        onTabChange={(k) => setTab(k as Tab)}
+        onTabChange={(k) => { setConfiguringWidget(null); setTab(k as Tab); }}
       />
       <div className={`${styles.pageBody} pageBody`}>
       {!loaded ? (
@@ -432,6 +432,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
                       onWidgetBlurCommit={panelTheme.commitWidgetBlur}
                       hideWidgetLabelsToggle={singleWidget}
+                      hideWidgetChromeControls={singleWidget}
                     />
                   )}
                   {activeTab === 'settings' && (isMonitorPanel || ddcSupported) && !supportsDisplayControls && !supportsAutoLaunch && (

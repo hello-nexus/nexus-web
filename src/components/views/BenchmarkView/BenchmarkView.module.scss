@@ -277,7 +277,7 @@
 
 .percentilePending {
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .subList {
@@ -324,7 +324,7 @@
 
 .subDetail {
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
   line-height: 1.4;
 }
 
@@ -371,7 +371,7 @@
 
 .matchPending {
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
   padding: 0.5rem 0;
 }
 
@@ -390,7 +390,7 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
 
   &:last-child { border-bottom: none; }
 }
@@ -432,6 +432,6 @@
 
 .matchNone {
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-style: italic;
 }

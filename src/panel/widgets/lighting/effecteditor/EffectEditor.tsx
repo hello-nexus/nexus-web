@@ -47,7 +47,6 @@ export function EffectEditor({
           tabs={tabs}
           activeKey={current}
           onChange={k => setActive(k as EditorTab)}
-          variant="pill"
           fullWidth
           ariaLabel={t('lighting.rightPane.label')}
         />

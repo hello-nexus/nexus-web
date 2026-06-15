@@ -3,9 +3,10 @@ import { useTranslation } from '../../../../lib/i18n';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
 import { useGpuProcessData } from '../../../../hooks/useProcessMonitor';
-import { colorFor } from '../../../../lib/monitoringStore';
 import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
 import { VitalsStrip, type Vital } from './VitalsStrip';
+import { RankedToggle } from './parts';
+import { rankSeries } from './shared';
 import styles from '../MonitoringPage.module.scss';
 
 const N = 60;
@@ -25,10 +26,12 @@ function load3d(g: HardwareSensor[]): number {
  * broken down per process (top processes from the PDH-backed gpu-processes
  * topic), and a ranked "Top GPU processes" list. Shows the picker-selected GPU.
  */
-export function GpuTab({ sensors, preferredGpuId, onOpenSettings }: {
+export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, onToggle }: {
   sensors: SensorState;
   preferredGpuId: string;
   onOpenSettings: () => void;
+  showAverage: boolean;
+  onToggle: () => void;
 }) {
   const { t } = useTranslation();
   const g = sensors.gpu;
@@ -41,7 +44,10 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings }: {
   // view doesn't include the dGPU's VRAM); "" falls back to all adapters. Feed
   // is mounted at page level; here we only read the accumulated history.
   const selectedLuid = resolvePrimaryGpu(gpus, preferredGpuId)?.adapterLuid ?? '';
-  const { utilSeries, memSeries, ranked: procRanked } = useGpuProcessData(selectedLuid);
+  const { utilSeries, memSeries, procSeries, procMemSeries } = useGpuProcessData(selectedLuid);
+  const { ranked, key } = rankSeries(procSeries, showAverage);
+  // VRAM sub follows the same live/60s key as the GPU% it sits next to.
+  const vramByName = new Map(procMemSeries.map(s => [s.name, s[key]]));
 
   if (!model || g.length === 0) return null;
 
@@ -98,13 +104,16 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings }: {
       </div>
       <RankedList
         title={t('monitoring.gpu.topProcesses')}
-        subtitle={null}
-        items={procRanked.map(p => ({
-          name: p.name,
-          color: colorFor(p.name),
-          value: p.gpuPercent,
-          sub: p.dedicatedMb >= 1 ? `${Math.round(p.dedicatedMb)} MB` : undefined,
-        }))}
+        subtitle={<RankedToggle showAverage={showAverage} onToggle={onToggle} />}
+        items={ranked.map(s => {
+          const vram = vramByName.get(s.name) ?? 0;
+          return {
+            name: s.name,
+            color: s.color,
+            value: s[key],
+            sub: vram >= 1 ? `${Math.round(vram)} MB` : undefined,
+          };
+        })}
         formatValue={v => `${Math.round(v)}%`}
         emptyMessage={t('monitoring.ranked.empty')}
       />

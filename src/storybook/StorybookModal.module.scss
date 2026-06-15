@@ -9,7 +9,7 @@
 .sidebar {
   width: 200px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--separator);
   padding: 0.5rem 0.4rem;
   overflow-y: auto;
   display: flex;
@@ -47,7 +47,7 @@
 .navCount {
   font-variant-numeric: tabular-nums;
   font-size: var(--type-mini, 0.7rem);
-  color: var(--text-faded);
+  color: var(--text-dim);
   background: var(--bg);
   padding: 0.05rem 0.4rem;
   border-radius: var(--radius-pill);
@@ -73,7 +73,7 @@
 }
 
 .empty {
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-small);
   padding: 2rem 0;
   text-align: center;
@@ -118,7 +118,7 @@
 
 .cardUsage {
   font-size: var(--type-mini, 0.7rem);
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-variant-numeric: tabular-nums;
   border: 1px solid var(--border);
   padding: 0.05rem 0.45rem;
@@ -135,7 +135,7 @@
 .cardPath {
   font-family: var(--font-mono);
   font-size: var(--type-mini, 0.7rem);
-  color: var(--text-faded);
+  color: var(--text-dim);
   background: var(--bg);
   padding: 0.15rem 0.4rem;
   border-radius: var(--radius-sm);
@@ -145,7 +145,7 @@
 
 .cardNotes {
   margin: 0;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-mini, 0.7rem);
   font-style: italic;
 }
@@ -164,7 +164,7 @@
 }
 
 .cardPreviewEmpty {
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-mini, 0.7rem);
 }
 
@@ -241,8 +241,6 @@
 }
 
 .previewPanelMixer {
-  --panel-text: var(--text);
-  --panel-text-faint: var(--text-faded);
   --panel-border: var(--border);
   --panel-element-bg: var(--surface);
   --panel-element-bg-hover: var(--bg-card-hover);

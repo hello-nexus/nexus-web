@@ -1,25 +1,23 @@
+// Segmented bordered group - one outer border around the whole bar, solid
+// accent fill on the active tab.
 .tabs {
-  display: flex;
-  gap: 0.25rem;
-  // Built from the text colour so the rule inverts with the theme and reads
-  // soft; stroke weight matches the device-tree parent/child connector.
-  border-bottom: 2px solid color-mix(in srgb, var(--text) 18%, transparent);
+  display: inline-flex;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
 }
 
 .tab {
-  position: relative;
-  padding: 0.55rem 0.9rem;
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  font-size: var(--type-body);
+  padding: 0.4rem 1.2rem;
+  font-size: var(--type-small);
   font-weight: var(--weight-body);
-  // Lock line-height so icon and non-icon tabs share the same line-box. The
-  // icon's layout slot below is sized in em so it slots into that same box
-  // and the text-to-underline gap matches across both shapes.
   line-height: 1.5;
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
   cursor: pointer;
-  transition: color var(--ease-fast) ease;
+  transition: background var(--ease-fast) ease, color var(--ease-fast) ease;
 
   &:hover:not(:disabled):not(.active) {
     color: var(--text);
@@ -29,42 +27,11 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
+}
 
-  &.active {
-    color: var(--text);
-
-    &::after {
-      content: '';
-      position: absolute;
-      left: 0.5rem;
-      right: 0.5rem;
-      bottom: -1px;
-      height: 2px;
-      // Same colour as the label text, so it inverts with the light/dark theme.
-      background: var(--text);
-      border-radius: var(--radius-sm);
-    }
-
-    // Icon tabs double as a "mode" picker (Lighting, Cooling): the active one
-    // gets a solid accent disc (same fill recipe as the chip-active curve-type
-    // buttons in CurveEditor). The disc is painted by a ::before pseudo so it
-    // can extend past the layout slot without growing the row.
-    .tabIcon {
-      color: var(--accent-text);
-
-      &::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 1.85em;
-        height: 1.85em;
-        transform: translate(-50%, -50%);
-        background: var(--accent);
-        border-radius: 50%;
-      }
-    }
-  }
+.active {
+  background: var(--accent);
+  color: var(--accent-text);
 }
 
 .tabInner {
@@ -81,10 +48,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  // Layout slot sized to the text's line-box so an icon tab is exactly the
-  // same height as a label-only tab. The visible active disc is painted by
-  // the .active &::before above and can extend past this slot without
-  // affecting layout.
+  // Layout slot sized to the text's line-box so an icon tab is exactly the same
+  // height as a label-only tab.
   width: 1.5em;
   height: 1.5em;
   transition: color var(--ease-fast) ease;
@@ -100,57 +65,14 @@
   min-width: 0;
 }
 
-// ── Pill variant ───────────────────────────────────────────────────────────
-// Segmented bordered group - single border around the whole bar, internal
-// separators between segments, SOLID accent fill on the active pill. Text sits
-// one type rung below the underline .tab so the pill toggles read as compact
-// controls. Used for in-page single-select toggles (settings theme/bg/
-// accent, panel theme, icon picker, pair-remote, ScreenTime).
-
-.tabsPill {
-  display: inline-flex;
-  border: var(--border-width) solid var(--border-strong);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--surface);
-  gap: 0; // segments share borders; no gap
-}
-
-.pillTab {
-  padding: 0.4rem 1.2rem;
-  font-size: var(--type-small);
-  font-weight: var(--weight-body);
-  line-height: 1.5;
-  background: transparent;
-  color: var(--text-dim);
-  border: none;
-  cursor: pointer;
-  transition: background var(--ease-fast) ease, color var(--ease-fast) ease;
-
-  &:hover:not(:disabled):not(.pillActive) {
-    color: var(--text);
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-}
-
-.pillActive {
-  background: var(--accent);
-  color: var(--accent-text);
-}
-
 // ── Full-width ───────────────────────────────────────────────────────────
-// Stretch the bar across its container; every segment/tab shares the width
-// equally and centers its label. Works for both variants.
+// Stretch the bar across its container; every tab shares the width equally and
+// centers its label.
 .fullWidth {
   display: flex;
   width: 100%;
 }
 
-.fullWidth .pillTab,
 .fullWidth .tab {
   flex: 1 1 0;
   text-align: center;

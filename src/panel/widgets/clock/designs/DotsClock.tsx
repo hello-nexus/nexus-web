@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatTime, getAmPm } from './timeFormat';
+import { useFitWidth } from '../useFitWidth';
 import styles from './DotsClock.module.scss';
 
 // 3x5 dot matrix patterns for digits 0-9; 5 rows of 3 bits each.
@@ -45,6 +46,7 @@ function DotsClock({ now, tz, showSeconds, showDate, size, hour12, useAccentColo
   const time = formatTime(now, tz, showSeconds, hour12);
   const ampm = getAmPm(now, tz, hour12);
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
+  const { boxRef, contentRef, scale } = useFitWidth();
 
   const dateStr = showDate ? new Intl.DateTimeFormat(undefined, {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -65,9 +67,11 @@ function DotsClock({ now, tz, showSeconds, showDate, size, hour12, useAccentColo
 
   return (
     <div className={`${styles.container} ${sizeClass} ${useAccentColor ? styles.accent : ''}`}>
-      <div className={styles.row}>
-        {elements}
-        {ampm && <div className={styles.ampm}>{ampm}</div>}
+      <div ref={boxRef} className={styles.fitBox}>
+        <div ref={contentRef} className={styles.row} style={{ transform: `scale(${scale})` }}>
+          {elements}
+          {ampm && <div className={styles.ampm}>{ampm}</div>}
+        </div>
       </div>
       {dateStr && <div className={styles.date}>{dateStr}</div>}
     </div>

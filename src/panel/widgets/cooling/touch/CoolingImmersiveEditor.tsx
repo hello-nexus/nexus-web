@@ -35,7 +35,6 @@ export function CoolingImmersiveEditor({ cooling }: { cooling: CoolingImmersiveC
           tabs={tabs}
           activeKey={active}
           onChange={k => setActive(k as CoolingEditorTab)}
-          variant="pill"
           fullWidth
           ariaLabel={t('cooling.title')}
         />

@@ -7,7 +7,7 @@
   width: 100%;
   padding: 14px 16px;
   gap: 10px;
-  color: var(--panel-text);
+  color: var(--text);
   box-sizing: border-box;
 }
 
@@ -98,6 +98,6 @@
 
 .empty {
   @include text-caption;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
   font-style: italic;
 }

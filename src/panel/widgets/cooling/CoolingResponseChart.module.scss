@@ -73,11 +73,11 @@
 // Label ("CPU"/"GPU") in accent-glow; value ("67°") in primary text.
 // Same mix used by the .fanReadout in the top-right.
 .notchLabel { fill: var(--accent-glow); }
-.notchValue { fill: var(--panel-text, var(--text)); }
+.notchValue { fill: var(--text); }
 
 // Average fan duty, top-right. Allowed to overlap the curve line at high
-// duty. Label = primary text (--panel-text), value = accent-glow, so the
-// readout reads as a normal labeled metric, not a colored chip.
+// duty. Label uses --text, value accent-glow so the readout reads as a
+// labeled metric, not a colored chip.
 .fanReadout {
   position: absolute;
   top: 2px;
@@ -99,7 +99,7 @@
 }
 
 .fanValue {
-  color: var(--panel-text, var(--text));
+  color: var(--text);
   font-size: 16px;
   font-weight: var(--weight-heading);
 }

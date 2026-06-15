@@ -63,7 +63,6 @@ import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/Se
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
-import { NexusAppIcon } from '../components/icons/NexusAppIcon';
 import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
 import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
@@ -313,22 +312,8 @@ function PreviewViewHeader() {
 }
 
 function PreviewTabs() {
-  const [active, setActive] = useState('animate');
-  return <Tabs
-    tabs={[
-      { key: 'animate', label: 'Animate', icon: <Sparkles size={14} /> },
-      { key: 'screen', label: 'Screen', icon: <Monitor size={14} /> },
-      { key: 'static', label: 'Static', icon: <Palette size={14} /> },
-    ]}
-    activeKey={active}
-    onChange={setActive}
-  />;
-}
-
-function PreviewTabsPill() {
   const [active, setActive] = useState('day');
   return <Tabs
-    variant="pill"
     tabs={[
       { key: 'day', label: 'Day' },
       { key: 'week', label: 'Week' },
@@ -765,11 +750,11 @@ function PreviewSectionHeader() {
     <div className="panel-root" style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SectionHeader>Widgets</SectionHeader>
-        <div style={{ color: 'var(--panel-text)', fontSize: 13 }}>Widget labels · blur · opacity</div>
+        <div style={{ color: 'var(--text)', fontSize: 13 }}>Widget labels · blur · opacity</div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SectionHeader>Theme</SectionHeader>
-        <div style={{ color: 'var(--panel-text)', fontSize: 13 }}>Sync with desktop</div>
+        <div style={{ color: 'var(--text)', fontSize: 13 }}>Sync with desktop</div>
       </div>
     </div>
   );
@@ -904,10 +889,6 @@ function PreviewBrand() {
   );
 }
 
-function PreviewAppIcon() {
-  return <NexusAppIcon size={48} />;
-}
-
 function PreviewPanelArrowButtons() {
   return (
     <div style={{ position: 'relative', height: 72, width: '100%' }}>
@@ -1007,12 +988,6 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/icons/NexusBrand.tsx',
     description: 'The interlocking-N mark and NEXUS wordmark as currentColor SVGs traced from the brand art. size / height props govern rendered dimensions directly (viewBoxes are tight to the visible bbox).',
     Preview: PreviewBrand,
-  },
-  {
-    name: 'NexusAppIcon', category: 'foundation',
-    filePath: 'src/components/icons/NexusAppIcon.tsx',
-    description: 'App-tile icon: rounded-square accent surface with the bolt mark. boltFill overrides the punch-through color for non-dark surfaces.',
-    Preview: PreviewAppIcon,
   },
   // ── Inputs ────────────────────────────────────────────────────────────
   {
@@ -1281,16 +1256,10 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Page heading + integrated tab bar. Canonical header for every primary view.', Preview: PreviewViewHeader,
   },
   {
-    name: 'Tabs (underline)', category: 'navigation',
+    name: 'Tabs', category: 'navigation',
     filePath: 'src/components/common/Tabs/Tabs.tsx',
-    description: 'Horizontal tab bar with accent underline on the active tab. Supports optional leading icons through TabDef.icon - when present, the active tab\'s icon is wrapped in a solid accent disc so the tabs read as mode pickers (Lighting modes, Cooling presets) rather than plain nav. Used inside ViewHeader for page-level mode tabs and standalone for secondary nav. Per-tab disable via TabDef.disabled.', Preview: PreviewTabs,
+    description: 'Bordered segmented tab group - one shared border around the whole bar, solid accent fill on the active tab. Supports optional leading icons through TabDef.icon and per-tab disable via TabDef.disabled. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
     notes: 'Pairs with ViewHeader - do not roll your own tab bars. Disabled tabs get opacity 0.4 + not-allowed cursor.',
-  },
-  {
-    name: 'Tabs (pill)', category: 'navigation',
-    filePath: 'src/components/common/Tabs/Tabs.tsx',
-    description: 'Bordered segmented-group variant of the same Tabs primitive. One shared border around the whole bar, accent-soft fill on the active segment. Used for in-page secondary toggles (panel theme settings, icon picker). Set variant="pill" on Tabs to activate.', Preview: PreviewTabsPill,
-    notes: 'Same component as the underline variant - pass variant="pill" to render this chrome.',
   },
   {
     name: 'Sidebar', category: 'navigation',
@@ -1401,7 +1370,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SectionHeader', category: 'panel-kit',
     filePath: 'src/components/common/SectionHeader/SectionHeader.tsx',
-    description: 'Canonical settings header: a muted body-type label (no underline). Usually rendered by SettingsSection, which sits it above a surface box. Token fallback (--panel-text-muted → --text-dim) keeps it correct inside .panel-root and on the dashboard.',
+    description: 'Canonical settings header: a muted body-type label (no underline). Usually rendered by SettingsSection, which sits it above a surface box. Uses var(--text-dim) so it reads correctly inside .panel-root and on the dashboard.',
     Preview: PreviewSectionHeader,
   },
   {

@@ -13,5 +13,5 @@
   // No outer padding - ImmersiveLayout owns it.
   padding: 0;
   box-sizing: border-box;
-  @include scrollbar-visible($width: 4px);
+  @include scrollbar-visible($width: 4px, $gutter: false);
 }

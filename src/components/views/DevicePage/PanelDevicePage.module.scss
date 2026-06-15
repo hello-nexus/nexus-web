@@ -21,7 +21,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1rem 0 1.25rem;
+  padding: 0.25rem 0 1.25rem;
 }
 
 // --- Layout ---
@@ -122,7 +122,7 @@
   display: flex;
   gap: 0.25rem;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
 }
 
 .tab {
@@ -159,10 +159,10 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-top: 1rem;
+  padding-top: 0.5rem;
   // Mirrors the padding-top: lets the theme tab's sticky background dock pin
   // flush with the scrollport edge (see .backgroundDock).
-  --settings-sticky-inset: 1rem;
+  --settings-sticky-inset: 0.5rem;
   padding-right: 4px;
 }
 
@@ -205,6 +205,10 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.25rem 0.75rem 0.5rem;
+  background: var(--surface);
 }
 
 .inlineSettingsHeader {
@@ -212,7 +216,7 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.55rem 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
   flex-shrink: 0;
 }
 
@@ -277,7 +281,7 @@
 }
 
 .inlineControlsRow {
-  --widget-control-title-color: var(--text-faded);
+  --widget-control-title-color: var(--text-dim);
   --icon-label-button-height: 36px;
   --icon-label-button-min-width: 36px;
   --icon-label-button-padding-x: 0;
@@ -287,7 +291,7 @@
   --icon-label-button-border: transparent;
   --icon-label-button-bg: transparent;
   --icon-label-button-bg-hover: var(--bg-card-hover);
-  --icon-label-button-text: var(--text-faded);
+  --icon-label-button-text: var(--text-dim);
   --icon-label-button-text-hover: var(--text);
   --icon-label-button-active-border: transparent;
   --icon-label-button-active-bg: var(--accent-soft);
@@ -299,7 +303,7 @@
   align-items: flex-start;
   gap: 18px;
   padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
   flex-shrink: 0;
   flex-wrap: wrap;
   min-width: 0;
@@ -315,7 +319,7 @@
   justify-content: center;
   padding: 1rem 0;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
 }
 
 .inlineSettingsPreviewRoot {
@@ -347,7 +351,7 @@
 .inlineSettingsEmpty {
   padding: 2rem 0;
   text-align: center;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-small);
 }
 

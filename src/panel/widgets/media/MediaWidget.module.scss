@@ -8,7 +8,7 @@
   width: 100%;
   padding: 18px 14px;
   gap: 8px;
-  color: var(--panel-text);
+  color: var(--text);
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -143,7 +143,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
 
   svg { width: 28px; height: 28px; }
 }
@@ -168,7 +168,7 @@
 
 .title {
   @include text-button;
-  color: var(--panel-text);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -257,7 +257,7 @@
   border: none;
   border-radius: var(--radius-pill);
   background: var(--panel-element-bg);
-  color: var(--panel-text);
+  color: var(--text);
   cursor: pointer;
   transition: background-color var(--ease-fast) ease, transform var(--ease-fast) ease, color var(--ease-fast) ease;
   flex-shrink: 0;
@@ -283,7 +283,7 @@
 // Toggle button (shuffle / repeat) - off state is dim, on state lights up
 // with the accent glow.
 .toggle {
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
 }
 
 .toggleOn {

@@ -610,7 +610,6 @@ export function PairPhoneModal({ open, connectedCount, remoteEnabled, onRemoteEn
                     activeKey={pairMode}
                     onChange={(key) => setPairMode(key as 'qr' | 'code')}
                     ariaLabel={t('phonePair.title')}
-                    variant="pill"
                     className={styles.phonePairFlowTabs}
                   />
 

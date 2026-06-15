@@ -30,13 +30,13 @@
   appearance: none;
   background: transparent;
   border: 0;
-  color: var(--text-muted);
+  color: var(--text-dim);
   cursor: pointer;
   padding: 6px;
   border-radius: var(--radius-sm);
 
   &:hover {
-    background: var(--bg-hover);
+    background: var(--bg-card-hover);
     color: var(--text);
   }
 }
@@ -45,7 +45,7 @@
 .empty {
   padding: 24px;
   text-align: center;
-  color: var(--text-muted);
+  color: var(--text-dim);
   font-size: var(--type-small);
 }
 
@@ -63,7 +63,7 @@
   flex-direction: column;
   gap: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
 
   &:last-child {
     border-bottom: 0;
@@ -89,7 +89,7 @@
   align-items: center;
   justify-content: space-between;
   font-size: var(--type-mini);
-  color: var(--text-muted);
+  color: var(--text-dim);
   font-weight: var(--weight-body);
 }
 
@@ -135,7 +135,7 @@
   width: 8px;
   height: 8px;
   border-radius: var(--radius-pill);
-  background: var(--text-muted);
+  background: var(--text-dim);
 }
 
 .itemLabel {
@@ -145,20 +145,20 @@
 
 .itemMeta {
   font-size: var(--type-tiny);
-  color: var(--text-muted);
+  color: var(--text-dim);
 }
 
 .iconBtn {
   appearance: none;
   background: transparent;
   border: 0;
-  color: var(--text-muted);
+  color: var(--text-dim);
   cursor: pointer;
   padding: 4px 6px;
   border-radius: var(--radius-sm);
 
   &:hover {
-    background: var(--bg-hover);
+    background: var(--bg-card-hover);
     color: var(--text-error);
   }
 }

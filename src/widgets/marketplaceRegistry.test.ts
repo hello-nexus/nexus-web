@@ -35,7 +35,7 @@ describe('getPreinstalledPageAppTypes', () => {
   });
 
   it('is empty on a build that bundles no preinstalled app (non-OEM)', () => {
-    _seedMarketplaceRegistryForTests([listing({ id: 'com.hellonexus.clock', name: 'Clock', page: true })]);
+    _seedMarketplaceRegistryForTests([listing({ id: 'com.example.page', name: 'Page', page: true })]);
     expect(getPreinstalledPageAppTypes()).toEqual([]);
   });
 });

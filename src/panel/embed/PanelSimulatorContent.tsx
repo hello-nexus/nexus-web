@@ -44,7 +44,7 @@ export function PanelSimulatorContent() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 16,
-            color: '#aaa',
+            color: 'rgba(255, 255, 255, 0.66)',
             background: '#1a1a1a',
             fontFamily: 'system-ui, sans-serif',
             fontSize: 32,
@@ -55,7 +55,7 @@ export function PanelSimulatorContent() {
           {/* eslint-disable-next-line i18next/no-literal-string -- decorative emoji glyph */}
           <div style={{ fontSize: 48 }}>🖥️</div>
           <div>{t('panel.simulator.panelHidden')}</div>
-          <div style={{ fontSize: 20, color: '#666' }}>{t('panel.simulator.desktopVisible')}</div>
+          <div style={{ fontSize: 20, color: 'rgba(255, 255, 255, 0.4)' }}>{t('panel.simulator.desktopVisible')}</div>
         </div>
       )}
       {dimOpacity > 0 && (

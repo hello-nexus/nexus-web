@@ -40,7 +40,7 @@
   flex-direction: column;
   gap: 12px;
   padding-top: 12px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--separator);
 }
 
 .sectionTitle {
@@ -52,7 +52,7 @@
 .note {
   @include text-caption;
   margin: 0;
-  color: var(--text-faded);
+  color: var(--text-dim);
   max-width: 720px;
 
   code {
@@ -72,7 +72,7 @@
 
 .tokenDesc {
   @include text-caption;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 // ── Radius -----------------------------------------------------------------

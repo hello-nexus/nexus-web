@@ -104,8 +104,10 @@ button {
 // (.panel-root) hides bars instead. Per-component @include scrollbar-visible
 // inside the panel still wins because :where(...) keeps the panel-scope rule
 // at 0 specificity, so any class-level opt-in beats it.
+// $gutter: false here - a stable gutter on every element would also reserve
+// space on overflow:hidden boxes; the gutter is opt-in per scroll container.
 * {
-  @include scrollbar-visible;
+  @include scrollbar-visible($gutter: false);
 }
 
 :where(.panel-root, .panel-root *) {
@@ -302,7 +304,7 @@ input[type="range"][data-range-knob] {
 
   &.chip-status-muted {
     background: transparent;
-    color: var(--text-faded);
+    color: var(--text-dim);
     border-color: var(--border);
   }
 

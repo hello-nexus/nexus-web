@@ -89,7 +89,7 @@
   }
 
   &:disabled {
-    color: var(--text-faded);
+    color: var(--text-dim);
     cursor: not-allowed;
   }
 }
@@ -111,7 +111,7 @@
 .weekday {
   text-align: center;
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-weight: var(--weight-heading);
   padding: 0.25rem 0;
   text-transform: uppercase;
@@ -146,7 +146,7 @@
 }
 
 .cellOut {
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .cellToday {
@@ -166,13 +166,13 @@
 }
 
 .cellDisabled {
-  color: var(--text-faded);
+  color: var(--text-dim);
   opacity: 0.35;
   cursor: not-allowed;
 
   &:hover {
     background: transparent;
-    color: var(--text-faded);
+    color: var(--text-dim);
   }
 }
 
@@ -180,7 +180,7 @@
   display: flex;
   justify-content: center;
   padding-top: 0.25rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--separator);
   margin-top: 0.25rem;
 }
 
@@ -198,7 +198,7 @@
   }
 
   &:disabled {
-    color: var(--text-faded);
+    color: var(--text-dim);
     cursor: not-allowed;
   }
 }

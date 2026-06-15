@@ -198,7 +198,7 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
               />
               <text
                 x={PAD.left - 6} y={y + 3}
-                fill="var(--text-faded)"
+                fill="var(--text-dim)"
                 fontSize="11" fontFamily="var(--font-mono)"
                 textAnchor="end"
               >
@@ -206,7 +206,7 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
               </text>
               <text
                 x={width - PAD.right + 6} y={y + 3}
-                fill="var(--text-faded)"
+                fill="var(--text-dim)"
                 fontSize="11" fontFamily="var(--font-mono)"
                 textAnchor="start"
               >
@@ -250,14 +250,14 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
 
         <text
           x={PAD.left} y={height - 6}
-          fill="var(--text-faded)" fontSize="11" fontFamily="var(--font-mono)"
+          fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)"
           textAnchor="start"
         >
           {t('chart.minus60s')}
         </text>
         <text
           x={width - PAD.right} y={height - 6}
-          fill="var(--text-faded)" fontSize="11" fontFamily="var(--font-mono)"
+          fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)"
           textAnchor="end"
         >
           {t('chart.now')}

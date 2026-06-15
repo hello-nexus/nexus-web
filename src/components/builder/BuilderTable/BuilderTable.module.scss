@@ -32,7 +32,7 @@ $grid-cols: 170px minmax(0, 2.2fr) minmax(0, 1.4fr) 6rem 10.5rem;
 
 .headerRow {
   background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
   color: var(--text-dim);
@@ -44,7 +44,7 @@ $grid-cols: 170px minmax(0, 2.2fr) minmax(0, 1.4fr) 6rem 10.5rem;
 }
 
 .row {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
   transition: background var(--ease-fast);
 
   &:last-child { border-bottom: none; }
@@ -232,7 +232,7 @@ $grid-cols: 170px minmax(0, 2.2fr) minmax(0, 1.4fr) 6rem 10.5rem;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-faded);
+  color: var(--text-dim);
   cursor: pointer;
   transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
 

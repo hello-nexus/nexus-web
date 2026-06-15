@@ -54,7 +54,7 @@
   flex-shrink: 0;
   width: 16px;
   height: 16px;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .title {
@@ -68,10 +68,13 @@
 
 .right {
   flex-shrink: 0;
+  // Pin to the far end whether it rides inside the toggle button (the default,
+  // whole-bar-clickable case) or sits beside it (rightInteractive).
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 // Body wrapper; consumers supply their own inner layout, this just lets it

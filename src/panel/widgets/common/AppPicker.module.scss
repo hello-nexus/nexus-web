@@ -16,14 +16,14 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 2px;
   align-content: start;
-  @include scrollbar-visible($thumb: var(--border-strong));
+  @include scrollbar-visible($thumb: var(--border-strong), $gutter: false);
 }
 
 .empty {
   grid-column: 1 / -1;
   padding: 1rem 0.5rem;
   text-align: center;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-small);
 }
 
@@ -73,7 +73,7 @@
   width: 24px;
   height: 24px;
   flex-shrink: 0;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .rowName {

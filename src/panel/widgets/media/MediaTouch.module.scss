@@ -45,7 +45,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: color-mix(in srgb, var(--panel-text) 50%, transparent);
+  color: var(--text-dim);
 }
 
 .meta {
@@ -60,7 +60,7 @@
 
 .title {
   @include text-heading;
-  color: var(--panel-text);
+  color: var(--text);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -69,7 +69,7 @@
 
 .artist {
   @include text-button;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -78,7 +78,7 @@
 
 .album {
   @include text-caption;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -121,7 +121,7 @@
   border: none;
   border-radius: var(--radius-pill);
   background: var(--panel-element-bg);
-  color: var(--panel-text);
+  color: var(--text);
   cursor: pointer;
   transition: background-color var(--ease-fast) ease, transform var(--ease-fast) ease, color var(--ease-fast) ease;
   flex-shrink: 0;
@@ -144,7 +144,7 @@
   &:hover:not(:disabled) { background: var(--panel-accent-glow); }
 }
 
-.toggle { color: var(--panel-text-faint); }
+.toggle { color: var(--text-dim); }
 .toggleOn {
   color: var(--panel-accent-glow);
   background: var(--panel-element-bg-hover);
@@ -171,13 +171,13 @@
   border: none;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   cursor: pointer;
   flex-shrink: 0;
 
   svg { width: 16px; height: 16px; }
 
-  &:hover { color: var(--panel-text); background: color-mix(in srgb, white 8%, transparent); }
+  &:hover { color: var(--text); background: color-mix(in srgb, white 8%, transparent); }
   &[aria-pressed='true'] { color: var(--panel-accent-glow); }
 }
 

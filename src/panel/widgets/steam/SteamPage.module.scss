@@ -3,7 +3,7 @@
 $dot-online: var(--panel-good, #10b981);
 $dot-away: var(--panel-status-away, #d8a14a);
 $dot-busy: var(--panel-bad, #ef4444);
-$dot-offline: var(--panel-text-faint);
+$dot-offline: var(--text-dim);
 
 // ---------- App page chrome ----------
 
@@ -70,7 +70,7 @@ $dot-offline: var(--panel-text-faint);
   align-items: center;
   gap: 6px;
   margin-top: 2px;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   min-width: 0;
 }
 
@@ -142,7 +142,7 @@ $dot-offline: var(--panel-text-faint);
 
 .libraryCount {
   @include text-caption;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
   flex-shrink: 0;
 }
 
@@ -228,7 +228,7 @@ $dot-offline: var(--panel-text-faint);
 
 .gameTileSub {
   @include text-caption;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
 }
 
 // ---------- Right rail ----------
@@ -318,7 +318,7 @@ $dot-offline: var(--panel-text-faint);
 
 .friendSub {
   @include text-caption;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -349,7 +349,7 @@ $dot-offline: var(--panel-text-faint);
 
 .newsMeta {
   @include text-caption;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
 }
 
 // ---------- Drill view ----------
@@ -449,7 +449,7 @@ $dot-offline: var(--panel-text-faint);
 .drillDescription {
   margin: 0;
   @include text-body;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   line-height: 1.45;
 }
 
@@ -476,7 +476,7 @@ $dot-offline: var(--panel-text-faint);
 
 .statTileLabel {
   @include text-caption;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
 }
 
 .drillColumns {
@@ -501,7 +501,7 @@ $dot-offline: var(--panel-text-faint);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   cursor: pointer;
 }
 
@@ -548,7 +548,7 @@ $dot-offline: var(--panel-text-faint);
 
 .achievementDesc {
   @include text-caption;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -585,13 +585,13 @@ $dot-offline: var(--panel-text-faint);
   text-align: center;
   font-size: 10px;
   font-weight: var(--weight-strong);
-  color: var(--panel-text);
+  color: var(--text);
   z-index: 1;
 }
 
 .unlockTime {
   @include text-caption;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
 }
 
 .statList {
@@ -615,7 +615,7 @@ $dot-offline: var(--panel-text-faint);
 
 .statKey {
   @include text-caption;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -658,5 +658,5 @@ $dot-offline: var(--panel-text-faint);
 
 .drillNewsMeta {
   @include text-caption;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
 }

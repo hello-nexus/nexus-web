@@ -108,13 +108,13 @@
 }
 
 .planned {
-  background: color-mix(in srgb, var(--text-faded, #6a6a6a) 22%, transparent);
+  background: color-mix(in srgb, var(--text-dim) 22%, transparent);
   color: var(--text-dim, #a0a0a0);
 }
 
 .source {
   font-size: var(--type-tiny);
-  color: var(--text-faded, #6a6a6a);
+  color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -127,7 +127,7 @@
 }
 
 .dim {
-  color: var(--text-faded, #6a6a6a);
+  color: var(--text-dim);
   font-size: 12.5px;
   margin: 4px 0 0;
 }
@@ -140,17 +140,17 @@
   th {
     text-align: left;
     font-weight: var(--weight-strong);
-    color: var(--text-faded, #6a6a6a);
+    color: var(--text-dim);
     font-size: var(--type-tiny);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 6px 12px 6px 0;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--separator);
   }
 
   td {
     padding: 8px 12px 8px 0;
-    border-bottom: 1px solid color-mix(in srgb, var(--border, #2a2a2a) 60%, transparent);
+    border-bottom: 1px solid var(--separator);
     color: var(--text, #f5f5f5);
     vertical-align: top;
 
@@ -171,7 +171,7 @@
 }
 
 .empty {
-  color: var(--text-faded, #6a6a6a);
+  color: var(--text-dim);
   text-align: center;
   padding: 40px 0;
 }

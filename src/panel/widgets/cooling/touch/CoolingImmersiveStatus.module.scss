@@ -30,7 +30,7 @@
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
   background: var(--panel-element-bg);
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   padding: 8px 4px;
   @include text-button;
   cursor: pointer;

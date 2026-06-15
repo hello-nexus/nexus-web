@@ -18,7 +18,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-faded);
+  color: var(--text-dim);
 
   > svg { width: 36px; height: 36px; stroke-width: 1.4; }
 }
@@ -32,7 +32,7 @@
 
 .hint {
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
   max-width: 32ch;
 }
 

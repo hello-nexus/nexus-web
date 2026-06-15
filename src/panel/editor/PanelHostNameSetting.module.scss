@@ -5,7 +5,7 @@
   border: 1px solid var(--panel-border);
   border-radius: var(--radius);
   background: var(--panel-control-bg);
-  color: var(--panel-text);
+  color: var(--text);
   font: 700 14px/1.2 var(--panel-font);
   padding: 12px 14px;
   outline: none;
@@ -18,7 +18,7 @@
 }
 
 .hint {
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   font-size: var(--type-tiny);
   line-height: 1.3;
   margin-top: 8px;

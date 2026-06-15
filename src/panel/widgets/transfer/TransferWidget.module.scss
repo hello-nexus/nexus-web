@@ -7,7 +7,7 @@
   width: 100%;
   padding: 12px;
   box-sizing: border-box;
-  color: var(--panel-text);
+  color: var(--text);
   gap: 10px;
   overflow: hidden;
 }
@@ -20,7 +20,7 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   max-width: 100%;
   overflow: hidden;
   white-space: nowrap;
@@ -79,7 +79,7 @@
   border: 1px solid var(--panel-card-border);
   border-radius: var(--panel-element-radius);
   background: var(--panel-element-bg);
-  color: var(--panel-text);
+  color: var(--text);
   font-family: var(--panel-font);
   font-size: 13px;
 

@@ -76,6 +76,9 @@ export interface PanelThemeSettingsProps {
   /** Hide the widget-labels toggle. Single-widget surfaces (q-series) lock
    * labels off. */
   hideWidgetLabelsToggle?: boolean;
+  /** Hide the widget blur + opacity controls. Single-widget surfaces (q-series)
+   * force blur off and the tile fully transparent, so the controls don't apply. */
+  hideWidgetChromeControls?: boolean;
   /** This panel's device id, excluded from the "used by a panel" badge so its
    * own background never badges itself. */
   deviceId?: string | null;
@@ -104,6 +107,7 @@ export function PanelThemeSettings({
   onWidgetLabelsCommit,
   onWidgetBlurCommit,
   hideWidgetLabelsToggle = false,
+  hideWidgetChromeControls = false,
 }: PanelThemeSettingsProps) {
   const { t } = useTranslation();
   const label = (key: string, fallback: string) => {
@@ -143,7 +147,6 @@ export function PanelThemeSettings({
   // mode (one instance keeps the pill state/animation continuous).
   const backgroundModeTabs = (
     <Tabs
-      variant="pill"
       fullWidth
       tabs={[
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
@@ -159,37 +162,43 @@ export function PanelThemeSettings({
 
   return (
     <div className={styles.themePanel}>
-      <SettingsSection title={label('panel.settings.widgets', 'Widgets')} boxClassName={styles.themeBox}>
-        {!hideWidgetLabelsToggle && (
-          <SettingToggle
-            label={label('panel.settings.widgetLabels', 'Widget labels')}
-            checked={theme.widgetLabels}
-            onChange={onWidgetLabelsCommit}
-          />
-        )}
-        <SettingToggle
-          label={label('panel.settings.widgetBlur', 'Widget blur')}
-          checked={theme.widgetBlur}
-          onChange={onWidgetBlurCommit}
-        />
-        <Slider
-          // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="stacked"
-          label={label('panel.settings.widgetOpacity', 'Widget opacity')}
-          value={widgetOpacityPercent}
-          min={0}
-          max={100}
-          step={1}
-          trackFill={widgetOpacityPercent}
-          formatValue={v => `${v}%`}
-          onChange={(v, commit) => {
-            const next = v / 100;
-            if (commit) onWidgetOpacityCommit(next);
-            else onWidgetOpacityPreview(next);
-          }}
-          onCommit={v => onWidgetOpacityCommit(v / 100)}
-        />
-      </SettingsSection>
+      {(!hideWidgetLabelsToggle || !hideWidgetChromeControls) && (
+        <SettingsSection title={label('panel.settings.widgets', 'Widgets')} boxClassName={styles.themeBox}>
+          {!hideWidgetLabelsToggle && (
+            <SettingToggle
+              label={label('panel.settings.widgetLabels', 'Widget labels')}
+              checked={theme.widgetLabels}
+              onChange={onWidgetLabelsCommit}
+            />
+          )}
+          {!hideWidgetChromeControls && (
+            <SettingToggle
+              label={label('panel.settings.widgetBlur', 'Widget blur')}
+              checked={theme.widgetBlur}
+              onChange={onWidgetBlurCommit}
+            />
+          )}
+          {!hideWidgetChromeControls && (
+            <Slider
+              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+              orientation="stacked"
+              label={label('panel.settings.widgetOpacity', 'Widget opacity')}
+              value={widgetOpacityPercent}
+              min={0}
+              max={100}
+              step={1}
+              trackFill={widgetOpacityPercent}
+              formatValue={v => `${v}%`}
+              onChange={(v, commit) => {
+                const next = v / 100;
+                if (commit) onWidgetOpacityCommit(next);
+                else onWidgetOpacityPreview(next);
+              }}
+              onCommit={v => onWidgetOpacityCommit(v / 100)}
+            />
+          )}
+        </SettingsSection>
+      )}
 
       <SettingsSection title={label('settings.theme', 'Theme')} boxClassName={styles.themeBox}>
         <SettingToggle
@@ -199,7 +208,6 @@ export function PanelThemeSettings({
         />
         {!theme.themeSyncWithDesktop && (
           <Tabs
-            variant="pill"
             tabs={THEME_MODES.map(mode => ({
               key: mode,
               label: t(`settings.theme.${mode}`) || (mode === 'system' ? 'System' : mode === 'dark' ? 'Dark' : 'Light'),
@@ -255,7 +263,6 @@ export function PanelThemeSettings({
                 effectState={theme.backgroundEffectState}
               />
               <Tabs
-                variant="pill"
                 fullWidth
                 tabs={[
                   // eslint-disable-next-line i18next/no-literal-string -- editor tab id

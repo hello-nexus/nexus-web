@@ -15,7 +15,7 @@
   min-height: 0;
   overflow-y: auto;
   padding-right: 2px;
-  @include scrollbar-visible($thumb: var(--panel-border), $thumb-hover: var(--panel-border-strong));
+  @include scrollbar-visible($thumb: var(--panel-border), $thumb-hover: var(--panel-border-strong), $gutter: false);
 }
 
 // Wrapper for the panel grids (built-ins + marketplace). Holds the measured
@@ -27,7 +27,7 @@
 .empty {
   padding: 32px 8px;
   text-align: center;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   font-family: var(--panel-font);
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
@@ -42,7 +42,7 @@
   align-items: center;
   gap: 8px;
   padding: 18px 4px 6px;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   font-family: var(--panel-font);
   font-size: var(--type-small);
   font-weight: var(--weight-body);

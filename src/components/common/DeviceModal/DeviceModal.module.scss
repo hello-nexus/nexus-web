@@ -120,7 +120,10 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  @include scrollbar-visible;
+  // Shared with panel/touch (DevicesPage, LightingPage, LedMapEditor); no
+  // gutter so those kiosk surfaces keep their bare layout. Fixed-width dialog
+  // body gains little from a reserved gutter anyway.
+  @include scrollbar-visible($gutter: false);
 }
 
 // Reusable row layout for settings inside the modal body.

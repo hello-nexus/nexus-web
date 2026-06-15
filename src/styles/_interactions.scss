@@ -80,7 +80,7 @@
 
   &:hover:not(:disabled):not([data-active='true']) {
     background: var(--panel-element-bg-hover);
-    color: var(--panel-text);
+    color: var(--text);
   }
 
   &:active:not(:disabled) {

@@ -5,7 +5,7 @@
   --effect-template-border: var(--panel-border, var(--border));
   --effect-template-hover-border: var(--border-strong, var(--effect-template-border));
   --effect-template-bg: var(--panel-element-bg, var(--surface));
-  --effect-template-text: var(--panel-text-muted, var(--text-dim));
+  --effect-template-text: var(--text-dim);
   --effect-template-active-border: var(--panel-accent, var(--accent));
   --effect-template-active-bg: var(--effect-template-bg);
   --effect-template-active-text: var(--panel-accent-glow, var(--accent));

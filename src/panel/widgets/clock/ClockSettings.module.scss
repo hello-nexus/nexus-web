@@ -2,8 +2,8 @@
   --clock-settings-border: var(--panel-border, var(--border));
   --clock-settings-bg: var(--panel-element-bg, var(--surface));
   --clock-settings-bg-hover: var(--panel-element-bg-hover, var(--bg-card-hover));
-  --clock-settings-text: var(--panel-text, var(--text));
-  --clock-settings-faint: var(--panel-text-faint, var(--text-faded));
+  --clock-settings-text: var(--text);
+  --clock-settings-faint: var(--text-dim);
   --clock-settings-accent: var(--panel-accent, var(--accent));
   --clock-settings-accent-glow: var(--panel-accent-glow, var(--accent-glow));
   --clock-settings-accent-soft: var(--panel-accent-soft, var(--accent-soft));
@@ -45,7 +45,7 @@
   background: var(--panel-element-bg);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
-  color: var(--panel-text);
+  color: var(--text);
   font-family: inherit;
   font-size: var(--type-mini);
   font-weight: var(--weight-strong);
@@ -55,7 +55,7 @@
   transition: border-color var(--ease);
 
   &::placeholder {
-    color: var(--panel-text-faint);
+    color: var(--text-dim);
   }
 
   &:focus {

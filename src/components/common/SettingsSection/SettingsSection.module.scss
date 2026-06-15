@@ -18,7 +18,7 @@
 
 .description {
   @include text-button;
-  color: var(--panel-text-faint, var(--text-faded));
+  color: var(--text-dim);
   line-height: 1.4;
   display: flex;
   flex-direction: column;
