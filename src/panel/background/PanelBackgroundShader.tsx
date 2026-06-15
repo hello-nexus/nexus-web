@@ -19,9 +19,12 @@ interface PanelBackgroundShaderProps {
   // default before that has hydrated.
   effectState?: EffectState;
   surface?: PanelSurface;
+  // Skip the q60 half-res cap: the dashboard simulator runs on the desktop GPU,
+  // not the Q-series panel, so it renders the shader at native resolution.
+  fullRes?: boolean;
 }
 
-export function PanelBackgroundShader({ effect, template, opacity, effectState, surface }: PanelBackgroundShaderProps) {
+export function PanelBackgroundShader({ effect, template, opacity, effectState, surface, fullRes }: PanelBackgroundShaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const normalizedEffect = normalizePanelBackgroundEffect(effect);
   const normalizedTemplate = normalizePanelBackgroundTemplate(template);
@@ -32,15 +35,13 @@ export function PanelBackgroundShader({ effect, template, opacity, effectState, 
   useEffect(() => {
     stateRef.current = effectState ?? panelBackgroundState(normalizedEffect, normalizedTemplate);
   }, [normalizedEffect, normalizedTemplate, effectState]);
-  // The Q-series AIO panel renders the background shader at half resolution:
-  // its GPU can't hold frame rate on heavy shaders at full res, and the small
-  // panel hides the resolution drop. Other surfaces render at native. NOTE:
-  // 'q60' is the single surface for the whole Q-series -- the Q60 and Q80 are
-  // the same 720x1280 LCD and both infer to 'q60' (there is no 'q80' surface),
-  // so this gate covers both.
+  // The Q-series AIO panel GPU can't hold frame rate on heavy shaders at native
+  // res, so cap its backing store to half DPR. q60 is the only Q-series surface
+  // (Q60 + Q80 share the LCD and both infer to it). fullRes lifts the cap for
+  // the desktop simulator, which renders on the host GPU.
   const renderOptions = useMemo(() => (
-    { maxDevicePixelRatio: surface === 'q60' ? 0.5 : 1 }
-  ), [surface]);
+    { maxDevicePixelRatio: surface === 'q60' && !fullRes ? 0.5 : 1 }
+  ), [surface, fullRes]);
   const { ready, error } = useShaderRenderer(
     canvasRef,
     normalizedEffect,
