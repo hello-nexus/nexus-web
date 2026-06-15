@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { Sparkles, Shapes, Smile } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
+import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
+import { surfaceSupportsTextInput, type PanelSurface } from '../../types';
 import { DECK_ICONS, DECK_ICON_NAMES } from '../deck/deckIcons';
 import { CATEGORIES as EMOJI_CATEGORIES, CATEGORY_KEYS as EMOJI_CATEGORY_KEYS } from '../emoji/EmojiWidget';
 import type { DeckIcon } from '../deck/types';
@@ -18,6 +20,9 @@ interface IconPickerProps {
   onChange: (icon: DeckIcon | undefined) => void;
   // Present when the slot launches an app; the Auto tab then shows the app's icon.
   appId?: string;
+  // Surface being edited; the icon-name search is hidden on keyboard-less
+  // surfaces (Y70 / Q-series). Undefined falls back to showing it.
+  surface?: PanelSurface;
 }
 
 type Tab = 'auto' | 'icons' | 'emoji';
@@ -28,11 +33,12 @@ function tabForValue(value?: DeckIcon): Tab {
   return 'auto'; // undefined or app icon → Auto
 }
 
-export function IconPicker({ value, onChange }: IconPickerProps) {
+export function IconPicker({ value, onChange, surface }: IconPickerProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>(() => tabForValue(value));
   const [query, setQuery] = useState('');
   const [emojiCat, setEmojiCat] = useState(EMOJI_CATEGORY_KEYS[0]);
+  const showSearch = !surface || surfaceSupportsTextInput(surface);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -66,13 +72,15 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
 
       {tab === 'icons' && (
         <>
-          <input
-            className={styles.search}
-            type="text"
-            value={query}
-            placeholder={t('panel.iconPicker.search')}
-            onChange={e => setQuery(e.target.value)}
-          />
+          {showSearch && (
+            <SearchInput
+              className={styles.search}
+              value={query}
+              onChange={setQuery}
+              placeholder={t('panel.iconPicker.search')}
+              ariaLabel={t('panel.iconPicker.search')}
+            />
+          )}
           <div className={styles.grid} data-panel-scrollable="true">
             {filtered.map(name => {
               const Comp = DECK_ICONS[name];

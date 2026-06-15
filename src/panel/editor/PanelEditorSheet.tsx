@@ -291,6 +291,7 @@ export function PanelEditorSheet({
               <div className={styles.settingsBody}>
                 <Settings
                   widget={editingWidget}
+                  surface={surface}
                   onUpdate={config => onUpdate(editingWidget.id, config)}
                   onResize={handleResize}
                   selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
