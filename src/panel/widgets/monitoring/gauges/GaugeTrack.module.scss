@@ -2,7 +2,7 @@
   width: var(--gauge-track-width, 100%);
   height: var(--gauge-track-height, 5px);
   border-radius: var(--radius-pill);
-  background: var(--panel-border);
+  background: var(--gauge-track);
   overflow: hidden;
 }
 

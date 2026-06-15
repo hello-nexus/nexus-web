@@ -41,7 +41,6 @@ interface ColorContext {
 const COLORS: ColorContext[] = [
   { name: 'Primary',    cssVar: 'var(--text)' },
   { name: 'Secondary',  cssVar: 'var(--text-dim)' },
-  { name: 'Tertiary',   cssVar: 'var(--text-faded)' },
   { name: 'Accent',     cssVar: 'var(--accent)' },
   { name: 'Accent glow',cssVar: 'var(--accent-glow)' },
   { name: 'Good',       cssVar: 'var(--good)' },
@@ -61,7 +60,7 @@ const ACCENT_TOKENS = [
 const SURFACE_TOKENS = [
   { name: 'bg',            cssVar: '--bg' },
   { name: 'bg-elevated',   cssVar: '--bg-elevated' },
-  { name: 'bg-card',       cssVar: '--bg-card' },
+  { name: 'surface',       cssVar: '--surface' },
   { name: 'bg-card-hover', cssVar: '--bg-card-hover' },
   { name: 'border',        cssVar: '--border' },
   { name: 'border-strong', cssVar: '--border-strong' },
@@ -211,7 +210,6 @@ export function TextStyles() {
           <div className={styles.swatchGrid}>
             <Swatch name="text"        cssVar="--text" />
             <Swatch name="text-dim"    cssVar="--text-dim" />
-            <Swatch name="text-faded"  cssVar="--text-faded" />
           </div>
 
           <h4 className={styles.subSectionTitle}>Accent (runtime-derived from user pick)</h4>

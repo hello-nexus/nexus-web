@@ -9,7 +9,7 @@
   padding: 12px;
   box-sizing: border-box;
   gap: 10px;
-  color: var(--panel-text);
+  color: var(--text);
   overflow: hidden;
 }
 
@@ -76,7 +76,7 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   max-width: 100%;
   overflow: hidden;
   white-space: nowrap;

@@ -210,12 +210,20 @@ export function PanelWidgetCatalog({
     </div>
   );
 
+  // The widget browser always renders cards opaque; the device's widget-opacity
+  // setting applies only on-device and in the device preview, not while browsing.
+  const catalogStyle = {
+    ...themeStyle,
+    ...panelGridVars,
+    '--panel-card-bg-opacity': '100%',
+  } as CSSProperties;
+
   return (
     <div
       className={rootClass}
       data-theme={themeMode}
       data-surface={surface}
-      style={{ ...themeStyle, ...panelGridVars }}
+      style={catalogStyle}
     >
       {searchable && (
         <div className={styles.search}>

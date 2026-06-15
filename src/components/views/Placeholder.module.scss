@@ -97,7 +97,7 @@
 }
 
 .safariIcon {
-  color: var(--text-faded);
+  color: var(--text-dim);
   opacity: 0.75;
   flex-shrink: 0;
   margin-top: 0.1rem;
@@ -151,7 +151,7 @@
 
 .downloadAltsLabel {
   @include text-button;
-  color: var(--text-faded);
+  color: var(--text-dim);
   margin-right: 0.25rem;
 }
 

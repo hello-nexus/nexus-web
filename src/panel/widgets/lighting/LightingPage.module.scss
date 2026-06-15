@@ -481,7 +481,7 @@
   &:disabled {
     opacity: 0.4;
     cursor: default;
-    color: var(--text-faded);
+    color: var(--text-dim);
   }
 }
 
@@ -511,7 +511,7 @@
   font-size: var(--type-small);
   font-family: var(--font-mono);
   min-width: 0;
-  &::placeholder { color: var(--text-faded); }
+  &::placeholder { color: var(--text-dim); }
 }
 
 // ── Media Library ─────────────────────────────────────────────────────────
@@ -528,7 +528,7 @@
 }
 .manageFolderBtn {
   padding: 0.35rem 0.55rem; border: none; background: transparent;
-  color: var(--text-faded); font-size: var(--type-small);
+  color: var(--text-dim); font-size: var(--type-small);
   cursor: pointer; transition: color var(--ease-fast);
   display: inline-flex; align-items: center; gap: 0.4rem;
   &:hover { color: var(--text); }
@@ -538,7 +538,7 @@
   display: block;
 }
 .hiddenInput { display: none; }
-.mediaEmpty { color: var(--text-faded); font-size: var(--type-small); margin: 0; }
+.mediaEmpty { color: var(--text-dim); font-size: var(--type-small); margin: 0; }
 .mediaError { color: var(--bad); font-size: var(--type-small); margin: 0; }
 
 .mediaGrid {
@@ -557,7 +557,7 @@
 
 .mediaMeta {
   font-size: 0.62rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-family: var(--font-mono);
   text-align: center;
   overflow: hidden;
@@ -691,7 +691,7 @@
 }
 
 .offMessage {
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-body);
   text-align: center;
   padding: 1rem 0;
@@ -734,7 +734,7 @@
 
 .deviceEmpty {
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
   text-align: center;
   padding: 1.5rem 0;
 }
@@ -779,7 +779,7 @@
   // Dim the device name + meta when the toggle is off; the toggle
   // itself stays full opacity.
   &.deviceCardPoweredOff {
-    .deviceName { color: var(--text-faded); }
+    .deviceName { color: var(--text-dim); }
     .deviceMeta { opacity: 0.6; }
   }
 }
@@ -852,7 +852,7 @@
 
 .deviceMeta {
   font-size: 0.65rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -985,7 +985,7 @@
 }
 
 .effectTabEmpty {
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-small);
   text-align: center;
   padding: 2rem 1rem;

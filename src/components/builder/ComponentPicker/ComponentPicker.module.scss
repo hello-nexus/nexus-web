@@ -99,7 +99,7 @@
 
 .filterSectionCount {
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
   background: var(--surface);
   border: var(--border-width) solid transparent;
   padding: 0.05rem 0.4rem;
@@ -109,7 +109,7 @@
 }
 
 .filterSectionChevron {
-  color: var(--text-faded);
+  color: var(--text-dim);
   flex-shrink: 0;
   transition: transform var(--ease);
   transform: rotate(-90deg);
@@ -143,7 +143,7 @@
 }
 
 .checkboxSearchIcon {
-  color: var(--text-faded);
+  color: var(--text-dim);
   flex-shrink: 0;
 }
 
@@ -157,7 +157,7 @@
   outline: none;
 
   &::placeholder {
-    color: var(--text-faded);
+    color: var(--text-dim);
   }
 }
 
@@ -191,7 +191,7 @@
 }
 
 .checkboxCount {
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-small);
   flex-shrink: 0;
 }
@@ -252,12 +252,12 @@
 
 .rangeUnit {
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
   flex-shrink: 0;
 }
 
 .rangeSep {
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-small);
   flex-shrink: 0;
 }
@@ -455,7 +455,7 @@
 }
 
 .searchIcon {
-  color: var(--text-faded);
+  color: var(--text-dim);
   flex-shrink: 0;
 }
 
@@ -470,7 +470,7 @@
   min-width: 0;
 
   &::placeholder {
-    color: var(--text-faded);
+    color: var(--text-dim);
   }
 }
 
@@ -557,7 +557,7 @@
 .noResults {
   padding: 2rem;
   text-align: center;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-body);
 }
 

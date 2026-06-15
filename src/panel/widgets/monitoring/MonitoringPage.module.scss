@@ -70,21 +70,31 @@
 
 .dashCardHeader {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  align-items: baseline;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .dashCardTitle {
   @include text-label;
   color: var(--text-dim);
+  flex-shrink: 0;
 }
 
 .dashCardSub {
   @include text-caption;
-  color: var(--text-faded);
+  color: var(--text-dim);
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  // "CPU — <model>" on one line; the dash renders only when a model sub exists
+  // (the RAM / Network / Storage cards carry a title only).
+  &::before {
+    content: '—';
+    margin-right: 0.3rem;
+  }
 }
 
 .dashCardBody {
@@ -139,12 +149,12 @@
   @include text-numeric;
   display: flex;
   gap: 1rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .dashMemLabel {
   @include text-numeric;
-  color: var(--text-faded);
+  color: var(--text-dim);
   margin-left: auto;
 }
 
@@ -178,7 +188,7 @@
 .dashNetArrow {
   @include text-body;
   line-height: 1;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 // Fixed-width rate container so the sparkline start-x stays stable across unit changes.
@@ -301,7 +311,7 @@
 
 .chartStatArrow {
   @include text-body;
-  color: var(--text-faded);
+  color: var(--text-dim);
   line-height: 1;
   margin-right: 0.1rem;
 }
@@ -327,10 +337,10 @@
 }
 
 .dashStorageName { color: var(--text-dim); }
-.dashStorageCap { color: var(--text-faded); }
+.dashStorageCap { color: var(--text-dim); }
 .dashDim {
   @include text-caption;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 // ── Top Processes Table ──
@@ -360,7 +370,7 @@
 
   td {
     padding: 0.35rem 0.5rem;
-    color: var(--text-faded);
+    color: var(--text-dim);
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
 
@@ -404,7 +414,7 @@
 
 .detailSubtitle {
   @include text-caption;
-  color: var(--text-faded);
+  color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -425,7 +435,7 @@
 
 .detailGroupLabel {
   @include text-label;
-  color: var(--text-faded);
+  color: var(--text-dim);
   padding: 0.25rem 0 0.2rem;
 }
 

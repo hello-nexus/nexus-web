@@ -11,10 +11,8 @@ import styles from './SettingRow.module.scss';
  * device Settings tab), so they read identically. The panel `SettingsRow` name
  * re-exports this primitive.
  *
- * Tokens fall back to the app globals (`--text`/`--border`/`--text-faded`) so
- * the row themes correctly both inside `.panel-root` (kiosk, where the
- * `--panel-*` aliases are defined and carry the per-device theme) and outside
- * it (the desktop dashboard).
+ * Uses `--text`, `--text-dim`, and `--border` so the row themes correctly
+ * inside `.panel-root` (kiosk) and on the desktop dashboard.
  */
 export function SettingRow({
   label,

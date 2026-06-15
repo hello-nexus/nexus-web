@@ -53,12 +53,10 @@
 }
 
 .cityCardNight {
-  background: color-mix(in srgb, var(--accent-deep) 10%, var(--surface));
-}
+  background: color-mix(in srgb, var(--accent-deep) 10%, var(--surface));}
 
 .cityCardLocal {
-  border-color: color-mix(in srgb, gold 60%, var(--border));
-  background: linear-gradient(90deg,
+  border-color: color-mix(in srgb, gold 60%, var(--border));  background: linear-gradient(90deg,
     color-mix(in srgb, gold 14%, var(--surface)) 0%,
     var(--surface) 65%);
 }

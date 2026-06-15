@@ -22,7 +22,7 @@
 
   flex: 1;
   min-width: 0;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
   text-transform: uppercase;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -33,7 +33,7 @@
   @include text-numeric;
 
   flex: 0 0 auto;
-  color: var(--panel-text);
+  color: var(--text);
   white-space: nowrap;
 
   // The shared `.panel-gauge-unit` token sizes the suffix relative to its

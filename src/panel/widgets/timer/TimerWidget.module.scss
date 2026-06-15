@@ -7,7 +7,7 @@
   width: 100%;
   padding: 12px;
   box-sizing: border-box;
-  color: var(--panel-text);
+  color: var(--text);
   gap: 12px;
 }
 
@@ -50,7 +50,7 @@
   background: var(--panel-element-bg);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-element-radius);
-  color: var(--panel-text);
+  color: var(--text);
   font-size: 10px;
   cursor: pointer;
   transition: background-color var(--ease-fast) ease;

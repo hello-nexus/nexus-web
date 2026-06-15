@@ -51,7 +51,7 @@
   justify-content: center;
   font-weight: var(--weight-display);
   font-variant-numeric: tabular-nums;
-  color: var(--panel-text);
+  color: var(--text);
   flex-shrink: 0;
 }
 
@@ -70,13 +70,13 @@
   width: 0.12em;
   height: 0.12em;
   border-radius: 50%;
-  background: var(--panel-text-secondary);
+  background: var(--text-dim);
 }
 
 .ampm {
   font-size: 0.35em;
   font-weight: var(--weight-heading);
-  color: var(--panel-text-secondary);
+  color: var(--text-dim);
   margin-left: 0.2em;
   align-self: flex-end;
   padding-bottom: 0.15em;
@@ -88,7 +88,7 @@
   font-weight: var(--weight-body);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--panel-text-secondary);
+  color: var(--text-dim);
   text-align: center;
 }
 

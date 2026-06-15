@@ -281,7 +281,7 @@
 }
 
 .inlineControlsRow {
-  --widget-control-title-color: var(--text-faded);
+  --widget-control-title-color: var(--text-dim);
   --icon-label-button-height: 36px;
   --icon-label-button-min-width: 36px;
   --icon-label-button-padding-x: 0;
@@ -291,7 +291,7 @@
   --icon-label-button-border: transparent;
   --icon-label-button-bg: transparent;
   --icon-label-button-bg-hover: var(--bg-card-hover);
-  --icon-label-button-text: var(--text-faded);
+  --icon-label-button-text: var(--text-dim);
   --icon-label-button-text-hover: var(--text);
   --icon-label-button-active-border: transparent;
   --icon-label-button-active-bg: var(--accent-soft);
@@ -351,7 +351,7 @@
 .inlineSettingsEmpty {
   padding: 2rem 0;
   text-align: center;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-small);
 }
 

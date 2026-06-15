@@ -181,7 +181,7 @@
   }
 
   &.outOfStock {
-    background: var(--text-faded);
+    background: var(--text-dim);
   }
 }
 
@@ -217,6 +217,6 @@
 .noRetailers {
   padding: 1.5rem 1rem;
   text-align: center;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-body);
 }

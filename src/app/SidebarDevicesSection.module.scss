@@ -46,7 +46,7 @@
 .empty {
   padding: 0.5rem 0.75rem;
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-style: italic;
 }
 
@@ -134,6 +134,6 @@
 .simulatedBadge {
   flex-shrink: 0;
   margin-left: 0.35rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
   opacity: 0.85;
 }

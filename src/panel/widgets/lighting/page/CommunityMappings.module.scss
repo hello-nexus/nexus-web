@@ -23,7 +23,7 @@
   align-items: center;
   gap: 0.3rem;
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .spacer { flex: 1; }
@@ -150,7 +150,7 @@
 
 .itemDescription {
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
   margin: 0;
   cursor: pointer;
   display: -webkit-box;

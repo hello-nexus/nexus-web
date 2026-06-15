@@ -60,10 +60,10 @@
   --effect-template-border: var(--panel-border);
   --effect-template-hover-border: var(--panel-accent);
   --effect-template-bg: var(--panel-control-bg);
-  --effect-template-text: var(--panel-text-muted);
+  --effect-template-text: var(--text-dim);
   --effect-template-active-border: var(--panel-accent);
   --effect-template-active-bg: var(--panel-accent-soft);
-  --effect-template-active-text: var(--panel-text);
+  --effect-template-active-text: var(--text);
   --effect-template-active-shadow: 0 0 0 1px var(--panel-accent);
   --effect-template-number-font: 900 11px/1 var(--panel-font);
 }

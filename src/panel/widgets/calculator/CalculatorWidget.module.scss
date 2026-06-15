@@ -5,7 +5,7 @@
   width: 100%;
   padding: 12px;
   box-sizing: border-box;
-  color: var(--panel-text);
+  color: var(--text);
   gap: 8px;
 }
 
@@ -48,7 +48,7 @@
   justify-content: center;
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-element-radius);
-  color: var(--panel-text);
+  color: var(--text);
   font-family: var(--panel-font);
   font-size: 1.1em;
   font-weight: var(--weight-heading);
@@ -75,7 +75,7 @@
 .btnFunc {
   @extend %btn-base;
   background: var(--panel-element-bg);
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   font-size: 0.95em;
 
   &:hover { background: var(--panel-element-bg-hover); }

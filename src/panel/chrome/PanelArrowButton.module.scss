@@ -14,7 +14,7 @@
   justify-content: center;
   border: 0;
   background: transparent;
-  color: var(--panel-text-muted, var(--text-dim));
+  color: var(--text-dim);
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -36,7 +36,7 @@
   }
 
   &:not(:disabled):hover {
-    color: var(--panel-text, var(--text));
+    color: var(--text);
     transform: translateY(-50%) scale(1.04);
   }
 

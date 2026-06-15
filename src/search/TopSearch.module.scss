@@ -47,7 +47,7 @@
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.glyph { flex-shrink: 0; color: var(--text-faded); }
+.glyph { flex-shrink: 0; color: var(--text-dim); }
 
 .title {
   // Standard body text (matches the tabs): same family, size, weight, and
@@ -72,7 +72,7 @@
   outline: none;
   color: var(--text);
 
-  &::placeholder { color: var(--text-faded); }
+  &::placeholder { color: var(--text-dim); }
 }
 
 .escHint,
@@ -80,7 +80,7 @@
   flex-shrink: 0;
   font-family: inherit;
   font-size: 0.68rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -129,7 +129,7 @@
 
 .sectionLabel {
   @include text-label;
-  color: var(--text-faded);
+  color: var(--text-dim);
   padding: 0.4rem 0.5rem 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -203,7 +203,7 @@
 
 .rowSubtitle {
   font-size: var(--type-small);
-  color: var(--text-faded);
+  color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -258,7 +258,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: 0.72rem;
 }
 

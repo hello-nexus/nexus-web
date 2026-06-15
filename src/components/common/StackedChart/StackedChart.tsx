@@ -203,7 +203,7 @@ export function StackedChart({
             <g key={i}>
               <line x1={PAD.left} y1={y} x2={width - PAD.right} y2={y}
                 stroke="var(--border)" strokeWidth="0.5" />
-              <text x={PAD.left - 4} y={y + 3} fill="var(--text-faded)"
+              <text x={PAD.left - 4} y={y + 3} fill="var(--text-dim)"
                 fontSize="11" fontFamily="var(--font-mono)" textAnchor="end">
                 {formatYLabel(tickVal, yUnit, yMax)}
               </text>
@@ -218,7 +218,7 @@ export function StackedChart({
           const label = sec === 0 ? t('chart.now') : `-${sec}s`;
           return (
             <text key={sec} x={x} y={PAD.top + chartH + 14}
-              fill="var(--text-faded)" fontSize="11" fontFamily="var(--font-mono)"
+              fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)"
               textAnchor="middle">
               {label}
             </text>

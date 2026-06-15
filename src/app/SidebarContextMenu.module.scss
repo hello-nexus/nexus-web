@@ -52,7 +52,7 @@
   }
 
   &:disabled {
-    color: var(--text-faded);
+    color: var(--text-dim);
     cursor: default;
     background: transparent;
   }

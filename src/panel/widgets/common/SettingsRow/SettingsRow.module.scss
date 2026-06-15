@@ -12,7 +12,7 @@
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
   background: var(--panel-element-bg);
-  color: var(--panel-text);
+  color: var(--text);
   padding: 0 9px;
   outline: none;
 
@@ -45,13 +45,13 @@
 .buttonMuted {
   border-color: var(--panel-border);
   background: var(--panel-element-bg);
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
 }
 
 .saved,
 .hint {
   @include text-caption;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
 }
 
 .hint {

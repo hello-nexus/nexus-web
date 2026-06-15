@@ -9,7 +9,7 @@
   background: var(--panel-scrim-bg, rgba(0, 0, 0, 0.62));
   backdrop-filter: blur(18px) saturate(0.92);
   -webkit-backdrop-filter: blur(18px) saturate(0.92);
-  color: var(--panel-text);
+  color: var(--text);
   font-family: var(--panel-font);
   pointer-events: auto;
   animation: overlayFadeIn 220ms ease-out both;
@@ -97,14 +97,14 @@
 
 .message {
   font-size: var(--type-small);
-  color: var(--panel-text-muted, var(--text-dim));
+  color: var(--text-dim);
   margin: 0;
   line-height: 1.45;
 }
 
 .statusLine {
   font-size: var(--type-tiny);
-  color: var(--panel-text-faint, var(--text-faded));
+  color: var(--text-dim);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   font-weight: var(--weight-strong);
@@ -149,7 +149,7 @@
 .secondaryButton {
   background: var(--panel-element-bg, transparent);
   border-color: var(--panel-card-border, var(--border));
-  color: var(--panel-text);
+  color: var(--text);
 
   &:hover { background: var(--panel-element-bg-hover, var(--border)); }
   &:active { transform: scale(0.98); }

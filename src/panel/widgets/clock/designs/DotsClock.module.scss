@@ -69,8 +69,8 @@
 }
 
 .on {
-  background: var(--panel-text);
-  box-shadow: 0 0 4px color-mix(in srgb, var(--panel-text) 36%, transparent);
+  background: var(--text);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--text) 36%, transparent);
 }
 
 .off {
@@ -92,7 +92,7 @@
 .ampm {
   font-size: var(--type-mini);
   font-weight: var(--weight-heading);
-  color: var(--panel-text-secondary);
+  color: var(--text-dim);
   margin-left: 4px;
   align-self: flex-end;
   flex: 0 0 auto;
@@ -104,7 +104,7 @@
   font-weight: var(--weight-body);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--panel-text-secondary);
+  color: var(--text-dim);
   text-align: center;
 }
 

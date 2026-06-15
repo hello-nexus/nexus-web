@@ -72,13 +72,13 @@
   border-radius: var(--radius-sm);
   border: none;
   background: transparent;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
   cursor: pointer;
   transition: background var(--ease-fast), color var(--ease-fast);
 
   &:hover {
     background: var(--panel-element-bg-hover);
-    color: var(--panel-text);
+    color: var(--text);
   }
 }
 
@@ -101,7 +101,7 @@
   border-radius: var(--radius-sm);
   border: none;
   background: transparent;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   font-family: var(--panel-font);
   font-size: var(--type-small);
   font-weight: var(--weight-strong);
@@ -111,7 +111,7 @@
 
   &:hover {
     background: var(--panel-element-bg-hover);
-    color: var(--panel-text);
+    color: var(--text);
   }
 }
 

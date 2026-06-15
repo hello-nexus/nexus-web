@@ -27,7 +27,7 @@
 .empty {
   padding: 32px 8px;
   text-align: center;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   font-family: var(--panel-font);
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
@@ -42,7 +42,7 @@
   align-items: center;
   gap: 8px;
   padding: 18px 4px 6px;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   font-family: var(--panel-font);
   font-size: var(--type-small);
   font-weight: var(--weight-body);

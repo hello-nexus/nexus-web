@@ -127,13 +127,13 @@
   }
 
   .disconnected & {
-    background: var(--text-faded);
+    background: var(--text-dim);
   }
 }
 
 .statusText {
   @include text-label;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-family: var(--font-mono);
 }
 
@@ -151,7 +151,7 @@
   @include text-body;
   padding: 3rem;
   text-align: center;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .explainer {

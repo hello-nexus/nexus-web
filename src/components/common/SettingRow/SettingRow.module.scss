@@ -26,7 +26,7 @@
 
 .label {
   @include text-body;
-  color: var(--panel-text, var(--text));
+  color: var(--text);
 }
 
 // Optional accent glyph before the label text (e.g. the relay satellite).
@@ -40,7 +40,7 @@
 
 .desc {
   @include text-button;
-  color: var(--panel-text-faint, var(--text-faded));
+  color: var(--text-dim);
   line-height: 1.4;
 }
 

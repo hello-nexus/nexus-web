@@ -41,7 +41,7 @@
 
 // Latitude / longitude reference lines, faint.
 .grid {
-  stroke: color-mix(in srgb, var(--text-faded) 22%, transparent);
+  stroke: color-mix(in srgb, var(--text-dim) 22%, transparent);
   stroke-width: 0.12;
   fill: none;
 }

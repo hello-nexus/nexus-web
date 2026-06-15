@@ -7,7 +7,7 @@
   width: 100%;
   padding: 12px 14px;
   gap: 8px;
-  color: var(--panel-text);
+  color: var(--text);
   box-sizing: border-box;
 }
 
@@ -28,7 +28,7 @@
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
   background: var(--panel-element-bg);
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   padding: 0 8px;
   font: 700 11px/1 var(--panel-font);
   letter-spacing: 0.02em;
@@ -104,7 +104,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: var(--panel-text);
+  color: var(--text);
   // Fill the stage so the icon's percent-sizing has a real container.
   flex: 1;
   min-width: 0;
@@ -123,7 +123,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   flex-shrink: 0;
 }
 
@@ -167,7 +167,7 @@
   font: 700 16px/1 var(--panel-font);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--panel-text);
+  color: var(--text);
   // Full available width — the .simpleCenter padding already keeps the
   // label clear of the arrows. Ellipsis is a safety net for very long
   // future labels; the four current values (Silent / Balanced / Turbo /

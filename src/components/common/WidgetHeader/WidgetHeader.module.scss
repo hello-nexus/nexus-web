@@ -11,7 +11,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--widget-header-title-color, var(--panel-text-muted, var(--text-dim)));
+  color: var(--widget-header-title-color, var(--text-dim));
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
   line-height: 1;
@@ -25,7 +25,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: right;
-  color: var(--widget-header-subtitle-color, var(--panel-text-faint, var(--text-faded)));
+  color: var(--widget-header-subtitle-color, var(--text-dim));
   font-size: 0.7rem;
   font-weight: var(--weight-body);
   line-height: 1.1;

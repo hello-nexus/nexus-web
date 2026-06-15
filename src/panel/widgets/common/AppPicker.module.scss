@@ -23,7 +23,7 @@
   grid-column: 1 / -1;
   padding: 1rem 0.5rem;
   text-align: center;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: var(--type-small);
 }
 
@@ -73,7 +73,7 @@
   width: 24px;
   height: 24px;
   flex-shrink: 0;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .rowName {

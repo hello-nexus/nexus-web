@@ -63,7 +63,6 @@ import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/Se
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
-import { NexusAppIcon } from '../components/icons/NexusAppIcon';
 import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
 import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
@@ -765,11 +764,11 @@ function PreviewSectionHeader() {
     <div className="panel-root" style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SectionHeader>Widgets</SectionHeader>
-        <div style={{ color: 'var(--panel-text)', fontSize: 13 }}>Widget labels · blur · opacity</div>
+        <div style={{ color: 'var(--text)', fontSize: 13 }}>Widget labels · blur · opacity</div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SectionHeader>Theme</SectionHeader>
-        <div style={{ color: 'var(--panel-text)', fontSize: 13 }}>Sync with desktop</div>
+        <div style={{ color: 'var(--text)', fontSize: 13 }}>Sync with desktop</div>
       </div>
     </div>
   );
@@ -904,10 +903,6 @@ function PreviewBrand() {
   );
 }
 
-function PreviewAppIcon() {
-  return <NexusAppIcon size={48} />;
-}
-
 function PreviewPanelArrowButtons() {
   return (
     <div style={{ position: 'relative', height: 72, width: '100%' }}>
@@ -1007,12 +1002,6 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/icons/NexusBrand.tsx',
     description: 'The interlocking-N mark and NEXUS wordmark as currentColor SVGs traced from the brand art. size / height props govern rendered dimensions directly (viewBoxes are tight to the visible bbox).',
     Preview: PreviewBrand,
-  },
-  {
-    name: 'NexusAppIcon', category: 'foundation',
-    filePath: 'src/components/icons/NexusAppIcon.tsx',
-    description: 'App-tile icon: rounded-square accent surface with the bolt mark. boltFill overrides the punch-through color for non-dark surfaces.',
-    Preview: PreviewAppIcon,
   },
   // ── Inputs ────────────────────────────────────────────────────────────
   {
@@ -1401,7 +1390,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SectionHeader', category: 'panel-kit',
     filePath: 'src/components/common/SectionHeader/SectionHeader.tsx',
-    description: 'Canonical settings header: a muted body-type label (no underline). Usually rendered by SettingsSection, which sits it above a surface box. Token fallback (--panel-text-muted → --text-dim) keeps it correct inside .panel-root and on the dashboard.',
+    description: 'Canonical settings header: a muted body-type label (no underline). Usually rendered by SettingsSection, which sits it above a surface box. Uses var(--text-dim) so it reads correctly inside .panel-root and on the dashboard.',
     Preview: PreviewSectionHeader,
   },
   {

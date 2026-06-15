@@ -52,7 +52,7 @@
 
 .dim {
   @include text-button;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .resetRow {
@@ -84,7 +84,7 @@
   grid-template-columns: auto 92px;
   align-items: center;
   gap: 0.5rem;
-  color: var(--text-faded);
+  color: var(--text-dim);
 }
 
 .simRow {
@@ -111,7 +111,7 @@
 
   span {
     @include text-numeric;
-    color: var(--text-faded);
+    color: var(--text-dim);
   }
 }
 
@@ -190,7 +190,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   background: transparent;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: 0.85rem;
   font-weight: var(--weight-body);
   cursor: pointer;
@@ -241,7 +241,7 @@
     height: 0;
     border-style: solid;
     border-width: 5px 0 5px 6px;
-    border-color: transparent transparent transparent var(--text-faded);
+    border-color: transparent transparent transparent var(--text-dim);
     transition: transform var(--ease-fast) ease;
     flex-shrink: 0;
     margin-right: 0.4rem;
@@ -264,7 +264,7 @@
   border: 1px solid var(--border-faint);
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-faded);
+  color: var(--text-dim);
   font-size: 0.78rem;
   cursor: pointer;
   transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease, background var(--ease-fast) ease;

@@ -49,7 +49,7 @@
   gap: 5px;
   min-width: 0;
   margin-top: 4px;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
 }
 
 .nowPlaying {
@@ -141,7 +141,7 @@
 .rowMeta,
 .rowSub {
   @include text-caption;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
 }
 
 .friendInfo {
@@ -206,8 +206,7 @@
 }
 
 .bannerFallback {
-  background: linear-gradient(135deg, var(--panel-element-bg), var(--panel-accent-soft));
-}
+  background: linear-gradient(135deg, var(--panel-element-bg), var(--panel-accent-soft));}
 
 .stats {
   display: grid;
@@ -227,14 +226,14 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  color: var(--panel-text);
+  color: var(--text);
 }
 
 .statLabel {
   @include text-label;
   display: block;
   margin-top: 3px;
-  color: var(--panel-text-faint);
+  color: var(--text-dim);
 }
 
 .achievements {
@@ -247,7 +246,7 @@
   @include text-caption;
   display: flex;
   justify-content: space-between;
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
 }
 
 .achievementTrack {

@@ -3,7 +3,7 @@
   inset: 0;
   z-index: 200;
   background: var(--panel-background-solid, #0a0a10);
-  color: var(--panel-text);
+  color: var(--text);
   display: flex;
   flex-direction: column;
   animation: immersiveEnter 240ms cubic-bezier(0.32, 0.72, 0, 1) both;

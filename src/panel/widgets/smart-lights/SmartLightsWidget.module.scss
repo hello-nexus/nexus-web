@@ -5,7 +5,7 @@
   min-height: 0;
   display: flex;
   box-sizing: border-box;
-  color: var(--panel-text);
+  color: var(--text);
 }
 
 // Large icon centered over the online count, matching the cooling/lighting
@@ -33,12 +33,12 @@
 
 .icon {
   flex-shrink: 0;
-  color: var(--panel-text);
+  color: var(--text);
 }
 
 .label {
   font: 600 13px/1.2 var(--panel-font);
-  color: var(--panel-text-muted);
+  color: var(--text-dim);
   text-align: center;
 }
 

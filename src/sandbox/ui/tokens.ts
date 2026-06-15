@@ -12,9 +12,9 @@ export function toneVar(tone: UiTone | string | undefined, fallback = 'currentCo
     case 'good':         return 'var(--good, #10b981)';
     case 'warn':         return 'var(--warn, #f59e0b)';
     case 'bad':          return 'var(--bad, #ef4444)';
-    case 'text':         return 'var(--text, var(--panel-text, currentColor))';
-    case 'text-dim':     return 'var(--text-dim, var(--panel-text-muted, currentColor))';
-    case 'text-faded':   return 'var(--text-faded, currentColor)';
+    case 'text':         return 'var(--text, currentColor)';
+    case 'text-dim':     return 'var(--text-dim, currentColor)';
+    case 'text-faded':   return 'var(--text-dim, currentColor)';
     case 'border':       return 'var(--border, currentColor)';
     case 'bg-card':      return 'var(--surface, transparent)';
     case '':             return fallback;

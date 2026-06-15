@@ -28,40 +28,40 @@
 }
 
 .marker {
-  stroke: var(--panel-text-faint);
+  stroke: var(--text-dim);
   stroke-width: 1;
   stroke-linecap: round;
 }
 
 .markerMajor {
-  stroke: var(--panel-text-muted);
+  stroke: var(--text-dim);
   stroke-width: 1.5;
   stroke-linecap: round;
 }
 
 .hourHand {
-  stroke: var(--panel-text);
+  stroke: var(--text);
   stroke-width: 2.8;
   stroke-linecap: round;
   transform-origin: 50px 50px;
 }
 
 .minuteHand {
-  stroke: var(--panel-text);
+  stroke: var(--text);
   stroke-width: 1.8;
   stroke-linecap: round;
   transform-origin: 50px 50px;
 }
 
 .secondHand {
-  stroke: var(--panel-text);
+  stroke: var(--text);
   stroke-width: 0.8;
   stroke-linecap: round;
   transform-origin: 50px 50px;
 }
 
 .center {
-  fill: var(--panel-text);
+  fill: var(--text);
 }
 
 .date {
@@ -70,7 +70,7 @@
   font-weight: var(--weight-body);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--panel-text-secondary);
+  color: var(--text-dim);
   text-align: center;
   flex-shrink: 0;
 }
