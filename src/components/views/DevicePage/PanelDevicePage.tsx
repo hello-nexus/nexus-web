@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -35,7 +35,7 @@ import { Toggle } from '../../common/Toggle/Toggle';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
-import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
+import { usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
 import { lookupApp, sizesForSurface } from '../../../panel/widgets/registry';
 import type { DeckEditView } from '../../../panel/widgets/types';
@@ -156,14 +156,11 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
     ? (theme.appResolvedThemeMode || theme.appThemeMode)
     : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
-  // CSS variables driving the panel theme (--panel-accent and the full
-  // --accent family). This page lives in desktop chrome where --accent is
-  // the desktop accent, so descendants reaching for --accent (SearchInput,
-  // widget previews) would highlight in the wrong hue. Threading these vars
-  // into the catalog + widget preview wrappers below honors the panel accent.
-  const panelThemeVars = useMemo(
-    () => buildPanelThemeVars(theme, resolvedPanelThemeMode),
-    [theme, resolvedPanelThemeMode],
+  // Desktop resolved mode from the app theme (concrete dark/light, not 'system').
+  // Used for the widget preview in InlineWidgetSettings so it inherits the
+  // desktop chrome's active theme instead of the panel theme.
+  const desktopResolvedThemeMode = useResolvedPanelThemeMode(
+    theme.appResolvedThemeMode || theme.appThemeMode,
   );
 
   useEffect(() => {
@@ -387,8 +384,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                 widget={configuringWidget}
                 surface={surface}
                 deviceTouch={deviceTouch}
-                themeStyle={panelThemeVars}
-                themeMode={resolvedPanelThemeMode}
+                themeMode={desktopResolvedThemeMode}
                 onBack={() => setConfiguringWidget(null)}
                 onUpdate={handleUpdateWidgetConfig}
                 onResize={handleResizeWidget}
@@ -404,8 +400,6 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       onAdd={handleAddWidget}
                       variant="desktop-modal"
                       remote={isRemotePanel(device?.connectionKind)}
-                      themeMode={resolvedPanelThemeMode}
-                      themeStyle={panelThemeVars}
                       className={styles.catalog}
                       selectedWidgetType={currentSingleWidget?.type}
                     />
@@ -551,7 +545,6 @@ interface InlineWidgetSettingsProps {
   widget: PanelWidget;
   surface: PanelSurface;
   deviceTouch?: boolean;
-  themeStyle?: CSSProperties;
   themeMode?: 'dark' | 'light';
   onBack: () => void;
   onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
@@ -559,7 +552,7 @@ interface InlineWidgetSettingsProps {
   onRemove: (widgetId: string) => void;
 }
 
-function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeMode = 'dark', onBack, onUpdate, onResize, onRemove }: InlineWidgetSettingsProps) {
+function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark', onBack, onUpdate, onResize, onRemove }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
@@ -661,7 +654,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
             <div
               className={`panel-root ${usesSlotSelection ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
               data-theme={themeMode}
-              style={{ width: previewW, height: previewH, ...themeStyle }}
+              style={{ width: previewW, height: previewH }}
             >
               <div className={`panel-card ${styles.inlineSettingsPreviewCard}`}>
                 <ErrorBoundary label={widget.type}>
