@@ -16,6 +16,8 @@
 .body {
   flex: 1 1 0;
   min-height: 0;
-  overflow-y: auto;
+  // Vertical-only: a bare `overflow-y: auto` lets the spec compute overflow-x
+  // to `auto`, so the shaders/media grid scrolls sideways on touch. Pin x.
+  overflow: hidden auto;
   -webkit-overflow-scrolling: touch;
 }

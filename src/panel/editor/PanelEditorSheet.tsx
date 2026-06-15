@@ -16,6 +16,7 @@ import { useTranslation } from '../../lib/i18n';
 import type { ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
+import { isSingleWidgetSurface } from '../types';
 import type { PanelBackgroundMode } from '../background/panelBackground';
 import type { PanelThemeState } from '../theme/panelTheme';
 import styles from '../PanelApp.module.scss';
@@ -54,6 +55,7 @@ export function PanelEditorSheet({
   onThemeWidgetLabelsCommit,
   onThemeWidgetBlurCommit,
   machineName,
+  showHostName,
   onMachineNameCommit,
   onAdd,
   onResize,
@@ -97,6 +99,11 @@ export function PanelEditorSheet({
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
   onThemeWidgetBlurCommit: (enabled: boolean) => void;
   machineName: string;
+  // Whether to show the host-name (computer-name) editor. Off on hardwired,
+  // non-user-paired surfaces (Y70, Q-series): the machine is self-evident there
+  // and the field is unusable without a keyboard. Mirrors the connection
+  // identity gate that hides the tray's "Connected to <PC>" line.
+  showHostName: boolean;
   onMachineNameCommit: (next: string) => void;
   onAdd: (type: string, size: PanelWidgetSize) => void;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
@@ -301,10 +308,12 @@ export function PanelEditorSheet({
 
         {mode === 'panelSettings' && (
           <div className={`${styles.settingsBody} ${styles.panelSettingsStack}`}>
-            <PanelHostNameSetting
-              machineName={machineName}
-              onCommit={onMachineNameCommit}
-            />
+            {showHostName && (
+              <PanelHostNameSetting
+                machineName={machineName}
+                onCommit={onMachineNameCommit}
+              />
+            )}
             <PanelThemeSettings
               theme={panelTheme}
               deviceId={deviceId}
@@ -327,6 +336,7 @@ export function PanelEditorSheet({
               onWidgetOpacityCommit={onThemeWidgetOpacityCommit}
               onWidgetLabelsCommit={onThemeWidgetLabelsCommit}
               onWidgetBlurCommit={onThemeWidgetBlurCommit}
+              hideWidgetChromeControls={isSingleWidgetSurface(surface)}
             />
           </div>
         )}

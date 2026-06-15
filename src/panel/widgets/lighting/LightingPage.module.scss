@@ -189,7 +189,9 @@
 .animateGrid {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  // Vertical-only: pin overflow-x (a bare overflow-y lets the spec compute it
+  // to `auto`, scrolling the thumbnail grid sideways on touch).
+  overflow: hidden auto;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;

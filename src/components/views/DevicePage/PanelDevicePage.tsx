@@ -432,6 +432,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
                       onWidgetBlurCommit={panelTheme.commitWidgetBlur}
                       hideWidgetLabelsToggle={singleWidget}
+                      hideWidgetChromeControls={singleWidget}
                     />
                   )}
                   {activeTab === 'settings' && (isMonitorPanel || ddcSupported) && !supportsDisplayControls && !supportsAutoLaunch && (

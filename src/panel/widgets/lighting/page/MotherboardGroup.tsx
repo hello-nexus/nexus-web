@@ -48,6 +48,7 @@ export function MotherboardGroup({
       open={expanded}
       onToggle={onToggleCollapsed}
       ariaLabel={toggleLabel}
+      rightInteractive
       right={
         <HoverTooltip body={t(groupOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
           <button

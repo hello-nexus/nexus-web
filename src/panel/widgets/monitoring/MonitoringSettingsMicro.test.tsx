@@ -4,6 +4,21 @@ import { describe, expect, it, vi } from 'vitest';
 import type { PanelConfigValue, PanelWidget } from '../../types';
 import { MonitoringSettings } from './MonitoringSettings';
 
+// Drive the dropdown as a native <select> here: these tests exercise the
+// widget's sensor wiring, not the custom Select's open/close mechanics (those
+// live in Select.test.tsx).
+vi.mock('../../../components/common/Select/Select', () => ({
+  Select: ({ value, onChange, options, children, ariaLabel, disabled }: {
+    value: string; onChange: (v: string) => void;
+    options?: { value: string; label: string; disabled?: boolean }[]; children?: React.ReactNode;
+    ariaLabel?: string; disabled?: boolean;
+  }) => (
+    <select aria-label={ariaLabel} value={value} disabled={disabled} onChange={e => onChange(e.target.value)}>
+      {options ? options.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>) : children}
+    </select>
+  ),
+}));
+
 // Mock with enough CPU + GPU sensors that Micro at 4 rows has real choices,
 // and one device (memory) intentionally short of MICRO_MAX_COUNT so the
 // disabled-eligibility branch is exercised.

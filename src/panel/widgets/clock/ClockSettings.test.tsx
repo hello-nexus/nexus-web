@@ -3,6 +3,20 @@ import { describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { ClockSettings } from './ClockSettings';
 
+// Drive the dropdown as a native <select> so it stays a combobox, not a
+// button: this suite asserts the design picker's button count.
+vi.mock('../../../components/common/Select/Select', () => ({
+  Select: ({ value, onChange, options, children, ariaLabel, disabled }: {
+    value: string; onChange: (v: string) => void;
+    options?: { value: string; label: string; disabled?: boolean }[]; children?: React.ReactNode;
+    ariaLabel?: string; disabled?: boolean;
+  }) => (
+    <select aria-label={ariaLabel} value={value} disabled={disabled} onChange={e => onChange(e.target.value)}>
+      {options ? options.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>) : children}
+    </select>
+  ),
+}));
+
 function clockWidget(): PanelWidget {
   return {
     id: 'clock-1',

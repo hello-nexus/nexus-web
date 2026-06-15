@@ -1,8 +1,8 @@
 @use '../../../styles/interactions' as *;
 
-/* Themed wrapper for native <select>. The wrapper span overlays a
-   ChevronDown icon on the right edge. The chevron is pointer-events: none
-   so clicks fall through and the native popup opens on the select. */
+/* Custom select: a button trigger (.trigger) with the chevron overlaid by the
+   wrapper, and a portaled listbox (.menu) positioned in JS. Replaces the native
+   <select>, whose popup renders off-screen on the Y70 kiosk WebView. */
 
 .wrapper {
   position: relative;
@@ -11,20 +11,22 @@
   min-width: 0;
 }
 
-.select {
+.trigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
   appearance: none;
-  -webkit-appearance: none;
   background: var(--surface);
   border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: inherit;
   font-size: var(--type-small);
+  text-align: left;
   padding: 0.4rem 1.9rem 0.4rem 0.7rem;
   cursor: pointer;
   transition: border-color var(--ease-fast) ease, box-shadow var(--ease-fast) ease;
   outline: none;
-  width: 100%;
 
   &:focus,
   &:focus-visible {
@@ -35,6 +37,14 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+}
+
+.value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .chevron {
@@ -54,7 +64,7 @@
 /* Ghost variant: no border, no background fill — value as plain text with
    the chevron beside it. For selects already inside a bordered card (cooling
    fan / curve rows). */
-.ghost .select {
+.ghost .trigger {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
@@ -66,4 +76,54 @@
     box-shadow: none;
     color: var(--accent);
   }
+}
+
+/* Listbox: portaled to <body>; top/left/width/max-height set inline. */
+.menu {
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  // Vertical-only: `overflow-y: auto` alone leaves overflow-x at `visible`,
+  // which the spec then computes to `auto` - a long option would scroll the
+  // list sideways. Pin x to hidden (options ellipsis instead).
+  overflow: hidden auto;
+  background: var(--bg-elevated);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 24px rgb(0 0 0 / var(--alpha-medium));
+  z-index: var(--z-dropdown);
+  outline: none;
+  animation: select-menu-in 0.12s ease-out both;
+}
+
+/* Opacity only: the menu carries an inline `transform: scale()` to match the
+   panel zoom, so the entrance must not animate transform or it clobbers it. */
+@keyframes select-menu-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.option {
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--type-small);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.option.active {
+  background: var(--bg-card-hover);
+}
+
+.option.selected {
+  color: var(--accent);
+  font-weight: var(--weight-heading);
+}
+
+.option.optionDisabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

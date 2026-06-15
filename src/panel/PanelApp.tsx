@@ -15,6 +15,7 @@ import { useMachineName } from './engine/useMachineName';
 import { useEdgeAdvance } from './engine/useEdgeAdvance';
 import { usePageSync } from './engine/usePageSync';
 import { useConnectionIntro } from './engine/useConnectionIntro';
+import { useHomeIntro } from './engine/useHomeIntro';
 import { PANEL_CONTEXT_MENU_TRIGGER_MS, usePanelTouchMode } from './engine/usePanelTouchMode';
 import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
@@ -237,10 +238,15 @@ export function PanelContent({
   // wherever the runtime would read panelTheme.theme; otherwise the iframe
   // shows the default theme (its fetch never runs).
   // Single-widget surfaces (q-series) force labels off so the tile fills the
-  // canvas (no ~14px label footer). Render-time flip; persisted theme intact.
+  // canvas (no ~14px label footer), and force widget blur off + opacity 0 so
+  // the single tile floats clean over the shader (no card chrome) and the weak
+  // panel GPU skips the backdrop-filter. Render-time flip; persisted theme
+  // intact. Same forced-for-q-series treatment as the half-res shader cap.
   const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
   const effectiveTheme = useMemo(
-    () => isSingleWidgetSurface(surface) ? { ...baseTheme, widgetLabels: false } : baseTheme,
+    () => isSingleWidgetSurface(surface)
+      ? { ...baseTheme, widgetLabels: false, widgetBlur: false, widgetOpacity: 0 }
+      : baseTheme,
     [baseTheme, surface],
   );
   usePanelLanguageSync(kioskBehavior);
@@ -561,6 +567,9 @@ export function PanelContent({
     machineName,
     setTrayOpen,
   });
+  // Embedded desktop only mounts once the service is online (DashboardOnline),
+  // so layout `loaded` is the readiness signal; serviceStatus is kiosk-only here.
+  const homeIntroActive = useHomeIntro(embedded && surface === 'desktop' && loaded);
   const connectionIntroLabel = (() => {
     const label = t('panel.connectedTo');
     return label === 'panel.connectedTo' ? 'Connected to' : label;
@@ -1128,6 +1137,7 @@ export function PanelContent({
         data-context-menu-open={contextMenuWidgetId ? 'true' : undefined}
         data-editing={surface === 'phone' && sheetMode === 'settings' ? 'true' : undefined}
         data-connection-intro={connectionIntroHost ? 'active' : undefined}
+        data-home-intro={homeIntroActive ? 'active' : undefined}
         data-simulator-selected={simulator && simulatorSelectedWidgetId ? simulatorSelectedWidgetId : undefined}
         style={panelRootStyle}
         onClick={simulator ? (e) => {
@@ -1419,6 +1429,7 @@ export function PanelContent({
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
           onThemeWidgetBlurCommit={panelTheme.commitWidgetBlur}
           machineName={machineName}
+          showHostName={connectionIdentityVisible}
           onMachineNameCommit={onMachineNameCommit}
           onAdd={addWidget}
           onResize={resizeWidget}

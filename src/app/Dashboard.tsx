@@ -45,6 +45,7 @@ import { PageVersionLabel } from './sidebar';
 import { TopBar } from './TopBar';
 import { PageChromeProvider } from './PageChrome';
 import { AppBackdrop } from './AppBackdrop';
+import { BackgroundEffects } from './BackgroundEffects';
 import { SystemAccentSync } from './SystemAccentSync';
 import { ResolvedThemeSync } from './ResolvedThemeSync';
 import { SplashPage } from './SplashPage';
@@ -473,6 +474,7 @@ export function Dashboard() {
         [styles.layoutWindowsApp]: isWindowsAppShell(),
       })}>
         <AppBackdrop />
+        <BackgroundEffects />
         <SystemAccentSync />
         <ResolvedThemeSync />
         <OpenInAppBanner />
