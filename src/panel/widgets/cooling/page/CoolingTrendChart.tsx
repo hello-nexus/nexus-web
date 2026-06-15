@@ -217,7 +217,7 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
         })}
 
         {cpuPath.fill && (
-          <path d={cpuPath.fill} fill="var(--accent)" fillOpacity="0.22" />
+          <path d={cpuPath.fill} fill="var(--accent)" fillOpacity="0.4" />
         )}
         {cpuPath.line && (
           <path
@@ -228,7 +228,7 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
           />
         )}
         {gpuPath.fill && (
-          <path d={gpuPath.fill} fill="var(--accent-deep)" fillOpacity="0.28" />
+          <path d={gpuPath.fill} fill="var(--accent-deep)" fillOpacity="0.4" />
         )}
         {gpuPath.line && (
           <path
