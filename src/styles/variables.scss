@@ -54,6 +54,9 @@
   // Keep the rgb triplet in sync with --text.
   --text: #f5f5f5;
   --text-dim: rgba(245, 245, 245, 0.6);
+  // Separator/divider lines - the text hue at low alpha. The single source for
+  // every dividing rule (app + panel). Keep the triplet synced with --text.
+  --separator: rgba(245, 245, 245, 0.2);
 
   // Accent — deep blue (fallback; runtime values come from applyAccentColor()
   // which sets these same custom properties on <html>).
@@ -202,6 +205,7 @@
   --text: #1a1a2e;
   // Two ink tiers; keep the rgb triplet in sync with --text above.
   --text-dim: rgba(26, 26, 46, 0.6);
+  --separator: rgba(26, 26, 46, 0.2);
 
   --accent: #2563eb;
   --accent-glow: #3b82f6;

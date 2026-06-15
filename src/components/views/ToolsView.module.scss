@@ -177,7 +177,7 @@
 .installDefaultsTabs {
   display: flex;
   gap: 0.25rem;
-  border-bottom: 1px solid var(--border-faint);
+  border-bottom: 1px solid var(--separator);
   position: sticky;
   top: -1.25rem; // cancel the modal body's top padding so the tab bar pins flush
   background: var(--bg-elevated);
@@ -248,7 +248,7 @@
   }
 }
 .installDefaultsSection[open] > .installDefaultsSectionHeader {
-  border-bottom: 1px solid var(--border-faint);
+  border-bottom: 1px solid var(--separator);
 
   &::before { transform: rotate(90deg); }
 }

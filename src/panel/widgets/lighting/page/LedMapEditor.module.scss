@@ -247,7 +247,7 @@
 .selectionBtnSeparator {
   width: 1px;
   align-self: stretch;
-  background: var(--border);
+  background: var(--separator);
   margin: 0 0.15rem;
 }
 
@@ -269,8 +269,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: var(--border);
-  opacity: 0.5;
+  background: var(--separator);
   pointer-events: none;
 }
 
@@ -335,7 +334,7 @@
 .separator {
   width: 1px;
   height: 20px;
-  background: var(--border);
+  background: var(--separator);
   margin: 0 0.15rem;
 }
 

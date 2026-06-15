@@ -364,7 +364,7 @@
     text-align: left;
     color: var(--text-dim);
     padding: 0.3rem 0.5rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--separator);
 
     &:not(:first-child) { text-align: right; }
   }

@@ -12,7 +12,7 @@
   gap: 0.6rem;
   margin-bottom: 0.6rem;
   padding-bottom: 0.45rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
 }
 
 .rankedTitle {
@@ -52,7 +52,7 @@
 .otherRow {
   margin-top: 0.25rem;
   padding-top: 0.45rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--separator);
 }
 
 .dot {

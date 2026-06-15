@@ -212,7 +212,7 @@
   display: flex;
   flex-direction: column;
   padding: 0.35rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--separator);
 }
 
 .actionBtn {
@@ -247,7 +247,7 @@
 
 .actionSep {
   height: 1px;
-  background: var(--border);
+  background: var(--separator);
   margin: 0.2rem 0.6rem;
 }
 

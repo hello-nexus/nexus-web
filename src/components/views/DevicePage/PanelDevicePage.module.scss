@@ -122,7 +122,7 @@
   display: flex;
   gap: 0.25rem;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
 }
 
 .tab {
@@ -216,7 +216,7 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.55rem 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
   flex-shrink: 0;
 }
 
@@ -303,7 +303,7 @@
   align-items: flex-start;
   gap: 18px;
   padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
   flex-shrink: 0;
   flex-wrap: wrap;
   min-width: 0;
@@ -319,7 +319,7 @@
   justify-content: center;
   padding: 1rem 0;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
 }
 
 .inlineSettingsPreviewRoot {

@@ -155,7 +155,7 @@
 .lockedDivider {
   height: 1px;
   margin: 6px 0.5rem 6px;
-  background: linear-gradient(90deg, transparent, var(--border-faint, rgba(255,255,255,0.06)), transparent);
+  background: var(--separator);
   pointer-events: none;
 }
 
@@ -170,7 +170,7 @@
 .runningSeparator {
   flex-shrink: 0;
   margin: 4px 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--separator);
 }
 
 .tailScroll {

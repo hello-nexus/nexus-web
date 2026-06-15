@@ -63,7 +63,7 @@
   flex-direction: column;
   gap: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--separator);
 
   &:last-child {
     border-bottom: 0;
