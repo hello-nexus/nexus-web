@@ -447,6 +447,7 @@
   "gallery.settings.fit": "Dopasuj cały obraz",
   "gallery.settings.interval": "Odstęp",
   "gallery.settings.intervalSeconds": "{seconds} s",
+  "gallery.settings.manageHint": "Obrazami galerii zarządzasz na stronie Galeria w aplikacji na komputer.",
   "gallery.settings.mode": "Tryb",
   "gallery.settings.single": "Pojedynczy",
   "gallery.settings.slideshow": "Pokaz slajdów",

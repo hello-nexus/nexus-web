@@ -1,5 +1,5 @@
 import type { WidgetSettingsProps } from '../types';
-import { SettingsSelect, SettingsSection, SettingsToggle } from '../common/SettingsRow/SettingsRow';
+import { SettingsSelect, SettingsSection, SettingsToggle, SettingsHint } from '../common/SettingsRow/SettingsRow';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './GallerySettings.module.scss';
 
@@ -44,6 +44,7 @@ export function GallerySettings({ widget, onUpdate }: WidgetSettingsProps) {
           onChange={v => onUpdate({ fit: v })}
         />
       </SettingsSection>
+      <SettingsHint>{t('gallery.settings.manageHint')}</SettingsHint>
     </div>
   );
 }

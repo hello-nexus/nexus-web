@@ -447,6 +447,7 @@
   "gallery.settings.fit": "适应整张图片",
   "gallery.settings.interval": "间隔",
   "gallery.settings.intervalSeconds": "{seconds} 秒",
+  "gallery.settings.manageHint": "在桌面应用的图库页面管理图库图片。",
   "gallery.settings.mode": "模式",
   "gallery.settings.single": "单张",
   "gallery.settings.slideshow": "幻灯片",

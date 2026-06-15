@@ -447,6 +447,7 @@
   "gallery.settings.fit": "画像全体を表示",
   "gallery.settings.interval": "間隔",
   "gallery.settings.intervalSeconds": "{seconds}秒",
+  "gallery.settings.manageHint": "ギャラリー画像の管理は、デスクトップアプリのギャラリーページから行います。",
   "gallery.settings.mode": "モード",
   "gallery.settings.single": "単一表示",
   "gallery.settings.slideshow": "スライドショー",
