@@ -83,6 +83,9 @@ async function runSystem(a: DeckSystemAction): Promise<void> {
       await postService('/system/volume/mute', { muted: !(cur?.muted ?? false) });
       return;
     }
+    case 'openSettings':
+      await postService('/system/open-settings', {});
+      return;
     case 'mediaPlayPause':
     case 'mediaNext':
     case 'mediaPrev': {

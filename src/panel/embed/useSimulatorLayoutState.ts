@@ -24,6 +24,9 @@ export interface SimulatorRuntimeState {
   theme: SimulatorTheme | null;
   themeMode: 'dark' | 'light';
   selectedWidgetId: string | null;
+  // Set when the parent rejects an action (e.g. a resize that can't fit);
+  // drives a one-shot flash on the named widget. nonce re-fires repeats.
+  flashSignal: { widgetId: string; nonce: number } | null;
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
@@ -55,6 +58,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [brightness, setBrightness] = useState(100);
   const [screenOn, setScreenOn] = useState(true);
   const [showPanel, setShowPanel] = useState(true);
+  const [flashSignal, setFlashSignal] = useState<{ widgetId: string; nonce: number } | null>(null);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -85,6 +89,10 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         }
         case 'simulator/set-selection': {
           setSelectedWidgetId(data.widgetId);
+          break;
+        }
+        case 'simulator/flash-widget': {
+          setFlashSignal({ widgetId: data.widgetId, nonce: data.nonce });
           break;
         }
         case 'simulator/set-display': {
@@ -129,6 +137,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     theme,
     themeMode,
     selectedWidgetId,
+    flashSignal,
     brightness,
     screenOn,
     showPanel,

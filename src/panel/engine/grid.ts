@@ -10,10 +10,10 @@ export const PANEL_GRID_COLS = 4;
 export const PANEL_LARGE_GRID_COLS = 8;
 export const PANEL_Q60_GRID_COLS = 2;
 export const PANEL_Q60_GRID_ROWS = 4;
-// Y70 portrait: 4x12 fixed. Derived row count from the canvas would give 14
-// at native 682x2560, but design intent is 12 so overflow widgets paginate
-// to the next page instead of stacking 14 deep on one screen.
-export const PANEL_Y70_PORTRAIT_ROWS = 12;
+// Y70 portrait: 4x16 fixed. A canvas-derived row count drifts with the panel
+// model (~14 at native 682x2560); pinning it to 16 keeps placement stable and
+// paginates overflow to the next page instead of restacking the grid.
+export const PANEL_Y70_PORTRAIT_ROWS = 16;
 export const PANEL_GRID_GAP = 8;
 export const PANEL_GRID_PREVIEW_PADDING = 8;
 export const DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES = 4;

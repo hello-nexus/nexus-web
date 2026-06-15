@@ -215,6 +215,16 @@ export function PanelEditorSheet({
         <span className={styles.editorSheetGrabber} aria-hidden="true" />
         <header className={styles.editorHeader}>
           <div className={styles.editorTitle}>{title}</div>
+          {mode === 'settings' && editingWidget && (
+            <button
+              type="button"
+              className={styles.removeButton}
+              onClick={() => onRemove(editingWidget.id)}
+              aria-label={t('panel.editor.removeWidget')}
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
           <button type="button" className={styles.editorIconButton} onClick={onClose} aria-label={t('app.window.close')}>
             <X size={17} />
           </button>
@@ -233,8 +243,8 @@ export function PanelEditorSheet({
 
         {mode === 'settings' && editingWidget && def && (
           <>
-            <div className={styles.editorActions}>
-              {(widgetSizes.length > 1 || slotCountOptions.length > 1) && (
+            {(widgetSizes.length > 1 || slotCountOptions.length > 1) && (
+              <div className={styles.editorActions}>
                 <div className={styles.controlPicker}>
                   {widgetSizes.length > 1 && (
                     <WidgetControlGroup title={isMonitoringWidget ? t('panel.editor.layout') : t('panel.editor.size')}>
@@ -275,20 +285,13 @@ export function PanelEditorSheet({
                     </WidgetControlGroup>
                   )}
                 </div>
-              )}
-              <button
-                type="button"
-                className={styles.removeButton}
-                onClick={() => onRemove(editingWidget.id)}
-                aria-label={t('panel.editor.removeWidget')}
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
+              </div>
+            )}
             {Settings ? (
               <div className={styles.settingsBody}>
                 <Settings
                   widget={editingWidget}
+                  surface={surface}
                   onUpdate={config => onUpdate(editingWidget.id, config)}
                   onResize={handleResize}
                   selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}

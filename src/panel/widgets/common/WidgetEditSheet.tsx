@@ -24,6 +24,7 @@ import type {
   PanelWidget,
   PanelWidgetSize,
 } from '../../types';
+import type { DeckEditView } from '../types';
 import styles from './WidgetEditSheet.module.scss';
 
 interface AnchorRect { x: number; y: number; w: number; h: number }
@@ -53,6 +54,10 @@ interface WidgetEditSheetProps {
   // When omitted, the sheet manages slot selection internally.
   selectedSlot?: number;
   onSelectedSlotChange?: (slot: number) => void;
+  // Foldered slot-selection widgets (deck): the shared edit-mode view so the
+  // live tile and this sheet's Settings navigate the same folder.
+  editView?: DeckEditView;
+  onEditViewChange?: (view: DeckEditView) => void;
   // Extends click-outside dismissal: clicks on related external surfaces
   // (e.g. the live widget tile being edited on the desktop overlay) don't
   // close the sheet. Clicks elsewhere still dismiss.
@@ -110,6 +115,8 @@ export function WidgetEditSheet({
   onBoundsChange,
   selectedSlot: externalSelectedSlot,
   onSelectedSlotChange: externalOnSelectedSlotChange,
+  editView,
+  onEditViewChange,
   keepOpenOnTarget,
 }: WidgetEditSheetProps) {
   const { t } = useTranslation();
@@ -117,6 +124,9 @@ export function WidgetEditSheet({
   const Settings = def?.Settings;
   const sizes = def ? sizesForSurface(def.meta, surface) : [];
   const isMonitoringWidget = widget.type === 'monitoring';
+  // Slot selection is a manifest capability (monitoring + deck), distinct from
+  // the monitoring-only size/slot-count controls above.
+  const usesSlotSelection = !!def?.meta.usesSlotSelection;
   const slotCountOptions = isMonitoringWidget ? slotCountOptionsForSize(widget.size) : [];
   const slotCount = isMonitoringWidget
     ? resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined)
@@ -246,6 +256,14 @@ export function WidgetEditSheet({
         <div className={styles.title}>{title}</div>
         <button
           type="button"
+          className={styles.removeButton}
+          onClick={() => onRemove(widget.id)}
+          aria-label={t('panel.widget.editSheet.removeWidget')}
+        >
+          <Trash2 size={15} />
+        </button>
+        <button
+          type="button"
           className={styles.iconButton}
           onClick={onClose}
           aria-label={t('app.window.close')}
@@ -254,8 +272,7 @@ export function WidgetEditSheet({
         </button>
       </header>
 
-      {/* Actions row always renders (holds the delete button); the size +
-          slot pickers inside only render when there's more than one option. */}
+      {(sizes.length > 1 || slotCountOptions.length > 1) && (
       <div className={styles.actions}>
         <div className={styles.controlPicker}>
           {sizes.length > 1 && (
@@ -292,25 +309,21 @@ export function WidgetEditSheet({
             </WidgetControlGroup>
           )}
         </div>
-        <button
-          type="button"
-          className={styles.removeButton}
-          onClick={() => onRemove(widget.id)}
-          aria-label={t('panel.widget.editSheet.removeWidget')}
-        >
-          <Trash2 size={15} />
-        </button>
       </div>
+      )}
 
       {Settings ? (
         <div className={styles.body}>
           <Suspense fallback={null}>
             <Settings
               widget={widget}
+              surface={surface}
               onUpdate={config => onUpdate(widget.id, config)}
               onResize={handleResize}
-              selectedSlot={isMonitoringWidget ? selectedMonitoringSlot : undefined}
-              onSelectedSlotChange={isMonitoringWidget ? setSelectedMonitoringSlot : undefined}
+              selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
+              onSelectedSlotChange={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
+              editView={usesSlotSelection ? editView : undefined}
+              onEditViewChange={usesSlotSelection ? onEditViewChange : undefined}
             />
           </Suspense>
         </div>

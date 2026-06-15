@@ -1,8 +1,27 @@
 import { describe, it, expect } from 'vitest';
 import {
   innerGridForSize, normalizeDeckConfig, padSlots, resolveViewSlots, updateSlotAt, swapSlots, emptyDeck,
+  defaultDeckConfig, deckConfigPatch,
 } from './deckLayout';
+import { deckApp } from './index';
 import type { DeckConfig } from './types';
+
+describe('defaultDeckConfig', () => {
+  it('seeds a new deck with volume up/down + open settings', () => {
+    expect(defaultDeckConfig().slots.map(s => s.action)).toEqual([
+      { type: 'system', action: { op: 'volumeUp' } },
+      { type: 'system', action: { op: 'volumeDown' } },
+      { type: 'system', action: { op: 'openSettings' } },
+    ]);
+  });
+
+  it('manifest defaultConfig returns a fresh deck patch each call', () => {
+    const a = deckApp.meta.defaultConfig?.();
+    const b = deckApp.meta.defaultConfig?.();
+    expect(a).toEqual(deckConfigPatch(defaultDeckConfig()));
+    expect(a).not.toBe(b);
+  });
+});
 
 describe('innerGridForSize', () => {
   it('maps sizes to inner grid counts', () => {

@@ -83,15 +83,16 @@
   margin: 0;
   padding: 0.25rem;
   list-style: none;
-  // Vertical-only: `overflow-y: auto` alone leaves overflow-x at `visible`,
-  // which the spec then computes to `auto` - a long option would scroll the
-  // list sideways. Pin x to hidden (options ellipsis instead).
+  // Vertical scroll only; long options wrap onto multiple lines (see .option),
+  // so x stays hidden with no sideways scroll.
   overflow: hidden auto;
   background: var(--bg-elevated);
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: 0 6px 24px rgb(0 0 0 / var(--alpha-medium));
-  z-index: var(--z-dropdown);
+  // Portaled to <body> but must clear the panel editor chrome (docked widget
+  // z 200, edit sheet z 230) and modal surfaces; --z-popover sits above them.
+  z-index: var(--z-popover);
   outline: none;
   animation: select-menu-in 0.12s ease-out both;
 }
@@ -109,9 +110,10 @@
   color: var(--text);
   font-size: var(--type-small);
   cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  // Wrap long option labels onto multiple lines instead of truncating with an
+  // ellipsis; overflow-wrap handles unbroken strings (long sensor/device ids).
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .option.active {

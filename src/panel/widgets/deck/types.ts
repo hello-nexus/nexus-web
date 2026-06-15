@@ -14,7 +14,8 @@ export interface DeckIcon {
 export type DeckSystemOp =
   | 'volumeUp' | 'volumeDown' | 'volumeSet' | 'muteToggle'
   | 'mediaPlayPause' | 'mediaNext' | 'mediaPrev'
-  | 'brightnessUp' | 'brightnessDown' | 'brightnessSet';
+  | 'brightnessUp' | 'brightnessDown' | 'brightnessSet'
+  | 'openSettings';
 
 export interface DeckSystemAction {
   op: DeckSystemOp;

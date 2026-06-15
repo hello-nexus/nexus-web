@@ -49,6 +49,13 @@ export interface SimulatorSetSelectionMessage {
   widgetId: string | null;
 }
 
+export interface SimulatorFlashWidgetMessage {
+  type: 'simulator/flash-widget';
+  widgetId: string;
+  // Re-fires the flash even when the same widget is rejected twice in a row.
+  nonce: number;
+}
+
 export interface SimulatorLayoutChangedMessage {
   type: 'simulator/layout-changed';
   layout: PanelLayout;
@@ -68,6 +75,7 @@ export type SimulatorParentToChild =
   | SimulatorSetLayoutMessage
   | SimulatorSetThemeMessage
   | SimulatorSetSelectionMessage
+  | SimulatorFlashWidgetMessage
   | SimulatorSetDisplayMessage;
 
 export type SimulatorChildToParent =

@@ -15,7 +15,10 @@
   }
 }
 
-// Default thumb maps to var(--border); hover lifts to var(--border-strong).
+// Default thumb is a transparency of --text (same base as the --separator
+// hairline), so every scrollbar reads identically on any surface; hover
+// deepens the same transparency. Tie scrollbars to --text, not the solid
+// border tokens, and do not override $thumb per call - keep them universal.
 // Width is symmetric for vertical and horizontal axes. Pass any parameter to
 // override; pass none for the canonical app scrollbar.
 //
@@ -25,8 +28,8 @@
 // containers per spec), and the touch panels keep their bare, gutter-free layout.
 @mixin scrollbar-visible(
   $width: 8px,
-  $thumb: var(--border),
-  $thumb-hover: var(--border-strong),
+  $thumb: color-mix(in srgb, var(--text) 25%, transparent),
+  $thumb-hover: color-mix(in srgb, var(--text) 45%, transparent),
   $track: transparent,
   $radius: var(--radius-sm),
   $gutter: true

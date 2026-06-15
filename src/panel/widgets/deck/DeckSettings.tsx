@@ -5,6 +5,8 @@ import { useTranslation } from '../../../lib/i18n';
 import { DECK_SWATCHES } from '../../../lib/settings';
 import { fetchService } from '../../../api/service';
 import { Select } from '../../../components/common/Select/Select';
+import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
+import { SettingsSection } from '../common/SettingsRow/SettingsRow';
 import { AppPicker } from '../common/AppPicker';
 import { IconPicker } from '../common/IconPicker';
 import type { WidgetSettingsProps, DeckEditView } from '../types';
@@ -30,7 +32,7 @@ const NESTED_KINDS: DeckActionType[] = [
 
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <div className={styles.field}><div className={styles.subLabel}>{label}</div>{children}</div>;
+  return <div className={styles.field}><SectionHeader>{label}</SectionHeader>{children}</div>;
 }
 
 function defaultActionFor(kind: DeckActionType): DeckAction {
@@ -106,7 +108,7 @@ function ActionFields({ action, onChange }: { action: DeckAction; onChange: (a: 
       return <Field label={t('panel.settings.deck.path')}><input className={styles.input} type="text" value={action.path} onChange={e => onChange({ ...action, path: e.target.value })} /></Field>;
     case 'system': {
       const a = action.action;
-      const ops = ['volumeUp', 'volumeDown', 'volumeSet', 'muteToggle', 'mediaPlayPause', 'mediaNext', 'mediaPrev', 'brightnessUp', 'brightnessDown', 'brightnessSet'];
+      const ops = ['volumeUp', 'volumeDown', 'volumeSet', 'muteToggle', 'mediaPlayPause', 'mediaNext', 'mediaPrev', 'brightnessUp', 'brightnessDown', 'brightnessSet', 'openSettings'];
       return (
         <>
           <SelectField label={t('panel.settings.deck.systemOp')} value={a.op} options={ops.map(o => ({ value: o, label: t(`panel.settings.deck.system.${o}`) }))} onChange={op => onChange({ type: 'system', action: { ...a, op: op as typeof a.op } })} />
@@ -215,7 +217,7 @@ function ToggleEditor({ action, onChange }: { action: Extract<DeckAction, { type
   );
 }
 
-export function DeckSettings({ widget, onUpdate, selectedSlot, onSelectedSlotChange, editView, onEditViewChange }: WidgetSettingsProps) {
+export function DeckSettings({ widget, surface, onUpdate, selectedSlot, onSelectedSlotChange, editView, onEditViewChange }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const deck = readDeckConfig(widget);
   const { count } = innerGridForSize(widget.size);
@@ -246,39 +248,41 @@ export function DeckSettings({ widget, onUpdate, selectedSlot, onSelectedSlotCha
         </div>
       )}
 
-      <div className={styles.hint}>{t('panel.settings.deck.selectHint')}</div>
+      <SettingsSection title={t('panel.settings.icon')}>
+        <IconPicker value={slot.icon} appId={appIdForIcon} surface={surface} onChange={icon => writeSlot({ ...slot, icon })} />
+      </SettingsSection>
 
-      <Field label={t('panel.settings.icon')}>
-        <IconPicker value={slot.icon} appId={appIdForIcon} onChange={icon => writeSlot({ ...slot, icon })} />
-      </Field>
-
-      <Field label={t('panel.settings.deck.color')}>
+      <SettingsSection title={t('panel.settings.deck.color')}>
         <div className={styles.swatches}>
           <button type="button" className={`${styles.swatch} ${styles.autoSwatch} ${!slot.color ? styles.activeSwatch : ''}`} onClick={() => writeSlot({ ...slot, color: undefined })}>{t('panel.settings.deck.colorAuto')}</button>
           {DECK_SWATCHES.map(c => (
             <button key={c} type="button" className={`${styles.swatch} ${slot.color === c ? styles.activeSwatch : ''}`} style={{ background: c }} onClick={() => writeSlot({ ...slot, color: c })} aria-label={c} />
           ))}
         </div>
-      </Field>
+      </SettingsSection>
 
-      <Field label={t('panel.settings.deck.label')}>
+      <SettingsSection title={t('panel.settings.deck.label')}>
         <input className={styles.input} type="text" value={slot.label ?? ''} onChange={e => writeSlot({ ...slot, label: e.target.value })} />
-      </Field>
+      </SettingsSection>
 
-      <SelectField
-        label={t('panel.settings.deck.actionType')}
-        value={kind}
-        options={TOP_KINDS.map(k => ({ value: k, label: t(`panel.settings.deck.action.${k}`) }))}
-        onChange={k => onKindChange(k as DeckActionType | 'folder')}
-      />
-
-      {kind === 'folder' ? (
-        <button type="button" className={styles.folderBtn} onClick={() => { setView({ folderPath: [...folderPath, selSlot] }); onSelectedSlotChange?.(0); }}>
-          <FolderInput size={14} /> {t('panel.settings.deck.enterFolder')}
-        </button>
-      ) : slot.action ? (
-        <ActionEditor action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} showType={false} allowed={NESTED_KINDS} />
-      ) : null}
+      <SettingsSection title={t('panel.settings.deck.actionType')}>
+        <div className={styles.fieldStack}>
+          <Select
+            className={styles.selectWide}
+            value={kind}
+            options={TOP_KINDS.map(k => ({ value: k, label: t(`panel.settings.deck.action.${k}`) }))}
+            onChange={k => onKindChange(k as DeckActionType | 'folder')}
+            ariaLabel={t('panel.settings.deck.actionType')}
+          />
+          {kind === 'folder' ? (
+            <button type="button" className={styles.folderBtn} onClick={() => { setView({ folderPath: [...folderPath, selSlot] }); onSelectedSlotChange?.(0); }}>
+              <FolderInput size={14} /> {t('panel.settings.deck.enterFolder')}
+            </button>
+          ) : slot.action ? (
+            <ActionEditor action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} showType={false} allowed={NESTED_KINDS} />
+          ) : null}
+        </div>
+      </SettingsSection>
     </div>
   );
 }

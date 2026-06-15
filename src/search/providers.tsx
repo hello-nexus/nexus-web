@@ -48,7 +48,7 @@ function toggleEntry(id: string, e: {
 // is read straight from its own source-of-truth list, so it never drifts.
 
 const NAV: { view: string; labelKey: string; keywords: string[] }[] = [
-  { view: 'dashboard',  labelKey: 'nav.dashboard',  keywords: ['home', 'overview', 'start'] },
+  { view: 'dashboard',  labelKey: 'sidebar.section.apps',  keywords: ['home', 'overview', 'start', 'dashboard', 'store', 'apps'] },
   { view: 'monitoring', labelKey: 'nav.monitoring', keywords: ['cpu', 'gpu', 'temps', 'sensors', 'usage', 'performance', 'network', 'ram', 'memory'] },
   { view: 'screentime', labelKey: 'screentime.title', keywords: ['screen time', 'usage', 'apps', 'tracking', 'pickups', 'history'] },
   // Cooling/lighting keywords include their actions' terms so the page-open

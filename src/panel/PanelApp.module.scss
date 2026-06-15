@@ -226,6 +226,14 @@
   animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+// A single just-added widget plays the same intro pop so it appears the way
+// widgets do on panel launch. Per-cell (not the root intro selector) so only
+// the new tile animates.
+.cellEntrance {
+  transform-origin: center;
+  animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .connectionIntroBackdrop {
     animation: none;
@@ -238,6 +246,7 @@
     transform: translate(-50%, 0);
   }
 
+  .cellEntrance,
   .panelRoot[data-connection-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell),
   .panelRoot[data-home-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) {
     animation: none;
@@ -291,6 +300,14 @@
 .editorDockPortal > * {
   pointer-events: auto;
 }
+// Desktop only: the desktop edit backdrop is z-modal (it must cover the app top
+// bar), which would otherwise blur over the docked widget that sits in this
+// portal. Lift the portal one rung above the backdrop so the edited widget stays
+// sharp. Touch surfaces keep no z here on purpose - their backdrop has no
+// z-index and the bottom sheet must still paint over the widget's lower rows.
+.panelRoot[data-surface='desktop'] .editorDockPortal {
+  z-index: calc(var(--z-modal) + 1);
+}
 
 .panelStagePages {
   position: relative;
@@ -330,6 +347,12 @@
   --panel-page-padding-right: 0px;
   --panel-page-padding-bottom: 8px;
   --panel-page-padding-left: 0px;
+  // Fit all --panel-rows into the canvas height. Without this the grid falls
+  // back to square rows (grid-auto-rows: --panel-cell-size); at 16 rows that's
+  // taller than the panel, so the bottom rows clip off-screen and read as if
+  // they paginated. Rows fill the height instead (slightly shorter than wide).
+  --panel-row-size: calc((100vh - var(--panel-page-padding-top) - var(--panel-page-padding-bottom) - (var(--panel-rows) - 1) * var(--panel-gap, 8px)) / var(--panel-rows));
+  --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
 }
 
 .panelRoot[data-surface='phone'] {
@@ -1096,7 +1119,7 @@
 .settingsBody {
   min-height: 0;
   overflow-y: auto;
-  @include scrollbar-visible($thumb: var(--panel-border), $thumb-hover: var(--panel-border-strong), $gutter: false);
+  @include scrollbar-visible($gutter: false);
 }
 
 .panelSettingsStack {
@@ -1135,7 +1158,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 12px;
   min-width: 0;
 }
@@ -1318,11 +1341,20 @@
 }
 
 .editorBackdrop[data-surface='phone'][data-mode='settings'] .editorSheet {
-  // Pin the top edge at the 2-row (4x2) detent so the drawer slides to the
-  // same Y for any widget. Taller widgets (4x4) render full size and are
-  // partially overlapped, matching iOS modal-sheet behavior.
+  // Top edge tracks the edited widget's height (its row span), floored at the
+  // 2-row (4x2) detent. Widgets up to 2 rows keep the optimal high rest
+  // position; a taller 4x4 pushes the drawer down to just below the widget so
+  // it stops overlapping the controls. Resizing back down springs it up (top
+  // transition). bottom:0 keeps the drawer pinned to the screen bottom, so a
+  // lower top just shortens it (no overflow).
+  --editor-sheet-rows: max(2, var(--panel-editor-dock-rows, 2));
   position: absolute;
-  top: calc(max(8px, env(safe-area-inset-top)) + 2 * var(--panel-cell-size) + var(--panel-gap) + 24px);
+  top: calc(
+    max(8px, env(safe-area-inset-top))
+    + var(--editor-sheet-rows) * var(--panel-cell-size)
+    + (var(--editor-sheet-rows) - 1) * var(--panel-gap)
+    + 24px
+  );
   left: 0;
   right: 0;
   bottom: 0;
@@ -1330,6 +1362,7 @@
   height: auto;
   max-height: none;
   padding-top: 14px;
+  transition: top 220ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .editorBackdrop[data-surface='phone'][data-mode='catalog'] .editorSheet,

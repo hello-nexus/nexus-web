@@ -2,6 +2,7 @@ import { LayoutGrid } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { DeckWidget } from './DeckWidget';
 import { DeckSettings } from './DeckSettings';
+import { defaultDeckConfig, deckConfigPatch } from './deckLayout';
 
 export const deckApp: AppManifest = {
   meta: {
@@ -15,6 +16,7 @@ export const deckApp: AppManifest = {
     hasConfig: true,
     touch: true,
     usesSlotSelection: true,
+    defaultConfig: () => deckConfigPatch(defaultDeckConfig()),
   },
   Widget: DeckWidget,
   Settings: DeckSettings,

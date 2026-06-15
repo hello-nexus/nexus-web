@@ -10,15 +10,15 @@ import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { OverlayWidgetsModal } from './OverlayWidgetsModal';
 import { listOverlayWidgets } from '../../../api/overlay';
 import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
-import styles from './DashboardView.module.scss';
+import styles from './AppsView.module.scss';
 
-interface DashboardViewProps {
+interface DashboardTabProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
   onSectionNavigate?: DashboardSectionNavigate;
 }
 
-export function DashboardView({ serviceOnline, connectionState, onSectionNavigate }: DashboardViewProps) {
+export function DashboardTab({ serviceOnline, connectionState, onSectionNavigate }: DashboardTabProps) {
   if (!serviceOnline) {
     return <DashboardOffline connectionState={connectionState} />;
   }
@@ -41,7 +41,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
     // Initial fetch + refresh when the (stable) refresher changes. The
     // refresher itself sets state; the lint rule sees that through the
     // closure.
-     
+
     void refreshDesktopWidgetCount();
   }, [refreshDesktopWidgetCount]);
 

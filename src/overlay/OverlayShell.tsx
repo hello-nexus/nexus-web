@@ -8,6 +8,7 @@ import {
 import { fetchService, postService } from '../api/service';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { sizesForSurface, APP_REGISTRY } from '../panel/widgets/registry';
+import type { DeckEditView } from '../panel/widgets/types';
 import { normalizePanelWidgetSize, type PanelConfigValue, type PanelWidget, type PanelWidgetSize } from '../panel/types';
 import { buildEmbeddedPanelThemeVars } from '../panel/theme/panelTheme';
 import { applyAccentColor, applyThemeMode, type ThemeMode } from '../lib/settings';
@@ -130,6 +131,9 @@ export default function OverlayShell() {
   // and the sensor list inside the edit sheet acts on that slot. State
   // lives here so both consumers (tile and sheet) read the same source.
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
+  // Foldered slot widgets (deck) share their folder view between the live tile
+  // and the edit sheet, mirroring selectedMonitoringSlot.
+  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ folderPath: [] });
   // The edit sheet measures and reports its rendered rect; the host carves
   // out this rect (plus widget rects) so the rest of the screen stays
   // see-through and click-through to the desktop.
@@ -393,7 +397,8 @@ export default function OverlayShell() {
       data-theme={resolvedThemeAttr}
     >
       {renderedWidgets.map(entry => {
-        const editingThis = editingWidgetId === entry.id && entry.type === 'monitoring';
+        const editingThis = editingWidgetId === entry.id
+          && !!APP_REGISTRY[entry.type]?.meta.usesSlotSelection;
         return (
           <OverlayWidgetTile
             key={entry.id}
@@ -403,6 +408,8 @@ export default function OverlayShell() {
             isDragging={dragOverride?.id === entry.id}
             selectedSlot={editingThis ? selectedMonitoringSlot : undefined}
             onSelectSlot={editingThis ? setSelectedMonitoringSlot : undefined}
+            editView={editingThis ? deckEditView : undefined}
+            onEditViewChange={editingThis ? setDeckEditView : undefined}
             onContextMenu={(x, y) => setMenu({ x, y, widgetId: entry.id })}
             onDragMove={(col, row) => setDragOverride({ id: entry.id, col, row })}
             onDragEnd={(col, row) => { void handleDragCommit(entry.id, col, row); }}
@@ -480,8 +487,10 @@ export default function OverlayShell() {
             onUpdate={handleUpdateConfig}
             onRemove={handleRemoveFromEditor}
             onClose={() => setEditingWidgetId(null)}
-            selectedSlot={entry.type === 'monitoring' ? selectedMonitoringSlot : undefined}
-            onSelectedSlotChange={entry.type === 'monitoring' ? setSelectedMonitoringSlot : undefined}
+            selectedSlot={def.meta.usesSlotSelection ? selectedMonitoringSlot : undefined}
+            onSelectedSlotChange={def.meta.usesSlotSelection ? setSelectedMonitoringSlot : undefined}
+            editView={def.meta.usesSlotSelection ? deckEditView : undefined}
+            onEditViewChange={def.meta.usesSlotSelection ? setDeckEditView : undefined}
             keepOpenOnTarget={(target) => {
               if (!(target instanceof Element)) return false;
               const tile = target.closest<HTMLElement>('[data-widget-id]');
@@ -501,12 +510,14 @@ interface TileProps {
   isDragging: boolean;
   selectedSlot?: number;
   onSelectSlot?: (slot: number) => void;
+  editView?: DeckEditView;
+  onEditViewChange?: (view: DeckEditView) => void;
   onContextMenu: (x: number, y: number) => void;
   onDragMove: (col: number, row: number) => void;
   onDragEnd: (col: number, row: number) => void;
 }
 
-function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlot, onSelectSlot, onContextMenu, onDragMove, onDragEnd }: TileProps) {
+function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlot, onSelectSlot, editView, onEditViewChange, onContextMenu, onDragMove, onDragEnd }: TileProps) {
   const def = APP_REGISTRY[entry.type];
   const w = widthCells(entry.size);
   const h = heightCells(entry.size);
@@ -612,7 +623,7 @@ function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlo
       >
         <Suspense fallback={null}>
           {/* eslint-disable-next-line i18next/no-literal-string -- surface id */}
-          <Component widget={widget} surface="desktop" selectedSlot={selectedSlot} onSelectSlot={onSelectSlot} />
+          <Component widget={widget} surface="desktop" selectedSlot={selectedSlot} onSelectSlot={onSelectSlot} editView={editView} onEditViewChange={onEditViewChange} />
         </Suspense>
       </div>
     </div>

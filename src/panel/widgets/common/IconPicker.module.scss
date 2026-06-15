@@ -1,7 +1,24 @@
 .picker {
+  --icon-label-button-height: 48px;
+  --icon-label-icon-size: 18px;
+  --icon-label-label-size: 10px;
+
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+// Mode switch (Auto / Icons / Emoji): square icon-label tiles, same control as
+// the widget Size / Layout pickers.
+.tabRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.tabButton {
+  width: 100%;
+  min-width: 0;
 }
 
 .search {
