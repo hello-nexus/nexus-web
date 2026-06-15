@@ -30,7 +30,9 @@
   inset: 0;
   display: block;
   overflow: hidden;
-  background: var(--panel-element-bg);
+  // No fill: the image / skeleton / live canvas always covers this box; the
+  // icon view (off / mirror / no-media) is the only state where the box itself
+  // shows, and it reads the card's base background to match CoolingWidget.
 
   img {
     width: 100%;
