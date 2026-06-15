@@ -106,6 +106,10 @@ export interface AppMetadata {
   // (monitoring, deck). When true, PanelApp/WidgetEditSheet/PanelEditorSheet
   // pass selectedSlot/onSelectedSlotChange through. Defaults to false.
   usesSlotSelection?: boolean;
+  // Initial config a freshly-added widget is seeded with (e.g. the deck's
+  // starter actions). Called once at insert time; returns a fresh object so two
+  // widgets never share mutable config. Absent → the widget starts config-less.
+  defaultConfig?: () => Record<string, PanelConfigValue>;
 }
 
 // Initial sheet state derived from where the user invoked the edit flow.

@@ -208,7 +208,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 0.25rem 0.75rem 0.5rem;
-  background: var(--surface);
+  // Flat page base (not --surface) so the --surface SettingsSection cards inside
+  // read as raised panels against it instead of blending in.
+  background: var(--bg);
 }
 
 .inlineSettingsHeader {

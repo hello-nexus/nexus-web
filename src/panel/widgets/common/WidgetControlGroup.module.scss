@@ -5,15 +5,6 @@
   min-width: 0;
 }
 
-.title {
-  color: var(--widget-control-title-color, var(--text-dim));
-  font-size: 10px;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
 .buttons {
   display: flex;
   align-items: center;

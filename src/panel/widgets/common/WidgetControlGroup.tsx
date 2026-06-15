@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import styles from './WidgetControlGroup.module.scss';
 
 export function WidgetControlGroup({
@@ -12,7 +13,7 @@ export function WidgetControlGroup({
 }) {
   return (
     <div className={`${styles.group} ${className ?? ''}`}>
-      <div className={styles.title}>{title}</div>
+      <SectionHeader>{title}</SectionHeader>
       <div className={styles.buttons}>{children}</div>
     </div>
   );

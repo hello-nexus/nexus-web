@@ -11,20 +11,18 @@
   gap: 12px;
 }
 
-.subLabel {
-  color: var(--deck-settings-faint);
-  font-size: 10px;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  margin-bottom: -4px;
-}
-
 .field {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+// Vertical spacing for the controls stacked inside a SettingsSection box (the
+// action-type select plus the per-action fields below it).
+.fieldStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .input {
@@ -145,9 +143,7 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: var(--type-tiny);
-  font-weight: var(--weight-display);
-  text-transform: uppercase;
+  font-size: var(--type-mini);
   color: var(--deck-settings-faint);
 
   span button { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0 3px; }

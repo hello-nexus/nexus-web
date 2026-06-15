@@ -26,8 +26,11 @@
   container-type: size;
   border: 1px solid color-mix(in srgb, var(--deck-accent, #64748b) 50%, transparent);
   border-radius: var(--radius);
-  // Tinted at rest (not just on hover).
-  background: color-mix(in srgb, var(--deck-accent, #64748b) 30%, transparent);
+  // Accent tint composited over a neutral backing in one solid fill, so buttons
+  // stay legible even when the widget tile is set fully transparent (the tile
+  // opacity does not cascade down to the cells).
+  background: color-mix(in srgb, var(--deck-accent, #64748b) 26%,
+    color-mix(in srgb, var(--surface) 62%, transparent));
   color: color-mix(in srgb, var(--deck-accent, #64748b) 70%, #ffffff);
   font: inherit;
   padding: 5px;
@@ -37,7 +40,8 @@
   transition: transform var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast), border-color var(--ease-fast);
 
   &:hover {
-    background: color-mix(in srgb, var(--deck-accent, #64748b) 42%, transparent);
+    background: color-mix(in srgb, var(--deck-accent, #64748b) 40%,
+      color-mix(in srgb, var(--surface) 62%, transparent));
   }
 
   &:active {

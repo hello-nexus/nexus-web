@@ -1,10 +1,17 @@
 import { useMemo, useState } from 'react';
+import { Sparkles, Shapes, Smile } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
-import { Tabs } from '../../../components/common/Tabs/Tabs';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { DECK_ICONS, DECK_ICON_NAMES } from '../deck/deckIcons';
 import { CATEGORIES as EMOJI_CATEGORIES, CATEGORY_KEYS as EMOJI_CATEGORY_KEYS } from '../emoji/EmojiWidget';
 import type { DeckIcon } from '../deck/types';
 import styles from './IconPicker.module.scss';
+
+const TAB_DEFS = [
+  { key: 'auto', icon: Sparkles, labelKey: 'panel.iconPicker.auto' },
+  { key: 'icons', icon: Shapes, labelKey: 'panel.iconPicker.icons' },
+  { key: 'emoji', icon: Smile, labelKey: 'panel.iconPicker.emoji' },
+] as const;
 
 interface IconPickerProps {
   value?: DeckIcon;
@@ -40,19 +47,18 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
 
   return (
     <div className={styles.picker}>
-      <Tabs
-        ariaLabel={t('panel.settings.icon')}
-        activeKey={tab}
-        onChange={onTab}
-        tabs={[
-          // eslint-disable-next-line i18next/no-literal-string -- tab id, not display text
-          { key: 'auto', label: t('panel.iconPicker.auto') },
-          // eslint-disable-next-line i18next/no-literal-string -- tab id, not display text
-          { key: 'icons', label: t('panel.iconPicker.icons') },
-          // eslint-disable-next-line i18next/no-literal-string -- tab id, not display text
-          { key: 'emoji', label: t('panel.iconPicker.emoji') },
-        ]}
-      />
+      <div className={styles.tabRow} role="tablist" aria-label={t('panel.settings.icon')}>
+        {TAB_DEFS.map(({ key, icon: Icon, labelKey }) => (
+          <IconLabelButton
+            key={key}
+            className={styles.tabButton}
+            active={tab === key}
+            icon={<Icon aria-hidden="true" />}
+            label={t(labelKey)}
+            onPress={() => onTab(key)}
+          />
+        ))}
+      </div>
 
       {tab === 'auto' && (
         <div className={styles.autoHint}>{t('panel.iconPicker.autoHint')}</div>

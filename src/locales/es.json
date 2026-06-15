@@ -1147,6 +1147,7 @@
   "panel.settings.deck.system.mediaPlayPause": "Reproducir / pausar",
   "panel.settings.deck.system.mediaPrev": "Pista anterior",
   "panel.settings.deck.system.muteToggle": "Silenciar/activar",
+  "panel.settings.deck.system.openSettings": "Abrir ajustes",
   "panel.settings.deck.system.volumeDown": "Bajar volumen",
   "panel.settings.deck.system.volumeSet": "Ajustar volumen",
   "panel.settings.deck.system.volumeUp": "Subir volumen",

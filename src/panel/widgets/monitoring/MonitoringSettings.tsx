@@ -18,6 +18,7 @@ import type { DeviceKey } from '../monitoring/perfSlots';
 import { buildNetworkSensors, networkSensorOptions, NETWORK_SENSOR_TOTAL } from '../monitoring/networkSensors';
 import { bareSensorLabel } from '../monitoring/sensorNames';
 import { DEFAULT_SCALE_MODE, designSupportsScale, type ScaleMode } from '../monitoring/perfDomain';
+import { SettingsSection } from '../common/SettingsRow/SettingsRow';
 import styles from './MonitoringSettings.module.scss';
 
 const SCALE_OPTIONS: { value: ScaleMode; label: string }[] = [
@@ -213,8 +214,7 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
 
     return (
       <div className={styles.settingsRoot}>
-        <div className={styles.editorBlock}>
-          <div className={styles.subLabel}>{t('monitoring.settings.device')}</div>
+        <SettingsSection title={t('monitoring.settings.device')}>
           <Select
             className={styles.selectWide}
             value={microDevice}
@@ -230,8 +230,9 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
             options={microDeviceOptions}
             ariaLabel={t('monitoring.settings.device')}
           />
+        </SettingsSection>
 
-          <div className={styles.subLabel}>{t('monitoring.settings.sensors')}</div>
+        <SettingsSection title={t('monitoring.settings.sensors')}>
           <div className={styles.microSensorList}>
             {microSensorNames.map((name, i) => (
               <Select
@@ -244,7 +245,7 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
               />
             ))}
           </div>
-        </div>
+        </SettingsSection>
       </div>
     );
   }
@@ -256,49 +257,50 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
   return (
     <div className={styles.settingsRoot}>
       {activeConfig && (
-        <div className={styles.editorBlock}>
-          <div className={styles.subLabel}>{t('monitoring.settings.sensor')}</div>
-          <div className={styles.sensorRow}>
-            <Select
-              className={styles.selectSmall}
-              value={activeConfig.device}
-              onChange={v => onUpdate({
-                [`slot${activeSlot}_device`]: v,
-                [`slot${activeSlot}_sensor`]: defaultSensorForDevice(v as DeviceKey, sensors, networkSensors),
-              })}
-              options={DEVICE_OPTIONS}
-              ariaLabel={t('monitoring.settings.device')}
-            />
-            <Select
-              className={styles.selectWide}
-              value={sensorValue}
-              onChange={v => onUpdate({ [`slot${activeSlot}_sensor`]: v })}
-              options={sensorOptions}
-              ariaLabel={t('monitoring.settings.sensor')}
-            />
-          </div>
+        <>
+          <SettingsSection title={t('monitoring.settings.sensor')}>
+            <div className={styles.sensorRow}>
+              <Select
+                className={styles.selectSmall}
+                value={activeConfig.device}
+                onChange={v => onUpdate({
+                  [`slot${activeSlot}_device`]: v,
+                  [`slot${activeSlot}_sensor`]: defaultSensorForDevice(v as DeviceKey, sensors, networkSensors),
+                })}
+                options={DEVICE_OPTIONS}
+                ariaLabel={t('monitoring.settings.device')}
+              />
+              <Select
+                className={styles.selectWide}
+                value={sensorValue}
+                onChange={v => onUpdate({ [`slot${activeSlot}_sensor`]: v })}
+                options={sensorOptions}
+                ariaLabel={t('monitoring.settings.sensor')}
+              />
+            </div>
+          </SettingsSection>
 
-          <div className={styles.subLabel}>{t('monitoring.settings.design')}</div>
-          <div className={styles.designRow}>
-            {GAUGE_DESIGN_KEYS.map(k => {
-              const Icon = DESIGN_ICONS[k];
-              const active = k === activeConfig.design;
-              return (
-                <IconLabelButton
-                  key={k}
-                  className={styles.designBtn}
-                  active={active}
-                  icon={Icon ? <Icon aria-hidden="true" /> : undefined}
-                  label={GAUGE_DESIGN_LABELS[k]}
-                  onPress={() => onUpdate({ [`slot${activeSlot}_design`]: k })}
-                />
-              );
-            })}
-          </div>
+          <SettingsSection title={t('monitoring.settings.design')}>
+            <div className={styles.designRow}>
+              {GAUGE_DESIGN_KEYS.map(k => {
+                const Icon = DESIGN_ICONS[k];
+                const active = k === activeConfig.design;
+                return (
+                  <IconLabelButton
+                    key={k}
+                    className={styles.designBtn}
+                    active={active}
+                    icon={Icon ? <Icon aria-hidden="true" /> : undefined}
+                    label={GAUGE_DESIGN_LABELS[k]}
+                    onPress={() => onUpdate({ [`slot${activeSlot}_design`]: k })}
+                  />
+                );
+              })}
+            </div>
+          </SettingsSection>
 
           {designSupportsScale(activeConfig.design) && (
-            <>
-              <div className={styles.subLabel}>{t('monitoring.settings.range')}</div>
+            <SettingsSection title={t('monitoring.settings.range')}>
               <div className={styles.scaleRow}>
                 {SCALE_OPTIONS.map(opt => (
                   <IconLabelButton
@@ -310,9 +312,9 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
                   />
                 ))}
               </div>
-            </>
+            </SettingsSection>
           )}
-        </div>
+        </>
       )}
     </div>
   );

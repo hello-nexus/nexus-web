@@ -760,12 +760,14 @@ export function PanelContent({
   }, [pendingScrollId, sheetMode, allFiltered, activePageIndex, setActivePageIndex]);
 
   const addWidget = useCallback((type: string, size: PanelWidgetSize) => {
+    const defaultConfig = lookupApp(type)?.meta.defaultConfig?.();
     const next: PanelWidget = {
       id: createUuid(),
       type,
       size,
       col: 0,
       row: 0,
+      ...(defaultConfig ? { config: defaultConfig } : {}),
     };
     // Dashboard is single-page: appendWidget no-ops if page 0 is full
     // instead of spawning a new page. Other surfaces keep multi-page.

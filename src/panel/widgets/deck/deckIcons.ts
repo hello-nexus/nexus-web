@@ -40,6 +40,7 @@ export function deckCategory(action: DeckAction | undefined): DeckCategory {
     case 'openFolder':
     case 'openUrl': return 'open';
     case 'system':
+      if (action.action.op === 'openSettings') return 'open';
       if (action.action.op.startsWith('volume') || action.action.op === 'muteToggle') return 'volume';
       if (action.action.op.startsWith('media')) return 'media';
       return 'brightness';
@@ -100,6 +101,7 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
         case 'brightnessUp': return 'Sun';
         case 'brightnessDown': return 'SunDim';
         case 'brightnessSet': return 'Sun';
+        case 'openSettings': return 'Settings';
         default: return 'Sliders';
       }
     case 'hotkey': return 'Keyboard';

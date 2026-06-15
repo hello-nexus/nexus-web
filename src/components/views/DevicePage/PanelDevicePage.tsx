@@ -31,6 +31,7 @@ import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
 import { lookupApp, sizesForSurface } from '../../../panel/widgets/registry';
+import type { DeckEditView } from '../../../panel/widgets/types';
 import { sizeToSpan } from '../../../panel/engine/grid';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
 import {
@@ -563,9 +564,14 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
   const sizes = def ? sizesForSurface(def.meta, surface, deviceTouch) : [];
   const Settings = def?.Settings;
   const isMonitoringWidget = widget.type === 'monitoring';
+  // Slot selection (clicking a sub-cell in the live preview to edit it) is a
+  // manifest capability shared by monitoring and the deck, NOT a monitoring
+  // type check. Gate the interactive preview + slot wiring on this flag.
+  const usesSlotSelection = !!def?.meta.usesSlotSelection;
   const slotCountOptions = isMonitoringWidget ? slotCountOptionsForSize(widget.size) : [];
   const slotCount = resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
+  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ folderPath: [] });
 
   const handleConfigUpdate = (config: Record<string, PanelConfigValue>) => {
     onUpdate(widget.id, { ...widget.config, ...config });
@@ -651,7 +657,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
           const previewH = span.rows * 90 + (span.rows - 1) * 6;
           return (
             <div
-              className={`panel-root ${isMonitoringWidget ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
+              className={`panel-root ${usesSlotSelection ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
               data-theme={themeMode}
               style={{ width: previewW, height: previewH, ...themeStyle }}
             >
@@ -659,8 +665,10 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
                 <ErrorBoundary label={widget.type}>
                   <Comp
                     widget={widget}
-                    selectedSlot={isMonitoringWidget ? selectedMonitoringSlot : undefined}
-                    onSelectSlot={isMonitoringWidget ? setSelectedMonitoringSlot : undefined}
+                    selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
+                    onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
+                    editView={usesSlotSelection ? deckEditView : undefined}
+                    onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
                   />
                 </ErrorBoundary>
               </div>
@@ -675,8 +683,10 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeStyle, themeM
             widget={widget}
             onUpdate={handleConfigUpdate}
             onResize={handleResize}
-            selectedSlot={isMonitoringWidget ? selectedMonitoringSlot : undefined}
-            onSelectedSlotChange={isMonitoringWidget ? setSelectedMonitoringSlot : undefined}
+            selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
+            onSelectedSlotChange={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
+            editView={usesSlotSelection ? deckEditView : undefined}
+            onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
           />
         </div>
       ) : (

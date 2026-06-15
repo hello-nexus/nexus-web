@@ -1147,6 +1147,7 @@
   "panel.settings.deck.system.mediaPlayPause": "Воспроизведение / пауза",
   "panel.settings.deck.system.mediaPrev": "Предыдущий трек",
   "panel.settings.deck.system.muteToggle": "Вкл/выкл звук",
+  "panel.settings.deck.system.openSettings": "Открыть настройки",
   "panel.settings.deck.system.volumeDown": "Тише",
   "panel.settings.deck.system.volumeSet": "Установить громкость",
   "panel.settings.deck.system.volumeUp": "Громче",

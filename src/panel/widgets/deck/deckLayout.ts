@@ -18,6 +18,19 @@ export function emptyDeck(): DeckConfig {
   return { slots: [] };
 }
 
+// Seeded into a freshly-added deck so it's useful out of the box rather than a
+// grid of empty cells: two volume nudges plus "open system settings" (a
+// per-OS service action). Remaining cells pad empty.
+export function defaultDeckConfig(): DeckConfig {
+  return {
+    slots: [
+      { action: { type: 'system', action: { op: 'volumeUp' } } },
+      { action: { type: 'system', action: { op: 'volumeDown' } } },
+      { action: { type: 'system', action: { op: 'openSettings' } } },
+    ],
+  };
+}
+
 /** Parse + normalize the deck config off a widget. */
 export function readDeckConfig(widget: PanelWidget): DeckConfig {
   return normalizeDeckConfig(widget.config?.deck as unknown);
