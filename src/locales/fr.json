@@ -447,6 +447,7 @@
   "gallery.settings.fit": "Afficher l'image entière",
   "gallery.settings.interval": "Intervalle",
   "gallery.settings.intervalSeconds": "{seconds} s",
+  "gallery.settings.manageHint": "Pour gérer les images de la galerie, ouvrez la page Galerie dans l'application de bureau.",
   "gallery.settings.mode": "Mode",
   "gallery.settings.single": "Unique",
   "gallery.settings.slideshow": "Diaporama",

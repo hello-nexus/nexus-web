@@ -447,6 +447,7 @@
   "gallery.settings.fit": "Görselin tamamını sığdır",
   "gallery.settings.interval": "Aralık",
   "gallery.settings.intervalSeconds": "{seconds} sn",
+  "gallery.settings.manageHint": "Galeri görsellerini masaüstü uygulamasındaki Galeri sayfasından yönetin.",
   "gallery.settings.mode": "Mod",
   "gallery.settings.single": "Tek görsel",
   "gallery.settings.slideshow": "Slayt gösterisi",

@@ -447,6 +447,7 @@
   "gallery.settings.fit": "전체 이미지 맞추기",
   "gallery.settings.interval": "간격",
   "gallery.settings.intervalSeconds": "{seconds}초",
+  "gallery.settings.manageHint": "갤러리 이미지는 데스크톱 앱의 갤러리 페이지에서 관리하세요.",
   "gallery.settings.mode": "모드",
   "gallery.settings.single": "단일",
   "gallery.settings.slideshow": "슬라이드쇼",

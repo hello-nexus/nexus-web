@@ -447,6 +447,7 @@
   "gallery.settings.fit": "Ganzes Bild einpassen",
   "gallery.settings.interval": "Intervall",
   "gallery.settings.intervalSeconds": "{seconds} s",
+  "gallery.settings.manageHint": "Galeriebilder verwaltest du auf der Galerie-Seite in der Desktop-App.",
   "gallery.settings.mode": "Modus",
   "gallery.settings.single": "Einzelbild",
   "gallery.settings.slideshow": "Diashow",

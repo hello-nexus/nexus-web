@@ -447,6 +447,7 @@
   "gallery.settings.fit": "Adatta l'intera immagine",
   "gallery.settings.interval": "Intervallo",
   "gallery.settings.intervalSeconds": "{seconds} s",
+  "gallery.settings.manageHint": "Per gestire le immagini della galleria, apri la pagina Galleria nell'app desktop.",
   "gallery.settings.mode": "Modalità",
   "gallery.settings.single": "Singola",
   "gallery.settings.slideshow": "Presentazione",

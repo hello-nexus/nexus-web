@@ -447,6 +447,7 @@
   "gallery.settings.fit": "Вписывать изображение целиком",
   "gallery.settings.interval": "Интервал",
   "gallery.settings.intervalSeconds": "{seconds} с",
+  "gallery.settings.manageHint": "Изображениями галереи можно управлять на странице «Галерея» в десктопном приложении.",
   "gallery.settings.mode": "Режим",
   "gallery.settings.single": "Одно изображение",
   "gallery.settings.slideshow": "Слайд-шоу",
