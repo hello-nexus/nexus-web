@@ -1135,7 +1135,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 12px;
   min-width: 0;
 }
@@ -1318,11 +1318,20 @@
 }
 
 .editorBackdrop[data-surface='phone'][data-mode='settings'] .editorSheet {
-  // Pin the top edge at the 2-row (4x2) detent so the drawer slides to the
-  // same Y for any widget. Taller widgets (4x4) render full size and are
-  // partially overlapped, matching iOS modal-sheet behavior.
+  // Top edge tracks the edited widget's height (its row span), floored at the
+  // 2-row (4x2) detent. Widgets up to 2 rows keep the optimal high rest
+  // position; a taller 4x4 pushes the drawer down to just below the widget so
+  // it stops overlapping the controls. Resizing back down springs it up (top
+  // transition). bottom:0 keeps the drawer pinned to the screen bottom, so a
+  // lower top just shortens it (no overflow).
+  --editor-sheet-rows: max(2, var(--panel-editor-dock-rows, 2));
   position: absolute;
-  top: calc(max(8px, env(safe-area-inset-top)) + 2 * var(--panel-cell-size) + var(--panel-gap) + 24px);
+  top: calc(
+    max(8px, env(safe-area-inset-top))
+    + var(--editor-sheet-rows) * var(--panel-cell-size)
+    + (var(--editor-sheet-rows) - 1) * var(--panel-gap)
+    + 24px
+  );
   left: 0;
   right: 0;
   bottom: 0;
@@ -1330,6 +1339,7 @@
   height: auto;
   max-height: none;
   padding-top: 14px;
+  transition: top 220ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .editorBackdrop[data-surface='phone'][data-mode='catalog'] .editorSheet,

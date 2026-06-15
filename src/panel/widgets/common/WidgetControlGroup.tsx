@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
-import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
+import { SettingsSection } from '../../../components/common/SettingsSection/SettingsSection';
 import styles from './WidgetControlGroup.module.scss';
 
+// The widget Size / Layout / Slots picker renders as a standard SettingsSection
+// card so it aligns with the widget's setting cards below it (same header indent
+// + surface box) instead of reading as flush bare-header chrome.
 export function WidgetControlGroup({
   title,
   children,
@@ -12,9 +15,8 @@ export function WidgetControlGroup({
   className?: string;
 }) {
   return (
-    <div className={`${styles.group} ${className ?? ''}`}>
-      <SectionHeader>{title}</SectionHeader>
+    <SettingsSection title={title} className={className}>
       <div className={styles.buttons}>{children}</div>
-    </div>
+    </SettingsSection>
   );
 }
