@@ -226,7 +226,9 @@
 .animateGrid {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  // Vertical-only: pin overflow-x (a bare overflow-y lets the spec compute it
+  // to `auto`, scrolling the thumbnail grid sideways on touch).
+  overflow: hidden auto;
   display: grid;
   // Compact cell width fits more thumbnails per row.
   grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));

@@ -1424,6 +1424,7 @@ export function PanelContent({
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
           onThemeWidgetBlurCommit={panelTheme.commitWidgetBlur}
           machineName={machineName}
+          showHostName={connectionIdentityVisible}
           onMachineNameCommit={onMachineNameCommit}
           onAdd={addWidget}
           onResize={resizeWidget}

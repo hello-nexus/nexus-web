@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { useTranslation } from '../../lib/i18n';
-import type { PanelLayout, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
+import { surfaceSupportsTextInput, type PanelLayout, type PanelSurface, type PanelWidget, type PanelWidgetSize } from '../types';
 import { PANEL_GRID_GAP, sizeToSpan } from '../engine/grid';
 import { PHONE_WIDGET_REFERENCE_CELL } from '../engine/panelGrid';
 import { appendWidget } from '../engine/panelLayoutOps';
@@ -225,16 +225,20 @@ export function PanelWidgetCatalog({
       data-surface={surface}
       style={catalogStyle}
     >
-      {searchable && (
+      {/* No search field on a keyboard-less surface (Y70 kiosk, Q-series): it
+          can't be typed into on-device. A desktop modal editing such a panel
+          keeps it: the operator types on their own keyboard, not the target
+          surface's. */}
+      {searchable && (variant === 'desktop-modal' || surfaceSupportsTextInput(surface)) && (
         <div className={styles.search}>
           <SearchInput
             value={query}
             onChange={setQuery}
             placeholder={t('panel.add.searchPlaceholder')}
-            // Focus on the desktop modal and the desktop dashboard's add-widget
-            // sheet (which uses the default 'panel-sheet' variant). Touch panels
-            // (phone/y70/q60) stay unfocused so the on-screen keyboard doesn't
-            // pop up.
+            // Autofocus only where a keyboard is present and focus is wanted:
+            // the desktop modal and the desktop dashboard's add-widget sheet.
+            // The phone renders the field but stays unfocused so the on-screen
+            // keyboard doesn't pop up.
             autoFocus={variant === 'desktop-modal' || surface === 'desktop'}
           />
         </div>

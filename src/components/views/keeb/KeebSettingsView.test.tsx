@@ -20,6 +20,20 @@ vi.mock('../../../lib/i18n', () => ({
   }),
 }));
 
+// Drive the dropdown as a native <select>: these tests exercise the view's
+// firmware-lighting wiring, not the custom Select's open/close mechanics.
+vi.mock('../../common/Select/Select', () => ({
+  Select: ({ value, onChange, options, children, ariaLabel, disabled }: {
+    value: string; onChange: (v: string) => void;
+    options?: { value: string; label: string; disabled?: boolean }[]; children?: React.ReactNode;
+    ariaLabel?: string; disabled?: boolean;
+  }) => (
+    <select aria-label={ariaLabel} value={value} disabled={disabled} onChange={e => onChange(e.target.value)}>
+      {options ? options.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>) : children}
+    </select>
+  ),
+}));
+
 afterEach(() => { cleanup(); });
 
 function defaultSettings(overrides: Partial<KeebSettings> = {}): KeebSettings {
