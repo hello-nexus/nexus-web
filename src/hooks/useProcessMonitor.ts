@@ -15,6 +15,7 @@ export interface GpuProcess { name: string; gpuPercent: number; dedicatedMb: num
 export interface GpuProcessData {
   utilSeries: SeriesEntry[];
   memSeries: SeriesEntry[];
+  procSeries: SeriesEntry[];
   ranked: GpuProcess[];
 }
 

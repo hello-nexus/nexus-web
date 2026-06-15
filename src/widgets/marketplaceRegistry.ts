@@ -20,7 +20,6 @@ export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
   'com.hellonexus.weather',
   'com.hellonexus.screentime',
   'com.hellonexus.displays',
-  'com.hellonexus.clock',
   'com.hellonexus.media',
 ]);
 

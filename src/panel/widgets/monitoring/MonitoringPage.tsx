@@ -107,6 +107,8 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
           sensors={sensors}
           preferredGpuId={settings.preferredGpuId}
           onOpenSettings={openSettings}
+          showAverage={showAverage}
+          onToggle={toggleMode}
         />
       );
       case 'memory': return <MemoryTab memSeries={memSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;

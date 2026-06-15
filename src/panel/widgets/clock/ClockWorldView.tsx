@@ -1,21 +1,31 @@
-// The Clock page body: a day/night world map fixed at the top, over a
-// scrollable list of city cards (weekday / time / UTC offset, tinted day vs
-// night, local tz highlighted). Pure + self-ticking, no app deps — so BOTH the
-// native ClockPage and the blessed SDK `ui-worldclock` composite render this
-// exact component. One implementation, two consumers (zero duplication).
+// The Clock page body: a day/night world map fixed at the top, over an
+// editable list of city cards (weekday / time / UTC offset, tinted day vs
+// night, local tz highlighted). The user adds/removes cities; only the ones in
+// the list appear on the map. The selection persists in localStorage - the only
+// store a page-level view can reach (the immersive Page facet gets no widget
+// config). Self-ticking, no app deps - so BOTH the native ClockPage and the
+// blessed SDK `ui-worldclock` composite render this exact component.
 
 import { useEffect, useMemo, useState } from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, Plus, X } from 'lucide-react';
 import { Card } from '../../../components/common/Card/Card';
+import { Button } from '../../../components/common/Button/Button';
+import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
+import { usePersistentState } from '../../../hooks/usePersistentState';
 import { useTranslation } from '../../../lib/i18n';
-import { CITIES, type City } from './cities';
-import { isDaylight } from './solar';
+import { CITY_BY_ID, CITY_CATALOG, cityMatches, DEFAULT_CITY_IDS, type City } from './cities';
 import { WorldClockMap } from './WorldClockMap';
 import styles from './ClockPage.module.scss';
 
+const STORAGE_KEY = 'clock.cities';
+
 export function ClockWorldView({ highlightTz }: { highlightTz?: string }) {
+  const { t } = useTranslation();
   const localTz = useMemo(() => highlightTz || resolveLocalTz(), [highlightTz]);
   const [now, setNow] = useState(() => new Date());
+  const [cityIds, setCityIds] = usePersistentState<string[]>(STORAGE_KEY, [...DEFAULT_CITY_IDS]);
+  const [adding, setAdding] = useState(false);
+  const [query, setQuery] = useState('');
 
   // Tick once per minute, aligned to the wall-clock minute: the granularity
   // both the terminator and the city minute labels need.
@@ -33,25 +43,74 @@ export function ClockWorldView({ highlightTz }: { highlightTz?: string }) {
     };
   }, []);
 
+  const selected = useMemo(
+    () => cityIds.map(id => CITY_BY_ID.get(id)).filter((c): c is City => c !== undefined),
+    [cityIds],
+  );
+  const selectedIds = useMemo(() => new Set(selected.map(c => c.id)), [selected]);
+
+  const addCity = (id: string) =>
+    setCityIds(prev => (prev.includes(id) ? prev : [...prev, id]));
+  const removeCity = (id: string) =>
+    setCityIds(prev => prev.filter(x => x !== id));
+
+  const toggleAdding = () => {
+    setQuery('');
+    setAdding(a => !a);
+  };
+
   return (
     <div className={styles.body}>
       <div className={styles.mapSlot}>
-        <WorldClockMap now={now} cities={CITIES} highlightTz={localTz} />
+        <WorldClockMap now={now} cities={selected} highlightTz={localTz} />
       </div>
+
+      <div className={styles.listHeader}>
+        <Button
+          tone="neutral"
+          size="sm"
+          icon={adding ? <X size={15} /> : <Plus size={15} />}
+          onClick={toggleAdding}
+        >
+          {adding ? t('clock.app.done') : t('clock.app.addCity')}
+        </Button>
+      </div>
+
+      {adding && (
+        <AddCityPicker
+          query={query}
+          onQuery={setQuery}
+          now={now}
+          selectedIds={selectedIds}
+          onAdd={addCity}
+        />
+      )}
+
       <div className={styles.cityList}>
-        {CITIES.map(city => (
-          <CityCard key={city.tz} city={city} now={now} local={city.tz === localTz} />
-        ))}
+        {selected.length === 0 ? (
+          <div className={styles.emptyState}>{t('clock.app.empty')}</div>
+        ) : (
+          selected.map(city => (
+            <CityCard
+              key={city.id}
+              city={city}
+              now={now}
+              local={city.tz === localTz}
+              onRemove={() => removeCity(city.id)}
+            />
+          ))
+        )}
       </div>
     </div>
   );
 }
 
-function CityCard({ city, now, local }: { city: City; now: Date; local: boolean }) {
+function CityCard({
+  city, now, local, onRemove,
+}: { city: City; now: Date; local: boolean; onRemove: () => void }) {
   const { t } = useTranslation();
   const time = useMemo(() => formatLocalLong(now, city.tz), [now, city.tz]);
   const offset = useMemo(() => formatUtcOffset(now, city.tz), [now, city.tz]);
-  const day = isDaylight(city.lat, city.lon, now);
   return (
     <Card
       title={
@@ -66,9 +125,71 @@ function CityCard({ city, now, local }: { city: City; now: Date; local: boolean 
         </span>
       }
       subtitle={`${city.country} · ${offset}`}
-      actions={<span className={styles.cityCardTime}>{time}</span>}
-      className={`${styles.cityCard} ${local ? styles.cityCardLocal : day ? styles.cityCardDay : styles.cityCardNight}`}
+      actions={
+        <span className={styles.cityCardActions}>
+          <span className={styles.cityCardTime}>{time}</span>
+          <Button
+            tone="ghost"
+            size="sm"
+            icon={<X size={15} />}
+            onClick={onRemove}
+            aria-label={t('clock.app.remove')}
+            title={t('clock.app.remove')}
+          />
+        </span>
+      }
+      className={styles.cityCard}
     />
+  );
+}
+
+function AddCityPicker({
+  query, onQuery, now, selectedIds, onAdd,
+}: {
+  query: string;
+  onQuery: (v: string) => void;
+  now: Date;
+  selectedIds: ReadonlySet<string>;
+  onAdd: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+  const matches = useMemo(
+    () => CITY_CATALOG.filter(c => !selectedIds.has(c.id) && cityMatches(c, query)),
+    [query, selectedIds],
+  );
+
+  return (
+    <div className={styles.addPanel}>
+      <SearchInput
+        value={query}
+        onChange={onQuery}
+        placeholder={t('clock.app.searchCities')}
+        ariaLabel={t('clock.app.searchCities')}
+        autoFocus
+      />
+      <div className={styles.addResults}>
+        {matches.length === 0 ? (
+          <div className={styles.emptyState}>{t('clock.app.noResults')}</div>
+        ) : (
+          matches.map(city => (
+            <Card
+              key={city.id}
+              interactive
+              onClick={() => onAdd(city.id)}
+              title={city.name}
+              subtitle={`${city.country} · ${formatUtcOffset(now, city.tz)}`}
+              actions={
+                <span className={styles.addResultAction}>
+                  <span className={styles.cityCardTime}>{formatLocalLong(now, city.tz)}</span>
+                  <Plus size={16} aria-hidden="true" />
+                </span>
+              }
+              className={styles.addResultCard}
+            />
+          ))
+        )}
+      </div>
+    </div>
   );
 }
 

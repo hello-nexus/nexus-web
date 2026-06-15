@@ -38,27 +38,11 @@
   padding-right: 0.25rem;
 }
 
-// City cards use the Card component for chrome; this layers the
-// day / night / local accents on top.
+// City cards reuse the plain Card surface (same as the add-picker rows).
 
 .cityCard {
   padding-top: 0.6rem;
   padding-bottom: 0.6rem;
-}
-
-.cityCardDay {
-  background: linear-gradient(90deg,
-    color-mix(in srgb, var(--accent) 10%, var(--surface)) 0%,
-    var(--surface) 60%);
-}
-
-.cityCardNight {
-  background: color-mix(in srgb, var(--accent-deep) 10%, var(--surface));}
-
-.cityCardLocal {
-  border-color: color-mix(in srgb, gold 60%, var(--border));  background: linear-gradient(90deg,
-    color-mix(in srgb, gold 14%, var(--surface)) 0%,
-    var(--surface) 65%);
 }
 
 .cityCardTitle {
@@ -75,9 +59,9 @@
   font-weight: var(--weight-heading);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: gold;
-  background: color-mix(in srgb, gold 18%, transparent);
-  border: 1px solid color-mix(in srgb, gold 45%, transparent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: var(--radius-pill);
   padding: 0.1rem 0.45rem;
 }
@@ -86,4 +70,57 @@
   font-size: var(--type-body);
   color: var(--text);
   font-variant-numeric: tabular-nums;
+}
+
+.cityCardActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+// Add-city control + inline picker.
+
+.listHeader {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.addPanel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+}
+
+.addResults {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.addResultCard {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.addResultAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-dim);
+}
+
+.emptyState {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: var(--type-body);
 }
