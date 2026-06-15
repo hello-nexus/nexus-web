@@ -151,11 +151,17 @@ export function readRuntimePanelGrid(surface: PanelSurface, root?: HTMLElement |
   const cssHeight = Math.max(1, Math.round(rect?.height ?? window.innerHeight));
   const width = Math.max(1, Math.round(cssWidth * dpr));
   const height = Math.max(1, Math.round(cssHeight * dpr));
-  return panelGridCapacityForCanvas(width, height, {
+  const capacity = panelGridCapacityForCanvas(width, height, {
     surface,
     dpi: estimateRuntimePanelDpi(surface),
     sizing: getPanelGridSizingSettings(),
   });
+  // Column/row counts are decided in physical px (density), but contentScale
+  // drives --panel-scale, a CSS transform, so it must be CSS px. At >100%
+  // Windows scaling the CSS viewport shrinks while physical px stays, so a
+  // physical-based scale renders widget content ~dpr times too large. No-op at
+  // 100% (dpr 1) and for the simulator (dpr forced to 1 above).
+  return { ...capacity, contentScale: capacity.contentScale / dpr };
 }
 
 export function estimateRuntimePanelDpi(surface: PanelSurface): number {
