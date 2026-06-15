@@ -1339,7 +1339,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PanelMixerSlider', category: 'panel-kit',
     filePath: 'src/panel/widgets/common/PanelMixerSlider.tsx',
-    description: 'Panel vertical mixer control with an optional uppercase top label, 10 segmented bars, and an icon or icon-button inside the same bordered frame. Used by display brightness and media volume widgets.',
+    description: 'Panel vertical mixer control with an optional uppercase top label and a single draggable pill-shaped track that fills from the bottom. The brightness/volume icon (or icon-button) sits inside the pill at the bottom. Used by display brightness and media volume widgets.',
     Preview: PanelMixerSliderPreview,
     notes: 'The root is marked data-panel-scrollable so vertical drags yield the panel action tray gesture.',
   },
