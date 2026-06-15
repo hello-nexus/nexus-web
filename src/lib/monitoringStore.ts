@@ -331,6 +331,9 @@ export function getGpuProcessData(luid = '') {
   return {
     utilSeries: buildGpuSeries(gpuProcHist, mapped, 'cpuPercent', luid, 6),
     memSeries: buildGpuSeries(gpuMemHist, mapped, 'memoryMb', luid, 6),
+    // Ranked-list series carries current + 60s-avg GPU% so the list's live/60s
+    // toggle re-ranks like CPU/memory; the charts above stay at the top 6.
+    procSeries: buildGpuSeries(gpuProcHist, mapped, 'cpuPercent', luid, TOP_PROCS),
     ranked: scoped,
   };
 }
