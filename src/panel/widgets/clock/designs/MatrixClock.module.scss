@@ -34,7 +34,7 @@
 
 .colonChar {
   width: 0.35em;
-  color: var(--panel-text-faint);
+  color: var(--panel-text-secondary);
 }
 
 .glow {
@@ -46,7 +46,7 @@
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 0.4em;
   font-weight: var(--weight-heading);
-  color: var(--panel-text-faint);
+  color: var(--panel-text-secondary);
   margin-left: 0.3em;
   align-self: flex-end;
   padding-bottom: 0.15em;
@@ -58,7 +58,7 @@
   font-weight: var(--weight-body);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--panel-text-faint);
+  color: var(--panel-text-secondary);
   text-align: center;
 }
 
