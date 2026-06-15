@@ -1,5 +1,5 @@
-// Equirectangular world map: day/night terminator overlay, subsolar
-// sun marker, per-city pins.
+// Equirectangular world map: land as text-colour squares (two alphas for
+// day/night), day/night boundary line, accent squares marking listed cities.
 
 .wrap {
   position: relative;
@@ -21,81 +21,43 @@
   user-select: none;
 }
 
-// Ocean is the SVG <rect> base; land is a layer of polygons on top.
-.ocean { fill: color-mix(in srgb, var(--accent-deep) 18%, var(--bg-elevated)); }
-.land  { fill: color-mix(in srgb, var(--accent) 22%, var(--bg-card-hover)); stroke: color-mix(in srgb, var(--accent) 35%, transparent); stroke-width: 0.18; }
+// No ocean rect: the unfilled SVG shows the container surface as the sea.
+// Land and the boundary line are the theme text colour at low alphas, kept
+// quiet so the terrain stays a backdrop on both light and dark themes.
+.landDay   { fill: color-mix(in srgb, var(--text) 36%, transparent); }
+.landNight { fill: color-mix(in srgb, var(--text) 12%, transparent); }
 
-// Night overlay sits on top of land + ocean, dimming the unlit side.
-// Translucent so the continent shapes underneath stay visible.
-.night { fill: rgba(8, 12, 24, 0.55); }
-
-// Soft glow along the terminator line.
 .terminator {
   fill: none;
-  stroke: color-mix(in srgb, var(--accent) 60%, white);
-  stroke-width: 0.35;
+  stroke: color-mix(in srgb, var(--text) 18%, transparent);
+  stroke-width: 0.3;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 1.5px color-mix(in srgb, var(--accent) 50%, transparent));
-  opacity: 0.7;
 }
 
-// Latitude / longitude reference lines, faint.
-.grid {
-  stroke: color-mix(in srgb, var(--text-faded) 22%, transparent);
-  stroke-width: 0.12;
-  fill: none;
-}
+// City markers: accent squares the size of a grid cell; the local-tz match at
+// full accent, the rest slightly softer.
+.cityMarker      { fill: color-mix(in srgb, var(--accent) 80%, transparent); }
+.cityMarkerLocal { fill: var(--accent); }
 
-.sunGlow {
-  fill: gold;
-  opacity: 0.35;
-  filter: blur(0.5px);
-}
-
-.sun {
-  fill: gold;
-  filter: drop-shadow(0 0 1px rgba(255, 215, 0, 0.8));
-}
-
-.cityDot {
-  fill: color-mix(in srgb, var(--accent) 80%, white);
-  stroke: white;
-  stroke-width: 0.35;
-}
-
-.cityDotNight {
-  fill: color-mix(in srgb, var(--accent-deep) 80%, white);
-  stroke: color-mix(in srgb, white 70%, transparent);
-  stroke-width: 0.35;
-}
-
-.cityDotLocal {
-  fill: gold;
-  stroke: white;
-  stroke-width: 0.5;
-  filter: drop-shadow(0 0 1.2px gold);
-}
-
-.cityLocalGlow {
-  fill: gold;
-  opacity: 0.25;
-  filter: blur(0.6px);
-}
-
+// Labels sized to read like the lighting-page shader-thumb captions.
 .cityLabel {
   fill: var(--text);
-  font-size: 3px;
-  font-weight: var(--weight-heading);
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.7);
+  font-size: 6px;
+  font-weight: var(--weight-display);
+  // Outline the glyphs in the surface colour so labels stay legible over
+  // squares on both light and dark themes.
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 1;
   pointer-events: none;
 }
 
 .cityLabelLocal {
-  fill: gold;
-  font-weight: var(--weight-heading);
+  fill: var(--accent);
 }
 
-.cityLabelTime {
+// The "HH:MM" prefix on the label line - same size/outline as the name
+// (inherited), just dimmer.
+.labelTime {
   fill: var(--text-dim);
-  font-size: 2.4px;
 }

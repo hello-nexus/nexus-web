@@ -13,7 +13,7 @@ import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
 import styles from './MarketplaceWidget.module.scss';
 
 export interface SdkMarketplacePageProps {
-  /** The marketplace widget type, e.g. `marketplace:com.hellonexus.clock`. */
+  /** The marketplace widget type, e.g. `marketplace:com.hellonexus.weather`. */
   type: string;
 }
 
