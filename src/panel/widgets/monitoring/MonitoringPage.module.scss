@@ -363,7 +363,9 @@
     @include text-label;
     text-align: left;
     color: var(--text-dim);
-    padding: 0.3rem 0.5rem;
+    // Header label / rule / first row spacing mirrors the RankedList header
+    // divider so the rule reads as a light separator, not a heavy underline.
+    padding: 0.3rem 0.5rem 0.45rem;
     border-bottom: 1px solid var(--separator);
 
     &:not(:first-child) { text-align: right; }
@@ -377,6 +379,8 @@
 
     &:not(:first-child) { text-align: right; }
   }
+
+  tbody tr:first-child td { padding-top: 0.6rem; }
 }
 
 .procName {
