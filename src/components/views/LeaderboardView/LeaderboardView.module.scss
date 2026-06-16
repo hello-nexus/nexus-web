@@ -32,20 +32,6 @@
   }
 }
 
-.backBtn {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.35rem 0.85rem;
-  border: var(--border-width) solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-  font-size: var(--type-small);
-  cursor: pointer;
-
-  &:hover { border-color: var(--accent-glow); }
-}
-
 .filters {
   display: flex;
   align-items: center;
@@ -55,18 +41,6 @@
 .filterLabel {
   font-size: var(--type-small);
   color: var(--text-dim);
-}
-
-.filterSelect {
-  padding: 0.3rem 0.6rem;
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-  font-size: var(--type-small);
-  cursor: pointer;
-
-  &:focus { outline: 2px solid var(--accent-glow); outline-offset: 1px; }
 }
 
 .body {
@@ -162,6 +136,13 @@
 
 .tdHardware { }
 
+.hwName {
+  color: var(--text);
+  font-weight: var(--weight-heading);
+  font-size: var(--type-small);
+  margin-bottom: 0.1rem;
+}
+
 .hwPrimary {
   color: var(--text);
 }
@@ -236,7 +217,3 @@
   color: var(--text-dim);
 }
 
-.toolName {
-  cursor: help;
-  border-bottom: 1px dashed var(--border);
-}

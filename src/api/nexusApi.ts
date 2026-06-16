@@ -2,7 +2,7 @@
 // in dev, https://hellonexus.com/api in production). Separate from service.ts
 // which talks to the local nexus-service on :9400.
 
-import type { LeaderboardEntry, LeaderboardResponse, MatchResponse } from '../types/benchmark';
+import type { LeaderboardResponse, MatchResponse } from '../types/benchmark';
 
 const DEFAULT_API = 'http://localhost:3000';
 const BASE = import.meta.env.VITE_API_URL ?? DEFAULT_API;
@@ -87,9 +87,7 @@ export async function submitBenchmark(
       body: JSON.stringify(body),
     });
     if (!res.ok) return null;
-    const result = (await res.json()) as SubmitBenchmarkResponse;
-    setLastSubmissionId(result.id);
-    return result;
+    return (await res.json()) as SubmitBenchmarkResponse;
   } catch {
     return null;
   }
@@ -115,16 +113,6 @@ export async function getLeaderboard(params: LeaderboardParams = {}): Promise<Le
     const res = await fetch(`${BASE}/benchmarks/leaderboard${query ? `?${query}` : ''}`);
     if (!res.ok) return null;
     return (await res.json()) as LeaderboardResponse;
-  } catch {
-    return null;
-  }
-}
-
-export async function getSubmission(id: string): Promise<LeaderboardEntry | null> {
-  try {
-    const res = await fetch(`${BASE}/benchmarks/${encodeURIComponent(id)}`);
-    if (!res.ok) return null;
-    return (await res.json()) as LeaderboardEntry;
   } catch {
     return null;
   }

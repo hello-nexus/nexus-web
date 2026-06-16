@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Trophy, ChevronDown, ChevronRight } from 'lucide-react';
+import { Fragment, useEffect, useState } from 'react';
+import { Trophy, ChevronDown, ChevronRight, ArrowLeft } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { getLeaderboard, getLastSubmissionId } from '../../../api/nexusApi';
 import type { LeaderboardEntry, LeaderboardResponse } from '../../../types/benchmark';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
-import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
+import { Select } from '../../common/Select/Select';
+import { Button } from '../../common/Button/Button';
 import styles from './LeaderboardView.module.scss';
 
 interface LeaderboardViewProps {
@@ -15,38 +16,51 @@ export function LeaderboardView({ onBack }: LeaderboardViewProps) {
   const { t } = useTranslation();
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [scoringVersion, setScoringVersion] = useState('');
+  const [allVersions, setAllVersions] = useState<string[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const myId = getLastSubmissionId();
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(false);
     const params = scoringVersion ? { scoringVersion } : {};
     void getLeaderboard(params).then(res => {
       if (cancelled) return;
-      setData(res);
+      if (res === null) {
+        setError(true);
+        setData(null);
+      } else {
+        setData(res);
+        setError(false);
+        if (!scoringVersion) {
+          setAllVersions(Array.from(new Set(res.entries.map(e => e.scoringVersion))).sort());
+        }
+      }
       setLoading(false);
     });
     return () => { cancelled = true; };
   }, [scoringVersion]);
 
-  const versions = data
-    ? Array.from(new Set(data.entries.map(e => e.scoringVersion))).sort()
-    : [];
-
   const toggleRow = (id: string) => {
     setExpandedId(prev => (prev === id ? null : id));
   };
+
+  const versionOptions = [
+    { value: '', label: t('benchmark.leaderboard.version') },
+    ...allVersions.map(v => ({ value: v, label: v })),
+  ];
 
   return (
     <section className={styles.leaderboard}>
       <header className={styles.header}>
         <div className={styles.titleRow}>
           {onBack && (
-            <button type="button" className={styles.backBtn} onClick={onBack}>
+            <Button tone="ghost" icon={<ArrowLeft size={16} />} onClick={onBack}>
               {t('benchmark.leaderboard.back')}
-            </button>
+            </Button>
           )}
           <div className={styles.titleGroup}>
             <Trophy size={22} />
@@ -55,20 +69,15 @@ export function LeaderboardView({ onBack }: LeaderboardViewProps) {
         </div>
 
         <div className={styles.filters}>
-          <label className={styles.filterLabel} htmlFor="lb-version">
+          <label className={styles.filterLabel}>
             {t('benchmark.leaderboard.filterVersion')}
           </label>
-          <select
-            id="lb-version"
-            className={styles.filterSelect}
+          <Select
             value={scoringVersion}
-            onChange={e => setScoringVersion(e.target.value)}
-          >
-            <option value="">{t('benchmark.leaderboard.version')}</option>
-            {versions.map(v => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
+            onChange={setScoringVersion}
+            options={versionOptions}
+            ariaLabel={t('benchmark.leaderboard.filterVersion')}
+          />
         </div>
       </header>
 
@@ -77,14 +86,21 @@ export function LeaderboardView({ onBack }: LeaderboardViewProps) {
           <div className={styles.loadingMsg} role="status">{t('benchmark.leaderboard.loading')}</div>
         )}
 
-        {!loading && (!data || data.entries.length === 0) && (
+        {!loading && error && (
+          <EmptyState
+            icon={<Trophy size={32} />}
+            title={t('benchmark.leaderboard.error')}
+          />
+        )}
+
+        {!loading && !error && (!data || data.entries.length === 0) && (
           <EmptyState
             icon={<Trophy size={32} />}
             title={t('benchmark.leaderboard.empty')}
           />
         )}
 
-        {!loading && data && data.entries.length > 0 && (
+        {!loading && !error && data && data.entries.length > 0 && (
           <table className={styles.table} aria-label={t('benchmark.leaderboard.title')}>
             <thead>
               <tr>
@@ -100,9 +116,8 @@ export function LeaderboardView({ onBack }: LeaderboardViewProps) {
                 const isOwn = entry.id === myId;
                 const isExpanded = expandedId === entry.id;
                 return (
-                  <>
+                  <Fragment key={entry.id}>
                     <tr
-                      key={entry.id}
                       className={`${styles.row} ${isOwn ? styles.rowOwn : ''}`}
                       role="button"
                       tabIndex={0}
@@ -123,6 +138,7 @@ export function LeaderboardView({ onBack }: LeaderboardViewProps) {
                       </td>
                       <td className={styles.tdScore}>{Math.round(entry.composite)}</td>
                       <td className={styles.tdHardware}>
+                        <div className={styles.hwName}>{entry.displayName ?? t('benchmark.leaderboard.anonymous')}</div>
                         <div className={styles.hwPrimary}>{entry.hardware.cpuModel}</div>
                         {entry.hardware.gpuModels.length > 0 && (
                           <div className={styles.hwSecondary}>{entry.hardware.gpuModels[0]}</div>
@@ -136,13 +152,13 @@ export function LeaderboardView({ onBack }: LeaderboardViewProps) {
                       </td>
                     </tr>
                     {isExpanded && (
-                      <tr key={`${entry.id}-detail`} className={styles.detailRow}>
+                      <tr className={styles.detailRow}>
                         <td colSpan={5}>
                           <EntryDetail entry={entry} />
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -206,9 +222,7 @@ function EntryDetail({ entry }: { entry: LeaderboardEntry }) {
           <ul className={styles.detailList}>
             {toolEntries.map(([name, version]) => (
               <li key={name}>
-                <HoverTooltip body={version}>
-                  <span className={styles.toolName}>{name}</span>
-                </HoverTooltip>
+                <span className={styles.detailKey}>{name}</span>
                 {' '}{version}
               </li>
             ))}

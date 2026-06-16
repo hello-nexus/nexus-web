@@ -1,5 +1,6 @@
 import { useTranslation } from '../../../lib/i18n';
 import type { BenchmarkResult, BenchmarkSubScore } from '../../../types/benchmark';
+import { Button } from '../../../components/common/Button/Button';
 import styles from './BenchmarkView.module.scss';
 
 interface Props {
@@ -39,13 +40,9 @@ export function BenchmarkResults({ result, submission, submitting, onViewLeaderb
           <div className={styles.percentilePending}>{t('benchmark.result.submitting')}</div>
         )}
         {onViewLeaderboard && (
-          <button
-            type="button"
-            className={styles.leaderboardLink}
-            onClick={onViewLeaderboard}
-          >
+          <Button tone="ghost" onClick={onViewLeaderboard}>
             {t('benchmark.result.viewLeaderboard')}
-          </button>
+          </Button>
         )}
       </div>
 

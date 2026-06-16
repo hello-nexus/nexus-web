@@ -1273,6 +1273,11 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Profile picker with create / import / export actions. sidebar and avatar variants; compact mode collapses to the avatar disc.',
     notes: 'No live preview - bound to the profiles store and save API.',
   },
+  {
+    name: 'LeaderboardView', category: 'navigation',
+    filePath: 'src/components/views/LeaderboardView/LeaderboardView.tsx',
+    description: 'Full leaderboard view for the Benchmark feature. Fetches paginated entries from nexus-api, supports version filtering via the shared Select component, expands each row inline for hardware detail. Pass onBack to show a back button.',
+  },
 
   // ── Status ────────────────────────────────────────────────────────────
   {
