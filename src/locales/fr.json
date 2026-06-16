@@ -21,6 +21,7 @@
   "benchmark.leaderboard.cores": "{n} cœurs",
   "benchmark.leaderboard.date": "Date",
   "benchmark.leaderboard.empty": "Aucune entrée pour l'instant. Soyez le premier à soumettre un résultat.",
+  "benchmark.leaderboard.error": "Impossible de charger le classement.",
   "benchmark.leaderboard.filterVersion": "Version de notation",
   "benchmark.leaderboard.hardware": "Matériel",
   "benchmark.leaderboard.loading": "Chargement du classement...",

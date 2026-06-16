@@ -21,6 +21,7 @@
   "benchmark.leaderboard.cores": "{n} core",
   "benchmark.leaderboard.date": "Data",
   "benchmark.leaderboard.empty": "Nessuna voce ancora. Sii il primo a inviare un risultato.",
+  "benchmark.leaderboard.error": "Impossibile caricare la classifica.",
   "benchmark.leaderboard.filterVersion": "Versione punteggio",
   "benchmark.leaderboard.hardware": "Hardware",
   "benchmark.leaderboard.loading": "Caricamento classifica...",

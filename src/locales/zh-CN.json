@@ -21,6 +21,7 @@
   "benchmark.leaderboard.cores": "{n}核",
   "benchmark.leaderboard.date": "日期",
   "benchmark.leaderboard.empty": "暂无条目，成为第一个提交基准测试结果的人吧。",
+  "benchmark.leaderboard.error": "无法加载排行榜。",
   "benchmark.leaderboard.filterVersion": "评分版本",
   "benchmark.leaderboard.hardware": "硬件",
   "benchmark.leaderboard.loading": "加载排行榜中...",

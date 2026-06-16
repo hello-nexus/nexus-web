@@ -21,6 +21,7 @@
   "benchmark.leaderboard.cores": "{n} çekirdek",
   "benchmark.leaderboard.date": "Tarih",
   "benchmark.leaderboard.empty": "Henüz giriş yok. İlk benchmark sonucunu gönderen siz olun.",
+  "benchmark.leaderboard.error": "Lider tablosu yüklenemedi.",
   "benchmark.leaderboard.filterVersion": "Puanlama versiyonu",
   "benchmark.leaderboard.hardware": "Donanım",
   "benchmark.leaderboard.loading": "Lider tablosu yükleniyor...",

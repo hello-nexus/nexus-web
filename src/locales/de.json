@@ -21,6 +21,7 @@
   "benchmark.leaderboard.cores": "{n} Kerne",
   "benchmark.leaderboard.date": "Datum",
   "benchmark.leaderboard.empty": "Noch keine Einträge. Seien Sie der Erste, der ein Benchmark-Ergebnis einreicht.",
+  "benchmark.leaderboard.error": "Rangliste konnte nicht geladen werden.",
   "benchmark.leaderboard.filterVersion": "Bewertungsversion",
   "benchmark.leaderboard.hardware": "Hardware",
   "benchmark.leaderboard.loading": "Rangliste wird geladen...",

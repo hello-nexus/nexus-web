@@ -21,6 +21,7 @@
   "benchmark.leaderboard.cores": "{n} cores",
   "benchmark.leaderboard.date": "Date",
   "benchmark.leaderboard.empty": "No entries yet. Be the first to submit a benchmark result.",
+  "benchmark.leaderboard.error": "Could not load the leaderboard.",
   "benchmark.leaderboard.filterVersion": "Scoring version",
   "benchmark.leaderboard.hardware": "Hardware",
   "benchmark.leaderboard.loading": "Loading leaderboard...",

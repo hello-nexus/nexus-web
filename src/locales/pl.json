@@ -21,6 +21,7 @@
   "benchmark.leaderboard.cores": "{n} rdzeni",
   "benchmark.leaderboard.date": "Data",
   "benchmark.leaderboard.empty": "Brak wpisów. Bądź pierwszy, który prześle wynik benchmarku.",
+  "benchmark.leaderboard.error": "Nie można załadować tablicy wyników.",
   "benchmark.leaderboard.filterVersion": "Wersja punktacji",
   "benchmark.leaderboard.hardware": "Sprzęt",
   "benchmark.leaderboard.loading": "Ładowanie tablicy wyników...",

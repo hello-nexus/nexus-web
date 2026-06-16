@@ -21,6 +21,7 @@
   "benchmark.leaderboard.cores": "{n} ядер",
   "benchmark.leaderboard.date": "Дата",
   "benchmark.leaderboard.empty": "Записей пока нет. Станьте первым, кто отправит результат.",
+  "benchmark.leaderboard.error": "Не удалось загрузить таблицу лидеров.",
   "benchmark.leaderboard.filterVersion": "Версия оценки",
   "benchmark.leaderboard.hardware": "Оборудование",
   "benchmark.leaderboard.loading": "Загрузка таблицы лидеров...",

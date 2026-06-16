@@ -21,6 +21,7 @@
   "benchmark.leaderboard.cores": "{n} núcleos",
   "benchmark.leaderboard.date": "Fecha",
   "benchmark.leaderboard.empty": "Aún no hay entradas. Sé el primero en enviar un resultado.",
+  "benchmark.leaderboard.error": "No se pudo cargar la clasificación.",
   "benchmark.leaderboard.filterVersion": "Versión de puntuación",
   "benchmark.leaderboard.hardware": "Hardware",
   "benchmark.leaderboard.loading": "Cargando clasificación...",

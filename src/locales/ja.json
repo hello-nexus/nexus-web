@@ -21,6 +21,7 @@
   "benchmark.leaderboard.cores": "{n}コア",
   "benchmark.leaderboard.date": "日付",
   "benchmark.leaderboard.empty": "まだエントリーがありません。最初にベンチマーク結果を送信してください。",
+  "benchmark.leaderboard.error": "ランキングを読み込めませんでした。",
   "benchmark.leaderboard.filterVersion": "スコアリングバージョン",
   "benchmark.leaderboard.hardware": "ハードウェア",
   "benchmark.leaderboard.loading": "リーダーボードを読み込み中...",
