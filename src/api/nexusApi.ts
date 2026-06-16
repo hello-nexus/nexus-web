@@ -2,7 +2,7 @@
 // in dev, https://hellonexus.com/api in production). Separate from service.ts
 // which talks to the local nexus-service on :9400.
 
-import type { MatchResponse } from '../types/benchmark';
+import type { LeaderboardEntry, LeaderboardResponse, MatchResponse } from '../types/benchmark';
 
 const DEFAULT_API = 'http://localhost:3000';
 const BASE = import.meta.env.VITE_API_URL ?? DEFAULT_API;
@@ -40,6 +40,20 @@ export interface SubmitBenchmarkBody {
   composite: number;
   rawMetrics: Record<string, unknown>;
   clientVersion?: string;
+  cpuRaw?: number;
+  cpuUnit?: string;
+  gpuRaw?: number;
+  gpuUnit?: string;
+  ramRaw?: number;
+  ramUnit?: string;
+  storageRaw?: number;
+  storageUnit?: string;
+  scoringVersion?: string;
+  ramModel?: string;
+  storageModel?: string;
+  os?: string;
+  logicalCores?: number;
+  benchTools?: Record<string, string>;
 }
 
 export interface SubmitBenchmarkResponse {
@@ -48,6 +62,16 @@ export interface SubmitBenchmarkResponse {
   percentile: number;
   totalSubmissions: number;
   rank: number;
+}
+
+const SUBMISSION_ID_KEY = 'nexus_benchmark_submission_id';
+
+export function getLastSubmissionId(): string | null {
+  return localStorage.getItem(SUBMISSION_ID_KEY);
+}
+
+export function setLastSubmissionId(id: string): void {
+  localStorage.setItem(SUBMISSION_ID_KEY, id);
 }
 
 export async function submitBenchmark(
@@ -63,7 +87,44 @@ export async function submitBenchmark(
       body: JSON.stringify(body),
     });
     if (!res.ok) return null;
-    return (await res.json()) as SubmitBenchmarkResponse;
+    const result = (await res.json()) as SubmitBenchmarkResponse;
+    setLastSubmissionId(result.id);
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+export interface LeaderboardParams {
+  scoringVersion?: string;
+  category?: string;
+  componentId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function getLeaderboard(params: LeaderboardParams = {}): Promise<LeaderboardResponse | null> {
+  try {
+    const qs = new URLSearchParams();
+    if (params.scoringVersion) qs.set('scoringVersion', params.scoringVersion);
+    if (params.category) qs.set('category', params.category);
+    if (params.componentId) qs.set('componentId', params.componentId);
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.offset != null) qs.set('offset', String(params.offset));
+    const query = qs.toString();
+    const res = await fetch(`${BASE}/benchmarks/leaderboard${query ? `?${query}` : ''}`);
+    if (!res.ok) return null;
+    return (await res.json()) as LeaderboardResponse;
+  } catch {
+    return null;
+  }
+}
+
+export async function getSubmission(id: string): Promise<LeaderboardEntry | null> {
+  try {
+    const res = await fetch(`${BASE}/benchmarks/${encodeURIComponent(id)}`);
+    if (!res.ok) return null;
+    return (await res.json()) as LeaderboardEntry;
   } catch {
     return null;
   }

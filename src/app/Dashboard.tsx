@@ -5,6 +5,7 @@ import { Placeholder } from '../components/views/Placeholder';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ComponentDetailView } from '../components/views/ComponentDetailView';
 import { BenchmarkView } from '../components/views/BenchmarkView/BenchmarkView';
+import { LeaderboardView } from '../components/views/LeaderboardView/LeaderboardView';
 import { AppsView } from '../components/views/AppsView/AppsView';
 import { OpenInAppBanner } from '../components/common/OpenInAppBanner/OpenInAppBanner';
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
@@ -369,6 +370,11 @@ export function Dashboard() {
           </Suspense>
         );
       case 'benchmark':
+        if (view === 'leaderboard') {
+          return (
+            <LeaderboardView onBack={() => navigate('benchmark')} />
+          );
+        }
         return (
           <BenchmarkView
             serviceOnline={online}
@@ -377,6 +383,7 @@ export function Dashboard() {
               dispatch({ type: 'LOAD_OWNED_HARDWARE', detected });
               navigate('builder');
             }}
+            onViewLeaderboard={() => setView('leaderboard')}
           />
         );
       case 'community':

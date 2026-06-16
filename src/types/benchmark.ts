@@ -1,5 +1,39 @@
 import type { ComponentCategory, ComponentOption } from './builder';
 
+export interface BenchmarkBaselines {
+  cpu: number;
+  gpu: number;
+  ram: number;
+  storage: number;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  rank: number;
+  composite: number;
+  displayName: string | null;
+  createdAt: string;
+  scoringVersion: string;
+  cpu: { raw: number; unit: string; score: number };
+  gpu: { raw: number; unit: string; score: number };
+  ram: { raw: number; unit: string; score: number };
+  storage: { raw: number; unit: string; score: number };
+  hardware: {
+    cpuModel: string;
+    gpuModels: string[];
+    ramModel: string;
+    storageModel: string;
+    os: string;
+    logicalCores: number;
+  };
+  tools: Record<string, string>;
+}
+
+export interface LeaderboardResponse {
+  total: number;
+  entries: LeaderboardEntry[];
+}
+
 export interface HardwareIdentity {
   cpuModel: string;
   gpuModels: string[];
@@ -48,6 +82,9 @@ export interface BenchmarkResult {
   ram: BenchmarkSubScore;
   storage: BenchmarkSubScore;
   error?: string;
+  scoringVersion?: string;
+  baselines?: BenchmarkBaselines;
+  tools?: Record<string, string>;
 }
 
 export interface StartBenchmarkResponse {

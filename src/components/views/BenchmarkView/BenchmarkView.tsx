@@ -5,7 +5,7 @@ import { useBenchmark } from '../../../hooks/useBenchmark';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
-import { getDeviceId, matchComponents, submitBenchmark } from '../../../api/nexusApi';
+import { getDeviceId, getLastSubmissionId, matchComponents, setLastSubmissionId, submitBenchmark } from '../../../api/nexusApi';
 import type { ComponentOption, ComponentCategory } from '../../../types/builder';
 import type { MatchCandidate, MatchResponse, DetectedByCategory } from '../../../types/benchmark';
 import { BenchmarkProgress } from './BenchmarkProgress';
@@ -17,16 +17,18 @@ interface BenchmarkViewProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
   onHardwareConfirmed: (detected: DetectedByCategory) => void;
+  onViewLeaderboard?: () => void;
 }
 
 const CATEGORY_ORDER: ComponentCategory[] = ['cpu', 'gpu', 'ram', 'storage'];
 
-export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfirmed }: BenchmarkViewProps) {
+export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfirmed, onViewLeaderboard }: BenchmarkViewProps) {
   const { t } = useTranslation();
   const { status, progress, result, error, start, cancel, reset } = useBenchmark(serviceOnline);
   const [matches, setMatches] = useState<MatchResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submission, setSubmission] = useState<{ percentile: number; rank: number; total: number } | null>(null);
+  const [submissionId, setSubmissionId] = useState<string | null>(() => getLastSubmissionId());
 
   // Once the run completes, fire off: (1) catalog fuzzy match against the
   // detected hardware so we can render the confirmation panel, and (2)
@@ -67,10 +69,26 @@ export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfir
             cores: result.hardware.logicalCores,
           },
           clientVersion: String(__APP_VERSION__ ?? '0'),
+          cpuRaw: result.cpu.rawValue,
+          cpuUnit: result.cpu.rawUnit,
+          gpuRaw: result.gpu.rawValue,
+          gpuUnit: result.gpu.rawUnit,
+          ramRaw: result.ram.rawValue,
+          ramUnit: result.ram.rawUnit,
+          storageRaw: result.storage.rawValue,
+          storageUnit: result.storage.rawUnit,
+          scoringVersion: result.scoringVersion,
+          ramModel: result.hardware.ramModel,
+          storageModel: result.hardware.storageModel,
+          os: result.hardware.os,
+          logicalCores: result.hardware.logicalCores,
+          benchTools: result.tools,
         };
         const res = await submitBenchmark(payload);
         if (!cancelled && res) {
           setSubmission({ percentile: res.percentile, rank: res.rank, total: res.totalSubmissions });
+          setLastSubmissionId(res.id);
+          setSubmissionId(res.id);
         }
       } finally {
         if (!cancelled) setSubmitting(false);
@@ -186,6 +204,8 @@ export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfir
             result={result}
             submission={submission}
             submitting={submitting}
+            submissionId={submissionId}
+            onViewLeaderboard={onViewLeaderboard}
           />
           <MatchConfirmPanel
             matches={matches}

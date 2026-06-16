@@ -6,9 +6,11 @@ interface Props {
   result: BenchmarkResult;
   submission: { percentile: number; rank: number; total: number } | null;
   submitting: boolean;
+  submissionId?: string | null;
+  onViewLeaderboard?: () => void;
 }
 
-export function BenchmarkResults({ result, submission, submitting }: Props) {
+export function BenchmarkResults({ result, submission, submitting, onViewLeaderboard }: Props) {
   const { t } = useTranslation();
   const subs: BenchmarkSubScore[] = [result.cpu, result.gpu, result.ram, result.storage];
 
@@ -25,8 +27,25 @@ export function BenchmarkResults({ result, submission, submitting }: Props) {
             })}
           </div>
         )}
+        {submission && (
+          <div className={styles.rankLine}>
+            {t('benchmark.result.rank', {
+              rank: String(submission.rank),
+              total: String(submission.total),
+            })}
+          </div>
+        )}
         {submitting && !submission && (
           <div className={styles.percentilePending}>{t('benchmark.result.submitting')}</div>
+        )}
+        {onViewLeaderboard && (
+          <button
+            type="button"
+            className={styles.leaderboardLink}
+            onClick={onViewLeaderboard}
+          >
+            {t('benchmark.result.viewLeaderboard')}
+          </button>
         )}
       </div>
 
@@ -35,11 +54,11 @@ export function BenchmarkResults({ result, submission, submitting }: Props) {
           <li key={s.key} className={styles.subCard}>
             <div className={styles.subHeader}>
               <span className={styles.subLabel}>{s.label}</span>
-              <span className={styles.subScore}>{Math.round(s.score)}</span>
             </div>
-            <div className={styles.subRaw}>
-              {s.rawValue.toFixed(1)} {s.rawUnit}
+            <div className={styles.subRawPrimary}>
+              {s.rawValue.toFixed(1)} <span className={styles.subUnit}>{s.rawUnit}</span>
             </div>
+            <div className={styles.subScoreSecondary}>{Math.round(s.score)}</div>
             <div className={styles.subDetail}>{s.detail}</div>
           </li>
         ))}

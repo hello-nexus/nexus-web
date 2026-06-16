@@ -322,6 +322,45 @@
   color: var(--text);
 }
 
+.subRawPrimary {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.subUnit {
+  font-size: var(--type-small);
+  font-weight: normal;
+  color: var(--text-dim);
+}
+
+.subScoreSecondary {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.rankLine {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.leaderboardLink {
+  margin-top: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.8rem;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--accent-glow);
+  font-size: var(--type-small);
+  cursor: pointer;
+
+  &:hover { border-color: var(--accent-glow); }
+}
+
 .subDetail {
   font-size: var(--type-small);
   color: var(--text-dim);
