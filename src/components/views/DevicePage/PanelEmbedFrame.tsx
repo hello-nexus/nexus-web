@@ -32,6 +32,8 @@ interface PanelEmbedFrameProps {
   onLayoutChange: (layout: PanelLayout) => void;
   onWidgetClicked: (widget: PanelWidget) => void;
   onBackgroundClicked: () => void;
+  /** Panel device record id. Forwarded to the simulator iframe so it can render media backgrounds. */
+  deviceId?: string;
   canvasSize?: { width: number; height: number };
   // Device DPI. Converts native canvas dimensions into the CSS-pixel
   // viewport the device exposes to its WebView, so the iframe reproduces
@@ -101,6 +103,7 @@ export function PanelEmbedFrame({
   brightness,
   screenOn,
   showPanel,
+  deviceId,
 }: PanelEmbedFrameProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -212,6 +215,7 @@ export function PanelEmbedFrame({
       brightness,
       screenOn,
       showPanel,
+      deviceId,
     });
     lastSyncedLayoutSerializedRef.current = JSON.stringify(layout);
     // Initial init only; subsequent changes flow through the per-prop
@@ -235,8 +239,8 @@ export function PanelEmbedFrame({
 
   useEffect(() => {
     if (!childReady) return;
-    post({ type: 'simulator/set-theme', theme, themeMode });
-  }, [childReady, theme, themeMode, post]);
+    post({ type: 'simulator/set-theme', theme, themeMode, deviceId });
+  }, [childReady, theme, themeMode, deviceId, post]);
 
   useEffect(() => {
     if (!childReady) return;

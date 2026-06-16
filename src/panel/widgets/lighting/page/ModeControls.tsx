@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Monitor } from 'lucide-react';
 import {
   fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect, reselectScreen,
@@ -15,6 +15,7 @@ import { EffectCard } from '../../../../components/common/EffectCard/EffectCard'
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
+import { MediaCropper, type NormalizedCrop } from '../../../../components/common/MediaCropper/MediaCropper';
 import { SCREEN_FILTERS, matchScreenFilter, screenFilterByKey, type ScreenFilterKey } from './screenFilters';
 import { useMediaLibrary } from '../effecteditor/useMediaLibrary';
 import { MediaGrid } from '../effecteditor/MediaGrid';
@@ -161,6 +162,37 @@ export function ScreenControls({ screenPP, onScreenPPChange }: {
   );
 }
 
+// 16:9 = 160/90 as specified for the lighting cropper aspect.
+const LIGHTING_CROP_ASPECT = 160 / 90;
+
+// Capture first video frame to a canvas dataURL for use as cropper still.
+function captureVideoFrame(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    const url = URL.createObjectURL(file);
+    video.src = url;
+    video.muted = true;
+    video.currentTime = 0;
+    const cleanup = () => URL.revokeObjectURL(url);
+    video.onloadeddata = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 320;
+        canvas.height = video.videoHeight || 180;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { cleanup(); reject(new Error('no ctx')); return; }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        cleanup();
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    };
+    video.onerror = () => { cleanup(); reject(new Error('video error')); };
+  });
+}
+
 function MediaControls() {
   const { t } = useTranslation();
   const { items, activeId, thumbs, refresh, play, removeLocal } = useMediaLibrary();
@@ -168,15 +200,16 @@ function MediaControls() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importingName, setImportingName] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  // cropState holds the file + still src while the cropper is open.
+  const [cropState, setCropState] = useState<{ file: File; stillSrc: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const runImport = useCallback(async (file: File, crop: NormalizedCrop) => {
+    const cropStr = `${crop.x.toFixed(6)},${crop.y.toFixed(6)},${crop.w.toFixed(6)},${crop.h.toFixed(6)}`;
     setImporting(true);
     setImportingName(file.name);
     setImportError(null);
-    const result = await importMedia(file);
+    const result = await importMedia(file, cropStr);
     setImporting(false);
     setImportingName(null);
     if (!result) {
@@ -187,7 +220,35 @@ function MediaControls() {
       await refresh();
       await play(result.item.id);
     }
+  }, [t, refresh, play]);
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     e.target.value = '';
+    // Determine the still src for the cropper.
+    const isVideo = file.type.startsWith('video/') || file.name.toLowerCase().endsWith('.gif');
+    let stillSrc: string;
+    if (isVideo) {
+      try {
+        stillSrc = await captureVideoFrame(file);
+      } catch {
+        // If frame capture fails, skip the cropper and import with no crop.
+        setImporting(true);
+        setImportingName(file.name);
+        setImportError(null);
+        const result = await importMedia(file);
+        setImporting(false);
+        setImportingName(null);
+        if (!result) setImportError(t('lighting.controls.importNetworkError'));
+        else if (result.error || !result.item) setImportError(result.msg || t('lighting.controls.importFailed'));
+        else { await refresh(); await play(result.item.id); }
+        return;
+      }
+    } else {
+      stillSrc = URL.createObjectURL(file);
+    }
+    setCropState({ file, stillSrc });
   };
 
   const handleOpenFolder = async () => {
@@ -214,7 +275,30 @@ function MediaControls() {
     await handleDelete(id);
   };
 
+  const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
+    if (!cropState) return;
+    const { file, stillSrc } = cropState;
+    // Revoke object URL if it was created for an image file.
+    if (stillSrc.startsWith('blob:')) URL.revokeObjectURL(stillSrc);
+    setCropState(null);
+    await runImport(file, crop);
+  }, [cropState, runImport]);
+
+  const handleCropCancel = useCallback(() => {
+    if (cropState?.stillSrc.startsWith('blob:')) URL.revokeObjectURL(cropState.stillSrc);
+    setCropState(null);
+  }, [cropState]);
+
   return (
+    <>
+      {cropState && (
+        <MediaCropper
+          src={cropState.stillSrc}
+          aspect={LIGHTING_CROP_ASPECT}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
+      )}
     <div className={styles.mediaSection}>
       <div className={styles.mediaHeader}>
         <button type="button" className={styles.importBtn} onClick={() => fileRef.current?.click()} disabled={importing}>
@@ -271,6 +355,7 @@ function MediaControls() {
         ) : undefined}
       />
     </div>
+    </>
   );
 }
 

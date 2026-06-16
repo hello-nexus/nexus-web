@@ -24,6 +24,7 @@ export interface SimulatorInitMessage {
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
+  deviceId?: string;
 }
 
 export interface SimulatorSetDisplayMessage {
@@ -42,6 +43,7 @@ export interface SimulatorSetThemeMessage {
   type: 'simulator/set-theme';
   theme: SimulatorTheme;
   themeMode: 'dark' | 'light';
+  deviceId?: string;
 }
 
 export interface SimulatorSetSelectionMessage {

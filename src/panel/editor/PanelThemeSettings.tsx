@@ -22,6 +22,7 @@ import { usePanelBackgroundEffectController } from '../widgets/lighting/effected
 import { usePanelBackgroundUsage } from '../../hooks/usePanelBackgroundUsage';
 import { AnimateGrid } from '../widgets/lighting/page/AnimateGrid';
 import { EffectControls } from '../widgets/lighting/page/EffectControls';
+import { BackgroundMediaPicker } from '../background/BackgroundMediaPicker';
 import styles from './PanelThemeSettings.module.scss';
 
 export type ResolvedPanelThemeMode = 'dark' | 'light';
@@ -47,6 +48,8 @@ export interface PanelThemeSettingsState {
   backgroundTemplates: Record<string, number>;
   backgroundOpacity: number;
   backgroundEffectState: EffectState;
+  backgroundMediaId: string | null;
+  backgroundMediaType: 'static' | 'animated' | null;
   widgetOpacity: number;
   widgetLabels: boolean;
   widgetBlur: boolean;
@@ -69,10 +72,19 @@ export interface PanelThemeSettingsProps {
   onBackgroundEffectStateCommit: (state: EffectState) => void;
   onBackgroundOpacityPreview: (opacity: number) => void;
   onBackgroundOpacityCommit: (opacity: number) => void;
+  onBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
   onWidgetOpacityPreview: (opacity: number) => void;
   onWidgetOpacityCommit: (opacity: number) => void;
   onWidgetLabelsCommit: (enabled: boolean) => void;
   onWidgetBlurCommit: (enabled: boolean) => void;
+  /** Show the media background tab. Only surfaces with a display (y70, q60) support it. */
+  showMediaTab?: boolean;
+  /** Device aspect ratio (W/H) forwarded to the media cropper. */
+  deviceAspect?: number;
+  /** Device native pixel width for the import conversion. */
+  deviceW?: number;
+  /** Device native pixel height for the import conversion. */
+  deviceH?: number;
   /** Hide the widget-labels toggle. Single-widget surfaces (q-series) lock
    * labels off. */
   hideWidgetLabelsToggle?: boolean;
@@ -102,10 +114,15 @@ export function PanelThemeSettings({
   onBackgroundEffectStateCommit,
   onBackgroundOpacityPreview,
   onBackgroundOpacityCommit,
+  onBackgroundMediaCommit,
   onWidgetOpacityPreview,
   onWidgetOpacityCommit,
   onWidgetLabelsCommit,
   onWidgetBlurCommit,
+  showMediaTab = false,
+  deviceAspect = 9 / 16,
+  deviceW,
+  deviceH,
   hideWidgetLabelsToggle = false,
   hideWidgetChromeControls = false,
 }: PanelThemeSettingsProps) {
@@ -152,6 +169,8 @@ export function PanelThemeSettings({
         { key: 'solid', label: label('panel.settings.backgroundMode.solid', 'Solid') },
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
         { key: 'shader', label: label('panel.settings.backgroundMode.animations', 'Animations') },
+        // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
+        ...(showMediaTab ? [{ key: 'media', label: label('panel.settings.backgroundMode.media', 'Media') }] : []),
       ]}
       activeKey={theme.backgroundMode}
       onChange={key => onBackgroundModeCommit(key as PanelBackgroundMode)}
@@ -250,6 +269,35 @@ export function PanelThemeSettings({
               fallback={panelBackgroundDefault(resolvedThemeMode)}
               onPreview={onBackgroundPreview}
               onCommit={onBackgroundCommit}
+            />
+          </>
+        ) : theme.backgroundMode === 'media' ? (
+          <>
+            {backgroundModeTabs}
+            <BackgroundMediaPicker
+              deviceId={deviceId ?? ''}
+              activeId={theme.backgroundMediaId}
+              deviceAspect={deviceAspect}
+              deviceW={deviceW ?? Math.round(deviceAspect * 1280)}
+              deviceH={deviceH ?? 1280}
+              onSelect={(mediaId, type) => onBackgroundMediaCommit(mediaId, type)}
+            />
+            <Slider
+              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+              orientation="stacked"
+              label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
+              value={backgroundOpacityPercent}
+              min={0}
+              max={100}
+              step={1}
+              trackFill={backgroundOpacityPercent}
+              formatValue={v => `${v}%`}
+              onChange={(v, commit) => {
+                const next = v / 100;
+                if (commit) onBackgroundOpacityCommit(next);
+                else onBackgroundOpacityPreview(next);
+              }}
+              onCommit={v => onBackgroundOpacityCommit(v / 100)}
             />
           </>
         ) : (

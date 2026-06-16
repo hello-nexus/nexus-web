@@ -70,6 +70,7 @@ import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import type { DeckIcon } from '../panel/widgets/deck/types';
+import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
 // Side-effect: pulls the global `.panel-root { --panel-*: … }` token rules into
 // the Storybook bundle so the panel-scoped preview below resolves its vars.
 // Idempotent — PanelDevicePage imports the same sheet.
@@ -810,6 +811,7 @@ function PreviewPanelThemeSettings() {
     backgroundMode: 'solid', backgroundEffect: 'aurora', backgroundTemplate: 0, backgroundTemplates: {},
     backgroundOpacity: 0.4,
     backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
+    backgroundMediaId: null, backgroundMediaType: null,
     widgetOpacity: 1, widgetLabels: true, widgetBlur: true,
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
@@ -832,6 +834,7 @@ function PreviewPanelThemeSettings() {
         onBackgroundEffectStateCommit={s => set({ backgroundEffectState: s })}
         onBackgroundOpacityPreview={o => set({ backgroundOpacity: o })}
         onBackgroundOpacityCommit={o => set({ backgroundOpacity: o })}
+        onBackgroundMediaCommit={() => { /* no media service in Storybook */ }}
         onWidgetOpacityPreview={o => set({ widgetOpacity: o })}
         onWidgetOpacityCommit={o => set({ widgetOpacity: o })}
         onWidgetLabelsCommit={v => set({ widgetLabels: v })}
@@ -968,6 +971,33 @@ function PreviewToast() {
 
 function PreviewDesktopOnlyBadge() {
   return <DesktopOnlyBadge />;
+}
+
+// Inline SVG sample image (160x90) for the cropper preview.
+// Provides a visible still without loading a remote asset.
+const SAMPLE_CROP_SRC = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIGZpbGw9IiMzMzM2NTMiLz48dGV4dCB4PSI4MCIgeT0iNTAiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNhbXBsZTwvdGV4dD48L3N2Zz4=';
+
+function PreviewMediaCropper() {
+  const [open, setOpen] = useState(true);
+  const [lastCrop, setLastCrop] = useState<string | null>(null);
+  if (!open) {
+    return (
+      <div style={{ padding: 16, color: 'var(--text-dim)', fontSize: 13 }}>
+        {lastCrop ? `Crop: ${lastCrop}` : 'Cancelled'}
+        <button type="button" style={{ marginLeft: 12, fontSize: 12 }} onClick={() => setOpen(true)}>
+          Reopen
+        </button>
+      </div>
+    );
+  }
+  return (
+    <MediaCropper
+      src={SAMPLE_CROP_SRC}
+      aspect={16 / 9}
+      onConfirm={c => { setLastCrop(`${c.x.toFixed(3)},${c.y.toFixed(3)},${c.w.toFixed(3)},${c.h.toFixed(3)}`); setOpen(false); }}
+      onCancel={() => setOpen(false)}
+    />
+  );
 }
 
 /* ── Registry ────────────────────────────────────────────────────────────── */
@@ -1207,6 +1237,12 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Lightweight "About Nexus" dialog opened from the top-bar "..." menu. Brand mark + wordmark, build version, link to hellonexus.com. Composes Overlay (alert variant, Enter/Esc close).',
     Preview: PreviewAboutModal,
   },
+  {
+    name: 'MediaCropper', category: 'modals',
+    filePath: 'src/components/common/MediaCropper/MediaCropper.tsx',
+    description: 'Aspect-locked image cropper modal. Drag to pan, corner handles to resize. Emits NormalizedCrop { x, y, w, h } in 0..1 of the source image. Used when importing lighting media and when selecting a background media item for a panel device.',
+    Preview: PreviewMediaCropper,
+  },
 
   // ── Charts ────────────────────────────────────────────────────────────
   {
@@ -1402,6 +1438,12 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Per-panel theme editor (Widgets / Theme / Accent / Background) shown in the Y70 touch editor sheet and the dashboard device Settings tab. Section headers match the Y70 device Settings (.device-modal-section): uppercase, --type-small / --weight-heading, with a full-width rule underneath.',
     Preview: PreviewPanelThemeSettings,
     notes: 'Preview is in solid background mode; switching to Animations hits the live thumbnail service, so the grid is empty in Storybook.',
+  },
+  {
+    name: 'PanelBackgroundMedia', category: 'panel-kit',
+    filePath: 'src/panel/background/PanelBackgroundMedia.tsx',
+    description: 'Full-bleed background layer rendered in the panel kiosk when backgroundMode is "media". Renders <img> (static) or <video autoPlay loop muted playsInline> (animated) based on the type prop; URL carries the session token for auth.',
+    notes: 'No live preview - requires a running service with background-media items and a device deviceId.',
   },
   {
     name: 'GaugeTrack', category: 'panel-kit',

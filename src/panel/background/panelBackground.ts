@@ -9,7 +9,7 @@ import {
 import { buildDefaultTemplates } from '../../types/lightingTemplates';
 import { getInstallDefaults } from '../../api/installDefaultsCache';
 
-export type PanelBackgroundMode = 'solid' | 'shader';
+export type PanelBackgroundMode = 'solid' | 'shader' | 'media';
 export type PanelResolvedTheme = 'dark' | 'light';
 
 export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'aurora';
@@ -104,7 +104,9 @@ export function resolvePanelBackground(
 }
 
 export function normalizePanelBackgroundMode(value: string | null | undefined): PanelBackgroundMode {
-  return value === 'shader' ? 'shader' : 'solid';
+  if (value === 'shader') return 'shader';
+  if (value === 'media') return 'media';
+  return 'solid';
 }
 
 export function normalizePanelBackgroundEffect(value: string | null | undefined): string {
