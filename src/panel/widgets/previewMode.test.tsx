@@ -86,7 +86,6 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   'smart-lights': ['smartLights.onlineOfTotal'],
   deck: ['Stream', 'Lights'],
   twitch: ['nova_streams', 'LIVE'],
-  iframe: ['example.com'],
   // The mocked t() returns keys, so the fixture's machineName surfaces as the
   // idle 'transfer.sendTo' status line rather than 'Nexus-PC' itself.
   transfer: ['transfer.photo', 'transfer.clipboard', 'transfer.sendTo'],

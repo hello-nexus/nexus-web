@@ -35,7 +35,6 @@ import { displaysApp } from './displays';
 import { timerApp } from './timer';
 import { stopwatchApp } from './stopwatch';
 import { calculatorApp } from './calculator';
-import { iframeApp } from './iframe';
 import { twitchApp } from './twitch';
 import { deckApp } from './deck';
 import { emojiApp } from './emoji';
@@ -63,7 +62,6 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   timer:      timerApp,
   stopwatch:  stopwatchApp,
   calculator: calculatorApp,
-  iframe:     iframeApp,
   twitch:     twitchApp,
   deck:       deckApp,
   emoji:      emojiApp,

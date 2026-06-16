@@ -60,6 +60,7 @@ import { CollapsibleSection } from '../components/common/CollapsibleSection/Coll
 import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
 import { SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
+import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
@@ -965,6 +966,10 @@ function PreviewToast() {
   );
 }
 
+function PreviewDesktopOnlyBadge() {
+  return <DesktopOnlyBadge />;
+}
+
 /* ── Registry ────────────────────────────────────────────────────────────── */
 
 export const REGISTRY: StorybookEntry[] = [
@@ -1279,6 +1284,12 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'EmptyState', category: 'status',
     filePath: 'src/components/common/EmptyState/EmptyState.tsx',
     description: 'Centered icon + title + optional hint + optional action. Used by panel widgets when their data source has no entries (no displays, no media playing) and by app views to convey "nothing here yet". Pass `compact` for tight panel widget contexts.', Preview: PreviewEmptyState,
+  },
+  {
+    name: 'DesktopOnlyBadge', category: 'status',
+    filePath: 'src/components/common/DesktopOnlyBadge/DesktopOnlyBadge.tsx',
+    description: 'Pill badge shown below a field or control that is unavailable on keyboard-less surfaces (Y70 / Q-series). Monitor icon + caption from common.desktopOnly. No props required; usable anywhere a feature is gated on surfaceSupportsTextInput returning false.',
+    Preview: PreviewDesktopOnlyBadge,
   },
   {
     name: 'Toast', category: 'status',

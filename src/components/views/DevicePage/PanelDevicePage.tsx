@@ -677,6 +677,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
           <Settings
             widget={widget}
             surface={surface}
+            desktopEditor
             onUpdate={handleConfigUpdate}
             onResize={handleResize}
             selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}

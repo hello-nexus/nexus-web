@@ -27,6 +27,23 @@ export function surfaceSupportsTextInput(surface: PanelSurface): boolean {
   return surface === 'desktop' || surface === 'phone';
 }
 
+// Whether the operator editing a panel can type into free-text fields.
+// True when: the settings sheet is rendered in a desktop editor context
+// (desktopEditor=true), the native app shell is running (nexusShellPlatform
+// global set by the Windows/macOS shell), or the target surface itself has a
+// keyboard (phone/desktop). False only on the on-device Y70/Q60 kiosk sheet
+// where no keyboard is present.
+// Reads nexusShellPlatform directly rather than importing windowActions to
+// avoid a circular dependency between panel/types.ts and app/windowActions.ts.
+export function canEditFreeText(surface?: PanelSurface, desktopEditor?: boolean): boolean {
+  if (desktopEditor) return true;
+  const w = typeof window !== 'undefined' ? (window as Window & { nexusShellPlatform?: string }) : null;
+  const shell = w?.nexusShellPlatform;
+  if (shell === 'windows-app' || shell === 'mac-app') return true;
+  if (surface === undefined) return true;
+  return surfaceSupportsTextInput(surface);
+}
+
 // Surfaces hosting one widget at a fixed size. Add a surface by adding an
 // entry here; nothing else should branch on a literal surface name. Q-series
 // LCD: ~240x800 portrait strip, no touch, room for one tile.

@@ -57,6 +57,11 @@ export interface WidgetSettingsProps {
   // The surface the panel being edited runs on (desktop/phone/y70/q60). Gates
   // free-text fields (e.g. the icon search) off keyboard-less surfaces.
   surface?: PanelSurface;
+  // True when the settings sheet is rendered in a desktop editor context
+  // (PanelDevicePage's InlineWidgetSettings). Overrides surface-based gating
+  // so free-text fields remain editable even when the target surface (y70/q60)
+  // has no keyboard.
+  desktopEditor?: boolean;
   onUpdate: (config: Record<string, PanelConfigValue>) => void;
   onResize: (size: PanelWidgetSize) => void;
   selectedSlot?: number;

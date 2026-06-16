@@ -9,7 +9,10 @@ import { SectionHeader } from '../../../components/common/SectionHeader/SectionH
 import { SettingsSection } from '../common/SettingsRow/SettingsRow';
 import { AppPicker } from '../common/AppPicker';
 import { IconPicker } from '../common/IconPicker';
+import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
+import { canEditFreeText } from '../../types';
 import type { WidgetSettingsProps, DeckEditView } from '../types';
+import type { PanelSurface } from '../../types';
 import { HotkeyInput } from './HotkeyInput';
 import { innerGridForSize, readDeckConfig, resolveViewSlots, updateSlotAt, deckConfigPatch, padSlots } from './deckLayout';
 import type { DeckAction, DeckActionType, DeckSlot } from './types';
@@ -72,8 +75,8 @@ function SelectField({ label, value, options, onChange }: { label: string; value
   );
 }
 
-function ActionEditor({ action, onChange, showType, allowed }: {
-  action: DeckAction; onChange: (a: DeckAction) => void; showType: boolean; allowed: DeckActionType[];
+function ActionEditor({ action, onChange, showType, allowed, surface, desktopEditor }: {
+  action: DeckAction; onChange: (a: DeckAction) => void; showType: boolean; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -86,12 +89,12 @@ function ActionEditor({ action, onChange, showType, allowed }: {
           onChange={k => onChange(defaultActionFor(k as DeckActionType))}
         />
       )}
-      <ActionFields action={action} onChange={onChange} />
+      <ActionFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />
     </>
   );
 }
 
-function ActionFields({ action, onChange }: { action: DeckAction; onChange: (a: DeckAction) => void }) {
+function ActionFields({ action, onChange, surface, desktopEditor }: { action: DeckAction; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean }) {
   const { t } = useTranslation();
   const audioOut = useServiceOptions('/system/audio/devices', d => ((d as { outputs?: { id: string; name: string }[] })?.outputs ?? []).map(x => ({ value: x.id, label: x.name })));
   const audioIn = useServiceOptions('/system/audio/devices', d => ((d as { inputs?: { id: string; name: string }[] })?.inputs ?? []).map(x => ({ value: x.id, label: x.name })));
@@ -100,9 +103,16 @@ function ActionFields({ action, onChange }: { action: DeckAction; onChange: (a: 
   switch (action.type) {
     case 'launchApp':
       return <Field label={t('panel.settings.deck.action.launchApp')}><AppPicker selectedId={action.appId} onSelect={app => onChange({ type: 'launchApp', appId: app.id })} /></Field>;
-    case 'openUrl':
-      // eslint-disable-next-line i18next/no-literal-string -- example URL placeholder
-      return <Field label={t('panel.settings.url')}><input className={styles.input} type="text" value={action.url} placeholder="https://example.com" onChange={e => onChange({ ...action, url: e.target.value })} /></Field>;
+    case 'openUrl': {
+      const canType = canEditFreeText(surface, desktopEditor);
+      return (
+        <Field label={t('panel.settings.url')}>
+          {/* eslint-disable-next-line i18next/no-literal-string -- example URL placeholder */}
+          <input className={styles.input} type="text" value={action.url} placeholder="https://example.com" readOnly={!canType} disabled={!canType} onChange={e => onChange({ ...action, url: e.target.value })} />
+          {!canType && <DesktopOnlyBadge />}
+        </Field>
+      );
+    }
     case 'openFile':
     case 'openFolder':
       return <Field label={t('panel.settings.deck.path')}><input className={styles.input} type="text" value={action.path} onChange={e => onChange({ ...action, path: e.target.value })} /></Field>;
@@ -141,9 +151,9 @@ function ActionFields({ action, onChange }: { action: DeckAction; onChange: (a: 
     case 'nexus':
       return <NexusFields action={action} onChange={onChange} />;
     case 'sequence':
-      return <SequenceEditor action={action} onChange={onChange} />;
+      return <SequenceEditor action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
     case 'toggle':
-      return <ToggleEditor action={action} onChange={onChange} />;
+      return <ToggleEditor action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
     default:
       return null;
   }
@@ -172,7 +182,7 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
   );
 }
 
-function SequenceEditor({ action, onChange }: { action: Extract<DeckAction, { type: 'sequence' }>; onChange: (a: DeckAction) => void }) {
+function SequenceEditor({ action, onChange, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'sequence' }>; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean }) {
   const { t } = useTranslation();
   const steps = action.steps;
   const setSteps = (next: typeof steps) => onChange({ type: 'sequence', steps: next });
@@ -188,7 +198,7 @@ function SequenceEditor({ action, onChange }: { action: Extract<DeckAction, { ty
               <button type="button" onClick={() => setSteps(steps.filter((_, j) => j !== i))}>✕</button>
             </span>
           </div>
-          <ActionEditor action={step.action} onChange={a => setSteps(steps.map((s, j) => (j === i ? { ...s, action: a } : s)))} showType allowed={NESTED_KINDS} />
+          <ActionEditor action={step.action} onChange={a => setSteps(steps.map((s, j) => (j === i ? { ...s, action: a } : s)))} showType allowed={NESTED_KINDS} surface={surface} desktopEditor={desktopEditor} />
           <Field label={t('panel.settings.deck.sequence.gapMs')}><input className={styles.input} type="number" min={0} value={step.gapAfterMs ?? 60} onChange={e => setSteps(steps.map((s, j) => (j === i ? { ...s, gapAfterMs: Math.max(0, Number(e.target.value)) } : s)))} /></Field>
         </div>
       ))}
@@ -199,7 +209,7 @@ function SequenceEditor({ action, onChange }: { action: Extract<DeckAction, { ty
   );
 }
 
-function ToggleEditor({ action, onChange }: { action: Extract<DeckAction, { type: 'toggle' }>; onChange: (a: DeckAction) => void }) {
+function ToggleEditor({ action, onChange, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'toggle' }>; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean }) {
   const { t } = useTranslation();
   const stateKinds = ['mute', 'lightingPower', 'internal'];
   return (
@@ -207,17 +217,17 @@ function ToggleEditor({ action, onChange }: { action: Extract<DeckAction, { type
       <SelectField label={t('panel.settings.deck.toggle.stateSource')} value={action.state?.kind ?? 'internal'} options={stateKinds.map(k => ({ value: k, label: t(`panel.settings.deck.toggle.state.${k}`) }))} onChange={kind => onChange({ ...action, state: { kind: kind as 'mute' } })} />
       <div className={styles.branch}>
         <div className={styles.branchLabel}>{t('panel.settings.deck.toggle.onPress')}</div>
-        <ActionEditor action={action.on} onChange={on => onChange({ ...action, on })} showType allowed={NESTED_KINDS} />
+        <ActionEditor action={action.on} onChange={on => onChange({ ...action, on })} showType allowed={NESTED_KINDS} surface={surface} desktopEditor={desktopEditor} />
       </div>
       <div className={styles.branch}>
         <div className={styles.branchLabel}>{t('panel.settings.deck.toggle.alternatePress')}</div>
-        <ActionEditor action={action.off} onChange={off => onChange({ ...action, off })} showType allowed={NESTED_KINDS} />
+        <ActionEditor action={action.off} onChange={off => onChange({ ...action, off })} showType allowed={NESTED_KINDS} surface={surface} desktopEditor={desktopEditor} />
       </div>
     </>
   );
 }
 
-export function DeckSettings({ widget, surface, onUpdate, selectedSlot, onSelectedSlotChange, editView, onEditViewChange }: WidgetSettingsProps) {
+export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selectedSlot, onSelectedSlotChange, editView, onEditViewChange }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const deck = readDeckConfig(widget);
   const { count } = innerGridForSize(widget.size);
@@ -249,7 +259,7 @@ export function DeckSettings({ widget, surface, onUpdate, selectedSlot, onSelect
       )}
 
       <SettingsSection title={t('panel.settings.icon')}>
-        <IconPicker value={slot.icon} appId={appIdForIcon} surface={surface} onChange={icon => writeSlot({ ...slot, icon })} />
+        <IconPicker value={slot.icon} appId={appIdForIcon} surface={surface} desktopEditor={desktopEditor} onChange={icon => writeSlot({ ...slot, icon })} />
       </SettingsSection>
 
       <SettingsSection title={t('panel.settings.deck.color')}>
@@ -279,7 +289,7 @@ export function DeckSettings({ widget, surface, onUpdate, selectedSlot, onSelect
               <FolderInput size={14} /> {t('panel.settings.deck.enterFolder')}
             </button>
           ) : slot.action ? (
-            <ActionEditor action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} showType={false} allowed={NESTED_KINDS} />
+            <ActionEditor action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} showType={false} allowed={NESTED_KINDS} surface={surface} desktopEditor={desktopEditor} />
           ) : null}
         </div>
       </SettingsSection>

@@ -3,7 +3,7 @@ import { Sparkles, Shapes, Smile } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
-import { surfaceSupportsTextInput, type PanelSurface } from '../../types';
+import { canEditFreeText, type PanelSurface } from '../../types';
 import { DECK_ICONS, DECK_ICON_NAMES } from '../deck/deckIcons';
 import { CATEGORIES as EMOJI_CATEGORIES, CATEGORY_KEYS as EMOJI_CATEGORY_KEYS } from '../emoji/EmojiWidget';
 import type { DeckIcon } from '../deck/types';
@@ -23,6 +23,9 @@ interface IconPickerProps {
   // Surface being edited; the icon-name search is hidden on keyboard-less
   // surfaces (Y70 / Q-series). Undefined falls back to showing it.
   surface?: PanelSurface;
+  // True when rendered in a desktop editor context; keeps the search input
+  // visible even when the target surface has no keyboard.
+  desktopEditor?: boolean;
 }
 
 type Tab = 'auto' | 'icons' | 'emoji';
@@ -33,12 +36,12 @@ function tabForValue(value?: DeckIcon): Tab {
   return 'auto'; // undefined or app icon → Auto
 }
 
-export function IconPicker({ value, onChange, surface }: IconPickerProps) {
+export function IconPicker({ value, onChange, surface, desktopEditor }: IconPickerProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>(() => tabForValue(value));
   const [query, setQuery] = useState('');
   const [emojiCat, setEmojiCat] = useState(EMOJI_CATEGORY_KEYS[0]);
-  const showSearch = !surface || surfaceSupportsTextInput(surface);
+  const showSearch = canEditFreeText(surface, desktopEditor);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
