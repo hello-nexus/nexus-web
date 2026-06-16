@@ -45,8 +45,6 @@ export function BenchmarkProgress({ progress }: Props) {
               </div>
               <div className={styles.phaseDetail}>
                 {state === 'active' && progress.phase.detail}
-                {state === 'active' && progress.phase.currentRaw > 0 &&
-                  ` - ${progress.phase.currentRaw.toFixed(1)} ${progress.phase.currentUnit}`}
               </div>
             </li>
           );

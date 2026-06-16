@@ -2,6 +2,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { ArrowRight } from 'lucide-react';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import type { MatchCandidate, MatchResponse } from '../../../types/benchmark';
+import { Button } from '../../common/Button/Button';
 import styles from './BenchmarkView.module.scss';
 
 interface Props {
@@ -67,15 +68,14 @@ export function MatchConfirmPanel({ matches, onConfirm }: Props) {
           ))}
         </ul>
       )}
-      <button
-        type="button"
-        className={styles.primary}
+      <Button
+        tone="accent"
+        iconTrailing={<ArrowRight size={14} />}
         onClick={onConfirm}
         disabled={!hasAny}
       >
-        <span>{t('benchmark.match.confirm')}</span>
-        <ArrowRight size={14} />
-      </button>
+        {t('benchmark.match.confirm')}
+      </Button>
     </div>
   );
 }

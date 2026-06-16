@@ -11,6 +11,7 @@ import type { MatchCandidate, MatchResponse, DetectedByCategory } from '../../..
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
 import { MatchConfirmPanel } from './MatchConfirmPanel';
+import { Button } from '../../common/Button/Button';
 import styles from './BenchmarkView.module.scss';
 
 interface BenchmarkViewProps {
@@ -176,10 +177,9 @@ export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfir
             <li>{t('benchmark.intro.gpu')}</li>
           </ul>
           <div className={styles.introActions}>
-            <button type="button" className={styles.primary} onClick={() => start()}>
-              <Play size={16} />
-              <span>{t('benchmark.start')}</span>
-            </button>
+            <Button tone="accent" icon={<Play size={16} />} onClick={() => start()}>
+              {t('benchmark.start')}
+            </Button>
           </div>
         </div>
       )}
@@ -190,10 +190,9 @@ export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfir
         <>
           <BenchmarkProgress progress={progress} />
           <div className={styles.controls}>
-            <button type="button" className={styles.ghost} onClick={cancel}>
-              <Square size={14} />
-              <span>{t('benchmark.cancel')}</span>
-            </button>
+            <Button tone="ghost" icon={<Square size={14} />} onClick={cancel}>
+              {t('benchmark.cancel')}
+            </Button>
           </div>
         </>
       )}
@@ -212,10 +211,9 @@ export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfir
             onConfirm={handleConfirm}
           />
           <div className={styles.controls}>
-            <button type="button" className={styles.ghost} onClick={reset}>
-              <RotateCcw size={14} />
-              <span>{t('benchmark.rerun')}</span>
-            </button>
+            <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={reset}>
+              {t('benchmark.rerun')}
+            </Button>
           </div>
         </>
       )}
@@ -223,20 +221,18 @@ export function BenchmarkView({ serviceOnline, connectionState, onHardwareConfir
       {status === 'failed' && (
         <div className={styles.error}>
           <p>{t('benchmark.failed')}: {error ?? t('benchmark.unknownError')}</p>
-          <button type="button" className={styles.ghost} onClick={reset}>
-            <RotateCcw size={14} />
-            <span>{t('benchmark.rerun')}</span>
-          </button>
+          <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={reset}>
+            {t('benchmark.rerun')}
+          </Button>
         </div>
       )}
 
       {status === 'cancelled' && (
         <div className={styles.hint}>
           <p>{t('benchmark.cancelled')}</p>
-          <button type="button" className={styles.ghost} onClick={reset}>
-            <RotateCcw size={14} />
-            <span>{t('benchmark.rerun')}</span>
-          </button>
+          <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={reset}>
+            {t('benchmark.rerun')}
+          </Button>
         </div>
       )}
       </div>
