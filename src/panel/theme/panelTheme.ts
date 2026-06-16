@@ -167,6 +167,8 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     backgroundTemplates: {},
     backgroundOpacity: DEFAULT_PANEL_BACKGROUND_OPACITY,
     backgroundEffectState: panelBackgroundState(DEFAULT_PANEL_BACKGROUND_EFFECT, DEFAULT_PANEL_BACKGROUND_TEMPLATE),
+    backgroundMediaId: null,
+    backgroundMediaType: null,
     widgetOpacity: defaultPanelWidgetOpacity(),
     widgetLabels: defaultPanelWidgetLabels(),
     widgetBlur: defaultPanelWidgetBlur(),
@@ -239,6 +241,8 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         // Static fallback; the returned value below is derived from the global
         // presets + the live draft.
         backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),
+        backgroundMediaId: r?.backgroundMediaId ?? null,
+        backgroundMediaType: r?.backgroundMediaType ?? null,
         widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
         widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
         widgetBlur: normalizePanelWidgetBlur(r?.widgetBlur),
@@ -361,6 +365,11 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     persistPatch({ backgroundOpacity: nextOpacity });
   }, [persistPatch]);
 
+  const commitBackgroundMedia = useCallback((mediaId: string | null, type: 'static' | 'animated' | null) => {
+    setTheme(prev => ({ ...prev, backgroundMediaId: mediaId, backgroundMediaType: type }));
+    persistPatch({ backgroundMediaId: mediaId, backgroundMediaType: type });
+  }, [persistPatch]);
+
   const commitWidgetOpacity = useCallback((opacity: number) => {
     const nextOpacity = normalizePanelWidgetOpacity(opacity);
     setTheme(prev => ({ ...prev, widgetOpacity: nextOpacity }));
@@ -406,6 +415,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
       { ...prev, backgroundOpacity: normalizePanelBackgroundOpacity(opacity) }
     )),
     commitBackgroundOpacity,
+    commitBackgroundMedia,
     previewWidgetOpacity: (opacity: number) => setTheme(prev => (
       { ...prev, widgetOpacity: normalizePanelWidgetOpacity(opacity) }
     )),

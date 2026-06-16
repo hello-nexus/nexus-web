@@ -67,6 +67,7 @@ import { isSingleWidgetSurface, surfaceSupportsTouch } from './types';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
+import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
 import { resolvePanelBackground } from './background/panelBackground';
 import type { SimulatorTheme } from './embed/simulatorProtocol';
 import './styles/tokens.scss';
@@ -1203,6 +1204,14 @@ export function PanelContent({
             fullRes={simulator}
           />
         )}
+        {(!embedded || simulator) && effectiveTheme.backgroundMode === 'media' && effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType && deviceId && (
+          <PanelBackgroundMedia
+            id={effectiveTheme.backgroundMediaId}
+            deviceId={deviceId}
+            type={effectiveTheme.backgroundMediaType}
+            opacity={effectiveTheme.backgroundOpacity}
+          />
+        )}
         {!loaded ? (
           <div className={styles.loading}>{t('panel.loadingPanel')}</div>
         ) : (
@@ -1467,6 +1476,11 @@ export function PanelContent({
           onThemeBackgroundEffectStateCommit={panelTheme.commitBackgroundEffectState}
           onThemeBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
           onThemeBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
+          onThemeBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
+          showMediaTab={surface === 'y70' || surface === 'q60'}
+          deviceAspect={typeof window !== 'undefined' ? window.innerWidth / window.innerHeight : undefined}
+          deviceW={surface === 'q60' ? 720 : (typeof window !== 'undefined' ? Math.round(window.innerWidth * window.devicePixelRatio) : undefined)}
+          deviceH={surface === 'q60' ? 1280 : (typeof window !== 'undefined' ? Math.round(window.innerHeight * window.devicePixelRatio) : undefined)}
           onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}

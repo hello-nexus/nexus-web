@@ -10,7 +10,7 @@ import styles from '../LightingPage.module.scss';
  * read-only picker omits it. `prepend` lets the desktop slot an "importing…"
  * placeholder card at the front.
  */
-export function MediaGrid({ items, activeId, thumbs, onPlay, onDelete, deleteAriaLabel, prepend }: {
+export function MediaGrid({ items, activeId, thumbs, onPlay, onDelete, deleteAriaLabel, prepend, thumbAspect }: {
   items: MediaItem[];
   activeId: string | null;
   thumbs: Record<string, string>;
@@ -18,6 +18,7 @@ export function MediaGrid({ items, activeId, thumbs, onPlay, onDelete, deleteAri
   onDelete?: (id: string, label: string) => void;
   deleteAriaLabel?: string;
   prepend?: ReactNode;
+  thumbAspect?: number;
 }) {
   const { t } = useTranslation();
   return (
@@ -40,6 +41,7 @@ export function MediaGrid({ items, activeId, thumbs, onPlay, onDelete, deleteAri
             onDelete={onDelete ? () => onDelete(item.id, label) : undefined}
             deleteAriaLabel={deleteAriaLabel}
             ariaLabel={label}
+            thumbAspect={thumbAspect}
           />
         );
       })}

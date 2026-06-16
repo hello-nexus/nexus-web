@@ -36,21 +36,36 @@ interface EffectCardProps {
    * so the media library keeps its image-above-caption layout.
    */
   overlay?: boolean;
+  /**
+   * Thumbnail aspect ratio (width / height). When provided, the thumb box uses
+   * this aspect-ratio and object-fit: cover, cropping the image to fill that
+   * frame. Omit for the default 16/9 cropped behavior.
+   */
+  thumbAspect?: number;
 }
 
 export function EffectCard({
   label, thumbUrl, active, onClick,
   audio, meta, onDelete, deleteAriaLabel,
-  asDiv, thumbOverlay, cornerBadge, ariaLabel, dataEffectKey, overlay,
+  asDiv, thumbOverlay, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect,
 }: EffectCardProps) {
   const { t } = useTranslation();
   const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''}`;
+  const thumbBoxStyle = thumbAspect !== undefined
+    ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
+    : undefined;
+  const thumbImgStyle = thumbAspect !== undefined
+    ? { objectFit: 'cover' as const, aspectRatio: String(thumbAspect) }
+    : undefined;
+  const thumbSkeletonStyle = thumbAspect !== undefined
+    ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
+    : undefined;
   const inner = (
     <>
-      <div className={styles.thumbWrap}>
+      <div className={styles.thumbWrap} style={thumbBoxStyle}>
         {thumbUrl
-          ? <img className={styles.thumbImg} src={thumbUrl} alt={label} />
-          : <div className={styles.thumbSkeleton} aria-hidden="true" />}
+          ? <img className={styles.thumbImg} src={thumbUrl} alt={label} style={thumbImgStyle} />
+          : <div className={styles.thumbSkeleton} aria-hidden="true" style={thumbSkeletonStyle} />}
         {audio && (
           <svg className={styles.audioBadge} width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />

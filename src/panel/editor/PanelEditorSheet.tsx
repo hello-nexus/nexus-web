@@ -50,10 +50,15 @@ export function PanelEditorSheet({
   onThemeBackgroundEffectStateCommit,
   onThemeBackgroundOpacityPreview,
   onThemeBackgroundOpacityCommit,
+  onThemeBackgroundMediaCommit,
   onThemeWidgetOpacityPreview,
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
   onThemeWidgetBlurCommit,
+  showMediaTab = false,
+  deviceAspect,
+  deviceW,
+  deviceH,
   machineName,
   showHostName,
   onMachineNameCommit,
@@ -94,10 +99,15 @@ export function PanelEditorSheet({
   onThemeBackgroundEffectStateCommit: (state: EffectState) => void;
   onThemeBackgroundOpacityPreview: (opacity: number) => void;
   onThemeBackgroundOpacityCommit: (opacity: number) => void;
+  onThemeBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
   onThemeWidgetOpacityPreview: (opacity: number) => void;
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
   onThemeWidgetBlurCommit: (enabled: boolean) => void;
+  showMediaTab?: boolean;
+  deviceAspect?: number;
+  deviceW?: number;
+  deviceH?: number;
   machineName: string;
   // Whether to show the host-name (computer-name) editor. Off on hardwired,
   // non-user-paired surfaces (Y70, Q-series): the machine is self-evident there
@@ -335,6 +345,11 @@ export function PanelEditorSheet({
               onBackgroundEffectStateCommit={onThemeBackgroundEffectStateCommit}
               onBackgroundOpacityPreview={onThemeBackgroundOpacityPreview}
               onBackgroundOpacityCommit={onThemeBackgroundOpacityCommit}
+              onBackgroundMediaCommit={onThemeBackgroundMediaCommit}
+              showMediaTab={showMediaTab}
+              deviceAspect={deviceAspect}
+              deviceW={deviceW}
+              deviceH={deviceH}
               onWidgetOpacityPreview={onThemeWidgetOpacityPreview}
               onWidgetOpacityCommit={onThemeWidgetOpacityCommit}
               onWidgetLabelsCommit={onThemeWidgetLabelsCommit}

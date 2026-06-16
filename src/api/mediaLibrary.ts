@@ -42,9 +42,10 @@ export async function deleteMedia(id: string): Promise<boolean> {
   return !!resp && resp.error !== true;
 }
 
-export async function importMedia(file: File): Promise<{ item: MediaItem | null; error: boolean; msg: string } | null> {
+export async function importMedia(file: File, crop?: string | null): Promise<{ item: MediaItem | null; error: boolean; msg: string } | null> {
   const form = new FormData();
   form.append('file', file);
+  if (crop) form.append('crop', crop);
   return postServiceForm<{ item: MediaItem | null; error: boolean; msg: string }>('/media/import', form);
 }
 

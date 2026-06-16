@@ -59,6 +59,18 @@ export function hasSessionToken(): boolean {
   return Boolean(localStorage.getItem(TOKEN_KEY) || localStorage.getItem(PHONE_TOKEN_KEY));
 }
 
+/**
+ * Synchronous best-effort token read for building authenticated asset URLs that
+ * can't carry a Bearer header (a panel-background <video>/<img> src). Mirrors
+ * the WS URL's ?token= scheme. Returns the in-memory/localStorage token or null;
+ * never pairs.
+ */
+export function getTokenSync(): string | null {
+  if (cached) return cached;
+  if (typeof localStorage === 'undefined') return null;
+  return localStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(PHONE_TOKEN_KEY);
+}
+
 async function pair(): Promise<string> {
   if (pairingPromise) return pairingPromise; // wait for in-progress pair
   pairingPromise = doPair();
