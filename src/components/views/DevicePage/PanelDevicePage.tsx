@@ -398,7 +398,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
               />
             ) : (
               <>
-                <div className={styles.tabContent}>
+                <div className={`${styles.tabContent}${activeTab === 'widgets' ? ` ${styles.tabContentCatalog}` : ''}`}>
                   {activeTab === 'widgets' && (
                     <PanelWidgetCatalog
                       surface={surface}
