@@ -46,11 +46,8 @@ vi.mock('../../../lib/i18n', () => ({
       'lighting.panel.selectMode': 'Select a mode',
       'lighting.controls.noMedia': 'No media available',
       'lighting.controls.rainbow': 'Rainbow',
-      'lighting.filter.normal': 'Normal',
-      'lighting.filter.bw': 'B&W',
-      'lighting.filter.highsat': 'High Saturation',
-      'lighting.filter.mirrorx': 'Mirror X',
-      'lighting.filter.mirrory': 'Mirror Y',
+      'lighting.filter.passthrough': 'Pass-Through',
+      'lighting.filter.reactive': 'Reactive',
     }[key] ?? key),
   }),
 }));

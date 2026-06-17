@@ -25,13 +25,6 @@ import { publishControlSync } from '../../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useTranslation } from '../../../lib/i18n';
 import {
-  DEFAULT_SCREEN_FILTER,
-  SCREEN_FILTERS,
-  matchScreenFilter,
-  screenFilterByKey,
-  type ScreenFilterKey,
-} from './page/screenFilters';
-import {
   EFFECTS,
   MODES,
   defaultStateFor,
@@ -56,7 +49,7 @@ const WIDGET_BUTTONS: { key: WidgetMode; icon: LucideIcon; labelKey: string }[] 
   { key: 'screen',  icon: Monitor,  labelKey: 'lighting.mode.screen'  },
 ];
 
-// Catalog preview pins screen mode (filter defaults to DEFAULT_SCREEN_FILTER):
+// Catalog preview pins screen mode (pass-through, reactive=false):
 // the icon view renders with zero fetch/socket/blob traffic. Keep in sync with
 // the simple-mode render — see .agents/rules/widget-preview-fixtures.md in the
 // master repo.
@@ -75,7 +68,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const [mediaThumbs, setMediaThumbs] = useState<Record<string, string>>({});
-  const [filter, setFilter] = useState<ScreenFilterKey>(DEFAULT_SCREEN_FILTER);
+  const [reactive, setReactive] = useState(false);
   const mediaThumbsRef = useRef<Record<string, string>>({});
   const compact = widget.size === '2x2';
 
@@ -86,7 +79,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // loads must never trigger the flash.
   const flashPulse = useStateChangePulse(
     mode === 'animate' ? `animate:${activeEffect}`
-      : mode === 'screen' ? `screen:${filter}`
+      : mode === 'screen' ? `screen:${reactive}`
       : mode,
     !hydrated,
   );
@@ -127,7 +120,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     setActiveEffect(nextEffect);
 
     setMode(resolveMode(rawSync));
-    setFilter(matchScreenFilter(screen) ?? DEFAULT_SCREEN_FILTER);
+    setReactive(screen?.reactive ?? false);
     setHydrated(true);
   }, []);
 
@@ -247,13 +240,14 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     publishLighting('animate', effectKey, { effect: effectKey, templateIndex, effectState: next });
   }, [publishLighting, templates]);
 
-  const applyMirrorFilter = useCallback(async (key: ScreenFilterKey) => {
-    const def = screenFilterByKey(key);
-    setFilter(key);
+  const applyMirror = useCallback(async (nextReactive: boolean) => {
+    setReactive(nextReactive);
     setMode('screen');
     setMusicReactive(false).catch(() => { /* best-effort */ });
-    await setScreenEffect(def.pp);
-    await startScreenMirror(def.pp.saturation, def.pp.contrast, '', def.pp.hue, def.pp.colorize);
+    const current = await fetchScreenEffect();
+    const next = { hue: 0, colorize: 0, saturation: 1, contrast: 1, reactivity: 0.5, intensity: 0.5, ...current, reactive: nextReactive };
+    await setScreenEffect(next, true);
+    await startScreenMirror(next.saturation, next.contrast, '', next.hue, next.colorize);
     publishLighting('screen', 'screen');
   }, [publishLighting]);
 
@@ -279,12 +273,9 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     applyEffect(next.key, resolveEffectState(next.key, templates));
   }, [mode, cycleAnimate, applyEffect, templates]);
 
-  const cycleFilter = useCallback((delta: number) => {
-    const idx = SCREEN_FILTERS.findIndex(f => f.key === filter);
-    const base = idx < 0 ? 0 : idx;
-    const nextIdx = (base + delta + SCREEN_FILTERS.length) % SCREEN_FILTERS.length;
-    applyMirrorFilter(SCREEN_FILTERS[nextIdx].key);
-  }, [applyMirrorFilter, filter]);
+  const toggleReactive = useCallback(() => {
+    applyMirror(!reactive);
+  }, [applyMirror, reactive]);
 
   const onAnimateButton = useCallback(() => {
     const effect = EFFECTS.some(e => e.key === activeEffect) ? activeEffect : 'rainbow';
@@ -292,8 +283,8 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, [activeEffect, applyEffect]);
 
   const onMirrorButton = useCallback(() => {
-    applyMirrorFilter(filter);
-  }, [applyMirrorFilter, filter]);
+    applyMirror(reactive);
+  }, [applyMirror, reactive]);
 
   const onMediaButton = useCallback(async () => {
     setMode('gif');
@@ -340,13 +331,12 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
       };
     }
     if (mode === 'screen') {
-      const def = screenFilterByKey(filter);
       return {
         kind: 'icon',
         icon: Monitor,
-        label: t(def.i18nKey),
-        onPrev: prev ?? (() => cycleFilter(-1)),
-        onNext: next ?? (() => cycleFilter(1)),
+        label: t(reactive ? 'lighting.filter.reactive' : 'lighting.filter.passthrough'),
+        onPrev: prev ?? toggleReactive,
+        onNext: next ?? toggleReactive,
       };
     }
     if (mode === 'gif') {
@@ -365,7 +355,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     // mode === 'none' (off). In simple mode we still show arrows so
     // the first press enters the animation cycle.
     return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off'), onPrev: prev, onNext: next };
-  }, [mode, activeEffect, thumbs, t, filter, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, cycleFilter, simpleMode, enterOrCycleAnimate]);
+  }, [mode, activeEffect, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, toggleReactive, simpleMode, enterOrCycleAnimate]);
 
   const widgetMode: WidgetMode | null =
     mode === 'animate' ? 'animate'

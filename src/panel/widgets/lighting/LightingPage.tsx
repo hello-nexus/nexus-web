@@ -655,13 +655,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const handlePostProcessReset = useCallback(() => {
     if (mode === 'screen') {
-      setScreenPP(DEFAULT_POST_PROCESS);
-      setScreenEffect(DEFAULT_POST_PROCESS, true).catch(() => {});
+      const next = { ...screenPP, hue: 0, colorize: 0, saturation: 1, contrast: 1, reactivity: 0.5, intensity: 0.5 };
+      setScreenPP(next);
+      setScreenEffect(next, true).catch(() => {});
     } else if (mode === 'gif') {
-      setMediaPP(DEFAULT_POST_PROCESS);
-      setMediaEffect(DEFAULT_POST_PROCESS, true).catch(() => {});
+      const next = { ...mediaPP, hue: 0, colorize: 0, saturation: 1, contrast: 1 };
+      setMediaPP(next);
+      setMediaEffect(next, true).catch(() => {});
     }
-  }, [mode]);
+  }, [mode, screenPP, mediaPP]);
 
   // Per-zone toggle (flips one device's current state). Paired with the
   // absolute handleSetPower below: a per-zone toggle applied to a whole
@@ -1024,6 +1026,9 @@ function normalizePP(s: PostProcessSettings | null | undefined): PostProcessStat
     contrast: typeof s.contrast === 'number' ? s.contrast : 1,
     flipX: !!s.flipX,
     flipY: !!s.flipY,
+    reactive: !!s.reactive,
+    reactivity: typeof s.reactivity === 'number' ? s.reactivity : 0.5,
+    intensity: typeof s.intensity === 'number' ? s.intensity : 0.5,
   };
 }
 

@@ -268,7 +268,7 @@ function useImmersivePostProcess(mode: LightingMode): ImmersivePostProcess {
   const hydrate = useCallback(async () => {
     if (mode === 'screen') {
       const e = await fetchScreenEffect();
-      if (e) setPp({ hue: e.hue, colorize: e.colorize, saturation: e.saturation, contrast: e.contrast, flipX: e.flipX, flipY: e.flipY });
+      if (e) setPp({ hue: e.hue, colorize: e.colorize, saturation: e.saturation, contrast: e.contrast, flipX: e.flipX, flipY: e.flipY, reactive: e.reactive, reactivity: e.reactivity, intensity: e.intensity });
     } else if (mode === 'gif') {
       const e = await fetchMediaEffect();
       if (e) setPp({ hue: e.hue, colorize: e.colorize, saturation: e.saturation, contrast: e.contrast, flipX: e.flipX, flipY: e.flipY });
@@ -296,8 +296,11 @@ function useImmersivePostProcess(mode: LightingMode): ImmersivePostProcess {
   const onCommit = useCallback(() => { apply(ppRef.current, true); }, [apply]);
 
   const onReset = useCallback(() => {
-    setPp(DEFAULT_PP);
-    apply(DEFAULT_PP, true);
+    setPp(prev => {
+      const next = { ...prev, hue: 0, colorize: 0, saturation: 1, contrast: 1, reactivity: 0.5, intensity: 0.5 };
+      apply(next, true);
+      return next;
+    });
   }, [apply]);
 
   // ScreenControls' filter presets call setScreenEffect + startScreenMirror

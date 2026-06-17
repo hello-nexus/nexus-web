@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Monitor } from 'lucide-react';
+import { Monitor, MonitorPlay, Zap } from 'lucide-react';
 import {
   fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect, reselectScreen,
   type ScreenMonitor, type PostProcessSettings,
@@ -16,7 +16,6 @@ import { ConfirmModal } from '../../../../components/common/ConfirmModal/Confirm
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
 import { MediaCropper, type NormalizedCrop } from '../../../../components/common/MediaCropper/MediaCropper';
-import { SCREEN_FILTERS, matchScreenFilter, screenFilterByKey, type ScreenFilterKey } from './screenFilters';
 import { useMediaLibrary } from '../effecteditor/useMediaLibrary';
 import { MediaGrid } from '../effecteditor/MediaGrid';
 import styles from '../LightingPage.module.scss';
@@ -72,54 +71,36 @@ export function ScreenControls({ screenPP, onScreenPPChange }: {
     );
   };
 
-  const activeFilter: ScreenFilterKey | null = matchScreenFilter(screenPP);
-
-  const applyFilter = async (key: ScreenFilterKey) => {
-    const def = screenFilterByKey(key);
-    const nextPP: PostProcessSettings = {
-      hue: def.pp.hue,
-      colorize: def.pp.colorize,
-      saturation: def.pp.saturation,
-      contrast: def.pp.contrast,
-      flipX: def.pp.flipX,
-      flipY: def.pp.flipY,
-    };
+  const applyReactive = async (reactive: boolean) => {
+    const nextPP: PostProcessSettings = { ...screenPP, reactive };
     onScreenPPChange(nextPP);
     await setScreenEffect(nextPP, true);
-    // Re-arm the running mirror effect so the new flip/colour state takes
-    // effect immediately on the live frame stream.
-    await startScreenMirror(
-      nextPP.saturation,
-      nextPP.contrast,
-      selectedMonitor,
-      nextPP.hue,
-      nextPP.colorize,
-    );
+    await startScreenMirror(nextPP.saturation, nextPP.contrast, selectedMonitor, nextPP.hue, nextPP.colorize);
   };
 
   return (
     <div className={styles.screenControls}>
-      <div className={styles.filtersRow}>
-        <span className={styles.compactLabel}>{t('lighting.filters.title')}</span>
-        <div className={styles.filterChips}>
-          {SCREEN_FILTERS.map(f => (
-            <button
-              key={f.key}
-              type="button"
-              className={styles.filterChip}
-              data-active={activeFilter === f.key ? 'true' : 'false'}
-              onClick={() => applyFilter(f.key)}
-              aria-pressed={activeFilter === f.key}
-            >
-              {t(f.i18nKey)}
-            </button>
-          ))}
-        </div>
+      <div className={styles.monitorGrid}>
+        <IconLabelButton
+          className={styles.monitorButton}
+          active={!screenPP.reactive}
+          onPress={() => { void applyReactive(false); }}
+          ariaLabel={t('lighting.filter.passthrough')}
+          icon={<MonitorPlay aria-hidden="true" />}
+          label={t('lighting.filter.passthrough')}
+        />
+        <IconLabelButton
+          className={styles.monitorButton}
+          active={!!screenPP.reactive}
+          onPress={() => { void applyReactive(true); }}
+          ariaLabel={t('lighting.filter.reactive')}
+          icon={<Zap aria-hidden="true" />}
+          label={t('lighting.filter.reactive')}
+        />
       </div>
       <div className={styles.monitorPicker}>
         <span className={styles.compactLabel}>{t('lighting.controls.monitor')}</span>
         {selectionMode === 'system' ? (
-          // Wayland: the OS owns screen selection, so re-open its picker.
           <button
             type="button"
             className={styles.filterChip}
@@ -130,9 +111,6 @@ export function ScreenControls({ screenPP, onScreenPPChange }: {
         ) : monitors.length === 0 ? (
           <span className={styles.compactLabel}>{t('lighting.controls.noMonitors')}</span>
         ) : (
-          // Large touch targets instead of a native <select> — the dropdown
-          // doesn't open reliably on the Y70 kiosk WebView. The service names
-          // monitors "Display N (WxH)"; split into a title + resolution line.
           <div className={styles.monitorGrid}>
             {monitors.map(m => {
               const parsed = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(m.name);

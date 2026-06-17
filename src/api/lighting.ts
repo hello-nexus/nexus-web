@@ -111,6 +111,9 @@ export interface PostProcessSettings {
   contrast: number;
   flipX?: boolean;
   flipY?: boolean;
+  reactive?: boolean;
+  reactivity?: number;
+  intensity?: number;
 }
 
 export const fetchScreenEffect = () =>
@@ -124,6 +127,9 @@ export const setScreenEffect = (v: PostProcessSettings, persist = true) =>
     contrast: v.contrast,
     flipX: !!v.flipX,
     flipY: !!v.flipY,
+    reactive: !!v.reactive,
+    reactivity: v.reactivity ?? 0.5,
+    intensity: v.intensity ?? 0.5,
     persist,
   });
 

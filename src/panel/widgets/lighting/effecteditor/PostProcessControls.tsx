@@ -2,6 +2,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { SettingToggle } from '../../../../components/common/SettingRow/SettingRow';
 import type { PostProcessState } from './types';
 import styles from '../LightingPage.module.scss';
 
@@ -18,7 +19,8 @@ export function PostProcessControls({ value, onChange, onCommit, onReset }: {
 }) {
   const { t } = useTranslation();
   const isIdentity = value.hue === 0 && value.colorize === 0
-    && value.saturation === 1 && value.contrast === 1;
+    && value.saturation === 1 && value.contrast === 1
+    && (!value.reactive || ((value.reactivity ?? 0.5) === 0.5 && (value.intensity ?? 0.5) === 0.5));
   return (
     <div className={styles.effectControls}>
       <div className={styles.drawerSliders}>
@@ -52,6 +54,42 @@ export function PostProcessControls({ value, onChange, onCommit, onReset }: {
           onChange={(v, commit) => onChange({ contrast: v / 100 }, !!commit)}
           onCommit={onCommit}
         />
+        <SettingToggle
+          label={t('lighting.controls.mirrorHorizontal')}
+          checked={!!value.flipX}
+          onChange={(next) => onChange({ flipX: next }, true)}
+        />
+        <SettingToggle
+          label={t('lighting.controls.mirrorVertical')}
+          checked={!!value.flipY}
+          onChange={(next) => onChange({ flipY: next }, true)}
+        />
+        {value.reactive && (
+          <>
+            <Slider
+              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+              orientation="stacked"
+              editable
+              label={t('lighting.controls.reactivity')}
+              value={Math.round((value.reactivity ?? 0.5) * 100)}
+              min={0}
+              max={100}
+              onChange={(v, commit) => onChange({ reactivity: v / 100 }, !!commit)}
+              onCommit={onCommit}
+            />
+            <Slider
+              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+              orientation="stacked"
+              editable
+              label={t('lighting.controls.intensity')}
+              value={Math.round((value.intensity ?? 0.5) * 100)}
+              min={0}
+              max={100}
+              onChange={(v, commit) => onChange({ intensity: v / 100 }, !!commit)}
+              onCommit={onCommit}
+            />
+          </>
+        )}
       </div>
       <div className={styles.drawerFooter}>
         <HoverTooltip body={isIdentity ? t('lighting.controls.resetAlready') : t('lighting.controls.reset')} side="top">
