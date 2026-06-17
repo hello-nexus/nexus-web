@@ -180,8 +180,6 @@
   "cooling.card.firmware": "Firmware kontrolü",
   "cooling.card.manual": "Manuel",
   "cooling.card.mode": "Fan modu",
-  "cooling.curve.axisDuty": "Görev %",
-  "cooling.curve.axisTemp": "Sıc.",
   "cooling.curve.fixed.hint": "Sıcaklıktan bağımsız sabit duty tutar.",
   "cooling.curve.fixed.speed": "Fan hizi",
   "cooling.curve.graph.hint": "Özel çok noktalı eğri. Ayarlamak için sürükle, eklemek için çift tıkla, kaldırmak için sağ tıkla.",

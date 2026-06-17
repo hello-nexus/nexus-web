@@ -180,8 +180,6 @@
   "cooling.card.firmware": "韌體控制",
   "cooling.card.manual": "手動",
   "cooling.card.mode": "風扇模式",
-  "cooling.curve.axisDuty": "佔空比 %",
-  "cooling.curve.axisTemp": "溫度",
   "cooling.curve.fixed.hint": "固定 duty,不隨溫度改變。",
   "cooling.curve.fixed.speed": "風扇轉速",
   "cooling.curve.graph.hint": "自訂多點曲線。拖曳點調整,雙擊新增,右鍵移除。",

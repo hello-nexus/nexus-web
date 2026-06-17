@@ -180,8 +180,6 @@
   "cooling.card.firmware": "Control por Firmware",
   "cooling.card.manual": "Manual",
   "cooling.card.mode": "Modo del ventilador",
-  "cooling.curve.axisDuty": "Ciclo %",
-  "cooling.curve.axisTemp": "Temp",
   "cooling.curve.fixed.hint": "Mantiene un duty constante, independiente de la temperatura.",
   "cooling.curve.fixed.speed": "Velocidad del ventilador",
   "cooling.curve.graph.hint": "Curva personalizada con múltiples puntos. Arrastra puntos para ajustar, doble clic para añadir, clic derecho para eliminar.",

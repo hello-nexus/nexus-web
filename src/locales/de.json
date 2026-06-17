@@ -180,8 +180,6 @@
   "cooling.card.firmware": "Firmware-Steuerung",
   "cooling.card.manual": "Manuell",
   "cooling.card.mode": "Lüftermodus",
-  "cooling.curve.axisDuty": "Last %",
-  "cooling.curve.axisTemp": "Temp",
   "cooling.curve.fixed.hint": "Duty unabhängig von der Temperatur konstant halten.",
   "cooling.curve.fixed.speed": "Lüfterdrehzahl",
   "cooling.curve.graph.hint": "Eigene Kurve mit mehreren Punkten. Punkte ziehen zum Anpassen, doppelklicken zum Hinzufügen, rechtsklicken zum Entfernen.",

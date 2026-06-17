@@ -180,8 +180,6 @@
   "cooling.card.firmware": "Управление прошивкой",
   "cooling.card.manual": "Вручную",
   "cooling.card.mode": "Режим вентилятора",
-  "cooling.curve.axisDuty": "Заполн. %",
-  "cooling.curve.axisTemp": "Темп.",
   "cooling.curve.fixed.hint": "Постоянный duty, не зависит от температуры.",
   "cooling.curve.fixed.speed": "Скорость вентилятора",
   "cooling.curve.graph.hint": "Произвольная многоточечная кривая. Перетаскивай точки для изменения, двойной клик — добавить, правый клик — удалить.",

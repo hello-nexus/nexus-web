@@ -1,6 +1,21 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import styles from './CollapsibleSection.module.scss';
+
+/** HTML5 drag/drop wiring for a reorderable group, shared by the cooling and
+ *  lighting device-group lists. Same shape as the per-card drag handles so a
+ *  whole category reorders the same way a single card does. The header is the
+ *  drag handle; the body (its child cards, which carry their own drag) is
+ *  excluded so grabbing a card never starts a group drag. */
+export interface CollapsibleSectionDrag {
+  isDragging: boolean;
+  isDragOver: boolean;
+  onDragStart: () => void;
+  onDragOver: () => void;
+  onDragLeave: () => void;
+  onDrop: () => void;
+  onDragEnd: () => void;
+}
 
 /**
  * Canonical collapsible section header: a chevron + title on the left,
@@ -26,6 +41,7 @@ export function CollapsibleSection({
   className,
   ariaLabel,
   sectionId,
+  drag,
   children,
 }: {
   title: ReactNode;
@@ -44,22 +60,58 @@ export function CollapsibleSection({
   ariaLabel?: string;
   /** Sets `data-section-id` on the root (scroll/lookup targeting). */
   sectionId?: string;
+  /** When set, the whole section becomes draggable to reorder it among its
+   *  siblings. The header is the drag handle; child cards keep their own drag. */
+  drag?: CollapsibleSectionDrag;
   children: ReactNode;
 }) {
   const Chevron = open ? ChevronDown : ChevronRight;
+  const rootRef = useRef<HTMLDivElement>(null);
+  // Only a grab that starts on the header (not the body / a child card) makes
+  // the section the drag source; mirrors the per-card draggable gating.
+  const fromHeader = (target: EventTarget | null) =>
+    target instanceof HTMLElement && !!target.closest('[data-drag-handle]');
+
+  const classNames = [
+    styles.section,
+    className ?? '',
+    drag?.isDragging ? styles.dragging : '',
+    drag?.isDragOver ? styles.dragOver : '',
+  ].filter(Boolean).join(' ');
+
   return (
     <div
-      className={className ? `${styles.section} ${className}` : styles.section}
+      ref={rootRef}
+      className={classNames}
       data-section-id={sectionId}
+      draggable={!!drag}
+      onMouseDownCapture={drag ? (e) => {
+        if (rootRef.current) rootRef.current.draggable = fromHeader(e.target);
+      } : undefined}
+      onDragStart={drag ? (e) => {
+        // A bubbled child-card drag (grabbed in the body) must pass through
+        // untouched; only a header grab starts the group drag.
+        if (!fromHeader(e.target)) return;
+        e.stopPropagation();
+        drag.onDragStart();
+      } : undefined}
+      onDragOver={drag ? (e) => { e.preventDefault(); drag.onDragOver(); } : undefined}
+      onDragLeave={drag ? drag.onDragLeave : undefined}
+      onDrop={drag ? drag.onDrop : undefined}
+      onDragEnd={drag ? drag.onDragEnd : undefined}
     >
       <div
         className={styles.header}
         data-compact={compact ? 'true' : undefined}
         data-collapsed={open ? undefined : 'true'}
       >
+        {/* The toggle (chevron + title + any non-interactive `right` content) is
+            the drag handle; an interactive `right` control sits outside it so a
+            press-drag on a power switch never starts a group reorder. */}
         <button
           type="button"
           className={styles.toggle}
+          data-drag-handle={drag ? 'true' : undefined}
           aria-expanded={open}
           aria-label={ariaLabel}
           onClick={onToggle}

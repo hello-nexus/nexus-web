@@ -38,6 +38,7 @@ import { AnimateGrid } from './page/AnimateGrid';
 import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
 import { DevicePanel } from './page/DevicePanel';
+import type { CollapsibleSectionDrag } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { LedMapEditor } from './page/LedMapEditor';
 import { visibleCards } from './page/zoneUtils';
 import { OpenRgbButton } from './page/OpenRgbButton';
@@ -750,6 +751,47 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     },
   }), [dragDeviceId, dragOverDeviceId, dropDeviceOn]);
 
+  // Whole-group reorder: a group is a contiguous run of its members in
+  // deviceOrder, so dragging it moves all member ids together, in front of the
+  // drop-target group's first member. Reuses the same deviceOrder the per-card
+  // drag manipulates, so cards and groups share one ordering source.
+  const [dragGroupKey, setDragGroupKey] = useState<string | null>(null);
+  const [dragOverGroupKey, setDragOverGroupKey] = useState<string | null>(null);
+  const dragGroupMembersRef = useRef<string[]>([]);
+  const dropGroupOn = useCallback((targetAnchorId: string) => {
+    const movingSet = new Set(dragGroupMembersRef.current);
+    if (movingSet.size === 0 || movingSet.has(targetAnchorId)) return;
+    setDeviceOrder(prev => {
+      const base = prev.length > 0
+        ? prev.filter(id => orderedDevices.some(d => d.id === id))
+        : orderedDevices.map(d => d.id);
+      const moving = base.filter(id => movingSet.has(id));
+      if (moving.length === 0) return prev;
+      const remaining = base.filter(id => !movingSet.has(id));
+      const targetIdx = remaining.indexOf(targetAnchorId);
+      if (targetIdx === -1) return prev;
+      return [...remaining.slice(0, targetIdx), ...moving, ...remaining.slice(targetIdx)];
+    });
+  }, [orderedDevices]);
+  const dragForGroup = useCallback((groupKey: string, memberIds: string[]): CollapsibleSectionDrag => ({
+    isDragging: dragGroupKey === groupKey,
+    isDragOver: dragOverGroupKey === groupKey && dragGroupKey !== groupKey,
+    onDragStart: () => { setDragGroupKey(groupKey); dragGroupMembersRef.current = memberIds; },
+    onDragOver: () => { if (dragGroupKey && dragGroupKey !== groupKey) setDragOverGroupKey(groupKey); },
+    onDragLeave: () => setDragOverGroupKey(null),
+    onDrop: () => {
+      if (dragGroupKey) dropGroupOn(memberIds[0]);
+      dragGroupMembersRef.current = [];
+      setDragGroupKey(null);
+      setDragOverGroupKey(null);
+    },
+    onDragEnd: () => {
+      dragGroupMembersRef.current = [];
+      setDragGroupKey(null);
+      setDragOverGroupKey(null);
+    },
+  }), [dragGroupKey, dragOverGroupKey, dropGroupOn]);
+
   const usb = useUsbDevices(serviceOnline);
   const detectedVidPids = useMemo(() => {
     const set = new Set<string>();
@@ -878,8 +920,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         detectedVidPids={detectedVidPids}
       />
       {/* ViewHeader lives in the left grid column so the device column (right)
-          can rise to the very top of the page, level with the mode tabs. */}
-      <div className={`${styles.body} pageBody`}>
+          can rise to the very top of the page, level with the mode tabs. Full
+          content width (not pageBody-capped) so the device column reaches the
+          right edge. */}
+      <div className={styles.body}>
         <div className={styles.headerCell}>
           <ViewHeader
             title={t('lighting.title')}
@@ -956,6 +1000,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 lightingOff={mode === 'none'}
                 onOpenSettings={handleOpenSettings}
                 dragFor={dragForDevice}
+                dragForGroup={dragForGroup}
                 communityCounts={mappingCounts}
                 onOpenCommunity={handleOpenCommunity}
                 smartHubFirmwareControl={smartHubFirmwareControl}

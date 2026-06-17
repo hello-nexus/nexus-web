@@ -41,7 +41,7 @@ import { publishControlSync, subscribeControlSync } from '../../../lib/controlSy
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
-import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
+import { CollapsibleSection, type CollapsibleSectionDrag } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { FanCard, type FanCardHubMode } from './page/FanCard';
@@ -595,7 +595,14 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   }, [curves, fanStates, pushCurves, selectedCurveId]);
 
   const saveCurveAndPush = useCallback((updated: CurveDef) => {
-    const next = curves.map(c => c.id === updated.id ? updated : c);
+    // Any edit to a preset curve diverges it from defaults; flip the dirty
+    // flag optimistically so the Reset button enables immediately. The echoed
+    // `cooling` refresh is suppressed below (so the edit isn't clobbered
+    // mid-gesture), which means the server's authoritative isDefault wouldn't
+    // otherwise reach the UI until some later refresh. The server recomputes
+    // isDefault on the next fetch and agrees (the curve IS edited).
+    const edited = updated.preset ? { ...updated, isDefault: false } : updated;
+    const next = curves.map(c => c.id === edited.id ? edited : c);
     setCurves(next);
     // Suppress the echoed `cooling` refresh so a rapid edit (e.g. dragging a
     // multipoint) isn't clobbered mid-gesture by our own save bouncing back.
@@ -691,6 +698,46 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     });
   };
 
+  // Whole-group reorder: a hub group's render position follows the first
+  // occurrence of its fans in fanOrder, so dragging the group moves all its fan
+  // ids together, in front of the drop-target group's first fan. Reuses the
+  // same fanOrder the per-card drag uses, so cards and groups share one order.
+  const [dragGroupKey, setDragGroupKey] = useState<string | null>(null);
+  const [dragOverGroupKey, setDragOverGroupKey] = useState<string | null>(null);
+  const dragGroupMembersRef = useRef<string[]>([]);
+  const dropFanGroupOn = (targetAnchorId: string) => {
+    const movingSet = new Set(dragGroupMembersRef.current);
+    if (movingSet.size === 0 || movingSet.has(targetAnchorId)) return;
+    setFanOrder(prev => {
+      const moving = prev.filter(id => movingSet.has(id));
+      if (moving.length === 0) return prev;
+      const remaining = prev.filter(id => !movingSet.has(id));
+      const targetIdx = remaining.indexOf(targetAnchorId);
+      if (targetIdx === -1) return prev;
+      const next = [...remaining.slice(0, targetIdx), ...moving, ...remaining.slice(targetIdx)];
+      if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
+      return next;
+    });
+  };
+  const dragForFanGroup = (groupKey: string, memberIds: string[]): CollapsibleSectionDrag => ({
+    isDragging: dragGroupKey === groupKey,
+    isDragOver: dragOverGroupKey === groupKey && dragGroupKey !== groupKey,
+    onDragStart: () => { setDragGroupKey(groupKey); dragGroupMembersRef.current = memberIds; },
+    onDragOver: () => { if (dragGroupKey && dragGroupKey !== groupKey) setDragOverGroupKey(groupKey); },
+    onDragLeave: () => setDragOverGroupKey(null),
+    onDrop: () => {
+      if (dragGroupKey) dropFanGroupOn(memberIds[0]);
+      dragGroupMembersRef.current = [];
+      setDragGroupKey(null);
+      setDragOverGroupKey(null);
+    },
+    onDragEnd: () => {
+      dragGroupMembersRef.current = [];
+      setDragGroupKey(null);
+      setDragOverGroupKey(null);
+    },
+  });
+
   const curvesInUse = useMemo(() => {
     const s = new Set<string>();
     for (const fs of Object.values(fanStates)) if (fs.curveId) s.add(fs.curveId);
@@ -698,13 +745,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   }, [fanStates]);
 
   // Number of fans bound to each curve, shown under its selector button.
+  // Excludes hardware-unresponsive (disconnected) fans — they sit in the
+  // Disconnected group and can't be driven, so they don't count as "in use".
   const curveFanCounts = useMemo(() => {
+    const disconnected = new Set(
+      channels.filter(c => c.classification === 'Unresponsive').map(c => c.id),
+    );
     const m = new Map<string, number>();
-    for (const fs of Object.values(fanStates)) {
-      if (fs.curveId) m.set(fs.curveId, (m.get(fs.curveId) ?? 0) + 1);
+    for (const [fanId, fs] of Object.entries(fanStates)) {
+      if (fs.curveId && !disconnected.has(fanId)) m.set(fs.curveId, (m.get(fs.curveId) ?? 0) + 1);
     }
     return m;
-  }, [fanStates]);
+  }, [fanStates, channels]);
 
   // Live output % per curve, computed once so the recursion-safe Mix path
   // doesn't re-walk per consumer (the hero card today; cheap to keep shared).
@@ -838,8 +890,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       />
 
       {/* Two columns: the curve block on the left, the fan sidebar (vertical
-          scroll) on the right. */}
-      <div className={`${styles.body} pageBody`}>
+          scroll) on the right. Full content width (not pageBody-capped) so the
+          fan column reaches the right edge, level with the header. */}
+      <div className={styles.body}>
         <div className={styles.curveCol}>
         {selectedCurve ? (
           <CurveCard
@@ -961,8 +1014,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               if (mobo) for (const ch of mobo) blocks.push(renderFan(ch));
               // Then one collapsible group per external hub, using the shared
               // CollapsibleSection so the headers match the lighting device
-              // groups exactly (style, spacing, hover highlight).
-              const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k).sort();
+              // groups exactly (style, spacing, hover highlight). Group order
+              // follows fanOrder (Map insertion = first occurrence), so a whole
+              // group can be dragged to reorder it among the others.
+              const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k);
               for (const key of deviceKeys) {
                 const list = groups.get(key)!;
                 const deviceName =
@@ -979,6 +1034,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 blocks.push(
                   <CollapsibleSection key={`${key}-hdr`} compact title={deviceName} ariaLabel={deviceName}
                     open={!isFanGroupCollapsed(key)} onToggle={() => toggleFanGroup(key)}
+                    drag={dragForFanGroup(key, list.map(c => c.id))}
                     right={<span className={styles.fanGroupCount}>{list.length} fan{list.length === 1 ? '' : 's'}</span>}>
                     <div className={styles.fanGroupChildren}>{list.map(renderFan)}</div>
                   </CollapsibleSection>

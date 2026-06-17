@@ -658,9 +658,9 @@
 // ── Device Panel ────────────────────────────────────────────────────────────
 
 .devicePanel {
-  // Horizontal padding mirrors CoolingPage's .fanPanel (0 1rem 0 2.5rem) so
-  // device cards land at the same on-screen width as cooling fan cards.
-  padding: 0.5rem 1rem 0.5rem 2.5rem;
+  // Tight right inset (matches CoolingPage's .fanList padding-right) so cards
+  // sit close to the scrollbar; 2.5rem left inset keeps them off the divider.
+  padding: 0.5rem 0.4rem 0.5rem 2.5rem;
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
@@ -674,7 +674,7 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  margin: 0.5rem 1rem 0.85rem 2.5rem;
+  margin: 0.5rem 0.4rem 0.85rem 2.5rem;
   flex-shrink: 0;
   padding: 0.3rem 0.7rem;
   border: var(--border-width) solid var(--border-strong);
@@ -973,6 +973,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  // Small breathing room after a whole device block, matching the cooling
+  // page's grouped-device spacing.
+  margin-bottom: 0.5rem;
 
   // Reveal the group power button on hover, mirroring the per-card affordance.
   // Persistent-when-off behaviour is handled by .devicePowerBtnPersistent on
@@ -985,8 +988,6 @@
   flex-direction: column;
   gap: 0.35rem;
   padding-left: 0.5rem;
-  // Matches the tab/header rule: built from the text colour so it inverts with the theme.
-  border-left: 2px solid color-mix(in srgb, var(--text) 18%, transparent);
   margin-left: 0.3rem;
 }
 

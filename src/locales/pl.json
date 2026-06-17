@@ -180,8 +180,6 @@
   "cooling.card.firmware": "Sterowanie Firmware",
   "cooling.card.manual": "Reczne",
   "cooling.card.mode": "Tryb wentylatora",
-  "cooling.curve.axisDuty": "Cykl %",
-  "cooling.curve.axisTemp": "Temp",
   "cooling.curve.fixed.hint": "Stały duty niezależny od temperatury.",
   "cooling.curve.fixed.speed": "Predkosc wentylatora",
   "cooling.curve.graph.hint": "Niestandardowa krzywa wielopunktowa. Przeciągnij punkty, aby dostosować, podwójne kliknięcie dodaje, prawe kliknięcie usuwa.",

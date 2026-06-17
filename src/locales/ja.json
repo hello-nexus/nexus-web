@@ -180,8 +180,6 @@
   "cooling.card.firmware": "ファームウェア制御",
   "cooling.card.manual": "手動",
   "cooling.card.mode": "ファンモード",
-  "cooling.curve.axisDuty": "デューティ%",
-  "cooling.curve.axisTemp": "温度",
   "cooling.curve.fixed.hint": "温度に関係なく一定の duty を維持します。",
   "cooling.curve.fixed.speed": "ファン速度",
   "cooling.curve.graph.hint": "カスタム多点カーブ。点をドラッグで調整、ダブルクリックで追加、右クリックで削除。",

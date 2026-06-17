@@ -1,6 +1,6 @@
 import { Power } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
-import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
+import { CollapsibleSection, type CollapsibleSectionDrag } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import styles from '../LightingPage.module.scss';
 
@@ -23,6 +23,7 @@ export function MotherboardGroup({
   onToggleCollapsed,
   leftAction,
   powerDisabled,
+  drag,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on. Drives the icon state
@@ -41,6 +42,8 @@ export function MotherboardGroup({
   leftAction?: React.ReactNode;
   /** When true, the power button is rendered disabled. */
   powerDisabled?: boolean;
+  /** Optional reorder drag wiring; makes the whole group draggable. */
+  drag?: CollapsibleSectionDrag;
 }) {
   const { t } = useTranslation();
   const expanded = !collapsed;
@@ -54,6 +57,7 @@ export function MotherboardGroup({
       open={expanded}
       onToggle={onToggleCollapsed}
       ariaLabel={toggleLabel}
+      drag={drag}
       rightInteractive
       right={
         <>

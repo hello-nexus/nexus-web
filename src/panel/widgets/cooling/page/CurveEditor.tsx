@@ -209,51 +209,42 @@ function CurveGraph({ points, currentTemp, onChange, editable = true, height = G
   };
   const onCtxMenu = (idx: number, e: React.MouseEvent) => { e.preventDefault(); if (onChange && sorted.length > 2) onChange(sorted.filter((_, i) => i !== idx)); };
 
+  // Intersection of the live source temperature with the curve. Drives the
+  // dot, the two dotted guide lines (up from the bottom temp axis, in from the
+  // right duty axis), and the live temp/duty readouts on those axes.
+  const hasDot = typeof currentTemp === 'number' && currentTemp >= TEMP_MIN && currentTemp <= TEMP_MAX;
+  const dotSpeed = hasDot ? speedAtTemp(currentTemp!) : 0;
+  const dotX = hasDot ? tempToX(currentTemp!) : 0;
+  const dotY = hasDot ? speedToY(dotSpeed) : 0;
+  const dotLeftPct = hasDot ? ((currentTemp! - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * 100 : 0;
+
   return (
     <div className={styles.curveGraphWrap}>
       <div className={styles.curveGraphFrame}>
-        {/* Y-axis labels sit in their own gutter to the left of the SVG so
-            they can never clip into the curve. */}
-        <div className={styles.curveYAxis} aria-hidden="true" style={{ height }}>
-          {[...H_LINES].reverse().map(s => (
-            <span key={s} className={styles.curveAxisLabel}>{s}%</span>
-          ))}
-          <span className={styles.curveAxisTitle}>{t('cooling.curve.axisDuty')}</span>
-        </div>
         <div className={styles.curveChartArea}>
           <svg ref={svgRef} className={styles.curveGraph} style={{ height }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
             onPointerMove={editable ? onPtrMove : undefined} onPointerUp={editable ? () => setDragging(null) : undefined} onDoubleClick={editable ? onDblClick : undefined}>
             {H_LINES.map(s => (<g key={`h${s}`}><line x1={PAD.left} y1={speedToY(s)} x2={width - PAD.right} y2={speedToY(s)} className={styles.gridLine} /></g>))}
             {V_LINES.map(v => (<g key={`v${v}`}><line x1={tempToX(v)} y1={PAD.top} x2={tempToX(v)} y2={height - PAD.bottom} className={styles.gridLine} /></g>))}
-        <defs><linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" /><stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" /></linearGradient></defs>
-        {areaPath && <path d={areaPath} fill="url(#curveGrad)" />}
-        <path d={linePath} fill="none" stroke="var(--accent-glow)" strokeWidth="2.5" />
-        {typeof currentTemp === 'number' && currentTemp >= TEMP_MIN && currentTemp <= TEMP_MAX && (() => {
-          const tx = tempToX(currentTemp);
-          const cy = speedToY(speedAtTemp(currentTemp));
-          // Drop the temp line from just under its badge down to the dot.
-          const lineTop = PAD.top + 12;
-          return (
-            <g className={styles.curveTempIndicator}>
-              {cy > lineTop && (
-                <line x1={tx} y1={lineTop} x2={tx} y2={cy} className={styles.tempLine} />
-              )}
-              <rect x={tx - 22} y={PAD.top - 2} width="44" height="14" rx="2" className={styles.tempBadge} />
-              <text x={tx} y={PAD.top + 8} className={styles.tempBadgeText} textAnchor="middle">
-                {t('cooling.curve.tempBadge', { temp: currentTemp.toFixed(1) })}
-              </text>
-              <circle cx={tx} cy={cy} r={4} className={styles.tempDot} />
-            </g>
-          );
-        })()}
-        {editable && sorted.map((p, i) => (
-          <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={dragging === i ? 8 : 6}
-            className={`${styles.curvePoint} ${dragging === i ? styles.curvePointActive : ''}`}
-            onPointerDown={e => onPtrDown(i, e)} onContextMenu={e => onCtxMenu(i, e)} />
-        ))}
+            <defs><linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" /><stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" /></linearGradient></defs>
+            {areaPath && <path d={areaPath} fill="url(#curveGrad)" />}
+            <path d={linePath} fill="none" stroke="var(--accent-glow)" strokeWidth="2.5" />
+            {hasDot && (
+              <g className={styles.curveTempIndicator}>
+                {/* Guide lines meet at the dot: one up from the bottom temp
+                    axis, one in from the right duty axis. */}
+                <line x1={dotX} y1={height - PAD.bottom} x2={dotX} y2={dotY} className={styles.tempLine} />
+                <line x1={width - PAD.right} y1={dotY} x2={dotX} y2={dotY} className={styles.tempLine} />
+                <circle cx={dotX} cy={dotY} r={4} className={styles.tempDot} />
+              </g>
+            )}
+            {editable && sorted.map((p, i) => (
+              <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={dragging === i ? 8 : 6}
+                className={`${styles.curvePoint} ${dragging === i ? styles.curvePointActive : ''}`}
+                onPointerDown={e => onPtrDown(i, e)} onContextMenu={e => onCtxMenu(i, e)} />
+            ))}
           </svg>
           <div className={styles.curveXAxis} aria-hidden="true">
-            <span className={styles.curveAxisTitleX}>{t('cooling.curve.axisTemp')}</span>
             {/* Inner track is inset 8px left/right to match SVG PAD.left / PAD.right
                 so labels line up 1:1 with the vertical grid lines. */}
             <div className={styles.curveXAxisInner}>
@@ -263,8 +254,25 @@ function CurveGraph({ points, currentTemp, onChange, editable = true, height = G
                   {v}°
                 </span>
               ))}
+              {hasDot && (
+                <span className={styles.curveAxisLiveX} style={{ left: `${dotLeftPct}%` }}>
+                  {t('cooling.curve.tempBadge', { temp: currentTemp!.toFixed(1) })}
+                </span>
+              )}
             </div>
           </div>
+        </div>
+        {/* Duty legend + live readout sit to the RIGHT of the chart so the
+            right-edge guide line points straight at the live value. */}
+        <div className={styles.curveYAxis} aria-hidden="true" style={{ height }}>
+          {[...H_LINES].reverse().map(s => (
+            <span key={s} className={styles.curveAxisLabel}>{s}%</span>
+          ))}
+          {hasDot && (
+            <span className={styles.curveAxisLiveY} style={{ top: `${dotY}px` }}>
+              {dotSpeed.toFixed(0)}%
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -513,7 +521,7 @@ export const CurveCard = memo(function CurveCard({
       mixBlock;
     return (
       <div className={`${styles.curveCard} ${styles.curveCardPinned}`}>
-        {/* Graph always on top. */}
+        {/* Graph always on top. Live duty/temp now read out on the axes. */}
         <div className={styles.heroGraph}>
           <CurveGraph
             points={isMp ? curve.multipoint.points : sampleCurveShape(curve, allCurves, sources)}
@@ -522,9 +530,6 @@ export const CurveCard = memo(function CurveCard({
             currentTemp={dotTemp}
             onChange={isMp ? pts => set({ multipoint: { ...curve.multipoint, points: pts } }) : undefined}
           />
-          <span className={styles.heroOutBadge} aria-label={`${t('cooling.curve.output')} ${output.toFixed(0)}%`}>
-            {output.toFixed(0)}%
-          </span>
         </div>
         {/* Curve selector (with its own header) sits under the graph. */}
         {children}
@@ -540,7 +545,7 @@ export const CurveCard = memo(function CurveCard({
     );
   }
 
-  // ── Non-pinned (collapsible) card — used by the immersive editor ───────────
+  // ── Non-pinned (collapsible) card - used by the immersive editor ───────────
   const dragEnabled = !!drag;
   const dragClasses = [
     drag?.isDragging ? styles.curveCardDragging : '',

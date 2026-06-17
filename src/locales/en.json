@@ -175,8 +175,6 @@
   "cooling.card.firmware": "Firmware control",
   "cooling.card.manual": "Manual",
   "cooling.card.mode": "Fan mode",
-  "cooling.curve.axisDuty": "Duty %",
-  "cooling.curve.axisTemp": "Temp",
   "cooling.curve.fixed.hint": "Hold a constant duty regardless of temperature.",
   "cooling.curve.fixed.speed": "Fan speed",
   "cooling.curve.graph.hint": "Custom multi-point shape. Drag points to adjust, double-click to add, right-click to remove.",

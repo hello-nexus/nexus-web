@@ -29,14 +29,19 @@
 
 // ── Body (single column) ───────────────────────────────────────────────────
 // The page scrolls as one column: the pinned curve card + its selector
-// buttons, then the fan grid. pageBody caps + centers the width.
+// buttons, then the fan grid. Spans the full content width (not pageBody-
+// capped) so the fan column reaches the right edge.
 // The curve hero card docks at the top (flex-shrink:0); only the fan section
 // below scrolls, so the graph stays put as the user scrolls the fan grid.
 // Two columns: the curve block (left) flexes, the fan sidebar (right) is a
 // fixed-width vertical scroller, mirroring the lighting page.
 .body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 250px;
+  // 260px: with the 0.4rem right inset the fan cards land at the same width as
+  // the lighting device cards (300px column - 2.5rem left inset - 0.4rem). Here
+  // the 2.5rem separation is the grid gap (external), so the column is 40px
+  // narrower than lighting's but the cards match.
+  grid-template-columns: minmax(0, 1fr) 260px;
   // Generous gutter between the curve column and the fan sidebar, matching the
   // lighting page's canvas-to-device-panel spacing.
   gap: 2.5rem;
@@ -200,13 +205,12 @@
   padding-right: 0.4rem;
 }
 // Fan cards inside a hub group: indented under the shared CollapsibleSection
-// header with a left rule, identical to the lighting device groups.
+// header, identical to the lighting device groups.
 .fanGroupChildren {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   padding-left: 0.5rem;
-  border-left: 2px solid color-mix(in srgb, var(--text) 18%, transparent);
   margin-left: 0.3rem;
 }
 // Small muted fan count in the group header's right slot.
@@ -817,23 +821,6 @@
   flex-direction: column;
   gap: 0.6rem;
 }
-// Live output % overlaid on the graph's top-right corner.
-.heroOutBadge {
-  position: absolute;
-  top: 0.4rem;
-  right: 0.4rem;
-  pointer-events: none;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--type-small);
-  color: var(--text);
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-sm);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-glow-shadow);
-  line-height: 1;
-}
-
 // Chevron at the bottom-center of every curve card. Click toggles expansion.
 // Card body clicks only expand; collapse is the chevron's job.
 .curveCardChevron {
@@ -1056,7 +1043,8 @@
 .curveGraphWrap { display: flex; flex-direction: column; gap: 0.35rem; }
 .curveGraphFrame {
   display: grid;
-  grid-template-columns: 2.25rem 1fr;
+  // Chart first, duty gutter on the RIGHT.
+  grid-template-columns: 1fr 2.8rem;
   grid-template-rows: auto;
   column-gap: 0.4rem;
   align-items: stretch;
@@ -1065,7 +1053,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: flex-start;
   // Top + bottom inset match the SVG PAD.top / PAD.bottom so the 100% label
   // pins at the top gridline and 0% at the bottom gridline. Height tracks the
   // curve graph height kept in CurveEditor.tsx (GRAPH_H).
@@ -1106,28 +1094,30 @@
   font-size: 10px;
   font-family: var(--font-mono);
   line-height: 1;
-  // Faded so the axis-title pills (Duty % / Temp) read as the primary labels.
+  // Faded so the live readouts read as the primary labels.
   opacity: 0.4;
 }
-// Axis title pills shown in the legend area as a small accent container ("Duty %"
-// on the Y gutter, "Temp" on the X axis). They overlap the faded numbers, which
-// is intentional.
-.curveAxisTitle,
-.curveAxisTitleX {
+// Live readouts tracking the curve intersection: temp on the bottom axis, duty
+// on the right axis. Opaque so they stay readable where they overlap the faded
+// legend numbers.
+.curveAxisLiveX,
+.curveAxisLiveY {
   position: absolute;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-glow-shadow);
+  background: var(--bg);
+  border: 1px solid var(--accent-glow);
   color: var(--accent-glow);
   font-size: 10px;
   font-family: var(--font-mono);
+  font-weight: var(--weight-strong);
   line-height: 1;
-  padding: 0.15rem 0.4rem;
+  padding: 0.12rem 0.3rem;
   border-radius: var(--radius-sm);
   white-space: nowrap;
   pointer-events: none;
+  z-index: 1;
 }
-.curveAxisTitle { top: 50%; right: 0; transform: translateY(-50%); }
-.curveAxisTitleX { left: 50%; top: 0; transform: translateX(-50%); }
+.curveAxisLiveX { top: -0.05rem; transform: translateX(-50%); }
+.curveAxisLiveY { left: 0; transform: translateY(-50%); }
 .gridLine { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; }
 .curvePoint { fill: var(--accent); stroke: #fff; stroke-width: 2; cursor: grab; transition: r var(--ease-fast) ease; &:hover { r: 8; } }
 .curvePointActive { cursor: grabbing; fill: var(--accent-glow); filter: drop-shadow(0 0 8px var(--accent)); }

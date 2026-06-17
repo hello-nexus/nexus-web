@@ -180,8 +180,6 @@
   "cooling.card.firmware": "펌웨어 제어",
   "cooling.card.manual": "수동",
   "cooling.card.mode": "팬 모드",
-  "cooling.curve.axisDuty": "듀티 %",
-  "cooling.curve.axisTemp": "온도",
   "cooling.curve.fixed.hint": "온도와 무관하게 일정한 duty를 유지합니다.",
   "cooling.curve.fixed.speed": "팬 속도",
   "cooling.curve.graph.hint": "사용자 다점 커브. 점을 드래그하여 조정, 더블클릭으로 추가, 우클릭으로 제거.",
