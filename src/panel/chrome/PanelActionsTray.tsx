@@ -18,6 +18,10 @@ interface PanelActionsTrayProps {
   onSettings?: () => void;
   onPair?: () => void;
   pairAvailable: boolean;
+  // Opens the in-panel pairing sheet on a local hardwired kiosk (Y70, touch
+  // monitor). Distinct from onPair, which triggers the native app's OS dialog.
+  onPairSheet?: () => void;
+  pairSheetAvailable?: boolean;
   // Surface element the swipe-up gesture binds to. The hook walks
   // touch targets for [data-panel-scrollable="true"] ancestors and
   // yields to the widget's own scroller when found.
@@ -45,6 +49,8 @@ export function PanelActionsTray({
   onSettings,
   onPair,
   pairAvailable,
+  onPairSheet,
+  pairSheetAvailable = false,
   surfaceRef,
   surface,
   disabled = false,
@@ -91,6 +97,14 @@ export function PanelActionsTray({
   // up, not at the commit-arming distance.
   const dragProgress = dragging ? Math.min(1, swipe.offset / 80) : 0;
   const showScrim = (open && !pinnedOpen) || dragging;
+
+  // The pairing button shows on two surfaces with different actions: inside the
+  // native app wrapper it triggers the OS pairing dialog (onPair); on a local
+  // hardwired kiosk it opens the in-panel pairing sheet (onPairSheet). A plain
+  // remote browser panel gets neither, so the button is hidden.
+  const pairAction = isNativeApp()
+    ? (pairAvailable && onPair ? onPair : undefined)
+    : (pairSheetAvailable && onPairSheet ? onPairSheet : undefined);
 
   return (
     <>
@@ -148,17 +162,14 @@ export function PanelActionsTray({
             {t('panel.actions.settings')}
           </Button>
         )}
-        {/* The pairing button triggers a native pairing dialog that only
-            exists inside the iOS app wrapper. In a plain browser it's a
-            no-op, so hide the whole button unless we're running natively. */}
-        {pairAvailable && onPair && isNativeApp() && (
+        {pairAction && (
           <HoverTooltip body={t('panel.actions.pairing')} side="top">
             <Button
               size="lg"
               tone="neutral"
               icon={<QrCode />}
               className={styles.trayButtonCompact}
-              onClick={() => { onPair(); onClose(); }}
+              onClick={() => { pairAction(); onClose(); }}
               aria-label={t('panel.actions.pairing')}
             />
           </HoverTooltip>

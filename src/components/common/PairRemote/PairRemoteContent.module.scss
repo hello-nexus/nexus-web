@@ -1,0 +1,10 @@
+// Single-column arrangement for the panel bottom-sheet: pairing flow (QR/code)
+// on top, then connection options, then the authorized-device list. The grid
+// layout lives in App.module.scss (.phonePairLayout) and is shared with the
+// desktop modal; this module only carries the stacked variant.
+.stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
