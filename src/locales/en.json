@@ -1725,5 +1725,15 @@
   "transfer.toast.fileTitle": "{name} from {from}",
   "transfer.toast.openFolder": "Open folder",
   "transfer.toast.savedTo": "Saved to {inbox}",
-  "twitch.chatTitle": "Twitch chat"
+  "twitch.chatTitle": "Twitch chat",
+  "devices.q60.firmwareSection": "Cooler firmware",
+  "devices.q60.firmwareSectionDescription": "Turbo unlocks the pump's full speed range, stored on the cooler.",
+  "devices.q60.notConnected": "HYTE Q60 not connected",
+  "devices.q60.pumpMode": "Pump control",
+  "devices.q60.modeMotherboard": "Motherboard",
+  "devices.q60.modeSoftware": "Software (Nexus)",
+  "devices.q60.modeFirmware": "Firmware curve",
+  "devices.q60.turbo": "Turbo",
+  "devices.q60.pumpRpm": "Pump speed (RPM)",
+  "devices.q60.firmwareVersion": "Firmware version"
 }

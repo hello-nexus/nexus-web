@@ -33,6 +33,7 @@ import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
+import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
@@ -146,7 +147,9 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   const monitorRotation = isMonitorPanel && hostCaps?.rotation === true;
   const monitorReserve = isMonitorPanel && hostCaps?.reserve === true;
   const settingsAvailable = supportsDisplayControls || supportsAutoLaunch || ddcSupported
-    || monitorRotation || monitorReserve;
+    || monitorRotation || monitorReserve
+    // Q60 carries an AIO cooler, so its settings tab hosts the cooler firmware options.
+    || surface === 'q60';
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -509,6 +512,9 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       showDisplayControls={supportsDisplayControls}
                       showAutoLaunch={supportsAutoLaunch}
                     />
+                  )}
+                  {activeTab === 'settings' && surface === 'q60' && (
+                    <QSeriesCoolerSettings />
                   )}
                 </div>
               </>

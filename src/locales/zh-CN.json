@@ -1725,5 +1725,15 @@
   "transfer.toast.fileTitle": "来自 {from} 的 {name}",
   "transfer.toast.openFolder": "打开文件夹",
   "transfer.toast.savedTo": "已保存到 {inbox}",
-  "twitch.chatTitle": "Twitch 聊天"
+  "twitch.chatTitle": "Twitch 聊天",
+  "devices.q60.firmwareSection": "散热器固件",
+  "devices.q60.firmwareSectionDescription": "Turbo 解锁水泵的全速范围，保存在散热器中。",
+  "devices.q60.notConnected": "HYTE Q60 未连接",
+  "devices.q60.pumpMode": "水泵控制",
+  "devices.q60.modeMotherboard": "主板",
+  "devices.q60.modeSoftware": "软件 (Nexus)",
+  "devices.q60.modeFirmware": "固件曲线",
+  "devices.q60.turbo": "Turbo",
+  "devices.q60.pumpRpm": "水泵转速 (RPM)",
+  "devices.q60.firmwareVersion": "固件版本"
 }

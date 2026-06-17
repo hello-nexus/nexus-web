@@ -1725,5 +1725,15 @@
   "transfer.toast.fileTitle": "{name} de {from}",
   "transfer.toast.openFolder": "Ouvrir le dossier",
   "transfer.toast.savedTo": "Enregistré dans {inbox}",
-  "twitch.chatTitle": "Chat Twitch"
+  "twitch.chatTitle": "Chat Twitch",
+  "devices.q60.firmwareSection": "Firmware du refroidisseur",
+  "devices.q60.firmwareSectionDescription": "Le turbo débloque la vitesse maximale de la pompe ; enregistré sur le refroidisseur.",
+  "devices.q60.notConnected": "HYTE Q60 non connecté",
+  "devices.q60.pumpMode": "Contrôle de la pompe",
+  "devices.q60.modeMotherboard": "Carte mère",
+  "devices.q60.modeSoftware": "Logiciel (Nexus)",
+  "devices.q60.modeFirmware": "Courbe du firmware",
+  "devices.q60.turbo": "Turbo",
+  "devices.q60.pumpRpm": "Vitesse de la pompe (tr/min)",
+  "devices.q60.firmwareVersion": "Version du firmware"
 }

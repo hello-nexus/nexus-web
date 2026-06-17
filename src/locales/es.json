@@ -1725,5 +1725,15 @@
   "transfer.toast.fileTitle": "{name} de {from}",
   "transfer.toast.openFolder": "Abrir carpeta",
   "transfer.toast.savedTo": "Guardado en {inbox}",
-  "twitch.chatTitle": "Chat de Twitch"
+  "twitch.chatTitle": "Chat de Twitch",
+  "devices.q60.firmwareSection": "Firmware del refrigerador",
+  "devices.q60.firmwareSectionDescription": "El turbo desbloquea la velocidad máxima de la bomba; se guarda en el refrigerador.",
+  "devices.q60.notConnected": "HYTE Q60 no conectado",
+  "devices.q60.pumpMode": "Control de la bomba",
+  "devices.q60.modeMotherboard": "Placa base",
+  "devices.q60.modeSoftware": "Software (Nexus)",
+  "devices.q60.modeFirmware": "Curva de firmware",
+  "devices.q60.turbo": "Turbo",
+  "devices.q60.pumpRpm": "Velocidad de la bomba (RPM)",
+  "devices.q60.firmwareVersion": "Versión de firmware"
 }

@@ -1,0 +1,37 @@
+// Q-series cooler firmware-options section, rendered inside the Q60 device
+// page settings tab. Row layout mirrors the other device pages (NP50).
+
+.sectionBox {
+  gap: 0.75rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2rem;
+}
+
+.rowLabel {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.rowValue {
+  flex: 0 0 4rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.note {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.savingBadge {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}

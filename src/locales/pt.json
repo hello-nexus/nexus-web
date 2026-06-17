@@ -1725,5 +1725,15 @@
   "transfer.toast.fileTitle": "{name} de {from}",
   "transfer.toast.openFolder": "Abrir pasta",
   "transfer.toast.savedTo": "Guardado em {inbox}",
-  "twitch.chatTitle": "Twitch chat"
+  "twitch.chatTitle": "Twitch chat",
+  "devices.q60.firmwareSection": "Firmware do dissipador",
+  "devices.q60.firmwareSectionDescription": "O turbo desbloqueia a velocidade máxima da bomba; guardado no dissipador.",
+  "devices.q60.notConnected": "HYTE Q60 não ligado",
+  "devices.q60.pumpMode": "Controlo da bomba",
+  "devices.q60.modeMotherboard": "Placa-mãe",
+  "devices.q60.modeSoftware": "Software (Nexus)",
+  "devices.q60.modeFirmware": "Curva de firmware",
+  "devices.q60.turbo": "Turbo",
+  "devices.q60.pumpRpm": "Velocidade da bomba (RPM)",
+  "devices.q60.firmwareVersion": "Versão do firmware"
 }

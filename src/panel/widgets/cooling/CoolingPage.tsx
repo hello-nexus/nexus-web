@@ -15,6 +15,13 @@ import {
   MINIHUB_LIVE_MODE_SOFTWARE,
 } from '../../../api/minihub';
 import {
+  getQSeriesState,
+  setQSeriesControlMode,
+  QSERIES_MODE_SOFTWARE,
+  QSERIES_MODE_MOTHERBOARD,
+  QSERIES_MODE_FIRMWARE,
+} from '../../../api/qseries';
+import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
   setFanSpeed, releaseFanAuto, saveCurves, renameFan,
   startCalibration, fetchCalibrations, fetchProfiles, applyProfile,
@@ -196,6 +203,26 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return () => { cancelled = true; };
   }, [serviceOnline, hasNp50Fan]);
 
+  // Seed the Q-series pump's hub mode from the cooler's reported control mode
+  // (Software/Motherboard/Firmware) so its fan-card dropdown shows the live mode.
+  const hasQSeriesPump = useMemo(
+    () => channels.some(c => c.deviceId?.startsWith('qseries:')),
+    [channels],
+  );
+  useEffect(() => {
+    if (!serviceOnline || !hasQSeriesPump) return;
+    let cancelled = false;
+    (async () => {
+      const s = await getQSeriesState();
+      if (cancelled || !s?.connected || !s.deviceId) return;
+      const kind = s.controlMode === QSERIES_MODE_SOFTWARE ? 'software'
+        : s.controlMode === QSERIES_MODE_FIRMWARE ? 'firmware'
+        : 'motherboard';
+      setHubModes(prev => ({ ...prev, [s.deviceId]: kind }));
+    })();
+    return () => { cancelled = true; };
+  }, [serviceOnline, hasQSeriesPump]);
+
   useEffect(() => subscribeControlSync(event => {
     if (event.domain !== 'cooling') return;
     const next = event.activePreset ?? event.activeProfile;
@@ -319,10 +346,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       type: c.type === 'flat' ? 'Flat' : c.type === 'linear' ? 'Linear' : c.type === 'graph' ? 'Graph' : 'Mixed',
       input: { id: c.sourceId, type: 'Temperature', device: '' },
       outputs: Object.entries(states).filter(([, s]) => s.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
-      flat: c.type === 'flat' ? { speed: c.flat.speed } : null,
-      linear: c.type === 'linear' ? c.linear : null,
-      graph: c.type === 'graph' ? { responseTime: c.graph.responseTime, speedModifier: 1, points: c.graph.points } : null,
-      mixed: c.type === 'mix' ? { responseTime: c.mix.responseTime, curveIds: c.mix.curveIds, fn: c.mix.fn } : null,
+      // Persist every mode's params, not just the active type's, so switching
+      // type (fixed/linear/graph/mix) and back doesn't reset the others to
+      // defaults on the next refetch. The engine still applies only `type`.
+      flat: { speed: c.flat.speed },
+      linear: c.linear,
+      graph: { responseTime: c.graph.responseTime, speedModifier: 1, points: c.graph.points },
+      mixed: { responseTime: c.mix.responseTime, curveIds: c.mix.curveIds, fn: c.mix.fn },
       preset: c.preset ?? null,
     }));
     return saveCurves({ globalSpeedModifier: 1, curves: apiCurves });
@@ -430,6 +460,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const deviceId = channel?.deviceId ?? null;
     const isNp50 = !!deviceId && deviceId.startsWith('np50:');
     const isMiniHub = !!deviceId && deviceId.startsWith('minihub:');
+    const isQSeries = !!deviceId && deviceId.startsWith('qseries:');
 
     // NP50 has no motherboard "BIOS" hand-off of its own, so both 'fw' and the
     // 'bios' value the wire-disconnect gesture emits mean "hand the hub back to
@@ -446,9 +477,23 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       return;
     }
 
+    // Q-series pump: FW Control = the cooler's onboard firmware temperature
+    // curve (distinct from BIOS/motherboard, which the pump also offers).
+    if (value === 'fw' && isQSeries && deviceId) {
+      const wasSw = fanStates[fanId]?.softwareControl ?? false;
+      if (wasSw) await toggleSoftwareControl(fanId, false);
+      await setQSeriesControlMode(QSERIES_MODE_FIRMWARE);
+      setHubModes(prev => ({ ...prev, [deviceId]: 'firmware' }));
+      return;
+    }
+
     if (value === 'bios') {
       if (isMiniHub && deviceId) {
         await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_MOTHERBOARD);
+        setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
+      }
+      if (isQSeries && deviceId) {
+        await setQSeriesControlMode(QSERIES_MODE_MOTHERBOARD);
         setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
       }
       const wasSw = fanStates[fanId]?.softwareControl ?? false;
@@ -464,6 +509,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     if (deviceId && hubModes[deviceId] && hubModes[deviceId] !== 'software') {
       if (isNp50) await setNp50LiveCoolingMode(NP50_LIVE_MODE_SOFTWARE);
       else if (isMiniHub) await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_SOFTWARE);
+      else if (isQSeries) await setQSeriesControlMode(QSERIES_MODE_SOFTWARE);
       setHubModes(prev => ({ ...prev, [deviceId]: 'software' }));
     }
 
@@ -1288,7 +1334,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                     canCreateCurve={curves.length < MAX_CURVES}
                     highlighted={highlightedFanIds.has(ch.id) && ch.classification !== 'Unresponsive'}
                     hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
-                    hubSupportsFirmware={ch.deviceId?.startsWith('np50:')}
+                    hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
+                    hubSupportsBios={!ch.deviceId?.startsWith('np50:')}
                     nubRef={el => setFanNub(ch.id, el)}
                     cardRef={el => setFanCard(ch.id, el)}
                     onWirePointerDown={onFanNubPointerDown(ch.id)}
@@ -1324,13 +1371,16 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 for (const key of deviceKeys) {
                   const list = groups.get(key)!;
                   const deviceName =
+                    // Service-provided product name (e.g. "HYTE Q60"); the
+                    // prefix chain is a fallback and can't distinguish variants.
+                    list[0]?.deviceName ||
                     // eslint-disable-next-line i18next/no-literal-string -- hardware product name
-                    key.startsWith('np50:') ? 'HYTE NP50'
+                    (key.startsWith('np50:') ? 'HYTE NP50'
                     // eslint-disable-next-line i18next/no-literal-string -- hardware product name
                     : key.startsWith('minihub:') ? 'iBUYPOWER MiniHub'
                     // eslint-disable-next-line i18next/no-literal-string -- hardware product name
                     : key.startsWith('smarthub:') ? 'HYTE SmartHub'
-                    : key;
+                    : key);
                   const hubCollapsed = isFanGroupCollapsed(key);
                   blocks.push(
                     <button

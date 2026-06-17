@@ -1,4 +1,5 @@
 import { memo, useRef, useState } from 'react';
+import { Droplets, Fan } from 'lucide-react';
 import type { FanChannel } from '../../../../api/cooling';
 import { useTranslation } from '../../../../lib/i18n';
 import type { CurveDef, FanState } from '../../../../types/cooling';
@@ -43,6 +44,7 @@ export type FanCardHubMode = 'software' | 'motherboard' | 'firmware';
 export const FanCard = memo(function FanCard({
   channel, state, curves, calibrating, compact, canCreateCurve = true, highlighted,
   hubMode, hubSupportsFirmware,
+  hubSupportsBios = true,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
   onSetMode, onCreateCurve, onRename, onSpeedChange, drag,
 }: {
@@ -65,6 +67,10 @@ export const FanCard = memo(function FanCard({
    *  "FW Control" dropdown option. MiniHub fans get only BIOS / Manual /
    *  curves. */
   hubSupportsFirmware?: boolean;
+  /** Whether the hub offers a motherboard "BIOS" hand-off. True for everything
+   *  except NP50 (firmware control IS its off setting). A Q-series pump sets
+   *  both this and hubSupportsFirmware so its dropdown lists BIOS + FW Control. */
+  hubSupportsBios?: boolean;
   /** Ref handed to the input nub so the wire SVG can read its bbox. */
   nubRef?: (el: HTMLDivElement | null) => void;
   /** Ref handed to the card root so the wire DnD hit-test can treat the
@@ -86,18 +92,17 @@ export const FanCard = memo(function FanCard({
   const dutyPct = Math.max(0, Math.min(100, channel.dutyPercent));
   const swEnabled = state?.softwareControl ?? false;
   const assignedCurveId = state?.curveId ?? '';
-  // The hub's "off" / hand-off mode. A USB hub with firmware control (NP50)
-  // has no motherboard "BIOS" hand-off of its own — firmware control IS its
-  // off setting — so we surface 'fw' where other devices show 'bios'.
-  const offMode = hubSupportsFirmware ? 'fw' : 'bios';
+  // The hub's "off" / hand-off mode. A USB hub with firmware control but no
+  // motherboard hand-off (NP50) surfaces 'fw' where other devices show 'bios';
+  // a Q-series pump has both, defaulting off to BIOS (motherboard).
+  const offMode = hubSupportsBios ? 'bios' : (hubSupportsFirmware ? 'fw' : 'bios');
   // When the hub is in motherboard or firmware mode, the per-fan
   // softwareControl flag is meaningless — the hub takes over for every
   // fan on it. Surface that in the dropdown so the user sees the same
-  // mode on every fan in the same group. For a firmware-control hub both
-  // hub takeovers read as 'fw' (the device page decides whether firmware
-  // runs Static or Motherboard underneath).
+  // mode on every fan in the same group. Motherboard reads as BIOS when the
+  // hub has a BIOS hand-off, else as FW (NP50); firmware always reads as FW.
   const hubOverrideMode =
-    hubMode === 'motherboard' ? offMode
+    hubMode === 'motherboard' ? (hubSupportsBios ? 'bios' : 'fw')
     : hubMode === 'firmware'  ? 'fw'
     : null;
   const isManual = swEnabled && !assignedCurveId && hubOverrideMode === null;
@@ -107,6 +112,9 @@ export const FanCard = memo(function FanCard({
   // card collapses to a single "Disconnected" marker; the dropdown and duty
   // bar disappear because nothing the user does here will drive the channel.
   const isHwDisconnected = channel.classification === 'Unresponsive';
+  // Telemetry-only channel (Q-series pump today): header readout only, no duty
+  // bar or mode dropdown - nothing here drives it.
+  const isReadOnly = channel.readOnly ?? false;
 
   const [manualTarget, setManualTarget] = useState(channel.mode === 'Manual' ? channel.dutyPercent : 50);
   const barRef = useRef<HTMLDivElement>(null);
@@ -218,6 +226,9 @@ export const FanCard = memo(function FanCard({
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
       <div className={styles.fanCardHeader}>
+        {channel.kind === 'Pump'
+          ? <Droplets className={styles.fanKindIcon} size={14} aria-hidden />
+          : <Fan className={styles.fanKindIcon} size={14} aria-hidden />}
         <EditableText value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} />
         {/* The small Unresponsive badge in the header is dropped when the
             full-width "Disconnected" marker is shown below; one indicator is
@@ -234,7 +245,7 @@ export const FanCard = memo(function FanCard({
         <div className={styles.fanBindingDisconnected}>
           <span>{t('cooling.fan.disconnected')}</span>
         </div>
-      ) : (
+      ) : isReadOnly ? null : (
         <>
           <div
             ref={barRef}
@@ -285,12 +296,12 @@ export const FanCard = memo(function FanCard({
             }}
             ariaLabel={t('cooling.card.mode')}
           >
-            {/* A firmware-control hub (NP50) has no BIOS/motherboard hand-off
-                of its own, so FW Control takes the place of BIOS as the off
-                setting. Everything else keeps BIOS. */}
-            {hubSupportsFirmware ? (
+            {/* NP50 lists only FW Control (no BIOS hand-off); a Q-series pump
+                lists both; everything else lists only BIOS. */}
+            {hubSupportsFirmware && (
               <option value="fw">{t('cooling.card.firmware')}</option>
-            ) : (
+            )}
+            {hubSupportsBios && (
               <option value="bios">{t('cooling.card.bios')}</option>
             )}
             <option value="manual">{t('cooling.card.manual')}</option>

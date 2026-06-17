@@ -1725,5 +1725,15 @@
   "transfer.toast.fileTitle": "{from} cihazından {name}",
   "transfer.toast.openFolder": "Klasörü aç",
   "transfer.toast.savedTo": "{inbox} klasörüne kaydedildi",
-  "twitch.chatTitle": "Twitch sohbeti"
+  "twitch.chatTitle": "Twitch sohbeti",
+  "devices.q60.firmwareSection": "Soğutucu donanım yazılımı",
+  "devices.q60.firmwareSectionDescription": "Turbo, pompanın tam hızını açar; soğutucuda saklanır.",
+  "devices.q60.notConnected": "HYTE Q60 bağlı değil",
+  "devices.q60.pumpMode": "Pompa kontrolü",
+  "devices.q60.modeMotherboard": "Anakart",
+  "devices.q60.modeSoftware": "Yazılım (Nexus)",
+  "devices.q60.modeFirmware": "Donanım yazılımı eğrisi",
+  "devices.q60.turbo": "Turbo",
+  "devices.q60.pumpRpm": "Pompa hızı (RPM)",
+  "devices.q60.firmwareVersion": "Donanım yazılımı sürümü"
 }
