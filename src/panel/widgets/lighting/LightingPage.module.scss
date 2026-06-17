@@ -681,18 +681,58 @@
   min-height: 0;
 }
 
-// Bottom-of-panel rescan, between the device list and the OpenRGB indicator.
-// Standard Button; this only positions it.
-.rescanDevicesBtn {
-  margin: 0.4rem 1rem 0 2.5rem;
+// Bottom-of-pane OpenRGB rescan control: refresh icon + rescan action on the
+// left, OpenRGB label + status dot pushed to the right edge. Spans the pane
+// width via the right pane's column stretch; height matches the dashboard's
+// "Add widget" button (.addWidgetButton).
+.openRgbButton {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.5rem 1rem 0.85rem 2.5rem;
+  flex-shrink: 0;
+  padding: 0.3rem 0.7rem;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--type-small);
+  cursor: pointer;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--bg-card-hover);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+}
+
+// Push the refresh icon to the right edge; status dot + label stay left.
+.openRgbSpinner {
+  margin-left: auto;
+}
+
+.openRgbDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-// Bottom-of-pane OpenRGB launcher/indicator. Standard Button; this only
-// positions it.
-.statusCard {
-  margin: 0.5rem 1rem 0.85rem 2.5rem;
-  flex-shrink: 0;
+.openRgbDotOnline {
+  background: var(--good);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--good) 60%, transparent);
+}
+
+.openRgbDotOffline {
+  background: var(--bad);
 }
 
 .rescanIconSpinning {
@@ -739,6 +779,29 @@
   gap: 0.4rem;
 }
 
+// Dashed "add smart lights" entry pinned to the end of the device list. Faint
+// by default; firms up on hover. Geometry matches .deviceCard so it aligns.
+.addSmartLights {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  border: var(--border-width) dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    background: var(--surface);
+  }
+}
+
 .deviceCard {
   position: relative;
   display: flex;
@@ -762,12 +825,13 @@
     .deviceSettingsBtn { opacity: 1; }
   }
 
+  // Detection-failed / 0-LED non-resizable zones: dimmed + dashed as a state
+  // hint, but still interactive - selectable and the LED-map editor opens.
   &.deviceCardUnavailable {
-    cursor: not-allowed;
     opacity: 0.55;
     border-style: dashed;
 
-    &:hover { border-color: var(--border); }
+    &:hover { border-color: var(--border-strong); }
   }
 
   // Dim the device name + meta when the toggle is off; the toggle

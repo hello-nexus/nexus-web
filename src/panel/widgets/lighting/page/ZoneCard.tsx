@@ -145,7 +145,7 @@ export function ZoneCard({
             </button>
           </HoverTooltip>
         )}
-        {!unavailable && !firmwareControlled && (
+        {!firmwareControlled && (
           <div className={styles.deviceCardActions}>
             {device.ledCount > 0 && (
               <HoverTooltip body={t('lighting.devices.identify')} side="top">
@@ -159,30 +159,30 @@ export function ZoneCard({
                 </button>
               </HoverTooltip>
             )}
-            {(device.ledCount > 0 || resizable) && (
-              <HoverTooltip body={t('lighting.ledMap.settings')} side="top">
+            <HoverTooltip body={t('lighting.ledMap.settings')} side="top">
+              <button
+                type="button"
+                className={styles.deviceSettingsBtn}
+                aria-label={t('lighting.ledMap.settings')}
+                onClick={e => { e.stopPropagation(); onOpenSettings(); }}
+              >
+                <Settings />
+              </button>
+            </HoverTooltip>
+            {!unavailable && (
+              <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
                 <button
                   type="button"
-                  className={styles.deviceSettingsBtn}
-                  aria-label={t('lighting.ledMap.settings')}
-                  onClick={e => { e.stopPropagation(); onOpenSettings(); }}
+                  role="switch"
+                  aria-checked={device.ledsOn}
+                  className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
+                  aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
+                  onClick={e => { e.stopPropagation(); onTogglePower(); }}
                 >
-                  <Settings />
+                  <Power />
                 </button>
               </HoverTooltip>
             )}
-            <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={device.ledsOn}
-              className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
-              aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
-              onClick={e => { e.stopPropagation(); onTogglePower(); }}
-            >
-              <Power />
-            </button>
-            </HoverTooltip>
           </div>
         )}
       </div>

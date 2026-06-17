@@ -107,14 +107,6 @@ vi.mock('./lighting/LedMapEditor', () => ({
   LedMapEditor: () => null,
 }));
 
-vi.mock('./lighting/RescanDevicesButton', () => ({
-  RescanDevicesButton: () => <div data-testid="rescan" />,
-}));
-
-vi.mock('./lighting/RgbStatusCard', () => ({
-  RgbStatusCard: () => <div data-testid="rgb-status" />,
-}));
-
 vi.mock('./lighting/RightPaneTabs', () => ({
   RightPaneTabs: () => <div data-testid="right-pane-tabs" />,
 }));

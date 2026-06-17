@@ -2042,37 +2042,50 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           )}
           {/* General tooling: history, restore, reset, save. */}
           <div className={styles.toolbar}>
-            <label className={styles.ledCountField}>
-              <span className={styles.ledCountLabel}>{t('lighting.ledMap.ledCount')}</span>
-              <input
-                type="number"
-                className={styles.ledCountInput}
-                value={ledCountDraft}
-                min={1}
-                max={300}
-                disabled={!canEditLedCount}
-                aria-label={t('lighting.ledMap.ledCount')}
-                onChange={e => { if (canEditLedCount) setLedCountDraft(e.target.value); }}
-                onBlur={e => {
-                  if (!canEditLedCount) return;
-                  if (ledCountEscapeRef.current) { ledCountEscapeRef.current = false; return; }
-                  if (resizingCountRef.current) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
-                  const n = parseInt(e.currentTarget.value, 10);
-                  if (isNaN(n)) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
-                  handleLedCountCommit(n);
-                }}
-                onKeyDown={e => {
-                  e.stopPropagation();
-                  if (!canEditLedCount) return;
-                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                  if (e.key === 'Escape') {
-                    ledCountEscapeRef.current = true;
-                    setLedCountDraft(String(activeZoneLedCountRef.current));
-                    (e.target as HTMLInputElement).blur();
-                  }
-                }}
-              />
-            </label>
+            {canEditLedCount ? (
+              <label className={styles.ledCountField}>
+                <span className={styles.ledCountLabel}>{t('lighting.ledMap.ledCount')}</span>
+                <input
+                  type="number"
+                  className={styles.ledCountInput}
+                  value={ledCountDraft}
+                  min={1}
+                  max={300}
+                  aria-label={t('lighting.ledMap.ledCount')}
+                  onChange={e => setLedCountDraft(e.target.value)}
+                  onBlur={e => {
+                    if (ledCountEscapeRef.current) { ledCountEscapeRef.current = false; return; }
+                    if (resizingCountRef.current) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
+                    const n = parseInt(e.currentTarget.value, 10);
+                    if (isNaN(n)) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
+                    handleLedCountCommit(n);
+                  }}
+                  onKeyDown={e => {
+                    e.stopPropagation();
+                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                    if (e.key === 'Escape') {
+                      ledCountEscapeRef.current = true;
+                      setLedCountDraft(String(activeZoneLedCountRef.current));
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                />
+              </label>
+            ) : (
+              <span className={styles.ledCountField}>
+                <span className={styles.ledCountLabel}>{t('lighting.ledMap.ledCount')}</span>
+                <span className={styles.ledCountReadonly}>{activeZoneLedCount}</span>
+              </span>
+            )}
+            <div className={styles.hint}>
+              {t('lighting.ledMap.hint', {
+                count: leds.length,
+                drag: t('lighting.ledMap.dragHint'),
+                mod: isMac ? 'Cmd' : 'Ctrl',
+                multi: t('lighting.ledMap.clickMulti'),
+                del: t('lighting.ledMap.deleteHint'),
+              })}
+            </div>
             <div className={styles.spacer} />
             {hasRestorable && (
               <HoverTooltip body={t('lighting.ledMap.restoreAll')} side="bottom">

@@ -384,6 +384,11 @@
   color: var(--text-dim);
 }
 
+.ledCountReadonly {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
 .ledCountInput {
   width: 3.5rem;
   padding: 0.2rem 0.4rem;

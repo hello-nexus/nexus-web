@@ -14,6 +14,7 @@ import { useLightingSync } from '../../../hooks/useLightingSync';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
+import type { DashboardSectionNavigate } from '../../engine/panelLayoutHelpers';
 import { useTranslation } from '../../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
@@ -39,8 +40,7 @@ import { ModeControls } from './page/ModeControls';
 import { DevicePanel } from './page/DevicePanel';
 import { LedMapEditor } from './page/LedMapEditor';
 import { visibleCards } from './page/zoneUtils';
-import { RescanDevicesButton } from './page/RescanDevicesButton';
-import { RgbStatusCard } from './page/RgbStatusCard';
+import { OpenRgbButton } from './page/OpenRgbButton';
 import { LightingSettingsModal } from './page/LightingSettingsModal';
 import { RightPaneTabs, type RightPaneTab } from './page/RightPaneTabs';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
@@ -60,6 +60,8 @@ interface LightingViewProps {
   connectionState?: ConnectionState;
   activeProfileId?: string;
   platform?: string;
+  /** Navigate to a sibling dashboard section (e.g. the smart-lights app). */
+  onSectionNavigate?: DashboardSectionNavigate;
 }
 
 const DEFAULT_POST_PROCESS: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
@@ -84,7 +86,7 @@ function loadDeviceOrder(): string[] {
   return [];
 }
 
-export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '' }: LightingViewProps) {
+export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
   const { t } = useTranslation();
   const sensors = useSensors(serviceOnline);
   const { mode, setMode, rawSync, setRawSync, synced } = useLightingSync(serviceOnline, activeProfileId);
@@ -864,6 +866,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         serviceOnline={serviceOnline}
         platform={platform}
         gpus={sensors.gpuComponents}
+        onBrowseSupportedDevices={() => { setSettingsOpen(false); setCatalogOpen(true); }}
       />
       <SupportedDevicesModal
         open={catalogOpen}
@@ -955,15 +958,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onOpenCommunity={handleOpenCommunity}
                 smartHubFirmwareControl={smartHubFirmwareControl}
                 onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
+                onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
               />
-              {mode !== 'none' && (
-                <RescanDevicesButton rgbRunning={rgb.running} scanning={rgb.scanning} />
-              )}
-              <RgbStatusCard
-                rgbRunning={rgb.running}
-                onClick={() => setCatalogOpen(true)}
-                title={t('devices.supported.browse')}
-              />
+              <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
             </>
           ) : (
             <div className={styles.effectTabBody}>
