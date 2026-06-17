@@ -38,6 +38,7 @@ import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { LightingLivePreview } from './LightingLivePreview';
+import { LightingShaderPreview } from './LightingShaderPreview';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
@@ -71,6 +72,11 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const [reactive, setReactive] = useState(false);
   const mediaThumbsRef = useRef<Record<string, string>>({});
   const compact = widget.size === '2x2';
+
+  // Immersive only: tapping the live shader preview expands it to a full-bleed
+  // shader view; tapping that closes it. Auto-closes whenever the mode leaves
+  // animate — the fullscreen view only renders a shader effect.
+  const [shaderFullscreen, setShaderFullscreen] = useState(false);
 
   // False until the first hydrate() resolves: mode/effect/filter sets
   // before that are hydration, not state changes, and must not animate.
@@ -132,6 +138,12 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     hydrate();
   }, [preview, hydrate]);
   useTopicCallback('lighting', !preview, hydrate);
+
+  // Leaving animate (a mode change from this surface or an external broadcast)
+  // dismisses the immersive fullscreen shader.
+  useEffect(() => {
+    if (mode !== 'animate') setShaderFullscreen(false);
+  }, [mode]);
 
   // The tile shows the active effect's selected universal slot. Its content hash
   // changes when that slot's saved look is edited (re-hydrate here, or the
@@ -363,6 +375,14 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     : mode === 'screen' ? 'screen'
     : null;
 
+  // Active Animate effect state for the immersive on-device preview: the shader
+  // is rendered locally at full resolution, replacing the low-res streamed LED
+  // canvas (LightingLivePreview) for shader effects only.
+  const animateState = useMemo(
+    () => resolveEffectState(activeEffect, templates),
+    [activeEffect, templates],
+  );
+
   // Immersive (fullscreen panel) variant: a row of square mode buttons
   // on top (off / animate / media / mirror), preview below. Shown for
   // every mode and regardless of the simple/advanced widget setting.
@@ -386,7 +406,46 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
             );
           })}
         </div>
-        <SingleItemView view={view} t={t} showArrows={false} overlay={<><LightingLivePreview />{flash}</>} />
+        <SingleItemView
+          view={view}
+          t={t}
+          showArrows={false}
+          overlay={
+            <>
+              {mode === 'animate'
+                ? (
+                  <button
+                    type="button"
+                    className={styles.previewExpand}
+                    onClick={() => setShaderFullscreen(true)}
+                    // Tap opens the fullscreen shader; never arm the overlay's
+                    // swipe-to-dismiss here (it races the tap on Y70 WebView2).
+                    data-panel-no-sheet-swipe="true"
+                    aria-label={t('lighting.fullscreen')}
+                  >
+                    {/* Gated off while fullscreen is open: that view (below)
+                        fully occludes this one, so only one WebGL context runs
+                        at a time. The shader source is cached, so the remount
+                        on close is instant. */}
+                    {!shaderFullscreen && <LightingShaderPreview effect={activeEffect} state={animateState} />}
+                  </button>
+                )
+                : <LightingLivePreview />}
+              {flash}
+            </>
+          }
+        />
+        {mode === 'animate' && shaderFullscreen && (
+          <button
+            type="button"
+            className={styles.shaderFullscreen}
+            onClick={() => setShaderFullscreen(false)}
+            data-panel-no-sheet-swipe="true"
+            aria-label={t('lighting.fullscreen.exit')}
+          >
+            <LightingShaderPreview effect={activeEffect} state={animateState} />
+          </button>
+        )}
       </div>
     );
   }

@@ -60,6 +60,50 @@
   image-rendering: auto;
 }
 
+// On-device shader render (immersive Animate preview): WebGL canvas drawn at
+// full resolution, so no smoothing is needed. Fades in once the first frame
+// lands to avoid a black flash over the thumbnail beneath.
+.shaderPreview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 200ms ease;
+
+  &[data-ready='true'] { opacity: 1; }
+}
+
+// Transparent tap target over the immersive Animate preview: tap expands the
+// shader to the full-bleed view below.
+.previewExpand {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+// Full-bleed shader view: covers the immersive content (mode buttons + preview)
+// while leaving the overlay's exit grabber on top. Tap anywhere to close. The
+// backdrop matches the immersive overlay so the brief pre-first-frame gap is
+// seamless.
+.shaderFullscreen {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  border: 0;
+  padding: 0;
+  background: var(--panel-background-solid, #0a0a10);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 // Selected-style label drawn over the lower third of the preview. Sized to
 // match the cooling widget's Silent/Balanced label (700 16px), stroked +
 // shadowed so it stays legible over any effect frame.
@@ -219,8 +263,13 @@
   }
 }
 
+// Immersive: the preview is an inset rounded card (matching the panel-theme
+// background-animation preview), not a full-bleed surface — so it sits inside
+// the widget padding and clips its image / live canvas / shader to the corners.
 .lighting[data-immersive='true'] .thumbBox {
-  margin: 0 -12px -12px;
+  margin: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 // 4x4 immersive: roomier arrows.

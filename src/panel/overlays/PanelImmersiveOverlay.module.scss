@@ -40,16 +40,20 @@
 }
 
 // Top grabber, doubles as tap-to-close. Swipe DOWN closes; tap is the
-// no-gesture fallback. Visible pill is 56x4, hit-target 88x36.
+// no-gesture fallback. The pill and its top inset scale with --panel-scale so
+// they read at the same proportion as the scaled immersive body — the overlay
+// root is unscaled, so a fixed-px pill looks tiny on a high-scale kiosk (Y70).
+// flex-start hugs the pill to the top edge while the hit target stays tall.
+// Sizes are CSS px x scale, never DPR, so display scaling can't distort them.
 .exitHint {
   position: absolute;
-  top: max(env(safe-area-inset-top), 8px);
+  top: max(env(safe-area-inset-top), calc(5px * var(--panel-scale, 1)));
   left: 50%;
   transform: translateX(-50%);
-  width: 120px;
+  width: calc(120px * var(--panel-scale, 1));
   height: 44px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   border: 0;
   background: transparent;
@@ -63,8 +67,8 @@
 
   &::before {
     content: '';
-    width: 56px;
-    height: 4px;
+    width: calc(80px * var(--panel-scale, 1));
+    height: calc(4px * var(--panel-scale, 1));
     border-radius: var(--radius-pill);
     background: color-mix(in srgb, white 38%, transparent);
     opacity: 0.7;

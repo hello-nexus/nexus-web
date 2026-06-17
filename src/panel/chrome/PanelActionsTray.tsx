@@ -5,6 +5,7 @@ import { cssPxPerMm } from '../engine/panelGrid';
 import { TRAY_COMMIT_FLICK_MM_PER_MS, TRAY_COMMIT_TRAVEL_MM, TRAY_ENGAGE_TRAVEL_MM } from '../engine/gestureThresholds';
 import { isNativeApp } from '../device/panelNativeBridge';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
+import { Button } from '../../components/common/Button/Button';
 import { useTranslation } from '../../lib/i18n';
 import type { PanelSurface } from '../types';
 import styles from './PanelActionsTray.module.scss';
@@ -127,38 +128,39 @@ export function PanelActionsTray({
           </div>
         )}
         <div className={styles.actionRow}>
-        <button
-          type="button"
-          className={styles.actionButton}
+        <Button
+          size="lg"
+          tone="neutral"
+          icon={<Plus />}
+          className={styles.trayButton}
           onClick={() => { onAddWidget(); onClose(); }}
         >
-          <Plus size={18} />
-          <span>{t('panel.actions.addWidget')}</span>
-        </button>
+          {t('panel.actions.addWidget')}
+        </Button>
         {onSettings && (
-          <button
-            type="button"
-            className={styles.actionButton}
+          <Button
+            size="lg"
+            tone="neutral"
+            icon={<Settings2 />}
+            className={styles.trayButton}
             onClick={() => { onSettings(); onClose(); }}
           >
-            <Settings2 size={18} />
-            <span>{t('panel.actions.settings')}</span>
-          </button>
+            {t('panel.actions.settings')}
+          </Button>
         )}
         {/* The pairing button triggers a native pairing dialog that only
             exists inside the iOS app wrapper. In a plain browser it's a
             no-op, so hide the whole button unless we're running natively. */}
         {pairAvailable && onPair && isNativeApp() && (
           <HoverTooltip body={t('panel.actions.pairing')} side="top">
-            <button
-              type="button"
-              className={`${styles.actionButton} ${styles.actionButtonCompact}`}
+            <Button
+              size="lg"
+              tone="neutral"
+              icon={<QrCode />}
+              className={styles.trayButtonCompact}
               onClick={() => { onPair(); onClose(); }}
               aria-label={t('panel.actions.pairing')}
-            >
-              <QrCode size={17} />
-              <span>{t('panel.actions.pairing')}</span>
-            </button>
+            />
           </HoverTooltip>
         )}
         </div>

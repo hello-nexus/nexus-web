@@ -1024,7 +1024,9 @@
 
 .editorBackdrop[data-surface='desktop'] .editorSheet {
   width: min(440px, 92vw);
-  background: var(--bg-elevated);
+  // Match the base .editorSheet (the app backdrop) so widget cards read as
+  // recessed wells here too, instead of vanishing into an elevated surface.
+  background: var(--backdrop-base);
   border-left: 1px solid var(--border);
 }
 
@@ -1056,7 +1058,12 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--panel-sheet-bg);
+  // The app backdrop, NOT the elevated sheet surface: the add-widget catalog
+  // and settings hold widget cards (--surface), and only --backdrop-base gives
+  // them the recessed-well contrast they have on the desktop dashboard. The old
+  // --panel-sheet-bg (--bg-elevated) read nearly identical to the card fill in
+  // dark mode (cards vanished) and too light against desktop in light mode.
+  background: var(--backdrop-base);
   border-left: 1px solid var(--panel-border);
   box-shadow: -24px 0 60px rgb(0 0 0 / var(--alpha-medium));
   color: var(--text);
