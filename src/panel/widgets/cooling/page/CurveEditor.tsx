@@ -35,7 +35,7 @@ const MIX_FNS: { key: MixFn; labelKey: string }[] = [
 // every consumer (graph + cards + view) imports it from here. Moving it to a
 // sibling .ts would force a churn of imports across the cooling tree for
 // only a Fast-Refresh ergonomics win.
- 
+
 export function computeCurveSpeed(
   curve: CurveDef,
   sources: TemperatureSource[],
@@ -105,13 +105,39 @@ const TEMP_MIN = 20, TEMP_MAX = 100;
 // the SVG, so they can never clip into the chart bars/lines.
 const PAD = { left: 8, right: 8, top: 8, bottom: 8 };
 const GRAPH_H = 140;
+// Taller graph for the pinned hero card on the desktop cooling page.
+const PINNED_GRAPH_H = 200;
 const H_LINES = [0, 25, 50, 75, 100];
 const V_LINES: number[] = []; for (let v = 20; v <= 100; v += 10) V_LINES.push(v);
 
-function CurveGraph({ points, currentTemp, onChange }: {
+// Plot points for a curve's shape across the 20-100°C axis. Flat -> level
+// line; Linear -> ramp with flat shoulders outside the band; Graph -> the
+// curve's own points. Mix has no single temp axis, so it isn't plotted.
+function curveLinePoints(curve: CurveDef): CurvePoint[] {
+  if (curve.type === 'graph') return curve.graph.points;
+  if (curve.type === 'flat') {
+    return [{ temp: TEMP_MIN, speed: curve.flat.speed }, { temp: TEMP_MAX, speed: curve.flat.speed }];
+  }
+  const { minTemp, maxTemp, minSpeed, maxSpeed } = curve.linear;
+  const lo = Math.max(TEMP_MIN, Math.min(TEMP_MAX, minTemp));
+  const hi = Math.max(TEMP_MIN, Math.min(TEMP_MAX, maxTemp));
+  const pts: CurvePoint[] = [];
+  if (lo > TEMP_MIN) pts.push({ temp: TEMP_MIN, speed: minSpeed });
+  pts.push({ temp: lo, speed: minSpeed }, { temp: hi, speed: maxSpeed });
+  if (hi < TEMP_MAX) pts.push({ temp: TEMP_MAX, speed: maxSpeed });
+  return pts;
+}
+
+// `editable` (default true) renders draggable points + click-to-add /
+// right-click-to-remove; when false the graph is a static line (the hero
+// card's Fixed / Linear shapes). `height` sizes the SVG + its y-axis gutter
+// (CSS default 140).
+function CurveGraph({ points, currentTemp, onChange, editable = true, height = GRAPH_H }: {
   points: CurvePoint[];
   currentTemp?: number;
-  onChange: (pts: CurvePoint[]) => void;
+  onChange?: (pts: CurvePoint[]) => void;
+  editable?: boolean;
+  height?: number;
 }) {
   const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
@@ -127,7 +153,7 @@ function CurveGraph({ points, currentTemp, onChange }: {
     // wouldn't fire on a steady-state mount). This is the standard "read
     // layout after mount" pattern; the alternative would be a flash of
     // unsized chart on first paint.
-     
+
     if (w > 0) setWidth(Math.round(w));
     const ro = new ResizeObserver(entries => {
       for (const e of entries) {
@@ -142,7 +168,7 @@ function CurveGraph({ points, currentTemp, onChange }: {
     return () => { ro.disconnect(); cancelAnimationFrame(rafWidthRef.current); };
   }, []);
 
-  const chartW = width - PAD.left - PAD.right, chartH = GRAPH_H - PAD.top - PAD.bottom;
+  const chartW = width - PAD.left - PAD.right, chartH = height - PAD.top - PAD.bottom;
   const tempToX = (t: number) => PAD.left + ((t - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * chartW;
   const speedToY = (s: number) => PAD.top + chartH - (s / 100) * chartH;
   const xToTemp = (x: number) => Math.round(Math.max(TEMP_MIN, Math.min(TEMP_MAX, TEMP_MIN + ((x - PAD.left) / chartW) * (TEMP_MAX - TEMP_MIN))));
@@ -154,7 +180,7 @@ function CurveGraph({ points, currentTemp, onChange }: {
 
   const onPtrDown = (idx: number, e: React.PointerEvent) => { e.preventDefault(); (e.target as Element).setPointerCapture(e.pointerId); setDragging(idx); };
   const onPtrMove = (e: React.PointerEvent) => {
-    if (dragging === null || !svgRef.current) return;
+    if (dragging === null || !svgRef.current || !onChange) return;
     const rect = svgRef.current.getBoundingClientRect();
     let temp = xToTemp(e.clientX - rect.left); const speed = yToSpeed(e.clientY - rect.top);
     const prev = dragging > 0 ? sorted[dragging - 1].temp + 1 : TEMP_MIN;
@@ -163,10 +189,10 @@ function CurveGraph({ points, currentTemp, onChange }: {
     const n = [...sorted]; n[dragging] = { temp, speed }; onChange(n);
   };
   const onDblClick = (e: React.MouseEvent) => {
-    if (!svgRef.current) return; const rect = svgRef.current.getBoundingClientRect();
+    if (!svgRef.current || !onChange) return; const rect = svgRef.current.getBoundingClientRect();
     onChange([...sorted, { temp: xToTemp(e.clientX - rect.left), speed: yToSpeed(e.clientY - rect.top) }].sort((a, b) => a.temp - b.temp));
   };
-  const onCtxMenu = (idx: number, e: React.MouseEvent) => { e.preventDefault(); if (sorted.length > 2) onChange(sorted.filter((_, i) => i !== idx)); };
+  const onCtxMenu = (idx: number, e: React.MouseEvent) => { e.preventDefault(); if (onChange && sorted.length > 2) onChange(sorted.filter((_, i) => i !== idx)); };
 
   return (
     <div className={styles.curveGraphWrap}>
@@ -174,22 +200,22 @@ function CurveGraph({ points, currentTemp, onChange }: {
         {/* Y-axis labels sit in their own gutter to the left of the SVG so
             they can never clip into the curve. Top label aligns to 100%,
             bottom to 0%; rows use flex space-between to pin positions. */}
-        <div className={styles.curveYAxis} aria-hidden="true">
+        <div className={styles.curveYAxis} aria-hidden="true" style={{ height }}>
           {[...H_LINES].reverse().map(s => (
             <span key={s} className={styles.curveAxisLabel}>{s}%</span>
           ))}
         </div>
         <div className={styles.curveChartArea}>
-          <svg ref={svgRef} className={styles.curveGraph} viewBox={`0 0 ${width} ${GRAPH_H}`} preserveAspectRatio="none"
-            onPointerMove={onPtrMove} onPointerUp={() => setDragging(null)} onDoubleClick={onDblClick}>
+          <svg ref={svgRef} className={styles.curveGraph} style={{ height }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
+            onPointerMove={editable ? onPtrMove : undefined} onPointerUp={editable ? () => setDragging(null) : undefined} onDoubleClick={editable ? onDblClick : undefined}>
             {H_LINES.map(s => (<g key={`h${s}`}><line x1={PAD.left} y1={speedToY(s)} x2={width - PAD.right} y2={speedToY(s)} className={styles.gridLine} /></g>))}
-            {V_LINES.map(v => (<g key={`v${v}`}><line x1={tempToX(v)} y1={PAD.top} x2={tempToX(v)} y2={GRAPH_H - PAD.bottom} className={styles.gridLine} /></g>))}
+            {V_LINES.map(v => (<g key={`v${v}`}><line x1={tempToX(v)} y1={PAD.top} x2={tempToX(v)} y2={height - PAD.bottom} className={styles.gridLine} /></g>))}
         <defs><linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" /><stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" /></linearGradient></defs>
         {areaPath && <path d={areaPath} fill="url(#curveGrad)" />}
         <path d={linePath} fill="none" stroke="var(--accent-glow)" strokeWidth="2.5" />
         {typeof currentTemp === 'number' && currentTemp >= TEMP_MIN && currentTemp <= TEMP_MAX && (
           <g className={styles.curveTempIndicator}>
-            <line x1={tempToX(currentTemp)} y1={PAD.top} x2={tempToX(currentTemp)} y2={GRAPH_H - PAD.bottom}
+            <line x1={tempToX(currentTemp)} y1={PAD.top} x2={tempToX(currentTemp)} y2={height - PAD.bottom}
               className={styles.tempLine} />
             <rect x={tempToX(currentTemp) - 22} y={PAD.top - 2} width="44" height="14" rx="2" className={styles.tempBadge} />
             <text x={tempToX(currentTemp)} y={PAD.top + 8} className={styles.tempBadgeText} textAnchor="middle">
@@ -197,7 +223,7 @@ function CurveGraph({ points, currentTemp, onChange }: {
             </text>
           </g>
         )}
-        {sorted.map((p, i) => (
+        {editable && sorted.map((p, i) => (
           <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={dragging === i ? 8 : 6}
             className={`${styles.curvePoint} ${dragging === i ? styles.curvePointActive : ''}`}
             onPointerDown={e => onPtrDown(i, e)} onContextMenu={e => onCtxMenu(i, e)} />
@@ -293,7 +319,7 @@ export interface CurveCardDrag {
 }
 
 export const CurveCard = memo(function CurveCard({
-  curve, allCurves, sources, inUse, expanded, highlighted, outputPercent,
+  curve, allCurves, sources, inUse, expanded, highlighted, outputPercent, pinned,
   onChange, onDelete, onResetPreset, onExpand, onCollapse, onHover,
   nubRef, cardRef: cardRefProp, onWirePointerDown, drag,
 }: {
@@ -310,6 +336,11 @@ export const CurveCard = memo(function CurveCard({
   /** Live computed output (0-100). Computed once in CoolingPage so the wire
    *  layer and every card share the same recursion-safe value. */
   outputPercent?: number;
+  /** Hero mode for the desktop cooling page: always expanded, full width,
+   *  a line graph for every type (Fixed/Linear shown read-only), no chevron,
+   *  no drag/wire. The selected-curve buttons below the card drive which
+   *  curve is shown. */
+  pinned?: boolean;
   onChange: (c: CurveDef) => void;
   onDelete: () => void;
   /** Reset a preset curve (silent/balanced/turbo) back to its default
@@ -317,13 +348,14 @@ export const CurveCard = memo(function CurveCard({
    *  isPresetCurveDirty so the button is disabled when already at defaults. */
   onResetPreset?: () => void;
   /** Click on the card body requests expand. Card body clicks never collapse;
-   *  collapse is only via the chevron button or by selecting another curve. */
-  onExpand: () => void;
-  /** Chevron click while expanded collapses this card. */
-  onCollapse: () => void;
+   *  collapse is only via the chevron button or by selecting another curve.
+   *  Unused in pinned mode. */
+  onExpand?: () => void;
+  /** Chevron click while expanded collapses this card. Unused in pinned mode. */
+  onCollapse?: () => void;
   /** Hover in/out broadcasts so the wire layer can highlight this curve's
-   *  outgoing wires. Pass null on leave. */
-  onHover: (id: string | null) => void;
+   *  outgoing wires. Pass null on leave. Unused in pinned mode. */
+  onHover?: (id: string | null) => void;
   /** Ref handed to the output nub so the wire SVG can read its bbox. */
   nubRef?: (el: HTMLDivElement | null) => void;
   /** Ref handed to the card root so the wire DnD hit-test can treat the
@@ -342,12 +374,16 @@ export const CurveCard = memo(function CurveCard({
   const PresetIcon = presetIconFor(curve.preset);
   const isPreset = !!curve.preset;
   const output = outputPercent ?? 0;
+  // Pinned cards are always open and never collapse/reorder/wire.
+  const showBody = pinned || expanded;
+  const dragEnabled = !pinned && !!drag;
 
   const dragClasses = [
     drag?.isDragging ? styles.curveCardDragging : '',
     drag?.isDragOver ? styles.curveCardDragOver : '',
-    expanded ? styles.curveCardExpanded : styles.curveCardCollapsed,
+    showBody ? styles.curveCardExpanded : styles.curveCardCollapsed,
     highlighted ? styles.curveCardHighlighted : '',
+    pinned ? styles.curveCardPinned : '',
   ].filter(Boolean).join(' ');
 
   // Selector list for "foreground controls win" gating. Anything matching
@@ -372,8 +408,8 @@ export const CurveCard = memo(function CurveCard({
     <div
       ref={setCardEl}
       className={`${styles.curveCard} ${inUse ? styles.curveCardInUse : ''} ${dragClasses}`}
-      draggable={!!drag}
-      onMouseDownCapture={drag ? (e) => {
+      draggable={dragEnabled}
+      onMouseDownCapture={dragEnabled ? (e) => {
         // Toggle native draggable BEFORE the browser starts its drag
         // tracking. With draggable=false at mousedown time, HTML5 drag
         // never initiates - the slider/native form element keeps the
@@ -384,7 +420,7 @@ export const CurveCard = memo(function CurveCard({
           cardRef.current.draggable = !interactive;
         }
       } : undefined}
-      onDragStart={drag ? (e) => {
+      onDragStart={dragEnabled ? (e) => {
         // Belt + suspenders: even if the draggable toggle doesn't catch a
         // particular browser/host, the dragstart gate cancels any drag
         // whose source is inside an interactive child.
@@ -393,15 +429,15 @@ export const CurveCard = memo(function CurveCard({
           e.preventDefault();
           return;
         }
-        drag.onDragStart();
+        drag!.onDragStart();
       } : undefined}
-      onDragOver={drag ? (e) => { e.preventDefault(); drag.onDragOver(); } : undefined}
-      onDragLeave={drag ? drag.onDragLeave : undefined}
-      onDrop={drag ? drag.onDrop : undefined}
-      onDragEnd={drag ? drag.onDragEnd : undefined}
-      onClick={() => { if (!expanded) onExpand(); }}
-      onMouseEnter={() => onHover(curve.id)}
-      onMouseLeave={() => onHover(null)}
+      onDragOver={dragEnabled ? (e) => { e.preventDefault(); drag!.onDragOver(); } : undefined}
+      onDragLeave={dragEnabled ? drag!.onDragLeave : undefined}
+      onDrop={dragEnabled ? drag!.onDrop : undefined}
+      onDragEnd={dragEnabled ? drag!.onDragEnd : undefined}
+      onClick={pinned ? undefined : () => { if (!expanded) onExpand?.(); }}
+      onMouseEnter={pinned ? undefined : () => onHover?.(curve.id)}
+      onMouseLeave={pinned ? undefined : () => onHover?.(null)}
     >
       {/* Header is a 2-column row that stays identical across collapsed and
           expanded states: title on the left half, mode selector + active
@@ -457,8 +493,8 @@ export const CurveCard = memo(function CurveCard({
           </HoverTooltip>
         </div>
 
-        {/* Same gate as FanCard's input nub: no wire layer (immersive view)
-            means no nub to drag from. */}
+        {/* Same gate as FanCard's input nub: no wire layer (immersive view /
+            pinned hero) means no nub to drag from. */}
         {onWirePointerDown && (
           <HoverTooltip body={t('cooling.wire.dragHint')} side="top">
             <div
@@ -471,7 +507,7 @@ export const CurveCard = memo(function CurveCard({
         )}
       </div>
 
-      {expanded && (
+      {showBody && (
       <div className={styles.curveCardBody}>
         {curve.type !== 'mix' && curve.type !== 'flat' && (
           <label className={styles.sourceRow}>
@@ -491,13 +527,22 @@ export const CurveCard = memo(function CurveCard({
         )}
 
         {curve.type === 'flat' && (
-          <Slider orientation="stacked" editable label={t('cooling.curve.fixed.speed')}
-            value={curve.flat.speed} min={0} max={100} trackFill formatValue={v => `${v}%`}
-            onChange={v => set({ flat: { speed: v } })} />
+          <>
+            {pinned && (
+              <CurveGraph points={curveLinePoints(curve)} editable={false} height={PINNED_GRAPH_H} />
+            )}
+            <Slider orientation="stacked" editable label={t('cooling.curve.fixed.speed')}
+              value={curve.flat.speed} min={0} max={100} trackFill formatValue={v => `${v}%`}
+              onChange={v => set({ flat: { speed: v } })} />
+          </>
         )}
 
         {curve.type === 'linear' && (
           <div className={styles.linearControls}>
+            {pinned && (
+              <CurveGraph points={curveLinePoints(curve)} editable={false} height={PINNED_GRAPH_H}
+                currentTemp={sources.find(s => s.id === curve.sourceId)?.value} />
+            )}
             <RangeSlider orientation="stacked" editable label={t('cooling.curve.linear.temp')}
               value={[curve.linear.minTemp, curve.linear.maxTemp]}
               min={20} max={100} formatValue={v => `${v}°`}
@@ -513,7 +558,7 @@ export const CurveCard = memo(function CurveCard({
 
         {curve.type === 'graph' && (
           <>
-            <CurveGraph points={curve.graph.points}
+            <CurveGraph points={curve.graph.points} height={pinned ? PINNED_GRAPH_H : undefined}
               currentTemp={sources.find(s => s.id === curve.sourceId)?.value}
               onChange={pts => set({ graph: { ...curve.graph, points: pts } })} />
             <ResponseTimeSlider value={curve.graph.responseTime}
@@ -540,30 +585,36 @@ export const CurveCard = memo(function CurveCard({
               </Button>
             </HoverTooltip>
           )}
-          <HoverTooltip body={t('cooling.curves.delete')} side="top">
-            <Button type="button" size="sm" tone="danger"
-              icon={<Trash2 size={12} aria-hidden />}
-              onClick={e => { e.stopPropagation(); onDelete(); }}>
-              {t('cooling.curves.removeBtn')}
-            </Button>
-          </HoverTooltip>
+          {/* Preset curves (Silent/Balanced/Turbo) are permanent - no Remove. */}
+          {!isPreset && (
+            <HoverTooltip body={t('cooling.curves.delete')} side="top">
+              <Button type="button" size="sm" tone="danger"
+                icon={<Trash2 size={12} aria-hidden />}
+                onClick={e => { e.stopPropagation(); onDelete(); }}>
+                {t('cooling.curves.removeBtn')}
+              </Button>
+            </HoverTooltip>
+          )}
         </div>
       </div>
       )}
 
       {/* Chevron at bottom-center toggles expansion. Card body clicks only
           expand; collapse is the chevron's job (or selecting another curve
-          via the single-expansion invariant up in CoolingPage). */}
-      <HoverTooltip body={expanded ? t('cooling.curves.collapse') : t('cooling.curves.expand')} side="top">
-        <button
-          type="button"
-          className={styles.curveCardChevron}
-          onClick={e => { e.stopPropagation(); if (expanded) onCollapse(); else onExpand(); }}
-          aria-label={expanded ? t('cooling.curves.collapse') : t('cooling.curves.expand')}
-        >
-          {expanded ? <ChevronUp size={18} aria-hidden /> : <ChevronDown size={18} aria-hidden />}
-        </button>
-      </HoverTooltip>
+          via the single-expansion invariant up in CoolingPage). Hidden in
+          pinned mode, which is always open. */}
+      {!pinned && (
+        <HoverTooltip body={expanded ? t('cooling.curves.collapse') : t('cooling.curves.expand')} side="top">
+          <button
+            type="button"
+            className={styles.curveCardChevron}
+            onClick={e => { e.stopPropagation(); if (expanded) onCollapse?.(); else onExpand?.(); }}
+            aria-label={expanded ? t('cooling.curves.collapse') : t('cooling.curves.expand')}
+          >
+            {expanded ? <ChevronUp size={18} aria-hidden /> : <ChevronDown size={18} aria-hidden />}
+          </button>
+        </HoverTooltip>
+      )}
     </div>
   );
 });
