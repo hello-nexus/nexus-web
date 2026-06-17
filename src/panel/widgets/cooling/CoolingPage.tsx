@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Gauge, Plus, Power } from 'lucide-react';
+import { Fan, Gauge, Plus, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { usePersistentState } from '../../../hooks/usePersistentState';
 import {
@@ -41,7 +41,7 @@ import { publishControlSync, subscribeControlSync } from '../../../lib/controlSy
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
-import { InfoTooltip } from '../../../components/common/InfoTooltip/InfoTooltip';
+import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { FanCard, type FanCardHubMode } from './page/FanCard';
@@ -56,10 +56,10 @@ import styles from './CoolingPage.module.scss';
 
 /**
  * Cooling tab composer. State + transactional handlers live here; rendering is
- * delegated to a pinned CurveCard (the selected curve's editor + graph) and
- * FanCard (the fan grid). A row of curve buttons under the graph selects which
- * curve the card shows and highlights the fans bound to it. Fans bind to a
- * curve through each fan card's mode dropdown.
+ * delegated to a pinned CurveCard (the selected curve's editor + graph, with
+ * the curve-selector buttons nested inside it) and FanCard (the fan grid).
+ * Selecting a curve drives the hero card and highlights the fans bound to it;
+ * fans bind to a curve through each fan card's mode dropdown.
  */
 
 interface CoolingViewProps { serviceOnline: boolean; serviceState: ServiceState; connectionState?: ConnectionState; activeProfileId?: string; }
@@ -101,6 +101,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // displayed preset for a short window so a stale `/cooling/profiles` poll or
   // refetch doesn't snap the UI back to the prior value mid-transition.
   const presetLockUntilRef = useRef(0);
+  // While the user is actively editing a curve (dragging a point, nudging a
+  // slider) the service echoes our own save back on the `cooling` topic; a
+  // refetch mid-gesture would clobber the in-progress edit. Bump this on every
+  // curve edit and ignore topic-echo refreshes until it lapses.
+  const curveEditLockUntilRef = useRef(0);
 
   // Optimistic calibration lock: the server flag arrives via the cooling
   // broadcast, but the user needs the fan rail dimmed + locked the instant
@@ -124,7 +129,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, settings.preferredCpuTempSensorId);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // The curve whose graph + editor the hero card shows; a row of buttons under
+  // The curve whose graph + editor the hero card shows; a row of buttons inside
   // the card selects it. Selecting also highlights the fans bound to it. Seeded
   // from the cached curves so a revisit paints the hero card immediately.
   const [selectedCurveId, setSelectedCurveId] = useState<string | null>(() => cachedSeed.curves[0]?.id ?? null);
@@ -239,11 +244,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   // Cross-window profile detection: every profile switch broadcasts on the
   // `prefs` topic, so we refetch the active profile when the topic fires
-  // instead of polling fetchProfiles() every second. The preset-lock gate
-  // still applies - a mid-transition push from our own mutation would
-  // otherwise repaint stale state.
+  // instead of polling fetchProfiles() every second. The preset/curve-edit
+  // lock gates still apply so a mid-transition push from our own mutation
+  // doesn't repaint stale state.
   useTopicCallback('prefs', serviceOnline, () => {
     if (Date.now() < presetLockUntilRef.current) return;
+    if (Date.now() < curveEditLockUntilRef.current) return;
     void (async () => {
       const profiles = await fetchProfiles();
       const next = profiles?.active ?? '';
@@ -258,20 +264,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // service. The widget already listens on this topic; the main view needs
   // the same wiring or the preset chip stays selected on Silent/Balanced/
   // Turbo even after the backend has derived ActivePreset=custom from the
-  // per-fan change. The preset-lock gate guards against optimistic-update
-  // races the same way it does for the prefs topic above.
+  // per-fan change. The preset + curve-edit lock gates guard against
+  // optimistic-update races (e.g. a point drag bouncing back mid-gesture).
   useTopicCallback('cooling', serviceOnline, () => {
     if (Date.now() < presetLockUntilRef.current) return;
+    if (Date.now() < curveEditLockUntilRef.current) return;
     refreshCoolingConfig();
   });
 
   // Keep the curve sources' temperature values live so the select labels and
-  // the graph's vertical temperature line track real-time sensor readings.
-  // The `cooling-curves` topic streams inputTemperature per active curve at
-  // ~1 Hz, so we merge those readings into the existing sources list instead
-  // of refetching /cooling/sources every second. Sources that aren't driving
-  // any curve keep their last-fetched value until a mutation (curve
-  // assignment change, profile switch, etc.) triggers a refresh.
+  // the graph's temperature dot track real-time sensor readings. The
+  // `cooling-curves` topic streams inputTemperature per active curve at ~1 Hz,
+  // so we merge those readings into the existing sources list instead of
+  // refetching /cooling/sources every second. Sources that aren't driving any
+  // curve keep their last-fetched value until a mutation triggers a refresh.
   useEffect(() => {
     if (!curveCalcs?.calculations?.length) return;
     setSources(prev => {
@@ -347,15 +353,16 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const pushCurves = useCallback((defs: CurveDef[], states: Record<string, FanState>) => {
     const apiCurves = defs.map(c => ({
       id: c.id, name: c.name,
-      type: c.type === 'flat' ? 'Flat' : c.type === 'linear' ? 'Linear' : c.type === 'graph' ? 'Graph' : 'Mixed',
+      type: c.type === 'flat' ? 'Flat' : c.type === 'linear' ? 'Linear' : c.type === 'multipoint' ? 'Graph' : 'Mixed',
       input: { id: c.sourceId, type: 'Temperature', device: '' },
       outputs: Object.entries(states).filter(([, s]) => s.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
       // Persist every mode's params, not just the active type's, so switching
-      // type (fixed/linear/graph/mix) and back doesn't reset the others to
-      // defaults on the next refetch. The engine still applies only `type`.
+      // type (fixed/linear/multipoint/mix) and back doesn't reset the others to
+      // defaults on the next refetch. The engine still applies only `type`. The
+      // multipoint curve persists as the wire "Graph" type / `graph` object.
       flat: { speed: c.flat.speed },
       linear: c.linear,
-      graph: { responseTime: c.graph.responseTime, speedModifier: 1, points: c.graph.points },
+      graph: { responseTime: c.multipoint.responseTime, speedModifier: 1, points: c.multipoint.points },
       mixed: { responseTime: c.mix.responseTime, curveIds: c.mix.curveIds, fn: c.mix.fn },
       preset: c.preset ?? null,
     }));
@@ -378,6 +385,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   const handlePresetChange = useCallback(async (key: string) => {
     if (!isCoolingPresetKey(key)) return;
+    // Pressing a preset (header tab or a Silent/Balanced/Turbo curve button)
+    // also shows that preset's curve in the hero graph.
+    const presetCurve = curves.find(c => c.preset === key);
+    if (presetCurve) setSelectedCurveId(presetCurve.id);
     if (key === activePreset) return;
     setActivePreset(key);
     activeCoolingProfileRef.current = key;
@@ -385,7 +396,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     publishControlSync({ domain: 'cooling', activePreset: key });
     await applyProfile(key);
     refreshCoolingConfig();
-  }, [activePreset, refreshCoolingConfig]);
+  }, [activePreset, refreshCoolingConfig, curves]);
 
   const toggleSoftwareControl = useCallback(async (fanId: string, enabled: boolean) => {
     if (enabled) {
@@ -431,8 +442,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     // Default to the CPU temp (the sensor pinned in cooling settings), never
     // sources[0] — on Linux that's often a motherboard SuperIO channel.
     c.sourceId = defaultCurveSourceId(sources, cpuTemp?.id);
-    // New curves go on top so a freshly-added curve is immediately visible.
-    const next = [c, ...curves];
+    // Append so new curves land at the end of the selector list.
+    const next = [...curves, c];
     setCurves(next);
     // Show the new curve in the hero card right away.
     setSelectedCurveId(id);
@@ -533,7 +544,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const id = `curve-${Date.now()}`;
     const c = newCurve(id);
     c.sourceId = defaultCurveSourceId(sources, cpuTemp?.id);
-    const nextCurves = [c, ...curves];
+    const nextCurves = [...curves, c];
     const wasSw = fanStates[fanId]?.softwareControl ?? false;
     const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: id } };
     setCurves(nextCurves);
@@ -586,6 +597,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const saveCurveAndPush = useCallback((updated: CurveDef) => {
     const next = curves.map(c => c.id === updated.id ? updated : c);
     setCurves(next);
+    // Suppress the echoed `cooling` refresh so a rapid edit (e.g. dragging a
+    // multipoint) isn't clobbered mid-gesture by our own save bouncing back.
+    curveEditLockUntilRef.current = Date.now() + 2000;
     pushCurves(next, fanStates);
   }, [curves, fanStates, pushCurves]);
 
@@ -683,6 +697,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return s;
   }, [fanStates]);
 
+  // Number of fans bound to each curve, shown under its selector button.
+  const curveFanCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const fs of Object.values(fanStates)) {
+      if (fs.curveId) m.set(fs.curveId, (m.get(fs.curveId) ?? 0) + 1);
+    }
+    return m;
+  }, [fanStates]);
+
   // Live output % per curve, computed once so the recursion-safe Mix path
   // doesn't re-walk per consumer (the hero card today; cheap to keep shared).
   const curveOutputs = useMemo(() => {
@@ -691,8 +714,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return m;
   }, [curves, sources]);
 
-  // Selecting a curve highlights every fan bound to it (replaces the old
-  // wire-hover highlight). A fan is bound when its fanState.curveId matches.
+  // Selecting a curve highlights every fan bound to it. A fan is bound when
+  // its fanState.curveId matches.
   const highlightedFanIds = useMemo(() => {
     const s = new Set<string>();
     if (!selectedCurveId) return s;
@@ -704,7 +727,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   const presetTabs = COOLING_PRESETS.map(p => ({
     key: p.key,
-    label: t(p.i18nKey),
+    // Silent/Balanced/Turbo apply to every fan, so the tab reads "All <preset>".
+    label: p.key === 'silent' || p.key === 'balanced' || p.key === 'turbo'
+      ? `${t('cooling.preset.allPrefix')} ${t(p.i18nKey)}`
+      : t(p.i18nKey),
     icon: <p.Icon size={14} />,
   }));
 
@@ -737,6 +763,60 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     );
   }
 
+  // Curve-selector buttons (Curves section, under the graph) as chonky squares:
+  // the name on top, a fan icon + the count of fans bound to that curve beneath.
+  // Silent/Balanced/Turbo first, then custom curves, then the dashed add square.
+  // The viewed curve uses the soft-active treatment; clicking only swaps the
+  // graph/options view (the preset tabs apply a curve to all fans).
+  const curveSelector = (() => {
+    const presetOrder = ['silent', 'balanced', 'turbo'] as const;
+    const ordered = [
+      ...presetOrder.map(p => curves.find(c => c.preset === p)).filter((c): c is CurveDef => !!c),
+      ...curves.filter(c => !c.preset),
+    ];
+    return (
+      <div className={styles.curveSelector}>
+        <span className={styles.curveFieldHeader}>{t('cooling.sections.curves')}</span>
+        <div className={styles.curveButtons} role="group" aria-label={t('cooling.sections.curves')}>
+          {ordered.map(c => {
+            const PresetIcon = presetIconFor(c.preset);
+            const viewing = c.id === selectedCurveId;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                aria-current={viewing || undefined}
+                className={`${styles.curveBtn}${viewing ? ' ' + styles.curveBtnViewing : ''}`}
+                onClick={() => setSelectedCurveId(c.id)}
+              >
+                <span className={styles.curveBtnName}>
+                  {PresetIcon && <PresetIcon size={13} aria-hidden />}
+                  {c.name}
+                </span>
+                <span className={styles.curveBtnCount}>
+                  <Fan size={12} aria-hidden /> {curveFanCounts.get(c.id) ?? 0}
+                </span>
+              </button>
+            );
+          })}
+          {curves.length >= MAX_CURVES ? (
+            <HoverTooltip body={t('cooling.curves.maxReached')} side="top">
+              <button type="button" className={`${styles.curveBtn} ${styles.curveAddBtn}`} disabled>
+                <Plus size={16} aria-hidden />
+                <span className={styles.curveBtnName}>{t('cooling.curves.add')}</span>
+              </button>
+            </HoverTooltip>
+          ) : (
+            <button type="button" className={`${styles.curveBtn} ${styles.curveAddBtn}`} onClick={() => { addCurve(); }}>
+              <Plus size={16} aria-hidden />
+              <span className={styles.curveBtnName}>{t('cooling.curves.add')}</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  })();
+
   return (
     <div className={styles.cooling}>
       <CoolingSettingsModal
@@ -757,80 +837,32 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         }}
       />
 
-      {/* Render the body chrome unconditionally so the card + grid paint on
-          first frame. Every internal renderer handles the empty path safely
-          (no selected curve -> empty hint; no fans -> empty grid). */}
+      {/* Two columns: the curve block on the left, the fan sidebar (vertical
+          scroll) on the right. */}
       <div className={`${styles.body} pageBody`}>
-        <section className={styles.curveSection}>
-          <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>
-              {t('cooling.sections.curves')}
-              <InfoTooltip message={t('cooling.sections.curves.tooltip')} side="bottom" />
-            </h3>
-          </div>
+        <div className={styles.curveCol}>
+        {selectedCurve ? (
+          <CurveCard
+            key={selectedCurve.id}
+            pinned
+            expanded
+            curve={selectedCurve}
+            allCurves={curves}
+            sources={sources}
+            inUse={curvesInUse.has(selectedCurve.id)}
+            outputPercent={curveOutputs.get(selectedCurve.id) ?? 0}
+            onChange={saveCurveAndPush}
+            onDelete={() => deleteCurve(selectedCurve.id)}
+            onResetPreset={selectedCurve.preset ? () => handleResetPresetCurve(selectedCurve.preset!) : undefined}
+          >
+            {curveSelector}
+          </CurveCard>
+        ) : (
+          <p className={styles.curvesEmpty}>{t('cooling.curves.empty')}</p>
+        )}
+        </div>
 
-          {selectedCurve ? (
-            <CurveCard
-              key={selectedCurve.id}
-              pinned
-              expanded
-              curve={selectedCurve}
-              allCurves={curves}
-              sources={sources}
-              inUse={curvesInUse.has(selectedCurve.id)}
-              outputPercent={curveOutputs.get(selectedCurve.id) ?? 0}
-              onChange={saveCurveAndPush}
-              onDelete={() => deleteCurve(selectedCurve.id)}
-              onResetPreset={selectedCurve.preset ? () => handleResetPresetCurve(selectedCurve.preset!) : undefined}
-            />
-          ) : (
-            <p className={styles.curvesEmpty}>{t('cooling.curves.empty')}</p>
-          )}
-
-          {/* Curve selector: one chip per curve (presets first, with their
-              glyph), then the add chip. Wraps to the next line as curves grow.
-              Selecting drives the hero card AND the fan highlight. */}
-          <div className={styles.curveButtons} role="group" aria-label={t('cooling.sections.curves')}>
-            {curves.map(c => {
-              const PresetIcon = presetIconFor(c.preset);
-              const active = c.id === selectedCurveId;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  aria-pressed={active}
-                  className={`chip-action${active ? ' chip-active' : ''}`}
-                  onClick={() => setSelectedCurveId(c.id)}
-                >
-                  {PresetIcon && <PresetIcon size={13} aria-hidden />}
-                  {c.name}
-                </button>
-              );
-            })}
-            {curves.length >= MAX_CURVES ? (
-              <HoverTooltip body={t('cooling.curves.maxReached')} side="top">
-                <button type="button" className="chip-action" disabled>
-                  <Plus size={13} aria-hidden /> {t('cooling.curves.add')}
-                </button>
-              </HoverTooltip>
-            ) : (
-              <button type="button" className="chip-action" onClick={() => { addCurve(); }}>
-                <Plus size={13} aria-hidden /> {t('cooling.curves.add')}
-              </button>
-            )}
-          </div>
-        </section>
-
-        <section className={styles.fanSection}>
-          <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>{t('cooling.label.fan')}</h3>
-            <Button type="button" size="sm" tone={calibrating ? 'danger' : 'neutral'}
-              icon={<Gauge size={14} aria-hidden />}
-              onClick={runCalibration} disabled={calibrating}>
-              {calibrating ? t('cooling.calibrate.running').split('-')[0].trim() : t('cooling.calibrate.button')}
-            </Button>
-          </div>
-
+        <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (
             <div className={styles.calibrationResults}>
               <div className={styles.calibrationResultsHeader}>
@@ -872,7 +904,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                  prop. */
               inert={calibrating || undefined}
               aria-hidden={calibrating || undefined}
-              className={`${styles.fanGrid} ${calibrating ? styles.fanGridDisabled : ''}`}
+              className={`${styles.fanList} ${calibrating ? styles.fanGridDisabled : ''}`}
             >
             {offStatusCard}
             {(() => {
@@ -894,6 +926,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               const renderFan = (ch: FanChannel) => {
                 return (
                 <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
+                  compact
                   calibrating={calibrating}
                   canCreateCurve={curves.length < MAX_CURVES}
                   highlighted={highlightedFanIds.has(ch.id) && ch.classification !== 'Unresponsive'}
@@ -923,10 +956,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 );
               };
               const blocks: ReactNode[] = [];
-              // Motherboard / GPU fans first (existing UI shape).
+              // Motherboard / GPU fans first, flat (no group header).
               const mobo = groups.get(null);
               if (mobo) for (const ch of mobo) blocks.push(renderFan(ch));
-              // Then one labelled group per external hub, in stable order.
+              // Then one collapsible group per external hub, using the shared
+              // CollapsibleSection so the headers match the lighting device
+              // groups exactly (style, spacing, hover highlight).
               const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k).sort();
               for (const key of deviceKeys) {
                 const list = groups.get(key)!;
@@ -941,56 +976,39 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   // eslint-disable-next-line i18next/no-literal-string -- hardware product name
                   : key.startsWith('smarthub:') ? 'HYTE SmartHub'
                   : key);
-                const hubCollapsed = isFanGroupCollapsed(key);
                 blocks.push(
-                  <button
-                    type="button"
-                    key={`${key}-hdr`}
-                    className={`${styles.deviceGroupHeader} ${styles.disconnectedHeader}`}
-                    aria-expanded={!hubCollapsed}
-                    onClick={() => toggleFanGroup(key)}
-                  >
-                    <span className={styles.deviceGroupName}>
-                      <span className={styles.disconnectedChevron} aria-hidden>
-                        {hubCollapsed ? '▸' : '▾'}
-                      </span>
-                      {' '}{deviceName}
-                    </span>
-                    <span className={styles.deviceGroupCount}>{list.length} fan{list.length === 1 ? '' : 's'}</span>
-                  </button>
+                  <CollapsibleSection key={`${key}-hdr`} compact title={deviceName} ariaLabel={deviceName}
+                    open={!isFanGroupCollapsed(key)} onToggle={() => toggleFanGroup(key)}
+                    right={<span className={styles.fanGroupCount}>{list.length} fan{list.length === 1 ? '' : 's'}</span>}>
+                    <div className={styles.fanGroupChildren}>{list.map(renderFan)}</div>
+                  </CollapsibleSection>
                 );
-                if (!hubCollapsed) for (const ch of list) blocks.push(renderFan(ch));
               }
               if (disconnected.length > 0) {
-                const dcCollapsed = isFanGroupCollapsed('disconnected');
                 blocks.push(
-                  <button
-                    type="button"
-                    key="disconnected-hdr"
-                    className={`${styles.deviceGroupHeader} ${styles.disconnectedHeader}`}
-                    aria-expanded={!dcCollapsed}
-                    onClick={() => toggleFanGroup('disconnected')}
-                  >
-                    <span className={styles.deviceGroupName}>
-                      <span className={styles.disconnectedChevron} aria-hidden>
-                        {dcCollapsed ? '▸' : '▾'}
-                      </span>
-                      {' '}Disconnected
-                    </span>
-                    <span className={styles.deviceGroupCount}>
-                      {disconnected.length} fan{disconnected.length === 1 ? '' : 's'}
-                    </span>
-                  </button>
+                  <CollapsibleSection key="disconnected-hdr" compact
+                    title={t('cooling.fan.disconnected')} ariaLabel={t('cooling.fan.disconnected')}
+                    open={!isFanGroupCollapsed('disconnected')} onToggle={() => toggleFanGroup('disconnected')}
+                    right={<span className={styles.fanGroupCount}>{disconnected.length} fan{disconnected.length === 1 ? '' : 's'}</span>}>
+                    <div className={styles.fanGroupChildren}>{disconnected.map(renderFan)}</div>
+                  </CollapsibleSection>
                 );
-                if (!dcCollapsed) {
-                  for (const ch of disconnected) blocks.push(renderFan(ch));
-                }
               }
               return blocks;
             })()}
             </div>
           </div>
-        </section>
+
+          {/* Calibrate pinned at the bottom of the sidebar, like the lighting
+              page's OpenRGB button. */}
+          <div className={styles.fanSidebarFooter}>
+            <Button type="button" size="sm" tone={calibrating ? 'danger' : 'neutral'}
+              icon={<Gauge size={14} aria-hidden />}
+              onClick={runCalibration} disabled={calibrating}>
+              {calibrating ? t('cooling.calibrate.running').split('-')[0].trim() : t('cooling.calibrate.button')}
+            </Button>
+          </div>
+        </aside>
       </div>
     </div>
   );

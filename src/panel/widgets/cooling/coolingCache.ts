@@ -24,7 +24,10 @@ import type { CurveDef, FanState } from '../../../types/cooling';
 import type { CoolingPresetKey } from './page/coolingPresets';
 import type { FanCardHubMode } from './page/FanCard';
 
-const STORAGE_KEY = 'nexus_cooling_cache_v1';
+// v2: curve shape changed (the `graph` field became `multipoint`); the v1
+// payload would deserialise into curves missing `multipoint` and crash the
+// editor, so the old key is abandoned.
+const STORAGE_KEY = 'nexus_cooling_cache_v2';
 
 export interface CoolingCache {
   channels: FanChannel[];

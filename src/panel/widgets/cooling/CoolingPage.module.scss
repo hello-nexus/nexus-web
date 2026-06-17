@@ -30,32 +30,110 @@
 // ── Body (single column) ───────────────────────────────────────────────────
 // The page scrolls as one column: the pinned curve card + its selector
 // buttons, then the fan grid. pageBody caps + centers the width.
+// The curve hero card docks at the top (flex-shrink:0); only the fan section
+// below scrolls, so the graph stays put as the user scrolls the fan grid.
+// Two columns: the curve block (left) flexes, the fan sidebar (right) is a
+// fixed-width vertical scroller, mirroring the lighting page.
 .body {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  // Generous gutter between the curve column and the fan sidebar, matching the
+  // lighting page's canvas-to-device-panel spacing.
+  gap: 2.5rem;
   flex: 1;
+  min-height: 0;
+}
+// Left column: the curve hero card; scrolls on its own if it ever outgrows
+// the viewport so the fan sidebar keeps its independent scroll.
+.curveCol {
   min-height: 0;
   overflow-y: auto;
 }
-.curveSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.fanSection {
+// Right column: fan header pinned, the fan list scrolls beneath it.
+.fanSidebar {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 0;
 }
-// Selected-curve buttons under the hero card. Wrap to a second line as more
-// curves are added.
+// Curves section under the graph: a small header over the wrapping button row.
+.curveSelector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
 .curveButtons {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   align-items: center;
 }
+// Quiet field header over the Curves / Mode rows. Standard (not all-caps) text.
+.curveFieldHeader {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  font-weight: var(--weight-body);
+}
+// Selected chip (curve type, or the viewed curve): monitoring "enabled"
+// treatment — accent border + accent text/icon + a faint accent fill, instead
+// of the full bright chip-active fill. Compound selector so it wins over the
+// global .chip-action.
+:global(.chip-action).chipSoftActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-glow);
+}
+// Chonky square curve buttons: name on top, a fan icon + count of bound fans
+// beneath, centered. Usage is shown by the count, so there's no in-use border.
+.curveBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  width: 5.5rem;
+  min-height: 4rem;
+  padding: 0.5rem 0.4rem;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--border);
+  background: var(--bg);
+  color: var(--text-dim);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color var(--ease-fast) ease, background var(--ease-fast) ease, color var(--ease-fast) ease;
+  &:hover { border-color: var(--accent); color: var(--text); }
+  &:disabled { cursor: not-allowed; opacity: 0.5; }
+}
+.curveBtnName {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--type-small);
+  color: var(--text);
+  line-height: 1.15;
+}
+.curveBtnCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+// Viewed curve: monitoring "enabled" treatment (accent border/text + faint fill).
+.curveBtnViewing {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-glow);
+  .curveBtnName, .curveBtnCount { color: var(--accent-glow); }
+}
+// Add square: dashed border.
+.curveAddBtn {
+  border-style: dashed;
+  background: transparent;
+}
+// Label beside the icon inside a curve-type chip (pinned hero only).
+.curveTypeChipLabel { white-space: nowrap; }
 // Device group header rendered above an external-hub block (NP50, etc.)
 // in the cooling fan list. Motherboard/GPU fans render without one so the
 // pre-NP50 UI shape is preserved for users with no hub.
@@ -111,17 +189,38 @@
   font-size: var(--type-mini);
 }
 
-// Responsive grid of fan cards. Group headers + the Off banner span the full
-// row; cards flow into auto-fill columns and stretch to fill their track.
-.fanGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 0.6rem;
-  align-content: start;
+// Vertical scrolling list of fan cards (mirrors the lighting device list).
+.fanList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.4rem;
 }
-.fanGrid > .fanCard { width: 100%; }
-.fanGrid > .deviceGroupHeader,
-.fanGrid > .offStatus { grid-column: 1 / -1; }
+// Fan cards inside a hub group: indented under the shared CollapsibleSection
+// header with a left rule, identical to the lighting device groups.
+.fanGroupChildren {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid color-mix(in srgb, var(--text) 18%, transparent);
+  margin-left: 0.3rem;
+}
+// Small muted fan count in the group header's right slot.
+.fanGroupCount {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+// Calibrate button pinned at the bottom of the fan sidebar.
+.fanSidebarFooter {
+  flex-shrink: 0;
+  padding-top: 0.25rem;
+}
+.fanSidebarFooter > button { width: 100%; justify-content: center; }
 .empty { color: var(--text-dim); font-size: var(--type-body); text-align: center; padding: 3rem 0; }
 
 // ── Section titles ─────────────────────────────────────────────────────────
@@ -201,26 +300,21 @@
 .calUnresponsive { background: rgba(107, 114, 128, 0.15); color: var(--text-dim); }
 
 // ── Fan Card ───────────────────────────────────────────────────────────────
+// Styled like the lighting device card: snug padding, full-width in the
+// sidebar column, name on top, RPM meta + duty bar + dropdown beneath.
 .fanCard {
   position: relative;
-  display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem;
+  display: flex; flex-direction: column; gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
   border-radius: var(--radius); border: var(--border-width) solid transparent; background: var(--surface);
-  width: 370px;
   cursor: grab;
-  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, box-shadow var(--ease-fast) ease, opacity var(--ease-fast) ease;
-  &:hover { background: var(--bg-card-hover); }
+  transition: border-color var(--ease-fast) ease, background var(--ease-fast) ease, opacity var(--ease-fast) ease;
+  &:hover { border-color: var(--border-strong); }
   &:active { cursor: grabbing; }
 }
 
-// Sidebar variant: card fills its column, tighter padding, smaller RPM
-// readout, and trimmed inter-row gap so the sidebar fits more cards.
-.fanCardCompact {
-  width: 100%;
-  padding: 0.55rem 0.75rem;
-  gap: 0.35rem;
-  .fanRpm { font-size: var(--type-small); }
-  .fanDutyBar { height: 5px; }
-}
+// Sidebar variant: fill the column width.
+.fanCardCompact { width: 100%; }
 
 .fanCardDragging { opacity: 0.5; }
 .fanCardDragOver {
@@ -228,36 +322,25 @@
   outline-offset: -2px;
 }
 
-// Active = fan is under software control (Manual or bound to a Curve). Tinted
-// background so you can scan the Fans section and instantly see which fans
-// are being driven vs. left on BIOS defaults. Border stays neutral; the tint
-// alone carries the signal so fans and curves read with one visual language.
-.fanCardActive {
-  background: var(--accent-soft);
-
-  &:hover { background: var(--accent-soft); }
+// Software-controlled (not BIOS/FW): keep the card surface unchanged and
+// signal it on the duty bar instead — a much lighter cue than a full-card
+// tint. The curve-driven fill goes accent here; BIOS/firmware fans keep the
+// neutral fill defined below. (Manual fans use the target fill, already accent.)
+.fanCardActive .fanDutyFill {
+  background: var(--accent);
+  opacity: 0.6;
 }
 
-// Highlighted = this fan is on the currently-hovered or expanded wire path.
-// Tracks the same condition that lights up the wire layer so the user reads
-// the connected pair (curve + fan) and the wire as one continuous signal.
-.fanCardHighlighted,
-.fanCardHighlighted:hover { border-color: var(--accent); }
-
-// Header line packs name + live RPM readout on a single row so the duty
-// bar can sit directly below them and save vertical space. Name grows;
-// RPM readout pins to the right with margin-left auto.
+// Header line: kind icon on the left, name grows, RPM readout pins right.
 .fanCardHeader {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem;
   min-width: 0;
 }
-.fanKindIcon {
-  flex-shrink: 0;
-  align-self: center;
-  color: var(--text-dim);
-}
+// Pump/fan icon next to the name. Turns accent when the fan is bound to the
+// curve currently shown in the graph (the highlight, replacing the old border).
+.fanKindIcon { flex-shrink: 0; color: var(--text-dim); }
 .fanCardCalibrating { opacity: 0.5; pointer-events: none; }
 // Hardware-unresponsive: the fan block reads as "off". Border desaturates,
 // background sits flat, no hover transition - matches the Disconnected
@@ -463,21 +546,24 @@
   font-variant-numeric: tabular-nums;
 }
 
+// RPM readout: icon + value pinned right, styled like the lighting card's
+// LED-count meta (small icon, solid number, faded unit).
 .fanRpmReadout {
   margin-left: auto;
   display: inline-flex;
-  align-items: baseline;
-  gap: 0.3rem;
+  align-items: center;
+  gap: 0.25rem;
   flex-shrink: 0;
+  color: var(--text-dim);
 }
-.fanRpm { font-size: var(--type-body); font-weight: var(--weight-body); color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; line-height: 1; }
-.fanRpmLabel { font-size: var(--type-small); color: var(--text-dim); }
+.fanRpm { font-size: 0.7rem; font-weight: var(--weight-body); color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; line-height: 1; }
+.fanRpmLabel { font-size: 0.6rem; color: var(--text-dim); }
 
 // Cursor override stops the parent card's `grab` from leaking into the bar.
 // Manual mode reclaims `pointer` for the duty knob track.
 .fanDutyBar { position: relative; height: 6px; border-radius: var(--radius-sm); background: var(--bg); overflow: visible; cursor: default; }
 .fanDutyBarManual { cursor: pointer; }
-.fanDutyFill { height: 100%; border-radius: var(--radius-sm); background: var(--accent); opacity: 0.5; transition: width var(--ease-slow) ease; }
+.fanDutyFill { height: 100%; border-radius: var(--radius-sm); background: var(--text-dim); opacity: 0.45; transition: width var(--ease-slow) ease, background var(--ease-fast) ease, opacity var(--ease-fast) ease; }
 .fanDutyFillActual { position: absolute; top: 0; left: 0; height: 100%; border-radius: var(--radius-sm); background: var(--text-dim); opacity: 0.35; transition: width var(--ease-slow) ease; }
 .fanDutyFillTarget { position: absolute; top: 0; left: 0; height: 100%; border-radius: var(--radius-sm); background: var(--accent); transition: width var(--ease) ease; }
 .fanDutyKnob {
@@ -490,26 +576,11 @@
 // ── Fan mode dropdown (unified BIOS / Manual / curves / create-curve) ─────
 // Visual weight kept low (text-dim, small font) to match the "Curve" label
 // typography elsewhere in the card.
+// Full-width wrapper; the common Select's own trigger provides the (skinny)
+// boxed chrome, matching the app-settings / language dropdown exactly.
 .fanModeSelect {
   width: 100%;
-  // Standard dropdown padding (matches the settings Select trigger), full-width
-  // on the fan card.
-  padding: 0.4rem 0.7rem;
-  line-height: 1.2;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  color: var(--text-dim);
-  font-family: inherit;
-  font-size: var(--type-small);
-  font-weight: var(--weight-body);
-  cursor: pointer;
-  transition: border-color var(--ease-fast) ease, color var(--ease-fast) ease;
-
-  &:hover { color: var(--text); }
-  &:focus { outline: none; border-color: var(--accent); color: var(--text); }
-
-  option { background: var(--surface); color: var(--text); }
+  display: flex;
 }
 
 // Styling native <option> is partial (Chromium honors `color` and
@@ -725,13 +796,43 @@
 // the top strip never shifts when toggling.
 .curveCardCollapsed { cursor: pointer; }
 .curveCardExpanded { cursor: default; }
-// Hero card on the desktop page: full width, always open, not a click/drag
-// target — the selector buttons below it switch which curve it shows.
+// Hero card on the desktop page: the curve block in the left column. Selectors
+// on top, then the graph, then the options stacked underneath. Always the
+// classic card surface (no hover shift); not a click/drag target.
 .curveCardPinned {
+  padding: 0.85rem 1rem;
   cursor: default;
+  background: var(--surface);
   &:hover { background: var(--surface); }
 }
-.curveCardPinned.curveCardInUse:hover { background: var(--accent-soft); }
+
+// Graph sits on top, full width.
+.heroGraph {
+  position: relative;
+  width: 100%;
+}
+// Options stacked underneath the graph, full width.
+.heroOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+// Live output % overlaid on the graph's top-right corner.
+.heroOutBadge {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-small);
+  color: var(--text);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-glow-shadow);
+  line-height: 1;
+}
 
 // Chevron at the bottom-center of every curve card. Click toggles expansion.
 // Card body clicks only expand; collapse is the chevron's job.
@@ -764,8 +865,7 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  flex-wrap: nowrap;
-  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 
@@ -973,6 +1073,7 @@
   height: 140px;
   box-sizing: border-box;
   color: var(--text-dim);
+  position: relative;
 }
 .curveChartArea {
   display: flex;
@@ -1005,7 +1106,28 @@
   font-size: 10px;
   font-family: var(--font-mono);
   line-height: 1;
+  // Faded so the axis-title pills (Duty % / Temp) read as the primary labels.
+  opacity: 0.4;
 }
+// Axis title pills shown in the legend area as a small accent container ("Duty %"
+// on the Y gutter, "Temp" on the X axis). They overlap the faded numbers, which
+// is intentional.
+.curveAxisTitle,
+.curveAxisTitleX {
+  position: absolute;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-glow-shadow);
+  color: var(--accent-glow);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  line-height: 1;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.curveAxisTitle { top: 50%; right: 0; transform: translateY(-50%); }
+.curveAxisTitleX { left: 50%; top: 0; transform: translateX(-50%); }
 .gridLine { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; }
 .curvePoint { fill: var(--accent); stroke: #fff; stroke-width: 2; cursor: grab; transition: r var(--ease-fast) ease; &:hover { r: 8; } }
 .curvePointActive { cursor: grabbing; fill: var(--accent-glow); filter: drop-shadow(0 0 8px var(--accent)); }
@@ -1032,6 +1154,13 @@
   font-size: 9px;
   font-weight: var(--weight-strong);
   letter-spacing: 0.02em;
+}
+// Dot where the temperature line meets the curve.
+.tempDot {
+  fill: var(--accent-glow);
+  stroke: var(--bg);
+  stroke-width: 2;
+  pointer-events: none;
 }
 
 // ── Shared Controls ────────────────────────────────────────────────────────

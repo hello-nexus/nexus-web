@@ -19,14 +19,14 @@ export interface FanCardDrag {
 }
 
 /**
- * One fan card: editable name + live RPM on the header, duty bar below, and
- * the mode dropdown (BIOS / Manual / curves / Create curve). Wire DnD also
- * binds / unbinds; disconnecting a wire reverts the fan to BIOS.
+ * One fan card, styled to match the lighting page's device cards: editable
+ * name on top, the live RPM as an icon + value on the right (like the LED
+ * count), a thin duty bar, and the mode dropdown (BIOS / Manual / curves /
+ * Create curve). Wire DnD also binds / unbinds when a wire layer is present.
  *
  * When the fan hardware itself is unresponsive (calibration classification
  * = "Unresponsive"), the card collapses to a single "Disconnected" marker
- * and hides the duty bar, dropdown and wire nub - nothing here can drive
- * the channel until the hardware comes back.
+ * and hides the duty bar + dropdown - nothing here can drive the channel.
  */
 /**
  * Hub-level cooling mode reflected back to a fan card. NP50 + MiniHub fans
@@ -52,13 +52,11 @@ export const FanCard = memo(function FanCard({
   state: FanState | undefined;
   curves: CurveDef[];
   calibrating?: boolean;
-  /** Sidebar layout: 100% width, tighter padding, smaller RPM readout. Used by the cooling page's right-side fan list. */
+  /** Sidebar layout: 100% width, tighter padding. Used by the cooling page's right-side fan list. */
   compact?: boolean;
   /** When false, the mode dropdown hides the "Create curve" option (curve cap reached). */
   canCreateCurve?: boolean;
-  /** Visual emphasis - this fan is on the currently-hovered or expanded
-   *  wire path. Tracks the same condition as the wire-layer highlight so
-   *  the connected pair lights up together. */
+  /** Visual emphasis - this fan is bound to the currently-selected curve. */
   highlighted?: boolean;
   /** When set, overrides the per-fan softwareControl-derived modeValue. See
    *  FanCardHubMode for semantics. Undefined for motherboard fans. */
@@ -78,9 +76,7 @@ export const FanCard = memo(function FanCard({
   cardRef?: (el: HTMLDivElement | null) => void;
   /** Pointer-down on the input nub starts a wire drag. */
   onWirePointerDown?: (e: React.PointerEvent) => void;
-  /** Card hover in/out so the wire layer can highlight just the wire
-   *  connected to this fan, and the curve on the other end can paint its
-   *  border. Pass null on leave. */
+  /** Card hover in/out so a wire layer can highlight the connected wire. */
   onWireHover?: (id: string | null) => void;
   onSetMode: (value: string) => void;
   onCreateCurve: () => void;
@@ -108,6 +104,9 @@ export const FanCard = memo(function FanCard({
   const isManual = swEnabled && !assignedCurveId && hubOverrideMode === null;
   const modeValue = hubOverrideMode
     ?? (!swEnabled ? offMode : (assignedCurveId || 'manual'));
+  // Driven = Nexus controls this fan (Manual or a Curve), i.e. not BIOS/FW.
+  // Highlighted on the duty bar (see .fanCardActive), not by tinting the card.
+  const driven = swEnabled && hubOverrideMode === null;
   // Hardware-level disconnect (no tach, no controllable duty). When true the
   // card collapses to a single "Disconnected" marker; the dropdown and duty
   // bar disappear because nothing the user does here will drive the channel.
@@ -171,10 +170,9 @@ export const FanCard = memo(function FanCard({
   const dragClasses = [
     drag?.isDragging ? styles.fanCardDragging : '',
     drag?.isDragOver ? styles.fanCardDragOver : '',
-    assignedCurveId ? styles.fanCardActive : '',
+    driven ? styles.fanCardActive : '',
     compact ? styles.fanCardCompact : '',
     isHwDisconnected ? styles.fanCardOff : '',
-    highlighted ? styles.fanCardHighlighted : '',
   ].filter(Boolean).join(' ');
 
   // Selector list for "foreground controls win" gating. Anything matching
@@ -226,13 +224,13 @@ export const FanCard = memo(function FanCard({
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
       <div className={styles.fanCardHeader}>
+        {/* Kind icon far left next to the name. When this fan is bound to the
+            curve currently shown in the graph, the highlight lives on the
+            dropdown value (accentValue) instead of the icon. */}
         {channel.kind === 'Pump'
-          ? <Droplets className={styles.fanKindIcon} size={14} aria-hidden />
-          : <Fan className={styles.fanKindIcon} size={14} aria-hidden />}
+          ? <Droplets size={16} className={styles.fanKindIcon} aria-hidden />
+          : <Fan size={16} className={styles.fanKindIcon} aria-hidden />}
         <EditableText value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} />
-        {/* The small Unresponsive badge in the header is dropped when the
-            full-width "Disconnected" marker is shown below; one indicator is
-            enough. */}
         <span className={styles.fanRpmReadout}>
           <span className={styles.fanRpm}>{channel.rpm.toLocaleString()}</span>
           <span className={styles.fanRpmLabel}>RPM</span>
@@ -282,13 +280,12 @@ export const FanCard = memo(function FanCard({
             )}
           </div>
 
-          {/* Mode dropdown is always present when the hardware is responsive,
-              regardless of whether a wire is currently connected. Disconnect-
-              ing a wire reverts to BIOS via setFanMode('bios'); this dropdown
-              is the keyboard-friendly path to the same transition. */}
+          {/* Mode dropdown is always present when the hardware is responsive.
+              Default (boxed) Select chrome, matching the app settings
+              dropdowns; binding a curve here is how a fan picks its curve. */}
           <Select
             className={styles.fanModeSelect}
-            variant="ghost"
+            accentValue={highlighted}
             value={modeValue}
             onChange={v => {
               if (v === '__create__') { onCreateCurve(); return; }

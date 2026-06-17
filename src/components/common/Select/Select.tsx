@@ -48,6 +48,8 @@ export interface SelectProps {
    *  used in contexts where the dropdown sits inside an already-bordered card
    *  (cooling fan / curve rows). */
   variant?: 'standard' | 'ghost';
+  /** Tint the displayed value (selected label) with the accent color. */
+  accentValue?: boolean;
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -101,7 +103,7 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 
 export function Select({
   value, onChange, options, children, disabled,
-  ariaLabel, className, variant = 'standard',
+  ariaLabel, className, variant = 'standard', accentValue,
 }: SelectProps) {
   const resolved = options ? options : optionsFromChildren(children);
   const selectedIndex = resolved.findIndex(o => o.value === value);
@@ -265,7 +267,7 @@ export function Select({
         onClick={() => { if (disabled) return; if (open) close(); else openMenu(); }}
         onKeyDown={onTriggerKeyDown}
       >
-        <span className={styles.value}>{selectedLabel}</span>
+        <span className={`${styles.value}${accentValue ? ' ' + styles.accentValue : ''}`}>{selectedLabel}</span>
       </button>
       <ChevronDown
         className={styles.chevron}
