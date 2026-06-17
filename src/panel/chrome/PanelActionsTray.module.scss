@@ -43,7 +43,10 @@
     max(16px, env(safe-area-inset-right))
     max(12px, env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-left));
-  background: color-mix(in srgb, var(--panel-card-bg) 92%, transparent);
+  // The app backdrop (not the near-black card surface) so the tray reads at the
+  // same level as the desktop dashboard and the add-widget/settings sheet, kept
+  // frosted via the 8% transparency + blur.
+  background: color-mix(in srgb, var(--backdrop-base) 92%, transparent);
   backdrop-filter: blur(20px) saturate(0.95);
   -webkit-backdrop-filter: blur(20px) saturate(0.95);
   border-top: 1px solid var(--separator);
