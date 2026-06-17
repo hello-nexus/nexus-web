@@ -1728,10 +1728,6 @@
   "devices.q60.firmwareSection": "Firmware del dissipatore",
   "devices.q60.firmwareSectionDescription": "Il turbo sblocca la velocità massima della pompa; salvato sul dissipatore.",
   "devices.q60.notConnected": "HYTE Q60 non connesso",
-  "devices.q60.pumpMode": "Controllo pompa",
-  "devices.q60.modeMotherboard": "Scheda madre",
-  "devices.q60.modeSoftware": "Software (Nexus)",
-  "devices.q60.modeFirmware": "Curva firmware",
   "devices.q60.turbo": "Turbo",
   "devices.q60.pumpRpm": "Velocità pompa (RPM)",
   "devices.q60.firmwareVersion": "Versione firmware"

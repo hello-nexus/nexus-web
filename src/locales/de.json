@@ -1728,10 +1728,6 @@
   "devices.q60.firmwareSection": "Kühler-Firmware",
   "devices.q60.firmwareSectionDescription": "Turbo gibt die volle Drehzahl der Pumpe frei, im Kühler gespeichert.",
   "devices.q60.notConnected": "HYTE Q60 nicht verbunden",
-  "devices.q60.pumpMode": "Pumpensteuerung",
-  "devices.q60.modeMotherboard": "Mainboard",
-  "devices.q60.modeSoftware": "Software (Nexus)",
-  "devices.q60.modeFirmware": "Firmware-Kurve",
   "devices.q60.turbo": "Turbo",
   "devices.q60.pumpRpm": "Pumpendrehzahl (U/min)",
   "devices.q60.firmwareVersion": "Firmware-Version"

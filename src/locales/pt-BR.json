@@ -1728,10 +1728,6 @@
   "devices.q60.firmwareSection": "Firmware do cooler",
   "devices.q60.firmwareSectionDescription": "O turbo libera a velocidade máxima da bomba; salvo no cooler.",
   "devices.q60.notConnected": "HYTE Q60 não conectado",
-  "devices.q60.pumpMode": "Controle da bomba",
-  "devices.q60.modeMotherboard": "Placa-mãe",
-  "devices.q60.modeSoftware": "Software (Nexus)",
-  "devices.q60.modeFirmware": "Curva de firmware",
   "devices.q60.turbo": "Turbo",
   "devices.q60.pumpRpm": "Velocidade da bomba (RPM)",
   "devices.q60.firmwareVersion": "Versão do firmware"

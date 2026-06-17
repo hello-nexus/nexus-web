@@ -1728,10 +1728,6 @@
   "devices.q60.firmwareSection": "쿨러 펌웨어",
   "devices.q60.firmwareSectionDescription": "터보는 펌프의 최고 속도를 해제합니다. 쿨러에 저장됩니다.",
   "devices.q60.notConnected": "HYTE Q60이 연결되지 않음",
-  "devices.q60.pumpMode": "펌프 제어",
-  "devices.q60.modeMotherboard": "메인보드",
-  "devices.q60.modeSoftware": "소프트웨어 (Nexus)",
-  "devices.q60.modeFirmware": "펌웨어 커브",
   "devices.q60.turbo": "터보",
   "devices.q60.pumpRpm": "펌프 속도 (RPM)",
   "devices.q60.firmwareVersion": "펌웨어 버전"

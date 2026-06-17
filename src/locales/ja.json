@@ -1728,10 +1728,6 @@
   "devices.q60.firmwareSection": "クーラーのファームウェア",
   "devices.q60.firmwareSectionDescription": "ターボはポンプの最高速度を解放します。クーラーに保存されます。",
   "devices.q60.notConnected": "HYTE Q60 が接続されていません",
-  "devices.q60.pumpMode": "ポンプ制御",
-  "devices.q60.modeMotherboard": "マザーボード",
-  "devices.q60.modeSoftware": "ソフトウェア (Nexus)",
-  "devices.q60.modeFirmware": "ファームウェアカーブ",
   "devices.q60.turbo": "ターボ",
   "devices.q60.pumpRpm": "ポンプ速度 (RPM)",
   "devices.q60.firmwareVersion": "ファームウェアバージョン"

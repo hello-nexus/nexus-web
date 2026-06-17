@@ -1728,10 +1728,6 @@
   "devices.q60.firmwareSection": "Прошивка кулера",
   "devices.q60.firmwareSectionDescription": "Турбо снимает ограничение скорости помпы; сохраняется в кулере.",
   "devices.q60.notConnected": "HYTE Q60 не подключён",
-  "devices.q60.pumpMode": "Управление помпой",
-  "devices.q60.modeMotherboard": "Материнская плата",
-  "devices.q60.modeSoftware": "Программно (Nexus)",
-  "devices.q60.modeFirmware": "Кривая прошивки",
   "devices.q60.turbo": "Турбо",
   "devices.q60.pumpRpm": "Скорость помпы (об/мин)",
   "devices.q60.firmwareVersion": "Версия прошивки"

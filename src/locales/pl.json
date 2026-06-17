@@ -1728,10 +1728,6 @@
   "devices.q60.firmwareSection": "Firmware chłodzenia",
   "devices.q60.firmwareSectionDescription": "Turbo odblokowuje pełną prędkość pompy; zapisane w chłodzeniu.",
   "devices.q60.notConnected": "HYTE Q60 nie jest podłączony",
-  "devices.q60.pumpMode": "Sterowanie pompą",
-  "devices.q60.modeMotherboard": "Płyta główna",
-  "devices.q60.modeSoftware": "Oprogramowanie (Nexus)",
-  "devices.q60.modeFirmware": "Krzywa firmware",
   "devices.q60.turbo": "Turbo",
   "devices.q60.pumpRpm": "Prędkość pompy (obr./min)",
   "devices.q60.firmwareVersion": "Wersja firmware"
