@@ -34,7 +34,7 @@ export function OpenRgbButton({ rgbRunning, scanning }: {
   };
 
   const brand = 'OpenRGB';
-  const label = busy ? t('lighting.devices.rescanning') : brand;
+  const label = busy ? t('lighting.devices.scanning') : brand;
 
   return (
     <button

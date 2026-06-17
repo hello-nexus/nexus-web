@@ -8,6 +8,7 @@ import {
   type LightingDevice, type LedMapEntry, type PostProcessSettings,
 } from '../../../api/lighting';
 import { playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
+import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
 import { useLightingSync } from '../../../hooks/useLightingSync';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -119,6 +120,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setPrimaryDeviceId(primary);
   }, []);
   const [catalogOpen, setCatalogOpen] = useState(false);
+
+  const [smartHubFirmwareControl, setSmartHubFirmwareControlState] = useState(false);
+
+  const handleSetSmartHubFirmwareControl = useCallback(async (enabled: boolean) => {
+    setSmartHubFirmwareControlState(enabled);
+    try {
+      await setSmartHubFirmwareControl(enabled);
+    } catch {
+      setSmartHubFirmwareControlState(!enabled);
+    }
+  }, []);
 
   const [activeEffect, setActiveEffect] = useState<string>('');
   const [effectTemplates, setEffectTemplates] = useState<Record<string, EffectTemplateBundle>>({});
@@ -768,6 +780,26 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     void refreshDevices();
   }, [serviceOnline, activeProfileId, refreshDevices]);
 
+  useEffect(() => {
+    if (!serviceOnline) return;
+    let cancelled = false;
+    getSmartHubFirmwareControl().then(v => {
+      if (!cancelled && v !== null) setSmartHubFirmwareControlState(v);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [serviceOnline]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      if (!serviceOnline) return;
+      getSmartHubFirmwareControl().then(v => {
+        if (v !== null) setSmartHubFirmwareControlState(v);
+      }).catch(() => {});
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [serviceOnline]);
+
   useTopicCallback('devices', serviceOnline, () => {
     void refreshDevices();
   });
@@ -926,6 +958,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 dragFor={dragForDevice}
                 communityCounts={mappingCounts}
                 onOpenCommunity={handleOpenCommunity}
+                smartHubFirmwareControl={smartHubFirmwareControl}
+                onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
                 onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
               />
               <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
