@@ -179,6 +179,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  margin-top: 0.5rem;
   // Contain the cells' stacking (the thumbnail badges use z-index): without
   // this their z-index competes with the panel-settings sticky dock and the
   // bulb/panel icons paint THROUGH the docked preview while scrolling.

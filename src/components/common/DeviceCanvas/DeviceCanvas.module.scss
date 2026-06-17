@@ -1,7 +1,10 @@
 .canvas {
   position: relative;
   height: 380px;
-  width: clamp(calc(380px * 16 / 9), 100%, calc(380px * 21 / 9));
+  // Fit the container, capped at 21:9. No min-width floor: a floor makes the
+  // canvas overflow a narrower container, and the parent's overflow:hidden
+  // clips the side rounded corners. Fitting keeps all four corners visible.
+  width: min(100%, calc(380px * 21 / 9));
   flex-shrink: 0;
   background: #080808;
   border: 1px solid var(--border);
