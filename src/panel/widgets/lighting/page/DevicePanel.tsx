@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react';
 import { type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
@@ -39,7 +40,7 @@ type DeviceGroup =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, dragFor, communityCounts, onOpenCommunity }: {
+export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, dragFor, communityCounts, onOpenCommunity, onOpenSmartLights }: {
   devices: LightingDevice[];
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
@@ -60,6 +61,8 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
   communityCounts?: Record<string, number>;
   /** Badge click: open the LED map editor on its Community tab. */
   onOpenCommunity?: (id: string) => void;
+  /** Renders a dashed "add smart lights" entry at the bottom of the list. */
+  onOpenSmartLights?: () => void;
 }) {
   const { t } = useTranslation();
 
@@ -158,25 +161,30 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
 
   return (
     <aside className={styles.devicePanel}>
-      {devices.length === 0 ? (
-        <p className={styles.deviceEmpty}>{t(lightingOff ? 'lighting.devices.selectModeHint' : 'lighting.devices.empty')}</p>
-      ) : (
-        <div className={styles.deviceList}>
-          {nativeGroups.map((g, i) => renderNativeGroup(g, i))}
-          {brandOrder.map(prefix => {
-            const group = brandBuckets.get(prefix)!;
-            const label = brandLabel(prefix);
-            const groupOn = group.some(d => d.ledsOn);
-            const handleToggle = () => { const target = !groupOn; for (const d of group) onSetPower(d.id, target); };
-            return (
-              <MotherboardGroup key={prefix} parentName={label} ariaLabel={label} groupOn={groupOn} onTogglePower={handleToggle}
-                collapsed={isCollapsed(prefix)} onToggleCollapsed={() => toggleCollapsed(prefix)}>
-                {group.map(d => renderCard(d, true))}
-              </MotherboardGroup>
-            );
-          })}
-        </div>
-      )}
+      <div className={styles.deviceList}>
+        {devices.length === 0 && (
+          <p className={styles.deviceEmpty}>{t(lightingOff ? 'lighting.devices.selectModeHint' : 'lighting.devices.empty')}</p>
+        )}
+        {nativeGroups.map((g, i) => renderNativeGroup(g, i))}
+        {brandOrder.map(prefix => {
+          const group = brandBuckets.get(prefix)!;
+          const label = brandLabel(prefix);
+          const groupOn = group.some(d => d.ledsOn);
+          const handleToggle = () => { const target = !groupOn; for (const d of group) onSetPower(d.id, target); };
+          return (
+            <MotherboardGroup key={prefix} parentName={label} ariaLabel={label} groupOn={groupOn} onTogglePower={handleToggle}
+              collapsed={isCollapsed(prefix)} onToggleCollapsed={() => toggleCollapsed(prefix)}>
+              {group.map(d => renderCard(d, true))}
+            </MotherboardGroup>
+          );
+        })}
+        {onOpenSmartLights && (
+          <button type="button" className={styles.addSmartLights} onClick={onOpenSmartLights}>
+            <Plus size={22} aria-hidden />
+            <span>{t('smartLights.title')}</span>
+          </button>
+        )}
+      </div>
     </aside>
   );
 }

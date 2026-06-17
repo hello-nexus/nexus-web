@@ -1747,7 +1747,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           )}
           {/* General tooling: history, restore, reset, save. */}
           <div className={styles.toolbar}>
-            {canEditLedCount && (
+            {canEditLedCount ? (
               <label className={styles.ledCountField}>
                 <span className={styles.ledCountLabel}>{t('lighting.ledMap.ledCount')}</span>
                 <input
@@ -1776,6 +1776,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                   }}
                 />
               </label>
+            ) : (
+              // Count is fixed for this device, but positional mapping stays
+              // available; show it read-only so the editor still reports it.
+              <span className={styles.ledCountField}>
+                <span className={styles.ledCountLabel}>{t('lighting.ledMap.ledCount')}</span>
+                <span className={styles.ledCountReadonly}>{activeZoneLedCount}</span>
+              </span>
             )}
             <div className={styles.hint}>
               {t('lighting.ledMap.hint', {

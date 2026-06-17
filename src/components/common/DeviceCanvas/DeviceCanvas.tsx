@@ -493,7 +493,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
             onSelect: () => { identifyLightingDevice(dev.id, 2000).catch(() => { /* silent */ }); },
           });
         }
-        if (onOpenSettings && dev.ledCount > 0) {
+        // LED-map editor opens for every device (positional mapping is always
+        // available, even at 0 LEDs); only identify above is gated on LEDs.
+        if (onOpenSettings) {
           items.push({
             key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
             onSelect: () => onOpenSettings(dev.id),

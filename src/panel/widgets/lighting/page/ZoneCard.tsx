@@ -101,7 +101,7 @@ export function ZoneCard({
       onDragLeave={drag ? drag.onDragLeave : undefined}
       onDrop={drag ? drag.onDrop : undefined}
       onDragEnd={drag ? drag.onDragEnd : undefined}
-      onClick={e => { if (!unavailable) onSelect(e.shiftKey); }}
+      onClick={e => onSelect(e.shiftKey)}
     >
       <span className={styles.deviceName}>{displayName ?? device.name}</span>
       <div className={styles.deviceMetaRow}>
@@ -136,46 +136,48 @@ export function ZoneCard({
             </button>
           </HoverTooltip>
         )}
-        {!unavailable && (
-          <div className={styles.deviceCardActions}>
-            {device.ledCount > 0 && (
-              <>
-                <HoverTooltip body={t('lighting.devices.identify')} side="top">
-                  <button
-                    type="button"
-                    className={styles.deviceSettingsBtn}
-                    aria-label={t('lighting.devices.identify')}
-                    onClick={handleIdentify}
-                  >
-                    <Eye />
-                  </button>
-                </HoverTooltip>
-                <HoverTooltip body={t('lighting.ledMap.settings')} side="top">
-                  <button
-                    type="button"
-                    className={styles.deviceSettingsBtn}
-                    aria-label={t('lighting.ledMap.settings')}
-                    onClick={e => { e.stopPropagation(); onOpenSettings(); }}
-                  >
-                    <Settings />
-                  </button>
-                </HoverTooltip>
-              </>
-            )}
-            <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
+        <div className={styles.deviceCardActions}>
+          {/* Identify flashes the LEDs, so it only makes sense with LEDs to
+              flash. The LED-map editor opens for EVERY device (even 0-LED /
+              non-drivable): positional mapping is always available, only the
+              count may be locked. */}
+          {device.ledCount > 0 && (
+            <HoverTooltip body={t('lighting.devices.identify')} side="top">
+              <button
+                type="button"
+                className={styles.deviceSettingsBtn}
+                aria-label={t('lighting.devices.identify')}
+                onClick={handleIdentify}
+              >
+                <Eye />
+              </button>
+            </HoverTooltip>
+          )}
+          <HoverTooltip body={t('lighting.ledMap.settings')} side="top">
             <button
               type="button"
-              role="switch"
-              aria-checked={device.ledsOn}
-              className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
-              aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
-              onClick={e => { e.stopPropagation(); onTogglePower(); }}
+              className={styles.deviceSettingsBtn}
+              aria-label={t('lighting.ledMap.settings')}
+              onClick={e => { e.stopPropagation(); onOpenSettings(); }}
             >
-              <Power />
+              <Settings />
             </button>
+          </HoverTooltip>
+          {!unavailable && (
+            <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={device.ledsOn}
+                className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
+                aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
+                onClick={e => { e.stopPropagation(); onTogglePower(); }}
+              >
+                <Power />
+              </button>
             </HoverTooltip>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
