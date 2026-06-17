@@ -1,21 +1,7 @@
-import { useRef, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { type SortableRowArgs } from '../SortableList/SortableList';
 import styles from './CollapsibleSection.module.scss';
-
-/** HTML5 drag/drop wiring for a reorderable group, shared by the cooling and
- *  lighting device-group lists. Same shape as the per-card drag handles so a
- *  whole category reorders the same way a single card does. The header is the
- *  drag handle; the body (its child cards, which carry their own drag) is
- *  excluded so grabbing a card never starts a group drag. */
-export interface CollapsibleSectionDrag {
-  isDragging: boolean;
-  isDragOver: boolean;
-  onDragStart: () => void;
-  onDragOver: () => void;
-  onDragLeave: () => void;
-  onDrop: () => void;
-  onDragEnd: () => void;
-}
 
 /**
  * Canonical collapsible section header: a chevron + title on the left,
@@ -60,45 +46,26 @@ export function CollapsibleSection({
   ariaLabel?: string;
   /** Sets `data-section-id` on the root (scroll/lookup targeting). */
   sectionId?: string;
-  /** When set, the whole section becomes draggable to reorder it among its
-   *  siblings. The header is the drag handle; child cards keep their own drag. */
-  drag?: CollapsibleSectionDrag;
+  /** When set, the whole section becomes reorderable among its siblings via
+   *  dnd-kit. The toggle button is the drag handle. */
+  drag?: SortableRowArgs;
   children: ReactNode;
 }) {
   const Chevron = open ? ChevronDown : ChevronRight;
-  const rootRef = useRef<HTMLDivElement>(null);
-  // Only a grab that starts on the header (not the body / a child card) makes
-  // the section the drag source; mirrors the per-card draggable gating.
-  const fromHeader = (target: EventTarget | null) =>
-    target instanceof HTMLElement && !!target.closest('[data-drag-handle]');
 
   const classNames = [
     styles.section,
     className ?? '',
-    drag?.isDragging ? styles.dragging : '',
-    drag?.isDragOver ? styles.dragOver : '',
+    drag?.isDragging ? drag.placeholderClassName : '',
   ].filter(Boolean).join(' ');
 
   return (
     <div
-      ref={rootRef}
+      ref={drag?.ref ?? (() => {})}
+      style={drag?.style ?? {}}
+      {...(drag?.attributes ?? {})}
       className={classNames}
       data-section-id={sectionId}
-      draggable={!!drag}
-      onMouseDownCapture={drag ? (e) => {
-        if (rootRef.current) rootRef.current.draggable = fromHeader(e.target);
-      } : undefined}
-      onDragStart={drag ? (e) => {
-        // A bubbled child-card drag (grabbed in the body) must pass through
-        // untouched; only a header grab starts the group drag.
-        if (!fromHeader(e.target)) return;
-        e.stopPropagation();
-        drag.onDragStart();
-      } : undefined}
-      onDragOver={drag ? (e) => { e.preventDefault(); drag.onDragOver(); } : undefined}
-      onDragLeave={drag ? drag.onDragLeave : undefined}
-      onDrop={drag ? drag.onDrop : undefined}
-      onDragEnd={drag ? drag.onDragEnd : undefined}
     >
       <div
         className={styles.header}
@@ -115,6 +82,7 @@ export function CollapsibleSection({
           aria-expanded={open}
           aria-label={ariaLabel}
           onClick={onToggle}
+          {...(drag?.listeners ?? {})}
         >
           <Chevron className={styles.chevron} aria-hidden />
           <span className={styles.title}>{title}</span>

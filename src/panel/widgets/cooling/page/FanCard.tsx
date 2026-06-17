@@ -6,17 +6,8 @@ import type { CurveDef, FanState } from '../../../../types/cooling';
 import { EditableText } from '../../../../components/common/Editable/EditableText';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Select } from '../../../../components/common/Select/Select';
+import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../CoolingPage.module.scss';
-
-export interface FanCardDrag {
-  isDragging: boolean;
-  isDragOver: boolean;
-  onDragStart: () => void;
-  onDragOver: () => void;
-  onDragLeave: () => void;
-  onDrop: () => void;
-  onDragEnd: () => void;
-}
 
 /**
  * One fan card, styled to match the lighting page's device cards: editable
@@ -82,7 +73,7 @@ export const FanCard = memo(function FanCard({
   onCreateCurve: () => void;
   onRename: (id: string, name: string) => void;
   onSpeedChange: (id: string, speed: number) => void;
-  drag?: FanCardDrag;
+  drag?: SortableRowArgs;
 }) {
   const { t } = useTranslation();
   const dutyPct = Math.max(0, Math.min(100, channel.dutyPercent));
@@ -168,58 +159,24 @@ export const FanCard = memo(function FanCard({
   };
 
   const dragClasses = [
-    drag?.isDragging ? styles.fanCardDragging : '',
-    drag?.isDragOver ? styles.fanCardDragOver : '',
     driven ? styles.fanCardActive : '',
     compact ? styles.fanCardCompact : '',
     isHwDisconnected ? styles.fanCardOff : '',
+    drag?.isDragging ? drag.placeholderClassName : '',
   ].filter(Boolean).join(' ');
 
-  // Selector list for "foreground controls win" gating. Anything matching
-  // this in the mousedown target's ancestry blocks card reorder so the
-  // child gesture (duty bar drag, name editor, wire nub) keeps the pointer.
-  const interactiveSelector =
-    'input, select, textarea, button, label, ' +
-    '[role="button"], [role="slider"], [role="switch"], ' +
-    `.${styles.fanDutyBar}, .${styles.editableName}, .${styles.fanInNub}`;
-
-  const cardRef = useRef<HTMLDivElement>(null);
   const setCardEl = (el: HTMLDivElement | null) => {
-    cardRef.current = el;
     cardRefProp?.(el);
+    drag?.ref(el);
   };
 
   return (
     <div
       ref={setCardEl}
+      style={drag?.style ?? {}}
+      {...(drag?.attributes ?? {})}
+      {...(drag?.listeners ?? {})}
       className={`${styles.fanCard} ${calibrating ? styles.fanCardCalibrating : ''} ${dragClasses}`}
-      draggable={!calibrating && !!drag}
-      onMouseDownCapture={drag ? (e) => {
-        // Toggle native draggable BEFORE the browser starts its drag
-        // tracking. With draggable=false at mousedown time, HTML5 drag
-        // never initiates - the slider/native form element keeps the
-        // pointer for its own gesture.
-        const target = e.target as HTMLElement;
-        const interactive = !!target.closest(interactiveSelector);
-        if (cardRef.current) {
-          cardRef.current.draggable = !calibrating && !interactive;
-        }
-      } : undefined}
-      onDragStart={drag ? (e) => {
-        // Belt + suspenders: even if the draggable toggle doesn't catch a
-        // particular browser/host, the dragstart gate cancels any drag
-        // whose source is inside an interactive child.
-        const target = e.target as HTMLElement;
-        if (target.closest(interactiveSelector)) {
-          e.preventDefault();
-          return;
-        }
-        drag.onDragStart();
-      } : undefined}
-      onDragOver={drag ? (e) => { e.preventDefault(); drag.onDragOver(); } : undefined}
-      onDragLeave={drag ? drag.onDragLeave : undefined}
-      onDrop={drag ? drag.onDrop : undefined}
-      onDragEnd={drag ? drag.onDragEnd : undefined}
       onMouseEnter={onWireHover ? () => onWireHover(channel.id) : undefined}
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
@@ -230,7 +187,7 @@ export const FanCard = memo(function FanCard({
         {channel.kind === 'Pump'
           ? <Droplets size={16} className={styles.fanKindIcon} aria-hidden />
           : <Fan size={16} className={styles.fanKindIcon} aria-hidden />}
-        <EditableText value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} />
+        <EditableText value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} data-no-dnd />
         <span className={styles.fanRpmReadout}>
           <span className={styles.fanRpm}>{channel.rpm.toLocaleString()}</span>
           <span className={styles.fanRpmLabel}>RPM</span>
@@ -248,9 +205,8 @@ export const FanCard = memo(function FanCard({
           <div
             ref={barRef}
             className={`${styles.fanDutyBar} ${isManual ? styles.fanDutyBarManual : ''}`}
-            // Stop drag from latching onto the slider so manual duty drag
-            // and card reorder don't compete for the same pointer.
             draggable={false}
+            data-no-dnd
             onPointerDown={onBarPointerDown}
             onPointerMove={onBarPointerMove}
             onPointerUp={onBarPointerUp}
@@ -292,6 +248,7 @@ export const FanCard = memo(function FanCard({
               onSetMode(v);
             }}
             ariaLabel={t('cooling.card.mode')}
+            data-no-dnd
           >
             {/* NP50 lists only FW Control (no BIOS hand-off); a Q-series pump
                 lists both; everything else lists only BIOS. */}

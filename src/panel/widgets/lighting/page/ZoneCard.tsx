@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { Settings, Power, Eye, Lightbulb, Users, Cpu } from 'lucide-react';
 import {
   identifyLightingDevice,
@@ -7,17 +6,8 @@ import {
 import { cardEnabledLedCount } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
-
-export interface ZoneCardDrag {
-  isDragging: boolean;
-  isDragOver: boolean;
-  onDragStart: () => void;
-  onDragOver: () => void;
-  onDragLeave: () => void;
-  onDrop: () => void;
-  onDragEnd: () => void;
-}
 
 /**
  * One card for either a whole OpenRGB device or a motherboard ARGB zone. The
@@ -50,8 +40,8 @@ export function ZoneCard({
   onSelect: (shiftKey: boolean) => void;
   onTogglePower: () => void;
   onOpenSettings: () => void;
-  /** Optional HTML5 drag/drop wiring for reorderable lists. */
-  drag?: ZoneCardDrag;
+  /** Optional dnd-kit drag wiring for reorderable lists. */
+  drag?: SortableRowArgs;
   /** Available community layout count; the badge renders only when positive. */
   communityCount?: number;
   /** Badge click; routes into the LED map editor's Community tab. */
@@ -74,36 +64,20 @@ export function ZoneCard({
     identifyLightingDevice(device.id, 2000).catch(() => { /* silent */ });
   };
 
-  const cardRef = useRef<HTMLDivElement>(null);
-  const interactiveSelector = 'button, input, select, textarea, [role="button"], [role="switch"]';
-
   const card = (
     <div
-      ref={cardRef}
+      ref={drag?.ref ?? (() => {})}
+      style={drag?.style ?? {}}
+      {...(drag?.attributes ?? {})}
+      {...(drag?.listeners ?? {})}
       className={[
         styles.deviceCard,
         selected && !firmwareControlled ? styles.deviceCardSelected : '',
         unavailable ? styles.deviceCardUnavailable : '',
         !unavailable && (!device.ledsOn || firmwareControlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
-        !firmwareControlled && drag?.isDragging ? styles.deviceCardDragging : '',
-        !firmwareControlled && drag?.isDragOver ? styles.deviceCardDragOver : '',
+        drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
-      draggable={!!drag && !unavailable && !firmwareControlled}
-      onMouseDownCapture={drag && !firmwareControlled ? (e) => {
-        const target = e.target as HTMLElement;
-        const interactive = !!target.closest(interactiveSelector);
-        if (cardRef.current) cardRef.current.draggable = !unavailable && !interactive;
-      } : undefined}
-      onDragStart={drag && !firmwareControlled ? (e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest(interactiveSelector)) { e.preventDefault(); return; }
-        drag.onDragStart();
-      } : undefined}
-      onDragOver={drag && !firmwareControlled ? (e) => { e.preventDefault(); drag.onDragOver(); } : undefined}
-      onDragLeave={drag && !firmwareControlled ? drag.onDragLeave : undefined}
-      onDrop={drag && !firmwareControlled ? drag.onDrop : undefined}
-      onDragEnd={drag && !firmwareControlled ? drag.onDragEnd : undefined}
       onClick={e => { if (!unavailable && !firmwareControlled) onSelect(e.shiftKey); }}
     >
       <span className={styles.deviceName}>{displayName ?? device.name}</span>
@@ -138,6 +112,7 @@ export function ZoneCard({
               type="button"
               className={styles.communityBadge}
               aria-label={t('lighting.mappings.badgeTooltip', { count: communityCount })}
+              data-no-dnd
               onClick={e => { e.stopPropagation(); onOpenCommunity?.(); }}
             >
               <Users aria-hidden />
@@ -146,7 +121,7 @@ export function ZoneCard({
           </HoverTooltip>
         )}
         {!firmwareControlled && (
-          <div className={styles.deviceCardActions}>
+          <div className={styles.deviceCardActions} data-no-dnd>
             {device.ledCount > 0 && (
               <HoverTooltip body={t('lighting.devices.identify')} side="top">
                 <button
