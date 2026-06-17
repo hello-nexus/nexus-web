@@ -32,6 +32,13 @@ import type { WidgetProps } from '../types';
 
 const DEFAULT_PP: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
 
+function resolveImmersiveMode(sync: string): LightingMode {
+  if (!sync || sync === 'none') return 'none';
+  if (sync === 'screen' || sync.includes('mirror')) return 'screen';
+  if (sync === 'gif' || sync.includes('media')) return 'gif';
+  return 'animate';
+}
+
 /**
  * Fullscreen lighting controller. Two stacked cells:
  *  - Cell 1: the immersive LightingWidget — square mode buttons (off / animate
@@ -159,7 +166,7 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     }
     setTemplates(next);
     const rawSync = sync?.sync || 'none';
-    setMode(rawSync === 'screen' ? 'screen' : (rawSync === 'media' ? 'gif' : (rawSync === 'none' ? 'none' : 'animate')));
+    setMode(resolveImmersiveMode(rawSync));
     if (EFFECTS.some(e => e.key === rawSync)) setActive(rawSync);
     else if (settings?.effect) setActive(settings.effect);
   }, []);

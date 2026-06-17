@@ -1,4 +1,10 @@
-import { deleteService, fetchService, postService, postServiceForm } from './service';
+import { deleteService, fetchService, postService, postServiceForm, resolveHttp } from './service';
+import { getTokenSync } from './auth';
+
+function tokenParam(): string {
+  const t = getTokenSync();
+  return t ? `token=${encodeURIComponent(t)}` : '';
+}
 
 export interface MediaItem {
   id: string;
@@ -42,14 +48,31 @@ export async function deleteMedia(id: string): Promise<boolean> {
   return !!resp && resp.error !== true;
 }
 
-export async function importMedia(file: File, crop?: string | null): Promise<{ item: MediaItem | null; error: boolean; msg: string } | null> {
-  const form = new FormData();
-  form.append('file', file);
-  if (crop) form.append('crop', crop);
-  return postServiceForm<{ item: MediaItem | null; error: boolean; msg: string }>('/media/import', form);
-}
-
 export async function openMediaFolder(): Promise<boolean> {
   const resp = await postService<{ error?: boolean }>('/media/library/open', {});
   return !!resp && resp.error !== true;
+}
+
+export async function stageMedia(file: File): Promise<{ stageId: string; error: boolean; msg: string } | null> {
+  const form = new FormData();
+  form.append('file', file);
+  return postServiceForm<{ stageId: string; error: boolean; msg: string }>('/media/stage', form);
+}
+
+export function mediaStagePreviewUrl(stageId: string): string {
+  const base = resolveHttp(`/media/stage/${encodeURIComponent(stageId)}/preview`);
+  const tok = tokenParam();
+  return tok ? `${base}?${tok}` : base;
+}
+
+export async function commitMedia(stageId: string, crop: string, name: string): Promise<{ item: MediaItem | null; error: boolean; msg: string } | null> {
+  const form = new FormData();
+  form.append('stageId', stageId);
+  form.append('crop', crop);
+  form.append('name', name);
+  return postServiceForm<{ item: MediaItem | null; error: boolean; msg: string }>('/media/commit', form);
+}
+
+export async function cancelMediaStage(stageId: string): Promise<void> {
+  await deleteService<{ error?: boolean }>(`/media/stage/${encodeURIComponent(stageId)}`);
 }
