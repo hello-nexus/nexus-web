@@ -56,6 +56,7 @@ import { applyHtmlChromeTheme } from '../lib/settings';
 import { fetchPanelDevice } from '../api/panel';
 import { isRemotePaired } from '../api/service';
 import { createUuid } from '../lib/uuid';
+import { spawnDropRing } from '../lib/dropRing';
 import {
   type PanelConfigValue,
   type PanelLayout,
@@ -1166,6 +1167,14 @@ export function PanelContent({
         // phantom page isn't persisted unless a widget landed on it.
         const trimmed = trimTrailingEmptyPages(preview);
         setLayout(trimmed);
+        // Drop-confirm ring at the widget's final cell (next frame, after the
+        // new layout paints).
+        requestAnimationFrame(() => {
+          const cell = rootRef.current?.querySelector<HTMLElement>(
+            `[data-panel-widget-id="${CSS.escape(activeId)}"]`,
+          );
+          spawnDropRing(cell);
+        });
       }}
     >
       <div

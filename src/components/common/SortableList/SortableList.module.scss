@@ -6,6 +6,9 @@
 .list {
   display: flex;
   flex-direction: column;
+  // Default small gap between rows so cards in a list don't stick together;
+  // a consumer can override via its own className (e.g. profiles uses 0.5rem).
+  gap: 0.4rem;
 }
 
 // The source row while dragging: its content is hidden and a dashed accent box
