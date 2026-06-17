@@ -705,6 +705,27 @@
   to { transform: rotate(360deg); }
 }
 
+.rescanDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rescanDotOff {
+  background: var(--bad);
+}
+
+.rescanDotOn {
+  background: var(--good);
+}
+
+.rescanDotScanning {
+  background: var(--good);
+  animation: deviceRescanSpin 1.1s linear infinite;
+}
+
 .deviceEmpty {
   font-size: var(--type-small);
   color: var(--text-dim);
@@ -752,6 +773,7 @@
   // Dim the device name + meta when the toggle is off; the toggle
   // itself stays full opacity.
   &.deviceCardPoweredOff {
+    opacity: var(--alpha-strong);
     .deviceName { color: var(--text-dim); }
     .deviceMeta { opacity: 0.6; }
   }
@@ -849,6 +871,28 @@
   font-size: 0.65rem;
   color: var(--warn);
   font-style: italic;
+}
+
+// Firmware badge in the meta row of a firmware-controlled zone card.
+.deviceMetaFirmware {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0.7;
+}
+
+// Active state for the FW Control toggle button in the group header.
+.deviceFwControlBtnOn {
+  opacity: 1;
+  color: var(--accent-text);
+  background: var(--accent);
+
+  &:hover {
+    background: var(--accent-glow);
+    color: var(--accent-text);
+  }
 }
 
 // Community-layouts pill on a device card: shown when the registry has

@@ -5,15 +5,8 @@ import { useTranslation } from '../../../../lib/i18n';
 import { Button } from '../../../../components/common/Button/Button';
 import styles from '../LightingPage.module.scss';
 
-/**
- * Labelled rescan action: forces OpenRGB to re-enumerate devices (hot-plug
- * is otherwise automatic). Three-state: subprocess off (disabled), scanning
- * (spinning, disabled), ready.
- */
 export function RescanDevicesButton({ rgbRunning, scanning }: {
-  /** True when the OpenRGB subprocess is alive. */
   rgbRunning: boolean;
-  /** True during initial boot, user rescan, or automatic USB-change rescan. */
   scanning: boolean;
 }) {
   const { t } = useTranslation();
@@ -21,9 +14,11 @@ export function RescanDevicesButton({ rgbRunning, scanning }: {
   const busy = (scanning && rgbRunning) || userRescanning;
   const disabled = !rgbRunning || busy;
 
-  const labelKey = !rgbRunning ? 'lighting.devices.rescanOff'
-    : busy ? 'lighting.devices.rescanning'
-    : 'lighting.devices.rescan';
+  const dotClass = !rgbRunning
+    ? styles.rescanDotOff
+    : busy
+      ? styles.rescanDotScanning
+      : styles.rescanDotOn;
 
   // Hold the local spinner 2s so useRgbStatus observes `scanning=true`
   // and starts polling before it clears. The rescan POST's lighting
@@ -36,16 +31,22 @@ export function RescanDevicesButton({ rgbRunning, scanning }: {
     finally { setTimeout(() => setUserRescanning(false), 2000); }
   };
 
+  const label = busy
+    ? t('lighting.devices.scanning')
+    : 'OpenRGB';
+
   return (
     <Button
       size="sm"
       tone="neutral"
       className={styles.rescanDevicesBtn}
-      icon={<RefreshCw size={14} className={busy ? styles.rescanIconSpinning : undefined} aria-hidden />}
+      icon={<span className={`${styles.rescanDot} ${dotClass}`} aria-hidden />}
+      iconTrailing={<RefreshCw size={14} className={busy ? styles.rescanIconSpinning : undefined} aria-hidden />}
       onClick={handleClick}
       disabled={disabled}
+      aria-label={busy ? t('lighting.devices.scanning') : t('lighting.devices.rescan')}
     >
-      {t(labelKey)}
+      {label}
     </Button>
   );
 }

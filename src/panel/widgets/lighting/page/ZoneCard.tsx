@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Settings, Power, Eye, Lightbulb, Users } from 'lucide-react';
+import { Settings, Power, Eye, Lightbulb, Users, Cpu } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -37,6 +37,7 @@ export function ZoneCard({
   drag,
   communityCount,
   onOpenCommunity,
+  firmwareControlled,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -55,6 +56,8 @@ export function ZoneCard({
   communityCount?: number;
   /** Badge click; routes into the LED map editor's Community tab. */
   onOpenCommunity?: () => void;
+  /** When true, the card is dimmed and non-interactive; the meta row shows a firmware badge. */
+  firmwareControlled?: boolean;
 }) {
   const { t } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
@@ -79,33 +82,39 @@ export function ZoneCard({
       ref={cardRef}
       className={[
         styles.deviceCard,
-        selected ? styles.deviceCardSelected : '',
+        selected && !firmwareControlled ? styles.deviceCardSelected : '',
         unavailable ? styles.deviceCardUnavailable : '',
-        !unavailable && !device.ledsOn ? styles.deviceCardPoweredOff : '',
+        !unavailable && (!device.ledsOn || firmwareControlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
-        drag?.isDragging ? styles.deviceCardDragging : '',
-        drag?.isDragOver ? styles.deviceCardDragOver : '',
+        !firmwareControlled && drag?.isDragging ? styles.deviceCardDragging : '',
+        !firmwareControlled && drag?.isDragOver ? styles.deviceCardDragOver : '',
       ].filter(Boolean).join(' ')}
-      draggable={!!drag && !unavailable}
-      onMouseDownCapture={drag ? (e) => {
+      draggable={!!drag && !unavailable && !firmwareControlled}
+      onMouseDownCapture={drag && !firmwareControlled ? (e) => {
         const target = e.target as HTMLElement;
         const interactive = !!target.closest(interactiveSelector);
         if (cardRef.current) cardRef.current.draggable = !unavailable && !interactive;
       } : undefined}
-      onDragStart={drag ? (e) => {
+      onDragStart={drag && !firmwareControlled ? (e) => {
         const target = e.target as HTMLElement;
         if (target.closest(interactiveSelector)) { e.preventDefault(); return; }
         drag.onDragStart();
       } : undefined}
-      onDragOver={drag ? (e) => { e.preventDefault(); drag.onDragOver(); } : undefined}
-      onDragLeave={drag ? drag.onDragLeave : undefined}
-      onDrop={drag ? drag.onDrop : undefined}
-      onDragEnd={drag ? drag.onDragEnd : undefined}
-      onClick={e => { if (!unavailable) onSelect(e.shiftKey); }}
+      onDragOver={drag && !firmwareControlled ? (e) => { e.preventDefault(); drag.onDragOver(); } : undefined}
+      onDragLeave={drag && !firmwareControlled ? drag.onDragLeave : undefined}
+      onDrop={drag && !firmwareControlled ? drag.onDrop : undefined}
+      onDragEnd={drag && !firmwareControlled ? drag.onDragEnd : undefined}
+      onClick={e => { if (!unavailable && !firmwareControlled) onSelect(e.shiftKey); }}
     >
       <span className={styles.deviceName}>{displayName ?? device.name}</span>
       <div className={styles.deviceMetaRow}>
-        {unavailable ? (
+        {firmwareControlled ? (
+          <span className={styles.deviceMetaFirmware}>
+            {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+            <Cpu className={styles.deviceMetaIcon} aria-hidden="true" />
+            {t('lighting.devices.smarthub.firmwareBadge')}
+          </span>
+        ) : unavailable ? (
           <span className={styles.deviceMetaUnavailable}>
             {t('lighting.devices.detectionFailed')}
           </span>
@@ -123,7 +132,7 @@ export function ZoneCard({
             <span className={styles.deviceMetaCount}>{cardEnabledLedCount(device)}</span>
           </span>
         )}
-        {!unavailable && communityCount != null && communityCount > 0 && (
+        {!unavailable && !firmwareControlled && communityCount != null && communityCount > 0 && (
           <HoverTooltip body={t('lighting.mappings.badgeTooltip', { count: communityCount })} side="top">
             <button
               type="button"
@@ -136,31 +145,31 @@ export function ZoneCard({
             </button>
           </HoverTooltip>
         )}
-        {!unavailable && (
+        {!unavailable && !firmwareControlled && (
           <div className={styles.deviceCardActions}>
             {device.ledCount > 0 && (
-              <>
-                <HoverTooltip body={t('lighting.devices.identify')} side="top">
-                  <button
-                    type="button"
-                    className={styles.deviceSettingsBtn}
-                    aria-label={t('lighting.devices.identify')}
-                    onClick={handleIdentify}
-                  >
-                    <Eye />
-                  </button>
-                </HoverTooltip>
-                <HoverTooltip body={t('lighting.ledMap.settings')} side="top">
-                  <button
-                    type="button"
-                    className={styles.deviceSettingsBtn}
-                    aria-label={t('lighting.ledMap.settings')}
-                    onClick={e => { e.stopPropagation(); onOpenSettings(); }}
-                  >
-                    <Settings />
-                  </button>
-                </HoverTooltip>
-              </>
+              <HoverTooltip body={t('lighting.devices.identify')} side="top">
+                <button
+                  type="button"
+                  className={styles.deviceSettingsBtn}
+                  aria-label={t('lighting.devices.identify')}
+                  onClick={handleIdentify}
+                >
+                  <Eye />
+                </button>
+              </HoverTooltip>
+            )}
+            {(device.ledCount > 0 || resizable) && (
+              <HoverTooltip body={t('lighting.ledMap.settings')} side="top">
+                <button
+                  type="button"
+                  className={styles.deviceSettingsBtn}
+                  aria-label={t('lighting.ledMap.settings')}
+                  onClick={e => { e.stopPropagation(); onOpenSettings(); }}
+                >
+                  <Settings />
+                </button>
+              </HoverTooltip>
             )}
             <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
             <button

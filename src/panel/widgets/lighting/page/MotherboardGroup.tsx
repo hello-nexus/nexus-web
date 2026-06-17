@@ -21,6 +21,8 @@ export function MotherboardGroup({
   ariaLabel,
   collapsed,
   onToggleCollapsed,
+  leftAction,
+  powerDisabled,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on. Drives the icon state
@@ -35,6 +37,10 @@ export function MotherboardGroup({
   /** Collapse state, owned by the parent so it can be persisted across restarts. */
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  /** Optional node rendered to the left of the power button in the header right slot. */
+  leftAction?: React.ReactNode;
+  /** When true, the power button is rendered disabled. */
+  powerDisabled?: boolean;
 }) {
   const { t } = useTranslation();
   const expanded = !collapsed;
@@ -50,18 +56,22 @@ export function MotherboardGroup({
       ariaLabel={toggleLabel}
       rightInteractive
       right={
-        <HoverTooltip body={t(groupOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={groupOn}
-            className={`${styles.deviceSettingsBtn} ${groupOn ? '' : styles.devicePowerBtnPersistent}`}
-            aria-label={t(groupOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
-            onClick={e => { e.stopPropagation(); onTogglePower(); }}
-          >
-            <Power />
-          </button>
-        </HoverTooltip>
+        <>
+          {leftAction}
+          <HoverTooltip body={t(groupOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={groupOn}
+              disabled={powerDisabled}
+              className={`${styles.deviceSettingsBtn} ${groupOn ? '' : styles.devicePowerBtnPersistent}`}
+              aria-label={t(groupOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
+              onClick={e => { e.stopPropagation(); onTogglePower(); }}
+            >
+              <Power />
+            </button>
+          </HoverTooltip>
+        </>
       }
     >
       <div className={styles.motherboardGroupChildren}>

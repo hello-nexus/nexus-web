@@ -1,8 +1,10 @@
+import { Cpu } from 'lucide-react';
 import { type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { ZoneCard, type ZoneCardDrag } from './ZoneCard';
 import { MotherboardGroup } from './MotherboardGroup';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import styles from '../LightingPage.module.scss';
 
 // Smart-light brands, in display order, keyed by the device-id prefix the
@@ -39,7 +41,7 @@ type DeviceGroup =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, dragFor, communityCounts, onOpenCommunity }: {
+export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, dragFor, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl }: {
   devices: LightingDevice[];
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
@@ -60,6 +62,10 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
   communityCounts?: Record<string, number>;
   /** Badge click: open the LED map editor on its Community tab. */
   onOpenCommunity?: (id: string) => void;
+  /** FW Control state for the HYTE SmartHub group (default false). */
+  smartHubFirmwareControl?: boolean;
+  /** Toggle FW Control for the HYTE SmartHub. */
+  onSetSmartHubFirmwareControl?: (enabled: boolean) => void;
 }) {
   const { t } = useTranslation();
 
@@ -128,7 +134,7 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
     onSelectDevice(selectedIds.size === 1 && selectedIds.has(id) ? null : id);
   };
 
-  const renderCard = (d: LightingDevice, indent: boolean, displayName?: string) => (
+  const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean) => (
     <ZoneCard
       key={d.id}
       device={d}
@@ -141,6 +147,7 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
       drag={dragFor?.(d.id) ?? undefined}
       communityCount={communityCounts?.[d.id]}
       onOpenCommunity={onOpenCommunity ? () => onOpenCommunity(d.id) : undefined}
+      firmwareControlled={fwControlled}
     />
   );
 
@@ -148,10 +155,30 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
     if (g.kind === 'single') return renderCard(g.device, false);
     const groupOn = g.zones.some(z => z.ledsOn);
     const handleToggle = () => { const target = !groupOn; for (const z of g.zones) onSetPower(z.id, target); };
+    const isSmartHub = g.parentId.startsWith('smarthub:');
+    const fwOn = isSmartHub && !!smartHubFirmwareControl;
+    const leftAction = isSmartHub && onSetSmartHubFirmwareControl ? (
+      <HoverTooltip
+        body={t(fwOn ? 'lighting.devices.smarthub.fwControlDisable' : 'lighting.devices.smarthub.fwControlEnable')}
+        side="top"
+      >
+        <button
+          type="button"
+          role="switch"
+          aria-checked={fwOn}
+          aria-label={t(fwOn ? 'lighting.devices.smarthub.fwControlDisable' : 'lighting.devices.smarthub.fwControlEnable')}
+          className={`${styles.deviceSettingsBtn} ${fwOn ? styles.deviceFwControlBtnOn : ''}`}
+          onClick={e => { e.stopPropagation(); onSetSmartHubFirmwareControl(!fwOn); }}
+        >
+          <Cpu />
+        </button>
+      </HoverTooltip>
+    ) : undefined;
     return (
       <MotherboardGroup key={g.parentId + '-' + i} parentName={g.parentName} groupOn={groupOn} onTogglePower={handleToggle}
-        collapsed={isCollapsed(g.parentId)} onToggleCollapsed={() => toggleCollapsed(g.parentId)}>
-        {g.zones.map(z => renderCard(z, true, stripParentPrefix(z.name, g.parentName)))}
+        collapsed={isCollapsed(g.parentId)} onToggleCollapsed={() => toggleCollapsed(g.parentId)}
+        leftAction={leftAction} powerDisabled={fwOn}>
+        {g.zones.map(z => renderCard(z, true, stripParentPrefix(z.name, g.parentName), isSmartHub && fwOn))}
       </MotherboardGroup>
     );
   };

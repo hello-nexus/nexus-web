@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
   Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square, Sun, SunDim,
-  Pencil, Merge, Scissors, ListRestart, Lock, Users, Palette, Droplet,
+  Pencil, Merge, Scissors, ListRestart, Lock, Users, Palette, Droplet, Lightbulb,
 } from 'lucide-react';
 import {
   fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
-  highlightLeds, testLedPattern, clearLedEditor,
+  highlightLeds, testLedPattern, clearLedEditor, postLedPreviewLayout,
   setZoneLedCount, setLightingDeviceBrightness, setLightingDeviceColor,
-  type DeviceStructureResponse, type DeviceZone, type LightingDevice,
+  type ApiEnvelope, type DeviceStructureResponse, type DeviceZone, type LightingDevice,
 } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { useToast } from '../../../../components/common/Toast/Toast';
@@ -66,6 +66,8 @@ const PARK_ROW_HEIGHT = 11;
 // coarse nudges when reshaping wide selections.
 const NUDGE_STEP_UV = 0.005;
 const NUDGE_STEP_UV_COARSE = 0.025;
+const MERGE_EPSILON = 0.018;
+const CENTER_SNAP_EPSILON = 0.02;
 
 type EditorMode = 'animation' | 'horizontal' | 'vertical' | 'none';
 
@@ -135,6 +137,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [stagedPartition, setStagedPartition] = useState<StagedPartition | null>(null);
   const stagedPartitionRef = useRef(stagedPartition);
   stagedPartitionRef.current = stagedPartition;
+  // Pending soft-count for SmartHub zones: persisted on Save, not on commit.
+  // Keyed by zone id; only ever holds a single zone at a time (single-zone SmartHub cards).
+  const softCountPendingRef = useRef<Map<string, number>>(new Map());
   // Monotonic temp-id source for zones created by staged edits.
   const stagedIdSeqRef = useRef(0);
   const nextStagedId = useCallback(() => stagedZoneId(stagedIdSeqRef.current++), []);
@@ -143,6 +148,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [dragDelta, setDragDelta] = useState<{ du: number; dv: number } | null>(null);
+  const [dragMergeTarget, setDragMergeTarget] = useState<number | null>(null);
+  const [ringVfx, setRingVfx] = useState<{ id: number; u: number; v: number; kind: 'merge' | 'split' }[]>([]);
   // Free-cursor drag for a single parked LED. The stored u,v is not useful
   // mid-drag (it's frozen at the last in-frame position); we track the
   // cursor directly and only commit a new u,v on release inside the frame.
@@ -445,39 +452,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     if (st) setStructure(st);
     if (!st || !dm) loadFailedNoteRef.current();
     if (dm) {
-      let flat = flattenDeviceMap(dm);
-      const active = flat.filter(l => !l.disabled);
-      // If all active LEDs are piled on the same point (no saved layout yet),
-      // spread them into a grid so the user has something to work with.
-      if (active.length > 1) {
-        let uMin = active[0].u, uMax = uMin, vMin = active[0].v, vMax = vMin;
-        for (const l of active) {
-          if (l.u < uMin) uMin = l.u; if (l.u > uMax) uMax = l.u;
-          if (l.v < vMin) vMin = l.v; if (l.v > vMax) vMax = l.v;
-        }
-        const uSpread = uMax - uMin;
-        const vSpread = vMax - vMin;
-        if (uSpread < 0.02 && vSpread < 0.02) {
-          const n = active.length;
-          const cols = Math.max(1, Math.ceil(Math.sqrt(n * 1.5)));
-          const rows = Math.max(1, Math.ceil(n / cols));
-          const pad = 0.08;
-          const sorted = [...active].sort((a, b) => a.index - b.index);
-          const gridMap = new Map<number, { u: number; v: number }>();
-          sorted.forEach((led, i) => {
-            const c = i % cols;
-            const r = Math.floor(i / cols);
-            gridMap.set(led.index, {
-              u: cols > 1 ? pad + (c / (cols - 1)) * (1 - 2 * pad) : 0.5,
-              v: rows > 1 ? pad + (r / (rows - 1)) * (1 - 2 * pad) : 0.5,
-            });
-          });
-          flat = flat.map(l => {
-            const g = gridMap.get(l.index);
-            return g ? { ...l, u: g.u, v: g.v } : l;
-          });
-        }
-      }
+      const flat = flattenDeviceMap(dm);
       setLeds(flat);
       baselineRef.current = baselineFrom(flat);
       const snap = new Map<number, SavedLedState>();
@@ -503,6 +478,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setUndoLen(0);
     setRedoLen(0);
     setStagedPartition(null);
+    softCountPendingRef.current = new Map();
     setLoading(false);
     setDirty(false);
     setSelected(new Set());
@@ -814,7 +790,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // so the user can see which number maps to which parked circle.
   // disabledOrder: the sorted list of disabled LED indices in the current
   // map, so each disabled LED knows its slot + the total number of slots.
-  const getLedCanvasPos = useCallback((led: EditorLed, disabledOrder: number[], dragOverride?: { du: number; dv: number }) => {
+  // snapTarget: when set, overrides the drag-adjusted UV (live snap preview).
+  const getLedCanvasPos = useCallback((led: EditorLed, disabledOrder: number[], dragOverride?: { du: number; dv: number }, snapTarget?: { u: number; v: number } | null) => {
     if (parkedDrag && parkedDrag.index === led.index) {
       return { cx: parkedDrag.cx, cy: parkedDrag.cy };
     }
@@ -831,8 +808,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     let u = led.u;
     let v = led.v;
     if (dragOverride && selected.has(led.index)) {
-      u = Math.max(0, Math.min(1, u + dragOverride.du));
-      v = Math.max(0, Math.min(1, v + dragOverride.dv));
+      if (snapTarget) {
+        u = snapTarget.u;
+        v = snapTarget.v;
+      } else {
+        u = Math.max(0, Math.min(1, u + dragOverride.du));
+        v = Math.max(0, Math.min(1, v + dragOverride.dv));
+      }
     }
     return uvToCanvas(u, v);
   }, [uvToCanvas, devRect, selected, parkedDrag]);
@@ -877,12 +859,23 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       }
     }
 
+    const groups = ledGroupsRef.current;
+    const expanded = new Set<number>();
+    for (const idx of inBox) {
+      const members = groups.get(idx);
+      if (members && members.length > 1) {
+        for (const m of members) expanded.add(m);
+      } else {
+        expanded.add(idx);
+      }
+    }
+
     if (marqueeAdditiveRef.current) {
       const merged = new Set(preMarqueeSelectionRef.current);
-      for (const idx of inBox) merged.add(idx);
+      for (const idx of expanded) merged.add(idx);
       return merged;
     }
-    return inBox;
+    return expanded;
   }, [leds, uvToCanvas, isLedEnabled, devRect]);
 
   const handleLedPointerDown = (e: React.PointerEvent, ledIndex: number) => {
@@ -922,7 +915,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       return;
     }
 
-    if (!selected.has(ledIndex)) {
+    const groupMembers = ledGroupsRef.current.get(ledIndex);
+    if (groupMembers && groupMembers.length > 1 && !selected.has(ledIndex)) {
+      setSelected(new Set(groupMembers));
+    } else if (!selected.has(ledIndex)) {
       setSelected(new Set([ledIndex]));
     }
 
@@ -959,6 +955,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     }
 
     if (selectionResizing && selectionResizeRef.current) {
+      setDragMergeTarget(null);
       const { anchorU, anchorV, origU, origV, initialLeds } = selectionResizeRef.current;
       const { x: px, y: py } = getCanvasPercent(e);
       const { u: newU, v: newV } = canvasToUv(px, py);
@@ -982,6 +979,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     }
 
     if (rectResizing && rectResizeRef.current) {
+      setDragMergeTarget(null);
       const { x: px, y: py } = getCanvasPercent(e);
       const r = rectResizeRef.current;
       const dx = px - r.startX;
@@ -995,6 +993,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     }
 
     if (marqueeActive && marquee) {
+      setDragMergeTarget(null);
       const { x: px, y: py } = getCanvasPercent(e);
       const updated = { ...marquee, x2: px, y2: py };
       setMarquee(updated);
@@ -1012,6 +1011,29 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     const du = innerW > 0 ? dPx / innerW : 0;
     const dv = innerH > 0 ? dPy / innerH : 0;
     setDragDelta({ du, dv });
+
+    // Compute which non-dragged LED/group the dragged set hovers within MERGE_EPSILON
+    const currentLeds = ledsRef.current;
+    const currentSelected = selected;
+    let mergeTarget: number | null = null;
+    let minMergeDist = MERGE_EPSILON;
+    for (const l of currentLeds) {
+      if (currentSelected.has(l.index) || l.disabled) continue;
+      for (const s of currentLeds) {
+        if (!currentSelected.has(s.index) || s.disabled) continue;
+        const newU = Math.max(0, Math.min(1, s.u + du));
+        const newV = Math.max(0, Math.min(1, s.v + dv));
+        const ddu = newU - l.u;
+        const ddv = newV - l.v;
+        const dist = Math.sqrt(ddu * ddu + ddv * ddv);
+        if (dist < minMergeDist) {
+          minMergeDist = dist;
+          const members = ledGroupsRef.current.get(l.index);
+          mergeTarget = members ? Math.min(...members) : l.index;
+        }
+      }
+    }
+    setDragMergeTarget(mergeTarget);
   };
 
   const handlePointerUp = (e?: React.PointerEvent) => {
@@ -1063,23 +1085,122 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
     if (dragging && dragDelta && selected.size > 0) {
       const pastBottom = cursor !== null && cursor.y > devRect.y + devRect.h;
-      setLeds(prev => prev.map(led => {
-        if (!selected.has(led.index)) return led;
-        if (pastBottom) {
-          return { ...led, disabled: true, isCustom: true };
+      const currentSelected = selected;
+      const currentDelta = dragDelta;
+      // Pre-compute snap targets on current leds so we can emit ring VFX
+      // outside the setState callback (setState callbacks must be pure).
+      const snapResults = new Map<number, { u: number; v: number }>();
+      if (!pastBottom) {
+        const targets: { u: number; v: number }[] = [];
+        for (const l of leds) {
+          if (!currentSelected.has(l.index) && !l.disabled) {
+            targets.push({ u: l.u, v: l.v });
+          }
         }
-        return {
-          ...led,
-          u: Math.max(0, Math.min(1, led.u + dragDelta.du)),
-          v: Math.max(0, Math.min(1, led.v + dragDelta.dv)),
-          isCustom: true,
-        };
-      }));
+        for (const led of leds) {
+          if (!currentSelected.has(led.index)) continue;
+          const newU = Math.max(0, Math.min(1, led.u + currentDelta.du));
+          const newV = Math.max(0, Math.min(1, led.v + currentDelta.dv));
+          let snapU = newU, snapV = newV;
+          let minDist = MERGE_EPSILON;
+          let mergedToTarget = false;
+          for (const t of targets) {
+            const du = newU - t.u;
+            const dv = newV - t.v;
+            const dist = Math.sqrt(du * du + dv * dv);
+            if (dist < minDist) {
+              minDist = dist;
+              snapU = t.u;
+              snapV = t.v;
+              mergedToTarget = true;
+            }
+          }
+          const cdu = snapU - 0.5;
+          const cdv = snapV - 0.5;
+          if (Math.sqrt(cdu * cdu + cdv * cdv) < CENTER_SNAP_EPSILON) {
+            snapU = 0.5;
+            snapV = 0.5;
+          }
+          // Only a snap onto another LED counts as a merge (ring + select-on-merge);
+          // a bare center-snap is not a merge.
+          if (mergedToTarget) {
+            snapResults.set(led.index, { u: snapU, v: snapV });
+          }
+        }
+      }
+      setLeds(prev => {
+        const targets: { u: number; v: number }[] = [];
+        if (!pastBottom) {
+          for (const l of prev) {
+            if (!currentSelected.has(l.index) && !l.disabled) {
+              targets.push({ u: l.u, v: l.v });
+            }
+          }
+        }
+        return prev.map(led => {
+          if (!currentSelected.has(led.index)) return led;
+          if (pastBottom) {
+            return { ...led, disabled: true, isCustom: true };
+          }
+          const newU = Math.max(0, Math.min(1, led.u + currentDelta.du));
+          const newV = Math.max(0, Math.min(1, led.v + currentDelta.dv));
+          let snapU = newU, snapV = newV;
+          let minDist = MERGE_EPSILON;
+          for (const t of targets) {
+            const du = newU - t.u;
+            const dv = newV - t.v;
+            const dist = Math.sqrt(du * du + dv * dv);
+            if (dist < minDist) {
+              minDist = dist;
+              snapU = t.u;
+              snapV = t.v;
+            }
+          }
+          const cdu = snapU - 0.5;
+          const cdv = snapV - 0.5;
+          if (Math.sqrt(cdu * cdu + cdv * cdv) < CENTER_SNAP_EPSILON) {
+            snapU = 0.5;
+            snapV = 0.5;
+          }
+          return { ...led, u: snapU, v: snapV, isCustom: true };
+        });
+      });
       setDirty(true);
+      // Emit a ring VFX for each unique snap target position
+      if (snapResults.size > 0) {
+        const seen = new Set<string>();
+        const newRings: { id: number; u: number; v: number; kind: 'merge' | 'split' }[] = [];
+        for (const { u, v } of snapResults.values()) {
+          const key = `${u.toFixed(4)},${v.toFixed(4)}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            newRings.push({ id: Date.now() + Math.round(Math.random() * 9999), u, v, kind: 'merge' });
+          }
+        }
+        if (newRings.length > 0) setRingVfx(prev => [...prev, ...newRings]);
+        // Expand selection to include all non-dragged LEDs at the snap target positions,
+        // so the whole merged group ends up selected after the drag-merge.
+        const snapUVs = new Set(Array.from(snapResults.values()).map(p => `${p.u.toFixed(6)},${p.v.toFixed(6)}`));
+        const merged = new Set(currentSelected);
+        for (const l of leds) {
+          if (currentSelected.has(l.index) || l.disabled) continue;
+          const key = `${l.u.toFixed(6)},${l.v.toFixed(6)}`;
+          if (snapUVs.has(key)) {
+            const members = ledGroupsRef.current.get(l.index);
+            if (members) {
+              for (const m of members) merged.add(m);
+            } else {
+              merged.add(l.index);
+            }
+          }
+        }
+        setSelected(merged);
+      }
     }
     setDragging(false);
     setDragStart(null);
     setDragDelta(null);
+    setDragMergeTarget(null);
   };
 
   const handleSelectionCornerDown = (e: React.PointerEvent, corner: 'nw' | 'ne' | 'sw' | 'se') => {
@@ -1115,6 +1236,20 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   const handleSave = async () => {
     setSaving(true);
+
+    // Persist any pending SmartHub soft counts before the map POST.
+    // The service must know the new segment size before it can accept
+    // overrides for indices beyond the old count.
+    for (const [zoneId, count] of softCountPendingRef.current) {
+      const countResp = await setZoneLedCount(zoneId, count) as ApiEnvelope | null;
+      if (!countResp || countResp.error) {
+        setSaving(false);
+        push({ title: t('lighting.ledMap.saveFailed') });
+        return;
+      }
+    }
+    softCountPendingRef.current = new Map();
+
     // The map body builder keeps applied-mapping state (mapping-disabled
     // LEDs, mapping ratio) out of the user delta: only LEDs the user owns
     // (isCustom) and a ratio the user adjusted this session are posted, as
@@ -1213,14 +1348,38 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setSavedLedsMap(snap);
     setSaving(false);
     setDirty(false);
+    clearTimeout(previewTimerRef.current);
+    if (!isStagedZoneId(selectedZoneIdRef.current)) clearLedEditor(selectedZoneIdRef.current);
   };
 
-  // Editable LED count for resizable motherboard zones. Sends RESIZEZONE to
-  // OpenRGB; the service persists the new count and rebuilds the partition,
-  // so the editor refetches structure + map (which clears history - the old
-  // device-space indices no longer line up). That reload discards unsaved
-  // edits, so the resize rides the same dirty confirm as every other
-  // map-replacing action.
+  // ── Live preview push ─────────────────────────────────────────────────
+
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    if (loading || saving) return;
+    if (isStagedZoneId(selectedZoneIdRef.current)) return;
+    const zoneId = selectedZoneIdRef.current;
+    const zoneLeds = zoneScoped
+      ? leds.filter(l => l.zoneId === zoneId)
+      : leds;
+    const ledCount = zoneLeds.length;
+    clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(() => {
+      if (isStagedZoneId(selectedZoneIdRef.current)) return;
+      postLedPreviewLayout(
+        selectedZoneIdRef.current,
+        ledCount,
+        zoneLeds.map(l => ({ index: l.index, u: l.u, v: l.v, disabled: l.disabled })),
+      ).catch(() => { /* best-effort */ });
+    }, 80);
+    return () => clearTimeout(previewTimerRef.current);
+  }, [leds, selectedZoneId, loading, saving, zoneScoped]);
+
+  // Editable LED count for resizable zones. For hardware zones (OpenRGB
+  // motherboard headers) the count sends RESIZEZONE and round-trips through
+  // load(). For SmartHub soft-count zones the count is deferred: updated
+  // locally (leds + structure) and persisted only on Save.
   const activeZoneLedCount = activeZone ? zoneLedCount(activeZone) : leds.length;
   const activeZoneLedCountRef = useRef(activeZoneLedCount);
   activeZoneLedCountRef.current = activeZoneLedCount;
@@ -1237,15 +1396,51 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       setLedCountDraft(String(clamped));
       return;
     }
-    // Show the live count while the confirm is pending; a declined confirm
-    // then leaves the field truthful instead of stuck on the typed value.
+
+    const zoneId = selectedZoneIdRef.current;
+
+    if (zoneId.startsWith('smarthub:')) {
+      // Soft-count path: update leds and structure locally, mark dirty.
+      // setZoneLedCount deferred to handleSave. Undo/redo is NOT wired for
+      // the count change itself: EditorSnapshot does not carry segment counts,
+      // and patching zoneUtils types would risk the shared editor invariants.
+      setLedCountDraft(String(clamped));
+      softCountPendingRef.current = new Map(softCountPendingRef.current).set(zoneId, clamped);
+
+      setLeds(prev => {
+        const next: EditorLed[] = prev.filter(l => l.index < clamped);
+        for (let i = next.length; i < clamped; i++) {
+          next.push({ segment: 0, ledIndex: i, index: i, u: 0.5, v: 0.5, disabled: false, zoneId, isCustom: false });
+        }
+        return next;
+      });
+
+      setStructure(prev => {
+        if (!prev) return prev;
+        const segments = prev.segments.map(seg =>
+          seg.index === 0 ? { ...seg, ledCount: clamped } : seg,
+        );
+        const zones = prev.zones.map(z =>
+          z.id === zoneId
+            ? { ...z, slices: z.slices.map((sl, i) => i === 0 ? { ...sl, count: clamped } : sl) }
+            : z,
+        );
+        return { ...prev, segments, zones };
+      });
+
+      setDirty(true);
+      return;
+    }
+
+    // Hardware resize path (OpenRGB / motherboard headers): confirm discard,
+    // then round-trip through setZoneLedCount + load().
     setLedCountDraft(String(activeZoneLedCountRef.current));
     confirmDiscardEdits(() => {
       resizingCountRef.current = true;
       setLedCountDraft(String(clamped));
       void (async () => {
         try {
-          await setZoneLedCount(selectedZoneIdRef.current, clamped);
+          await setZoneLedCount(zoneId, clamped);
           await load();
         } catch {
           setLedCountDraft(String(activeZoneLedCountRef.current));
@@ -1463,6 +1658,38 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     return s;
   }, [leds, savedLedsMap]);
 
+  // Maps each enabled LED index to its group members (co-located enabled LEDs
+  // within MERGE_EPSILON UV distance). Size-1 arrays = lone LED.
+  const ledGroups = useMemo(() => {
+    const enabledLeds = leds.filter(l => !l.disabled && isLedEnabled(l));
+    const groupOf = new Map<number, number[]>();
+    const groups: { rep: number; u: number; v: number; members: number[] }[] = [];
+    for (const led of enabledLeds) {
+      let assigned = false;
+      for (const g of groups) {
+        const du = led.u - g.u;
+        const dv = led.v - g.v;
+        if (Math.sqrt(du * du + dv * dv) < MERGE_EPSILON) {
+          g.members.push(led.index);
+          assigned = true;
+          break;
+        }
+      }
+      if (!assigned) {
+        groups.push({ rep: led.index, u: led.u, v: led.v, members: [led.index] });
+      }
+    }
+    for (const g of groups) {
+      for (const idx of g.members) {
+        groupOf.set(idx, g.members);
+      }
+    }
+    return groupOf;
+  }, [leds, isLedEnabled]);
+
+  const ledGroupsRef = useRef(ledGroups);
+  ledGroupsRef.current = ledGroups;
+
   // Nudge selected LEDs by a small UV step. Shift = coarser step. Only
   // moves LEDs that are currently in the frame; parked LEDs need to be
   // dragged back before they can be nudged.
@@ -1480,6 +1707,45 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     }));
     setDirty(true);
   }, [selected, pushUndo]);
+
+  const handleGroupSplit = useCallback((members: number[], centerU: number, centerV: number) => {
+    pushUndo();
+    const n = members.length;
+    const cols = Math.max(1, Math.ceil(Math.sqrt(n * 1.5)));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const spreadU = Math.min(0.06, Math.min(centerU, 1 - centerU));
+    const spreadV = Math.min(0.06, Math.min(centerV, 1 - centerV));
+    const sortedMembers = [...members].sort((a, b) => a - b);
+    const newPositions = new Map<number, { u: number; v: number }>();
+    sortedMembers.forEach((idx, i) => {
+      const c = i % cols;
+      const r = Math.floor(i / cols);
+      newPositions.set(idx, {
+        u: cols > 1 ? centerU - spreadU + (c / (cols - 1)) * 2 * spreadU : centerU,
+        v: rows > 1 ? centerV - spreadV + (r / (rows - 1)) * 2 * spreadV : centerV,
+      });
+    });
+    setLeds(prev => prev.map(l => {
+      const p = newPositions.get(l.index);
+      return p ? { ...l, u: p.u, v: p.v, isCustom: true } : l;
+    }));
+    setDirty(true);
+    setRingVfx(prev => [...prev, { id: Date.now() + Math.round(Math.random() * 9999), u: centerU, v: centerV, kind: 'split' }]);
+  }, [pushUndo]);
+
+  const handleGroupSelected = useCallback(() => {
+    const sel = leds.filter(l => selected.has(l.index) && !l.disabled);
+    if (sel.length < 2) return;
+    const centroidU = Math.max(0, Math.min(1, sel.reduce((s, l) => s + l.u, 0) / sel.length));
+    const centroidV = Math.max(0, Math.min(1, sel.reduce((s, l) => s + l.v, 0) / sel.length));
+    pushUndo();
+    setLeds(prev => prev.map(l => {
+      if (!selected.has(l.index) || l.disabled) return l;
+      return { ...l, u: centroidU, v: centroidV, isCustom: true };
+    }));
+    setDirty(true);
+    setRingVfx(prev => [...prev, { id: Date.now() + Math.round(Math.random() * 9999), u: centroidU, v: centroidV, kind: 'merge' }]);
+  }, [leds, selected, pushUndo]);
 
   const handleRotate90 = useCallback(() => {
     const sel = leds.filter(l => selected.has(l.index) && !l.disabled);
@@ -1590,7 +1856,29 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   const getLedPosition = (led: EditorLed) => {
     const dragOverride = dragging && dragDelta ? dragDelta : undefined;
-    return getLedCanvasPos(led, disabledOrder, dragOverride);
+    let snapTarget: { u: number; v: number } | null = null;
+    if (dragOverride && selected.has(led.index)) {
+      const newU = Math.max(0, Math.min(1, led.u + dragOverride.du));
+      const newV = Math.max(0, Math.min(1, led.v + dragOverride.dv));
+      if (dragMergeTarget !== null) {
+        const targetLed = leds.find(l => l.index === dragMergeTarget);
+        if (targetLed) {
+          const du = newU - targetLed.u;
+          const dv = newV - targetLed.v;
+          if (Math.sqrt(du * du + dv * dv) < MERGE_EPSILON) {
+            snapTarget = { u: targetLed.u, v: targetLed.v };
+          }
+        }
+      }
+      if (!snapTarget) {
+        const cdu = newU - 0.5;
+        const cdv = newV - 0.5;
+        if (Math.sqrt(cdu * cdu + cdv * cdv) < CENTER_SNAP_EPSILON) {
+          snapTarget = { u: 0.5, v: 0.5 };
+        }
+      }
+    }
+    return getLedCanvasPos(led, disabledOrder, dragOverride, snapTarget);
   };
 
   const ledTypeClass = (led: EditorLed) => {
@@ -1628,7 +1916,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     <DeviceModal
       open
       onClose={handleClose}
-      title={structure ? `${structure.name} - ${t('lighting.ledMap.title')}` : t('lighting.ledMap.title')}
+      title={(() => {
+        const base = t('lighting.ledMap.title');
+        const structName = structure?.name?.trim();
+        if (structName) return `${structName} - ${base}`;
+        const deviceName = devices.find(d => (d.deviceId ?? d.id) === deviceId)?.name?.trim();
+        if (deviceName) return `${deviceName} - ${base}`;
+        return base;
+      })()}
       wide
     >
       {loading ? (
@@ -1747,45 +2042,37 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           )}
           {/* General tooling: history, restore, reset, save. */}
           <div className={styles.toolbar}>
-            {canEditLedCount && (
-              <label className={styles.ledCountField}>
-                <span className={styles.ledCountLabel}>{t('lighting.ledMap.ledCount')}</span>
-                <input
-                  type="number"
-                  className={styles.ledCountInput}
-                  value={ledCountDraft}
-                  min={1}
-                  max={300}
-                  aria-label={t('lighting.ledMap.ledCount')}
-                  onChange={e => setLedCountDraft(e.target.value)}
-                  onBlur={e => {
-                    if (ledCountEscapeRef.current) { ledCountEscapeRef.current = false; return; }
-                    if (resizingCountRef.current) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
-                    const n = parseInt(e.currentTarget.value, 10);
-                    if (isNaN(n)) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
-                    handleLedCountCommit(n);
-                  }}
-                  onKeyDown={e => {
-                    e.stopPropagation();
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                    if (e.key === 'Escape') {
-                      ledCountEscapeRef.current = true;
-                      setLedCountDraft(String(activeZoneLedCountRef.current));
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
-                />
-              </label>
-            )}
-            <div className={styles.hint}>
-              {t('lighting.ledMap.hint', {
-                count: leds.length,
-                drag: t('lighting.ledMap.dragHint'),
-                mod: isMac ? 'Cmd' : 'Ctrl',
-                multi: t('lighting.ledMap.clickMulti'),
-                del: t('lighting.ledMap.deleteHint'),
-              })}
-            </div>
+            <label className={styles.ledCountField}>
+              <span className={styles.ledCountLabel}>{t('lighting.ledMap.ledCount')}</span>
+              <input
+                type="number"
+                className={styles.ledCountInput}
+                value={ledCountDraft}
+                min={1}
+                max={300}
+                disabled={!canEditLedCount}
+                aria-label={t('lighting.ledMap.ledCount')}
+                onChange={e => { if (canEditLedCount) setLedCountDraft(e.target.value); }}
+                onBlur={e => {
+                  if (!canEditLedCount) return;
+                  if (ledCountEscapeRef.current) { ledCountEscapeRef.current = false; return; }
+                  if (resizingCountRef.current) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
+                  const n = parseInt(e.currentTarget.value, 10);
+                  if (isNaN(n)) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
+                  handleLedCountCommit(n);
+                }}
+                onKeyDown={e => {
+                  e.stopPropagation();
+                  if (!canEditLedCount) return;
+                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                  if (e.key === 'Escape') {
+                    ledCountEscapeRef.current = true;
+                    setLedCountDraft(String(activeZoneLedCountRef.current));
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+              />
+            </label>
             <div className={styles.spacer} />
             {hasRestorable && (
               <HoverTooltip body={t('lighting.ledMap.restoreAll')} side="bottom">
@@ -1947,6 +2234,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             onPointerUp={e => handlePointerUp(e)}
             onPointerLeave={() => handlePointerUp()}
           >
+            <div className={styles.centerGuideV} />
+            <div className={styles.centerGuideH} />
             <div
               className={styles.deviceRect}
               style={{
@@ -1973,35 +2262,76 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               />
             )}
 
-            {leds.map(led => {
-              const { cx, cy } = getLedPosition(led);
-              const isSelected = selected.has(led.index);
-              const enabled = isLedEnabled(led);
-              const beingParkedDragged = parkedDrag?.index === led.index;
-              return (
-                <div
-                  key={led.index}
-                  data-led="1"
-                  className={[
-                    styles.led,
-                    ledTypeClass(led),
-                    unsavedLedSet.has(led.index) ? styles.ledCustom : '',
-                    isSelected ? styles.ledSelected : '',
-                    (dragging && isSelected) || beingParkedDragged ? styles.ledDragging : '',
-                    led.disabled ? styles.ledParked : '',
-                    !enabled ? styles.ledDisabled : '',
-                  ].filter(Boolean).join(' ')}
-                  style={{ left: `${cx}%`, top: `${cy}%` }}
-                  onPointerDown={e => handleLedPointerDown(e, led.index)}
-                  onPointerEnter={() => setHoveredLed(led.index)}
-                  onPointerLeave={() => setHoveredLed(null)}
-                >
-                  <span className={styles.ledIndex} aria-hidden>
-                    {(zoneLocalByDevice.get(led.index) ?? led.index) + 1}
-                  </span>
-                </div>
-              );
-            })}
+            {(() => {
+              const rendered = new Set<number>();
+              const elements: React.ReactElement[] = [];
+              for (const led of leds) {
+                const enabled = isLedEnabled(led);
+                const members = ledGroups.get(led.index);
+                if (enabled && !led.disabled && members && members.length > 1) {
+                  const repIdx = Math.min(...members);
+                  if (rendered.has(repIdx)) continue;
+                  rendered.add(repIdx);
+                  const repLed = leds.find(l => l.index === repIdx)!;
+                  const { cx, cy } = getLedPosition(repLed);
+                  const isSelected = members.every(m => selected.has(m));
+                  const isDraggingGroup = dragging && members.some(m => selected.has(m));
+                  const isUnsaved = members.some(m => unsavedLedSet.has(m));
+                  elements.push(
+                    <div
+                      key={repIdx}
+                      data-led="1"
+                      className={[
+                        styles.led,
+                        styles.ledGroup,
+                        ledTypeClass(repLed),
+                        isUnsaved ? styles.ledCustom : '',
+                        isSelected ? styles.ledSelected : '',
+                        isDraggingGroup ? styles.ledDragging : '',
+                        dragMergeTarget === repIdx ? styles.ledMergeTarget : '',
+                      ].filter(Boolean).join(' ')}
+                      style={{ left: `${cx}%`, top: `${cy}%` }}
+                      onPointerDown={e => handleLedPointerDown(e, repIdx)}
+                      onPointerEnter={() => setHoveredLed(repIdx)}
+                      onPointerLeave={() => setHoveredLed(null)}
+                      aria-label={t('lighting.ledMap.groupCount', { count: members.length })}
+                    >
+                      <Lightbulb size={14} aria-hidden className={styles.ledGroupIcon} />
+                      <span className={styles.ledGroupBadge} aria-hidden>{members.length}</span>
+                    </div>
+                  );
+                  continue;
+                }
+                const { cx, cy } = getLedPosition(led);
+                const isSelected = selected.has(led.index);
+                const beingParkedDragged = parkedDrag?.index === led.index;
+                elements.push(
+                  <div
+                    key={led.index}
+                    data-led="1"
+                    className={[
+                      styles.led,
+                      ledTypeClass(led),
+                      unsavedLedSet.has(led.index) ? styles.ledCustom : '',
+                      isSelected ? styles.ledSelected : '',
+                      (dragging && isSelected) || beingParkedDragged ? styles.ledDragging : '',
+                      led.disabled ? styles.ledParked : '',
+                      !enabled ? styles.ledDisabled : '',
+                      dragMergeTarget === led.index ? styles.ledMergeTarget : '',
+                    ].filter(Boolean).join(' ')}
+                    style={{ left: `${cx}%`, top: `${cy}%` }}
+                    onPointerDown={e => handleLedPointerDown(e, led.index)}
+                    onPointerEnter={() => setHoveredLed(led.index)}
+                    onPointerLeave={() => setHoveredLed(null)}
+                  >
+                    <span className={styles.ledIndex} aria-hidden>
+                      {(zoneLocalByDevice.get(led.index) ?? led.index) + 1}
+                    </span>
+                  </div>
+                );
+              }
+              return elements;
+            })()}
 
             {selectionCanvasBounds && (
               /* Selection bbox outline + 4 corner resize handles. Dragging a
@@ -2099,6 +2429,51 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                       </button>
                     </HoverTooltip>
                     <div className={styles.selectionBtnSeparator} />
+                    {(() => {
+                      const selArr = Array.from(selected);
+                      const members = ledGroupsRef.current.get(selArr[0]);
+                      const isAlreadyGroup = !!(
+                        selArr.length >= 2 &&
+                        members &&
+                        members.length >= 2 &&
+                        selArr.length === members.length &&
+                        selArr.every(idx => members.includes(idx))
+                      );
+                      const showGroup = selectionCanvasBounds != null && !isAlreadyGroup;
+                      const showUngroup = isAlreadyGroup;
+                      return (
+                        <>
+                          {showGroup && (
+                            <HoverTooltip body={t('lighting.ledMap.group')} side="top">
+                              <button
+                                type="button"
+                                className={styles.selectionBtn}
+                                onClick={handleGroupSelected}
+                                aria-label={t('lighting.ledMap.group')}
+                              >
+                                <Merge size={14} />
+                              </button>
+                            </HoverTooltip>
+                          )}
+                          {showUngroup && (() => {
+                            const repLed = leds.find(l => l.index === Math.min(...(members ?? [])));
+                            if (!repLed || !members) return null;
+                            return (
+                              <HoverTooltip body={t('lighting.ledMap.ungroup')} side="top">
+                                <button
+                                  type="button"
+                                  className={styles.selectionBtn}
+                                  onClick={() => handleGroupSplit(members, repLed.u, repLed.v)}
+                                  aria-label={t('lighting.ledMap.ungroup')}
+                                >
+                                  <Scissors size={14} />
+                                </button>
+                              </HoverTooltip>
+                            );
+                          })()}
+                        </>
+                      );
+                    })()}
                   </>
                 )}
                 {hasEnabledSelected && (
@@ -2162,16 +2537,33 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               />
             )}
 
+            {ringVfx.map(r => {
+              const { cx, cy } = uvToCanvas(r.u, r.v);
+              return (
+                <div
+                  key={r.id}
+                  className={`${styles.ringVfx} ${r.kind === 'merge' ? styles.ringVfxMerge : styles.ringVfxSplit}`}
+                  style={{ left: `${cx}%`, top: `${cy}%` }}
+                  onAnimationEnd={() => setRingVfx(prev => prev.filter(x => x.id !== r.id))}
+                />
+              );
+            })}
+
             {hoveredEntry && !dragging && !parkedDrag && (() => {
               const { cx, cy } = getLedPosition(hoveredEntry);
               const zoneName = zoneNameById.get(hoveredEntry.zoneId);
               const local = (zoneLocalByDevice.get(hoveredEntry.index) ?? hoveredEntry.index) + 1;
+              const groupMembers = ledGroups.get(hoveredEntry.index);
+              const isGroup = groupMembers && groupMembers.length > 1;
               return (
                 <div
                   className={styles.tooltip}
                   style={{ left: `${cx}%`, top: `${cy}%` }}
                 >
                   {zoneName ? `${zoneName} #${local}` : `#${local}`}
+                  {isGroup && (
+                    <span className={styles.tooltipMeta}> +{groupMembers.length - 1}</span>
+                  )}
                   {hoveredEntry.disabled && (
                     <span className={styles.tooltipMeta}> - {t('lighting.ledMap.parkedTooltip')}</span>
                   )}
