@@ -64,12 +64,16 @@ export function ZoneCard({
     identifyLightingDevice(device.id, 2000).catch(() => { /* silent */ });
   };
 
+  // Firmware-controlled and unavailable cards stay sort participants (ref +
+  // style so neighbours shift around them) but are not themselves draggable -
+  // matches their pre-migration locked state.
+  const dragEnabled = !!drag && !unavailable && !firmwareControlled;
   const card = (
     <div
       ref={drag?.ref ?? (() => {})}
       style={drag?.style ?? {}}
-      {...(drag?.attributes ?? {})}
-      {...(drag?.listeners ?? {})}
+      {...(dragEnabled ? drag!.attributes : {})}
+      {...(dragEnabled ? drag!.listeners ?? {} : {})}
       className={[
         styles.deviceCard,
         selected && !firmwareControlled ? styles.deviceCardSelected : '',

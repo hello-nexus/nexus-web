@@ -187,7 +187,12 @@ export const FanCard = memo(function FanCard({
         {channel.kind === 'Pump'
           ? <Droplets size={16} className={styles.fanKindIcon} aria-hidden />
           : <Fan size={16} className={styles.fanKindIcon} aria-hidden />}
-        <EditableText value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} data-no-dnd />
+        {/* display:contents span carries data-no-dnd onto a real DOM node
+            (EditableText doesn't forward unknown props) so a press on the name
+            edits it instead of starting a card drag; no layout change. */}
+        <span data-no-dnd style={{ display: 'contents' }}>
+          <EditableText value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} />
+        </span>
         <span className={styles.fanRpmReadout}>
           <span className={styles.fanRpm}>{channel.rpm.toLocaleString()}</span>
           <span className={styles.fanRpmLabel}>RPM</span>
@@ -239,6 +244,8 @@ export const FanCard = memo(function FanCard({
           {/* Mode dropdown is always present when the hardware is responsive.
               Default (boxed) Select chrome, matching the app settings
               dropdowns; binding a curve here is how a fan picks its curve. */}
+          {/* Same display:contents data-no-dnd guard as the name editor. */}
+          <span data-no-dnd style={{ display: 'contents' }}>
           <Select
             className={styles.fanModeSelect}
             accentValue={highlighted}
@@ -248,7 +255,6 @@ export const FanCard = memo(function FanCard({
               onSetMode(v);
             }}
             ariaLabel={t('cooling.card.mode')}
-            data-no-dnd
           >
             {/* NP50 lists only FW Control (no BIOS hand-off); a Q-series pump
                 lists both; everything else lists only BIOS. */}
@@ -266,6 +272,7 @@ export const FanCard = memo(function FanCard({
               </option>
             )}
           </Select>
+          </span>
         </>
       )}
     </div>
