@@ -1071,95 +1071,18 @@
   flex-shrink: 0;
 }
 
-// ── Game Sync controls ───────────────────────────────────────────────────────
-
-.gameSyncControls {
-  padding: 0.75rem 0 0.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.gameSyncDescription {
-  color: var(--text-dim);
-  font-size: var(--type-body);
-  margin: 0;
-  line-height: 1.5;
-}
-
-.gameSyncStartBtn,
-.gameSyncStopBtn {
-  align-self: flex-start;
-  padding: 0.35rem 1rem;
-  border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--border-strong);
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: var(--type-small);
-  cursor: pointer;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
-
-  &:hover:not(:disabled),
-  &:focus-visible {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: var(--bg-card-hover);
-  }
-}
-
-.gameSyncStartBtn {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-.gameSyncDevices {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.gameSyncDevicesLabel {
-  color: var(--text-dim);
-  font-size: var(--type-small);
-  font-weight: var(--weight-strong);
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.gameSyncNoDevices {
-  color: var(--text-dim);
-  font-size: var(--type-body);
-  margin: 0;
-}
-
 // ── Game Sync games panel ─────────────────────────────────────────────────────
 
-.gameSyncGamesPanel {
+// Header row: section title on the left, Scan button flush right.
+.gameSyncGamesHeader {
   display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  padding-top: 0.5rem;
-}
-
-.gameSyncGamesSummary {
-  font-size: var(--type-body);
-  color: var(--text);
-  margin: 0;
-  font-weight: var(--weight-strong);
-}
-
-.gameSyncGamesNote {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  margin: 0;
-  line-height: 1.5;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .gameSyncGamesRescanBtn {
-  align-self: flex-start;
-  padding: 0.25rem 0.75rem;
+  padding: 0.15rem 0.6rem;
   border-radius: var(--radius-sm);
   border: var(--border-width) solid var(--border-strong);
   background: var(--surface);

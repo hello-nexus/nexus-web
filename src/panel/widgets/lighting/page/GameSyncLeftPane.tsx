@@ -4,16 +4,13 @@ import {
   triggerGameSyncScan,
   type GameSyncGame,
 } from '../../../../api/lighting';
+import { SettingsSection } from '../../../../components/common/SettingsSection/SettingsSection';
 import { useTranslation } from '../../../../lib/i18n';
 import styles from '../LightingPage.module.scss';
 
 const GAMES_POLL_INTERVAL_MS = 2000;
 
-interface GameSyncLeftPaneProps {
-  onStop: () => void;
-}
-
-export function GameSyncLeftPane({ onStop }: GameSyncLeftPaneProps) {
+export function GameSyncLeftPane() {
   const { t } = useTranslation();
   const [scanning, setScanning] = useState(false);
   const [games, setGames] = useState<GameSyncGame[]>([]);
@@ -88,47 +85,41 @@ export function GameSyncLeftPane({ onStop }: GameSyncLeftPaneProps) {
 
   const supported = games.filter(g => g.emitsChroma);
 
-  return (
-    <div className={styles.gameSyncLeftPane}>
+  const headerWithScan = (
+    <div className={styles.gameSyncGamesHeader}>
+      <span>{t('lighting.gameSync.games.title')}</span>
       <button
         type="button"
-        className={styles.gameSyncStopBtn}
-        onClick={onStop}
+        className={styles.gameSyncGamesRescanBtn}
+        onClick={() => void handleRescan()}
+        disabled={rescanning || scanning}
       >
-        {t('lighting.gameSync.stop')}
+        {rescanning ? t('lighting.gameSync.games.rescanning') : t('lighting.gameSync.games.rescan')}
       </button>
-      {scanning ? (
-        <p className={styles.gameSyncGamesScanning}>{t('lighting.gameSync.games.scanning')}</p>
-      ) : (
-        <>
-          <p className={styles.gameSyncGamesSummary}>
-            {t('lighting.gameSync.games.summary', { supported: supported.length, total: games.length })}
-          </p>
-          {supported.length === 0 ? (
-            <p className={styles.gameSyncGamesNone}>{t('lighting.gameSync.games.none')}</p>
-          ) : (
-            <ul className={styles.gameSyncGamesList}>
-              {supported.map((g, i) => (
-                <li
-                  key={i}
-                  className={styles.gameSyncGameRow}
-                >
-                  <span className={styles.gameSyncGameName}>{g.name}</span>
-                  <span className={styles.gameSyncGameStore}>{g.store}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <button
-            type="button"
-            className={styles.gameSyncGamesRescanBtn}
-            onClick={() => void handleRescan()}
-            disabled={rescanning}
-          >
-            {rescanning ? t('lighting.gameSync.games.rescanning') : t('lighting.gameSync.games.rescan')}
-          </button>
-        </>
-      )}
+    </div>
+  );
+
+  return (
+    <div className={styles.gameSyncLeftPane}>
+      <SettingsSection title={headerWithScan}>
+        {scanning ? (
+          <p className={styles.gameSyncGamesScanning}>{t('lighting.gameSync.games.scanning')}</p>
+        ) : supported.length === 0 ? (
+          <p className={styles.gameSyncGamesNone}>{t('lighting.gameSync.games.none')}</p>
+        ) : (
+          <ul className={styles.gameSyncGamesList}>
+            {supported.map((g, i) => (
+              <li
+                key={i}
+                className={styles.gameSyncGameRow}
+              >
+                <span className={styles.gameSyncGameName}>{g.name}</span>
+                <span className={styles.gameSyncGameStore}>{g.store}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SettingsSection>
     </div>
   );
 }

@@ -92,6 +92,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const { t } = useTranslation();
   const sensors = useSensors(serviceOnline);
   const { mode, setMode, rawSync, setRawSync, synced } = useLightingSync(serviceOnline, activeProfileId);
+  // Game Sync requires the Windows Chroma capture shim; hide it on non-Windows
+  // (empty platform = ping not yet resolved, keep hidden to avoid a flash).
+  const isWindows = platform === 'windows';
+  const effectiveMode: LightingMode = (mode === 'gamesync' && !isWindows) ? 'none' : mode;
   const frames = useLightingFrames();
   // Read RGB running/scanning off useServiceState (already subscribed
   // to the lighting topic for the sidebar pip) so a topic push doesn't
@@ -436,11 +440,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [musicReactive]);
 
-  const handleGameSyncStop = useCallback(() => {
-    stopLighting().catch(() => {});
-    publishControlSync({ domain: 'lighting', mode: 'none', rawSync: 'none' });
-  }, []);
-
   const [gameSyncState, setGameSyncState] = useState<{
     devices: GameSyncDevice[];
     lastFrameAt: number | null;
@@ -449,7 +448,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }>({ devices: [], lastFrameAt: null, activeApp: null, isReceiving: false });
 
   useEffect(() => {
-    if (mode !== 'gamesync' || !serviceOnline) return;
+    if (effectiveMode !== 'gamesync' || !serviceOnline) return;
     let cancelled = false;
     const poll = async () => {
       const data = await fetchGameSyncState().catch(() => null);
@@ -465,7 +464,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     void poll();
     const id = window.setInterval(() => { void poll(); }, 1500);
     return () => { cancelled = true; window.clearInterval(id); };
-  }, [mode, serviceOnline]);
+  }, [effectiveMode, serviceOnline]);
 
   const restartedProfileRef = useRef<string | null>(null);
   useEffect(() => {
@@ -847,14 +846,16 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     } catch { /* best-effort; backend state becomes source of truth */ }
   }, [activeEffect, rawSync, setMode, setRawSync, screenPP, stateFor]);
 
-  const modeTabs = MODES.map(m => {
-    const Icon = LIGHTING_MODE_ICONS[m.key];
-    return { key: m.key, label: t(m.labelKey), icon: <Icon size={14} /> };
-  });
+  const modeTabs = MODES
+    .filter(m => m.key !== 'gamesync' || isWindows)
+    .map(m => {
+      const Icon = LIGHTING_MODE_ICONS[m.key];
+      return { key: m.key, label: t(m.labelKey), icon: <Icon size={14} /> };
+    });
 
   // Effect tab applies to animate / media / screen only; in Off and Game Sync
   // modes it renders an empty state and the tab header is disabled.
-  const effectTabDisabled = mode === 'none' || mode === 'gamesync';
+  const effectTabDisabled = effectiveMode === 'none' || effectiveMode === 'gamesync';
 
   // The settings affordance lives in the top bar (right of the search pill);
   // register it while online so it opens this page's LightingSettingsModal.
@@ -864,7 +865,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   if (!serviceOnline) {
     return (
       <div className={styles.lighting}>
-        <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? mode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
+        <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? effectiveMode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
         <ServiceRequired state={connectionState} skeleton={<LightingSkeleton />} />
       </div>
     );
@@ -896,16 +897,16 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           <ViewHeader
             title={t('lighting.title')}
             tabs={modeTabs}
-            activeTab={synced ? mode : undefined}
+            activeTab={synced ? effectiveMode : undefined}
             onTabChange={(k, origin) => {
               // Status-change bloom only on an actual mode switch, from the pressed tab.
-              if (origin && k !== (synced ? mode : null)) emitRadialBloomFromElement(origin, k === 'none');
+              if (origin && k !== (synced ? effectiveMode : null)) emitRadialBloomFromElement(origin, k === 'none');
               void handleModeChange(k as LightingMode);
             }}
           />
         </div>
         <div className={styles.main}>
-          {mode === 'gamesync' ? (
+          {effectiveMode === 'gamesync' ? (
             <>
               <div className={styles.canvasArea}>
                 <div className={styles.gameSyncActivity}>
@@ -924,14 +925,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 </div>
               </div>
               <div className={styles.controls}>
-                <GameSyncLeftPane onStop={handleGameSyncStop} />
+                <GameSyncLeftPane />
               </div>
             </>
           ) : (
             <>
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={mode === 'animate' ? activeEffect : null} shaderState={mode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
-                {mode === 'animate' && activeEffect && currentState && (
+                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
+                {effectiveMode === 'animate' && activeEffect && currentState && (
                   <>
                     {EFFECTS.find(e => e.key === activeEffect)?.audio && (
                       <HoverTooltip body={t('lighting.musicReactive')} side="left">
@@ -959,12 +960,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   </>
                 )}
               </div>
-              {mode === 'animate' ? (
+              {effectiveMode === 'animate' ? (
                 <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} />
               ) : (
                 <div className={styles.controls}>
                   <ModeControls
-                    mode={mode}
+                    mode={effectiveMode}
                     screenPP={screenPP}
                     onScreenPPChange={setScreenPP}
                   />
@@ -991,7 +992,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onSetSelection={handleSetSelection}
                 onTogglePower={handleTogglePower}
                 onSetPower={handleSetPower}
-                lightingOff={mode === 'none'}
+                lightingOff={effectiveMode === 'none'}
                 onOpenSettings={handleOpenSettings}
                 onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
                 communityCounts={mappingCounts}
@@ -1005,7 +1006,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           ) : (
             <div className={styles.effectTabBody}>
               <EffectTab
-                mode={mode}
+                mode={effectiveMode}
                 effect={activeEffect}
                 state={currentState}
                 bundle={activeEffect ? committedTemplates[activeEffect] ?? null : null}
