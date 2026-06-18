@@ -760,9 +760,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     );
   }
 
-  // Curve-selector buttons (Curves section, under the graph) as chonky squares:
-  // the name on top, a fan icon + the count of fans bound to that curve beneath.
-  // Silent/Balanced/Turbo first, then custom curves, then the dashed add square.
+  // Curve-selector buttons (Curves section, under the graph) reuse the shared
+  // chip-action pill (same family as the Mode switcher), so a chip widens with
+  // its name. Below each chip sits a non-interactive caption with a fan icon +
+  // the count of fans bound to that curve, hidden when none are bound.
+  // Silent/Balanced/Turbo first, then custom curves, then the dashed add chip.
   // The viewed curve uses the soft-active treatment; clicking only swaps the
   // graph/options view (the preset tabs apply a curve to all fans).
   const curveSelector = (() => {
@@ -778,36 +780,42 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           {ordered.map(c => {
             const PresetIcon = presetIconFor(c.preset);
             const viewing = c.id === selectedCurveId;
+            const fanCount = curveFanCounts.get(c.id) ?? 0;
             return (
-              <button
-                key={c.id}
-                type="button"
-                aria-current={viewing || undefined}
-                className={`${styles.curveBtn}${viewing ? ' ' + styles.curveBtnViewing : ''}`}
-                onClick={() => setSelectedCurveId(c.id)}
-              >
-                <span className={styles.curveBtnName}>
-                  {PresetIcon && <PresetIcon size={13} aria-hidden />}
-                  {c.name}
-                </span>
-                <span className={styles.curveBtnCount}>
-                  <Fan size={12} aria-hidden /> {curveFanCounts.get(c.id) ?? 0}
-                </span>
-              </button>
+              <div key={c.id} className={styles.curveBtnCell}>
+                <button
+                  type="button"
+                  aria-current={viewing || undefined}
+                  className={`chip-action${viewing ? ' ' + styles.chipSoftActive : ''}`}
+                  onClick={() => setSelectedCurveId(c.id)}
+                >
+                  {PresetIcon && <PresetIcon size={14} aria-hidden />}
+                  <span className={styles.curveBtnName}>{c.name}</span>
+                </button>
+                {fanCount > 0 && (
+                  <span className={styles.curveBtnCount}>
+                    <Fan size={12} aria-hidden /> {fanCount}
+                  </span>
+                )}
+              </div>
             );
           })}
           {curves.length >= MAX_CURVES ? (
-            <HoverTooltip body={t('cooling.curves.maxReached')} side="top">
-              <button type="button" className={`${styles.curveBtn} ${styles.curveAddBtn}`} disabled>
-                <Plus size={16} aria-hidden />
+            <div className={styles.curveBtnCell}>
+              <HoverTooltip body={t('cooling.curves.maxReached')} side="top">
+                <button type="button" className={`chip-action ${styles.curveAddBtn}`} disabled>
+                  <Plus size={14} aria-hidden />
+                  <span className={styles.curveBtnName}>{t('cooling.curves.add')}</span>
+                </button>
+              </HoverTooltip>
+            </div>
+          ) : (
+            <div className={styles.curveBtnCell}>
+              <button type="button" className={`chip-action ${styles.curveAddBtn}`} onClick={() => { addCurve(); }}>
+                <Plus size={14} aria-hidden />
                 <span className={styles.curveBtnName}>{t('cooling.curves.add')}</span>
               </button>
-            </HoverTooltip>
-          ) : (
-            <button type="button" className={`${styles.curveBtn} ${styles.curveAddBtn}`} onClick={() => { addCurve(); }}>
-              <Plus size={16} aria-hidden />
-              <span className={styles.curveBtnName}>{t('cooling.curves.add')}</span>
-            </button>
+            </div>
           )}
         </div>
       </div>
@@ -990,8 +998,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                             open={!isFanGroupCollapsed(key)}
                             onToggle={() => toggleFanGroup(key)}
                             drag={a}
-                            // eslint-disable-next-line i18next/no-literal-string -- unit label
-                            right={<span className={styles.fanGroupCount}>{list.length} fan{list.length === 1 ? '' : 's'}</span>}
+                            right={<span className={styles.fanGroupCount}>{list.length}</span>}
                           >
                             <div className={styles.fanGroupChildren}>
                               <SortableList
@@ -1023,8 +1030,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                     <CollapsibleSection key="disconnected-hdr" compact
                       title={t('cooling.fan.disconnected')} ariaLabel={t('cooling.fan.disconnected')}
                       open={!isFanGroupCollapsed('disconnected')} onToggle={() => toggleFanGroup('disconnected')}
-                      // eslint-disable-next-line i18next/no-literal-string -- unit label
-                      right={<span className={styles.fanGroupCount}>{disconnected.length} fan{disconnected.length === 1 ? '' : 's'}</span>}>
+                      right={<span className={styles.fanGroupCount}>{disconnected.length}</span>}>
                       <div className={styles.fanGroupChildren}>{disconnected.map(ch => (
                         <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
                           compact

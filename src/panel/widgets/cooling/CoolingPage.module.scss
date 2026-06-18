@@ -71,7 +71,17 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+  // Top-align so the chips line up regardless of whether a cell carries the
+  // fan-count caption beneath it.
+  align-items: flex-start;
+}
+// One curve in the selector: the chip button with its fan-count caption stacked
+// beneath it (the caption sits outside the button so it isn't clickable).
+.curveBtnCell {
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: 0.2rem;
 }
 // Quiet field header over the Curves / Mode rows. Standard (not all-caps) text.
 .curveFieldHeader {
@@ -88,35 +98,10 @@
   background: var(--accent-soft);
   color: var(--accent-glow);
 }
-// Chonky square curve buttons: name on top, a fan icon + count of bound fans
-// beneath, centered. Usage is shown by the count, so there's no in-use border.
-.curveBtn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  width: 5.5rem;
-  min-height: 4rem;
-  padding: 0.5rem 0.4rem;
-  border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--border);
-  background: var(--bg);
-  color: var(--text-dim);
-  cursor: pointer;
-  text-align: center;
-  transition: border-color var(--ease-fast) ease, background var(--ease-fast) ease, color var(--ease-fast) ease;
-  &:hover { border-color: var(--accent); color: var(--text); }
-  &:disabled { cursor: not-allowed; opacity: 0.5; }
-}
-.curveBtnName {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: var(--type-small);
-  color: var(--text);
-  line-height: 1.15;
-}
+// The curve selector reuses the shared .chip-action pill (same family as the
+// Mode switcher), with .chipSoftActive for the viewed curve. Only the name
+// label and the dashed add chip are local.
+.curveBtnName { white-space: nowrap; }
 .curveBtnCount {
   display: inline-flex;
   align-items: center;
@@ -125,16 +110,12 @@
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
-// Viewed curve: monitoring "enabled" treatment (accent border/text + faint fill).
-.curveBtnViewing {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-glow);
-  .curveBtnName, .curveBtnCount { color: var(--accent-glow); }
-}
-// Add square: dashed border.
-.curveAddBtn {
+// Add chip: the dashed "add" affordance used across the app, over .chip-action.
+// Compound selector (like .chipSoftActive) so it beats .chip-action's own solid
+// border + fill instead of tying on specificity.
+:global(.chip-action).curveAddBtn {
   border-style: dashed;
+  border-color: var(--border-strong);
   background: transparent;
 }
 // Label beside the icon inside a curve-type chip (pinned hero only).
@@ -253,6 +234,12 @@
 .editableName {
   composes: affordance from '../../../styles/editable.module.scss';
   // Match the lighting page's device-card title (.deviceName).
+  font-size: var(--type-small); font-weight: var(--weight-body); color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+}
+// Static curve name in the card header. Same typography as .editableName but no
+// edit affordance - renaming is the footer's Rename button, not an inline edit.
+.curveName {
   font-size: var(--type-small); font-weight: var(--weight-body); color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
 }
@@ -800,9 +787,13 @@
 // classic card surface (no hover shift); not a click/drag target.
 .curveCardPinned {
   padding: 0.85rem 1rem;
+  // Static container: the base .curveCard carries a grab/grabbing cursor for the
+  // draggable immersive cards; override both so the pinned hero never reads as
+  // draggable.
   cursor: default;
   background: var(--surface);
   &:hover { background: var(--surface); }
+  &:active { cursor: default; }
 }
 
 // Graph sits on top, full width.

@@ -113,6 +113,7 @@ export function Select({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLUListElement | null>(null);
   const typeahead = useRef({ buffer: '', time: 0 });
+  const pendingOpenScroll = useRef(false);
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<MenuCoords | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -175,6 +176,7 @@ export function Select({
 
   const openMenu = () => {
     setActiveIndex(selectedIndex >= 0 ? selectedIndex : firstEnabled(resolved));
+    pendingOpenScroll.current = true;
     setOpen(true);
   };
 
@@ -210,6 +212,21 @@ export function Select({
     };
   }, [open, close, reposition]);
 
+  // On open, once reposition has sized the menu (coords set), center the
+  // selected option. scrollIntoView/nearest can't do this at open time: the
+  // menu is briefly full-height (nothing overflows) until maxHeight lands, and
+  // the nav effect below doesn't depend on coords so it never re-fires. Layout
+  // effect so scrollTop commits before paint.
+  useLayoutEffect(() => {
+    if (!open || !coords || !pendingOpenScroll.current) return;
+    pendingOpenScroll.current = false;
+    const menu = menuRef.current;
+    const target = activeIndex >= 0 ? activeIndex : selectedIndex;
+    const el = target >= 0 ? (menu?.children[target] as HTMLElement | undefined) : undefined;
+    if (menu && el) menu.scrollTop = Math.max(0, el.offsetTop - (menu.clientHeight - el.offsetHeight) / 2);
+  }, [open, coords, activeIndex, selectedIndex]);
+
+  // Keep the active option visible during keyboard nav (minimal scroll).
   useEffect(() => {
     if (!open || activeIndex < 0) return;
     (menuRef.current?.children[activeIndex] as HTMLElement | undefined)?.scrollIntoView({ block: 'nearest' });
