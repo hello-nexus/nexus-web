@@ -1,5 +1,4 @@
-import { useRef } from 'react';
-import { Settings, Power, Eye, Lightbulb, Users } from 'lucide-react';
+import { Settings, Power, Eye, Lightbulb, Users, Cpu } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -7,17 +6,8 @@ import {
 import { cardEnabledLedCount } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
-
-export interface ZoneCardDrag {
-  isDragging: boolean;
-  isDragOver: boolean;
-  onDragStart: () => void;
-  onDragOver: () => void;
-  onDragLeave: () => void;
-  onDrop: () => void;
-  onDragEnd: () => void;
-}
 
 /**
  * One card for either a whole OpenRGB device or a motherboard ARGB zone. The
@@ -37,6 +27,7 @@ export function ZoneCard({
   drag,
   communityCount,
   onOpenCommunity,
+  firmwareControlled,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -49,12 +40,14 @@ export function ZoneCard({
   onSelect: (shiftKey: boolean) => void;
   onTogglePower: () => void;
   onOpenSettings: () => void;
-  /** Optional HTML5 drag/drop wiring for reorderable lists. */
-  drag?: ZoneCardDrag;
+  /** Optional dnd-kit drag wiring for reorderable lists. */
+  drag?: SortableRowArgs;
   /** Available community layout count; the badge renders only when positive. */
   communityCount?: number;
   /** Badge click; routes into the LED map editor's Community tab. */
   onOpenCommunity?: () => void;
+  /** When true, the card is dimmed and non-interactive; the meta row shows a firmware badge. */
+  firmwareControlled?: boolean;
 }) {
   const { t } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
@@ -71,41 +64,35 @@ export function ZoneCard({
     identifyLightingDevice(device.id, 2000).catch(() => { /* silent */ });
   };
 
-  const cardRef = useRef<HTMLDivElement>(null);
-  const interactiveSelector = 'button, input, select, textarea, [role="button"], [role="switch"]';
-
+  // Firmware-controlled and unavailable cards stay sort participants (ref +
+  // style so neighbours shift around them) but are not themselves draggable -
+  // matches their pre-migration locked state.
+  const dragEnabled = !!drag && !unavailable && !firmwareControlled;
   const card = (
     <div
-      ref={cardRef}
+      ref={drag?.ref ?? (() => {})}
+      style={drag?.style ?? {}}
+      {...(dragEnabled ? drag!.attributes : {})}
+      {...(dragEnabled ? drag!.listeners ?? {} : {})}
       className={[
         styles.deviceCard,
-        selected ? styles.deviceCardSelected : '',
+        selected && !firmwareControlled ? styles.deviceCardSelected : '',
         unavailable ? styles.deviceCardUnavailable : '',
-        !unavailable && !device.ledsOn ? styles.deviceCardPoweredOff : '',
+        !unavailable && (!device.ledsOn || firmwareControlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
-        drag?.isDragging ? styles.deviceCardDragging : '',
-        drag?.isDragOver ? styles.deviceCardDragOver : '',
+        drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
-      draggable={!!drag && !unavailable}
-      onMouseDownCapture={drag ? (e) => {
-        const target = e.target as HTMLElement;
-        const interactive = !!target.closest(interactiveSelector);
-        if (cardRef.current) cardRef.current.draggable = !unavailable && !interactive;
-      } : undefined}
-      onDragStart={drag ? (e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest(interactiveSelector)) { e.preventDefault(); return; }
-        drag.onDragStart();
-      } : undefined}
-      onDragOver={drag ? (e) => { e.preventDefault(); drag.onDragOver(); } : undefined}
-      onDragLeave={drag ? drag.onDragLeave : undefined}
-      onDrop={drag ? drag.onDrop : undefined}
-      onDragEnd={drag ? drag.onDragEnd : undefined}
-      onClick={e => { if (!unavailable) onSelect(e.shiftKey); }}
+      onClick={e => { if (!unavailable && !firmwareControlled) onSelect(e.shiftKey); }}
     >
       <span className={styles.deviceName}>{displayName ?? device.name}</span>
       <div className={styles.deviceMetaRow}>
-        {unavailable ? (
+        {firmwareControlled ? (
+          <span className={styles.deviceMetaFirmware}>
+            {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+            <Cpu className={styles.deviceMetaIcon} aria-hidden="true" />
+            {t('lighting.devices.smarthub.firmwareBadge')}
+          </span>
+        ) : unavailable ? (
           <span className={styles.deviceMetaUnavailable}>
             {t('lighting.devices.detectionFailed')}
           </span>
@@ -123,12 +110,13 @@ export function ZoneCard({
             <span className={styles.deviceMetaCount}>{cardEnabledLedCount(device)}</span>
           </span>
         )}
-        {!unavailable && communityCount != null && communityCount > 0 && (
+        {!unavailable && !firmwareControlled && communityCount != null && communityCount > 0 && (
           <HoverTooltip body={t('lighting.mappings.badgeTooltip', { count: communityCount })} side="top">
             <button
               type="button"
               className={styles.communityBadge}
               aria-label={t('lighting.mappings.badgeTooltip', { count: communityCount })}
+              data-no-dnd
               onClick={e => { e.stopPropagation(); onOpenCommunity?.(); }}
             >
               <Users aria-hidden />
@@ -136,44 +124,44 @@ export function ZoneCard({
             </button>
           </HoverTooltip>
         )}
-        {!unavailable && (
-          <div className={styles.deviceCardActions}>
+        {!firmwareControlled && (
+          <div className={styles.deviceCardActions} data-no-dnd>
             {device.ledCount > 0 && (
-              <>
-                <HoverTooltip body={t('lighting.devices.identify')} side="top">
-                  <button
-                    type="button"
-                    className={styles.deviceSettingsBtn}
-                    aria-label={t('lighting.devices.identify')}
-                    onClick={handleIdentify}
-                  >
-                    <Eye />
-                  </button>
-                </HoverTooltip>
-                <HoverTooltip body={t('lighting.ledMap.settings')} side="top">
-                  <button
-                    type="button"
-                    className={styles.deviceSettingsBtn}
-                    aria-label={t('lighting.ledMap.settings')}
-                    onClick={e => { e.stopPropagation(); onOpenSettings(); }}
-                  >
-                    <Settings />
-                  </button>
-                </HoverTooltip>
-              </>
+              <HoverTooltip body={t('lighting.devices.identify')} side="top">
+                <button
+                  type="button"
+                  className={styles.deviceSettingsBtn}
+                  aria-label={t('lighting.devices.identify')}
+                  onClick={handleIdentify}
+                >
+                  <Eye />
+                </button>
+              </HoverTooltip>
             )}
-            <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={device.ledsOn}
-              className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
-              aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
-              onClick={e => { e.stopPropagation(); onTogglePower(); }}
-            >
-              <Power />
-            </button>
+            <HoverTooltip body={t('lighting.ledMap.settings')} side="top">
+              <button
+                type="button"
+                className={styles.deviceSettingsBtn}
+                aria-label={t('lighting.ledMap.settings')}
+                onClick={e => { e.stopPropagation(); onOpenSettings(); }}
+              >
+                <Settings />
+              </button>
             </HoverTooltip>
+            {!unavailable && (
+              <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={device.ledsOn}
+                  className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
+                  aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
+                  onClick={e => { e.stopPropagation(); onTogglePower(); }}
+                >
+                  <Power />
+                </button>
+              </HoverTooltip>
+            )}
           </div>
         )}
       </div>

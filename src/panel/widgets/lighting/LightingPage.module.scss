@@ -179,6 +179,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  margin-top: 0.5rem;
   // Contain the cells' stacking (the thumbnail badges use z-index): without
   // this their z-index competes with the panel-settings sticky dock and the
   // bulb/panel icons paint THROUGH the docked preview while scrolling.
@@ -581,21 +582,6 @@
   gap: 0.5rem;
 }
 
-.filtersRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.filterChips {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
-}
-
 .filterChip {
   padding: 0.3rem 0.65rem;
   border: 1px solid var(--border);
@@ -673,26 +659,66 @@
 // ── Device Panel ────────────────────────────────────────────────────────────
 
 .devicePanel {
-  // Horizontal padding mirrors CoolingPage's .fanPanel (0 1rem 0 2.5rem) so
-  // device cards land at the same on-screen width as cooling fan cards.
-  padding: 0.5rem 1rem 0.5rem 2.5rem;
+  // Tight right inset (matches CoolingPage's .fanList padding-right) so cards
+  // sit close to the scrollbar; 2.5rem left inset keeps them off the divider.
+  padding: 0.5rem 0.4rem 0.5rem 2.5rem;
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
 }
 
-// Bottom-of-panel rescan, between the device list and the OpenRGB indicator.
-// Standard Button; this only positions it.
-.rescanDevicesBtn {
-  margin: 0.4rem 1rem 0 2.5rem;
+// Bottom-of-pane OpenRGB rescan control: refresh icon + rescan action on the
+// left, OpenRGB label + status dot pushed to the right edge. Spans the pane
+// width via the right pane's column stretch; height matches the dashboard's
+// "Add widget" button (.addWidgetButton).
+.openRgbButton {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.5rem 0.4rem 0.85rem 2.5rem;
+  flex-shrink: 0;
+  padding: 0.3rem 0.7rem;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--type-small);
+  cursor: pointer;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--bg-card-hover);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+}
+
+// Push the refresh icon to the right edge; status dot + label stay left.
+.openRgbSpinner {
+  margin-left: auto;
+}
+
+.openRgbDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-// Bottom-of-pane OpenRGB launcher/indicator. Standard Button; this only
-// positions it.
-.statusCard {
-  margin: 0.5rem 1rem 0.85rem 2.5rem;
-  flex-shrink: 0;
+.openRgbDotOnline {
+  background: var(--good);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--good) 60%, transparent);
+}
+
+.openRgbDotOffline {
+  background: var(--bad);
 }
 
 .rescanIconSpinning {
@@ -703,6 +729,27 @@
 @keyframes deviceRescanSpin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.rescanDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rescanDotOff {
+  background: var(--bad);
+}
+
+.rescanDotOn {
+  background: var(--good);
+}
+
+.rescanDotScanning {
+  background: var(--good);
+  animation: deviceRescanSpin 1.1s linear infinite;
 }
 
 .deviceEmpty {
@@ -716,6 +763,29 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+// Dashed "add smart lights" entry pinned to the end of the device list. Faint
+// by default; firms up on hover. Geometry matches .deviceCard so it aligns.
+.addSmartLights {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  border: var(--border-width) dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    background: var(--surface);
+  }
 }
 
 .deviceCard {
@@ -741,29 +811,24 @@
     .deviceSettingsBtn { opacity: 1; }
   }
 
+  // Detection-failed / 0-LED non-resizable zones: dimmed + dashed as a state
+  // hint, but still interactive - selectable and the LED-map editor opens.
   &.deviceCardUnavailable {
-    cursor: not-allowed;
     opacity: 0.55;
     border-style: dashed;
 
-    &:hover { border-color: var(--border); }
+    &:hover { border-color: var(--border-strong); }
   }
 
   // Dim the device name + meta when the toggle is off; the toggle
   // itself stays full opacity.
   &.deviceCardPoweredOff {
+    opacity: var(--alpha-strong);
     .deviceName { color: var(--text-dim); }
     .deviceMeta { opacity: 0.6; }
   }
 }
 
-// Drag-and-drop visuals match the cooling cards: source fades to half, drop
-// target gets the dashed accent outline used by the widget rearrange chrome.
-.deviceCardDragging { opacity: 0.5; }
-.deviceCardDragOver {
-  outline: 2px dashed var(--accent);
-  outline-offset: -2px;
-}
 
 // Second line of the device card: LED count on the left, action icons
 // flush right, sharing one row to trim card height.
@@ -851,6 +916,28 @@
   font-style: italic;
 }
 
+// Firmware badge in the meta row of a firmware-controlled zone card.
+.deviceMetaFirmware {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0.7;
+}
+
+// Active state for the FW Control toggle button in the group header.
+.deviceFwControlBtnOn {
+  opacity: 1;
+  color: var(--accent-text);
+  background: var(--accent);
+
+  &:hover {
+    background: var(--accent-glow);
+    color: var(--accent-text);
+  }
+}
+
 // Community-layouts pill on a device card: shown when the registry has
 // cached layouts for this device. Click deep-links to the LED map editor's
 // Community tab.
@@ -880,6 +967,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  // Small breathing room after a whole device block, matching the cooling
+  // page's grouped-device spacing.
+  margin-bottom: 0.5rem;
 
   // Reveal the group power button on hover, mirroring the per-card affordance.
   // Persistent-when-off behaviour is handled by .devicePowerBtnPersistent on
@@ -892,8 +982,6 @@
   flex-direction: column;
   gap: 0.35rem;
   padding-left: 0.5rem;
-  // Matches the tab/header rule: built from the text colour so it inverts with the theme.
-  border-left: 2px solid color-mix(in srgb, var(--text) 18%, transparent);
   margin-left: 0.3rem;
 }
 
@@ -981,4 +1069,177 @@
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 0;
+}
+
+// ── Game Sync games panel ─────────────────────────────────────────────────────
+
+// Header row: section title on the left, Scan button flush right.
+.gameSyncGamesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.gameSyncGamesRescanBtn {
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--type-small);
+  cursor: pointer;
+  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--bg-card-hover);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.gameSyncGamesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.gameSyncGameRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: var(--border-width) solid var(--border);
+  overflow: hidden;
+}
+
+// Steam capsule_231x87 thumbnail; width proportional to that ratio.
+.gameSyncGameThumb {
+  width: 58px;
+  height: 22px;
+  object-fit: cover;
+  border-radius: 2px;
+  flex-shrink: 0;
+  display: block;
+}
+
+// Name + store label stacked vertically, taking remaining row width.
+.gameSyncGameInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.gameSyncGameName {
+  font-size: var(--type-body);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameSyncGameStore {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.gameSyncGamesScanning {
+  font-size: var(--type-body);
+  color: var(--text-dim);
+  margin: 0;
+  font-style: italic;
+}
+
+.gameSyncGamesNone {
+  font-size: var(--type-body);
+  color: var(--text-dim);
+  margin: 0;
+}
+
+// ── Game Sync redesign: left pane ─────────────────────────────────────
+
+.gameSyncLeftPane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden auto;
+  padding: 0.75rem 0.5rem 1rem 0;
+}
+
+.gameSyncActivity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  // Matches DeviceCanvas dark frame dimensions; 21:9-capped width.
+  height: 190px;
+  width: min(100%, calc(380px * 21 / 9));
+  background: #080808;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+}
+
+.gameSyncActivityIcon {
+  color: var(--text-dim);
+  opacity: 0.35;
+  transition: color var(--ease-fast), opacity var(--ease-fast);
+}
+
+.gameSyncActivityIconActive {
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+// Gradient scrim covering the lower third of the frame so the label is
+// readable over both dark idle state and bright artwork.
+.gameSyncActivity::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 50%;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.gameSyncActivityLabel {
+  font-size: var(--type-body);
+  color: var(--text-dim);
+  text-align: center;
+  // Anchored to the frame bottom, sitting above the gradient scrim.
+  position: absolute;
+  bottom: 0.6rem;
+  left: 0;
+  right: 0;
+  padding: 0 0.5rem;
+  z-index: 2;
+}
+
+// Steam header art (460x215). Rounded corners via parent overflow:hidden.
+.gameSyncActivityArt {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }

@@ -166,13 +166,21 @@
   padding-right: 4px;
 }
 
+// Widgets tab: the catalog owns its scroll (search pinned, grid scrolls). The
+// wrapper must not also scroll — a second scrollport would drag the search bar
+// down with the grid. Becomes a bounded flex column the catalog fills instead.
+.tabContentCatalog {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-right: 0;
+}
+
 // --- Widget Catalog (Widgets tab) ---
 
 .catalog {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  @include scrollbar-visible;
 }
 
 // --- Theme Panel ---

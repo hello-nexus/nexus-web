@@ -75,6 +75,6 @@ export function Button({
   );
 
   // Route `title` through HoverTooltip instead of the native browser tooltip,
-  // matching IconLabelButton / RgbStatusCard.
+  // matching IconLabelButton.
   return title ? <HoverTooltip body={title}>{btn}</HoverTooltip> : btn;
 }

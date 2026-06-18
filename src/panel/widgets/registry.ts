@@ -35,12 +35,10 @@ import { displaysApp } from './displays';
 import { timerApp } from './timer';
 import { stopwatchApp } from './stopwatch';
 import { calculatorApp } from './calculator';
-import { iframeApp } from './iframe';
 import { twitchApp } from './twitch';
 import { deckApp } from './deck';
 import { emojiApp } from './emoji';
 import { galleryApp } from './gallery';
-import { pairingApp } from './pairing';
 import { transferApp } from './transfer';
 import { cameraApp } from './camera';
 
@@ -63,12 +61,10 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   timer:      timerApp,
   stopwatch:  stopwatchApp,
   calculator: calculatorApp,
-  iframe:     iframeApp,
   twitch:     twitchApp,
   deck:       deckApp,
   emoji:      emojiApp,
   gallery:    galleryApp,
-  pairing:    pairingApp,
   transfer:   transferApp,
   camera:     cameraApp,
 };
@@ -90,8 +86,8 @@ export function appAvailableForSurface(
   // as the remote default for callers that don't carry the flag (layout
   // reconcile, PanelApp's render filter).
   const remote = opts?.remote ?? (surface === 'phone');
-  // Local-only widgets (e.g. the pairing QR) are hidden on remotely-connected
-  // panels — a remote panel is the thing being paired, not the pairer.
+  // Local-only widgets are hidden on remotely-connected panels: a remote panel
+  // is the thing being paired, not the pairer.
   if (meta.localOnly && remote) return false;
   // Remote-only widgets (e.g. transfer) act on the host from a paired remote;
   // on the PC's own surfaces they have nothing to send to.

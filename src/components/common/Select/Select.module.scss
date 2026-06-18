@@ -46,6 +46,9 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+// Accent-tinted value: opt-in via the `accentValue` prop (the cooling fan
+// dropdown uses it to flag the fan is on the curve currently being viewed).
+.value.accentValue { color: var(--accent); }
 
 .chevron {
   position: absolute;

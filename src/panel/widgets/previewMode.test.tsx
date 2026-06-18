@@ -86,7 +86,6 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   'smart-lights': ['smartLights.onlineOfTotal'],
   deck: ['Stream', 'Lights'],
   twitch: ['nova_streams', 'LIVE'],
-  iframe: ['example.com'],
   // The mocked t() returns keys, so the fixture's machineName surfaces as the
   // idle 'transfer.sendTo' status line rather than 'Nexus-PC' itself.
   transfer: ['transfer.photo', 'transfer.clipboard', 'transfer.sendTo'],
@@ -176,12 +175,6 @@ describe('widget preview mode', () => {
 
   it('gallery preview renders an inline data-URI cover', () => {
     const { container } = renderPreview('gallery', pickerSizeFor(APP_REGISTRY.gallery.meta));
-    const img = container.querySelector('img');
-    expect(img?.getAttribute('src')?.startsWith('data:image/svg+xml')).toBe(true);
-  });
-
-  it('pairing preview renders a frozen data-URI QR', () => {
-    const { container } = renderPreview('pairing', pickerSizeFor(APP_REGISTRY.pairing.meta));
     const img = container.querySelector('img');
     expect(img?.getAttribute('src')?.startsWith('data:image/svg+xml')).toBe(true);
   });

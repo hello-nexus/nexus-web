@@ -33,6 +33,16 @@
   min-width: 0;
 }
 
+// Inside an ImmersiveLayout cell (Touch facet): fill the cell and scroll
+// internally. The cell already handles the fixed-4x4 / fill sizing per
+// orientation, so the column just takes whatever height it's given.
+.columnImmersive {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .colHeader {
   margin-bottom: 0.35rem;
 }

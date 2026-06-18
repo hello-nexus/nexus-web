@@ -73,7 +73,7 @@ describe('appAvailableForSurface', () => {
     // Per user spec: "widgets in the q-series library should be filtered by
     // 2x4 and no-touch". Availability falls out of capabilities so a new
     // non-touch widget with a 2x4 variant gets picked up automatically.
-    for (const type of ['clock', 'monitoring', 'media', 'iframe', 'gallery',
+    for (const type of ['clock', 'monitoring', 'media', 'gallery',
                         'screentime', 'twitch']) {
       const def = APP_REGISTRY[type];
       expect(def, `missing widget type: ${type}`).toBeDefined();
@@ -93,14 +93,14 @@ describe('appAvailableForSurface', () => {
     expect(appAvailableForSurface(displays.meta, 'desktop')).toBe(true);
   });
 
-  it('hides local-only widgets (pairing QR) on remotely-connected panels', () => {
-    const pairing = APP_REGISTRY.pairing;
-    expect(pairing.meta.localOnly).toBe(true);
+  it('hides local-only widgets on remotely-connected panels', () => {
+    // No built-in widget is local-only today; verify the surface filter still
+    // honors the flag for any future local-only widget.
+    const localOnly = { ...APP_REGISTRY.clock.meta, localOnly: true };
     // Local (hard-wired) panels show it; remote (paired phone/browser/app) hide it.
-    expect(appAvailableForSurface(pairing.meta, 'y70')).toBe(true);
-    expect(appAvailableForSurface(pairing.meta, 'y70', { remote: false })).toBe(true);
-    expect(appAvailableForSurface(pairing.meta, 'phone', { remote: true })).toBe(false);
-    expect(appAvailableForSurface(pairing.meta, 'desktop', { remote: true })).toBe(false);
+    expect(appAvailableForSurface(localOnly, 'y70', { remote: false })).toBe(true);
+    expect(appAvailableForSurface(localOnly, 'phone', { remote: true })).toBe(false);
+    expect(appAvailableForSurface(localOnly, 'desktop', { remote: true })).toBe(false);
     // Non-local-only widgets are unaffected by the remote flag.
     expect(appAvailableForSurface(APP_REGISTRY.clock.meta, 'phone', { remote: true })).toBe(true);
   });
@@ -167,7 +167,7 @@ describe('sizesForSurface', () => {
     // desktop should never see it offered in the size picker, even on
     // widgets that declare 2x4 in their `sizes`.
     for (const surface of ['y70', 'phone', 'desktop'] as const) {
-      for (const type of ['clock', 'monitoring', 'media', 'iframe', 'gallery']) {
+      for (const type of ['clock', 'monitoring', 'media', 'gallery']) {
         const def = APP_REGISTRY[type];
         expect(def.meta.sizes, `${type} should declare 2x4`).toContain('2x4');
         expect(sizesForSurface(def.meta, surface), `${type} on ${surface}`).not.toContain('2x4');
@@ -207,7 +207,7 @@ describe('pickerSizeFor', () => {
   // to a widget's sole supported size (4x4 / 2x2 / 1x1). Drives the variable
   // tile sizes in the proportional catalog.
   it('prefers 4x2 when a widget supports it', () => {
-    for (const type of ['clock', 'cooling', 'iframe', 'lighting', 'obs',
+    for (const type of ['clock', 'cooling', 'lighting', 'obs',
                         'screentime', 'gallery', 'media', 'displays',
                         'stopwatch', 'timer', 'monitoring', 'deck']) {
       const def = APP_REGISTRY[type];
@@ -217,10 +217,9 @@ describe('pickerSizeFor', () => {
   });
 
   it('falls back to a sole supported size when 4x2 is unavailable', () => {
-    // 4x4-only widgets, 2x2-only pairing.
+    // 4x4-only widgets fall back to their sole supported size.
     expect(pickerSizeFor(APP_REGISTRY.calculator.meta, 'y70')).toBe('4x4');
     expect(pickerSizeFor(APP_REGISTRY.steam.meta, 'y70')).toBe('4x4');
-    expect(pickerSizeFor(APP_REGISTRY.pairing.meta, 'y70')).toBe('2x2');
   });
 
   it('drops 2x4 first, then applies the rule (twitch becomes 4x4)', () => {

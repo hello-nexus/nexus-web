@@ -16,6 +16,7 @@ import {
 import {
   fetchMediaCurrent,
   fetchMediaLibrary,
+  mediaIdle,
   playCurrentOrFirstMedia,
   type MediaItem,
 } from '../../../api/mediaLibrary';
@@ -24,13 +25,6 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync } from '../../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useTranslation } from '../../../lib/i18n';
-import {
-  DEFAULT_SCREEN_FILTER,
-  SCREEN_FILTERS,
-  matchScreenFilter,
-  screenFilterByKey,
-  type ScreenFilterKey,
-} from './page/screenFilters';
 import {
   EFFECTS,
   MODES,
@@ -45,6 +39,7 @@ import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { LightingLivePreview } from './LightingLivePreview';
+import { LightingShaderPreview } from './LightingShaderPreview';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
@@ -56,7 +51,7 @@ const WIDGET_BUTTONS: { key: WidgetMode; icon: LucideIcon; labelKey: string }[] 
   { key: 'screen',  icon: Monitor,  labelKey: 'lighting.mode.screen'  },
 ];
 
-// Catalog preview pins screen mode (filter defaults to DEFAULT_SCREEN_FILTER):
+// Catalog preview pins screen mode (pass-through, reactive=false):
 // the icon view renders with zero fetch/socket/blob traffic. Keep in sync with
 // the simple-mode render — see .agents/rules/widget-preview-fixtures.md in the
 // master repo.
@@ -75,9 +70,14 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const [mediaThumbs, setMediaThumbs] = useState<Record<string, string>>({});
-  const [filter, setFilter] = useState<ScreenFilterKey>(DEFAULT_SCREEN_FILTER);
+  const [reactive, setReactive] = useState(false);
   const mediaThumbsRef = useRef<Record<string, string>>({});
   const compact = widget.size === '2x2';
+
+  // Immersive only: tapping the live shader preview expands it to a full-bleed
+  // shader view; tapping that closes it. Auto-closes whenever the mode leaves
+  // animate — the fullscreen view only renders a shader effect.
+  const [shaderFullscreen, setShaderFullscreen] = useState(false);
 
   // False until the first hydrate() resolves: mode/effect/filter sets
   // before that are hydration, not state changes, and must not animate.
@@ -86,7 +86,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // loads must never trigger the flash.
   const flashPulse = useStateChangePulse(
     mode === 'animate' ? `animate:${activeEffect}`
-      : mode === 'screen' ? `screen:${filter}`
+      : mode === 'screen' ? `screen:${reactive}`
       : mode,
     !hydrated,
   );
@@ -127,7 +127,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     setActiveEffect(nextEffect);
 
     setMode(resolveMode(rawSync));
-    setFilter(matchScreenFilter(screen) ?? DEFAULT_SCREEN_FILTER);
+    setReactive(screen?.reactive ?? false);
     setHydrated(true);
   }, []);
 
@@ -139,6 +139,12 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     hydrate();
   }, [preview, hydrate]);
   useTopicCallback('lighting', !preview, hydrate);
+
+  // Leaving animate (a mode change from this surface or an external broadcast)
+  // dismisses the immersive fullscreen shader.
+  useEffect(() => {
+    if (mode !== 'animate') setShaderFullscreen(false);
+  }, [mode]);
 
   // The tile shows the active effect's selected universal slot. Its content hash
   // changes when that slot's saved look is edited (re-hydrate here, or the
@@ -247,13 +253,14 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     publishLighting('animate', effectKey, { effect: effectKey, templateIndex, effectState: next });
   }, [publishLighting, templates]);
 
-  const applyMirrorFilter = useCallback(async (key: ScreenFilterKey) => {
-    const def = screenFilterByKey(key);
-    setFilter(key);
+  const applyMirror = useCallback(async (nextReactive: boolean) => {
+    setReactive(nextReactive);
     setMode('screen');
     setMusicReactive(false).catch(() => { /* best-effort */ });
-    await setScreenEffect(def.pp);
-    await startScreenMirror(def.pp.saturation, def.pp.contrast, '', def.pp.hue, def.pp.colorize);
+    const current = await fetchScreenEffect();
+    const next = { hue: 0, colorize: 0, saturation: 1, contrast: 1, reactivity: 0.5, intensity: 0.5, ...current, reactive: nextReactive };
+    await setScreenEffect(next, true);
+    await startScreenMirror(next.saturation, next.contrast, '', next.hue, next.colorize);
     publishLighting('screen', 'screen');
   }, [publishLighting]);
 
@@ -279,12 +286,9 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     applyEffect(next.key, resolveEffectState(next.key, templates));
   }, [mode, cycleAnimate, applyEffect, templates]);
 
-  const cycleFilter = useCallback((delta: number) => {
-    const idx = SCREEN_FILTERS.findIndex(f => f.key === filter);
-    const base = idx < 0 ? 0 : idx;
-    const nextIdx = (base + delta + SCREEN_FILTERS.length) % SCREEN_FILTERS.length;
-    applyMirrorFilter(SCREEN_FILTERS[nextIdx].key);
-  }, [applyMirrorFilter, filter]);
+  const toggleReactive = useCallback(() => {
+    applyMirror(!reactive);
+  }, [applyMirror, reactive]);
 
   const onAnimateButton = useCallback(() => {
     const effect = EFFECTS.some(e => e.key === activeEffect) ? activeEffect : 'rainbow';
@@ -292,13 +296,18 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, [activeEffect, applyEffect]);
 
   const onMirrorButton = useCallback(() => {
-    applyMirrorFilter(filter);
-  }, [applyMirrorFilter, filter]);
+    applyMirror(reactive);
+  }, [applyMirror, reactive]);
 
   const onMediaButton = useCallback(async () => {
     setMode('gif');
     setMusicReactive(false).catch(() => { /* best-effort */ });
-    await playCurrentOrFirstMedia();
+    const played = await playCurrentOrFirstMedia();
+    if (!played) {
+      // No playable media: black output while staying in Media mode, so the
+      // Media tab stays selected instead of falling to Off.
+      await mediaIdle();
+    }
     publishLighting('gif', 'gif');
   }, [publishLighting]);
 
@@ -340,13 +349,23 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
       };
     }
     if (mode === 'screen') {
-      const def = screenFilterByKey(filter);
       return {
         kind: 'icon',
         icon: Monitor,
-        label: t(def.i18nKey),
-        onPrev: prev ?? (() => cycleFilter(-1)),
-        onNext: next ?? (() => cycleFilter(1)),
+        label: t(reactive ? 'lighting.filter.reactive' : 'lighting.filter.passthrough'),
+        onPrev: prev ?? toggleReactive,
+        onNext: next ?? toggleReactive,
+      };
+    }
+    if (mode === 'gamesync') {
+      // Game Sync is driven by the captured game; nothing to cycle here. Simple
+      // mode keeps arrows (prev/next jump into the animation list).
+      return {
+        kind: 'icon',
+        icon: LIGHTING_MODE_ICONS.gamesync,
+        label: t('lighting.mode.gamesync'),
+        onPrev: prev,
+        onNext: next,
       };
     }
     if (mode === 'gif') {
@@ -365,13 +384,21 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     // mode === 'none' (off). In simple mode we still show arrows so
     // the first press enters the animation cycle.
     return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off'), onPrev: prev, onNext: next };
-  }, [mode, activeEffect, thumbs, t, filter, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, cycleFilter, simpleMode, enterOrCycleAnimate]);
+  }, [mode, activeEffect, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, toggleReactive, simpleMode, enterOrCycleAnimate]);
 
   const widgetMode: WidgetMode | null =
     mode === 'animate' ? 'animate'
     : mode === 'gif' ? 'gif'
     : mode === 'screen' ? 'screen'
     : null;
+
+  // Active Animate effect state for the immersive on-device preview: the shader
+  // is rendered locally at full resolution, replacing the low-res streamed LED
+  // canvas (LightingLivePreview) for shader effects only.
+  const animateState = useMemo(
+    () => resolveEffectState(activeEffect, templates),
+    [activeEffect, templates],
+  );
 
   // Immersive (fullscreen panel) variant: a row of square mode buttons
   // on top (off / animate / media / mirror), preview below. Shown for
@@ -396,7 +423,46 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
             );
           })}
         </div>
-        <SingleItemView view={view} t={t} showArrows={false} overlay={<><LightingLivePreview />{flash}</>} />
+        <SingleItemView
+          view={view}
+          t={t}
+          showArrows={false}
+          overlay={
+            <>
+              {mode === 'animate'
+                ? (
+                  <button
+                    type="button"
+                    className={styles.previewExpand}
+                    onClick={() => setShaderFullscreen(true)}
+                    // Tap opens the fullscreen shader; never arm the overlay's
+                    // swipe-to-dismiss here (it races the tap on Y70 WebView2).
+                    data-panel-no-sheet-swipe="true"
+                    aria-label={t('lighting.fullscreen')}
+                  >
+                    {/* Gated off while fullscreen is open: that view (below)
+                        fully occludes this one, so only one WebGL context runs
+                        at a time. The shader source is cached, so the remount
+                        on close is instant. */}
+                    {!shaderFullscreen && <LightingShaderPreview effect={activeEffect} state={animateState} />}
+                  </button>
+                )
+                : <LightingLivePreview />}
+              {flash}
+            </>
+          }
+        />
+        {mode === 'animate' && shaderFullscreen && (
+          <button
+            type="button"
+            className={styles.shaderFullscreen}
+            onClick={() => setShaderFullscreen(false)}
+            data-panel-no-sheet-swipe="true"
+            aria-label={t('lighting.fullscreen.exit')}
+          >
+            <LightingShaderPreview effect={activeEffect} state={animateState} />
+          </button>
+        )}
       </div>
     );
   }
@@ -544,6 +610,7 @@ function resolveEffectState(
 
 function resolveMode(sync: string): LightingMode {
   if (!sync || sync === 'none') return 'none';
+  if (sync === 'gamesync') return 'gamesync';
   if (sync === 'screen' || sync.includes('mirror')) return 'screen';
   if (sync === 'gif' || sync.includes('media')) return 'gif';
   return 'animate';

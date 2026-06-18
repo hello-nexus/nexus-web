@@ -34,7 +34,7 @@ export interface PanelWidgetCatalogProps {
   searchable?: boolean;
   variant?: 'panel-sheet' | 'desktop-modal';
   // The target panel connects over the network (paired phone/browser/app), so
-  // local-only widgets (the pairing QR) are hidden.
+  // local-only widgets are hidden.
   remote?: boolean;
   themeMode?: 'dark' | 'light';
   // Inline panel-theme CSS vars (--panel-accent + the --accent family from

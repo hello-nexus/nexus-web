@@ -1,0 +1,13 @@
+@use '../../../styles/text' as *;
+
+.badge {
+  @include text-caption;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-dim);
+  background: color-mix(in srgb, var(--text-dim) 10%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  margin-top: 6px;
+}

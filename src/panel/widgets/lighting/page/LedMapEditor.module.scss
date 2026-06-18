@@ -138,6 +138,40 @@
   user-select: none;
 }
 
+.ledGroup {
+  width: 36px;
+  height: 36px;
+  box-shadow: 0 0 0 2.5px var(--accent), 0 0 0 4px var(--accent-soft);
+}
+
+.ledGroupIcon {
+  color: #fff;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 0 2px rgb(0 0 0 / var(--alpha-strong)));
+}
+
+// Notification-style member count in the top-right corner of a grouped LED.
+.ledGroupBadge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  box-shadow: 0 0 0 1.5px rgb(0 0 0 / var(--alpha-strong));
+}
+
 // Dashed outline around the selected-LED bbox. Visual anchor for the floating
 // group toolbar on the right edge. Parent has pointer-events:none; individual
 // corner handles inside re-enable pointer-events to capture resize drags.
@@ -350,6 +384,11 @@
   color: var(--text-dim);
 }
 
+.ledCountReadonly {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
 .ledCountInput {
   width: 3.5rem;
   padding: 0.2rem 0.4rem;
@@ -553,4 +592,60 @@
   width: 18px;
   height: 18px;
   color: var(--text-dim);
+}
+
+.ledMergeTarget {
+  box-shadow: 0 0 0 3px var(--accent), 0 0 8px 2px var(--accent-glow);
+  z-index: 4;
+}
+
+@keyframes ringContract {
+  from { width: 120px; height: 120px; opacity: 0.9; }
+  to { width: 34px; height: 34px; opacity: 0; }
+}
+
+@keyframes ringExpand {
+  from { width: 34px; height: 34px; opacity: 0.9; }
+  to { width: 140px; height: 140px; opacity: 0; }
+}
+
+.ringVfx {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.ringVfxMerge {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 6px var(--accent-glow);
+  animation: ringContract 250ms ease-out forwards;
+}
+
+.ringVfxSplit {
+  border: 2px solid var(--accent-glow);
+  animation: ringExpand 280ms ease-out forwards;
+}
+
+.centerGuideV {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgb(255 255 255 / var(--alpha-faint));
+  pointer-events: none;
+  z-index: 0;
+}
+
+.centerGuideH {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgb(255 255 255 / var(--alpha-faint));
+  pointer-events: none;
+  z-index: 0;
 }

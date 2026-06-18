@@ -39,6 +39,8 @@ export interface PanelDeviceRecord {
   // central. Absent shaders default to preset 0.
   backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
+  backgroundMediaId?: string | null;
+  backgroundMediaType?: 'static' | 'animated' | null;
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetBlur?: boolean;
@@ -73,6 +75,8 @@ export interface PanelDevicePatch {
   // Full per-shader preset map (client sends the whole map).
   backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
+  backgroundMediaId?: string | null;
+  backgroundMediaType?: 'static' | 'animated' | null;
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetBlur?: boolean;

@@ -87,7 +87,7 @@ describe('buildEntries', () => {
       expect(find(`app:${type}`)?.kind).toBe('navigate');
     }
     // Page-less apps are never listed.
-    for (const type of ['calculator', 'emoji', 'timer', 'iframe']) {
+    for (const type of ['calculator', 'emoji', 'timer']) {
       expect(find(`app:${type}`)).toBeUndefined();
     }
     // Apps with a curated NAV row are not duplicated under app:*.

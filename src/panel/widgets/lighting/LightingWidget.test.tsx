@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
+import { fetchCurrentSync } from '../../../api/lighting';
 import { LightingWidget } from './LightingWidget';
 
 vi.mock('../../../api/lighting', () => ({
@@ -40,17 +41,15 @@ vi.mock('../../../lib/i18n', () => ({
       'lighting.mode.animate': 'Animation',
       'lighting.mode.gif': 'Media',
       'lighting.mode.screen': 'Mirror',
+      'lighting.mode.gamesync': 'Game Sync',
       'lighting.panel.prev': 'Previous',
       'lighting.panel.next': 'Next',
       'lighting.panel.screenActive': 'Mirror is active',
       'lighting.panel.selectMode': 'Select a mode',
       'lighting.controls.noMedia': 'No media available',
       'lighting.controls.rainbow': 'Rainbow',
-      'lighting.filter.normal': 'Normal',
-      'lighting.filter.bw': 'B&W',
-      'lighting.filter.highsat': 'High Saturation',
-      'lighting.filter.mirrorx': 'Mirror X',
-      'lighting.filter.mirrory': 'Mirror Y',
+      'lighting.filter.passthrough': 'Pass-Through',
+      'lighting.filter.reactive': 'Reactive',
     }[key] ?? key),
   }),
 }));
@@ -109,6 +108,15 @@ describe('LightingWidget', () => {
       expect(animateBtn.getAttribute('data-active')).toBe('true');
     });
     expect(screen.getByRole('button', { name: 'Mirror' }).getAttribute('data-active')).toBe('false');
+  });
+
+  it('shows the Game Sync label when the active sync is gamesync', async () => {
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'gamesync' });
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+
+    await waitFor(() => expect(screen.getByText('Game Sync')).toBeInTheDocument());
+    // Game Sync is not one of the three widget mode buttons, so none is active.
+    expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('false');
   });
 
   it('flashes on mode change but not on initial hydration', async () => {

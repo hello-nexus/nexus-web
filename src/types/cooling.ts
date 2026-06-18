@@ -6,7 +6,7 @@ import type { CurvePoint, CurvesResponse } from '../api/cooling';
  * one import instead of pulling from the others.
  */
 
-export type CurveType = 'flat' | 'linear' | 'graph' | 'mix';
+export type CurveType = 'flat' | 'linear' | 'multipoint' | 'mix';
 export type MixFn = 'min' | 'max' | 'avg' | 'sum';
 
 /**
@@ -24,7 +24,9 @@ export interface CurveDef {
   sourceId: string;
   flat: { speed: number };
   linear: { responseTime: number; minTemp: number; maxTemp: number; minSpeed: number; maxSpeed: number };
-  graph: { responseTime: number; points: CurvePoint[] };
+  // The multi-point curve. Persisted to the service as the wire "Graph" type /
+  // `graph` object (see curveDefsFromApi + pushCurves).
+  multipoint: { responseTime: number; points: CurvePoint[] };
   mix: { responseTime: number; curveIds: string[]; fn: MixFn };
   preset?: CurvePreset;
   /** For preset curves only: true when the curve's Type + Linear params still
@@ -45,13 +47,14 @@ export const MAX_CURVES = 10;
 /**
  * Adapt /cooling/curves wire curves ("input.id", "Flat|Linear|Graph|Mixed")
  * to the shared CurveDef shape that computeCurveSpeed and the editors expect.
+ * The wire "Graph" type + `graph` object map to the local `multipoint` field.
  */
 export function curveDefsFromApi(saved: CurvesResponse | null): CurveDef[] {
   if (!saved?.curves?.length) return [];
   return saved.curves.map(c => ({
     id: c.id,
     name: c.name,
-    type: (c.type === 'Flat' ? 'flat' : c.type === 'Linear' ? 'linear' : c.type === 'Graph' ? 'graph' : 'mix') as CurveType,
+    type: (c.type === 'Flat' ? 'flat' : c.type === 'Linear' ? 'linear' : c.type === 'Graph' ? 'multipoint' : 'mix') as CurveType,
     sourceId: c.input?.id ?? '',
     flat: { speed: c.flat?.speed ?? 50 },
     linear: {
@@ -61,11 +64,11 @@ export function curveDefsFromApi(saved: CurvesResponse | null): CurveDef[] {
       minSpeed: c.linear?.minSpeed ?? 30,
       maxSpeed: c.linear?.maxSpeed ?? 90,
     },
-    graph: {
+    multipoint: {
       responseTime: c.graph?.responseTime ?? 1.5,
       points: c.graph?.points?.length ? c.graph.points : [
-        { temp: 30, speed: 25 }, { temp: 50, speed: 40 },
-        { temp: 70, speed: 70 }, { temp: 90, speed: 100 },
+        { temp: 30, speed: 25 }, { temp: 45, speed: 33 }, { temp: 60, speed: 63 },
+        { temp: 75, speed: 92 }, { temp: 90, speed: 100 },
       ],
     },
     mix: {
@@ -83,10 +86,10 @@ export function curveDefsFromApi(saved: CurvesResponse | null): CurveDef[] {
 
 export function newCurve(id: string): CurveDef {
   return {
-    id, name: `Curve ${id.slice(-4)}`, type: 'flat', sourceId: '',
+    id, name: `Curve ${id.slice(-4)}`, type: 'multipoint', sourceId: '',
     flat: { speed: 50 },
     linear: { responseTime: 1.5, minTemp: 35, maxTemp: 75, minSpeed: 30, maxSpeed: 90 },
-    graph: { responseTime: 1.5, points: [{ temp: 30, speed: 25 }, { temp: 50, speed: 40 }, { temp: 70, speed: 70 }, { temp: 90, speed: 100 }] },
+    multipoint: { responseTime: 1.5, points: [{ temp: 30, speed: 25 }, { temp: 45, speed: 33 }, { temp: 60, speed: 63 }, { temp: 75, speed: 92 }, { temp: 90, speed: 100 }] },
     mix: { responseTime: 1.5, curveIds: [], fn: 'max' },
   };
 }

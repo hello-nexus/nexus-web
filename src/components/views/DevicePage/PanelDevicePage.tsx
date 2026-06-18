@@ -33,6 +33,7 @@ import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
+import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
@@ -97,6 +98,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   // iframe matches whatever Y70 variant + Windows DPI scaling is actually
   // attached.
   const [liveCanvas, setLiveCanvas] = useState<{ width: number; height: number } | null>(null);
+  const [liveDpr, setLiveDpr] = useState<number | null>(null);
   const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
   // One-shot flash request forwarded to the preview iframe when an edit is
   // rejected (a resize that can't fit). nonce re-fires repeat rejections.
@@ -145,7 +147,9 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   const monitorRotation = isMonitorPanel && hostCaps?.rotation === true;
   const monitorReserve = isMonitorPanel && hostCaps?.reserve === true;
   const settingsAvailable = supportsDisplayControls || supportsAutoLaunch || ddcSupported
-    || monitorRotation || monitorReserve;
+    || monitorRotation || monitorReserve
+    // Q60 carries an AIO cooler, so its settings tab hosts the cooler firmware options.
+    || surface === 'q60';
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -191,6 +195,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       const cw = match?.capabilities?.cssWidth;
       const ch = match?.capabilities?.cssHeight;
       setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
+      setLiveDpr(match?.capabilities?.dpr ?? null);
       // Per-panel persisted settings (promoted monitors).
       setRecordReserve(match?.reserveMonitor ?? true);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
@@ -248,6 +253,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       const cw = record.capabilities?.cssWidth;
       const ch = record.capabilities?.cssHeight;
       setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
+      setLiveDpr(record.capabilities?.dpr ?? null);
       setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
     }).catch(() => {});
   });
@@ -392,7 +398,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
               />
             ) : (
               <>
-                <div className={styles.tabContent}>
+                <div className={`${styles.tabContent}${activeTab === 'widgets' ? ` ${styles.tabContentCatalog}` : ''}`}>
                   {activeTab === 'widgets' && (
                     <PanelWidgetCatalog
                       surface={surface}
@@ -404,33 +410,52 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       selectedWidgetType={currentSingleWidget?.type}
                     />
                   )}
-                  {activeTab === 'theme' && (
-                    <PanelThemeSettings
-                      theme={theme}
-                      deviceId={editingDeviceId}
-                      resolvedThemeMode={resolvedPanelThemeMode}
-                      onThemeSyncCommit={panelTheme.commitThemeSync}
-                      onThemeModeCommit={panelTheme.commitThemeMode}
-                      onAccentSyncCommit={panelTheme.commitAccentSync}
-                      onAccentPreview={panelTheme.previewAccent}
-                      onAccentCommit={panelTheme.commitAccent}
-                      onBackgroundPreview={panelTheme.previewBackground}
-                      onBackgroundCommit={panelTheme.commitBackground}
-                      onBackgroundModeCommit={panelTheme.commitBackgroundMode}
-                      onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
-                      onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
-                      onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
-                      onBackgroundEffectStateCommit={panelTheme.commitBackgroundEffectState}
-                      onBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
-                      onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
-                      onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
-                      onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
-                      onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
-                      onWidgetBlurCommit={panelTheme.commitWidgetBlur}
-                      hideWidgetLabelsToggle={singleWidget}
-                      hideWidgetChromeControls={singleWidget}
-                    />
-                  )}
+                  {activeTab === 'theme' && (() => {
+                    // Aspect from live CSS viewport (DPR cancels); fall back to
+                    // profile native pixels (both axes at same DPR, so ratio holds).
+                    const cw = liveCanvas?.width ?? (surface === 'q60' ? 720 : 682);
+                    const ch = liveCanvas?.height ?? (surface === 'q60' ? 1280 : 2560);
+                    const devAspect = cw / ch;
+                    // Bake target = the device's PHYSICAL resolution. The Q-series
+                    // is fixed hardware at 720x1280, and its Android WebView already
+                    // reports physical px in cssWidth (dpr is only render density),
+                    // so do NOT multiply. The Y70 is Edge-on-Windows: cssWidth is
+                    // logical px, so native = css * Windows display scaling (dpr).
+                    const nativeW = surface === 'q60' ? 720 : (liveCanvas ? Math.round(cw * (liveDpr ?? 1)) : cw);
+                    const nativeH = surface === 'q60' ? 1280 : (liveCanvas ? Math.round(ch * (liveDpr ?? 1)) : ch);
+                    return (
+                      <PanelThemeSettings
+                        theme={theme}
+                        deviceId={editingDeviceId}
+                        resolvedThemeMode={resolvedPanelThemeMode}
+                        onThemeSyncCommit={panelTheme.commitThemeSync}
+                        onThemeModeCommit={panelTheme.commitThemeMode}
+                        onAccentSyncCommit={panelTheme.commitAccentSync}
+                        onAccentPreview={panelTheme.previewAccent}
+                        onAccentCommit={panelTheme.commitAccent}
+                        onBackgroundPreview={panelTheme.previewBackground}
+                        onBackgroundCommit={panelTheme.commitBackground}
+                        onBackgroundModeCommit={panelTheme.commitBackgroundMode}
+                        onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
+                        onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
+                        onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
+                        onBackgroundEffectStateCommit={panelTheme.commitBackgroundEffectState}
+                        onBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
+                        onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
+                        onBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
+                        onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
+                        onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
+                        onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
+                        onWidgetBlurCommit={panelTheme.commitWidgetBlur}
+                        showMediaTab={surface === 'y70' || surface === 'q60'}
+                        deviceAspect={devAspect}
+                        deviceW={nativeW}
+                        deviceH={nativeH}
+                        hideWidgetLabelsToggle={singleWidget}
+                        hideWidgetChromeControls={singleWidget}
+                      />
+                    );
+                  })()}
                   {activeTab === 'settings' && (isMonitorPanel || ddcSupported) && !supportsDisplayControls && !supportsAutoLaunch && (
                     <MonitorSettingsPanel
                       brightness={ddcSupported ? (ddcBrightness ?? 50) : null}
@@ -488,6 +513,9 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                       showAutoLaunch={supportsAutoLaunch}
                     />
                   )}
+                  {activeTab === 'settings' && surface === 'q60' && (
+                    <QSeriesCoolerSettings />
+                  )}
                 </div>
               </>
             )}
@@ -529,6 +557,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
                 brightness={supportsDisplayControls ? brightness : 100}
                 screenOn={supportsDisplayControls ? screenOn : true}
                 showPanel={supportsAutoLaunch ? autoLaunch : true}
+                deviceId={editingDeviceId ?? undefined}
               />
             </div>
           </div>
@@ -677,6 +706,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
           <Settings
             widget={widget}
             surface={surface}
+            desktopEditor
             onUpdate={handleConfigUpdate}
             onResize={handleResize}
             selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}

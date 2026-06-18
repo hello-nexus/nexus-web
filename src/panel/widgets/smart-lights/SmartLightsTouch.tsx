@@ -1,17 +1,31 @@
-import { SmartLightsPage } from './SmartLightsPage';
-import styles from './SmartLightsTouch.module.scss';
+import type { ReactNode } from 'react';
+import { ImmersiveLayout } from '../common/ImmersiveLayout';
+import { SmartLightsAddColumn, SmartLightsPairedColumn, useSmartLights } from './SmartLightsPage';
+import type { WidgetProps } from '../types';
 
 /**
- * Touch-fullscreen smart-lights management. Reuses the desktop Page (brand
- * picker + Hue scan/pair + paired list) inside a scrollable fullscreen frame.
- * onSectionNavigate is desktop-only, so the "color lives on the Lighting page"
- * hint falls back to plain text here.
+ * Fullscreen smart-lights management. Two cells (same shape as lighting /
+ * cooling):
+ *  - Cell 1 (fixed 4x4): the add-lights block (brand scan/pair + add-by-IP).
+ *  - Cell 2 (the fill cell): the paired-lights list.
+ * ImmersiveLayout stacks them in portrait and sits them side by side in
+ * landscape, derived from the grid. State is shared with the desktop Page via
+ * useSmartLights, so both views resync on the 'lighting' multiplex topic.
  */
-export function SmartLightsTouch() {
+export function SmartLightsTouch({ immersiveGrid }: WidgetProps) {
+  const ctrl = useSmartLights();
+
+  const cells: ReactNode[] = [
+    <SmartLightsAddColumn ctrl={ctrl} immersive />,
+    <SmartLightsPairedColumn ctrl={ctrl} immersive />,
+  ];
+
   return (
-    <div className={styles.touch} data-panel-scrollable="true">
-      <SmartLightsPage />
-    </div>
+    <ImmersiveLayout
+      cells={cells}
+      gridColumns={immersiveGrid?.columns ?? 4}
+      gridRows={immersiveGrid?.rows ?? 8}
+    />
   );
 }
 

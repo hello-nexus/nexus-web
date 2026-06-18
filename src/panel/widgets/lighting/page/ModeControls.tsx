@@ -1,13 +1,17 @@
-import { memo, useEffect, useRef, useState } from 'react';
-import { Monitor } from 'lucide-react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Monitor, MonitorPlay, Zap } from 'lucide-react';
 import {
   fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect, reselectScreen,
   type ScreenMonitor, type PostProcessSettings,
 } from '../../../../api/lighting';
 import {
+  cancelMediaStage,
+  commitMedia,
   deleteMedia,
-  importMedia,
+  mediaIdle,
+  mediaStagePreviewUrl,
   openMediaFolder,
+  stageMedia,
 } from '../../../../api/mediaLibrary';
 import { useTranslation } from '../../../../lib/i18n';
 import type { LightingMode } from '../../../../types/lighting';
@@ -15,7 +19,7 @@ import { EffectCard } from '../../../../components/common/EffectCard/EffectCard'
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
-import { SCREEN_FILTERS, matchScreenFilter, screenFilterByKey, type ScreenFilterKey } from './screenFilters';
+import { MediaCropper, type NormalizedCrop } from '../../../../components/common/MediaCropper/MediaCropper';
 import { useMediaLibrary } from '../effecteditor/useMediaLibrary';
 import { MediaGrid } from '../effecteditor/MediaGrid';
 import styles from '../LightingPage.module.scss';
@@ -37,6 +41,7 @@ export const ModeControls = memo(function ModeControls({ mode, screenPP, onScree
     case 'screen': return <ScreenControls screenPP={screenPP} onScreenPPChange={onScreenPPChange} />;
     case 'gif': return <MediaControls />;
     case 'none': return <OffControls />;
+    case 'gamesync': return null;
   }
 });
 
@@ -71,54 +76,36 @@ export function ScreenControls({ screenPP, onScreenPPChange }: {
     );
   };
 
-  const activeFilter: ScreenFilterKey | null = matchScreenFilter(screenPP);
-
-  const applyFilter = async (key: ScreenFilterKey) => {
-    const def = screenFilterByKey(key);
-    const nextPP: PostProcessSettings = {
-      hue: def.pp.hue,
-      colorize: def.pp.colorize,
-      saturation: def.pp.saturation,
-      contrast: def.pp.contrast,
-      flipX: def.pp.flipX,
-      flipY: def.pp.flipY,
-    };
+  const applyReactive = async (reactive: boolean) => {
+    const nextPP: PostProcessSettings = { ...screenPP, reactive };
     onScreenPPChange(nextPP);
     await setScreenEffect(nextPP, true);
-    // Re-arm the running mirror effect so the new flip/colour state takes
-    // effect immediately on the live frame stream.
-    await startScreenMirror(
-      nextPP.saturation,
-      nextPP.contrast,
-      selectedMonitor,
-      nextPP.hue,
-      nextPP.colorize,
-    );
+    await startScreenMirror(nextPP.saturation, nextPP.contrast, selectedMonitor, nextPP.hue, nextPP.colorize);
   };
 
   return (
     <div className={styles.screenControls}>
-      <div className={styles.filtersRow}>
-        <span className={styles.compactLabel}>{t('lighting.filters.title')}</span>
-        <div className={styles.filterChips}>
-          {SCREEN_FILTERS.map(f => (
-            <button
-              key={f.key}
-              type="button"
-              className={styles.filterChip}
-              data-active={activeFilter === f.key ? 'true' : 'false'}
-              onClick={() => applyFilter(f.key)}
-              aria-pressed={activeFilter === f.key}
-            >
-              {t(f.i18nKey)}
-            </button>
-          ))}
-        </div>
+      <div className={styles.monitorGrid}>
+        <IconLabelButton
+          className={styles.monitorButton}
+          active={!screenPP.reactive}
+          onPress={() => { void applyReactive(false); }}
+          ariaLabel={t('lighting.filter.passthrough')}
+          icon={<MonitorPlay aria-hidden="true" />}
+          label={t('lighting.filter.passthrough')}
+        />
+        <IconLabelButton
+          className={styles.monitorButton}
+          active={!!screenPP.reactive}
+          onPress={() => { void applyReactive(true); }}
+          ariaLabel={t('lighting.filter.reactive')}
+          icon={<Zap aria-hidden="true" />}
+          label={t('lighting.filter.reactive')}
+        />
       </div>
       <div className={styles.monitorPicker}>
         <span className={styles.compactLabel}>{t('lighting.controls.monitor')}</span>
         {selectionMode === 'system' ? (
-          // Wayland: the OS owns screen selection, so re-open its picker.
           <button
             type="button"
             className={styles.filterChip}
@@ -129,9 +116,6 @@ export function ScreenControls({ screenPP, onScreenPPChange }: {
         ) : monitors.length === 0 ? (
           <span className={styles.compactLabel}>{t('lighting.controls.noMonitors')}</span>
         ) : (
-          // Large touch targets instead of a native <select> — the dropdown
-          // doesn't open reliably on the Y70 kiosk WebView. The service names
-          // monitors "Display N (WxH)"; split into a title + resolution line.
           <div className={styles.monitorGrid}>
             {monitors.map(m => {
               const parsed = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(m.name);
@@ -161,6 +145,8 @@ export function ScreenControls({ screenPP, onScreenPPChange }: {
   );
 }
 
+const LIGHTING_CROP_ASPECT = 160 / 90;
+
 function MediaControls() {
   const { t } = useTranslation();
   const { items, activeId, thumbs, refresh, play, removeLocal } = useMediaLibrary();
@@ -168,33 +154,71 @@ function MediaControls() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importingName, setImportingName] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [cropState, setCropState] = useState<{ stageId: string; src: string; name: string } | null>(null);
+  const [converting, setConverting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
+    setImportError(null);
     setImporting(true);
     setImportingName(file.name);
-    setImportError(null);
-    const result = await importMedia(file);
+    const result = await stageMedia(file);
+    if (!result || result.error) {
+      setImporting(false);
+      setImportingName(null);
+      setImportError(t('lighting.controls.importFailed'));
+      return;
+    }
     setImporting(false);
     setImportingName(null);
+    setCropState({ stageId: result.stageId, src: mediaStagePreviewUrl(result.stageId), name: file.name });
+  };
+
+  const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
+    if (!cropState) return;
+    const { stageId, name } = cropState;
+    const cropStr = `${crop.x.toFixed(6)},${crop.y.toFixed(6)},${crop.w.toFixed(6)},${crop.h.toFixed(6)}`;
+    setConverting(true);
+    setImportError(null);
+    const result = await commitMedia(stageId, cropStr, name);
+    setConverting(false);
     if (!result) {
       setImportError(t('lighting.controls.importNetworkError'));
-    } else if (result.error || !result.item) {
-      setImportError(result.msg || t('lighting.controls.importFailed'));
-    } else {
-      await refresh();
-      await play(result.item.id);
+      cancelMediaStage(stageId).catch(() => {});
+      setCropState(null);
+      return;
     }
-    e.target.value = '';
-  };
+    if (result.error || !result.item) {
+      setImportError(result.msg || t('lighting.controls.importFailed'));
+      cancelMediaStage(stageId).catch(() => {});
+      setCropState(null);
+      return;
+    }
+    await refresh();
+    await play(result.item.id);
+    setCropState(null);
+  }, [cropState, t, refresh, play]);
+
+  const handleCropCancel = useCallback(() => {
+    if (cropState) {
+      cancelMediaStage(cropState.stageId).catch(() => {});
+    }
+    setCropState(null);
+    setImportError(null);
+  }, [cropState]);
 
   const handleOpenFolder = async () => {
     await openMediaFolder();
   };
 
   const handleDelete = async (id: string) => {
+    const isActive = id === activeId;
+    const nextItem = isActive
+      ? items.filter(item => item.id !== id)[0] ?? null
+      : null;
     const deleted = await deleteMedia(id);
     if (!deleted) {
       await refresh();
@@ -202,6 +226,13 @@ function MediaControls() {
     }
     removeLocal(id);
     await refresh();
+    if (isActive) {
+      if (nextItem) {
+        await play(nextItem.id);
+      } else {
+        await mediaIdle();
+      }
+    }
   };
 
   const requestDelete = (id: string, name: string) => {
@@ -215,6 +246,16 @@ function MediaControls() {
   };
 
   return (
+    <>
+      {cropState && (
+        <MediaCropper
+          src={cropState.src}
+          aspect={LIGHTING_CROP_ASPECT}
+          busy={converting}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
+      )}
     <div className={styles.mediaSection}>
       <div className={styles.mediaHeader}>
         <button type="button" className={styles.importBtn} onClick={() => fileRef.current?.click()} disabled={importing}>
@@ -263,7 +304,7 @@ function MediaControls() {
             label={importingName.replace(/\.[^.]+$/, '')}
             thumbUrl={null}
             active={false}
-            onClick={() => { /* no-op while importing */ }}
+            onClick={() => {}}
             meta={t('lighting.controls.importing')}
             thumbOverlay={<span className={styles.mediaSpinner} role="status" aria-label={t('lighting.controls.importing')} />}
             ariaLabel={importingName}
@@ -271,6 +312,7 @@ function MediaControls() {
         ) : undefined}
       />
     </div>
+    </>
   );
 }
 

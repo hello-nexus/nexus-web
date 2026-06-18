@@ -1,7 +1,7 @@
 // Self-contained draggable curve editor (the SDK's `ui-curve`). A cooling app
-// builds a fan curve with it; any app can edit an X/Y point set. It mirrors the
-// native cooling CurveGraph's affordances (drag a point to move it, double-click
-// empty space to add, right-click a point to remove) and uses the same visual
+// builds a fan curve with it; any app can edit an X/Y point set. It supports
+// dragging a point, double-clicking empty space to add, and right-clicking a
+// point to remove, and uses the same visual
 // tokens (accent gradient area + accent-glow line + faint grid) so it reads as a
 // native graph — but it is independent of the cooling-page styles/types, so it
 // stays a blessed primitive without coupling the host to cooling internals.

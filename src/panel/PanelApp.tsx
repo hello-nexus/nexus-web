@@ -56,6 +56,7 @@ import { applyHtmlChromeTheme } from '../lib/settings';
 import { fetchPanelDevice } from '../api/panel';
 import { isRemotePaired } from '../api/service';
 import { createUuid } from '../lib/uuid';
+import { spawnDropRing } from '../lib/dropRing';
 import {
   type PanelConfigValue,
   type PanelLayout,
@@ -67,6 +68,7 @@ import { isSingleWidgetSurface, surfaceSupportsTouch } from './types';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
+import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
 import { resolvePanelBackground } from './background/panelBackground';
 import type { SimulatorTheme } from './embed/simulatorProtocol';
 import './styles/tokens.scss';
@@ -566,6 +568,12 @@ export function PanelContent({
   // deliver pairing, so don't expose the QR there.
   const nativePairingAvailable =
     !isInsecureBrowserPanel() && (surface === 'phone' || nativeSettings.available);
+  // Local hardwired kiosks (Y70, touch monitors) pair other devices to this PC
+  // through an in-panel sheet instead of the native dialog. Phone surfaces (the
+  // native app and remote browser sessions) are the remote end, not the host,
+  // so they're excluded. The insecure-browser guard mirrors
+  // nativePairingAvailable: the plain-HTTP LAN fallback can't deliver pairing.
+  const localPairAvailable = surface !== 'phone' && !isInsecureBrowserPanel();
 
   const onCellTap = useCallback((w: PanelWidget) => {
     if (simulator) {
@@ -1114,6 +1122,11 @@ export function PanelContent({
         clearEdgeAdvance();
         currentOverIdRef.current = null;
         setActiveDragId(null);
+        // Clear the make-room preview in this same batch, not a frame later via
+        // the activeDragId effect. A stale previewLayout keeps the displaced
+        // cells' transform transition live, so the make-room offset animates
+        // back to 0 over the just-committed base and overshoots (the flinch).
+        setPreviewLayout(null);
         setDragArmedId(null);
         setDragSnapshot(null);
         setDragExtraPageId(null);
@@ -1138,6 +1151,12 @@ export function PanelContent({
         sidebarDropHandlerRef.current?.();
         currentOverIdRef.current = null;
         setActiveDragId(null);
+        // Clear the make-room preview in the same batch as the committed
+        // setLayout below. Deferring it to the activeDragId effect leaves one
+        // paint where the layout has committed but previewLayout is stale, so
+        // the displaced cells' transform transition animates the make-room
+        // offset back to 0 over the new base and overshoots (the drag flinch).
+        setPreviewLayout(null);
         setDragArmedId(null);
         setDragSnapshot(null);
         setDragExtraPageId(null);
@@ -1165,6 +1184,14 @@ export function PanelContent({
         // phantom page isn't persisted unless a widget landed on it.
         const trimmed = trimTrailingEmptyPages(preview);
         setLayout(trimmed);
+        // Drop-confirm ring at the widget's final cell (next frame, after the
+        // new layout paints).
+        requestAnimationFrame(() => {
+          const cell = rootRef.current?.querySelector<HTMLElement>(
+            `[data-panel-widget-id="${CSS.escape(activeId)}"]`,
+          );
+          spawnDropRing(cell);
+        });
       }}
     >
       <div
@@ -1201,6 +1228,14 @@ export function PanelContent({
             effectState={effectiveTheme.backgroundEffectState}
             surface={surface}
             fullRes={simulator}
+          />
+        )}
+        {(!embedded || simulator) && effectiveTheme.backgroundMode === 'media' && effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType && deviceId && (
+          <PanelBackgroundMedia
+            id={effectiveTheme.backgroundMediaId}
+            deviceId={deviceId}
+            type={effectiveTheme.backgroundMediaType}
+            opacity={effectiveTheme.backgroundOpacity}
           />
         )}
         {!loaded ? (
@@ -1295,6 +1330,8 @@ export function PanelContent({
                 onSettings={() => openSheet('panelSettings')}
                 onPair={nativePairingAvailable ? nativeSettings.open : undefined}
                 pairAvailable={nativePairingAvailable}
+                onPairSheet={localPairAvailable ? () => openSheet('pairRemote') : undefined}
+                pairSheetAvailable={localPairAvailable}
                 surfaceRef={rootRef}
                 surface={surface}
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
@@ -1467,6 +1504,11 @@ export function PanelContent({
           onThemeBackgroundEffectStateCommit={panelTheme.commitBackgroundEffectState}
           onThemeBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
           onThemeBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
+          onThemeBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
+          showMediaTab={surface === 'y70' || surface === 'q60'}
+          deviceAspect={typeof window !== 'undefined' ? window.innerWidth / window.innerHeight : undefined}
+          deviceW={surface === 'q60' ? 720 : (typeof window !== 'undefined' ? Math.round(window.innerWidth * window.devicePixelRatio) : undefined)}
+          deviceH={surface === 'q60' ? 1280 : (typeof window !== 'undefined' ? Math.round(window.innerHeight * window.devicePixelRatio) : undefined)}
           onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}

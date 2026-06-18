@@ -1,31 +1,23 @@
 import { memo, useRef, useState } from 'react';
+import { Droplets, Fan } from 'lucide-react';
 import type { FanChannel } from '../../../../api/cooling';
 import { useTranslation } from '../../../../lib/i18n';
 import type { CurveDef, FanState } from '../../../../types/cooling';
 import { EditableText } from '../../../../components/common/Editable/EditableText';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Select } from '../../../../components/common/Select/Select';
+import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../CoolingPage.module.scss';
 
-export interface FanCardDrag {
-  isDragging: boolean;
-  isDragOver: boolean;
-  onDragStart: () => void;
-  onDragOver: () => void;
-  onDragLeave: () => void;
-  onDrop: () => void;
-  onDragEnd: () => void;
-}
-
 /**
- * One fan card: editable name + live RPM on the header, duty bar below, and
- * the mode dropdown (BIOS / Manual / curves / Create curve). Wire DnD also
- * binds / unbinds; disconnecting a wire reverts the fan to BIOS.
+ * One fan card, styled to match the lighting page's device cards: editable
+ * name on top, the live RPM as an icon + value on the right (like the LED
+ * count), a thin duty bar, and the mode dropdown (BIOS / Manual / curves /
+ * Create curve). Wire DnD also binds / unbinds when a wire layer is present.
  *
  * When the fan hardware itself is unresponsive (calibration classification
  * = "Unresponsive"), the card collapses to a single "Disconnected" marker
- * and hides the duty bar, dropdown and wire nub - nothing here can drive
- * the channel until the hardware comes back.
+ * and hides the duty bar + dropdown - nothing here can drive the channel.
  */
 /**
  * Hub-level cooling mode reflected back to a fan card. NP50 + MiniHub fans
@@ -43,6 +35,7 @@ export type FanCardHubMode = 'software' | 'motherboard' | 'firmware';
 export const FanCard = memo(function FanCard({
   channel, state, curves, calibrating, compact, canCreateCurve = true, highlighted,
   hubMode, hubSupportsFirmware,
+  hubSupportsBios = true,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
   onSetMode, onCreateCurve, onRename, onSpeedChange, drag,
 }: {
@@ -50,13 +43,11 @@ export const FanCard = memo(function FanCard({
   state: FanState | undefined;
   curves: CurveDef[];
   calibrating?: boolean;
-  /** Sidebar layout: 100% width, tighter padding, smaller RPM readout. Used by the cooling page's right-side fan list. */
+  /** Sidebar layout: 100% width, tighter padding. Used by the cooling page's right-side fan list. */
   compact?: boolean;
   /** When false, the mode dropdown hides the "Create curve" option (curve cap reached). */
   canCreateCurve?: boolean;
-  /** Visual emphasis - this fan is on the currently-hovered or expanded
-   *  wire path. Tracks the same condition as the wire-layer highlight so
-   *  the connected pair lights up together. */
+  /** Visual emphasis - this fan is bound to the currently-selected curve. */
   highlighted?: boolean;
   /** When set, overrides the per-fan softwareControl-derived modeValue. See
    *  FanCardHubMode for semantics. Undefined for motherboard fans. */
@@ -65,6 +56,10 @@ export const FanCard = memo(function FanCard({
    *  "FW Control" dropdown option. MiniHub fans get only BIOS / Manual /
    *  curves. */
   hubSupportsFirmware?: boolean;
+  /** Whether the hub offers a motherboard "BIOS" hand-off. True for everything
+   *  except NP50 (firmware control IS its off setting). A Q-series pump sets
+   *  both this and hubSupportsFirmware so its dropdown lists BIOS + FW Control. */
+  hubSupportsBios?: boolean;
   /** Ref handed to the input nub so the wire SVG can read its bbox. */
   nubRef?: (el: HTMLDivElement | null) => void;
   /** Ref handed to the card root so the wire DnD hit-test can treat the
@@ -72,41 +67,44 @@ export const FanCard = memo(function FanCard({
   cardRef?: (el: HTMLDivElement | null) => void;
   /** Pointer-down on the input nub starts a wire drag. */
   onWirePointerDown?: (e: React.PointerEvent) => void;
-  /** Card hover in/out so the wire layer can highlight just the wire
-   *  connected to this fan, and the curve on the other end can paint its
-   *  border. Pass null on leave. */
+  /** Card hover in/out so a wire layer can highlight the connected wire. */
   onWireHover?: (id: string | null) => void;
   onSetMode: (value: string) => void;
   onCreateCurve: () => void;
   onRename: (id: string, name: string) => void;
   onSpeedChange: (id: string, speed: number) => void;
-  drag?: FanCardDrag;
+  drag?: SortableRowArgs;
 }) {
   const { t } = useTranslation();
   const dutyPct = Math.max(0, Math.min(100, channel.dutyPercent));
   const swEnabled = state?.softwareControl ?? false;
   const assignedCurveId = state?.curveId ?? '';
-  // The hub's "off" / hand-off mode. A USB hub with firmware control (NP50)
-  // has no motherboard "BIOS" hand-off of its own — firmware control IS its
-  // off setting — so we surface 'fw' where other devices show 'bios'.
-  const offMode = hubSupportsFirmware ? 'fw' : 'bios';
+  // The hub's "off" / hand-off mode. A USB hub with firmware control but no
+  // motherboard hand-off (NP50) surfaces 'fw' where other devices show 'bios';
+  // a Q-series pump has both, defaulting off to BIOS (motherboard).
+  const offMode = hubSupportsBios ? 'bios' : (hubSupportsFirmware ? 'fw' : 'bios');
   // When the hub is in motherboard or firmware mode, the per-fan
   // softwareControl flag is meaningless — the hub takes over for every
   // fan on it. Surface that in the dropdown so the user sees the same
-  // mode on every fan in the same group. For a firmware-control hub both
-  // hub takeovers read as 'fw' (the device page decides whether firmware
-  // runs Static or Motherboard underneath).
+  // mode on every fan in the same group. Motherboard reads as BIOS when the
+  // hub has a BIOS hand-off, else as FW (NP50); firmware always reads as FW.
   const hubOverrideMode =
-    hubMode === 'motherboard' ? offMode
+    hubMode === 'motherboard' ? (hubSupportsBios ? 'bios' : 'fw')
     : hubMode === 'firmware'  ? 'fw'
     : null;
   const isManual = swEnabled && !assignedCurveId && hubOverrideMode === null;
   const modeValue = hubOverrideMode
     ?? (!swEnabled ? offMode : (assignedCurveId || 'manual'));
+  // Driven = Nexus controls this fan (Manual or a Curve), i.e. not BIOS/FW.
+  // Highlighted on the duty bar (see .fanCardActive), not by tinting the card.
+  const driven = swEnabled && hubOverrideMode === null;
   // Hardware-level disconnect (no tach, no controllable duty). When true the
   // card collapses to a single "Disconnected" marker; the dropdown and duty
   // bar disappear because nothing the user does here will drive the channel.
   const isHwDisconnected = channel.classification === 'Unresponsive';
+  // Telemetry-only channel (Q-series pump today): header readout only, no duty
+  // bar or mode dropdown - nothing here drives it.
+  const isReadOnly = channel.readOnly ?? false;
 
   const [manualTarget, setManualTarget] = useState(channel.mode === 'Manual' ? channel.dutyPercent : 50);
   const barRef = useRef<HTMLDivElement>(null);
@@ -161,67 +159,40 @@ export const FanCard = memo(function FanCard({
   };
 
   const dragClasses = [
-    drag?.isDragging ? styles.fanCardDragging : '',
-    drag?.isDragOver ? styles.fanCardDragOver : '',
-    assignedCurveId ? styles.fanCardActive : '',
+    driven ? styles.fanCardActive : '',
     compact ? styles.fanCardCompact : '',
     isHwDisconnected ? styles.fanCardOff : '',
-    highlighted ? styles.fanCardHighlighted : '',
+    drag?.isDragging ? drag.placeholderClassName : '',
   ].filter(Boolean).join(' ');
 
-  // Selector list for "foreground controls win" gating. Anything matching
-  // this in the mousedown target's ancestry blocks card reorder so the
-  // child gesture (duty bar drag, name editor, wire nub) keeps the pointer.
-  const interactiveSelector =
-    'input, select, textarea, button, label, ' +
-    '[role="button"], [role="slider"], [role="switch"], ' +
-    `.${styles.fanDutyBar}, .${styles.editableName}, .${styles.fanInNub}`;
-
-  const cardRef = useRef<HTMLDivElement>(null);
   const setCardEl = (el: HTMLDivElement | null) => {
-    cardRef.current = el;
     cardRefProp?.(el);
+    drag?.ref(el);
   };
 
   return (
     <div
       ref={setCardEl}
+      style={drag?.style ?? {}}
+      {...(drag?.attributes ?? {})}
+      {...(drag?.listeners ?? {})}
       className={`${styles.fanCard} ${calibrating ? styles.fanCardCalibrating : ''} ${dragClasses}`}
-      draggable={!calibrating && !!drag}
-      onMouseDownCapture={drag ? (e) => {
-        // Toggle native draggable BEFORE the browser starts its drag
-        // tracking. With draggable=false at mousedown time, HTML5 drag
-        // never initiates - the slider/native form element keeps the
-        // pointer for its own gesture.
-        const target = e.target as HTMLElement;
-        const interactive = !!target.closest(interactiveSelector);
-        if (cardRef.current) {
-          cardRef.current.draggable = !calibrating && !interactive;
-        }
-      } : undefined}
-      onDragStart={drag ? (e) => {
-        // Belt + suspenders: even if the draggable toggle doesn't catch a
-        // particular browser/host, the dragstart gate cancels any drag
-        // whose source is inside an interactive child.
-        const target = e.target as HTMLElement;
-        if (target.closest(interactiveSelector)) {
-          e.preventDefault();
-          return;
-        }
-        drag.onDragStart();
-      } : undefined}
-      onDragOver={drag ? (e) => { e.preventDefault(); drag.onDragOver(); } : undefined}
-      onDragLeave={drag ? drag.onDragLeave : undefined}
-      onDrop={drag ? drag.onDrop : undefined}
-      onDragEnd={drag ? drag.onDragEnd : undefined}
       onMouseEnter={onWireHover ? () => onWireHover(channel.id) : undefined}
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
       <div className={styles.fanCardHeader}>
-        <EditableText value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} />
-        {/* The small Unresponsive badge in the header is dropped when the
-            full-width "Disconnected" marker is shown below; one indicator is
-            enough. */}
+        {/* Kind icon far left next to the name. When this fan is bound to the
+            curve currently shown in the graph, the highlight lives on the
+            dropdown value (accentValue) instead of the icon. */}
+        {channel.kind === 'Pump'
+          ? <Droplets size={16} className={styles.fanKindIcon} aria-hidden />
+          : <Fan size={16} className={styles.fanKindIcon} aria-hidden />}
+        {/* display:contents span carries data-no-dnd onto a real DOM node
+            (EditableText doesn't forward unknown props) so a press on the name
+            edits it instead of starting a card drag; no layout change. */}
+        <span data-no-dnd style={{ display: 'contents' }}>
+          <EditableText value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} />
+        </span>
         <span className={styles.fanRpmReadout}>
           <span className={styles.fanRpm}>{channel.rpm.toLocaleString()}</span>
           <span className={styles.fanRpmLabel}>RPM</span>
@@ -234,14 +205,13 @@ export const FanCard = memo(function FanCard({
         <div className={styles.fanBindingDisconnected}>
           <span>{t('cooling.fan.disconnected')}</span>
         </div>
-      ) : (
+      ) : isReadOnly ? null : (
         <>
           <div
             ref={barRef}
             className={`${styles.fanDutyBar} ${isManual ? styles.fanDutyBarManual : ''}`}
-            // Stop drag from latching onto the slider so manual duty drag
-            // and card reorder don't compete for the same pointer.
             draggable={false}
+            data-no-dnd
             onPointerDown={onBarPointerDown}
             onPointerMove={onBarPointerMove}
             onPointerUp={onBarPointerUp}
@@ -271,13 +241,14 @@ export const FanCard = memo(function FanCard({
             )}
           </div>
 
-          {/* Mode dropdown is always present when the hardware is responsive,
-              regardless of whether a wire is currently connected. Disconnect-
-              ing a wire reverts to BIOS via setFanMode('bios'); this dropdown
-              is the keyboard-friendly path to the same transition. */}
+          {/* Mode dropdown is always present when the hardware is responsive.
+              Default (boxed) Select chrome, matching the app settings
+              dropdowns; binding a curve here is how a fan picks its curve. */}
+          {/* Same display:contents data-no-dnd guard as the name editor. */}
+          <span data-no-dnd style={{ display: 'contents' }}>
           <Select
             className={styles.fanModeSelect}
-            variant="ghost"
+            accentValue={highlighted}
             value={modeValue}
             onChange={v => {
               if (v === '__create__') { onCreateCurve(); return; }
@@ -285,12 +256,12 @@ export const FanCard = memo(function FanCard({
             }}
             ariaLabel={t('cooling.card.mode')}
           >
-            {/* A firmware-control hub (NP50) has no BIOS/motherboard hand-off
-                of its own, so FW Control takes the place of BIOS as the off
-                setting. Everything else keeps BIOS. */}
-            {hubSupportsFirmware ? (
+            {/* NP50 lists only FW Control (no BIOS hand-off); a Q-series pump
+                lists both; everything else lists only BIOS. */}
+            {hubSupportsFirmware && (
               <option value="fw">{t('cooling.card.firmware')}</option>
-            ) : (
+            )}
+            {hubSupportsBios && (
               <option value="bios">{t('cooling.card.bios')}</option>
             )}
             <option value="manual">{t('cooling.card.manual')}</option>
@@ -301,6 +272,7 @@ export const FanCard = memo(function FanCard({
               </option>
             )}
           </Select>
+          </span>
         </>
       )}
     </div>

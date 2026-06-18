@@ -48,12 +48,18 @@ export interface SelectProps {
    *  used in contexts where the dropdown sits inside an already-bordered card
    *  (cooling fan / curve rows). */
   variant?: 'standard' | 'ghost';
+  /** Tint the displayed value (selected label) with the accent color. */
+  accentValue?: boolean;
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
 const GAP = 4;
 const MARGIN = 8;
 const MIN_MENU_HEIGHT = 96;
+// The menu may grow past the trigger to fit its widest option, but no wider
+// than this (base px) so one long label can't make it span the screen; it is
+// also clamped to the viewport in reposition. Past the cap, options wrap.
+const MAX_MENU_WIDTH = 448;
 const TYPEAHEAD_RESET_MS = 700;
 
 function flattenText(node: ReactNode): string {
@@ -97,7 +103,7 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 
 export function Select({
   value, onChange, options, children, disabled,
-  ariaLabel, className, variant = 'standard',
+  ariaLabel, className, variant = 'standard', accentValue,
 }: SelectProps) {
   const resolved = options ? options : optionsFromChildren(children);
   const selectedIndex = resolved.findIndex(o => o.value === value);
@@ -134,6 +140,20 @@ export function Select({
     const r = trigger.getBoundingClientRect();
     const baseWidth = trigger.offsetWidth || r.width;
     const scale = baseWidth > 0 ? r.width / baseWidth : 1;
+    // Size the menu to its widest option, floored at the trigger width and
+    // capped at MAX_MENU_WIDTH and the viewport (all base px, since the menu
+    // carries the panel-zoom transform). Set the bounds, read the resolved
+    // width back, then pin it as a fixed width so wrapping stays stable for the
+    // scrollHeight measurement below. offsetWidth is the unscaled layout box.
+    const maxWidth = Math.max(baseWidth, Math.min(MAX_MENU_WIDTH, (window.innerWidth - 2 * MARGIN) / scale));
+    menu.style.width = 'max-content';
+    menu.style.minWidth = `${baseWidth}px`;
+    menu.style.maxWidth = `${maxWidth}px`;
+    const width = menu.offsetWidth;
+    menu.style.width = `${width}px`;
+    menu.style.minWidth = '';
+    menu.style.maxWidth = '';
+    const visualWidth = width * scale;
     const spaceBelow = window.innerHeight - r.bottom - MARGIN;
     const spaceAbove = r.top - MARGIN;
     const placeBelow = spaceBelow >= spaceAbove;
@@ -141,10 +161,10 @@ export function Select({
     // scrollHeight is the menu's layout (unscaled) height; visual = * scale.
     const visualHeight = Math.min(menu.scrollHeight * scale, avail);
     const top = placeBelow ? r.bottom + GAP : r.top - GAP - visualHeight;
-    const maxLeft = window.innerWidth - r.width - MARGIN;
+    const maxLeft = window.innerWidth - visualWidth - MARGIN;
     const left = Math.max(Math.min(MARGIN, maxLeft), Math.min(r.left, maxLeft));
     const clampedTop = Math.max(MARGIN, Math.min(top, window.innerHeight - visualHeight - MARGIN));
-    setCoords({ top: clampedTop, left, width: baseWidth, maxHeight: visualHeight / scale, scale });
+    setCoords({ top: clampedTop, left, width, maxHeight: visualHeight / scale, scale });
   }, []);
 
   const close = useCallback((refocus = false) => {
@@ -163,7 +183,8 @@ export function Select({
     close(true);
   };
 
-  // Render the menu hidden first so scrollHeight is measurable, then position.
+  // Render the menu hidden first so its content size is measurable, then fit
+  // width, cap height, and position.
   useLayoutEffect(() => {
     if (open) reposition();
   }, [open, reposition, resolved.length]);
@@ -246,7 +267,7 @@ export function Select({
         onClick={() => { if (disabled) return; if (open) close(); else openMenu(); }}
         onKeyDown={onTriggerKeyDown}
       >
-        <span className={styles.value}>{selectedLabel}</span>
+        <span className={`${styles.value}${accentValue ? ' ' + styles.accentValue : ''}`}>{selectedLabel}</span>
       </button>
       <ChevronDown
         className={styles.chevron}

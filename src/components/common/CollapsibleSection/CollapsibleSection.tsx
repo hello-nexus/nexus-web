@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { type SortableRowArgs } from '../SortableList/SortableList';
 import styles from './CollapsibleSection.module.scss';
 
 /**
@@ -26,6 +27,7 @@ export function CollapsibleSection({
   className,
   ariaLabel,
   sectionId,
+  drag,
   children,
 }: {
   title: ReactNode;
@@ -44,12 +46,25 @@ export function CollapsibleSection({
   ariaLabel?: string;
   /** Sets `data-section-id` on the root (scroll/lookup targeting). */
   sectionId?: string;
+  /** When set, the whole section becomes reorderable among its siblings via
+   *  dnd-kit. The toggle button is the drag handle. */
+  drag?: SortableRowArgs;
   children: ReactNode;
 }) {
   const Chevron = open ? ChevronDown : ChevronRight;
+
+  const classNames = [
+    styles.section,
+    className ?? '',
+    drag?.isDragging ? drag.placeholderClassName : '',
+  ].filter(Boolean).join(' ');
+
   return (
     <div
-      className={className ? `${styles.section} ${className}` : styles.section}
+      ref={drag?.ref ?? (() => {})}
+      style={drag?.style ?? {}}
+      {...(drag?.attributes ?? {})}
+      className={classNames}
       data-section-id={sectionId}
     >
       <div
@@ -57,12 +72,17 @@ export function CollapsibleSection({
         data-compact={compact ? 'true' : undefined}
         data-collapsed={open ? undefined : 'true'}
       >
+        {/* The toggle (chevron + title + any non-interactive `right` content) is
+            the drag handle; an interactive `right` control sits outside it so a
+            press-drag on a power switch never starts a group reorder. */}
         <button
           type="button"
           className={styles.toggle}
+          data-drag-handle={drag ? 'true' : undefined}
           aria-expanded={open}
           aria-label={ariaLabel}
           onClick={onToggle}
+          {...(drag?.listeners ?? {})}
         >
           <Chevron className={styles.chevron} aria-hidden />
           <span className={styles.title}>{title}</span>

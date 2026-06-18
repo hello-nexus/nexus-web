@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Gamepad2 } from 'lucide-react';
 import {
-  startAnimate, startScreenMirror, stopLighting,
+  startAnimate, startScreenMirror, stopLighting, startGameSync,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
-  fetchCurrentSync, fetchAvailableMappings,
-  type LightingDevice, type LedMapEntry, type PostProcessSettings,
+  fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
+  steamArtworkUrl, resolveActiveGame,
+  type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
+  type GameSyncGame,
 } from '../../../api/lighting';
-import { playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
+import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
+import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
 import { useLightingSync } from '../../../hooks/useLightingSync';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
+import type { DashboardSectionNavigate } from '../../engine/panelLayoutHelpers';
 import { useTranslation } from '../../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
@@ -36,10 +41,10 @@ import { AnimateGrid } from './page/AnimateGrid';
 import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
 import { DevicePanel } from './page/DevicePanel';
+import { GameSyncLeftPane } from './page/GameSyncLeftPane';
 import { LedMapEditor } from './page/LedMapEditor';
 import { visibleCards } from './page/zoneUtils';
-import { RescanDevicesButton } from './page/RescanDevicesButton';
-import { RgbStatusCard } from './page/RgbStatusCard';
+import { OpenRgbButton } from './page/OpenRgbButton';
 import { LightingSettingsModal } from './page/LightingSettingsModal';
 import { RightPaneTabs, type RightPaneTab } from './page/RightPaneTabs';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
@@ -59,6 +64,8 @@ interface LightingViewProps {
   connectionState?: ConnectionState;
   activeProfileId?: string;
   platform?: string;
+  /** Navigate to a sibling dashboard section (e.g. the smart-lights app). */
+  onSectionNavigate?: DashboardSectionNavigate;
 }
 
 const DEFAULT_POST_PROCESS: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
@@ -83,10 +90,14 @@ function loadDeviceOrder(): string[] {
   return [];
 }
 
-export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '' }: LightingViewProps) {
+export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
   const { t } = useTranslation();
   const sensors = useSensors(serviceOnline);
   const { mode, setMode, rawSync, setRawSync, synced } = useLightingSync(serviceOnline, activeProfileId);
+  // Game Sync requires the Windows Chroma capture shim; hide it on non-Windows
+  // (empty platform = ping not yet resolved, keep hidden to avoid a flash).
+  const isWindows = platform === 'windows';
+  const effectiveMode: LightingMode = (mode === 'gamesync' && !isWindows) ? 'none' : mode;
   const frames = useLightingFrames();
   // Read RGB running/scanning off useServiceState (already subscribed
   // to the lighting topic for the sidebar pip) so a topic push doesn't
@@ -117,6 +128,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setPrimaryDeviceId(primary);
   }, []);
   const [catalogOpen, setCatalogOpen] = useState(false);
+
+  const [smartHubFirmwareControl, setSmartHubFirmwareControlState] = useState(false);
+
+  const handleSetSmartHubFirmwareControl = useCallback(async (enabled: boolean) => {
+    setSmartHubFirmwareControlState(enabled);
+    try {
+      await setSmartHubFirmwareControl(enabled);
+    } catch {
+      setSmartHubFirmwareControlState(!enabled);
+    }
+  }, []);
 
   const [activeEffect, setActiveEffect] = useState<string>('');
   const [effectTemplates, setEffectTemplates] = useState<Record<string, EffectTemplateBundle>>({});
@@ -420,6 +442,43 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [musicReactive]);
 
+  const [gameSyncState, setGameSyncState] = useState<{
+    devices: GameSyncDevice[];
+    lastFrameAt: number | null;
+    activeApp: string | null;
+    isReceiving: boolean;
+  }>({ devices: [], lastFrameAt: null, activeApp: null, isReceiving: false });
+
+  useEffect(() => {
+    if (effectiveMode !== 'gamesync' || !serviceOnline) return;
+    let cancelled = false;
+    const poll = async () => {
+      const data = await fetchGameSyncState().catch(() => null);
+      if (cancelled || !data) return;
+      const lastFrameAt = data.lastFrameAt ?? null;
+      setGameSyncState({
+        devices: data.devices ?? [],
+        lastFrameAt,
+        activeApp: data.activeApp ?? null,
+        isReceiving: lastFrameAt != null && (Date.now() - lastFrameAt) < 2000,
+      });
+    };
+    void poll();
+    const id = window.setInterval(() => { void poll(); }, 1500);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [effectiveMode, serviceOnline]);
+
+  const [gameSyncGames, setGameSyncGames] = useState<GameSyncGame[]>([]);
+
+  useEffect(() => {
+    if (effectiveMode !== 'gamesync' || !serviceOnline) return;
+    let cancelled = false;
+    fetchGameSyncGames().then(data => {
+      if (!cancelled && data) setGameSyncGames(data.games ?? []);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [effectiveMode, serviceOnline]);
+
   const restartedProfileRef = useRef<string | null>(null);
   useEffect(() => {
     restartedProfileRef.current = null;
@@ -641,13 +700,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const handlePostProcessReset = useCallback(() => {
     if (mode === 'screen') {
-      setScreenPP(DEFAULT_POST_PROCESS);
-      setScreenEffect(DEFAULT_POST_PROCESS, true).catch(() => {});
+      const next = { ...screenPP, hue: 0, colorize: 0, saturation: 1, contrast: 1, reactivity: 0.5, intensity: 0.5 };
+      setScreenPP(next);
+      setScreenEffect(next, true).catch(() => {});
     } else if (mode === 'gif') {
-      setMediaPP(DEFAULT_POST_PROCESS);
-      setMediaEffect(DEFAULT_POST_PROCESS, true).catch(() => {});
+      const next = { ...mediaPP, hue: 0, colorize: 0, saturation: 1, contrast: 1 };
+      setMediaPP(next);
+      setMediaEffect(next, true).catch(() => {});
     }
-  }, [mode]);
+  }, [mode, screenPP, mediaPP]);
 
   // Per-zone toggle (flips one device's current state). Paired with the
   // absolute handleSetPower below: a per-zone toggle applied to a whole
@@ -698,41 +759,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     for (const d of visibleDevices) if (!seen.has(d.id)) out.push(d);
     return out;
   }, [visibleDevices, deviceOrder]);
-  const [dragDeviceId, setDragDeviceId] = useState<string | null>(null);
-  const [dragOverDeviceId, setDragOverDeviceId] = useState<string | null>(null);
-  const dropDeviceOn = useCallback((targetId: string) => {
-    if (!dragDeviceId || dragDeviceId === targetId) return;
-    setDeviceOrder(prev => {
-      // Seed the persisted order from the current rendered order so the
-      // first drop captures the natural service order before splicing.
-      const base = prev.length > 0
-        ? prev.filter(id => orderedDevices.some(d => d.id === id))
-        : orderedDevices.map(d => d.id);
-      const fromIdx = base.indexOf(dragDeviceId);
-      const toIdx = base.indexOf(targetId);
-      if (fromIdx === -1 || toIdx === -1) return prev;
-      const next = base.slice();
-      const [moved] = next.splice(fromIdx, 1);
-      next.splice(toIdx, 0, moved);
-      return next;
-    });
-  }, [dragDeviceId, orderedDevices]);
-  const dragForDevice = useCallback((id: string) => ({
-    isDragging: dragDeviceId === id,
-    isDragOver: dragOverDeviceId === id && dragDeviceId !== id,
-    onDragStart: () => setDragDeviceId(id),
-    onDragOver: () => setDragOverDeviceId(id),
-    onDragLeave: () => setDragOverDeviceId(null),
-    onDrop: () => {
-      dropDeviceOn(id);
-      setDragDeviceId(null);
-      setDragOverDeviceId(null);
-    },
-    onDragEnd: () => {
-      setDragDeviceId(null);
-      setDragOverDeviceId(null);
-    },
-  }), [dragDeviceId, dragOverDeviceId, dropDeviceOn]);
 
   const usb = useUsbDevices(serviceOnline);
   const detectedVidPids = useMemo(() => {
@@ -764,6 +790,26 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     void refreshDevices();
   }, [serviceOnline, activeProfileId, refreshDevices]);
 
+  useEffect(() => {
+    if (!serviceOnline) return;
+    let cancelled = false;
+    getSmartHubFirmwareControl().then(v => {
+      if (!cancelled && v !== null) setSmartHubFirmwareControlState(v);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [serviceOnline]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      if (!serviceOnline) return;
+      getSmartHubFirmwareControl().then(v => {
+        if (v !== null) setSmartHubFirmwareControlState(v);
+      }).catch(() => {});
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [serviceOnline]);
+
   useTopicCallback('devices', serviceOnline, () => {
     void refreshDevices();
   });
@@ -776,11 +822,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const handleModeChange = useCallback(async (m: LightingMode) => {
     setMode(m);
+    // Set rawSync optimistically so content renders the new mode immediately
+    // without waiting for the publishControlSync round-trip.
+    if (m !== 'animate') setRawSync(m);
     try {
       switch (m) {
         case 'animate': {
           const key = activeEffect || (EFFECTS.some(e => e.key === rawSync) ? rawSync : 'rainbow');
           setActiveEffect(key);
+          setRawSync(key);
           const state = stateFor(key);
           await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
           publishControlSync({ domain: 'lighting', mode: m, rawSync: key, effect: key });
@@ -790,25 +840,35 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           await startScreenMirror(screenPP.saturation, screenPP.contrast, '', screenPP.hue, screenPP.colorize);
           break;
         case 'gif': {
-          await playCurrentOrFirstMedia();
+          const played = await playCurrentOrFirstMedia();
+          if (!played) {
+            // No playable media: black output while staying in Media mode, so
+            // the tab stays selected instead of falling to Off.
+            await mediaIdle();
+          }
           break;
         }
+        case 'gamesync':
+          await startGameSync();
+          break;
         case 'none': await stopLighting(); break;
       }
       if (m !== 'animate') {
         publishControlSync({ domain: 'lighting', mode: m, rawSync: m });
       }
     } catch { /* best-effort; backend state becomes source of truth */ }
-  }, [activeEffect, rawSync, setMode, screenPP, stateFor]);
+  }, [activeEffect, rawSync, setMode, setRawSync, screenPP, stateFor]);
 
-  const modeTabs = MODES.map(m => {
-    const Icon = LIGHTING_MODE_ICONS[m.key];
-    return { key: m.key, label: t(m.labelKey), icon: <Icon size={14} /> };
-  });
+  const modeTabs = MODES
+    .filter(m => m.key !== 'gamesync' || isWindows)
+    .map(m => {
+      const Icon = LIGHTING_MODE_ICONS[m.key];
+      return { key: m.key, label: t(m.labelKey), icon: <Icon size={14} /> };
+    });
 
-  // Effect tab applies to animate / media / screen only; in Off mode
-  // it renders an empty state and the tab header is disabled.
-  const effectTabDisabled = mode === 'none';
+  // Effect tab applies to animate / media / screen only; in Off and Game Sync
+  // modes it renders an empty state and the tab header is disabled.
+  const effectTabDisabled = effectiveMode === 'none' || effectiveMode === 'gamesync';
 
   // The settings affordance lives in the top bar (right of the search pill);
   // register it while online so it opens this page's LightingSettingsModal.
@@ -818,7 +878,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   if (!serviceOnline) {
     return (
       <div className={styles.lighting}>
-        <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? mode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
+        <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? effectiveMode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
         <ServiceRequired state={connectionState} skeleton={<LightingSkeleton />} />
       </div>
     );
@@ -832,6 +892,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         serviceOnline={serviceOnline}
         platform={platform}
         gpus={sensors.gpuComponents}
+        onBrowseSupportedDevices={() => { setSettingsOpen(false); setCatalogOpen(true); }}
       />
       <SupportedDevicesModal
         open={catalogOpen}
@@ -841,61 +902,80 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         detectedVidPids={detectedVidPids}
       />
       {/* ViewHeader lives in the left grid column so the device column (right)
-          can rise to the very top of the page, level with the mode tabs. */}
-      <div className={`${styles.body} pageBody`}>
+          can rise to the very top of the page, level with the mode tabs. Full
+          content width (not pageBody-capped) so the device column reaches the
+          right edge. */}
+      <div className={styles.body}>
         <div className={styles.headerCell}>
           <ViewHeader
             title={t('lighting.title')}
             tabs={modeTabs}
-            activeTab={synced ? mode : undefined}
+            activeTab={synced ? effectiveMode : undefined}
             onTabChange={(k, origin) => {
               // Status-change bloom only on an actual mode switch, from the pressed tab.
-              if (origin && k !== (synced ? mode : null)) emitRadialBloomFromElement(origin, k === 'none');
+              if (origin && k !== (synced ? effectiveMode : null)) emitRadialBloomFromElement(origin, k === 'none');
               void handleModeChange(k as LightingMode);
             }}
           />
         </div>
         <div className={styles.main}>
-          <div className={styles.canvasArea}>
-            <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={mode === 'animate' ? activeEffect : null} shaderState={mode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
-            {mode === 'animate' && activeEffect && currentState && (
-              <>
-                {EFFECTS.find(e => e.key === activeEffect)?.audio && (
-                  <HoverTooltip body={t('lighting.musicReactive')} side="left">
-                    <button
-                      type="button"
-                      className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
-                      onClick={handleMusicReactiveToggle}
-                      aria-label={t('lighting.musicReactive')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />
-                        <circle cx="10.5" cy="9.5" r="1.5" />
-                      </svg>
-                    </button>
-                  </HoverTooltip>
-                )}
-                <HoverTooltip body={t('lighting.fullscreen')} side="left">
-                  <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9,1 13,1 13,5" /><polyline points="5,13 1,13 1,9" />
-                      <line x1="13" y1="1" x2="8.5" y2="5.5" /><line x1="1" y1="13" x2="5.5" y2="8.5" />
-                    </svg>
-                  </button>
-                </HoverTooltip>
-              </>
-            )}
-          </div>
-          {mode === 'animate' ? (
-            <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} />
+          {effectiveMode === 'gamesync' ? (
+            <>
+              <div className={styles.canvasArea}>
+                <GameSyncActivityBlock
+                  isReceiving={gameSyncState.isReceiving}
+                  activeApp={gameSyncState.activeApp}
+                  games={gameSyncGames}
+                />
+              </div>
+              <div className={styles.controls}>
+                <GameSyncLeftPane />
+              </div>
+            </>
           ) : (
-            <div className={styles.controls}>
-              <ModeControls
-                mode={mode}
-                screenPP={screenPP}
-                onScreenPPChange={setScreenPP}
-              />
-            </div>
+            <>
+              <div className={styles.canvasArea}>
+                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
+                {effectiveMode === 'animate' && activeEffect && currentState && (
+                  <>
+                    {EFFECTS.find(e => e.key === activeEffect)?.audio && (
+                      <HoverTooltip body={t('lighting.musicReactive')} side="left">
+                        <button
+                          type="button"
+                          className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
+                          onClick={handleMusicReactiveToggle}
+                          aria-label={t('lighting.musicReactive')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />
+                            <circle cx="10.5" cy="9.5" r="1.5" />
+                          </svg>
+                        </button>
+                      </HoverTooltip>
+                    )}
+                    <HoverTooltip body={t('lighting.fullscreen')} side="left">
+                      <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="9,1 13,1 13,5" /><polyline points="5,13 1,13 1,9" />
+                          <line x1="13" y1="1" x2="8.5" y2="5.5" /><line x1="1" y1="13" x2="5.5" y2="8.5" />
+                        </svg>
+                      </button>
+                    </HoverTooltip>
+                  </>
+                )}
+              </div>
+              {effectiveMode === 'animate' ? (
+                <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} />
+              ) : (
+                <div className={styles.controls}>
+                  <ModeControls
+                    mode={effectiveMode}
+                    screenPP={screenPP}
+                    onScreenPPChange={setScreenPP}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className={styles.rightPane}>
@@ -916,25 +996,21 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onSetSelection={handleSetSelection}
                 onTogglePower={handleTogglePower}
                 onSetPower={handleSetPower}
-                lightingOff={mode === 'none'}
+                lightingOff={effectiveMode === 'none'}
                 onOpenSettings={handleOpenSettings}
-                dragFor={dragForDevice}
+                onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
                 communityCounts={mappingCounts}
                 onOpenCommunity={handleOpenCommunity}
+                smartHubFirmwareControl={smartHubFirmwareControl}
+                onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
+                onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
               />
-              {mode !== 'none' && (
-                <RescanDevicesButton rgbRunning={rgb.running} scanning={rgb.scanning} />
-              )}
-              <RgbStatusCard
-                rgbRunning={rgb.running}
-                onClick={() => setCatalogOpen(true)}
-                title={t('devices.supported.browse')}
-              />
+              <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
             </>
           ) : (
             <div className={styles.effectTabBody}>
               <EffectTab
-                mode={mode}
+                mode={effectiveMode}
                 effect={activeEffect}
                 state={currentState}
                 bundle={activeEffect ? committedTemplates[activeEffect] ?? null : null}
@@ -984,6 +1060,59 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   );
 }
 
+interface GameSyncActivityBlockProps {
+  isReceiving: boolean;
+  activeApp: string | null;
+  games: GameSyncGame[];
+}
+
+function GameSyncActivityBlock({ isReceiving, activeApp, games }: GameSyncActivityBlockProps) {
+  const { t } = useTranslation();
+  const [imgFailed, setImgFailed] = useState(false);
+
+  const matchedGame = isReceiving && activeApp
+    ? resolveActiveGame(activeApp, games)
+    : null;
+
+  const headerSrc = matchedGame ? steamArtworkUrl(matchedGame.appId, 'header') : null;
+
+  // Reset failure flag when the URL changes so a new game's art gets a fresh attempt.
+  const prevHeaderSrcRef = useRef(headerSrc);
+  if (prevHeaderSrcRef.current !== headerSrc) {
+    prevHeaderSrcRef.current = headerSrc;
+    if (imgFailed) setImgFailed(false);
+  }
+
+  const showImage = headerSrc !== null && !imgFailed;
+
+  return (
+    <div className={styles.gameSyncActivity}>
+      {showImage ? (
+        <img
+          src={headerSrc}
+          alt=""
+          aria-hidden
+          className={styles.gameSyncActivityArt}
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <Gamepad2
+          size={36}
+          className={`${styles.gameSyncActivityIcon} ${isReceiving ? styles.gameSyncActivityIconActive : ''}`}
+          aria-hidden
+        />
+      )}
+      <span className={styles.gameSyncActivityLabel}>
+        {isReceiving
+          ? (activeApp
+              ? t('lighting.gameSync.signal.receiving', { activeApp })
+              : t('lighting.gameSync.signal.receivingUnknown'))
+          : t('lighting.gameSync.signal.idle')}
+      </span>
+    </div>
+  );
+}
+
 function normalizePP(s: PostProcessSettings | null | undefined): PostProcessState {
   if (!s) return DEFAULT_POST_PROCESS;
   return {
@@ -993,6 +1122,9 @@ function normalizePP(s: PostProcessSettings | null | undefined): PostProcessStat
     contrast: typeof s.contrast === 'number' ? s.contrast : 1,
     flipX: !!s.flipX,
     flipY: !!s.flipY,
+    reactive: !!s.reactive,
+    reactivity: typeof s.reactivity === 'number' ? s.reactivity : 0.5,
+    intensity: typeof s.intensity === 'number' ? s.intensity : 0.5,
   };
 }
 
@@ -1000,5 +1132,6 @@ function modeForSync(sync: string): LightingMode {
   if (sync === 'none' || !sync) return 'none';
   if (sync === 'screen' || sync.includes('mirror')) return 'screen';
   if (sync === 'gif' || sync.includes('media')) return 'gif';
+  if (sync === 'gamesync') return 'gamesync';
   return 'animate';
 }

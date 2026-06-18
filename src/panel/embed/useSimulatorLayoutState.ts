@@ -30,6 +30,7 @@ export interface SimulatorRuntimeState {
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
+  deviceId: string | null;
   onWidgetClicked: (id: string) => void;
   onBackgroundClicked: () => void;
 }
@@ -59,6 +60,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [screenOn, setScreenOn] = useState(true);
   const [showPanel, setShowPanel] = useState(true);
   const [flashSignal, setFlashSignal] = useState<{ widgetId: string; nonce: number } | null>(null);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -75,6 +77,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setBrightness(data.brightness);
           setScreenOn(data.screenOn);
           setShowPanel(data.showPanel);
+          if (data.deviceId !== undefined) setDeviceId(data.deviceId);
           setReady(true);
           break;
         }
@@ -85,6 +88,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         case 'simulator/set-theme': {
           setTheme(data.theme);
           setThemeMode(data.themeMode);
+          if (data.deviceId !== undefined) setDeviceId(data.deviceId);
           break;
         }
         case 'simulator/set-selection': {
@@ -141,6 +145,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     brightness,
     screenOn,
     showPanel,
+    deviceId,
     onWidgetClicked,
     onBackgroundClicked,
   };

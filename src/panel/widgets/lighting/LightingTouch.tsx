@@ -19,6 +19,7 @@ import {
   startAnimate,
 } from '../../../api/lighting';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
+import { subscribeControlSync } from '../../../lib/controlSync';
 import { usePanelBackgroundUsage, type PanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
   EFFECTS,
@@ -31,6 +32,13 @@ import { buildAllDefaultTemplates, mergeTemplates, slotThumbSignature } from '..
 import type { WidgetProps } from '../types';
 
 const DEFAULT_PP: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
+
+function resolveImmersiveMode(sync: string): LightingMode {
+  if (!sync || sync === 'none') return 'none';
+  if (sync === 'screen' || sync.includes('mirror')) return 'screen';
+  if (sync === 'gif' || sync.includes('media')) return 'gif';
+  return 'animate';
+}
 
 /**
  * Fullscreen lighting controller. Two stacked cells:
@@ -159,13 +167,26 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     }
     setTemplates(next);
     const rawSync = sync?.sync || 'none';
-    setMode(rawSync === 'screen' ? 'screen' : (rawSync === 'media' ? 'gif' : (rawSync === 'none' ? 'none' : 'animate')));
+    setMode(resolveImmersiveMode(rawSync));
     if (EFFECTS.some(e => e.key === rawSync)) setActive(rawSync);
     else if (settings?.effect) setActive(settings.effect);
   }, []);
 
   useEffect(() => { hydrate(); }, [hydrate]);
   useTopicCallback('lighting', true, hydrate);
+
+  // Optimistic mode update on same-browser mode changes (e.g. tapping the Media
+  // button in the LightingWidget above). The lighting topic arrives after the
+  // HTTP round-trip; controlSync fires immediately so the editor cell below
+  // switches on the first tap rather than after the broadcast.
+  useEffect(() => subscribeControlSync(event => {
+    if (event.domain !== 'lighting') return;
+    if (event.rawSync) {
+      setMode(resolveImmersiveMode(event.rawSync));
+    } else if (event.mode) {
+      setMode(event.mode);
+    }
+  }), []);
 
   const bundle = templates[active];
   const baseState = bundle?.slots[bundle.selected] ?? defaultStateFor(active);
@@ -268,7 +289,7 @@ function useImmersivePostProcess(mode: LightingMode): ImmersivePostProcess {
   const hydrate = useCallback(async () => {
     if (mode === 'screen') {
       const e = await fetchScreenEffect();
-      if (e) setPp({ hue: e.hue, colorize: e.colorize, saturation: e.saturation, contrast: e.contrast, flipX: e.flipX, flipY: e.flipY });
+      if (e) setPp({ hue: e.hue, colorize: e.colorize, saturation: e.saturation, contrast: e.contrast, flipX: e.flipX, flipY: e.flipY, reactive: e.reactive, reactivity: e.reactivity, intensity: e.intensity });
     } else if (mode === 'gif') {
       const e = await fetchMediaEffect();
       if (e) setPp({ hue: e.hue, colorize: e.colorize, saturation: e.saturation, contrast: e.contrast, flipX: e.flipX, flipY: e.flipY });
@@ -296,8 +317,11 @@ function useImmersivePostProcess(mode: LightingMode): ImmersivePostProcess {
   const onCommit = useCallback(() => { apply(ppRef.current, true); }, [apply]);
 
   const onReset = useCallback(() => {
-    setPp(DEFAULT_PP);
-    apply(DEFAULT_PP, true);
+    setPp(prev => {
+      const next = { ...prev, hue: 0, colorize: 0, saturation: 1, contrast: 1, reactivity: 0.5, intensity: 0.5 };
+      apply(next, true);
+      return next;
+    });
   }, [apply]);
 
   // ScreenControls' filter presets call setScreenEffect + startScreenMirror

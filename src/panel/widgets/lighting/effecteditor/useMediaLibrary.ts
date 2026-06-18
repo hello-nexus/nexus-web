@@ -6,6 +6,8 @@ import {
   type MediaItem,
 } from '../../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../../api/service';
+import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
+import { usePanelPreview } from '../../common/PanelPreviewContext';
 
 /**
  * Owns the media library list + active-item + lazily loaded thumbnails. Shared
@@ -14,6 +16,7 @@ import { fetchServiceBlob } from '../../../../api/service';
  * exactly one place.
  */
 export function useMediaLibrary() {
+  const preview = usePanelPreview();
   const [items, setItems] = useState<MediaItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -28,9 +31,19 @@ export function useMediaLibrary() {
     if (cur?.mediaId) setActiveId(cur.mediaId);
   }, []);
 
+  // The active clip changes from a play, which broadcasts on the lighting topic
+  // (not mediaLibrary). Refetch just the current item so the selected-thumbnail
+  // highlight syncs across surfaces without a full library reload.
+  const refreshActive = useCallback(async () => {
+    const cur = await fetchMediaCurrent();
+    if (cur?.mediaId) setActiveId(cur.mediaId);
+  }, []);
+
   // Initial load: pull library + currently playing media on mount.
   // refresh()'s setState runs after its Promise resolves.
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { if (!preview) refresh(); }, [preview, refresh]);
+  useTopicCallback('mediaLibrary', !preview, refresh);
+  useTopicCallback('lighting', !preview, refreshActive);
 
   useEffect(() => {
     thumbsRef.current = thumbs;

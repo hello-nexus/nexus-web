@@ -215,12 +215,12 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   const pushCurves = useCallback((defs: CurveDef[], states: Record<string, FanState>) => {
     const apiCurves = defs.map(c => ({
       id: c.id, name: c.name,
-      type: c.type === 'flat' ? 'Flat' : c.type === 'linear' ? 'Linear' : c.type === 'graph' ? 'Graph' : 'Mixed',
+      type: c.type === 'flat' ? 'Flat' : c.type === 'linear' ? 'Linear' : c.type === 'multipoint' ? 'Graph' : 'Mixed',
       input: { id: c.sourceId, type: 'Temperature', device: '' },
       outputs: Object.entries(states).filter(([, s]) => s.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
       flat: c.type === 'flat' ? { speed: c.flat.speed } : null,
       linear: c.type === 'linear' ? c.linear : null,
-      graph: c.type === 'graph' ? { responseTime: c.graph.responseTime, speedModifier: 1, points: c.graph.points } : null,
+      graph: c.type === 'multipoint' ? { responseTime: c.multipoint.responseTime, speedModifier: 1, points: c.multipoint.points } : null,
       mixed: c.type === 'mix' ? { responseTime: c.mix.responseTime, curveIds: c.mix.curveIds, fn: c.mix.fn } : null,
       preset: c.preset ?? null,
     }));

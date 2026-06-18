@@ -1,6 +1,7 @@
 import { Power } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
+import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import styles from '../LightingPage.module.scss';
 
@@ -21,6 +22,9 @@ export function MotherboardGroup({
   ariaLabel,
   collapsed,
   onToggleCollapsed,
+  leftAction,
+  powerDisabled,
+  drag,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on. Drives the icon state
@@ -35,6 +39,12 @@ export function MotherboardGroup({
   /** Collapse state, owned by the parent so it can be persisted across restarts. */
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  /** Optional node rendered to the left of the power button in the header right slot. */
+  leftAction?: React.ReactNode;
+  /** When true, the power button is rendered disabled. */
+  powerDisabled?: boolean;
+  /** Optional reorder drag wiring; makes the whole group draggable. */
+  drag?: SortableRowArgs;
 }) {
   const { t } = useTranslation();
   const expanded = !collapsed;
@@ -48,20 +58,25 @@ export function MotherboardGroup({
       open={expanded}
       onToggle={onToggleCollapsed}
       ariaLabel={toggleLabel}
+      drag={drag}
       rightInteractive
       right={
-        <HoverTooltip body={t(groupOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={groupOn}
-            className={`${styles.deviceSettingsBtn} ${groupOn ? '' : styles.devicePowerBtnPersistent}`}
-            aria-label={t(groupOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
-            onClick={e => { e.stopPropagation(); onTogglePower(); }}
-          >
-            <Power />
-          </button>
-        </HoverTooltip>
+        <>
+          {leftAction}
+          <HoverTooltip body={t(groupOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={groupOn}
+              disabled={powerDisabled}
+              className={`${styles.deviceSettingsBtn} ${groupOn ? '' : styles.devicePowerBtnPersistent}`}
+              aria-label={t(groupOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
+              onClick={e => { e.stopPropagation(); onTogglePower(); }}
+            >
+              <Power />
+            </button>
+          </HoverTooltip>
+        </>
       }
     >
       <div className={styles.motherboardGroupChildren}>

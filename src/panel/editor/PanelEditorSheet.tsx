@@ -11,6 +11,7 @@ import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../widgets/mo
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
 import { PanelThemeSettings, type ResolvedPanelThemeMode } from './PanelThemeSettings';
+import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
 import { useTranslation } from '../../lib/i18n';
 import type { ThemeMode } from '../../lib/settings';
@@ -21,7 +22,7 @@ import type { PanelBackgroundMode } from '../background/panelBackground';
 import type { PanelThemeState } from '../theme/panelTheme';
 import styles from '../PanelApp.module.scss';
 
-export type SheetMode = 'catalog' | 'settings' | 'panelSettings';
+export type SheetMode = 'catalog' | 'settings' | 'panelSettings' | 'pairRemote';
 
 export function PanelEditorSheet({
   mode,
@@ -50,10 +51,15 @@ export function PanelEditorSheet({
   onThemeBackgroundEffectStateCommit,
   onThemeBackgroundOpacityPreview,
   onThemeBackgroundOpacityCommit,
+  onThemeBackgroundMediaCommit,
   onThemeWidgetOpacityPreview,
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
   onThemeWidgetBlurCommit,
+  showMediaTab = false,
+  deviceAspect,
+  deviceW,
+  deviceH,
   machineName,
   showHostName,
   onMachineNameCommit,
@@ -94,10 +100,15 @@ export function PanelEditorSheet({
   onThemeBackgroundEffectStateCommit: (state: EffectState) => void;
   onThemeBackgroundOpacityPreview: (opacity: number) => void;
   onThemeBackgroundOpacityCommit: (opacity: number) => void;
+  onThemeBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
   onThemeWidgetOpacityPreview: (opacity: number) => void;
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
   onThemeWidgetBlurCommit: (enabled: boolean) => void;
+  showMediaTab?: boolean;
+  deviceAspect?: number;
+  deviceW?: number;
+  deviceH?: number;
   machineName: string;
   // Whether to show the host-name (computer-name) editor. Off on hardwired,
   // non-user-paired surfaces (Y70, Q-series): the machine is self-evident there
@@ -118,6 +129,8 @@ export function PanelEditorSheet({
   const def = editingWidget ? lookupApp(editingWidget.type) : undefined;
   const title = mode === 'panelSettings'
     ? t('panel.actions.settings')
+    : mode === 'pairRemote'
+    ? t('phonePair.title')
     : mode === 'settings' && editingWidget && def
     ? t(def.meta.i18nKey) || editingWidget.type
     : t('panel.editor.addWidgetTitle');
@@ -236,7 +249,7 @@ export function PanelEditorSheet({
             deviceTouch={deviceTouch}
             onAdd={onAdd}
             // The on-device phone panel is itself the remote session, so hide
-            // local-only widgets (pairing QR) there.
+            // local-only widgets there.
             remote={surface === 'phone'}
           />
         )}
@@ -335,12 +348,23 @@ export function PanelEditorSheet({
               onBackgroundEffectStateCommit={onThemeBackgroundEffectStateCommit}
               onBackgroundOpacityPreview={onThemeBackgroundOpacityPreview}
               onBackgroundOpacityCommit={onThemeBackgroundOpacityCommit}
+              onBackgroundMediaCommit={onThemeBackgroundMediaCommit}
+              showMediaTab={showMediaTab}
+              deviceAspect={deviceAspect}
+              deviceW={deviceW}
+              deviceH={deviceH}
               onWidgetOpacityPreview={onThemeWidgetOpacityPreview}
               onWidgetOpacityCommit={onThemeWidgetOpacityCommit}
               onWidgetLabelsCommit={onThemeWidgetLabelsCommit}
               onWidgetBlurCommit={onThemeWidgetBlurCommit}
               hideWidgetChromeControls={isSingleWidgetSurface(surface)}
             />
+          </div>
+        )}
+
+        {mode === 'pairRemote' && (
+          <div className={styles.settingsBody}>
+            <PairRemoteContent active layout="stacked" />
           </div>
         )}
       </aside>
