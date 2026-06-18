@@ -249,7 +249,7 @@ export function PanelEditorSheet({
             deviceTouch={deviceTouch}
             onAdd={onAdd}
             // The on-device phone panel is itself the remote session, so hide
-            // local-only widgets (pairing QR) there.
+            // local-only widgets there.
             remote={surface === 'phone'}
           />
         )}

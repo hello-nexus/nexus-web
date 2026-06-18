@@ -1,8 +1,7 @@
-// Catalog preview fixture — fake payload, untranslated by design. ONE complete
-// size-independent snapshot. Keep in sync with what PairingWidget renders (see
-// .agents/rules/widget-preview-fixtures.md in the master repo). The QR is a
+// Preview fixture for the shared PairingQrView storybook entry: fake payload,
+// untranslated by design. ONE complete size-independent snapshot. The QR is a
 // decorative deterministic pattern (it encodes nothing); expiresAt is
-// mount-relative by design — the widget freezes it via a useState initializer.
+// mount-relative by design, frozen by the caller via a useState initializer.
 import type { PanelPhonePairQr } from '../../../api/panel';
 
 // 21x21 QR-look grid: three 7x7 finder patterns + arithmetic-hash fill

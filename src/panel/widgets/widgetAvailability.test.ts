@@ -93,14 +93,14 @@ describe('appAvailableForSurface', () => {
     expect(appAvailableForSurface(displays.meta, 'desktop')).toBe(true);
   });
 
-  it('hides local-only widgets (pairing QR) on remotely-connected panels', () => {
-    const pairing = APP_REGISTRY.pairing;
-    expect(pairing.meta.localOnly).toBe(true);
+  it('hides local-only widgets on remotely-connected panels', () => {
+    // No built-in widget is local-only today; verify the surface filter still
+    // honors the flag for any future local-only widget.
+    const localOnly = { ...APP_REGISTRY.clock.meta, localOnly: true };
     // Local (hard-wired) panels show it; remote (paired phone/browser/app) hide it.
-    expect(appAvailableForSurface(pairing.meta, 'y70')).toBe(true);
-    expect(appAvailableForSurface(pairing.meta, 'y70', { remote: false })).toBe(true);
-    expect(appAvailableForSurface(pairing.meta, 'phone', { remote: true })).toBe(false);
-    expect(appAvailableForSurface(pairing.meta, 'desktop', { remote: true })).toBe(false);
+    expect(appAvailableForSurface(localOnly, 'y70', { remote: false })).toBe(true);
+    expect(appAvailableForSurface(localOnly, 'phone', { remote: true })).toBe(false);
+    expect(appAvailableForSurface(localOnly, 'desktop', { remote: true })).toBe(false);
     // Non-local-only widgets are unaffected by the remote flag.
     expect(appAvailableForSurface(APP_REGISTRY.clock.meta, 'phone', { remote: true })).toBe(true);
   });
@@ -217,10 +217,9 @@ describe('pickerSizeFor', () => {
   });
 
   it('falls back to a sole supported size when 4x2 is unavailable', () => {
-    // 4x4-only widgets, 2x2-only pairing.
+    // 4x4-only widgets fall back to their sole supported size.
     expect(pickerSizeFor(APP_REGISTRY.calculator.meta, 'y70')).toBe('4x4');
     expect(pickerSizeFor(APP_REGISTRY.steam.meta, 'y70')).toBe('4x4');
-    expect(pickerSizeFor(APP_REGISTRY.pairing.meta, 'y70')).toBe('2x2');
   });
 
   it('drops 2x4 first, then applies the rule (twitch becomes 4x4)', () => {

@@ -100,10 +100,9 @@ export interface AppMetadata {
   // pointer. Availability is computed from `touch` + `sizes` alone; there is
   // no per-widget surface allowlist.
   touch: boolean;
-  // Whether the widget only makes sense on a panel hard-wired to this host —
-  // hidden on remotely-connected panels (paired phone/browser/app sessions).
-  // e.g. the pairing/QR widget: a remote panel is the thing being paired, so
-  // showing it a "pair a remote" QR is nonsensical. Defaults to false.
+  // Whether the widget only makes sense on a panel hard-wired to this host:
+  // hidden on remotely-connected panels (paired phone/browser/app sessions),
+  // since a remote panel is itself the thing being paired. Defaults to false.
   localOnly?: boolean;
   // The inverse: the widget acts on the host FROM a paired remote (e.g. the
   // transfer widget sends the phone's photos/clipboard to the PC), so it's

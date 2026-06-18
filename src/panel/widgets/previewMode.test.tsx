@@ -178,10 +178,4 @@ describe('widget preview mode', () => {
     const img = container.querySelector('img');
     expect(img?.getAttribute('src')?.startsWith('data:image/svg+xml')).toBe(true);
   });
-
-  it('pairing preview renders a frozen data-URI QR', () => {
-    const { container } = renderPreview('pairing', pickerSizeFor(APP_REGISTRY.pairing.meta));
-    const img = container.querySelector('img');
-    expect(img?.getAttribute('src')?.startsWith('data:image/svg+xml')).toBe(true);
-  });
 });

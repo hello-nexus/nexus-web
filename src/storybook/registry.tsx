@@ -53,7 +53,7 @@ import { TextStyles } from './TextStyles';
 import { SurfaceStyles } from './SurfaceStyles';
 import { MicroBar } from '../panel/widgets/monitoring/MicroBar';
 import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
-import { pairingPreviewQr } from '../panel/widgets/pairing/pairingPreviewData';
+import { pairingPreviewQr } from '../components/common/PairingQr/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
@@ -890,7 +890,7 @@ function PreviewServiceLaunchButton() {
 
 function PreviewPairingQr() {
   const [now] = useState(() => Date.now());
-  // Same deterministic QR-look fixture the panel widget catalog uses.
+  // Deterministic decorative QR-look fixture; encodes nothing.
   const qr = pairingPreviewQr(now);
   return <PairingQrView qrDataUrl={qr.qrDataUrl} expiresAt={qr.expiresAt} loading={false} now={now} />;
 }
