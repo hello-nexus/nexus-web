@@ -1,10 +1,10 @@
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button } from '../../../../components/common/Button/Button';
-import { Minus, TrendingUp, Activity, Combine, Trash2, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Minus, TrendingUp, Activity, Combine, Trash2, RotateCcw, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
 import type { CurvePoint, TemperatureSource } from '../../../../api/cooling';
 import { useTranslation } from '../../../../lib/i18n';
 import type { CurveDef, CurveType, MixFn } from '../../../../types/cooling';
-import { EditableText } from '../../../../components/common/Editable/EditableText';
+import { PromptModal } from '../../../../components/common/PromptModal/PromptModal';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { RangeSlider } from '../../../../components/common/Slider/RangeSlider';
@@ -448,6 +448,7 @@ export const CurveCard = memo(function CurveCard({
   const PresetIcon = presetIconFor(curve.preset);
   const isPreset = !!curve.preset;
   const output = outputPercent ?? 0;
+  const [renaming, setRenaming] = useState(false);
 
   // Called unconditionally (hooks rule); only used by the non-pinned card.
   const cardRef = useRef<HTMLDivElement>(null);
@@ -469,7 +470,7 @@ export const CurveCard = memo(function CurveCard({
       </HoverTooltip>
     </>
   ) : (
-    <EditableText value={curve.name} onCommit={name => set({ name })} className={styles.editableName} />
+    <span className={styles.curveName}>{curve.name}</span>
   );
 
   // Type chips. `showLabels` adds the text label beside the icon (the pinned
@@ -506,25 +507,42 @@ export const CurveCard = memo(function CurveCard({
   ) : null;
 
   const footer = (
-    <div className={styles.curveCardFooterActions}>
-      {isPreset && onResetPreset && (
-        <HoverTooltip body={t('cooling.curves.resetToDefaults')} side="top">
-          <Button type="button" size="sm" tone="neutral" icon={<RotateCcw size={12} aria-hidden />}
-            onClick={e => { e.stopPropagation(); onResetPreset(); }} disabled={!isPresetCurveDirty(curve)}>
-            {t('cooling.curves.resetBtn')}
+    <>
+      <div className={styles.curveCardFooterActions}>
+        {/* Rename applies to every curve - presets included; only delete is blocked. */}
+        <HoverTooltip body={t('cooling.curves.rename')} side="top">
+          <Button type="button" size="sm" tone="neutral" icon={<Pencil size={12} aria-hidden />}
+            onClick={e => { e.stopPropagation(); setRenaming(true); }}>
+            {t('cooling.curves.renameBtn')}
           </Button>
         </HoverTooltip>
-      )}
-      {/* Preset curves (Silent/Balanced/Turbo) are permanent - no Remove. */}
-      {!isPreset && (
-        <HoverTooltip body={t('cooling.curves.delete')} side="top">
-          <Button type="button" size="sm" tone="danger" icon={<Trash2 size={12} aria-hidden />}
-            onClick={e => { e.stopPropagation(); onDelete(); }}>
-            {t('cooling.curves.removeBtn')}
-          </Button>
-        </HoverTooltip>
-      )}
-    </div>
+        {isPreset && onResetPreset && (
+          <HoverTooltip body={t('cooling.curves.resetToDefaults')} side="top">
+            <Button type="button" size="sm" tone="neutral" icon={<RotateCcw size={12} aria-hidden />}
+              onClick={e => { e.stopPropagation(); onResetPreset(); }} disabled={!isPresetCurveDirty(curve)}>
+              {t('cooling.curves.resetBtn')}
+            </Button>
+          </HoverTooltip>
+        )}
+        {/* Preset curves (Silent/Balanced/Turbo) are permanent - no Remove. */}
+        {!isPreset && (
+          <HoverTooltip body={t('cooling.curves.delete')} side="top">
+            <Button type="button" size="sm" tone="danger" icon={<Trash2 size={12} aria-hidden />}
+              onClick={e => { e.stopPropagation(); onDelete(); }}>
+              {t('cooling.curves.removeBtn')}
+            </Button>
+          </HoverTooltip>
+        )}
+      </div>
+      <PromptModal
+        open={renaming}
+        title={t('cooling.curves.renameTitle')}
+        initialValue={curve.name}
+        maxLength={20}
+        onConfirm={name => { set({ name }); setRenaming(false); }}
+        onCancel={() => setRenaming(false)}
+      />
+    </>
   );
 
   const flatSlider = (
@@ -605,7 +623,7 @@ export const CurveCard = memo(function CurveCard({
   const interactiveSelector =
     'input, select, textarea, button, svg, label, ' +
     '[role="button"], [role="slider"], [role="switch"], ' +
-    `.${styles.editableName}, .${styles.curveGraph}, .${styles.curveTypeChipGroup}, .${styles.curveOutNub}`;
+    `.${styles.curveGraph}, .${styles.curveTypeChipGroup}, .${styles.curveOutNub}`;
 
   return (
     <div
