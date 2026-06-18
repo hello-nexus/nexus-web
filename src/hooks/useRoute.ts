@@ -10,12 +10,11 @@ import { useState, useEffect, useCallback, useRef, startTransition } from 'react
  *   /system/:view/:subtab      → e.g. /system/monitoring/cpu
  *   /builder                   → Builder table view
  *   /builder/:category         → Builder with that category's picker open
- *   /benchmark                 → Placeholder
  *   /community                 → Placeholder
  *   /touch                     → panel kiosk entrypoint (handled before this hook)
  */
 
-export type Section = 'system' | 'builder' | 'benchmark' | 'community';
+export type Section = 'system' | 'builder' | 'community';
 
 interface Route {
   section: Section;
@@ -31,7 +30,7 @@ const DEFAULT_SECTION: Section = 'system';
 const DEFAULT_VIEW = 'dashboard';
 const DEFAULT_MONITORING_SUBTAB = 'overview';
 
-const VALID_SECTIONS: readonly string[] = ['system', 'builder', 'benchmark', 'community'];
+const VALID_SECTIONS: readonly string[] = ['system', 'builder', 'community'];
 
 function isSection(s: string): s is Section {
   return VALID_SECTIONS.includes(s);

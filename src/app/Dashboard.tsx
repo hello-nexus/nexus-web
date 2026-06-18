@@ -154,7 +154,7 @@ export function Dashboard() {
   }, [section, setView, navigate]);
 
   const handlePortalNavChange = useCallback((key: string) => {
-    navigate(key as 'builder' | 'benchmark' | 'community');
+    navigate(key as 'builder' | 'community');
   }, [navigate]);
 
   const handleViewDetail = useCallback((component: ComponentOption) => {
@@ -368,7 +368,6 @@ export function Dashboard() {
             />
           </Suspense>
         );
-      case 'benchmark': return <BenchmarkPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
       case 'community':
         return <Placeholder title={t('nav.section.community')} />;
       default:
@@ -396,6 +395,7 @@ export function Dashboard() {
       );
       case 'monitoring': return <MonitoringPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
       case 'screentime': return <ScreentimePage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
+      case 'benchmark':  return <BenchmarkPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
       case 'lighting':   return <LightingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} platform={status.ping?.platform ?? ''} onSectionNavigate={(target) => setView(target)} />;
       case 'smart-lights': return <SmartLightsPage onSectionNavigate={(target) => setView(target)} />;
       case 'cooling':    return <CoolingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
