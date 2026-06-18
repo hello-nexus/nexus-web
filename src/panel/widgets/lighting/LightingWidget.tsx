@@ -301,7 +301,11 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const onMediaButton = useCallback(async () => {
     setMode('gif');
     setMusicReactive(false).catch(() => { /* best-effort */ });
-    await playCurrentOrFirstMedia();
+    const played = await playCurrentOrFirstMedia();
+    if (!played) {
+      // No playable media: stop the engine so the output goes black instead of holding the previous effect.
+      await stopLighting();
+    }
     publishLighting('gif', 'gif');
   }, [publishLighting]);
 

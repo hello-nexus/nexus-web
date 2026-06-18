@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Monitor, MonitorPlay, Zap } from 'lucide-react';
 import {
   fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect, reselectScreen,
+  stopLighting,
   type ScreenMonitor, type PostProcessSettings,
 } from '../../../../api/lighting';
 import {
@@ -213,6 +214,10 @@ function MediaControls() {
   };
 
   const handleDelete = async (id: string) => {
+    const isActive = id === activeId;
+    const nextItem = isActive
+      ? items.filter(item => item.id !== id)[0] ?? null
+      : null;
     const deleted = await deleteMedia(id);
     if (!deleted) {
       await refresh();
@@ -220,6 +225,13 @@ function MediaControls() {
     }
     removeLocal(id);
     await refresh();
+    if (isActive) {
+      if (nextItem) {
+        await play(nextItem.id);
+      } else {
+        await stopLighting();
+      }
+    }
   };
 
   const requestDelete = (id: string, name: string) => {

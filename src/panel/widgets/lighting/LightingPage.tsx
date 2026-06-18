@@ -854,11 +854,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const handleModeChange = useCallback(async (m: LightingMode) => {
     setMode(m);
+    // Set rawSync optimistically so content renders the new mode immediately
+    // without waiting for the publishControlSync round-trip.
+    if (m !== 'animate') setRawSync(m);
     try {
       switch (m) {
         case 'animate': {
           const key = activeEffect || (EFFECTS.some(e => e.key === rawSync) ? rawSync : 'rainbow');
           setActiveEffect(key);
+          setRawSync(key);
           const state = stateFor(key);
           await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
           publishControlSync({ domain: 'lighting', mode: m, rawSync: key, effect: key });
@@ -868,7 +872,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           await startScreenMirror(screenPP.saturation, screenPP.contrast, '', screenPP.hue, screenPP.colorize);
           break;
         case 'gif': {
-          await playCurrentOrFirstMedia();
+          const played = await playCurrentOrFirstMedia();
+          if (!played) {
+            // No playable media: stop the engine so the output goes black instead of holding the previous effect.
+            await stopLighting();
+          }
           break;
         }
         case 'none': await stopLighting(); break;
@@ -877,7 +885,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         publishControlSync({ domain: 'lighting', mode: m, rawSync: m });
       }
     } catch { /* best-effort; backend state becomes source of truth */ }
-  }, [activeEffect, rawSync, setMode, screenPP, stateFor]);
+  }, [activeEffect, rawSync, setMode, setRawSync, screenPP, stateFor]);
 
   const modeTabs = MODES.map(m => {
     const Icon = LIGHTING_MODE_ICONS[m.key];

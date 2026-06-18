@@ -19,6 +19,7 @@ import {
   startAnimate,
 } from '../../../api/lighting';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
+import { subscribeControlSync } from '../../../lib/controlSync';
 import { usePanelBackgroundUsage, type PanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
   EFFECTS,
@@ -173,6 +174,19 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
 
   useEffect(() => { hydrate(); }, [hydrate]);
   useTopicCallback('lighting', true, hydrate);
+
+  // Optimistic mode update on same-browser mode changes (e.g. tapping the Media
+  // button in the LightingWidget above). The lighting topic arrives after the
+  // HTTP round-trip; controlSync fires immediately so the editor cell below
+  // switches on the first tap rather than after the broadcast.
+  useEffect(() => subscribeControlSync(event => {
+    if (event.domain !== 'lighting') return;
+    if (event.rawSync) {
+      setMode(resolveImmersiveMode(event.rawSync));
+    } else if (event.mode) {
+      setMode(event.mode);
+    }
+  }), []);
 
   const bundle = templates[active];
   const baseState = bundle?.slots[bundle.selected] ?? defaultStateFor(active);
