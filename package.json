@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:service": "cross-env BUILD_TARGET=service tsc -b && cross-env BUILD_TARGET=service vite build",
+    "build:service": "cross-env BUILD_TARGET=service tsc -b && cross-env BUILD_TARGET=service VITE_API_URL=https://api.hellonexus.com vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "node server.js",

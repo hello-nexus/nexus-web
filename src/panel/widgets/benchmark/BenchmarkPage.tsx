@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Gauge, Play, X, RotateCcw, History, Trophy } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Gauge, Play, X, RotateCcw, History, Trophy, Cpu, Monitor, MemoryStick, HardDrive, CircuitBoard, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useBenchmark } from '../../../hooks/useBenchmark';
 import { useBenchmarkHistory } from '../../../hooks/useBenchmarkHistory';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
+import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Overlay } from '../../../components/common/Overlay/Overlay';
@@ -11,7 +13,7 @@ import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { GenericSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { Button } from '../../../components/common/Button/Button';
-import { InfoList, InfoRow } from '../../../components/common/InfoList/InfoList';
+import { Card } from '../../../components/common/Card/Card';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { getDeviceId, getLastSubmissionId, setLastSubmissionId, submitBenchmark } from '../../../api/nexusApi';
 import { BenchmarkProgress } from './BenchmarkProgress';
@@ -20,6 +22,34 @@ import { LeaderboardView } from './LeaderboardView';
 import styles from './BenchmarkPage.module.scss';
 
 type BenchmarkTab = 'run' | 'results' | 'leaderboards';
+
+// The rig shown as big blocks before a run: the four scored subsystems plus
+// the board and OS for context. `get` pulls the model string from /system/specs.
+const SPEC_BLOCKS: Array<{
+  key: string;
+  icon: ReactNode;
+  labelKey: string;
+  get: (s: SystemSpecs) => string;
+}> = [
+  { key: 'cpu', icon: <Cpu size={28} />, labelKey: 'benchmark.phase.cpu', get: s => s.processor },
+  { key: 'gpu', icon: <Monitor size={28} />, labelKey: 'benchmark.phase.gpu', get: s => s.graphicsCard },
+  { key: 'mobo', icon: <CircuitBoard size={28} />, labelKey: 'benchmark.spec.motherboard', get: s => s.motherboard },
+  { key: 'ram', icon: <MemoryStick size={28} />, labelKey: 'benchmark.phase.ram', get: s => s.memory },
+  { key: 'storage', icon: <HardDrive size={28} />, labelKey: 'benchmark.phase.storage', get: s => s.storage },
+  { key: 'os', icon: <AppWindow size={28} />, labelKey: 'benchmark.leaderboard.os', get: s => s.osBuild },
+];
+
+function SpecBlock({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <Card className={styles.specBlock}>
+      <div className={styles.specInner}>
+        <span className={styles.specIcon}>{icon}</span>
+        <span className={styles.specLabel}>{label}</span>
+        <span className={styles.specValue} title={value}>{value || '-'}</span>
+      </div>
+    </Card>
+  );
+}
 
 interface BenchmarkPageProps {
   serviceOnline: boolean;
@@ -128,13 +158,12 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
         <div className={styles.intro}>
           {specs && (
             <div className={styles.specsSection}>
-              <InfoList>
-                <InfoRow label="CPU" value={specs.processor} />
-                <InfoRow label="GPU" value={specs.graphicsCard} />
-                <InfoRow label="RAM" value={specs.memory} />
-                {/* eslint-disable-next-line i18next/no-literal-string -- Storage is a hardware category proper noun */}
-                <InfoRow label="Storage" value={specs.storage} />
-              </InfoList>
+              <SectionHeader>{t('benchmark.run.systemTitle')}</SectionHeader>
+              <div className={styles.specGrid}>
+                {SPEC_BLOCKS.map(b => (
+                  <SpecBlock key={b.key} icon={b.icon} label={t(b.labelKey)} value={b.get(specs)} />
+                ))}
+              </div>
             </div>
           )}
           <ul className={styles.whatItMeasures}>

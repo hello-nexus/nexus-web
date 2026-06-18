@@ -103,7 +103,9 @@ npm run audit:styles     # style audits (also: audit:css-chunks, audit:text-styl
 - `VITE_SERVICE_HOST` / `VITE_SERVICE_PORT` / `VITE_SERVICE_PROTOCOL` -
   override how the app reaches the local service. Defaults to
   `127.0.0.1:9400`; the embedded build is same-origin.
-- `VITE_API_URL` - cloud API origin override.
+- `VITE_API_URL` - cloud API origin. `npm run build:service` bakes in
+  `https://api.hellonexus.com`; set this to point the embedded build at a
+  local/staging API instead.
 - `VITE_RELAY_URL` - relay origin override for local relay testing.
 
 Host resolution logic lives in `src/api/service.ts`.
