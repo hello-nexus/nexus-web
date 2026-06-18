@@ -24,8 +24,8 @@ export interface CurveDef {
   sourceId: string;
   flat: { speed: number };
   linear: { responseTime: number; minTemp: number; maxTemp: number; minSpeed: number; maxSpeed: number };
-  // The draggable multi-point curve. Persisted to the service as the wire
-  // "Graph" type / `graph` object (see curveDefsFromApi + pushCurves).
+  // The multi-point curve. Persisted to the service as the wire "Graph" type /
+  // `graph` object (see curveDefsFromApi + pushCurves).
   multipoint: { responseTime: number; points: CurvePoint[] };
   mix: { responseTime: number; curveIds: string[]; fn: MixFn };
   preset?: CurvePreset;
@@ -67,8 +67,8 @@ export function curveDefsFromApi(saved: CurvesResponse | null): CurveDef[] {
     multipoint: {
       responseTime: c.graph?.responseTime ?? 1.5,
       points: c.graph?.points?.length ? c.graph.points : [
-        { temp: 30, speed: 25 }, { temp: 50, speed: 40 },
-        { temp: 70, speed: 70 }, { temp: 90, speed: 100 },
+        { temp: 30, speed: 25 }, { temp: 45, speed: 33 }, { temp: 60, speed: 63 },
+        { temp: 75, speed: 92 }, { temp: 90, speed: 100 },
       ],
     },
     mix: {
@@ -89,7 +89,7 @@ export function newCurve(id: string): CurveDef {
     id, name: `Curve ${id.slice(-4)}`, type: 'multipoint', sourceId: '',
     flat: { speed: 50 },
     linear: { responseTime: 1.5, minTemp: 35, maxTemp: 75, minSpeed: 30, maxSpeed: 90 },
-    multipoint: { responseTime: 1.5, points: [{ temp: 30, speed: 25 }, { temp: 50, speed: 40 }, { temp: 70, speed: 70 }, { temp: 90, speed: 100 }] },
+    multipoint: { responseTime: 1.5, points: [{ temp: 30, speed: 25 }, { temp: 45, speed: 33 }, { temp: 60, speed: 63 }, { temp: 75, speed: 92 }, { temp: 90, speed: 100 }] },
     mix: { responseTime: 1.5, curveIds: [], fn: 'max' },
   };
 }

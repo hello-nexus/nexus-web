@@ -1114,8 +1114,7 @@
 .curveAxisLiveX { top: -0.05rem; transform: translateX(-50%); }
 .curveAxisLiveY { left: 0; transform: translateY(-50%); }
 .gridLine { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; }
-.curvePoint { fill: var(--accent); stroke: #fff; stroke-width: 2; cursor: grab; transition: r var(--ease-fast) ease; &:hover { r: 8; } }
-.curvePointActive { cursor: grabbing; fill: var(--accent-glow); filter: drop-shadow(0 0 8px var(--accent)); }
+.curvePoint { fill: var(--accent); stroke: #fff; stroke-width: 2; }
 
 // Live temperature indicator overlaid on the graph: vertical line from the
 // x-axis up through the curve so the user can see where the current reading

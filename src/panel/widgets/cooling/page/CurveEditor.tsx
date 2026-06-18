@@ -110,7 +110,7 @@ const V_LINES: number[] = []; for (let v = 20; v <= 100; v += 10) V_LINES.push(v
 // Plot a curve's shape across the 20-100°C axis by evaluating it with every
 // source swept to the same temperature. Works for every type, including Mix
 // (its inputs evaluate at the same swept temperature), giving one line on a
-// single axis. Multipoint uses its own draggable points instead.
+// single axis. Multipoint plots its own points instead.
 function sampleCurveShape(curve: CurveDef, allCurves: CurveDef[], sources: TemperatureSource[]): CurvePoint[] {
   const out: CurvePoint[] = [];
   for (let temp = TEMP_MIN; temp <= TEMP_MAX; temp += SAMPLE_STEP) {
@@ -120,21 +120,19 @@ function sampleCurveShape(curve: CurveDef, allCurves: CurveDef[], sources: Tempe
   return out;
 }
 
-// `editable` (default true) renders draggable points + click-to-add /
-// right-click-to-remove; when false the graph is a static line (Fixed /
-// Linear / Mix shapes). `currentTemp` draws a temperature line from the top
-// down to a dot on the curve. `height` sizes the SVG + its y-axis gutter
-// (CSS default 140).
-function CurveGraph({ points, currentTemp, onChange, editable = true, height = GRAPH_H }: {
+// `showPoints` (default true) renders the curve's points as static markers
+// for multipoint curves; when false the graph is just a line (Fixed / Linear
+// / Mix shapes). The graph is display-only; points are not draggable.
+// `currentTemp` draws a temperature line from the top down to a dot on the
+// curve. `height` sizes the SVG + its y-axis gutter (CSS default 140).
+function CurveGraph({ points, currentTemp, showPoints = true, height = GRAPH_H }: {
   points: CurvePoint[];
   currentTemp?: number;
-  onChange?: (pts: CurvePoint[]) => void;
-  editable?: boolean;
+  showPoints?: boolean;
   height?: number;
 }) {
   const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
-  const [dragging, setDragging] = useState<number | null>(null);
   const [width, setWidth] = useState(400);
   const rafWidthRef = useRef(0);
 
@@ -161,13 +159,10 @@ function CurveGraph({ points, currentTemp, onChange, editable = true, height = G
   const chartW = width - PAD.left - PAD.right, chartH = height - PAD.top - PAD.bottom;
   const tempToX = (t: number) => PAD.left + ((t - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * chartW;
   const speedToY = (s: number) => PAD.top + chartH - (s / 100) * chartH;
-  const xToTemp = (x: number) => Math.round(Math.max(TEMP_MIN, Math.min(TEMP_MAX, TEMP_MIN + ((x - PAD.left) / chartW) * (TEMP_MAX - TEMP_MIN))));
-  const yToSpeed = (y: number) => Math.round(Math.max(0, Math.min(100, 100 - ((y - PAD.top) / chartH) * 100)));
-
   const sorted = useMemo(() => [...points].sort((a, b) => a.temp - b.temp), [points]);
   // Extend the line/area flat to the chart edges (20 / 100) so the curve fills
   // the full width, matching how the engine clamps outside the point range. The
-  // draggable circles below still sit only on the real points.
+  // point markers below still sit only on the real points.
   const edged = useMemo(() => {
     if (sorted.length === 0) return sorted;
     const out = [...sorted];
@@ -193,22 +188,6 @@ function CurveGraph({ points, currentTemp, onChange, editable = true, height = G
     return sorted[sorted.length - 1].speed;
   };
 
-  const onPtrDown = (idx: number, e: React.PointerEvent) => { e.preventDefault(); (e.target as Element).setPointerCapture(e.pointerId); setDragging(idx); };
-  const onPtrMove = (e: React.PointerEvent) => {
-    if (dragging === null || !svgRef.current || !onChange) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    let temp = xToTemp(e.clientX - rect.left); const speed = yToSpeed(e.clientY - rect.top);
-    const prev = dragging > 0 ? sorted[dragging - 1].temp + 1 : TEMP_MIN;
-    const next = dragging < sorted.length - 1 ? sorted[dragging + 1].temp - 1 : TEMP_MAX;
-    temp = Math.max(prev, Math.min(next, temp));
-    const n = [...sorted]; n[dragging] = { temp, speed }; onChange(n);
-  };
-  const onDblClick = (e: React.MouseEvent) => {
-    if (!svgRef.current || !onChange) return; const rect = svgRef.current.getBoundingClientRect();
-    onChange([...sorted, { temp: xToTemp(e.clientX - rect.left), speed: yToSpeed(e.clientY - rect.top) }].sort((a, b) => a.temp - b.temp));
-  };
-  const onCtxMenu = (idx: number, e: React.MouseEvent) => { e.preventDefault(); if (onChange && sorted.length > 2) onChange(sorted.filter((_, i) => i !== idx)); };
-
   // Intersection of the live source temperature with the curve. Drives the
   // dot, the two dotted guide lines (up from the bottom temp axis, in from the
   // right duty axis), and the live temp/duty readouts on those axes.
@@ -222,8 +201,7 @@ function CurveGraph({ points, currentTemp, onChange, editable = true, height = G
     <div className={styles.curveGraphWrap}>
       <div className={styles.curveGraphFrame}>
         <div className={styles.curveChartArea}>
-          <svg ref={svgRef} className={styles.curveGraph} style={{ height }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
-            onPointerMove={editable ? onPtrMove : undefined} onPointerUp={editable ? () => setDragging(null) : undefined} onDoubleClick={editable ? onDblClick : undefined}>
+          <svg ref={svgRef} className={styles.curveGraph} style={{ height }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
             {H_LINES.map(s => (<g key={`h${s}`}><line x1={PAD.left} y1={speedToY(s)} x2={width - PAD.right} y2={speedToY(s)} className={styles.gridLine} /></g>))}
             {V_LINES.map(v => (<g key={`v${v}`}><line x1={tempToX(v)} y1={PAD.top} x2={tempToX(v)} y2={height - PAD.bottom} className={styles.gridLine} /></g>))}
             <defs><linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" /><stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" /></linearGradient></defs>
@@ -238,10 +216,8 @@ function CurveGraph({ points, currentTemp, onChange, editable = true, height = G
                 <circle cx={dotX} cy={dotY} r={4} className={styles.tempDot} />
               </g>
             )}
-            {editable && sorted.map((p, i) => (
-              <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={dragging === i ? 8 : 6}
-                className={`${styles.curvePoint} ${dragging === i ? styles.curvePointActive : ''}`}
-                onPointerDown={e => onPtrDown(i, e)} onContextMenu={e => onCtxMenu(i, e)} />
+            {showPoints && sorted.map((p, i) => (
+              <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={6} className={styles.curvePoint} />
             ))}
           </svg>
           <div className={styles.curveXAxis} aria-hidden="true">
@@ -525,10 +501,9 @@ export const CurveCard = memo(function CurveCard({
         <div className={styles.heroGraph}>
           <CurveGraph
             points={isMp ? curve.multipoint.points : sampleCurveShape(curve, allCurves, sources)}
-            editable={isMp}
+            showPoints={isMp}
             height={PINNED_GRAPH_H}
             currentTemp={dotTemp}
-            onChange={isMp ? pts => set({ multipoint: { ...curve.multipoint, points: pts } }) : undefined}
           />
         </div>
         {/* Curve selector (with its own header) sits under the graph. */}
@@ -606,8 +581,7 @@ export const CurveCard = memo(function CurveCard({
           {curve.type === 'linear' && linearBlock}
           {curve.type === 'multipoint' && (
             <>
-              <CurveGraph points={curve.multipoint.points} currentTemp={dotTemp}
-                onChange={pts => set({ multipoint: { ...curve.multipoint, points: pts } })} />
+              <CurveGraph points={curve.multipoint.points} currentTemp={dotTemp} />
               {multipointResponse}
             </>
           )}
