@@ -6,9 +6,7 @@ import { resolvePrimaryGpu } from './gpuResolver';
 const MAX_SAMPLES = 60;
 const TOP_PROCS = 20;
 
-// Headline series colors for the monitoring page tab charts.
-export const CPU_SERIES_COLOR = '#22d3ee';
-export const MEMORY_SERIES_COLOR = '#a78bfa';
+// Headline series color for the network tab chart.
 export const NETWORK_SERIES_COLOR = '#10b981';
 
 const SERIES_COLORS = [
@@ -329,13 +327,7 @@ export function getGpuProcessData(luid = '') {
   const scoped = luid ? latestGpuProcs.filter(p => p.adapterLuid === luid) : latestGpuProcs;
   const mapped = scoped.map(p => ({ name: p.name, cpuPercent: p.gpuPercent, memoryMb: p.dedicatedMb }));
   return {
-    utilSeries: buildGpuSeries(gpuProcHist, mapped, 'cpuPercent', luid, 6),
-    memSeries: buildGpuSeries(gpuMemHist, mapped, 'memoryMb', luid, 6),
-    // Ranked-list series carry current + 60s-avg so the list's live/60s toggle
-    // re-ranks GPU% (procSeries) and averages its VRAM sub (procMemSeries) like
-    // CPU/memory; the charts above stay at the top 6. procMemSeries is a VRAM
-    // lookup keyed by name (never a top-N list), so it stays uncapped to cover
-    // every process the GPU%-ranked rows can show.
+    // procMemSeries is uncapped so vramByName covers every process the GPU%-ranked rows can show.
     procSeries: buildGpuSeries(gpuProcHist, mapped, 'cpuPercent', luid, TOP_PROCS),
     procMemSeries: buildGpuSeries(gpuMemHist, mapped, 'memoryMb', luid, Infinity),
   };

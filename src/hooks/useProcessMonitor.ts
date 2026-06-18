@@ -13,8 +13,6 @@ export interface SeriesEntry {
 export interface GpuProcess { name: string; gpuPercent: number; dedicatedMb: number; adapterLuid: string; }
 
 export interface GpuProcessData {
-  utilSeries: SeriesEntry[];
-  memSeries: SeriesEntry[];
   procSeries: SeriesEntry[];
   procMemSeries: SeriesEntry[];
 }

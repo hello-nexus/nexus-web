@@ -1,24 +1,13 @@
-import { useMemo } from 'react';
 import type { useProcessMonitor } from '../../../../hooks/useProcessMonitor';
 import type { SensorState } from '../../../../hooks/useSensors';
 import { useTranslation } from '../../../../lib/i18n';
-import { MEMORY_SERIES_COLOR } from '../../../../lib/monitoringStore';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
-import { useSharedSensorHistory } from '../../common/useSharedSensorHistory';
 import { RankedToggle } from './parts';
-import { rankSeries } from './shared';
+import { rankSeries, topNWithOther } from './shared';
 import styles from '../MonitoringPage.module.scss';
 
 const SAMPLE_COUNT = 60;
-
-function padLeft(arr: readonly number[]): number[] {
-  if (arr.length >= SAMPLE_COUNT) return arr.slice(-SAMPLE_COUNT);
-  const out = new Array<number>(SAMPLE_COUNT).fill(0);
-  const offset = SAMPLE_COUNT - arr.length;
-  for (let i = 0; i < arr.length; i++) out[offset + i] = arr[i];
-  return out;
-}
 
 export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
   memSeries: ReturnType<typeof useProcessMonitor>['memSeries'];
@@ -34,20 +23,8 @@ export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
   const memUsedSensor = sensors.memory.find(s => s.name === 'Memory Used');
   const usedMb = memUsedSensor ? memUsedSensor.value * 1024 : 0;
   const totalMb = memUsedSensor?.theoreticalMaximum ? memUsedSensor.theoreticalMaximum * 1024 : 0;
-  const history = useSharedSensorHistory('memory::Memory Used MB', usedMb);
 
-  const series = useMemo(() => {
-    const values = padLeft(history);
-    const sum = history.reduce((a, b) => a + b, 0);
-    return [{
-      name: 'Memory Used',
-      color: MEMORY_SERIES_COLOR,
-      values,
-      current: usedMb,
-      avg: history.length > 0 ? sum / history.length : 0,
-    }];
-  }, [history, usedMb]);
-
+  const chartSeries = topNWithOther(memSeries, 5);
   const { ranked, key } = rankSeries(memSeries, showAverage);
 
   const usedGb = (usedMb / 1024).toFixed(1);
@@ -62,7 +39,7 @@ export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
             <span className={styles.chartStatUnit}>{`/ ${(totalMb / 1024).toFixed(0)} GB`}</span>
           </div>
         ) : undefined}
-        series={series}
+        series={chartSeries}
         sampleCount={SAMPLE_COUNT}
         yMax={totalMb > 0 ? totalMb : undefined}
         yUnit="MB"

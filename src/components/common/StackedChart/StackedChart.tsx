@@ -244,7 +244,7 @@ export function StackedChart({
           {tooltip.items.map(item => (
             <div key={item.name} className={styles.tooltipRow}>
               <span className={styles.tooltipDot} style={{ background: item.color }} />
-              <span className={styles.tooltipName}>{item.name}</span>
+              <span className={styles.tooltipName}>{item.name === 'Other' ? t('monitoring.other') : item.name}</span>
               <span className={styles.tooltipVal}>
                 {yUnit === '%' ? `${item.val.toFixed(1)}%`
                   : yUnit === 'KB/s' ? (item.val >= 1024 ? `${(item.val / 1024).toFixed(1)} MB/s` : `${Math.round(item.val)} KB/s`)
