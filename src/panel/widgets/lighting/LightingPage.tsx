@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  startAnimate, startScreenMirror, stopLighting,
+  startAnimate, startScreenMirror, stopLighting, startGameSync,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
@@ -434,6 +434,16 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       setMusicReactiveState(!next);
     }
   }, [musicReactive]);
+
+  const handleGameSyncStart = useCallback(() => {
+    startGameSync().catch(() => {});
+    publishControlSync({ domain: 'lighting', mode: 'gamesync', rawSync: 'gamesync' });
+  }, []);
+
+  const handleGameSyncStop = useCallback(() => {
+    stopLighting().catch(() => {});
+    publishControlSync({ domain: 'lighting', mode: 'none', rawSync: 'none' });
+  }, []);
 
   const restartedProfileRef = useRef<string | null>(null);
   useEffect(() => {
@@ -871,6 +881,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           await playCurrentOrFirstMedia();
           break;
         }
+        case 'gamesync':
+          await startGameSync();
+          break;
         case 'none': await stopLighting(); break;
       }
       if (m !== 'animate') {
@@ -884,9 +897,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return { key: m.key, label: t(m.labelKey), icon: <Icon size={14} /> };
   });
 
-  // Effect tab applies to animate / media / screen only; in Off mode
-  // it renders an empty state and the tab header is disabled.
-  const effectTabDisabled = mode === 'none';
+  // Effect tab applies to animate / media / screen only; in Off and Game Sync
+  // modes it renders an empty state and the tab header is disabled.
+  const effectTabDisabled = mode === 'none' || mode === 'gamesync';
 
   // The settings affordance lives in the top bar (right of the search pill);
   // register it while online so it opens this page's LightingSettingsModal.
@@ -975,6 +988,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 mode={mode}
                 screenPP={screenPP}
                 onScreenPPChange={setScreenPP}
+                gameSyncActive={mode === 'gamesync'}
+                onGameSyncStart={handleGameSyncStart}
+                onGameSyncStop={handleGameSyncStop}
               />
             </div>
           )}
@@ -1081,5 +1097,6 @@ function modeForSync(sync: string): LightingMode {
   if (sync === 'none' || !sync) return 'none';
   if (sync === 'screen' || sync.includes('mirror')) return 'screen';
   if (sync === 'gif' || sync.includes('media')) return 'gif';
+  if (sync === 'gamesync') return 'gamesync';
   return 'animate';
 }

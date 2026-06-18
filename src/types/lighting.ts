@@ -112,6 +112,7 @@ export const MODES: { key: LightingMode; labelKey: string }[] = [
   { key: 'animate', labelKey: 'lighting.mode.animate' },
   { key: 'gif', labelKey: 'lighting.mode.gif' },
   { key: 'screen', labelKey: 'lighting.mode.screen' },
+  { key: 'gamesync', labelKey: 'lighting.mode.gamesync' },
 ];
 
 // Simple fills share three tweaks: gradient boldness (0 = flat solid colour,

@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
-import { Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower, SlidersHorizontal, UserRound, FlaskConical } from 'lucide-react';
+import { Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower, SlidersHorizontal, UserRound, FlaskConical, Gamepad2 } from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
 import { LANGUAGES, LANGUAGE_LABELS, PRESET_ACCENTS, type ThemeMode } from '../lib/settings';
 import { applyProfile } from '../api/cooling';
 import { setPanelRemoteControlEnabled, setPanelRelay, setPanelPairBroadcast } from '../api/panel';
-import { startAnimate, stopLighting, startScreenMirror } from '../api/lighting';
+import { startAnimate, stopLighting, startScreenMirror, startGameSync } from '../api/lighting';
 import { COOLING_PRESETS, type CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { getCatalogEntries } from '../panel/widgets/registry';
@@ -117,10 +117,11 @@ const LANG_EN: Record<string, string> = {
 // absent → opens the lighting page (Media needs a file; Animation is the effect
 // family, each listed individually below).
 const MODE_POLICY: Record<LightingMode, { icon: ReactNode; keywords: string[]; apply?: () => void }> = {
-  none:    { icon: <Power size={18} />,     keywords: ['off', 'stop', 'disable'],                   apply: () => { void stopLighting().catch(() => {}); } },
-  screen:  { icon: <MonitorUp size={18} />, keywords: ['mirror', 'screen', 'ambient', 'ambilight'], apply: () => { void startScreenMirror().catch(() => {}); } },
-  gif:     { icon: <Film size={18} />,      keywords: ['media', 'gif', 'video', 'image'] },
-  animate: { icon: <Sparkles size={18} />,  keywords: ['animation', 'animate', 'effects'] },
+  none:     { icon: <Power size={18} />,     keywords: ['off', 'stop', 'disable'],                   apply: () => { void stopLighting().catch(() => {}); } },
+  screen:   { icon: <MonitorUp size={18} />, keywords: ['mirror', 'screen', 'ambient', 'ambilight'], apply: () => { void startScreenMirror().catch(() => {}); } },
+  gif:      { icon: <Film size={18} />,      keywords: ['media', 'gif', 'video', 'image'] },
+  animate:  { icon: <Sparkles size={18} />,  keywords: ['animation', 'animate', 'effects'] },
+  gamesync: { icon: <Gamepad2 size={18} />,  keywords: ['game', 'sync', 'chroma', 'razer', 'rgb'],   apply: () => { void startGameSync().catch(() => {}); } },
 };
 
 // Cooling presets that need the page rather than a blind apply (custom = your
