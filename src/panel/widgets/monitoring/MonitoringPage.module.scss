@@ -380,7 +380,9 @@
     &:not(:first-child) { text-align: right; }
   }
 
-  tbody tr:first-child td { padding-top: 0.6rem; }
+  // 0.9rem == RankedList's 0.6rem header margin + 0.3rem first-row padding, so
+  // the rule sits the same distance above the first row as the CPU-tab list.
+  tbody tr:first-child td { padding-top: 0.9rem; }
 }
 
 .procName {
