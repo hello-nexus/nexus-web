@@ -595,6 +595,8 @@ export interface GameSyncDevice {
 export interface GameSyncStateResponse {
   active: boolean;
   devices: GameSyncDevice[];
+  lastFrameAt?: number | null;
+  activeApp?: string | null;
 }
 
 export const startGameSync = () =>

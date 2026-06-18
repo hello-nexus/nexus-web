@@ -1,20 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   fetchGameSyncGames,
   triggerGameSyncScan,
   type GameSyncGame,
 } from '../../../../api/lighting';
-import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { useTranslation } from '../../../../lib/i18n';
 import styles from '../LightingPage.module.scss';
 
-const POLL_INTERVAL_MS = 2000;
+const GAMES_POLL_INTERVAL_MS = 2000;
 
-export function GameSyncGamesPanel(): React.ReactElement {
+interface GameSyncLeftPaneProps {
+  onStop: () => void;
+}
+
+export function GameSyncLeftPane({ onStop }: GameSyncLeftPaneProps) {
   const { t } = useTranslation();
   const [scanning, setScanning] = useState(false);
   const [games, setGames] = useState<GameSyncGame[]>([]);
-  const [unsupportedOpen, setUnsupportedOpen] = useState(false);
   const [rescanning, setRescanning] = useState(false);
   const rescanIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
 
@@ -35,7 +37,7 @@ export function GameSyncGamesPanel(): React.ReactElement {
             intervalId = null;
           }
         }
-      }, POLL_INTERVAL_MS);
+      }, GAMES_POLL_INTERVAL_MS);
     };
 
     const init = async () => {
@@ -81,14 +83,20 @@ export function GameSyncGamesPanel(): React.ReactElement {
           rescanIntervalRef.current = null;
         }
       }
-    }, POLL_INTERVAL_MS);
+    }, GAMES_POLL_INTERVAL_MS);
   };
 
   const supported = games.filter(g => g.emitsChroma);
-  const unsupported = games.filter(g => !g.emitsChroma);
 
   return (
-    <div className={styles.gameSyncGamesPanel}>
+    <div className={styles.gameSyncLeftPane}>
+      <button
+        type="button"
+        className={styles.gameSyncStopBtn}
+        onClick={onStop}
+      >
+        {t('lighting.gameSync.stop')}
+      </button>
       {scanning ? (
         <p className={styles.gameSyncGamesScanning}>{t('lighting.gameSync.games.scanning')}</p>
       ) : (
@@ -101,33 +109,16 @@ export function GameSyncGamesPanel(): React.ReactElement {
           ) : (
             <ul className={styles.gameSyncGamesList}>
               {supported.map((g, i) => (
-                <li key={i} className={styles.gameSyncGameRow}>
+                <li
+                  key={i}
+                  className={styles.gameSyncGameRow}
+                >
                   <span className={styles.gameSyncGameName}>{g.name}</span>
                   <span className={styles.gameSyncGameStore}>{g.store}</span>
                 </li>
               ))}
             </ul>
           )}
-          <CollapsibleSection
-            title={t('lighting.gameSync.games.unsupported')}
-            open={unsupportedOpen}
-            onToggle={() => setUnsupportedOpen(o => !o)}
-            compact
-          >
-            {unsupported.length === 0 ? (
-              <p className={styles.gameSyncGamesNone}>{t('lighting.gameSync.games.emptyUnsupported')}</p>
-            ) : (
-              <ul className={styles.gameSyncGamesList}>
-                {unsupported.map((g, i) => (
-                  <li key={i} className={styles.gameSyncGameRow}>
-                    <span className={styles.gameSyncGameName}>{g.name}</span>
-                    <span className={styles.gameSyncGameStore}>{g.store}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CollapsibleSection>
-          <p className={styles.gameSyncGamesNote}>{t('lighting.gameSync.games.chromaNote')}</p>
           <button
             type="button"
             className={styles.gameSyncGamesRescanBtn}

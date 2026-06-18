@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Gamepad2 } from 'lucide-react';
 import {
   startAnimate, startScreenMirror, stopLighting, startGameSync,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
-  fetchCurrentSync, fetchAvailableMappings,
-  type LightingDevice, type LedMapEntry, type PostProcessSettings,
+  fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState,
+  type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
 } from '../../../api/lighting';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
@@ -38,6 +39,7 @@ import { AnimateGrid } from './page/AnimateGrid';
 import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
 import { DevicePanel } from './page/DevicePanel';
+import { GameSyncLeftPane } from './page/GameSyncLeftPane';
 import { LedMapEditor } from './page/LedMapEditor';
 import { visibleCards } from './page/zoneUtils';
 import { OpenRgbButton } from './page/OpenRgbButton';
@@ -434,15 +436,36 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [musicReactive]);
 
-  const handleGameSyncStart = useCallback(() => {
-    startGameSync().catch(() => {});
-    publishControlSync({ domain: 'lighting', mode: 'gamesync', rawSync: 'gamesync' });
-  }, []);
-
   const handleGameSyncStop = useCallback(() => {
     stopLighting().catch(() => {});
     publishControlSync({ domain: 'lighting', mode: 'none', rawSync: 'none' });
   }, []);
+
+  const [gameSyncState, setGameSyncState] = useState<{
+    devices: GameSyncDevice[];
+    lastFrameAt: number | null;
+    activeApp: string | null;
+    isReceiving: boolean;
+  }>({ devices: [], lastFrameAt: null, activeApp: null, isReceiving: false });
+
+  useEffect(() => {
+    if (mode !== 'gamesync' || !serviceOnline) return;
+    let cancelled = false;
+    const poll = async () => {
+      const data = await fetchGameSyncState().catch(() => null);
+      if (cancelled || !data) return;
+      const lastFrameAt = data.lastFrameAt ?? null;
+      setGameSyncState({
+        devices: data.devices ?? [],
+        lastFrameAt,
+        activeApp: data.activeApp ?? null,
+        isReceiving: lastFrameAt != null && (Date.now() - lastFrameAt) < 2000,
+      });
+    };
+    void poll();
+    const id = window.setInterval(() => { void poll(); }, 1500);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [mode, serviceOnline]);
 
   const restartedProfileRef = useRef<string | null>(null);
   useEffect(() => {
@@ -882,49 +905,72 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           />
         </div>
         <div className={styles.main}>
-          <div className={styles.canvasArea}>
-            <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={mode === 'animate' ? activeEffect : null} shaderState={mode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
-            {mode === 'animate' && activeEffect && currentState && (
-              <>
-                {EFFECTS.find(e => e.key === activeEffect)?.audio && (
-                  <HoverTooltip body={t('lighting.musicReactive')} side="left">
-                    <button
-                      type="button"
-                      className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
-                      onClick={handleMusicReactiveToggle}
-                      aria-label={t('lighting.musicReactive')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />
-                        <circle cx="10.5" cy="9.5" r="1.5" />
-                      </svg>
-                    </button>
-                  </HoverTooltip>
-                )}
-                <HoverTooltip body={t('lighting.fullscreen')} side="left">
-                  <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9,1 13,1 13,5" /><polyline points="5,13 1,13 1,9" />
-                      <line x1="13" y1="1" x2="8.5" y2="5.5" /><line x1="1" y1="13" x2="5.5" y2="8.5" />
-                    </svg>
-                  </button>
-                </HoverTooltip>
-              </>
-            )}
-          </div>
-          {mode === 'animate' ? (
-            <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} />
+          {mode === 'gamesync' ? (
+            <>
+              <div className={styles.canvasArea}>
+                <div className={styles.gameSyncActivity}>
+                  <Gamepad2
+                    size={36}
+                    className={`${styles.gameSyncActivityIcon} ${gameSyncState.isReceiving ? styles.gameSyncActivityIconActive : ''}`}
+                    aria-hidden
+                  />
+                  <span className={styles.gameSyncActivityLabel}>
+                    {gameSyncState.isReceiving
+                      ? (gameSyncState.activeApp
+                          ? t('lighting.gameSync.signal.receiving', { activeApp: gameSyncState.activeApp })
+                          : t('lighting.gameSync.signal.receivingUnknown'))
+                      : t('lighting.gameSync.signal.idle')}
+                  </span>
+                </div>
+              </div>
+              <div className={styles.controls}>
+                <GameSyncLeftPane onStop={handleGameSyncStop} />
+              </div>
+            </>
           ) : (
-            <div className={styles.controls}>
-              <ModeControls
-                mode={mode}
-                screenPP={screenPP}
-                onScreenPPChange={setScreenPP}
-                gameSyncActive={mode === 'gamesync'}
-                onGameSyncStart={handleGameSyncStart}
-                onGameSyncStop={handleGameSyncStop}
-              />
-            </div>
+            <>
+              <div className={styles.canvasArea}>
+                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={mode === 'animate' ? activeEffect : null} shaderState={mode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
+                {mode === 'animate' && activeEffect && currentState && (
+                  <>
+                    {EFFECTS.find(e => e.key === activeEffect)?.audio && (
+                      <HoverTooltip body={t('lighting.musicReactive')} side="left">
+                        <button
+                          type="button"
+                          className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
+                          onClick={handleMusicReactiveToggle}
+                          aria-label={t('lighting.musicReactive')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />
+                            <circle cx="10.5" cy="9.5" r="1.5" />
+                          </svg>
+                        </button>
+                      </HoverTooltip>
+                    )}
+                    <HoverTooltip body={t('lighting.fullscreen')} side="left">
+                      <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="9,1 13,1 13,5" /><polyline points="5,13 1,13 1,9" />
+                          <line x1="13" y1="1" x2="8.5" y2="5.5" /><line x1="1" y1="13" x2="5.5" y2="8.5" />
+                        </svg>
+                      </button>
+                    </HoverTooltip>
+                  </>
+                )}
+              </div>
+              {mode === 'animate' ? (
+                <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} />
+              ) : (
+                <div className={styles.controls}>
+                  <ModeControls
+                    mode={mode}
+                    screenPP={screenPP}
+                    onScreenPPChange={setScreenPP}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className={styles.rightPane}>
