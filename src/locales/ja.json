@@ -1733,18 +1733,12 @@
   "transfer.toast.savedTo": "{inbox}に保存しました",
   "twitch.chatTitle": "Twitch チャット",
   "devices.q60.firmwareSection": "クーラーのファームウェア",
-  "devices.q60.firmwareSectionDescription": "ターボはポンプの最高速度を解放します。クーラーに保存されます。",
   "devices.q60.notConnected": "HYTE Q60 が接続されていません",
   "devices.q60.turbo": "ターボ",
-  "devices.q60.pumpRpm": "ポンプ速度 (RPM)",
-  "devices.q60.firmwareVersion": "ファームウェアバージョン",
   "devices.q60.turboHelp": "クーラーを最大速度で動作させます。無効にすると、ファン速度は2000 RPM（65%）、ポンプ速度は3000 RPM（70%）に制限されます。",
-  "devices.q60.firmwareCurveSection": "ファームウェア温度カーブ",
-  "devices.q60.firmwareCurveDescription": "ファームウェア制御に設定すると、クーラーは自身の冷却液温度に基づき、これらの内蔵カーブでポンプとファンを制御します。",
   "devices.q60.pumpCurve": "ポンプカーブ",
   "devices.q60.fanCurve": "ファンカーブ",
   "devices.q60.curveUnsupported": "編集可能なカーブには、より新しいクーラーのファームウェアが必要です。",
   "devices.q60.curveHint": "ポイントをドラッグしてカーブを調整します。",
-  "devices.q60.curveAxis": "冷却液 {min}-{max} °C · デューティ 0-100%",
   "devices.q60.saveCurve": "カーブを保存"
 }

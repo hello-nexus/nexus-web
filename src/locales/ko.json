@@ -1733,18 +1733,12 @@
   "transfer.toast.savedTo": "{inbox}에 저장됨",
   "twitch.chatTitle": "Twitch 채팅",
   "devices.q60.firmwareSection": "쿨러 펌웨어",
-  "devices.q60.firmwareSectionDescription": "터보는 펌프의 최고 속도를 해제합니다. 쿨러에 저장됩니다.",
   "devices.q60.notConnected": "HYTE Q60이 연결되지 않음",
   "devices.q60.turbo": "터보",
-  "devices.q60.pumpRpm": "펌프 속도 (RPM)",
-  "devices.q60.firmwareVersion": "펌웨어 버전",
   "devices.q60.turboHelp": "쿨러를 최대 속도로 작동시킵니다. 비활성화하면 팬 속도는 2000 RPM(65%), 펌프 속도는 3000 RPM(70%)으로 제한됩니다.",
-  "devices.q60.firmwareCurveSection": "펌웨어 온도 곡선",
-  "devices.q60.firmwareCurveDescription": "펌웨어 제어로 설정하면 쿨러가 자체 냉각수 온도를 기준으로 이 내장 곡선에 따라 펌프와 팬을 제어합니다.",
   "devices.q60.pumpCurve": "펌프 곡선",
   "devices.q60.fanCurve": "팬 곡선",
   "devices.q60.curveUnsupported": "편집 가능한 곡선에는 최신 쿨러 펌웨어가 필요합니다.",
   "devices.q60.curveHint": "점을 드래그하여 곡선을 조정하세요.",
-  "devices.q60.curveAxis": "냉각수 {min}-{max} °C · 듀티 0-100%",
   "devices.q60.saveCurve": "곡선 저장"
 }

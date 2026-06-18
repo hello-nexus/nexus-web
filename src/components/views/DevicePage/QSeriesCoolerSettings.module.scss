@@ -18,14 +18,6 @@
   color: var(--text-dim);
 }
 
-.rowValue {
-  flex: 0 0 4rem;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
-  color: var(--text);
-}
-
 .note {
   font-size: 0.8rem;
   color: var(--text-dim);
@@ -51,20 +43,6 @@
 .curveTitle {
   font-size: 0.8rem;
   color: var(--text);
-}
-
-.curveGraphBox {
-  height: 9rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  background: var(--surface-2, rgba(255, 255, 255, 0.02));
-  padding: 0.35rem;
-}
-
-.curveAxis {
-  font-size: 0.72rem;
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
 }
 
 .saveRow {

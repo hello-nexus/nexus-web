@@ -1733,18 +1733,12 @@
   "transfer.toast.savedTo": "{inbox} klasörüne kaydedildi",
   "twitch.chatTitle": "Twitch sohbeti",
   "devices.q60.firmwareSection": "Soğutucu donanım yazılımı",
-  "devices.q60.firmwareSectionDescription": "Turbo, pompanın tam hızını açar; soğutucuda saklanır.",
   "devices.q60.notConnected": "HYTE Q60 bağlı değil",
   "devices.q60.turbo": "Turbo",
-  "devices.q60.pumpRpm": "Pompa hızı (RPM)",
-  "devices.q60.firmwareVersion": "Donanım yazılımı sürümü",
   "devices.q60.turboHelp": "Soğutucunun maksimum hızda çalışmasını sağlar. Devre dışı bırakıldığında fan hızı 2000 RPM (%65), pompa hızı ise 3000 RPM (%70) ile sınırlanır.",
-  "devices.q60.firmwareCurveSection": "Yazılım sıcaklık eğrileri",
-  "devices.q60.firmwareCurveDescription": "Yazılım denetimi seçildiğinde soğutucu, kendi sıvı sıcaklığını kullanarak pompayı ve fanları bu yerleşik eğrilerden yönetir.",
   "devices.q60.pumpCurve": "Pompa eğrisi",
   "devices.q60.fanCurve": "Fan eğrisi",
   "devices.q60.curveUnsupported": "Düzenlenebilir eğriler daha yeni bir soğutucu yazılımı gerektirir.",
   "devices.q60.curveHint": "Eğriyi şekillendirmek için noktaları sürükleyin.",
-  "devices.q60.curveAxis": "Sıvı {min}-{max} °C · güç %0-100",
   "devices.q60.saveCurve": "Eğrileri kaydet"
 }

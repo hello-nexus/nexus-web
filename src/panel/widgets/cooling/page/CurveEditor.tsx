@@ -120,21 +120,36 @@ function sampleCurveShape(curve: CurveDef, allCurves: CurveDef[], sources: Tempe
   return out;
 }
 
-// `showPoints` (default true) renders the curve's points as static markers
-// for multipoint curves; when false the graph is just a line (Fixed / Linear
-// / Mix shapes). The graph is display-only; points are not draggable.
-// `currentTemp` draws a temperature line from the top down to a dot on the
-// curve. `height` sizes the SVG + its y-axis gutter (CSS default 140).
-function CurveGraph({ points, currentTemp, showPoints = true, height = GRAPH_H }: {
+// `showPoints` (default true) renders the curve's points as markers for
+// multipoint curves; when false the graph is just a line (Fixed / Linear / Mix
+// shapes). `currentTemp` draws a temperature line from the top down to a dot on
+// the curve. `height` sizes the SVG + its y-axis gutter (CSS default 140).
+// `tempMin`/`tempMax` set the x-axis span (default 20-100). When `editable`, the
+// point markers can be dragged (clamped between their neighbours and 0-100% duty,
+// snapped to whole units) and `onChange` fires with the new point set on release;
+// points cannot be added or removed.
+export function CurveGraph({
+  points, currentTemp, showPoints = true, height = GRAPH_H,
+  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, limitPercent,
+}: {
   points: CurvePoint[];
   currentTemp?: number;
   showPoints?: boolean;
   height?: number;
+  tempMin?: number;
+  tempMax?: number;
+  editable?: boolean;
+  onChange?: (points: CurvePoint[]) => void;
+  /** Draws a dashed horizontal ceiling line at this duty %, e.g. a turbo-off cap. */
+  limitPercent?: number;
 }) {
   const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(400);
   const rafWidthRef = useRef(0);
+  // Optimistic points while dragging a handle; null when idle (props own the data).
+  const [dragPoints, setDragPoints] = useState<CurvePoint[] | null>(null);
+  const dragIdxRef = useRef<number | null>(null);
 
   useEffect(() => {
     const el = svgRef.current?.parentElement;
@@ -157,19 +172,29 @@ function CurveGraph({ points, currentTemp, showPoints = true, height = GRAPH_H }
   }, []);
 
   const chartW = width - PAD.left - PAD.right, chartH = height - PAD.top - PAD.bottom;
-  const tempToX = (t: number) => PAD.left + ((t - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * chartW;
+  const tempToX = (tp: number) => PAD.left + ((tp - tempMin) / (tempMax - tempMin)) * chartW;
   const speedToY = (s: number) => PAD.top + chartH - (s / 100) * chartH;
-  const sorted = useMemo(() => [...points].sort((a, b) => a.temp - b.temp), [points]);
-  // Extend the line/area flat to the chart edges (20 / 100) so the curve fills
-  // the full width, matching how the engine clamps outside the point range. The
-  // point markers below still sit only on the real points.
+  // While a handle is dragged, the optimistic copy drives the render.
+  const activePoints = dragPoints ?? points;
+  const sorted = useMemo(() => [...activePoints].sort((a, b) => a.temp - b.temp), [activePoints]);
+  // X-axis grid + labels at ~10° steps (5° for a narrow span). For the default
+  // 20-100 range this reproduces the original 20,30,…,100 ticks.
+  const vLines = useMemo(() => {
+    const step = (tempMax - tempMin) > 40 ? 10 : 5;
+    const out: number[] = [];
+    for (let v = Math.ceil(tempMin / step) * step; v <= tempMax; v += step) out.push(v);
+    return out;
+  }, [tempMin, tempMax]);
+  // Extend the line/area flat to the chart edges so the curve fills the full
+  // width, matching how the engine clamps outside the point range. The point
+  // markers below still sit only on the real points.
   const edged = useMemo(() => {
     if (sorted.length === 0) return sorted;
     const out = [...sorted];
-    if (out[0].temp > TEMP_MIN) out.unshift({ temp: TEMP_MIN, speed: out[0].speed });
-    if (out[out.length - 1].temp < TEMP_MAX) out.push({ temp: TEMP_MAX, speed: out[out.length - 1].speed });
+    if (out[0].temp > tempMin) out.unshift({ temp: tempMin, speed: out[0].speed });
+    if (out[out.length - 1].temp < tempMax) out.push({ temp: tempMax, speed: out[out.length - 1].speed });
     return out;
-  }, [sorted]);
+  }, [sorted, tempMin, tempMax]);
   const linePath = edged.map((p, i) => `${i === 0 ? 'M' : 'L'} ${tempToX(p.temp)} ${speedToY(p.speed)}`).join(' ');
   const areaPath = edged.length > 0 ? linePath + ` L ${tempToX(edged[edged.length - 1].temp)} ${speedToY(0)} L ${tempToX(edged[0].temp)} ${speedToY(0)} Z` : '';
 
@@ -188,25 +213,70 @@ function CurveGraph({ points, currentTemp, showPoints = true, height = GRAPH_H }
     return sorted[sorted.length - 1].speed;
   };
 
+  // Drag a handle: invert the pixel position back to (temp, duty), clamp between
+  // the handle's neighbours and 0-100, snap to whole units. No add/remove.
+  const pointerToData = (e: React.PointerEvent) => {
+    const rect = svgRef.current!.getBoundingClientRect();
+    const vbX = ((e.clientX - rect.left) / rect.width) * width;
+    const vbY = ((e.clientY - rect.top) / rect.height) * height;
+    return {
+      temp: tempMin + ((vbX - PAD.left) / chartW) * (tempMax - tempMin),
+      speed: ((PAD.top + chartH - vbY) / chartH) * 100,
+    };
+  };
+  const onHandleDown = (idx: number, e: React.PointerEvent) => {
+    if (!editable) return;
+    e.preventDefault(); e.stopPropagation();
+    (e.target as Element).setPointerCapture(e.pointerId);
+    dragIdxRef.current = idx;
+    setDragPoints(sorted);
+  };
+  const onHandleMove = (e: React.PointerEvent) => {
+    const i = dragIdxRef.current;
+    if (i === null) return;
+    const base = (dragPoints ?? sorted).slice().sort((a, b) => a.temp - b.temp);
+    const lo = i > 0 ? base[i - 1].temp : tempMin;
+    const hi = i < base.length - 1 ? base[i + 1].temp : tempMax;
+    const { temp, speed } = pointerToData(e);
+    const next = base.slice();
+    next[i] = {
+      temp: Math.round(Math.max(lo, Math.min(hi, temp))),
+      speed: Math.round(Math.max(0, Math.min(100, speed))),
+    };
+    setDragPoints(next);
+  };
+  const onHandleUp = () => {
+    if (dragIdxRef.current === null) return;
+    dragIdxRef.current = null;
+    const committed = dragPoints;
+    setDragPoints(null);
+    if (committed) onChange?.(committed);
+  };
+
   // Intersection of the live source temperature with the curve. Drives the
   // dot, the two dotted guide lines (up from the bottom temp axis, in from the
   // right duty axis), and the live temp/duty readouts on those axes.
-  const hasDot = typeof currentTemp === 'number' && currentTemp >= TEMP_MIN && currentTemp <= TEMP_MAX;
+  const hasDot = typeof currentTemp === 'number' && currentTemp >= tempMin && currentTemp <= tempMax;
   const dotSpeed = hasDot ? speedAtTemp(currentTemp!) : 0;
   const dotX = hasDot ? tempToX(currentTemp!) : 0;
   const dotY = hasDot ? speedToY(dotSpeed) : 0;
-  const dotLeftPct = hasDot ? ((currentTemp! - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * 100 : 0;
+  const dotLeftPct = hasDot ? ((currentTemp! - tempMin) / (tempMax - tempMin)) * 100 : 0;
 
   return (
     <div className={styles.curveGraphWrap}>
       <div className={styles.curveGraphFrame}>
         <div className={styles.curveChartArea}>
-          <svg ref={svgRef} className={styles.curveGraph} style={{ height }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+          <svg ref={svgRef} className={styles.curveGraph} style={{ height, touchAction: editable ? 'none' : undefined }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
             {H_LINES.map(s => (<g key={`h${s}`}><line x1={PAD.left} y1={speedToY(s)} x2={width - PAD.right} y2={speedToY(s)} className={styles.gridLine} /></g>))}
-            {V_LINES.map(v => (<g key={`v${v}`}><line x1={tempToX(v)} y1={PAD.top} x2={tempToX(v)} y2={height - PAD.bottom} className={styles.gridLine} /></g>))}
+            {vLines.map(v => (<g key={`v${v}`}><line x1={tempToX(v)} y1={PAD.top} x2={tempToX(v)} y2={height - PAD.bottom} className={styles.gridLine} /></g>))}
             <defs><linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" /><stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" /></linearGradient></defs>
             {areaPath && <path d={areaPath} fill="url(#curveGrad)" />}
             <path d={linePath} fill="none" stroke="var(--accent-glow)" strokeWidth="2.5" />
+            {typeof limitPercent === 'number' && (
+              <line x1={PAD.left} y1={speedToY(Math.max(0, Math.min(100, limitPercent)))}
+                x2={width - PAD.right} y2={speedToY(Math.max(0, Math.min(100, limitPercent)))}
+                className={styles.curveLimitLine} />
+            )}
             {hasDot && (
               <g className={styles.curveTempIndicator}>
                 {/* Guide lines meet at the dot: one up from the bottom temp
@@ -217,16 +287,20 @@ function CurveGraph({ points, currentTemp, showPoints = true, height = GRAPH_H }
               </g>
             )}
             {showPoints && sorted.map((p, i) => (
-              <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={6} className={styles.curvePoint} />
+              <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={editable ? 7 : 6} className={styles.curvePoint}
+                style={editable ? { cursor: 'grab' } : undefined}
+                onPointerDown={editable ? (e) => onHandleDown(i, e) : undefined}
+                onPointerMove={editable ? onHandleMove : undefined}
+                onPointerUp={editable ? onHandleUp : undefined} />
             ))}
           </svg>
           <div className={styles.curveXAxis} aria-hidden="true">
             {/* Inner track is inset 8px left/right to match SVG PAD.left / PAD.right
                 so labels line up 1:1 with the vertical grid lines. */}
             <div className={styles.curveXAxisInner}>
-              {V_LINES.map(v => (
+              {vLines.map(v => (
                 <span key={v} className={styles.curveAxisLabel}
-                  style={{ left: `${((v - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * 100}%` }}>
+                  style={{ left: `${((v - tempMin) / (tempMax - tempMin)) * 100}%` }}>
                   {v}°
                 </span>
               ))}

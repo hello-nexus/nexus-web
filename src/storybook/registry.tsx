@@ -5,7 +5,6 @@ import { useRef, useState, type CSSProperties, type FC } from 'react';
 import { Monitor, Palette, Sparkles, X, Plus, Settings, Download } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
-import { CurveGraphEditor, type CurveGraphPoint } from '../components/common/CurveGraphEditor/CurveGraphEditor';
 import { RankedList } from '../components/common/RankedList/RankedList';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
@@ -114,17 +113,6 @@ export interface StorybookEntry {
 function PreviewSliderInline() {
   const [v, setV] = useState(50);
   return <Slider label="Sample" value={v} min={0} max={100} onChange={setV} />;
-}
-
-function PreviewCurveGraphEditor() {
-  const [pts, setPts] = useState<CurveGraphPoint[]>([
-    { x: 0, y: 40 }, { x: 20, y: 55 }, { x: 35, y: 75 }, { x: 50, y: 100 },
-  ]);
-  return (
-    <div style={{ height: 140 }}>
-      <CurveGraphEditor points={pts} xMin={0} xMax={50} yMin={0} yMax={100} onChange={setPts} />
-    </div>
-  );
 }
 
 function PreviewSliderStacked() {
@@ -1280,11 +1268,6 @@ export const REGISTRY: StorybookEntry[] = [
   },
 
   // ── Charts ────────────────────────────────────────────────────────────
-  {
-    name: 'CurveGraphEditor', category: 'charts',
-    filePath: 'src/components/common/CurveGraphEditor/CurveGraphEditor.tsx',
-    description: 'Draggable X/Y point-curve graph (accent area + glow line + grid). Drag points to reshape; with allowAddRemove, double-click adds and right-click removes. Powers the SDK ui-curve element and the Q-series firmware curve editors (allowAddRemove=false for the fixed 5-point firmware curve).', Preview: PreviewCurveGraphEditor,
-  },
   {
     name: 'Sparkline', category: 'charts',
     filePath: 'src/components/common/Sparkline/Sparkline.tsx',

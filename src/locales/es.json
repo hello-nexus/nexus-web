@@ -1733,18 +1733,12 @@
   "transfer.toast.savedTo": "Guardado en {inbox}",
   "twitch.chatTitle": "Chat de Twitch",
   "devices.q60.firmwareSection": "Firmware del refrigerador",
-  "devices.q60.firmwareSectionDescription": "El turbo desbloquea la velocidad máxima de la bomba; se guarda en el refrigerador.",
   "devices.q60.notConnected": "HYTE Q60 no conectado",
   "devices.q60.turbo": "Turbo",
-  "devices.q60.pumpRpm": "Velocidad de la bomba (RPM)",
-  "devices.q60.firmwareVersion": "Versión de firmware",
   "devices.q60.turboHelp": "Permite que el sistema de refrigeración funcione a la máxima velocidad. Si se desactiva, la velocidad del ventilador se limita a 2000 RPM (65%) y la de la bomba a 3000 RPM (70%).",
-  "devices.q60.firmwareCurveSection": "Curvas de temperatura del firmware",
-  "devices.q60.firmwareCurveDescription": "En modo firmware, el sistema de refrigeración controla la bomba y los ventiladores con estas curvas internas según su propia temperatura del refrigerante.",
   "devices.q60.pumpCurve": "Curva de la bomba",
   "devices.q60.fanCurve": "Curva del ventilador",
   "devices.q60.curveUnsupported": "Las curvas editables requieren un firmware más reciente del sistema de refrigeración.",
   "devices.q60.curveHint": "Arrastra los puntos para dar forma a la curva.",
-  "devices.q60.curveAxis": "Refrigerante {min}-{max} °C · potencia 0-100%",
   "devices.q60.saveCurve": "Guardar curvas"
 }

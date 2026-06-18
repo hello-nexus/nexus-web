@@ -1733,18 +1733,12 @@
   "transfer.toast.savedTo": "Enregistré dans {inbox}",
   "twitch.chatTitle": "Chat Twitch",
   "devices.q60.firmwareSection": "Firmware du refroidisseur",
-  "devices.q60.firmwareSectionDescription": "Le turbo débloque la vitesse maximale de la pompe ; enregistré sur le refroidisseur.",
   "devices.q60.notConnected": "HYTE Q60 non connecté",
   "devices.q60.turbo": "Turbo",
-  "devices.q60.pumpRpm": "Vitesse de la pompe (tr/min)",
-  "devices.q60.firmwareVersion": "Version du firmware",
   "devices.q60.turboHelp": "Permet au système de refroidissement de fonctionner à vitesse maximale. Désactivé, la vitesse du ventilateur est limitée à 2000 RPM (65%) et celle de la pompe à 3000 RPM (70%).",
-  "devices.q60.firmwareCurveSection": "Courbes de température du firmware",
-  "devices.q60.firmwareCurveDescription": "En mode firmware, le refroidisseur pilote la pompe et les ventilateurs à partir de ces courbes internes, selon sa propre température de liquide.",
   "devices.q60.pumpCurve": "Courbe de la pompe",
   "devices.q60.fanCurve": "Courbe du ventilateur",
   "devices.q60.curveUnsupported": "Les courbes modifiables nécessitent un firmware de refroidisseur plus récent.",
   "devices.q60.curveHint": "Faites glisser les points pour façonner la courbe.",
-  "devices.q60.curveAxis": "Liquide {min}-{max} °C · puissance 0-100%",
   "devices.q60.saveCurve": "Enregistrer les courbes"
 }

@@ -1733,18 +1733,12 @@
   "transfer.toast.savedTo": "Salvato in {inbox}",
   "twitch.chatTitle": "Chat Twitch",
   "devices.q60.firmwareSection": "Firmware del dissipatore",
-  "devices.q60.firmwareSectionDescription": "Il turbo sblocca la velocità massima della pompa; salvato sul dissipatore.",
   "devices.q60.notConnected": "HYTE Q60 non connesso",
   "devices.q60.turbo": "Turbo",
-  "devices.q60.pumpRpm": "Velocità pompa (RPM)",
-  "devices.q60.firmwareVersion": "Versione firmware",
   "devices.q60.turboHelp": "Consente al sistema di raffreddamento di funzionare alla massima velocità. Se disattivato, la velocità della ventola è limitata a 2000 RPM (65%) e quella della pompa a 3000 RPM (70%).",
-  "devices.q60.firmwareCurveSection": "Curve di temperatura del firmware",
-  "devices.q60.firmwareCurveDescription": "In modalità firmware il dissipatore controlla pompa e ventole tramite queste curve interne in base alla propria temperatura del liquido.",
   "devices.q60.pumpCurve": "Curva della pompa",
   "devices.q60.fanCurve": "Curva della ventola",
   "devices.q60.curveUnsupported": "Le curve modificabili richiedono un firmware più recente del dissipatore.",
   "devices.q60.curveHint": "Trascina i punti per modellare la curva.",
-  "devices.q60.curveAxis": "Liquido {min}-{max} °C · potenza 0-100%",
   "devices.q60.saveCurve": "Salva curve"
 }

@@ -1114,6 +1114,8 @@
 .curveAxisLiveX { top: -0.05rem; transform: translateX(-50%); }
 .curveAxisLiveY { left: 0; transform: translateY(-50%); }
 .gridLine { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; }
+// Dashed ceiling line (e.g. the turbo-off duty cap on the Q-series curves).
+.curveLimitLine { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: 0.85; }
 .curvePoint { fill: var(--accent); stroke: #fff; stroke-width: 2; }
 
 // Live temperature indicator overlaid on the graph: vertical line from the
