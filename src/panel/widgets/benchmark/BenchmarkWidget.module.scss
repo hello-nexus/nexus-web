@@ -1,0 +1,70 @@
+.widget {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  height: 100%;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.compositeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.gaugeIcon {
+  color: var(--accent-glow);
+}
+
+.score {
+  font-size: var(--type-display);
+  font-weight: var(--weight-heading);
+  color: var(--accent-glow);
+  line-height: inherit;
+  font-family: var(--font-mono);
+}
+
+.label {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.time {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.axisRow {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.axisChip {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--type-small);
+  font-family: var(--font-mono);
+  color: var(--text);
+
+  svg {
+    color: var(--text-dim);
+  }
+}

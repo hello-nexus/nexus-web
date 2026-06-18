@@ -1553,4 +1553,16 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Per-widget "advanced mode" toggle used by the lighting + cooling widgets. widget.config.advancedMode overrides the global ui.widgetAdvancedMode; resolveAdvancedMode handles the fallback.',
     notes: 'No live preview - reads and writes live widget config.',
   },
+  {
+    name: 'BenchmarkWidget', category: 'panel-kit',
+    filePath: 'src/panel/widgets/benchmark/BenchmarkWidget.tsx',
+    description: 'Benchmark tile widget (2x2 / 4x2). 2x2: composite score + relative time or empty prompt. 4x2: adds per-axis chips (CPU / GPU / RAM / Storage). Read-only tile -- click opens the tabbed Benchmark page.',
+    notes: 'No live preview -- reads useBenchmarkHistory which requires localStorage data from a completed run.',
+  },
+  {
+    name: 'BenchmarkPage', category: 'panel-kit',
+    filePath: 'src/panel/widgets/benchmark/BenchmarkPage.tsx',
+    description: 'Tabbed desktop page for the Benchmark app: Run (hardware detection + start/progress/cancel), Results (scorecard + history sparkline), Leaderboards (public board with version filter). Tab state drives the URL subtab via onTabChange.',
+    notes: 'No live preview -- requires a running service for the Run tab and cloud API for Leaderboards.',
+  },
 ];

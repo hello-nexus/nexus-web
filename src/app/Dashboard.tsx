@@ -4,8 +4,6 @@ import classNames from 'classnames';
 import { Placeholder } from '../components/views/Placeholder';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ComponentDetailView } from '../components/views/ComponentDetailView';
-import { BenchmarkView } from '../components/views/BenchmarkView/BenchmarkView';
-import { LeaderboardView } from '../components/views/LeaderboardView/LeaderboardView';
 import { AppsView } from '../components/views/AppsView/AppsView';
 import { OpenInAppBanner } from '../components/common/OpenInAppBanner/OpenInAppBanner';
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
@@ -24,6 +22,7 @@ const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m =
 const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
 const GalleryPage = lazy(() => import('../panel/widgets/gallery/page/GalleryPage').then(m => ({ default: m.GalleryPage })));
 const ScreentimePage = lazy(() => import('../panel/widgets/screentime/ScreentimePage').then(m => ({ default: m.ScreentimePage })));
+const BenchmarkPage = lazy(() => import('../panel/widgets/benchmark/BenchmarkPage').then(m => ({ default: m.BenchmarkPage })));
 import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
@@ -369,23 +368,7 @@ export function Dashboard() {
             />
           </Suspense>
         );
-      case 'benchmark':
-        if (view === 'leaderboard') {
-          return (
-            <LeaderboardView onBack={() => navigate('benchmark')} />
-          );
-        }
-        return (
-          <BenchmarkView
-            serviceOnline={online}
-            connectionState={status.state}
-            onHardwareConfirmed={(detected) => {
-              dispatch({ type: 'LOAD_OWNED_HARDWARE', detected });
-              navigate('builder');
-            }}
-            onViewLeaderboard={() => setView('leaderboard')}
-          />
-        );
+      case 'benchmark': return <BenchmarkPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
       case 'community':
         return <Placeholder title={t('nav.section.community')} />;
       default:
