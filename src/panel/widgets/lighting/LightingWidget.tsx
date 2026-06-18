@@ -357,6 +357,17 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
         onNext: next ?? toggleReactive,
       };
     }
+    if (mode === 'gamesync') {
+      // Game Sync is driven by the captured game; nothing to cycle here. Simple
+      // mode keeps arrows (prev/next jump into the animation list).
+      return {
+        kind: 'icon',
+        icon: LIGHTING_MODE_ICONS.gamesync,
+        label: t('lighting.mode.gamesync'),
+        onPrev: prev,
+        onNext: next,
+      };
+    }
     if (mode === 'gif') {
       const item = mediaItems.find(m => m.id === activeMediaId) ?? mediaItems[0];
       if (!item) {
@@ -599,6 +610,7 @@ function resolveEffectState(
 
 function resolveMode(sync: string): LightingMode {
   if (!sync || sync === 'none') return 'none';
+  if (sync === 'gamesync') return 'gamesync';
   if (sync === 'screen' || sync.includes('mirror')) return 'screen';
   if (sync === 'gif' || sync.includes('media')) return 'gif';
   return 'animate';
