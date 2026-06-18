@@ -609,8 +609,24 @@ export interface GameSyncGame {
   name: string;
   store: string;
   emitsChroma: boolean;
+  /** Steam appid; empty string for non-Steam games. */
+  appId: string;
+  /** True when the game emits GSI frames (e.g. CS2 appid 730). */
+  emitsGsi: boolean;
   scannedFiles: number;
   skippedFiles: number;
+}
+
+export type SteamArtworkKind = 'header' | 'capsule_231x87';
+
+/**
+ * Cloudflare Steam CDN artwork URL. Returns null for non-numeric or empty appIds
+ * (non-Steam games have appId="" and must fall through to the icon placeholder).
+ */
+export function steamArtworkUrl(appId: string, kind: SteamArtworkKind): string | null {
+  if (!appId || !/^\d+$/.test(appId)) return null;
+  const file = kind === 'header' ? 'header.jpg' : 'capsule_231x87.jpg';
+  return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/${file}`;
 }
 
 export interface GameSyncGamesResponse {
@@ -624,3 +640,46 @@ export const fetchGameSyncGames = (refresh = false) =>
 
 export const triggerGameSyncScan = () =>
   postService('/lighting/game-sync/games/scan', {});
+
+/**
+ * GSI title -> Steam appId aliases. GSI reports a display name that may differ
+ * from the Steam library entry (e.g. CS2 GSI sends "Counter-Strike 2" but the
+ * Steam library entry is "Counter-Strike Global Offensive", appId 730).
+ */
+const GSI_APPID_ALIASES: Record<string, string> = {
+  'counter-strike 2': '730',
+  'cs2': '730',
+};
+
+/**
+ * Resolves an activeApp name to a detected game, tolerating known GSI title
+ * mismatches. Match order: (1) exact case-insensitive, (2) substring, (3)
+ * GSI alias table mapped to appId.
+ */
+export function resolveActiveGame(activeApp: string, games: GameSyncGame[]): GameSyncGame | null {
+  if (!activeApp) return null;
+  const needle = activeApp.toLowerCase().trim();
+
+  // 1. Exact match.
+  const exact = games.find(g => g.name.toLowerCase().trim() === needle);
+  if (exact) return exact;
+
+  // 2. Substring match (either name contains the other).
+  const sub = games.find(g => {
+    const hay = g.name.toLowerCase().trim();
+    return hay.includes(needle) || needle.includes(hay);
+  });
+  if (sub) return sub;
+
+  // 3. Known alias -> appId, then match by appId.
+  const aliasAppId = GSI_APPID_ALIASES[needle];
+  if (aliasAppId) {
+    const byId = games.find(g => g.appId === aliasAppId);
+    if (byId) return byId;
+    // appId known but game not in library yet: synthesize a stub so artwork
+    // can still render when the game isn't in the detected list.
+    return { name: activeApp, store: 'Steam', emitsChroma: false, emitsGsi: true, appId: aliasAppId, scannedFiles: 0, skippedFiles: 0 };
+  }
+
+  return null;
+}

@@ -5,8 +5,10 @@ import {
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
-  fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState,
+  fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
+  steamArtworkUrl, resolveActiveGame,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
+  type GameSyncGame,
 } from '../../../api/lighting';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
@@ -466,6 +468,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return () => { cancelled = true; window.clearInterval(id); };
   }, [effectiveMode, serviceOnline]);
 
+  const [gameSyncGames, setGameSyncGames] = useState<GameSyncGame[]>([]);
+
+  useEffect(() => {
+    if (effectiveMode !== 'gamesync' || !serviceOnline) return;
+    let cancelled = false;
+    fetchGameSyncGames().then(data => {
+      if (!cancelled && data) setGameSyncGames(data.games ?? []);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [effectiveMode, serviceOnline]);
+
   const restartedProfileRef = useRef<string | null>(null);
   useEffect(() => {
     restartedProfileRef.current = null;
@@ -909,20 +922,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           {effectiveMode === 'gamesync' ? (
             <>
               <div className={styles.canvasArea}>
-                <div className={styles.gameSyncActivity}>
-                  <Gamepad2
-                    size={36}
-                    className={`${styles.gameSyncActivityIcon} ${gameSyncState.isReceiving ? styles.gameSyncActivityIconActive : ''}`}
-                    aria-hidden
-                  />
-                  <span className={styles.gameSyncActivityLabel}>
-                    {gameSyncState.isReceiving
-                      ? (gameSyncState.activeApp
-                          ? t('lighting.gameSync.signal.receiving', { activeApp: gameSyncState.activeApp })
-                          : t('lighting.gameSync.signal.receivingUnknown'))
-                      : t('lighting.gameSync.signal.idle')}
-                  </span>
-                </div>
+                <GameSyncActivityBlock
+                  isReceiving={gameSyncState.isReceiving}
+                  activeApp={gameSyncState.activeApp}
+                  games={gameSyncGames}
+                />
               </div>
               <div className={styles.controls}>
                 <GameSyncLeftPane />
@@ -1052,6 +1056,59 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onClose={() => setEditorTarget(null)}
         />
       )}
+    </div>
+  );
+}
+
+interface GameSyncActivityBlockProps {
+  isReceiving: boolean;
+  activeApp: string | null;
+  games: GameSyncGame[];
+}
+
+function GameSyncActivityBlock({ isReceiving, activeApp, games }: GameSyncActivityBlockProps) {
+  const { t } = useTranslation();
+  const [imgFailed, setImgFailed] = useState(false);
+
+  const matchedGame = isReceiving && activeApp
+    ? resolveActiveGame(activeApp, games)
+    : null;
+
+  const headerSrc = matchedGame ? steamArtworkUrl(matchedGame.appId, 'header') : null;
+
+  // Reset failure flag when the URL changes so a new game's art gets a fresh attempt.
+  const prevHeaderSrcRef = useRef(headerSrc);
+  if (prevHeaderSrcRef.current !== headerSrc) {
+    prevHeaderSrcRef.current = headerSrc;
+    if (imgFailed) setImgFailed(false);
+  }
+
+  const showImage = headerSrc !== null && !imgFailed;
+
+  return (
+    <div className={styles.gameSyncActivity}>
+      {showImage ? (
+        <img
+          src={headerSrc}
+          alt=""
+          aria-hidden
+          className={styles.gameSyncActivityArt}
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <Gamepad2
+          size={36}
+          className={`${styles.gameSyncActivityIcon} ${isReceiving ? styles.gameSyncActivityIconActive : ''}`}
+          aria-hidden
+        />
+      )}
+      <span className={styles.gameSyncActivityLabel}>
+        {isReceiving
+          ? (activeApp
+              ? t('lighting.gameSync.signal.receiving', { activeApp })
+              : t('lighting.gameSync.signal.receivingUnknown'))
+          : t('lighting.gameSync.signal.idle')}
+      </span>
     </div>
   );
 }

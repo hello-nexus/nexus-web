@@ -1116,17 +1116,40 @@
 
 .gameSyncGameRow {
   display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
   background: var(--bg-card);
   border: var(--border-width) solid var(--border);
+  overflow: hidden;
+}
+
+// Steam capsule_231x87 thumbnail; width proportional to that ratio.
+.gameSyncGameThumb {
+  width: 58px;
+  height: 22px;
+  object-fit: cover;
+  border-radius: 2px;
+  flex-shrink: 0;
+  display: block;
+}
+
+// Name + store label stacked vertically, taking remaining row width.
+.gameSyncGameInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
 }
 
 .gameSyncGameName {
   font-size: var(--type-body);
   color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gameSyncGameStore {
@@ -1165,14 +1188,14 @@
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  // Same dark frame as the DeviceCanvas (fill, border, radius, 21:9-capped
-  // width), at half its 380px height.
+  // Matches DeviceCanvas dark frame dimensions; 21:9-capped width.
   height: 190px;
   width: min(100%, calc(380px * 21 / 9));
   background: #080808;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  position: relative;
 }
 
 .gameSyncActivityIcon {
@@ -1186,8 +1209,37 @@
   opacity: 0.85;
 }
 
+// Gradient scrim covering the lower third of the frame so the label is
+// readable over both dark idle state and bright artwork.
+.gameSyncActivity::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 50%;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  pointer-events: none;
+  z-index: 1;
+}
+
 .gameSyncActivityLabel {
   font-size: var(--type-body);
   color: var(--text-dim);
   text-align: center;
+  // Anchored to the frame bottom, sitting above the gradient scrim.
+  position: absolute;
+  bottom: 0.6rem;
+  left: 0;
+  right: 0;
+  padding: 0 0.5rem;
+  z-index: 2;
+}
+
+// Steam header art (460x215). Rounded corners via parent overflow:hidden.
+.gameSyncActivityArt {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   fetchGameSyncGames,
   triggerGameSyncScan,
+  steamArtworkUrl,
   type GameSyncGame,
 } from '../../../../api/lighting';
 import { SettingsSection } from '../../../../components/common/SettingsSection/SettingsSection';
@@ -9,6 +10,29 @@ import { useTranslation } from '../../../../lib/i18n';
 import styles from '../LightingPage.module.scss';
 
 const GAMES_POLL_INTERVAL_MS = 2000;
+
+function GameRow({ game }: { game: GameSyncGame }) {
+  const thumbnailSrc = steamArtworkUrl(game.appId, 'capsule_231x87');
+  const [imgFailed, setImgFailed] = useState(false);
+
+  return (
+    <li className={styles.gameSyncGameRow}>
+      {thumbnailSrc && !imgFailed && (
+        <img
+          src={thumbnailSrc}
+          alt=""
+          aria-hidden
+          className={styles.gameSyncGameThumb}
+          onError={() => setImgFailed(true)}
+        />
+      )}
+      <div className={styles.gameSyncGameInfo}>
+        <span className={styles.gameSyncGameName}>{game.name}</span>
+        <span className={styles.gameSyncGameStore}>{game.store}</span>
+      </div>
+    </li>
+  );
+}
 
 export function GameSyncLeftPane() {
   const { t } = useTranslation();
@@ -83,7 +107,7 @@ export function GameSyncLeftPane() {
     }, GAMES_POLL_INTERVAL_MS);
   };
 
-  const supported = games.filter(g => g.emitsChroma);
+  const supported = games.filter(g => g.emitsChroma || g.emitsGsi);
 
   const headerWithScan = (
     <div className={styles.gameSyncGamesHeader}>
@@ -109,13 +133,7 @@ export function GameSyncLeftPane() {
         ) : (
           <ul className={styles.gameSyncGamesList}>
             {supported.map((g, i) => (
-              <li
-                key={i}
-                className={styles.gameSyncGameRow}
-              >
-                <span className={styles.gameSyncGameName}>{g.name}</span>
-                <span className={styles.gameSyncGameStore}>{g.store}</span>
-              </li>
+              <GameRow key={i} game={g} />
             ))}
           </ul>
         )}
