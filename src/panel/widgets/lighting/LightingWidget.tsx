@@ -16,6 +16,7 @@ import {
 import {
   fetchMediaCurrent,
   fetchMediaLibrary,
+  mediaIdle,
   playCurrentOrFirstMedia,
   type MediaItem,
 } from '../../../api/mediaLibrary';
@@ -303,8 +304,9 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     setMusicReactive(false).catch(() => { /* best-effort */ });
     const played = await playCurrentOrFirstMedia();
     if (!played) {
-      // No playable media: stop the engine so the output goes black instead of holding the previous effect.
-      await stopLighting();
+      // No playable media: black output while staying in Media mode, so the
+      // Media tab stays selected instead of falling to Off.
+      await mediaIdle();
     }
     publishLighting('gif', 'gif');
   }, [publishLighting]);

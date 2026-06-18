@@ -7,7 +7,7 @@ import {
   fetchCurrentSync, fetchAvailableMappings,
   type LightingDevice, type LedMapEntry, type PostProcessSettings,
 } from '../../../api/lighting';
-import { playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
+import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
 import { useLightingSync } from '../../../hooks/useLightingSync';
@@ -874,8 +874,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         case 'gif': {
           const played = await playCurrentOrFirstMedia();
           if (!played) {
-            // No playable media: stop the engine so the output goes black instead of holding the previous effect.
-            await stopLighting();
+            // No playable media: black output while staying in Media mode, so
+            // the tab stays selected instead of falling to Off.
+            await mediaIdle();
           }
           break;
         }

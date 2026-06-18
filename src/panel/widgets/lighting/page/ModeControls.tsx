@@ -2,13 +2,13 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Monitor, MonitorPlay, Zap } from 'lucide-react';
 import {
   fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect, reselectScreen,
-  stopLighting,
   type ScreenMonitor, type PostProcessSettings,
 } from '../../../../api/lighting';
 import {
   cancelMediaStage,
   commitMedia,
   deleteMedia,
+  mediaIdle,
   mediaStagePreviewUrl,
   openMediaFolder,
   stageMedia,
@@ -229,7 +229,7 @@ function MediaControls() {
       if (nextItem) {
         await play(nextItem.id);
       } else {
-        await stopLighting();
+        await mediaIdle();
       }
     }
   };

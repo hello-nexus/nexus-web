@@ -28,6 +28,12 @@ export async function playMedia(id: string): Promise<boolean> {
   return !!resp && resp.error !== true;
 }
 
+// Media mode with no playable media: black output while the lighting sync stays
+// "media", so the panel keeps the Media tab selected instead of falling to Off.
+export async function mediaIdle(): Promise<void> {
+  await postService<{ error?: boolean }>('/media/idle', {});
+}
+
 export async function playCurrentOrFirstMedia(): Promise<string | null> {
   const current = await fetchMediaCurrent();
   if (current?.mediaId && current.item && await playMedia(current.mediaId)) {
