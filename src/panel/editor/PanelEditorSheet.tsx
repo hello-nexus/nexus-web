@@ -11,6 +11,7 @@ import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../widgets/mo
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
 import { PanelThemeSettings, type ResolvedPanelThemeMode } from './PanelThemeSettings';
+import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
 import { useTranslation } from '../../lib/i18n';
 import type { ThemeMode } from '../../lib/settings';
@@ -21,7 +22,7 @@ import type { PanelBackgroundMode } from '../background/panelBackground';
 import type { PanelThemeState } from '../theme/panelTheme';
 import styles from '../PanelApp.module.scss';
 
-export type SheetMode = 'catalog' | 'settings' | 'panelSettings';
+export type SheetMode = 'catalog' | 'settings' | 'panelSettings' | 'pairRemote';
 
 export function PanelEditorSheet({
   mode,
@@ -128,6 +129,8 @@ export function PanelEditorSheet({
   const def = editingWidget ? lookupApp(editingWidget.type) : undefined;
   const title = mode === 'panelSettings'
     ? t('panel.actions.settings')
+    : mode === 'pairRemote'
+    ? t('phonePair.title')
     : mode === 'settings' && editingWidget && def
     ? t(def.meta.i18nKey) || editingWidget.type
     : t('panel.editor.addWidgetTitle');
@@ -356,6 +359,12 @@ export function PanelEditorSheet({
               onWidgetBlurCommit={onThemeWidgetBlurCommit}
               hideWidgetChromeControls={isSingleWidgetSurface(surface)}
             />
+          </div>
+        )}
+
+        {mode === 'pairRemote' && (
+          <div className={styles.settingsBody}>
+            <PairRemoteContent active layout="stacked" />
           </div>
         )}
       </aside>

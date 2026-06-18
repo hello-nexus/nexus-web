@@ -4,18 +4,6 @@
   gap: 0.5rem;
 }
 
-// Reorder drag (shared by the cooling + lighting device-group lists): the
-// dragged section dims, the drop target shows a dashed outline. Mirrors the
-// per-card drag cue so a category reorders the same way a card does.
-.dragging { opacity: 0.5; }
-.dragOver {
-  outline: 2px dashed var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
-// Grab cursor on the draggable toggle to hint the whole category can be moved.
-.toggle[data-drag-handle='true'] { cursor: grab; }
-
 // Hover bar over the whole row; no borders. Title (with chevron) on the left,
 // values/buttons on the right.
 .header {

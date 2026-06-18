@@ -22,6 +22,7 @@ import { IconLabelButton } from '../../../../components/common/IconLabelButton/I
 import { MediaCropper, type NormalizedCrop } from '../../../../components/common/MediaCropper/MediaCropper';
 import { useMediaLibrary } from '../effecteditor/useMediaLibrary';
 import { MediaGrid } from '../effecteditor/MediaGrid';
+import { GameSyncControls } from './GameSyncControls';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -31,16 +32,20 @@ import styles from '../LightingPage.module.scss';
  * the under-canvas rows: mirror monitor picker + filter presets,
  * media library, off message.
  */
-export const ModeControls = memo(function ModeControls({ mode, screenPP, onScreenPPChange }: {
+export const ModeControls = memo(function ModeControls({ mode, screenPP, onScreenPPChange, gameSyncActive, onGameSyncStart, onGameSyncStop }: {
   mode: LightingMode;
   screenPP: PostProcessSettings;
   onScreenPPChange: (pp: PostProcessSettings) => void;
+  gameSyncActive: boolean;
+  onGameSyncStart: () => void;
+  onGameSyncStop: () => void;
 }) {
   switch (mode) {
     case 'animate': return null;
     case 'screen': return <ScreenControls screenPP={screenPP} onScreenPPChange={onScreenPPChange} />;
     case 'gif': return <MediaControls />;
     case 'none': return <OffControls />;
+    case 'gamesync': return <GameSyncControls active={gameSyncActive} onStart={onGameSyncStart} onStop={onGameSyncStop} />;
   }
 });
 

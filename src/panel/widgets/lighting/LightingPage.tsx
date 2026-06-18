@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  startAnimate, startScreenMirror, stopLighting,
+  startAnimate, startScreenMirror, stopLighting, startGameSync,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
@@ -38,7 +38,6 @@ import { AnimateGrid } from './page/AnimateGrid';
 import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
 import { DevicePanel } from './page/DevicePanel';
-import type { CollapsibleSectionDrag } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { LedMapEditor } from './page/LedMapEditor';
 import { visibleCards } from './page/zoneUtils';
 import { OpenRgbButton } from './page/OpenRgbButton';
@@ -435,6 +434,16 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [musicReactive]);
 
+  const handleGameSyncStart = useCallback(() => {
+    startGameSync().catch(() => {});
+    publishControlSync({ domain: 'lighting', mode: 'gamesync', rawSync: 'gamesync' });
+  }, []);
+
+  const handleGameSyncStop = useCallback(() => {
+    stopLighting().catch(() => {});
+    publishControlSync({ domain: 'lighting', mode: 'none', rawSync: 'none' });
+  }, []);
+
   const restartedProfileRef = useRef<string | null>(null);
   useEffect(() => {
     restartedProfileRef.current = null;
@@ -715,82 +724,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     for (const d of visibleDevices) if (!seen.has(d.id)) out.push(d);
     return out;
   }, [visibleDevices, deviceOrder]);
-  const [dragDeviceId, setDragDeviceId] = useState<string | null>(null);
-  const [dragOverDeviceId, setDragOverDeviceId] = useState<string | null>(null);
-  const dropDeviceOn = useCallback((targetId: string) => {
-    if (!dragDeviceId || dragDeviceId === targetId) return;
-    setDeviceOrder(prev => {
-      // Seed the persisted order from the current rendered order so the
-      // first drop captures the natural service order before splicing.
-      const base = prev.length > 0
-        ? prev.filter(id => orderedDevices.some(d => d.id === id))
-        : orderedDevices.map(d => d.id);
-      const fromIdx = base.indexOf(dragDeviceId);
-      const toIdx = base.indexOf(targetId);
-      if (fromIdx === -1 || toIdx === -1) return prev;
-      const next = base.slice();
-      const [moved] = next.splice(fromIdx, 1);
-      next.splice(toIdx, 0, moved);
-      return next;
-    });
-  }, [dragDeviceId, orderedDevices]);
-  const dragForDevice = useCallback((id: string) => ({
-    isDragging: dragDeviceId === id,
-    isDragOver: dragOverDeviceId === id && dragDeviceId !== id,
-    onDragStart: () => setDragDeviceId(id),
-    onDragOver: () => setDragOverDeviceId(id),
-    onDragLeave: () => setDragOverDeviceId(null),
-    onDrop: () => {
-      dropDeviceOn(id);
-      setDragDeviceId(null);
-      setDragOverDeviceId(null);
-    },
-    onDragEnd: () => {
-      setDragDeviceId(null);
-      setDragOverDeviceId(null);
-    },
-  }), [dragDeviceId, dragOverDeviceId, dropDeviceOn]);
-
-  // Whole-group reorder: a group is a contiguous run of its members in
-  // deviceOrder, so dragging it moves all member ids together, in front of the
-  // drop-target group's first member. Reuses the same deviceOrder the per-card
-  // drag manipulates, so cards and groups share one ordering source.
-  const [dragGroupKey, setDragGroupKey] = useState<string | null>(null);
-  const [dragOverGroupKey, setDragOverGroupKey] = useState<string | null>(null);
-  const dragGroupMembersRef = useRef<string[]>([]);
-  const dropGroupOn = useCallback((targetAnchorId: string) => {
-    const movingSet = new Set(dragGroupMembersRef.current);
-    if (movingSet.size === 0 || movingSet.has(targetAnchorId)) return;
-    setDeviceOrder(prev => {
-      const base = prev.length > 0
-        ? prev.filter(id => orderedDevices.some(d => d.id === id))
-        : orderedDevices.map(d => d.id);
-      const moving = base.filter(id => movingSet.has(id));
-      if (moving.length === 0) return prev;
-      const remaining = base.filter(id => !movingSet.has(id));
-      const targetIdx = remaining.indexOf(targetAnchorId);
-      if (targetIdx === -1) return prev;
-      return [...remaining.slice(0, targetIdx), ...moving, ...remaining.slice(targetIdx)];
-    });
-  }, [orderedDevices]);
-  const dragForGroup = useCallback((groupKey: string, memberIds: string[]): CollapsibleSectionDrag => ({
-    isDragging: dragGroupKey === groupKey,
-    isDragOver: dragOverGroupKey === groupKey && dragGroupKey !== groupKey,
-    onDragStart: () => { setDragGroupKey(groupKey); dragGroupMembersRef.current = memberIds; },
-    onDragOver: () => { if (dragGroupKey && dragGroupKey !== groupKey) setDragOverGroupKey(groupKey); },
-    onDragLeave: () => setDragOverGroupKey(null),
-    onDrop: () => {
-      if (dragGroupKey) dropGroupOn(memberIds[0]);
-      dragGroupMembersRef.current = [];
-      setDragGroupKey(null);
-      setDragOverGroupKey(null);
-    },
-    onDragEnd: () => {
-      dragGroupMembersRef.current = [];
-      setDragGroupKey(null);
-      setDragOverGroupKey(null);
-    },
-  }), [dragGroupKey, dragOverGroupKey, dropGroupOn]);
 
   const usb = useUsbDevices(serviceOnline);
   const detectedVidPids = useMemo(() => {
@@ -880,6 +813,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           }
           break;
         }
+        case 'gamesync':
+          await startGameSync();
+          break;
         case 'none': await stopLighting(); break;
       }
       if (m !== 'animate') {
@@ -893,9 +829,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return { key: m.key, label: t(m.labelKey), icon: <Icon size={14} /> };
   });
 
-  // Effect tab applies to animate / media / screen only; in Off mode
-  // it renders an empty state and the tab header is disabled.
-  const effectTabDisabled = mode === 'none';
+  // Effect tab applies to animate / media / screen only; in Off and Game Sync
+  // modes it renders an empty state and the tab header is disabled.
+  const effectTabDisabled = mode === 'none' || mode === 'gamesync';
 
   // The settings affordance lives in the top bar (right of the search pill);
   // register it while online so it opens this page's LightingSettingsModal.
@@ -984,6 +920,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 mode={mode}
                 screenPP={screenPP}
                 onScreenPPChange={setScreenPP}
+                gameSyncActive={mode === 'gamesync'}
+                onGameSyncStart={handleGameSyncStart}
+                onGameSyncStop={handleGameSyncStop}
               />
             </div>
           )}
@@ -1008,8 +947,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onSetPower={handleSetPower}
                 lightingOff={mode === 'none'}
                 onOpenSettings={handleOpenSettings}
-                dragFor={dragForDevice}
-                dragForGroup={dragForGroup}
+                onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
                 communityCounts={mappingCounts}
                 onOpenCommunity={handleOpenCommunity}
                 smartHubFirmwareControl={smartHubFirmwareControl}
@@ -1090,5 +1028,6 @@ function modeForSync(sync: string): LightingMode {
   if (sync === 'none' || !sync) return 'none';
   if (sync === 'screen' || sync.includes('mirror')) return 'screen';
   if (sync === 'gif' || sync.includes('media')) return 'gif';
+  if (sync === 'gamesync') return 'gamesync';
   return 'animate';
 }

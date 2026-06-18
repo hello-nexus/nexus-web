@@ -6,6 +6,7 @@ import { EditableText } from '../../common/Editable/EditableText';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { PromptModal } from '../../common/PromptModal/PromptModal';
+import { SortableList } from '../../common/SortableList/SortableList';
 import { exportProfile, type Preferences, type ProfileCategory } from '../../../api/profiles';
 import { useProfileSharing, type UseProfilesResult } from '../../../hooks/useProfiles';
 import { useTranslation } from '../../../lib/i18n';
@@ -21,18 +22,10 @@ type ConfirmKind =
 export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfilesResult; onPreferencesChanged: (prefs: Preferences) => void }) {
   const { t } = useTranslation();
   const sharing = useProfileSharing(true);
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<ConfirmKind | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [renameError, setRenameError] = useState<{ profileId: string; message: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  // Match the cooling FanCard / CurveEditor drag pattern: the whole card is
-  // draggable, but if mousedown lands on an interactive child (action button,
-  // EditableText name span) we toggle the host's draggable=false at capture
-  // time so HTML5 drag never initiates and the child keeps the pointer.
-  const profileInteractiveSelector = 'button, [role="button"], input';
 
   const handleSwitch = (id: string) => {
     // switchProfile flips the active state optimistically inside the hook,
@@ -136,72 +129,49 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
       {profiles.profiles.length === 0 ? (
         <p className={styles.note}>{t('settings.profiles.noProfiles')}</p>
       ) : (
-        <div className={styles.profileList}>
-          {profiles.profiles.map(p => {
+        <SortableList
+          className={styles.profileList}
+          ariaLabel={t('settings.tab.profiles')}
+          ids={profiles.profiles.map(p => p.id)}
+          onReorder={ids => profiles.reorderProfiles(ids)}
+          renderRow={(id, a) => {
+            const p = profiles.profiles.find(x => x.id === id);
+            if (!p) return null;
             const isActive = p.id === profiles.activeId;
             const isPrimary = p.id === primaryId;
             return (
               <div
-                key={p.id}
-                className={`${styles.profileCard} ${isActive ? styles.profileCardActive : ''} ${dragOverId === p.id ? styles.profileCardDragOver : ''}`}
-                draggable
-                onMouseDownCapture={(e) => {
-                  // Flip the host's draggable to false BEFORE the browser
-                  // starts drag tracking when the pointer lands on an
-                  // interactive child, so the child's click handler runs.
-                  const target = e.target as HTMLElement;
-                  const interactive = !!target.closest(profileInteractiveSelector);
-                  e.currentTarget.draggable = !interactive;
-                }}
-                onDragStart={(e) => {
-                  // Secondary gate: cancel any drag whose source is an
-                  // interactive child the capture-phase toggle missed.
-                  const target = e.target as HTMLElement;
-                  if (target.closest(profileInteractiveSelector)) {
-                    e.preventDefault();
-                    return;
-                  }
-                  setDragId(p.id);
-                }}
-                onDragOver={(e) => { e.preventDefault(); setDragOverId(p.id); }}
-                onDragLeave={() => setDragOverId(null)}
-                onDrop={() => {
-                  if (dragId && dragId !== p.id) {
-                    const ids = profiles.profiles.map(x => x.id);
-                    const fromIdx = ids.indexOf(dragId);
-                    const toIdx = ids.indexOf(p.id);
-                    ids.splice(fromIdx, 1);
-                    ids.splice(toIdx, 0, dragId);
-                    profiles.reorderProfiles(ids);
-                  }
-                  setDragId(null);
-                  setDragOverId(null);
-                }}
-                onDragEnd={() => { setDragId(null); setDragOverId(null); }}
-                onClick={() => {
-                  if (!isActive) handleSwitch(p.id);
-                }}
+                ref={a.ref}
+                role="listitem"
+                style={a.style}
+                {...a.attributes}
+                {...a.listeners}
+                className={`${styles.profileCard} ${isActive ? styles.profileCardActive : ''} ${a.isDragging ? a.placeholderClassName : ''}`}
+                onClick={() => { if (!isActive) handleSwitch(p.id); }}
               >
                 <div className={styles.profileInfo}>
-                  <EditableText
-                    value={p.name}
-                    onCommit={name => {
-                      const trimmed = name.trim();
-                      if (!trimmed || trimmed === p.name) {
-                        if (renameError?.profileId === p.id) setRenameError(null);
-                        return;
-                      }
-                      const dupe = profiles.profiles.some(pp => pp.id !== p.id && pp.name.toLowerCase() === trimmed.toLowerCase());
-                      if (dupe) {
-                        setRenameError({ profileId: p.id, message: t('profile.duplicateName') });
-                        return;
-                      }
-                      setRenameError(null);
-                      profiles.renameProfile(p.id, trimmed);
-                    }}
-                    className={styles.profileName}
-                    ariaLabel={t('profile.rename')}
-                  />
+                  {/* data-no-dnd: clicking the name edits it, never starts a drag. */}
+                  <span data-no-dnd>
+                    <EditableText
+                      value={p.name}
+                      onCommit={name => {
+                        const trimmed = name.trim();
+                        if (!trimmed || trimmed === p.name) {
+                          if (renameError?.profileId === p.id) setRenameError(null);
+                          return;
+                        }
+                        const dupe = profiles.profiles.some(pp => pp.id !== p.id && pp.name.toLowerCase() === trimmed.toLowerCase());
+                        if (dupe) {
+                          setRenameError({ profileId: p.id, message: t('profile.duplicateName') });
+                          return;
+                        }
+                        setRenameError(null);
+                        profiles.renameProfile(p.id, trimmed);
+                      }}
+                      className={styles.profileName}
+                      ariaLabel={t('profile.rename')}
+                    />
+                  </span>
                   {renameError?.profileId === p.id && (
                     <p
                       className={styles.profileRenameError}
@@ -215,7 +185,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
                     <span className={styles.profileBadge}>{t('settings.profiles.active')}</span>
                   )}
                 </div>
-                <div className={styles.profileActions} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.profileActions} data-no-dnd onClick={(e) => e.stopPropagation()}>
                   {isPrimary ? (
                     <HoverTooltip body={t('settings.profiles.sharing.primaryBadgeTooltip')} side="top">
                       <span className={styles.profileBadgePrimary}>
@@ -267,8 +237,8 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
                 </div>
               </div>
             );
-          })}
-        </div>
+          }}
+        />
       )}
 
       <div className={styles.profileButtons}>

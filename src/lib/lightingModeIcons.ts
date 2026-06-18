@@ -1,4 +1,4 @@
-import { Film, Monitor, Power, Sparkles, type LucideIcon } from 'lucide-react';
+import { Film, Gamepad2, Monitor, Power, Sparkles, type LucideIcon } from 'lucide-react';
 import type { LightingMode } from '../types/lighting';
 
 export const LIGHTING_MODE_ICONS: Record<LightingMode, LucideIcon> = {
@@ -6,4 +6,5 @@ export const LIGHTING_MODE_ICONS: Record<LightingMode, LucideIcon> = {
   gif: Film,
   screen: Monitor,
   none: Power,
+  gamesync: Gamepad2,
 };

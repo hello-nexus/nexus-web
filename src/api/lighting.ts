@@ -583,3 +583,42 @@ export const publishDeviceMapping = (id: string) =>
 /** Cache-only count lookup for the device-card badges; never hits the network. */
 export const fetchAvailableMappings = () =>
   fetchService<MappingsAvailableResponse>('/devices/lighting-devices/mappings/available');
+
+// --- Game Sync ---
+
+export interface GameSyncDevice {
+  name: string;
+  archetype: string;
+  ledCount: number;
+}
+
+export interface GameSyncStateResponse {
+  active: boolean;
+  devices: GameSyncDevice[];
+}
+
+export const startGameSync = () =>
+  postService('/lighting/game-sync/start', {});
+
+export const fetchGameSyncState = () =>
+  fetchService<GameSyncStateResponse>('/lighting/game-sync/state');
+
+export interface GameSyncGame {
+  name: string;
+  store: string;
+  emitsChroma: boolean;
+  scannedFiles: number;
+  skippedFiles: number;
+}
+
+export interface GameSyncGamesResponse {
+  scanning: boolean;
+  scannedAt: number | null;
+  games: GameSyncGame[];
+}
+
+export const fetchGameSyncGames = (refresh = false) =>
+  fetchService<GameSyncGamesResponse>(`/lighting/game-sync/games${refresh ? '?refresh=true' : ''}`);
+
+export const triggerGameSyncScan = () =>
+  postService('/lighting/game-sync/games/scan', {});

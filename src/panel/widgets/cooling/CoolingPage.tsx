@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Fan, Gauge, Plus, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { usePersistentState } from '../../../hooks/usePersistentState';
@@ -41,7 +41,8 @@ import { publishControlSync, subscribeControlSync } from '../../../lib/controlSy
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
-import { CollapsibleSection, type CollapsibleSectionDrag } from '../../../components/common/CollapsibleSection/CollapsibleSection';
+import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
+import { SortableList, type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { FanCard, type FanCardHubMode } from './page/FanCard';
@@ -644,9 +645,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
   const savedFanOrder = uiSettings.fanChannelOrder;
   const [fanOrder, setFanOrder] = useState<string[]>([]);
-  const [dragFanId, setDragFanId] = useState<string | null>(null);
-  const [dragOverFanId, setDragOverFanId] = useState<string | null>(null);
-
   const savedFanOrderKey = savedFanOrder.join('|');
   useEffect(() => {
     setFanOrder([]);
@@ -684,59 +682,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return dead.length === 0 ? base : [...live, ...dead];
   }, [channels, fanOrder]);
 
-  const dropFanOn = (targetId: string) => {
-    if (!dragFanId || dragFanId === targetId) return;
-    setFanOrder(prev => {
-      const next = [...prev];
-      const fromIdx = next.indexOf(dragFanId);
-      const toIdx = next.indexOf(targetId);
-      if (fromIdx === -1 || toIdx === -1) return prev;
-      next.splice(fromIdx, 1);
-      next.splice(toIdx, 0, dragFanId);
-      if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
-      return next;
-    });
-  };
-
-  // Whole-group reorder: a hub group's render position follows the first
-  // occurrence of its fans in fanOrder, so dragging the group moves all its fan
-  // ids together, in front of the drop-target group's first fan. Reuses the
-  // same fanOrder the per-card drag uses, so cards and groups share one order.
-  const [dragGroupKey, setDragGroupKey] = useState<string | null>(null);
-  const [dragOverGroupKey, setDragOverGroupKey] = useState<string | null>(null);
-  const dragGroupMembersRef = useRef<string[]>([]);
-  const dropFanGroupOn = (targetAnchorId: string) => {
-    const movingSet = new Set(dragGroupMembersRef.current);
-    if (movingSet.size === 0 || movingSet.has(targetAnchorId)) return;
-    setFanOrder(prev => {
-      const moving = prev.filter(id => movingSet.has(id));
-      if (moving.length === 0) return prev;
-      const remaining = prev.filter(id => !movingSet.has(id));
-      const targetIdx = remaining.indexOf(targetAnchorId);
-      if (targetIdx === -1) return prev;
-      const next = [...remaining.slice(0, targetIdx), ...moving, ...remaining.slice(targetIdx)];
-      if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
-      return next;
-    });
-  };
-  const dragForFanGroup = (groupKey: string, memberIds: string[]): CollapsibleSectionDrag => ({
-    isDragging: dragGroupKey === groupKey,
-    isDragOver: dragOverGroupKey === groupKey && dragGroupKey !== groupKey,
-    onDragStart: () => { setDragGroupKey(groupKey); dragGroupMembersRef.current = memberIds; },
-    onDragOver: () => { if (dragGroupKey && dragGroupKey !== groupKey) setDragOverGroupKey(groupKey); },
-    onDragLeave: () => setDragOverGroupKey(null),
-    onDrop: () => {
-      if (dragGroupKey) dropFanGroupOn(memberIds[0]);
-      dragGroupMembersRef.current = [];
-      setDragGroupKey(null);
-      setDragOverGroupKey(null);
-    },
-    onDragEnd: () => {
-      dragGroupMembersRef.current = [];
-      setDragGroupKey(null);
-      setDragOverGroupKey(null);
-    },
-  });
 
   const curvesInUse = useMemo(() => {
     const s = new Set<string>();
@@ -961,13 +906,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             >
             {offStatusCard}
             {(() => {
-              // Group channels by deviceId so external USB hubs (NP50,
-              // future devices) render with a header + their child fans
-              // beneath. Motherboard fans (no deviceId) render flat at
-              // the top so users with no hub see the exact UI they
-              // always had. Disconnected (Unresponsive) fans are pulled
-              // out of their device groups and rendered in a single
-              // collapsible category at the very bottom.
               const disconnected = orderedChannels.filter(c => c.classification === 'Unresponsive');
               const live = orderedChannels.filter(c => c.classification !== 'Unresponsive');
               const groups = new Map<string | null, FanChannel[]>();
@@ -976,8 +914,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 if (!groups.has(key)) groups.set(key, []);
                 groups.get(key)!.push(ch);
               }
-              const renderFan = (ch: FanChannel) => {
-                return (
+              const disconnectedIds = disconnected.map(c => c.id);
+              const mobo = groups.get(null) ?? [];
+              const moboIds = mobo.map(c => c.id);
+              const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k);
+
+              const renderFanCard = (ch: FanChannel, drag: SortableRowArgs) => (
                 <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
                   compact
                   calibrating={calibrating}
@@ -990,67 +932,118 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   onCreateCurve={() => createCurveAndAssign(ch.id)}
                   onRename={handleRename}
                   onSpeedChange={handleSpeedChange}
-                  drag={{
-                    isDragging: dragFanId === ch.id,
-                    isDragOver: dragOverFanId === ch.id && dragFanId !== ch.id,
-                    onDragStart: () => setDragFanId(ch.id),
-                    onDragOver: () => setDragOverFanId(ch.id),
-                    onDragLeave: () => setDragOverFanId(null),
-                    onDrop: () => {
-                      dropFanOn(ch.id);
-                      setDragFanId(null);
-                      setDragOverFanId(null);
-                    },
-                    onDragEnd: () => {
-                      setDragFanId(null);
-                      setDragOverFanId(null);
-                    },
-                  }} />
-                );
-              };
-              const blocks: ReactNode[] = [];
-              // Motherboard / GPU fans first, flat (no group header).
-              const mobo = groups.get(null);
-              if (mobo) for (const ch of mobo) blocks.push(renderFan(ch));
-              // Then one collapsible group per external hub, using the shared
-              // CollapsibleSection so the headers match the lighting device
-              // groups exactly (style, spacing, hover highlight). Group order
-              // follows fanOrder (Map insertion = first occurrence), so a whole
-              // group can be dragged to reorder it among the others.
-              const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k);
-              for (const key of deviceKeys) {
-                const list = groups.get(key)!;
-                const deviceName =
-                  // Service-provided product name (e.g. "HYTE Q60"); the
-                  // prefix chain is a fallback and can't distinguish variants.
-                  list[0]?.deviceName ||
-                  // eslint-disable-next-line i18next/no-literal-string -- hardware product name
-                  (key.startsWith('np50:') ? 'HYTE NP50'
-                  // eslint-disable-next-line i18next/no-literal-string -- hardware product name
-                  : key.startsWith('minihub:') ? 'iBUYPOWER MiniHub'
-                  // eslint-disable-next-line i18next/no-literal-string -- hardware product name
-                  : key.startsWith('smarthub:') ? 'HYTE SmartHub'
-                  : key);
-                blocks.push(
-                  <CollapsibleSection key={`${key}-hdr`} compact title={deviceName} ariaLabel={deviceName}
-                    open={!isFanGroupCollapsed(key)} onToggle={() => toggleFanGroup(key)}
-                    drag={dragForFanGroup(key, list.map(c => c.id))}
-                    right={<span className={styles.fanGroupCount}>{list.length} fan{list.length === 1 ? '' : 's'}</span>}>
-                    <div className={styles.fanGroupChildren}>{list.map(renderFan)}</div>
-                  </CollapsibleSection>
-                );
-              }
-              if (disconnected.length > 0) {
-                blocks.push(
-                  <CollapsibleSection key="disconnected-hdr" compact
-                    title={t('cooling.fan.disconnected')} ariaLabel={t('cooling.fan.disconnected')}
-                    open={!isFanGroupCollapsed('disconnected')} onToggle={() => toggleFanGroup('disconnected')}
-                    right={<span className={styles.fanGroupCount}>{disconnected.length} fan{disconnected.length === 1 ? '' : 's'}</span>}>
-                    <div className={styles.fanGroupChildren}>{disconnected.map(renderFan)}</div>
-                  </CollapsibleSection>
-                );
-              }
-              return blocks;
+                  drag={drag}
+                />
+              );
+
+              return (
+                <>
+                  {moboIds.length > 0 && (
+                    <SortableList
+                      ids={moboIds}
+                      onReorder={(newIds) => {
+                        const nonMobo = fanOrder.filter(id => !moboIds.includes(id));
+                        const next = [...newIds, ...nonMobo];
+                        setFanOrder(next);
+                        if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
+                      }}
+                      renderRow={(id, a) => {
+                        const ch = channels.find(c => c.id === id);
+                        if (!ch) return null;
+                        return renderFanCard(ch, a);
+                      }}
+                    />
+                  )}
+                  {deviceKeys.length > 0 && (
+                    <SortableList
+                      ids={deviceKeys}
+                      onReorder={(newGroupKeys) => {
+                        const next: string[] = [...moboIds];
+                        for (const gKey of newGroupKeys) {
+                          const members = groups.get(gKey) ?? [];
+                          const memberIds = members.map(c => c.id);
+                          const ordered = fanOrder.filter(id => memberIds.includes(id));
+                          next.push(...(ordered.length > 0 ? ordered : memberIds));
+                        }
+                        next.push(...disconnectedIds);
+                        setFanOrder(next);
+                        if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
+                      }}
+                      renderRow={(key, a) => {
+                        const list = groups.get(key)!;
+                        const memberIds = list.map(c => c.id);
+                        const deviceName =
+                          list[0]?.deviceName ||
+                          // eslint-disable-next-line i18next/no-literal-string -- hardware product name
+                          (key.startsWith('np50:') ? 'HYTE NP50'
+                          // eslint-disable-next-line i18next/no-literal-string -- hardware product name
+                          : key.startsWith('minihub:') ? 'iBUYPOWER MiniHub'
+                          // eslint-disable-next-line i18next/no-literal-string -- hardware product name
+                          : key.startsWith('smarthub:') ? 'HYTE SmartHub'
+                          : key);
+                        return (
+                          <CollapsibleSection
+                            key={key + '-hdr'}
+                            compact
+                            title={deviceName}
+                            ariaLabel={deviceName}
+                            open={!isFanGroupCollapsed(key)}
+                            onToggle={() => toggleFanGroup(key)}
+                            drag={a}
+                            // eslint-disable-next-line i18next/no-literal-string -- unit label
+                            right={<span className={styles.fanGroupCount}>{list.length} fan{list.length === 1 ? '' : 's'}</span>}
+                          >
+                            <div className={styles.fanGroupChildren}>
+                              <SortableList
+                                ids={memberIds}
+                                onReorder={(newIds) => {
+                                  const firstIdx = fanOrder.findIndex(id => memberIds.includes(id));
+                                  const without = fanOrder.filter(id => !memberIds.includes(id));
+                                  const next = [
+                                    ...without.slice(0, firstIdx < 0 ? without.length : firstIdx),
+                                    ...newIds,
+                                    ...without.slice(firstIdx < 0 ? without.length : firstIdx),
+                                  ];
+                                  setFanOrder(next);
+                                  if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
+                                }}
+                                renderRow={(fanId, fa) => {
+                                  const ch = channels.find(c => c.id === fanId);
+                                  if (!ch) return null;
+                                  return renderFanCard(ch, fa);
+                                }}
+                              />
+                            </div>
+                          </CollapsibleSection>
+                        );
+                      }}
+                    />
+                  )}
+                  {disconnected.length > 0 && (
+                    <CollapsibleSection key="disconnected-hdr" compact
+                      title={t('cooling.fan.disconnected')} ariaLabel={t('cooling.fan.disconnected')}
+                      open={!isFanGroupCollapsed('disconnected')} onToggle={() => toggleFanGroup('disconnected')}
+                      // eslint-disable-next-line i18next/no-literal-string -- unit label
+                      right={<span className={styles.fanGroupCount}>{disconnected.length} fan{disconnected.length === 1 ? '' : 's'}</span>}>
+                      <div className={styles.fanGroupChildren}>{disconnected.map(ch => (
+                        <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
+                          compact
+                          calibrating={calibrating}
+                          canCreateCurve={curves.length < MAX_CURVES}
+                          highlighted={false}
+                          hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
+                          hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
+                          hubSupportsBios={!ch.deviceId?.startsWith('np50:')}
+                          onSetMode={v => setFanMode(ch.id, v)}
+                          onCreateCurve={() => createCurveAndAssign(ch.id)}
+                          onRename={handleRename}
+                          onSpeedChange={handleSpeedChange}
+                        />
+                      ))}</div>
+                    </CollapsibleSection>
+                  )}
+                </>
+              );
             })()}
             </div>
           </div>

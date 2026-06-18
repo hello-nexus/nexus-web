@@ -56,6 +56,7 @@ import { applyHtmlChromeTheme } from '../lib/settings';
 import { fetchPanelDevice } from '../api/panel';
 import { isRemotePaired } from '../api/service';
 import { createUuid } from '../lib/uuid';
+import { spawnDropRing } from '../lib/dropRing';
 import {
   type PanelConfigValue,
   type PanelLayout,
@@ -567,6 +568,12 @@ export function PanelContent({
   // deliver pairing, so don't expose the QR there.
   const nativePairingAvailable =
     !isInsecureBrowserPanel() && (surface === 'phone' || nativeSettings.available);
+  // Local hardwired kiosks (Y70, touch monitors) pair other devices to this PC
+  // through an in-panel sheet instead of the native dialog. Phone surfaces (the
+  // native app and remote browser sessions) are the remote end, not the host,
+  // so they're excluded. The insecure-browser guard mirrors
+  // nativePairingAvailable: the plain-HTTP LAN fallback can't deliver pairing.
+  const localPairAvailable = surface !== 'phone' && !isInsecureBrowserPanel();
 
   const onCellTap = useCallback((w: PanelWidget) => {
     if (simulator) {
@@ -1166,6 +1173,14 @@ export function PanelContent({
         // phantom page isn't persisted unless a widget landed on it.
         const trimmed = trimTrailingEmptyPages(preview);
         setLayout(trimmed);
+        // Drop-confirm ring at the widget's final cell (next frame, after the
+        // new layout paints).
+        requestAnimationFrame(() => {
+          const cell = rootRef.current?.querySelector<HTMLElement>(
+            `[data-panel-widget-id="${CSS.escape(activeId)}"]`,
+          );
+          spawnDropRing(cell);
+        });
       }}
     >
       <div
@@ -1304,6 +1319,8 @@ export function PanelContent({
                 onSettings={() => openSheet('panelSettings')}
                 onPair={nativePairingAvailable ? nativeSettings.open : undefined}
                 pairAvailable={nativePairingAvailable}
+                onPairSheet={localPairAvailable ? () => openSheet('pairRemote') : undefined}
+                pairSheetAvailable={localPairAvailable}
                 surfaceRef={rootRef}
                 surface={surface}
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
