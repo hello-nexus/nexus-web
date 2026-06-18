@@ -349,7 +349,12 @@
 .procTable {
   @include text-button;
   width: 100%;
-  border-collapse: collapse;
+  // `separate` (not `collapse`) so the header rule paints through the normal
+  // box model like the RankedList <div> divider; the collapsed-border path
+  // snaps a 1px rule to ~2 device px on the 150%-scaled Y70 and reads heavier.
+  // border-spacing: 0 keeps the no-gap layout collapse gave us.
+  border-collapse: separate;
+  border-spacing: 0;
   table-layout: fixed;
 
   th, td {
@@ -380,7 +385,9 @@
     &:not(:first-child) { text-align: right; }
   }
 
-  tbody tr:first-child td { padding-top: 0.6rem; }
+  // 0.9rem == RankedList's 0.6rem header margin + 0.3rem first-row padding, so
+  // the rule sits the same distance above the first row as the CPU-tab list.
+  tbody tr:first-child td { padding-top: 0.9rem; }
 }
 
 .procName {

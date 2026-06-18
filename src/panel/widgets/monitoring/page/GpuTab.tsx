@@ -6,7 +6,7 @@ import { useGpuProcessData } from '../../../../hooks/useProcessMonitor';
 import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
 import { VitalsStrip, type Vital } from './VitalsStrip';
 import { RankedToggle } from './parts';
-import { rankSeries } from './shared';
+import { rankSeries, topNWithOther } from './shared';
 import styles from '../MonitoringPage.module.scss';
 
 const N = 60;
@@ -21,11 +21,6 @@ function load3d(g: HardwareSensor[]): number {
     .reduce((a, s) => a + s.value, 0));
 }
 
-/**
- * GPU detail tab: vitals strip, then GPU usage and VRAM side by side, both
- * broken down per process (top processes from the PDH-backed gpu-processes
- * topic), and a ranked "Top GPU processes" list. Shows the picker-selected GPU.
- */
 export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, onToggle }: {
   sensors: SensorState;
   preferredGpuId: string;
@@ -44,7 +39,7 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, o
   // view doesn't include the dGPU's VRAM); "" falls back to all adapters. Feed
   // is mounted at page level; here we only read the accumulated history.
   const selectedLuid = resolvePrimaryGpu(gpus, preferredGpuId)?.adapterLuid ?? '';
-  const { utilSeries, memSeries, procSeries, procMemSeries } = useGpuProcessData(selectedLuid);
+  const { procSeries, procMemSeries } = useGpuProcessData(selectedLuid);
   const { ranked, key } = rankSeries(procSeries, showAverage);
   // VRAM sub follows the same live/60s key as the GPU% it sits next to.
   const vramByName = new Map(procMemSeries.map(s => [s.name, s[key]]));
@@ -81,7 +76,7 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, o
               <span className={styles.chartStatUnit}>%</span>
             </div>
           }
-          series={utilSeries}
+          series={topNWithOther(procSeries, 5)}
           sampleCount={N}
           yMax={100}
           yUnit="%"
@@ -95,7 +90,7 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, o
               <span className={styles.chartStatUnit}>/ {Math.round(vramTotal)} MB</span>
             </div>
           }
-          series={memSeries}
+          series={topNWithOther(procMemSeries, 5)}
           sampleCount={N}
           yMax={vramTotal || undefined}
           yUnit="MB"

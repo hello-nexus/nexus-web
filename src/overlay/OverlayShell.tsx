@@ -84,6 +84,24 @@ function heightCells(size: string): number {
   return size === '4x4' || size === '2x4' ? 4 : size === '1x1' ? 1 : 2;
 }
 
+// Raw-px rect (top-left + size) where a widget is drawn, clamped to the live
+// viewport so a stored cell beyond the right/bottom edge still lands on
+// screen. The host builds its SetWindowRgn hit-region from these same rects
+// (reportLayout), so the tile, the carve-out, and the edit-sheet anchor must
+// all clamp identically or the clickable region drifts off the visible widget.
+function widgetPixelRect(col: number, row: number, size: string, cellPx: number) {
+  const wCells = widthCells(size);
+  const hCells = heightCells(size);
+  const maxCol = Math.max(0, window.innerWidth / cellPx - wCells);
+  const maxRow = Math.max(0, window.innerHeight / cellPx - hCells);
+  return {
+    x: clampCell(col, maxCol) * cellPx + WIDGET_INSET_PX,
+    y: clampCell(row, maxRow) * cellPx + WIDGET_INSET_PX,
+    w: wCells * cellPx - WIDGET_INSET_PX * 2,
+    h: hCells * cellPx - WIDGET_INSET_PX * 2,
+  };
+}
+
 interface ContextMenuState {
   x: number;
   y: number;
@@ -163,9 +181,7 @@ export default function OverlayShell() {
   // doesn't propagate via that path; the server's /preferences is the
   // source of truth, and the prefs WS broadcast keeps us in sync when
   // the user changes theme / scale elsewhere.
-  const refreshPrefs = useCallback(async () => {
-    const prefs = await fetchService<ServerPrefs>('/preferences');
-    if (!prefs) return;
+  const applyPrefs = useCallback((prefs: ServerPrefs) => {
     const overlay = prefs.overlay;
     const theme = prefs.theme;
     if (typeof overlay?.alwaysOnTop === 'boolean') {
@@ -194,18 +210,30 @@ export default function OverlayShell() {
     }
   }, []);
 
+  // Fetch layout + prefs together and commit them in one batch. cellPx is
+  // derived from the overlay scale, and the reconciliation effect clamps
+  // each widget against cellPx; if a scale-remapped layout arrives before
+  // the new scale, it gets clamped against the stale cell size and the
+  // clamp persists a moved position. Loading both atomically keeps scale
+  // and layout consistent on every reload.
+  const reloadAll = useCallback(async (isStale?: () => boolean) => {
+    const [widgets, prefs] = await Promise.all([
+      listOverlayWidgets(),
+      fetchService<ServerPrefs>('/preferences'),
+    ]);
+    if (isStale?.()) return;
+    if (prefs) applyPrefs(prefs);
+    setLayout(widgets);
+    setLoading(false);
+  }, [applyPrefs]);
+
   useEffect(() => {
     let cancelled = false;
-    listOverlayWidgets().then(result => {
-      if (cancelled) return;
-      setLayout(result);
-      setLoading(false);
-    });
-    void refreshPrefs();
+    void reloadAll(() => cancelled);
     return () => { cancelled = true; };
-  }, [refreshPrefs]);
+  }, [reloadAll]);
 
-  useTopicCallback('prefs', true, () => { void reload(); void refreshPrefs(); });
+  useTopicCallback('prefs', true, () => { void reloadAll(); });
 
   useEffect(() => {
     const onContextMenu = (event: MouseEvent) => event.preventDefault();
@@ -216,7 +244,7 @@ export default function OverlayShell() {
 
   const themeStyle = useMemo<CSSProperties>(() => {
     // applyThemeMode resolves "system" -> dark/light and writes data-theme;
-    // re-read after each refreshPrefs run so themeStyle picks up the right
+    // re-read after each applyPrefs run so themeStyle picks up the right
     // resolved mode for the panel-card color tokens.
     const resolvedMode = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
     // --panel-cell-size stays at the base value so widget content lays out
@@ -252,6 +280,10 @@ export default function OverlayShell() {
   // lookup so we don't fight ourselves while the PATCH is in flight.
   const reconciledRef = useRef(new Set<string>());
   useEffect(() => {
+    // A zero/unmeasured viewport (transient before the WebView2 lays out)
+    // would clamp every widget to the origin and persist it. Skip until the
+    // cell size and viewport are real.
+    if (cellPx <= 0 || window.innerWidth <= 0 || window.innerHeight <= 0) return;
     const maxCol = window.innerWidth / cellPx;
     const maxRow = window.innerHeight / cellPx;
     for (const entry of monitorWidgets) {
@@ -291,10 +323,7 @@ export default function OverlayShell() {
       rafRef.current = null;
       const widgetRects = renderedWidgets.map(entry => ({
         id: entry.id,
-        x: entry.col * cellPx + WIDGET_INSET_PX,
-        y: entry.row * cellPx + WIDGET_INSET_PX,
-        w: widthCells(entry.size) * cellPx - WIDGET_INSET_PX * 2,
-        h: heightCells(entry.size) * cellPx - WIDGET_INSET_PX * 2,
+        ...widgetPixelRect(entry.col, entry.row, entry.size, cellPx),
       }));
       // Edit sheet rect takes priority over the context menu rect when both
       // happen to be open (e.g. quick reopen). With neither, we report just
@@ -465,15 +494,9 @@ export default function OverlayShell() {
         };
         // eslint-disable-next-line i18next/no-literal-string -- theme mode enum
         const resolvedMode = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-        // Tile rect drives the popover anchor, computed the same way the
-        // tile renders itself: cell origin shifted by the widget inset so
-        // the sheet aligns visually flush with the widget edges.
-        const anchorRect = {
-          x: entry.col * cellPx + WIDGET_INSET_PX,
-          y: entry.row * cellPx + WIDGET_INSET_PX,
-          w: widthCells(entry.size) * cellPx - WIDGET_INSET_PX * 2,
-          h: heightCells(entry.size) * cellPx - WIDGET_INSET_PX * 2,
-        };
+        // Anchor the sheet to the same clamped rect the tile renders at, so
+        // it aligns flush with the visible widget edges.
+        const anchorRect = widgetPixelRect(entry.col, entry.row, entry.size, cellPx);
         return (
           <WidgetEditSheet
             widget={widget}
@@ -521,17 +544,10 @@ function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlo
   const def = APP_REGISTRY[entry.type];
   const w = widthCells(entry.size);
   const h = heightCells(entry.size);
-  // Max cell origin that still keeps the widget on-screen for this monitor.
-  // Computed from the live viewport so multi-monitor (each overlay has
-  // its own viewport) and per-monitor DPI / resolution are handled by
-  // the same code path. Math.max(...,0) covers the pathological case of
-  // a widget bigger than the monitor.
-  const maxCol = Math.max(0, window.innerWidth / cellPx - w);
-  const maxRow = Math.max(0, window.innerHeight / cellPx - h);
-  const left = clampCell(entry.col, maxCol) * cellPx + WIDGET_INSET_PX;
-  const top = clampCell(entry.row, maxRow) * cellPx + WIDGET_INSET_PX;
-  const width = w * cellPx - WIDGET_INSET_PX * 2;
-  const height = h * cellPx - WIDGET_INSET_PX * 2;
+  // Same clamped rect the host carves its hit-region from (widgetPixelRect),
+  // so the visible tile and its clickable area always coincide. The live
+  // viewport keeps multi-monitor and per-monitor DPI on one code path.
+  const { x: left, y: top, w: width, h: height } = widgetPixelRect(entry.col, entry.row, entry.size, cellPx);
 
   const onContext = (event: React.MouseEvent) => {
     event.preventDefault();

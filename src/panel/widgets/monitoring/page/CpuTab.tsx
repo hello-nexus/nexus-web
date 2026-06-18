@@ -1,33 +1,21 @@
-import { useMemo } from 'react';
 import type { useProcessMonitor } from '../../../../hooks/useProcessMonitor';
 import type { HardwareSensor, SensorState } from '../../../../hooks/useSensors';
 import { useTranslation } from '../../../../lib/i18n';
-import { CPU_SERIES_COLOR } from '../../../../lib/monitoringStore';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
-import { useSharedSensorHistory } from '../../common/useSharedSensorHistory';
 import { VitalsStrip, type Vital } from './VitalsStrip';
 import { RankedToggle } from './parts';
-import { rankSeries } from './shared';
+import { rankSeries, topNWithOther } from './shared';
 import styles from '../MonitoringPage.module.scss';
 
 const SAMPLE_COUNT = 60;
 
-// First sensor of `type` matching a preferred name, else any of that type.
 function pick(sensors: HardwareSensor[], type: string, names: string[]): number | undefined {
   for (const n of names) {
     const s = sensors.find(x => x.type === type && x.name === n);
     if (s) return s.value;
   }
   return sensors.find(x => x.type === type)?.value;
-}
-
-function padLeft(arr: readonly number[]): number[] {
-  if (arr.length >= SAMPLE_COUNT) return arr.slice(-SAMPLE_COUNT);
-  const out = new Array<number>(SAMPLE_COUNT).fill(0);
-  const offset = SAMPLE_COUNT - arr.length;
-  for (let i = 0; i < arr.length; i++) out[offset + i] = arr[i];
-  return out;
 }
 
 export function CpuTab({ cpuSeries, sensors, showAverage, onToggle }: {
@@ -42,20 +30,8 @@ export function CpuTab({ cpuSeries, sensors, showAverage, onToggle }: {
   // in °C, which would render as a percentage. Show 0 when 'CPU Total' absent.
   const cpuTotalSensor = sensors.cpu.find(s => s.name === 'CPU Total');
   const cpuValue = cpuTotalSensor?.value ?? 0;
-  const history = useSharedSensorHistory('cpu::CPU Total', cpuValue);
 
-  const series = useMemo(() => {
-    const values = padLeft(history);
-    const sum = history.reduce((a, b) => a + b, 0);
-    return [{
-      name: 'CPU Total',
-      color: CPU_SERIES_COLOR,
-      values,
-      current: cpuValue,
-      avg: history.length > 0 ? sum / history.length : 0,
-    }];
-  }, [history, cpuValue]);
-
+  const chartSeries = topNWithOther(cpuSeries, 5);
   const { ranked, key } = rankSeries(cpuSeries, showAverage);
 
   const temp = pick(sensors.cpu, 'Temperature', ['CPU Package', 'Core (Tctl/Tdie)', 'Core (Tctl)']);
@@ -82,7 +58,7 @@ export function CpuTab({ cpuSeries, sensors, showAverage, onToggle }: {
             <span className={styles.chartStatUnit}>%</span>
           </div>
         }
-        series={series}
+        series={chartSeries}
         sampleCount={SAMPLE_COUNT}
         yMax={100}
         yUnit="%"

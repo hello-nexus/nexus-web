@@ -1,5 +1,6 @@
 import type { HardwareSensor } from '../../../../hooks/useSensors';
 import type { SeriesEntry } from '../../../../hooks/useProcessMonitor';
+import { OTHER_COLOR } from '../../../../lib/monitoringStore';
 
 export function formatRate(bytesPerSec: number): string {
   if (bytesPerSec >= 1024 * 1024) return `${(bytesPerSec / 1024 / 1024).toFixed(1)} MB/s`;
@@ -83,4 +84,23 @@ export function groupByType(list: HardwareSensor[]): Array<{ type: string; senso
   }
   for (const [type, arr] of map) ordered.push({ type, sensors: arr });
   return ordered;
+}
+
+export function topNWithOther(series: SeriesEntry[], n: number): SeriesEntry[] {
+  const preExistingOther = series.find(s => s.name === 'Other');
+  const rest = series.filter(s => s.name !== 'Other');
+  const sorted = [...rest].sort((a, b) => b.avg - a.avg);
+  const topN = sorted.slice(0, n);
+  const remainder = sorted.slice(n);
+  const hasBucket = remainder.length > 0 || preExistingOther != null;
+  if (!hasBucket) return topN;
+  const buckets = [...remainder, ...(preExistingOther ? [preExistingOther] : [])];
+  const len = series[0]?.values.length ?? 60;
+  const values = new Array<number>(len).fill(0);
+  for (const s of buckets) {
+    for (let i = 0; i < len; i++) values[i] += s.values[i] ?? 0;
+  }
+  const current = Math.round(buckets.reduce((a, s) => a + s.current, 0) * 10) / 10;
+  const avg = Math.round(buckets.reduce((a, s) => a + s.avg, 0) * 10) / 10;
+  return [...topN, { name: 'Other', color: OTHER_COLOR, values, current, avg }];
 }
