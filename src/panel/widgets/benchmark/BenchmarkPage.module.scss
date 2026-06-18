@@ -313,3 +313,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.runModal {
+  width: min(90vw, 32rem);
+}
+
+.runModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem;
+
+  .controls {
+    justify-content: center;
+  }
+}

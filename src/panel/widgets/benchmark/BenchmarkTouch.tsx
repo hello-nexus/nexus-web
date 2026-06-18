@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Play, RotateCcw, Square } from 'lucide-react';
+import { Play, RotateCcw, X } from 'lucide-react';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import { useBenchmark } from '../../../hooks/useBenchmark';
 import { useBenchmarkHistory } from '../../../hooks/useBenchmarkHistory';
@@ -20,7 +20,7 @@ export function BenchmarkTouch({ immersiveGrid }: WidgetProps) {
       return (
         <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
           <BenchmarkProgress progress={progress} />
-          <Button tone="ghost" icon={<Square size={14} />} onClick={cancel}>
+          <Button tone="ghost" icon={<X size={14} />} onClick={cancel}>
             {t('benchmark.cancel')}
           </Button>
         </div>

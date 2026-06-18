@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Gauge, Play, Square, RotateCcw, History, Trophy } from 'lucide-react';
+import { Gauge, Play, X, RotateCcw, History, Trophy } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useBenchmark } from '../../../hooks/useBenchmark';
 import { useBenchmarkHistory } from '../../../hooks/useBenchmarkHistory';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { Overlay } from '../../../components/common/Overlay/Overlay';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { GenericSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
@@ -151,21 +152,9 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
       );
     }
 
-    if (status === 'starting') {
-      return <div className={styles.hint}>{t('benchmark.starting')}</div>;
-    }
-
-    if (status === 'running') {
-      return progress ? (
-        <>
-          <BenchmarkProgress progress={progress} />
-          <div className={styles.controls}>
-            <Button tone="ghost" icon={<Square size={14} />} onClick={cancel}>
-              {t('benchmark.cancel')}
-            </Button>
-          </div>
-        </>
-      ) : null;
+    // 'starting' / 'running' render in the blocking modal below, not inline.
+    if (status === 'starting' || status === 'running') {
+      return null;
     }
 
     if (status === 'complete' && (result ?? savedResult)) {
@@ -270,6 +259,30 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
       <div className={`${styles.tabContent} pageBody`}>
         {renderTab()}
       </div>
+
+      {/* Running locks the whole UI: a non-dismissable modal (portaled above
+          the chrome) so the user can't navigate away mid-run and orphan the
+          service-side benchmark. Cancel is the only exit. */}
+      <Overlay
+        open={status === 'starting' || status === 'running'}
+        onClose={() => { /* no dismiss; Cancel is the only exit */ }}
+        variant="alert"
+        noEscDismiss
+        noBackdropDismiss
+        ariaLabel={t('benchmark.title')}
+        className={styles.runModal}
+      >
+        <div className={styles.runModalBody}>
+          {progress
+            ? <BenchmarkProgress progress={progress} />
+            : <div className={styles.hint}>{t('benchmark.starting')}</div>}
+          <div className={styles.controls}>
+            <Button tone="ghost" icon={<X size={16} />} onClick={cancel}>
+              {t('benchmark.cancel')}
+            </Button>
+          </div>
+        </div>
+      </Overlay>
     </div>
   );
 }
