@@ -1122,6 +1122,11 @@ export function PanelContent({
         clearEdgeAdvance();
         currentOverIdRef.current = null;
         setActiveDragId(null);
+        // Clear the make-room preview in this same batch, not a frame later via
+        // the activeDragId effect. A stale previewLayout keeps the displaced
+        // cells' transform transition live, so the make-room offset animates
+        // back to 0 over the just-committed base and overshoots (the flinch).
+        setPreviewLayout(null);
         setDragArmedId(null);
         setDragSnapshot(null);
         setDragExtraPageId(null);
@@ -1146,6 +1151,12 @@ export function PanelContent({
         sidebarDropHandlerRef.current?.();
         currentOverIdRef.current = null;
         setActiveDragId(null);
+        // Clear the make-room preview in the same batch as the committed
+        // setLayout below. Deferring it to the activeDragId effect leaves one
+        // paint where the layout has committed but previewLayout is stale, so
+        // the displaced cells' transform transition animates the make-room
+        // offset back to 0 over the new base and overshoots (the drag flinch).
+        setPreviewLayout(null);
         setDragArmedId(null);
         setDragSnapshot(null);
         setDragExtraPageId(null);

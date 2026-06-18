@@ -251,10 +251,14 @@ export function PanelTouchCell({
         className={`${styles.cellWrap} ${dimmed ? styles.cellContextDimmed : ''} ${isDragSource ? styles.cellDragSource : ''} ${flash ? styles.cellFlash : ''} ${entrance ? styles.cellEntrance : ''}`}
         style={{
           ...wrapStyle,
-          // Make-room transform comes from previewLayout, not from
-          // dnd-kit's strategy. The transition animates the slide.
+          // Make-room transform comes from previewLayout, not from dnd-kit's
+          // strategy. The transition animates the slide WHILE a drag is live;
+          // on drop previewLayout clears, so the transform snaps to 0 (no
+          // transition) in the same paint the committed (col,row) lands.
+          // Otherwise the base jumps to the new slot while the stale transform
+          // animates back to 0, overshooting past the cell (the drag flinch).
           transform: !isDragging ? previewTransform : undefined,
-          transition: previewTransition,
+          transition: previewLayout ? previewTransition : 'none',
           zIndex: isDragging ? 50 : undefined,
         } as CSSProperties}
         onContextMenu={onContextMenu}
@@ -306,9 +310,12 @@ export function PanelTouchCell({
         ...wrapStyle,
         // Make-room transform comes from previewLayout, not dnd-kit's strategy.
         // The DragOverlay floats the active widget; this shifts displaced
-        // siblings aside (transition animates the slide).
+        // siblings aside (transition animates the slide). previewLayout clears
+        // on drop, so the transform snaps to 0 (transition 'none') in the same
+        // paint the committed (col,row) lands. Otherwise the base jumps while
+        // the stale transform animates back, overshooting (the drag flinch).
         transform: !dragMotionActive && !isDragging ? previewTransform : undefined,
-        transition: !dragMotionActive ? previewTransition : undefined,
+        transition: dragMotionActive ? undefined : previewLayout ? previewTransition : 'none',
         // Hold the z-index bump until rearrange visuals are on. dnd-kit sets
         // isDragging=true at the long-press mark before any movement; popping
         // the cell above the context menu then would fight that menu.
