@@ -6,6 +6,8 @@ import {
   type MediaItem,
 } from '../../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../../api/service';
+import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
+import { usePanelPreview } from '../../common/PanelPreviewContext';
 
 /**
  * Owns the media library list + active-item + lazily loaded thumbnails. Shared
@@ -14,6 +16,7 @@ import { fetchServiceBlob } from '../../../../api/service';
  * exactly one place.
  */
 export function useMediaLibrary() {
+  const preview = usePanelPreview();
   const [items, setItems] = useState<MediaItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -30,7 +33,8 @@ export function useMediaLibrary() {
 
   // Initial load: pull library + currently playing media on mount.
   // refresh()'s setState runs after its Promise resolves.
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { if (!preview) refresh(); }, [preview, refresh]);
+  useTopicCallback('mediaLibrary', !preview, refresh);
 
   useEffect(() => {
     thumbsRef.current = thumbs;
