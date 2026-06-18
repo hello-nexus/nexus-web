@@ -35,3 +35,30 @@ export const setQSeriesControlMode = (mode: QSeriesControlMode): Promise<unknown
 
 export const setQSeriesTurbo = (on: boolean): Promise<unknown | null> =>
   putService('/devices/qseries/turbo', { on });
+
+// ── Firmware temperature curve (pump + fan) ──
+
+export interface QSeriesCurvePoint {
+  tempC: number;
+  dutyPercent: number;
+}
+
+export interface QSeriesFirmwareCurve {
+  connected: boolean;
+  /** False on cooler firmware too old for the 5-point curve format. */
+  supported: boolean;
+  variant: string;
+  tempMin: number;
+  tempMax: number;
+  pump: QSeriesCurvePoint[];
+  fan: QSeriesCurvePoint[];
+}
+
+export const getQSeriesFirmwareCurve = (): Promise<QSeriesFirmwareCurve | null> =>
+  fetchService<QSeriesFirmwareCurve>('/devices/qseries/firmware-curve');
+
+export const setQSeriesFirmwareCurve = (
+  pump: QSeriesCurvePoint[],
+  fan: QSeriesCurvePoint[],
+): Promise<unknown | null> =>
+  putService('/devices/qseries/firmware-curve', { pump, fan });

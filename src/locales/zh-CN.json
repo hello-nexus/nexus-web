@@ -1737,5 +1737,14 @@
   "devices.q60.notConnected": "HYTE Q60 未连接",
   "devices.q60.turbo": "Turbo",
   "devices.q60.pumpRpm": "水泵转速 (RPM)",
-  "devices.q60.firmwareVersion": "固件版本"
+  "devices.q60.firmwareVersion": "固件版本",
+  "devices.q60.turboHelp": "让散热器以最高速度运行。关闭后，风扇转速限制为 2000 RPM（65%），水泵转速限制为 3000 RPM（70%）。",
+  "devices.q60.firmwareCurveSection": "固件温度曲线",
+  "devices.q60.firmwareCurveDescription": "设置为固件控制时，散热器会根据自身的冷却液温度，按这些内置曲线驱动水泵和风扇。",
+  "devices.q60.pumpCurve": "水泵曲线",
+  "devices.q60.fanCurve": "风扇曲线",
+  "devices.q60.curveUnsupported": "可编辑曲线需要更新的散热器固件。",
+  "devices.q60.curveHint": "拖动点以调整曲线。",
+  "devices.q60.curveAxis": "冷却液 {min}-{max} °C · 占空比 0-100%",
+  "devices.q60.saveCurve": "保存曲线"
 }

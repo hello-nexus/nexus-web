@@ -1737,5 +1737,14 @@
   "devices.q60.notConnected": "HYTE Q60 nie jest podłączony",
   "devices.q60.turbo": "Turbo",
   "devices.q60.pumpRpm": "Prędkość pompy (obr./min)",
-  "devices.q60.firmwareVersion": "Wersja firmware"
+  "devices.q60.firmwareVersion": "Wersja firmware",
+  "devices.q60.turboHelp": "Pozwala chłodzeniu pracować z maksymalną prędkością. Po wyłączeniu prędkość wentylatora jest ograniczona do 2000 RPM (65%), a pompy do 3000 RPM (70%).",
+  "devices.q60.firmwareCurveSection": "Krzywe temperatury firmware",
+  "devices.q60.firmwareCurveDescription": "W trybie firmware chłodnica steruje pompą i wentylatorami na podstawie tych wbudowanych krzywych, używając własnej temperatury cieczy.",
+  "devices.q60.pumpCurve": "Krzywa pompy",
+  "devices.q60.fanCurve": "Krzywa wentylatora",
+  "devices.q60.curveUnsupported": "Edytowalne krzywe wymagają nowszego firmware chłodnicy.",
+  "devices.q60.curveHint": "Przeciągnij punkty, aby ukształtować krzywą.",
+  "devices.q60.curveAxis": "Ciecz {min}-{max} °C · moc 0-100%",
+  "devices.q60.saveCurve": "Zapisz krzywe"
 }

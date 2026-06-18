@@ -1737,5 +1737,14 @@
   "devices.q60.notConnected": "HYTE Q60 nicht verbunden",
   "devices.q60.turbo": "Turbo",
   "devices.q60.pumpRpm": "Pumpendrehzahl (U/min)",
-  "devices.q60.firmwareVersion": "Firmware-Version"
+  "devices.q60.firmwareVersion": "Firmware-Version",
+  "devices.q60.turboHelp": "Lässt den Kühler mit maximaler Drehzahl laufen. Wenn deaktiviert, ist die Lüfterdrehzahl auf 2000 RPM (65%) und die Pumpendrehzahl auf 3000 RPM (70%) begrenzt.",
+  "devices.q60.firmwareCurveSection": "Firmware-Temperaturkurven",
+  "devices.q60.firmwareCurveDescription": "Im Firmware-Modus steuert der Kühler Pumpe und Lüfter anhand dieser internen Kurven über seine eigene Kühlmitteltemperatur.",
+  "devices.q60.pumpCurve": "Pumpenkurve",
+  "devices.q60.fanCurve": "Lüfterkurve",
+  "devices.q60.curveUnsupported": "Bearbeitbare Kurven erfordern eine neuere Kühler-Firmware.",
+  "devices.q60.curveHint": "Ziehe die Punkte, um die Kurve zu formen.",
+  "devices.q60.curveAxis": "Kühlmittel {min}-{max} °C · Leistung 0-100%",
+  "devices.q60.saveCurve": "Kurven speichern"
 }
