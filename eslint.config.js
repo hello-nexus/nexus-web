@@ -17,6 +17,7 @@ const NON_UI_JSX_ATTRIBUTES = [
   'fill', 'stroke', 'd', 'points', 'transform', 'xmlns', 'preserveAspectRatio',
   'tone', 'size', 'variant', 'position', 'align', 'justify', 'direction',
   'gap', 'as', 'icon', 'color', 'accent', 'mode', 'kind', 'side', 'placement',
+  'layout',
 ]
 
 export default defineConfig([

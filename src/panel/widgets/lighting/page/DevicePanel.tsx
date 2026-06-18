@@ -2,10 +2,10 @@ import { Cpu, Plus } from 'lucide-react';
 import { type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
-import { ZoneCard, type ZoneCardDrag } from './ZoneCard';
+import { ZoneCard } from './ZoneCard';
 import { MotherboardGroup } from './MotherboardGroup';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
-import type { CollapsibleSectionDrag } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
+import { SortableList, type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
 
 // Smart-light brands, in display order, keyed by the device-id prefix the
@@ -42,7 +42,7 @@ type DeviceBlock =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, dragFor, dragForGroup, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, onOpenSmartLights }: {
+export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, onOpenSmartLights }: {
   devices: LightingDevice[];
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
@@ -57,11 +57,8 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
   /** Whether the lighting mode is 'none' (off). Swaps the empty message. */
   lightingOff: boolean;
   onOpenSettings: (id: string) => void;
-  /** Builds a per-card HTML5 drag handler. Returning null disables drag for that card. */
-  dragFor?: (deviceId: string) => ZoneCardDrag | null;
-  /** Builds reorder-drag wiring for a whole device group (motherboard / brand),
-   *  given its key and the ids of its member devices. */
-  dragForGroup?: (groupKey: string, memberIds: string[]) => CollapsibleSectionDrag | null;
+  /** Called after a drag reorder with the new flat device-id ordering. */
+  onDeviceReorder?: (newDeviceOrder: string[]) => void;
   /** Device id -> available community layout count, for the card badge. */
   communityCounts?: Record<string, number>;
   /** Badge click: open the LED map editor on its Community tab. */
@@ -112,6 +109,11 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
     }
   }
 
+  // Block-level ids for the top-level SortableList: single device id for singles,
+  // groupKey for groups.
+  const blockIds = blocks.map(b => b.kind === 'single' ? b.device.id : b.groupKey);
+  const blockMap = new Map<string, DeviceBlock>(blocks.map((b, i) => [blockIds[i], b]));
+
   // Single shift-aware click handler so cards and zones share the exact same
   // selection semantics as the canvas: plain click = single-replace, shift+click
   // = toggle this id's membership in the set.
@@ -134,7 +136,7 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
     onSelectDevice(selectedIds.size === 1 && selectedIds.has(id) ? null : id);
   };
 
-  const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean) => (
+  const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean, drag?: SortableRowArgs) => (
     <ZoneCard
       key={d.id}
       device={d}
@@ -144,15 +146,15 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
       onSelect={shiftKey => handleZoneSelect(d.id, shiftKey)}
       onTogglePower={() => onTogglePower(d.id)}
       onOpenSettings={() => onOpenSettings(d.id)}
-      drag={dragFor?.(d.id) ?? undefined}
+      drag={drag}
       communityCount={communityCounts?.[d.id]}
       onOpenCommunity={onOpenCommunity ? () => onOpenCommunity(d.id) : undefined}
       firmwareControlled={fwControlled}
     />
   );
 
-  const renderBlock = (block: DeviceBlock) => {
-    if (block.kind === 'single') return renderCard(block.device, false);
+  const renderBlock = (block: DeviceBlock, a: SortableRowArgs | null) => {
+    if (block.kind === 'single') return renderCard(block.device, false, undefined, undefined, a ?? undefined);
     const { groupKey, label, isBrand, isSmartHub, devices: members } = block;
     const groupOn = members.some(z => z.ledsOn);
     const handleToggle = () => { const target = !groupOn; for (const z of members) onSetPower(z.id, target); };
@@ -168,21 +170,46 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
           aria-checked={fwOn}
           aria-label={t(fwOn ? 'lighting.devices.smarthub.fwControlDisable' : 'lighting.devices.smarthub.fwControlEnable')}
           className={`${styles.deviceSettingsBtn} ${fwOn ? styles.deviceFwControlBtnOn : ''}`}
+          data-no-dnd
           onClick={e => { e.stopPropagation(); onSetSmartHubFirmwareControl(!fwOn); }}
         >
           <Cpu />
         </button>
       </HoverTooltip>
     ) : undefined;
+    const memberIds = members.map(d => d.id);
     return (
       <MotherboardGroup key={groupKey} parentName={label} ariaLabel={isBrand ? label : undefined}
         groupOn={groupOn} onTogglePower={handleToggle}
         collapsed={isCollapsed(groupKey)} onToggleCollapsed={() => toggleCollapsed(groupKey)}
         leftAction={leftAction} powerDisabled={fwOn}
-        drag={dragForGroup?.(groupKey, members.map(d => d.id)) ?? undefined}>
-        {members.map(z => isBrand
-          ? renderCard(z, true)
-          : renderCard(z, true, stripParentPrefix(z.name, label), isSmartHub && fwOn))}
+        drag={a ?? undefined}>
+        <SortableList
+          ids={memberIds}
+          onReorder={(newMemberIds) => {
+            if (!onDeviceReorder) return;
+            const newOrder: string[] = [];
+            for (const bId of blockIds) {
+              const b = blockMap.get(bId);
+              if (!b) continue;
+              if (b.kind === 'single') {
+                newOrder.push(b.device.id);
+              } else if (b.groupKey === groupKey) {
+                newOrder.push(...newMemberIds);
+              } else {
+                newOrder.push(...b.devices.map(d => d.id));
+              }
+            }
+            onDeviceReorder(newOrder);
+          }}
+          renderRow={(devId, da) => {
+            const z = members.find(d => d.id === devId);
+            if (!z) return null;
+            return isBrand
+              ? renderCard(z, true, undefined, undefined, da)
+              : renderCard(z, true, stripParentPrefix(z.name, label), isSmartHub && fwOn, da);
+          }}
+        />
       </MotherboardGroup>
     );
   };
@@ -193,7 +220,25 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
         {devices.length === 0 && (
           <p className={styles.deviceEmpty}>{t(lightingOff ? 'lighting.devices.selectModeHint' : 'lighting.devices.empty')}</p>
         )}
-        {blocks.map(renderBlock)}
+        <SortableList
+          ids={blockIds}
+          onReorder={(newBlockIds) => {
+            if (!onDeviceReorder) return;
+            const newOrder: string[] = [];
+            for (const bId of newBlockIds) {
+              const b = blockMap.get(bId);
+              if (!b) continue;
+              if (b.kind === 'single') newOrder.push(b.device.id);
+              else newOrder.push(...b.devices.map(d => d.id));
+            }
+            onDeviceReorder(newOrder);
+          }}
+          renderRow={(blockId, a) => {
+            const block = blockMap.get(blockId);
+            if (!block) return null;
+            return renderBlock(block, a);
+          }}
+        />
         {onOpenSmartLights && (
           <button type="button" className={styles.addSmartLights} onClick={onOpenSmartLights}>
             <Plus size={22} aria-hidden />

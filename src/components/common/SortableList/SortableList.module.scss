@@ -1,0 +1,36 @@
+// Shared vertical drag-to-reorder list (same engine + look as the panel widget
+// rearrange). The dragged row becomes a dotted placeholder that slides to the
+// drop position while siblings animate out of the way; a floating clone tracks
+// the cursor in the DragOverlay.
+
+.list {
+  display: flex;
+  flex-direction: column;
+  // Default small gap between rows so cards in a list don't stick together;
+  // a consumer can override via its own className (e.g. profiles uses 0.5rem).
+  gap: 0.4rem;
+}
+
+// The source row while dragging: its content is hidden and a dashed accent box
+// marks the drop slot. Kept at the row's natural size so the gap matches.
+.placeholder {
+  position: relative;
+  > * { visibility: hidden; }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px dashed color-mix(in srgb, var(--accent) 80%, transparent);
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    border-radius: var(--radius);
+    pointer-events: none;
+  }
+}
+
+// The floating clone under the cursor: a subtle lift so it reads as picked up.
+.overlay {
+  cursor: grabbing;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius);
+}

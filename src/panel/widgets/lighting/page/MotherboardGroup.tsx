@@ -1,6 +1,7 @@
 import { Power } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
-import { CollapsibleSection, type CollapsibleSectionDrag } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
+import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
+import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import styles from '../LightingPage.module.scss';
 
@@ -43,7 +44,7 @@ export function MotherboardGroup({
   /** When true, the power button is rendered disabled. */
   powerDisabled?: boolean;
   /** Optional reorder drag wiring; makes the whole group draggable. */
-  drag?: CollapsibleSectionDrag;
+  drag?: SortableRowArgs;
 }) {
   const { t } = useTranslation();
   const expanded = !collapsed;

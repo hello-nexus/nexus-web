@@ -20,6 +20,7 @@ const REPO_ROOT = join(__dirname, '..', '..', '..');
 const COMMON_EXCLUSIONS: Record<string, string> = {
   ContextMenu: 'side-effect contextmenu suppressor, renders null; has its own unit test',
   ErrorBoundary: 'render-time error catcher, nothing to preview',
+  PairRemote: 'live-state pairing orchestration (QR mint, sessions poll, socket); not stub-renderable',
 };
 
 // panel/widgets/common modules that are not components.

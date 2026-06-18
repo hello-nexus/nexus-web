@@ -5,6 +5,7 @@ import { cssPxPerMm } from '../engine/panelGrid';
 import { TRAY_COMMIT_FLICK_MM_PER_MS, TRAY_COMMIT_TRAVEL_MM, TRAY_ENGAGE_TRAVEL_MM } from '../engine/gestureThresholds';
 import { isNativeApp } from '../device/panelNativeBridge';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
+import { Button } from '../../components/common/Button/Button';
 import { useTranslation } from '../../lib/i18n';
 import type { PanelSurface } from '../types';
 import styles from './PanelActionsTray.module.scss';
@@ -17,6 +18,10 @@ interface PanelActionsTrayProps {
   onSettings?: () => void;
   onPair?: () => void;
   pairAvailable: boolean;
+  // Opens the in-panel pairing sheet on a local hardwired kiosk (Y70, touch
+  // monitor). Distinct from onPair, which triggers the native app's OS dialog.
+  onPairSheet?: () => void;
+  pairSheetAvailable?: boolean;
   // Surface element the swipe-up gesture binds to. The hook walks
   // touch targets for [data-panel-scrollable="true"] ancestors and
   // yields to the widget's own scroller when found.
@@ -44,6 +49,8 @@ export function PanelActionsTray({
   onSettings,
   onPair,
   pairAvailable,
+  onPairSheet,
+  pairSheetAvailable = false,
   surfaceRef,
   surface,
   disabled = false,
@@ -91,6 +98,14 @@ export function PanelActionsTray({
   const dragProgress = dragging ? Math.min(1, swipe.offset / 80) : 0;
   const showScrim = (open && !pinnedOpen) || dragging;
 
+  // The pairing button shows on two surfaces with different actions: inside the
+  // native app wrapper it triggers the OS pairing dialog (onPair); on a local
+  // hardwired kiosk it opens the in-panel pairing sheet (onPairSheet). A plain
+  // remote browser panel gets neither, so the button is hidden.
+  const pairAction = isNativeApp()
+    ? (pairAvailable && onPair ? onPair : undefined)
+    : (pairSheetAvailable && onPairSheet ? onPairSheet : undefined);
+
   return (
     <>
       {showScrim && (
@@ -127,38 +142,36 @@ export function PanelActionsTray({
           </div>
         )}
         <div className={styles.actionRow}>
-        <button
-          type="button"
-          className={styles.actionButton}
+        <Button
+          size="lg"
+          tone="neutral"
+          icon={<Plus />}
+          className={styles.trayButton}
           onClick={() => { onAddWidget(); onClose(); }}
         >
-          <Plus size={18} />
-          <span>{t('panel.actions.addWidget')}</span>
-        </button>
+          {t('panel.actions.addWidget')}
+        </Button>
         {onSettings && (
-          <button
-            type="button"
-            className={styles.actionButton}
+          <Button
+            size="lg"
+            tone="neutral"
+            icon={<Settings2 />}
+            className={styles.trayButton}
             onClick={() => { onSettings(); onClose(); }}
           >
-            <Settings2 size={18} />
-            <span>{t('panel.actions.settings')}</span>
-          </button>
+            {t('panel.actions.settings')}
+          </Button>
         )}
-        {/* The pairing button triggers a native pairing dialog that only
-            exists inside the iOS app wrapper. In a plain browser it's a
-            no-op, so hide the whole button unless we're running natively. */}
-        {pairAvailable && onPair && isNativeApp() && (
+        {pairAction && (
           <HoverTooltip body={t('panel.actions.pairing')} side="top">
-            <button
-              type="button"
-              className={`${styles.actionButton} ${styles.actionButtonCompact}`}
-              onClick={() => { onPair(); onClose(); }}
+            <Button
+              size="lg"
+              tone="neutral"
+              icon={<QrCode />}
+              className={styles.trayButtonCompact}
+              onClick={() => { pairAction(); onClose(); }}
               aria-label={t('panel.actions.pairing')}
-            >
-              <QrCode size={17} />
-              <span>{t('panel.actions.pairing')}</span>
-            </button>
+            />
           </HoverTooltip>
         )}
         </div>

@@ -320,11 +320,6 @@
 // Sidebar variant: fill the column width.
 .fanCardCompact { width: 100%; }
 
-.fanCardDragging { opacity: 0.5; }
-.fanCardDragOver {
-  outline: 2px dashed var(--accent);
-  outline-offset: -2px;
-}
 
 // Software-controlled (not BIOS/FW): keep the card surface unchanged and
 // signal it on the duty bar instead — a much lighter cue than a full-card

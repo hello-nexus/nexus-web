@@ -57,6 +57,7 @@ import { pairingPreviewQr } from '../panel/widgets/pairing/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
+import { SortableList } from '../components/common/SortableList/SortableList';
 import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
 import { SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
@@ -788,6 +789,28 @@ function PreviewCollapsibleSection() {
   );
 }
 
+function PreviewSortableList() {
+  const [ids, setIds] = useState(['Item 1', 'Item 2', 'Item 3']);
+  return (
+    <SortableList
+      ids={ids}
+      onReorder={setIds}
+      renderRow={(id, a) => (
+        <div
+          ref={a.ref}
+          role="listitem"
+          style={{ ...a.style, padding: '0.5rem', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', cursor: 'grab' }}
+          {...a.attributes}
+          {...a.listeners}
+          className={a.isDragging ? a.placeholderClassName : undefined}
+        >
+          {id}
+        </div>
+      )}
+    />
+  );
+}
+
 function PreviewSettingsSection() {
   return (
     <div style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -1425,6 +1448,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/CollapsibleSection/CollapsibleSection.tsx',
     description: 'Canonical collapsible group header: chevron + title on the left, optional values/buttons on the right, a hover background bar, no borders. The one treatment for paired smart lights, monitoring detail, and lighting/cooling device groups. compact is the smaller uppercase variant the lighting/cooling groups use.',
     Preview: PreviewCollapsibleSection,
+  },
+  {
+    name: 'SortableList', category: 'panel-kit' as StorybookCategory,
+    filePath: 'src/components/common/SortableList/SortableList.tsx',
+    description: 'Shared vertical drag-to-reorder list built on @dnd-kit. Rows slide apart during drag, a floating clone follows the cursor, and a drop ring pulses at the resting slot. Consumers render each row via renderRow, spreading the supplied args. Mark interactive children with data-no-dnd to prevent drag hijack.',
+    Preview: PreviewSortableList,
   },
   {
     name: 'SettingsSection', category: 'panel-kit',
