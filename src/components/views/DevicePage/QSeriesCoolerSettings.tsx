@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Toggle } from '../../common/Toggle/Toggle';
+import { RotateCcw } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
+import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { CurveGraph } from '../../../panel/widgets/cooling/page/CurveEditor';
 import type { CurvePoint } from '../../../api/cooling';
 import {
@@ -31,10 +32,20 @@ const toApi = (pts: CurvePoint[]): QSeriesCurvePoint[] =>
 const PUMP_TURBO_OFF_LIMIT = 70;
 const FAN_TURBO_OFF_LIMIT = 65;
 
+// HYTE factory-default firmware curves (coolant temp -> duty %). The firmware has
+// no reset command, so Reset writes these known-good defaults back to the device.
+const DEFAULT_PUMP: CurvePoint[] = [
+  { temp: 34, speed: 32 }, { temp: 38, speed: 37 }, { temp: 43, speed: 45 },
+  { temp: 47, speed: 56 }, { temp: 50, speed: 91 },
+];
+const DEFAULT_FAN: CurvePoint[] = [
+  { temp: 43, speed: 29 }, { temp: 48, speed: 39 }, { temp: 51, speed: 50 },
+  { temp: 54, speed: 59 }, { temp: 56, speed: 91 },
+];
+
 export function QSeriesCoolerSettings() {
   const { t } = useTranslation();
   const [state, setState] = useState<QSeriesCoolerState | null>(null);
-  const [saving, setSaving] = useState(false);
   const aliveRef = useRef(true);
 
   // Firmware curve: device meta + the two editable point sets.
@@ -74,21 +85,25 @@ export function QSeriesCoolerSettings() {
 
   const commitTurbo = useCallback(async (on: boolean) => {
     setState(prev => (prev ? { ...prev, turboOn: on } : prev));
-    setSaving(true);
-    try { await setQSeriesTurbo(on); }
-    finally { if (aliveRef.current) setSaving(false); }
+    await setQSeriesTurbo(on).catch(() => {});
   }, []);
 
-  const saveCurve = useCallback(async () => {
+  const writeCurve = useCallback(async (pump: CurvePoint[], fan: CurvePoint[]) => {
     setCurveSaving(true);
     try {
-      await setQSeriesFirmwareCurve(toApi(pumpPts), toApi(fanPts));
+      await setQSeriesFirmwareCurve(toApi(pump), toApi(fan));
       if (aliveRef.current) setCurveDirty(false);
       await refreshCurve();
     } finally {
       if (aliveRef.current) setCurveSaving(false);
     }
-  }, [pumpPts, fanPts, refreshCurve]);
+  }, [refreshCurve]);
+
+  const resetCurve = useCallback(() => {
+    setPumpPts(DEFAULT_PUMP);
+    setFanPts(DEFAULT_FAN);
+    void writeCurve(DEFAULT_PUMP, DEFAULT_FAN);
+  }, [writeCurve]);
 
   if (!state?.connected) {
     return (
@@ -103,12 +118,12 @@ export function QSeriesCoolerSettings() {
 
   return (
     <SettingsSection title={t('devices.q60.firmwareSection')} boxClassName={styles.sectionBox}>
-      <div className={styles.row}>
-        <span className={styles.rowLabel}>{t('devices.q60.turbo')}</span>
-        <Toggle checked={state.turboOn} onChange={on => void commitTurbo(on)} ariaLabel={t('devices.q60.turbo')} />
-        {saving && <span className={styles.savingBadge}>{t('devices.saving')}</span>}
-      </div>
-      <div className={styles.helpText}>{t('devices.q60.turboHelp')}</div>
+      <SettingToggle
+        label={t('devices.q60.turbo')}
+        description={t('devices.q60.turboHelp')}
+        checked={state.turboOn}
+        onChange={on => void commitTurbo(on)}
+      />
 
       {curve && !curve.supported ? (
         <div className={styles.note}>{t('devices.q60.curveUnsupported')}</div>
@@ -136,9 +151,14 @@ export function QSeriesCoolerSettings() {
               onChange={pts => { setFanPts(pts); setCurveDirty(true); }}
             />
           </div>
+          <span className={styles.helpText}>{t('devices.q60.curveHint')}</span>
           <div className={styles.saveRow}>
-            <span className={styles.helpText}>{t('devices.q60.curveHint')}</span>
-            <Button type="button" size="sm" tone="accent" onClick={() => void saveCurve()} disabled={!curveDirty || curveSaving}>
+            <Button type="button" size="sm" tone="neutral" icon={<RotateCcw size={12} aria-hidden />}
+              onClick={resetCurve} disabled={curveSaving}>
+              {t('cooling.curves.resetBtn')}
+            </Button>
+            <Button type="button" size="sm" tone="accent"
+              onClick={() => void writeCurve(pumpPts, fanPts)} disabled={!curveDirty || curveSaving}>
               {curveSaving ? t('devices.saving') : t('devices.q60.saveCurve')}
             </Button>
           </div>
