@@ -2,7 +2,7 @@ import { fetchService, postService, putService, deleteService, resolveHttp } fro
 import { getToken } from './auth';
 import type { PanelLayout } from '../panel/types';
 import type { OverlayWidgetDto } from './overlay';
-import type { UpdateChannel } from './update';
+import type { UpdateChannel, UpdateMode } from './update';
 
 export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'theme', 'dashboard'] as const;
 export type ProfileCategory = typeof PROFILE_CATEGORIES[number];
@@ -83,7 +83,7 @@ export interface UiPrefs {
 }
 
 export interface UpdatePrefs {
-  autoUpdateDisabled: boolean;
+  updateMode: UpdateMode;
   updateChannel: UpdateChannel;
   lastDismissedUpdateVersion: string;
 }

@@ -74,15 +74,17 @@ export function SettingSelect({
   options,
   onChange,
   disabled,
+  description,
 }: {
   label?: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  description?: ReactNode;
 }) {
   return (
-    <SettingRow label={label}>
+    <SettingRow label={label} description={description}>
       <Select value={value} onChange={onChange} options={options} ariaLabel={label} disabled={disabled} />
     </SettingRow>
   );

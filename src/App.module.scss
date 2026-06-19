@@ -360,11 +360,10 @@
 // Tiny + faded version stamp pinned to the bottom-left of the layout.
 .pageVersion {
   position: absolute;
-  left: 12px;
-  bottom: 8px;
+  left: 16px;
+  bottom: 14px;
   z-index: 30;
   font-family: var(--font-mono);
-  // Small enough that "vNN alpha" fits the collapsed rail without clipping.
   font-size: 8px;
   line-height: 1;
   letter-spacing: 0.04em;

@@ -12,6 +12,7 @@ import {
   LANGUAGE_FLAGS, LANGUAGE_LABELS, LANGUAGES,
   type Language, type NexusSettings,
 } from '../../../lib/settings';
+import type { UpdateChannel, UpdateMode } from '../../../api/update';
 import styles from './SettingsView.module.scss';
 
 export interface GeneralTabProps {
@@ -167,14 +168,23 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
       {platform === 'windows' && (
         <SettingsSection title={t('settings.updates.title')}>
-          <SettingToggle
-            label={t('settings.updates.autoInstall.label')}
-            description={t('settings.updates.autoInstall.description')}
-            checked={!(settings.general.autoUpdateDisabled ?? false)}
-            onChange={() => updateGeneral({ autoUpdateDisabled: !(settings.general.autoUpdateDisabled ?? false) })}
+          <SettingSelect
+            label={t('settings.updates.mode.label')}
+            description={t('settings.updates.mode.description')}
+            value={settings.general.updateMode ?? 'always'}
+            options={[
+              // eslint-disable-next-line i18next/no-literal-string -- update mode enum value
+              { value: 'always', label: t('settings.updates.mode.always') },
+              // eslint-disable-next-line i18next/no-literal-string -- update mode enum value
+              { value: 'download', label: t('settings.updates.mode.download') },
+              // eslint-disable-next-line i18next/no-literal-string -- update mode enum value
+              { value: 'notify', label: t('settings.updates.mode.notify') },
+            ]}
+            onChange={v => updateGeneral({ updateMode: v as UpdateMode })}
           />
           <SettingSelect
             label={t('settings.updates.channel.label')}
+            description={t('settings.updates.channel.description')}
             value={settings.general.updateChannel ?? 'production'}
             options={[
               // eslint-disable-next-line i18next/no-literal-string -- update channel enum value
@@ -182,7 +192,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
               // eslint-disable-next-line i18next/no-literal-string -- update channel enum value
               { value: 'beta', label: t('settings.updates.channel.beta') },
             ]}
-            onChange={v => updateGeneral({ updateChannel: v as import('../../../api/update').UpdateChannel })}
+            onChange={v => updateGeneral({ updateChannel: v as UpdateChannel })}
           />
         </SettingsSection>
       )}

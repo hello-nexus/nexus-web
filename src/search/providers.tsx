@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import { Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower, SlidersHorizontal, UserRound, FlaskConical, Gamepad2 } from 'lucide-react';
+import { Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower, SlidersHorizontal, UserRound, FlaskConical, Gamepad2, Bug, FolderOpen } from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
 import { LANGUAGES, LANGUAGE_LABELS, PRESET_ACCENTS, type ThemeMode } from '../lib/settings';
 import { applyProfile } from '../api/cooling';
 import { setPanelRemoteControlEnabled, setPanelRelay, setPanelPairBroadcast } from '../api/panel';
 import { startAnimate, stopLighting, startScreenMirror, startGameSync } from '../api/lighting';
+import { postService } from '../api/service';
 import { COOLING_PRESETS, type CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { getCatalogEntries } from '../panel/widgets/registry';
@@ -57,7 +58,7 @@ const NAV: { view: string; labelKey: string; keywords: string[] }[] = [
   { view: 'lighting',   labelKey: 'lighting.title', keywords: ['rgb', 'led', 'leds', 'effects', 'color', 'colour', 'animation', 'effect', 'mirror', 'media', 'brightness', 'off'] },
   { view: 'cooling',    labelKey: 'cooling.title',  keywords: ['fans', 'fan curve', 'pump', 'thermals', 'temps', 'preset', 'profile', 'silent', 'balanced', 'turbo', 'custom', 'curve', 'off'] },
   { view: 'devices',    labelKey: 'devices.title',  keywords: ['usb', 'peripherals', 'hardware', 'connected'] },
-  { view: 'settings',   labelKey: 'settings.title', keywords: ['preferences', 'config', 'options', 'setup'] },
+  { view: 'settings',   labelKey: 'settings.title', keywords: ['preferences', 'config', 'options', 'setup', 'settings', 'update', 'updates', 'software update'] },
 ];
 
 // Displays is the Devices page's second tab, so its search hit deep-links
@@ -318,10 +319,28 @@ const profilesSource: SearchSource = (ctx) => {
 // ── Registry ────────────────────────────────────────────────────────────────
 // Add a source here to add a category of results. Order is cosmetic — entries
 // are ranked by relevance, not source order.
+const GITHUB_ISSUES_URL = 'https://github.com/hello-nexus/nexus-service/issues';
+const diagnostics: SearchSource = (ctx) => [
+  act('diag:open-logs', {
+    title: ctx.t('settings.diagnostics.openLogsButton'),
+    subtitle: ctx.t('settings.diagnostics.title'),
+    icon: <FolderOpen size={18} />,
+    keywords: ['logs', 'log', 'folder', 'diagnostics', 'debug', 'troubleshoot'],
+    run: () => { void postService('/diagnostics/open-logs', {}).catch(() => {}); },
+  }),
+  act('diag:report-bug', {
+    title: ctx.t('settings.feedback.report'),
+    subtitle: ctx.t('settings.feedback'),
+    icon: <Bug size={18} />,
+    keywords: ['bug', 'report', 'feedback', 'issue', 'github', 'problem'],
+    run: () => { window.open(GITHUB_ISSUES_URL, '_blank', 'noopener,noreferrer'); },
+  }),
+];
+
 export const SOURCES: SearchSource[] = [
   navigation, navDisplays, settingsTabs, settingsItems, standalonePages, installedApps, devices, profilesSource,
   cooling, lightingModes, lightingEffects, appearance,
-  actions, remoteAccess, settingsToggles,
+  actions, remoteAccess, settingsToggles, diagnostics,
 ];
 
 /** Every source's entries for the current context, flattened. */

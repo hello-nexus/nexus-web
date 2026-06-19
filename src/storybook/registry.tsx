@@ -933,11 +933,12 @@ function PreviewUpdateModal() {
           updateAvailable: true,
           updateReady: false,
           channel: 'production',
-          autoUpdateDisabled: false,
+          updateMode: 'notify',
           releaseNotes: '## What\'s new\n- Performance improvements\n- Bug fixes',
           lastCheckedUnix: 0,
           lastCheckError: '',
           state: 'idle',
+          justUpdatedTo: '',
         }}
       />
     </>
