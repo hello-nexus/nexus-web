@@ -48,8 +48,8 @@ export default defineConfig([
         // text - that always goes through JSX or t(). Treat them all as valid.
         callees: { exclude: ['.*'] },
       }],
-      // React Compiler hint rules — off because this project does not run
-      // React Compiler (see vite.config.ts — no babel-plugin-react-compiler).
+      // React Compiler hint rules - off because this project does not run
+      // React Compiler (see vite.config.ts - no babel-plugin-react-compiler).
       // They flag patterns the compiler can't auto-memoize, which is irrelevant
       // without the compiler and produces noise on legitimate external-system
       // sync, latest-ref, and intentional ref-as-state patterns.
@@ -58,7 +58,7 @@ export default defineConfig([
       'react-hooks/immutability': 'off',
       'react-hooks/preserve-manual-memoization': 'off',
       'react-hooks/static-components': 'off',
-      // Vite Fast Refresh convenience rule — off because tightly co-located
+      // Vite Fast Refresh convenience rule - off because tightly co-located
       // constants, types, and hooks alongside their component are idiomatic
       // here and the cost is at most a full reload in dev, not a correctness
       // issue in production.

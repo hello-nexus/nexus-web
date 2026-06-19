@@ -43,7 +43,7 @@ export function TransferWidget({ widget }: WidgetProps) {
   useEffect(() => () => clearTimeout(resetTimer.current), []);
 
   const handleBridgeState = useCallback((state: NativeTransferState) => {
-    // 'picking' keeps the current status — the native picker is open.
+    // 'picking' keeps the current status - the native picker is open.
     if (state.phase === 'uploading') {
       begin();
     } else if (state.phase === 'done') {

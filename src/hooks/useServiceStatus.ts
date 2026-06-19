@@ -3,10 +3,10 @@ import { pingService, type PingResponse } from '../api/service';
 import { isLaunching, resolveLaunch, useLaunchState } from './useServiceLaunch';
 
 /**
- * checking        — initial ping in flight
- * online          — service responding
- * offline-installed — ping failed, but we've connected before (service installed but not running)
- * offline         — ping failed, never connected (service not installed)
+ * checking        - initial ping in flight
+ * online          - service responding
+ * offline-installed - ping failed, but we've connected before (service installed but not running)
+ * offline         - ping failed, never connected (service not installed)
  */
 export type ConnectionState = 'checking' | 'online' | 'offline-installed' | 'offline';
 

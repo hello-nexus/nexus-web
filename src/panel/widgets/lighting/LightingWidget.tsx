@@ -53,7 +53,7 @@ const WIDGET_BUTTONS: { key: WidgetMode; icon: LucideIcon; labelKey: string }[] 
 
 // Catalog preview pins screen mode (pass-through, reactive=false):
 // the icon view renders with zero fetch/socket/blob traffic. Keep in sync with
-// the simple-mode render — see .agents/rules/widget-preview-fixtures.md in the
+// the simple-mode render - see .agents/rules/widget-preview-fixtures.md in the
 // master repo.
 const LIGHTING_PREVIEW_MODE: LightingMode = 'screen';
 
@@ -76,13 +76,13 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
 
   // Immersive only: tapping the live shader preview expands it to a full-bleed
   // shader view; tapping that closes it. Auto-closes whenever the mode leaves
-  // animate — the fullscreen view only renders a shader effect.
+  // animate - the fullscreen view only renders a shader effect.
   const [shaderFullscreen, setShaderFullscreen] = useState(false);
 
   // False until the first hydrate() resolves: mode/effect/filter sets
   // before that are hydration, not state changes, and must not animate.
   const [hydrated, setHydrated] = useState(false);
-  // Discrete selection only — the live-preview canvas and thumbnail blob
+  // Discrete selection only - the live-preview canvas and thumbnail blob
   // loads must never trigger the flash.
   const flashPulse = useStateChangePulse(
     mode === 'animate' ? `animate:${activeEffect}`
@@ -324,7 +324,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     else if (k === 'screen') onMirrorButton();
   };
 
-  // Immersive mode-button dispatch — covers every mode incl. Off.
+  // Immersive mode-button dispatch - covers every mode incl. Off.
   const handleMode = (k: LightingMode) => {
     if (k === 'none') onOffButton();
     else if (k === 'animate') onAnimateButton();
@@ -467,7 +467,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     );
   }
 
-  // Simple mode: same UX at every size — center icon/label + arrows,
+  // Simple mode: same UX at every size - center icon/label + arrows,
   // no mode-buttons row. Arrows cycle animations regardless of mode
   // (wired via the `view` builder's simpleMode-aware onPrev/onNext).
   if (simpleMode) {

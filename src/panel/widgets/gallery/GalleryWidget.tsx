@@ -11,7 +11,7 @@ import styles from './GalleryWidget.module.scss';
 
 const ARROW_HIDE_DELAY_MS = 2500;
 
-// Catalog preview fixture — one abstract-wallpaper data-URI, zero network.
+// Catalog preview fixture - one abstract-wallpaper data-URI, zero network.
 // Keep in sync with the viewer render; see
 // .agents/rules/widget-preview-fixtures.md in the master repo.
 const GALLERY_PREVIEW_URL = previewWallpaperUri(210);
@@ -21,7 +21,7 @@ const GALLERY_PREVIEW_URL = previewWallpaperUri(210);
  * whole (object-fit: contain, black bars as needed). Prev/next tap zones span
  * the left/right thirds; the chevrons fade in on use and back out after an
  * idle moment so the image stays clean. The center third carries no
- * interactive element — center-tap still enters immersive on panels and
+ * interactive element - center-tap still enters immersive on panels and
  * click-through opens the gallery page on the desktop dashboard.
  */
 export function GalleryWidget({ widget, immersive }: WidgetProps & { immersive?: boolean }) {
@@ -47,7 +47,7 @@ export function GalleryWidget({ widget, immersive }: WidgetProps & { immersive?:
   // uncached load can't land after (and visually undo) a newer navigation.
   const navSeqRef = useRef(0);
 
-  // Resume at the photo this widget instance last showed — most importantly,
+  // Resume at the photo this widget instance last showed - most importantly,
   // the immersive view opens on the image the tile is displaying.
   const positionRestoredRef = useRef(false);
   // Set while a restore jump is scheduled: the same commit's retain/prefetch

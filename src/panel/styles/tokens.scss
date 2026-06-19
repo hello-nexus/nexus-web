@@ -8,18 +8,18 @@
 // demand if the user picks one.
 
 // --panel-scale: real cell ÷ 90px design base, as a unitless number
-// (tan(atan2(a,b)) == a/b — CSS can't divide two lengths). The single ratio
+// (tan(atan2(a,b)) == a/b - CSS can't divide two lengths). The single ratio
 // shared by grid content (.cellScaler) and floating chrome; cell == 90px
 // (desktop) ⇒ 1, no-op.
 .panel-root { --panel-scale: tan(atan2(var(--panel-content-scale, var(--panel-cell-size, 90px)), 90px)); }
 // Overlays (immersive, editor sheet) mount as a bare .panel-root with no
-// module cell-size — derive it from columns + gap + viewport here.
+// module cell-size - derive it from columns + gap + viewport here.
 .panel-root:not([data-surface='phone']):not([data-surface='desktop']) {
   --panel-cell-size: calc((100vw - (var(--panel-columns, 4) - 1) * var(--panel-gap, 10px)) / var(--panel-columns, 4));
 }
 .panel-root[data-surface='phone'] { --panel-scale: var(--panel-widget-scale, 1); } // measured live by usePhoneContentScale
 .panel-root[data-surface='q60']   { --panel-scale: 2.5; } // Chrome 83 can't parse CSS trig; 480px ÷ 2col ÷ 90 ≈ 2.5
-// Dashboard widgets sit flat on the app backdrop — drop their shadow (phone/kiosk keep theirs).
+// Dashboard widgets sit flat on the app backdrop - drop their shadow (phone/kiosk keep theirs).
 .panel-root[data-surface='desktop'] { --panel-card-shadow-color: transparent; }
 
 .panel-root {
@@ -63,7 +63,7 @@
   // Widget content fills its grid cell edge-to-edge on every surface (the only
   // separation between widgets is --panel-gap). Cells are separated by the grid
   // gap, not a per-card margin, so a widget's background (e.g. the lighting
-  // colour) reaches the cell edges — consistent panel/phone/catalog rendering.
+  // colour) reaches the cell edges - consistent panel/phone/catalog rendering.
   --panel-widget-card-margin-x: 0px;
   --panel-widget-card-bottom-gap: 0px;
   --panel-widget-card-inner-pad: 0px;

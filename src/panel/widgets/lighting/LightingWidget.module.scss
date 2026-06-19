@@ -264,7 +264,7 @@
 }
 
 // Immersive: the preview is an inset rounded card (matching the panel-theme
-// background-animation preview), not a full-bleed surface — so it sits inside
+// background-animation preview), not a full-bleed surface - so it sits inside
 // the widget padding and clips its image / live canvas / shader to the corners.
 .lighting[data-immersive='true'] .thumbBox {
   margin: 0;

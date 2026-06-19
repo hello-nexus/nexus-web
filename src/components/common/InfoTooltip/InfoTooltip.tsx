@@ -36,7 +36,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
   const tooltipRef = useRef<HTMLSpanElement>(null);
   const closeTimerRef = useRef<number | null>(null);
   const openTimerRef = useRef<number | null>(null);
-  // Whether this tooltip actually became visible — so the shared scan-mode
+  // Whether this tooltip actually became visible - so the shared scan-mode
   // coordinator only sees a close for a tooltip that really opened (an
   // incidental cancelled hover must not re-arm the scan window).
   const openedRef = useRef(false);
@@ -144,7 +144,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
   // (renders hidden until positioned) - never a stale-position flash.
   useEffect(() => { if (!open) setCoords(null); }, [open]);
 
-  // On unmount, release scan mode if this tooltip was still open — otherwise
+  // On unmount, release scan mode if this tooltip was still open - otherwise
   // `scanning` stays latched with no timer to lapse it.
   useEffect(() => () => {
     cancelPendingClose();

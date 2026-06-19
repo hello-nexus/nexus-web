@@ -2,7 +2,7 @@
 // Dashboard.renderSystemView when the user clicks through a marketplace tile
 // whose manifest declares `page: true`. Spawns the SAME bundle's `page` surface
 // (a separate worker render via mount({ cell, page })) and fills the section
-// content area with its remote tree — e.g. the clock's day/night world map.
+// content area with its remote tree - e.g. the clock's day/night world map.
 
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from '../../../lib/i18n';

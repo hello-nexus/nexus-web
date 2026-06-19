@@ -95,7 +95,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   // Marquee state. preIds + additive let a Cmd/Ctrl-drag merge with the previous
   // selection so the user can refine a multi-select instead of starting over.
   // `hits` is the live overlap set, recomputed on each pointer-move so frames
-  // light up the instant the rect crosses them — the parent's selectedIds
+  // light up the instant the rect crosses them - the parent's selectedIds
   // doesn't update until pointer-up, so this live preview stays local to the
   // canvas and never re-renders LightingPage.
   const [marquee, setMarquee] = useState<{
@@ -108,7 +108,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   } | null>(null);
   const [, forceRender] = useState(0);
   // Right-click context menu anchored at the click point. Opening it never
-  // changes the selection — a right-click is not a left-click.
+  // changes the selection - a right-click is not a left-click.
   const [ctxMenu, setCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const visualAngleRef = useRef<Map<string, number>>(new Map());
   const containerSizeRef = useRef({ w: 675, h: 380 });
@@ -216,7 +216,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       const p = toCanvas(e.clientX, e.clientY);
       const moved = marquee.moved || Math.abs(p.x - marquee.startX) > 4 || Math.abs(p.y - marquee.startY) > 4;
       // O(N) AABB hit-test, ~20 devices, runs at pointer-move rate (~60Hz).
-      // ~1200 cheap bbox checks/s — well under the "noticeable" CPU bar.
+      // ~1200 cheap bbox checks/s - well under the "noticeable" CPU bar.
       const x1 = Math.min(marquee.startX, p.x);
       const y1 = Math.min(marquee.startY, p.y);
       const x2 = Math.max(marquee.startX, p.x);
@@ -285,7 +285,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
 
   const handlePointerUp = useCallback(() => {
     if (marquee) {
-      // Click on empty space (no drag) clears the selection — preserves the
+      // Click on empty space (no drag) clears the selection - preserves the
       // pre-marquee behaviour of "tap canvas to deselect". A Cmd/Ctrl+click never
       // clears (it would surprise users mid-additive-selection).
       if (!marquee.moved) {
@@ -310,7 +310,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     const tap = tapRef.current;
     tapRef.current = null;
     if (drag.mode === 'move' && drag.groupOrigs) {
-      // Save every moved device. Fire in parallel — saveDeviceLayout is an
+      // Save every moved device. Fire in parallel - saveDeviceLayout is an
       // independent PATCH per id, ordering doesn't matter.
       for (const sd of devices) {
         if (drag.groupOrigs.has(sd.id)) {
@@ -411,7 +411,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     // Non-additive marquee should clear the prior selection immediately so
     // both the canvas and the right-side panel reflect the "starting fresh"
     // state on the very first frame. Additive (Cmd/Ctrl) keeps the prior set
-    // visible — the user is refining, not replacing.
+    // visible - the user is refining, not replacing.
     if (!isMultiSelectModifier(e) && selectedIds.size > 0) {
       onSetSelection(new Set(), null);
     }

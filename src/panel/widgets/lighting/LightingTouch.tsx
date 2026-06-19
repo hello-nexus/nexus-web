@@ -42,7 +42,7 @@ function resolveImmersiveMode(sync: string): LightingMode {
 
 /**
  * Fullscreen lighting controller. Two stacked cells:
- *  - Cell 1: the immersive LightingWidget — square mode buttons (off / animate
+ *  - Cell 1: the immersive LightingWidget - square mode buttons (off / animate
  *    / media / mirror) over the effect preview.
  *  - Cell 2 (the fill cell): the shared Options | Effect editor, composed for
  *    the current mode (animate = shader grid + EffectControls; media = media

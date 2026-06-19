@@ -1,7 +1,7 @@
 // Shared swipe thresholds so the bottom tray (vertical-up reveal) and the page
 // pager (horizontal) recognize gestures the same way.
 
-// Minimum travel in the dominant axis before a swipe engages — a small dead
+// Minimum travel in the dominant axis before a swipe engages - a small dead
 // zone that ignores taps and incidental finger drift.
 export const GESTURE_ENGAGE_PX = 16;
 

@@ -187,7 +187,7 @@ export function TopBar({
 
       {/* Center search pill. With a palette provider it's the interactive
           docked search (TopSearch); otherwise a display-only title (panel
-          kiosk / iOS). The page name is the document's primary heading — the
+          kiosk / iOS). The page name is the document's primary heading - the
           in-page <h1>s were removed when titles moved into the top bar. */}
       {palette ? (
         <TopSearch pageTitle={pageTitle} online={online} />

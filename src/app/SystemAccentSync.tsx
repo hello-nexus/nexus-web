@@ -13,7 +13,7 @@ const SYSTEM_ACCENT_TOPIC = 'system/accent';
 // panels (which sync prefs.theme.accentColor). The Windows/macOS native shell
 // pushes the OS accent on request + whenever it changes; with no shell (the
 // Linux dashboard is a browser) the service reads the accent from the XDG
-// portal — fetched on load and pushed live over the WS on change.
+// portal - fetched on load and pushed live over the WS on change.
 export function SystemAccentSync() {
   const { settings, update } = useUiSettings();
   const source = settings.accentSource;
@@ -42,7 +42,7 @@ export function SystemAccentSync() {
     const unsubscribe = subscribeSystemAccent(applyAccent);
     // A native shell answers the request by pushing through subscribeSystemAccent.
     if (requestSystemAccent()) return unsubscribe;
-    // No shell — pull the host OS accent from the service (Linux / browser).
+    // No shell - pull the host OS accent from the service (Linux / browser).
     let cancelled = false;
     void fetchSystemAccent().then(hex => { if (!cancelled && hex) applyAccent(hex); });
     return () => { cancelled = true; unsubscribe(); };
@@ -52,7 +52,7 @@ export function SystemAccentSync() {
   // has drifted from it: when the user flips the source to 'system', and when a
   // profile switch reloads a profile's stored accentColor (frozen at whatever
   // the OS accent was the last time that profile saved). The accentColor dep is
-  // what makes this re-run on a switch — without it the reloaded stale hex
+  // what makes this re-run on a switch - without it the reloaded stale hex
   // sticks until the OS accent next changes.
   useEffect(() => {
     if (source === 'system' && systemHex.current && systemHex.current !== settings.accentColor) {

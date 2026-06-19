@@ -233,7 +233,7 @@ export function PanelContent({
 }) {
   // The iframe parent owns kiosk-only chrome (offline overlay, viewport lock,
   // page-scroll lock, native bridges, language sync, watchdog). The simulator
-  // iframe must not duplicate them — a second viewport lock fights the
+  // iframe must not duplicate them - a second viewport lock fights the
   // parent's window scroll.
   const kioskBehavior = !embedded && !simulator;
   usePanelViewportLock(kioskBehavior);
@@ -260,7 +260,7 @@ export function PanelContent({
   );
   usePanelLanguageSync(kioskBehavior);
   // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
-  // tracking the desktop OS); fall back to appThemeMode when unpublished —
+  // tracking the desktop OS); fall back to appThemeMode when unpublished -
   // 'system' there would re-resolve against THIS device's OS (the wrong OS).
   const effectiveThemeMode = effectiveTheme.themeSyncWithDesktop
     ? (effectiveTheme.appResolvedThemeMode || effectiveTheme.appThemeMode)
@@ -270,7 +270,7 @@ export function PanelContent({
   const resolvedThemeMode = simulator && simulatorThemeMode
     ? simulatorThemeMode
     : embedded ? desktopResolvedThemeMode : panelResolvedThemeMode;
-  // Standalone phone/kiosk owns the tab — mirror its resolved theme to <html>
+  // Standalone phone/kiosk owns the tab - mirror its resolved theme to <html>
   // so iOS Safari paints chrome (URL bar, overscroll, scrollbars) via the
   // matching color-scheme + <meta theme-color>. Skipped when embedded (the
   // desktop already drives html theme via applyThemeMode).
@@ -283,7 +283,7 @@ export function PanelContent({
   const multiplex = useMultiplex();
   // The context menu's "Pin to Sidebar" gates on the current pinned-tail
   // (only pinnable types not already pinned). Always inside a
-  // UiSettingsProvider — every PanelContent mount wraps one (see
+  // UiSettingsProvider - every PanelContent mount wraps one (see
   // PanelEntrypoint / Dashboard).
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
   const pinnedTail = sanitizePinnedTail(uiSettings.pinnedSidebarApps);
@@ -443,7 +443,7 @@ export function PanelContent({
   // without it the persistence effect below calls setLayout every render,
   // the next render computes a fresh reference, the effect re-fires, and the
   // panel render-loops (presents as the WebSocket "loses connection after
-  // one frame" symptom — the React tree never settles).
+  // one frame" symptom - the React tree never settles).
   const paginatedLayout = useMemo(
     () => repaginatePanelLayout(layout, capacity),
     [layout, capacity],
@@ -461,7 +461,7 @@ export function PanelContent({
   // viewport orientation flip). Rotation re-paginates every widget to the new
   // orientation; a half-finished drag would otherwise commit into the reflowed
   // grid and land the widget in the wrong slot. Cancelling restores the
-  // pre-drag layout instead — no drop is committed, so the widget reflows in
+  // pre-drag layout instead - no drop is committed, so the widget reflows in
   // place with the rest. Routed through dnd-kit's own resize-cancel path
   // (window 'resize' -> sensor handleCancel) so its pointer capture + overlay
   // tear down too. dnd-kit already cancels on a real window resize, but the
@@ -972,16 +972,16 @@ export function PanelContent({
   }, [touch, evaluateEdgeAdvance]);
   // Gesture refs for the collision detector. startX/Y is dnd-kit's press
   // origin, against which PANEL_DRAG_START_THRESHOLD_PX is gated. lastOverId
-  // gives hysteresis — the over flips only when the cursor leaves the band.
+  // gives hysteresis - the over flips only when the cursor leaves the band.
   const dragGestureRef = useRef<DragGestureState>({ startX: 0, startY: 0, lastOverId: null });
   // Live `over` droppable id, updated each onDragOver. The projection strategy
   // reads this to compute the make-room preview without dnd-kit's overIndex
-  // (which is -1 over an empty-cell droppable — those aren't SortableContext
+  // (which is -1 over an empty-cell droppable - those aren't SortableContext
   // items).
   const currentOverIdRef = useRef<string | null>(null);
   // dnd-kit invokes the collision detector later (on pointer move), so the
   // refs are read via the closure. The useMemo body never dereferences
-  // `.current` — only the returned function does, at call time.
+  // `.current` - only the returned function does, at call time.
   const panelCollisionDetection = useMemo(
     () => buildPanelCollisionDetection(dragGestureRef, activePageIndexRef),
     [activePageIndexRef],
@@ -1001,7 +1001,7 @@ export function PanelContent({
 
   // Drag preview layout, recomputed when the over target moves to a new cell.
   // Each cell reads its (col, row) and animates from committed to preview
-  // position via inline transform — the "make-room" feel: widgets overlapping
+  // position via inline transform - the "make-room" feel: widgets overlapping
   // the dragged one cascade to the next free aligned cell mid-drag, committing
   // on drop. Bypasses dnd-kit's SortableContext strategy, which doesn't
   // re-fire reliably with non-sortable empty droppables.
@@ -1045,7 +1045,7 @@ export function PanelContent({
     //  - Already at MAX_PANEL_PAGES.
     //  - The last page is empty (free trailing page exists).
     //  - The source page holds only the active widget: moving it across leaves
-    //    the source empty and the new page with one — a net no-op page count.
+    //    the source empty and the new page with one - a net no-op page count.
     const dashboardSinglePage = embedded && surface === 'desktop';
     if (!dashboardSinglePage && paginatedLayout.pages.length < MAX_PANEL_PAGES) {
       const lastPage = paginatedLayout.pages[paginatedLayout.pages.length - 1];
@@ -1112,7 +1112,7 @@ export function PanelContent({
       collisionDetection={panelCollisionDetection}
       // Re-measure droppables every render while dragging. Otherwise dnd-kit
       // caches drop targets at drag-start, and the pager's auto-advance moves
-      // cells to new viewport positions dnd-kit thinks are unchanged — drops
+      // cells to new viewport positions dnd-kit thinks are unchanged - drops
       // on a new page miss or land on the wrong widget.
       measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       onDragStart={handleDndDragStart}
@@ -1555,7 +1555,7 @@ export function PanelContent({
             '--panel-widget-scale': dragSnapshot.widgetScale,
             '--panel-gap': dragSnapshot.gap,
             // panelRootStyle paints the surface bg on the wrapper, but the
-            // DragOverlay is portaled to body — a solid wrapper bg makes the
+            // DragOverlay is portaled to body - a solid wrapper bg makes the
             // clone an opaque rectangle, layering its translucent .panel-card
             // and backdrop-filter over flat colour instead of the real surface
             // (shader, gradient). Force transparent so the clone matches the

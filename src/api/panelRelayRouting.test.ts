@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Proves the panel.ts *WithStatus helpers — which bypass authFetch to read the
-// raw HTTP status — route over the relay (and never fire an http://localhost
+// Proves the panel.ts *WithStatus helpers - which bypass authFetch to read the
+// raw HTTP status - route over the relay (and never fire an http://localhost
 // fetch) when isTunnelActive() is true. allocatePanelDeviceWithStatus is the
 // exact call that surfaced the bogus "could not reach the service" overlay on a
 // remote origin before this fix.

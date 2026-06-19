@@ -1,4 +1,4 @@
-// Inline SVG data-URIs for preview fixtures — avatar/cover stand-ins that load
+// Inline SVG data-URIs for preview fixtures - avatar/cover stand-ins that load
 // with zero network. Hue-parameterized so list rows don't look cloned.
 
 export function previewAvatarUri(hue: number): string {

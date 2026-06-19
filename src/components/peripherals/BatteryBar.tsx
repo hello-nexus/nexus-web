@@ -12,7 +12,7 @@ export function BatteryBar({ state }: { state: BatteryState }) {
       <div className={styles.labelCol}>
         <span className={styles.label}>{t('peripheral.battery')}</span>
         <span className={styles.value}>
-          {pct >= 0 ? `${pct}%` : '—'} {state.charging && <span className={styles.charging}>⚡</span>}
+          {pct >= 0 ? `${pct}%` : '-'} {state.charging && <span className={styles.charging}>⚡</span>}
         </span>
       </div>
       <div className={styles.batteryOuter}>

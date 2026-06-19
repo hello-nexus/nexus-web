@@ -19,7 +19,7 @@ export interface WebHidPeripheralSnapshot {
   sleep?: { idleSeconds: number; lowBatteryPercent: number };
 }
 
-/** The vendor-agnostic peripheral interface. All capability methods are optional —
+/** The vendor-agnostic peripheral interface. All capability methods are optional -
  *  the snapshot advertises what's actually supported via the capabilities array. */
 export interface WebHidPeripheral {
   readonly device: HIDDevice;
@@ -34,7 +34,7 @@ export interface WebHidPeripheral {
   close?(): Promise<void>;
 }
 
-/** Wrapper function — returns a peripheral if the HID device is recognized, null otherwise. */
+/** Wrapper function - returns a peripheral if the HID device is recognized, null otherwise. */
 export type WebHidWrapper = (device: HIDDevice) => WebHidPeripheral | null;
 
 interface VendorRegistration {
@@ -68,7 +68,7 @@ export function registeredVendorIds(): number[] {
   return VENDORS.map(v => v.vendorId);
 }
 
-/** HIDDeviceFilter list for navigator.hid.requestDevice — one per registered vendor. */
+/** HIDDeviceFilter list for navigator.hid.requestDevice - one per registered vendor. */
 export function requestDeviceFilters(): HIDDeviceFilter[] {
   return VENDORS.map(v => ({ vendorId: v.vendorId }));
 }

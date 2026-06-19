@@ -18,7 +18,7 @@ vi.mock('../../lib/i18n', () => ({
 }));
 
 // The real client fails closed in jsdom (remote-origin guard) before reaching
-// window.fetch, so spy at the service-client seam — every widget REST/blob
+// window.fetch, so spy at the service-client seam - every widget REST/blob
 // call funnels through these helpers.
 const serviceCallSpy = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 vi.mock('../../api/service', async (importOriginal) => {
@@ -74,7 +74,7 @@ const multiplexStub: MultiplexContextValue = {
 } as unknown as MultiplexContextValue;
 
 // Expected fixture content per widget, asserted at the picker size. Keyed by
-// load-bearing fixture fields — fails when a widget's UI stops rendering them.
+// load-bearing fixture fields - fails when a widget's UI stops rendering them.
 const PREVIEW_CONTENT: Record<string, string[]> = {
   steam: ['Nova', 'Star Voyager', 'Driftline'],
   discord: ['Nova', 'discord.notificationCount'],
@@ -114,7 +114,7 @@ describe('widget preview mode', () => {
     vi.stubGlobal('fetch', fetchSpy);
     vi.stubGlobal('WebSocket', WebSocketStub);
     vi.stubGlobal('Worker', WorkerStub);
-    // Direct assignment — vi.unstubAllGlobals() doesn't cover it, restore below.
+    // Direct assignment - vi.unstubAllGlobals() doesn't cover it, restore below.
     URL.createObjectURL = createObjectUrlSpy as typeof URL.createObjectURL;
   });
 
@@ -132,7 +132,7 @@ describe('widget preview mode', () => {
   for (const [type, def] of Object.entries(APP_REGISTRY)) {
     const pickerSize = pickerSizeFor(def.meta);
     const sizes = new Set<PanelWidgetSize>([pickerSize]);
-    // The 4-column sheet catalog downgrades 4x2 picker tiles to 2x2 — the
+    // The 4-column sheet catalog downgrades 4x2 picker tiles to 2x2 - the
     // compact branch must render from the same fixture.
     if (def.meta.sizes.includes('2x2')) sizes.add('2x2');
 
@@ -152,7 +152,7 @@ describe('widget preview mode', () => {
         expect(subscribeSpy).not.toHaveBeenCalled();
         expect(container.querySelector('iframe')).toBeNull();
 
-        // No external image sources — previews must be self-contained.
+        // No external image sources - previews must be self-contained.
         for (const img of Array.from(container.querySelectorAll('img'))) {
           const src = img.getAttribute('src') ?? '';
           expect(src.startsWith('data:') || src === '').toBe(true);

@@ -403,7 +403,7 @@ function VirtualizedLibrary({
     const el = scrollerRef.current;
     if (!el) return;
     // Seed sizes synchronously so the first paint already has a layout
-    // — without this the grid would flash empty on mount while waiting
+    // - without this the grid would flash empty on mount while waiting
     // for the first ResizeObserver entry.
     setSize({ width: el.clientWidth, height: el.clientHeight });
     const ro = new ResizeObserver(entries => {
@@ -445,7 +445,7 @@ function VirtualizedLibrary({
       };
     }
     const cols = Math.max(1, Math.floor((w + TILE_GAP_PX) / (TILE_WIDTH_PX + TILE_GAP_PX)));
-    // Tile is a fixed pixel size — never scales with container. Row
+    // Tile is a fixed pixel size - never scales with container. Row
     // height is fixed too, so the virtualization math is stable and
     // doesn't shift when the window resizes.
     const imageHeight = TILE_WIDTH_PX * TILE_IMAGE_ASPECT_H_OVER_W;
@@ -686,11 +686,11 @@ function DrillView({
         <StatTile label={t('steam.stat.lastTwoWeeks')} value={formatMinutes(owned?.playtime2Weeks ?? 0)} />
         <StatTile
           label={t('steam.achievements')}
-          value={achievements.length > 0 ? `${unlockedCount} / ${achievements.length}` : '—'}
+          value={achievements.length > 0 ? `${unlockedCount} / ${achievements.length}` : '-'}
         />
         <StatTile
           label={t('steam.stat.playersNow')}
-          value={playerCount !== null ? playerCount.toLocaleString() : '—'}
+          value={playerCount !== null ? playerCount.toLocaleString() : '-'}
         />
       </section>
 
@@ -858,7 +858,7 @@ function normalizeGameName(name: string): string {
   return name
     .toLowerCase()
     .replace(/[™®©]/g, '') // ™ ® ©
-    .replace(/[:\-–—]/g, ' ')
+    .replace(/[:\-–-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -868,7 +868,7 @@ function humanizeStatName(name: string) {
 }
 
 function formatStatValue(value: number) {
-  if (!Number.isFinite(value)) return '—';
+  if (!Number.isFinite(value)) return '-';
   if (Math.abs(value) >= 1000) return value.toLocaleString();
   if (Number.isInteger(value)) return value.toString();
   return value.toFixed(2);

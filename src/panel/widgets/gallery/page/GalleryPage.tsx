@@ -32,7 +32,7 @@ const KIND_ICONS = {
 
 /**
  * Gallery management page. The source set is per-system shared (every panel
- * surface of this PC draws from it) and is pure REFERENCES — Nexus never
+ * surface of this PC draws from it) and is pure REFERENCES - Nexus never
  * copies or deletes image bytes. Sources come from the OS-native picker or
  * from drag-n-drop (desktop app only: the shell bridge resolves dropped
  * files' real paths; browser tabs can't see them). Removing a folder's
@@ -48,7 +48,7 @@ export function GalleryPage() {
   // One error line for the sources column, cleared when the next action starts.
   const [actionError, setActionError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  // Hovering a source card highlights its images in the grid (one-way only —
+  // Hovering a source card highlights its images in the grid (one-way only -
   // image hover deliberately lights nothing up).
   const [hoverSourceId, setHoverSourceId] = useState<string | null>(null);
 
@@ -67,7 +67,7 @@ export function GalleryPage() {
   useTopicCallback('gallery', true, refresh);
 
   // Preview blob cache (panel auth is token-based, <img> can't hit the route
-  // directly). Original bytes only — no server-side conversion exists; null
+  // directly). Original bytes only - no server-side conversion exists; null
   // marks an unreadable file so the grid shows a placeholder, never retried.
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   const thumbsRef = useRef<Record<string, string | null>>({});
@@ -121,7 +121,7 @@ export function GalleryPage() {
   // Shell drop bridge: the host resolves dropped files' disk paths and posts
   // them back; they enter through the same add flow as the native picker. An
   // empty reply means the shell couldn't resolve paths (old WebView2 runtime)
-  // — surface the same hint as a bridge-less drop instead of silence.
+  // - surface the same hint as a bridge-less drop instead of silence.
   useEffect(() => subscribeGalleryDropPaths(paths => {
     // addPaths' setState calls run after its awaits, not synchronously.
 
@@ -203,7 +203,7 @@ export function GalleryPage() {
     setActionError(null);
     if (!postGalleryDrop(files)) {
       // Plain browser tab: the sandbox hides dropped files' paths, so a
-      // reference can't be made here — point at the native picker instead.
+      // reference can't be made here - point at the native picker instead.
       setActionError(t('gallery.page.dropNeedsApp'));
     }
   };
@@ -222,7 +222,7 @@ export function GalleryPage() {
       <div className={`${styles.body} pageBody`}>
         {/* Static-width sources column (300px, matching the Lighting /
             Cooling device-column width); the library fills the rest. No
-            bounding box — each source is its own card, cooling-page style. */}
+            bounding box - each source is its own card, cooling-page style. */}
         <div className={styles.sourcesColumn}>
           <SectionHeader className={styles.sourcesHeader}>{t('gallery.page.sources')}</SectionHeader>
           <div className={styles.sourceActions}>

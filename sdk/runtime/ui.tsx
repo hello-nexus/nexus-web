@@ -1,8 +1,8 @@
-// @hellonexus/ui — the author-facing component vocabulary (worker face, react@18).
+// @hellonexus/ui - the author-facing component vocabulary (worker face, react@18).
 //
 // Each component is a thin @remote-dom wrapper around a registered RemoteElement.
 // Authors compose ONLY these; props are semantic (tone/size/variant) and theme
-// through host tokens — there is no raw style/className escape, which is what
+// through host tokens - there is no raw style/className escape, which is what
 // keeps every SDK widget visually consistent with native ones. The host renders
 // the matching real component; an element the host doesn't know renders nothing.
 
@@ -108,7 +108,7 @@ export interface ScrollProps extends WithChildren {
 }
 export interface InputProps {
   /** A value to SET programmatically (reset / computed result). Not a controlled
-   *  binding — typing is local + reported via onValueChange, so the cursor stays put. */
+   *  binding - typing is local + reported via onValueChange, so the cursor stays put. */
   value?: string; placeholder?: string; type?: 'text' | 'number' | 'search' | 'password';
   disabled?: boolean; maxLength?: number; tone?: UiTone; align?: Align; size?: 'sm' | 'md'; mono?: boolean;
   // Non-DOM names on purpose: onInput/onBlur collide with React-18 synthetic
@@ -119,7 +119,7 @@ export interface ChartSeriesInput { values: number[]; tone?: UiTone; area?: bool
 export interface ChartProps {
   series: ChartSeriesInput[]; min?: number; max?: number; height?: number; gridlines?: boolean; tone?: UiTone;
 }
-// Blessed composites — the host renders the real native component (the day/night
+// Blessed composites - the host renders the real native component (the day/night
 // world clock page body, the clock designs, the standard page header). Lets an
 // SDK page be a first-class native page with zero duplication.
 export interface WorldClockProps { highlightTz?: string }
@@ -161,7 +161,7 @@ export interface CurvePoint { x: number; y: number }
 export interface CurveProps {
   points: CurvePoint[];
   xmin?: number; xmax?: number; ymin?: number; ymax?: number; tone?: UiTone;
-  /** Fires continuously while dragging a point (live, cheap — no persist). */
+  /** Fires continuously while dragging a point (live, cheap - no persist). */
   onPreview?: (points: CurvePoint[]) => void;
   /** Fires on a commit: drag release, add (double-click), or remove (right-click). */
   onChange?: (points: CurvePoint[]) => void;

@@ -132,7 +132,7 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
             </div>
             <div className={styles.dashCardBody}>
               <div className={styles.dashMetric}>
-                <span className={`${styles.dashValue} ${styles.dashValuePercent}`}>{gpuParts ? gpuParts.value : '—'}</span>
+                <span className={`${styles.dashValue} ${styles.dashValuePercent}`}>{gpuParts ? gpuParts.value : '-'}</span>
                 <span className={styles.dashUnit}>{gpuParts ? gpuParts.unit : ''}</span>
               </div>
               {/* eslint-disable-next-line i18next/no-literal-string -- CSS color variable */}

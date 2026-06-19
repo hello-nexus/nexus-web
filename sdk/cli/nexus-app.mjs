@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// `nexus-app` — the author CLI for sandboxed Nexus apps. It formalises the build
+// `nexus-app` - the author CLI for sandboxed Nexus apps. It formalises the build
 // the host uses internally (sdk/build.mjs) for an OUTSIDE author who installs the
 // published @hello-nexus/sdk package:
 //
@@ -9,7 +9,7 @@
 //
 // `build` externalises react / react/jsx-runtime / @hello-nexus/sdk / @hello-nexus/sdk/ui
 // to thin shims that read globalThis.__nexusRuntime (populated once by the host-shared
-// runtime), so an app ships only the author's code (~few KB) — react-dom + remote-dom +
+// runtime), so an app ships only the author's code (~few KB) - react-dom + remote-dom +
 // the SDK are downloaded once and shared. The shim re-exports exactly what the runtime
 // exports (probed, never a hand-kept list).
 //
@@ -291,6 +291,6 @@ switch (cmd) {
     cmdValidate(dirArg);
     break;
   default:
-    console.log('nexus-app — Nexus SDK app CLI\n\n  new <dir>        scaffold a starter app\n  build [dir]      bundle index.tsx -> widget.mjs  (--dev, --sourcemap)\n  dev [dir]        rebuild widget.mjs on change (unminified)\n  validate [dir]   check manifest + entry against nexus.app/1');
+    console.log('nexus-app - Nexus SDK app CLI\n\n  new <dir>        scaffold a starter app\n  build [dir]      bundle index.tsx -> widget.mjs  (--dev, --sourcemap)\n  dev [dir]        rebuild widget.mjs on change (unminified)\n  validate [dir]   check manifest + entry against nexus.app/1');
     if (cmd && cmd !== '--help' && cmd !== '-h') process.exit(1);
 }

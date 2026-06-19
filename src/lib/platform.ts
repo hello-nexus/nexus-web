@@ -71,7 +71,7 @@ export function deriveDeviceLabel(): string {
   if (/iPad/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) return 'iPad';
   if (/Android/i.test(ua)) {
     // Phones include "Mobile"; tablets historically omit it, but Samsung
-    // tablets break that rule — fall back to the 600px tablet breakpoint.
+    // tablets break that rule - fall back to the 600px tablet breakpoint.
     const shortSide = Math.min(window.screen.width, window.screen.height);
     return !/Mobile/i.test(ua) || shortSide >= 600 ? 'Android tablet' : 'Android phone';
   }

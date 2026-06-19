@@ -76,7 +76,7 @@ import type { DeckIcon } from '../panel/widgets/deck/types';
 import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
 // Side-effect: pulls the global `.panel-root { --panel-*: … }` token rules into
 // the Storybook bundle so the panel-scoped preview below resolves its vars.
-// Idempotent — PanelDevicePage imports the same sheet.
+// Idempotent - PanelDevicePage imports the same sheet.
 import '../panel/styles/tokens.scss';
 import styles from './StorybookModal.module.scss';
 
@@ -522,7 +522,7 @@ function PreviewEffectCard() {
   return (
     <div className={styles.previewStack}>
       {/* Overlay layout: shared by the lighting shader browser and the panel
-          Theme animation picker — full-bleed thumbnail, label over the lower
+          Theme animation picker - full-bleed thumbnail, label over the lower
           third. */}
       <div className={styles.previewGridTwo}>
         <EffectCard
@@ -1088,7 +1088,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Slider (inline)', category: 'inputs',
     filePath: 'src/components/common/Slider/Slider.tsx',
-    description: 'Inline label | track | value layout. Default orientation. Every slider now paints the accent fill track + bright (white-on-dark) thumb — there is no un-filled variant.', Preview: PreviewSliderInline,
+    description: 'Inline label | track | value layout. Default orientation. Every slider now paints the accent fill track + bright (white-on-dark) thumb - there is no un-filled variant.', Preview: PreviewSliderInline,
   },
   {
     name: 'Slider (stacked, editable, zero marker)', category: 'inputs',
@@ -1157,7 +1157,7 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/SettingRow/SettingRow.tsx',
     description: 'Canonical settings row: label (+ optional description / icon) left, control right. The one settings row for the whole app (Settings pages, lighting/keeb pages, panel editor sheet, device Settings tab); the panel SettingsRow re-exports it. SettingToggle and SettingSelect bundle the matching control.',
     Preview: PreviewSettingRow,
-    notes: 'Token fallbacks (--panel-* → app globals) keep it correct inside .panel-root and on the dashboard. No per-row divider — rules belong to SectionHeader.',
+    notes: 'Token fallbacks (--panel-* → app globals) keep it correct inside .panel-root and on the dashboard. No per-row divider - rules belong to SectionHeader.',
   },
 
   // ── Editable text ─────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-// @hellonexus/sdk barrel — the author's data/control/lifecycle surface.
+// @hellonexus/sdk barrel - the author's data/control/lifecycle surface.
 export { mount } from './mount';
 export type { WidgetSurfaces } from './mount';
 export {

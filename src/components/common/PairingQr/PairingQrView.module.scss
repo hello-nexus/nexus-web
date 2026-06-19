@@ -1,8 +1,8 @@
 @use '../../../styles/text' as *;
 
 // The QR sits directly on its container's surface (no distinct box). The box
-// background is var(--qr-surface) — the solid tile in the widget, the pairing
-// card in the modal — and the QR image blends into it. The server SVG is #000
+// background is var(--qr-surface) - the solid tile in the widget, the pairing
+// card in the modal - and the QR image blends into it. The server SVG is #000
 // modules on a #fff ground; mix-blend-mode:multiply drops the white ground in
 // light theme, and the [data-theme='dark'] rule below inverts the SVG (white
 // modules on a #000 ground) and screens that #000 ground back out. isolation
@@ -59,7 +59,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-// Widget tile countdown — small all-caps, matching the monitoring widget labels
+// Widget tile countdown - small all-caps, matching the monitoring widget labels
 // (text-caption + uppercase). The modal uses the accent .timer instead.
 .timerCard {
   @include text-caption;

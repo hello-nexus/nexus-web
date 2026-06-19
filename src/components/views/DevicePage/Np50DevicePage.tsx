@@ -29,7 +29,7 @@ import styles from './Np50DevicePage.module.scss';
 
 /**
  * Routed page for the HYTE NP50. Exposes the two EEPROM-persisted
- * surfaces — default cooling behaviour + firmware-side LED animation —
+ * surfaces - default cooling behaviour + firmware-side LED animation -
  * that describe what the hub does when nexus ISN'T streaming (PC off,
  * service shut down, hub in BIOS).
  *
@@ -52,7 +52,7 @@ export function Np50DevicePage() {
 
   const refresh = useCallback(async () => {
     // 1. Ask the service whether the hub is actually plugged in. This call
-    //    never 409s — it just reports the cached state. A network failure
+    //    never 409s - it just reports the cached state. A network failure
     //    (service down) returns null; treat that as "keep the prior state"
     //    so we don't flash the placeholder while a single poll fails.
     const conn = await getNp50ConnectionState();
@@ -70,7 +70,7 @@ export function Np50DevicePage() {
     }
 
     // 2. Hub is up. Issue both EEPROM reads, but treat individual nulls
-    //    as transient — keep whatever we last loaded so the UI doesn't
+    //    as transient - keep whatever we last loaded so the UI doesn't
     //    blink when one of the two reads fails (the other one usually
     //    succeeds and the next refresh fills the gap).
     setConnection('connected');
@@ -86,7 +86,7 @@ export function Np50DevicePage() {
   useEffect(() => {
     aliveRef.current = true;
     void refresh();
-    // Refetch when the user returns to the window — covers hot-plug
+    // Refetch when the user returns to the window - covers hot-plug
     // while the page was hidden.
     const onFocus = () => { void refresh(); };
     window.addEventListener('focus', onFocus);

@@ -14,7 +14,7 @@ export interface PaletteController {
 // and the host without importing the search UI module.
 export const CommandPaletteCtx = createContext<PaletteController | null>(null);
 
-/** Null when no provider is mounted (panel kiosk / iOS) — callers fall back. */
+/** Null when no provider is mounted (panel kiosk / iOS) - callers fall back. */
 export function useCommandPaletteOptional(): PaletteController | null {
   return useContext(CommandPaletteCtx);
 }

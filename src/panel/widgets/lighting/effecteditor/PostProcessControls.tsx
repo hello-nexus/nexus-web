@@ -7,7 +7,7 @@ import type { PostProcessState } from './types';
 import styles from '../LightingPage.module.scss';
 
 /**
- * Palette ring + saturation/contrast + reset — the Effect-tab body for the
+ * Palette ring + saturation/contrast + reset - the Effect-tab body for the
  * media and mirror modes. Extracted so the desktop EffectTab and the immersive
  * effect editor render one implementation.
  */

@@ -1,6 +1,6 @@
 // Documentation catalog for the product-telemetry events the app emits to
 // PostHog. This is the human-readable mirror of the service's authoritative
-// list in nexus-service `src/Telemetry/TelemetryEvents.cs` — keep `name`
+// list in nexus-service `src/Telemetry/TelemetryEvents.cs` - keep `name`
 // values in sync with the constants there. Rendered at /telemetry-reference
 // (Settings → Dev tools → Telemetry events).
 
@@ -26,7 +26,7 @@ export interface TelemetryEventDoc {
   params: TelemetryParam[];
 }
 
-// Properties PostHog attaches to EVERY event — you never pass these yourself.
+// Properties PostHog attaches to EVERY event - you never pass these yourself.
 export const AUTO_PROPERTIES: TelemetryParam[] = [
   { name: 'distinct_id', type: 'string', required: true, description: 'Anonymous per-install id (no PII). Shared with the fleet heartbeat.' },
   { name: '$lib', type: 'string', required: true, description: 'Always "nexus-service" for service-emitted events.' },
@@ -78,9 +78,9 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'Fan preset applied',
     status: 'live',
     source: 'service',
-    description: 'A cooling preset was applied from the panel (POST /cooling/profile/{name}) — the fan-mode widget.',
+    description: 'A cooling preset was applied from the panel (POST /cooling/profile/{name}) - the fan-mode widget.',
     params: [
-      { name: 'preset', type: 'string', required: true, description: 'The applied preset — a built-in name (silent, balanced, turbo, …), a custom curve name, or "off".' },
+      { name: 'preset', type: 'string', required: true, description: 'The applied preset - a built-in name (silent, balanced, turbo, …), a custom curve name, or "off".' },
     ],
   },
   {
@@ -121,7 +121,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     source: 'service',
     description: 'A phone successfully paired with this install.',
     params: [
-      { name: 'transport', type: 'string', required: true, description: 'lan | relay — how the pairing claim reached the PC.' },
+      { name: 'transport', type: 'string', required: true, description: 'lan | relay - how the pairing claim reached the PC.' },
     ],
   },
 ];

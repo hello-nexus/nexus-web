@@ -1,12 +1,12 @@
 // REST-over-relay tunnel (Phase 2). When the panel is connected to the PC over
 // the cloud relay (not the LAN), the runtime `/ws` multiplex stream tunnels via
-// RelayChannel — but the panel's REST calls (device list, layout, controls)
+// RelayChannel - but the panel's REST calls (device list, layout, controls)
 // still hit the PC's local HTTP and fail off-LAN. This module tunnels those
 // HTTP calls over a SECOND relay channel (rid_http) so the off-LAN panel is
 // fully usable. The proven `/ws` runtime channel is untouched.
 //
 // Channel: ONE lazily-opened relay WS (client role) keyed off the stored
-// session token — rid_http = deriveHttpRid(relayRoot), fresh connSalt + aeadKey
+// session token - rid_http = deriveHttpRid(relayRoot), fresh connSalt + aeadKey
 // per connection. Reuses the exact relay wire protocol (client hello → peer-up
 // → BINARY frames) + seal/open crypto as RelayChannel; the only difference is
 // the payload framing: id-multiplexed request/response instead of the `{t,d}`
@@ -42,7 +42,7 @@ const PEER_UP_TIMEOUT_MS = 6000;
 // PC has to dispatch through its real route pipeline before answering.
 const REQUEST_TIMEOUT_MS = 20000;
 
-/** A fetch-like result returned by relayFetch — status + the parsed/raw body. */
+/** A fetch-like result returned by relayFetch - status + the parsed/raw body. */
 export interface RelayResponse {
   status: number;
   body: string;

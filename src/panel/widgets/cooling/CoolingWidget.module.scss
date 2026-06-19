@@ -86,7 +86,7 @@
 // Sizing matches LightingWidget's .thumbIcon ratio: the icon scales as a
 // percentage of the available stage so 2x2, 4x2 and 4x4 all render at the
 // same visual weight relative to their card, capped at a sane max. Label
-// is hidden at 2x2 (per the design — the icon alone tells the story at
+// is hidden at 2x2 (per the design - the icon alone tells the story at
 // the smallest size, and the cap of 3 levels is easy enough to recognize).
 .simpleStage {
   position: relative;
@@ -116,7 +116,7 @@
 }
 
 // Fan (lucide) + signal-bars composed side-by-side. Both fixed-size at
-// 56px so 2x2 / 4x2 / 4x4 render identically — the size props on the SVGs
+// 56px so 2x2 / 4x2 / 4x4 render identically - the size props on the SVGs
 // set explicit width/height attrs so there's no percent-of-container
 // drift. Inherits text-muted via the group; per-element overrides below.
 .simpleIconGroup {
@@ -132,7 +132,7 @@
   flex-shrink: 0;
 }
 
-// Preset-change feedback: coast-to-stop spin scaled to the chosen level —
+// Preset-change feedback: coast-to-stop spin scaled to the chosen level -
 // one turn per bar, +0.5s per bar. Custom/off (no level) gets the 1-turn
 // baseline.
 .simpleFan[data-spinning='true'] {
@@ -168,7 +168,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text);
-  // Full available width — the .simpleCenter padding already keeps the
+  // Full available width - the .simpleCenter padding already keeps the
   // label clear of the arrows. Ellipsis is a safety net for very long
   // future labels; the four current values (Silent / Balanced / Turbo /
   // Custom / Off) all fit comfortably at 16px.

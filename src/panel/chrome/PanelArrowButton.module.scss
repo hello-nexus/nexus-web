@@ -47,7 +47,7 @@
 }
 
 // Light theme: dark chevrons sit on a light surface, so the dark drop shadow
-// reads as muddy — drop it. Excludes the on-color variant (it keeps the shadow).
+// reads as muddy - drop it. Excludes the on-color variant (it keeps the shadow).
 // Covers both the panel root and desktop chrome (device-page preview).
 :global(.panel-root[data-theme='light']) .arrow:not([data-on-color]) svg,
 :global(html[data-theme='light']) .arrow:not([data-on-color]) svg {
@@ -55,7 +55,7 @@
 }
 
 // On-color variant (lighting preview): always the dark-theme look regardless of
-// the active theme — light chevrons (dark-theme --text-dim / --text) + shadow.
+// the active theme - light chevrons (dark-theme --text-dim / --text) + shadow.
 .arrow[data-on-color] {
   color: #a0a0a0;
 

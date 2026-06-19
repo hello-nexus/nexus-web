@@ -4,7 +4,7 @@ import type { EffectState } from '../../../types/lighting';
 import styles from './LightingWidget.module.scss';
 
 /**
- * Full-resolution on-device render of the active Animate effect — the same
+ * Full-resolution on-device render of the active Animate effect - the same
  * WebGL shader system the fullscreen editor and the background-effect preview
  * use (useShaderRenderer). Replaces the low-res streamed LED canvas
  * (LightingLivePreview) for shader effects in the immersive preview, so the

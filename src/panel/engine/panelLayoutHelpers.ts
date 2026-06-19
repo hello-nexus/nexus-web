@@ -138,7 +138,7 @@ export function readCellMetrics(root: HTMLElement | null): { cellSize: number; r
 
   // Fallback: parse the CSS variable. Works on the dashboard (fixed px) but
   // FAILS on kiosk surfaces where --panel-cell-size is a calc() expression
-  // (parseFloat returns NaN) — hence the DOM-measurement path above.
+  // (parseFloat returns NaN) - hence the DOM-measurement path above.
   const cellSize = Number.parseFloat(rootStyle.getPropertyValue('--panel-cell-size'));
   if (!Number.isFinite(cellSize) || cellSize <= 0) return null;
   const rowSizeRaw = Number.parseFloat(rootStyle.getPropertyValue('--panel-row-size'));
@@ -215,7 +215,7 @@ export function buildPanelCollisionDetection(
     // Lock the snap target to the current active page (the pager's edge-advance
     // dwell handles cross-page navigation), clamping the snap into its bounds.
     // The highlight then stays correct even when the dragged rect drifts off
-    // the viewport — a center-grabbed 4x4 can have a top-left hundreds of px
+    // the viewport - a center-grabbed 4x4 can have a top-left hundreds of px
     // off the left edge on a phone surface, which "find page containing
     // translated.left" couldn't resolve.
     const idx = activePageIndexRef.current;

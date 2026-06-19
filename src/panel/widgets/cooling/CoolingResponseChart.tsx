@@ -127,7 +127,7 @@ export function CoolingResponseChart({
 
     if (pts.length > 0) return { samples: pts, isSynthetic: false };
     // Only fall back to the synthetic curve once the service has actually
-    // reported the fan inventory — otherwise the initial mount (channels
+    // reported the fan inventory - otherwise the initial mount (channels
     // empty, fanStates empty) would flash a dashed estimate over real data
     // for a frame before refreshCoolingConfig resolves.
     if (channels.length === 0) return { samples: [], isSynthetic: false };

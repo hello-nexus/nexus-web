@@ -1,6 +1,6 @@
 // Builds the publishable @hello-nexus/sdk package from the in-tree SDK source.
-// Two entries — `.` (sdk.ts: mount + hooks + format) and `./ui` (ui.tsx: the
-// component set) — with code-splitting so the shared element registration
+// Two entries - `.` (sdk.ts: mount + hooks + format) and `./ui` (ui.tsx: the
+// component set) - with code-splitting so the shared element registration
 // (elements.ts) + the contract become ONE shared chunk (a single
 // customElements registration, never doubled). react / react-dom / @remote-dom
 // / @quilted are externalized (the host runtime provides them; an app bundle

@@ -31,7 +31,7 @@ export interface UnifiedDevice {
   // Whether this device has its own settings page. Drives the sidebar
   // DEVICES section (only navigable devices get a row) and whether the
   // Devices-list card is clickable. Devices whose controls live on shared
-  // pages (e.g. MiniHub — fans on Cooling, ARGB on Lighting) are
+  // pages (e.g. MiniHub - fans on Cooling, ARGB on Lighting) are
   // non-navigable so a click doesn't land on a "no page yet" placeholder.
   navigable: boolean;
 }
@@ -75,7 +75,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
 const FALLBACK_ICON = '/assets/devices/device.svg';
 
 // Curated devices the service detects but that have no dedicated settings
-// page — their controls live on shared pages. Keep them in the device list
+// page - their controls live on shared pages. Keep them in the device list
 // (status/firmware) but don't give them a sidebar row or a clickable card
 // that would land on the empty "no page yet" placeholder.
 //   fan-hub (iBUYPOWER MiniHub): fans → Cooling page, ARGB → Lighting page.
@@ -109,7 +109,7 @@ export function useUnifiedDevices(enabled: boolean) {
 
   const unified = useMemo(() => {
     // Paired phones (remote panel sessions) are remote controls, not hardware
-    // Nexus controls, so they're never devices — excluded from every device
+    // Nexus controls, so they're never devices - excluded from every device
     // surface (Devices page, sidebar, search, detail route). Managed from the
     // Pair Phone modal via /panel/phone/sessions instead.
     const filteredPanels = panels.devices.filter(p => !isRemotePanel(p.connectionKind));
@@ -186,7 +186,7 @@ function buildUnifiedList(
       connected: true,
       kind: 'peripheral',
       peripheral: p,
-      // Detection-only peripherals (no capabilities — nothing to configure)
+      // Detection-only peripherals (no capabilities - nothing to configure)
       // have no settings page, so they're non-navigable: kept off the sidebar
       // and shown as a static card on the Devices page rather than deep-linking
       // to an empty "No Capabilities" page.

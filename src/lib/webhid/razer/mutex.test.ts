@@ -1,4 +1,4 @@
-// Verifies that WebHidRazerMouse serializes concurrent calls — Razer devices
+// Verifies that WebHidRazerMouse serializes concurrent calls - Razer devices
 // only honor one outstanding feature-report pair at a time, so replies for
 // interleaved calls can land in the wrong receiver if we don't serialize.
 import { describe, it, expect, vi } from 'vitest';

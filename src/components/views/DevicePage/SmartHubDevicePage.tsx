@@ -23,7 +23,7 @@ import styles from './SmartHubDevicePage.module.scss';
 
 /**
  * Routed page for the HYTE SmartHub. Exposes the single flash-persisted
- * standalone setting — fallback fan duty + firmware-side LED animation —
+ * standalone setting - fallback fan duty + firmware-side LED animation -
  * that describes what the hub does when no host drives it (PC off,
  * asleep, service shut down).
  *
@@ -46,7 +46,7 @@ export function SmartHubDevicePage() {
   const refresh = useCallback(async () => {
     // 1. Ask the service whether the hub is actually plugged in.
     //    'unknown' = service unreachable; don't change connection state so
-    //    we don't flash the placeholder while a single poll fails — the
+    //    we don't flash the placeholder while a single poll fails - the
     //    parent ServiceRequired guard handles the no-service case.
     const conn = await getSmartHubConnectionState();
     if (!aliveRef.current) return;
@@ -57,7 +57,7 @@ export function SmartHubDevicePage() {
       return;
     }
 
-    // 2. Hub is up. Read the fw-setting, but treat a null as transient —
+    // 2. Hub is up. Read the fw-setting, but treat a null as transient -
     //    keep whatever we last loaded so the UI doesn't blink when one
     //    read fails (the next refresh fills the gap).
     setConnection('connected');
@@ -69,7 +69,7 @@ export function SmartHubDevicePage() {
   useEffect(() => {
     aliveRef.current = true;
     void refresh();
-    // Refetch when the user returns to the window — covers hot-plug
+    // Refetch when the user returns to the window - covers hot-plug
     // while the page was hidden.
     const onFocus = () => { void refresh(); };
     window.addEventListener('focus', onFocus);
@@ -79,7 +79,7 @@ export function SmartHubDevicePage() {
     };
   }, [refresh]);
 
-  // The PUT always carries the full setting object — the service exposes
+  // The PUT always carries the full setting object - the service exposes
   // one combined endpoint, so every field patch sends all six fields.
   const commitSetting = useCallback(async (next: SmartHubFwSetting) => {
     setSetting(next);

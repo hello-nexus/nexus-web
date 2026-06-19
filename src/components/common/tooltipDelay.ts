@@ -32,14 +32,14 @@ export function tooltipOpenDelay(): number {
   return scanning ? 0 : TOOLTIP_OPEN_DELAY_MS;
 }
 
-/** Call when a tooltip actually becomes visible — enters scan mode so the
+/** Call when a tooltip actually becomes visible - enters scan mode so the
  *  next tooltip opens instantly. */
 export function notifyTooltipOpen(): void {
   scanning = true;
   clearSkipTimer();
 }
 
-/** Call when a tooltip closes — keeps scan mode alive for the brief grace
+/** Call when a tooltip closes - keeps scan mode alive for the brief grace
  *  window so the next element in a scan still opens instantly, then lapses
  *  back to the initial delay. */
 export function notifyTooltipClose(): void {

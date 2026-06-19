@@ -113,7 +113,7 @@ export function useFetch<T = unknown>(
   return state;
 }
 
-/** Imperative brokered HTTPS request — for multi-step flows (e.g. geolocate then
+/** Imperative brokered HTTPS request - for multi-step flows (e.g. geolocate then
  *  fetch forecast). Routes through the host's SSRF-guarded proxy; needs the grant. */
 export async function request(url: string, init?: RequestInit): Promise<Response> {
   if (!globalThis.nexus) throw new Error('[sdk] net.fetch unavailable');
@@ -128,7 +128,7 @@ export function useDispatch(): (action: string, args?: Record<string, unknown>) 
 }
 
 /** Host-action data source: poll a dispatch action on a refresh schedule and
- *  surface its `result`. Mirrors a `host` action poll — the way
+ *  surface its `result`. Mirrors a `host` action poll - the way
  *  first-party widgets read host-internal state (e.g. screentime.today, the
  *  displays list) that isn't a sensor or a public HTTPS endpoint. The action
  *  must be in the manifest's capabilities.dispatch allowlist. */

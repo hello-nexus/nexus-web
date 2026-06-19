@@ -23,7 +23,7 @@ const PORT = Number(process.env.SANDBOX_PORT ?? 4317);
 // Blessed composites (ui-worldclock/ui-clockface) render real native components
 // that import CSS-module .scss. The app builds those via Vite; this esbuild
 // harness has no scss loader, so stub each module to a className proxy
-// (styles.foo -> "foo") — structure renders, full theming only shows in the app.
+// (styles.foo -> "foo") - structure renders, full theming only shows in the app.
 const scssStub = {
   name: 'scss-stub',
   setup(b) {
@@ -37,7 +37,7 @@ const scssStub = {
 
 // lib/i18n uses Vite's import.meta.glob (no esbuild equivalent) at module top, so
 // importing it transitively (richComponents -> ClockWorldView) breaks the esbuild
-// harness build. Stub it: useTranslation echoes keys — enough for structure.
+// harness build. Stub it: useTranslation echoes keys - enough for structure.
 const i18nStub = {
   name: 'i18n-stub',
   setup(b) {

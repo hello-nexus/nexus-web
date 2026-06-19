@@ -1,9 +1,9 @@
-// Nexus Web service worker — offline shell cache.
+// Nexus Web service worker - offline shell cache.
 // Strategy: precache the app shell on install; serve hashed /assets/* cache-first;
 // for navigations, try network and fall back to cached index.html.
 // Bump CACHE_VERSION on every deploy to invalidate stale shells.
 //
-// IMPORTANT: never intercept localhost — the local Nexus service must hit the
+// IMPORTANT: never intercept localhost - the local Nexus service must hit the
 // network directly so the SPA can detect it going up/down in real time.
 
 const CACHE_VERSION = 'nexus-web-v135-no-skipwaiting';
@@ -14,7 +14,7 @@ self.addEventListener('install', (event) => {
   // queue to activate while a tab is open. Safari/WebKit intermittently treats
   // a byte-identical sw.js as an update and re-installs it on nearly every load;
   // with skipWaiting that re-install immediately activated + claimed, firing
-  // controllerchange, which the page turned into a window.location.reload() —
+  // controllerchange, which the page turned into a window.location.reload() -
   // an endless reload loop (seen on Safari mac/iOS, never Chromium). Letting the
   // new worker wait means the controller never changes mid-session, so the loop
   // can't form. The update is picked up on the next cold load (all tabs closed).
@@ -27,7 +27,7 @@ self.addEventListener('activate', (event) => {
   // Runs only once this worker actually becomes active (next cold load, since we
   // no longer skipWaiting). Drop stale caches, then claim so this load's page is
   // controlled for offline. Any controllerchange this triggers happens at most
-  // once per cold load and is capped to a single reload by main.tsx — it can no
+  // once per cold load and is capped to a single reload by main.tsx - it can no
   // longer recur mid-session, so no loop.
   // Do NOT force a navigate() on existing windows: that double-fires the SPA
   // mount on URLs carrying one-shot tokens (e.g. /panel/phone?pair=...), making
@@ -46,7 +46,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // Never intercept the local Nexus service — it must hit the network directly.
+  // Never intercept the local Nexus service - it must hit the network directly.
   if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.localhost')) {
     return;
   }
@@ -60,7 +60,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Hashed static assets (/assets/*): cache-first, then network, then store.
-  // All other same-origin requests are API calls — always hit the network.
+  // All other same-origin requests are API calls - always hit the network.
   if (url.origin === self.location.origin && url.pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.match(req).then((cached) => {

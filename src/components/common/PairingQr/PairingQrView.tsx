@@ -16,7 +16,7 @@ export interface PairingQrViewProps {
 
 // Shared pairing-QR pane: the white QR square with the fade-from-white reveal
 // on re-mint, plus the countdown that flashes in the final 5s. Pure
-// presentation — the caller owns minting/refresh and feeds the current token
+// presentation - the caller owns minting/refresh and feeds the current token
 // (data URL + expiry) and the clock. Used by the Pair-remote modal's QR tab and
 // the 2x2 pairing widget so both render identically.
 export function PairingQrView({ qrDataUrl, expiresAt, loading, now, variant = 'modal' }: PairingQrViewProps) {
@@ -28,11 +28,11 @@ export function PairingQrView({ qrDataUrl, expiresAt, loading, now, variant = 'm
   const lastRevealRef = useRef<string | null>(null);
 
   // Bump in a layout effect (before paint) so the white overlay covers the new
-  // QR on the very first frame it renders — the QR then dissolves in from white
+  // QR on the very first frame it renders - the QR then dissolves in from white
   // with no one-frame flash of the bare new code. The previous token keeps
   // rendering until the new one arrives (the img shows whenever a token is
   // present, regardless of `loading`), so a re-mint never blanks to the loading
-  // state — old QR → white flash → new QR.
+  // state - old QR → white flash → new QR.
   useLayoutEffect(() => {
     if (!qrDataUrl) return;
     const token = `${qrDataUrl}|${expiresAt}`;

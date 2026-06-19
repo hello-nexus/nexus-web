@@ -101,7 +101,7 @@ export async function allocatePanelDeviceWithStatus(
   displayName?: string,
 ): Promise<PanelAllocResult> {
   // Off-LAN (remote origin / relay transport) there's no localhost PC to POST
-  // to — tunnel the alloc over the relay so the panel registers without a
+  // to - tunnel the alloc over the relay so the panel registers without a
   // doomed mixed-content http://localhost call. Same status contract.
   if (isTunnelActive()) {
     const { response, status } = await relayRequestWithStatus('POST', '/panel/devices', { displayName, capabilities });
@@ -262,7 +262,7 @@ export const fetchPanelPhoneSessions = () =>
 /**
  * Decide whether a NEW device just paired, given the previous and next sets of
  * authorized session ids. Fires only on a real growth (an id present in
- * `next` that was not in `prev`) — never on the first observation (prev null),
+ * `next` that was not in `prev`) - never on the first observation (prev null),
  * never on a pure revoke/decrease, and never when the membership is unchanged.
  * The pair QR/code are single-use tokens, so a new authorization means the
  * on-screen token has been consumed and must be re-minted.
@@ -418,7 +418,7 @@ export async function claimPanelPhonePairing(pairToken: string, deviceId: string
 
 /**
  * LAN claim against the PC's plain-HTTP listener taken straight from the QR
- * (`host`:`httpPort`), NOT resolveHttp() — which on hellonexus.com points at
+ * (`host`:`httpPort`), NOT resolveHttp() - which on hellonexus.com points at
  * localhost. Used as the fast-path probe in the internet-pairing flow: when
  * the phone shares the LAN with the PC this succeeds in a few ms; off-LAN it
  * times out via `signal` and the caller falls through to the relay claim.

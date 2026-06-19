@@ -67,7 +67,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
   // Stable per-device id carried on the LAN-direct redirect (?deviceId=) by the
   // remote-origin PairRedirect, so this same-origin claim dedups to the SAME
   // authorized-device session the relay path would have used. Absent on a fresh
-  // local-origin scan — fall back to this origin's own stable id.
+  // local-origin scan - fall back to this origin's own stable id.
   pairDeviceId: string | null;
 }) {
   const { t } = useTranslation();

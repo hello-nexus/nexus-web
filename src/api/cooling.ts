@@ -1,4 +1,4 @@
-// Cooling API wrapper — authenticated fetch/post to the local service.
+// Cooling API wrapper - authenticated fetch/post to the local service.
 
 import { fetchService, postService } from './service';
 
@@ -10,7 +10,7 @@ export interface FanChannel {
   dutyPercent: number;
   rpm: number;
   mode: string; // "Auto" | "Manual" | "Curve"
-  kind?: string; // "Fan" | "Pump" — drives the fan card's header icon
+  kind?: string; // "Fan" | "Pump" - drives the fan card's header icon
   readOnly?: boolean; // telemetry-only channel: header readout, no duty bar / mode control
   minRpm?: number | null;
   maxRpm?: number | null;

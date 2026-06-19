@@ -12,7 +12,7 @@ import type { Peripheral } from './usePeripherals';
 export interface WebHidPeripheralState {
   available: boolean;
   peripherals: Peripheral[];
-  /** Triggers Chrome's picker — must be called from a user-gesture. */
+  /** Triggers Chrome's picker - must be called from a user-gesture. */
   requestDevice: () => Promise<void>;
   /** Re-poll live state for all granted devices. */
   refresh: () => Promise<void>;

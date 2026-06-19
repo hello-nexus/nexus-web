@@ -1,4 +1,4 @@
-// HYTE Q-series (Q60 / Q80) cooler-controller API — the firmware options on
+// HYTE Q-series (Q60 / Q80) cooler-controller API - the firmware options on
 // the Q60 device page's settings tab. Pump speed itself is driven through the
 // cooling fan-channel path; these cover the hub-wide firmware settings.
 

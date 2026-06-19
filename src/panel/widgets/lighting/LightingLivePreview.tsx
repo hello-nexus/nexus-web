@@ -5,11 +5,11 @@ import { isTunnelActive } from '../../../api/service';
 import styles from './LightingWidget.module.scss';
 
 /**
- * Live preview of the real lighting output — the same GPU-rendered effect /
+ * Live preview of the real lighting output - the same GPU-rendered effect /
  * media / mirror stream the main lighting window paints (useLightingFrames).
  * Skipped on any sealed tunnel (cloud relay OR the LAN sealed tunnel): the
  * binary /lighting/output stream is unsealed and token-in-URL, so forwarding it
- * would both cost bandwidth and leak the token — the hook stays empty, this
+ * would both cost bandwidth and leak the token - the hook stays empty, this
  * renders nothing, and the caller's static thumbnail shows instead.
  */
 export function LightingLivePreview() {

@@ -4,8 +4,8 @@ import { getInstallDefaults } from '../../api/installDefaultsCache';
 
 // Synchronous accessors for the four canonical surface layouts. Pulls from
 // the install-defaults cache populated by `preloadInstallDefaults()` at
-// bootstrap (main.tsx). When the cache hasn't filled yet — only possible
-// during a sub-100ms race between bootstrap and the first hook init — we
+// bootstrap (main.tsx). When the cache hasn't filled yet - only possible
+// during a sub-100ms race between bootstrap and the first hook init - we
 // return an empty-widgets layout so the SPA renders something; the next
 // /preferences round-trip replaces it with the persisted state anyway.
 //
@@ -14,7 +14,7 @@ import { getInstallDefaults } from '../../api/installDefaultsCache';
 
 function buildLayout(surface: PanelLayout['surface']): PanelLayout {
   const defaults = getInstallDefaults();
-  // Promoted monitors seed from the desktop layout — same landscape,
+  // Promoted monitors seed from the desktop layout - same landscape,
   // large-canvas shape (mirrors PanelLayoutDefaults in nexus-service).
   const sourceKey = surface === 'monitor' ? 'desktop' : surface;
   const src = defaults?.panel.layouts[sourceKey];

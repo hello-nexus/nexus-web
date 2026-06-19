@@ -25,7 +25,7 @@
     radial-gradient(90% 80% at 92% 18%, var(--backdrop-tint-b), transparent 78%),
     radial-gradient(120% 95% at 55% 120%, var(--backdrop-tint-c), transparent 82%);
   // Fade out toward the top so the area behind the (transparent) top bar
-  // resolves cleanly to the flat base — no band or abrupt edge there.
+  // resolves cleanly to the flat base - no band or abrupt edge there.
   mask-image: linear-gradient(to bottom, transparent, #000 20%);
   -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20%);
 }

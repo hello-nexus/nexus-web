@@ -5,7 +5,7 @@ import type { MediaItem } from '../../../../api/mediaLibrary';
 import styles from '../LightingPage.module.scss';
 
 /**
- * Pure presenter for the media library grid. `onDelete` is optional — the
+ * Pure presenter for the media library grid. `onDelete` is optional - the
  * desktop MediaControls passes it (with a confirm flow); the immersive
  * read-only picker omits it. `prepend` lets the desktop slot an "importing…"
  * placeholder card at the front.

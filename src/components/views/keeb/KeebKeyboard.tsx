@@ -14,7 +14,7 @@ export const KEEB_RENDER_WIDTH = 2030;
 
 /// What the user has selected on the keyboard. Either a physical key (drives
 /// function-category writes) or one of the two rotary wheels (drives rotary
-/// function writes). `null` means no selection — the views render hint copy.
+/// function writes). `null` means no selection - the views render hint copy.
 export type KeebSelection =
   | { kind: 'key'; x: number; y: number }
   | { kind: 'wheel'; side: 'left' | 'right' }
@@ -32,14 +32,14 @@ export interface KeebKeyboardProps {
   /**
    * Render row 0 without the rotary wheels. Used by the source keyboard
    * inside Key Assignment, where the user picks a standard key to copy
-   * onto the main keyboard's selection — wheels aren't a valid pick there.
+   * onto the main keyboard's selection - wheels aren't a valid pick there.
    */
   hideWheels?: boolean;
   /**
    * Render every cell with its default (printed-legend) function and ignore
    * `state.keys`. Used by the source keyboard inside Key Assignment so the
    * picker keeps showing the physical-key layout even after the firmware
-   * has been remapped — otherwise rebinding becomes circular ("I remapped
+   * has been remapped - otherwise rebinding becomes circular ("I remapped
    * A→Q, now the A position shows Q, so how do I rebind back?").
    */
   useDefaults?: boolean;
@@ -55,7 +55,7 @@ function keyVariant(row: number, col: number): string {
 }
 
 /// Renders the HYTE Keeb TKL keyboard. Each cell shows the function currently
-/// assigned to that physical key on the active layer — falling back to the
+/// assigned to that physical key on the active layer - falling back to the
 /// printed legend when the firmware has the default mapping (or when offline).
 ///
 /// The fixed-pixel layout matches the legacy keeb modal verbatim; CSS `zoom`

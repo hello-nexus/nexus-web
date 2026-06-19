@@ -20,7 +20,7 @@ import styles from './PanelWidgetCatalog.module.scss';
 
 // The catalog IS a panel grid. The column count is a multiple of 4 sized so
 // each cell lands near this target, then widgets pack row-major via the panel's
-// appendWidget and render through the panel's own cell (PanelCatalogCell) — same
+// appendWidget and render through the panel's own cell (PanelCatalogCell) - same
 // scaling, label sizing, and fill as the live panel. Tune for tile size: a
 // narrow add-widget sheet lands on 4 columns (like the phone panel); wider
 // device-page panes step up to 8 / 12.
@@ -65,7 +65,7 @@ export function PanelWidgetCatalog({
 }: PanelWidgetCatalogProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
-  // Force re-render on marketplace registry refresh — the catalog reads a
+  // Force re-render on marketplace registry refresh - the catalog reads a
   // module-level cache React can't observe without an explicit subscription.
   const forceRender = useReducer((r: number) => r + 1, 0)[1];
   const normalised = query.trim().toLowerCase();
@@ -111,7 +111,7 @@ export function PanelWidgetCatalog({
   // each cell sits near the target. Cell size drives the panel grid vars below.
   const measureRef = useRef<HTMLDivElement | null>(null);
   const [gridWidth, setGridWidth] = useState(0);
-  // Layout effect so the first paint already has the measured column count —
+  // Layout effect so the first paint already has the measured column count -
   // avoids a one-frame flash from the fallback 4 columns to the real count.
   useLayoutEffect(() => {
     const el = measureRef.current;
@@ -133,7 +133,7 @@ export function PanelWidgetCatalog({
 
   // Panel grid CSS vars on the catalog root so the reused .grid + PanelCatalogCell
   // inherit the live panel's column count, cell size, content scale, label-strip
-  // sizing, and gap — one rendering path, identical to the panel. Always set
+  // sizing, and gap - one rendering path, identical to the panel. Always set
   // (cols/cellSize fall back to 4 / target before the first measure) so
   // `--panel-columns` is never undefined, which would collapse the grid.
   const panelGridVars: CSSProperties = {
@@ -143,7 +143,7 @@ export function PanelWidgetCatalog({
     '--panel-content-scale': `${cellSize}px`,
     // Plain-number scale (cell / 90px design base). The default token derives
     // this via CSS trig (`tan(atan2(...))`), which `scale()` reads but the cell
-    // scaler's `width: calc(inner / scale)` division does NOT evaluate —
+    // scaler's `width: calc(inner / scale)` division does NOT evaluate -
     // leaving widget content scaled down without compensation. A number fills.
     '--panel-scale': cellSize / PHONE_WIDGET_REFERENCE_CELL,
     '--panel-gap': `${gap}px`,

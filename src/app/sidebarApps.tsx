@@ -34,7 +34,7 @@ const DASHBOARD_META: SidebarAppMeta = {
 
 /**
  * Resolve the icon + label the sidebar should render for a given key.
- * Returns `null` when the key is unknown (defensive — sanitizePinnedTail
+ * Returns `null` when the key is unknown (defensive - sanitizePinnedTail
  * normally filters these, but a stale settings blob could still leak
  * one through). Callers render nothing in that case.
  */

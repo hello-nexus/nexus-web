@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import type { DeckAction } from './types';
 
-/** Curated stock icon set — the IconPicker source and the auto-icon source. */
+/** Curated stock icon set - the IconPicker source and the auto-icon source. */
 export const DECK_ICONS: Record<string, LucideIcon> = {
   AppWindow, Globe, FileText, Folder, FolderOpen, Volume2, VolumeX, Volume1,
   Play, Pause, SkipForward, SkipBack, Sun, SunDim, Keyboard, Type, Power, Lock,

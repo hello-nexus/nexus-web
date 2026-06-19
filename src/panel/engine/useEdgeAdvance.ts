@@ -39,7 +39,7 @@ export function useEdgeAdvance(
       edgeAdvanceRef.current.timer = null;
       // Leave `side` latched: the next evaluate in this band short-circuits
       // via desiredSide === side. clearEdgeAdvance() unlatches when the cursor
-      // leaves the band or the drag ends — else the pager advances one page
+      // leaves the band or the drag ends - else the pager advances one page
       // per dwell until lift-off. side stays latched on a no-op end-clamp so
       // the user can keep pressing without re-arming.
       setActivePageIndex(prev => {

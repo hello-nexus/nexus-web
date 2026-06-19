@@ -12,11 +12,11 @@
 
 // Section header (DEVICES → all-devices landing). Reuses the device-row .item
 // chrome (icon + label, font, alignment, hover/active) and only layers a divider
-// so it still reads as a heading — matching the APPS header. Divider rides
+// so it still reads as a heading - matching the APPS header. Divider rides
 // currentColor so line + label + icon are one colour.
 .headerBtn {
   // Small dot in the left gutter (before the icon) marks this as a section
-  // header — matching the APPS header; no underline, no layout shift.
+  // header - matching the APPS header; no underline, no layout shift.
   &::before {
     content: '';
     position: absolute;
@@ -59,7 +59,7 @@
   // Center the icon on the collapsed rail; identical expanded so it never moves.
   padding: 0.6rem var(--rail-item-pad);
   // Reserve the border in every state (transparent here) so the active row's
-  // border doesn't change the box size — matches the APPS rows, no shift
+  // border doesn't change the box size - matches the APPS rows, no shift
   // between selected/hovered.
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
@@ -105,7 +105,7 @@
 // only works when the SVG is rendered inline in the host DOM. To get
 // the same color treatment that lucide icons (used by the app rows)
 // receive from currentColor, we render the SVG as a CSS mask over a
-// solid background-color — the rect filled by the mask IS the
+// solid background-color - the rect filled by the mask IS the
 // surrounding text colour, including the .active accent override.
 .icon {
   display: inline-block;

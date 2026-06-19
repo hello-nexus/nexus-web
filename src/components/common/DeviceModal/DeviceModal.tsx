@@ -12,7 +12,7 @@ interface DeviceModalProps {
   large?: boolean;
   wide?: boolean;
   fullscreen?: boolean;
-  /** Hug the content width instead of a fixed width — for small tables/lists. */
+  /** Hug the content width instead of a fixed width - for small tables/lists. */
   fit?: boolean;
   headerRight?: ReactNode;
   children: ReactNode;

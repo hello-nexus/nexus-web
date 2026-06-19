@@ -3,7 +3,7 @@ import { NexusWordmark } from '../components/icons/NexusBrand';
 import { useTranslation } from '../lib/i18n';
 
 /**
- * Public pre-launch splash for hellonexus.com — the coming-soon page (later this
+ * Public pre-launch splash for hellonexus.com - the coming-soon page (later this
  * slot becomes onboarding). A big cursive "hello" sits diffused behind the
  * colored mark (an iPhone-welcome nod), with the NEXUS wordmark + teaser below.
  */
@@ -37,8 +37,8 @@ export function SplashPage() {
 
 // Scoped <style>: the blurred cursive word + its slow breathe. Inline styles
 // can't express @keyframes, so a tiny self-contained stylesheet rides with the
-// component. The word uses currentColor (--text) — white on the dark theme,
-// dark on light — so it stays legible either way.
+// component. The word uses currentColor (--text) - white on the dark theme,
+// dark on light - so it stays legible either way.
 const HELLO_STYLE = `
 .nx-hello {
   position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);

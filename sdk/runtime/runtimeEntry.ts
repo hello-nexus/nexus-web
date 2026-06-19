@@ -2,11 +2,11 @@
 // worker imports this before the author bundle; it installs the @remote-dom
 // polyfills and exposes react / react/jsx-runtime / @hellonexus/ui / @hellonexus/sdk
 // on globalThis.__nexusRuntime. Author bundles are built with those modules
-// externalized to thin shims that read this global — so each widget.mjs is ~5 KB
+// externalized to thin shims that read this global - so each widget.mjs is ~5 KB
 // (the author's code only) instead of re-inlining react-dom + remote-dom + the SDK.
 //
 // Why a global, not URL imports: workers have no import maps (Q60 / Chromium 83),
-// and over the relay the worker can't live-import a service URL — so the host
+// and over the relay the worker can't live-import a service URL - so the host
 // fetches this bundle as bytes → blob and the worker imports the blob, which
 // populates the global the author shims resolve against.
 

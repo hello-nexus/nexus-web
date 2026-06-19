@@ -14,7 +14,7 @@ interface DisplaysViewProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
   // Cross-link into a panel's editor page; Dashboard wires this to
-  // navigate('system', 'device', key) — the same flow as device cards.
+  // navigate('system', 'device', key) - the same flow as device cards.
   onDeviceSelect: (deviceKey: string) => void;
 }
 
@@ -166,7 +166,7 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
                   </>
                 ) : displays.length <= 1 ? (
                   // A panel takes over its display fullscreen, so the only/main
-                  // screen can't host one — you'd lose your desktop.
+                  // screen can't host one - you'd lose your desktop.
                   <span className={styles.hint}>{t('displays.panel.singleMonitorHint')}</span>
                 ) : selected.isPrimary ? (
                   <span className={styles.hint}>{t('displays.panel.primaryHint')}</span>

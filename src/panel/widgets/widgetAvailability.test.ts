@@ -108,7 +108,7 @@ describe('appAvailableForSurface', () => {
   it('exposes every widget on the desktop dashboard (pointer + every multi-widget size)', () => {
     // Desktop has a mouse (pointer-capable) and accepts every multi-widget
     // size. Per the canonical rule, availability is determined by touch +
-    // sizes only — no per-widget surface allowlist — so every widget in the
+    // sizes only - no per-widget surface allowlist - so every widget in the
     // registry should be reachable from the desktop add-widget picker.
     // Remote-only widgets are the one exception: desktop is the host's own
     // surface, so they're hidden there by design.

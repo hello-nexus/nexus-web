@@ -13,7 +13,7 @@ interface ImmersiveLayoutProps {
   // 4x4 cells fit per page, and the fixed-cell size (4 rows / 4 cols of it).
   gridColumns: number;
   gridRows: number;
-  // When false, no cell grows — every cell is a fixed 4x4 tile and the group
+  // When false, no cell grows - every cell is a fixed 4x4 tile and the group
   // centers on the page. Default true (last cell fills).
   fillLast?: boolean;
   // How many 4x4 cells occupy one immersive page. Defaults to the panel
@@ -38,7 +38,7 @@ export function ImmersiveLayout({
 
   // Length of one fixed 4x4 cell as a FRACTION of the immersive page: 4 grid
   // rows tall in portrait, 4 grid columns wide in landscape. A row-count ratio
-  // (not a px size from the grid) is deliberate — the immersive render area
+  // (not a px size from the grid) is deliberate - the immersive render area
   // lives in a --panel-scale-transformed space where the grid's device-px cell
   // sizes don't map 1:1, but `4 / rows` of the page is a true 4x4 at any zoom.
   // The last cell flex-grows into whatever is left over.

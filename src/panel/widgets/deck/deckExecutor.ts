@@ -10,7 +10,7 @@ const VOLUME_STEP = 0.05;
 const BRIGHTNESS_STEP = 10;
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
-// User-configured sequence pacing — not a race patch (avoid-sleep-as-patch).
+// User-configured sequence pacing - not a race patch (avoid-sleep-as-patch).
 const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 interface VolumeState { supported: boolean; volume: number; muted: boolean; }

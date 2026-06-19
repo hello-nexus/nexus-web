@@ -9,7 +9,7 @@
 // It is deliberately React-agnostic and contains only data, so both contexts
 // can consume it without pulling in either React version. The host renders ONLY
 // the element names listed here; an element the worker invents that is not in
-// this map renders nothing — that is the structural visual-consistency boundary.
+// this map renders nothing - that is the structural visual-consistency boundary.
 
 export interface UiElementSpec {
   /** Property names synchronized worker -> host (passed through as props). */
@@ -67,7 +67,7 @@ export const UI_ELEMENTS = {
   // An image from an https/data/blob URL (the host validates the scheme). The
   // worker supplies a URL string; the host owns sizing/fit/radius via tokens.
   'ui-image': { properties: ['src', 'alt', 'fit', 'radius', 'width', 'height', 'aspect', 'tone'] },
-  // A scrollable container — the missing primitive for long lists (steam, emoji).
+  // A scrollable container - the missing primitive for long lists (steam, emoji).
   'ui-scroll': { properties: ['direction', 'gap', 'padding', 'grow'] },
   // Text/number input. `value` is for programmatic sets (reset/compute); typing is
   // local for a smooth cursor and reported via the `input` event. `submit` fires on Enter.
@@ -85,7 +85,7 @@ export const UI_ELEMENTS = {
   // the clock's design picker. `options` is [{ key, label?, icon? }]; `value` is
   // the active key; the host fires `change` with the chosen key.
   'ui-segmented': { properties: ['options', 'value', 'disabled'], events: ['change'] },
-  // The native free-form HSV colour picker (SV square + hue strip + hex field) —
+  // The native free-form HSV colour picker (SV square + hue strip + hex field) -
   // the same control lighting uses. `value` is a hex string; the host fires
   // `preview` continuously during a drag and `change` once on commit.
   'ui-color': { properties: ['value'], events: ['preview', 'change'] },
@@ -121,7 +121,7 @@ export const UI_ELEMENTS = {
   'ui-clockface': {
     properties: ['nowMs', 'design', 'tz', 'showSeconds', 'showDate', 'hour12', 'useAccentColor', 'size'],
   },
-  // Standard page header — gives SDK pages the same title/tab chrome native pages
+  // Standard page header - gives SDK pages the same title/tab chrome native pages
   // use. `tabs` is [{ key, label, disabled? }]; the host fires `change` with the key.
   'ui-viewheader': {
     properties: ['title', 'tabs', 'activeTab'],
@@ -134,7 +134,7 @@ export type UiElementName = keyof typeof UI_ELEMENTS;
 export const UI_ELEMENT_NAMES = Object.keys(UI_ELEMENTS) as UiElementName[];
 
 /** Semantic colour tokens an author may name; the host maps them to CSS vars.
- *  No raw colour/CSS literals cross the boundary — this keeps theming central. */
+ *  No raw colour/CSS literals cross the boundary - this keeps theming central. */
 export const UI_TONES = [
   'text', 'text-dim', 'text-faded', 'accent', 'accent-deep', 'accent-glow',
   'good', 'warn', 'bad', 'border', 'bg-card', 'currentColor',

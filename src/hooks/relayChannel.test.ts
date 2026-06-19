@@ -111,7 +111,7 @@ function driveToAwaitingReply(ws: FakeWebSocket): string {
   return connSalt;
 }
 
-describe('pairOverRelay — post-claim close race (WebKit)', () => {
+describe('pairOverRelay - post-claim close race (WebKit)', () => {
   const realWebSocket = globalThis.WebSocket;
 
   afterEach(() => {
@@ -158,7 +158,7 @@ describe('pairOverRelay — post-claim close race (WebKit)', () => {
     driveToAwaitingReply(ws);
     await flush();
 
-    // No reply frame — the relay peer-downs / closes. This is a real failure
+    // No reply frame - the relay peer-downs / closes. This is a real failure
     // (PC never answered) and MUST still reject.
     ws.emitText(JSON.stringify({ e: 'peer-down' }));
     ws.emitClose();
@@ -166,7 +166,7 @@ describe('pairOverRelay — post-claim close race (WebKit)', () => {
     await expect(promise).rejects.toThrow();
   });
 
-  it('rejects a claim-err reply (host refused) — not treated as success', async () => {
+  it('rejects a claim-err reply (host refused) - not treated as success', async () => {
     globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
 
     const promise = pairOverRelay(RELAY_URL, PAIR_TOKEN, 'iPhone', 'device-uuid-1');
@@ -205,7 +205,7 @@ describe('pairOverRelay — post-claim close race (WebKit)', () => {
   });
 });
 
-describe('RelayChannel — no-host fast fail', () => {
+describe('RelayChannel - no-host fast fail', () => {
   const realWebSocket = globalThis.WebSocket;
 
   afterEach(() => {

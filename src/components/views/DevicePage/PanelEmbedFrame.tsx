@@ -45,13 +45,13 @@ interface PanelEmbedFrameProps {
   // True when `canvasSize` is already in CSS pixels (kiosk-reported live
   // viewport via capabilities.cssWidth/cssHeight) rather than native device
   // pixels (the per-surface profile in usePanelDevices' WIDGET_PANEL_PROFILES).
-  // CSS-pixel canvases must NOT be divided by the device DPR again — they
+  // CSS-pixel canvases must NOT be divided by the device DPR again - they
   // already ARE the viewport the WebView exposes. Only the native-pixel
   // profile fallback gets the native→CSS /DPR below.
   //
   // Skipping this renders the iframe at viewport/DPR (y70 734/(337/160)≈
   // 349px), below the y70 `@media (min-height:1500px)` breakpoint, so it paints
-  // wrong gaps + an under-scaled cellScaler — the iframe looks squished while
+  // wrong gaps + an under-scaled cellScaler - the iframe looks squished while
   // the on-device panel is fine. The fix is here, NOT in PanelApp.module.scss.
   // See .agents/rules/failure-log.md (2026-05-29).
   canvasIsCssPixels?: boolean;
@@ -141,7 +141,7 @@ export function PanelEmbedFrame({
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
         // Fit BOTH axes: height-only fit overflows the stage horizontally on
-        // landscape canvases (promoted monitors, wide simulated panels) —
+        // landscape canvases (promoted monitors, wide simulated panels) -
         // portrait panels (Y70/Q60) stay height-bound, wide ones width-bound.
         const availW = entry.contentRect.width;
         const availH = entry.contentRect.height;

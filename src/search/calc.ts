@@ -1,5 +1,5 @@
 // Inline calculator: type "12*8" or "(1920/2)+40" and get an answer to copy.
-// A real tokenizer + shunting-yard evaluator — never eval() — so arbitrary
+// A real tokenizer + shunting-yard evaluator - never eval() - so arbitrary
 // input can't execute. Supports + - * / % ( ), unary minus, and decimals.
 
 type Tok = { t: 'num'; v: number } | { t: 'op'; v: string } | { t: 'lp' } | { t: 'rp' };
@@ -99,7 +99,7 @@ function formatNum(n: number): string {
 
 /**
  * Parse `query` as arithmetic. Returns null unless it looks like a real
- * expression (has an operator and a digit) and evaluates finitely — so plain
+ * expression (has an operator and a digit) and evaluates finitely - so plain
  * words never spuriously show a calculator row.
  */
 export function tryCalc(query: string): { expr: string; value: string } | null {

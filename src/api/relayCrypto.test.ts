@@ -15,7 +15,7 @@ import {
 // Known-answer vectors from the relay-transport crypto contract. These lock
 // byte-for-byte interop with the .NET host-side RelayCrypto (HKDF-SHA256 +
 // AesGcm). If any of these drift, the panel can no longer talk to the PC over
-// the relay — treat a failure here as a protocol break, not a flaky test.
+// the relay - treat a failure here as a protocol break, not a flaky test.
 const KAT = {
   token: 'test-session-token-0123456789',
   relayRoot: '36557d360330aad63010a257c870deb9f57c19d222ea630a9a204889eb435270',

@@ -54,7 +54,7 @@ vi.mock('../../../lib/i18n', () => ({
   }),
 }));
 
-// Default to advanced (rich) mode here — these assertions cover the
+// Default to advanced (rich) mode here - these assertions cover the
 // rich UI (mode buttons + per-mode arrows). Simple mode has its own
 // test block below.
 const mockUiSettings = vi.hoisted(() => ({ widgetAdvancedMode: true }));

@@ -28,5 +28,5 @@ test-results/
 playwright-report/
 .playwright/
 
-# Snapshot output from e2e visual-parity specs — PNG artifacts, never commit
+# Snapshot output from e2e visual-parity specs - PNG artifacts, never commit
 .snapshots/

@@ -183,7 +183,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
       // Record-backed entries (promoted monitors) bind by their explicit
-      // record id — several records share the 'monitor' surface, so a
+      // record id - several records share the 'monitor' surface, so a
       // surface scan would grab whichever was last seen. Everything else
       // (Y70 / Q-series / simulators) keeps the surface match: pick the most
       // recently active record for this surface (/panel/devices is sorted

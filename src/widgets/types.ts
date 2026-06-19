@@ -1,7 +1,7 @@
 // TypeScript shapes mirroring the nexus.app/1 app manifest +
 // `/apps-api/installed` listing wire shape. The host runtime in
 // nexus-service is the source of truth; see `plans/third-party-app-sdk.md`.
-// An app's widget facet renders from the bundle's widget.mjs — there is no
+// An app's widget facet renders from the bundle's widget.mjs - there is no
 // declarative view tree.
 
 export interface AppManifestAuthor {

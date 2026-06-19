@@ -4,7 +4,7 @@ import type { WidgetProps } from '../types';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import styles from './TwitchWidget.module.scss';
 
-// Catalog preview fixture — untranslated by design. No embed URL is built and
+// Catalog preview fixture - untranslated by design. No embed URL is built and
 // no iframe mounts in preview.
 const PREVIEW_CHAT: Array<[user: string, msg: string, hue: number]> = [
   ['viewer_42', 'glhf', 12],

@@ -1,6 +1,6 @@
 @use '../../../styles/text' as *;
 
-// Canonical settings group — see SettingsSection.tsx. Muted body-type header
+// Canonical settings group - see SettingsSection.tsx. Muted body-type header
 // above a surface-filled box.
 .section {
   display: flex;
@@ -29,11 +29,11 @@
   }
 }
 
-// Surface fill, no visible stroke — the box reads via its lighter --surface
+// Surface fill, no visible stroke - the box reads via its lighter --surface
 // fill against the darker page bg (matches the cooling cards). The transparent
 // border keeps the 1px in the box model so layout is unchanged. Note: in a
 // surface-on-surface context (the device/pair modal sits on --surface) the box
-// has no separation from its backdrop — that surround must supply the contrast.
+// has no separation from its backdrop - that surround must supply the contrast.
 .box {
   display: flex;
   flex-direction: column;

@@ -143,7 +143,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [activeEffect, setActiveEffect] = useState<string>('');
   const [effectTemplates, setEffectTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   // Committed snapshot: updated on hydrate, on preset switch, and after a param
-  // save lands — never during a drag. The grid + preset thumbnails (and the
+  // save lands - never during a drag. The grid + preset thumbnails (and the
   // selected highlight) read from this, so they refetch on commit, not per slider
   // frame (effectTemplates churns during drag for the live RGB preview).
   const [committedTemplates, setCommittedTemplates] = useState<Record<string, EffectTemplateBundle>>({});
@@ -728,7 +728,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, []);
 
   // Device list ordering: HTML5 drag/drop on ZoneCard, persisted to
-  // localStorage. Mirrors the fan-card reorder pattern, but local-only —
+  // localStorage. Mirrors the fan-card reorder pattern, but local-only -
   // device identity is per-machine, not per-profile.
   const [deviceOrder, setDeviceOrder] = useState<string[]>(loadDeviceOrder);
   useEffect(() => {

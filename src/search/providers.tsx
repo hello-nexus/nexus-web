@@ -29,7 +29,7 @@ function act(id: string, e: {
 
 // A boolean on/off control as ONE entry: the row renders a switch in the
 // current state and selecting it flips. Universal for every two-state option
-// (remote/relay/Wi-Fi, settings toggles) — never a separate On + Off pair. Also
+// (remote/relay/Wi-Fi, settings toggles) - never a separate On + Off pair. Also
 // matches the opposite verb ("relay off" finds it while it's on).
 function toggleEntry(id: string, e: {
   label: string; icon: ReactNode; keywords: string[]; isOn: boolean; set: (next: boolean) => void;
@@ -210,7 +210,7 @@ const lightingModes: SearchSource = (ctx) => {
 };
 
 // Match effects on their name, "animation"/"animate"/"effect", the key, or
-// category — deliberately not on "lighting"/"rgb" so those keep surfacing the
+// category - deliberately not on "lighting"/"rgb" so those keep surfacing the
 // page + modes instead of being flooded by ~60 effects.
 const lightingEffects: SearchSource = (ctx) => {
   if (!ctx.online) return [];
@@ -257,8 +257,8 @@ const appearance: SearchSource = (ctx) => {
   return out;
 };
 
-// The pairing modal is the "open" half for remote/relay/Wi-Fi — it hosts all
-// those controls — so it carries their keywords too.
+// The pairing modal is the "open" half for remote/relay/Wi-Fi - it hosts all
+// those controls - so it carries their keywords too.
 const actions: SearchSource = (ctx) => [
   go('open:pairing', {
     title: ctx.t('phonePair.title'), icon: <Smartphone size={18} />,
@@ -267,7 +267,7 @@ const actions: SearchSource = (ctx) => [
   }),
 ];
 
-// Remote-access controls — single toggles reflecting live state, alongside the
+// Remote-access controls - single toggles reflecting live state, alongside the
 // pairing-modal open above (the "see more" half). Real panel wires; gated online.
 const remoteAccess: SearchSource = (ctx) => {
   if (!ctx.online) return [];
@@ -316,7 +316,7 @@ const profilesSource: SearchSource = (ctx) => {
 };
 
 // ── Registry ────────────────────────────────────────────────────────────────
-// Add a source here to add a category of results. Order is cosmetic — entries
+// Add a source here to add a category of results. Order is cosmetic - entries
 // are ranked by relevance, not source order.
 export const SOURCES: SearchSource[] = [
   navigation, navDisplays, settingsTabs, settingsItems, standalonePages, installedApps, devices, profilesSource,

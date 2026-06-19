@@ -31,7 +31,7 @@ export interface WidgetSurfaces {
  * real `@hellonexus/ui` components.
  *
  * `mount(App)` renders App for every surface. `mount({ cell, page })` renders
- * the surface the host asked for (init.surface) — the page worker is a separate
+ * the surface the host asked for (init.surface) - the page worker is a separate
  * render of the same bundle, so a widget keeps one codebase across both views.
  */
 export async function mount(app: ComponentType | WidgetSurfaces): Promise<void> {

@@ -5,8 +5,8 @@ import { savePreferences } from '../api/profiles';
 import { postResolvedTheme } from './windowActions';
 
 // Publishes the desktop app's *resolved* theme ('dark'|'light') to two places:
-//  - the native host (postResolvedTheme), so its native chrome — Windows DWM
-//    immersive mode + Mica, macOS window appearance + vibrancy — follows the
+//  - the native host (postResolvedTheme), so its native chrome - Windows DWM
+//    immersive mode + Mica, macOS window appearance + vibrancy - follows the
 //    in-app theme instead of the OS theme.
 //  - the server (savePreferences), so remote panels in sync mode follow the
 //    desktop's light↔dark (the desktop stores themeMode='system', which each

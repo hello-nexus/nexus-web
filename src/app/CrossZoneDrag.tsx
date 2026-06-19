@@ -7,7 +7,7 @@ import {
 } from 'react';
 
 /**
- * Cross-zone drag signal — published by the embedded panel when a pinnable
+ * Cross-zone drag signal - published by the embedded panel when a pinnable
  * widget starts being dragged, consumed by the sidebar so it can mount a
  * pointer-tracked drop target and accept a drop independently of dnd-kit.
  *
@@ -63,13 +63,13 @@ export function CrossZoneDragProvider({ children }: { children: ReactNode }) {
 export function useCrossZoneDrag(): CrossZoneDragValue {
   const ctx = useContext(CrossZoneDragContext);
   if (ctx) return ctx;
-  // Stable shim ref so callers can safely mutate .current — the kiosk has
+  // Stable shim ref so callers can safely mutate .current - the kiosk has
   // no sidebar to pin to, so any writes here are no-ops by design.
   return SHIM_VALUE;
 }
 
 const SHIM_VALUE: CrossZoneDragValue = {
   draggingPinnableType: null,
-  setDraggingPinnableType: () => { /* no provider — drag-to-pin disabled */ },
+  setDraggingPinnableType: () => { /* no provider - drag-to-pin disabled */ },
   dropHandlerRef: { current: null },
 };

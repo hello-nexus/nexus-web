@@ -40,7 +40,7 @@ export interface AnimateController {
   slotFor: (key: string) => number;
   /** Content hash of that slot, for thumbnail cache-busting. */
   versionFor: (key: string) => string;
-  /** Effect currently driving the RGB LEDs — its grid cell shows a bulb. '' = none. */
+  /** Effect currently driving the RGB LEDs - its grid cell shows a bulb. '' = none. */
   rgbActiveEffect: string;
   /** Slot live on the RGB hardware for this controller's effect (preset-row bulb), or null. */
   rgbActiveSlot: number | null;

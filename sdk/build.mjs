@@ -3,7 +3,7 @@
 // react/jsx-runtime / @hellonexus/ui / @hellonexus/sdk externalized to thin shims
 // that read globalThis.__nexusRuntime (populated by the shared runtime). An app
 // therefore ships only the author's code; react-dom + remote-dom + the SDK are
-// downloaded once and shared — exactly what a third-party author's build produces.
+// downloaded once and shared - exactly what a third-party author's build produces.
 //
 // The author SOURCE lives in the apps repo (nexus-apps): apps/<id>/index.tsx,
 // committed + studyable next to the built widgets/<id>/widget.mjs. The SDK runtime
@@ -32,7 +32,7 @@ const mjsBytes = (r) =>
   Math.round(Object.entries(r.metafile.outputs).filter(([k]) => k.endsWith('.mjs')).reduce((a, [, o]) => a + (o.bytes ?? 0), 0) / 1024);
 
 // --- 1. Probe @hellonexus/ui + @hellonexus/sdk runtime exports (so the widget
-//        shims re-export exactly what the real modules do — no hand-kept list). ---
+//        shims re-export exactly what the real modules do - no hand-kept list). ---
 async function probeExports(entry) {
   const r = await build({
     entryPoints: [entry], bundle: true, write: false, metafile: true,

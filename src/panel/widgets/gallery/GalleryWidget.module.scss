@@ -10,7 +10,7 @@
 
   // Fading nav arrows: the whole left/right third is the tap zone (chevron
   // pinned to the edge like the lighting widget). The hit area stays active
-  // while invisible — a tap both navigates and reveals; the center third has
+  // while invisible - a tap both navigates and reveals; the center third has
   // no interactive element so tap-to-immersive / click-through still work.
   .arrowBtn {
     top: 0;

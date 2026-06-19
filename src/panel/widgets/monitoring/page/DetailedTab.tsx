@@ -11,7 +11,7 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
   const { t } = useTranslation();
   const extras = useSensorExtras(true);
   // Memory brand/model comes from the system-specs query (CIM Win32_PhysicalMemory),
-  // not the sensor stream — the LHM memory node has no manufacturer/part info.
+  // not the sensor stream - the LHM memory node has no manufacturer/part info.
   const { specs } = useSystemSpecs(true);
   const { settings, update } = useUiSettings();
 

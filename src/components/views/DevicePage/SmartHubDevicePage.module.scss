@@ -1,6 +1,6 @@
 // Routed SmartHub page. Same .page / .pageBody contract every device page
 // uses, so the chrome sits flush under the dashboard's view header. Type
-// rides the _text.scss tokens — the Np50 file's raw sizes are grandfathered
+// rides the _text.scss tokens - the Np50 file's raw sizes are grandfathered
 // in the style-drift ratchet, new files are not.
 
 @use '../../../styles/text' as *;
