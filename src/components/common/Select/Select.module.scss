@@ -86,7 +86,7 @@
   margin: 0;
   padding: 0.25rem;
   list-style: none;
-  // Vertical scroll only; long options wrap onto multiple lines (see .option),
+  // Vertical scroll only; options ellipsize within the menu width (see .option),
   // so x stays hidden with no sideways scroll.
   overflow: hidden auto;
   background: var(--bg-elevated);
@@ -113,10 +113,12 @@
   color: var(--text);
   font-size: var(--type-small);
   cursor: pointer;
-  // Wrap long option labels onto multiple lines instead of truncating with an
-  // ellipsis; overflow-wrap handles unbroken strings (long sensor/device ids).
-  white-space: normal;
-  overflow-wrap: anywhere;
+  // One line per option: the menu sizes to the widest label up to
+  // MAX_MENU_WIDTH (Select.tsx), then longer labels ellipsize; the full label
+  // stays available via the option's title.
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .option.active {

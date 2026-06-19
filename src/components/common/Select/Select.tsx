@@ -58,8 +58,11 @@ const MARGIN = 8;
 const MIN_MENU_HEIGHT = 96;
 // The menu may grow past the trigger to fit its widest option, but no wider
 // than this (base px) so one long label can't make it span the screen; it is
-// also clamped to the viewport in reposition. Past the cap, options wrap.
+// also clamped to the viewport in reposition. Past the cap, the widest option
+// ellipsizes.
 const MAX_MENU_WIDTH = 448;
+// Breathing room past the widest label so options aren't flush to the edge, px.
+const MENU_WIDTH_PAD = 12;
 const TYPEAHEAD_RESET_MS = 700;
 
 function flattenText(node: ReactNode): string {
@@ -147,10 +150,18 @@ export function Select({
     // width back, then pin it as a fixed width so wrapping stays stable for the
     // scrollHeight measurement below. offsetWidth is the unscaled layout box.
     const maxWidth = Math.max(baseWidth, Math.min(MAX_MENU_WIDTH, (window.innerWidth - 2 * MARGIN) / scale));
+    // Options clip (overflow:hidden) so labels past the cap ellipsize, but that
+    // clip shrinks the menu's max-content below the label width. Neutralize it
+    // while measuring so the menu sizes to the full widest label, then add a
+    // small pad so options aren't cramped against the edge.
+    const optionEls = Array.from(menu.children) as HTMLElement[];
+    for (const o of optionEls) o.style.overflow = 'visible';
     menu.style.width = 'max-content';
     menu.style.minWidth = `${baseWidth}px`;
     menu.style.maxWidth = `${maxWidth}px`;
-    const width = menu.offsetWidth;
+    const measured = menu.offsetWidth;
+    for (const o of optionEls) o.style.overflow = '';
+    const width = Math.min(maxWidth, measured + MENU_WIDTH_PAD);
     menu.style.width = `${width}px`;
     menu.style.minWidth = '';
     menu.style.maxWidth = '';
@@ -159,8 +170,13 @@ export function Select({
     const spaceAbove = r.top - MARGIN;
     const placeBelow = spaceBelow >= spaceAbove;
     const avail = Math.max(MIN_MENU_HEIGHT, (placeBelow ? spaceBelow : spaceAbove) - GAP);
-    // scrollHeight is the menu's layout (unscaled) height; visual = * scale.
-    const visualHeight = Math.min(menu.scrollHeight * scale, avail);
+    // scrollHeight is content+padding; max-height is border-box (global
+    // box-sizing), so add the vertical border or the menu scrolls by the border
+    // width even when every option fits. offsetHeight-clientHeight is the
+    // vertical border (x-overflow is hidden, so no horizontal scrollbar in it).
+    // Unscaled; visual = * scale.
+    const naturalHeight = menu.scrollHeight + (menu.offsetHeight - menu.clientHeight);
+    const visualHeight = Math.min(naturalHeight * scale, avail);
     const top = placeBelow ? r.bottom + GAP : r.top - GAP - visualHeight;
     const maxLeft = window.innerWidth - visualWidth - MARGIN;
     const left = Math.max(Math.min(MARGIN, maxLeft), Math.min(r.left, maxLeft));
@@ -322,6 +338,8 @@ export function Select({
               key={`${opt.value}-${i}`}
               id={optionId(i)}
               role="option"
+              // Surfaces the full label when an option ellipsizes.
+              title={opt.label}
               aria-selected={opt.value === value}
               aria-disabled={opt.disabled || undefined}
               className={classNames(
