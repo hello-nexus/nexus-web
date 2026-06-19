@@ -84,7 +84,7 @@ export function KeebMacroView({ loadMacro, saveMacro }: KeebMacroViewProps) {
         });
         return;
       }
-      // First press — push Make (10ms) + Break (configured delay).
+      // First press - push Make (10ms) + Break (configured delay).
       const breakDuration = delayModeRef.current === 'record' ? 10 : customDelayRef.current;
       setRecordings(list => [
         ...list,

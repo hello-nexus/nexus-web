@@ -6,7 +6,7 @@ import { isWindowsAppShell, postWindowDragStart, postWindowAction, NEXUS_WINDOW_
 //
 // Why not `-webkit-app-region: drag`: WebView2 turns app-region regions into
 // non-client regions, and over the transparent (Mica) WebView2 those clear to
-// BLACK during a window resize — the top-bar "black box" artifacting. The
+// BLACK during a window resize - the top-bar "black box" artifacting. The
 // mousedown -> IPC -> WM_NCLBUTTONDOWN(HTCAPTION) path keeps the element a
 // normal (transparent, flicker-free) client region, mirroring how the resize
 // strips already avoid app-region. Returns {} outside the Windows shell, where

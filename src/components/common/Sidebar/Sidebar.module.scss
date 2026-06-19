@@ -58,7 +58,7 @@
 // are one colour and track hover/active together.
 .sectionHeader {
   // .item supplies layout / font / colour / hover / active. A small dot in the
-  // left gutter (before the icon) marks this row as a section header — no
+  // left gutter (before the icon) marks this row as a section header - no
   // underline, no layout shift; rides currentColor like the rest of the row.
   &::before {
     content: '';
@@ -83,7 +83,7 @@
   // both states so the icon never shifts when the sidebar toggles.
   padding: 0.6rem var(--rail-item-pad);
   // Reserve the border in every state (transparent here) so the active row's
-  // border doesn't change the box size — no shift between selected/hovered.
+  // border doesn't change the box size - no shift between selected/hovered.
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -164,7 +164,7 @@
 // extra group (portal / pair phone / conflict slot below .nav). The
 // hidden scrollbar styling matches the panel's body scroll surfaces.
 // Hairline between the pinned tail and the transient running-app row
-// (taskbar semantics). A sibling of the rows — not a wrapper — so every
+// (taskbar semantics). A sibling of the rows - not a wrapper - so every
 // sortable row shares one parent for dnd-kit's restrictToParentElement.
 // Inset so it reads as a short divider, not a full-width rule.
 .runningSeparator {

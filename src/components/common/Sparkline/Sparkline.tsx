@@ -31,7 +31,7 @@ interface SparklineProps {
 }
 
 /**
- * Tiny SVG sparkline. No external charting lib — pure path math, ~1KB.
+ * Tiny SVG sparkline. No external charting lib - pure path math, ~1KB.
  * Suited for the header mini-graphs (CPU/MEM/GPU) and any inline metric.
  */
 export function Sparkline({

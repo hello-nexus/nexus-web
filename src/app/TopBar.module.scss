@@ -15,7 +15,7 @@
   // Minimal left pad so the collapse toggle sits near the top-left corner
   // (Windows). macOS adds the traffic-light inset on .leftCluster below.
   padding: 0 0.5rem;
-  // No fill or separator — the bar's controls float directly over whatever
+  // No fill or separator - the bar's controls float directly over whatever
   // backdrop (gradient / glass / flat) is behind the app.
   background: transparent;
   border-bottom: none;
@@ -26,7 +26,7 @@
 
 // Windows --app shell: empty areas of the bar drag the window. Implemented via
 // a mousedown -> IPC -> WM_NCLBUTTONDOWN(HTCAPTION) handler (useWindowDragRegion),
-// NOT `app-region: drag` — WebView2 would make the bar a non-client region that
+// NOT `app-region: drag` - WebView2 would make the bar a non-client region that
 // black-flickers on resize over the transparent Mica backdrop.
 
 // macOS shell: inset the left cluster past the native traffic lights so the

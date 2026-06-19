@@ -68,8 +68,10 @@ const PORTAL_URL = 'https://hellonexus.com';
 
 const BuilderView = lazy(() => import('../components/views/BuilderView'));
 
-// Mounted inside UiSettingsProvider. Auto-opens the update modal once per
-// version when auto-update is disabled and a new version is available.
+// Mounted inside UiSettingsProvider. Auto-opens the update modal on load when:
+//   - updateMode === 'notify' and a new (non-dismissed) version is available, OR
+//   - updateMode === 'always' and an update is available (to start the install), OR
+//   - justUpdatedTo is set (show post-update what's-new view).
 function UpdateAutoOpener({ online, onOpen }: {
   online: boolean;
   onOpen: (status: UpdateStatus) => void;
@@ -78,16 +80,31 @@ function UpdateAutoOpener({ online, onOpen }: {
   const firedRef = useRef(false);
 
   useEffect(() => {
-    if (!online || !settings.autoUpdateDisabled || firedRef.current) return;
+    if (!online || firedRef.current) return;
+    const mode = settings.updateMode;
+    if (mode !== 'notify' && mode !== 'always') return;
     let cancelled = false;
     getUpdateStatus().then(s => {
-      if (cancelled || !s || !s.updateAvailable) return;
-      if (s.latestVersion === settings.lastDismissedUpdateVersion) return;
+      if (cancelled || !s) return;
+      if (s.justUpdatedTo) {
+        firedRef.current = true;
+        onOpen(s);
+        return;
+      }
+      if (mode === 'always') {
+        // Only pop the non-closable always-mode modal once a verified update is
+        // staged (updateReady); an unstageable release must not trap the user.
+        if (!s.updateReady) return;
+      } else {
+        // notify: pop once when an update is available and not already dismissed.
+        if (!s.updateAvailable) return;
+        if (s.latestVersion === settings.lastDismissedUpdateVersion) return;
+      }
       firedRef.current = true;
       onOpen(s);
     });
     return () => { cancelled = true; };
-  }, [online, settings.autoUpdateDisabled, settings.lastDismissedUpdateVersion, onOpen]);
+  }, [online, settings.updateMode, settings.lastDismissedUpdateVersion, onOpen]);
 
   return null;
 }
@@ -164,7 +181,7 @@ export function Dashboard() {
   useMonitoringStoreBridge(multiplex);
 
   // The UiSettingsProvider below owns the server-preferences hydrate + cache +
-  // theme/accent apply — the single source of truth for all three.
+  // theme/accent apply - the single source of truth for all three.
 
   const handlePreferencesChanged = useCallback((prefs: Preferences) => {
     applyThemeMode(prefs.theme.themeMode as ThemeMode);
@@ -604,7 +621,7 @@ export function Dashboard() {
             <div className={styles.content}>
               {/*
                 resetKey (not key) so the boundary instance is stable across
-                navigations — a key change would hard-unmount the Suspense
+                navigations - a key change would hard-unmount the Suspense
                 below it and defeat startTransition's "keep prior UI visible
                 while the next chunk loads" behavior, producing a one-frame
                 blank flash on every nav. resetKey clears caught errors when

@@ -98,8 +98,8 @@ describe('service.ts transport routing', () => {
 
 // On a REMOTE origin (the vitest jsdom URL is http://localhost/ with no port,
 // so isServedFromService is false ⇒ isRemoteOrigin is true) the fetch layer
-// must default to the relay for the very first call — before useMultiplexSocket
-// has published any transport (activeTransport === null) — as long as a session
+// must default to the relay for the very first call - before useMultiplexSocket
+// has published any transport (activeTransport === null) - as long as a session
 // token exists. This is the core regression: those early calls used to hit
 // http://localhost and fail (wrong host + mixed-content), surfacing a bogus
 // "could not reach the service" overlay.
@@ -107,7 +107,7 @@ describe('service.ts eager relay on a remote origin', () => {
   it('routes REST via relayFetch with NO setActiveTransport and NO http://localhost fetch', async () => {
     const directFetch = vi.fn();
     vi.stubGlobal('fetch', directFetch);
-    // Deliberately do NOT call setActiveTransport — activeTransport stays null.
+    // Deliberately do NOT call setActiveTransport - activeTransport stays null.
     expect(isRelayActive()).toBe(true);
 
     const out = await fetchService<{ via: string }>('/panel/devices');
@@ -158,7 +158,7 @@ describe('service.ts lan-sealed transport routing', () => {
 
     expect(isTunnelActive()).toBe(true);
     expect(isLanSealedActive()).toBe(true);
-    // It is NOT the cloud relay — the relay-specific indicator must stay off.
+    // It is NOT the cloud relay - the relay-specific indicator must stay off.
     expect(isRelayActive()).toBe(false);
 
     const out = await fetchService<{ via: string }>('/panel/devices');
@@ -166,7 +166,7 @@ describe('service.ts lan-sealed transport routing', () => {
     expect(out).toEqual({ via: 'relay' }); // mock body; proves it went through relayFetch
     expect(directFetch).not.toHaveBeenCalled();
     expect(relayFetchMock).toHaveBeenCalledTimes(1);
-    // (token, url, method, path, body, contentType) — url is the LOCAL sealed tunnel.
+    // (token, url, method, path, body, contentType) - url is the LOCAL sealed tunnel.
     const call = relayFetchMock.mock.calls[0] as unknown[];
     expect(call[1]).toMatch(/\/secure-tunnel$/);
     expect(call[1]).not.toContain('hellonexus.com/relay');
@@ -186,7 +186,7 @@ describe('service.ts lan-sealed transport routing', () => {
 
   it('isLanSealedEligible is false on this (remote-origin) test surface', () => {
     // The jsdom URL is http://localhost/ ⇒ isRemoteOrigin true, isRemotePaired
-    // false, so lan-sealed never auto-activates here regardless of the flag —
+    // false, so lan-sealed never auto-activates here regardless of the flag -
     // a remote origin is the cloud relay's domain, not the LAN sealed tunnel's.
     expect(isLanSealedEligible()).toBe(false);
   });

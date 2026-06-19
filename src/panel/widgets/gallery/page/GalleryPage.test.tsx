@@ -35,7 +35,7 @@ vi.mock('../../../../hooks/useMultiplexSocket', () => ({
 }));
 
 vi.mock('../../../../lib/i18n', () => {
-  // Single stable t — the real hook's t is reference-stable; a fresh function
+  // Single stable t - the real hook's t is reference-stable; a fresh function
   // per render would re-fire any effect that lists it as a dep.
   const t = (key: string, params?: Record<string, string | number>) => {
     let text = key;

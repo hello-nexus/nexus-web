@@ -1,4 +1,4 @@
-// Panel entrypoint for an SDK (sandboxed remote-component) marketplace widget —
+// Panel entrypoint for an SDK (sandboxed remote-component) marketplace widget -
 // the cell surface. Rendered by MarketplaceWidget for every marketplace widget.
 //
 // Remote-panel safe: the worker can't live-import the widget bundle over the
@@ -32,7 +32,7 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
   const failed = bundleFailed || runtimeFailed;
 
   // Per-instance settings via the shared settings bridge. Preview skips the
-  // bridge entirely — get() fire-and-forgets a network load on first call.
+  // bridge entirely - get() fire-and-forgets a network load on first call.
   const settingsBridge = useMemo(() => new WidgetSettingsBridge(instanceId), [instanceId]);
   const [settings, setSettings] = useState<Record<string, unknown>>(() => (preview ? {} : settingsBridge.get()));
   useEffect(() => {

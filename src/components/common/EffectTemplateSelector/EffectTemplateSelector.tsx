@@ -17,13 +17,13 @@ interface EffectTemplateSelectorProps {
   buttonAriaLabelPrefix?: string;
   className?: string;
   /**
-   * The slot currently driving the physical RGB LEDs — shows a bulb so the user
+   * The slot currently driving the physical RGB LEDs - shows a bulb so the user
    * knows editing it will move their hardware. Panels only; omit on the lighting
    * page (there the active preset is the RGB by definition).
    */
   rgbActiveSlot?: number | null;
   /**
-   * Slots used as a background by ≥1 panel — each shows a panel icon (stacked
+   * Slots used as a background by ≥1 panel - each shows a panel icon (stacked
    * with the bulb) so the user knows editing it changes those panels. Panels
    * only.
    */

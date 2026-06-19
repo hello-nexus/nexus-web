@@ -93,12 +93,12 @@ describe('deriveAccentVars', () => {
   });
 
   it('--accent is the user pick verbatim (no lightness clamp)', () => {
-    // Very dark input — --accent stays dark, no clamp to 50.
+    // Very dark input - --accent stays dark, no clamp to 50.
     const varsDark = deriveAccentVars('#1a0033', 'dark');
     const matchDark = varsDark['--accent'].match(/hsl\([\d.]+, [\d.]+%, ([\d.]+)%/);
     expect(parseFloat(matchDark![1])).toBeLessThan(50);
 
-    // Very bright input — --accent stays bright, no clamp to 66.
+    // Very bright input - --accent stays bright, no clamp to 66.
     const varsBright = deriveAccentVars('#eeccff', 'dark');
     const matchBright = varsBright['--accent'].match(/hsl\([\d.]+, [\d.]+%, ([\d.]+)%/);
     expect(parseFloat(matchBright![1])).toBeGreaterThan(66);

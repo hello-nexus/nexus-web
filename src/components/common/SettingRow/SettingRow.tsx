@@ -5,7 +5,7 @@ import styles from './SettingRow.module.scss';
 
 /**
  * Canonical settings row: a label (+ optional description) on the left and a
- * control on the right (no per-row divider — the rule belongs under section
+ * control on the right (no per-row divider - the rule belongs under section
  * headers, via SectionHeader). The one settings row for the whole app (main
  * Settings pages, lighting/keeb pages, panel editor sheet, panel Theme page,
  * device Settings tab), so they read identically. The panel `SettingsRow` name
@@ -74,15 +74,17 @@ export function SettingSelect({
   options,
   onChange,
   disabled,
+  description,
 }: {
   label?: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  description?: ReactNode;
 }) {
   return (
-    <SettingRow label={label}>
+    <SettingRow label={label} description={description}>
       <Select value={value} onChange={onChange} options={options} ariaLabel={label} disabled={disabled} />
     </SettingRow>
   );

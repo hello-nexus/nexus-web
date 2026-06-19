@@ -20,7 +20,7 @@ import styles from './KeebKeyAssignmentView.module.scss';
 
 export interface KeebKeyAssignmentViewProps {
   selected: { x: number; y: number } | null;
-  /// Live keyboard state — used by the `Keyboard` category to render a
+  /// Live keyboard state - used by the `Keyboard` category to render a
   /// secondary picker that mirrors the same layout (ANSI / ISO).
   state: KeyboardState;
   setKey: (body: SetLayerKeyBody) => Promise<void>;

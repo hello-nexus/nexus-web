@@ -20,7 +20,7 @@ export function useLightingFrames(enabled = true): LightingFrameState {
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Gated off (e.g. when connected via relay — the binary output stream is
+    // Gated off (e.g. when connected via relay - the binary output stream is
     // too much bandwidth to forward). Stay on the empty state so consumers fall
     // back to a static preview.
     if (!enabled) { setState(EMPTY); return undefined; }

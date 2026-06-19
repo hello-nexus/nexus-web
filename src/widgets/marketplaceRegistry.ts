@@ -16,7 +16,7 @@ export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
  * `lookupApp` (already-placed instances keep rendering) but aren't offered.
  */
 export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
-  // The Nexus apps (sandboxed remote-component SDK widgets — the single model).
+  // The Nexus apps (sandboxed remote-component SDK widgets - the single model).
   'com.hellonexus.weather',
   'com.hellonexus.screentime',
   'com.hellonexus.displays',
@@ -26,7 +26,7 @@ export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
 export function isMarketplaceIdEnabled(id: string): boolean {
   if (ENABLED_MARKETPLACE_IDS.has(id)) return true;
   // Preinstalled (OEM bake-in) apps are catalog-visible too, so a removed copy can
-  // be re-added — derived from the registry, no specific app named here.
+  // be re-added - derived from the registry, no specific app named here.
   return getMarketplaceListing(id)?.preinstalled === true;
 }
 
@@ -59,7 +59,7 @@ export function getAllMarketplaceListings(): AppInstalledListing[] {
 
 /**
  * `marketplace:<id>` types for installed apps flagged `preinstalled` that ship a
- * page surface — the OEM bake-in set the sidebar auto-pins on a fresh profile.
+ * page surface - the OEM bake-in set the sidebar auto-pins on a fresh profile.
  * Empty until the registry has loaded and only non-empty on a build that
  * actually bundles such an app, so non-OEM builds are unaffected.
  */

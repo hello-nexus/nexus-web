@@ -1,5 +1,5 @@
 // Preview-mode sandbox guarantees: a preview SandboxContext performs no real
-// I/O even for preview-unaware apps — net.fetch is refused without touching
+// I/O even for preview-unaware apps - net.fetch is refused without touching
 // the proxy, dispatch resolves the { ok: false } envelope without calling the
 // host dispatcher, persistLocal never writes, and the welcome payload carries
 // the preview flag so the SDK runtime's usePreview() can branch.
@@ -53,7 +53,7 @@ describe('host preview gating', () => {
   beforeEach(() => {
     FakeWorker.instances = [];
     vi.stubGlobal('Worker', FakeWorker);
-    // Direct assignment — vi.unstubAllGlobals() doesn't cover it, restore below.
+    // Direct assignment - vi.unstubAllGlobals() doesn't cover it, restore below.
     URL.createObjectURL = vi.fn(() => 'blob:test') as typeof URL.createObjectURL;
     URL.revokeObjectURL = vi.fn() as typeof URL.revokeObjectURL;
   });

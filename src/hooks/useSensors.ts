@@ -47,7 +47,7 @@ export interface SensorState {
   gpu: HardwareSensor[];
   /** Model name of the resolved primary GPU (follows the picker; "" if none). */
   gpuModel: string;
-  /** Every GPU the service reports, classified — drives the GPU picker. */
+  /** Every GPU the service reports, classified - drives the GPU picker. */
   gpuComponents: GpuComponent[];
   memory: HardwareSensor[];
   storage: StorageInfo[];

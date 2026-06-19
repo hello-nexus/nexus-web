@@ -74,7 +74,7 @@ export function hasNativeClipboardBridge() {
 // Native transfer bridge: the app opens its own picker / reads the phone
 // clipboard and uploads natively; progress arrives via
 // NATIVE_TRANSFER_STATE_EVENT CustomEvents handed to `onState`. Availability
-// is per method — an older shell may inject transferFiles without
+// is per method - an older shell may inject transferFiles without
 // sendClipboard.
 export function useNativeTransferBridge(
   enabled: boolean,

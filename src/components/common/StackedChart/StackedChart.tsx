@@ -212,7 +212,7 @@ export function StackedChart({
           );
         })}
 
-        {/* X axis time labels — left is -60s, right is now */}
+        {/* X axis time labels - left is -60s, right is now */}
         {[60, 45, 30, 15, 0].map(sec => {
           const frac = 1 - sec / xSeconds;
           const x = PAD.left + frac * chartW;

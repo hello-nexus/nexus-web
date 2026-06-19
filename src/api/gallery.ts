@@ -1,7 +1,7 @@
 import { deleteService, fetchService, postService } from './service';
 
 // Per-system shared gallery: every panel surface of one PC reads the same
-// source set, and sources are pure path references — Nexus never stores or
+// source set, and sources are pure path references - Nexus never stores or
 // deletes image bytes. Item/file reads are panel-accessible; source
 // management and the native picker are desktop-tier only.
 
@@ -70,7 +70,7 @@ export async function restoreGalleryExclusions(sourceId: string): Promise<boolea
 }
 
 // Opens the native OS file/folder dialog on the host PC and resolves with the
-// chosen absolute paths once the user closes it — this request stays in
+// chosen absolute paths once the user closes it - this request stays in
 // flight for as long as the dialog is open.
 export const pickGalleryPaths = (folder: boolean) =>
   postService<GalleryPickResponse>('/gallery/pick', { folder });

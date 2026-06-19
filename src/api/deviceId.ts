@@ -7,7 +7,7 @@
 // across pair attempts on the same origin (a QR re-scan reuses it).
 //
 // Distinct from the benchmark device id in nexusApi.ts (`nexus_benchmark_device_id`),
-// which keys anonymous benchmark submissions — different lifecycle, different key.
+// which keys anonymous benchmark submissions - different lifecycle, different key.
 
 const DEVICE_ID_KEY = 'nexus.deviceId';
 
@@ -41,7 +41,7 @@ function generateUuid(): string {
     try {
       return crypto.randomUUID();
     } catch {
-      // Non-secure context can expose the method but throw — fall through.
+      // Non-secure context can expose the method but throw - fall through.
     }
   }
   const bytes = new Uint8Array(16);

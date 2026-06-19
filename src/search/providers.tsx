@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import { Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower, SlidersHorizontal, UserRound, FlaskConical, Gamepad2 } from 'lucide-react';
+import { Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower, SlidersHorizontal, UserRound, FlaskConical, Gamepad2, Bug, FolderOpen } from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
 import { LANGUAGES, LANGUAGE_LABELS, PRESET_ACCENTS, type ThemeMode } from '../lib/settings';
 import { applyProfile } from '../api/cooling';
 import { setPanelRemoteControlEnabled, setPanelRelay, setPanelPairBroadcast } from '../api/panel';
 import { startAnimate, stopLighting, startScreenMirror, startGameSync } from '../api/lighting';
+import { postService } from '../api/service';
 import { COOLING_PRESETS, type CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { getCatalogEntries } from '../panel/widgets/registry';
@@ -29,7 +30,7 @@ function act(id: string, e: {
 
 // A boolean on/off control as ONE entry: the row renders a switch in the
 // current state and selecting it flips. Universal for every two-state option
-// (remote/relay/Wi-Fi, settings toggles) — never a separate On + Off pair. Also
+// (remote/relay/Wi-Fi, settings toggles) - never a separate On + Off pair. Also
 // matches the opposite verb ("relay off" finds it while it's on).
 function toggleEntry(id: string, e: {
   label: string; icon: ReactNode; keywords: string[]; isOn: boolean; set: (next: boolean) => void;
@@ -57,7 +58,7 @@ const NAV: { view: string; labelKey: string; keywords: string[] }[] = [
   { view: 'lighting',   labelKey: 'lighting.title', keywords: ['rgb', 'led', 'leds', 'effects', 'color', 'colour', 'animation', 'effect', 'mirror', 'media', 'brightness', 'off'] },
   { view: 'cooling',    labelKey: 'cooling.title',  keywords: ['fans', 'fan curve', 'pump', 'thermals', 'temps', 'preset', 'profile', 'silent', 'balanced', 'turbo', 'custom', 'curve', 'off'] },
   { view: 'devices',    labelKey: 'devices.title',  keywords: ['usb', 'peripherals', 'hardware', 'connected'] },
-  { view: 'settings',   labelKey: 'settings.title', keywords: ['preferences', 'config', 'options', 'setup'] },
+  { view: 'settings',   labelKey: 'settings.title', keywords: ['preferences', 'config', 'options', 'setup', 'settings', 'update', 'updates', 'software update'] },
 ];
 
 // Displays is the Devices page's second tab, so its search hit deep-links
@@ -210,7 +211,7 @@ const lightingModes: SearchSource = (ctx) => {
 };
 
 // Match effects on their name, "animation"/"animate"/"effect", the key, or
-// category — deliberately not on "lighting"/"rgb" so those keep surfacing the
+// category - deliberately not on "lighting"/"rgb" so those keep surfacing the
 // page + modes instead of being flooded by ~60 effects.
 const lightingEffects: SearchSource = (ctx) => {
   if (!ctx.online) return [];
@@ -257,8 +258,8 @@ const appearance: SearchSource = (ctx) => {
   return out;
 };
 
-// The pairing modal is the "open" half for remote/relay/Wi-Fi — it hosts all
-// those controls — so it carries their keywords too.
+// The pairing modal is the "open" half for remote/relay/Wi-Fi - it hosts all
+// those controls - so it carries their keywords too.
 const actions: SearchSource = (ctx) => [
   go('open:pairing', {
     title: ctx.t('phonePair.title'), icon: <Smartphone size={18} />,
@@ -267,7 +268,7 @@ const actions: SearchSource = (ctx) => [
   }),
 ];
 
-// Remote-access controls — single toggles reflecting live state, alongside the
+// Remote-access controls - single toggles reflecting live state, alongside the
 // pairing-modal open above (the "see more" half). Real panel wires; gated online.
 const remoteAccess: SearchSource = (ctx) => {
   if (!ctx.online) return [];
@@ -316,12 +317,30 @@ const profilesSource: SearchSource = (ctx) => {
 };
 
 // ── Registry ────────────────────────────────────────────────────────────────
-// Add a source here to add a category of results. Order is cosmetic — entries
+// Add a source here to add a category of results. Order is cosmetic - entries
 // are ranked by relevance, not source order.
+const GITHUB_ISSUES_URL = 'https://github.com/hello-nexus/nexus-service/issues';
+const diagnostics: SearchSource = (ctx) => [
+  act('diag:open-logs', {
+    title: ctx.t('settings.diagnostics.openLogsButton'),
+    subtitle: ctx.t('settings.diagnostics.title'),
+    icon: <FolderOpen size={18} />,
+    keywords: ['logs', 'log', 'folder', 'diagnostics', 'debug', 'troubleshoot'],
+    run: () => { void postService('/diagnostics/open-logs', {}).catch(() => {}); },
+  }),
+  act('diag:report-bug', {
+    title: ctx.t('settings.feedback.report'),
+    subtitle: ctx.t('settings.feedback'),
+    icon: <Bug size={18} />,
+    keywords: ['bug', 'report', 'feedback', 'issue', 'github', 'problem'],
+    run: () => { window.open(GITHUB_ISSUES_URL, '_blank', 'noopener,noreferrer'); },
+  }),
+];
+
 export const SOURCES: SearchSource[] = [
   navigation, navDisplays, settingsTabs, settingsItems, standalonePages, installedApps, devices, profilesSource,
   cooling, lightingModes, lightingEffects, appearance,
-  actions, remoteAccess, settingsToggles,
+  actions, remoteAccess, settingsToggles, diagnostics,
 ];
 
 /** Every source's entries for the current context, flattened. */

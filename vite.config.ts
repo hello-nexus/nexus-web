@@ -1,10 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { execSync } from 'child_process'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
 
-const commitCount = (() => {
-  try { return execSync('git rev-list --count HEAD').toString().trim() }
-  catch { return '0' }
+const appVersion = (() => {
+  try {
+    return 'v' + readFileSync(resolve(__dirname, 'VERSION'), 'utf8').trim();
+  } catch {
+    return 'v0.0.0';
+  }
 })()
 
 const isServiceBuild = process.env.BUILD_TARGET === 'service'
@@ -18,7 +22,7 @@ const devTools = process.env.DEV_TOOLS === '1'
 export default defineConfig({
   plugins: [react()],
   define: {
-    __APP_VERSION__: JSON.stringify(`v${commitCount}`),
+    __APP_VERSION__: JSON.stringify(appVersion),
     __SERVICE_BUILD__: JSON.stringify(isServiceBuild),
     __DEV_TOOLS__: JSON.stringify(devTools),
   },

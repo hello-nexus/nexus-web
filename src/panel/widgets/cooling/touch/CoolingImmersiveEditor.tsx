@@ -16,7 +16,7 @@ const noopHover = () => {};
 /**
  * Immersive cell 2 (the fill cell): Curves | Fans tab shell. The same
  * CurveCard / FanCard leaves the desktop CoolingPage composes, minus the
- * wire layer and drag-reorder — binding goes through each fan's mode
+ * wire layer and drag-reorder - binding goes through each fan's mode
  * dropdown instead.
  */
 export function CoolingImmersiveEditor({ cooling }: { cooling: CoolingImmersiveController }) {
@@ -165,7 +165,7 @@ function FansTab({ cooling }: { cooling: CoolingImmersiveController }) {
       {/* Same input lock the desktop page applies to its fan rail: a running
           calibration owns the duty cycle, so every control underneath goes
           inert until it finishes. React 19 treats inert as a real boolean
-          prop — an empty-string cast renders nothing. */}
+          prop - an empty-string cast renders nothing. */}
       <div
         inert={calibrating || undefined}
         aria-hidden={calibrating || undefined}

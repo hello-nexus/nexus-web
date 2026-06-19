@@ -14,7 +14,7 @@ import {
   type Preferences as ServerPreferences,
   type PreferencesPatch,
 } from '../api/profiles';
-import type { UpdateChannel } from '../api/update';
+import type { UpdateChannel, UpdateMode } from '../api/update';
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import { sanitizePinnedTail } from '../app/sidebarApps';
@@ -73,7 +73,7 @@ export interface UiSettingsValue {
   // Per-widget config.advancedMode overrides this per instance.
   widgetAdvancedMode: boolean;
   // Server-only update prefs (not saved to localStorage).
-  autoUpdateDisabled: boolean;
+  updateMode: UpdateMode;
   updateChannel: UpdateChannel;
   lastDismissedUpdateVersion: string;
 }
@@ -108,7 +108,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     preferredGpuId: '',
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
     widgetAdvancedMode: src.general.widgetAdvancedMode,
-    autoUpdateDisabled: false,
+    updateMode: 'always' as UpdateMode,
     updateChannel: 'production' as UpdateChannel,
     lastDismissedUpdateVersion: '',
   };
@@ -163,8 +163,8 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
-  const update: Partial<{ autoUpdateDisabled: boolean; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
-  if (patch.autoUpdateDisabled !== undefined) update.autoUpdateDisabled = patch.autoUpdateDisabled;
+  const update: Partial<{ updateMode: UpdateMode; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
+  if (patch.updateMode !== undefined) update.updateMode = patch.updateMode;
   if (patch.updateChannel !== undefined) update.updateChannel = patch.updateChannel;
   if (patch.lastDismissedUpdateVersion !== undefined) update.lastDismissedUpdateVersion = patch.lastDismissedUpdateVersion;
   if (Object.keys(update).length > 0) out.update = update;
@@ -189,7 +189,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     pinnedSidebarApps: server.ui?.pinnedSidebarApps !== undefined
       ? sanitizePinnedTail(server.ui.pinnedSidebarApps)
       : base.pinnedSidebarApps,
-    autoUpdateDisabled: server.update?.autoUpdateDisabled ?? base.autoUpdateDisabled,
+    updateMode: (server.update?.updateMode as UpdateMode) ?? base.updateMode,
     updateChannel: (server.update?.updateChannel as UpdateChannel) ?? base.updateChannel,
     lastDismissedUpdateVersion: server.update?.lastDismissedUpdateVersion ?? base.lastDismissedUpdateVersion,
   };
@@ -234,7 +234,7 @@ export function UiSettingsProvider({
     if (!serviceOnline) return;
     const serverPatch = toServerPatch(patch);
     // toServerPatch produces an empty object when the patch only touches
-    // client-scoped fields — short-circuit to skip a pointless POST.
+    // client-scoped fields - short-circuit to skip a pointless POST.
     const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update;
     if (!anyBlock) return;
@@ -273,7 +273,7 @@ export function UiSettingsProvider({
     // and, through ResolvedThemeSync, resolvedThemeMode (immediate). The
     // immediate write's echo arrives before the debounced themeMode write
     // lands, so re-hydrating now reads the pre-toggle themeMode and re-applies
-    // it — the visible flicker: new theme → snaps back to old → tweens to new
+    // it - the visible flicker: new theme → snaps back to old → tweens to new
     // once the real write settles. Skip the round-trip while our own write is
     // still pending; that write's echo reloads once it flushes, when the
     // server is consistent. (Mount / profile-switch reloads pass false.)

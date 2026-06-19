@@ -5,7 +5,7 @@
 import type { PanelPhonePairQr } from '../../../api/panel';
 
 // 21x21 QR-look grid: three 7x7 finder patterns + arithmetic-hash fill
-// (~40% density). Deterministic — no Math.random.
+// (~40% density). Deterministic - no Math.random.
 function buildQrDataUrl(): string {
   const n = 21;
   const cell = 8;

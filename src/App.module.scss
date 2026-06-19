@@ -86,7 +86,7 @@
   cursor: ew-resize;
 }
 
-// The right + top strips cover the FULL edge of the window — no
+// The right + top strips cover the FULL edge of the window - no
 // exclusion for caption buttons or drag strip. Native Windows lets you
 // grab the very top 4-6 px of a window even over the title bar, and
 // the very right edge from y:0 down. Bumped to z-index 2004 (above the
@@ -132,7 +132,7 @@
 // above the caption buttons (z-index 2005 > 2003) so the very
 // corner of the window is always a diagonal resize even when the
 // OS-close button visually occupies the same pixels. The very edge
-// always wins on native Windows — we mirror that.
+// always wins on native Windows - we mirror that.
 .windowResizeCornerTopLeft {
   position: fixed;
   z-index: 2005;
@@ -193,7 +193,7 @@
   display: flex;
   flex-direction: column;
   width: 240px;
-  // No container treatment — the sidebar is transparent and its nav items float
+  // No container treatment - the sidebar is transparent and its nav items float
   // directly over the app backdrop.
   background: transparent;
   // 8px top gutter aligns the Nexus logo with the page title bar; bottom padding
@@ -239,12 +239,12 @@
 
 // The sidebar brand row drags the window in the Windows shell, wired in
 // SidebarBrand via useWindowDragRegion (mousedown -> WM_NCLBUTTONDOWN), not
-// `app-region: drag` — that makes it a WebView2 non-client region that
+// `app-region: drag` - that makes it a WebView2 non-client region that
 // black-flickers on resize over the transparent Mica backdrop.
 
 // Compact mode inherits padding + flex-start alignment from .sidebarBrand
 // so the mark stays anchored at the same top-left position as the expanded
-// wordmark's leading mark — no compact-specific overrides needed.
+// wordmark's leading mark - no compact-specific overrides needed.
 
 .sidebarBrandLogo {
   display: flex;
@@ -360,11 +360,10 @@
 // Tiny + faded version stamp pinned to the bottom-left of the layout.
 .pageVersion {
   position: absolute;
-  left: 12px;
-  bottom: 8px;
+  left: 16px;
+  bottom: 14px;
   z-index: 30;
   font-family: var(--font-mono);
-  // Small enough that "vNN alpha" fits the collapsed rail without clipping.
   font-size: 8px;
   line-height: 1;
   letter-spacing: 0.04em;
@@ -434,7 +433,7 @@
   box-shadow: 0 0 0 2px var(--bg);
 
   // Devices connected. When remote is OFF the dot isn't rendered at all, so
-  // there's no separate "disabled" colour — the dot's presence means remote
+  // there's no separate "disabled" colour - the dot's presence means remote
   // is on, green means at least one device is connected.
   &[data-state='connected'] {
     background: var(--good);
@@ -497,7 +496,7 @@
 }
 
 // Region containers for every group in the layout (killswitch, device list,
-// pairing flow). No visible stroke — same borderless treatment as the shared
+// pairing flow). No visible stroke - same borderless treatment as the shared
 // SettingsSection box; the transparent border just reserves the 1px so layout
 // is unchanged. The device rows inside carry their own chrome.
 .phonePairCard {
@@ -511,7 +510,7 @@
   min-width: 0;
 }
 
-// boxClassName for the "Connection options" SettingsSection box — restores the
+// boxClassName for the "Connection options" SettingsSection box - restores the
 // card's control gap + padding (the shared box defaults to tighter spacing).
 .phonePairBox {
   gap: 0.65rem;
@@ -577,7 +576,7 @@
   gap: 0.5rem;
   // Centered, content-width badge (not a full-bleed bar): fit-content sizes the
   // box to its single-line text; margin-inline auto centers it in the modal. No
-  // narrow cap — the copy is one short line, so let it size to its content.
+  // narrow cap - the copy is one short line, so let it size to its content.
   width: fit-content;
   max-width: 100%;
   margin: 0.85rem auto 0;
@@ -697,7 +696,7 @@
 // disturbs the QR image or the code text, and clipped by the box's
 // overflow:hidden. It is remounted with an incrementing React key on every
 // reload so the keyframe re-fires (a CSS animation won't replay on an
-// already-applied class). The box layout is untouched — this sits on top with
+// already-applied class). The box layout is untouched - this sits on top with
 // pointer-events:none.
 .phonePairReveal {
   position: absolute;
@@ -714,7 +713,7 @@
   to   { opacity: 0; }
 }
 
-// Reduced motion: reveal instantly — no lingering white overlay.
+// Reduced motion: reveal instantly - no lingering white overlay.
 @media (prefers-reduced-motion: reduce) {
   .phonePairReveal {
     animation: none;

@@ -102,7 +102,7 @@ interface SensorRowProps {
 
 function SensorRow({ label, options, defaultSensor, defaultSuffix, emptyLabel, value, onChange }: SensorRowProps) {
   // The visible option list must include both the user's stored pick and the
-  // default sensor — otherwise the controlled `<select>` would have a `value`
+  // default sensor - otherwise the controlled `<select>` would have a `value`
   // that doesn't match any `<option>` and silently snap to the first one,
   // which would then become the persisted choice on the next user interaction.
   // Two edge cases this defends against:

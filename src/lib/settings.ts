@@ -1,6 +1,6 @@
 // Settings persistence layer.
 // All settings stored in localStorage, exposed via typed getters/setters.
-import type { UpdateChannel } from '../api/update';
+import type { UpdateChannel, UpdateMode } from '../api/update';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -55,7 +55,7 @@ export type BackgroundMode = (typeof BACKGROUND_MODES)[number];
 // shell); 'custom' uses the user-picked accentColor.
 export type AccentSource = 'system' | 'custom';
 
-// Accent color — user-selectable in Settings, hex #rrggbb. Other accent
+// Accent color - user-selectable in Settings, hex #rrggbb. Other accent
 // tokens (glow, deep, soft, glow-shadow, the --accent-text variants) derive
 // from it per-theme in applyAccentColor(). First-paint fallback before
 // localStorage or the /defaults cache loads. Must mirror
@@ -124,7 +124,7 @@ export interface GeneralSettings {
   // silent/balanced/turbo chips on cooling); default false (single-icon
   // -with-arrows layout). Client-only, not in the server preferences pipeline.
   widgetAdvancedMode: boolean;
-  autoUpdateDisabled?: boolean;
+  updateMode?: UpdateMode;
   updateChannel?: UpdateChannel;
   lastDismissedUpdateVersion?: string;
 }
@@ -135,7 +135,7 @@ export interface NexusSettings {
 
 // ── Defaults ─────────────────────────────────────────────────────────────────
 
-// First-paint defaults — used only when localStorage is empty AND the
+// First-paint defaults - used only when localStorage is empty AND the
 // /defaults cache hasn't loaded yet. Canonical values live in
 // nexus-service/data/install-defaults.json (theme.* and monitoring.*); keep
 // in sync.
@@ -183,7 +183,7 @@ export function loadSettings(): NexusSettings {
       merged.general.accentColor = normalizeAccent(merged.general.accentColor);
       return merged;
     }
-  } catch { /* corrupt data — reset */ }
+  } catch { /* corrupt data - reset */ }
   return getDefaultSettings();
 }
 
@@ -222,7 +222,7 @@ export function resolveTheme(mode: ThemeMode): 'dark' | 'light' {
   return mode;
 }
 
-// Last applied accent — kept in-module so applyThemeMode() can re-derive
+// Last applied accent - kept in-module so applyThemeMode() can re-derive
 // shades when the user flips dark ↔ light without needing the caller to
 // thread the accent through.
 let currentAccent = DEFAULT_ACCENT;
@@ -355,7 +355,7 @@ function hslCss(h: number, s: number, l: number, a?: number): string {
 
 /**
  * WCAG relative luminance (0–1) of an HSL color. Used to pick a contrasting
- * foreground — returns true if black text reads better than white on this
+ * foreground - returns true if black text reads better than white on this
  * background. Threshold 0.6 keeps mid-tone violets/blues on white text and
  * flips bright yellow/cyan/lime to black.
  */
@@ -386,7 +386,7 @@ function needsDarkTextOnHsl(h: number, s: number, l: number): boolean {
  * properties on <html>. Safe to call on every color-picker input event.
  *
  * Surface tokens (--bg, --bg-elevated, --bg-card, --border, …) stay pure
- * grayscale in both modes — only the accent highlights follow the user's
+ * grayscale in both modes - only the accent highlights follow the user's
  * hue. The SCSS fallbacks in variables.scss are the canonical values.
  */
 export function deriveAccentVars(hex: string, mode: 'dark' | 'light' = 'dark'): Record<string, string> {
@@ -435,7 +435,7 @@ export function applyAccentColor(hex: string): void {
   const glowShadowAlpha = effective === 'dark' ? 0.45 : 0.35;
 
   // Pick black-or-white text for the accent surface based on its luminance.
-  // Keeps text legible across the full hue range — dark picks keep white text;
+  // Keeps text legible across the full hue range - dark picks keep white text;
   // bright yellows/limes/cyans flip to black.
   const accentText = needsDarkTextOnHsl(h, s, l)             ? '#000000' : '#ffffff';
 

@@ -154,7 +154,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('pairOverInternet — LAN-first decision', () => {
+describe('pairOverInternet - LAN-first decision', () => {
   it('takes the LAN fast path when the LAN claim succeeds (no relay dialed)', async () => {
     lanClaimMock.mockResolvedValueOnce({ paired: true, token: 'LAN-TOKEN', machineName: 'PC' });
 
@@ -188,7 +188,7 @@ describe('pairOverInternet — LAN-first decision', () => {
   });
 });
 
-describe('pairOverInternet — relay fallback', () => {
+describe('pairOverInternet - relay fallback', () => {
   it('claims over the relay when LAN is unreachable, stores the token', async () => {
     lanClaimMock.mockResolvedValueOnce(null); // LAN timed out / unreachable
 
@@ -237,10 +237,10 @@ describe('pairOverInternet — relay fallback', () => {
   });
 });
 
-describe('pairOverRelayClaim — TIER 2 relay-only path (no LAN fetch)', () => {
+describe('pairOverRelayClaim - TIER 2 relay-only path (no LAN fetch)', () => {
   // The REMOTE-origin tiered flow lives in PairRedirect: it NAVIGATES to the PC
   // (TIER 1, free) and only invokes pairOverRelayClaim (TIER 2) on a timeout.
-  // pairOverRelayClaim itself never touches the LAN claim — the plain-HTTP LAN
+  // pairOverRelayClaim itself never touches the LAN claim - the plain-HTTP LAN
   // fetch (mixed-content, WebKit-fatal) was removed from the remote path
   // entirely. These tests pin that: the relay claim succeeds and stores the
   // token without ever calling the LAN claim mock.
@@ -292,7 +292,7 @@ describe('pairOverRelayClaim — TIER 2 relay-only path (no LAN fetch)', () => {
   });
 });
 
-describe('pairOverInternet — single rid_pair claim per pair attempt', () => {
+describe('pairOverInternet - single rid_pair claim per pair attempt', () => {
   it('opens exactly ONE relay client for the pair rid even if the pair flow fires twice', async () => {
     // The PairRedirect effect can run more than once for the same mount (the
     // instrumented browser trace showed two relay client sockets to the SAME
@@ -303,7 +303,7 @@ describe('pairOverInternet — single rid_pair claim per pair attempt', () => {
 
     const params = { host: '10.0.0.9', httpPort: '9400', pairToken: PAIR_TOKEN, deviceName: 'iPhone' };
     // Fire the second call synchronously after the first, before either settles
-    // — exactly the double-fire shape from the trace.
+    // - exactly the double-fire shape from the trace.
     const first = pairOverInternet(params);
     const second = pairOverInternet(params);
 

@@ -16,9 +16,9 @@ import { isWindowsAppShell, isMacAppShell } from './app/windowActions';
 // bundled local service (:9400/:9443 ⇒ isServedFromService ⇒ the real app), NOT
 // a desktop `--app` shell, and NOT the Vite dev server (import.meta.env.DEV). On
 // this origin we let the Dashboard drive the local service over localhost
-// (forceLanMode); the Dashboard itself gates its render — blank while
+// (forceLanMode); the Dashboard itself gates its render - blank while
 // connecting, the splash if no local Nexus is reachable, the real UI once
-// online — so the page never flashes pre-connection chrome.
+// online - so the page never flashes pre-connection chrome.
 function isPublicWebsite(): boolean {
   return isRemoteOrigin
     && import.meta.env.PROD

@@ -72,7 +72,7 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
     console.error(`[sdk:${context.widgetId}] worker error`, e.message, e.filename, e.lineno);
   });
 
-  // Sensor broker — capped to the manifest's
+  // Sensor broker - capped to the manifest's
   // sensors.read grant (enforced here in the SDK host).
   const allowedSensors = (context.sensorsRead ?? []).map(globToRegex);
   const isGranted = (id: string) => allowedSensors.some((re) => re.test(id));

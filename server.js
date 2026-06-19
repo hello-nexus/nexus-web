@@ -78,7 +78,7 @@ app.use(express.static(join(__dirname, 'dist'), {
     // Vite emits content-hashed build outputs FLAT in dist/assets/ (e.g.
     // index-B3qUJaPz.js); the URL changes whenever the bytes do, so cache them
     // forever. Files copied verbatim from public/ keep their sub-path with a
-    // STABLE name (e.g. /assets/devices/y70.svg) — those must NOT be immutable
+    // STABLE name (e.g. /assets/devices/y70.svg) - those must NOT be immutable
     // or an icon edit is stuck stale for a year. So: immutable only for a direct
     // child of /assets/, never a nested verbatim copy.
     const assetsAt = filePath.indexOf(`${sep}assets${sep}`);
@@ -102,7 +102,7 @@ app.use(express.static(join(__dirname, 'dist'), {
       res.setHeader('Cache-Control', 'no-cache');
     }
     // Everything else (favicon, icons.svg, fonts, device SVGs) keeps the
-    // maxAge:'1d' default set above — unchanged from prior behavior.
+    // maxAge:'1d' default set above - unchanged from prior behavior.
   },
 }));
 // Express 5 / send v1+ requires an explicit `root` option for sendFile,

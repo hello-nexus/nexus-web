@@ -1,4 +1,4 @@
-// Blessed host components (React 19) — the real, panel-themed widgets the host
+// Blessed host components (React 19) - the real, panel-themed widgets the host
 // renders for each SDK element. These are pure (props + children); the RemoteTree
 // feeds them synced properties + event listeners. An author can ONLY cause one of
 // these to render, which is the structural visual-consistency guarantee.
@@ -314,7 +314,7 @@ export function Button(p: HostProps) {
   );
 }
 
-// Only these schemes load — never a bare http: or javascript: URL from a worker.
+// Only these schemes load - never a bare http: or javascript: URL from a worker.
 const SAFE_IMG = /^(https:|data:image\/|blob:)/i;
 export function Image(p: HostProps) {
   const src = str(p.src);
@@ -347,7 +347,7 @@ export function Input(p: HostProps) {
   const value = str(p.value) ?? '';
   const lastSet = useRef<string | null>(null);
   // Apply a programmatic value (reset/compute result) only when the prop actually
-  // changes — never on every render — so local typing keeps a stable cursor.
+  // changes - never on every render - so local typing keeps a stable cursor.
   useEffect(() => {
     if (lastSet.current !== value && ref.current) ref.current.value = value;
     lastSet.current = value;
@@ -426,7 +426,7 @@ export function Badge(p: HostProps) {
   );
 }
 
-// An indeterminate loading spinner — a rotating arc over a faint track ring.
+// An indeterminate loading spinner - a rotating arc over a faint track ring.
 // SMIL-animated so it's self-contained (no global @keyframes to inject). `size`
 // is px (default 20); `tone` tints it (default accent).
 export function Spinner(p: HostProps) {

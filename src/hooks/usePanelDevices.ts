@@ -56,7 +56,7 @@ const EXTERNAL_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
 
 // User-promoted OS monitors hosting a kiosk. Layout + theme edit like any
 // panel; no Y70 hardware controls (those are serial/DDC Y70-specific).
-// `touch` is per-device — stamped from the record (Windows pointer-device
+// `touch` is per-device - stamped from the record (Windows pointer-device
 // association at promote time).
 const HOSTED_MONITOR_CAPABILITIES: Omit<PanelDeviceCapabilities, 'touch'> = {
   layout: true,
@@ -228,7 +228,7 @@ function buildPanelDevices({
   // monitor is unplugged (displayAttached === false); unknown topology
   // (null/undefined) keeps the row visible rather than flickering it away.
   for (const record of records) {
-    // Off panels keep their record (config persistence) but host no kiosk —
+    // Off panels keep their record (config persistence) but host no kiosk -
     // no device entry until turned back on from the Displays tab.
     if (!record.displayId || record.displayAttached === false || record.enabled === false) continue;
     const cssWidth = record.capabilities?.cssWidth ?? 0;

@@ -5,7 +5,7 @@
   user-select: none;
 }
 
-/* Rainbow strip — SVG arcs (in PaletteRing.tsx), not CSS. This rule sets
+/* Rainbow strip - SVG arcs (in PaletteRing.tsx), not CSS. This rule sets
    crisp rendering for the sliced donut. */
 .rainbow {
   shape-rendering: geometricPrecision;

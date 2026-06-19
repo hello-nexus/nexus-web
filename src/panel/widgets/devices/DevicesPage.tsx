@@ -22,7 +22,7 @@ interface DevicesViewProps {
   connectionState?: ConnectionState;
   // Click handler for a device card. Dashboard wires this to
   // `navigate('system', 'device', deviceKey)` so the card flow
-  // matches the sidebar — clicking a device routes into its dedicated
+  // matches the sidebar - clicking a device routes into its dedicated
   // page (PanelDevicePage / PeripheralDevicePage) rather than opening
   // a modal in place.
   onDeviceSelect: (deviceKey: string) => void;
@@ -49,7 +49,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   const availableActive = tab === 'available';
   const { unified, merged, webhidAvailable, requestWebHid } = useUnifiedDevices(serviceOnline && availableActive);
   // Single USB subscription, reused for both the catalog "detected" highlight
-  // and the Connected Devices modal — no second socket subscription.
+  // and the Connected Devices modal - no second socket subscription.
   const allUsb = useUsbDevices(serviceOnline);
   const firmwareItems = useFirmwareStatus(serviceOnline && tab === 'firmware');
   const systemSpecs = useSystemSpecs(serviceOnline && tab === 'specs');
@@ -67,7 +67,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
 
   const availableAvailable = serviceOnline || webhidAvailable;
 
-  // Non-navigable devices (no settings page — MiniHub, capability-less
+  // Non-navigable devices (no settings page - MiniHub, capability-less
   // peripherals) sort to the bottom so the list leads with the cards you can
   // open. sort() is stable, so each group keeps the order useUnifiedDevices
   // emitted.
@@ -226,7 +226,7 @@ function DeviceCard({ device, onClick }: { device: UnifiedDevice; onClick: () =>
 
   const stateClass = device.connected ? styles.connected : styles.disconnected;
 
-  // Non-navigable devices (e.g. the MiniHub — controlled from Cooling/Lighting,
+  // Non-navigable devices (e.g. the MiniHub - controlled from Cooling/Lighting,
   // no dedicated page) render as a static status card: shown for visibility,
   // but not a button that deep-links into an empty page.
   if (!device.navigable) {
@@ -263,7 +263,7 @@ const FW_FALLBACK_ICON = '/assets/devices/device.svg';
 
 // Gates the dev-only firmware version picker (re-flash / downgrade /
 // cross-branch). __DEV_TOOLS__ is a build define (DEV_TOOLS=1) and
-// import.meta.env.DEV covers the dev server — both are statically false in a
+// import.meta.env.DEV covers the dev server - both are statically false in a
 // release build, so esbuild dead-code-eliminates the brick-capable picker.
 const DEV_TOOLS = import.meta.env.DEV || __DEV_TOOLS__;
 
@@ -362,7 +362,7 @@ function FirmwareRow({ item, status, anyFlashing, onFlash }: FirmwareRowProps) {
           <span>{item.name}</span>
         </span>
       </td>
-      <td className={styles.mono}>{installedVersion || '—'}</td>
+      <td className={styles.mono}>{installedVersion || '-'}</td>
       <td>
         {flashing ? (
           <FlashProgress status={status!} />
@@ -464,7 +464,7 @@ function SpecsPanel({ specs }: SpecsPanelProps) {
   const onCopy = async () => {
     if (!specs) return;
     const text = specRows(specs, t)
-      .map(r => `${r.label}: ${r.value || '—'}`)
+      .map(r => `${r.label}: ${r.value || '-'}`)
       .join('\n');
     try {
       await navigator.clipboard.writeText(text);
@@ -472,7 +472,7 @@ function SpecsPanel({ specs }: SpecsPanelProps) {
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       // Browsers without async clipboard (older WebViews on the panel side)
-      // fall back to selecting nothing — no need to surface an error here,
+      // fall back to selecting nothing - no need to surface an error here,
       // the toast just won't appear.
     }
   };
@@ -490,7 +490,7 @@ function SpecsPanel({ specs }: SpecsPanelProps) {
             <div key={i} className={styles.specsRow}>
               <dt className={styles.specsLabel}>{row.label || ' '}</dt>
               <dd className={styles.specsValue}>
-                {specs ? (row.value || '—') : ' '}
+                {specs ? (row.value || '-') : ' '}
               </dd>
             </div>
           ))}

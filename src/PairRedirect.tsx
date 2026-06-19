@@ -21,7 +21,7 @@ import { deriveDeviceLabel } from './lib/platform';
  * is the primary path; the paid relay is only a fallback:
  *
  *   LOCAL ORIGIN (the PC's own panel on :9400/:9443, isServedFromService):
- *     keep today's behavior — pairOverInternet() does the LAN HTTP claim and,
+ *     keep today's behavior - pairOverInternet() does the LAN HTTP claim and,
  *     if the PC is unreachable, falls back to the relay.
  *
  *   REMOTE ORIGIN (hellonexus.com, served over https, isRemoteOrigin):
@@ -29,7 +29,7 @@ import { deriveDeviceLabel } from './lib/platform';
  *       (http://<host>:9400/panel/phone?pair=…). A navigation is NOT a fetch, so
  *       it is exempt from mixed-content / WebKit "access control" aborts. On the
  *       same LAN this commits and the PC-served panel (isServedFromService=true)
- *       runs the direct same-origin claim — the relay is never used (free).
+ *       runs the direct same-origin claim - the relay is never used (free).
  *     TIER 2 (relay fallback): a {@link DIRECT_PROBE_MS} timer is armed right
  *       before the Tier-1 navigation. If the direct page commits (LAN reachable)
  *       this hellonexus.com page unloads and the timer dies, so the relay never
@@ -37,7 +37,7 @@ import { deriveDeviceLabel } from './lib/platform';
  *       the timer fires and pairOverRelayClaim() pairs over the cloud relay,
  *       then runs the panel over the relay right here on hellonexus.com.
  *
- * We deliberately do not auto-fire the `hellonexus://` custom scheme here —
+ * We deliberately do not auto-fire the `hellonexus://` custom scheme here -
  * when the app isn't installed iOS Safari pops a "Cannot Open Page" error
  * dialog for an unregistered scheme, which is worse than the silent flow. The
  * Universal Link above already provides the dialog-free automatic app handoff.
@@ -46,7 +46,7 @@ import { deriveDeviceLabel } from './lib/platform';
 // How long to give the direct-LAN navigation (TIER 1) to commit before falling
 // back to the cloud relay (TIER 2). On the same LAN the PC's plain-HTTP panel
 // loads well inside this window, this page unloads, and the timer is destroyed
-// — so the relay never runs (no double-claim). Off-LAN the navigation can't
+// - so the relay never runs (no double-claim). Off-LAN the navigation can't
 // commit (connection refused / unroutable private IP), the timer fires, and the
 // relay claim starts. ~3s balances "don't make an on-LAN phone wait" against
 // "give a slow-but-reachable PC time to answer before paying for the relay".
@@ -105,13 +105,13 @@ export function PairRedirect() {
 
     // The direct-LAN panel URL: plain HTTP, the service's HTTP port (9400).
     // Carry the stable per-device id so the PC-served panel's same-origin claim
-    // sends the SAME deviceId it would have over the relay — a QR scan dedups to
+    // sends the SAME deviceId it would have over the relay - a QR scan dedups to
     // one authorized-device session whether it ends up LAN-direct or relay.
     const directUrl = `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}&deviceId=${encodeURIComponent(getDeviceId())}`;
 
     // Settle the relay outcome (shared by both origins' relay paths). The relay
     // session token is stored under this origin, so render the panel over the
-    // relay right here on hellonexus.com — the multiplex hook's LAN /ws open
+    // relay right here on hellonexus.com - the multiplex hook's LAN /ws open
     // fails (localhost is unreachable from this origin) and falls back to the
     // relay using the stored token.
     const applyResult = (result: InternetPairResult) => {
@@ -126,7 +126,7 @@ export function PairRedirect() {
       }
     };
 
-    // REMOTE ORIGIN — tiered: direct LAN first (free), relay only on timeout.
+    // REMOTE ORIGIN - tiered: direct LAN first (free), relay only on timeout.
     if (isRemoteOrigin) {
       let cancelled = false;
       // TIER 2 fallback armed BEFORE the TIER 1 navigation. If the direct
@@ -163,7 +163,7 @@ export function PairRedirect() {
       };
     }
 
-    // LOCAL ORIGIN (PC's own panel) — unchanged: LAN HTTP claim, relay fallback.
+    // LOCAL ORIGIN (PC's own panel) - unchanged: LAN HTTP claim, relay fallback.
     let cancelled = false;
     void pairOverInternet({
       host,
@@ -256,7 +256,7 @@ export function PairRedirect() {
   );
 }
 
-// True only for a private (RFC1918 / link-local) IPv4 LAN address — the only
+// True only for a private (RFC1918 / link-local) IPv4 LAN address - the only
 // kind of host a Nexus PC advertises in a pairing QR. TIER 1 NAVIGATES the
 // phone to http://<host>:9400, so an untrusted QR `host` must be confined to
 // the LAN; a public host is rejected (the QR is treated as invalid). Ranges:

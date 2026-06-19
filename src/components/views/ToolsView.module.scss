@@ -217,7 +217,7 @@
   background: var(--surface-2);
   overflow: hidden;
 
-  // Native disclosure marker — hide so the row layout drives the expand
+  // Native disclosure marker - hide so the row layout drives the expand
   // affordance via the rotating chevron below.
   > summary { list-style: none; }
   > summary::-webkit-details-marker { display: none; }

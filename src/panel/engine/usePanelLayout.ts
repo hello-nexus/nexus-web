@@ -70,14 +70,14 @@ function reconcileAppsAgainstRegistry(
       //      user's widgets; MarketplaceWidget renders a Loading…
       //      placeholder until the listing lands.
       //   2. Post-load: the registry HAS loaded but the listing for this
-      //      id is missing — the widget was uninstalled (or renamed, e.g.
+      //      id is missing - the widget was uninstalled (or renamed, e.g.
       //      com.nexus.* → com.hellonexus.*). Drop it from the layout so the
       //      panel doesn't show an "unknown:" cell forever.
       if (isMarketplaceType(widget.type)) {
         if (!hasMarketplaceLoadedOnce()) return [widget];
         const id = marketplaceIdFromType(widget.type);
         if (id && getMarketplaceListing(id)) return [widget];
-        // Stale id — purge silently. The layout writer will persist the
+        // Stale id - purge silently. The layout writer will persist the
         // cleaned shape on the next debounced flush.
          
         console.info(`[panel-layout] dropping orphaned marketplace widget: ${widget.type}`);

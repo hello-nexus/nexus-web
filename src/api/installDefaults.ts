@@ -1,8 +1,8 @@
 // Install-time defaults API. The service serves two endpoints from the same
 // JSON shape:
-//   - /defaults — the embedded values from
+//   - /defaults - the embedded values from
 //     nexus-service/data/install-defaults.json
-//   - /defaults/snapshot — every field projected from the running
+//   - /defaults/snapshot - every field projected from the running
 //     NexusSettings, for regenerating install-defaults.json from live config
 
 import { fetchService } from './service';

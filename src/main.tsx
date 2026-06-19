@@ -1,4 +1,4 @@
-// Polyfills MUST load before any other import — they patch globals that the
+// Polyfills MUST load before any other import - they patch globals that the
 // rest of the bundle's transitive imports may call at module-init time.
 import './lib/polyfills';
 import { StrictMode } from 'react';
@@ -22,7 +22,7 @@ bootDebugFont();
 
 // Kick off the install-defaults fetch in parallel with React mount; the
 // `defaultLayout*` helpers read from this cache instead of hardcoding the
-// panel surface layouts. Not awaited — the network round-trip resolves
+// panel surface layouts. Not awaited - the network round-trip resolves
 // faster than the first hook that needs it.
 void preloadInstallDefaults();
 
@@ -48,7 +48,7 @@ if (
     try { return sessionStorage.getItem(SW_RELOADED_KEY) === '1'; } catch { return false; }
   };
 
-  // Reload to pick up a new SW build ONLY on a real update — i.e. when a
+  // Reload to pick up a new SW build ONLY on a real update - i.e. when a
   // controller ALREADY exists and is later replaced. On a first visit there is
   // no controller yet, and the SW's initial activation also fires
   // controllerchange; reloading then restarts the page mid-session (e.g. during
@@ -59,7 +59,7 @@ if (
   // single page load; the listener is re-armed on every load. Safari/WebKit can
   // fire controllerchange on essentially every load (it intermittently treats a
   // byte-identical sw.js as updated and re-activates it), so without a guard
-  // that survives the reload the page reloads forever — the loop reported on
+  // that survives the reload the page reloads forever - the loop reported on
   // Safari mac/iOS. The sessionStorage flag persists across reloads within the
   // tab, so the second controllerchange is a no-op and the loop can't form. The
   // SW no longer self-activates mid-session (see sw.js), so in practice this now

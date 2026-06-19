@@ -1,5 +1,5 @@
 // Owned React-19 renderer over a @remote-dom RemoteReceiver. (We don't use
-// @remote-dom/react/host — it peers React 17/18; the app is React 19.) Each
+// @remote-dom/react/host - it peers React 17/18; the app is React 19.) Each
 // remote node gets its own subscription, because the receiver only notifies a
 // node's direct property/children changes, not nested ones.
 
@@ -25,7 +25,7 @@ function useReceiverNode<T extends RemoteReceiverParent | RemoteReceiverNode>(
 ): T {
   // The receiver mutates each node snapshot in place and bumps `version`, so the
   // node reference is stable. We must drive useSyncExternalStore off `version`
-  // (a primitive that changes), then read the live node during render — otherwise
+  // (a primitive that changes), then read the live node during render - otherwise
   // Object.is sees the same reference and skips the re-render.
   useSyncExternalStore(
     (onChange) => {

@@ -43,7 +43,7 @@
 
 // Inside the Nexus Windows shell, the top 32px of the window is occupied by
 // the custom caption strip (min/max/close + drag region, z-index 2003).
-// Push the fullscreen modal down so its header — and the X button inside —
+// Push the fullscreen modal down so its header - and the X button inside -
 // clears the caption row instead of disappearing behind it.
 :global(body.nexus-shell-windows-app) .modalFullscreen {
   align-self: flex-start;

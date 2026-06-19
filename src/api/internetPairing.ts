@@ -6,19 +6,19 @@
 // this module owns the two transports it picks between:
 //
 //   - LOCAL ORIGIN (the PC's own panel on :9400/:9443) → pairOverInternet():
-//       LAN-first fast path — try the existing HTTP claim against the PC's LAN
+//       LAN-first fast path - try the existing HTTP claim against the PC's LAN
 //       address (host:httpPort from the QR) with a SHORT timeout. On the same
 //       network this succeeds in a few ms and the caller keeps today's behavior
 //       (redirect into the LAN panel). If it times out / is unreachable, fall
 //       through to a relay claim.
 //
 //   - REMOTE ORIGIN (hellonexus.com, served over https) → PairRedirect drives
-//       the tiers itself (the plain-HTTP LAN *fetch* is gone — on WebKit it
+//       the tiers itself (the plain-HTTP LAN *fetch* is gone - on WebKit it
 //       raised a fatal uncaught "access control" pageerror):
 //         TIER 1 (direct LAN, free): NAVIGATE the browser to the PC's plain-HTTP
 //           panel. A navigation is NOT a fetch, so it is exempt from mixed-
 //           content / access-control aborts. On the same LAN this commits and
-//           the PC-served panel runs the direct same-origin claim — no relay.
+//           the PC-served panel runs the direct same-origin claim - no relay.
 //         TIER 2 (relay fallback): if the direct navigation never commits
 //           (PC off-LAN/unreachable), pairOverRelayClaim() does the relay claim.
 //       PairRedirect arms a timer before the Tier-1 navigation; a committed
@@ -44,7 +44,7 @@ import { getDeviceId } from './deviceId';
 export const LAN_CLAIM_TIMEOUT_MS = 2500;
 
 export type InternetPairResult =
-  // LAN reachable: keep today's behavior — redirect the browser into the LAN
+  // LAN reachable: keep today's behavior - redirect the browser into the LAN
   // panel. The token was already issued by the PC's HTTP claim; the LAN panel
   // re-claims/uses it as before, so we don't store anything here.
   | { kind: 'lan'; token: string; machineName?: string }
@@ -67,7 +67,7 @@ export interface InternetPairParams {
 
 // Once-per-pair-token guard. The PairRedirect effect can fire more than once
 // for the same mount (React 18 StrictMode double-invoke, a Suspense/remount, or
-// a re-render that re-runs the effect) — and each invocation that reaches the
+// a re-render that re-runs the effect) - and each invocation that reaches the
 // relay branch opens a SEPARATE rid_pair relay client with a fresh connSalt.
 // The relay enforces one client per rid, so the duplicate races the first and
 // ~1/3 of the time kills the winning claim (close 4409) → "Couldn't reach your
@@ -82,7 +82,7 @@ const inFlightPairs = new Map<string, Promise<InternetPairResult>>();
  * LOCAL-ORIGIN pairing: LAN-first → relay fallback for a brand-new phone.
  *
  * Used only when the page is served from the PC itself (isServedFromService).
- * A REMOTE origin does NOT call this — PairRedirect drives the tiered flow there
+ * A REMOTE origin does NOT call this - PairRedirect drives the tiered flow there
  * (direct navigation first, {@link pairOverRelayClaim} as the timeout fallback).
  *
  * Idempotent per pair token: concurrent or repeated calls with the same
@@ -91,7 +91,7 @@ const inFlightPairs = new Map<string, Promise<InternetPairResult>>();
  * Decision logic:
  *   - LAN claim with a {@link LAN_CLAIM_TIMEOUT_MS} timeout:
  *       paired      → { kind: 'lan' }      (fast path, redirect to LAN panel)
- *       refused     → { kind: 'rejected' } (token expired; don't try relay —
+ *       refused     → { kind: 'rejected' } (token expired; don't try relay -
  *                       the relay would refuse the same token)
  *       no reply    → fall through to relay
  *   - Relay claim ({@link pairOverRelayClaim}).
@@ -131,13 +131,13 @@ async function runPairAttempt(params: InternetPairParams): Promise<InternetPairR
     return { kind: 'rejected', error: lan.error };
   }
 
-  // 2. Relay claim — fallback for an unreachable / timed-out / unanswered LAN
+  // 2. Relay claim - fallback for an unreachable / timed-out / unanswered LAN
   //    claim.
   return pairOverRelayClaim(pairToken, deviceName);
 }
 
 /**
- * RELAY claim (Phase 1 internet pairing) — derive rid_pair from the QR `pair`
+ * RELAY claim (Phase 1 internet pairing) - derive rid_pair from the QR `pair`
  * token, rendezvous with the PC over the cloud relay, send one sealed claim,
  * and get back a session token, which is stored under this origin so the panel
  * (and a later reopen of hellonexus.com) reconnects over the relay.
@@ -160,8 +160,8 @@ export async function pairOverRelayClaim(
     // a duplicate authorized device.
     const result = await pairOverRelay(resolveRelayWs(), pairToken, deviceName, getDeviceId());
     if (result.ok) {
-      // Persist under the hellonexus.com origin so the panel — and a later
-      // reopen of hellonexus.com — reconnects over the relay using this token.
+      // Persist under the hellonexus.com origin so the panel - and a later
+      // reopen of hellonexus.com - reconnects over the relay using this token.
       storePhoneToken(result.sessionToken);
       return { kind: 'relay', token: result.sessionToken, machineName: result.machineName, spki: result.spki };
     }

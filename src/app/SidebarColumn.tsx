@@ -45,12 +45,12 @@ interface SidebarColumnProps {
   phoneSubscribers: number;
   onPairPhoneOpen: () => void;
   onUpdateOpen: () => void;
-  // Device-page routing — surfaced from Dashboard so the sidebar's
+  // Device-page routing - surfaced from Dashboard so the sidebar's
   // DEVICES section can both highlight the active device and navigate
   // into a fresh device page on click.
   activeDeviceKey: string;
   onDeviceSelect: (deviceKey: string) => void;
-  // Click on the DEVICES section header routes here — the all-devices
+  // Click on the DEVICES section header routes here - the all-devices
   // landing page. Dashboard maps this to the existing DevicesPage.
   onDevicesHeaderClick: () => void;
   devicesHeaderActive: boolean;
@@ -229,7 +229,7 @@ interface SidebarPinDropTargetProps {
 // position relative to the sidebar's tail-scroll region, renders an
 // insertion line at the corresponding viewport y, and pins the widget
 // on pointerup when the drop landed inside the tail. The panel's own
-// onDragEnd handles clearing its drag state — this overlay only acts on
+// onDragEnd handles clearing its drag state - this overlay only acts on
 // the sidebar side.
 function SidebarPinDropTarget({ onDrop }: SidebarPinDropTargetProps) {
   // `position` in fixed (viewport) coordinates so the indicator can render

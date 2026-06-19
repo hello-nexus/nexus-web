@@ -15,7 +15,7 @@ interface State {
 
 /**
  * Per-widget render error boundary. A sandboxed app's render error is contained
- * to its own cell — it renders a small fallback and is logged with the app id,
+ * to its own cell - it renders a small fallback and is logged with the app id,
  * instead of propagating up to blank the dashboard (React unmounts the whole
  * subtree on an uncaught render throw) or only reaching the console.
  *

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 // Increments once per change of `value`, skipping changes that land while
-// `suppress` is true or on the render where it flips false — initial
+// `suppress` is true or on the render where it flips false - initial
 // hydration applies the fetched state and clears `suppress` in the same
 // batch, and that first sync must not read as a state change.
 export function useStateChangePulse(value: unknown, suppress: boolean): number {

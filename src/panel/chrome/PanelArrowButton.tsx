@@ -11,7 +11,7 @@ interface PanelArrowButtonProps {
   // responsive tweaks that win by container-scoped specificity.
   className?: string;
   // The arrow sits over a colored surface (e.g. the lighting preview), so it
-  // always uses the dark-theme treatment — light chevrons + drop shadow —
+  // always uses the dark-theme treatment - light chevrons + drop shadow -
   // regardless of the active theme. Otherwise the shadow is dropped in light
   // theme (dark chevrons on a light surface don't need it).
   onColor?: boolean;

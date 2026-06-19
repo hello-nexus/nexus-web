@@ -12,6 +12,7 @@ import {
   LANGUAGE_FLAGS, LANGUAGE_LABELS, LANGUAGES,
   type Language, type NexusSettings,
 } from '../../../lib/settings';
+import type { UpdateChannel, UpdateMode } from '../../../api/update';
 import styles from './SettingsView.module.scss';
 
 export interface GeneralTabProps {
@@ -34,7 +35,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   // it's fetched/written directly like auto-start, not via the local UI store.
   const [telemetryOn, setTelemetryOn] = useState<boolean | null>(null);
   const [telemetryLoading, setTelemetryLoading] = useState(false);
-  // Block shutdown while a firmware flash is running — stopping the service
+  // Block shutdown while a firmware flash is running - stopping the service
   // mid-flash would strand the device in the DFU bootloader. (The service
   // also refuses /service/stop during a flash; this mirrors it in the UI.)
   const { status: flashStatus } = useFlashStatus(serviceOnline);
@@ -96,7 +97,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   };
 
   // Wipe every Nexus data dir and restart the service from a clean slate. The
-  // service spawns a detached finalizer, stops, gets wiped, then restarts — so
+  // service spawns a detached finalizer, stops, gets wiped, then restarts - so
   // this window's connection drops; close it and let the user reopen on the
   // fresh install. Loopback-only endpoint.
   const factoryReset = async () => {
@@ -109,7 +110,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
   // Reveal the logs folder (service.log, plus desktop-host.log on Windows) in
   // the OS file manager so testers can grab them for a bug report. Loopback-only
-  // endpoint — acts on the local machine.
+  // endpoint - acts on the local machine.
   const openLogs = async () => {
     await postService('/diagnostics/open-logs', {});
   };
@@ -167,14 +168,23 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
       {platform === 'windows' && (
         <SettingsSection title={t('settings.updates.title')}>
-          <SettingToggle
-            label={t('settings.updates.autoInstall.label')}
-            description={t('settings.updates.autoInstall.description')}
-            checked={!(settings.general.autoUpdateDisabled ?? false)}
-            onChange={() => updateGeneral({ autoUpdateDisabled: !(settings.general.autoUpdateDisabled ?? false) })}
+          <SettingSelect
+            label={t('settings.updates.mode.label')}
+            description={t('settings.updates.mode.description')}
+            value={settings.general.updateMode ?? 'always'}
+            options={[
+              // eslint-disable-next-line i18next/no-literal-string -- update mode enum value
+              { value: 'always', label: t('settings.updates.mode.always') },
+              // eslint-disable-next-line i18next/no-literal-string -- update mode enum value
+              { value: 'download', label: t('settings.updates.mode.download') },
+              // eslint-disable-next-line i18next/no-literal-string -- update mode enum value
+              { value: 'notify', label: t('settings.updates.mode.notify') },
+            ]}
+            onChange={v => updateGeneral({ updateMode: v as UpdateMode })}
           />
           <SettingSelect
             label={t('settings.updates.channel.label')}
+            description={t('settings.updates.channel.description')}
             value={settings.general.updateChannel ?? 'production'}
             options={[
               // eslint-disable-next-line i18next/no-literal-string -- update channel enum value
@@ -182,7 +192,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
               // eslint-disable-next-line i18next/no-literal-string -- update channel enum value
               { value: 'beta', label: t('settings.updates.channel.beta') },
             ]}
-            onChange={v => updateGeneral({ updateChannel: v as import('../../../api/update').UpdateChannel })}
+            onChange={v => updateGeneral({ updateChannel: v as UpdateChannel })}
           />
         </SettingsSection>
       )}

@@ -21,7 +21,7 @@ const STYLES: TextStyleSpec[] = [
   { name: 'Label',   mixin: 'text-label',   className: styles.label,   family: 'sans', use: 'Eyebrows, table headers, badges' },
   { name: 'Caption', mixin: 'text-caption', className: styles.caption, family: 'sans', use: 'Timestamps, footnotes, sensor units' },
   { name: 'Numeric', mixin: 'text-numeric', className: styles.numeric, family: 'mono', use: 'Tabular monospace numbers (sensor values, RPM, network rates)' },
-  { name: 'Code',    mixin: 'text-code',    className: styles.code,    family: 'mono', use: 'Pairing / confirmation codes (Code-tab digits, confirm SAS) — heavy, size set per use' },
+  { name: 'Code',    mixin: 'text-code',    className: styles.code,    family: 'mono', use: 'Pairing / confirmation codes (Code-tab digits, confirm SAS) - heavy, size set per use' },
 ];
 
 interface ComputedSpec {

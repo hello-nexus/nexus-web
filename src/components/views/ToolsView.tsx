@@ -94,7 +94,7 @@ function StorybookCard() {
 
 /**
  * Widget SDK reference card. Opens the storybook-style /widget-reference
- * page in a new tab — every meter tag, binding function, data source type,
+ * page in a new tab - every meter tag, binding function, data source type,
  * and dispatch action with live previews.
  */
 function WidgetSdkCard() {
@@ -110,7 +110,7 @@ function WidgetSdkCard() {
 }
 
 /**
- * Telemetry events reference card. Opens /telemetry-reference — every product
+ * Telemetry events reference card. Opens /telemetry-reference - every product
  * event sent to PostHog, what it means, when it fires, and its parameters.
  */
 function TelemetryEventsCard() {

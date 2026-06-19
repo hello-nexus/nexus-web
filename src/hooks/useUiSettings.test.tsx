@@ -53,8 +53,8 @@ afterEach(() => {
   localStorage.clear();
 });
 
-describe('UiSettingsProvider — prefs-topic reload', () => {
-  // Regression: toggling the theme in-app made two /preferences writes —
+describe('UiSettingsProvider - prefs-topic reload', () => {
+  // Regression: toggling the theme in-app made two /preferences writes -
   // themeMode (debounced) and resolvedThemeMode (immediate, via
   // ResolvedThemeSync). The immediate write's 'prefs' echo re-hydrated before
   // the debounced themeMode write landed, re-applying the stale (pre-toggle)

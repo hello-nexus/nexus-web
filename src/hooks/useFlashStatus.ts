@@ -13,7 +13,7 @@ export interface FlashStatus {
 }
 
 // Polls the server-side flash status. Because the flash runs entirely in the
-// service, this state is global — navigating between tabs and coming back
+// service, this state is global - navigating between tabs and coming back
 // resumes the same progress (the component just re-reads it). Also used by the
 // Settings shutdown button to block quitting mid-flash.
 export function useFlashStatus(enabled: boolean) {

@@ -12,13 +12,15 @@ interface DeviceModalProps {
   large?: boolean;
   wide?: boolean;
   fullscreen?: boolean;
-  /** Hug the content width instead of a fixed width — for small tables/lists. */
+  /** Hug the content width instead of a fixed width - for small tables/lists. */
   fit?: boolean;
+  /** When false the X button is hidden and Esc/backdrop-click do not close. Defaults to true. */
+  closable?: boolean;
   headerRight?: ReactNode;
   children: ReactNode;
 }
 
-export function DeviceModal({ open, onClose, title, icon, large, wide, fullscreen, fit, headerRight, children }: DeviceModalProps) {
+export function DeviceModal({ open, onClose, title, icon, large, wide, fullscreen, fit, closable = true, headerRight, children }: DeviceModalProps) {
   const { t } = useTranslation();
   const variantClass = fullscreen ? styles.modalFullscreen
     : wide ? styles.modalWide
@@ -31,7 +33,8 @@ export function DeviceModal({ open, onClose, title, icon, large, wide, fullscree
   // the modal below the 32px Windows caption strip in the Nexus shell, so
   // the inline header X is no longer obscured by the caption buttons.
   return (
-    <Overlay open={open} onClose={onClose} variant="dialog" className={surfaceClass} ariaLabel={title}>
+    <Overlay open={open} onClose={onClose} variant="dialog" className={surfaceClass} ariaLabel={title}
+      noEscDismiss={!closable} noBackdropDismiss={!closable}>
       <div className={styles.header}>
         <div className={styles.titleRow}>
           {icon && <span className={styles.icon}>{icon}</span>}
@@ -39,9 +42,11 @@ export function DeviceModal({ open, onClose, title, icon, large, wide, fullscree
         </div>
         <div className={styles.headerRight}>
           {headerRight}
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label={t('app.window.close')}>
-            <X size={18} />
-          </button>
+          {closable && (
+            <button type="button" className={styles.closeBtn} onClick={onClose} aria-label={t('app.window.close')}>
+              <X size={18} />
+            </button>
+          )}
         </div>
       </div>
       <div className={`${styles.body} ${fullscreen ? styles.bodyFullscreen : wide ? styles.bodyWide : ''}`}>

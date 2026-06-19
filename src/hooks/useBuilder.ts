@@ -65,7 +65,7 @@ function loadFromStorage(): Build {
 function saveToStorage(build: Build): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(build));
-  } catch { /* quota exceeded — silently ignore */ }
+  } catch { /* quota exceeded - silently ignore */ }
 }
 
 // ── Reducer ──────────────────────────────────────────────────────────────────

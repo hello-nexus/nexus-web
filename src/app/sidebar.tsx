@@ -10,6 +10,7 @@ import { useTranslation } from '../lib/i18n';
 import { useWindowDragRegion } from './useWindowDragRegion';
 import type { ConnectionState } from '../hooks/useServiceStatus';
 import { getUpdateStatus } from '../api/update';
+import { pingService } from '../api/service';
 import { UpdateBadge } from '../components/common/UpdateBadge/UpdateBadge';
 import styles from '../App.module.scss';
 
@@ -166,5 +167,16 @@ export function SidebarUpdateSlot({ serviceOnline, compact, onOpen }: {
 // Version label pinned to the bottom-left of the layout.
 export function PageVersionLabel() {
   const { t } = useTranslation();
-  return <span className={styles.pageVersion}>{t('app.version', { version: __APP_VERSION__ })}</span>;
+  const { settings } = useUiSettings();
+  const [serviceVersion, setServiceVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    pingService().then(r => {
+      if (r?.version) setServiceVersion(r.version);
+    });
+  }, []);
+
+  const base = serviceVersion ?? __APP_VERSION__;
+  const version = settings.updateChannel === 'beta' ? `${base}-beta` : base;
+  return <span className={styles.pageVersion}>{t('app.version', { version })}</span>;
 }

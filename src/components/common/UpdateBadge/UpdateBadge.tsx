@@ -26,7 +26,7 @@ export function UpdateBadge({ updateAvailable, updateReady, compact, onOpen }: U
       aria-label={label}
     >
       <span className={styles.icon}>
-        <Download size={16} />
+        <Download size={14} />
       </span>
       {!compact && (
         <span className={styles.text}>{label}</span>

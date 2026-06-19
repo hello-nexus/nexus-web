@@ -74,7 +74,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
 // Whether an app can appear on a given surface. The decision is purely
 // capability-based: the app's `touch` requirement vs the surface's
 // input modality, and the app's `sizes` vs the surface's accepted
-// sizes. No per-app surface allowlist — desktop (mouse), Y70 (touch),
+// sizes. No per-app surface allowlist - desktop (mouse), Y70 (touch),
 // and phone (touch) all expose a pointer and accept every app whose
 // sizes match. Single-widget surfaces (Q60) lock to one size and
 // additionally exclude touch-required apps since they have no pointer.
@@ -204,7 +204,7 @@ export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface,
   if (meta.pickerSize && sizes.includes(meta.pickerSize)) return meta.pickerSize;
   if (sizes.includes('4x2')) return '4x2';
   if (sizes.length === 1) return sizes[0];
-  // Mixed sizes without 4x2 (e.g. 2x2 + 4x4) — no current widget produces
+  // Mixed sizes without 4x2 (e.g. 2x2 + 4x4) - no current widget produces
   // this; prefer the larger as a defensive default.
   if (sizes.includes('4x4')) return '4x4';
   if (sizes.includes('2x2')) return '2x2';

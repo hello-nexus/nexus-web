@@ -1,4 +1,4 @@
-// Catalog preview fixture — untranslated by design. ONE size-independent
+// Catalog preview fixture - untranslated by design. ONE size-independent
 // config: 2x2 truncates to the first 4 slots, 4x4 pads to 16 (padSlots). Keep
 // in sync with what DeckWidget renders (see
 // .agents/rules/widget-preview-fixtures.md in the master repo). Slots carry

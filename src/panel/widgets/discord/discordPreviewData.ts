@@ -1,4 +1,4 @@
-// Catalog preview fixture — fake server payloads, untranslated by design.
+// Catalog preview fixture - fake server payloads, untranslated by design.
 // ONE complete full-state snapshot, independent of widget size: every tab the
 // widget can show at any size renders from this. Keep in sync with what
 // DiscordWidget renders (see .agents/rules/widget-preview-fixtures.md in the
@@ -23,13 +23,13 @@ const GUILDS: DiscordGuild[] = [
 // iconUrl/senderAvatarUrl are mandatory <img> sources (no fallback branch).
 const NOTIFICATIONS: DiscordNotification[] = [
   {
-    id: '7001', title: 'Vex — #general', body: 'anyone up for a quick match tonight?',
+    id: '7001', title: 'Vex - #general', body: 'anyone up for a quick match tonight?',
     iconUrl: previewAvatarUri(12), channelId: '5001', guildId: '9001',
     timestamp: 1_700_000_300_000, senderName: 'Vex', senderAvatarUrl: previewAvatarUri(12),
     mentionEveryone: false, mentionUser: true,
   },
   {
-    id: '7002', title: 'Marlowe — #builds', body: 'pushed the new loadout spreadsheet',
+    id: '7002', title: 'Marlowe - #builds', body: 'pushed the new loadout spreadsheet',
     iconUrl: previewAvatarUri(96), channelId: '5002', guildId: '9005',
     timestamp: 1_700_000_200_000, senderName: 'Marlowe', senderAvatarUrl: previewAvatarUri(96),
     mentionEveryone: false, mentionUser: false,

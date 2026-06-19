@@ -3,6 +3,7 @@
 .modal {
   min-width: 360px;
   max-width: 480px;
+  min-height: 220px;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -26,6 +27,27 @@
   color: var(--text-dim);
 }
 
+.versionUpgrade {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--type-small);
+}
+
+.versionCurrent {
+  color: var(--text-dim);
+}
+
+.versionArrow {
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.versionNew {
+  color: var(--text);
+  font-weight: var(--weight-heading);
+}
+
 .progressBar {
   height: 6px;
   border-radius: var(--radius-pill);
@@ -38,6 +60,19 @@
   background: var(--accent);
   border-radius: var(--radius-pill);
   transition: width 0.3s ease;
+}
+
+.progressFillIndeterminate {
+  height: 100%;
+  width: 30%;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+  animation: indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
 }
 
 .progressPct {

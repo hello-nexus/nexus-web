@@ -71,7 +71,7 @@
 // Canonical rollover for in-widget operable buttons (lighting/cooling
 // presets, steam game rows, device tiles, etc.). Neutral lift on hover
 // so it never collides with the accent-coloured `[data-active='true']`
-// toggle state. Background only — no box-shadow, no transform — so
+// toggle state. Background only - no box-shadow, no transform - so
 // hovering a widget never alters the surrounding card's dropshadow.
 @mixin widget-button-hover {
   transition: background-color var(--ease-fast) ease,

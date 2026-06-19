@@ -513,7 +513,7 @@ export function tryResizeWidget(
     return { id: page.id, widgets: [...page.widgets], occupied: buildOccupancy(page.widgets) };
   });
 
-  // Walk displaced widgets in row-major order — outcome is deterministic
+  // Walk displaced widgets in row-major order - outcome is deterministic
   // regardless of how the source page stored them.
   const sorted = overlapping.slice().sort((a, b) =>
     a.row !== b.row ? a.row - b.row : a.col - b.col,
@@ -562,7 +562,7 @@ export function tryResizeWidget(
       }
     }
 
-    // No existing page fits — spawn a new trailing page if we have room.
+    // No existing page fits - spawn a new trailing page if we have room.
     if (!landing && working.length < maxPages) {
       working.push({
         id: createUuid(),

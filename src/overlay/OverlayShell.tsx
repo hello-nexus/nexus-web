@@ -19,7 +19,7 @@ import { postToHost } from './hostBridge';
 import styles from './OverlayShell.module.scss';
 
 // Server-side prefs fields the desktop overlay consumes. Mirrors the nested
-// `Preferences` shape from `api/profiles.ts` — only the subset the overlay
+// `Preferences` shape from `api/profiles.ts` - only the subset the overlay
 // reads. The same nesting is required on POST.
 interface ServerPrefs {
   theme?: {

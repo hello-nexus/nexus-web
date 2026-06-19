@@ -84,7 +84,7 @@ export const FanCard = memo(function FanCard({
   // a Q-series pump has both, defaulting off to BIOS (motherboard).
   const offMode = hubSupportsBios ? 'bios' : (hubSupportsFirmware ? 'fw' : 'bios');
   // When the hub is in motherboard or firmware mode, the per-fan
-  // softwareControl flag is meaningless — the hub takes over for every
+  // softwareControl flag is meaningless - the hub takes over for every
   // fan on it. Surface that in the dropdown so the user sees the same
   // mode on every fan in the same group. Motherboard reads as BIOS when the
   // hub has a BIOS hand-off, else as FW (NP50); firmware always reads as FW.

@@ -119,7 +119,7 @@ if [[ -n "$JS_MAIN" ]]; then
   grep -q "themeMode" "$JS_MAIN" && pass "themeMode exists in bundle" || fail "themeMode missing from bundle"
   grep -q "data-theme" "$JS_MAIN" && pass "data-theme switching exists" || fail "data-theme switching missing"
 
-  # i18n must exist — check for the i18n context string (survives minification)
+  # i18n must exist - check for the i18n context string (survives minification)
   grep -q "I18nProvider" "$JS_MAIN" || grep -q "locales/" "$JS_MAIN" && pass "i18n system exists in bundle" || fail "i18n system missing"
 fi
 

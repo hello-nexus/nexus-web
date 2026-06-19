@@ -15,7 +15,7 @@ vi.mock('../../../api/gallery', () => ({
 
 vi.mock('../../../api/service', () => ({
   // Tag each blob with the item id so createObjectURL can mint a
-  // distinguishable URL — lets assertions check WHICH image is shown.
+  // distinguishable URL - lets assertions check WHICH image is shown.
   fetchServiceBlob: vi.fn((path: string) => {
     const id = /\/gallery\/items\/(.+)\/file/.exec(path)?.[1] ?? 'unknown';
     const blob = new Blob(['img']) as Blob & { tag?: string };
@@ -29,7 +29,7 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({
 }));
 
 vi.mock('../../../lib/i18n', () => {
-  // Single stable t — components may put it in effect deps.
+  // Single stable t - components may put it in effect deps.
   const t = (key: string) => ({
     'gallery.empty.title': 'No images',
     'gallery.empty.text': 'Add images on the Gallery page',

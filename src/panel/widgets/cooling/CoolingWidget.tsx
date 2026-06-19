@@ -28,7 +28,7 @@ import styles from './CoolingWidget.module.scss';
 const WIDGET_PRESET_KEYS: CoolingPresetKey[] = ['silent', 'balanced', 'turbo'];
 const TEMP_MAX = 100;
 // Catalog preview shows a deterministic preset (label via the existing
-// cooling.preset.balanced key). Keep in sync with the simple-mode render —
+// cooling.preset.balanced key). Keep in sync with the simple-mode render -
 // see .agents/rules/widget-preview-fixtures.md in the master repo.
 const COOLING_PREVIEW_PRESET: CoolingPresetKey = 'balanced';
 
@@ -101,7 +101,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
     return list;
   }, [cpuTemp, gpuTemp, avgDuty, hasFans, t]);
 
-  // Optimistic-lock window — see CoolingPage's identical pattern. When the
+  // Optimistic-lock window - see CoolingPage's identical pattern. When the
   // user clicks a preset, we set this to `now + WINDOW_MS` so the next few
   // server pushes (a stale `cooling` topic or another surface's
   // control-sync event) don't snap the UI back to the previous value while
@@ -197,7 +197,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
   );
 
   // Simple mode handlers: arrows cycle ONLY silent/balanced/turbo.
-  // Center always shows the current `active` state — could be one of
+  // Center always shows the current `active` state - could be one of
   // those three, or 'custom' / 'off'. First press from a non-cycle
   // state jumps to the first item in the cycle direction: right →
   // silent, left → turbo (per user spec).

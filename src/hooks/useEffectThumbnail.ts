@@ -4,7 +4,7 @@ import { effectThumbnailPath } from '../api/lighting';
 
 // Presets are universal, so a thumbnail is fully identified by (effect, slot)
 // plus a content hash of that slot's saved look. This module-level cache holds
-// one object URL per (effect, slot), refreshed when the hash changes — so every
+// one object URL per (effect, slot), refreshed when the hash changes - so every
 // surface (lighting page, panels, preset buttons, widget tile) shares the same
 // fetched blob, and a committed edit refetches exactly the slots that changed.
 const cache = new Map<string, { version: string; url: string }>();

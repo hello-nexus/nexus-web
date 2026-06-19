@@ -1,6 +1,6 @@
 // A touch is a single finger, so a gesture has a single axis. Once the tray
 // (vertical) or the pager (horizontal) claims a drag, the other yields for the
-// rest of that touch — so a drawer pull that curves sideways never also flips
+// rest of that touch - so a drawer pull that curves sideways never also flips
 // the page, and a page swipe that drifts upward never pops the drawer.
 //
 // Module-level because there is only ever one active touch on the panel; both

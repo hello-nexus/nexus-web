@@ -23,7 +23,7 @@ interface Props {
   channels: FanChannel[];
   height?: number;
   /** Drop the title and let the legend own the row. The immersive cell is
-   *  too narrow for both — the title wraps and eats chart height there. */
+   *  too narrow for both - the title wraps and eats chart height there. */
   hideTitle?: boolean;
 }
 
@@ -59,7 +59,7 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
   const fanValue = averageFanRpm(fanValues);
 
   // Each series advances exactly once per broadcast of its source topic.
-  // No client-side timing, no value dedup — the backend's broadcast cadence
+  // No client-side timing, no value dedup - the backend's broadcast cadence
   // is the only thing that drives the chart.
   const cpuHistory = useTopicHistory('cpu', cpuTempValue ?? Number.NaN, PERF_HISTORY_SAMPLES);
   const gpuHistory = useTopicHistory('gpu', gpuTempValue ?? Number.NaN, PERF_HISTORY_SAMPLES);

@@ -28,7 +28,7 @@ describe('PanelOfflineOverlay', () => {
     expect(document.querySelector('[aria-hidden="true"]')).toBeTruthy();
   });
 
-  it('renders alert dialog with retry button on y70 when offline-installed', () => {
+  it('renders simplified wired overlay for y70 when offline-installed (no retry button, no alertdialog)', () => {
     const onRetry = vi.fn();
     render(
       <PanelOfflineOverlay
@@ -38,14 +38,58 @@ describe('PanelOfflineOverlay', () => {
         onRetry={onRetry}
       />,
     );
-    const dialog = screen.getByRole('alertdialog');
-    expect(dialog).toBeInTheDocument();
-    const retry = screen.getByText('connection.lost.retry');
-    fireEvent.click(retry);
-    expect(onRetry).toHaveBeenCalledTimes(1);
-    // y70 surface - no pairing buttons.
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText('connection.lost.reconnectingWired')).toBeInTheDocument();
+    expect(screen.queryByText('connection.lost.retry')).toBeNull();
     expect(screen.queryByText('connection.lost.pickDevice')).toBeNull();
     expect(screen.queryByText('connection.lost.newDevice')).toBeNull();
+  });
+
+  it('renders simplified wired overlay for monitor when offline-installed', () => {
+    render(
+      <PanelOfflineOverlay
+        {...baseProps}
+        state="offline-installed"
+        surface="monitor"
+      />,
+    );
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText('connection.lost.reconnectingWired')).toBeInTheDocument();
+    expect(screen.queryByText('connection.lost.retry')).toBeNull();
+  });
+
+  it('renders checkUsb wired overlay for phone with nexus_link=usb when offline-installed', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) =>
+      key === 'nexus_link' ? 'usb' : null,
+    );
+    render(
+      <PanelOfflineOverlay
+        {...baseProps}
+        state="offline-installed"
+        surface="phone"
+      />,
+    );
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText('connection.lost.checkUsb')).toBeInTheDocument();
+    expect(screen.queryByText('connection.lost.retry')).toBeNull();
+    vi.restoreAllMocks();
+  });
+
+  it('renders full WiFi offline card for phone without nexus_link=usb', () => {
+    render(
+      <PanelOfflineOverlay
+        {...baseProps}
+        state="offline-installed"
+        surface="phone"
+        nativeBridgeAvailable={false}
+      />,
+    );
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    expect(screen.getByText('connection.lost.retry')).toBeInTheDocument();
+    expect(screen.getByText('connection.lost.newDevice')).toBeInTheDocument();
   });
 
   it('renders pick-device button on phone when native bridge is available', () => {
@@ -110,9 +154,11 @@ describe('PanelOfflineOverlay', () => {
     expect(screen.queryByText('connection.relayDisabled.title')).toBeNull();
   });
 
-  it('shows the not-installed message when state is offline', () => {
+  it('shows simplified wired overlay for y70 when state is offline', () => {
     render(<PanelOfflineOverlay {...baseProps} state="offline" surface="y70" />);
-    expect(screen.getByText('connection.lost.notInstalled')).toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText('connection.lost.reconnectingWired')).toBeInTheDocument();
   });
 
   it('q60 renders no overlay in any state (the panel swaps its own widget to a clock)', () => {
@@ -125,14 +171,14 @@ describe('PanelOfflineOverlay', () => {
     }
   });
 
-  it('shows the countdown status when nextAttemptAt is in the future, and falls back to the in-flight string when null', () => {
+  it('shows the countdown status on phone (WiFi) when nextAttemptAt is in the future, and falls back to the in-flight string when null', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-29T20:00:00.000Z'));
     const { rerender } = render(
       <PanelOfflineOverlay
         {...baseProps}
         state="offline-installed"
-        surface="y70"
+        surface="phone"
         nextAttemptAt={Date.now() + 4000}
       />,
     );
@@ -143,7 +189,7 @@ describe('PanelOfflineOverlay', () => {
       <PanelOfflineOverlay
         {...baseProps}
         state="offline-installed"
-        surface="y70"
+        surface="phone"
         nextAttemptAt={null}
       />,
     );

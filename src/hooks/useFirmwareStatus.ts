@@ -8,15 +8,15 @@ export interface FlashableImage {
 }
 
 export interface FirmwareStatusItem {
-  deviceType: string;       // handler id — identity + icon key
-  firmwareType: string;     // catalog key (connected variant) — pass to the flash endpoint
+  deviceType: string;       // handler id - identity + icon key
+  firmwareType: string;     // catalog key (connected variant) - pass to the flash endpoint
   name: string;
   category: string;
   currentVersion: string;
   availableVersion: string;
   updateAvailable: boolean;
   availableVersions: string[];  // connected variant's bundled versions
-  devImages: FlashableImage[];  // all images the device can flash (incl. sibling variants) — dev picker
+  devImages: FlashableImage[];  // all images the device can flash (incl. sibling variants) - dev picker
 }
 
 // Backs the Firmware Updates page. Reports, per connected supported device,

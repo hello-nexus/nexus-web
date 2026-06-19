@@ -15,7 +15,7 @@ const RENDER_OPTIONS = { maxDevicePixelRatio: 1 };
  * system the real background uses (useShaderRenderer + panelBackgroundState).
  * Shown above the Options/Effect tabs in the settings editor so slider/colour
  * tweaks read back immediately. Background opacity is intentionally NOT applied
- * here — the preview shows the effect at full strength.
+ * here - the preview shows the effect at full strength.
  */
 export function BackgroundEffectPreview({ effect, template, effectState }: {
   effect: string;

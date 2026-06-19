@@ -11,7 +11,7 @@ interface HoverTooltipProps {
   /** Preferred side. Default 'bottom'. */
   side?: 'top' | 'bottom' | 'right' | 'left';
   /** Trigger content. MUST be a single React element (button, div, span, etc.).
-   *  The element's own pointer / focus handlers are preserved — we chain ours
+   *  The element's own pointer / focus handlers are preserved - we chain ours
    *  onto them via cloneElement so consumers can keep custom behavior. */
   children: ReactNode;
 }
@@ -53,7 +53,7 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
   const tooltipRef = useRef<HTMLSpanElement | null>(null);
   const openTimerRef = useRef<number | null>(null);
   // Whether THIS tooltip actually became visible. The shared scan-mode
-  // coordinator must only see a close for a tooltip that really opened —
+  // coordinator must only see a close for a tooltip that really opened -
   // an incidental pass-through that's cancelled before the delay elapses
   // must not re-arm the scan window, or it would never lapse back.
   const openedRef = useRef(false);
@@ -83,7 +83,7 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
   };
 
-  // On unmount, release scan mode if this tooltip was still open — otherwise
+  // On unmount, release scan mode if this tooltip was still open - otherwise
   // `scanning` stays latched in the shared coordinator with no timer to lapse
   // it, and the next casual hover would open instantly instead of delaying.
   useEffect(() => () => {
@@ -144,7 +144,7 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
 
   // Chain our handlers behind the child's existing handlers so custom click /
   // focus logic on the wrapped element still fires. Event type intentionally
-  // `any` — the helper is variant over pointer/focus event types and the
+  // `any` - the helper is variant over pointer/focus event types and the
   // caller side passes the correctly-typed listener; a discriminated generic
   // would require duplicating each handler kind.
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -172,7 +172,7 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     onPointerLeave: chain(childProps.onPointerLeave, (e: React.PointerEvent) => {
       if (e.pointerType !== 'touch') close();
     }),
-    // Keyboard focus opens immediately (no delay) — tabbing to the element is
+    // Keyboard focus opens immediately (no delay) - tabbing to the element is
     // a deliberate commit.
     onFocus: chain(childProps.onFocus, () => { cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen(); }),
     onBlur: chain(childProps.onBlur, () => close()),

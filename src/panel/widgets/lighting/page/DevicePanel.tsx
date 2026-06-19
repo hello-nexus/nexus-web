@@ -10,7 +10,7 @@ import styles from '../LightingPage.module.scss';
 
 // Smart-light brands, in display order, keyed by the device-id prefix the
 // service routes on (e.g. "hue:<bridge>:<rid>"). Brand labels are proper nouns
-// — intentionally not localized. Add a brand here when its driver ships.
+// - intentionally not localized. Add a brand here when its driver ships.
 const SMART_BRANDS: ReadonlyArray<readonly [prefix: string, label: string]> = [
   ['hue:', 'Philips Hue'],
   ['nanoleaf:', 'Nanoleaf'],
@@ -37,7 +37,7 @@ type DeviceBlock =
 
 /**
  * Right-side sidebar listing detected RGB devices. Native PC devices render as
- * before — flat cards, with multi-header motherboards under a collapsible group.
+ * before - flat cards, with multi-header motherboards under a collapsible group.
  * Each smart-light brand (Philips Hue, …) renders as its OWN collapsible group
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.

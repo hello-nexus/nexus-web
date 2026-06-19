@@ -1,6 +1,6 @@
 import type { PanelSurface } from '../types';
 
-// 'remote' is a panel that connects over the network — a paired phone/browser
+// 'remote' is a panel that connects over the network - a paired phone/browser
 // or the native app (a WKWebView around /panel/phone), all the same remote
 // /panel/phone session. Contrast the hard-wired displays: 'attached-monitor'
 // (Y70) and 'usb-display' (Q-series).

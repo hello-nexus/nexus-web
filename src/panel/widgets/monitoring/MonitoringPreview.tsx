@@ -22,7 +22,7 @@ interface PreviewSlot {
 }
 
 // Catalog preview composition mirrors the shipped default monitoring tile
-// (install-defaults.json): CPU as a filled line, memory as a half gauge —
+// (install-defaults.json): CPU as a filled line, memory as a half gauge -
 // the two side-by-side gauges that fill the 4x2 picker tile.
 const PREVIEW_SLOTS: PreviewSlot[] = [
   { device: 'cpu',    sensor: 'CPU Total',   design: 'sparkline', base: 44, swing: 15 },
@@ -74,7 +74,7 @@ function buildGauge(slot: PreviewSlot) {
 // frozen and looks populated.
 export function MonitoringPreview({ widget }: WidgetProps) {
   // 2x2 has no valid 2-gauge layout (slot options are 1 or micro 3/4, never 2),
-  // so its default is a single solo gauge — show one sensor, not two squished
+  // so its default is a single solo gauge - show one sensor, not two squished
   // side-by-side. Larger tiles keep the CPU+memory pair.
   const solo = widget.size === '2x2';
   const slots = useMemo(

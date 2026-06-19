@@ -47,7 +47,7 @@
 // never collapses to a sliver. `height: 100%` forces a parent-determined
 // cross-axis size; without it the pane sizes to the iframe's natural
 // footprint, the iframe scales to fill the pane, and the two settle at the
-// iframe's initial scale (0.35) — content never grows. Stretching to row
+// iframe's initial scale (0.35) - content never grows. Stretching to row
 // height first, then capping with max-height, breaks that self-reference.
 .previewPane {
   // Definite basis (not content-sized): the embed frame fits BOTH axes
@@ -167,7 +167,7 @@
 }
 
 // Widgets tab: the catalog owns its scroll (search pinned, grid scrolls). The
-// wrapper must not also scroll — a second scrollport would drag the search bar
+// wrapper must not also scroll - a second scrollport would drag the search bar
 // down with the grid. Becomes a bounded flex column the catalog fills instead.
 .tabContentCatalog {
   display: flex;
@@ -373,7 +373,7 @@
 }
 
 // Row spacing inside a SettingsSection box (device-modal-row has no gap of its
-// own — it relied on the .settingsContent gap before being boxed).
+// own - it relied on the .settingsContent gap before being boxed).
 .deviceSettingsBox {
   gap: 0.5rem;
 }
