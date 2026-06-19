@@ -26,7 +26,7 @@ const MAX_RECENTS = 5;
 /**
  * The top-bar search pill. Resting, it shows the page name and opens on click
  * or ⌘K. Active, it turns into an input with a results box docked directly
- * beneath it — no full-screen scrim, the app stays visible behind. Esc or a
+ * beneath it - no full-screen scrim, the app stays visible behind. Esc or a
  * click outside restores the page title.
  */
 export function TopSearch({ pageTitle, online }: { pageTitle: string; online: boolean }) {
@@ -40,7 +40,7 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   // Optimistic toggle states (id → on/off), so a switch reflects clicks without
-  // waiting for a refetch — and clicking the switch keeps search open.
+  // waiting for a refetch - and clicking the switch keeps search open.
   const [optimistic, setOptimistic] = useState<Record<string, boolean>>({});
   // The action row whose ⚡ is flashing just before close, for tactile feedback.
   const [triggered, setTriggered] = useState<string | null>(null);

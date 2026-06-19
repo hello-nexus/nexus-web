@@ -1,7 +1,7 @@
 // Blessed composite host components. These render the SAME pure presentational
 // components the native widgets/pages use (WorldClockMap + city cards via
-// ClockWorldView, the clock designs, the standard ViewHeader) — imported, not
-// reimplemented — so an SDK page is pixel-identical to a native page with zero
+// ClockWorldView, the clock designs, the standard ViewHeader) - imported, not
+// reimplemented - so an SDK page is pixel-identical to a native page with zero
 // duplication. The worker places these (<WorldClock/>, <ViewHeader/>, <ClockFace/>)
 // and supplies only serializable inputs; the host owns every pixel, keeping the
 // visual-consistency guarantee and giving SDK pages the standard page chrome.
@@ -78,7 +78,7 @@ export function ClockFace(p: HostProps) {
   );
 }
 
-// A boolean switch — the native Toggle. The worker sends `value`; the host
+// A boolean switch - the native Toggle. The worker sends `value`; the host
 // fires `change` with the next boolean.
 export function ToggleHost(p: HostProps) {
   return (
@@ -91,7 +91,7 @@ export function ToggleHost(p: HostProps) {
   );
 }
 
-// A segmented switcher — a row of the native IconLabelButton (the same pill the
+// A segmented switcher - a row of the native IconLabelButton (the same pill the
 // clock design picker uses). `options` is [{ key, label?, icon? }].
 export function Segmented(p: HostProps) {
   const opts = Array.isArray(p.options)
@@ -117,7 +117,7 @@ export function Segmented(p: HostProps) {
   );
 }
 
-// The native free-form HSV colour picker (SV square + hue strip + hex field) —
+// The native free-form HSV colour picker (SV square + hue strip + hex field) -
 // the same control lighting uses, rendered identically. `value` is a hex string;
 // the host fires `preview` continuously during a drag and `change` once on commit.
 export function ColorHost(p: HostProps) {
@@ -158,7 +158,7 @@ export function CardHost(p: HostProps) {
   );
 }
 
-// The native empty state — icon + title + hint.
+// The native empty state - icon + title + hint.
 export function EmptyHost(p: HostProps) {
   return (
     <EmptyState

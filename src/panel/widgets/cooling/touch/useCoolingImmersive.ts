@@ -44,7 +44,7 @@ export interface CoolingImmersiveController {
   activePreset: CoolingPresetKey | null;
   hubModes: Record<string, FanCardHubMode>;
   canAddCurve: boolean;
-  /** Server calibration in progress — fan controls must lock (same interlock
+  /** Server calibration in progress - fan controls must lock (same interlock
    *  as the desktop page's dimmed rail). */
   calibrating: boolean;
   applyPreset: (key: CoolingPresetKey) => void;
@@ -83,7 +83,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
 
   // The NP50 is the only hub with a mode read-back; re-read it on every
   // refresh. The hub doesn't broadcast mode changes, so a mode flipped from
-  // another surface can still stay stale until the next cooling event — the
+  // another surface can still stay stale until the next cooling event - the
   // desktop page covers that gap with a 3s poll, the immersive deliberately
   // doesn't poll. Locked out briefly after our own hub writes so an in-flight
   // read of the pre-switch mode can't clobber the optimistic write-through.

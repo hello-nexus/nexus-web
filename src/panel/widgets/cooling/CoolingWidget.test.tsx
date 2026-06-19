@@ -154,11 +154,11 @@ describe('CoolingWidget', () => {
     beforeEach(() => { mockUiSettings.widgetAdvancedMode = false; });
     afterEach(() => { mockUiSettings.widgetAdvancedMode = true; });
 
-    it('2x2 renders arrows only — no label, no MicroBars, no chips', async () => {
+    it('2x2 renders arrows only - no label, no MicroBars, no chips', async () => {
       render(<CoolingWidget widget={coolingWidget('2x2')} />);
       await waitFor(() => expect(screen.getByLabelText('Previous fan profile')).toBeInTheDocument());
       expect(screen.getByLabelText('Next fan profile')).toBeInTheDocument();
-      // Label is intentionally hidden at 2x2 — fan-bars icon alone carries the state.
+      // Label is intentionally hidden at 2x2 - fan-bars icon alone carries the state.
       expect(screen.queryByText('Balanced')).not.toBeInTheDocument();
       // No rich-mode surfaces.
       expect(screen.queryByText('CPU')).not.toBeInTheDocument();
@@ -190,7 +190,7 @@ describe('CoolingWidget', () => {
 
     it('per-widget config.advancedMode=true overrides the global default and shows the rich UI', async () => {
       // Even with the global default OFF (simple), an explicit per-widget
-      // advancedMode=true override takes precedence — the rich 2x2
+      // advancedMode=true override takes precedence - the rich 2x2
       // (MicroBars) renders instead.
       const w = { ...coolingWidget('2x2'), config: { advancedMode: true } };
       render(<CoolingWidget widget={w} />);

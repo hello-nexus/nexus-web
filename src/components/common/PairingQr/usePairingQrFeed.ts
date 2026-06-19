@@ -9,7 +9,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 
 // QR-feed lifecycle, identical to the Pair-remote panel's QR tab: while
 // `active`, mint a single-use QR, re-mint at TTL expiry, and insta-re-mint the
-// moment a NEW device pairs — detected off a 3s sessions poll (the same
+// moment a NEW device pairs - detected off a 3s sessions poll (the same
 // mechanism the panel uses; there's no push for a new pairing). The token is
 // single-use, so a new authorization means it was just consumed and the
 // on-screen QR must roll to a fresh one. Returns the current token + loading;

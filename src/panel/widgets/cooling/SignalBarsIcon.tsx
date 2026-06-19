@@ -10,7 +10,7 @@ import type { CSSProperties } from 'react';
  *
  * Inactive bars stay drawn at reduced opacity so the unfilled "slots"
  * are visible and the icon reads as a level indicator rather than just
- * a varying-width chart. ViewBox is square (24×24) — the bars are
+ * a varying-width chart. ViewBox is square (24×24) - the bars are
  * bottom-aligned so they read like a cellphone reception indicator
  * regardless of size. Inherits the current text color so the icon
  * tints with the surrounding card.
@@ -19,14 +19,14 @@ import type { CSSProperties } from 'react';
  * scales from the bar's bottom edge: with `animate`, level increases
  * grow the highlight upward and decreases drain it top-down.
  *
- * Standalone — the previous fan-plus-bars composite was split here per
+ * Standalone - the previous fan-plus-bars composite was split here per
  * design feedback. The cooling app uses lucide-react's <Fan /> wherever
  * a fan icon is needed (e.g. the app manifest icon, the page header).
  */
 interface SignalBarsIconProps {
   level: 1 | 2 | 3;
   /** Optional explicit pixel width. When omitted, the SVG sizes itself via CSS
-   *  (the caller's className controls width/height) — preferred for fluid
+   *  (the caller's className controls width/height) - preferred for fluid
    *  responsive layouts. */
   size?: number;
   className?: string;

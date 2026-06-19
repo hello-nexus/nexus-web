@@ -14,7 +14,7 @@ interface Props {
 /**
  * Owns the docked-search open state + the global ⌘K / Ctrl-K shortcut, and
  * exposes both (plus the app host) via context. The search UI itself lives in
- * the top bar (TopSearch), so this provider renders only its children — mount
+ * the top bar (TopSearch), so this provider renders only its children - mount
  * it near the app root, inside the i18n / settings / service-state providers.
  */
 export function CommandPaletteProvider({ navigate, onPairPhone, children }: Props) {

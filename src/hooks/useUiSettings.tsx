@@ -234,7 +234,7 @@ export function UiSettingsProvider({
     if (!serviceOnline) return;
     const serverPatch = toServerPatch(patch);
     // toServerPatch produces an empty object when the patch only touches
-    // client-scoped fields — short-circuit to skip a pointless POST.
+    // client-scoped fields - short-circuit to skip a pointless POST.
     const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update;
     if (!anyBlock) return;
@@ -273,7 +273,7 @@ export function UiSettingsProvider({
     // and, through ResolvedThemeSync, resolvedThemeMode (immediate). The
     // immediate write's echo arrives before the debounced themeMode write
     // lands, so re-hydrating now reads the pre-toggle themeMode and re-applies
-    // it — the visible flicker: new theme → snaps back to old → tweens to new
+    // it - the visible flicker: new theme → snaps back to old → tweens to new
     // once the real write settles. Skip the round-trip while our own write is
     // still pending; that write's echo reloads once it flushes, when the
     // server is consistent. (Mount / profile-switch reloads pass false.)

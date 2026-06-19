@@ -12,7 +12,7 @@ interface DeviceModalProps {
   large?: boolean;
   wide?: boolean;
   fullscreen?: boolean;
-  /** Hug the content width instead of a fixed width — for small tables/lists. */
+  /** Hug the content width instead of a fixed width - for small tables/lists. */
   fit?: boolean;
   /** When false the X button is hidden and Esc/backdrop-click do not close. Defaults to true. */
   closable?: boolean;

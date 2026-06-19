@@ -8,8 +8,8 @@ type EditorTab = 'options' | 'effect';
 /**
  * Shared Options | Effect editor shell. A pure presenter: it renders the two
  * tab bodies given to it and owns nothing but the active-tab state. Both call
- * sites — the immersive lighting view (global RGB, per-mode) and the panel
- * background settings (per-panel, animate-only) — compose `options` / `effect`
+ * sites - the immersive lighting view (global RGB, per-mode) and the panel
+ * background settings (per-panel, animate-only) - compose `options` / `effect`
  * from the same leaf components, so the shell never branches on target.
  *
  * `effectFooter` is an optional panel-only slot rendered under the Effect tab

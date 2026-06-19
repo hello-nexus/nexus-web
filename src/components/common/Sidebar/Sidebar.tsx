@@ -67,7 +67,7 @@ interface SidebarProps {
   afterTail?: ReactNode;
 }
 
-// Per-row status dot — same logic for sortable & locked rows.
+// Per-row status dot - same logic for sortable & locked rows.
 function rowStatus(key: string, state: ServiceState): { show: boolean; pulsing: boolean } {
   const coolActive = key === 'cooling'
     && ((state.cooling?.activeCurveFanCount ?? 0) + (state.cooling?.manualFans ?? 0)) > 0;
@@ -131,8 +131,8 @@ function SidebarRow({ item, active, compact, serviceState, onClick, onContextMen
 
 // Standalone nav button reusing the exact item-row chrome (icon + label,
 // hover/active highlight, compact tooltip). Used for one-off entries outside
-// the sortable apps list — e.g. the bottom-pinned Settings button in the
-// sidebar column — so they read identically to the nav rows above.
+// the sortable apps list - e.g. the bottom-pinned Settings button in the
+// sidebar column - so they read identically to the nav rows above.
 export function SidebarNavButton({ icon, label, active, compact, onClick }: {
   icon: ReactNode;
   label: string;
@@ -185,7 +185,7 @@ function SortableRow(props: Omit<RowProps, 'sortableProps'>) {
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    // Render in-place instead of cloning into a DragOverlay — the cursor
+    // Render in-place instead of cloning into a DragOverlay - the cursor
     // stays anchored to the row the user grabbed and the list is short
     // enough that a second tree mount is unnecessary.
     zIndex: isDragging ? 1 : undefined,
@@ -230,7 +230,7 @@ export function Sidebar({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  // Pinned rows never target the running row's slot — only the running row
+  // Pinned rows never target the running row's slot - only the running row
   // itself crosses the separator. Filtering the collision candidates (rather
   // than clamping after the fact) keeps the live preview honest too: the
   // running row is never shifted by a pinned drag.
@@ -244,7 +244,7 @@ export function Sidebar({
 
   // While the running row is projected into the tail, the separator slides
   // down one slot in step with the rows' uniform stride, so no pinned row
-  // ever renders below the bar — only the running row crosses it.
+  // ever renders below the bar - only the running row crosses it.
   const [sepShift, setSepShift] = useState(0);
   const handleDragOver = ({ active, over }: DragOverEvent) => {
     const overId = over ? String(over.id) : null;
@@ -270,7 +270,7 @@ export function Sidebar({
     const from = tailKeys.indexOf(activeKey);
     // Pointer drags can't reach the running row (collision filter above), but
     // keyboard sorting can: clamp a pinned row dropped onto it to the end of
-    // the pinned list — the running row is a boundary, not a slot.
+    // the pinned list - the running row is a boundary, not a slot.
     const to = overKey === runningKey ? tailKeys.length - 1 : tailKeys.indexOf(overKey);
     if (from < 0 || to < 0) return;
     const next = arrayMove(tailKeys, from, to);
@@ -330,8 +330,8 @@ export function Sidebar({
     );
   };
 
-  // The section header (APPS / DEVICES landing) reuses the nav row chrome —
-  // icon + label, hover/active highlight — and only layers a divider via
+  // The section header (APPS / DEVICES landing) reuses the nav row chrome -
+  // icon + label, hover/active highlight - and only layers a divider via
   // .sectionHeader so it still reads as a heading. Compact collapses to the
   // icon with a tooltip, exactly like the nav rows.
   const renderSectionHeader = () => {

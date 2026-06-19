@@ -5,7 +5,7 @@ import { defaultCurveSourceId } from './tempSensorResolver';
 // default to the CPU temp on every platform, never a motherboard channel.
 describe('defaultCurveSourceId', () => {
   const linux = [
-    // sources[0] is a motherboard SuperIO channel — the old (wrong) default.
+    // sources[0] is a motherboard SuperIO channel - the old (wrong) default.
     { id: 'linux-temp-it8696-it87-2624-1', name: 'it8696 temp1', category: 'Motherboard' },
     { id: 'linux-temp-k10temp-1', name: 'k10temp Tctl', category: 'CPU' },
   ];

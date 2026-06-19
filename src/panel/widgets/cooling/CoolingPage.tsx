@@ -110,7 +110,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   // Optimistic calibration lock: the server flag arrives via the cooling
   // broadcast, but the user needs the fan rail dimmed + locked the instant
-  // they click Calibrate — not a broadcast round-trip later. The local flag
+  // they click Calibrate - not a broadcast round-trip later. The local flag
   // bridges that gap and hands off to the server flag (or expires after 10 s
   // if the start never confirms, so a failed start can't wedge the page).
   const [calStarting, setCalStarting] = useState(false);
@@ -178,7 +178,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   // Persist the cached slices on every change so the next visit to this
   // route paints from the last-good snapshot. JSON.stringify + a single
-  // localStorage write per slice change is sub-ms — no debounce needed
+  // localStorage write per slice change is sub-ms - no debounce needed
   // since these slices only mutate on real events (refresh, user edit,
   // profile switch, hot-plug).
   useEffect(() => {
@@ -304,7 +304,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Poll the NP50 connection-state endpoint on a coarse cadence (~3 s) so
   // FanCard's hubMode prop reflects whatever the hub is actually in. Single
   // hub for now; once the service supports multiple, this becomes a fan-out
-  // over each connected NP50. MiniHub has no read-back command — we cache
+  // over each connected NP50. MiniHub has no read-back command - we cache
   // hubModes locally on PUT instead.
   useEffect(() => {
     if (!serviceOnline) return;
@@ -441,7 +441,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const id = `curve-${Date.now()}`;
     const c = newCurve(id);
     // Default to the CPU temp (the sensor pinned in cooling settings), never
-    // sources[0] — on Linux that's often a motherboard SuperIO channel.
+    // sources[0] - on Linux that's often a motherboard SuperIO channel.
     c.sourceId = defaultCurveSourceId(sources, cpuTemp?.id);
     // Append so new curves land at the end of the selector list.
     const next = [...curves, c];
@@ -460,7 +460,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // the *hub* cooling mode: BIOS flips the hub to Motherboard passthrough,
   // FW Control flips an NP50 to Static, and Manual/Curve guarantees the hub
   // is in Software so Nexus can actually drive frames into it. This auto-
-  // switch matches how the hardware works — there's a single cooling mode
+  // switch matches how the hardware works - there's a single cooling mode
   // byte per hub, not per fan.
   const setFanMode = useCallback(async (fanId: string, value: string) => {
     const channel = channels.find(c => c.id === fanId);
@@ -471,9 +471,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
     // NP50 has no motherboard "BIOS" hand-off of its own, so both 'fw' and the
     // 'bios' value mean "hand the hub back to firmware control" (Static @
-    // device-page % or Motherboard PWM — the service reads the EEPROM defaults
-    // to decide). Release the fan first — the backend flips the hub to
-    // motherboard once its last software channel is released — then re-pin
+    // device-page % or Motherboard PWM - the service reads the EEPROM defaults
+    // to decide). Release the fan first - the backend flips the hub to
+    // motherboard once its last software channel is released - then re-pin
     // firmware so we end in the device-page standalone mode rather than
     // motherboard.
     if ((value === 'fw' || value === 'bios') && isNp50 && deviceId) {
@@ -508,7 +508,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       return;
     }
 
-    // 'manual' or a curve id — the hub must be in Software for the curve
+    // 'manual' or a curve id - the hub must be in Software for the curve
     // engine to actually push duty cycles in. Only issue the hub write when
     // the hub isn't already in Software; the cooling-mode endpoint is
     // idempotent but skipping the call avoids USB chatter on every BIOS->
@@ -675,7 +675,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     // Calibration can mark fans Unresponsive (no tach / not controllable).
     // Pin those to the bottom of the list so the actionable cards stay near
     // the top; preserve relative order within each group, and don't mutate
-    // the saved fanOrder — if a fan recovers it returns to its prior slot.
+    // the saved fanOrder - if a fan recovers it returns to its prior slot.
     const live: FanChannel[] = [];
     const dead: FanChannel[] = [];
     for (const ch of base) (ch.classification === 'Unresponsive' ? dead : live).push(ch);
@@ -690,7 +690,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   }, [fanStates]);
 
   // Number of fans bound to each curve, shown under its selector button.
-  // Excludes hardware-unresponsive (disconnected) fans — they sit in the
+  // Excludes hardware-unresponsive (disconnected) fans - they sit in the
   // Disconnected group and can't be driven, so they don't count as "in use".
   const curveFanCounts = useMemo(() => {
     const disconnected = new Set(

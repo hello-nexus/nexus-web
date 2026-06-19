@@ -1,4 +1,4 @@
-// Catalog preview fixture — fake server payloads, untranslated by design.
+// Catalog preview fixture - fake server payloads, untranslated by design.
 // ONE complete full-state snapshot, independent of widget size: every tab/list
 // the widget can show at any size renders from this. Keep in sync with what
 // SteamWidget renders (see .agents/rules/widget-preview-fixtures.md in the
@@ -24,7 +24,7 @@ interface SteamPreviewData {
   achievements: SteamAchievement[];
 }
 
-// iconHash stays '' — steamIconUrl() builds an external media URL from it, so
+// iconHash stays '' - steamIconUrl() builds an external media URL from it, so
 // the empty hash routes rows to the built-in gameIconFallback.
 const game = (appId: number, name: string, twoWeeks: number, forever: number): SteamRecentGame =>
   ({ appId, name, playtime2Weeks: twoWeeks, playtimeForever: forever, iconHash: '' });

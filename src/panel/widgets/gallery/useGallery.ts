@@ -7,7 +7,7 @@ import { usePanelPreview } from '../common/PanelPreviewContext';
 // Per-widget-instance viewer position, shared between the tile and its
 // immersive view (separate component instances in the same document) so
 // fullscreen opens on the photo the tile is showing, and a remounted tile
-// resumes where it left off. Keyed by item id, not index — the list can
+// resumes where it left off. Keyed by item id, not index - the list can
 // change between reads.
 const lastShownItem = new Map<string, string>();
 
@@ -31,7 +31,7 @@ export function useGalleryItems(): { items: GalleryItem[]; loaded: boolean; refr
 
   const refresh = useCallback(async () => {
     const res = await fetchGalleryItems();
-    // A null response is an outage, not an empty gallery — stay unloaded so
+    // A null response is an outage, not an empty gallery - stay unloaded so
     // the widget doesn't flash the "no images" state over a populated set.
     if (!res?.items) return;
     setItems(res.items);
@@ -54,7 +54,7 @@ export function useGalleryItems(): { items: GalleryItem[]; loaded: boolean; refr
  * Blob loader for full-resolution gallery images. Panel auth is token-based,
  * so <img> can't hit the route directly; images load via fetchServiceBlob →
  * object URL. The cache is intentionally tiny (the viewer retains only
- * prev/current/next) — full-resolution photos are heavy on the Y70/phone
+ * prev/current/next) - full-resolution photos are heavy on the Y70/phone
  * WebView, so everything outside the retain set is revoked eagerly.
  */
 export function useGalleryImageLoader(): {
@@ -77,7 +77,7 @@ export function useGalleryImageLoader(): {
       try {
         const blob = await fetchServiceBlob(galleryItemFileUrl(id));
         // A fetch resolving after unmount must not mint an object URL the
-        // cleanup already missed — that's a leaked full-res blob per remount.
+        // cleanup already missed - that's a leaked full-res blob per remount.
         if (!blob || disposedRef.current) return null;
         const existing = cacheRef.current.get(id);
         if (existing) return existing;

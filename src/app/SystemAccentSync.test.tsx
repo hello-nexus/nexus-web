@@ -31,7 +31,7 @@ vi.mock('../hooks/useMultiplexSocket', () => ({
 }));
 
 beforeEach(() => {
-  // A native shell handled the request by default — the no-shell fetch path
+  // A native shell handled the request by default - the no-shell fetch path
   // is opt-in per test.
   h.requestSystemAccent.mockReturnValue(true);
   h.fetchSystemAccent.mockResolvedValue(null);
@@ -47,7 +47,7 @@ afterEach(() => {
 describe('SystemAccentSync', () => {
   // Regression: a profile saved under a red OS accent stores accentColor=red.
   // After the OS accent changes to blue (under another profile), switching back
-  // reloads the stale red. The OS accent must win — the component re-asserts it
+  // reloads the stale red. The OS accent must win - the component re-asserts it
   // because its effect now also depends on settings.accentColor, not just the
   // (profile-invariant) accentSource.
   it('re-applies the live OS accent when a profile switch reloads a stale stored accent', () => {
@@ -55,7 +55,7 @@ describe('SystemAccentSync', () => {
     h.settings = { accentSource: 'system', accentColor: '#0000ff' };
     const { rerender } = render(<SystemAccentSync />);
 
-    // Host pushes the current OS accent (blue) — already matches, no write.
+    // Host pushes the current OS accent (blue) - already matches, no write.
     act(() => h.accentCb!('#0000ff'));
     expect(h.update).not.toHaveBeenCalled();
 
@@ -69,7 +69,7 @@ describe('SystemAccentSync', () => {
     expect(h.update).toHaveBeenCalledTimes(1);
 
     // The real update() folds accentColor back into settings; once it matches
-    // the OS accent the effect must go quiet — no re-entrant write / render loop.
+    // the OS accent the effect must go quiet - no re-entrant write / render loop.
     h.settings = { accentSource: 'system', accentColor: '#0000ff' };
     rerender(<SystemAccentSync />);
     expect(h.update).toHaveBeenCalledTimes(1);

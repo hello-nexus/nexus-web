@@ -62,7 +62,7 @@
 }
 
 .input {
-  // Native inputs don't inherit font-family — set the standard body text so
+  // Native inputs don't inherit font-family - set the standard body text so
   // the placeholder + query render in Lexend like the rest of the app.
   @include text-body;
   flex: 1;
@@ -161,7 +161,7 @@
 .rowActive { background: var(--accent-soft); }
 
 // Quick highlight pulse when an action row is selected (click anywhere on the
-// row, or Enter) — tactile confirmation just before the search closes.
+// row, or Enter) - tactile confirmation just before the search closes.
 .rowFlash { animation: row-flash 0.26s ease; }
 
 @keyframes row-flash {

@@ -1,4 +1,4 @@
-// Catalog preview fixture — fake server payloads, untranslated by design.
+// Catalog preview fixture - fake server payloads, untranslated by design.
 // ONE complete full-state snapshot, independent of widget size: scene strip
 // (4x2+) and compact controls (2x2) both render from this. Keep in sync with
 // what ObsWidget renders (see .agents/rules/widget-preview-fixtures.md in the

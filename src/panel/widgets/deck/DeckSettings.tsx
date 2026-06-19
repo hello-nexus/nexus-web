@@ -20,7 +20,7 @@ import styles from './DeckSettings.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
-// NOTE: audioOutput / audioInput are intentionally omitted — switching the
+// NOTE: audioOutput / audioInput are intentionally omitted - switching the
 // default audio endpoint needs IPolicyConfig in the user session and isn't
 // reliably verifiable yet (see deck plan: deferred). The action kinds + backend
 // route remain for a future verified re-enable; they're just not offered here.

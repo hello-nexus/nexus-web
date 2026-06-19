@@ -182,7 +182,7 @@ export function PanelTouchCell({
   // the over target moves; each cell looks up its preview position, computes
   // the pixel delta from its committed (col, row), and translates via inline
   // style (CSS transition animates the slide). Not dnd-kit's strategy/transform
-  // path — the over is a non-sortable empty-cell droppable that useSortable's
+  // path - the over is a non-sortable empty-cell droppable that useSortable's
   // memoization doesn't re-fire for.
   const previewWidget = previewLayout
     ? findWidgetById(previewLayout, widget.id)
@@ -464,7 +464,7 @@ export function PanelDragOverlayCell({
       data-theme={themeMode}
       data-surface={surface}
       // Portaled to body, so it can't inherit the panel root's labels-off state
-      // — mirror it here or the dragged clone shows a label the grid hides.
+      // - mirror it here or the dragged clone shows a label the grid hides.
       data-show-widget-labels={showLabels ? 'true' : 'false'}
       style={themeStyle}
     >

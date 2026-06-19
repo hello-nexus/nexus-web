@@ -176,7 +176,7 @@ export function estimateRuntimePanelDpi(surface: PanelSurface): number {
   return 160;
 }
 
-// CSS px spanning one physical millimeter on this surface — lets a gesture
+// CSS px spanning one physical millimeter on this surface - lets a gesture
 // threshold be set as real finger travel instead of raw CSS px. A CSS px is not
 // a fixed physical size: a phone's mobile viewport anchors it near the
 // reference density, but on the Y70 Edge kiosk devicePixelRatio is only the

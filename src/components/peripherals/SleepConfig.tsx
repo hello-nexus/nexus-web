@@ -33,7 +33,7 @@ export function SleepConfig({ peripheral, state, onChanged }: SleepConfigProps) 
       <div className={styles.labelCol}>
         <span className={styles.label}>{t('peripheral.sleep')}</span>
         <span className={styles.value}>
-          {state.idleSeconds > 0 ? `${Math.round(state.idleSeconds / 60)} min` : '—'}
+          {state.idleSeconds > 0 ? `${Math.round(state.idleSeconds / 60)} min` : '-'}
         </span>
       </div>
       <div className={styles.segment}>

@@ -14,7 +14,7 @@
   // mode and the dark body bleeds into a white halo at the edges.
   color-scheme: dark;
 
-  // Surfaces — pure grayscale to mirror light mode's neutral whites. Kept
+  // Surfaces - pure grayscale to mirror light mode's neutral whites. Kept
   // deliberately deep: modal bodies (--bg-elevated) and cards (--surface) read
   // dark rather than mid-grey on the dark theme.
   --bg: #080808;
@@ -50,7 +50,7 @@
   --backdrop-tint-b: color-mix(in srgb, var(--accent) 22%, transparent);
   --backdrop-tint-c: color-mix(in srgb, var(--accent-deep) 30%, transparent);
 
-  // Text — two ink tiers. rgba, NOT color-mix(): Q60 WebView is Chromium 83.
+  // Text - two ink tiers. rgba, NOT color-mix(): Q60 WebView is Chromium 83.
   // Keep the rgb triplet in sync with --text.
   --text: #f5f5f5;
   --text-dim: rgba(245, 245, 245, 0.6);
@@ -58,7 +58,7 @@
   // every dividing rule (app + panel). Keep the triplet synced with --text.
   --separator: rgba(245, 245, 245, 0.2);
 
-  // Accent — deep blue (fallback; runtime values come from applyAccentColor()
+  // Accent - deep blue (fallback; runtime values come from applyAccentColor()
   // which sets these same custom properties on <html>).
   --accent: #2563eb;
   --accent-glow: #3b82f6;
@@ -78,12 +78,12 @@
   // If a real new use case appears, add a rung deliberately - don't drift to
   // raw px / rem in component styles.
 
-  // Border radius. 4 rungs, tiny details to full pill — the single source of
+  // Border radius. 4 rungs, tiny details to full pill - the single source of
   // truth for every rounded corner in the app. No raw px radii in component
   // styles: pick the nearest rung. Panel aliases (--panel-card-radius,
   // --panel-element-radius, --icon-label-button-radius, ...) all resolve here.
   --radius-sm: 6px;        // bars, ticks, chips, dense controls, small buttons, swatches
-  --radius: 10px;          // default — cards, modals, buttons, inputs, panel elements
+  --radius: 10px;          // default - cards, modals, buttons, inputs, panel elements
   --radius-lg: 16px;       // hero cards, sheets, overlays, primary surfaces
   --radius-pill: 999px;    // pills, toggles, status badges, fully-rounded
 
@@ -115,7 +115,7 @@
 
   // Animation timing. Three rungs cover the 50-300ms range. Use via
   // `transition: bg var(--ease) ease` etc.
-  --ease-fast: 50ms;       // micro feedback (hover highlight, press scale) — reads as instant, on and off
+  --ease-fast: 50ms;       // micro feedback (hover highlight, press scale) - reads as instant, on and off
   --ease: 180ms;           // default (most state changes)
   --ease-slow: 300ms;      // narrative animation (sheet open, tab swap)
 
@@ -139,7 +139,7 @@
   --size-md: 36px;         // default buttons, default inputs, default avatars
   --size-lg: 44px;         // primary CTA buttons, kiosk surfaces
 
-  // Type — Lexend
+  // Type - Lexend
   --font-sans: 'Twemoji Country Flags', 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
   // Panel surfaces inherit the same stack; defined at :root (not .panel-root) so
@@ -186,14 +186,14 @@
   // backdrop) and the chrome recedes into grey. So sidebar/top bar/modals read
   // as a soft grey frame around white content, and cards stay pure white and
   // pop off both the grey chrome and the white canvas via their border/shadow.
-  // --bg is the recessed control fill (chips, inputs) — kept greyest so it
+  // --bg is the recessed control fill (chips, inputs) - kept greyest so it
   // still sits below cards, same role it plays on dark.
   --bg: #e8eaf1;
   --bg-elevated: #ecedf4;
   --bg-card-hover: #f4f5fa;
   --border: #c8cad5;
   --border-strong: #c4c5d3;
-  --surface: #fafafa;  // see dark-theme note — near-white activatable surface
+  --surface: #fafafa;  // see dark-theme note - near-white activatable surface
   --gauge-track: rgba(0, 0, 0, 0.1);
 
   // Light backdrop: grayscale flat surface grey (flattens gradient + glass).

@@ -12,7 +12,7 @@ import styles from './SidebarDevicesSection.module.scss';
  * device (panels, peripherals, curated hardware) the system knows
  * about, with a click navigating into that device's dedicated page.
  *
- * Wraps `useUnifiedDevices` — the same hook DevicesPage and the dashboard
+ * Wraps `useUnifiedDevices` - the same hook DevicesPage and the dashboard
  * Devices widget consume, so a click lands on the same device record.
  *
  * Empty state: a single hint row when no devices are connected. The header
@@ -26,7 +26,7 @@ interface SidebarDevicesSectionProps {
   // Compact = sidebar collapsed; render icon-only rows with tooltips.
   compact: boolean;
   onSelect: (deviceKey: string) => void;
-  // Click on the section header itself routes here — the all-devices
+  // Click on the section header itself routes here - the all-devices
   // landing surface (currently the existing DevicesPage). Passed in so
   // SidebarColumn owns the exact destination.
   onHeaderClick: () => void;
@@ -47,9 +47,9 @@ export function SidebarDevicesSection({
   // Stable, deterministic order: connected first, then by category, then by
   // short name. Avoids reshuffles on transient disconnects within the
   // /devices polling cadence. Only navigable devices (those with their own
-  // settings page) get a sidebar row — e.g. the MiniHub is controlled from
+  // settings page) get a sidebar row - e.g. the MiniHub is controlled from
   // Cooling/Lighting, so it has no page and shouldn't deep-link to an empty one.
-  // (Paired phone remotes are already excluded upstream in useUnifiedDevices —
+  // (Paired phone remotes are already excluded upstream in useUnifiedDevices -
   // they're remote controls, not devices.)
   const sorted = useMemo(() => {
     return unified
@@ -63,7 +63,7 @@ export function SidebarDevicesSection({
 
   const label = t('sidebar.section.devices');
   // Header reuses the device-row .item chrome (font, alignment, hover/active)
-  // and layers .headerBtn's divider — matching the APPS header. Compact shows
+  // and layers .headerBtn's divider - matching the APPS header. Compact shows
   // the usb glyph only, with a tooltip, like the rows below it.
   const headerBtn = (
     <button

@@ -11,7 +11,7 @@ import styles from './IncomingPairModal.module.scss';
 /**
  * Global numeric-comparison prompt. Subscribes to the
  * `panel/phone/pair-code/request` WS topic at the dashboard root and pops
- * a mini modal — the 6-digit pairing number plus Allow and Deny — whenever
+ * a mini modal - the 6-digit pairing number plus Allow and Deny - whenever
  * a phone submits a code or initiates a Wi-Fi pair.
  *
  * Separate from the Pair Remote modal so it surfaces regardless of section,

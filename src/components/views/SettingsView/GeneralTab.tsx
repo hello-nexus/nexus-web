@@ -35,7 +35,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   // it's fetched/written directly like auto-start, not via the local UI store.
   const [telemetryOn, setTelemetryOn] = useState<boolean | null>(null);
   const [telemetryLoading, setTelemetryLoading] = useState(false);
-  // Block shutdown while a firmware flash is running — stopping the service
+  // Block shutdown while a firmware flash is running - stopping the service
   // mid-flash would strand the device in the DFU bootloader. (The service
   // also refuses /service/stop during a flash; this mirrors it in the UI.)
   const { status: flashStatus } = useFlashStatus(serviceOnline);
@@ -97,7 +97,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   };
 
   // Wipe every Nexus data dir and restart the service from a clean slate. The
-  // service spawns a detached finalizer, stops, gets wiped, then restarts — so
+  // service spawns a detached finalizer, stops, gets wiped, then restarts - so
   // this window's connection drops; close it and let the user reopen on the
   // fresh install. Loopback-only endpoint.
   const factoryReset = async () => {
@@ -110,7 +110,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
   // Reveal the logs folder (service.log, plus desktop-host.log on Windows) in
   // the OS file manager so testers can grab them for a bug report. Loopback-only
-  // endpoint — acts on the local machine.
+  // endpoint - acts on the local machine.
   const openLogs = async () => {
     await postService('/diagnostics/open-logs', {});
   };

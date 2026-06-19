@@ -1,4 +1,4 @@
-// Catalog preview fixture — fake server payloads, untranslated by design.
+// Catalog preview fixture - fake server payloads, untranslated by design.
 // ONE complete full-state snapshot, independent of widget size: the tile only
 // counts total/online. Keep in sync with what SmartLightsWidget renders (see
 // .agents/rules/widget-preview-fixtures.md in the master repo).

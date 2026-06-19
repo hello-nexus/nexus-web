@@ -16,7 +16,7 @@ export type CoolingPresetKey = 'off' | 'silent' | 'balanced' | 'turbo' | 'custom
 
 /**
  * Widened from `LucideIcon` so the silent/balanced/turbo presets can
- * render the shared <SignalBarsIcon /> (1/2/3 cellphone-style bars) —
+ * render the shared <SignalBarsIcon /> (1/2/3 cellphone-style bars) -
  * the same visual identity the cooling widget's simple mode uses. The
  * remaining presets (off, custom) keep lucide-react icons. Every
  * consumer just needs the standard size / className / aria-hidden props.
@@ -55,7 +55,7 @@ const TurboIcon: IconComponent = ({ size, className }) => (
     className={className} />
 );
 
-// Custom uses lucide Gauge — a recognisable "tunable speed" semantic that
+// Custom uses lucide Gauge - a recognisable "tunable speed" semantic that
 // doesn't compete visually with the signal-bars set.
 export const COOLING_PRESETS: readonly CoolingPresetDef[] = [
   { key: 'off',      i18nKey: 'cooling.preset.off',      Icon: Power },

@@ -146,7 +146,7 @@ export function usePanelLanguageSync(enabled = true) {
 }
 
 // Panel theme/visual settings are PER-PANEL on the device record
-// (/panel/devices/{deviceId}), alongside the widget layout — NOT in shared
+// (/panel/devices/{deviceId}), alongside the widget layout - NOT in shared
 // `prefs.panel`. `deviceId` selects which panel's settings, so editing the Q60
 // never touches the Y70. The only cross-surface link is the desktop app theme
 // (`prefs.theme`), the sync source for theme-mode + accent when sync is on.
@@ -175,7 +175,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
   });
   const resolvedMode = useResolvedPanelThemeMode(
     // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
-    // tracking the desktop OS). Fall back to appThemeMode when unpublished —
+    // tracking the desktop OS). Fall back to appThemeMode when unpublished -
     // 'system' there would re-resolve against THIS device's OS (wrong OS).
     theme.themeSyncWithDesktop
       ? (theme.appResolvedThemeMode || theme.appThemeMode)
@@ -188,7 +188,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
 
   // Universal preset source for the background. The wallpaper renders the global
   // Templates slot for the per-panel selection, and editing a background preset
-  // writes here — so it stays in lockstep with the LED lighting and every panel.
+  // writes here - so it stays in lockstep with the LED lighting and every panel.
   const { templates: globalTemplates } = useAnimateTemplates(enabled);
   const globalTemplatesRef = useRef(globalTemplates);
   useEffect(() => { globalTemplatesRef.current = globalTemplates; }, [globalTemplates]);
@@ -326,7 +326,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     const nextEffect = normalizePanelBackgroundEffect(effect);
     setDraftBackgroundState(null);
     if (themeRef.current.backgroundEffect === nextEffect) return;
-    // Switch to this panel's REMEMBERED preset for that shader (default 0) — the
+    // Switch to this panel's REMEMBERED preset for that shader (default 0) - the
     // selection is per-panel, per-shader, so switching never resets it.
     const nextTemplate = normalizePanelBackgroundTemplate(
       themeRef.current.backgroundTemplates[nextEffect] ?? DEFAULT_PANEL_BACKGROUND_TEMPLATE,
@@ -346,7 +346,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
   }, [persistPatch]);
 
   // Editing the background preset's params writes the UNIVERSAL slot (global
-  // Templates) — so it also moves the LEDs when this is the live preset. The
+  // Templates) - so it also moves the LEDs when this is the live preset. The
   // draft shows it live until the global refresh lands.
   const commitBackgroundEffectState = useCallback((state: EffectState) => {
     const { backgroundEffect: effect, backgroundTemplate: template } = themeRef.current;

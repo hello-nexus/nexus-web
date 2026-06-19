@@ -77,7 +77,7 @@ export interface CoolingPrefs {
 export interface UiPrefs {
   disableConflictAlerts: boolean;
   // Order of the user's pinnable sidebar apps after the locked Dashboard
-  // row. Optional — older services return Preferences without this field;
+  // row. Optional - older services return Preferences without this field;
   // the client falls back to DEFAULT_PINNED_TAIL in that case.
   pinnedSidebarApps?: string[];
 }
@@ -88,7 +88,7 @@ export interface UpdatePrefs {
   lastDismissedUpdateVersion: string;
 }
 
-// Nested preferences shape — same nesting on read (GET /preferences) and
+// Nested preferences shape - same nesting on read (GET /preferences) and
 // write (POST /preferences). Per-domain sub-patches are partial; omitted
 // fields are unchanged.
 export interface Preferences {

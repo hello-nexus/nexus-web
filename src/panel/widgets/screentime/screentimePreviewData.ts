@@ -1,4 +1,4 @@
-// Catalog preview fixture — fake server payloads, untranslated by design.
+// Catalog preview fixture - fake server payloads, untranslated by design.
 // ONE complete full-state snapshot, independent of widget size: the 2x2 total
 // and the larger-size app list both render from this. Keep in sync with what
 // ScreentimeWidget renders (see .agents/rules/widget-preview-fixtures.md in

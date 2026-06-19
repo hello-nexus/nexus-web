@@ -6,7 +6,7 @@ import { useTopicCallback } from './useMultiplexSocket';
  * OS monitor topology for the Displays page. REST seed + refetch on the
  * `displays` topic (monitor hot-plug, resolution/arrangement changes, and
  * panel promote/demote all broadcast it). Mounts only where the topology is
- * rendered — no app-level subscription.
+ * rendered - no app-level subscription.
  */
 export function useDisplayTopology(enabled: boolean) {
   const [topology, setTopology] = useState<DisplayTopology | null>(null);

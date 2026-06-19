@@ -15,7 +15,7 @@ const ROW_GAP_PX = 16;
 /**
  * Lay monitor rectangles out inside a container, Windows-display-settings
  * style. Map mode (every display has bounds): uniform scale of the virtual
- * desktop's bounding box, centered. Row mode (any display lacks bounds —
+ * desktop's bounding box, centered. Row mode (any display lacks bounds -
  * Linux): aspect-correct rectangles in a horizontal row. Pure math, no DOM.
  */
 export function layoutMonitorRects(

@@ -5,11 +5,11 @@ the code. Severity: **blocker** = whole widget class impossible / shipped surfac
 does nothing; **major** = a capability class is unreachable; **minor** = a sharp edge.
 
 ## Control write-path round (2026-06-09)
-Closes part of **B** (control the SDK can't do) — the counterparts to the new ui-color/ui-curve:
-- **`lighting.setColor(hex)`** — drives the solid-fill "simple" shader tinted to the colour's hue
-  (matches the built-in simple<colour> presets). Hue only — exact RGB needs a dedicated colour
+Closes part of **B** (control the SDK can't do) - the counterparts to the new ui-color/ui-curve:
+- **`lighting.setColor(hex)`** - drives the solid-fill "simple" shader tinted to the colour's hue
+  (matches the built-in simple<colour> presets). Hue only - exact RGB needs a dedicated colour
   shader. The ui-color counterpart.
-- **`cooling.setCurve(channelId, sourceId, points[{temp,speed}])`** — applies a graph fan curve via
+- **`cooling.setCurve(channelId, sourceId, points[{temp,speed}])`** - applies a graph fan curve via
   the exact POST /cooling/curves/set flow (CoolingSafety.Sanitize clamps, persists, re-derives the
   active preset, broadcasts). The ui-curve counterpart.
 - Both are manifest-`dispatch`-gated + rate-limited (20/s). Demo app: `com.hellonexus.appcontrol`.
@@ -19,25 +19,25 @@ Closes part of **B** (control the SDK can't do) — the counterparts to the new 
 
 ## Fixed in the UI-tooling + packaging round (2026-06-08)
 Closes several D/E/F/G/I gaps below (the original lines are left intact for the audit trail):
-- **`ui-color`** — blesses the native `HsvPicker` (SV square + hue strip + hex field), so a
+- **`ui-color`** - blesses the native `HsvPicker` (SV square + hue strip + hex field), so a
   sandboxed lighting app gets a pixel-identical raw-colour picker. (was **E**: no colour swatch.)
-- **`ui-curve`** — a self-contained draggable X/Y curve editor (drag a point, double-click to add,
+- **`ui-curve`** - a self-contained draggable X/Y curve editor (drag a point, double-click to add,
   right-click to remove; `change` fires the full point array). Unblocks the **cooling fan-curve
-  editor**. Still single-series — multi-series history charts remain open. (was **D**: no curve chart.)
-- **Real `ui-gauge`** — a 270° arc meter; was a literal `<Ring/>` alias. (was **D**: Gauge stub.)
-- **`ui-spinner`** — a host-drawn SMIL loading arc. (was **E**: no spinner.)
-- **Long-press** — `longpress` event on `ui-button` + interactive `ui-card` (shared `useLongPress`,
+  editor**. Still single-series - multi-series history charts remain open. (was **D**: no curve chart.)
+- **Real `ui-gauge`** - a 270° arc meter; was a literal `<Ring/>` alias. (was **D**: Gauge stub.)
+- **`ui-spinner`** - a host-drawn SMIL loading arc. (was **E**: no spinner.)
+- **Long-press** - `longpress` event on `ui-button` + interactive `ui-card` (shared `useLongPress`,
   450 ms, suppresses the trailing click). Plus the curve editor's point drag. (was **F**: no
   long-press/drag.)
-- **Per-widget error boundary** — `SdkErrorBoundary` contains a worker render throw to its own cell
+- **Per-widget error boundary** - `SdkErrorBoundary` contains a worker render throw to its own cell
   (small fallback + console error tagged with the app id), instead of blanking the dashboard;
   resets on a new receiver. (was **G**: no per-widget error boundary.)
-- **Publishable package** — `@hello-nexus/sdk` (`.` = mount/hooks, `./ui` = components) builds to
+- **Publishable package** - `@hello-nexus/sdk` (`.` = mount/hooks, `./ui` = components) builds to
   `dist` (JS + `.d.ts`, no source maps) for GitHub Packages. **Built + `npm pack`/`--dry-run`
-  verified only — NOT yet published.** (was **I**: no published packages.)
+  verified only - NOT yet published.** (was **I**: no published packages.)
 
 ## Fixed during this round (was broken, now works)
-- **`useSensor` was dead** — the SDK host never serviced `nexus.sensors.*`, so it returned
+- **`useSensor` was dead** - the SDK host never serviced `nexus.sensors.*`, so it returned
   `undefined` forever. Now wired (host.ts feeds from `monitoringStore`), and the `sensors.read`
   pattern allowlist is now **enforced** (the declarative path still doesn't enforce it).
 - **`nexus.welcome` wasn't sent** → `nexus.ready` never resolved. Now sent.
@@ -45,18 +45,18 @@ Closes several D/E/F/G/I gaps below (the original lines are left intact for the 
   (screentime.today, displays.list/setBrightness).
 
 ## Added this round (new capabilities)
-- **Page surface** — `mount({ cell, page })`. A widget renders a second, expanded surface
+- **Page surface** - `mount({ cell, page })`. A widget renders a second, expanded surface
   (a separate worker render, `useSurface()`) opened as a **desktop section route** by
   clicking the tile. Standard page chrome: title in the top bar, the standard `ViewHeader`
   with **tabs**, full-height scroll. (Touch-immersive page = follow-up.)
-- **Blessed composites** — `ui-clockface` (the 8 clock designs), `ui-worldclock` (the full
+- **Blessed composites** - `ui-clockface` (the 8 clock designs), `ui-worldclock` (the full
   day/night world map + city list), `ui-viewheader` (title + tabs). The host renders the
   **same pure native component** (no reimplementation), so a first-party SDK widget is
   **pixel-identical to native with zero duplication**. This is the escape hatch for bespoke
-  visuals (SVG world map, analog face) that the closed primitive set can't express — without
+  visuals (SVG world map, analog face) that the closed primitive set can't express - without
   a raw canvas/SVG hole that would break the consistency guarantee. Cost: each composite is a
   curated entry in the shared element contract (a deliberate coupling), and only **first-party**
-  pure components can be blessed — arbitrary third-party custom visuals still can't.
+  pure components can be blessed - arbitrary third-party custom visuals still can't.
 
 ## A. Data the SDK can't reach (major)
 - Only **two** read host-actions exist: `screentime.today`, `displays.list`. Everything else is
@@ -64,7 +64,7 @@ Closes several D/E/F/G/I gaps below (the original lines are left intact for the 
   status, screen-mirror, fan RPM / network / per-process sensors, **any `/api/*` endpoint, any
   WS topic**. Reason: the proxy **blocks loopback** (`WidgetProxyService.IsPrivateOrReservedAddress`)
   by design, and there's **no topic/WebSocket broker** (`nexus.subscribe(topic)` doesn't exist).
-- Sensors cover only **5 families** (cpu/gpu/memory/motherboard/storage) — no fan RPM, no network,
+- Sensors cover only **5 families** (cpu/gpu/memory/motherboard/storage) - no fan RPM, no network,
   no per-process (`flattenFrameForWorker`).
 - *To open these:* register a read-only `WidgetAction` per surface (e.g. `media.nowPlaying`,
   `cooling.channels`, `lighting.state`), and/or add a multiplex-topic broker.
@@ -77,7 +77,7 @@ Closes several D/E/F/G/I gaps below (the original lines are left intact for the 
 - **`rgb.read` / `rgb.write`** manifest grants are dead (no verb consumes them).
 
 ## C. Security / trust (vs the third-party-app-sdk plan)
-- **Grants come from the manifest, not a signed cert** — the plan's central thesis. Any installed
+- **Grants come from the manifest, not a signed cert** - the plan's central thesis. Any installed
   widget can self-grant `dispatch` actions + `net.fetch` hosts by editing its own `manifest.json`.
   Backstops today: few actions exist + the SSRF guard. (`net.fetch` allowlist IS enforced
   server-side; sensors.read is now enforced on the SDK path.)
@@ -85,7 +85,7 @@ Closes several D/E/F/G/I gaps below (the original lines are left intact for the 
   (real DDC/CI writes) with no server throttle; the SDK host has no no-publish watchdog (the
   declarative one does). *To fix:* per-widget rate bucket on `/widgets-api/dispatch` + a host watchdog.
 
-## D. UI primitives that don't exist — whole widget classes blocked (blocker)
+## D. UI primitives that don't exist - whole widget classes blocked (blocker)
 - **No image** (remote / data-url) → blocks media album art, steam avatars, gallery.
 - **No scroll / virtualized list** → blocks steam friends, emoji grid, any long list (samples cap
   at ~8 rows).
@@ -93,9 +93,9 @@ Closes several D/E/F/G/I gaps below (the original lines are left intact for the 
 - **No line / area / curve / multi-series chart** (only Ring/Bar/Range/Gauge/Sparkline; Sparkline
   is a bare single-series polyline) → blocks the cooling curve editor, monitoring history graphs.
 - **No canvas / WebGL / SVG passthrough / custom paths** → blocks the lighting LED-map and the
-  ~16 bespoke monitoring gauge designs. (By design — a sandboxed canvas breaks the consistency
+  ~16 bespoke monitoring gauge designs. (By design - a sandboxed canvas breaks the consistency
   guarantee. Out of scope, or add curated parameterized gauges.)
-- **No video, no map, no rich/inline-styled text** (`Text` is single-run — can't mix a bold +
+- **No video, no map, no rich/inline-styled text** (`Text` is single-run - can't mix a bold +
   colored word in one line). *To fix inline text:* let `ui-text` accept nested `ui-text` runs.
 - `Gauge` is a **Ring alias** (stub); `Stepper` overflows narrow cells.
 
@@ -124,9 +124,9 @@ Closes several D/E/F/G/I gaps below (the original lines are left intact for the 
   console, never the widget surface. No Suspense/async render.
 
 ## H. Lifecycle / state (major)
-- **No teardown notification** — the worker is `terminate()`d mid-execution; no `nexus.shutdown`,
+- **No teardown notification** - the worker is `terminate()`d mid-execution; no `nexus.shutdown`,
   no flush/cancel hook.
-- Persistence is **per-instance `localStorage` only** (browser-local — phone vs desktop differ;
+- Persistence is **per-instance `localStorage` only** (browser-local - phone vs desktop differ;
   no host-backed sync).
 - **No cross-widget shared state / inter-widget channel** (BroadcastChannel/MessageChannel killed).
 - **No background work when not rendered** (worker disposed ~2.5 s after unmount).
@@ -135,7 +135,7 @@ Closes several D/E/F/G/I gaps below (the original lines are left intact for the 
 - **No system-event reactions** (sleep/resume/device-hotplug/profile-change).
 
 ## I. Authoring DX / footprint (major/minor)
-- **No published `@hellonexus/ui` / `@hellonexus/sdk` npm packages** — authors import in-tree paths;
+- **No published `@hellonexus/ui` / `@hellonexus/sdk` npm packages** - authors import in-tree paths;
   a third party can't `npm install` the SDK.
 - No hot reload / preview / Storybook; no worker debugging / on-panel error surface.
 - **React 18-in-worker vs React 19-host** split (footgun; `SDK_PROTOCOL_VERSION` exists but isn't
@@ -147,7 +147,7 @@ Closes several D/E/F/G/I gaps below (the original lines are left intact for the 
 
 ## Bottom line
 Of the native widgets cross-checked, only the "stat + button" shaped ones port cleanly
-(stopwatch/clock/timer/screentime/weather/displays — and weather/screentime only because they
+(stopwatch/clock/timer/screentime/weather/displays - and weather/screentime only because they
 were trimmed to fit). **media, steam, cooling, gallery, calculator, emoji, lighting, monitoring**
 are each blocked by ≥1 D/E/F blocker. The highest-leverage next steps: (1) a host-provided shared
 runtime + inline mode (footprint + perf), (2) `ui-image` + `ui-scroll` + `ui-input` + a real

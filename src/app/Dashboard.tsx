@@ -181,7 +181,7 @@ export function Dashboard() {
   useMonitoringStoreBridge(multiplex);
 
   // The UiSettingsProvider below owns the server-preferences hydrate + cache +
-  // theme/accent apply — the single source of truth for all three.
+  // theme/accent apply - the single source of truth for all three.
 
   const handlePreferencesChanged = useCallback((prefs: Preferences) => {
     applyThemeMode(prefs.theme.themeMode as ThemeMode);
@@ -621,7 +621,7 @@ export function Dashboard() {
             <div className={styles.content}>
               {/*
                 resetKey (not key) so the boundary instance is stable across
-                navigations — a key change would hard-unmount the Suspense
+                navigations - a key change would hard-unmount the Suspense
                 below it and defeat startTransition's "keep prior UI visible
                 while the next chunk loads" behavior, producing a one-frame
                 blank flash on every nav. resetKey clears caught errors when

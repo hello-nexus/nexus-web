@@ -1,6 +1,6 @@
 @use '../../../styles/text' as *;
 
-// Canonical settings row — see SettingRow.tsx. text-body label, no per-row
+// Canonical settings row - see SettingRow.tsx. text-body label, no per-row
 // divider (the only rule belongs under section headers, via SectionHeader).
 // --panel-* fallbacks keep it theme-correct inside .panel-root (kiosk) and on
 // the dashboard.

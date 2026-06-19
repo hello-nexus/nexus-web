@@ -1,15 +1,15 @@
 /**
  * Stale-while-revalidate cache for CoolingPage's initial render.
  *
- * On the first ever visit we have nothing — the page renders an empty
+ * On the first ever visit we have nothing - the page renders an empty
  * fan list while the network round-trips finish. On every visit AFTER,
  * the last-good snapshot is replayed synchronously from localStorage so
  * the page paints cards immediately, then the live fetch updates them
  * in place (any diff just re-renders the affected cards instead of
  * blank-then-filled pop-in).
  *
- * What's cached: the four primary fetches the page mounts with — fans,
- * curves, sources, active preset — plus the derived per-fan state map
+ * What's cached: the four primary fetches the page mounts with - fans,
+ * curves, sources, active preset - plus the derived per-fan state map
  * the wire layer needs to draw connections at first paint. Realtime
  * frame data, drag state, hover state, modal open state, etc. are
  * intentionally NOT cached (they're either too fast-moving to be useful
@@ -74,7 +74,7 @@ export function loadCoolingCache(): CoolingCache {
 }
 
 /**
- * Fire-and-forget write. Quota errors etc. are swallowed — caching is
+ * Fire-and-forget write. Quota errors etc. are swallowed - caching is
  * a UX nicety, never load-bearing for correctness.
  */
 export function saveCoolingCache(cache: CoolingCache): void {
@@ -91,7 +91,7 @@ export function saveCoolingCache(cache: CoolingCache): void {
  * cached state. Used by the cooling widget when the user picks a new
  * preset there: the page may not be mounted yet, so its useState
  * initializer needs to find the freshly-set preset when it mounts next.
- * Idempotent — a no-op write when the preset hasn't actually changed.
+ * Idempotent - a no-op write when the preset hasn't actually changed.
  */
 export function setCachedCoolingActivePreset(preset: CoolingPresetKey): void {
   const current = loadCoolingCache();

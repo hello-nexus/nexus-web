@@ -140,7 +140,7 @@
 }
 
 // Monitor-attached panel chrome scaling (everything except phone +
-// desktop). Animation is disabled because it also sets transform — running
+// desktop). Animation is disabled because it also sets transform - running
 // both at once would clobber the scale.
 :global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']).menu {
   transform: scale(var(--panel-scale, 1));

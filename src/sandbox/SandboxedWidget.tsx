@@ -24,7 +24,7 @@ export interface SandboxedWidgetProps {
   /** Which surface to render: 'cell' (panel tile, default) or 'page' (expanded
    *  full view). The page is a separate worker render of the same bundle. */
   surface?: 'cell' | 'page';
-  /** Catalog preview — host I/O stubbed (persistLocal no-op, dispatch resolves
+  /** Catalog preview - host I/O stubbed (persistLocal no-op, dispatch resolves
    *  { ok: false }); the app branches via the SDK's usePreview(). */
   preview?: boolean;
   /** Host dispatch for gated control/host actions; returns the dispatch envelope. */
@@ -40,7 +40,7 @@ function readLocal(widgetId: string, instanceId: string): Record<string, unknown
 
 // Keep-alive cache. The panel remounts a widget's whole subtree for transient
 // reasons (e.g. opening the edit sheet re-parents the cell into the editor-dock
-// portal — a changed return shape, so React unmounts + remounts). Respawning the
+// portal - a changed return shape, so React unmounts + remounts). Respawning the
 // worker + refetching data each time is a visible reload. Instead we keep the
 // live worker for a short grace window keyed by instance, so a remount reuses it
 // and the RemoteTree re-renders the receiver's existing tree instantly. A widget
@@ -57,7 +57,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}${preview ? ':preview' : ''}`;
   // Seed from the keep-alive cache synchronously: on a remount (edit-sheet open/
   // close re-parents the cell) the live worker already exists, so the FIRST
-  // render shows the tree — no blank frame / flicker.
+  // render shows the tree - no blank frame / flicker.
   const [handle, setHandle] = useState<SandboxHandle | null>(
     () => liveWidgets.get(cacheKey)?.handle ?? null,
   );

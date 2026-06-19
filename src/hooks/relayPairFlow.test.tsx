@@ -169,7 +169,7 @@ describe('relay pair flow → token stored → runtime starts over relay', () =>
 
     // 3. Runtime starts: mount the multiplex connection. On a remote origin with
     // the stored token, isRelayActive() is true, so the hook connects the relay
-    // DIRECTLY — no ws://localhost open is attempted. Assert no LAN socket was
+    // DIRECTLY - no ws://localhost open is attempted. Assert no LAN socket was
     // created and the runtime RelayChannel uses the just-stored SESSION token.
     vi.useFakeTimers();
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('no network'))));

@@ -30,7 +30,7 @@ export const NEXUS_RESIZE_EDGES = {
 export type NexusResizeEdge = (typeof NEXUS_RESIZE_EDGES)[keyof typeof NEXUS_RESIZE_EDGES];
 
 // Window-drag start. The shell posts WM_NCLBUTTONDOWN(HTCAPTION) so the OS move
-// loop takes over (Aero Snap included) — the title-bar drag without an
+// loop takes over (Aero Snap included) - the title-bar drag without an
 // `app-region: drag` non-client region (which black-flickers on resize over the
 // transparent Mica WebView2). Keep in lockstep with HandleWindowAction.
 export const NEXUS_WINDOW_DRAG = 'nexus:window-drag';
@@ -52,7 +52,7 @@ export const NEXUS_GALLERY_DROP_PATHS = 'nexus:gallery-drop-paths';
 /**
  * Hand dropped files to the shell so it can resolve their disk paths.
  * Returns false when no path-capable shell bridge is present (plain
- * browser tabs) — the caller shows a "use the picker" hint instead.
+ * browser tabs) - the caller shows a "use the picker" hint instead.
  */
 export function postGalleryDrop(files: File[]): boolean {
   const wv = (window as Window & { chrome?: { webview?: NexusShellWebView } }).chrome?.webview;
@@ -102,7 +102,7 @@ export function isMacAppShell(): boolean {
 /**
  * The 'glass' background paints the web transparent and relies on the native
  * shell's behind-window material (Windows Mica, macOS vibrancy). Only the
- * Windows/macOS app shells provide it — in a plain browser tab or the Linux
+ * Windows/macOS app shells provide it - in a plain browser tab or the Linux
  * Chromium --app spawn there's no native blur, so glass silently shows the flat
  * base. Callers use this to hide glass where it can't render.
  */
@@ -146,8 +146,8 @@ export function subscribeSystemAccent(onAccent: (hex: string) => void): () => vo
 
 /**
  * Tell the native host the dashboard's resolved light/dark so it themes its own
- * native chrome — Windows DWM immersive mode + Mica, macOS NSWindow appearance
- * + vibrancy — instead of following the OS theme. No-op in a plain browser.
+ * native chrome - Windows DWM immersive mode + Mica, macOS NSWindow appearance
+ * + vibrancy - instead of following the OS theme. No-op in a plain browser.
  * Keep the message strings in lockstep with the host handlers (DashboardWindow.cs
  * OnWebMessageReceived / MacAppWindow.cs DidReceiveScriptMessage).
  */

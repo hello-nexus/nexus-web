@@ -20,7 +20,7 @@ function write(map: FrecencyMap): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(map));
   } catch {
-    // storage full / disabled — frecency is best-effort, ignore.
+    // storage full / disabled - frecency is best-effort, ignore.
   }
 }
 

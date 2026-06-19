@@ -23,7 +23,7 @@ export interface CommandHost {
  *  by the palette from live hooks; passed to every provider. */
 export interface CommandContext {
   t: (key: string, params?: Record<string, string | number>) => string;
-  /** Service reachable — gates entries that write to the device (cooling,
+  /** Service reachable - gates entries that write to the device (cooling,
    *  lighting) so they don't show while there's nothing to apply to. */
   online: boolean;
   devices: PaletteDevice[];
@@ -37,7 +37,7 @@ export interface CommandContext {
   /** Live remote-access on/off state, so those become single toggles. */
   panel: { remoteEnabled: boolean; relayEnabled: boolean; wifiEnabled: boolean };
   host: CommandHost;
-  /** Close the palette. Most entries don't need this — the palette closes
+  /** Close the palette. Most entries don't need this - the palette closes
    *  itself after run() unless the entry sets keepOpen. */
   close: () => void;
 }
@@ -68,6 +68,6 @@ export interface SearchEntry {
 }
 
 /** A source contributes entries for the current context. The whole catalog is
- *  just an array of these — add one (or a row to a data table it reads) to add
+ *  just an array of these - add one (or a row to a data table it reads) to add
  *  results. Return [] to contribute nothing (e.g. device sources while offline). */
 export type SearchSource = (ctx: CommandContext) => SearchEntry[];

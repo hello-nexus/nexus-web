@@ -69,7 +69,7 @@ interface CurveSourceLike {
  *   1. The user's pinned CPU sensor, when its id is also a cooling source.
  *   2. A CPU-category source whose name mentions "Package" (Intel/LHM).
  *   3. Any CPU-category source (e.g. Linux k10temp Tctl, mac CPU die).
- *   4. First source — last resort so a curve always has an input.
+ *   4. First source - last resort so a curve always has an input.
  *
  * NOT `sources[0]`, which on Linux is often a motherboard SuperIO channel
  * (e.g. an unconnected it8696 header reading a -55°C sentinel).

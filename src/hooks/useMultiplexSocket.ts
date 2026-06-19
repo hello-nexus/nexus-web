@@ -96,7 +96,7 @@ const WS_CLOSE_REVOKED = 1008;
 // Hard ceiling on a single multiplex frame. The largest valid topic
 // today is the 1Hz monitoring composite, which clocks in well under 512KB
 // even with topN process + network lists at their cap. Anything bigger is
-// either a server bug or a malformed frame — drop it before parse to
+// either a server bug or a malformed frame - drop it before parse to
 // avoid a JSON.parse blowout on a long-lived socket.
 const MAX_FRAME_BYTES = 1024 * 1024;
 
@@ -418,7 +418,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
   // peer-up, run the identical {t,d} multiplex protocol over the encrypted
   // channel. A failed open / no peer-up / peer-down surfaces via onClose and
   // routes back into the normal backoff via handleDisconnect. The relay never
-  // carries the 1008 killswitch-revoke semantics — only the LAN /ws path does —
+  // carries the 1008 killswitch-revoke semantics - only the LAN /ws path does -
   // so handleDisconnect's revoke branch is unreachable from here.
   const tryRelay = useCallback(async () => {
     if (!mountedRef.current) return;
@@ -440,7 +440,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
 
   // LAN sealed-tunnel transport (Phase 2). A flag-on LAN phone runs the same
   // {t,d} multiplex over a RelayChannel pointed at the local /secure-tunnel
-  // (the relay E2E crypto, no cloud hop) instead of the plain /ws — which would
+  // (the relay E2E crypto, no cloud hop) instead of the plain /ws - which would
   // carry the session token in the URL. There is NO cleartext LAN fallback: a
   // failed open / no peer-up / peer-down routes to handleDisconnect, and the
   // backoff re-dials the sealed tunnel (connect() picks it again). Like the
@@ -460,7 +460,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
     close();
     setNextAttemptAt(null);
     // Remote origin (e.g. hellonexus.com) with a session token: the LAN /ws
-    // resolves to ws://localhost — the phone, not the PC, and unreachable. Skip
+    // resolves to ws://localhost - the phone, not the PC, and unreachable. Skip
     // that doomed open entirely and connect the relay directly. tryRelay() falls
     // back into handleDisconnect() on failure, so backoff still applies.
     if (isRelayActive()) {
@@ -469,7 +469,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
       return;
     }
     // Flag-on LAN phone: run the multiplex over the local sealed tunnel instead
-    // of the token-in-URL /ws. No cloud/cleartext fallback — backoff re-dials it.
+    // of the token-in-URL /ws. No cloud/cleartext fallback - backoff re-dials it.
     if (isLanSealedActive()) {
       void trySealed();
       return;
@@ -483,7 +483,7 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
       // Track whether the LAN socket ever reached OPEN this attempt. If it
       // closes WITHOUT having opened, and the close is not the 1008
       // killswitch-revoke, the LAN path is unreachable (e.g. client-isolated
-      // Wi-Fi) — fall back to the relay before any backoff. A 1008 close, or a
+      // Wi-Fi) - fall back to the relay before any backoff. A 1008 close, or a
       // drop after a successful open, follows the existing handleDisconnect
       // path unchanged.
       let lanOpened = false;

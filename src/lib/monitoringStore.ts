@@ -63,7 +63,7 @@ const overviewHist = {
 
 // Per-GPU overview history, keyed by GPU model name. Every frame pushes every
 // GPU's load into its own buffer, so the overview can switch instantly to
-// whichever GPU the user picks — the chosen GPU's history already exists rather
+// whichever GPU the user picks - the chosen GPU's history already exists rather
 // than having to morph out of a single shared buffer. (overviewHist.gpu still
 // mirrors the discrete-first default for any consumer that isn't selection-aware.)
 const gpuHistByName = new Map<string, number[]>();
@@ -226,7 +226,7 @@ export function ingestMonitoring(frame: MonitoringFrame) {
   totalMemUsedHist.push(totalUsedMb);
   if (totalMemUsedHist.length > MAX_SAMPLES) totalMemUsedHist = totalMemUsedHist.slice(-MAX_SAMPLES);
 
-  // Process history — aggregate by name first so duplicate process names
+  // Process history - aggregate by name first so duplicate process names
   // (Windows doesn't group by name like macOS) push exactly one value per frame.
   // `grouped` stays empty on a null/empty-procs frame so fillUnseen still
   // bumps idleStreak for every existing entry (a missing-procs frame counts
@@ -253,13 +253,13 @@ export function ingestMonitoring(frame: MonitoringFrame) {
     otherCpuHist.push(Math.round(Math.max(0, procs.totalCpu - topCpuSum) * 10) / 10);
     if (otherCpuHist.length > MAX_SAMPLES) otherCpuHist = otherCpuHist.slice(-MAX_SAMPLES);
   }
-  // Runs unconditionally — entries absent this frame get idleStreak bumped
+  // Runs unconditionally - entries absent this frame get idleStreak bumped
   // toward STALE_AFTER_ZERO. If `grouped` is empty (null/empty-procs frame),
   // every entry is treated as absent.
   fillUnseen(cpuHist, grouped);
   fillUnseen(memHist, grouped);
 
-  // Network history — per-process
+  // Network history - per-process
   const netSeen = new Set<string>();
   if (net && net.entries) {
     for (const e of net.entries) {
@@ -471,7 +471,7 @@ function pushHist(
   entry.values.push(val);
   // The entry was present in this frame, so reset the absence counter
   // regardless of the value. idleStreak tracks "frames since last seen,"
-  // not "frames since last non-zero" — a running process that happens to
+  // not "frames since last non-zero" - a running process that happens to
   // report 0 on one of its axes shouldn't be evicted.
   entry.idleStreak = 0;
 }
@@ -483,7 +483,7 @@ function trimArr(entry: HistEntry) {
 
 // For every entry in `map` that wasn't seen in the current frame, push a 0
 // and bump idleStreak. This is what makes evictStaleHistEntries reach the
-// threshold for processes that exited mid-session — without it, an exited
+// threshold for processes that exited mid-session - without it, an exited
 // process's history just freezes at length 60 and never decays.
 function fillUnseen(map: Map<string, HistEntry>, seen: Map<string, unknown> | Set<string>) {
   for (const [name, entry] of map) {

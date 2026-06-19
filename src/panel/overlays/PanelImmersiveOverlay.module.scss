@@ -41,7 +41,7 @@
 
 // Top grabber, doubles as tap-to-close. Swipe DOWN closes; tap is the
 // no-gesture fallback. The pill and its top inset scale with --panel-scale so
-// they read at the same proportion as the scaled immersive body — the overlay
+// they read at the same proportion as the scaled immersive body - the overlay
 // root is unscaled, so a fixed-px pill looks tiny on a high-scale kiosk (Y70).
 // flex-start hugs the pill to the top edge while the hit target stays tall.
 // Sizes are CSS px x scale, never DPR, so display scaling can't distort them.
@@ -89,7 +89,7 @@
   position: relative;
   // Render area is sized at 1/zoom then scaled back up by --panel-scale, so
   // the immersive content (sliders, fonts, fixed-px chrome) reads at the same
-  // proportion as the rest of the monitor panel — mirroring the editor sheet
+  // proportion as the rest of the monitor panel - mirroring the editor sheet
   // and actions tray. The var is unset on phone/desktop (→ 1), making the
   // counter-size + transform a no-op there. margin:auto centers the shrunk box
   // in both axes; bottom-center origin is wrong here since the overlay is

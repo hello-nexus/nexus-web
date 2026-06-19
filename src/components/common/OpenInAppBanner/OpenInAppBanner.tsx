@@ -44,7 +44,7 @@ export function OpenInAppBanner() {
     const isAndroidDevice = /Android/.test(ua);
     if (!isIOSDevice && !isAndroidDevice) return;
 
-    // Standalone PWA already runs outside the browser — no banner.
+    // Standalone PWA already runs outside the browser - no banner.
     const standalone = window.matchMedia('(display-mode: standalone)').matches
       || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
     if (standalone) return;

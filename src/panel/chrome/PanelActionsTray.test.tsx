@@ -25,8 +25,8 @@ describe('PanelActionsTray swipe-to-open', () => {
   beforeEach(() => resetGestureAxis());
 
   // Regression: the reset effect used to depend on the whole `swipe` object
-  // (new every render), so it re-ran on the drag's own re-render and — since
-  // `open` stays false until commit — reset the live offset on every touchmove.
+  // (new every render), so it re-ran on the drag's own re-render and - since
+  // `open` stays false until commit - reset the live offset on every touchmove.
   // The tray would reveal, snap back to the bottom, and only animate up on
   // release. The drag must stay 'dragging' across the re-render it triggers.
   it('keeps tracking the finger during the pre-release drag (no reset)', () => {

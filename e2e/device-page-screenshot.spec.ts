@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-// One-shot UI test for the device pages — boots the dashboard with a
+// One-shot UI test for the device pages - boots the dashboard with a
 // simulated Y70 + Q60 + Q80 attached, navigates into each device's
 // page, and captures screenshots into `.deep-build/screenshots/`.
 //
@@ -14,7 +14,7 @@ const SCREENSHOT_DIR = join(process.cwd(), '.deep-build', 'screenshots');
 
 test.use({
   // Wide viewport so the dashboard sidebar renders expanded (not the
-  // compact icon-only mode that kicks in below 1199px) — we need the
+  // compact icon-only mode that kicks in below 1199px) - we need the
   // device row labels visible to click them.
   viewport: { width: 1600, height: 1000 },
 });
@@ -98,7 +98,7 @@ async function mockService(page: Page) {
         body: JSON.stringify({
           theme: { language: 'en', themeMode: 'dark', accentColor: '#3b82f6' },
           // autoLaunch: true so the simulator's "panel hidden / desktop visible"
-          // overlay doesn't replace the actual canvas in the preview pane —
+          // overlay doesn't replace the actual canvas in the preview pane -
           // we want the canvas in the screenshot, not the offline placeholder.
           panel: { autoLaunch: true, themeSyncWithDesktop: true, themeMode: 'dark', accentSyncWithDesktop: true, backgroundMode: 'solid', backgroundEffect: 'none', backgroundTemplate: 0, backgroundOpacity: 1, widgetOpacity: 1, widgetLabels: true },
           overlay: { enabled: false, alwaysOnTop: false, scale: 1, opacity: 1, monitor: 0, layout: [] },
@@ -195,7 +195,7 @@ async function mockService(page: Page) {
     }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) });
   });
-  // Anything else (CDN, fonts) — let it fall through.
+  // Anything else (CDN, fonts) - let it fall through.
 }
 
 test.beforeAll(async () => {
@@ -239,7 +239,7 @@ test('captures Y70 and Q60 device pages', async ({ page }) => {
     await page.waitForTimeout(1500); // let PanelEmbedFrame measure + paint
     await page.screenshot({ path: join(SCREENSHOT_DIR, '01-y70.png'), fullPage: false });
   } else {
-    console.warn('Y70 sidebar entry not visible — falling back to URL nav.');
+    console.warn('Y70 sidebar entry not visible - falling back to URL nav.');
     await page.goto('/system/devices');
     await page.waitForTimeout(500);
     await page.screenshot({ path: join(SCREENSHOT_DIR, '01-devices-landing.png'), fullPage: false });

@@ -8,7 +8,7 @@ export function isWebHidAvailable(): boolean {
   return typeof navigator !== 'undefined' && 'hid' in navigator && navigator.hid !== undefined;
 }
 
-/** Returns all previously-granted devices we know how to wrap. Silent — the user
+/** Returns all previously-granted devices we know how to wrap. Silent - the user
  *  must have granted access in a prior session (or this one). */
 export async function getGrantedPeripherals(): Promise<WebHidPeripheral[]> {
   if (!isWebHidAvailable()) return [];

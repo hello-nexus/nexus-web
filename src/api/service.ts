@@ -10,7 +10,7 @@ const DEFAULT_HTTPS_PORT = '9443';
 const SERVICE_PORT = import.meta.env.VITE_SERVICE_PORT || DEFAULT_SERVICE_PORT;
 
 // Cloud relay fallback endpoint. The relay is a WSS gateway INSIDE nexus-api
-// (Railway, api.hellonexus.com) at path /relay — an opaque byte-forwarder used
+// (Railway, api.hellonexus.com) at path /relay - an opaque byte-forwarder used
 // only when the LAN /ws path fails. It lives at the api origin, NOT the local
 // service: unlike resolveWs() this never points at the LAN host. Overridable
 // via VITE_RELAY_URL for local/dev relay testing. Keep in sync with the
@@ -20,7 +20,7 @@ const RELAY_URL = import.meta.env.VITE_RELAY_URL || DEFAULT_RELAY_URL;
 
 // Regional relay directory. The host stamps the pair QR with `r=<tag>` for the
 // latency-nearest relay it registered on; the phone follows to that same relay
-// so host + phone share one rendezvous instance. Built-in map — the web is
+// so host + phone share one rendezvous instance. Built-in map - the web is
 // always served fresh from hellonexus.com, so adding a region is one entry + a
 // redeploy, no client-side directory fetch. Unknown / absent tag ⇒ the legacy
 // default (kept in sync with RELAY_REGIONS in nexus-api relays.config.ts).
@@ -39,7 +39,7 @@ const RELAY_REGION_KEY = 'nexus.relayRegion';
 export function setRelayRegion(tag: string | null | undefined): void {
   if (typeof localStorage === 'undefined') return;
   // Best-effort: a present-but-throwing store (Safari Private Mode, quota,
-  // hardened browsers) must NOT break pairing — it just costs the region hint
+  // hardened browsers) must NOT break pairing - it just costs the region hint
   // (the relay falls back to the legacy default), so swallow any throw.
   try {
     if (tag && RELAY_REGIONS[tag]) localStorage.setItem(RELAY_REGION_KEY, tag);
@@ -57,7 +57,7 @@ const isServedFromService = locationPort === DEFAULT_SERVICE_PORT || locationPor
 // True when the SPA is loaded from a REMOTE origin (hellonexus.com, a Vite dev
 // server, anything that is NOT the local service on :9400/:9443). On such an
 // origin there is NO localhost PC to reach: resolveHttp() would point at
-// http://localhost (wrong host — that's the phone, not the PC — and
+// http://localhost (wrong host - that's the phone, not the PC - and
 // mixed-content-blocked on an https page), so REST + /ws MUST go over the cloud
 // relay from the very first call. Deterministic from the origin, computed once.
 export const isRemoteOrigin = !isServedFromService;
@@ -65,14 +65,14 @@ export const isRemoteOrigin = !isServedFromService;
 // True when the panel is served from a REMOTE host: a paired phone reaching the
 // PC over LAN (<pc-ip>:9400/9443) or over the relay (hellonexus.com), versus a
 // LOCAL hardwired surface (a Y70/Q60 kiosk or the embedded dashboard, which load
-// from localhost). Gates the "Connected to <PC>" + lock indicator — a hardwired
+// from localhost). Gates the "Connected to <PC>" + lock indicator - a hardwired
 // display already knows what it's plugged into, so it's hidden there.
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '']);
 export const isRemotePaired = !LOCAL_HOSTS.has(locationHost);
 
 // LAN sealed transport (Phase 2). A phone reaching the PC over the LAN is served
 // from the service (so isRemoteOrigin is false) but from a real host IP
-// (isRemotePaired) — its session token currently crosses the LAN as a bearer
+// (isRemotePaired) - its session token currently crosses the LAN as a bearer
 // header AND a ?token= on the /ws URL. When the flag is on, route the panel's
 // runtime + REST over the sealed /secure-tunnel (the same E2E relay crypto, no
 // cloud hop) so the token never leaves the device. Gated for staged rollout:
@@ -94,7 +94,7 @@ function lanSealedFlagOn(): boolean {
  * True when this surface should use the sealed LAN tunnel: a phone served from
  * the local service (not a remote origin) but reaching it over a real host IP
  * (isRemotePaired, i.e. not a localhost kiosk), with the flag enabled. A token
- * still has to exist before anything actually tunnels — that gate lives in
+ * still has to exist before anything actually tunnels - that gate lives in
  * effectiveTransport.
  */
 export function isLanSealedEligible(): boolean {
@@ -146,7 +146,7 @@ export function resolveLanSealedWs(): string {
 // 'lan-sealed' for the local sealed /secure-tunnel, null while disconnected. The
 // fetch layer reads it to decide whether REST calls go directly to the local
 // service (LAN) or tunnel over a sealed channel. A module-level signal keeps the
-// fetch helpers' signatures unchanged — callers stay oblivious to which
+// fetch helpers' signatures unchanged - callers stay oblivious to which
 // transport is live.
 let activeTransport: 'lan' | 'relay' | 'lan-sealed' | null = null;
 
@@ -183,8 +183,8 @@ export function setActiveTransport(transport: 'lan' | 'relay' | 'lan-sealed' | n
  *
  * Normally this is just `activeTransport` (set by useMultiplexSocket as the
  * live connection opens/closes). But on a REMOTE origin there is no localhost
- * PC to reach, so before the multiplex socket has even opened — i.e. for the
- * panel's very first REST calls (device alloc/patch, ping) — we must ALREADY be
+ * PC to reach, so before the multiplex socket has even opened - i.e. for the
+ * panel's very first REST calls (device alloc/patch, ping) - we must ALREADY be
  * on the relay, or those early fetches hit http://localhost (wrong + mixed-
  * content-blocked) and surface a bogus "could not reach the service".
  *
@@ -217,7 +217,7 @@ export function isRelayActive(): boolean {
 }
 
 /**
- * Whether the live/eager transport is the LAN sealed tunnel — the runtime path
+ * Whether the live/eager transport is the LAN sealed tunnel - the runtime path
  * opens a RelayChannel to /secure-tunnel instead of the plain /ws. Read by
  * useMultiplexSocket to choose the sealed channel over the token-in-URL socket.
  */
@@ -226,7 +226,7 @@ export function isLanSealedActive(): boolean {
 }
 
 /**
- * Whether REST should tunnel over a sealed channel right now — the cloud relay
+ * Whether REST should tunnel over a sealed channel right now - the cloud relay
  * (off-LAN) OR the local sealed tunnel (flag-on LAN phone). Both seal the same
  * way and use the same relayFetch path; only the WS URL differs. With the
  * lan-sealed flag off this is exactly isRelayActive(), so the REST routing is
@@ -243,17 +243,17 @@ function resolveTunnelWs(): string {
 }
 
 /**
- * A direct window.fetch(resolveHttp(...)) here would target http://localhost —
+ * A direct window.fetch(resolveHttp(...)) here would target http://localhost -
  * which on a REMOTE origin is the wrong host (the phone, not the PC) AND
  * mixed-content-blocked on an https page. So when we're on a remote origin but
- * the relay isn't usable yet (no session token to derive the rid — e.g. the
+ * the relay isn't usable yet (no session token to derive the rid - e.g. the
  * pre-pairing /r/pair boot), the direct fetch must NOT fire: fail closed
  * instead. On a local (service-served) origin this is always false, so the LAN
  * fetch path is untouched.
  *
  * An EXPLICIT 'lan' transport is the one exception: useMultiplexSocket only
  * publishes 'lan' after a direct /ws socket actually OPENED, which on a remote
- * origin can't happen — so a published 'lan' means localhost actually is
+ * origin can't happen - so a published 'lan' means localhost actually is
  * reachable (a service-served origin), and the direct fetch is allowed.
  */
 function blockedLocalhostFetch(): boolean {
@@ -290,7 +290,7 @@ async function authFetch(path: string, opts: RequestOptions = {}): Promise<Respo
   // server-side, so no bearer is sent. Transparent to callers: a Response-like
   // object is synthesized so fetchService/.json() etc. work unchanged. Also
   // covers the eager case (remote origin + token, multiplex not yet open) and
-  // the LAN sealed tunnel (flag-on LAN phone) — both tunnel via relayAuthFetch.
+  // the LAN sealed tunnel (flag-on LAN phone) - both tunnel via relayAuthFetch.
   if (isTunnelActive()) {
     return relayAuthFetch(path, opts);
   }
@@ -374,7 +374,7 @@ function base64ToBytes(b64: string): ArrayBuffer {
 /**
  * Status-preserving relay request for the few callers that bypass authFetch to
  * read the raw HTTP status (the panel.ts *WithStatus helpers + form upload).
- * Unlike relayAuthFetch this does NOT collapse a non-2xx to null — it returns
+ * Unlike relayAuthFetch this does NOT collapse a non-2xx to null - it returns
  * the real Response (and a status of 0 on a transport failure) so those callers
  * branch on 401/403/404 over the relay exactly as they do on the LAN. Used only
  * when isRelayActive(); the LAN path is the unchanged window.fetch below.
@@ -463,7 +463,7 @@ export async function fetchServiceBlob(path: string): Promise<Blob | null> {
   // Effect thumbnails + app icons are static-per-key bytes; the routes that
   // care set Cache-Control accordingly. Forcing no-store here would void any
   // server cache hint and refetch on every mount.
-  // An error status must yield null, not a blob of the JSON error body —
+  // An error status must yield null, not a blob of the JSON error body -
   // callers feed this straight into URL.createObjectURL for <img> sources.
   const r = await authFetch(path);
   if (!r || !r.ok) return null;

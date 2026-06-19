@@ -178,7 +178,7 @@
 }
 
 // Tray buttons are the shared desktop <Button> (neutral tone); these classes
-// own only layout — the row fills equally on touch surfaces, while the pairing
+// own only layout - the row fills equally on touch surfaces, while the pairing
 // button stays a fixed-width icon square. Desktop keeps them compact (above).
 .trayButton {
   flex: 1 1 0;

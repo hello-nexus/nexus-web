@@ -1,6 +1,6 @@
 // Docs-style reference for product telemetry, routed at /telemetry-reference
 // (Settings → Dev tools → Telemetry events). Lists every event the app emits
-// to PostHog, what it means, when it fires, and its parameters — an API
+// to PostHog, what it means, when it fires, and its parameters - an API
 // lookup in the form of docs. Catalog lives in ./events.ts.
 
 import { useMemo, useState } from 'react';
@@ -51,7 +51,7 @@ export function TelemetryReference() {
 
       <section className={styles.autoProps}>
         <h2>Automatic properties</h2>
-        <p className={styles.dim}>Attached to every event — you never pass these yourself.</p>
+        <p className={styles.dim}>Attached to every event - you never pass these yourself.</p>
         <ParamTable params={AUTO_PROPERTIES} />
       </section>
 

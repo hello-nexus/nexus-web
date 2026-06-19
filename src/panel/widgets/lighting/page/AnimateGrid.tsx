@@ -62,9 +62,9 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
   slotFor?: (key: string) => number;
   /** Content hash of that slot, for cache-busting. Defaults to '0'. */
   versionFor?: (key: string) => string;
-  /** Effect currently driving the RGB LEDs — its cell shows a bulb (panels only). */
+  /** Effect currently driving the RGB LEDs - its cell shows a bulb (panels only). */
   rgbActiveEffect?: string | null;
-  /** Effects used as a background by ≥1 panel — those cells show a panel icon. */
+  /** Effects used as a background by ≥1 panel - those cells show a panel icon. */
   panelEffects?: Set<string> | null;
 }) {
   const { t } = useTranslation();

@@ -1,12 +1,12 @@
 // Pure functions that build and parse Razer's 91-byte HID feature report.
-// No I/O — these are the byte-for-byte equivalent of the service's
+// No I/O - these are the byte-for-byte equivalent of the service's
 // RazerReport.cs + RazerClient.cs, driven by the shared JSON spec.
 import { RAZER_SPEC, type RazerCommand } from './spec';
 
 /** The 91-byte HID feature buffer: [reportId=0, status, txid, remaining_hi, remaining_lo, proto, dsize, class, id, args[80], crc, reserved]. */
 export type RazerFrame = Uint8Array;
 
-/** Arguments for a Razer command — 80 bytes, caller provides the active subset at the front. */
+/** Arguments for a Razer command - 80 bytes, caller provides the active subset at the front. */
 export interface BuildFrameArgs {
   command: RazerCommand;
   transactionId: number;
@@ -51,7 +51,7 @@ export interface RazerReply {
   commandClass: number;
   commandId: number;
   dataSize: number;
-  /** args[0..79] — the payload the device sent back */
+  /** args[0..79] - the payload the device sent back */
   args: Uint8Array;
 }
 

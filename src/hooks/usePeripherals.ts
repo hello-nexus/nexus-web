@@ -17,7 +17,7 @@ export interface Peripheral {
   firmwareVersion: string;
   isWireless: boolean;
   capabilities: string[];
-  /** Which backend owns this peripheral — the Nexus service, or the browser via WebHID. */
+  /** Which backend owns this peripheral - the Nexus service, or the browser via WebHID. */
   source?: PeripheralSource;
   dpi?: DpiState;
   polling?: PollingState;

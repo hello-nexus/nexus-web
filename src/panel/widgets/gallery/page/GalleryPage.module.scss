@@ -61,7 +61,7 @@
   gap: 0.5rem;
 }
 
-// One card per source — same visual language as the cooling page's fan cards.
+// One card per source - same visual language as the cooling page's fan cards.
 .sourceCard {
   display: flex;
   flex-direction: column;
@@ -128,7 +128,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-// "N excluded · Restore" — accent-tinted so a trimmed folder stands out;
+// "N excluded · Restore" - accent-tinted so a trimmed folder stands out;
 // one click puts everything back.
 .excludedChip {
   display: flex;

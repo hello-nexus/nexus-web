@@ -4,7 +4,7 @@ import { MediaGrid } from './MediaGrid';
 import styles from '../LightingPage.module.scss';
 
 /**
- * Read-only media picker for the immersive editor's Options tab — pick a clip
+ * Read-only media picker for the immersive editor's Options tab - pick a clip
  * to play. No import / delete / folder chrome; that lives only on the desktop
  * MediaControls.
  */

@@ -180,7 +180,7 @@ export function getKeyGlyph(func: string, layout: KeebLayoutKind = 'ANSI'): Reac
     case 'NonUsBackslash': return '\\ |';
     case 'SoftwareControl': return 'SW';
     default:
-      // F1-F24, A-Z, International{1..5}, Lang1 — display as-is.
+      // F1-F24, A-Z, International{1..5}, Lang1 - display as-is.
       return func;
   }
 }

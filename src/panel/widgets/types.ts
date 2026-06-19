@@ -3,7 +3,7 @@ import type { ComponentType, LazyExoticComponent } from 'react';
 import type { DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
 
-// "App" is the conceptual unit — one per widget type. Each App has up
+// "App" is the conceptual unit - one per widget type. Each App has up
 // to four facets, three of them optional:
 //
 //   Widget   (required)  the tile that appears in the panel grid.
@@ -38,7 +38,7 @@ export interface WidgetProps {
   onConfigure?: () => void;
   // Deck-style widgets with pages/folders: the shared edit-mode view (which
   // page / folder the editor is on) so the live tile mirrors the edit sheet and
-  // slot selection hit-tests the right grid. Undefined outside editing — run
+  // slot selection hit-tests the right grid. Undefined outside editing - run
   // mode keeps its own internal navigation state.
   editView?: DeckEditView;
   onEditViewChange?: (view: DeckEditView) => void;
@@ -66,7 +66,7 @@ export interface WidgetSettingsProps {
   onResize: (size: PanelWidgetSize) => void;
   selectedSlot?: number;
   onSelectedSlotChange?: (slot: number) => void;
-  // Shared paged/foldered edit view (deck) — see WidgetProps.editView.
+  // Shared paged/foldered edit view (deck) - see WidgetProps.editView.
   editView?: DeckEditView;
   onEditViewChange?: (view: DeckEditView) => void;
 }
@@ -95,7 +95,7 @@ export interface AppMetadata {
   hasConfig: boolean;
   // Whether the widget *requires* a touch / pointer input modality. true
   // means it's hidden on display-only surfaces (currently Q60). false means
-  // it's available on every surface that can fit one of its `sizes` — desktop
+  // it's available on every surface that can fit one of its `sizes` - desktop
   // (mouse), Y70 (touch), and phone (touch) all qualify, since they have a
   // pointer. Availability is computed from `touch` + `sizes` alone; there is
   // no per-widget surface allowlist.
@@ -129,7 +129,7 @@ export interface WidgetEditInitialSelection {
 
 export interface AppManifest {
   meta: AppMetadata;
-  // The widget tile — always present. Rendered in the panel grid.
+  // The widget tile - always present. Rendered in the panel grid.
   Widget: ComponentType<WidgetProps> | LazyExoticComponent<ComponentType<WidgetProps>>;
   // Optional static stand-in for the add-widget catalog tile. Widgets whose
   // live tile subscribes to streaming data (e.g. monitoring graphs) ship this

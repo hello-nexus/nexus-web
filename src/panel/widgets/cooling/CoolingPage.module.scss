@@ -90,7 +90,7 @@
   font-weight: var(--weight-body);
 }
 // Selected chip (curve type, or the viewed curve): monitoring "enabled"
-// treatment — accent border + accent text/icon + a faint accent fill, instead
+// treatment - accent border + accent text/icon + a faint accent fill, instead
 // of the full bright chip-active fill. Compound selector so it wins over the
 // global .chip-action.
 :global(.chip-action).chipSoftActive {
@@ -309,7 +309,7 @@
 
 
 // Software-controlled (not BIOS/FW): keep the card surface unchanged and
-// signal it on the duty bar instead — a much lighter cue than a full-card
+// signal it on the duty bar instead - a much lighter cue than a full-card
 // tint. The curve-driven fill goes accent here; BIOS/firmware fans keep the
 // neutral fill defined below. (Manual fans use the target fill, already accent.)
 .fanCardActive .fanDutyFill {
@@ -337,7 +337,7 @@
   &:hover { background: var(--bg); }
 }
 // While calibrating, the fan grid is fully hidden (not just dimmed) so only
-// the calibration overlay shows — no fan nodes, no half-visible cards.
+// the calibration overlay shows - no fan nodes, no half-visible cards.
 .fanGridDisabled {
   pointer-events: none;
   opacity: 0;
@@ -506,7 +506,7 @@
   padding: 0.35rem 0 0.25rem;
 }
 // Compact one-liner per disconnected fan: name + which device it lives
-// on. We don't render a full FanCard here — there's nothing the user
+// on. We don't render a full FanCard here - there's nothing the user
 // can do until the fan reports a tach again, so a row is enough.
 .disconnectedRow {
   display: flex;

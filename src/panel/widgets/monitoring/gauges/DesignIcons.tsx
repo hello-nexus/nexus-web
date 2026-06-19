@@ -1,6 +1,6 @@
 // Each design icon is a tiny SVG component; co-locating them in one file
 // makes the picker easy to scan and the array map() at the bottom trivial.
-// Fast-refresh doesn't matter for these — they have no internal state.
+// Fast-refresh doesn't matter for these - they have no internal state.
  
 import type { SVGProps } from 'react';
 

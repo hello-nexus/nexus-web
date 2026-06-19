@@ -2,7 +2,7 @@
 // Vite's es2019 target handles syntax but does NOT polyfill runtime APIs.
 // Imported FIRST in main.tsx so every later module sees the polyfilled globals.
 
-// String.prototype.replaceAll — Chrome 85+
+// String.prototype.replaceAll - Chrome 85+
 if (typeof String.prototype.replaceAll !== 'function') {
   Object.defineProperty(String.prototype, 'replaceAll', {
     value: function (search: string | RegExp, replacement: string | ((substring: string, ...args: unknown[]) => string)) {
@@ -29,7 +29,7 @@ if (typeof String.prototype.replaceAll !== 'function') {
   });
 }
 
-// Array.prototype.at / String.prototype.at — Chrome 92+
+// Array.prototype.at / String.prototype.at - Chrome 92+
 if (typeof Array.prototype.at !== 'function') {
   Object.defineProperty(Array.prototype, 'at', {
     value: function (n: number) {
@@ -54,7 +54,7 @@ if (typeof String.prototype.at !== 'function') {
   });
 }
 
-// Object.hasOwn — Chrome 93+
+// Object.hasOwn - Chrome 93+
 if (typeof Object.hasOwn !== 'function') {
   Object.defineProperty(Object, 'hasOwn', {
     value: function (o: object, k: PropertyKey) {

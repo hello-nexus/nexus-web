@@ -112,7 +112,7 @@ export function repackPage(widgets: PanelWidget[], cols: number): PanelWidget[] 
  * First free rect for a span, scanned in the grid's long-axis order.
  * `columnMajor` walks top-to-bottom within a column before moving right
  * (landscape flow); otherwise left-to-right within a row before moving
- * down (portrait flow). Stride 1 (every cell) for the tightest fit —
+ * down (portrait flow). Stride 1 (every cell) for the tightest fit -
  * repacking prioritises no-clip over snap aesthetics. Null if nothing
  * fits inside (cols, rows).
  */
@@ -152,7 +152,7 @@ function firstFitCell(
  * fragment the grid). Output keeps the input array order so callers can
  * diff positions by index. Over-capacity pages (more widget area than
  * the grid holds) push the leftover past the flow edge without
- * overlapping — that clip is pagination's problem, not packing's.
+ * overlapping - that clip is pagination's problem, not packing's.
  */
 export function repackToFit(widgets: readonly PanelWidget[], cols: number, rows: number): PanelWidget[] {
   const columnMajor = cols > rows;
@@ -213,7 +213,7 @@ export function repaginatePanelLayout(layout: PanelLayout, capacity: PaginateCap
     // Repack from the original (pre-clamp) positions to keep reading order,
     // but only adopt it if it actually fits. An over-capacity page (more
     // widget area than the grid holds) can't be packed clean and isn't a
-    // fixed point under re-clamp, which would loop the persist effect — so
+    // fixed point under re-clamp, which would loop the persist effect - so
     // keep the clamped result there (clamp IS idempotent). Pagination, not
     // packing, owns genuine overflow.
     let widgets = clamped;

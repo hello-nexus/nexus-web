@@ -1,6 +1,6 @@
 // Physical layout of the HYTE Keeb TKL keyboard. Each entry is one physical
 // key with its default function (the printed legend), the assignment mode
-// the firmware uses for that function, and any positioning hints — gaps
+// the firmware uses for that function, and any positioning hints - gaps
 // between groups, oversized keys, the keypad cluster.
 //
 // Ported from nexus/src/renderer/shared/features/nexus/keeb/KeebLayout.tsx.
@@ -21,7 +21,7 @@ import type { KeebLayoutKind } from './keebGlyphs';
 export interface KeebLayoutKey {
   function: string;
   mode: KeyAssignmentMode;
-  /** Optional positioning override — gap, fixed width, vertical span. */
+  /** Optional positioning override - gap, fixed width, vertical span. */
   style?: CSSProperties;
 }
 

@@ -12,11 +12,11 @@
 // Connection handshake (relay wire protocol):
 //   1. open WSS to the relay URL;
 //   2. send the client hello TEXT {v:1, role:"client", rid, salt:<b64url 16B>};
-//   3. wait for the relay's TEXT {"e":"peer-up"} — only THEN is onopen fired
+//   3. wait for the relay's TEXT {"e":"peer-up"} - only THEN is onopen fired
 //      (the LAN socket's onopen analogue: the host is present and ready);
 //   4. after peer-up, BINARY frames carry the encrypted multiplex stream.
 // A peer-down / close / handshake timeout fires onclose, returning the hook to
-// its normal backoff. The relay itself never sees the AEAD key — it only sees
+// its normal backoff. The relay itself never sees the AEAD key - it only sees
 // rid + connSalt, both public.
 
 import {
@@ -313,7 +313,7 @@ export async function pairOverRelay(url: string, pairToken: string, deviceName: 
     // token and unregisters rid_pair, which makes the relay peer-down/close the
     // channel as NORMAL cleanup). On WebKit that close can win the race against
     // the async WebCrypto open() of the just-received reply, so a close/error/
-    // peer-down arriving AFTER a reply frame MUST NOT reject — the in-flight
+    // peer-down arriving AFTER a reply frame MUST NOT reject - the in-flight
     // decrypt of the received frame is the source of truth. Reject paths are
     // guarded by this flag; only the no-reply cases (no peer-up, timeout,
     // real error before any reply) still reject.
@@ -335,7 +335,7 @@ export async function pairOverRelay(url: string, pairToken: string, deviceName: 
       resolve(result);
     };
     // Reject the claim outright (used for real errors of the reply frame
-    // itself — bad tag, wrong direction, unparseable reply — which are real
+    // itself - bad tag, wrong direction, unparseable reply - which are real
     // failures regardless of the close race).
     const abort = (err: Error) => {
       if (settled) return;
@@ -398,7 +398,7 @@ export async function pairOverRelay(url: string, pairToken: string, deviceName: 
       if (!frameBytes) { fail(new Error('malformed relay frame')); return; }
       // A BINARY frame IS the claim reply: mark it received NOW, synchronously,
       // before the async open() resolves. From here on the claim is settled by
-      // this frame's decrypt — any close/error/peer-down the PC's post-claim
+      // this frame's decrypt - any close/error/peer-down the PC's post-claim
       // cleanup triggers is ignored (the fail() guard above), and the in-flight
       // open() is never aborted.
       responseReceived = true;

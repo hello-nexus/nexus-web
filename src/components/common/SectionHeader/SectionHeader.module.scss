@@ -1,6 +1,6 @@
 @use '../../../styles/text' as *;
 
-// Canonical settings header — see SectionHeader.tsx. A muted body-type label;
+// Canonical settings header - see SectionHeader.tsx. A muted body-type label;
 // spacing + alignment are owned by the parent (e.g. SettingsSection).
 .sectionHeader {
   @include text-body;

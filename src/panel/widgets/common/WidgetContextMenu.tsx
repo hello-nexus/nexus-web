@@ -29,7 +29,7 @@ interface WidgetContextMenuProps {
   // this type exists. Click removes every instance of this type from the
   // overlay. Caller wires one of the two per state, never both at once.
   onRemoveFromDesktop?: () => void;
-  // Optional — only shown when the widget is one of the pinnable desktop
+  // Optional - only shown when the widget is one of the pinnable desktop
   // apps (matches isPinnableAppKey in app/sidebarAppKeys) AND isn't already
   // pinned. Pins this widget's "app page" onto the desktop sidebar.
   onPinToSidebar?: () => void;

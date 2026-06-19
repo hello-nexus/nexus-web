@@ -1,7 +1,7 @@
 // tokens.scss is imported as a global side-effect in PanelApp.tsx, NOT @use
 // here: @use from a .module.scss makes Vite hash the imported class names
 // (panel-root, panel-card, panel-chip), breaking raw className="panel-root"
-// in JSX. The scrollbar @use below is safe — _scrollbar.scss is mixin-only
+// in JSX. The scrollbar @use below is safe - _scrollbar.scss is mixin-only
 // (no class selectors), so nothing gets hashed.
 
 @use '../styles/scrollbar' as *;
@@ -285,7 +285,7 @@
   grid-auto-rows: var(--panel-row-size, var(--panel-cell-size, 172px));
   // grid-auto-flow stays `row` (no dense backfill): visual order must match
   // flat order, which the projected-layout strategy and paginate() rely on.
-  // Do NOT set `dense` — later small widgets would slide into earlier gaps
+  // Do NOT set `dense` - later small widgets would slide into earlier gaps
   // and break drag-and-drop predictability.
   gap: var(--panel-gap, 10px);
   width: 100%;
@@ -435,7 +435,7 @@
 
 .panelRoot[data-surface='q60'] .grid {
   // Fill the page height, rows split it equally (`1fr` each). Height flows
-  // from the surface root, sized with 100vh — NOT 100dvh. The Q60 ships
+  // from the surface root, sized with 100vh - NOT 100dvh. The Q60 ships
   // Android System WebView v83 (Chrome 83); dynamic-viewport units
   // (dvh/svh/lvh) landed in Chrome 108, so 100dvh here doesn't resolve to the
   // visible viewport (root comes up short, widgets bunch in the top quarter).
@@ -582,7 +582,7 @@
 // Add-widget catalog cell (PanelCatalogCell): same cell chrome as a live
 // widget, plus a click affordance. Hover/selected ring on the card only.
 // The catalog is click-to-add with inert previews (pointer-events:none on the
-// scaler), so — unlike the live panel — the cell must NOT own the touch
+// scaler), so - unlike the live panel - the cell must NOT own the touch
 // gesture. Re-enable vertical panning so a drag scrolls the catalog instead of
 // locking onto a widget (the live `.cell` sets touch-action:none for drag).
 .catalogCell {
@@ -666,7 +666,7 @@
 // (`transition: background-color 300ms`, loaded later) doesn't shorthand-reset
 // the transform transition. background-color rides --ease-fast here so the
 // clickthrough hover highlight (.cellWrap:hover .cell → accent-soft) snaps in
-// AND out — this rule outranks the hover rule's own transition (0,5,0 vs 0,3,0),
+// AND out - this rule outranks the hover rule's own transition (0,5,0 vs 0,3,0),
 // so the hover timing has to live here. Theme-switch crossfade rides it too.
 //
 // :not() exclusions: those states have transforms driven elsewhere
@@ -684,13 +684,13 @@
 
 // Frosted-glass widget blur (data-widget-blur). Gated to shader mode: over a
 // solid colour a blurred backdrop is identical to the colour, so solid panels
-// skip the pass. Hard radius, never animated — tweening backdrop-filter
+// skip the pass. Hard radius, never animated - tweening backdrop-filter
 // re-runs an uncacheable gaussian every frame and janks on the panel SoCs.
 //
 // Write ONLY the unprefixed property: lightningcss autoprefixes it to emit
 // both `backdrop-filter` AND `-webkit-backdrop-filter`. Hand-writing the
 // `-webkit-` form makes lightningcss drop the unprefixed one as "redundant",
-// which renders nothing on Blink (WebView2 / Android WebView) — Blink does
+// which renders nothing on Blink (WebView2 / Android WebView) - Blink does
 // NOT recognise `-webkit-backdrop-filter`. The prefix is iOS WKWebView only.
 //
 // `:not([data-widget-opaque='true'])` skips the pass at 100% widget opacity:
@@ -986,7 +986,7 @@
   --panel-cell-size: calc((100vw - 2 * var(--panel-page-padding) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
   // 100vh, not 100dvh: the Q60 editor backdrop shares the live grid's
   // Chrome-83 WebView, where dynamic-viewport units (Chrome 108+) don't
-  // resolve to the visible viewport — match the q60 grid root.
+  // resolve to the visible viewport - match the q60 grid root.
   --panel-row-size: calc((100vh - 2 * var(--panel-page-padding) - (var(--panel-rows) - 1) * var(--panel-gap)) / var(--panel-rows));
   --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
 }
@@ -1011,7 +1011,7 @@
   // The desktop add-widget drawer is a fixed-size side sheet, NOT a scaled kiosk
   // panel. It otherwise inherits the live panel's --panel-scale (a content zoom,
   // e.g. ~2.16x on a wide embedded dashboard), which the editor-sheet transform
-  // (`scale(var(--panel-scale))`) then applies — blowing the whole catalog up by
+  // (`scale(var(--panel-scale))`) then applies - blowing the whole catalog up by
   // that factor. Neutralise it here; the catalog grid sets its own --panel-scale
   // for its preview cells (a closer ancestor), so those still scale correctly.
   --panel-scale: 1;
@@ -1506,7 +1506,7 @@
 }
 
 .dragOverlayCell {
-  // Lift via shadow only — DO NOT transform the inner cell. The cellScaler
+  // Lift via shadow only - DO NOT transform the inner cell. The cellScaler
   // already scales by --panel-widget-scale, so a wrapper transform would
   // compound to scale^2 of the in-grid sibling.
   cursor: grabbing;

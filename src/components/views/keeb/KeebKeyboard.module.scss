@@ -1,4 +1,4 @@
-// Keeb keyboard render — fixed-pixel layout matching the legacy nexus app's
+// Keeb keyboard render - fixed-pixel layout matching the legacy nexus app's
 // keeb modal. Rows use a FIXED height (not min-height) so the numpad's tall
 // multi-row keys (KeypadPlus / KeypadEnter / KeypadEqual: 145px with
 // marginTop:80) overflow visually instead of stretching the row track.
@@ -99,7 +99,7 @@ $wheel-size: 110px;
 .keyMiddle {
   width: 60px;
   height: 80px;
-  border-radius: var(--radius-pill);  // stadium key — clamps to 50%
+  border-radius: var(--radius-pill);  // stadium key - clamps to 50%
   font-size: 18px;
 }
 

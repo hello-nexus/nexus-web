@@ -1,6 +1,6 @@
 // Sidebar pinnable-set derivation, no JSX / icon imports. The set of
 // apps that *can* be pinned is whichever apps in the registry ship a
-// `Page` component — no separate hand-curated list. The set of apps
+// `Page` component - no separate hand-curated list. The set of apps
 // that ARE pinned in a fresh profile is the small DEFAULT_PINNED_TAIL
 // curated here (one design choice we don't want to derive).
 
@@ -10,7 +10,7 @@ import { getPreinstalledPageAppTypes, isMarketplaceType } from '../widgets/marke
 export const DASHBOARD_APP_KEY = 'dashboard' as const;
 export type SidebarAppKey = string; // any app type that has a Page, or 'dashboard'
 
-// True iff a widget type has a desktop SPA Page — i.e. it's pinnable to the
+// True iff a widget type has a desktop SPA Page - i.e. it's pinnable to the
 // sidebar AND its tile becomes click-through. Built-ins read from the static
 // registry; marketplace (SDK) apps resolve their synthetic manifest, so a
 // page-capable SDK app (the clock) pins exactly like a native one.
@@ -28,7 +28,7 @@ export function isPinnableAppKey(s: string): boolean {
 export const DEFAULT_PINNED_TAIL: string[] = ['monitoring', 'lighting', 'cooling'];
 
 // Default tail for a fresh profile: the curated base plus any preinstalled
-// page-app (OEM bake-in — e.g. a bundled device app). The
+// page-app (OEM bake-in - e.g. a bundled device app). The
 // preinstalled set is registry-derived, so it's empty until the marketplace
 // registry loads and only non-empty on a build that bundles such an app; the
 // sidebar re-renders on registry load (same path as user-pinned SDK apps).

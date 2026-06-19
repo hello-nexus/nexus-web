@@ -29,7 +29,7 @@ export async function getToken(): Promise<string> {
   return pair();
 }
 
-/** Called when a request gets 401 — clear stale token and re-pair. */
+/** Called when a request gets 401 - clear stale token and re-pair. */
 export async function handleUnauthorized(): Promise<string> {
   cached = null;
   localStorage.removeItem(TOKEN_KEY);
@@ -51,7 +51,7 @@ export function storePhoneToken(token: string): void {
  * Synchronous "do we already hold a session token?" check. True when a token is
  * cached in memory or persisted in localStorage. Used by the fetch layer to
  * decide, on a remote origin, whether the relay rid can be derived yet (no
- * token ⇒ nothing to tunnel with). Reads only — never triggers a pair.
+ * token ⇒ nothing to tunnel with). Reads only - never triggers a pair.
  */
 export function hasSessionToken(): boolean {
   if (cached) return true;
@@ -80,10 +80,10 @@ async function pair(): Promise<string> {
 async function doPair(): Promise<string> {
   // The local /pair mint is a LAN/desktop affordance against the service's own
   // origin. On a REMOTE origin (hellonexus.com) resolveHttp('/pair') points at
-  // http://localhost — the phone, not the PC, and mixed-content-blocked. A
+  // http://localhost - the phone, not the PC, and mixed-content-blocked. A
   // remote phone gets its token via the relay claim (storePhoneToken), never
   // here, so don't fire a doomed localhost request: report "no token".
-  // Exception: the detected-desktop case (forceLanMode) — http://localhost really
+  // Exception: the detected-desktop case (forceLanMode) - http://localhost really
   // is this machine's own service, so /pair mints the loopback token here too.
   if (isRemoteOrigin && !isForceLanMode()) return '';
   try {

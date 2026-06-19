@@ -24,7 +24,7 @@ interface ConflictWarningProps {
 /**
  * Bottom-left amber badge that opens the conflict modal. The badge button
  * is hidden when there are no conflicts, but the modal stays mounted as
- * long as the user has it open — that way the modal doesn't auto-close
+ * long as the user has it open - that way the modal doesn't auto-close
  * mid-read when the watcher clears the last conflict; instead it transitions
  * to an "all clear" empty state until the user dismisses it.
  */

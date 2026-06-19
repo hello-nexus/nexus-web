@@ -1,4 +1,4 @@
-// Smart-lights API wrapper — discovery + pairing + removal of paired network
+// Smart-lights API wrapper - discovery + pairing + removal of paired network
 // lighting devices (Philips Hue, etc.). Per-device color/brightness/power lives
 // on the existing /devices/lighting-devices/* routes (see api/lighting.ts); this
 // client only covers the management surface. Uses the same authed service

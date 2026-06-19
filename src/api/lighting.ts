@@ -1,4 +1,4 @@
-// Lighting API wrapper — authenticated fetch/post to the local service.
+// Lighting API wrapper - authenticated fetch/post to the local service.
 
 import { fetchService, postService, deleteService, resolveAuthWs } from './service';
 
@@ -17,7 +17,7 @@ export const EFFECT_THUMB_VERSION = 4;
 
 /**
  * Path to a preset slot's universal thumbnail. `version` is a content hash of
- * the slot's saved look (see slotThumbSignature) — the URL changes, and the
+ * the slot's saved look (see slotThumbSignature) - the URL changes, and the
  * browser refetches, only when that slot's look changes.
  */
 export const effectThumbnailPath = (key: string, slot: number, version: string) =>

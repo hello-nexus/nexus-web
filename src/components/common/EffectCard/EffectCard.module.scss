@@ -49,12 +49,12 @@
   overflow: hidden;
   // External ring: a constant-width OUTSET shadow sitting just outside the card
   // edge (in the grid gap). It never touches the box model, so the card never
-  // shrinks OR moves — only the colour changes (transparent idle → accent on
+  // shrinks OR moves - only the colour changes (transparent idle → accent on
   // hover/selected). The grid gap is tightened (.animateGrid) to absorb the
   // extra outer width so cards still read as evenly spaced.
   border-color: transparent;
   box-shadow: 0 0 0 var(--effect-card-ring) transparent;
-  // Transition the ring only — NOT transform — so hovering never nudges the card.
+  // Transition the ring only - NOT transform - so hovering never nudges the card.
   transition: box-shadow var(--ease-fast);
 
   .thumbWrap {
@@ -70,7 +70,7 @@
   }
 
   // No lift on hover: cancel the base card's translateY so the card stays put.
-  // Hover ring is a muted neutral (NOT the accent) so it's a quiet hint — the
+  // Hover ring is a muted neutral (NOT the accent) so it's a quiet hint - the
   // accent ring is reserved for the actual selection below.
   &:hover {
     transform: none;

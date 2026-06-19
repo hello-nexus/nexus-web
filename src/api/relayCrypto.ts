@@ -83,7 +83,7 @@ export async function deriveRid(relayRoot: Uint8Array): Promise<string> {
 /**
  * rid_http = base64url-nopad(HKDF(IKM=relayRoot, salt=∅, info="nexus-relay-http-rendezvous-v1", L=16)).
  *
- * The rendezvous id for the SECOND relay channel per session — the REST tunnel
+ * The rendezvous id for the SECOND relay channel per session - the REST tunnel
  * (Phase 2 REST-over-relay) that carries the panel's HTTP calls (device list,
  * layout, controls) when off-LAN. Derived from the SAME relayRoot as the
  * runtime rid (deriveRid), but a distinct HKDF info string means the two never

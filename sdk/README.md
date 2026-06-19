@@ -2,7 +2,7 @@
 
 Authors write **real React** against a shared component library (`@hellonexus/ui`) and
 data/control hooks (`@hellonexus/sdk`). The code runs in a **sandboxed Web Worker**; the
-host renders the result as real, panel-themed components. Not declarative JSON — code —
+host renders the result as real, panel-themed components. Not declarative JSON - code -
 while keeping the sandbox and visual consistency.
 
 This is the first tranche / dogfood. Three marketplace widgets are converted and proven
@@ -24,7 +24,7 @@ end-to-end in a real browser: **stopwatch**, **clock**, **timer**.
   serializes mutations over a dedicated `MessagePort` (separate from the `nexus.*` data RPC).
 - The host receives them into a `RemoteReceiver` and an owned React-19 renderer maps each
   element name to a blessed `@hellonexus/ui` component. **The host renders only blessed
-  elements — anything else renders nothing.** That is the structural visual-consistency
+  elements - anything else renders nothing.** That is the structural visual-consistency
   boundary: a widget cannot draw raw DOM/CSS.
 - The worker keeps the existing hardened sandbox boot (stripped globals, `nexus.*` RPC,
   watchdog). Authoring needs no knowledge of any of this.
@@ -54,12 +54,12 @@ mount(Stopwatch);
 The same widget as declarative JSON was ~120 lines plus a binding mini-language
 (`now()`, `formatDuration`, `conditional`, `localUpdate`). Here it is plain React.
 
-- **Components** (`@hellonexus/ui`): layout — `Stack`, `Grid`, `Frame`, `Spacer`, `Divider`,
-  `Scroll`; content — `Text`, `Icon`, `Image`, `Badge`, `Empty`, `Section`, `Card`; data viz —
-  `Ring`, `Bar`, `Range`, `Gauge`, `Sparkline`, `Chart`; input — `Slider`, `Button`, `Stepper`,
+- **Components** (`@hellonexus/ui`): layout - `Stack`, `Grid`, `Frame`, `Spacer`, `Divider`,
+  `Scroll`; content - `Text`, `Icon`, `Image`, `Badge`, `Empty`, `Section`, `Card`; data viz -
+  `Ring`, `Bar`, `Range`, `Gauge`, `Sparkline`, `Chart`; input - `Slider`, `Button`, `Stepper`,
   `Input`, `Toggle`, `Segmented`, `Color` (native HSV picker), `Curve` (draggable curve editor),
-  `Spinner`; blessed composites — `ClockFace`, `WorldClock`, `ViewHeader`. Props are semantic
-  (`tone`/`size`/`weight`/`variant`) and theme through panel tokens. No `style`/`className` —
+  `Spinner`; blessed composites - `ClockFace`, `WorldClock`, `ViewHeader`. Props are semantic
+  (`tone`/`size`/`weight`/`variant`) and theme through panel tokens. No `style`/`className` -
   that is deliberate (consistency). `Button`/`Card` also take `onLongPress`.
 - **Hooks** (`@hellonexus/sdk`): `useLocalState`, `useSettings`, `useSize`, `useTick`,
   `useSensor`, `useFetch`, `useDispatch`. Plus `formatDuration`/`clamp`/`pct`.
@@ -84,7 +84,7 @@ The shim re-exports exactly what the runtime exports (probed). Runtime source: t
 `@hello-nexus/sdk` if resolvable, else this repo's `sdk/runtime` (dev), overridable via
 `NEXUS_SDK_RUNTIME`. In-repo today (not yet a published bin).
 
-## Native widget vs sandboxed SDK widget — the exact difference
+## Native widget vs sandboxed SDK widget - the exact difference
 
 | | Native built-in widget | Sandboxed SDK widget |
 |---|---|---|
@@ -94,7 +94,7 @@ The shim re-exports exactly what the runtime exports (probed). Runtime source: t
 | Styling | Any CSS / scss modules / inline | Semantic props → panel tokens only |
 | Data access | Imports app stores/hooks directly (`useMonitoringFrame`, context) | `@hellonexus/sdk` hooks over brokered `nexus.*` RPC |
 | Host writes (cooling/lighting/system) | Calls services directly | `useDispatch` → triple-gated `WidgetActionRegistry` |
-| DOM / browser APIs | Full | None (no DOM, no `fetch`/`WebSocket`/storage) — brokered only |
+| DOM / browser APIs | Full | None (no DOM, no `fetch`/`WebSocket`/storage) - brokered only |
 | Event handlers | Synchronous | Async RPC (host → worker); sub-frame latency |
 | Local state | Component state / localStorage | `useLocalState`, persisted by the host per instance |
 | Crash blast radius | Can break the panel | Isolated; the worker dies alone, watchdog'd |
@@ -107,9 +107,9 @@ primitives, and move store/DOM access to SDK hooks. The author mental model is u
 
 - **Boot** (worker spawn + bundle fetch + render + first paint): **~140 ms** for one widget.
 - **Bundle size** (self-contained, everything inlined): **~186 KB raw / ~60 KB gzip** per
-  widget — react-dom + @remote-dom + threads dominate; the author code is a few KB.
+  widget - react-dom + @remote-dom + threads dominate; the author code is a few KB.
 - **Multi-widget** (12 tiles): main-thread heap grows gently (~4 MB → ~8 MB for 1 → 12);
-  one worker per widget. The real cost is N worker React instances — see Packaging.
+  one worker per widget. The real cost is N worker React instances - see Packaging.
 
 ## Packaging
 
@@ -123,7 +123,7 @@ shared runtime**: ship react/react-dom/@remote-dom/@quilted/threads + the SDK ru
 | framework externalized (shared runtime) | 5.4 KB | **2.2 KB** |
 
 A ~27× reduction in per-widget download. The host already serves widget code per
-code-session, so the runtime is one extra cached module. (Not yet wired — next step.)
+code-session, so the runtime is one extra cached module. (Not yet wired - next step.)
 
 ## Convergence: one SDK, two execution modes (how built-ins eventually convert)
 
@@ -133,7 +133,7 @@ one prop contract, the **same widget source can run two ways**:
 
 1. **Sandboxed** (third-party): worker + @remote-dom (this tranche).
 2. **Inline/trusted** (first-party built-ins): render the same component code directly on the
-   main thread against the host `@hellonexus/ui` components — no worker, no serialization,
+   main thread against the host `@hellonexus/ui` components - no worker, no serialization,
    zero overhead, identical to native.
 
 This is the path to "convert all built-ins to the SDK without divergence": built-ins author

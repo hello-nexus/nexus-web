@@ -23,7 +23,7 @@ export function solarDeclination(date: Date): number {
 
 /**
  * Equation of time in minutes. Captures the irregular pace of the
- * apparent sun — Earth's elliptical orbit + axial tilt make solar
+ * apparent sun - Earth's elliptical orbit + axial tilt make solar
  * noon drift by up to ±16 minutes vs clock noon over the year.
  */
 export function equationOfTime(date: Date): number {
