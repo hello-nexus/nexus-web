@@ -116,3 +116,10 @@ The authoritative transport, polling cadence, and WebSocket topic
 inventory live in the `nexus-service` repo: `docs/network-transport.md`,
 with the REST surface in `docs/api-spec.md`. Widget host architecture is
 documented under `src/widgets/`.
+
+## License
+
+`nexus-web` is licensed under the **GNU Affero General Public License v3.0**
+(AGPL-3.0); see [`LICENSE`](LICENSE) for the full text.
+
+Copyright (C) 2026 Hello Nexus
