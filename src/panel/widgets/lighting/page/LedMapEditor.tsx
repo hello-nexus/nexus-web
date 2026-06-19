@@ -18,6 +18,7 @@ import { PromptModal } from '../../../../components/common/PromptModal/PromptMod
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { useThrottle } from '../../../../hooks/cadence';
+import { isApplePlatform, isMultiSelectModifier } from '../../../../lib/platform';
 import { CommunityMappingsPanel } from './CommunityMappingsPanel';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
@@ -29,7 +30,7 @@ import {
 } from './zoneUtils';
 import styles from './LedMapEditor.module.scss';
 
-const isMac = /mac/i.test(navigator.userAgent);
+const isMac = isApplePlatform();
 const DEFAULT_RATIO = 16 / 9;
 
 // Smart-light card ids are brand-prefixed (`govee:…`, `hue:…`); the brand set
@@ -669,8 +670,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setDirty(true);
   };
 
-  const isMultiKey = (e: React.PointerEvent | React.MouseEvent) =>
-    isMac ? e.metaKey : e.ctrlKey;
 
   const handleZoneChipClick = (zoneId: string, multi: boolean) => {
     if (saving) return;
@@ -892,7 +891,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     const led = leds.find(l => l.index === ledIndex);
     if (led && !isLedEnabled(led)) return;
 
-    if (isMultiKey(e)) {
+    if (isMultiSelectModifier(e)) {
       setSelected(prev => {
         const next = new Set(prev);
         if (next.has(ledIndex)) next.delete(ledIndex);
@@ -934,7 +933,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     if ((e.target as HTMLElement).dataset.selectionHandle) return;
     const { x: px, y: py } = getCanvasPercent(e);
 
-    const additive = isMultiKey(e);
+    const additive = isMultiSelectModifier(e);
     marqueeAdditiveRef.current = additive;
     preMarqueeSelectionRef.current = additive ? new Set(selected) : new Set();
 
@@ -1949,7 +1948,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                     <button
                       type="button"
                       className={styles.zoneChipName}
-                      onClick={e => handleZoneChipClick(z.id, isMultiKey(e))}
+                      onClick={e => handleZoneChipClick(z.id, isMultiSelectModifier(e))}
                     >
                       {z.name}
                       <span className={styles.zoneChipCount}>

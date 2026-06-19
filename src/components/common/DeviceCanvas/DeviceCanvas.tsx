@@ -5,6 +5,7 @@ import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting'
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
 import { useShaderRenderer } from '../../../hooks/useShaderRenderer';
 import { useTranslation } from '../../../lib/i18n';
+import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
 import type { EffectState } from '../../../types/lighting';
 import { DeviceContextMenu, type DeviceMenuItem } from './DeviceContextMenu';
@@ -16,7 +17,7 @@ interface DeviceCanvasProps {
   canvasW: number;
   canvasH: number;
   /** Ids of all currently selected device frames. Single tap = 1-element set,
-   *  marquee = N-element set, shift+click = toggle membership. Selected
+   *  marquee = N-element set, Cmd/Ctrl+click = toggle membership. Selected
    *  frames render with the accent border and can be group-dragged together. */
   selectedIds: Set<string>;
   /** The single "primary" device whose LED dots render on top of its frame.
@@ -27,7 +28,7 @@ interface DeviceCanvasProps {
   /** Single-replace selection (DevicePanel click, canvas single-tap on a frame
    *  not in the current selection). Sets primary to the id (or null to clear). */
   onSelectDevice: (id: string | null) => void;
-  /** Bulk selection replace (canvas marquee release, shift+click toggle).
+  /** Bulk selection replace (canvas marquee release, Cmd/Ctrl+click toggle).
    *  Caller owns the new set membership + which id should become primary. */
   onSetSelection: (ids: Set<string>, primary: string | null) => void;
   shaderEffect?: string | null;
@@ -91,7 +92,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
      *  frame is included so the iteration is uniform. */
     groupOrigs?: Map<string, { x: number; y: number; w: number; h: number }>;
   } | null>(null);
-  // Marquee state. preIds + additive let shift-drag merge with the previous
+  // Marquee state. preIds + additive let a Cmd/Ctrl-drag merge with the previous
   // selection so the user can refine a multi-select instead of starting over.
   // `hits` is the live overlap set, recomputed on each pointer-move so frames
   // light up the instant the rect crosses them — the parent's selectedIds
@@ -179,11 +180,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     setDrag({ id: dev.id, mode, startX: p.x, startY: p.y, origX: dev.canvasX, origY: dev.canvasY, origW: dev.canvasW, origH: dev.canvasH, groupOrigs });
   }, [toCanvas, onSelectDevice, onDragActiveChange, selectedIds, devices]);
 
-  // Shift+click on a frame: toggle membership without starting a drag. Plain
+  // Cmd/Ctrl+click on a frame: toggle membership without starting a drag. Plain
   // click on a frame still falls through to startDrag.
   const handleFramePointerDown = useCallback((e: React.PointerEvent, dev: LightingDevice) => {
     if (e.button !== 0) return; // right-click is handled by onContextMenu, not selection
-    if (e.shiftKey) {
+    if (isMultiSelectModifier(e)) {
       e.preventDefault(); e.stopPropagation();
       const next = new Set(selectedIds);
       if (next.has(dev.id)) {
@@ -285,7 +286,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   const handlePointerUp = useCallback(() => {
     if (marquee) {
       // Click on empty space (no drag) clears the selection — preserves the
-      // pre-marquee behaviour of "tap canvas to deselect". Shift+click never
+      // pre-marquee behaviour of "tap canvas to deselect". A Cmd/Ctrl+click never
       // clears (it would surprise users mid-additive-selection).
       if (!marquee.moved) {
         if (!marquee.additive) onSelectDevice(null);
@@ -402,16 +403,16 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     const p = toCanvas(e.clientX, e.clientY);
     setMarquee({
       startX: p.x, startY: p.y, curX: p.x, curY: p.y,
-      additive: e.shiftKey,
+      additive: isMultiSelectModifier(e),
       preIds: new Set(selectedIds),
       hits: new Set(),
       moved: false,
     });
     // Non-additive marquee should clear the prior selection immediately so
     // both the canvas and the right-side panel reflect the "starting fresh"
-    // state on the very first frame. Additive (shift) keeps the prior set
+    // state on the very first frame. Additive (Cmd/Ctrl) keeps the prior set
     // visible — the user is refining, not replacing.
-    if (!e.shiftKey && selectedIds.size > 0) {
+    if (!isMultiSelectModifier(e) && selectedIds.size > 0) {
       onSetSelection(new Set(), null);
     }
   }, [toCanvas, selectedIds, onDragActiveChange, onSetSelection]);

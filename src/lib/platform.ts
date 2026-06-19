@@ -26,6 +26,28 @@ export function detectOS(): DetectedOS {
   return 'unknown';
 }
 
+let applePlatform: boolean | undefined;
+
+/**
+ * True on Apple platforms, where Cmd (not Ctrl) is the selection accelerator.
+ * detectOS() already reports 'macos' for iPhone/iPad too (their UA carries
+ * "like Mac OS X"), so this covers every Apple device.
+ */
+export function isApplePlatform(): boolean {
+  if (applePlatform === undefined) applePlatform = detectOS() === 'macos';
+  return applePlatform;
+}
+
+/**
+ * Whether an event carries the platform multi-select accelerator: Cmd on Apple,
+ * Ctrl on Windows/Linux. Every additive/toggle selection surface routes through
+ * this so the modifier is consistent per-OS. On a Mac, Ctrl+click is a secondary
+ * (right) click, so Cmd is the only correct choice there.
+ */
+export function isMultiSelectModifier(e: { metaKey: boolean; ctrlKey: boolean }): boolean {
+  return isApplePlatform() ? e.metaKey : e.ctrlKey;
+}
+
 export function isSafari(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent.toLowerCase();

@@ -48,7 +48,7 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
   selectedIds: Set<string>;
   /** Single-replace click: clears the set and selects only this id (or null to clear). */
   onSelectDevice: (id: string | null) => void;
-  /** Bulk set: shift+click on a row toggles membership without clobbering the rest. */
+  /** Bulk set: Cmd/Ctrl+click on a row toggles membership without clobbering the rest. */
   onSetSelection: (ids: Set<string>, primary: string | null) => void;
   onTogglePower: (id: string) => void;
   /** Absolute set (vs. toggle). Used by group headers so a "turn all off" click
@@ -109,16 +109,27 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
     }
   }
 
+  // A parent-device group that collapsed to a single zone (e.g. a keeb whose
+  // keys + underglow were merged into one) renders as a standalone card, not a
+  // one-child category. Brand and smart-hub groups keep their header even at one
+  // member: it carries the brand/firmware-control affordances a card can't.
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    if (b.kind === 'group' && !b.isBrand && !b.isSmartHub && b.devices.length === 1) {
+      blocks[i] = { kind: 'single', device: b.devices[0] };
+    }
+  }
+
   // Block-level ids for the top-level SortableList: single device id for singles,
   // groupKey for groups.
   const blockIds = blocks.map(b => b.kind === 'single' ? b.device.id : b.groupKey);
   const blockMap = new Map<string, DeviceBlock>(blocks.map((b, i) => [blockIds[i], b]));
 
-  // Single shift-aware click handler so cards and zones share the exact same
-  // selection semantics as the canvas: plain click = single-replace, shift+click
-  // = toggle this id's membership in the set.
-  const handleZoneSelect = (id: string, shiftKey: boolean) => {
-    if (shiftKey) {
+  // Single click handler so cards and zones share the exact same selection
+  // semantics as the canvas: plain click = single-replace, Cmd/Ctrl+click =
+  // toggle this id's membership in the set.
+  const handleZoneSelect = (id: string, additive: boolean) => {
+    if (additive) {
       const next = new Set(selectedIds);
       if (next.has(id)) {
         next.delete(id);
@@ -143,7 +154,7 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
       displayName={displayName}
       selected={selectedIds.has(d.id)}
       indent={indent}
-      onSelect={shiftKey => handleZoneSelect(d.id, shiftKey)}
+      onSelect={additive => handleZoneSelect(d.id, additive)}
       onTogglePower={() => onTogglePower(d.id)}
       onOpenSettings={() => onOpenSettings(d.id)}
       drag={drag}
