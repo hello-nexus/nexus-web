@@ -116,7 +116,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
 
   // Refresh /update/status when the modal opens so action button label reflects
   // current state (ready vs available) without relying on the caller's snapshot.
-  // The re-fetch must NOT touch the whatsNew view — the justUpdatedTo field is
+  // The re-fetch must NOT touch the whatsNew view - the justUpdatedTo field is
   // cleared server-side on first read, so any later fetch returns "" for it.
   useEffect(() => {
     if (!open) return;
