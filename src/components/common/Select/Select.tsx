@@ -58,8 +58,11 @@ const MARGIN = 8;
 const MIN_MENU_HEIGHT = 96;
 // The menu may grow past the trigger to fit its widest option, but no wider
 // than this (base px) so one long label can't make it span the screen; it is
-// also clamped to the viewport in reposition. Past the cap, options wrap.
+// also clamped to the viewport in reposition. Past the cap, the widest option
+// ellipsizes.
 const MAX_MENU_WIDTH = 448;
+// Breathing room past the widest label so options aren't flush to the edge, px.
+const MENU_WIDTH_PAD = 12;
 const TYPEAHEAD_RESET_MS = 700;
 
 function flattenText(node: ReactNode): string {
@@ -147,10 +150,18 @@ export function Select({
     // width back, then pin it as a fixed width so wrapping stays stable for the
     // scrollHeight measurement below. offsetWidth is the unscaled layout box.
     const maxWidth = Math.max(baseWidth, Math.min(MAX_MENU_WIDTH, (window.innerWidth - 2 * MARGIN) / scale));
+    // Options clip (overflow:hidden) so labels past the cap ellipsize, but that
+    // clip shrinks the menu's max-content below the label width. Neutralize it
+    // while measuring so the menu sizes to the full widest label, then add a
+    // small pad so options aren't cramped against the edge.
+    const optionEls = Array.from(menu.children) as HTMLElement[];
+    for (const o of optionEls) o.style.overflow = 'visible';
     menu.style.width = 'max-content';
     menu.style.minWidth = `${baseWidth}px`;
     menu.style.maxWidth = `${maxWidth}px`;
-    const width = menu.offsetWidth;
+    const measured = menu.offsetWidth;
+    for (const o of optionEls) o.style.overflow = '';
+    const width = Math.min(maxWidth, measured + MENU_WIDTH_PAD);
     menu.style.width = `${width}px`;
     menu.style.minWidth = '';
     menu.style.maxWidth = '';
