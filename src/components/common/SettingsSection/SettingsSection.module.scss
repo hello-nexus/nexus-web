@@ -17,7 +17,8 @@
 }
 
 .description {
-  @include text-button;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
   color: var(--text-dim);
   line-height: 1.4;
   display: flex;
