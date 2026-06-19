@@ -3,6 +3,7 @@ import PanelApp from '../panel/PanelApp';
 import { PanelSimulatorContent } from '../panel/embed/PanelSimulatorContent';
 import OverlayShell from '../overlay/OverlayShell';
 import { inferSurfaceFromViewport } from '../panel/device/inferSurface';
+import { isWiredPanel } from '../panel/device/wiredPanel';
 import {
   allocatePanelDeviceWithStatus,
   patchPanelDeviceWithStatus,
@@ -20,8 +21,8 @@ import styles from '../App.module.scss';
 type PanelFailureKind = 'auth' | 'network' | 'pair-expired';
 type PanelEntrypointState = 'claiming' | 'allocating' | 'ready' | 'failed';
 
-export function PanelWrapper({ deviceId }: { deviceId: string }) {
-  const multiplex = useMultiplexConnection(true);
+export function PanelWrapper({ deviceId, wired = false }: { deviceId: string; wired?: boolean }) {
+  const multiplex = useMultiplexConnection(true, wired);
   useMonitoringStoreBridge(multiplex);
   return (
     <MultiplexContext.Provider value={multiplex}>
@@ -210,7 +211,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
   if (!deviceId) {
     return <div className={styles.panelPairGate}>{t('panel.gate.noDeviceId')}</div>;
   }
-  return <PanelWrapper deviceId={deviceId} />;
+  return <PanelWrapper deviceId={deviceId} wired={isWiredPanel(inferredSurface)} />;
 }
 
 function PanelEntrypointFailure({ kind, detail, isPhone, onRetry }: {

@@ -166,7 +166,7 @@ export function useTopicCallback(topic: string, enabled: boolean, onFrame: (data
  * Creates the multiplex WebSocket connection and topic management.
  * Call this once at the app level and pass the return value to MultiplexContext.Provider.
  */
-export function useMultiplexConnection(enabled: boolean): MultiplexContextValue | null {
+export function useMultiplexConnection(enabled: boolean, wired = false): MultiplexContextValue | null {
   const wsRef = useRef<MultiplexTransport | null>(null);
   const mountedRef = useRef(true);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -337,8 +337,14 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
       connectRef.current();
       return;
     }
-    scheduleReconnect(() => connectRef.current());
-  }, [scheduleReconnect]);
+    if (wired) {
+      if (!mountedRef.current) return;
+      setNextAttemptAt(null);
+      reconnectTimer.current = setTimeout(() => connectRef.current(), 500);
+    } else {
+      scheduleReconnect(() => connectRef.current());
+    }
+  }, [scheduleReconnect, wired]);
 
   useEffect(() => {
     handleDisconnectRef.current = handleDisconnect;
@@ -569,6 +575,28 @@ export function useMultiplexConnection(enabled: boolean): MultiplexContextValue 
       close();
     };
   }, [enabled, connect, close]);
+
+  useEffect(() => {
+    if (!wired) return;
+    // wsRef holds a CLOSED socket between a drop and the next 500ms dial, so
+    // gate on readyState (not nullness) to re-dial when foregrounded.
+    const needsReconnect = () => {
+      const sock = wsRef.current;
+      return !sock || sock.readyState >= WebSocket.CLOSING;
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && needsReconnect()) reconnect();
+    };
+    const handleFocus = () => {
+      if (needsReconnect()) reconnect();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [wired, reconnect]);
 
   const subscribe = useCallback((topic: string, listener: (data: unknown) => void) => {
     const topics = topicsRef.current;

@@ -3,6 +3,7 @@ import { Lock, QrCode, RefreshCw, Smartphone } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import type { ConnectionState } from '../../hooks/useServiceStatus';
 import type { PanelSurface } from '../types';
+import { wiredPanelClass } from '../device/wiredPanel';
 import styles from './PanelOfflineOverlay.module.scss';
 
 interface PanelOfflineOverlayProps {
@@ -192,6 +193,27 @@ export function PanelOfflineOverlay({
 
   if (state === 'checking') {
     return <div className={styles.checkingStrip} aria-hidden="true" />;
+  }
+
+  const wiredClass = wiredPanelClass(surface);
+  if (wiredClass !== null) {
+    return (
+      <div
+        className={`panel-root ${styles.overlay}`}
+        data-theme={resolvedThemeMode}
+        data-surface={surface}
+        style={themeStyle}
+        role="status"
+        aria-live="polite"
+      >
+        <div className={`panel-card ${styles.card}`}>
+          <div className={styles.spinner} aria-hidden="true" />
+          <p className={styles.statusLine}>
+            {wiredClass === 'cabled' ? t('connection.lost.checkUsb') : t('connection.lost.reconnectingWired')}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const title = t('connection.lost.title');
