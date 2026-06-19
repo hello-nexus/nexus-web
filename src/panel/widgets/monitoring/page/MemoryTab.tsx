@@ -5,6 +5,7 @@ import { StackedChart } from '../../../../components/common/StackedChart/Stacked
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
 import { RankedToggle } from './parts';
 import { rankSeries, topNWithOther } from './shared';
+import { formatMemoryMb, formatMemoryPair } from '../../../../lib/formatMemory';
 import styles from '../MonitoringPage.module.scss';
 
 const SAMPLE_COUNT = 60;
@@ -19,7 +20,8 @@ export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
 
   // LHM "Memory Used" reports GB; convert to MB so the chart's MB→GB axis
   // formatter (kicks in at yMax≥1024) lines up with the per-process units used
-  // in the ranked list below. `theoreticalMaximum` carries installed RAM in GB.
+  // in the ranked list below. `theoreticalMaximum` carries the OS-usable total
+  // (used+available), which sits below installed capacity (firmware reserve).
   const memUsedSensor = sensors.memory.find(s => s.name === 'Memory Used');
   const usedMb = memUsedSensor ? memUsedSensor.value * 1024 : 0;
   const totalMb = memUsedSensor?.theoreticalMaximum ? memUsedSensor.theoreticalMaximum * 1024 : 0;
@@ -27,7 +29,7 @@ export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
   const chartSeries = topNWithOther(memSeries, 5);
   const { ranked, key } = rankSeries(memSeries, showAverage);
 
-  const usedGb = (usedMb / 1024).toFixed(1);
+  const mem = formatMemoryPair(usedMb, totalMb);
 
   return (
     <>
@@ -35,8 +37,8 @@ export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
         title={t('monitoring.mem.title.plain')}
         titleRight={totalMb > 0 ? (
           <div className={styles.chartStat}>
-            <span className={styles.chartStatValue}>{usedGb}</span>
-            <span className={styles.chartStatUnit}>{`/ ${(totalMb / 1024).toFixed(0)} GB`}</span>
+            <span className={styles.chartStatValue}>{mem.used}</span>
+            <span className={styles.chartStatUnit}>{`/ ${mem.total} ${mem.unit}`}</span>
           </div>
         ) : undefined}
         series={chartSeries}
@@ -49,7 +51,7 @@ export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
         title={t('monitoring.mem.top')}
         subtitle={<RankedToggle showAverage={showAverage} onToggle={onToggle} />}
         items={ranked.map(s => ({ name: s.name, color: s.color, value: s[key] }))}
-        formatValue={(v) => `${v.toFixed(0)} MB`}
+        formatValue={formatMemoryMb}
         emptyMessage={t('monitoring.ranked.empty')}
       />
     </>

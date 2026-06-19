@@ -1,6 +1,7 @@
 import { useMemo, useState, useCallback, useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { SeriesEntry } from '../../../hooks/useProcessMonitor';
 import { useTranslation } from '../../../lib/i18n';
+import { formatMemoryMb } from '../../../lib/formatMemory';
 import styles from './StackedChart.module.scss';
 
 interface StackedChartProps {
@@ -239,7 +240,9 @@ export function StackedChart({
       {tooltip && (
         <div className={styles.tooltip}>
           <div className={styles.tooltipHeader}>
-            {t('chart.total', { value: tooltip.total, unit: yUnit === '%' ? '%' : yUnit === 'KB/s' ? ' KB/s' : ' MB' })}
+            {yUnit === 'MB'
+              ? t('chart.total', { value: formatMemoryMb(tooltip.total), unit: '' })
+              : t('chart.total', { value: tooltip.total, unit: yUnit === '%' ? '%' : yUnit === 'KB/s' ? ' KB/s' : '' })}
           </div>
           {tooltip.items.map(item => (
             <div key={item.name} className={styles.tooltipRow}>
@@ -248,7 +251,7 @@ export function StackedChart({
               <span className={styles.tooltipVal}>
                 {yUnit === '%' ? `${item.val.toFixed(1)}%`
                   : yUnit === 'KB/s' ? (item.val >= 1024 ? `${(item.val / 1024).toFixed(1)} MB/s` : `${Math.round(item.val)} KB/s`)
-                  : `${item.val.toFixed(0)} MB`}
+                  : formatMemoryMb(item.val)}
               </span>
             </div>
           ))}
