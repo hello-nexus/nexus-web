@@ -38,6 +38,9 @@ export function SettingsView({ serviceOnline, connectionState, platform }: Setti
       showWindowsTrayIcon: ui.showWindowsTrayIcon,
       pinnedSidebarApps: ui.pinnedSidebarApps,
       widgetAdvancedMode: ui.widgetAdvancedMode,
+      autoUpdateDisabled: ui.autoUpdateDisabled,
+      updateChannel: ui.updateChannel,
+      lastDismissedUpdateVersion: ui.lastDismissedUpdateVersion,
     },
   }), [ui]);
 

@@ -165,6 +165,28 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         </SettingsSection>
       )}
 
+      {platform === 'windows' && (
+        <SettingsSection title={t('settings.updates.title')}>
+          <SettingToggle
+            label={t('settings.updates.autoInstall.label')}
+            description={t('settings.updates.autoInstall.description')}
+            checked={!(settings.general.autoUpdateDisabled ?? false)}
+            onChange={() => updateGeneral({ autoUpdateDisabled: !(settings.general.autoUpdateDisabled ?? false) })}
+          />
+          <SettingSelect
+            label={t('settings.updates.channel.label')}
+            value={settings.general.updateChannel ?? 'production'}
+            options={[
+              // eslint-disable-next-line i18next/no-literal-string -- update channel enum value
+              { value: 'production', label: t('settings.updates.channel.production') },
+              // eslint-disable-next-line i18next/no-literal-string -- update channel enum value
+              { value: 'beta', label: t('settings.updates.channel.beta') },
+            ]}
+            onChange={v => updateGeneral({ updateChannel: v as import('../../../api/update').UpdateChannel })}
+          />
+        </SettingsSection>
+      )}
+
       <SettingsSection title={t('settings.privacy.title')}>
         {telemetryOn !== null && (
           <SettingToggle

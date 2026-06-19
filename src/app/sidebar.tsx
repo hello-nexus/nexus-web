@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Unplug } from 'lucide-react';
 import classNames from 'classnames';
 import { ConflictWarningBadge } from '../components/common/Sidebar/ConflictWarning';
@@ -9,6 +9,8 @@ import { useConflictApps } from '../hooks/useConflictApps';
 import { useTranslation } from '../lib/i18n';
 import { useWindowDragRegion } from './useWindowDragRegion';
 import type { ConnectionState } from '../hooks/useServiceStatus';
+import { getUpdateStatus } from '../api/update';
+import { UpdateBadge } from '../components/common/UpdateBadge/UpdateBadge';
 import styles from '../App.module.scss';
 
 // ── Sidebar brand (logo + wordmark at top of sidebar) ───────────────────
@@ -118,6 +120,45 @@ export function SidebarConflictSlot({ serviceOnline, compact }: {
       conflicts={conflicts}
       compact={compact}
       onDismissForever={() => update({ disableConflictAlerts: true })}
+    />
+  );
+}
+
+export function SidebarUpdateSlot({ serviceOnline, compact, onOpen }: {
+  serviceOnline: boolean;
+  compact: boolean;
+  onOpen: () => void;
+}) {
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updateReady, setUpdateReady] = useState(false);
+
+  useEffect(() => {
+    if (!serviceOnline) return;
+    let cancelled = false;
+    const fetch = () => {
+      getUpdateStatus().then(s => {
+        if (!cancelled && s) {
+          setUpdateAvailable(s.updateAvailable);
+          setUpdateReady(s.updateReady);
+        }
+      });
+    };
+    fetch();
+    const id = window.setInterval(fetch, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [serviceOnline]);
+
+  if (!updateAvailable) return null;
+
+  return (
+    <UpdateBadge
+      updateAvailable={updateAvailable}
+      updateReady={updateReady}
+      compact={compact}
+      onOpen={onOpen}
     />
   );
 }

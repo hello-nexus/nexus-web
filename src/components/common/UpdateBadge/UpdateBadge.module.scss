@@ -1,0 +1,55 @@
+.wrap {
+  padding: 0 0.75rem 0.4rem;
+}
+
+.wrapCompact {
+  padding: 0 0 0.35rem;
+}
+
+.badge {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    background var(--ease-fast),
+    border-color var(--ease-fast),
+    color var(--ease-fast);
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+}
+
+.badgeCompact {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.text {
+  flex: 1;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

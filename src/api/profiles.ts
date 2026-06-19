@@ -2,6 +2,7 @@ import { fetchService, postService, putService, deleteService, resolveHttp } fro
 import { getToken } from './auth';
 import type { PanelLayout } from '../panel/types';
 import type { OverlayWidgetDto } from './overlay';
+import type { UpdateChannel } from './update';
 
 export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'theme', 'dashboard'] as const;
 export type ProfileCategory = typeof PROFILE_CATEGORIES[number];
@@ -81,6 +82,12 @@ export interface UiPrefs {
   pinnedSidebarApps?: string[];
 }
 
+export interface UpdatePrefs {
+  autoUpdateDisabled: boolean;
+  updateChannel: UpdateChannel;
+  lastDismissedUpdateVersion: string;
+}
+
 // Nested preferences shape — same nesting on read (GET /preferences) and
 // write (POST /preferences). Per-domain sub-patches are partial; omitted
 // fields are unchanged.
@@ -91,6 +98,7 @@ export interface Preferences {
   monitoring: MonitoringSettings;
   cooling: CoolingPrefs;
   ui: UiPrefs;
+  update?: UpdatePrefs;
 }
 
 export interface PreferencesPatch {
@@ -100,6 +108,7 @@ export interface PreferencesPatch {
   monitoring?: Partial<MonitoringSettings>;
   cooling?: Partial<CoolingPrefs>;
   ui?: Partial<UiPrefs>;
+  update?: Partial<UpdatePrefs>;
 }
 
 interface GetProfilesResponse {

@@ -64,6 +64,8 @@ import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/Se
 import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
+import { UpdateBadge } from '../components/common/UpdateBadge/UpdateBadge';
+import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
 import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
@@ -907,6 +909,41 @@ function PreviewAboutModal() {
   );
 }
 
+function PreviewUpdateBadge() {
+  return (
+    <div style={{ width: 200, padding: 8 }}>
+      <UpdateBadge updateAvailable updateReady={false} compact={false} onOpen={() => {}} />
+    </div>
+  );
+}
+
+function PreviewUpdateModal() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        Open Update Modal
+      </button>
+      <UpdateModal
+        open={open}
+        onClose={() => setOpen(false)}
+        status={{
+          currentVersion: '1.0.0',
+          latestVersion: '1.1.0',
+          updateAvailable: true,
+          updateReady: false,
+          channel: 'production',
+          autoUpdateDisabled: false,
+          releaseNotes: '## What\'s new\n- Performance improvements\n- Bug fixes',
+          lastCheckedUnix: 0,
+          lastCheckError: '',
+          state: 'idle',
+        }}
+      />
+    </>
+  );
+}
+
 function PreviewBrand() {
   return (
     <div className={styles.previewRow}>
@@ -1259,6 +1296,18 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/AboutModal/AboutModal.tsx',
     description: 'Lightweight "About Nexus" dialog opened from the top-bar "..." menu. Brand mark + wordmark, build version, link to hellonexus.com. Composes Overlay (alert variant, Enter/Esc close).',
     Preview: PreviewAboutModal,
+  },
+  {
+    name: 'UpdateBadge', category: 'status',
+    filePath: 'src/components/common/UpdateBadge/UpdateBadge.tsx',
+    description: 'Sidebar badge shown when a software update is available. Compact mode renders an icon-only button with a tooltip; full mode shows an icon + text strip. Clicking opens the UpdateModal.',
+    Preview: PreviewUpdateBadge,
+  },
+  {
+    name: 'UpdateModal', category: 'modals',
+    filePath: 'src/components/common/UpdateModal/UpdateModal.tsx',
+    description: 'OTA update dialog. Shows release notes with an "Update now" / "Later" choice in the notes view; switches to a progress bar while downloading/verifying; shows a spinner while the installer relaunches the service.',
+    Preview: PreviewUpdateModal,
   },
   {
     name: 'MediaCropper', category: 'modals',

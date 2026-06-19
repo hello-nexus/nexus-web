@@ -34,7 +34,7 @@ import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { fetchPanelRemoteControlState } from '../api/panel';
 import { isRemoteOrigin } from '../api/service';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
-import { UiSettingsProvider } from '../hooks/useUiSettings';
+import { UiSettingsProvider, useUiSettings } from '../hooks/useUiSettings';
 import { useTranslation } from '../lib/i18n';
 import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from '../lib/settings';
 import type { Preferences } from '../api/profiles';
@@ -54,6 +54,8 @@ import { SidebarColumn } from './SidebarColumn';
 import { CrossZoneDragProvider } from './CrossZoneDrag';
 import { CommandPaletteProvider } from '../search/CommandPaletteProvider';
 import { PairPhoneModal } from './PairPhoneModal';
+import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
+import { getUpdateStatus, type UpdateStatus } from '../api/update';
 import { IncomingPairModal } from './IncomingPairModal';
 import { ToastProvider } from '../components/common/Toast/Toast';
 import { TransferToasts } from './TransferToasts';
@@ -65,6 +67,58 @@ import styles from '../App.module.scss';
 const PORTAL_URL = 'https://hellonexus.com';
 
 const BuilderView = lazy(() => import('../components/views/BuilderView'));
+
+// Mounted inside UiSettingsProvider. Auto-opens the update modal once per
+// version when auto-update is disabled and a new version is available.
+function UpdateAutoOpener({ online, onOpen }: {
+  online: boolean;
+  onOpen: (status: UpdateStatus) => void;
+}) {
+  const { settings } = useUiSettings();
+  const firedRef = useRef(false);
+
+  useEffect(() => {
+    if (!online || !settings.autoUpdateDisabled || firedRef.current) return;
+    let cancelled = false;
+    getUpdateStatus().then(s => {
+      if (cancelled || !s || !s.updateAvailable) return;
+      if (s.latestVersion === settings.lastDismissedUpdateVersion) return;
+      firedRef.current = true;
+      onOpen(s);
+    });
+    return () => { cancelled = true; };
+  }, [online, settings.autoUpdateDisabled, settings.lastDismissedUpdateVersion, onOpen]);
+
+  return null;
+}
+
+// Mounted inside UiSettingsProvider. Wraps UpdateModal so it can persist
+// lastDismissedUpdateVersion on dismiss via the settings hook.
+function UpdateModalWithDismiss(props: {
+  open: boolean;
+  onClose: () => void;
+  status: UpdateStatus | null;
+  onStatusRefreshed: (s: UpdateStatus) => void;
+}) {
+  const { update } = useUiSettings();
+  const { open, onClose, status, onStatusRefreshed } = props;
+
+  const handleDismiss = useCallback(() => {
+    if (status?.latestVersion) {
+      update({ lastDismissedUpdateVersion: status.latestVersion });
+    }
+  }, [update, status?.latestVersion]);
+
+  return (
+    <UpdateModal
+      open={open}
+      onClose={onClose}
+      status={status}
+      onStatusRefreshed={onStatusRefreshed}
+      onDismiss={handleDismiss}
+    />
+  );
+}
 
 // Catches mousedown on a window-edge strip and IPCs the shell, which
 // then posts WM_NCLBUTTONDOWN(hitCode) to its own HWND so the OS
@@ -226,6 +280,8 @@ export function Dashboard() {
   // null = auto (follow viewport), true = user-collapsed, false = user-expanded
   const [manualOverride, setManualOverride] = useState<boolean | null>(null);
   const [pairPhoneOpen, setPairPhoneOpen] = useState(false);
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   // Pair Remote killswitch state. Optimistic default of true matches the
   // service default so the dot color does not flicker before the first fetch.
   const [remoteControlEnabled, setRemoteControlEnabled] = useState(true);
@@ -312,6 +368,17 @@ export function Dashboard() {
   // viewport heuristic when set; null hands control back to auto-collapse.
   const sidebarCompact = manualOverride !== null ? manualOverride : viewportNarrow;
   const compact = hasSidebar && sidebarCompact;
+
+  const handleUpdateOpen = useCallback(async (preloaded?: UpdateStatus) => {
+    if (preloaded) {
+      setUpdateStatus(preloaded);
+      setUpdateModalOpen(true);
+    } else {
+      const s = await getUpdateStatus();
+      if (s) setUpdateStatus(s);
+      setUpdateModalOpen(true);
+    }
+  }, []);
 
   // Bump on every offline -> online transition so the profile dropdown
   // remounts and replays its fade-in once.
@@ -525,6 +592,7 @@ export function Dashboard() {
               remoteControlEnabled={remoteControlEnabled}
               phoneSubscribers={serviceState.panel?.phoneSubscribers ?? 0}
               onPairPhoneOpen={() => setPairPhoneOpen(true)}
+              onUpdateOpen={handleUpdateOpen}
               activeDeviceKey={section === 'system' && activeView === 'device' ? (subtab ?? '') : ''}
               onDeviceSelect={k => navigate('system', 'device', k)}
               onDevicesHeaderClick={() => navigate('system', 'devices')}
@@ -561,6 +629,13 @@ export function Dashboard() {
           remoteEnabled={remoteControlEnabled}
           onRemoteEnabledChange={setRemoteControlEnabled}
           onClose={() => setPairPhoneOpen(false)}
+        />
+        <UpdateAutoOpener online={online} onOpen={handleUpdateOpen} />
+        <UpdateModalWithDismiss
+          open={updateModalOpen}
+          onClose={() => setUpdateModalOpen(false)}
+          status={updateStatus}
+          onStatusRefreshed={setUpdateStatus}
         />
       </div>
       </PageChromeProvider>

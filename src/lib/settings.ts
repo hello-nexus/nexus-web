@@ -1,5 +1,6 @@
 // Settings persistence layer.
 // All settings stored in localStorage, exposed via typed getters/setters.
+import type { UpdateChannel } from '../api/update';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,9 @@ export interface GeneralSettings {
   // silent/balanced/turbo chips on cooling); default false (single-icon
   // -with-arrows layout). Client-only, not in the server preferences pipeline.
   widgetAdvancedMode: boolean;
+  autoUpdateDisabled?: boolean;
+  updateChannel?: UpdateChannel;
+  lastDismissedUpdateVersion?: string;
 }
 
 export interface NexusSettings {

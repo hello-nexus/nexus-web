@@ -14,6 +14,7 @@ import {
   type Preferences as ServerPreferences,
   type PreferencesPatch,
 } from '../api/profiles';
+import type { UpdateChannel } from '../api/update';
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import { sanitizePinnedTail } from '../app/sidebarApps';
@@ -71,6 +72,10 @@ export interface UiSettingsValue {
   // mode buttons); default false (compact center-icon+arrows layout).
   // Per-widget config.advancedMode overrides this per instance.
   widgetAdvancedMode: boolean;
+  // Server-only update prefs (not saved to localStorage).
+  autoUpdateDisabled: boolean;
+  updateChannel: UpdateChannel;
+  lastDismissedUpdateVersion: string;
 }
 
 type Patch = Partial<UiSettingsValue>;
@@ -103,6 +108,9 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     preferredGpuId: '',
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
     widgetAdvancedMode: src.general.widgetAdvancedMode,
+    autoUpdateDisabled: false,
+    updateChannel: 'production' as UpdateChannel,
+    lastDismissedUpdateVersion: '',
   };
 }
 
@@ -154,6 +162,12 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.disableConflictAlerts !== undefined) ui.disableConflictAlerts = patch.disableConflictAlerts;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
   if (Object.keys(ui).length > 0) out.ui = ui;
+  // update block
+  const update: Partial<{ autoUpdateDisabled: boolean; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
+  if (patch.autoUpdateDisabled !== undefined) update.autoUpdateDisabled = patch.autoUpdateDisabled;
+  if (patch.updateChannel !== undefined) update.updateChannel = patch.updateChannel;
+  if (patch.lastDismissedUpdateVersion !== undefined) update.lastDismissedUpdateVersion = patch.lastDismissedUpdateVersion;
+  if (Object.keys(update).length > 0) out.update = update;
   return out;
 }
 
@@ -175,6 +189,9 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     pinnedSidebarApps: server.ui?.pinnedSidebarApps !== undefined
       ? sanitizePinnedTail(server.ui.pinnedSidebarApps)
       : base.pinnedSidebarApps,
+    autoUpdateDisabled: server.update?.autoUpdateDisabled ?? base.autoUpdateDisabled,
+    updateChannel: (server.update?.updateChannel as UpdateChannel) ?? base.updateChannel,
+    lastDismissedUpdateVersion: server.update?.lastDismissedUpdateVersion ?? base.lastDismissedUpdateVersion,
   };
 }
 
@@ -219,7 +236,7 @@ export function UiSettingsProvider({
     // toServerPatch produces an empty object when the patch only touches
     // client-scoped fields — short-circuit to skip a pointless POST.
     const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
-      || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui;
+      || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     // 250ms debounce collapses rapid slider-style updates into one POST.
