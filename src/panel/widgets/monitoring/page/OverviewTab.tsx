@@ -7,6 +7,7 @@ import { getGpuHist } from '../../../../lib/monitoringStore';
 import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { UsageBar } from '../../../../components/common/UsageBar/UsageBar';
 import { formatMemoryPercent, formatPercentParts, formatRate, formatRateParts } from './shared';
+import { formatMemoryMb, formatMemoryPair } from '../../../../lib/formatMemory';
 import styles from '../MonitoringPage.module.scss';
 
 export interface OverviewHist {
@@ -77,7 +78,10 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
   const usedMemMb = memUsedSensor ? memUsedSensor.value * 1024 : (hist.mem[hist.mem.length - 1] ?? 0);
   const memPct = totalMemMb > 0 ? Math.round((usedMemMb / totalMemMb) * 100) : memPctFromUsage;
   const displayMemPct = formatMemoryPercent(memPct || memPctFromUsage);
-  const usedMemGb = (usedMemMb / 1024).toFixed(1);
+  const mem = formatMemoryPair(usedMemMb, totalMemMb);
+  const memLabel = totalMemMb > 0
+    ? `${mem.used} / ${mem.total} ${mem.unit}`
+    : `${(usedMemMb / 1024).toFixed(1)} / ${totalMemGb} GB`;
 
   // Top processes by CPU; aggregate by name first (Windows sends duplicates).
   const procMap = new Map<string, { cpu: number; mem: number; net: number }>();
@@ -153,7 +157,7 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
               <span className={`${styles.dashValue} ${styles.dashValueMemory}`}>{displayMemPct}</span>
               <span className={styles.dashUnit}>%</span>
             </div>
-            <span className={styles.dashMemLabel}>{usedMemGb} / {totalMemGb} GB</span>
+            <span className={styles.dashMemLabel}>{memLabel}</span>
           </div>
           <UsageBar value={memPct / 100} />
         </button>
@@ -225,7 +229,7 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
                 <tr key={p.name}>
                   <td className={styles.procName}>{p.name}</td>
                   <td>{p.cpu.toFixed(1)}%</td>
-                  <td>{p.mem.toFixed(0)} MB</td>
+                  <td>{formatMemoryMb(p.mem)}</td>
                   <td>{formatRate(p.net)}</td>
                 </tr>
               ))}

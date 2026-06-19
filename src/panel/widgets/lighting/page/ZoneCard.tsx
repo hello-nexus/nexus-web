@@ -5,6 +5,7 @@ import {
 } from '../../../../api/lighting';
 import { cardEnabledLedCount } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
+import { isMultiSelectModifier } from '../../../../lib/platform';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
@@ -35,9 +36,9 @@ export function ZoneCard({
   selected: boolean;
   /** True when this card is a zone child rendered under a motherboard group header. */
   indent: boolean;
-  /** Receives the shift modifier so the caller can implement shift+click
-   *  multi-select on the panel without ZoneCard owning a Set. */
-  onSelect: (shiftKey: boolean) => void;
+  /** Receives whether the multi-select modifier (Cmd/Ctrl) was held, so the
+   *  caller can implement additive selection without ZoneCard owning a Set. */
+  onSelect: (additive: boolean) => void;
   onTogglePower: () => void;
   onOpenSettings: () => void;
   /** Optional dnd-kit drag wiring for reorderable lists. */
@@ -82,7 +83,7 @@ export function ZoneCard({
         indent ? styles.deviceCardZone : '',
         drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
-      onClick={e => { if (!unavailable && !firmwareControlled) onSelect(e.shiftKey); }}
+      onClick={e => { if (!unavailable && !firmwareControlled) onSelect(isMultiSelectModifier(e)); }}
     >
       <span className={styles.deviceName}>{displayName ?? device.name}</span>
       <div className={styles.deviceMetaRow}>

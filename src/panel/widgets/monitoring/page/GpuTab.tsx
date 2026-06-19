@@ -7,6 +7,7 @@ import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
 import { VitalsStrip, type Vital } from './VitalsStrip';
 import { RankedToggle } from './parts';
 import { rankSeries, topNWithOther } from './shared';
+import { formatMemoryMb, formatMemoryPair } from '../../../../lib/formatMemory';
 import styles from '../MonitoringPage.module.scss';
 
 const N = 60;
@@ -35,6 +36,7 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, o
 
   const vramUsed = val(g, 'SmallData', 'GPU Memory Used') ?? 0;
   const vramTotal = val(g, 'SmallData', 'GPU Memory Total') ?? 0;
+  const vramHeadline = formatMemoryPair(vramUsed, vramTotal);
   // Scope the per-process charts to the picked GPU's adapter (so e.g. the iGPU
   // view doesn't include the dGPU's VRAM); "" falls back to all adapters. Feed
   // is mounted at page level; here we only read the accumulated history.
@@ -86,8 +88,8 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, o
           title={t('monitoring.gpu.memByProcess')}
           titleRight={
             <div className={styles.chartStat}>
-              <span className={styles.chartStatValue}>{Math.round(vramUsed)}</span>
-              <span className={styles.chartStatUnit}>/ {Math.round(vramTotal)} MB</span>
+              <span className={styles.chartStatValue}>{vramHeadline.used}</span>
+              <span className={styles.chartStatUnit}>/ {vramHeadline.total} {vramHeadline.unit}</span>
             </div>
           }
           series={topNWithOther(procMemSeries, 5)}
@@ -106,7 +108,7 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, o
             name: s.name,
             color: s.color,
             value: s[key],
-            sub: vram >= 1 ? `${Math.round(vram)} MB` : undefined,
+            sub: vram >= 1 ? formatMemoryMb(vram) : undefined,
           };
         })}
         formatValue={v => `${Math.round(v)}%`}
