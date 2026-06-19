@@ -170,8 +170,13 @@ export function Select({
     const spaceAbove = r.top - MARGIN;
     const placeBelow = spaceBelow >= spaceAbove;
     const avail = Math.max(MIN_MENU_HEIGHT, (placeBelow ? spaceBelow : spaceAbove) - GAP);
-    // scrollHeight is the menu's layout (unscaled) height; visual = * scale.
-    const visualHeight = Math.min(menu.scrollHeight * scale, avail);
+    // scrollHeight is content+padding; max-height is border-box (global
+    // box-sizing), so add the vertical border or the menu scrolls by the border
+    // width even when every option fits. offsetHeight-clientHeight is the
+    // vertical border (x-overflow is hidden, so no horizontal scrollbar in it).
+    // Unscaled; visual = * scale.
+    const naturalHeight = menu.scrollHeight + (menu.offsetHeight - menu.clientHeight);
+    const visualHeight = Math.min(naturalHeight * scale, avail);
     const top = placeBelow ? r.bottom + GAP : r.top - GAP - visualHeight;
     const maxLeft = window.innerWidth - visualWidth - MARGIN;
     const left = Math.max(Math.min(MARGIN, maxLeft), Math.min(r.left, maxLeft));
