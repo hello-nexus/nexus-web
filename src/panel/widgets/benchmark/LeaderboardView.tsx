@@ -160,8 +160,6 @@ function EntryDetail({ entry }: { entry: LeaderboardEntry }) {
     { key: 'storage', label: 'Storage' },
   ];
 
-  const toolEntries = Object.entries(entry.tools);
-
   return (
     <div className={styles.detail}>
       <div className={styles.detailSection}>
@@ -196,20 +194,6 @@ function EntryDetail({ entry }: { entry: LeaderboardEntry }) {
           })}
         </ul>
       </div>
-
-      {toolEntries.length > 0 && (
-        <div className={styles.detailSection}>
-          <div className={styles.detailTitle}>{t('benchmark.leaderboard.tools')}</div>
-          <ul className={styles.detailList}>
-            {toolEntries.map(([name, version]) => (
-              <li key={name}>
-                <span className={styles.detailKey}>{name}</span>
-                {' '}{version}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       <div className={styles.detailSection}>
         <div className={styles.detailTitle}>{t('benchmark.leaderboard.version')}</div>

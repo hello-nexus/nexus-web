@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Gauge, Play, X, RotateCcw, History, Trophy, Cpu, Monitor, MemoryStick, HardDrive, CircuitBoard, AppWindow } from 'lucide-react';
+import { Gauge, Play, RotateCcw, History, Trophy, Cpu, Monitor, MemoryStick, HardDrive, CircuitBoard, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useBenchmark } from '../../../hooks/useBenchmark';
 import { useBenchmarkHistory } from '../../../hooks/useBenchmarkHistory';
@@ -306,7 +306,7 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
             ? <BenchmarkProgress progress={progress} />
             : <div className={styles.hint}>{t('benchmark.starting')}</div>}
           <div className={styles.controls}>
-            <Button tone="ghost" icon={<X size={16} />} onClick={cancel}>
+            <Button tone="neutral" onClick={cancel}>
               {t('benchmark.cancel')}
             </Button>
           </div>

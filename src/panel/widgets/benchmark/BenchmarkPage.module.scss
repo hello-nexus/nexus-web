@@ -307,11 +307,6 @@
   color: var(--text-dim);
 }
 
-.subDetail {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-}
-
 .resultsTab {
   display: flex;
   flex-direction: column;
@@ -366,6 +361,10 @@
 
 .runModal {
   width: min(90vw, 32rem);
+  background: var(--backdrop-base);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
 }
 
 .runModalBody {

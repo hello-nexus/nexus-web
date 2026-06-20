@@ -38,7 +38,6 @@ function SubsystemCard({ s }: { s: BenchmarkSubScore }) {
         {s.rawValue.toFixed(1)}{' '}
         <span className={styles.subUnit}>{s.rawUnit}</span>
       </div>
-      {s.detail && <div className={styles.subDetail}>{s.detail}</div>}
     </Card>
   );
 }
@@ -47,7 +46,6 @@ export function BenchmarkResults({ result, submission, submitting }: Props) {
   const { t } = useTranslation();
   const subs: BenchmarkSubScore[] = [result.cpu, result.gpu, result.ram, result.storage];
 
-  const toolEntries = result.tools ? Object.entries(result.tools) : [];
   const gpuModels = result.hardware.gpuModels ?? [];
 
   return (
@@ -100,17 +98,6 @@ export function BenchmarkResults({ result, submission, submitting }: Props) {
           <InfoRow label={t('builder.col.cores')} value={String(result.hardware.logicalCores)} />
         </InfoList>
       </div>
-
-      {toolEntries.length > 0 && (
-        <div className={styles.metaSection}>
-          <SectionHeader>{t('benchmark.leaderboard.tools')}</SectionHeader>
-          <InfoList>
-            {toolEntries.map(([name, version]) => (
-              <InfoRow key={name} label={name} value={version} />
-            ))}
-          </InfoList>
-        </div>
-      )}
     </div>
   );
 }
