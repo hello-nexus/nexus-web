@@ -635,44 +635,6 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
         </div>
       </div>
 
-      {(sizes.length > 1 || slotCountOptions.length > 1) && (
-        <div className={styles.inlineControlsRow}>
-          {sizes.length > 1 && (
-            <WidgetControlGroup title={isMonitoringWidget ? t('devices.panels.widgetSettings.layout') : t('devices.panels.widgetSettings.size')}>
-              {sizes.map(s => {
-                const SizeIcon = SIZE_ICONS[s];
-                return (
-                  <IconLabelButton
-                    key={s}
-                    className={styles.inlineIconButton}
-                    active={s === widget.size}
-                    icon={SizeIcon ? <SizeIcon aria-hidden="true" /> : undefined}
-                    ariaLabel={`${isMonitoringWidget ? t('devices.panels.widgetSettings.layout') : t('devices.panels.widgetSettings.size')} ${s}`}
-                    onPress={() => handleResize(s)}
-                    title={s}
-                  />
-                );
-              })}
-            </WidgetControlGroup>
-          )}
-          {isMonitoringWidget && slotCountOptions.length > 0 && (
-            <WidgetControlGroup title={t('devices.panels.widgetSettings.slots')}>
-              {slotCountOptions.map(n => (
-                <IconLabelButton
-                  key={n}
-                  className={styles.inlineIconButton}
-                  active={n === slotCount}
-                  icon={<SlotCountIcon count={n} size={widget.size} aria-hidden="true" />}
-                  ariaLabel={t('devices.panels.widgetSettings.slotCount', { count: n })}
-                  title={t('devices.panels.widgetSettings.slotCount', { count: n })}
-                  onPress={() => handleSlotCount(n)}
-                />
-              ))}
-            </WidgetControlGroup>
-          )}
-        </div>
-      )}
-
       <div className={styles.inlineSettingsPreview}>
         {def && (() => {
           const Comp = def.Widget;
@@ -701,8 +663,46 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
         })()}
       </div>
 
-      {Settings ? (
-        <div className={styles.inlineSettingsBody}>
+      <div className={styles.inlineSettingsBody}>
+        {(sizes.length > 1 || slotCountOptions.length > 1) && (
+          <div className={styles.inlineControlsRow}>
+            {sizes.length > 1 && (
+              <WidgetControlGroup title={isMonitoringWidget ? t('devices.panels.widgetSettings.layout') : t('devices.panels.widgetSettings.size')}>
+                {sizes.map(s => {
+                  const SizeIcon = SIZE_ICONS[s];
+                  return (
+                    <IconLabelButton
+                      key={s}
+                      className={styles.inlineIconButton}
+                      active={s === widget.size}
+                      icon={SizeIcon ? <SizeIcon aria-hidden="true" /> : undefined}
+                      ariaLabel={`${isMonitoringWidget ? t('devices.panels.widgetSettings.layout') : t('devices.panels.widgetSettings.size')} ${s}`}
+                      onPress={() => handleResize(s)}
+                      title={s}
+                    />
+                  );
+                })}
+              </WidgetControlGroup>
+            )}
+            {isMonitoringWidget && slotCountOptions.length > 0 && (
+              <WidgetControlGroup title={t('devices.panels.widgetSettings.slots')}>
+                {slotCountOptions.map(n => (
+                  <IconLabelButton
+                    key={n}
+                    className={styles.inlineIconButton}
+                    active={n === slotCount}
+                    icon={<SlotCountIcon count={n} size={widget.size} aria-hidden="true" />}
+                    ariaLabel={t('devices.panels.widgetSettings.slotCount', { count: n })}
+                    title={t('devices.panels.widgetSettings.slotCount', { count: n })}
+                    onPress={() => handleSlotCount(n)}
+                  />
+                ))}
+              </WidgetControlGroup>
+            )}
+          </div>
+        )}
+
+        {Settings ? (
           <Settings
             widget={widget}
             surface={surface}
@@ -714,12 +714,12 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
             editView={usesSlotSelection ? deckEditView : undefined}
             onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
           />
-        </div>
-      ) : (
-        <div className={styles.inlineSettingsEmpty}>
-          {t('peripheral.noCapabilities') || t('devices.panels.widgetSettings.noConfigurableSettings')}
-        </div>
-      )}
+        ) : (
+          <div className={styles.inlineSettingsEmpty}>
+            {t('peripheral.noCapabilities') || t('devices.panels.widgetSettings.noConfigurableSettings')}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
