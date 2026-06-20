@@ -16,8 +16,13 @@
   min-height: 0;
   width: 100%;
   display: block;
+  background: var(--gauge-track);
+  border-radius: var(--panel-element-radius);
+  // Clip the edge-to-edge graph to the rounded backdrop.
+  overflow: hidden;
 
   :global(svg) {
+    display: block;
     width: 100%;
     height: 100%;
   }
