@@ -1,4 +1,6 @@
 {
+  "about.credits": "Nexus는 이 멋진 프로젝트들에 대한 끊임없는 기여 없이는 불가능했을 것입니다:",
+  "about.githubOrg": "GitHub의 Nexus",
   "about.versionAlpha": "{version} alpha",
   "app.version": "{version}",
   "app.window.close": "닫기",

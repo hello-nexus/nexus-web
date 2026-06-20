@@ -1,4 +1,6 @@
 {
+  "about.credits": "若沒有對這些出色專案的不懈貢獻，Nexus 將無法實現：",
+  "about.githubOrg": "GitHub 上的 Nexus",
   "about.versionAlpha": "{version} alpha",
   "app.version": "{version}",
   "app.window.close": "關閉",

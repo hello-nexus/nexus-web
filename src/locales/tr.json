@@ -1,4 +1,6 @@
 {
+  "about.credits": "Nexus, bu harika projelere yapılan yorulmak bilmeyen katkılar olmadan mümkün olmazdı:",
+  "about.githubOrg": "GitHub'da Nexus",
   "about.versionAlpha": "{version} alpha",
   "app.version": "{version}",
   "app.window.close": "Kapat",
