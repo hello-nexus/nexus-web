@@ -6,6 +6,7 @@ import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Slider } from '../../common/Slider/Slider';
+import { useThrottle } from '../../../hooks/cadence';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebSettingsView.module.scss';
 
@@ -45,6 +46,11 @@ export function KeebSettingsView({
 
   // Re-sync whenever the server-side fetch refreshes.
   useEffect(() => { setLocal(settings); }, [settings]);
+
+  // Brightness sends live while dragging (throttled) so the keeb dims as you
+  // drag, and once more on release. The Slider's onChange `commit` flag is only
+  // true for typed input, so relying on it left drag changes unsent.
+  const brightnessThrottle = useThrottle();
 
   const setLocalField = useCallback(<K extends keyof KeebSettings>(key: K, value: KeebSettings[K]) => {
     setLocal(prev => prev ? { ...prev, [key]: value } : prev);
@@ -108,10 +114,11 @@ export function KeebSettingsView({
             min={0}
             max={100}
             value={local.brightness}
-            onChange={(v, commit) => {
+            onChange={v => {
               setLocalField('brightness', v);
-              if (commit) pushFw({ brightness: v });
+              brightnessThrottle(() => pushFw({ brightness: v }));
             }}
+            onCommit={v => pushFw({ brightness: v })}
             ariaLabel={t('keeb.settings.brightness')}
             formatValue={v => `${v}%`}
           />

@@ -10,6 +10,7 @@ import { COOLING_PRESETS, type CoolingPresetKey } from '../panel/widgets/cooling
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { getCatalogEntries } from '../panel/widgets/registry';
 import type { CommandContext, SearchEntry, SearchSource } from './types';
+import { requestSearchScroll } from './scroll';
 import styles from './TopSearch.module.scss';
 
 // ── Entry factories ─────────────────────────────────────────────────────────
@@ -80,15 +81,17 @@ const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
 ];
 
 // Individual settings, indexed by their real label so "tray" finds the actual
-// "Show icon in tray" toggle, not just the tab. Each opens the hosting tab.
-const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; keywords: string[] }[] = [
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.windowsTray.label',  keywords: ['tray', 'system tray', 'notification area', 'taskbar', 'icon', 'windows'] },
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.macStatusBar.label',  keywords: ['menu bar', 'status bar', 'menubar', 'macos', 'mac', 'icon'] },
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.systemStartup.label', keywords: ['startup', 'boot', 'login', 'autostart', 'auto start', 'launch', 'start with windows'] },
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.alerts.label',        keywords: ['conflict', 'warnings', 'alerts', 'notifications'] },
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.language',            keywords: ['language', 'locale', 'translation'] },
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.screentime.title',    keywords: ['screen time', 'tracking', 'usage', 'data'] },
-  { tab: 'theme',   tabLabelKey: 'settings.theme',   labelKey: 'settings.accent',              keywords: ['accent', 'color', 'colour', 'highlight'] },
+// "Show icon in tray" toggle, not just the tab. `anchor` is the id stamped on
+// the matching control (via SettingRow's anchorId), so selecting one navigates
+// to Settings and scrolls to + shines that exact row.
+const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anchor: string; keywords: string[] }[] = [
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.windowsTray.label',  anchor: 'set-tray',       keywords: ['tray', 'system tray', 'notification area', 'taskbar', 'icon', 'windows'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.macStatusBar.label',  anchor: 'set-menubar',    keywords: ['menu bar', 'status bar', 'menubar', 'macos', 'mac', 'icon'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.systemStartup.label', anchor: 'set-startup',    keywords: ['startup', 'boot', 'login', 'autostart', 'auto start', 'launch', 'start with windows'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.alerts.label',        anchor: 'set-alerts',     keywords: ['conflict', 'warnings', 'alerts', 'notifications'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.language',            anchor: 'set-language',   keywords: ['language', 'locale', 'translation'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.screentime.title',    anchor: 'set-screentime', keywords: ['screen time', 'tracking', 'usage', 'data'] },
+  { tab: 'theme',   tabLabelKey: 'settings.theme',   labelKey: 'settings.accent',              anchor: 'set-accent',     keywords: ['accent', 'color', 'colour', 'highlight'] },
 ];
 
 const THEMES: { mode: ThemeMode; labelKey: string; icon: ReactNode; words: string[] }[] = [
@@ -146,7 +149,7 @@ const settingsItems: SearchSource = (ctx) =>
   SETTINGS_ITEMS.map((s) => go(`setting:${s.labelKey}`, {
     title: ctx.t(s.labelKey), subtitle: `${ctx.t('settings.title')} › ${ctx.t(s.tabLabelKey)}`,
     icon: NAV_ICONS.settings, keywords: s.keywords,
-    to: () => ctx.host.goView('settings'),
+    to: () => { ctx.host.goView('settings'); requestSearchScroll(s.anchor); },
   }));
 
 // Standalone pages that used to be Settings tabs: Profiles (top-bar profile
