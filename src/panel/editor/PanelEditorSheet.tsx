@@ -255,7 +255,7 @@ export function PanelEditorSheet({
         )}
 
         {mode === 'settings' && editingWidget && def && (
-          <>
+          <div className={styles.settingsBody}>
             {(widgetSizes.length > 1 || slotCountOptions.length > 1) && (
               <div className={styles.editorActions}>
                 <div className={styles.controlPicker}>
@@ -301,25 +301,23 @@ export function PanelEditorSheet({
               </div>
             )}
             {Settings ? (
-              <div className={styles.settingsBody}>
-                <Settings
-                  widget={editingWidget}
-                  surface={surface}
-                  onUpdate={config => onUpdate(editingWidget.id, config)}
-                  onResize={handleResize}
-                  selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
-                  onSelectedSlotChange={usesSlotSelection ? onSelectedMonitoringSlotChange : undefined}
-                  editView={usesSlotSelection ? editView : undefined}
-                  onEditViewChange={usesSlotSelection ? onEditViewChange : undefined}
-                />
-              </div>
+              <Settings
+                widget={editingWidget}
+                surface={surface}
+                onUpdate={config => onUpdate(editingWidget.id, config)}
+                onResize={handleResize}
+                selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
+                onSelectedSlotChange={usesSlotSelection ? onSelectedMonitoringSlotChange : undefined}
+                editView={usesSlotSelection ? editView : undefined}
+                onEditViewChange={usesSlotSelection ? onEditViewChange : undefined}
+              />
             ) : (
               <div className={styles.settingsEmpty}>
                 <Settings2 size={18} />
                 <span>{t('panel.editor.noSettings')}</span>
               </div>
             )}
-          </>
+          </div>
         )}
 
         {mode === 'panelSettings' && (
