@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, RefreshCw } from 'lucide-react';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { Button } from '../Button/Button';
+import { SettingsSection } from '../SettingsSection/SettingsSection';
+import { GithubGlyph } from '../../icons/NexusBrand';
 import { getUpdateProgress, getUpdateStatus, startUpdate, type UpdateStatus, type UpdateProgress, type UpdatePhase } from '../../../api/update';
 import { pingService } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
@@ -346,14 +348,20 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
               <p className={styles.failedMessage}>{startError || t('update.modal.failedMessage')}</p>
             )}
             {status?.releaseNotes ? (
-              <div className={styles.releaseNotes}>
-                <div className={styles.releaseNotesLabel}>{t('update.modal.releaseNotes')}</div>
-                <div className={styles.releaseNotesBody}>
-                  {renderMarkdown(status.releaseNotes)}
-                </div>
-              </div>
+              <SettingsSection title={t('update.modal.releaseNotes')} boxClassName={styles.releaseNotesBody}>
+                {renderMarkdown(status.releaseNotes)}
+              </SettingsSection>
             ) : null}
             <div className={styles.actions}>
+              <a
+                className={styles.releasesLink}
+                href="https://github.com/hello-nexus/nexus-releases/releases"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <GithubGlyph size={13} />
+                {t('update.modal.releases')}
+              </a>
               {view === 'notes' && status?.updateAvailable && !isFailed && !startError && !isAlwaysMode && (
                 <Button tone="accent" size="sm" loading={starting} onClick={handleUpdateNow}>
                   {status.updateReady ? t('update.modal.installUpdate') : t('update.modal.updateNow')}

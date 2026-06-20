@@ -1805,6 +1805,7 @@
   "update.modal.reconnectGaveUp": "無法重新連線 - 更新可能仍在完成中。您可以關閉此視窗。",
   "update.modal.reconnecting": "正在重新連線...",
   "update.modal.releaseNotes": "新功能",
+  "update.modal.releases": "在 GitHub 上查看版本",
   "update.modal.startFailed": "更新無法啟動，請重試。",
   "update.modal.starting": "啟動中...",
   "update.modal.title": "軟體更新",

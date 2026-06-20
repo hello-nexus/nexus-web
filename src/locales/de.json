@@ -1805,6 +1805,7 @@
   "update.modal.reconnectGaveUp": "Verbindung konnte nicht wiederhergestellt werden - das Update wird möglicherweise noch abgeschlossen. Sie können dieses Fenster schließen.",
   "update.modal.reconnecting": "Verbindung wird wiederhergestellt...",
   "update.modal.releaseNotes": "Neuigkeiten",
+  "update.modal.releases": "Versionen auf GitHub ansehen",
   "update.modal.startFailed": "Das Update konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
   "update.modal.starting": "Wird gestartet...",
   "update.modal.title": "Softwareaktualisierung",
