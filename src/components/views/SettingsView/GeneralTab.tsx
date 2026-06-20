@@ -108,7 +108,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     window.close();
   };
 
-  // Reveal the logs folder (service.log, plus desktop-host.log on Windows) in
+  // Reveal the logs folder (nexus-service.log, plus desktop-host.log on Windows) in
   // the OS file manager so testers can grab them for a bug report. Loopback-only
   // endpoint - acts on the local machine.
   const openLogs = async () => {
