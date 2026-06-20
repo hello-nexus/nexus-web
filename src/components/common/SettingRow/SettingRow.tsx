@@ -20,6 +20,7 @@ export function SettingRow({
   icon,
   children,
   disabled,
+  anchorId,
 }: {
   label?: string;
   description?: ReactNode;
@@ -27,9 +28,12 @@ export function SettingRow({
   icon?: ReactNode;
   children: ReactNode;
   disabled?: boolean;
+  // Search deep-link target: stamps the row so the command palette can scroll
+  // to + shine it. Optional; nothing else reads it.
+  anchorId?: string;
 }) {
   return (
-    <div className={disabled ? `${styles.row} ${styles.disabled}` : styles.row}>
+    <div id={anchorId} data-search-anchor={anchorId} className={disabled ? `${styles.row} ${styles.disabled}` : styles.row}>
       {(label || description) && (
         <div className={styles.info}>
           {label && (
@@ -53,6 +57,7 @@ export function SettingToggle({
   checked,
   onChange,
   disabled,
+  anchorId,
 }: {
   label: string;
   description?: ReactNode;
@@ -60,9 +65,10 @@ export function SettingToggle({
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
+  anchorId?: string;
 }) {
   return (
-    <SettingRow label={label} description={description} icon={icon} disabled={disabled}>
+    <SettingRow label={label} description={description} icon={icon} disabled={disabled} anchorId={anchorId}>
       <Toggle checked={checked} onChange={onChange} disabled={disabled} ariaLabel={label} />
     </SettingRow>
   );
@@ -75,6 +81,7 @@ export function SettingSelect({
   onChange,
   disabled,
   description,
+  anchorId,
 }: {
   label?: string;
   value: string;
@@ -82,9 +89,10 @@ export function SettingSelect({
   onChange: (value: string) => void;
   disabled?: boolean;
   description?: ReactNode;
+  anchorId?: string;
 }) {
   return (
-    <SettingRow label={label} description={description}>
+    <SettingRow label={label} description={description} anchorId={anchorId}>
       <Select value={value} onChange={onChange} options={options} ariaLabel={label} disabled={disabled} />
     </SettingRow>
   );

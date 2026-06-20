@@ -94,7 +94,7 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
         />
       </SettingRow>
 
-      <SettingRow label={t('settings.accent')}>
+      <SettingRow label={t('settings.accent')} anchorId="set-accent">
         <Tabs
           ariaLabel={t('settings.accent')}
           activeKey={settings.general.accentSource}

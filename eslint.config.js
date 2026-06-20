@@ -18,6 +18,8 @@ const NON_UI_JSX_ATTRIBUTES = [
   'tone', 'size', 'variant', 'position', 'align', 'justify', 'direction',
   'gap', 'as', 'icon', 'color', 'accent', 'mode', 'kind', 'side', 'placement',
   'layout',
+  // Search deep-link target id stamped on a control; technical, never displayed.
+  'anchorId',
 ]
 
 export default defineConfig([

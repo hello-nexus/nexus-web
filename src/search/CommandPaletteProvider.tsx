@@ -4,6 +4,8 @@ import {
 import type { Section } from '../hooks/useRoute';
 import type { CommandHost } from './types';
 import { CommandPaletteCtx, type PaletteController } from './CommandPaletteContext';
+import { useSearchAnchorScroller } from './scroll';
+import './searchHighlight.css';
 
 interface Props {
   navigate: (section: Section, view?: string | null, subtab?: string | null) => void;
@@ -22,6 +24,10 @@ export function CommandPaletteProvider({ navigate, onPairPhone, children }: Prop
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
   const toggle = useCallback(() => setIsOpen((o) => !o), []);
+
+  // Deep-link scroll: search results that target an in-page control scroll to +
+  // shine it after navigating.
+  useSearchAnchorScroller();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

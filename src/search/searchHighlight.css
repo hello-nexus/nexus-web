@@ -1,0 +1,33 @@
+/* Full-body shine played on a search deep-link target after the palette scrolls
+   to it. Global (toggled via classList from scroll.ts) so it can land on any
+   element regardless of which CSS-module owns it. An ::after overlay covers the
+   whole element body: a flat accent tint that holds, plus a light sweep across
+   it. scroll.ts removes the class after the animation. */
+.nexus-search-anchor-active {
+  position: relative;
+}
+
+.nexus-search-anchor-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: var(--radius, 10px);
+  background:
+    linear-gradient(110deg,
+      transparent 35%,
+      color-mix(in srgb, var(--accent, #3b82f6) 65%, transparent) 50%,
+      transparent 65%),
+    color-mix(in srgb, var(--accent, #3b82f6) 16%, transparent);
+  background-size: 250% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  animation: nexus-search-shine 2s ease-out forwards;
+}
+
+@keyframes nexus-search-shine {
+  0%   { background-position: 160% 0, 0 0; opacity: 0; }
+  12%  { opacity: 1; }
+  72%  { opacity: 1; }
+  100% { background-position: -60% 0, 0 0; opacity: 0; }
+}

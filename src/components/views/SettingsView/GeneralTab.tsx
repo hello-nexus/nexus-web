@@ -120,12 +120,14 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
       <SettingsSection title={t('settings.general')}>
         <SettingSelect
           label={t('settings.language')}
+          anchorId="set-language"
           value={settings.general.language}
           options={LANGUAGES.map(l => ({ value: l, label: `${LANGUAGE_FLAGS[l]}  ${LANGUAGE_LABELS[l]}` }))}
           onChange={v => updateGeneral({ language: v as Language })}
         />
         <SettingToggle
           label={t('settings.alerts.label')}
+          anchorId="set-alerts"
           description={t('settings.alerts.description')}
           checked={settings.general.disableConflictAlerts}
           onChange={() => updateGeneral({ disableConflictAlerts: !settings.general.disableConflictAlerts })}
@@ -141,6 +143,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           {platform === 'windows' && autoStart !== null && (
             <SettingToggle
               label={t('settings.systemStartup.label')}
+              anchorId="set-startup"
               description={t('settings.systemStartup.description')}
               checked={autoStart}
               onChange={toggleAutoStart}
@@ -150,6 +153,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           {platform === 'windows' && (
             <SettingToggle
               label={t('settings.windowsTray.label')}
+              anchorId="set-tray"
               description={t('settings.windowsTray.description')}
               checked={settings.general.showWindowsTrayIcon}
               onChange={() => updateGeneral({ showWindowsTrayIcon: !settings.general.showWindowsTrayIcon })}
@@ -158,6 +162,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           {platform === 'macos' && (
             <SettingToggle
               label={t('settings.macStatusBar.label')}
+              anchorId="set-menubar"
               description={t('settings.macStatusBar.description')}
               checked={settings.general.showMacStatusBarIcon}
               onChange={() => updateGeneral({ showMacStatusBarIcon: !settings.general.showMacStatusBarIcon })}
@@ -209,6 +214,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         )}
         <SettingRow
           label={t('settings.screentime.title')}
+          anchorId="set-screentime"
           description={t('settings.screentime.trackingDesc')}
         >
           <Button
