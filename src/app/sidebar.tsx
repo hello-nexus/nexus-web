@@ -177,6 +177,9 @@ export function PageVersionLabel() {
   }, []);
 
   const base = serviceVersion ?? __APP_VERSION__;
-  const version = settings.updateChannel === 'beta' ? `${base}-beta` : base;
+  // A beta build's reported version already carries a "-beta.N" suffix; only
+  // synthesize a channel hint when it doesn't (offline, or a stable build while
+  // on the beta channel) so the label never doubles to "...-beta.N-beta".
+  const version = settings.updateChannel === 'beta' && !base.includes('-') ? `${base}-beta` : base;
   return <span className={styles.pageVersion}>{t('app.version', { version })}</span>;
 }
