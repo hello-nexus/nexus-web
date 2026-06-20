@@ -1805,6 +1805,7 @@
   "update.modal.reconnectGaveUp": "Не удалось восстановить соединение - обновление может ещё завершаться. Вы можете закрыть это окно.",
   "update.modal.reconnecting": "Переподключение...",
   "update.modal.releaseNotes": "Что нового",
+  "update.modal.releases": "Посмотреть релизы на GitHub",
   "update.modal.startFailed": "Обновление не удалось запустить. Повторите попытку.",
   "update.modal.starting": "Запуск...",
   "update.modal.title": "Обновление программы",

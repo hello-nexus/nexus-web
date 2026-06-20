@@ -1805,6 +1805,7 @@
   "update.modal.reconnectGaveUp": "Nie udało się ponownie połączyć - aktualizacja może nadal trwać. Możesz zamknąć to okno.",
   "update.modal.reconnecting": "Ponowne łączenie...",
   "update.modal.releaseNotes": "Co nowego",
+  "update.modal.releases": "Zobacz wersje na GitHubie",
   "update.modal.startFailed": "Nie udało się uruchomić aktualizacji. Spróbuj ponownie.",
   "update.modal.starting": "Uruchamianie...",
   "update.modal.title": "Aktualizacja oprogramowania",

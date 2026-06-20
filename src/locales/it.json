@@ -1805,6 +1805,7 @@
   "update.modal.reconnectGaveUp": "Impossibile riconnettersi - l'aggiornamento potrebbe essere ancora in corso. Puoi chiudere questa finestra.",
   "update.modal.reconnecting": "Riconnessione in corso...",
   "update.modal.releaseNotes": "Novità",
+  "update.modal.releases": "Vedi le versioni su GitHub",
   "update.modal.startFailed": "L'aggiornamento non è potuto partire. Riprova.",
   "update.modal.starting": "Avvio...",
   "update.modal.title": "Aggiornamento software",

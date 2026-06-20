@@ -1805,6 +1805,7 @@
   "update.modal.reconnectGaveUp": "Yeniden bağlanılamadı - güncelleme hala tamamlanıyor olabilir. Bu pencereyi kapatabilirsiniz.",
   "update.modal.reconnecting": "Yeniden bağlanılıyor...",
   "update.modal.releaseNotes": "Yenilikler",
+  "update.modal.releases": "GitHub'da sürümleri görüntüle",
   "update.modal.startFailed": "Güncelleme başlatılamadı. Lütfen tekrar deneyin.",
   "update.modal.starting": "Baslatiliyor...",
   "update.modal.title": "Yazılım güncellemesi",

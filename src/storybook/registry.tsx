@@ -1080,9 +1080,9 @@ export const REGISTRY: StorybookEntry[] = [
     fullWidth: true,
   },
   {
-    name: 'Brand (NexusMark / NexusWordmark)', category: 'foundation',
+    name: 'Brand (NexusMark / NexusWordmark / GithubGlyph)', category: 'foundation',
     filePath: 'src/components/icons/NexusBrand.tsx',
-    description: 'The interlocking-N mark and NEXUS wordmark as currentColor SVGs traced from the brand art. size / height props govern rendered dimensions directly (viewBoxes are tight to the visible bbox).',
+    description: 'The interlocking-N mark and NEXUS wordmark as currentColor SVGs traced from the brand art. size / height props govern rendered dimensions directly (viewBoxes are tight to the visible bbox). Also exports GithubGlyph - the GitHub mark SVG (fills with currentColor) for use wherever a GitHub link appears.',
     Preview: PreviewBrand,
   },
   // ── Inputs ────────────────────────────────────────────────────────────

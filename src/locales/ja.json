@@ -1805,6 +1805,7 @@
   "update.modal.reconnectGaveUp": "再接続できませんでした - アップデートはまだ完了中の場合があります。このウィンドウを閉じることができます。",
   "update.modal.reconnecting": "再接続中...",
   "update.modal.releaseNotes": "新機能",
+  "update.modal.releases": "GitHubでリリースを確認",
   "update.modal.startFailed": "アップデートを開始できませんでした。もう一度お試しください。",
   "update.modal.starting": "開始中...",
   "update.modal.title": "ソフトウェアアップデート",
