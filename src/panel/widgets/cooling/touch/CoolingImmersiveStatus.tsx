@@ -73,10 +73,10 @@ export function CoolingImmersiveStatus({ cooling }: { cooling: CoolingImmersiveC
               className={styles.modeBtn}
               data-active={active ? 'true' : 'false'}
               aria-pressed={active}
+              aria-label={t(p.i18nKey)}
               onClick={() => cooling.applyPreset(p.key)}
             >
               <p.Icon size={20} aria-hidden />
-              <span className={styles.modeLabel}>{t(p.i18nKey)}</span>
             </button>
           );
         })}

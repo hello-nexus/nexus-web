@@ -400,9 +400,9 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     [activeEffect, templates],
   );
 
-  // Immersive (fullscreen panel) variant: a row of square mode buttons
-  // on top (off / animate / media / mirror), preview below. Shown for
-  // every mode and regardless of the simple/advanced widget setting.
+  // Immersive (fullscreen panel) variant: a row of icon-only mode buttons
+  // on top, preview below. Shown for every mode and regardless of the
+  // simple/advanced widget setting.
   if (immersive) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-immersive="true">

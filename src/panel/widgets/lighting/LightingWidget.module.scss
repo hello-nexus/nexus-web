@@ -221,39 +221,35 @@
   white-space: nowrap;
 }
 
-// Immersive variant: a centered row of square icon-only mode buttons
-// (off / animate / media / mirror) above the preview. Capped width keeps
-// the squares from ballooning on a wide panel; they shrink to fit narrow
-// cells. The preview below loses the top edge to this row, so it bleeds
-// only to the sides + bottom.
+// Immersive variant: one row of icon-only pill mode buttons stretched across
+// the cell, above the preview. The preview below loses the top edge to this
+// row, so it bleeds only to the sides + bottom.
 .immersiveModeGrid {
   flex-shrink: 0;
-  align-self: center;
-  width: min(100%, 360px);
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
   gap: 8px;
 }
 
 .immersiveModeButton {
-  aspect-ratio: 1 / 1;
+  flex: 1;
   min-width: 0;
+  min-height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   background: var(--panel-element-bg);
   color: var(--text-dim);
-  padding: 0;
+  padding: 8px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 
   @include widget-button-hover;
 
   svg {
-    width: 46%;
-    height: 46%;
+    width: 20px;
+    height: 20px;
   }
 
   &[data-active='true'] {

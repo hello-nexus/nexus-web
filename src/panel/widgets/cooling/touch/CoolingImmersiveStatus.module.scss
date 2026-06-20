@@ -1,5 +1,4 @@
 @use '../../../../styles/interactions' as *;
-@use '../../../../styles/text' as *;
 
 .status {
   width: 100%;
@@ -16,23 +15,19 @@
   flex-shrink: 0;
 }
 
-// Same visual language as the cooling widget's preset chips, sized up for
-// a primary touch target with the icon stacked above the label.
+// Icon-only pill preset buttons, one row stretched across the cell.
 .modeBtn {
   flex: 1;
   min-width: 0;
-  min-height: 64px;
+  min-height: 48px;
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   background: var(--panel-element-bg);
   color: var(--text-dim);
-  padding: 8px 4px;
-  @include text-button;
+  padding: 8px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 
@@ -47,13 +42,6 @@
     background: var(--panel-accent-soft);
     color: var(--panel-accent-glow);
   }
-}
-
-.modeLabel {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .chartSlot {
