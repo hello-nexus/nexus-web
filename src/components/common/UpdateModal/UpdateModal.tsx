@@ -150,8 +150,10 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
   // Progress poll: runs while the modal is open. Transitions to 'reconnecting'
   // as soon as the service goes away mid-install or phase reaches launching/installing.
   // Transitions to 'notes' on failure so the user sees the error rather than freezing.
+  // Always mode never installs from the modal, so the poll is skipped there: a
+  // background stage's progress must not flip this informational modal off notes.
   useEffect(() => {
-    if (!open) return;
+    if (!open || isAlwaysMode) return;
     let cancelled = false;
     const poll = async () => {
       const p = await getUpdateProgress();
@@ -200,7 +202,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
       cancelled = true;
       clearInterval(id);
     };
-  }, [open, t]);
+  }, [open, t, isAlwaysMode]);
 
   // Reconnect poll: only leaves 'reconnecting' once the service reports the
   // target version, preventing the old process's brief final /ping from
