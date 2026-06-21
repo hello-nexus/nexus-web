@@ -132,6 +132,7 @@ export function SidebarUpdateSlot({ serviceOnline, compact, onOpen }: {
 }) {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
+  const [updateMode, setUpdateMode] = useState<string>('');
 
   useEffect(() => {
     if (!serviceOnline) return;
@@ -141,6 +142,7 @@ export function SidebarUpdateSlot({ serviceOnline, compact, onOpen }: {
         if (!cancelled && s) {
           setUpdateAvailable(s.updateAvailable);
           setUpdateReady(s.updateReady);
+          setUpdateMode(s.updateMode ?? '');
         }
       });
     };
@@ -158,6 +160,7 @@ export function SidebarUpdateSlot({ serviceOnline, compact, onOpen }: {
     <UpdateBadge
       updateAvailable={updateAvailable}
       updateReady={updateReady}
+      updateMode={updateMode}
       compact={compact}
       onOpen={onOpen}
     />

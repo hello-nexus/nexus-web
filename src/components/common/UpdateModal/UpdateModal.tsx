@@ -103,8 +103,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
   const installActiveRef = useRef(false);
   // Set to the monotonic time when the install was kicked off; cleared when active progress arrives.
   const neverActiveDeadlineRef = useRef(0);
-  // Tracks whether always-mode auto-start has been issued for this open.
-  const alwaysStartedRef = useRef(false);
   // True while the reconnect gave up, making the modal closable despite always-mode.
   const [reconnectGaveUp, setReconnectGaveUp] = useState(false);
 
@@ -133,7 +131,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
   // resolve the initial view, and reset all per-open latches.
   useEffect(() => {
     if (!open) return;
-    alwaysStartedRef.current = false;
     installActiveRef.current = false;
     neverActiveDeadlineRef.current = 0;
     setStartError('');
@@ -149,23 +146,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
   // the status snapshot the caller passed (before any re-fetch).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-
-  // always-mode auto-start: only once a verified update is STAGED (updateReady).
-  // A merely-available-but-unstageable release (e.g. one missing SHA256SUMS) must
-  // not open a non-closable modal on a startUpdate that will fail.
-  useEffect(() => {
-    if (!open || !isAlwaysMode || alwaysStartedRef.current) return;
-    if (!status?.updateReady) return;
-    alwaysStartedRef.current = true;
-    setView('progress');
-    neverActiveDeadlineRef.current = Date.now() + NEVER_ACTIVE_TIMEOUT_MS;
-    startUpdate(status.latestVersion, { reopenAfter: true }).then(resp => {
-      if (!resp?.started) {
-        setStartError(t('update.modal.startFailed'));
-        setView('notes');
-      }
-    });
-  }, [open, isAlwaysMode, status?.updateReady, status?.latestVersion, t]);
 
   // Progress poll: runs while the modal is open. Transitions to 'reconnecting'
   // as soon as the service goes away mid-install or phase reaches launching/installing.
@@ -347,6 +327,9 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
             {!reconnectGaveUp && (isFailed || startError) && (
               <p className={styles.failedMessage}>{startError || t('update.modal.failedMessage')}</p>
             )}
+            {view === 'notes' && isAlwaysMode && !isFailed && !startError && (
+              <p className={styles.alwaysModeNote}>{t('update.modal.alwaysModeNote')}</p>
+            )}
             {status?.releaseNotes ? (
               <SettingsSection title={t('update.modal.releaseNotes')} boxClassName={styles.releaseNotesBody}>
                 {renderMarkdown(status.releaseNotes)}
@@ -364,7 +347,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
               </a>
               {view === 'notes' && status?.updateAvailable && !isFailed && !startError && !isAlwaysMode && (
                 <Button tone="accent" size="sm" loading={starting} onClick={handleUpdateNow}>
-                  {status.updateReady ? t('update.modal.installUpdate') : t('update.modal.updateNow')}
+                  {status.updateReady ? t('update.modal.installUpdate') : t('update.modal.downloadAndInstall')}
                 </Button>
               )}
               {view === 'notes' && status?.updateAvailable && !isFailed && !startError && !isAlwaysMode ? (

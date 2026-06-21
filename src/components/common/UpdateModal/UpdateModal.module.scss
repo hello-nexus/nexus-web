@@ -112,6 +112,12 @@
   color: var(--bad);
 }
 
+.alwaysModeNote {
+  @include text-body;
+  color: var(--text-dim);
+  margin: 0 0 0.5rem;
+}
+
 .releaseNotesBody {
   // Adds only scroll + item spacing to SettingsSection's .box, which already
   // supplies the padding, border, radius, flex layout, and surface fill.

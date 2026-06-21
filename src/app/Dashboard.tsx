@@ -70,7 +70,6 @@ const BuilderView = lazy(() => import('../components/views/BuilderView'));
 
 // Mounted inside UiSettingsProvider. Auto-opens the update modal on load when:
 //   - updateMode === 'notify' and a new (non-dismissed) version is available, OR
-//   - updateMode === 'always' and an update is available (to start the install), OR
 //   - justUpdatedTo is set (show post-update what's-new view).
 function UpdateAutoOpener({ online, onOpen }: {
   online: boolean;
@@ -81,8 +80,7 @@ function UpdateAutoOpener({ online, onOpen }: {
 
   useEffect(() => {
     if (!online || firedRef.current) return;
-    const mode = settings.updateMode;
-    if (mode !== 'notify' && mode !== 'always') return;
+    if (settings.updateMode !== 'notify') return;
     let cancelled = false;
     getUpdateStatus().then(s => {
       if (cancelled || !s) return;
@@ -91,15 +89,8 @@ function UpdateAutoOpener({ online, onOpen }: {
         onOpen(s);
         return;
       }
-      if (mode === 'always') {
-        // Only pop the non-closable always-mode modal once a verified update is
-        // staged (updateReady); an unstageable release must not trap the user.
-        if (!s.updateReady) return;
-      } else {
-        // notify: pop once when an update is available and not already dismissed.
-        if (!s.updateAvailable) return;
-        if (s.latestVersion === settings.lastDismissedUpdateVersion) return;
-      }
+      if (!s.updateAvailable) return;
+      if (s.latestVersion === settings.lastDismissedUpdateVersion) return;
       firedRef.current = true;
       onOpen(s);
     });

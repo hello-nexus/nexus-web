@@ -7,16 +7,19 @@ import styles from './UpdateBadge.module.scss';
 interface UpdateBadgeProps {
   updateAvailable: boolean;
   updateReady: boolean;
+  updateMode?: string;
   compact: boolean;
   onOpen: () => void;
 }
 
-export function UpdateBadge({ updateAvailable, updateReady, compact, onOpen }: UpdateBadgeProps) {
+export function UpdateBadge({ updateAvailable, updateReady, updateMode, compact, onOpen }: UpdateBadgeProps) {
   const { t } = useTranslation();
 
   if (!updateAvailable) return null;
 
-  const label = updateReady ? t('update.badge.labelReady') : t('update.badge.label');
+  const label = updateMode === 'always'
+    ? t('update.badge.labelAlways')
+    : updateReady ? t('update.badge.labelReady') : t('update.badge.label');
 
   const badgeBtn = (
     <button
