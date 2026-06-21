@@ -78,14 +78,26 @@ function UpdateAutoOpener({ online, onOpen }: {
   useEffect(() => {
     if (!online || firedRef.current) return;
     let cancelled = false;
-    getUpdateStatus().then(s => {
-      if (cancelled || !s) return;
-      if (s.justUpdatedTo) {
-        firedRef.current = true;
-        onOpen(s);
-      }
-    });
-    return () => { cancelled = true; };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let tries = 0;
+    // justUpdatedTo appears once the post-install service finishes starting. A
+    // fetch that lands on the pre-swap service returns empty; the service holds
+    // the value for 60s, so re-check briefly until it shows rather than latching
+    // empty and missing the what's-new view.
+    const check = () => {
+      if (cancelled || firedRef.current) return;
+      getUpdateStatus().then(s => {
+        if (cancelled || firedRef.current || !s) return;
+        if (s.justUpdatedTo) {
+          firedRef.current = true;
+          onOpen(s);
+          return;
+        }
+        if (++tries < 8) timer = setTimeout(check, 2000);
+      });
+    };
+    check();
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
   }, [online, onOpen]);
 
   return null;
