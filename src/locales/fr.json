@@ -1794,6 +1794,7 @@
   "update.badge.labelAlways": "Mise à jour prête",
   "update.badge.labelReady": "Installer la mise à jour",
   "update.modal.alwaysModeNote": "Cette mise à jour s'installera automatiquement au prochain redémarrage de Nexus.",
+  "update.modal.cancel": "Annuler",
   "update.modal.close": "Fermer",
   "update.modal.done": "Mise à jour terminée",
   "update.modal.downloadAndInstall": "Télécharger et installer",

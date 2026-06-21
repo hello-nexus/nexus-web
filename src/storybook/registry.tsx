@@ -912,7 +912,7 @@ function PreviewAboutModal() {
 function PreviewUpdateBadge() {
   return (
     <div style={{ width: 200, padding: 8 }}>
-      <UpdateBadge updateAvailable updateReady={false} compact={false} onOpen={() => {}} />
+      <UpdateBadge updateMode="notify" compact={false} onOpen={() => {}} onInstall={() => {}} />
     </div>
   );
 }

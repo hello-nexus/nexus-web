@@ -1794,6 +1794,7 @@
   "update.badge.labelAlways": "更新就緒",
   "update.badge.labelReady": "安裝更新",
   "update.modal.alwaysModeNote": "此更新將在下次 Nexus 重新啟動時自動安裝。",
+  "update.modal.cancel": "取消",
   "update.modal.close": "關閉",
   "update.modal.done": "更新完成",
   "update.modal.downloadAndInstall": "下載並安裝",

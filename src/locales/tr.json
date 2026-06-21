@@ -1794,6 +1794,7 @@
   "update.badge.labelAlways": "Güncelleme hazır",
   "update.badge.labelReady": "Güncellemeyi yükle",
   "update.modal.alwaysModeNote": "Bu güncelleme, Nexus bir sonraki başlatılışında otomatik olarak yüklenecektir.",
+  "update.modal.cancel": "İptal",
   "update.modal.close": "Kapat",
   "update.modal.done": "Güncelleme tamamlandı",
   "update.modal.downloadAndInstall": "İndir ve yükle",

@@ -125,10 +125,11 @@ export function SidebarConflictSlot({ serviceOnline, compact }: {
   );
 }
 
-export function SidebarUpdateSlot({ serviceOnline, compact, onOpen }: {
+export function SidebarUpdateSlot({ serviceOnline, compact, onOpen, onInstall }: {
   serviceOnline: boolean;
   compact: boolean;
   onOpen: () => void;
+  onInstall: () => void;
 }) {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
@@ -154,15 +155,16 @@ export function SidebarUpdateSlot({ serviceOnline, compact, onOpen }: {
     };
   }, [serviceOnline]);
 
-  if (!updateAvailable) return null;
+  const isNotify = updateMode === 'notify';
+  const visible = isNotify ? updateAvailable : updateReady;
+  if (!visible) return null;
 
   return (
     <UpdateBadge
-      updateAvailable={updateAvailable}
-      updateReady={updateReady}
       updateMode={updateMode}
       compact={compact}
       onOpen={onOpen}
+      onInstall={onInstall}
     />
   );
 }

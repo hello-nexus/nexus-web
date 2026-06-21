@@ -1794,6 +1794,7 @@
   "update.badge.labelAlways": "업데이트 준비됨",
   "update.badge.labelReady": "업데이트 설치",
   "update.modal.alwaysModeNote": "이 업데이트는 다음 번에 Nexus가 재시작될 때 자동으로 설치됩니다.",
+  "update.modal.cancel": "취소",
   "update.modal.close": "닫기",
   "update.modal.done": "업데이트 완료",
   "update.modal.downloadAndInstall": "다운로드 및 설치",

@@ -1794,6 +1794,7 @@
   "update.badge.labelAlways": "アップデート準備完了",
   "update.badge.labelReady": "アップデートをインストール",
   "update.modal.alwaysModeNote": "このアップデートは、次回Nexusの起動時に自動的にインストールされます。",
+  "update.modal.cancel": "キャンセル",
   "update.modal.close": "閉じる",
   "update.modal.done": "アップデート完了",
   "update.modal.downloadAndInstall": "ダウンロードしてインストール",
