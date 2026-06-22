@@ -14,18 +14,21 @@ interface DeviceModalProps {
   fullscreen?: boolean;
   /** Hug the content width instead of a fixed width - for small tables/lists. */
   fit?: boolean;
+  /** Slightly wider than the default 480px cap - use for content-heavy dialogs. */
+  medium?: boolean;
   /** When false the X button is hidden and Esc/backdrop-click do not close. Defaults to true. */
   closable?: boolean;
   headerRight?: ReactNode;
   children: ReactNode;
 }
 
-export function DeviceModal({ open, onClose, title, icon, large, wide, fullscreen, fit, closable = true, headerRight, children }: DeviceModalProps) {
+export function DeviceModal({ open, onClose, title, icon, large, wide, fullscreen, fit, medium, closable = true, headerRight, children }: DeviceModalProps) {
   const { t } = useTranslation();
   const variantClass = fullscreen ? styles.modalFullscreen
     : wide ? styles.modalWide
     : large ? styles.modalLarge
     : fit ? styles.modalFit
+    : medium ? styles.modalMedium
     : '';
   const surfaceClass = `${styles.modal} ${variantClass}`.trim();
 

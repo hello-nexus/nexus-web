@@ -1272,7 +1272,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'DeviceModal', category: 'modals',
     filePath: 'src/components/common/DeviceModal/DeviceModal.tsx',
-    description: 'Reusable modal shell built on Overlay. Title + close button + standard escape/click-outside dismiss. wide / fullscreen variants.', Preview: PreviewDeviceModal,
+    description: 'Reusable modal shell built on Overlay. Title + close button + standard escape/click-outside dismiss. medium / wide / fullscreen variants.', Preview: PreviewDeviceModal,
   },
   {
     name: 'ConfirmModal', category: 'modals',
