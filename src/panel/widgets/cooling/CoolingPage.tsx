@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Fan, Gauge, Plus, Power } from 'lucide-react';
-import { Button } from '../../../components/common/Button/Button';
 import { usePersistentState } from '../../../hooks/usePersistentState';
 import {
   getNp50ConnectionState,
@@ -703,6 +702,29 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return m;
   }, [fanStates, channels]);
 
+  // Spin the curve's fan-count icon once whenever a fan is newly bound to it
+  // (count goes up). The class is cleared on animationEnd, not a timer.
+  const [spinningCurves, setSpinningCurves] = useState<Set<string>>(() => new Set());
+  const prevFanCounts = useRef<Map<string, number>>(new Map());
+  const didInitFanCounts = useRef(false);
+  useEffect(() => {
+    if (didInitFanCounts.current) {
+      const added: string[] = [];
+      curveFanCounts.forEach((count, id) => {
+        if (count > (prevFanCounts.current.get(id) ?? 0)) added.push(id);
+      });
+      if (added.length) {
+        setSpinningCurves(s => {
+          const n = new Set(s);
+          added.forEach(id => n.add(id));
+          return n;
+        });
+      }
+    }
+    prevFanCounts.current = new Map(curveFanCounts);
+    didInitFanCounts.current = true;
+  }, [curveFanCounts]);
+
   // Live output % per curve, computed once so the recursion-safe Mix path
   // doesn't re-walk per consumer (the hero card today; cheap to keep shared).
   const curveOutputs = useMemo(() => {
@@ -793,7 +815,16 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   <span className={styles.curveBtnName}>{c.name}</span>
                 </button>
                 {fanCount > 0 && (
-                  <span className={styles.curveBtnCount}>
+                  <span
+                    className={styles.curveBtnCount}
+                    data-spinning={spinningCurves.has(c.id) || undefined}
+                    onAnimationEnd={() => setSpinningCurves(s => {
+                      if (!s.has(c.id)) return s;
+                      const n = new Set(s);
+                      n.delete(c.id);
+                      return n;
+                    })}
+                  >
                     <Fan size={12} aria-hidden /> {fanCount}
                   </span>
                 )}
@@ -1057,11 +1088,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           {/* Calibrate pinned at the bottom of the sidebar, like the lighting
               page's OpenRGB button. */}
           <div className={styles.fanSidebarFooter}>
-            <Button type="button" size="sm" tone={calibrating ? 'danger' : 'neutral'}
-              icon={<Gauge size={14} aria-hidden />}
+            <button type="button" className="chip-action"
               onClick={runCalibration} disabled={calibrating}>
+              <Gauge size={14} aria-hidden />
               {calibrating ? t('cooling.calibrate.running').split('-')[0].trim() : t('cooling.calibrate.button')}
-            </Button>
+            </button>
           </div>
         </aside>
       </div>

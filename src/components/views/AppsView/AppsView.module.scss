@@ -29,35 +29,6 @@
   gap: 0.5rem;
 }
 
-.addWidgetButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.7rem;
-  border: var(--border-width) solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  // Theme surface (white-ish in light, very dark grey in dark) rather than
-  // transparent, so the buttons read as solid controls on the backdrop.
-  background: var(--surface);
-  color: var(--text-dim);
-  font: inherit;
-  font-size: var(--type-small);
-  cursor: pointer;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
-
-  &:hover,
-  &:focus-visible {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: var(--bg-card-hover);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
-
 .widgetCountBadge {
   display: inline-flex;
   align-items: center;

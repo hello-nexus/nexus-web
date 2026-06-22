@@ -82,7 +82,7 @@
 
   input {
     background: var(--surface);
-    border: var(--border-width) solid var(--border-strong);
+    border: var(--border-width) solid transparent;
     color: var(--text);
     padding: 0.3rem 0.5rem;
     border-radius: var(--radius);
@@ -111,7 +111,7 @@
 
 .cancelBtn {
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   color: var(--text-dim);
   padding: 0.5rem 1rem;
   border-radius: var(--radius);

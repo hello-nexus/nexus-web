@@ -10,7 +10,7 @@
   align-items: stretch;
   gap: 0.4rem;
   padding: 0.5rem;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
@@ -115,7 +115,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   object-fit: cover;
   display: block;
   // Smooth scaling so the small capture doesn't read as blocky when the card is wide.
@@ -126,7 +126,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   background: linear-gradient(
     100deg,
     var(--bg-elevated) 0%,

@@ -111,7 +111,7 @@
   gap: 0.4rem;
   padding: 0.45rem 0.95rem;
   border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   // Matches the shared Button (tone-neutral): surfaced control, not transparent.
   // This is a link (<a>), so it can't be the Button component, but reads the same.
   background: var(--surface);

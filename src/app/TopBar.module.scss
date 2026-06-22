@@ -72,7 +72,7 @@
   app-region: no-drag;
 }
 
-// Round button echoing the search pill: same surface fill, strong border, and
+// Round button echoing the search pill: same surface fill, flat at rest, and
 // 34px height, but a circle. Hover/focus mirror the in-page settings button.
 .pageSettingsButton {
   display: grid;
@@ -80,7 +80,7 @@
   width: 34px;
   height: 34px;
   padding: 0;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: 50%;
   background: var(--surface);
   color: var(--text-dim);
@@ -88,14 +88,11 @@
   transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
 
   &:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: var(--accent-soft);
+    color: var(--text);
   }
 
   &:focus-visible {
     outline: none;
-    border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
 }
@@ -235,7 +232,7 @@
   display: flex;
   flex-direction: column;
   background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-xl);
 }

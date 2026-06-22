@@ -60,7 +60,7 @@
   flex: 0 0 auto;
   width: 160px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
 
   select[class] {
@@ -96,7 +96,7 @@
   flex: 1;
   min-width: 0;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
 
   select[class] {

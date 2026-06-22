@@ -58,7 +58,7 @@
   gap: 0.25rem;
   padding: 0.2rem 0.5rem;
   background: var(--surface);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-pill);
   font-size: var(--type-small);
   font-family: var(--font-mono);

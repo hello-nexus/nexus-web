@@ -362,7 +362,7 @@
 .runModal {
   width: min(90vw, 32rem);
   background: var(--backdrop-base);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
 }

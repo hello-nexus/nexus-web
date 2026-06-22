@@ -1,11 +1,9 @@
-// Segmented bordered group - one outer border around the whole bar, solid
-// accent fill on the active tab.
+// Sidebar-item model: flat at rest, each tab rounds independently (no bar-end
+// rounding). The selected tab gets a recessed darker fill, brighter text, and
+// an accent-tinted icon - matching the sidebar nav rows.
 .tabs {
   display: inline-flex;
-  border: var(--border-width) solid var(--border-strong);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--surface);
+  gap: 2px;
 }
 
 .tab {
@@ -13,9 +11,12 @@
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   line-height: 1.5;
-  background: transparent;
+  // Darker --bg fill (cards stay on the lighter --surface) so the tab control
+  // pops, matching the chip-action curve/mode buttons.
+  background: var(--bg);
   color: var(--text-dim);
   border: none;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background var(--ease-fast) ease, color var(--ease-fast) ease;
 
@@ -30,8 +31,8 @@
 }
 
 .active {
-  background: var(--accent);
-  color: var(--accent-text);
+  background: var(--accent-soft);
+  color: var(--accent-glow);
 }
 
 .tabInner {

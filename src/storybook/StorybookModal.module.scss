@@ -120,7 +120,7 @@
   font-size: var(--type-mini, 0.7rem);
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   padding: 0.05rem 0.45rem;
   border-radius: var(--radius-pill);
 }

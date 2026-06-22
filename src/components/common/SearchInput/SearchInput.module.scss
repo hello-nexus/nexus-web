@@ -22,7 +22,7 @@
   width: 100%;
   padding: 0.45rem 1.85rem 0.45rem 1.85rem;
   background: var(--surface);
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   color: var(--text);
   // Native inputs don't inherit font-family - set it so the query + placeholder

@@ -250,7 +250,7 @@
   flex-shrink: 0;
   color: var(--text-dim);
   background: var(--surface);
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   padding: 0.2rem 0.6rem;
   cursor: pointer;

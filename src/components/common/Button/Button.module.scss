@@ -65,15 +65,14 @@
 // Neutral (default): bordered + transparent bg. Hovers to a lifted card
 // background and full-strength text color.
 .tone-neutral {
-  // The canonical interactive surface (solid; pops against the backdrop) rather
-  // than transparent, so every secondary action button reads as a solid control.
-  background: var(--surface);
-  border: var(--border-width) solid var(--border-strong);
+  // Controls sit on the darker --bg fill (vs cards on the lighter --surface) so
+  // buttons/dropdowns/toggles/tabs always pop against the cards they live on.
+  background: var(--bg);
+  border: var(--border-width) solid transparent;
   color: var(--text-dim);
 
   &:hover:not(:disabled) {
     background: var(--bg-card-hover);
-    border-color: var(--border-strong);
     color: var(--text);
   }
 }

@@ -5,14 +5,14 @@
   --icon-label-button-padding-y: 5px;
   --icon-label-button-gap: 3px;
   --icon-label-button-radius: var(--radius-sm);
-  --icon-label-button-border: var(--border);
+  --icon-label-button-border: transparent;
   --icon-label-button-bg: var(--surface);
   --icon-label-button-bg-hover: var(--bg-card-hover);
   --icon-label-button-text: var(--text-dim);
   --icon-label-button-text-hover: var(--text);
-  --icon-label-button-active-border: var(--accent);
+  --icon-label-button-active-border: transparent;
   --icon-label-button-active-bg: var(--accent-soft);
-  --icon-label-button-active-text: var(--accent-glow, var(--accent));
+  --icon-label-button-active-text: var(--text);
   --icon-label-icon-size: 18px;
   --icon-label-label-size: 10px;
 

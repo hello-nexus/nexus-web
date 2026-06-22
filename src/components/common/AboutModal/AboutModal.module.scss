@@ -1,7 +1,7 @@
 .modal {
   // Standard modal box surface (matches ConfirmModal / PromptModal).
   background: var(--backdrop-base);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
   width: min(400px, 100%);
@@ -84,7 +84,7 @@
 .okBtn {
   min-width: 96px;
   padding: 0.5rem 1.1rem;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--accent);
   color: var(--accent-text);

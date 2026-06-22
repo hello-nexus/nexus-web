@@ -16,8 +16,8 @@
   align-items: center;
   width: 100%;
   appearance: none;
-  background: var(--surface);
-  border: var(--border-width) solid var(--border-strong);
+  background: var(--bg);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: inherit;
@@ -90,7 +90,7 @@
   // so x stays hidden with no sideways scroll.
   overflow: hidden auto;
   background: var(--bg-elevated);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   box-shadow: 0 6px 24px rgb(0 0 0 / var(--alpha-medium));
   // Portaled to <body> but must clear the panel editor chrome (docked widget

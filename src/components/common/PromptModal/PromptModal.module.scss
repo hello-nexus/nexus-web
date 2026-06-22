@@ -1,6 +1,6 @@
 .modal {
   background: var(--backdrop-base);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
   width: min(480px, 100%);
   padding: 1.5rem 1.5rem 1.25rem;
@@ -38,7 +38,7 @@
   line-height: 1.35;
   color: var(--text);
   background: var(--surface);
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   outline: none;
   transition: border-color var(--ease) ease, box-shadow var(--ease) ease, background var(--ease) ease;
@@ -80,7 +80,7 @@
   cursor: pointer;
   transition: all var(--ease-fast) ease;
   font-weight: var(--weight-body);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text);
 }

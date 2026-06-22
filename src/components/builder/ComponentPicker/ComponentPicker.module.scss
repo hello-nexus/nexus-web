@@ -136,7 +136,7 @@
   align-items: center;
   gap: 0.3rem;
   background: var(--surface);
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   padding: 0.25rem 0.4rem;
   margin-bottom: 0.3rem;
@@ -230,7 +230,7 @@
   width: 100%;
   min-width: 0;
   padding: 0.3rem 0.4rem;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -281,7 +281,7 @@
 
 .clearBtn {
   padding: 0.2rem 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-dim);
@@ -346,7 +346,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -362,7 +362,7 @@
   align-items: center;
   gap: 0.3rem;
   padding: 0.35rem 0.65rem;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -407,7 +407,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -442,7 +442,7 @@
   align-items: center;
   gap: 0.4rem;
   background: var(--surface);
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.55rem;
   min-width: 140px;
@@ -614,7 +614,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);

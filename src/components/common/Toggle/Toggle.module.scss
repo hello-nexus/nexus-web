@@ -9,9 +9,9 @@
   width: 40px;
   height: 22px;
   border-radius: var(--radius-pill);
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   padding: 0;
-  background: var(--surface);
+  background: var(--bg);
   cursor: pointer;
   flex-shrink: 0;
   transition: background var(--ease) ease;

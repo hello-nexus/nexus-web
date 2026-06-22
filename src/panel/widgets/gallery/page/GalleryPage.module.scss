@@ -222,7 +222,7 @@
     aspect-ratio: 16 / 10;
     object-fit: cover;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
+    border: 1px solid transparent;
     background: #000;
     display: block;
   }
@@ -260,7 +260,7 @@
   width: 100%;
   aspect-ratio: 16 / 10;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   display: flex;
   align-items: center;
   justify-content: center;

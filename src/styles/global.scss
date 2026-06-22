@@ -266,7 +266,7 @@ input[type="range"][data-range-knob] {
   line-height: 1;
   padding: 0.4rem 0.75rem;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   white-space: nowrap;
   user-select: none;
 }
@@ -282,7 +282,6 @@ input[type="range"][data-range-knob] {
   transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, color var(--ease-fast) ease;
 
   &:hover:not(:disabled):not(.chip-active) {
-    border-color: var(--accent);
     color: var(--text);
   }
 
@@ -294,7 +293,6 @@ input[type="range"][data-range-knob] {
   &.chip-active {
     background: var(--accent);
     color: var(--accent-text);
-    border-color: var(--accent);
   }
 }
 

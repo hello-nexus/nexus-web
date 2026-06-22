@@ -40,9 +40,9 @@
   // a percentage string by buildPanelThemeVars in PanelApp.tsx; the value
   // here is the pre-runtime fallback.
   --panel-card-bg-opacity: 100%;
-  // Hairline, deliberately fainter than the app's --border. Light theme
-  // overrides below.
-  --panel-card-border: rgba(255, 255, 255, 0.08);
+  // Widgets are flat at rest - no resting border. The editor selection ring
+  // (--panel-accent) is the only widget border. Light theme mirrors below.
+  --panel-card-border: transparent;
 
   --panel-gap: 12px;
   --panel-page-padding: 10px;
@@ -128,7 +128,7 @@
 
 .panel-root[data-theme='light'] {
   --panel-scrim-bg: rgba(248, 250, 252, 0.48);
-  --panel-card-border: rgba(0, 0, 0, 0.08);
+  --panel-card-border: transparent;
 }
 
 // Sensor unit suffix inside any monitoring gauge (% / RPM / GB / °C / etc).

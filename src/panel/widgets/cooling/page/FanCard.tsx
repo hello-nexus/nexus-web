@@ -248,6 +248,7 @@ export const FanCard = memo(function FanCard({
           <span data-no-dnd style={{ display: 'contents' }}>
           <Select
             className={styles.fanModeSelect}
+            variant="ghost"
             accentValue={highlighted}
             value={modeValue}
             onChange={v => {

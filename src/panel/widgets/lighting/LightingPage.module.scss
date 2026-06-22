@@ -109,7 +109,7 @@
   width: 26px;
   height: 26px;
   padding: 0;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-dim);
@@ -137,7 +137,7 @@
   width: 26px;
   height: 26px;
   padding: 0;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-dim);
@@ -243,7 +243,7 @@
   align-items: stretch;
   gap: 0.4rem;
   padding: 0.5rem;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
@@ -270,7 +270,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   background: linear-gradient(
     100deg,
     var(--bg-elevated) 0%,
@@ -303,7 +303,7 @@
   width: 100%;
   aspect-ratio: 16 / 9; // matches the 160x90 capture, so no cropping
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   object-fit: cover;
   display: block;
   image-rendering: auto; // smooth scaling: the capture is upscaled here, so nearest-neighbor reads as blocky
@@ -436,7 +436,7 @@
 .drawerReset {
   min-width: 10rem;
   padding: 0.4rem 1rem;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-dim);
@@ -478,7 +478,7 @@
 .pathInput {
   flex: 1;
   padding: 0.35rem 0.6rem;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -584,7 +584,7 @@
 
 .filterChip {
   padding: 0.3rem 0.65rem;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text-dim);
@@ -678,7 +678,7 @@
   margin: 0.5rem 0.4rem 0.85rem 2.5rem;
   flex-shrink: 0;
   padding: 0.3rem 0.7rem;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-dim);
@@ -1084,7 +1084,7 @@
 .gameSyncGamesRescanBtn {
   padding: 0.15rem 0.6rem;
   border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -1122,7 +1122,7 @@
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
   background: var(--bg-card);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid transparent;
   overflow: hidden;
 }
 
@@ -1192,7 +1192,7 @@
   height: 190px;
   width: min(100%, calc(380px * 21 / 9));
   background: #080808;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius);
   overflow: hidden;
   position: relative;

@@ -38,7 +38,7 @@
   padding: 0.5rem 0.7rem;
   background: var(--bg-elevated);
   color: var(--text-dim);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
   font-size: var(--type-small);

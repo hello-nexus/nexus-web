@@ -94,7 +94,6 @@
 // of the full bright chip-active fill. Compound selector so it wins over the
 // global .chip-action.
 :global(.chip-action).chipSoftActive {
-  border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-glow);
 }
@@ -109,6 +108,15 @@
   font-size: var(--type-mini);
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
+}
+// Fan icon spins once (coast-to-stop, matching the cooling widget's preset
+// spin) when a fan is newly bound to this curve.
+.curveBtnCount[data-spinning='true'] svg {
+  animation: curveFanSpin 1s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+@keyframes curveFanSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 // Add chip: the dashed "add" affordance used across the app, over .chip-action.
 // Compound selector (like .chipSoftActive) so it beats .chip-action's own solid
@@ -200,10 +208,12 @@
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
-// Calibrate button pinned at the bottom of the fan sidebar.
+// Calibrate button pinned near the bottom of the fan sidebar, lifted off the
+// edge so it doesn't read as flush against the container bottom.
 .fanSidebarFooter {
   flex-shrink: 0;
   padding-top: 0.25rem;
+  padding-bottom: 0.75rem;
 }
 .fanSidebarFooter > button { width: 100%; justify-content: center; }
 .empty { color: var(--text-dim); font-size: var(--type-body); text-align: center; padding: 3rem 0; }
@@ -567,6 +577,12 @@
 .fanModeSelect {
   width: 100%;
   display: flex;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  // Match the temp-source dropdown (.sourceSelect): a grey fill - light grey on
+  // light theme, dark on dark - rather than the bare ghost-on-card look.
+  background: var(--bg);
 }
 
 // Styling native <option> is partial (Chromium honors `color` and
@@ -857,7 +873,7 @@
 .sourceSelect {
   width: 100%;
   padding: 0.18rem 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -926,7 +942,7 @@
   padding: 0.35rem 0.5rem;
   border-radius: var(--radius-sm);
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
 }
 .mixSourceName {
   flex: 1;
@@ -1055,7 +1071,7 @@
   gap: 0.3rem;
   min-width: 0;
 }
-.curveGraph { width: 100%; height: 140px; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--border); display: block; }
+.curveGraph { width: 100%; height: 140px; border-radius: var(--radius); background: var(--bg); border: 1px solid transparent; display: block; }
 .curveXAxis {
   position: relative;
   height: 0.9rem;
@@ -1090,7 +1106,6 @@
 .curveAxisLiveY {
   position: absolute;
   background: var(--bg);
-  border: 1px solid var(--accent-glow);
   color: var(--accent-glow);
   font-size: 10px;
   font-family: var(--font-mono);
@@ -1121,8 +1136,7 @@
 }
 .tempBadge {
   fill: var(--bg);
-  stroke: var(--accent-glow);
-  stroke-width: 1;
+  stroke: none;
   opacity: 0.95;
 }
 .tempBadgeText {

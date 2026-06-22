@@ -1,6 +1,6 @@
 .modal {
   background: var(--backdrop-base);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
   width: min(640px, 100%);
   max-height: min(80vh, 720px);
@@ -69,7 +69,7 @@
   cursor: pointer;
   transition: all var(--ease-fast) ease;
   font-weight: var(--weight-body);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text);
 

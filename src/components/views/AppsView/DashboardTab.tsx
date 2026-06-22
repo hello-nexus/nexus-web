@@ -53,7 +53,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
         <div className={styles.headerActions}>
           <button
             type="button"
-            className={styles.addWidgetButton}
+            className="chip-action"
             onClick={() => setAddWidgetSignal(value => value + 1)}
           >
             <Plus size={14} aria-hidden />
@@ -61,7 +61,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
           </button>
           <button
             type="button"
-            className={styles.addWidgetButton}
+            className="chip-action"
             onClick={() => setDesktopModalOpen(true)}
           >
             <Monitor size={14} aria-hidden />

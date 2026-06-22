@@ -7,7 +7,7 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.85rem;
-  border: var(--border-width) solid var(--border-strong);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -29,7 +29,7 @@
   margin-bottom: 0.4rem;
   min-width: 180px;
   background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius);
   box-shadow: 0 4px 16px rgb(0 0 0 / var(--alpha-medium));
   overflow: hidden;
