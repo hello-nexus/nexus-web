@@ -1,5 +1,6 @@
 import { Smartphone } from 'lucide-react';
 import classNames from 'classnames';
+import { Button } from '../components/common/Button/Button';
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { PairRemoteContent, formatConnectedDevices } from '../components/common/PairRemote/PairRemoteContent';
@@ -22,11 +23,11 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
     ? formatConnectedDevices(connectedCount, t)
     : t('phonePair.killswitch.offLabel');
   const btn = (
-    <button
-      type="button"
-      className={classNames(styles.phonePairBtn, { [styles.phonePairBtnCompact]: compact })}
+    <Button
+      tone="neutral"
       onClick={onClick}
       disabled={disabled}
+      className={classNames(styles.phonePairBtn, { [styles.phonePairBtnCompact]: compact })}
       aria-label={compact ? `${t('phonePair.title')} · ${countLabel}` : undefined}
     >
       <span className={styles.phonePairIcon}>
@@ -34,12 +35,12 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
         {remoteEnabled && <span className={styles.phonePairDot} data-state={dotState} />}
       </span>
       {!compact && (
-        <>
+        <span className={styles.phonePairText}>
           <span className={styles.phonePairTitle}>{t('phonePair.title')}</span>
           {remoteEnabled && <span className={styles.phonePairState}>{countLabel}</span>}
-        </>
+        </span>
       )}
-    </button>
+    </Button>
   );
   // Only the compact (icon-only) form needs a tooltip; the expanded form
   // already shows the title + state inline.

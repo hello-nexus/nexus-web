@@ -100,6 +100,16 @@ button {
   font-size: inherit;
 }
 
+// Native form controls don't inherit font-family from the body (unlike the
+// button reset above), so without this any input/textarea that doesn't set its
+// own family falls back to the UA font. Family only - each field keeps its own
+// size; a class that wants mono (hex/numeric) overrides via higher specificity.
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
 // Visible by default across the desktop app. The panel/kiosk surface
 // (.panel-root) hides bars instead. Per-component @include scrollbar-visible
 // inside the panel still wins because :where(...) keeps the panel-scope rule
@@ -276,12 +286,14 @@ input[type="range"][data-range-knob] {
   // Darker than bg-card so the chip row pops off the surrounding panel the
   // same way the select-style inputs do.
   background: var(--bg);
+  border-color: var(--control-border);
   color: var(--text-dim);
   cursor: pointer;
   font-family: inherit;
   transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, color var(--ease-fast) ease;
 
   &:hover:not(:disabled):not(.chip-active) {
+    border-color: var(--control-border-strong);
     color: var(--text);
   }
 
@@ -292,6 +304,7 @@ input[type="range"][data-range-knob] {
 
   &.chip-active {
     background: var(--accent);
+    border-color: var(--control-border-accent);
     color: var(--accent-text);
   }
 }

@@ -17,7 +17,7 @@
   width: 100%;
   appearance: none;
   background: var(--bg);
-  border: var(--border-width) solid transparent;
+  border: var(--border-width) solid var(--control-border);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: inherit;
@@ -64,9 +64,15 @@
   color: var(--text);
 }
 
+.wrapper:hover:not(.ghost) .trigger:not(:focus):not(:focus-visible) {
+  border-color: var(--control-border-strong);
+}
+
 /* Ghost variant: no border, no background fill - value as plain text with
    the chevron beside it. For selects already inside a bordered card (cooling
    fan / curve rows). */
+/* Border lives on the outer box wrapper (e.g. .fanModeSelect / .sourceSelect),
+   not the inset trigger, so it sits on the control's visible edge. */
 .ghost .trigger {
   background: transparent;
   border-color: transparent;
@@ -127,7 +133,6 @@
 
 .option.selected {
   color: var(--accent);
-  font-weight: var(--weight-heading);
 }
 
 .option.optionDisabled {

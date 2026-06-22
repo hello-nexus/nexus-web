@@ -669,8 +669,7 @@
 
 // Bottom-of-pane OpenRGB rescan control: refresh icon + rescan action on the
 // left, OpenRGB label + status dot pushed to the right edge. Spans the pane
-// width via the right pane's column stretch; height matches the dashboard's
-// "Add widget" button (.addWidgetButton).
+// width via the right pane's column stretch.
 .openRgbButton {
   display: flex;
   align-items: center;

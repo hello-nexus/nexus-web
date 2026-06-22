@@ -19,6 +19,12 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
   // Disables the button and renders a spinner in place of the icon. For the
   // brief click-to-commit gap (~100-1000ms), not for state-tracked async work.
   loading?: boolean;
+  // When set, renders as an <a> link with identical styling - for actions that
+  // navigate to an external URL (e.g. "Report a bug"), so links and buttons
+  // share one component instead of a bespoke link style.
+  href?: string;
+  target?: string;
+  rel?: string;
   children?: ReactNode;
 }
 
@@ -40,26 +46,25 @@ export function Button({
   children,
   type = 'button',
   title,
+  href,
+  target,
+  rel,
   ...rest
 }: ButtonProps) {
   const isIconOnly = !children && Boolean(icon || iconTrailing);
   const isDisabled = disabled || loading;
 
-  const btn = (
-    <button
-      type={type}
-      disabled={isDisabled}
-      data-loading={loading || undefined}
-      className={classNames(
-        styles.button,
-        styles[`size-${size}`],
-        styles[`tone-${tone}`],
-        pill && styles.pill,
-        isIconOnly && styles.iconOnly,
-        className,
-      )}
-      {...rest}
-    >
+  const classes = classNames(
+    styles.button,
+    styles[`size-${size}`],
+    styles[`tone-${tone}`],
+    pill && styles.pill,
+    isIconOnly && styles.iconOnly,
+    className,
+  );
+
+  const content = (
+    <>
       {loading
         ? <span className={styles.spinner} aria-hidden="true" />
         : icon && <span className={styles.icon}>{icon}</span>}
@@ -71,10 +76,21 @@ export function Button({
           aria-hidden="true"
         />
       )}
+    </>
+  );
+
+  const el = href ? (
+    <a href={isDisabled ? undefined : href} target={target} rel={rel} className={classes}
+       aria-disabled={isDisabled || undefined}>
+      {content}
+    </a>
+  ) : (
+    <button type={type} disabled={isDisabled} data-loading={loading || undefined} className={classes} {...rest}>
+      {content}
     </button>
   );
 
   // Route `title` through HoverTooltip instead of the native browser tooltip,
   // matching IconLabelButton.
-  return title ? <HoverTooltip body={title}>{btn}</HoverTooltip> : btn;
+  return title ? <HoverTooltip body={title}>{el}</HoverTooltip> : el;
 }

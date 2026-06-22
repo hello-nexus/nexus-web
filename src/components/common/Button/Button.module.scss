@@ -68,11 +68,12 @@
   // Controls sit on the darker --bg fill (vs cards on the lighter --surface) so
   // buttons/dropdowns/toggles/tabs always pop against the cards they live on.
   background: var(--bg);
-  border: var(--border-width) solid transparent;
+  border: var(--border-width) solid var(--control-border);
   color: var(--text-dim);
 
   &:hover:not(:disabled) {
     background: var(--bg-card-hover);
+    border-color: var(--control-border-strong);
     color: var(--text);
   }
 }

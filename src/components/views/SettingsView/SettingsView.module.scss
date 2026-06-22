@@ -23,6 +23,9 @@
   // header-above-box). Width + centering come from the parent .tabContent's
   // .pageBody (global.scss).
   gap: 1.5rem;
+  // Breathing room at the very bottom so the last section isn't flush against
+  // the page edge when scrolled all the way down.
+  padding-bottom: var(--space-xl);
 }
 
 // ── Accent color section ─────────────────────────────────────────────────────
@@ -102,36 +105,6 @@
   padding: 0.6rem 0;
 }
 
-// ── Standard row button ──────────────────────────────────────────────────────
-
-.rowButton {
-  @include text-button;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.95rem;
-  border-radius: var(--radius-sm);
-  border: var(--border-width) solid transparent;
-  // Matches the shared Button (tone-neutral): surfaced control, not transparent.
-  // This is a link (<a>), so it can't be the Button component, but reads the same.
-  background: var(--surface);
-  color: var(--text-dim);
-  text-decoration: none;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast);
-
-  &:hover {
-    background: var(--bg-card-hover);
-    border-color: var(--border-strong);
-    color: var(--text);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
 
 // ── Profiles tab ──
 

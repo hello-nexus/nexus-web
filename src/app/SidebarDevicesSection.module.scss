@@ -74,12 +74,11 @@
   position: relative;
 
   &:hover {
-    background: color-mix(in srgb, var(--surface) 50%, transparent);
     color: var(--text);
   }
 
   &.active {
-    background: var(--surface);
+    background: var(--bg);
     color: var(--text);
 
     .icon, .headerIcon { color: var(--accent-glow); }

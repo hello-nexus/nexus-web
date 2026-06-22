@@ -95,6 +95,7 @@
 // global .chip-action.
 :global(.chip-action).chipSoftActive {
   background: var(--accent-soft);
+  border-color: var(--control-border-accent);
   color: var(--accent-glow);
 }
 // The curve selector reuses the shared .chip-action pill (same family as the
@@ -557,7 +558,7 @@
 
 // Cursor override stops the parent card's `grab` from leaking into the bar.
 // Manual mode reclaims `pointer` for the duty knob track.
-.fanDutyBar { position: relative; height: 6px; border-radius: var(--radius-sm); background: var(--bg); overflow: visible; cursor: default; }
+.fanDutyBar { position: relative; height: 6px; border-radius: var(--radius-sm); background: var(--gauge-track); overflow: visible; cursor: default; }
 .fanDutyBarManual { cursor: pointer; }
 .fanDutyFill { height: 100%; border-radius: var(--radius-sm); background: var(--text-dim); opacity: 0.45; transition: width var(--ease-slow) ease, background var(--ease-fast) ease, opacity var(--ease-fast) ease; }
 .fanDutyFillActual { position: absolute; top: 0; left: 0; height: 100%; border-radius: var(--radius-sm); background: var(--text-dim); opacity: 0.35; transition: width var(--ease-slow) ease; }
@@ -578,12 +579,21 @@
   width: 100%;
   display: flex;
   padding: 0.18rem 0.5rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-sm);
   // Match the temp-source dropdown (.sourceSelect): a grey fill - light grey on
   // light theme, dark on dark - rather than the bare ghost-on-card look.
   background: var(--bg);
+  transition: border-color var(--ease-fast) ease;
+
+  &:hover,
+  &:focus-within { border-color: var(--control-border-strong); }
 }
+
+// This fan is on the viewed curve (accentValue): border tracks the accent text.
+.fanModeSelectAccent,
+.fanModeSelectAccent:hover,
+.fanModeSelectAccent:focus-within { border-color: var(--control-border-accent); }
 
 // Styling native <option> is partial (Chromium honors `color` and
 // `font-style`; Firefox less so) but setting them here is enough to signal
@@ -873,7 +883,7 @@
 .sourceSelect {
   width: 100%;
   padding: 0.18rem 0.5rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -882,8 +892,10 @@
   font-weight: var(--weight-body);
   cursor: pointer;
   line-height: 1.2;
+  transition: border-color var(--ease-fast) ease;
 
-  &:focus { outline: none; border-color: var(--accent); }
+  &:hover,
+  &:focus-within { outline: none; border-color: var(--control-border-strong); }
   option { font-family: inherit; background: var(--surface); color: var(--text); }
 }
 

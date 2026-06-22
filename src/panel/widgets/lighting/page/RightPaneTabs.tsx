@@ -1,3 +1,4 @@
+import { Wand2, ListTree } from 'lucide-react';
 import { Tabs } from '../../../../components/common/Tabs/Tabs';
 import { useTranslation } from '../../../../lib/i18n';
 import styles from '../LightingPage.module.scss';
@@ -28,8 +29,8 @@ export function RightPaneTabs({ active, onSelect, pulseKey, effectTabDisabled }:
   );
 
   const tabs = [
-    { key: 'effect', label: effectLabel, disabled: effectTabDisabled },
-    { key: 'devices', label: t('lighting.rightPane.devices') },
+    { key: 'effect', label: effectLabel, icon: <Wand2 size={14} />, disabled: effectTabDisabled },
+    { key: 'devices', label: t('lighting.rightPane.devices'), icon: <ListTree size={14} /> },
   ];
 
   return (

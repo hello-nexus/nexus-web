@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ColorPickerWithPresets } from '../../common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { SettingRow } from '../../common/SettingRow/SettingRow';
-import { Tabs } from '../../common/Tabs/Tabs';
+import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { useTranslation } from '../../../lib/i18n';
 import { hostSupportsGlass } from '../../../app/windowActions';
 import {
@@ -77,29 +77,29 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
   return (
     <>
       <SettingRow label={t('settings.theme')}>
-        <Tabs
+        <ChipGroup
           ariaLabel={t('settings.theme')}
           activeKey={settings.general.themeMode}
           onChange={k => handleThemeChange(k as ThemeMode)}
-          tabs={THEME_MODES.map(mode => ({ key: mode, label: t(`settings.theme.${mode}`) }))}
+          options={THEME_MODES.map(mode => ({ key: mode, label: t(`settings.theme.${mode}`) }))}
         />
       </SettingRow>
 
       <SettingRow label={t('settings.background')}>
-        <Tabs
+        <ChipGroup
           ariaLabel={t('settings.background')}
           activeKey={backgroundActiveKey}
           onChange={k => handleBackgroundChange(k as BackgroundMode)}
-          tabs={backgroundModes.map(mode => ({ key: mode, label: t(`settings.background.${mode}`) }))}
+          options={backgroundModes.map(mode => ({ key: mode, label: t(`settings.background.${mode}`) }))}
         />
       </SettingRow>
 
       <SettingRow label={t('settings.accent')} anchorId="set-accent">
-        <Tabs
+        <ChipGroup
           ariaLabel={t('settings.accent')}
           activeKey={settings.general.accentSource}
           onChange={k => handleAccentSourceChange(k as AccentSource)}
-          tabs={[
+          options={[
             // eslint-disable-next-line i18next/no-literal-string -- accent source enum value
             { key: 'system', label: t('settings.accent.system') },
             // eslint-disable-next-line i18next/no-literal-string -- accent source enum value

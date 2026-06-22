@@ -14,10 +14,10 @@
   // mode and the dark body bleeds into a white halo at the edges.
   color-scheme: dark;
 
-  // Surfaces - pure grayscale to mirror light mode's neutral whites. Kept
-  // deliberately deep: modal bodies (--bg-elevated) and cards (--surface) read
-  // dark rather than mid-grey on the dark theme.
-  --bg: #080808;
+  // Surfaces are translucent BLACK over --backdrop-base, so cards/controls sit
+  // DARKER than the canvas. --surface (cards, 40%) is lighter than --bg
+  // (controls, 80%), so controls darken most and pop off the cards they sit on.
+  --bg: rgba(0, 0, 0, 0.8);
   --bg-elevated: #0f0f0f;
   --bg-card-hover: #202020;
   --border: #2a2a2a;
@@ -27,25 +27,40 @@
   // hover-highlighted containers stroke --border-strong.
   --border-width: 1px;
 
-  // Gauge track: the unfilled portion of monitoring gauges. Transparent black so
-  // it reads as a recessed channel that blends on translucent widgets rather than
-  // a flat grey ring; the accent fill carries the contrast.
-  --gauge-track: rgba(0, 0, 0, 0.25);
+  // Universal control border for buttons / dropdowns / search bars (and the
+  // selected tab): a neutral grey (the text hue at low alpha, light-on-dark) so
+  // the stroke shows on the near-black control fill. Faint at rest; -strong on
+  // hover/selected. Where the selected text is accent, the border uses --accent
+  // instead. Light theme overrides both to a dark-on-light grey.
+  --control-border: rgba(245, 245, 245, 0.12);
+  --control-border-strong: rgba(245, 245, 245, 0.4);
+  // Highlight border for controls whose selected text is accent: the accent at
+  // ~50%. Theme-independent (accent is shared), so defined once here.
+  --control-border-accent: color-mix(in srgb, var(--accent) 50%, transparent);
+
+  // Recessed-channel fill for unfilled gauge tracks, graph backdrops, and the
+  // cooling duty bars. A light overlay on dark (black can't darken a near-black
+  // surface, so it would vanish) and a dark overlay on light - symmetric so the
+  // channel reads equally in both themes. The accent fill carries the contrast.
+  --gauge-track: rgba(255, 255, 255, 0.05);
 
   // The one "activatable surface" colour: every interactive element + box
   // container base bg (widgets, top search bar, buttons, profile avatar,
   // deselected pills, toggle-off track, dropdown menus, pair box, and ALL
-  // page/widget cards). Super-dark-almost-black so controls read as dark wells
-  // against the lighter --backdrop-base canvas; light theme = near-white.
+  // page/widget cards). Translucent black over the canvas - middle rung of the
+  // ramp, darker than the canvas, lighter than the controls.
   // Used directly everywhere (no --bg-card indirection).
-  --surface: #0d0d0d;
+  --surface: rgba(0, 0, 0, 0.4);
+  // Hover for --surface elements (cards, widgets, icon-label buttons): a bit
+  // more overlay than the base, so hover is a variation of the base.
+  --surface-hover: rgba(0, 0, 0, 0.6);
 
   // App backdrop. --backdrop-base is the grayscale flat surface colour: the whole
   // canvas in flat mode, and it flattens the gradient (ribbons sit over it). In
   // glass mode the host paints a native frosted backdrop and this is transparent.
   // Ribbon tints reference the live --accent* vars; color-mix is used elsewhere
   // (tokens.scss).
-  --backdrop-base: #1a1a1a;
+  --backdrop-base: #202020;
   --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 26%, transparent);
   --backdrop-tint-b: color-mix(in srgb, var(--accent) 22%, transparent);
   --backdrop-tint-c: color-mix(in srgb, var(--accent-deep) 30%, transparent);
@@ -53,7 +68,7 @@
   // Text - two ink tiers. rgba, NOT color-mix(): Q60 WebView is Chromium 83.
   // Keep the rgb triplet in sync with --text.
   --text: #f5f5f5;
-  --text-dim: rgba(245, 245, 245, 0.6);
+  --text-dim: rgba(245, 245, 245, 0.5);
   // Separator/divider lines - the text hue at low alpha. The single source for
   // every dividing rule (app + panel). Keep the triplet synced with --text.
   --separator: rgba(245, 245, 245, 0.2);
@@ -181,30 +196,32 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  // Mirrors the dark theme's depth ordering (bg < bg-elevated < bg-card by
-  // lightness): the page content is the bright extreme (white, painted by the
-  // backdrop) and the chrome recedes into grey. So sidebar/top bar/modals read
-  // as a soft grey frame around white content, and cards stay pure white and
-  // pop off both the grey chrome and the white canvas via their border/shadow.
-  // --bg is the recessed control fill (chips, inputs) - kept greyest so it
-  // still sits below cards, same role it plays on dark.
-  --bg: #e8eaf1;
-  --bg-elevated: #ecedf4;
-  --bg-card-hover: #f4f5fa;
-  --border: #c8cad5;
-  --border-strong: #c4c5d3;
-  --surface: #fafafa;  // see dark-theme note - near-white activatable surface
-  --gauge-track: rgba(0, 0, 0, 0.1);
+  // Mirror of dark: translucent WHITE over the light-grey --backdrop-base, so
+  // cards/controls sit LIGHTER than the canvas. --surface (cards, 60%) is less
+  // bright than --bg (controls, pure white), so controls lighten most and pop
+  // off the cards they sit on.
+  --bg: rgba(255, 255, 255, 1);
+  --bg-elevated: #ededed;
+  --bg-card-hover: #f5f5f5;
+  --border: #cacaca;
+  --border-strong: #c6c6c6;
+  --surface: rgba(255, 255, 255, 0.6);
+  --surface-hover: rgba(255, 255, 255, 0.8);  // hover: a variation of --surface
+  --gauge-track: rgba(0, 0, 0, 0.06);
+
+  // Dark-on-light grey so the control border shows on the near-white fill.
+  --control-border: rgba(26, 26, 46, 0.12);
+  --control-border-strong: rgba(26, 26, 46, 0.4);
 
   // Light backdrop: grayscale flat surface grey (flattens gradient + glass).
-  --backdrop-base: #d8d8d8;
+  --backdrop-base: #dfdfdf;
   --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 28%, transparent);
   --backdrop-tint-b: color-mix(in srgb, var(--accent) 24%, transparent);
   --backdrop-tint-c: color-mix(in srgb, var(--accent-glow) 22%, transparent);
 
   --text: #1a1a2e;
   // Two ink tiers; keep the rgb triplet in sync with --text above.
-  --text-dim: rgba(26, 26, 46, 0.6);
+  --text-dim: rgba(26, 26, 46, 0.5);
   --separator: rgba(26, 26, 46, 0.2);
 
   --accent: #2563eb;

@@ -380,40 +380,32 @@
   padding: 0.55rem 0.75rem 0.4rem;
 }
 
-.phonePairBtn {
+// The shared Button supplies the fill / border / hover / disabled states; these
+// rules only lay out the full-width two-line content and pin it left in the
+// rail. Scoped under .phonePairWrap so they win over Button's centered base.
+.phonePairWrap .phonePairBtn {
   width: 100%;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
+  justify-content: flex-start;
   gap: 0.55rem;
   min-height: 46px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  color: var(--text-dim);
-  cursor: pointer;
   padding: 0.45rem 0.55rem;
   text-align: left;
-  font: inherit;
-  transition: border-color var(--ease-fast), color var(--ease-fast), background var(--ease-fast);
-
-  &:hover:not(:disabled) {
-    color: var(--text);
-    border-color: var(--border-strong);
-    background: var(--bg-card-hover);
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
 }
 
-// Collapsed sidebar: only the icon renders, so collapse the text column and
-// center the icon in the button box instead of pinning it left.
-.phonePairBtnCompact {
-  grid-template-columns: 1fr;
-  justify-items: center;
+// Collapsed sidebar: only the icon renders, centered in the button box.
+.phonePairWrap .phonePairBtnCompact {
+  justify-content: center;
+}
+
+// Stacked title + state to the right of the icon. Button wraps all children in
+// one flex row with no gap, so the icon offset lives here.
+.phonePairText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  min-width: 0;
+  margin-left: 0.55rem;
 }
 
 .phonePairIcon {
@@ -452,7 +444,6 @@
 // rather than the larger inherited body size. Color is inherited from the
 // button (--text-dim), which already matches the nav rows.
 .phonePairTitle {
-  grid-column: 2;
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   line-height: 1.2;
@@ -460,7 +451,6 @@
 
 .phonePairState {
   @include text-caption;
-  grid-column: 2;
   color: var(--text-dim);
   line-height: 1;
   overflow: hidden;

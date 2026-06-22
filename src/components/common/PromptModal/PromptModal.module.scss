@@ -34,11 +34,14 @@
   appearance: none;
   width: 100%;
   padding: 0.7rem 0.85rem;
+  // Native inputs don't inherit font-family - set it so the text + placeholder
+  // render in Lexend like the rest of the app, not the browser default.
+  font-family: var(--font-sans);
   font-size: var(--type-body);
   line-height: 1.35;
   color: var(--text);
   background: var(--surface);
-  border: var(--border-width) solid transparent;
+  border: var(--border-width) solid var(--control-border);
   border-radius: var(--radius);
   outline: none;
   transition: border-color var(--ease) ease, box-shadow var(--ease) ease, background var(--ease) ease;

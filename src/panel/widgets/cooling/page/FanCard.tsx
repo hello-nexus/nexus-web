@@ -247,7 +247,7 @@ export const FanCard = memo(function FanCard({
           {/* Same display:contents data-no-dnd guard as the name editor. */}
           <span data-no-dnd style={{ display: 'contents' }}>
           <Select
-            className={styles.fanModeSelect}
+            className={highlighted ? `${styles.fanModeSelect} ${styles.fanModeSelectAccent}` : styles.fanModeSelect}
             variant="ghost"
             accentValue={highlighted}
             value={modeValue}

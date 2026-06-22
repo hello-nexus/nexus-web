@@ -11,14 +11,16 @@
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   line-height: 1.5;
-  // Darker --bg fill (cards stay on the lighter --surface) so the tab control
-  // pops, matching the chip-action curve/mode buttons.
-  background: var(--bg);
+  // Flat at rest - unselected tabs have no fill (just text + icon). The
+  // selected tab carries the --bg pill (see .active).
+  background: transparent;
   color: var(--text-dim);
-  border: none;
+  // Borderless; the active tab is marked by its --bg fill + accent icon, not a
+  // stroke. Width reserved (transparent) so nothing reflows.
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background var(--ease-fast) ease, color var(--ease-fast) ease;
+  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, color var(--ease-fast) ease;
 
   &:hover:not(:disabled):not(.active) {
     color: var(--text);
@@ -31,8 +33,10 @@
 }
 
 .active {
-  background: var(--accent-soft);
-  color: var(--accent-glow);
+  background: var(--bg);
+  color: var(--text);
+
+  .tabIcon { color: var(--accent-glow); }
 }
 
 .tabInner {

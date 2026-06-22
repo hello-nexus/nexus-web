@@ -26,6 +26,7 @@ import { DatePicker } from '../components/common/DatePicker/DatePicker';
 import { EffectCard } from '../components/common/EffectCard/EffectCard';
 import { EffectControls } from '../panel/widgets/lighting/page/EffectControls';
 import { Tabs } from '../components/common/Tabs/Tabs';
+import { ChipGroup } from '../components/common/ChipGroup/ChipGroup';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal/PromptModal';
 import { UsageBar } from '../components/common/UsageBar/UsageBar';
@@ -324,6 +325,20 @@ function PreviewTabs() {
       { key: 'week', label: 'Week' },
       { key: 'month', label: 'Month' },
       { key: 'app', label: 'App' },
+    ]}
+    activeKey={active}
+    onChange={setActive}
+  />;
+}
+
+function PreviewChipGroup() {
+  const [active, setActive] = useState('balanced');
+  return <ChipGroup
+    ariaLabel="Sample chip group"
+    options={[
+      { key: 'quiet', label: 'Quiet' },
+      { key: 'balanced', label: 'Balanced' },
+      { key: 'turbo', label: 'Turbo' },
     ]}
     activeKey={active}
     onChange={setActive}
@@ -1132,6 +1147,11 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'Toggle (off)', category: 'inputs',
     filePath: 'src/components/common/Toggle/Toggle.tsx',
     description: 'Same Toggle primitive in the unchecked state.', Preview: PreviewToggleOff,
+  },
+  {
+    name: 'ChipGroup', category: 'inputs',
+    filePath: 'src/components/common/ChipGroup/ChipGroup.tsx',
+    description: 'Single-select chip row reusing the cooling curve/mode .chip-action buttons (solid-accent .chip-active on the selected one). For settings and listings that pick one of a few options - replaces Tabs for the theme/background/accent selectors.', Preview: PreviewChipGroup,
   },
   {
     name: 'Select', category: 'inputs',
