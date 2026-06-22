@@ -14,7 +14,7 @@ interface DeviceModalProps {
   fullscreen?: boolean;
   /** Hug the content width instead of a fixed width - for small tables/lists. */
   fit?: boolean;
-  /** Slightly wider than the default 480px cap - use for content-heavy dialogs. */
+  /** Slightly wider than the default cap - use for content-heavy dialogs. */
   medium?: boolean;
   /** When false the X button is hidden and Esc/backdrop-click do not close. Defaults to true. */
   closable?: boolean;
