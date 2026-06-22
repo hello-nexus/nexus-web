@@ -16,8 +16,10 @@ interface UpdateModalProps {
   onClose: () => void;
   status: UpdateStatus | null;
   onStatusRefreshed?: (status: UpdateStatus) => void;
-  onDismiss?: () => void;
   onUpdateNow?: () => void;
+  // When true, an install was already started externally before the modal opened;
+  // latch installActiveRef so the reconnecting transition fires if the service exits.
+  startedInstall?: boolean;
 }
 
 type ModalView = 'progress' | 'reconnecting' | 'notes' | 'whatsNew';
@@ -90,7 +92,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
 
 const RECONNECT_TIMEOUT_MS = 120_000;
 
-export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismiss, onUpdateNow }: UpdateModalProps) {
+export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdateNow, startedInstall }: UpdateModalProps) {
   const { t } = useTranslation();
   const [view, setView] = useState<ModalView>('notes');
   const [progress, setProgress] = useState<UpdateProgress | null>(null);
@@ -103,17 +105,13 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
   const installActiveRef = useRef(false);
   // Set to the monotonic time when the install was kicked off; cleared when active progress arrives.
   const neverActiveDeadlineRef = useRef(0);
-  // Tracks whether always-mode auto-start has been issued for this open.
-  const alwaysStartedRef = useRef(false);
-  // True while the reconnect gave up, making the modal closable despite always-mode.
   const [reconnectGaveUp, setReconnectGaveUp] = useState(false);
 
-  const isAlwaysMode = status?.updateMode === 'always';
   // Non-closable ONLY while a genuine install is in flight: live active progress
   // or the post-install reconnect. A 'progress' view with no active progress (the
   // brief pre-start window, or a start that failed) stays closable so the user is
   // never trapped behind an empty modal.
-  const isInstallActive = isAlwaysMode && !reconnectGaveUp
+  const isInstallActive = !reconnectGaveUp
     && ((view === 'progress' && (progress?.active ?? false)) || view === 'reconnecting');
 
   // Refresh /update/status when the modal opens so action button label reflects
@@ -133,8 +131,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
   // resolve the initial view, and reset all per-open latches.
   useEffect(() => {
     if (!open) return;
-    alwaysStartedRef.current = false;
-    installActiveRef.current = false;
+    installActiveRef.current = startedInstall ?? false;
     neverActiveDeadlineRef.current = 0;
     setStartError('');
     setReconnectGaveUp(false);
@@ -142,6 +139,8 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
     whatsNewVersionRef.current = justUpdatedTo;
     if (justUpdatedTo) {
       setView('whatsNew');
+    } else if (startedInstall) {
+      setView('progress');
     } else {
       setView('notes');
     }
@@ -149,23 +148,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
   // the status snapshot the caller passed (before any re-fetch).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-
-  // always-mode auto-start: only once a verified update is STAGED (updateReady).
-  // A merely-available-but-unstageable release (e.g. one missing SHA256SUMS) must
-  // not open a non-closable modal on a startUpdate that will fail.
-  useEffect(() => {
-    if (!open || !isAlwaysMode || alwaysStartedRef.current) return;
-    if (!status?.updateReady) return;
-    alwaysStartedRef.current = true;
-    setView('progress');
-    neverActiveDeadlineRef.current = Date.now() + NEVER_ACTIVE_TIMEOUT_MS;
-    startUpdate(status.latestVersion, { reopenAfter: true }).then(resp => {
-      if (!resp?.started) {
-        setStartError(t('update.modal.startFailed'));
-        setView('notes');
-      }
-    });
-  }, [open, isAlwaysMode, status?.updateReady, status?.latestVersion, t]);
 
   // Progress poll: runs while the modal is open. Transitions to 'reconnecting'
   // as soon as the service goes away mid-install or phase reaches launching/installing.
@@ -271,11 +253,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
     setView('progress');
   };
 
-  const handleLater = () => {
-    onDismiss?.();
-    onClose();
-  };
-
   const isActive = progress?.active ?? false;
   const phase = progress?.phase ?? 'idle';
   const percent = isActive ? (progress?.percent ?? 0) : 0;
@@ -296,6 +273,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
       title={title}
       icon={<RefreshCw size={18} />}
       closable={!isInstallActive}
+      medium
     >
       <div className={styles.modal}>
         {view === 'progress' && (
@@ -362,14 +340,14 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onDismis
                 <GithubGlyph size={13} />
                 {t('update.modal.releases')}
               </a>
-              {view === 'notes' && status?.updateAvailable && !isFailed && !startError && !isAlwaysMode && (
+              {view === 'notes' && status?.updateMode === 'notify' && status?.updateAvailable && !isFailed && !startError && (
                 <Button tone="accent" size="sm" loading={starting} onClick={handleUpdateNow}>
-                  {status.updateReady ? t('update.modal.installUpdate') : t('update.modal.updateNow')}
+                  {t('update.modal.downloadAndInstall')}
                 </Button>
               )}
-              {view === 'notes' && status?.updateAvailable && !isFailed && !startError && !isAlwaysMode ? (
-                <Button tone="neutral" size="sm" onClick={handleLater}>
-                  {t('update.modal.later')}
+              {view === 'notes' && status?.updateMode === 'notify' && status?.updateAvailable && !isFailed && !startError ? (
+                <Button tone="neutral" size="sm" onClick={onClose}>
+                  {t('update.modal.cancel')}
                 </Button>
               ) : (
                 <Button tone="neutral" size="sm" onClick={onClose}>

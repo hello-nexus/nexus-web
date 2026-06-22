@@ -34,7 +34,7 @@ import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { fetchPanelRemoteControlState } from '../api/panel';
 import { isRemoteOrigin } from '../api/service';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
-import { UiSettingsProvider, useUiSettings } from '../hooks/useUiSettings';
+import { UiSettingsProvider } from '../hooks/useUiSettings';
 import { useTranslation } from '../lib/i18n';
 import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from '../lib/settings';
 import type { Preferences } from '../api/profiles';
@@ -55,7 +55,7 @@ import { CrossZoneDragProvider } from './CrossZoneDrag';
 import { CommandPaletteProvider } from '../search/CommandPaletteProvider';
 import { PairPhoneModal } from './PairPhoneModal';
 import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
-import { getUpdateStatus, type UpdateStatus } from '../api/update';
+import { getUpdateStatus, startUpdate, type UpdateStatus } from '../api/update';
 import { IncomingPairModal } from './IncomingPairModal';
 import { ToastProvider } from '../components/common/Toast/Toast';
 import { TransferToasts } from './TransferToasts';
@@ -68,63 +68,49 @@ const PORTAL_URL = 'https://hellonexus.com';
 
 const BuilderView = lazy(() => import('../components/views/BuilderView'));
 
-// Mounted inside UiSettingsProvider. Auto-opens the update modal on load when:
-//   - updateMode === 'notify' and a new (non-dismissed) version is available, OR
-//   - updateMode === 'always' and an update is available (to start the install), OR
-//   - justUpdatedTo is set (show post-update what's-new view).
+// Auto-opens the modal when justUpdatedTo is set (post-install what's-new view).
 function UpdateAutoOpener({ online, onOpen }: {
   online: boolean;
   onOpen: (status: UpdateStatus) => void;
 }) {
-  const { settings } = useUiSettings();
   const firedRef = useRef(false);
 
   useEffect(() => {
     if (!online || firedRef.current) return;
-    const mode = settings.updateMode;
-    if (mode !== 'notify' && mode !== 'always') return;
     let cancelled = false;
-    getUpdateStatus().then(s => {
-      if (cancelled || !s) return;
-      if (s.justUpdatedTo) {
-        firedRef.current = true;
-        onOpen(s);
-        return;
-      }
-      if (mode === 'always') {
-        // Only pop the non-closable always-mode modal once a verified update is
-        // staged (updateReady); an unstageable release must not trap the user.
-        if (!s.updateReady) return;
-      } else {
-        // notify: pop once when an update is available and not already dismissed.
-        if (!s.updateAvailable) return;
-        if (s.latestVersion === settings.lastDismissedUpdateVersion) return;
-      }
-      firedRef.current = true;
-      onOpen(s);
-    });
-    return () => { cancelled = true; };
-  }, [online, settings.updateMode, settings.lastDismissedUpdateVersion, onOpen]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let tries = 0;
+    // justUpdatedTo appears once the post-install service finishes starting. A
+    // fetch that lands on the pre-swap service returns empty; the service holds
+    // the value for 60s, so re-check briefly until it shows rather than latching
+    // empty and missing the what's-new view.
+    const check = () => {
+      if (cancelled || firedRef.current) return;
+      getUpdateStatus().then(s => {
+        if (cancelled || firedRef.current || !s) return;
+        if (s.justUpdatedTo) {
+          firedRef.current = true;
+          onOpen(s);
+          return;
+        }
+        if (++tries < 8) timer = setTimeout(check, 2000);
+      });
+    };
+    check();
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+  }, [online, onOpen]);
 
   return null;
 }
 
-// Mounted inside UiSettingsProvider. Wraps UpdateModal so it can persist
-// lastDismissedUpdateVersion on dismiss via the settings hook.
 function UpdateModalWithDismiss(props: {
   open: boolean;
   onClose: () => void;
   status: UpdateStatus | null;
   onStatusRefreshed: (s: UpdateStatus) => void;
+  startedInstall?: boolean;
 }) {
-  const { update } = useUiSettings();
-  const { open, onClose, status, onStatusRefreshed } = props;
-
-  const handleDismiss = useCallback(() => {
-    if (status?.latestVersion) {
-      update({ lastDismissedUpdateVersion: status.latestVersion });
-    }
-  }, [update, status?.latestVersion]);
+  const { open, onClose, status, onStatusRefreshed, startedInstall } = props;
 
   return (
     <UpdateModal
@@ -132,7 +118,7 @@ function UpdateModalWithDismiss(props: {
       onClose={onClose}
       status={status}
       onStatusRefreshed={onStatusRefreshed}
-      onDismiss={handleDismiss}
+      startedInstall={startedInstall}
     />
   );
 }
@@ -299,6 +285,7 @@ export function Dashboard() {
   const [pairPhoneOpen, setPairPhoneOpen] = useState(false);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
+  const [startedInstall, setStartedInstall] = useState(false);
   // Pair Remote killswitch state. Optimistic default of true matches the
   // service default so the dot color does not flicker before the first fetch.
   const [remoteControlEnabled, setRemoteControlEnabled] = useState(true);
@@ -387,6 +374,7 @@ export function Dashboard() {
   const compact = hasSidebar && sidebarCompact;
 
   const handleUpdateOpen = useCallback(async (preloaded?: UpdateStatus) => {
+    setStartedInstall(false);
     if (preloaded) {
       setUpdateStatus(preloaded);
       setUpdateModalOpen(true);
@@ -395,6 +383,14 @@ export function Dashboard() {
       if (s) setUpdateStatus(s);
       setUpdateModalOpen(true);
     }
+  }, []);
+
+  const handleInstall = useCallback(async () => {
+    const s = await getUpdateStatus();
+    if (s) setUpdateStatus(s);
+    void startUpdate(s?.latestVersion, { reopenAfter: true });
+    setStartedInstall(true);
+    setUpdateModalOpen(true);
   }, []);
 
   // Bump on every offline -> online transition so the profile dropdown
@@ -610,6 +606,7 @@ export function Dashboard() {
               phoneSubscribers={serviceState.panel?.phoneSubscribers ?? 0}
               onPairPhoneOpen={() => setPairPhoneOpen(true)}
               onUpdateOpen={handleUpdateOpen}
+              onInstall={handleInstall}
               activeDeviceKey={section === 'system' && activeView === 'device' ? (subtab ?? '') : ''}
               onDeviceSelect={k => navigate('system', 'device', k)}
               onDevicesHeaderClick={() => navigate('system', 'devices')}
@@ -650,9 +647,10 @@ export function Dashboard() {
         <UpdateAutoOpener online={online} onOpen={handleUpdateOpen} />
         <UpdateModalWithDismiss
           open={updateModalOpen}
-          onClose={() => setUpdateModalOpen(false)}
+          onClose={() => { setUpdateModalOpen(false); setStartedInstall(false); }}
           status={updateStatus}
           onStatusRefreshed={setUpdateStatus}
+          startedInstall={startedInstall}
         />
       </div>
       </PageChromeProvider>

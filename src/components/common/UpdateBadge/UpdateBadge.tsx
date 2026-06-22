@@ -5,24 +5,24 @@ import { useTranslation } from '../../../lib/i18n';
 import styles from './UpdateBadge.module.scss';
 
 interface UpdateBadgeProps {
-  updateAvailable: boolean;
-  updateReady: boolean;
+  updateMode?: string;
   compact: boolean;
   onOpen: () => void;
+  onInstall: () => void;
 }
 
-export function UpdateBadge({ updateAvailable, updateReady, compact, onOpen }: UpdateBadgeProps) {
+export function UpdateBadge({ updateMode, compact, onOpen, onInstall }: UpdateBadgeProps) {
   const { t } = useTranslation();
 
-  if (!updateAvailable) return null;
-
-  const label = updateReady ? t('update.badge.labelReady') : t('update.badge.label');
+  const isNotify = updateMode === 'notify';
+  const label = isNotify ? t('update.badge.label') : t('update.badge.labelReady');
+  const handleClick = isNotify ? onOpen : onInstall;
 
   const badgeBtn = (
     <button
       type="button"
       className={classNames(styles.badge, { [styles.badgeCompact]: compact })}
-      onClick={onOpen}
+      onClick={handleClick}
       aria-label={label}
     >
       <span className={styles.icon}>

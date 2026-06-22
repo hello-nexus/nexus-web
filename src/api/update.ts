@@ -33,6 +33,11 @@ export interface StartUpdateResponse {
   started: boolean;
 }
 
+// Multiplex topic the service pushes when the OTA status transitions to
+// update-available / update-ready. Subscribers refetch GET /update/status so
+// the sidebar banner appears on detection instead of at the next 60s poll.
+export const UPDATE_TOPIC = 'update';
+
 export const getUpdateStatus = () =>
   fetchService<UpdateStatus>('/update/status');
 

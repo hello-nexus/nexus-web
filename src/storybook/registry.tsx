@@ -912,7 +912,7 @@ function PreviewAboutModal() {
 function PreviewUpdateBadge() {
   return (
     <div style={{ width: 200, padding: 8 }}>
-      <UpdateBadge updateAvailable updateReady={false} compact={false} onOpen={() => {}} />
+      <UpdateBadge updateMode="notify" compact={false} onOpen={() => {}} onInstall={() => {}} />
     </div>
   );
 }
@@ -1272,7 +1272,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'DeviceModal', category: 'modals',
     filePath: 'src/components/common/DeviceModal/DeviceModal.tsx',
-    description: 'Reusable modal shell built on Overlay. Title + close button + standard escape/click-outside dismiss. wide / fullscreen variants.', Preview: PreviewDeviceModal,
+    description: 'Reusable modal shell built on Overlay. Title + close button + standard escape/click-outside dismiss. medium / wide / fullscreen variants.', Preview: PreviewDeviceModal,
   },
   {
     name: 'ConfirmModal', category: 'modals',

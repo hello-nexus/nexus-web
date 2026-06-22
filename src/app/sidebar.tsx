@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Unplug } from 'lucide-react';
 import classNames from 'classnames';
 import { ConflictWarningBadge } from '../components/common/Sidebar/ConflictWarning';
@@ -6,10 +6,11 @@ import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { useUiSettings } from '../hooks/useUiSettings';
 import { useConflictApps } from '../hooks/useConflictApps';
+import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import { useWindowDragRegion } from './useWindowDragRegion';
 import type { ConnectionState } from '../hooks/useServiceStatus';
-import { getUpdateStatus } from '../api/update';
+import { getUpdateStatus, UPDATE_TOPIC } from '../api/update';
 import { pingService } from '../api/service';
 import { UpdateBadge } from '../components/common/UpdateBadge/UpdateBadge';
 import styles from '../App.module.scss';
@@ -125,41 +126,50 @@ export function SidebarConflictSlot({ serviceOnline, compact }: {
   );
 }
 
-export function SidebarUpdateSlot({ serviceOnline, compact, onOpen }: {
+export function SidebarUpdateSlot({ serviceOnline, compact, onOpen, onInstall }: {
   serviceOnline: boolean;
   compact: boolean;
   onOpen: () => void;
+  onInstall: () => void;
 }) {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
+  const [updateMode, setUpdateMode] = useState<string>('');
+
+  const refetch = useCallback(() => {
+    getUpdateStatus().then(s => {
+      if (s) {
+        setUpdateAvailable(s.updateAvailable);
+        setUpdateReady(s.updateReady);
+        setUpdateMode(s.updateMode ?? '');
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (!serviceOnline) return;
-    let cancelled = false;
-    const fetch = () => {
-      getUpdateStatus().then(s => {
-        if (!cancelled && s) {
-          setUpdateAvailable(s.updateAvailable);
-          setUpdateReady(s.updateReady);
-        }
-      });
-    };
-    fetch();
-    const id = window.setInterval(fetch, 60_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [serviceOnline]);
+    refetch();
+    // Fallback poll; the WS push below is the fast path. The mount fetch can
+    // miss an update the startup check stages seconds after the dashboard
+    // connects - the push closes that window without shortening this interval.
+    const id = window.setInterval(refetch, 60_000);
+    return () => window.clearInterval(id);
+  }, [serviceOnline, refetch]);
 
-  if (!updateAvailable) return null;
+  // Refetch the moment the service pushes an update-status change so the banner
+  // appears on detection rather than at the next poll tick.
+  useTopicCallback(UPDATE_TOPIC, serviceOnline, refetch);
+
+  const isNotify = updateMode === 'notify';
+  const visible = isNotify ? updateAvailable : updateReady;
+  if (!visible) return null;
 
   return (
     <UpdateBadge
-      updateAvailable={updateAvailable}
-      updateReady={updateReady}
+      updateMode={updateMode}
       compact={compact}
       onOpen={onOpen}
+      onInstall={onInstall}
     />
   );
 }

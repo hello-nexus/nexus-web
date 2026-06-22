@@ -45,6 +45,7 @@ interface SidebarColumnProps {
   phoneSubscribers: number;
   onPairPhoneOpen: () => void;
   onUpdateOpen: () => void;
+  onInstall: () => void;
   // Device-page routing - surfaced from Dashboard so the sidebar's
   // DEVICES section can both highlight the active device and navigate
   // into a fresh device page on click.
@@ -69,6 +70,7 @@ export function SidebarColumn({
   phoneSubscribers,
   onPairPhoneOpen,
   onUpdateOpen,
+  onInstall,
   activeDeviceKey,
   onDeviceSelect,
   onDevicesHeaderClick,
@@ -186,7 +188,7 @@ export function SidebarColumn({
         onClick={onPairPhoneOpen}
       />
       <SidebarConflictSlot serviceOnline={online} compact={compact} />
-      <SidebarUpdateSlot serviceOnline={online} compact={compact} onOpen={onUpdateOpen} />
+      <SidebarUpdateSlot serviceOnline={online} compact={compact} onOpen={onUpdateOpen} onInstall={onInstall} />
       {ctxMenu && (
         <SidebarContextMenu
           x={ctxMenu.x}
