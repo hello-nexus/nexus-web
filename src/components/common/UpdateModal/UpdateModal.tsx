@@ -273,6 +273,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       title={title}
       icon={<RefreshCw size={18} />}
       closable={!isInstallActive}
+      medium
     >
       <div className={styles.modal}>
         {view === 'progress' && (
