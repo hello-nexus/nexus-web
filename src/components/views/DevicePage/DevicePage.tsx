@@ -9,8 +9,11 @@ import { KeebDevicePage } from './KeebDevicePage';
 import { Np50DevicePage } from './Np50DevicePage';
 import { SmartHubDevicePage } from './SmartHubDevicePage';
 import { CnvsDevicePage } from './CnvsDevicePage';
+import { SdkMarketplacePage } from '../../../panel/widgets/marketplace/SdkMarketplacePage';
+import { typeForMarketplace } from '../../../widgets/marketplaceRegistry';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
+import styles from './DevicePage.module.scss';
 
 /**
  * Routed device page. Resolves the device referenced by the URL's
@@ -82,6 +85,17 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
 
   if (device.curatedId === 'cnvs') {
     return <CnvsDevicePage key={device.key} />;
+  }
+
+  if (device.kind === 'app-device') {
+    const type = typeForMarketplace(device.key.replace('app-device-', ''));
+    return (
+      <div key={device.key} className={styles.page}>
+        <div className={styles.pageBody}>
+          <SdkMarketplacePage type={type} />
+        </div>
+      </div>
+    );
   }
 
   // Curated devices with no bespoke page: render the name + a hint so a

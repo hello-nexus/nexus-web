@@ -86,6 +86,8 @@ export interface SpinnerProps { size?: number; tone?: UiTone }
 export interface SliderProps {
   value: number; min?: number; max?: number; step?: number;
   tone?: UiTone; label?: string; disabled?: boolean;
+  trackFill?: boolean | number;
+  orientation?: 'inline' | 'stacked' | 'bare';
   onInput?: (value: number) => void; onChange?: (value: number) => void;
 }
 export interface ButtonProps extends WithChildren {

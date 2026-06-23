@@ -53,7 +53,7 @@ export const UI_ELEMENTS = {
   'ui-spinner': { properties: ['size', 'tone'] },
   // --- interactive (events flow host -> worker) ---
   'ui-slider': {
-    properties: ['value', 'min', 'max', 'step', 'tone', 'label', 'disabled'],
+    properties: ['value', 'min', 'max', 'step', 'tone', 'label', 'disabled', 'trackFill', 'orientation'],
     events: ['input', 'change'],
   },
   'ui-button': {

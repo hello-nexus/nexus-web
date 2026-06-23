@@ -79,6 +79,9 @@ export interface AppInstalledListing {
   /** OEM bake-in: a bundled app to treat as active at first boot (its page
    *  section is auto-pinned), no user "add" required. */
   preinstalled?: boolean;
+  /** Apps with category "device" appear under DEVICES in the sidebar nav
+   *  and render via the device-page chrome. */
+  category?: string;
 }
 
 export interface AppInstalledListingResponse {

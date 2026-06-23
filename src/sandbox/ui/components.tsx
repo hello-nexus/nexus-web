@@ -4,6 +4,7 @@
 // these to render, which is the structural visual-consistency guarantee.
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { Slider as NativeSlider } from '../../components/common/Slider/Slider';
 import { ICON_TABLE } from './icons';
 import { alignValue, justifyValue, weightValue, toneVar, cssSize } from './tokens';
 import { useLongPress } from './useLongPress';
@@ -229,22 +230,29 @@ export function Sparkline(p: HostProps) {
 }
 
 export function Slider(p: HostProps) {
-  const disabled = !!p.disabled;
   const emit = (key: 'input' | 'change', value: number) => p.__events?.[key]?.(value);
+  const rawFill = p.trackFill;
+  const trackFill: boolean | number | undefined =
+    typeof rawFill === 'number' ? rawFill : (rawFill != null ? !!rawFill : undefined);
+  const rawOrientation = str(p.orientation);
+  const orientation: 'inline' | 'stacked' | 'bare' | undefined =
+    rawOrientation === 'inline' || rawOrientation === 'stacked' || rawOrientation === 'bare'
+      ? rawOrientation : undefined;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-      {p.label != null && <span style={{ fontSize: 11, color: 'var(--text-dim, currentColor)' }}>{String(p.label)}</span>}
-      <input
-        type="range"
-        disabled={disabled}
-        min={num(p.min) ?? 0} max={num(p.max) ?? 100} step={num(p.step) ?? 1}
-        value={num(p.value) ?? 0}
-        style={{ accentColor: toneVar(str(p.tone), 'var(--accent, currentColor)'), width: '100%' }}
-        onChange={(e) => emit('input', Number(e.currentTarget.value))}
-        onPointerUp={(e) => emit('change', Number((e.currentTarget as HTMLInputElement).value))}
-        onKeyUp={(e) => emit('change', Number((e.currentTarget as HTMLInputElement).value))}
-      />
-    </div>
+    <NativeSlider
+      label={str(p.label) ?? ''}
+      value={num(p.value) ?? 0}
+      min={num(p.min) ?? 0}
+      max={num(p.max) ?? 100}
+      step={num(p.step)}
+      disabled={!!p.disabled}
+      trackFill={trackFill}
+      orientation={orientation}
+      onChange={(v, commit) => {
+        if (commit) emit('change', v);
+        else emit('input', v);
+      }}
+    />
   );
 }
 

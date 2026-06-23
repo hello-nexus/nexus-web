@@ -12,8 +12,13 @@ import {
   PANEL_SIMULATION_CHANGED_EVENT,
 } from '../lib/panelSimulation';
 import { isRemotePanel, type PanelDevice } from '../panel/device/panelDevices';
+import {
+  getAllMarketplaceListings,
+  subscribeMarketplaceRegistry,
+} from '../widgets/marketplaceRegistry';
+import type { AppInstalledListing } from '../widgets/types';
 
-export type UnifiedDeviceKind = 'panel' | 'curated' | 'peripheral';
+export type UnifiedDeviceKind = 'panel' | 'curated' | 'peripheral' | 'app-device';
 
 export interface UnifiedDevice {
   key: string;
@@ -83,11 +88,20 @@ const CURATED_WITHOUT_PAGE = new Set<string>(['fan-hub']);
 
 export function useUnifiedDevices(enabled: boolean) {
   const [simulatedPanels, setSimulatedPanels] = useState(() => getConnectedSimulatedPanels());
+  const [deviceApps, setDeviceApps] = useState<AppInstalledListing[]>(
+    () => getAllMarketplaceListings().filter(a => a.category === 'device'),
+  );
 
   useEffect(() => {
     const handler = () => setSimulatedPanels(getConnectedSimulatedPanels());
     window.addEventListener(PANEL_SIMULATION_CHANGED_EVENT, handler);
     return () => window.removeEventListener(PANEL_SIMULATION_CHANGED_EVENT, handler);
+  }, []);
+
+  useEffect(() => {
+    return subscribeMarketplaceRegistry(() => {
+      setDeviceApps(getAllMarketplaceListings().filter(a => a.category === 'device'));
+    });
   }, []);
 
   const devices = useDevices(enabled);
@@ -113,8 +127,8 @@ export function useUnifiedDevices(enabled: boolean) {
     // surface (Devices page, sidebar, search, detail route). Managed from the
     // Pair Phone modal via /panel/phone/sessions instead.
     const filteredPanels = panels.devices.filter(p => !isRemotePanel(p.connectionKind));
-    return buildUnifiedList(filteredPanels, devices.filter(d => d.connected), merged);
-  }, [panels.devices, devices, merged]);
+    return buildUnifiedList(filteredPanels, devices.filter(d => d.connected), merged, deviceApps);
+  }, [panels.devices, devices, merged, deviceApps]);
 
   return {
     unified,
@@ -128,6 +142,7 @@ function buildUnifiedList(
   panelDevices: PanelDevice[],
   curated: { id: string; name: string; category: string; connected: boolean; firmwareVersion: string }[],
   peripherals: Peripheral[],
+  deviceApps: AppInstalledListing[] = [],
 ): UnifiedDevice[] {
   const list: UnifiedDevice[] = [];
   const claimedCuratedIds = new Set<string>();
@@ -191,6 +206,20 @@ function buildUnifiedList(
       // and shown as a static card on the Devices page rather than deep-linking
       // to an empty "No Capabilities" page.
       navigable: p.capabilities.length > 0,
+    });
+  }
+
+  for (const app of deviceApps) {
+    list.push({
+      key: `app-device-${app.id}`,
+      shortName: app.name,
+      name: app.name,
+      subtitle: 'device',
+      category: 'device',
+      iconSrc: app.iconUrl ?? FALLBACK_ICON,
+      connected: true,
+      kind: 'app-device',
+      navigable: true,
     });
   }
 
