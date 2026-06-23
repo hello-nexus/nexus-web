@@ -7,6 +7,8 @@ import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { Slider as NativeSlider } from '../../components/common/Slider/Slider';
 import { Button as NativeButton } from '../../components/common/Button/Button';
 import type { ButtonTone } from '../../components/common/Button/Button';
+import { UsageBar } from '../../components/common/UsageBar/UsageBar';
+import { Sparkline as NativeSparkline } from '../../components/common/Sparkline/Sparkline';
 import { ICON_TABLE } from './icons';
 import { alignValue, justifyValue, weightValue, toneVar, cssSize } from './tokens';
 import { useLongPress } from './useLongPress';
@@ -115,13 +117,11 @@ function pctOf(value: unknown, min: unknown, max: unknown): number {
 
 export function Bar(p: HostProps) {
   const fill = pctOf(p.value, p.min, p.max);
-  const tone = toneVar(str(p.tone), 'var(--accent, currentColor)');
+  const color = p.tone ? toneVar(str(p.tone)) : undefined;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
       {p.label != null && <span style={{ fontSize: 11, color: 'var(--text-dim, currentColor)' }}>{String(p.label)}</span>}
-      <div style={{ height: 8, borderRadius: 999, background: 'var(--border, rgba(255,255,255,0.12))', overflow: 'hidden' }}>
-        <div style={{ width: `${fill * 100}%`, height: '100%', background: tone, borderRadius: 999 }} />
-      </div>
+      <UsageBar value={fill} color={color} />
     </div>
   );
 }
@@ -217,17 +217,18 @@ export function Gauge(p: HostProps) {
 
 export function Sparkline(p: HostProps) {
   const values = Array.isArray(p.values) ? (p.values as number[]).filter((v) => Number.isFinite(v)) : [];
-  const tone = toneVar(str(p.tone), 'var(--accent, currentColor)');
-  if (values.length < 2) return <div style={{ height: 24 }} />;
-  const min = num(p.min) ?? Math.min(...values);
-  const max = num(p.max) ?? Math.max(...values);
-  const span = max - min || 1;
-  const w = 100; const h = 24;
-  const pts = values.map((v, i) => `${(i / (values.length - 1)) * w},${h - ((v - min) / span) * h}`).join(' ');
+  const color = toneVar(str(p.tone), 'var(--accent, currentColor)');
+  const min = num(p.min);
+  const max = num(p.max);
+  const domain: [number, number] | undefined = min != null && max != null ? [min, max] : undefined;
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: '100%', height: h }}>
-      <polyline points={pts} fill="none" stroke={tone} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-    </svg>
+    <NativeSparkline
+      values={values}
+      width="100%"
+      height={24}
+      color={color}
+      domain={domain}
+    />
   );
 }
 

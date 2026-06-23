@@ -431,7 +431,7 @@ A small status pill.
 | `icon` | `string` |
 
 #### `Empty`
-Standard empty state (icon + title + hint).
+Standard empty state (icon + title + hint). Host renders `src/components/common/EmptyState/EmptyState.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -441,7 +441,7 @@ Standard empty state (icon + title + hint).
 | `compact` | `boolean` |
 
 #### `Section`
-Uppercase section header for grouping a page.
+Uppercase section header for grouping a page. Host renders `src/components/common/SettingsSection/SettingsSection.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -464,7 +464,7 @@ Circular arc progress indicator.
 | `children` | `ReactNode` |
 
 #### `Bar`
-Horizontal progress bar.
+Horizontal progress bar. Host renders `src/components/common/UsageBar/UsageBar.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -502,7 +502,7 @@ A 270-degree arc meter.
 | `sublabel` | `string` |
 
 #### `Sparkline`
-Single-series polyline chart.
+Single-series polyline chart. Host renders `src/components/common/Sparkline/Sparkline.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -526,7 +526,7 @@ Multi-series line/area chart.
 ### Interactive
 
 #### `Slider`
-A range input. The host renders the native accent-fill slider.
+A range input. Host renders `src/components/common/Slider/Slider.tsx`.
 
 | Prop | Type | Notes |
 |---|---|---|
@@ -543,6 +543,7 @@ A range input. The host renders the native accent-fill slider.
 | `onChange` | `(value: number) => void` | fires on commit (drag release) |
 
 #### `Button`
+Host renders `src/components/common/Button/Button.tsx`.
 
 | Prop | Type | Notes |
 |---|---|---|
@@ -557,7 +558,7 @@ A range input. The host renders the native accent-fill slider.
 | `children` | `ReactNode` | |
 
 #### `Toggle`
-A boolean switch.
+A boolean switch. Host renders `src/components/common/Toggle/Toggle.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -567,8 +568,7 @@ A boolean switch.
 | `onChange` | `(value: boolean) => void` |
 
 #### `Segmented`
-A row of icon+label pills (the native `IconLabelButton`). One option is active
-at a time.
+A row of icon+label pills. Host renders `src/components/common/IconLabelButton/IconLabelButton.tsx` per option. One option is active at a time.
 
 | Prop | Type |
 |---|---|
@@ -611,7 +611,7 @@ string value.
 | `onLeave` | `(value: string) => void` |
 
 #### `Color`
-The native HSV colour picker (SV square + hue strip + hex field).
+The native HSV colour picker (SV square + hue strip + hex field). Host renders `src/components/common/HsvPicker/HsvPicker.tsx`.
 
 | Prop | Type | Notes |
 |---|---|---|
@@ -620,8 +620,7 @@ The native HSV colour picker (SV square + hue strip + hex field).
 | `onChange` | `(hex: string) => void` | fires on commit |
 
 #### `Curve`
-A draggable X/Y curve editor. Drag a point to move it, double-click empty
-space to add, right-click a point to remove.
+A draggable X/Y curve editor. Host renders `src/sandbox/ui/CurveHost.tsx` (the native cooling fan-curve control). Drag a point to move it, double-click empty space to add, right-click a point to remove.
 
 | Prop | Type |
 |---|---|
@@ -632,7 +631,7 @@ space to add, right-click a point to remove.
 | `onChange` | `(points: CurvePoint[]) => void` (fires on commit) |
 
 #### `Card`
-A standard card surface with optional title/subtitle chrome.
+A standard card surface with optional title/subtitle chrome. Host renders `src/components/common/Card/Card.tsx`.
 
 | Prop | Type | Notes |
 |---|---|---|
