@@ -56,13 +56,35 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
 
 - **Components** (`@hellonexus/ui`): layout - `Stack`, `Grid`, `Frame`, `Spacer`, `Divider`,
   `Scroll`; content - `Text`, `Icon`, `Image`, `Badge`, `Empty`, `Section`, `Card`; data viz -
-  `Ring`, `Bar`, `Range`, `Gauge`, `Sparkline`, `Chart`; input - `Slider`, `Button`, `Stepper`,
-  `Input`, `Toggle`, `Segmented`, `Color` (native HSV picker), `Curve` (draggable curve editor),
-  `Spinner`; blessed composites - `ClockFace`, `WorldClock`, `ViewHeader`, `MediaImport`. Props are semantic
-  (`tone`/`size`/`weight`/`variant`) and theme through panel tokens. No `style`/`className` -
-  that is deliberate (consistency). `Button`/`Card` also take `onLongPress`.
+  `Ring`, `Bar`, `Range`, `Gauge`, `Sparkline`, `Chart`; input - `Slider` (see `trackFill` /
+  `orientation` below), `Button`, `Stepper`, `Input`, `Toggle`, `Segmented`, `Color` (native HSV
+  picker), `Curve` (draggable curve editor), `Spinner`; blessed composites - `ClockFace`,
+  `WorldClock`, `ViewHeader` (real native tab bar), `MediaImport` (host-mediated file pick +
+  crop + upload). Props are semantic (`tone`/`size`/`weight`/`variant`) and theme through panel
+  tokens. No `style`/`className` - that is deliberate (consistency). `Button`/`Card` also take
+  `onLongPress`.
 - **Hooks** (`@hellonexus/sdk`): `useLocalState`, `useSettings`, `useSize`, `useTick`,
-  `useSensor`, `useFetch`, `useDispatch`. Plus `formatDuration`/`clamp`/`pct`.
+  `useSensor`, `useFetch`, `useDispatch`, `useHostAction`, `useSurface`, `usePreview`,
+  `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
+- **`Slider` additions**: `trackFill` controls the accent fill (auto from value, or pass a
+  `number` 0..100 to pin the fill end; bipolar ranges auto-fill centre-out). `orientation`
+  selects `'inline'` (label+track+value on one row, default), `'stacked'` (label above,
+  full-width track), or `'bare'` (track only, for custom label layouts).
+- **`ViewHeader`**: a blessed composite that renders the real native page header (title in the
+  top bar + a tab strip). Pass `tabs` (`[{ key, label, disabled? }]`), `activeTab`, and
+  `onChange` to get a first-class tabbed page identical to a native one.
+- **`MediaImport`**: a blessed composite for host-mediated file pick + crop + upload.
+  Requires listing the target service path in `capabilities.mediaImport`. The host opens a
+  native file picker, optionally runs the crop dialog, and POSTs multipart to the route. Works
+  LAN/desktop only (fails closed over the relay tunnel). Props: `uploadPath`, `accept`,
+  `aspectRatio`, `minWidth`/`minHeight`/`maxWidth`/`maxHeight`, `targetWidth`/`targetHeight`,
+  `label`, `onProgress`, `onComplete`, `onError`.
+- **`category:"device"`** manifest field: marks the app as a device app. It appears under
+  DEVICES in the sidebar nav and its page renders inside device-page chrome (the same chrome
+  as Cooling, Lighting, etc.) rather than the standard widget section route.
+- **Full capabilities reference**: `sdk/docs/CAPABILITIES.md` - the manifest schema,
+  surfaces, all hooks, all components with props, the dispatch action table, and a
+  short device-app example.
 - **Build**: `node build.mjs` bundles each `widgets/<id>/index.tsx` to a worker ESM module
   (`dist/<id>/widget.mjs`).
 
