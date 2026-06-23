@@ -170,6 +170,34 @@ export interface BadgeProps { label: string; tone?: UiTone; icon?: string }
 export interface EmptyProps { title: string; hint?: string; icon?: string; compact?: boolean }
 export interface SectionProps { title: string }
 
+/** Host-mediated file pick + crop + upload. The app must declare each uploadPath
+ *  in its manifest capabilities.mediaImport list; the host refuses to open the
+ *  file picker or touch the network for unlisted paths. */
+export interface MediaImportProps {
+  /** Service route to POST the file to, e.g. "/tryx/media". Must be in the
+   *  manifest's capabilities.mediaImport allowlist or the button is inert. */
+  uploadPath: string;
+  /** MIME type filter for the file picker (default "video/*"). */
+  accept?: string;
+  /** Target aspect ratio as a number (width/height) or "W:H" string. When set,
+   *  the host shows the crop dialog before uploading. */
+  aspectRatio?: number | string;
+  minWidth?: number;
+  minHeight?: number;
+  maxWidth?: number;
+  maxHeight?: number;
+  targetWidth?: number;
+  targetHeight?: number;
+  /** Button label (falls back to the locale's "Choose video" string). */
+  label?: string;
+  /** Fires with a fraction 0..1 during the import flow. */
+  onProgress?: (fraction: number) => void;
+  /** Fires with the parsed service response JSON on success. */
+  onComplete?: (result: unknown) => void;
+  /** Fires with an error message string on failure. */
+  onError?: (message: string) => void;
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const Stack = createRemoteComponent('ui-stack' as any, ELEMENT_CTORS['ui-stack']) as unknown as React.FC<StackProps>;
 export const Grid = createRemoteComponent('ui-grid' as any, ELEMENT_CTORS['ui-grid']) as unknown as React.FC<GridProps>;
@@ -202,4 +230,5 @@ export const Curve = eventComponent<CurveProps>('ui-curve', ELEMENT_CTORS['ui-cu
 export const Badge = createRemoteComponent('ui-badge' as any, ELEMENT_CTORS['ui-badge']) as unknown as React.FC<BadgeProps>;
 export const Empty = createRemoteComponent('ui-empty' as any, ELEMENT_CTORS['ui-empty']) as unknown as React.FC<EmptyProps>;
 export const Section = createRemoteComponent('ui-section' as any, ELEMENT_CTORS['ui-section']) as unknown as React.FC<SectionProps>;
+export const MediaImport = eventComponent<MediaImportProps>('ui-mediaimport', ELEMENT_CTORS['ui-mediaimport'], [['onProgress', 'progress'], ['onComplete', 'complete'], ['onError', 'error']]);
 /* eslint-enable @typescript-eslint/no-explicit-any */

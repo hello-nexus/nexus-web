@@ -58,7 +58,7 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `Scroll`; content - `Text`, `Icon`, `Image`, `Badge`, `Empty`, `Section`, `Card`; data viz -
   `Ring`, `Bar`, `Range`, `Gauge`, `Sparkline`, `Chart`; input - `Slider`, `Button`, `Stepper`,
   `Input`, `Toggle`, `Segmented`, `Color` (native HSV picker), `Curve` (draggable curve editor),
-  `Spinner`; blessed composites - `ClockFace`, `WorldClock`, `ViewHeader`. Props are semantic
+  `Spinner`; blessed composites - `ClockFace`, `WorldClock`, `ViewHeader`, `MediaImport`. Props are semantic
   (`tone`/`size`/`weight`/`variant`) and theme through panel tokens. No `style`/`className` -
   that is deliberate (consistency). `Button`/`Card` also take `onLongPress`.
 - **Hooks** (`@hellonexus/sdk`): `useLocalState`, `useSettings`, `useSize`, `useTick`,

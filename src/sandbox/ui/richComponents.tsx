@@ -7,6 +7,7 @@
 // visual-consistency guarantee and giving SDK pages the standard page chrome.
 
 import type { CSSProperties, ReactNode } from 'react';
+import { useRef, useState } from 'react';
 import type { HostProps } from './components';
 import { ICON_TABLE } from './icons';
 import { ViewHeader } from '../../components/common/ViewHeader/ViewHeader';
@@ -20,6 +21,11 @@ import { EmptyState } from '../../components/common/EmptyState/EmptyState';
 import { SectionHeader } from '../../components/common/SectionHeader/SectionHeader';
 import { ClockWorldView } from '../../panel/widgets/clock/ClockWorldView';
 import { CLOCK_DESIGNS } from '../../panel/widgets/clock/designs';
+import { MediaCropper } from '../../components/common/MediaCropper/MediaCropper';
+import type { NormalizedCrop } from '../../components/common/MediaCropper/MediaCropper';
+import { postServiceForm } from '../../api/service';
+import { useTranslation } from '../../lib/i18n';
+import { useMediaImportAllowlist } from '../mediaImportContext';
 
 const num = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
@@ -173,4 +179,145 @@ export function EmptyHost(p: HostProps) {
 // The native uppercase section header.
 export function Section(p: HostProps) {
   return <SectionHeader>{str(p.title) ?? ''}</SectionHeader>;
+}
+
+// Host-mediated file pick + crop + upload. The worker declares the target route
+// via `uploadPath`; the host validates it against the app's mediaImport capability
+// allowlist before opening the file picker or touching the network. The upload
+// uses postServiceForm, which fails closed over the relay tunnel (LAN/desktop only).
+export function MediaImportHost(p: HostProps) {
+  const { t } = useTranslation();
+  const allowlist = useMediaImportAllowlist();
+  const uploadPath = str(p.uploadPath);
+  const allowed = !!uploadPath && allowlist.includes(uploadPath);
+
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [cropState, setCropState] = useState<{ src: string; file: File } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<'idle' | 'cropping' | 'uploading'>('idle');
+
+  const label = str(p.label) ?? t('sdk.mediaimport.choose');
+  const accept = str(p.accept) ?? 'video/*';
+
+  const aspectRaw = p.aspectRatio;
+  let aspect: number | undefined;
+  if (typeof aspectRaw === 'number' && Number.isFinite(aspectRaw) && aspectRaw > 0) {
+    aspect = aspectRaw;
+  } else if (typeof aspectRaw === 'string' && aspectRaw.includes(':')) {
+    const [aw, ah] = aspectRaw.split(':').map(Number);
+    if (aw && ah) aspect = aw / ah;
+  }
+
+  const doUpload = async (file: File, src: string | null, crop: NormalizedCrop) => {
+    if (!uploadPath) return;
+    setPhase('uploading');
+    setBusy(true);
+    if (src) URL.revokeObjectURL(src);
+    p.__events?.progress?.(0.5);
+
+    const form = new FormData();
+    form.append('file', file, file.name);
+    form.append('crop', `${crop.x.toFixed(6)},${crop.y.toFixed(6)},${crop.w.toFixed(6)},${crop.h.toFixed(6)}`);
+    const tw = num(p.targetWidth);
+    const th = num(p.targetHeight);
+    if (tw) form.append('targetWidth', String(tw));
+    if (th) form.append('targetHeight', String(th));
+
+    try {
+      const result = await postServiceForm<unknown>(uploadPath, form);
+      if (result === null) {
+        p.__events?.error?.(t('sdk.mediaimport.errorNetwork'));
+        return;
+      }
+      p.__events?.progress?.(1);
+      p.__events?.complete?.(result);
+    } finally {
+      setBusy(false);
+      setPhase('idle');
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    p.__events?.progress?.(0.1);
+    if (aspect !== undefined) {
+      const src = URL.createObjectURL(file);
+      setCropState({ src, file });
+      setPhase('cropping');
+    } else {
+      // No aspect ratio: skip the cropper and upload with a full-frame crop.
+      void doUpload(file, null, { x: 0, y: 0, w: 1, h: 1 });
+    }
+  };
+
+  // MediaCropper.onConfirm is typed `() => void`; call doUpload via void so the
+  // returned Promise is intentionally discarded - the finally block in doUpload
+  // always resets busy/phase regardless of outcome.
+  const handleCropConfirm = (crop: NormalizedCrop) => {
+    if (!cropState) return;
+    const { file, src } = cropState;
+    setCropState(null);
+    void doUpload(file, src, crop);
+  };
+
+  const handleCropCancel = () => {
+    if (cropState) URL.revokeObjectURL(cropState.src);
+    setCropState(null);
+    setPhase('idle');
+    p.__events?.progress?.(0);
+  };
+
+  const buttonStyle: CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    padding: '8px 12px', borderRadius: 10,
+    border: '1px solid var(--border, rgba(255,255,255,0.12))',
+    background: 'var(--surface, rgba(255,255,255,0.06))',
+    color: allowed ? 'var(--text, currentColor)' : 'var(--text-faded, rgba(255,255,255,0.35))',
+    opacity: (busy || !allowed) ? 0.5 : 1,
+    cursor: (busy || !allowed) ? 'default' : 'pointer',
+    font: 'inherit', fontWeight: 600, lineHeight: 1,
+  };
+
+  const statusText = phase === 'uploading' ? t('sdk.mediaimport.uploading')
+    : phase === 'cropping' ? t('sdk.mediaimport.cropping')
+    : null;
+
+  return (
+    <>
+      {cropState && aspect !== undefined && (
+        <MediaCropper
+          src={cropState.src}
+          aspect={aspect}
+          busy={busy}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+        <button
+          type="button"
+          style={buttonStyle}
+          disabled={busy || !allowed}
+          aria-busy={busy}
+          onClick={allowed && !busy ? () => fileRef.current?.click() : undefined}
+        >
+          {statusText ?? label}
+        </button>
+        {!allowed && uploadPath && (
+          <span style={{ fontSize: 11, color: 'var(--bad, #ef4444)' }} role="alert">
+            {t('sdk.mediaimport.notAllowed')}
+          </span>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept={accept}
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
+      </div>
+    </>
+  );
 }

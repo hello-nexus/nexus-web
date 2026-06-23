@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { RemoteTree } from './RemoteTree';
 import { SdkErrorBoundary } from './SdkErrorBoundary';
 import { spawnSandboxedWidget, type SandboxContext, type SandboxHandle } from './host';
+import { MediaImportProvider } from './mediaImportContext';
 
 export interface SandboxedWidgetProps {
   /** Blob URL of the host-shared SDK runtime; the worker imports it before the
@@ -29,6 +30,9 @@ export interface SandboxedWidgetProps {
   preview?: boolean;
   /** Host dispatch for gated control/host actions; returns the dispatch envelope. */
   onDispatch?: (action: string, args?: Record<string, unknown>) => Promise<unknown>;
+  /** Cert/manifest mediaImport path allowlist (e.g. ["/tryx/media"]). The host
+   *  checks this before opening a file picker or uploading on the widget's behalf. */
+  mediaImport?: string[];
 }
 
 const localKey = (widgetId: string, instanceId: string) => `nexus.sdk.local.${widgetId}.${instanceId}`;
@@ -49,7 +53,7 @@ interface LiveWidget { handle: SandboxHandle; disposeTimer: ReturnType<typeof se
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
 
-export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch }: SandboxedWidgetProps) {
+export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport }: SandboxedWidgetProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   // Cache key includes the surface so a widget's cell and page workers (separate
   // renders of the same bundle) never collide; ':preview' keeps a preview worker
@@ -142,7 +146,9 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     <div ref={wrapRef} style={{ width: '100%', height: '100%', display: 'flex', minWidth: 0, minHeight: 0 }}>
       {handle ? (
         <SdkErrorBoundary widgetId={widgetId} resetKey={handle.receiver}>
-          <RemoteTree receiver={handle.receiver} />
+          <MediaImportProvider allowed={mediaImport ?? []}>
+            <RemoteTree receiver={handle.receiver} />
+          </MediaImportProvider>
         </SdkErrorBoundary>
       ) : null}
     </div>

@@ -14,6 +14,7 @@ import {
 import {
   WorldClock, ClockFace, ViewHeaderHost,
   ToggleHost, Segmented, CardHost, EmptyHost, Section, ColorHost,
+  MediaImportHost,
 } from './ui/richComponents';
 import { CurveHost } from './ui/CurveHost';
 
@@ -49,4 +50,5 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-worldclock': WorldClock,
   'ui-clockface': ClockFace,
   'ui-viewheader': ViewHeaderHost,
+  'ui-mediaimport': MediaImportHost,
 };

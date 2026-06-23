@@ -25,6 +25,10 @@ export interface AppManifestCapabilities {
   config: boolean;
   /** Opt-in Tier 2. `"worker"` means the bundle ships `worker.js`. */
   code?: string | null;
+  /** Service routes the app may POST files to via the host-mediated MediaImport
+   *  component. The host enforces this allowlist; the worker cannot upload to a
+   *  path not listed here. */
+  mediaImport?: string[];
 }
 
 export type AppManifestSettingType =

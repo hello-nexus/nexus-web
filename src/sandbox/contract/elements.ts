@@ -127,6 +127,20 @@ export const UI_ELEMENTS = {
     properties: ['title', 'tabs', 'activeTab'],
     events: ['change'],
   },
+  // Host-mediated file pick + crop + upload. The worker supplies uploadPath and
+  // optional crop/size constraints; the host opens a native file picker, runs
+  // the picked file through the MediaCropper, then POSTs multipart to uploadPath
+  // via postServiceForm (LAN/desktop only - fails closed over the relay tunnel).
+  // The host validates uploadPath against the app's manifest mediaImport allowlist
+  // before touching the file system or the network.
+  'ui-mediaimport': {
+    properties: [
+      'uploadPath', 'accept', 'aspectRatio',
+      'minWidth', 'minHeight', 'maxWidth', 'maxHeight',
+      'targetWidth', 'targetHeight', 'label',
+    ],
+    events: ['progress', 'complete', 'error'],
+  },
 } as const satisfies Record<string, UiElementSpec>;
 
 export type UiElementName = keyof typeof UI_ELEMENTS;

@@ -27,6 +27,7 @@ export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
 
   const netFetch = useMemo(() => listing?.capabilities['net.fetch'] ?? [], [listing]);
   const sensorsRead = useMemo(() => listing?.capabilities['sensors.read'] ?? [], [listing]);
+  const mediaImport = useMemo(() => listing?.capabilities.mediaImport ?? [], [listing]);
   const onDispatch = useCallback(
     (action: string, args?: Record<string, unknown>) =>
       postService<unknown>('/apps-api/dispatch', { appId: id, action, args: args ?? {} }),
@@ -52,6 +53,7 @@ export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
           settings={{}}
           netFetch={netFetch}
           sensorsRead={sensorsRead}
+          mediaImport={mediaImport}
           onDispatch={onDispatch}
         />
       )}
