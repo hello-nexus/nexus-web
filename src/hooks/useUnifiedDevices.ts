@@ -55,6 +55,7 @@ const CURATED_ICONS: Record<string, string> = {
   y70: '/assets/devices/y70.svg',
   keeb: '/assets/devices/keeb.svg',
   'fan-hub': '/assets/devices/fan-hub.svg',
+  tryx: '/assets/devices/tryx.svg',
 };
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
@@ -70,6 +71,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   cnvs: 'CNVS',
   keeb: 'Keeb',
   'fan-hub': 'iBUYPOWER MiniHub',
+  tryx: 'Tryx Panorama',
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';

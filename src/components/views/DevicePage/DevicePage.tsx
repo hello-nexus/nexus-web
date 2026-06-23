@@ -9,6 +9,7 @@ import { KeebDevicePage } from './KeebDevicePage';
 import { Np50DevicePage } from './Np50DevicePage';
 import { SmartHubDevicePage } from './SmartHubDevicePage';
 import { CnvsDevicePage } from './CnvsDevicePage';
+import { TryxDevicePage } from './TryxDevicePage';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 
@@ -82,6 +83,10 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
 
   if (device.curatedId === 'cnvs') {
     return <CnvsDevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'tryx') {
+    return <TryxDevicePage key={device.key} />;
   }
 
   // Curated devices with no bespoke page: render the name + a hint so a
