@@ -23,7 +23,7 @@ export interface UiElementSpec {
 export const UI_ELEMENTS = {
   // --- layout ---
   'ui-stack': {
-    properties: ['direction', 'gap', 'align', 'justify', 'padding', 'wrap', 'grow', 'flex'],
+    properties: ['direction', 'gap', 'align', 'justify', 'padding', 'wrap', 'grow', 'flex', 'basis'],
   },
   'ui-grid': {
     properties: ['columns', 'rows', 'gap', 'padding', 'align', 'justify', 'grow'],

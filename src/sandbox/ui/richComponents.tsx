@@ -18,7 +18,7 @@ import { useLongPress } from './useLongPress';
 import { Card } from '../../components/common/Card/Card';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
 import { EmptyState } from '../../components/common/EmptyState/EmptyState';
-import { SectionHeader } from '../../components/common/SectionHeader/SectionHeader';
+import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
 import { ClockWorldView } from '../../panel/widgets/clock/ClockWorldView';
 import { CLOCK_DESIGNS } from '../../panel/widgets/clock/designs';
 import { MediaCropper } from '../../components/common/MediaCropper/MediaCropper';
@@ -176,9 +176,12 @@ export function EmptyHost(p: HostProps) {
   );
 }
 
-// The native uppercase section header.
 export function Section(p: HostProps) {
-  return <SectionHeader>{str(p.title) ?? ''}</SectionHeader>;
+  return (
+    <SettingsSection title={str(p.title) ?? ''}>
+      {p.children}
+    </SettingsSection>
+  );
 }
 
 // Host-mediated file pick + crop + upload. The worker declares the target route

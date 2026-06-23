@@ -130,7 +130,7 @@ function sampleCurveShape(curve: CurveDef, allCurves: CurveDef[], sources: Tempe
 // points cannot be added or removed.
 export function CurveGraph({
   points, currentTemp, showPoints = true, height = GRAPH_H,
-  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, limitPercent,
+  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent,
 }: {
   points: CurvePoint[];
   currentTemp?: number;
@@ -140,6 +140,8 @@ export function CurveGraph({
   tempMax?: number;
   editable?: boolean;
   onChange?: (points: CurvePoint[]) => void;
+  /** Fires continuously during a drag (live preview, before commit). */
+  onPreview?: (points: CurvePoint[]) => void;
   /** Draws a dashed horizontal ceiling line at this duty %, e.g. a turbo-off cap. */
   limitPercent?: number;
 }) {
@@ -244,6 +246,7 @@ export function CurveGraph({
       speed: Math.round(Math.max(0, Math.min(100, speed))),
     };
     setDragPoints(next);
+    onPreview?.(next);
   };
   const onHandleUp = () => {
     if (dragIdxRef.current === null) return;

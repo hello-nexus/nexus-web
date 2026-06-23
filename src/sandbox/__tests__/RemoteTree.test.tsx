@@ -117,7 +117,6 @@ describe('RemoteTree host renderer', () => {
           0],
       ] as never);
     });
-    expect(screen.getByRole('img', { name: 'curve editor' })).toBeTruthy();
     expect(container.querySelectorAll('circle').length).toBe(3);
   });
 

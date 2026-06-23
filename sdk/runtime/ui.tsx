@@ -52,6 +52,7 @@ export interface StackProps extends WithChildren {
   gap?: number; padding?: number;
   align?: Align; justify?: Justify;
   wrap?: boolean; grow?: boolean; flex?: number;
+  basis?: string;
 }
 export interface GridProps extends WithChildren {
   columns?: number; rows?: number; gap?: number; padding?: number;

@@ -5,6 +5,8 @@
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { Slider as NativeSlider } from '../../components/common/Slider/Slider';
+import { Button as NativeButton } from '../../components/common/Button/Button';
+import type { ButtonTone } from '../../components/common/Button/Button';
 import { ICON_TABLE } from './icons';
 import { alignValue, justifyValue, weightValue, toneVar, cssSize } from './tokens';
 import { useLongPress } from './useLongPress';
@@ -29,7 +31,7 @@ export function Stack(p: HostProps) {
     justifyContent: justifyValue(str(p.justify), 'flex-start'),
     padding: num(p.padding),
     flexWrap: p.wrap ? 'wrap' : undefined,
-    flex: p.grow ? 1 : num(p.flex),
+    flex: p.grow ? 1 : (typeof p.basis === 'string' ? `0 0 ${p.basis}` : num(p.flex)),
     minWidth: 0, minHeight: 0,
   };
   return <div style={style}>{p.children}</div>;
@@ -292,34 +294,44 @@ export function Stepper(p: HostProps) {
   );
 }
 
+function sdkToneToNative(sdkTone: unknown, variant: unknown): ButtonTone {
+  const t = str(sdkTone) ?? '';
+  const v = str(variant) ?? 'soft';
+  if (v === 'ghost') return 'ghost';
+  if (t === 'bad') return 'danger';
+  if (t === 'accent' && v === 'solid') return 'accent';
+  if (v === 'solid') return 'accent';
+  return 'neutral';
+}
+
 export function Button(p: HostProps) {
-  const variant = (str(p.variant) ?? 'soft') as 'solid' | 'soft' | 'ghost';
-  const tone = toneVar(str(p.tone), 'var(--text, currentColor)');
   const disabled = !!p.disabled;
-  const style: CSSProperties = {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    padding: p.size === 'sm' ? '5px 9px' : p.size === 'lg' ? '11px 16px' : '8px 12px',
-    borderRadius: 10, cursor: disabled ? 'default' : 'pointer',
-    border: variant === 'ghost' ? '1px solid transparent' : '1px solid var(--border, rgba(255,255,255,0.12))',
-    background: variant === 'solid' ? tone : variant === 'ghost' ? 'transparent' : 'var(--surface, rgba(255,255,255,0.06))',
-    color: variant === 'solid' ? 'var(--bg, #080808)' : tone,
-    opacity: disabled ? 0.4 : 1, font: 'inherit', fontWeight: 600, lineHeight: 1,
-  };
   const label = str(p.label);
+  const nativeTone = sdkToneToNative(p.tone, p.variant);
+  const size = (str(p.size) ?? 'md') as 'sm' | 'md' | 'lg';
+  const iconName = str(p.icon);
+  const IconEl = iconName ? ICON_TABLE[iconName.toLowerCase()] : undefined;
+  const iconNode: ReactNode = IconEl ? <IconEl size={size === 'sm' ? 12 : 16} aria-hidden="true" /> : undefined;
   const lp = useLongPress({
     onLongPress: p.__events?.longpress ? () => p.__events?.longpress?.() : undefined,
     onPress: () => p.__events?.press?.(),
     disabled,
   });
   return (
-    <button
-      type="button" style={style} disabled={disabled} aria-label={label}
-      onPointerDown={lp.onPointerDown} onPointerUp={lp.onPointerUp}
-      onPointerLeave={lp.onPointerLeave} onPointerCancel={lp.onPointerCancel}
+    <NativeButton
+      tone={nativeTone}
+      size={size}
+      disabled={disabled}
+      icon={iconNode}
+      aria-label={label ?? undefined}
+      onPointerDown={lp.onPointerDown}
+      onPointerUp={lp.onPointerUp}
+      onPointerLeave={lp.onPointerLeave}
+      onPointerCancel={lp.onPointerCancel}
       onClick={lp.onClick}
     >
       {p.children ?? (label != null ? label : null)}
-    </button>
+    </NativeButton>
   );
 }
 
