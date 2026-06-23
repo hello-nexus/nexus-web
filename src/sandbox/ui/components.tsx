@@ -3,7 +3,15 @@
 // feeds them synced properties + event listeners. An author can ONLY cause one of
 // these to render, which is the structural visual-consistency guarantee.
 
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
+import { Spinner as NativeSpinner } from '../../components/common/Spinner/Spinner';
+import { Stepper as NativeStepper } from '../../components/common/Stepper/Stepper';
+import { RangeBar as NativeRangeBar } from '../../components/common/RangeBar/RangeBar';
+import { Badge as NativeBadge } from '../../components/common/Badge/Badge';
+import { SeriesChart as NativeSeriesChart } from '../../components/common/SeriesChart/SeriesChart';
+import { TextInput as NativeTextInput } from '../../components/common/TextInput/TextInput';
+import { Ring as NativeRing } from '../../components/common/Ring/Ring';
+import { Gauge as NativeGauge } from '../../components/common/Gauge/Gauge';
 import { Slider as NativeSlider } from '../../components/common/Slider/Slider';
 import { Button as NativeButton } from '../../components/common/Button/Button';
 import type { ButtonTone } from '../../components/common/Button/Button';
@@ -126,92 +134,45 @@ export function Bar(p: HostProps) {
   );
 }
 
-// Host-owned gradients so authors get a temperature ramp without passing raw
-// colours (cold→warm is semantic, not branding).
-const RANGE_GRADIENT: Record<string, string> = {
-  temp: 'linear-gradient(90deg, #38bdf8, var(--accent-glow, #67e8f9), #fbbf24)',
-  accent: 'linear-gradient(90deg, var(--accent-deep, #22d3ee), var(--accent-glow, #67e8f9))',
-};
-
 export function Range(p: HostProps) {
-  const min = num(p.min) ?? 0; const max = num(p.max) ?? 1;
-  const lo = num(p.lo) ?? min; const hi = num(p.hi) ?? max;
-  const span = max - min || 1;
-  const left = Math.max(0, Math.min(1, (lo - min) / span));
-  const right = Math.max(0, Math.min(1, (hi - min) / span));
-  const width = Math.max(0.04, right - left);
-  const height = num(p.height) ?? 5;
-  const radius = num(p.radius) ?? 999;
-  const grad = RANGE_GRADIENT[str(p.gradient) ?? 'temp'] ?? RANGE_GRADIENT.temp;
   return (
-    <div style={{ position: 'relative', flex: 1, height, borderRadius: radius, background: 'var(--border, rgba(255,255,255,0.10))', overflow: 'hidden' }}>
-      <div style={{
-        position: 'absolute', top: 0, bottom: 0, left: `${left * 100}%`, width: `${width * 100}%`,
-        background: grad, borderRadius: radius,
-        boxShadow: p.glow ? '0 0 6px var(--accent-glow, rgba(103,232,249,0.55))' : undefined,
-      }} />
-    </div>
+    <NativeRangeBar
+      lo={num(p.lo) ?? (num(p.min) ?? 0)}
+      hi={num(p.hi) ?? (num(p.max) ?? 1)}
+      min={num(p.min) ?? 0}
+      max={num(p.max) ?? 1}
+      gradient={(str(p.gradient) === 'accent' ? 'accent' : 'temp')}
+      glow={!!p.glow}
+      height={num(p.height) ?? 5}
+      radius={num(p.radius) ?? 999}
+    />
   );
 }
 
 export function Ring(p: HostProps) {
-  const fill = pctOf(p.value, p.min, p.max);
-  const tone = toneVar(str(p.tone), 'var(--accent, currentColor)');
-  const size = 72; const thickness = num(p.thickness) ?? 8;
-  const r = (size - thickness) / 2; const c = 2 * Math.PI * r;
   return (
-    <div style={{ position: 'relative', width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border, rgba(255,255,255,0.12))" strokeWidth={thickness} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={tone} strokeWidth={thickness}
-          strokeDasharray={c} strokeDashoffset={c * (1 - fill)} strokeLinecap="round" />
-      </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        {p.label != null && <span style={{ fontSize: 16, fontWeight: 700 }}>{String(p.label)}</span>}
-        {p.sublabel != null && <span style={{ fontSize: 10, color: 'var(--text-dim, currentColor)' }}>{String(p.sublabel)}</span>}
-      </div>
-    </div>
+    <NativeRing
+      value={num(p.value) ?? 0}
+      min={num(p.min) ?? 0}
+      max={num(p.max) ?? 100}
+      label={p.label != null ? String(p.label) : undefined}
+      sublabel={p.sublabel != null ? String(p.sublabel) : undefined}
+      color={toneVar(str(p.tone), 'var(--accent, currentColor)')}
+      thickness={num(p.thickness) ?? 8}
+    />
   );
 }
 
-// A 270° bottom-open arc meter (distinct from the full-donut Ring): a faint track
-// with a tone-tinted fill sweeping from the lower-left up over the top to the
-// lower-right, with an optional centred label/sublabel.
 export function Gauge(p: HostProps) {
-  const min = num(p.min) ?? 0;
-  const max = num(p.max) ?? 100;
-  const span = max - min || 1;
-  const frac = Math.max(0, Math.min(1, ((num(p.value) ?? min) - min) / span));
-  const color = toneVar(str(p.tone), 'var(--accent, currentColor)');
-  const SIZE = 100, c = SIZE / 2, sw = 9, r = c - sw / 2 - 1;
-  const START = 225, SWEEP = 270; // degrees; angle decreases start -> end (clockwise on screen)
-  const pt = (deg: number): [number, number] => {
-    const a = (deg * Math.PI) / 180;
-    return [c + r * Math.cos(a), c - r * Math.sin(a)];
-  };
-  const arc = (fromDeg: number, toDeg: number): string => {
-    const [x0, y0] = pt(fromDeg);
-    const [x1, y1] = pt(toDeg);
-    const large = Math.abs(fromDeg - toDeg) > 180 ? 1 : 0;
-    return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
-  };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0, minHeight: 0, width: '100%' }}>
-      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ width: '100%', maxWidth: 170, overflow: 'visible' }} role="img" aria-label={str(p.label) ?? 'gauge'}>
-        <path d={arc(START, START - SWEEP)} fill="none" strokeWidth={sw} strokeLinecap="round" stroke="var(--border, rgba(255,255,255,0.12))" />
-        {frac > 0 && (
-          <path d={arc(START, START - frac * SWEEP)} fill="none" strokeWidth={sw} strokeLinecap="round" stroke={color} />
-        )}
-        {p.label != null && (
-          <text x={c} y={p.sublabel != null ? c - 4 : c} textAnchor="middle" dominantBaseline="middle"
-            fill="var(--text, currentColor)" style={{ fontSize: 22, fontWeight: 600 }}>{String(p.label)}</text>
-        )}
-        {p.sublabel != null && (
-          <text x={c} y={c + 15} textAnchor="middle" dominantBaseline="middle"
-            fill="var(--text-dim, currentColor)" style={{ fontSize: 9, letterSpacing: 0.4 }}>{String(p.sublabel)}</text>
-        )}
-      </svg>
-    </div>
+    <NativeGauge
+      value={num(p.value)}
+      min={num(p.min) ?? 0}
+      max={num(p.max) ?? 100}
+      label={p.label != null ? String(p.label) : undefined}
+      sublabel={p.sublabel != null ? String(p.sublabel) : undefined}
+      color={toneVar(str(p.tone), 'var(--accent, currentColor)')}
+    />
   );
 }
 
@@ -261,37 +222,15 @@ export function Slider(p: HostProps) {
 }
 
 export function Stepper(p: HostProps) {
-  const value = num(p.value) ?? 0;
-  const step = num(p.step) ?? 1;
-  const min = num(p.min); const max = num(p.max);
-  const disabled = !!p.disabled;
-  const emit = (next: number) => {
-    let v = next;
-    if (min != null) v = Math.max(min, v);
-    if (max != null) v = Math.min(max, v);
-    p.__events?.change?.(v);
-  };
-  // Compact vertical chevron stepper (matches the native widget; narrow enough
-  // for three side-by-side in a 2x2 timer cell).
-  const chevron: CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    width: 26, height: 18, padding: 0, lineHeight: 1, fontSize: 11,
-    border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 6,
-    background: 'var(--surface, rgba(255,255,255,0.06))', color: 'inherit',
-    cursor: disabled ? 'default' : 'pointer',
-  };
-  const atMax = max != null && value >= max;
-  const atMin = min != null && value <= min;
   return (
-    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-      <button type="button" aria-label="increment" style={{ ...chevron, opacity: disabled || atMax ? 0.35 : 1 }}
-        disabled={disabled || atMax} onClick={() => emit(value + step)}>▲</button>
-      <span style={{ minWidth: 26, textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 700, fontSize: '1.3em', lineHeight: 1 }}>
-        {String(value).padStart(2, '0')}
-      </span>
-      <button type="button" aria-label="decrement" style={{ ...chevron, opacity: disabled || atMin ? 0.35 : 1 }}
-        disabled={disabled || atMin} onClick={() => emit(value - step)}>▼</button>
-    </div>
+    <NativeStepper
+      value={num(p.value) ?? 0}
+      step={num(p.step) ?? 1}
+      min={num(p.min)}
+      max={num(p.max)}
+      disabled={!!p.disabled}
+      onChange={(v) => p.__events?.change?.(v)}
+    />
   );
 }
 
@@ -365,115 +304,65 @@ export function Scroll(p: HostProps) {
 }
 
 export function Input(p: HostProps) {
-  const ref = useRef<HTMLInputElement>(null);
-  const value = str(p.value) ?? '';
-  const lastSet = useRef<string | null>(null);
-  // Apply a programmatic value (reset/compute result) only when the prop actually
-  // changes - never on every render - so local typing keeps a stable cursor.
-  useEffect(() => {
-    if (lastSet.current !== value && ref.current) ref.current.value = value;
-    lastSet.current = value;
-  }, [value]);
-  const emit = (k: 'input' | 'submit' | 'blur', v: string) => p.__events?.[k]?.(v);
-  const style: CSSProperties = {
-    width: '100%', boxSizing: 'border-box',
-    padding: p.size === 'sm' ? '5px 8px' : '8px 10px',
-    borderRadius: 8, border: '1px solid var(--border, rgba(255,255,255,0.14))',
-    background: 'var(--surface, rgba(255,255,255,0.05))',
-    color: toneVar(str(p.tone), 'var(--text, currentColor)'),
-    font: 'inherit', fontFamily: p.mono ? 'ui-monospace, monospace' : undefined,
-    textAlign: TEXT_ALIGN[str(p.align) ?? ''], outline: 'none',
-  };
+  const rawAlign = str(p.align);
+  const align: 'left' | 'center' | 'right' | undefined =
+    rawAlign === 'center' ? 'center' : rawAlign === 'end' ? 'right' : rawAlign === 'start' ? 'left' : undefined;
+  const rawType = str(p.type);
+  const type: 'text' | 'number' | 'search' | 'password' =
+    rawType === 'number' || rawType === 'search' || rawType === 'password' ? rawType : 'text';
+  const rawSize = str(p.size);
+  const size: 'sm' | 'md' = rawSize === 'sm' ? 'sm' : 'md';
   return (
-    <input
-      ref={ref} type={str(p.type) ?? 'text'} placeholder={str(p.placeholder)}
-      disabled={!!p.disabled} maxLength={num(p.maxLength)} defaultValue={value} style={style}
-      onInput={(e) => emit('input', e.currentTarget.value)}
-      onKeyDown={(e) => { if (e.key === 'Enter') emit('submit', (e.currentTarget as HTMLInputElement).value); }}
-      onBlur={(e) => emit('blur', e.currentTarget.value)}
+    <NativeTextInput
+      value={str(p.value) ?? ''}
+      placeholder={str(p.placeholder)}
+      type={type}
+      disabled={!!p.disabled}
+      maxLength={num(p.maxLength)}
+      size={size}
+      mono={!!p.mono}
+      align={align}
+      color={toneVar(str(p.tone), undefined)}
+      onInput={(v) => p.__events?.input?.(v)}
+      onSubmit={(v) => p.__events?.submit?.(v)}
+      onBlur={(v) => p.__events?.blur?.(v)}
     />
   );
 }
 
-interface ChartSeries { values: number[]; tone?: string; area?: boolean }
+interface RawChartSeries { values: number[]; tone?: string; area?: boolean }
 export function Chart(p: HostProps) {
-  const series: ChartSeries[] = Array.isArray(p.series)
-    ? (p.series as ChartSeries[]).filter((s) => Array.isArray(s?.values))
+  const rawSeries: RawChartSeries[] = Array.isArray(p.series)
+    ? (p.series as RawChartSeries[]).filter((s) => Array.isArray(s?.values))
     : [];
-  const h = num(p.height) ?? 80;
-  const all = series.flatMap((s) => s.values.filter((v) => Number.isFinite(v)));
-  if (all.length < 2) return <div style={{ height: h }} />;
-  const min = num(p.min) ?? Math.min(...all);
-  const max = num(p.max) ?? Math.max(...all);
-  const span = max - min || 1;
-  const W = 100, H = 100;
-  const project = (vals: number[]) =>
-    vals.map((v, i) => `${vals.length > 1 ? (i / (vals.length - 1)) * W : 0},${(H - ((v - min) / span) * H).toFixed(2)}`);
+  const series = rawSeries.map((s) => ({
+    values: s.values,
+    color: toneVar(s.tone ?? str(p.tone), 'var(--accent, currentColor)'),
+    area: !!s.area,
+  }));
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: h, overflow: 'visible' }}>
-      {!!p.gridlines && [0.25, 0.5, 0.75].map((g) => (
-        <line key={g} x1={0} y1={H * g} x2={W} y2={H * g} stroke="var(--border, rgba(255,255,255,0.10))" strokeWidth={0.5} vectorEffect="non-scaling-stroke" />
-      ))}
-      {series.map((s, si) => {
-        const pts = project(s.values).join(' ');
-        const tone = toneVar(s.tone ?? str(p.tone), 'var(--accent, currentColor)');
-        return (
-          <g key={si}>
-            {s.area && <polygon points={`0,${H} ${pts} ${W},${H}`} fill={tone} opacity={0.15} />}
-            <polyline points={pts} fill="none" stroke={tone} strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
-          </g>
-        );
-      })}
-    </svg>
+    <NativeSeriesChart
+      series={series}
+      min={num(p.min)}
+      max={num(p.max)}
+      height={num(p.height) ?? 80}
+      gridlines={!!p.gridlines}
+    />
   );
 }
 
-// A small status pill. `label` tinted by `tone`; optional leading `icon`. No
-// native Badge exists, so this is a host primitive (tokens keep it on-theme).
 export function Badge(p: HostProps) {
   const color = toneVar(str(p.tone), 'var(--text)');
   const Icn = ICON_TABLE[(str(p.icon) ?? '').toLowerCase()];
-  return (
-    <span
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4,
-        padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600,
-        lineHeight: 1.45, whiteSpace: 'nowrap', color,
-        background: `color-mix(in srgb, ${color} 14%, transparent)`,
-      }}
-    >
-      {Icn ? <Icn size={12} aria-hidden="true" /> : null}
-      {str(p.label) ?? ''}
-    </span>
-  );
+  const icon = Icn ? <Icn size={12} aria-hidden="true" /> : undefined;
+  return <NativeBadge label={str(p.label) ?? ''} color={color} icon={icon} />;
 }
 
-// An indeterminate loading spinner - a rotating arc over a faint track ring.
-// SMIL-animated so it's self-contained (no global @keyframes to inject). `size`
-// is px (default 20); `tone` tints it (default accent).
 export function Spinner(p: HostProps) {
-  const size = num(p.size) ?? 20;
-  const color = toneVar(str(p.tone), 'var(--accent, #2563eb)');
-  const sw = Math.max(2, Math.round(size / 10));
-  const r = (size - sw) / 2;
-  const c = size / 2;
-  const circ = 2 * Math.PI * r;
   return (
-    <svg
-      width={size} height={size} viewBox={`0 0 ${size} ${size}`}
-      role="img" aria-label="Loading" style={{ display: 'block' }}
-    >
-      <circle cx={c} cy={c} r={r} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={sw} />
-      <circle
-        cx={c} cy={c} r={r} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round"
-        strokeDasharray={`${circ * 0.28} ${circ}`}
-      >
-        <animateTransform
-          attributeName="transform" type="rotate"
-          from={`0 ${c} ${c}`} to={`360 ${c} ${c}`}
-          dur="0.8s" repeatCount="indefinite"
-        />
-      </circle>
-    </svg>
+    <NativeSpinner
+      size={num(p.size) ?? 20}
+      color={toneVar(str(p.tone), 'var(--accent, #2563eb)')}
+    />
   );
 }

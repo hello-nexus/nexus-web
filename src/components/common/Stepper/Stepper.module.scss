@@ -1,0 +1,34 @@
+@use '../../../styles/text' as *;
+
+.root {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.btn {
+  @include text-caption;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  border-radius: 6px;
+  background: var(--surface, rgba(255,255,255,0.06));
+  color: inherit;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.value {
+  @include text-numeric;
+  min-width: 26px;
+  text-align: center;
+  font-weight: var(--weight-heading);
+}

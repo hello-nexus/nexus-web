@@ -75,6 +75,14 @@ import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import type { DeckIcon } from '../panel/widgets/deck/types';
 import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
+import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinner';
+import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
+import { RangeBar } from '../components/common/RangeBar/RangeBar';
+import { Badge as StorybookBadge } from '../components/common/Badge/Badge';
+import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';
+import { TextInput } from '../components/common/TextInput/TextInput';
+import { Ring as StorybookRing } from '../components/common/Ring/Ring';
+import { Gauge as StorybookGauge } from '../components/common/Gauge/Gauge';
 // Side-effect: pulls the global `.panel-root { --panel-*: … }` token rules into
 // the Storybook bundle so the panel-scoped preview below resolves its vars.
 // Idempotent - PanelDevicePage imports the same sheet.
@@ -1076,6 +1084,66 @@ function PreviewMediaCropper() {
   );
 }
 
+function PreviewSpinner() {
+  return (
+    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+      <StorybookSpinner size={16} />
+      <StorybookSpinner size={20} />
+      <StorybookSpinner size={28} />
+    </div>
+  );
+}
+
+function PreviewStepper() {
+  const [v, setV] = useState(12);
+  return <StorybookStepper value={v} min={0} max={59} onChange={setV} />;
+}
+
+function PreviewRangeBar() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <RangeBar lo={0.2} hi={0.7} gradient="temp" glow />
+      <RangeBar lo={0.3} hi={0.9} gradient="accent" />
+      <RangeBar lo={0} hi={0.5} height={8} />
+    </div>
+  );
+}
+
+function PreviewBadge() {
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <StorybookBadge label="Accent" color="var(--accent)" />
+      <StorybookBadge label="Good" color="var(--good, #22c55e)" />
+      <StorybookBadge label="Bad" color="var(--bad, #ef4444)" />
+    </div>
+  );
+}
+
+function PreviewSeriesChart() {
+  const s1 = { values: [10, 40, 30, 70, 55, 90, 60], color: 'var(--accent)', area: true };
+  const s2 = { values: [50, 20, 60, 40, 80, 30, 75], color: 'var(--warn, #f59e0b)' };
+  return <SeriesChart series={[s1, s2]} height={80} gridlines />;
+}
+
+function PreviewTextInput() {
+  const [v, setV] = useState('');
+  return <TextInput value={v} placeholder="Type here..." onInput={setV} />;
+}
+
+function PreviewRing() {
+  return (
+    <div style={{ display: 'flex', gap: 16 }}>
+      <StorybookRing value={25} label="25" sublabel="%" />
+      <StorybookRing value={60} label="60" sublabel="%" color="var(--accent)" />
+      <StorybookRing value={90} label="90" sublabel="%" color="var(--bad, #ef4444)" />
+    </div>
+  );
+}
+
+function PreviewGauge() {
+  return <StorybookGauge value={65} min={0} max={100} label="65%" sublabel="CPU" />;
+}
+
 /* ── Registry ────────────────────────────────────────────────────────────── */
 
 export const REGISTRY: StorybookEntry[] = [
@@ -1101,6 +1169,18 @@ export const REGISTRY: StorybookEntry[] = [
     Preview: PreviewBrand,
   },
   // ── Inputs ────────────────────────────────────────────────────────────
+  {
+    name: 'Stepper', category: 'inputs',
+    filePath: 'src/components/common/Stepper/Stepper.tsx',
+    description: 'Compact vertical chevron stepper: up/down buttons flanking a zero-padded value display. Supports min/max clamping and disabled state. Host-renderer bridge for the SDK Stepper element.',
+    Preview: PreviewStepper,
+  },
+  {
+    name: 'TextInput', category: 'inputs',
+    filePath: 'src/components/common/TextInput/TextInput.tsx',
+    description: 'Single-line text input. Programmatic value sync via ref (preserves cursor). Supports sm/md padding, mono font, alignment, and optional tone color. Host-renderer bridge for the SDK Input element.',
+    Preview: PreviewTextInput,
+  },
   {
     name: 'Slider (inline)', category: 'inputs',
     filePath: 'src/components/common/Slider/Slider.tsx',
@@ -1382,6 +1462,30 @@ export const REGISTRY: StorybookEntry[] = [
     ),
     notes: 'Proportional rendering. When total=0 renders an empty track. accent segment is clamped so other+accent never exceeds 100%.',
   },
+  {
+    name: 'SeriesChart', category: 'charts',
+    filePath: 'src/components/common/SeriesChart/SeriesChart.tsx',
+    description: 'Multi-series SVG line/area chart. Accepts pre-resolved color strings per series; preserveAspectRatio="none" so it fills any container. Optional gridlines at 25/50/75%. Host-renderer bridge for the SDK Chart element.',
+    Preview: PreviewSeriesChart,
+  },
+  {
+    name: 'RangeBar', category: 'charts',
+    filePath: 'src/components/common/RangeBar/RangeBar.tsx',
+    description: 'Horizontal range indicator: a colored segment [lo, hi] on a faint track. Two built-in gradients (temp, accent). Optional glow. Host-renderer bridge for the SDK Range element.',
+    Preview: PreviewRangeBar,
+  },
+  {
+    name: 'Ring', category: 'charts',
+    filePath: 'src/components/common/Ring/Ring.tsx',
+    description: 'Full-donut arc meter (72x72 fixed). Stroke-dasharray fill with optional center label/sublabel. Host-renderer bridge for the SDK Ring element.',
+    Preview: PreviewRing,
+  },
+  {
+    name: 'Gauge', category: 'charts',
+    filePath: 'src/components/common/Gauge/Gauge.tsx',
+    description: '270-degree open arc meter. SVG viewBox 0 0 100 100, max-width 170px. Optional center label and sublabel. Host-renderer bridge for the SDK Gauge element.',
+    Preview: PreviewGauge,
+  },
 
   // ── Navigation ────────────────────────────────────────────────────────
   {
@@ -1414,6 +1518,18 @@ export const REGISTRY: StorybookEntry[] = [
   },
 
   // ── Status ────────────────────────────────────────────────────────────
+  {
+    name: 'Spinner', category: 'status',
+    filePath: 'src/components/common/Spinner/Spinner.tsx',
+    description: 'Indeterminate loading spinner: rotating arc over faint track, SMIL-animated. Size (default 20px) and color are props. Host-renderer bridge for the SDK Spinner element.',
+    Preview: PreviewSpinner,
+  },
+  {
+    name: 'Badge', category: 'status',
+    filePath: 'src/components/common/Badge/Badge.tsx',
+    description: 'Status pill with tone-tinted color and color-mixed background. Accepts an optional icon ReactNode. Host-renderer bridge for the SDK Badge element.',
+    Preview: PreviewBadge,
+  },
   {
     name: 'EmptyState', category: 'status',
     filePath: 'src/components/common/EmptyState/EmptyState.tsx',

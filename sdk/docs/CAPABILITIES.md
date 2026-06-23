@@ -422,7 +422,7 @@ scheme.
 | `tone` | `UiTone` |
 
 #### `Badge`
-A small status pill.
+A small status pill. Host renders `src/components/common/Badge/Badge.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -450,7 +450,7 @@ Uppercase section header for grouping a page. Host renders `src/components/commo
 ### Data visualization
 
 #### `Ring`
-Circular arc progress indicator.
+Circular arc progress indicator. Host renders `src/components/common/Ring/Ring.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -476,7 +476,7 @@ Horizontal progress bar. Host renders `src/components/common/UsageBar/UsageBar.t
 
 #### `Range`
 A lo..hi segment positioned on a min..max track (e.g. a day's temperature
-range).
+range). Host renders `src/components/common/RangeBar/RangeBar.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -490,7 +490,7 @@ range).
 | `radius` | `number` |
 
 #### `Gauge`
-A 270-degree arc meter.
+A 270-degree arc meter. Host renders `src/components/common/Gauge/Gauge.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -512,7 +512,7 @@ Single-series polyline chart. Host renders `src/components/common/Sparkline/Spar
 | `tone` | `UiTone` |
 
 #### `Chart`
-Multi-series line/area chart.
+Multi-series line/area chart. Host renders `src/components/common/SeriesChart/SeriesChart.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -578,7 +578,7 @@ A row of icon+label pills. Host renders `src/components/common/IconLabelButton/I
 | `onChange` | `(key: string) => void` |
 
 #### `Stepper`
-A numeric up/down control.
+A numeric up/down control. Host renders `src/components/common/Stepper/Stepper.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -593,7 +593,7 @@ A numeric up/down control.
 #### `Input`
 A text/number input. `value` is for programmatic sets (reset/computed result),
 not a controlled binding - typing is local. The host fires events with the
-string value.
+string value. Host renders `src/components/common/TextInput/TextInput.tsx`.
 
 | Prop | Type |
 |---|---|
@@ -643,7 +643,7 @@ A standard card surface with optional title/subtitle chrome. Host renders `src/c
 | `children` | `ReactNode` | |
 
 #### `Spinner`
-An indeterminate loading arc.
+An indeterminate loading arc. Host renders `src/components/common/Spinner/Spinner.tsx`.
 
 | Prop | Type |
 |---|---|

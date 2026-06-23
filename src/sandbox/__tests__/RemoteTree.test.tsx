@@ -76,7 +76,7 @@ describe('RemoteTree host renderer', () => {
         [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('sp1', 'ui-spinner', { size: 24 }), 0],
       ] as never);
     });
-    expect(screen.getByRole('img', { name: 'Loading' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'common.loading' })).toBeTruthy();
   });
 
   it('renders the gauge as a labelled arc meter', () => {

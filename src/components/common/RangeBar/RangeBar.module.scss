@@ -1,0 +1,15 @@
+.track {
+  position: relative;
+  flex: 1;
+  height: var(--rb-height, 5px);
+  border-radius: var(--rb-radius, 999px);
+  background: var(--border, rgba(255,255,255,0.10));
+  overflow: hidden;
+}
+
+.fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--rb-radius, 999px);
+}
