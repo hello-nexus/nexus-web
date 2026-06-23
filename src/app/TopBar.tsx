@@ -10,6 +10,7 @@ import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useTranslation } from '../lib/i18n';
+import { DEV_TOOLS } from '../lib/devTools';
 import { useCommandPaletteOptional } from '../search/CommandPaletteContext';
 import { TopSearch } from '../search/TopSearch';
 import { CaptionButtons } from './CaptionButtons';
@@ -89,10 +90,12 @@ function TopBarMenu({ onNavigateSettings, onNavigateTools, onOpenAbout }: {
             onClick={() => { close(); onNavigateSettings(); }}>
             <Settings size={14} /> {t('nav.settings')}
           </button>
-          <button type="button" className={styles.menuItem} role="menuitem"
-            onClick={() => { close(); onNavigateTools(); }}>
-            <FlaskConical size={14} /> {t('settings.tab.tools')}
-          </button>
+          {DEV_TOOLS && (
+            <button type="button" className={styles.menuItem} role="menuitem"
+              onClick={() => { close(); onNavigateTools(); }}>
+              <FlaskConical size={14} /> {t('settings.tab.tools')}
+            </button>
+          )}
           <a className={styles.menuItem} role="menuitem"
             href={HELP_URL} target="_blank" rel="noopener noreferrer"
             onClick={close}>

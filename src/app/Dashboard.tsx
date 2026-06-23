@@ -62,6 +62,7 @@ import { TransferToasts } from './TransferToasts';
 import { MappingAppliedToasts } from './MappingAppliedToasts';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { isWindowsAppShell, isMacAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
+import { DEV_TOOLS } from '../lib/devTools';
 import styles from '../App.module.scss';
 
 const PORTAL_URL = 'https://hellonexus.com';
@@ -500,7 +501,7 @@ export function Dashboard() {
       case 'gallery':    return <GalleryPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} />;
       case 'profiles':   return <ProfilesView serviceOnline={online} connectionState={status.state} profiles={profilesHook} />;
-      case 'tools':      return <ToolsView serviceOnline={online} connectionState={status.state} />;
+      case 'tools':      return DEV_TOOLS ? <ToolsView serviceOnline={online} connectionState={status.state} /> : <Placeholder title={activeView} />;
       default: {
         // Page-capable marketplace (SDK) widget: render its bundle's page surface
         // as a section view (e.g. the clock's world map). The synthetic manifest

@@ -9,6 +9,7 @@ import { postService } from '../api/service';
 import { COOLING_PRESETS, type CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { getCatalogEntries } from '../panel/widgets/registry';
+import { DEV_TOOLS } from '../lib/devTools';
 import type { CommandContext, SearchEntry, SearchSource } from './types';
 import { requestSearchScroll } from './scroll';
 import styles from './TopSearch.module.scss';
@@ -161,11 +162,11 @@ const standalonePages: SearchSource = (ctx) => [
     keywords: ['profile', 'profiles', 'preset', 'switch', 'manage'],
     to: () => ctx.host.goView('profiles'),
   }),
-  go('page:tools', {
+  ...(DEV_TOOLS ? [go('page:tools', {
     title: ctx.t('settings.tab.tools'), icon: <FlaskConical size={18} />,
     keywords: ['developer', 'dev tools', 'debug', 'advanced', 'storybook', 'diagnostics'],
     to: () => ctx.host.goView('tools'),
-  }),
+  })] : []),
 ];
 
 // Every installed app that ships a page - built-ins plus installed marketplace
