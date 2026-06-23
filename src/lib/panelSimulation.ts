@@ -5,6 +5,7 @@ import {
   panelPhysicalSize,
   type PanelGridCapacity,
 } from '../panel/engine/grid';
+import { DEV_TOOLS } from './devTools';
 
 const SIMULATE_Y70_KEY = 'nexus_simulate_y70';
 const SIMULATED_PANEL_IDS_KEY = 'nexus_simulated_panel_ids';
@@ -186,6 +187,10 @@ export function getSimulatedPanelDefinition(id: string): SimulatedPanelDefinitio
 }
 
 export function getConnectedSimulatedPanelIds(): string[] {
+  // Simulated panels are a dev-tools feature. A build without the dev tools
+  // ignores any persisted selection, so a panel enabled in a dev build does
+  // not stay stuck on after switching to a production build.
+  if (!DEV_TOOLS) return [];
   return readConnectedIds().filter(id => getSimulatedPanelDefinition(id) !== undefined);
 }
 
