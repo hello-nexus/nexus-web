@@ -23,6 +23,9 @@ export interface AppManifestCapabilities {
   'rgb.write': boolean;
   'net.fetch': string[];
   config: boolean;
+  /** Host-action allowlist. The app may POST to /apps-api/dispatch only with
+   *  action names listed here (the server-side registry routes each). */
+  dispatch?: string[];
   /** Opt-in Tier 2. `"worker"` means the bundle ships `worker.js`. */
   code?: string | null;
   /** Service routes the app may POST files to via the host-mediated MediaImport

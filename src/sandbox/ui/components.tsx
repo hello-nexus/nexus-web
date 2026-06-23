@@ -252,6 +252,7 @@ export function Slider(p: HostProps) {
         if (commit) emit('change', v);
         else emit('input', v);
       }}
+      onCommit={(v) => emit('change', v)}
     />
   );
 }
