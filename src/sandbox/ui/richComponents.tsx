@@ -292,6 +292,7 @@ export function MediaImportHost(p: HostProps) {
       {cropState && aspect !== undefined && (
         <MediaCropper
           src={cropState.src}
+          kind={cropState.file.type.startsWith('video/') ? 'video' : 'image'}
           aspect={aspect}
           busy={busy}
           onConfirm={handleCropConfirm}

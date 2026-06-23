@@ -23,8 +23,20 @@ interface DragState {
   normAspect: number;
 }
 
-export function MediaCropper({ src, aspect, initialCrop, busy, onConfirm, onCancel }: {
+type MediaEl = HTMLImageElement | HTMLVideoElement;
+
+// Intrinsic pixel dimensions of the source, whether <img> (naturalWidth) or
+// <video> (videoWidth). A <video> reports 0 until loadedmetadata fires.
+function intrinsicOf(el: MediaEl | null): { w: number; h: number } {
+  if (el instanceof HTMLVideoElement) return { w: el.videoWidth, h: el.videoHeight };
+  if (el instanceof HTMLImageElement) return { w: el.naturalWidth, h: el.naturalHeight };
+  return { w: 0, h: 0 };
+}
+
+export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, onConfirm, onCancel }: {
   src: string;
+  /** 'video' renders a <video> frame to crop against; 'image' (default) an <img>. */
+  kind?: 'image' | 'video';
   aspect: number;
   initialCrop?: NormalizedCrop;
   busy?: boolean;
@@ -32,7 +44,7 @@ export function MediaCropper({ src, aspect, initialCrop, busy, onConfirm, onCanc
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
-  const imgRef = useRef<HTMLImageElement>(null);
+  const mediaRef = useRef<MediaEl | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
   const [crop, setCrop] = useState<NormalizedCrop>(initialCrop ?? { x: 0, y: 0, w: 1, h: 1 });
@@ -55,18 +67,16 @@ export function MediaCropper({ src, aspect, initialCrop, busy, onConfirm, onCanc
   }, [normAspectFor]);
 
   const measureImg = useCallback(() => {
-    const img = imgRef.current;
-    if (!img) return;
-    const rect = img.getBoundingClientRect();
+    const el = mediaRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
     if (rect.width && rect.height) setImgSize({ w: rect.width, h: rect.height });
   }, []);
 
-  const onImgLoad = useCallback(() => {
+  const onMediaLoad = useCallback(() => {
     measureImg();
-    const img = imgRef.current;
-    if (img?.naturalWidth && !initialCrop) {
-      setCrop(centerCropForAspect(img.naturalWidth, img.naturalHeight));
-    }
+    const { w, h } = intrinsicOf(mediaRef.current);
+    if (w && !initialCrop) setCrop(centerCropForAspect(w, h));
   }, [measureImg, initialCrop, centerCropForAspect]);
 
   useEffect(() => {
@@ -78,9 +88,10 @@ export function MediaCropper({ src, aspect, initialCrop, busy, onConfirm, onCanc
   const handlePointerDown = useCallback((e: React.PointerEvent, kind: DragState['kind']) => {
     e.stopPropagation();
     e.preventDefault();
-    const img = imgRef.current;
-    if (!img?.naturalWidth) return;
-    const rect = img.getBoundingClientRect();
+    const el = mediaRef.current;
+    const { w: nw, h: nh } = intrinsicOf(el);
+    if (!el || !nw) return;
+    const rect = el.getBoundingClientRect();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     dragRef.current = {
       kind,
@@ -89,7 +100,7 @@ export function MediaCropper({ src, aspect, initialCrop, busy, onConfirm, onCanc
       startCrop: { ...cropRef.current },
       imgW: rect.width,
       imgH: rect.height,
-      normAspect: normAspectFor(img.naturalWidth, img.naturalHeight),
+      normAspect: normAspectFor(nw, nh),
     };
   }, [normAspectFor]);
 
@@ -133,8 +144,8 @@ export function MediaCropper({ src, aspect, initialCrop, busy, onConfirm, onCanc
   const handlePointerUp = useCallback(() => { dragRef.current = null; }, []);
 
   const handleReset = useCallback(() => {
-    const img = imgRef.current;
-    if (img?.naturalWidth) setCrop(centerCropForAspect(img.naturalWidth, img.naturalHeight));
+    const { w, h } = intrinsicOf(mediaRef.current);
+    if (w) setCrop(centerCropForAspect(w, h));
   }, [centerCropForAspect]);
 
   // DeviceModal/Overlay handles Escape→cancel; Enter confirms. Both no-op when busy.
@@ -147,6 +158,8 @@ export function MediaCropper({ src, aspect, initialCrop, busy, onConfirm, onCanc
     return () => document.removeEventListener('keydown', handler);
   }, [busy, onConfirm]);
 
+  const setRef = (el: MediaEl | null) => { mediaRef.current = el; };
+
   return (
     <DeviceModal open onClose={busy ? () => {} : onCancel} title={t('cropper.title')} large>
       <div
@@ -156,7 +169,21 @@ export function MediaCropper({ src, aspect, initialCrop, busy, onConfirm, onCanc
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        <img ref={imgRef} src={src} alt="" className={styles.img} onLoad={onImgLoad} draggable={false} />
+        {kind === 'video' ? (
+          <video
+            ref={setRef}
+            src={src}
+            className={styles.img}
+            muted
+            loop
+            autoPlay
+            playsInline
+            onLoadedMetadata={onMediaLoad}
+            onLoadedData={onMediaLoad}
+          />
+        ) : (
+          <img ref={setRef} src={src} alt="" className={styles.img} onLoad={onMediaLoad} draggable={false} />
+        )}
         {imgSize && (
           <div
             className={styles.cropRect}
