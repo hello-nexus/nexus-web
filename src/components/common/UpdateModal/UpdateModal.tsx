@@ -333,7 +333,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
             <div className={styles.actions}>
               <a
                 className={styles.releasesLink}
-                href="https://github.com/hello-nexus/nexus-releases/releases"
+                href="https://github.com/hello-nexus/nexus/releases"
                 target="_blank"
                 rel="noopener noreferrer"
               >
