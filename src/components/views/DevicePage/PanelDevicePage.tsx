@@ -73,7 +73,9 @@ const Y70_ORIENTATIONS = ['Landscape', 'Portrait', 'LandscapeFlipped', 'Portrait
 type Y70Orientation = (typeof Y70_ORIENTATIONS)[number];
 
 function normalizeOrientation(value: string | undefined | null): Y70Orientation {
-  if (!value) return 'Landscape';
+  // The Y70 panel is a fixed portrait strip; an unset/unknown value defaults to
+  // PortraitFlipped rather than landscape.
+  if (!value) return 'PortraitFlipped';
   // Map legacy lowercase 'landscape' / 'portrait' to the Windows-style
   // PascalCase values the backend expects.
   const lower = value.toLowerCase();
@@ -83,7 +85,7 @@ function normalizeOrientation(value: string | undefined | null): Y70Orientation 
   if (lower === 'landscape') return 'Landscape';
   return (Y70_ORIENTATIONS as readonly string[]).includes(value)
     ? (value as Y70Orientation)
-    : 'Landscape';
+    : 'PortraitFlipped';
 }
 
 type Tab = 'widgets' | 'theme' | 'settings';
@@ -94,7 +96,7 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
   const { items: firmwareItems, loaded: firmwareLoaded } = useFirmwareStatus(isQSeries);
   const [tab, setTab] = useState<Tab>('widgets');
   const [brightness, setBrightness] = useState(50);
-  const [orientation, setOrientation] = useState<Y70Orientation>('Landscape');
+  const [orientation, setOrientation] = useState<Y70Orientation>('PortraitFlipped');
   const [screenOn, setScreenOn] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState(false);
   const [reserveMonitor, setReserveMonitor] = useState(true);
