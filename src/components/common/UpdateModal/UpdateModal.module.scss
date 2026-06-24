@@ -26,7 +26,21 @@
 
 .version {
   @include text-button;
-  color: var(--text-dim);
+  color: var(--text);
+}
+
+.versionBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .versionUpgrade {
@@ -139,15 +153,22 @@
 }
 
 .notesH2 {
-  @include text-label;
+  @include text-body;
+  font-weight: var(--weight-heading);
   margin: 0;
   color: var(--text);
 }
 
-.notesP {
-  @include text-caption;
+.upToDate {
+  @include text-button;
+  color: var(--good);
   margin: 0;
-  color: var(--text-dim);
+}
+
+.notesP {
+  @include text-body;
+  margin: 0;
+  color: var(--text);
 }
 
 .notesList {
@@ -158,8 +179,8 @@
   gap: 0.2rem;
 
   li {
-    @include text-caption;
-    color: var(--text-dim);
+    @include text-body;
+    color: var(--text);
   }
 }
 

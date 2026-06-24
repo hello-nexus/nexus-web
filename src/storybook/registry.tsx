@@ -919,7 +919,7 @@ function PreviewAboutModal() {
       <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
         Open About
       </button>
-      <AboutModal open={open} onClose={() => setOpen(false)} />
+      <AboutModal open={open} onClose={() => setOpen(false)} onCheckUpdate={() => setOpen(false)} />
     </>
   );
 }

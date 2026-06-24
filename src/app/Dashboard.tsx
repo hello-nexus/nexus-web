@@ -597,6 +597,7 @@ export function Dashboard() {
           onPreferencesChanged={handlePreferencesChanged}
           onNavigateSettings={handleNavigateSettings}
           onNavigateTools={handleNavigateTools}
+          onOpenUpdate={() => handleUpdateOpen()}
           onManageProfiles={handleManageProfiles}
           isWindowsApp={isWindowsAppShell()}
           isMacApp={isMacAppShell()}

@@ -2,9 +2,10 @@ import { useRef, useState } from 'react';
 import classNames from 'classnames';
 import {
   ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
-  MoreHorizontal, Settings, FlaskConical, CircleHelp, Info, Unplug,
-  SlidersHorizontal,
+  MoreHorizontal, Settings, FlaskConical, Info, Unplug,
+  SlidersHorizontal, RefreshCw,
 } from 'lucide-react';
+import { DiscordGlyph } from '../components/icons/NexusBrand';
 import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDropdown';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
@@ -22,8 +23,7 @@ import type { UseProfilesResult } from '../hooks/useProfiles';
 import type { Preferences } from '../api/profiles';
 import styles from './TopBar.module.scss';
 
-// External help destination opened by the "..." menu's Help item.
-const HELP_URL = 'https://hellonexus.com';
+const DISCORD_URL = 'https://discord.gg/MXAuxKKfVM';
 
 interface TopBarProps {
   // Sidebar collapse toggle. Hidden when the current section renders no
@@ -48,6 +48,8 @@ interface TopBarProps {
   onNavigateSettings: () => void;
   // The "..." menu's "Dev tools" target (standalone developer page).
   onNavigateTools: () => void;
+  // The "..." menu's "Check for updates" target (opens the update modal).
+  onOpenUpdate: () => void;
   // Profile dropdown's "Manage profiles" target (standalone Profiles page).
   onManageProfiles: () => void;
   // True only inside the Nexus Windows --app shell (custom caption buttons).
@@ -57,11 +59,12 @@ interface TopBarProps {
   isMacApp: boolean;
 }
 
-// The "..." overflow menu: Settings / Dev tools / Help / About.
-function TopBarMenu({ onNavigateSettings, onNavigateTools, onOpenAbout }: {
+// The "..." overflow menu: Settings / Check for updates / Dev tools / Discord / About.
+function TopBarMenu({ onNavigateSettings, onNavigateTools, onOpenAbout, onOpenUpdate }: {
   onNavigateSettings: () => void;
   onNavigateTools: () => void;
   onOpenAbout: () => void;
+  onOpenUpdate: () => void;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -90,6 +93,10 @@ function TopBarMenu({ onNavigateSettings, onNavigateTools, onOpenAbout }: {
             onClick={() => { close(); onNavigateSettings(); }}>
             <Settings size={14} /> {t('nav.settings')}
           </button>
+          <button type="button" className={styles.menuItem} role="menuitem"
+            onClick={() => { close(); onOpenUpdate(); }}>
+            <RefreshCw size={14} /> {t('update.menu.check')}
+          </button>
           {DEV_TOOLS && (
             <button type="button" className={styles.menuItem} role="menuitem"
               onClick={() => { close(); onNavigateTools(); }}>
@@ -97,9 +104,9 @@ function TopBarMenu({ onNavigateSettings, onNavigateTools, onOpenAbout }: {
             </button>
           )}
           <a className={styles.menuItem} role="menuitem"
-            href={HELP_URL} target="_blank" rel="noopener noreferrer"
+            href={DISCORD_URL} target="_blank" rel="noopener noreferrer"
             onClick={close}>
-            <CircleHelp size={14} /> {t('nav.help')}
+            <DiscordGlyph size={14} /> {t('nav.discord')}
           </a>
           <button type="button" className={styles.menuItem} role="menuitem"
             onClick={() => { close(); onOpenAbout(); }}>
@@ -127,6 +134,7 @@ export function TopBar({
   onPreferencesChanged,
   onNavigateSettings,
   onNavigateTools,
+  onOpenUpdate,
   onManageProfiles,
   isWindowsApp,
   isMacApp,
@@ -219,7 +227,7 @@ export function TopBar({
       )}
 
       <div className={styles.rightCluster}>
-        <TopBarMenu onNavigateSettings={onNavigateSettings} onNavigateTools={onNavigateTools} onOpenAbout={() => setAboutOpen(true)} />
+        <TopBarMenu onNavigateSettings={onNavigateSettings} onNavigateTools={onNavigateTools} onOpenAbout={() => setAboutOpen(true)} onOpenUpdate={onOpenUpdate} />
         <div className={styles.profileSlot}>
           {online ? (
             <ConnectedProfileSlot connectEpoch={connectEpoch}>
@@ -247,7 +255,7 @@ export function TopBar({
         {isWindowsApp && <CaptionButtons />}
       </div>
 
-      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} onCheckUpdate={onOpenUpdate} />
     </header>
   );
 }
