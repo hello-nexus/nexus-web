@@ -504,6 +504,7 @@ export function Dashboard() {
           deviceKey={subtab ?? ''}
           serviceOnline={online}
           connectionState={status.state}
+          onOpenFirmware={() => navigate('system', 'devices', 'firmware')}
         />
       );
       case 'clock':      return <ClockPage />;

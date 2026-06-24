@@ -30,9 +30,10 @@ interface DevicePageProps {
   deviceKey: string;
   serviceOnline: boolean;
   connectionState?: ConnectionState;
+  onOpenFirmware?: () => void;
 }
 
-export function DevicePage({ deviceKey, serviceOnline, connectionState }: DevicePageProps) {
+export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFirmware }: DevicePageProps) {
   const { t } = useTranslation();
   const { unified } = useUnifiedDevices(serviceOnline);
   const device = useMemo<UnifiedDevice | undefined>(
@@ -61,7 +62,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
     // the previous device, so the new page paints at the old device's
     // scale until the tree is torn down. Remounting rebuilds the iframe
     // against the new device's canvas/DPR.
-    return <PanelDevicePage key={device.key} device={device.panelDevice} />;
+    return <PanelDevicePage key={device.key} device={device.panelDevice} onOpenFirmware={onOpenFirmware} />;
   }
 
   if (device.kind === 'peripheral' && device.peripheral) {

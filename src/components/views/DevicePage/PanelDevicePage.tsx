@@ -35,7 +35,6 @@ import { Toggle } from '../../common/Toggle/Toggle';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
-import { useRoute } from '../../../hooks/useRoute';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
 import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
@@ -61,6 +60,9 @@ import styles from './PanelDevicePage.module.scss';
 
 interface PanelDevicePageProps {
   device: PanelDevice;
+  // Threaded from the app router (Dashboard); useRoute is per-instance, so a
+  // navigate() owned here would update the URL but not drive the visible page.
+  onOpenFirmware?: () => void;
 }
 
 interface BrightnessResponse { brightness: number }
@@ -86,9 +88,8 @@ function normalizeOrientation(value: string | undefined | null): Y70Orientation 
 
 type Tab = 'widgets' | 'theme' | 'settings';
 
-export function PanelDevicePage({ device }: PanelDevicePageProps) {
+export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps) {
   const { t } = useTranslation();
-  const { navigate } = useRoute();
   const isQSeries = device?.runtimeSurface === 'q60';
   const { items: firmwareItems, loaded: firmwareLoaded } = useFirmwareStatus(isQSeries);
   const [tab, setTab] = useState<Tab>('widgets');
@@ -400,7 +401,7 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
           title={t('devices.qseries.fwGate.title')}
           hint={t('devices.qseries.fwGate.hint')}
           action={
-            <Button type="button" tone="accent" onClick={() => navigate('system', 'devices', 'firmware')}>
+            <Button type="button" tone="accent" onClick={onOpenFirmware}>
               {t('devices.qseries.fwGate.cta')}
             </Button>
           }
