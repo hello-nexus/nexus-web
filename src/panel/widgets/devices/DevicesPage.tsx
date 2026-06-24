@@ -51,7 +51,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   // Single USB subscription, reused for both the catalog "detected" highlight
   // and the Connected Devices modal - no second socket subscription.
   const allUsb = useUsbDevices(serviceOnline);
-  const firmwareItems = useFirmwareStatus(serviceOnline && tab === 'firmware');
+  const { items: firmwareItems } = useFirmwareStatus(serviceOnline && tab === 'firmware');
   const systemSpecs = useSystemSpecs(serviceOnline && tab === 'specs');
 
   const detectedVidPids = useMemo(() => {
@@ -392,7 +392,7 @@ function FirmwareRow({ item, status, anyFlashing, onFlash }: FirmwareRowProps) {
               </span>
             ) : item.updateAvailable && !awaitingRefresh ? (
               <span className={styles.fwUpdateRow}>
-                <span className={styles.fwUpdateBadge}>{t('devices.firmware.status.updateAvailable')}</span>
+                {installedVersion ? <span className={styles.fwUpdateBadge}>{t('devices.firmware.status.updateAvailable')}</span> : null}
                 <span className={styles.mono}>{item.availableVersion}</span>
                 <Button
                   type="button"

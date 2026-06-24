@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
@@ -34,6 +34,10 @@ import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
+import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
+import { useRoute } from '../../../hooks/useRoute';
+import { EmptyState } from '../../common/EmptyState/EmptyState';
+import { Button } from '../../common/Button/Button';
 import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
@@ -84,6 +88,9 @@ type Tab = 'widgets' | 'theme' | 'settings';
 
 export function PanelDevicePage({ device }: PanelDevicePageProps) {
   const { t } = useTranslation();
+  const { navigate } = useRoute();
+  const isQSeries = device?.runtimeSurface === 'q60';
+  const { items: firmwareItems, loaded: firmwareLoaded } = useFirmwareStatus(isQSeries);
   const [tab, setTab] = useState<Tab>('widgets');
   const [brightness, setBrightness] = useState(50);
   const [orientation, setOrientation] = useState<Y70Orientation>('Landscape');
@@ -369,17 +376,35 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   const currentPageIndex = Math.max(0, layout.activePageId ? layout.pages.findIndex(p => p.id === layout.activePageId) : 0);
   const showPageArrows = !singleWidget && pageCount > 1;
 
+  // Decide only after both the layout and the firmware status load, so the gate
+  // resolves once instead of flashing block-then-content.
+  const panelAppItem = firmwareItems.find(item => item.deviceType === 'qseries-app');
+  const panelAppInstalled = !!panelAppItem && panelAppItem.currentVersion !== '';
+  const fwGateReady = loaded && (!isQSeries || firmwareLoaded);
+  const showFwGate = isQSeries && fwGateReady && !panelAppInstalled;
+
   return (
     <section className={styles.page}>
       <ViewHeader
         title={pageTitle}
-        tabs={tabs}
+        tabs={showFwGate ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={(k) => { setConfiguringWidget(null); setTab(k as Tab); }}
       />
       <div className={`${styles.pageBody} pageBody`}>
-      {!loaded ? (
+      {!fwGateReady ? (
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
+      ) : showFwGate ? (
+        <EmptyState
+          icon={<Download size={48} />}
+          title={t('devices.qseries.fwGate.title')}
+          hint={t('devices.qseries.fwGate.hint')}
+          action={
+            <Button type="button" tone="accent" onClick={() => navigate('system', 'devices', 'firmware')}>
+              {t('devices.qseries.fwGate.cta')}
+            </Button>
+          }
+        />
       ) : (
         <div className={styles.splitLayout}>
           {/* Options pane on the left; live preview on the right. */}
