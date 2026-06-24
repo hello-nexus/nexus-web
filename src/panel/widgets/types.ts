@@ -89,6 +89,11 @@ export interface AppMetadata {
   // smallest sensible size from `sizes` is chosen (2x2, then 4x2, then 4x4).
   // Set explicitly for "detailed" widgets where 2x2 is too cramped.
   pickerSize?: PanelWidgetSize;
+  // When false, the app is hidden from the Add-a-Widget picker: it can't be
+  // newly added, but already-placed instances keep rendering (lookupApp and the
+  // layout reconciler ignore this flag). Defaults to listed. SDK apps derive it
+  // from the marketplace enable allowlist; built-ins set it inline to delist.
+  listed?: boolean;
   // Per-orientation flag for whether the touch fullscreen view is
   // available. The menu entry is gated on (Touch != null) && this.
   supportsImmersive: { portrait: boolean; landscape: boolean };

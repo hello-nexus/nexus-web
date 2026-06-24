@@ -7,13 +7,11 @@ import { PHONE_WIDGET_REFERENCE_CELL } from '../engine/panelGrid';
 import { appendWidget } from '../engine/panelLayoutOps';
 import { getCatalogEntries, pickerSizeFor, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
 import {
-  isMarketplaceIdEnabled,
   isMarketplaceRegistryStale,
-  isMarketplaceType,
   loadMarketplaceApps,
-  marketplaceIdFromType,
   subscribeMarketplaceRegistry,
 } from '../../widgets/marketplaceRegistry';
+import { DEV_TOOLS } from '../../lib/devTools';
 import { PanelCatalogCell } from '../dnd/PanelDragCells';
 import panelStyles from '../PanelApp.module.scss';
 import styles from './PanelWidgetCatalog.module.scss';
@@ -77,28 +75,23 @@ export function PanelWidgetCatalog({
     return subscribeMarketplaceRegistry(forceRender);
   }, [forceRender]);
 
-  // Show built-ins + allowlisted marketplace widgets only. The registry may
-  // carry more bundled widgets than the allowlist (already-placed instances
-  // still render via lookupApp); the Add-a-Widget picker stays curated.
-  const entries = getCatalogEntries().filter(([type, def]) => {
+  // Capability-filtered picker source. On beta/prod `meta.listed === false`
+  // delists an app (built-in delisted inline, SDK app derived from the
+  // marketplace allowlist). DEV_TOOLS builds bypass the curation so every
+  // installed widget is browseable for testing - same one flag that gates the
+  // Tools page and relay. Already-placed instances always render via lookupApp;
+  // listed apps co-mingle in one grid - no separate section.
+  const entries = getCatalogEntries().filter(([, def]) => {
     if (!appAvailableForSurface(def.meta, surface, { remote, deviceTouch })) return false;
-    if (isMarketplaceType(type)) {
-      const id = marketplaceIdFromType(type);
-      return id !== null && isMarketplaceIdEnabled(id);
-    }
-    return true;
+    return DEV_TOOLS || def.meta.listed !== false;
   });
-  // Split built-ins from marketplace for the "MARKETPLACE (BETA)" separator.
-  const builtIns = entries.filter(([type]) => !isMarketplaceType(type));
-  const marketplace = entries.filter(([type]) => isMarketplaceType(type));
   const matchesSearch = (type: string, def: { meta: { i18nKey: string } }) => {
     if (!normalised) return true;
     const label = (t(def.meta.i18nKey) || type).toLowerCase();
     return label.includes(normalised) || type.toLowerCase().includes(normalised);
   };
-  const visibleBuiltIns = builtIns.filter(([type, def]) => matchesSearch(type, def));
-  const visibleMarketplace = marketplace.filter(([type, def]) => matchesSearch(type, def));
-  const visibleCount = visibleBuiltIns.length + visibleMarketplace.length;
+  const visible = entries.filter(([type, def]) => matchesSearch(type, def));
+  const visibleCount = visible.length;
 
   const rootClass = [
     'panel-root',
@@ -203,13 +196,6 @@ export function PanelWidgetCatalog({
       );
     });
 
-  const marketplaceHeader = (
-    <div className={styles.sectionHeader}>
-      <span className={styles.sectionHeaderLabel}>{t('panel.add.marketplace')}</span>
-      <span className={styles.sectionHeaderTag}>BETA</span>
-    </div>
-  );
-
   // The widget browser always renders cards opaque; the device's widget-opacity
   // setting applies only on-device and in the device preview, not while browsing.
   const catalogStyle = {
@@ -244,14 +230,8 @@ export function PanelWidgetCatalog({
         </div>
       )}
       <div className={styles.scroller}>
-        {/* Built-ins and marketplace are separate panel grids so the section
-            header sits between them. */}
         <div ref={measureRef} className={styles.propWrap}>
-          <div className={panelStyles.grid}>{renderPacked(visibleBuiltIns)}</div>
-          {visibleMarketplace.length > 0 && marketplaceHeader}
-          {visibleMarketplace.length > 0 && (
-            <div className={panelStyles.grid}>{renderPacked(visibleMarketplace)}</div>
-          )}
+          <div className={panelStyles.grid}>{renderPacked(visible)}</div>
           {visibleCount === 0 && <div className={styles.empty}>{t('panel.add.noMatches')}</div>}
         </div>
       </div>

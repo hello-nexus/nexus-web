@@ -13,6 +13,7 @@ export const obsApp: AppManifest = {
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
     touch: true,
+    listed: false,
   },
   Widget: ObsWidget,
   Settings: ObsSettings,

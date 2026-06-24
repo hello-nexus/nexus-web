@@ -20,6 +20,7 @@ export const steamApp: AppManifest = {
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
     touch: true,
+    listed: false,
   },
   Widget: SteamWidget,
   Page: SteamPage,

@@ -41,13 +41,12 @@ describe('getPreinstalledPageAppTypes', () => {
 });
 
 describe('isMarketplaceIdEnabled', () => {
-  it('enables a preinstalled app so a removed copy can be re-added', () => {
-    _seedMarketplaceRegistryForTests([listing({ id: 'com.example.oem', name: 'OEM App', preinstalled: true, page: true })]);
-    expect(isMarketplaceIdEnabled('com.example.oem')).toBe(true);
+  it('enables an allowlisted app', () => {
+    expect(isMarketplaceIdEnabled('com.hellonexus.weather')).toBe(true);
   });
 
-  it('does not enable an unknown, non-preinstalled app', () => {
-    _seedMarketplaceRegistryForTests([listing({ id: 'com.example.other', name: 'Other', preinstalled: false })]);
-    expect(isMarketplaceIdEnabled('com.example.other')).toBe(false);
+  it('does not enable a non-allowlisted app even when preinstalled (OEM bake-in)', () => {
+    _seedMarketplaceRegistryForTests([listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true, page: true })]);
+    expect(isMarketplaceIdEnabled('com.ibuypower.control')).toBe(false);
   });
 });

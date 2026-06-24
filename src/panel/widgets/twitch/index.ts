@@ -13,6 +13,7 @@ export const twitchApp: AppManifest = {
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
     touch: false,
+    listed: false,
   },
   Widget: TwitchWidget,
   Settings: TwitchSettings,
