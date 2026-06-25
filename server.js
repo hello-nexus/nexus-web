@@ -22,6 +22,17 @@ app.get('/.well-known/apple-app-site-association', (_req, res) => {
   });
 });
 
+// Android App Links fetch /.well-known/assetlinks.json - same dotfile-dir
+// problem as the Apple file above: express.static skips it and the SPA
+// catchall returns index.html, so Play can't verify the link.
+app.get('/.well-known/assetlinks.json', (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.type('application/json');
+  res.sendFile(join(__dirname, 'dist', '.well-known', 'assetlinks.json'), {
+    dotfiles: 'allow',
+  });
+});
+
 // Public installer download redirects. The actual binaries live in
 // hello-nexus/nexus (a separate public repo); these routes 302 to
 // GitHub's `latest/download/<asset>` alias so the URLs we hand out from
