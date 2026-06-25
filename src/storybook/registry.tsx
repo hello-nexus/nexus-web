@@ -1249,7 +1249,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PaletteRing', category: 'editable',
     filePath: 'src/components/common/PaletteRing/PaletteRing.tsx',
-    description: 'Radial hue + palette-width picker. Drag the arc body to rotate (hue), drag a handle to resize (colorize). Min arc span enforces a minimum palette width so mono-ish presets stay draggable. Used as the hero control in the Lighting animate drawer.', Preview: PreviewPaletteRing,
+    description: 'Radial hue + palette-width picker. Drag the arc body to rotate (hue), drag a handle to resize (colorize). A triangle indicator on the inner edge marks the centre of the selection; at mono (single circle) it points opposite the circle to indicate the effective colour. Handle and triangle fill use var(--text) so they flip dark in light theme. Used as the hero control in the Lighting animate drawer.', Preview: PreviewPaletteRing,
     notes: 'Colorize caps at 0.75 so even the tightest arc still shows a touch of palette variation.',
   },
   {

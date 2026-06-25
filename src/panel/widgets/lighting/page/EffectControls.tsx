@@ -59,8 +59,10 @@ export const EffectControls = memo(function EffectControls({
             onCommit={onCommit}
           />
         </div>
-        <Slider orientation="stacked" editable trackFill label={t('lighting.controls.speed')} value={state.speed} min={-100} max={100} zeroMarker
-          onChange={(v, commit) => onChange({ speed: v }, commit)} onCommit={onCommit} />
+        {!def.hideSpeed && (
+          <Slider orientation="stacked" editable trackFill label={t('lighting.controls.speed')} value={state.speed} min={-100} max={100} zeroMarker
+            onChange={(v, commit) => onChange({ speed: v }, commit)} onCommit={onCommit} />
+        )}
         <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')} value={Math.round(state.saturation * 100)} min={0} max={400}
           onChange={(v, commit) => onChange({ saturation: v / 100 }, commit)} onCommit={onCommit} />
         <Slider orientation="stacked" editable trackFill label={t('lighting.controls.contrast')} value={Math.round(state.contrast * 100)} min={0} max={400}

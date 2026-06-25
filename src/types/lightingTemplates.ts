@@ -596,10 +596,10 @@ const PARAM_VARIATIONS: Record<string, [Record<string, number>, Record<string, n
     { u_petals: 8,  u_shimmer: 1.3, u_bloomSize: 0.45 },
   ],
   beatbuilder: [
-    { u_centerStyle: 2, u_mirror: 2, u_colorMode: 0, u_barCount: 48, u_barWidth: 0.7 },
-    { u_centerStyle: 0, u_mirror: 2, u_colorMode: 2, u_barCount: 56, u_barWidth: 0.8, u_hueSpread: 0.7 },
-    { u_centerStyle: 3, u_mirror: 2, u_colorMode: 0, u_barCount: 40, u_barWidth: 0.8 },
-    { u_centerStyle: 1, u_mirror: 1, u_colorMode: 1, u_centerSize: 0.9 },
+    { u_centerStyle: 2, u_colorMode: 1, u_barCount: 48, u_barWidth: 0.7 },
+    { u_centerStyle: 0, u_colorMode: 1, u_barCount: 56, u_barWidth: 0.8 },
+    { u_centerStyle: 3, u_colorMode: 0, u_barCount: 40, u_barWidth: 0.8 },
+    { u_centerStyle: 1, u_colorMode: 1, u_centerSize: 0.9 },
   ],
 };
 

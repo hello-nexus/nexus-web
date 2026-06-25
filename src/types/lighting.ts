@@ -59,6 +59,8 @@ export interface EffectDef {
   params: EffectParamDef[];
   showIntensity?: boolean;
   audio?: boolean;
+  /** When true, the Speed slider is hidden for this effect. */
+  hideSpeed?: boolean;
 }
 
 /** Resolve the category for an effect key, falling back to "pattern" for any
@@ -486,7 +488,13 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_bloomSize',  label: 'Size',            min: 0.1,  max: 0.8, step: 0.02, defaultValue: 0.4 },
       { name: 'u_audioBoost', label: 'Audio Intensity',  min: 0,    max: 2,   step: 0.05, defaultValue: 1.0 },
   ]},
-  { key: 'beatbuilder', labelKey: 'lighting.controls.beatbuilder', audio: true, params: [
+  { key: 'beatbuilder', labelKey: 'lighting.controls.beatbuilder', audio: true, hideSpeed: true, params: [
+      { name: 'u_colorMode', labelKey: 'lighting.controls.bb.colorMode', label: 'Color Mode',
+        min: 0, max: 1, step: 1, defaultValue: 1,
+        options: [
+          { value: 0, labelKey: 'lighting.controls.bb.opt.solid' },
+          { value: 1, labelKey: 'lighting.controls.bb.opt.rainbow' },
+        ] },
       { name: 'u_centerStyle', labelKey: 'lighting.controls.bb.centerStyle', label: 'Center Style',
         min: 0, max: 3, step: 1, defaultValue: 2,
         options: [
@@ -495,31 +503,11 @@ export const EFFECTS: EffectDef[] = [
           { value: 2, labelKey: 'lighting.controls.bb.opt.dots' },
           { value: 3, labelKey: 'lighting.controls.bb.opt.radial' },
         ] },
-      { name: 'u_mirror', labelKey: 'lighting.controls.bb.mirror', label: 'Mirror',
-        min: 0, max: 2, step: 1, defaultValue: 2,
-        options: [
-          { value: 0, labelKey: 'lighting.controls.bb.opt.none' },
-          { value: 1, labelKey: 'lighting.controls.bb.opt.mirrorx' },
-          { value: 2, labelKey: 'lighting.controls.bb.opt.quad' },
-        ] },
       { name: 'u_barCount',    labelKey: 'lighting.controls.bb.barCount',    label: 'Bars',              min: 8,    max: 96,  step: 1,     defaultValue: 48 },
       { name: 'u_barWidth',    labelKey: 'lighting.controls.bb.barWidth',    label: 'Bar Width',         min: 0.1,  max: 1,   step: 0.02,  defaultValue: 0.7 },
       { name: 'u_centerGain',  labelKey: 'lighting.controls.bb.centerGain',  label: 'Gain',              min: 0.3,  max: 3,   step: 0.05,  defaultValue: 1.2 },
       { name: 'u_centerFloor', labelKey: 'lighting.controls.bb.centerFloor', label: 'Noise Gate',        min: 0,    max: 0.3, step: 0.01,  defaultValue: 0.04 },
       { name: 'u_centerSize',  labelKey: 'lighting.controls.bb.centerSize',  label: 'Size',              min: 0.3,  max: 1.1, step: 0.02,  defaultValue: 0.8 },
-      { name: 'u_volMeter', labelKey: 'lighting.controls.bb.volMeter', label: 'Volume Meter',
-        min: 0, max: 1, step: 1, defaultValue: 1,
-        options: [
-          { value: 0, labelKey: 'lighting.controls.bb.opt.off' },
-          { value: 1, labelKey: 'lighting.controls.bb.opt.on' },
-        ] },
-      { name: 'u_volSource', labelKey: 'lighting.controls.bb.volSource', label: 'Volume Source',
-        min: 0, max: 1, step: 1, defaultValue: 0,
-        options: [
-          { value: 0, labelKey: 'lighting.controls.bb.opt.level' },
-          { value: 1, labelKey: 'lighting.controls.bb.opt.bass' },
-        ] },
-      { name: 'u_volThick',    labelKey: 'lighting.controls.bb.volThick',    label: 'Bar Thickness',     min: 0.01, max: 0.2, step: 0.005, defaultValue: 0.05 },
       { name: 'u_topMeters', labelKey: 'lighting.controls.bb.topMeters', label: 'Top Meters',
         min: 0, max: 1, step: 1, defaultValue: 1,
         options: [
@@ -534,19 +522,8 @@ export const EFFECTS: EffectDef[] = [
         ] },
       { name: 'u_bottomCount', labelKey: 'lighting.controls.bb.bottomCount', label: 'Bottom Bars Count', min: 16,   max: 96,  step: 1,     defaultValue: 64 },
       { name: 'u_bottomScale', labelKey: 'lighting.controls.bb.bottomScale', label: 'Bottom Height',     min: 0.02, max: 0.2, step: 0.005, defaultValue: 0.07 },
-      { name: 'u_colorMode', labelKey: 'lighting.controls.bb.colorMode', label: 'Color Mode',
-        min: 0, max: 3, step: 1, defaultValue: 0,
-        options: [
-          { value: 0, labelKey: 'lighting.controls.bb.opt.solid' },
-          { value: 1, labelKey: 'lighting.controls.bb.opt.gradient' },
-          { value: 2, labelKey: 'lighting.controls.bb.opt.rainbow' },
-          { value: 3, labelKey: 'lighting.controls.bb.opt.spectrum' },
-        ] },
-      { name: 'u_hue2',       labelKey: 'lighting.controls.bb.hue2',       label: 'Gradient Spread',   min: 0,    max: 1,   step: 0.01,  defaultValue: 0.33 },
-      { name: 'u_hueSpread',  labelKey: 'lighting.controls.bb.hueSpread',  label: 'Hue Spread',        min: 0,    max: 1,   step: 0.02,  defaultValue: 0.6 },
       { name: 'u_hueCycle',   labelKey: 'lighting.controls.bb.hueCycle',   label: 'Hue Cycle',         min: 0,    max: 1,   step: 0.02,  defaultValue: 0 },
       { name: 'u_beatColor',  labelKey: 'lighting.controls.bb.beatColor',  label: 'Beat Color',        min: 0,    max: 1,   step: 0.02,  defaultValue: 0 },
-      { name: 'u_glow',       labelKey: 'lighting.controls.bb.glow',       label: 'Glow',              min: 0.1,  max: 2,   step: 0.05,  defaultValue: 0.6 },
       { name: 'u_bgLevel',    labelKey: 'lighting.controls.bb.bgLevel',    label: 'Background',        min: 0,    max: 0.2, step: 0.01,  defaultValue: 0 },
       { name: 'u_flash',      labelKey: 'lighting.controls.bb.flash',      label: 'Beat Flash',        min: 0,    max: 1.5, step: 0.05,  defaultValue: 0 },
       { name: 'u_beatPulse',  labelKey: 'lighting.controls.bb.beatPulse',  label: 'Beat Pulse',        min: 0,    max: 1,   step: 0.02,  defaultValue: 0.3 },

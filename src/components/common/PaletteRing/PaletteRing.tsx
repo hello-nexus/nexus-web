@@ -34,6 +34,8 @@ const R_HANDLE = (R_OUTER + R_INNER) / 2;
 // (input[type="range"]::-webkit-slider-thumb in styles/global.scss).
 const HANDLE_R = 14;
 const TAB_R = 7;
+const TRI_DEPTH = 8;
+const TRI_HALF_BASE = 5;
 const TAB_OFFSET = HANDLE_R + TAB_R;
 const MIN_SPAN = 0;
 const MAX_SPAN = 360;
@@ -206,6 +208,24 @@ export function PaletteRing({
     y: mergeHandle.y + TAB_OFFSET * tangentY,
   };
 
+  // Triangle indicator: at centerDeg for two-knob/rainbow, at centerDeg+180 for mono
+  // (mono's merged circle sits at centerDeg, so the indicator points opposite it).
+  const triDeg = snappedClosed ? centerDeg + 180 : centerDeg;
+  const triRad = (triDeg * Math.PI) / 180;
+  const triRadX = Math.cos(triRad);
+  const triRadY = Math.sin(triRad);
+  const triPerpX = -Math.sin(triRad);
+  const triPerpY = Math.cos(triRad);
+  const triBaseCx = CX + R_INNER * triRadX;
+  const triBaseCy = CY + R_INNER * triRadY;
+  const triTipX = CX + (R_INNER - TRI_DEPTH) * triRadX;
+  const triTipY = CY + (R_INNER - TRI_DEPTH) * triRadY;
+  const triPoints = [
+    `${triBaseCx + TRI_HALF_BASE * triPerpX},${triBaseCy + TRI_HALF_BASE * triPerpY}`,
+    `${triBaseCx - TRI_HALF_BASE * triPerpX},${triBaseCy - TRI_HALF_BASE * triPerpY}`,
+    `${triTipX},${triTipY}`,
+  ].join(' ');
+
   const cursorAngle = useCallback(
     (clientX: number, clientY: number): number | null => {
       const svg = svgRef.current;
@@ -356,6 +376,12 @@ export function PaletteRing({
         {dimPath && (
           <path d={dimPath} className={styles.dim} pointerEvents="none" />
         )}
+        <polygon
+          points={triPoints}
+          className={styles.indicator}
+          pointerEvents="none"
+          aria-hidden="true"
+        />
         {snapped ? (
           <g className={styles.snappedGroup}>
             <circle

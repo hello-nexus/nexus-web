@@ -33,11 +33,10 @@
   fill-opacity: 0.55;
 }
 
-/* Handle circle matches the native slider thumb used elsewhere in the app
-   (see input[type="range"]::-webkit-slider-thumb in styles/global.scss).
-   No stroke so the drawn radius stays exactly HANDLE_R. */
+/* Handle circle and centre-of-selection triangle match the filled slider thumb
+   (input[type="range"][data-fill]::-webkit-slider-thumb uses var(--text)). */
 .handle {
-  fill: #fff;
+  fill: var(--text);
   stroke: none;
   cursor: grab;
   filter: drop-shadow(0 0 2.5px rgb(0 0 0 / var(--alpha-strong)));
@@ -49,6 +48,13 @@
   &:active {
     cursor: grabbing;
   }
+}
+
+/* Triangle indicator: marks the centre of the selected hue range on the ring's
+   inner edge. Points inward toward the centre. */
+.indicator {
+  fill: var(--text);
+  filter: drop-shadow(0 0 2.5px rgb(0 0 0 / var(--alpha-strong)));
 }
 
 /* Accent-glow halo shown while the handle is at a snap boundary. No stroke
