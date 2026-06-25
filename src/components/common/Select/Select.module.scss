@@ -50,6 +50,28 @@
 // dropdown uses it to flag the fan is on the curve currently being viewed).
 .value.accentValue { color: var(--accent); }
 
+// Leading glyph (e.g. a language flag) in the trigger value and each option
+// row. Fixed-width box so every flag occupies the same space and the labels
+// line up whether the glyph is an emoji or an <img>. The image height is tuned
+// to match the visual height of the platform's flag emoji.
+.optionIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.35em;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+
+  img {
+    display: block;
+    height: 0.8em;
+    width: auto;
+    max-width: 100%;
+    border-radius: 2px;
+  }
+}
+
 .chevron {
   position: absolute;
   right: 0.55rem;

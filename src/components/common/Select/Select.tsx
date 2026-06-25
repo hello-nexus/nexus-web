@@ -33,6 +33,9 @@ export interface SelectOption {
   // Extra class on the option row (e.g. a styled "create new" affordance),
   // carried through from `<option className>` when options arrive as children.
   className?: string;
+  // Glyph rendered before the label in both the trigger and the menu row (e.g.
+  // a language flag). Decorative; the label carries the accessible text.
+  icon?: ReactNode;
 }
 
 export interface SelectProps {
@@ -111,6 +114,7 @@ export function Select({
   const resolved = options ? options : optionsFromChildren(children);
   const selectedIndex = resolved.findIndex(o => o.value === value);
   const selectedLabel = selectedIndex >= 0 ? resolved[selectedIndex].label : '';
+  const selectedIcon = selectedIndex >= 0 ? resolved[selectedIndex].icon : undefined;
 
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -300,7 +304,10 @@ export function Select({
         onClick={() => { if (disabled) return; if (open) close(); else openMenu(); }}
         onKeyDown={onTriggerKeyDown}
       >
-        <span className={`${styles.value}${accentValue ? ' ' + styles.accentValue : ''}`}>{selectedLabel}</span>
+        <span className={`${styles.value}${accentValue ? ' ' + styles.accentValue : ''}`}>
+          {selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
+          {selectedLabel}
+        </span>
       </button>
       <ChevronDown
         className={styles.chevron}
@@ -352,6 +359,7 @@ export function Select({
               onPointerEnter={() => { if (!opt.disabled) setActiveIndex(i); }}
               onClick={() => { if (!opt.disabled) commit(opt.value); }}
             >
+              {opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
               {opt.label}
             </li>
           ))}

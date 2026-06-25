@@ -713,9 +713,11 @@ function PreviewSelect() {
       value={v}
       onChange={setV}
       options={[
-        { value: 'silent', label: 'Silent' },
-        { value: 'balanced', label: 'Balanced' },
-        { value: 'turbo', label: 'Turbo' },
+        // The optional `icon` slot renders before the label in both the trigger
+        // and each row (used by the language picker for flags).
+        { value: 'silent', label: 'Silent', icon: '🌙' },
+        { value: 'balanced', label: 'Balanced', icon: '⚖️' },
+        { value: 'turbo', label: 'Turbo', icon: '🔥' },
       ]}
       ariaLabel="Profile"
     />
@@ -1166,7 +1168,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Select', category: 'inputs',
     filePath: 'src/components/common/Select/Select.tsx',
-    description: 'Custom select: a button trigger plus a listbox portaled to <body> and clamped to the viewport, not the native <select> popup, which renders off-screen on the Y70 kiosk WebView. One control across desktop, phone, and Y70. Pass options for flat lists or <option> children (value + text, optional disabled/className); optgroups are unsupported. Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
+    description: 'Custom select: a button trigger plus a listbox portaled to <body> and clamped to the viewport, not the native <select> popup, which renders off-screen on the Y70 kiosk WebView. One control across desktop, phone, and Y70. Pass options for flat lists or <option> children (value + text, optional disabled/className/icon); optgroups are unsupported. Each option takes an optional `icon` ReactNode shown before the label in the trigger and the row (the language picker uses it for flags). Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
     notes: 'One size across the app. variant="ghost" drops the border/background for selects already inside a bordered card (cooling fan / curve rows).',
   },
   {

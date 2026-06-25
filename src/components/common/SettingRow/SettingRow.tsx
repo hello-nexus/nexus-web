@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Toggle } from '../Toggle/Toggle';
-import { Select } from '../Select/Select';
+import { Select, type SelectOption } from '../Select/Select';
 import styles from './SettingRow.module.scss';
 
 /**
@@ -85,7 +85,7 @@ export function SettingSelect({
 }: {
   label?: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: SelectOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
   description?: ReactNode;
