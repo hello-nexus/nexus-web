@@ -180,9 +180,6 @@ function EntryDetail({ entry }: { entry: LeaderboardEntry }) {
           {/* eslint-disable-next-line i18next/no-literal-string -- Storage is a hardware category proper noun */}
           <li><span className={styles.detailKey}>Storage</span> {entry.hardware.storageModel}</li>
           <li><span className={styles.detailKey}>{t('benchmark.leaderboard.os')}</span> {entry.hardware.os}</li>
-          <li>
-            {t('benchmark.leaderboard.cores', { n: String(entry.hardware.logicalCores) })}
-          </li>
         </ul>
       </div>
 
