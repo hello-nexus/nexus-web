@@ -93,4 +93,35 @@ describe('useAppIcon', () => {
       '/shortcuts/icon?targetId=app%20with%20spaces!'
     );
   });
+
+  // Many launch buttons / picker rows mounting at once must not occupy all 6
+  // browser connections and starve the panel's /ping (the false-offline bug).
+  it('caps concurrent icon fetches so the connection pool keeps headroom', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const releases: Array<() => void> = [];
+    vi.mocked(fetchServiceBlob).mockImplementation(() => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      return new Promise<Blob>(resolve => {
+        releases.push(() => { inFlight--; resolve(new Blob(['x'], { type: 'image/png' })); });
+      });
+    });
+
+    const hooks = Array.from({ length: 8 }, (_, i) => renderHook(() => useAppIcon(`app-${i}`)));
+    await act(async () => { await new Promise(r => setTimeout(r, 10)); });
+
+    // Only the cap (3) start; the rest queue behind the permits.
+    expect(maxInFlight).toBe(3);
+    expect(releases.length).toBe(3);
+
+    // Draining one admits exactly one queued fetch - never exceeding the cap.
+    while (releases.length) {
+      const release = releases.shift()!;
+      await act(async () => { release(); await new Promise(r => setTimeout(r, 5)); });
+    }
+    expect(maxInFlight).toBe(3);
+    expect(fetchServiceBlob).toHaveBeenCalledTimes(8);
+    hooks.forEach(h => h.unmount());
+  });
 });
