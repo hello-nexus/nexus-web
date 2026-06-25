@@ -168,7 +168,6 @@
   "common.loading": "로드 중...",
   "confirm.cancel": "취소",
   "confirm.ok": "확인",
-  "conflicts.badge.label": "충돌하는 앱 {count}개",
   "conflicts.badge.text": "앱 충돌",
   "conflicts.category.cooling": "쿨링",
   "conflicts.category.lighting": "조명",

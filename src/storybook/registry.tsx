@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { RankedList } from '../components/common/RankedList/RankedList';
@@ -66,6 +66,7 @@ import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopO
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { UpdateBadge } from '../components/common/UpdateBadge/UpdateBadge';
+import { TopBarStatusButton } from '../components/common/TopBarStatusButton/TopBarStatusButton';
 import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
@@ -926,8 +927,17 @@ function PreviewAboutModal() {
 
 function PreviewUpdateBadge() {
   return (
-    <div style={{ width: 200, padding: 8 }}>
-      <UpdateBadge updateMode="notify" compact={false} onOpen={() => {}} onInstall={() => {}} />
+    <div style={{ padding: 8 }}>
+      <UpdateBadge updateMode="notify" onOpen={() => {}} onInstall={() => {}} />
+    </div>
+  );
+}
+
+function PreviewTopBarStatusButton() {
+  return (
+    <div style={{ display: 'flex', gap: '0.35rem', padding: 8 }}>
+      <TopBarStatusButton tone="warn" icon={<AlertTriangle size={16} />} label="App conflict" onClick={() => {}} />
+      <TopBarStatusButton tone="good" icon={<Download size={16} />} label="Install update" onClick={() => {}} />
     </div>
   );
 }
@@ -1321,8 +1331,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'UpdateBadge', category: 'status',
     filePath: 'src/components/common/UpdateBadge/UpdateBadge.tsx',
-    description: 'Sidebar badge shown when a software update is available. Compact mode renders an icon-only button with a tooltip; full mode shows an icon + text strip. Clicking opens the UpdateModal.',
+    description: 'Top-bar green status button shown when a software update is available. Renders a TopBarStatusButton whose tooltip + action follow the update mode: notify opens the UpdateModal (release notes), staged installs immediately.',
     Preview: PreviewUpdateBadge,
+  },
+  {
+    name: 'TopBarStatusButton', category: 'status',
+    filePath: 'src/components/common/TopBarStatusButton/TopBarStatusButton.tsx',
+    description: 'Tinted icon-only alert button for the top bar\'s right cluster. Shares the bar\'s 32px icon-button footprint but stays coloured in its tone (warn = amber conflicts, good = green updates) to flag an active state; hover washes the same tone and the label shows as a bottom tooltip. Used by ConflictWarningBadge and UpdateBadge.',
+    Preview: PreviewTopBarStatusButton,
   },
   {
     name: 'UpdateModal', category: 'modals',

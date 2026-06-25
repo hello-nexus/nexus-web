@@ -168,7 +168,6 @@
   "common.loading": "載入中...",
   "confirm.cancel": "取消",
   "confirm.ok": "確定",
-  "conflicts.badge.label": "{count} 個衝突應用程式",
   "conflicts.badge.text": "應用程式衝突",
   "conflicts.category.cooling": "散熱",
   "conflicts.category.lighting": "燈效",

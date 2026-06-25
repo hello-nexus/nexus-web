@@ -168,7 +168,6 @@
   "common.loading": "Loading...",
   "confirm.cancel": "Cancel",
   "confirm.ok": "OK",
-  "conflicts.badge.label": "{count} conflicting apps",
   "conflicts.badge.text": "App conflict",
   "conflicts.category.cooling": "Cooling",
   "conflicts.category.lighting": "Lighting",

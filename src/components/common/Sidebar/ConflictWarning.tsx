@@ -1,17 +1,15 @@
 import { useCallback, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ShieldOff } from 'lucide-react';
-import classNames from 'classnames';
 import type { DetectedConflict } from '../../../api/conflicts';
 import { killConflict } from '../../../api/conflicts';
 import { Button } from '../Button/Button';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
-import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
+import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './ConflictWarning.module.scss';
 
 interface ConflictWarningProps {
   conflicts: readonly DetectedConflict[];
-  compact: boolean;
   /**
    * Persist the "don't show conflict warnings" preference. Called when the
    * user ticks the "Don't show this again" checkbox inside the modal.
@@ -22,46 +20,29 @@ interface ConflictWarningProps {
 }
 
 /**
- * Bottom-left amber badge that opens the conflict modal. The badge button
- * is hidden when there are no conflicts, but the modal stays mounted as
- * long as the user has it open - that way the modal doesn't auto-close
- * mid-read when the watcher clears the last conflict; instead it transitions
- * to an "all clear" empty state until the user dismisses it.
+ * Top-bar amber button that opens the conflict modal. The button is hidden
+ * when there are no conflicts, but the modal stays mounted as long as the
+ * user has it open - so it doesn't auto-close mid-read when the watcher clears
+ * the last conflict; instead it shows an "all clear" empty state until
+ * dismissed.
  */
-export function ConflictWarningBadge({ conflicts, compact, onDismissForever }: ConflictWarningProps) {
+export function ConflictWarningBadge({ conflicts, onDismissForever }: ConflictWarningProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const count = conflicts.length;
 
-  // No badge and no open modal → render nothing so the footer collapses.
+  // No button and no open modal → render nothing.
   if (count === 0 && !open) return null;
 
-  const label = t('conflicts.badge.label', { count });
-
-  const badgeBtn = (
-    <button
-      type="button"
-      className={classNames(styles.badge, { [styles.badgeCompact]: compact })}
-      onClick={() => setOpen(true)}
-      aria-label={label}
-    >
-      <span className={styles.icon}>
-        <AlertTriangle size={16} />
-      </span>
-      {!compact && (
-        <>
-          <span className={styles.text}>{t('conflicts.badge.text')}</span>
-          <span className={styles.count}>{count}</span>
-        </>
-      )}
-      {compact && <span className={styles.compactDot}>{count}</span>}
-    </button>
-  );
-
   return (
-    <div className={classNames(styles.wrap, { [styles.wrapCompact]: compact })}>
+    <>
       {count > 0 && (
-        compact ? <HoverTooltip body={label} side="right">{badgeBtn}</HoverTooltip> : badgeBtn
+        <TopBarStatusButton
+          tone="warn"
+          icon={<AlertTriangle size={16} />}
+          label={t('conflicts.badge.text')}
+          onClick={() => setOpen(true)}
+        />
       )}
       <ConflictWarningModal
         open={open}
@@ -72,7 +53,7 @@ export function ConflictWarningBadge({ conflicts, compact, onDismissForever }: C
           setOpen(false);
         }}
       />
-    </div>
+    </>
   );
 }
 

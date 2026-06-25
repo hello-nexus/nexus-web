@@ -17,7 +17,7 @@ import { TopSearch } from '../search/TopSearch';
 import { CaptionButtons } from './CaptionButtons';
 import { usePageChrome } from './PageChrome';
 import { useWindowDragRegion } from './useWindowDragRegion';
-import { ConnectedProfileSlot } from './sidebar';
+import { ConnectedProfileSlot, ConflictStatusSlot, UpdateStatusSlot } from './sidebar';
 import type { ConnectionState } from '../hooks/useServiceStatus';
 import type { UseProfilesResult } from '../hooks/useProfiles';
 import type { Preferences } from '../api/profiles';
@@ -48,8 +48,11 @@ interface TopBarProps {
   onNavigateSettings: () => void;
   // The "..." menu's "Dev tools" target (standalone developer page).
   onNavigateTools: () => void;
-  // The "..." menu's "Check for updates" target (opens the update modal).
+  // The "..." menu's "Check for updates" target (opens the update modal). Also
+  // the update status button's action in notify mode (view release notes).
   onOpenUpdate: () => void;
+  // The update status button's action when an update is staged: start install.
+  onInstall: () => void;
   // Profile dropdown's "Manage profiles" target (standalone Profiles page).
   onManageProfiles: () => void;
   // True only inside the Nexus Windows --app shell (custom caption buttons).
@@ -135,6 +138,7 @@ export function TopBar({
   onNavigateSettings,
   onNavigateTools,
   onOpenUpdate,
+  onInstall,
   onManageProfiles,
   isWindowsApp,
   isMacApp,
@@ -227,6 +231,10 @@ export function TopBar({
       )}
 
       <div className={styles.rightCluster}>
+        {/* Status alerts sit just left of the "..." menu: app-conflict (amber)
+            and update-available (green). Each hides itself when inactive. */}
+        <ConflictStatusSlot serviceOnline={online} />
+        <UpdateStatusSlot serviceOnline={online} onOpen={onOpenUpdate} onInstall={onInstall} />
         <TopBarMenu onNavigateSettings={onNavigateSettings} onNavigateTools={onNavigateTools} onOpenAbout={() => setAboutOpen(true)} onOpenUpdate={onOpenUpdate} />
         <div className={styles.profileSlot}>
           {online ? (

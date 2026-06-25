@@ -168,7 +168,6 @@
   "common.loading": "Chargement...",
   "confirm.cancel": "Annuler",
   "confirm.ok": "OK",
-  "conflicts.badge.label": "{count} applications en conflit",
   "conflicts.badge.text": "Conflit d'application",
   "conflicts.category.cooling": "Refroidissement",
   "conflicts.category.lighting": "Éclairage",

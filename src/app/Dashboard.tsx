@@ -598,6 +598,7 @@ export function Dashboard() {
           onNavigateSettings={handleNavigateSettings}
           onNavigateTools={handleNavigateTools}
           onOpenUpdate={() => handleUpdateOpen()}
+          onInstall={handleInstall}
           onManageProfiles={handleManageProfiles}
           isWindowsApp={isWindowsAppShell()}
           isMacApp={isMacAppShell()}
@@ -618,8 +619,6 @@ export function Dashboard() {
               remoteControlEnabled={remoteControlEnabled}
               phoneSubscribers={serviceState.panel?.phoneSubscribers ?? 0}
               onPairPhoneOpen={() => setPairPhoneOpen(true)}
-              onUpdateOpen={handleUpdateOpen}
-              onInstall={handleInstall}
               activeDeviceKey={section === 'system' && activeView === 'device' ? (subtab ?? '') : ''}
               onDeviceSelect={k => navigate('system', 'device', k)}
               onDevicesHeaderClick={() => navigate('system', 'devices')}

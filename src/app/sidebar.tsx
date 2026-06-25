@@ -100,16 +100,15 @@ export function NotConnectedBadge({ state, t, compact }: {
   return compact ? <HoverTooltip body={label} side="right">{node}</HoverTooltip> : node;
 }
 
-// ── Sidebar footer (debug + version) ────────────────────────────────────────
+// ── Top-bar status slots (conflict + update alerts) ─────────────────────────
 
 /**
- * Bottom-left sidebar conflict warning slot. The `disableConflictAlerts`
+ * Conflict warning slot for the top bar. The `disableConflictAlerts`
  * UiSettings pref gates the WebSocket subscription and is the same flag the
  * in-modal "Don't show again" checkbox persists.
  */
-export function SidebarConflictSlot({ serviceOnline, compact }: {
+export function ConflictStatusSlot({ serviceOnline }: {
   serviceOnline: boolean;
-  compact: boolean;
 }) {
   const { settings, update } = useUiSettings();
   const enabled = serviceOnline && !settings.disableConflictAlerts;
@@ -120,15 +119,13 @@ export function SidebarConflictSlot({ serviceOnline, compact }: {
   return (
     <ConflictWarningBadge
       conflicts={conflicts}
-      compact={compact}
       onDismissForever={() => update({ disableConflictAlerts: true })}
     />
   );
 }
 
-export function SidebarUpdateSlot({ serviceOnline, compact, onOpen, onInstall }: {
+export function UpdateStatusSlot({ serviceOnline, onOpen, onInstall }: {
   serviceOnline: boolean;
-  compact: boolean;
   onOpen: () => void;
   onInstall: () => void;
 }) {
@@ -167,7 +164,6 @@ export function SidebarUpdateSlot({ serviceOnline, compact, onOpen, onInstall }:
   return (
     <UpdateBadge
       updateMode={updateMode}
-      compact={compact}
       onOpen={onOpen}
       onInstall={onInstall}
     />

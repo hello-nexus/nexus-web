@@ -1,0 +1,36 @@
+// Tinted icon-only alert button in the top bar's right cluster. Matches the
+// footprint of the bar's other icon buttons but stays coloured at rest to flag
+// an active state (conflict / update), washing its tone on hover.
+.button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+}
+
+.warn {
+  color: var(--warn);
+
+  &:hover {
+    background: color-mix(in srgb, var(--warn) 18%, transparent);
+  }
+}
+
+.good {
+  color: var(--good);
+
+  &:hover {
+    background: color-mix(in srgb, var(--good) 18%, transparent);
+  }
+}

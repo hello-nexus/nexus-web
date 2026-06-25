@@ -168,7 +168,6 @@
   "common.loading": "読み込み中...",
   "confirm.cancel": "キャンセル",
   "confirm.ok": "OK",
-  "conflicts.badge.label": "競合するアプリ {count} 件",
   "conflicts.badge.text": "アプリの競合",
   "conflicts.category.cooling": "冷却",
   "conflicts.category.lighting": "ライティング",

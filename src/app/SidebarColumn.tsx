@@ -5,11 +5,7 @@ import { Sidebar } from '../components/common/Sidebar/Sidebar';
 import { useUiSettings } from '../hooks/useUiSettings';
 import type { ServiceState } from '../hooks/useServiceState';
 import { useTranslation } from '../lib/i18n';
-import {
-  SidebarBrand,
-  SidebarConflictSlot,
-  SidebarUpdateSlot,
-} from './sidebar';
+import { SidebarBrand } from './sidebar';
 import { PairPhoneButton } from './PairPhoneModal';
 import { SidebarContextMenu } from './SidebarContextMenu';
 import { SidebarDevicesSection } from './SidebarDevicesSection';
@@ -44,8 +40,6 @@ interface SidebarColumnProps {
   remoteControlEnabled: boolean;
   phoneSubscribers: number;
   onPairPhoneOpen: () => void;
-  onUpdateOpen: () => void;
-  onInstall: () => void;
   // Device-page routing - surfaced from Dashboard so the sidebar's
   // DEVICES section can both highlight the active device and navigate
   // into a fresh device page on click.
@@ -69,8 +63,6 @@ export function SidebarColumn({
   remoteControlEnabled,
   phoneSubscribers,
   onPairPhoneOpen,
-  onUpdateOpen,
-  onInstall,
   activeDeviceKey,
   onDeviceSelect,
   onDevicesHeaderClick,
@@ -187,8 +179,6 @@ export function SidebarColumn({
         compact={compact}
         onClick={onPairPhoneOpen}
       />
-      <SidebarConflictSlot serviceOnline={online} compact={compact} />
-      <SidebarUpdateSlot serviceOnline={online} compact={compact} onOpen={onUpdateOpen} onInstall={onInstall} />
       {ctxMenu && (
         <SidebarContextMenu
           x={ctxMenu.x}

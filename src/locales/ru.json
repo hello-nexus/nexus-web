@@ -168,7 +168,6 @@
   "common.loading": "Загрузка...",
   "confirm.cancel": "Отмена",
   "confirm.ok": "ОК",
-  "conflicts.badge.label": "Конфликтующих приложений: {count}",
   "conflicts.badge.text": "Конфликт приложений",
   "conflicts.category.cooling": "Охлаждение",
   "conflicts.category.lighting": "Подсветка",

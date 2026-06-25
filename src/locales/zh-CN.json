@@ -168,7 +168,6 @@
   "common.loading": "加载中...",
   "confirm.cancel": "取消",
   "confirm.ok": "确定",
-  "conflicts.badge.label": "{count} 个冲突应用",
   "conflicts.badge.text": "应用冲突",
   "conflicts.category.cooling": "散热",
   "conflicts.category.lighting": "灯效",

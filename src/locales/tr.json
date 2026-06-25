@@ -168,7 +168,6 @@
   "common.loading": "Yukleniyor...",
   "confirm.cancel": "İptal",
   "confirm.ok": "Tamam",
-  "conflicts.badge.label": "{count} çakışan uygulama",
   "conflicts.badge.text": "Uygulama çakışması",
   "conflicts.category.cooling": "Soğutma",
   "conflicts.category.lighting": "Aydınlatma",
