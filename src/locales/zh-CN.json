@@ -1799,7 +1799,6 @@
   "update.badge.labelReady": "安装更新",
   "update.menu.check": "检查更新",
   "update.modal.alwaysModeNote": "此更新将在下次 Nexus 重启时自动安装。",
-  "update.modal.cancel": "取消",
   "update.modal.checkFailed": "无法检查更新，请重试。",
   "update.modal.checkNow": "检查更新",
   "update.modal.close": "关闭",
@@ -1823,6 +1822,5 @@
   "update.modal.upToDate": "您已是最新版本。",
   "update.modal.updateNow": "立即更新",
   "update.modal.verifying": "验证中...",
-  "update.modal.version": "版本 {version}",
-  "update.modal.whatsNewTitle": "已更新到 {version} - 新功能"
+  "update.modal.version": "版本 {version}"
 }

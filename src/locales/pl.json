@@ -1799,7 +1799,6 @@
   "update.badge.labelReady": "Zainstaluj aktualizację",
   "update.menu.check": "Sprawdź aktualizacje",
   "update.modal.alwaysModeNote": "Ta aktualizacja zostanie automatycznie zainstalowana przy następnym uruchomieniu aplikacji Nexus.",
-  "update.modal.cancel": "Anuluj",
   "update.modal.checkFailed": "Nie udało się sprawdzić aktualizacji. Spróbuj ponownie.",
   "update.modal.checkNow": "Sprawdź aktualizacje",
   "update.modal.close": "Zamknij",
@@ -1823,6 +1822,5 @@
   "update.modal.upToDate": "Masz najnowszą wersję.",
   "update.modal.updateNow": "Aktualizuj teraz",
   "update.modal.verifying": "Weryfikacja...",
-  "update.modal.version": "Wersja {version}",
-  "update.modal.whatsNewTitle": "Zaktualizowano do {version} - Co nowego"
+  "update.modal.version": "Wersja {version}"
 }

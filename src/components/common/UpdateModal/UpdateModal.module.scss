@@ -36,11 +36,16 @@
   gap: 0.375rem;
   width: fit-content;
   max-width: 100%;
-  margin: 0 auto;
+  margin: 0;
   padding: 0.5rem 0.85rem;
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+
+  .version,
+  .versionUpgrade {
+    font-size: var(--type-body);
+  }
 }
 
 .versionUpgrade {
@@ -147,6 +152,7 @@
 
 .notesH1 {
   @include text-body;
+  font-size: var(--type-small);
   margin: 0;
   font-weight: var(--weight-heading);
   color: var(--text);
@@ -154,6 +160,7 @@
 
 .notesH2 {
   @include text-body;
+  font-size: var(--type-small);
   font-weight: var(--weight-heading);
   margin: 0;
   color: var(--text);
@@ -167,6 +174,7 @@
 
 .notesP {
   @include text-body;
+  font-size: var(--type-small);
   margin: 0;
   color: var(--text);
 }
@@ -180,6 +188,7 @@
 
   li {
     @include text-body;
+    font-size: var(--type-small);
     color: var(--text);
   }
 }
@@ -191,16 +200,28 @@
   gap: 0.35rem;
   color: var(--accent-glow);
   text-decoration: none;
-  margin-right: auto;
+  align-self: flex-start;
 
   &:hover { text-decoration: underline; }
 }
 
 .actions {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 1.25rem;
   padding-top: 0.5rem;
   margin-top: auto;
+}
+
+.buttonRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.buttonRowRight {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }

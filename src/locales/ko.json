@@ -1799,7 +1799,6 @@
   "update.badge.labelReady": "업데이트 설치",
   "update.menu.check": "업데이트 확인",
   "update.modal.alwaysModeNote": "이 업데이트는 다음 번에 Nexus가 재시작될 때 자동으로 설치됩니다.",
-  "update.modal.cancel": "취소",
   "update.modal.checkFailed": "업데이트를 확인할 수 없습니다. 다시 시도해 주세요.",
   "update.modal.checkNow": "업데이트 확인",
   "update.modal.close": "닫기",
@@ -1823,6 +1822,5 @@
   "update.modal.upToDate": "최신 버전을 사용하고 있습니다.",
   "update.modal.updateNow": "지금 업데이트",
   "update.modal.verifying": "확인 중...",
-  "update.modal.version": "버전 {version}",
-  "update.modal.whatsNewTitle": "{version} 으로 업데이트됨 - 새 기능"
+  "update.modal.version": "버전 {version}"
 }

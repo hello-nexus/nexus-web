@@ -1799,7 +1799,6 @@
   "update.badge.labelReady": "Güncellemeyi yükle",
   "update.menu.check": "Güncellemeleri kontrol et",
   "update.modal.alwaysModeNote": "Bu güncelleme, Nexus bir sonraki başlatılışında otomatik olarak yüklenecektir.",
-  "update.modal.cancel": "İptal",
   "update.modal.checkFailed": "Güncellemeler kontrol edilemedi. Lütfen tekrar dene.",
   "update.modal.checkNow": "Güncellemeleri kontrol et",
   "update.modal.close": "Kapat",
@@ -1823,6 +1822,5 @@
   "update.modal.upToDate": "En güncel sürümdeydiniz.",
   "update.modal.updateNow": "Şimdi güncelle",
   "update.modal.verifying": "Doğrulanıyor...",
-  "update.modal.version": "Sürüm {version}",
-  "update.modal.whatsNewTitle": "{version} sürümüne güncellendi - Yenilikler"
+  "update.modal.version": "Sürüm {version}"
 }

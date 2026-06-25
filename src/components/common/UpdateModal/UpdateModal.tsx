@@ -280,9 +280,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
 
   let title = t('update.modal.title');
   if (view === 'reconnecting' && !reconnectGaveUp) title = t('update.modal.reconnecting');
-  if (view === 'whatsNew' && whatsNewVersion) {
-    title = t('update.modal.whatsNewTitle', { version: whatsNewVersion });
-  }
 
   return (
     <DeviceModal
@@ -365,25 +362,25 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
                 <GithubGlyph size={13} />
                 {t('update.modal.releases')}
               </a>
-              {view === 'notes' && (
-                <Button tone="neutral" size="md" loading={checking} onClick={handleCheck}>
-                  {t('update.modal.checkNow')}
-                </Button>
-              )}
-              {view === 'notes' && status?.updateMode === 'notify' && status?.updateAvailable && !isFailed && !startError && (
-                <Button tone="accent" size="md" loading={starting} onClick={handleUpdateNow}>
-                  {t('update.modal.downloadAndInstall')}
-                </Button>
-              )}
-              {view === 'notes' && status?.updateMode === 'notify' && status?.updateAvailable && !isFailed && !startError ? (
-                <Button tone="neutral" size="md" onClick={onClose}>
-                  {t('update.modal.cancel')}
-                </Button>
-              ) : (
-                <Button tone="neutral" size="md" onClick={onClose}>
-                  {t('update.modal.close')}
-                </Button>
-              )}
+              <div className={styles.buttonRow}>
+                {view === 'notes' && (
+                  <Button tone="neutral" size="md" loading={checking} onClick={handleCheck}>
+                    {t('update.modal.checkNow')}
+                  </Button>
+                )}
+                <div className={styles.buttonRowRight}>
+                  {view === 'notes' && status?.updateAvailable && !isFailed && !startError && (
+                    <Button tone="accent" size="md" loading={starting} onClick={handleUpdateNow}>
+                      {t('update.modal.downloadAndInstall')}
+                    </Button>
+                  )}
+                  {(view === 'whatsNew' || reconnectGaveUp) && (
+                    <Button tone="neutral" size="md" onClick={onClose}>
+                      {t('update.modal.close')}
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
