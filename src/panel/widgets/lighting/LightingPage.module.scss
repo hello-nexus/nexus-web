@@ -423,6 +423,19 @@
   min-height: 0;
 }
 
+// Label + Select dropdown for effect params that carry `options`.
+.paramEnumRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.paramEnumLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
 // Pinned-to-bottom footer holding the scoped Reset button; stays
 // visible while the slider list scrolls.
 .drawerFooter {
