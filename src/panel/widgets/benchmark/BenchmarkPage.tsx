@@ -13,12 +13,12 @@ import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { GenericSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { Button } from '../../../components/common/Button/Button';
-import { Card } from '../../../components/common/Card/Card';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { getDeviceId, getLastSubmissionId, setLastSubmissionId, submitBenchmark } from '../../../api/nexusApi';
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
 import { LeaderboardView } from './LeaderboardView';
+import { SpecBlock } from './SpecBlock';
 import styles from './BenchmarkPage.module.scss';
 
 type BenchmarkTab = 'run' | 'results' | 'leaderboards';
@@ -38,18 +38,6 @@ const SPEC_BLOCKS: Array<{
   { key: 'storage', icon: <HardDrive size={28} />, labelKey: 'benchmark.phase.storage', get: s => s.storage },
   { key: 'os', icon: <AppWindow size={28} />, labelKey: 'benchmark.leaderboard.os', get: s => s.osBuild },
 ];
-
-function SpecBlock({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return (
-    <Card className={styles.specBlock}>
-      <div className={styles.specInner}>
-        <span className={styles.specIcon}>{icon}</span>
-        <span className={styles.specLabel}>{label}</span>
-        <span className={styles.specValue} title={value}>{value || '-'}</span>
-      </div>
-    </Card>
-  );
-}
 
 interface BenchmarkPageProps {
   serviceOnline: boolean;
