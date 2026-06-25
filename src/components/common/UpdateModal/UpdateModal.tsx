@@ -36,9 +36,17 @@ function phaseLabel(t: (key: string) => string, phase: UpdatePhase): string {
   }
 }
 
+// Only http(s) are linkified; a release-notes URL with any other scheme
+// (javascript:, data:) renders as plain text so author markdown can't inject
+// an active link.
+function isSafeHref(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
 function renderInline(text: string): React.ReactNode {
-  // Bold alternative is listed first so ** is matched before the single-* italic rule.
-  const parts = text.split(/(\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g);
+  // Order matters: ** before single-* so bold wins; markdown links before bare
+  // URLs so a [text](url) link's own URL isn't matched a second time.
+  const parts = text.split(/(\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s)]+)/g);
   if (parts.length === 1) return text;
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -47,6 +55,26 @@ function renderInline(text: string): React.ReactNode {
     if (part.length >= 2
       && ((part.startsWith('_') && part.endsWith('_')) || (part.startsWith('*') && part.endsWith('*')))) {
       return <em key={i}>{part.slice(1, -1)}</em>;
+    }
+    const mdLink = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (mdLink && isSafeHref(mdLink[2])) {
+      return (
+        <a key={i} className={styles.notesLink} href={mdLink[2]} target="_blank" rel="noopener noreferrer">
+          {mdLink[1]}
+        </a>
+      );
+    }
+    if (isSafeHref(part)) {
+      // Peel trailing sentence punctuation so a prose URL like "see https://x."
+      // doesn't bake the period into the href; render it as text after the link.
+      const trail = part.match(/[.,;:!?]+$/)?.[0] ?? '';
+      const href = trail ? part.slice(0, -trail.length) : part;
+      return (
+        <span key={i}>
+          <a className={styles.notesLink} href={href} target="_blank" rel="noopener noreferrer">{href}</a>
+          {trail}
+        </span>
+      );
     }
     return part;
   });

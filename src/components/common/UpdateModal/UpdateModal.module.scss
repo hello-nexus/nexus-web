@@ -205,6 +205,17 @@
   &:hover { text-decoration: underline; }
 }
 
+// Inline links inside rendered release-notes markdown. Inherit the body font
+// from the surrounding <p>/<li>; break long bare URLs so they don't overflow
+// the notes box's horizontal bound.
+.notesLink {
+  color: var(--accent-glow);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+
+  &:hover { text-decoration: underline; }
+}
+
 .actions {
   display: flex;
   flex-direction: column;
