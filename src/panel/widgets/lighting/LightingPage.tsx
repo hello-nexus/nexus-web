@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Gamepad2 } from 'lucide-react';
+import { Gamepad2, Music } from 'lucide-react';
 import {
   startAnimate, startScreenMirror, stopLighting, startGameSync,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
@@ -946,10 +946,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                           onClick={handleMusicReactiveToggle}
                           aria-label={t('lighting.musicReactive')}
                         >
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />
-                            <circle cx="10.5" cy="9.5" r="1.5" />
-                          </svg>
+                          <Music size={14} strokeWidth={1.5} />
                         </button>
                       </HoverTooltip>
                     )}
