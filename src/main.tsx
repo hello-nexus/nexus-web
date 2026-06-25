@@ -10,6 +10,8 @@ import './styles/global.scss';
 import { loadSettings, applyThemeMode, applyAccentColor, applyBackgroundMode, watchSystemTheme } from './lib/settings';
 import { bootDebugFont } from './lib/debugFont';
 import { preloadInstallDefaults } from './api/installDefaultsCache';
+import { isRemoteOrigin } from './api/service';
+import { initMemoryProbe } from './diag/memoryProbe';
 
 // Apply persisted theme mode + accent color before first paint so there's
 // no flash of the default violet.
@@ -25,6 +27,12 @@ bootDebugFont();
 // panel surface layouts. Not awaited - the network round-trip resolves
 // faster than the first hook that needs it.
 void preloadInstallDefaults();
+
+// Local WebView2 surfaces (dashboard / overlay / Y70 panel) report renderer
+// memory + health to the service log so a field memory leak leaves a trace.
+// Skipped on remote origins (phones, public website) - the leaking surface is
+// always a local renderer and the endpoint is loopback-only.
+if (!isRemoteOrigin) initMemoryProbe();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
