@@ -32,6 +32,7 @@
   "benchmark.leaderboard.loading": "Lider tablosu yükleniyor...",
   "benchmark.leaderboard.os": "İşletim Sistemi",
   "benchmark.leaderboard.rank": "Sıra",
+  "benchmark.leaderboard.retry": "Yeniden dene",
   "benchmark.leaderboard.score": "Puan",
   "benchmark.leaderboard.title": "Lider Tablosu",
   "benchmark.leaderboard.tools": "Benchmark araçları",

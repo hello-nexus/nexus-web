@@ -32,6 +32,7 @@
   "benchmark.leaderboard.loading": "Chargement du classement...",
   "benchmark.leaderboard.os": "Système d'exploitation",
   "benchmark.leaderboard.rank": "Rang",
+  "benchmark.leaderboard.retry": "Réessayer",
   "benchmark.leaderboard.score": "Score",
   "benchmark.leaderboard.title": "Classement",
   "benchmark.leaderboard.tools": "Outils de benchmark",

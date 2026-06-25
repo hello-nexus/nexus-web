@@ -32,6 +32,7 @@
   "benchmark.leaderboard.loading": "Loading leaderboard...",
   "benchmark.leaderboard.os": "OS",
   "benchmark.leaderboard.rank": "Rank",
+  "benchmark.leaderboard.retry": "Retry",
   "benchmark.leaderboard.score": "Score",
   "benchmark.leaderboard.title": "Leaderboard",
   "benchmark.leaderboard.tools": "Benchmark tools",

@@ -32,6 +32,7 @@
   "benchmark.leaderboard.loading": "Загрузка таблицы лидеров...",
   "benchmark.leaderboard.os": "ОС",
   "benchmark.leaderboard.rank": "Место",
+  "benchmark.leaderboard.retry": "Повторить",
   "benchmark.leaderboard.score": "Счёт",
   "benchmark.leaderboard.title": "Таблица лидеров",
   "benchmark.leaderboard.tools": "Инструменты тестирования",

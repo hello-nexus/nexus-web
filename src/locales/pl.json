@@ -32,6 +32,7 @@
   "benchmark.leaderboard.loading": "Ładowanie tablicy wyników...",
   "benchmark.leaderboard.os": "System operacyjny",
   "benchmark.leaderboard.rank": "Miejsce",
+  "benchmark.leaderboard.retry": "Ponów",
   "benchmark.leaderboard.score": "Wynik",
   "benchmark.leaderboard.title": "Tablica wyników",
   "benchmark.leaderboard.tools": "Narzędzia benchmarkowe",

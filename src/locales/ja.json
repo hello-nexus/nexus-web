@@ -32,6 +32,7 @@
   "benchmark.leaderboard.loading": "リーダーボードを読み込み中...",
   "benchmark.leaderboard.os": "OS",
   "benchmark.leaderboard.rank": "順位",
+  "benchmark.leaderboard.retry": "再試行",
   "benchmark.leaderboard.score": "スコア",
   "benchmark.leaderboard.title": "リーダーボード",
   "benchmark.leaderboard.tools": "ベンチマークツール",

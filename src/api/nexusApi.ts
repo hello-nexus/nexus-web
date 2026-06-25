@@ -102,20 +102,29 @@ export interface LeaderboardParams {
 }
 
 export async function getLeaderboard(params: LeaderboardParams = {}): Promise<LeaderboardResponse | null> {
-  try {
-    const qs = new URLSearchParams();
-    if (params.scoringVersion) qs.set('scoringVersion', params.scoringVersion);
-    if (params.category) qs.set('category', params.category);
-    if (params.componentId) qs.set('componentId', params.componentId);
-    if (params.limit != null) qs.set('limit', String(params.limit));
-    if (params.offset != null) qs.set('offset', String(params.offset));
-    const query = qs.toString();
-    const res = await fetch(`${BASE}/benchmarks/leaderboard${query ? `?${query}` : ''}`);
-    if (!res.ok) return null;
-    return (await res.json()) as LeaderboardResponse;
-  } catch {
-    return null;
+  const qs = new URLSearchParams();
+  if (params.scoringVersion) qs.set('scoringVersion', params.scoringVersion);
+  if (params.category) qs.set('category', params.category);
+  if (params.componentId) qs.set('componentId', params.componentId);
+  if (params.limit != null) qs.set('limit', String(params.limit));
+  if (params.offset != null) qs.set('offset', String(params.offset));
+  const query = qs.toString();
+  const url = `${BASE}/benchmarks/leaderboard${query ? `?${query}` : ''}`;
+  // The cloud API can cold-start: the first request after idle can 502/503 or
+  // time out. A single failure would dead-end the leaderboard view, so retry
+  // transient failures (network error / 5xx / 429) with backoff before giving
+  // up. A non-transient 4xx returns null immediately.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return (await res.json()) as LeaderboardResponse;
+      if (res.status < 500 && res.status !== 429) return null;
+    } catch {
+      // network error: fall through to retry
+    }
+    if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
   }
+  return null;
 }
 
 /** Stable per-browser device id stored in localStorage. Generated lazily. */

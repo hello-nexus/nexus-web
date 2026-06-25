@@ -32,6 +32,7 @@
   "benchmark.leaderboard.loading": "A carregar placar...",
   "benchmark.leaderboard.os": "Sistema operativo",
   "benchmark.leaderboard.rank": "Posição",
+  "benchmark.leaderboard.retry": "Tentar novamente",
   "benchmark.leaderboard.score": "Pontuação",
   "benchmark.leaderboard.title": "Placar",
   "benchmark.leaderboard.tools": "Ferramentas de benchmark",
