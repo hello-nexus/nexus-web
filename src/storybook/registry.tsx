@@ -1602,7 +1602,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ImmersiveLayout / ImmersiveCell', category: 'panel-kit',
     filePath: 'src/panel/widgets/common/ImmersiveLayout.tsx',
-    description: 'Layout grid for a widget\'s fullscreen immersive page: cellsPerPage adapts to the panel orientation (2 stacked on portrait, 2 side-by-side on landscape, 3 on Y70 portrait). ImmersiveCell wraps each region.',
+    description: 'Layout grid for a widget\'s fullscreen immersive page: cellsPerPage adapts to the panel grid (2 stacked on a 4x6/4x8 phone portrait, 2 side-by-side on landscape, 3 on Y70 portrait). ImmersiveCell wraps each region.',
     notes: 'No live preview - sized by the immersive overlay surface.',
   },
   {

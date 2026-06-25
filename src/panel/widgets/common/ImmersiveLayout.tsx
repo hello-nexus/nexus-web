@@ -21,6 +21,7 @@ interface ImmersiveLayoutProps {
   //   4 cols x 8 rows  -> 2 (stacked vertically)
   //   8 cols x 4 rows  -> 2 (side by side)
   //   4 cols x 12 rows -> 3 (Y70 portrait)
+  //   4 cols x 6 rows  -> 2 (phone portrait with the browser URL bar visible)
   cellsPerPage?: number;
 }
 
@@ -33,8 +34,18 @@ export function ImmersiveLayout({
 }: ImmersiveLayoutProps) {
   const orientation: 'portrait' | 'landscape' =
     gridRows >= gridColumns ? 'portrait' : 'landscape';
+  // Cells per page along the long axis. With fillLast the last cell absorbs the
+  // partial remainder, so a page holds ceil(long/4): the fixed cells at a true
+  // 4x4 plus one fill cell taking what is left. floor would drop the fill cell
+  // to its own page when the long axis is not a multiple of 4 - e.g. a phone
+  // portrait at 4x6 (the runtime grid loses a row pair to the browser URL bar):
+  // floor(6/4)=1 splits a 2-cell widget across 2 pages, ceil(6/4)=2 keeps it on
+  // one. A no-op where the long axis is a multiple of 4 (8/12/16; the Q60's 4
+  // stays at 1 per page). The all-fixed case (fillLast=false) needs a full 4x4
+  // per cell, so it floors.
+  const longAxis = Math.max(gridColumns, gridRows);
   const fitPerPage = cellsPerPage
-    ?? Math.max(1, Math.floor(Math.max(gridColumns, gridRows) / 4));
+    ?? Math.max(1, fillLast ? Math.ceil(longAxis / 4) : Math.floor(longAxis / 4));
 
   // Length of one fixed 4x4 cell as a FRACTION of the immersive page: 4 grid
   // rows tall in portrait, 4 grid columns wide in landscape. A row-count ratio
