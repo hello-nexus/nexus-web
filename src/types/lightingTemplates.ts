@@ -165,7 +165,7 @@ const SIGNATURES: Record<string, Feel> = {
   harmonicstar:   { hue: 0.60, colorize: 0.30, speed: 55, saturation: 1.15, contrast: 1.10, intensity: 1 },
   audiotunnel:    { hue: 0.45, colorize: 0.35, speed: 60, saturation: 1.15, contrast: 1.10, intensity: 1 },
   bassbloom:      { hue: 0.85, colorize: 0.35, speed: 45, saturation: 1.15, contrast: 1.10, intensity: 1 },
-  beatbuilder:    { hue: 0.50, colorize: 0.00, speed: 50, saturation: 1.00, contrast: 1.00, intensity: 1 },
+  beatbuilder:    { hue: 0.00, colorize: 0.00, speed: 50, saturation: 1.00, contrast: 1.00, intensity: 1 },
 };
 
 /**
@@ -596,10 +596,10 @@ const PARAM_VARIATIONS: Record<string, [Record<string, number>, Record<string, n
     { u_petals: 8,  u_shimmer: 1.3, u_bloomSize: 0.45 },
   ],
   beatbuilder: [
-    { u_centerStyle: 2, u_colorMode: 1, u_barCount: 48, u_barWidth: 0.7 },
-    { u_centerStyle: 0, u_colorMode: 1, u_barCount: 56, u_barWidth: 0.8 },
-    { u_centerStyle: 3, u_colorMode: 0, u_barCount: 40, u_barWidth: 0.8 },
-    { u_centerStyle: 1, u_colorMode: 1, u_centerSize: 0.9 },
+    { u_centerStyle: 3, u_colorMode: 1, u_barWidth: 0.85, u_centerSize: 0.9, u_beatPulse: 0.3 },
+    { u_centerStyle: 0, u_colorMode: 0, u_barCount: 56, u_barWidth: 0.8, u_centerGain: 1.3, u_flash: 0.5, u_beatPulse: 0.5 },
+    { u_centerStyle: 2, u_colorMode: 0, u_centerGain: 1.5, u_hueCycle: 0.6, u_flash: 0.9, u_beatColor: 0.6, u_bgLevel: 0.1 },
+    { u_centerStyle: 1, u_colorMode: 0, u_centerSize: 0.95, u_beatPulse: 0.6, u_beatColor: 0.5, u_bgLevel: 0.15 },
   ],
 };
 
