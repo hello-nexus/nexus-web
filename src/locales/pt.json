@@ -1724,6 +1724,7 @@
   "supported.pageOf": "Pagina {n} de {total}",
   "supported.prev": "Anterior",
   "supported.searchPlaceholder": "Pesquisar por marca ou modelo...",
+  "supported.source.drivenBy": "Controlado por {name}",
   "supported.title": "Dispositivos suportados",
   "tools.fontDebug.description": "Testa candidatos de tipos de letra robustos no chrome do ambiente de trabalho e na superfície de quiosque do painel em sincronia. Escolha o primeiro mosaico para repor as predefinições.",
   "tools.fontDebug.title": "Depurar tipo de letra",

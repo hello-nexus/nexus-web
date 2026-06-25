@@ -1724,6 +1724,7 @@
   "supported.pageOf": "{total}ページ中{n}ページ",
   "supported.prev": "前へ",
   "supported.searchPlaceholder": "ブランドまたはモデルで検索...",
+  "supported.source.drivenBy": "{name} で動作",
   "supported.title": "対応デバイス",
   "tools.fontDebug.description": "太字フォントの候補を、デスクトップのクロームとパネルのキオスク画面で同時に並べて確認します。最初のタイルを選ぶとデフォルトに戻ります。",
   "tools.fontDebug.title": "フォントをデバッグ",

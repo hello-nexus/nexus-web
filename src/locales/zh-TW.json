@@ -1724,6 +1724,7 @@
   "supported.pageOf": "第 {n} 頁,共 {total} 頁",
   "supported.prev": "上一頁",
   "supported.searchPlaceholder": "依品牌或型號搜尋...",
+  "supported.source.drivenBy": "由 {name} 驅動",
   "supported.title": "支援的裝置",
   "tools.fontDebug.description": "在桌面外框與面板 kiosk 介面上同步試用粗體字型候選。選取第一個圖塊以還原為預設值。",
   "tools.fontDebug.title": "偵錯字型",

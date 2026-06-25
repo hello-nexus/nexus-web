@@ -1724,6 +1724,7 @@
   "supported.pageOf": "Strona {n} z {total}",
   "supported.prev": "Poprz.",
   "supported.searchPlaceholder": "Szukaj po marce lub modelu...",
+  "supported.source.drivenBy": "Obsługiwane przez {name}",
   "supported.title": "Obslugiwane urzadzenia",
   "tools.fontDebug.description": "Testuj jednocześnie pogrubione kandydatury czcionek w interfejsie desktopowym i na powierzchni kiosku panelu. Wybierz pierwszy kafelek, aby przywrócić domyślne.",
   "tools.fontDebug.title": "Debugowanie czcionki",

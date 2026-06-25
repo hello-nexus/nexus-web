@@ -1724,6 +1724,7 @@
   "supported.pageOf": "Страница {n} из {total}",
   "supported.prev": "Назад",
   "supported.searchPlaceholder": "Поиск по бренду или модели...",
+  "supported.source.drivenBy": "Работает на {name}",
   "supported.title": "Поддерживаемые устройства",
   "tools.fontDebug.description": "Подберите варианты массивных шрифтов одновременно в хроме рабочего стола и на киоск-поверхности панели. Выберите первую плитку, чтобы вернуться к значениям по умолчанию.",
   "tools.fontDebug.title": "Отладка шрифта",

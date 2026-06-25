@@ -90,6 +90,15 @@ export function GithubGlyph({ size = 15 }: { size?: number }) {
   );
 }
 
+// OpenRGB mark (ring with plug tab); fills with currentColor.
+export function OpenRgbGlyph({ size = 14 }: { size?: number }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden={true} focusable="false">
+      <path d="M12 1a9 9 0 1 1 0 18 9 9 0 1 1 0-18zM12 4a6 6 0 1 0 0 12 6 6 0 1 0 0-12zM10.5 13L13.5 13 13.5 16 16 16 16 22 8 22 8 16 10.5 16z" />
+    </svg>
+  );
+}
+
 // Discord mark (lucide dropped its brand icons); fills with currentColor.
 export function DiscordGlyph({ size = 15 }: { size?: number }) {
   return (

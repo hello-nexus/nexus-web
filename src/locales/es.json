@@ -1724,6 +1724,7 @@
   "supported.pageOf": "Página {n} de {total}",
   "supported.prev": "Anterior",
   "supported.searchPlaceholder": "Buscar por marca o modelo...",
+  "supported.source.drivenBy": "Impulsado por {name}",
   "supported.title": "Dispositivos compatibles",
   "tools.fontDebug.description": "Prueba candidatas de fuente robusta en el cromo del escritorio y en la superficie del panel en quiosco a la vez. Elige la primera casilla para volver a los valores predeterminados.",
   "tools.fontDebug.title": "Depurar fuente",

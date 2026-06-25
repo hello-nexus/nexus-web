@@ -1724,6 +1724,7 @@
   "supported.pageOf": "第 {n} 页,共 {total} 页",
   "supported.prev": "上一页",
   "supported.searchPlaceholder": "按品牌或型号搜索...",
+  "supported.source.drivenBy": "由 {name} 驱动",
   "supported.title": "支持的设备",
   "tools.fontDebug.description": "在桌面框架与面板自助界面上同步试用粗体字候选。选择第一个图块可恢复默认值。",
   "tools.fontDebug.title": "调试字体",

@@ -1724,6 +1724,7 @@
   "supported.pageOf": "Pagina {n} di {total}",
   "supported.prev": "Precedente",
   "supported.searchPlaceholder": "Cerca per marca o modello...",
+  "supported.source.drivenBy": "Gestito da {name}",
   "supported.title": "Dispositivi supportati",
   "tools.fontDebug.description": "Prova i caratteri grafici corposi candidati sull'interfaccia del desktop e sulla superficie kiosk del pannello in parallelo. Scegli il primo riquadro per tornare ai valori predefiniti.",
   "tools.fontDebug.title": "Font di debug",

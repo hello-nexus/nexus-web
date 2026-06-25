@@ -1724,6 +1724,7 @@
   "supported.pageOf": "Page {n} sur {total}",
   "supported.prev": "Précédent",
   "supported.searchPlaceholder": "Recherche par marque ou modèle...",
+  "supported.source.drivenBy": "Propulsé par {name}",
   "supported.title": "Appareils pris en charge",
   "tools.fontDebug.description": "Testez des candidats de polices épaisses sur le chrome du bureau et la surface kiosque du panneau en parallèle. Choisissez la première tuile pour revenir aux valeurs par défaut.",
   "tools.fontDebug.title": "Police de débogage",

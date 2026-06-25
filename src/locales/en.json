@@ -1743,6 +1743,7 @@
   "supported.pageOf": "Page {n} of {total}",
   "supported.prev": "Prev",
   "supported.searchPlaceholder": "Search by brand or model...",
+  "supported.source.drivenBy": "Driven by {name}",
   "supported.title": "Supported Devices",
   "tools.fontDebug.description": "Audition chunky font candidates across the desktop chrome and the panel kiosk surface in lockstep. Pick the first tile to revert to defaults.",
   "tools.fontDebug.title": "Debug font",

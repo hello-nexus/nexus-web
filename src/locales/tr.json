@@ -1724,6 +1724,7 @@
   "supported.pageOf": "Sayfa {n} / {total}",
   "supported.prev": "Onceki",
   "supported.searchPlaceholder": "Marka veya model ara...",
+  "supported.source.drivenBy": "{name} tarafından çalıştırılır",
   "supported.title": "Desteklenen Cihazlar",
   "tools.fontDebug.description": "İri yazı tipi adaylarını masaüstü çerçevesi ve panel kiosk yüzeyinde eşzamanlı olarak deneyin. Varsayılanlara dönmek için ilk döşemeyi seçin.",
   "tools.fontDebug.title": "Yazı tipi hata ayıklama",

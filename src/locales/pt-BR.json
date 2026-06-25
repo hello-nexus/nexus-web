@@ -1724,6 +1724,7 @@
   "supported.pageOf": "Pagina {n} de {total}",
   "supported.prev": "Anterior",
   "supported.searchPlaceholder": "Buscar por marca ou modelo...",
+  "supported.source.drivenBy": "Controlado por {name}",
   "supported.title": "Dispositivos Suportados",
   "tools.fontDebug.description": "Teste candidatas de fonte robusta no chrome do desktop e na superfície de kiosk do painel em sincronia. Escolha o primeiro tile para reverter aos padrões.",
   "tools.fontDebug.title": "Depurar fonte",

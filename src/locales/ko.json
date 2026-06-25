@@ -1724,6 +1724,7 @@
   "supported.pageOf": "{total}페이지 중 {n}페이지",
   "supported.prev": "이전",
   "supported.searchPlaceholder": "브랜드 또는 모델 검색...",
+  "supported.source.drivenBy": "{name} 구동",
   "supported.title": "지원 장치",
   "tools.fontDebug.description": "데스크톱 크롬과 패널 키오스크 화면에서 두꺼운 폰트 후보를 동시에 비교해 보세요. 첫 번째 타일을 선택하면 기본값으로 되돌아갑니다.",
   "tools.fontDebug.title": "폰트 디버그",

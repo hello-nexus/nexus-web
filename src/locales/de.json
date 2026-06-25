@@ -1724,6 +1724,7 @@
   "supported.pageOf": "Seite {n} von {total}",
   "supported.prev": "Zurück",
   "supported.searchPlaceholder": "Suche nach Marke oder Modell...",
+  "supported.source.drivenBy": "Betrieben von {name}",
   "supported.title": "Unterstützte Geräte",
   "tools.fontDebug.description": "Testen Sie kräftige Schriftkandidaten im Gleichschritt über die Desktop-Oberfläche und die Panel-Kiosk-Fläche. Wählen Sie die erste Kachel, um zu den Standardwerten zurückzukehren.",
   "tools.fontDebug.title": "Schrift debuggen",
