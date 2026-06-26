@@ -596,9 +596,9 @@ const PARAM_VARIATIONS: Record<string, [Record<string, number>, Record<string, n
     { u_petals: 8,  u_shimmer: 1.3, u_bloomSize: 0.45 },
   ],
   beatbuilder: [
-    { u_centerStyle: 3, u_colorMode: 1, u_barWidth: 0.85, u_centerSize: 0.9, u_beatPulse: 0.3 },
-    { u_centerStyle: 0, u_colorMode: 0, u_barCount: 56, u_barWidth: 0.8, u_centerGain: 1.3, u_flash: 0.5, u_beatPulse: 0.5 },
-    { u_centerStyle: 2, u_colorMode: 0, u_centerGain: 1.5, u_hueCycle: 0.6, u_flash: 0.9, u_beatColor: 0.6, u_bgLevel: 0.1 },
+    { u_centerStyle: 0, u_colorMode: 1, u_barWidth: 0.85, u_centerSize: 0.9, u_beatPulse: 0.3 },
+    { u_centerStyle: 3, u_colorMode: 0, u_barCount: 56, u_barWidth: 0.8, u_centerGain: 1.3, u_flash: 0.5, u_beatPulse: 0.5 },
+    { u_centerStyle: 2, u_colorMode: 0, u_centerGain: 1.5, u_flash: 0.9, u_beatColor: 0.6, u_bgLevel: 0.1 },
     { u_centerStyle: 1, u_colorMode: 0, u_centerSize: 0.95, u_beatPulse: 0.6, u_beatColor: 0.5, u_bgLevel: 0.15 },
   ],
 };

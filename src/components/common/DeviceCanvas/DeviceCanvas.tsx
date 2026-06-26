@@ -47,10 +47,7 @@ interface DeviceCanvasProps {
 
 const CW = 1000;
 const CH = 600;
-// Inset device rectangles from the canvas border so they don't sit flush
-// against the edge when the window is maximized. Mirrors the small corner
-// offset used by the fullscreen button on the canvas area.
-const PAD = 12;
+const PAD = 0;
 
 type DragMode = 'move' | 'resize-br';
 

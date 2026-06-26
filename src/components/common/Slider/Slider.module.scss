@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 /* Unified slider primitive. Drives the inline (label | track | value),
    stacked (label/value above, full-width track below), and bare (track
    only) layouts. Typography of value/label is shared so all sliders read
@@ -18,9 +20,11 @@
 
 .stacked {
   flex-direction: column;
-  // Small gap between the label-row and the track so the value/label read as
-  // a caption directly above the bar.
-  gap: var(--slider-stack-gap, 0.05rem);
+  gap: var(--slider-stack-gap, 0);
+
+  .head {
+    @include text-button;
+  }
 }
 
 .bare {
