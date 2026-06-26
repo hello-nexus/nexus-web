@@ -216,10 +216,10 @@ export function PaletteRing({
   const triRadY = Math.sin(triRad);
   const triPerpX = -Math.sin(triRad);
   const triPerpY = Math.cos(triRad);
-  const triBaseCx = CX + R_INNER * triRadX;
-  const triBaseCy = CY + R_INNER * triRadY;
-  const triTipX = CX + (R_INNER - TRI_DEPTH) * triRadX;
-  const triTipY = CY + (R_INNER - TRI_DEPTH) * triRadY;
+  const triBaseCx = CX + (R_INNER - TRI_DEPTH) * triRadX;
+  const triBaseCy = CY + (R_INNER - TRI_DEPTH) * triRadY;
+  const triTipX = CX + R_INNER * triRadX;
+  const triTipY = CY + R_INNER * triRadY;
   const triPoints = [
     `${triBaseCx + TRI_HALF_BASE * triPerpX},${triBaseCy + TRI_HALF_BASE * triPerpY}`,
     `${triBaseCx - TRI_HALF_BASE * triPerpX},${triBaseCy - TRI_HALF_BASE * triPerpY}`,
