@@ -103,23 +103,29 @@ export function NotConnectedBadge({ state, t, compact }: {
 // ── Top-bar status slots (conflict + update alerts) ─────────────────────────
 
 /**
- * Conflict warning slot for the top bar. The `disableConflictAlerts`
- * UiSettings pref gates the WebSocket subscription and is the same flag the
- * in-modal "Don't show again" checkbox persists.
+ * Conflict warning slot for the top bar. Owns the modal `open` state and the
+ * `disableConflictAlerts` pref (the in-modal "Don't show again" checkbox
+ * toggles it), keeping the badge presentational.
  */
 export function ConflictStatusSlot({ serviceOnline }: {
   serviceOnline: boolean;
 }) {
   const { settings, update } = useUiSettings();
-  const enabled = serviceOnline && !settings.disableConflictAlerts;
+  const [open, setOpen] = useState(false);
+  const suppressed = settings.disableConflictAlerts;
+  // Keep the subscription alive while the modal is open even after the user
+  // suppresses alerts, so the list they are acting on stays live instead of
+  // collapsing to the "all clear" state mid-read.
+  const enabled = serviceOnline && (!suppressed || open);
   const conflicts = useConflictApps(enabled);
-
-  if (!enabled) return null;
 
   return (
     <ConflictWarningBadge
       conflicts={conflicts}
-      onDismissForever={() => update({ disableConflictAlerts: true })}
+      suppressed={suppressed}
+      open={open}
+      onOpenChange={setOpen}
+      onSuppressedChange={value => update({ disableConflictAlerts: value })}
     />
   );
 }

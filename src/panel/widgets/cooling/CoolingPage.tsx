@@ -1019,6 +1019,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                           : key.startsWith('minihub:') ? 'iBUYPOWER MiniHub'
                           // eslint-disable-next-line i18next/no-literal-string -- hardware product name
                           : key.startsWith('smarthub:') ? 'HYTE SmartHub'
+                          // eslint-disable-next-line i18next/no-literal-string -- hardware product name
+                          : key.startsWith('lianli:') ? 'Lian Li Uni Hub SL-Infinity'
                           : key);
                         return (
                           <CollapsibleSection

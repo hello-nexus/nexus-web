@@ -6,6 +6,7 @@ import { Placeholder } from '../Placeholder';
 import { PanelDevicePage } from './PanelDevicePage';
 import { PeripheralDevicePage } from './PeripheralDevicePage';
 import { KeebDevicePage } from './KeebDevicePage';
+import { LianLiDevicePage } from './LianLiDevicePage';
 import { Np50DevicePage } from './Np50DevicePage';
 import { SmartHubDevicePage } from './SmartHubDevicePage';
 import { CnvsDevicePage } from './CnvsDevicePage';
@@ -71,6 +72,10 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
 
   if (device.curatedId === 'keeb') {
     return <KeebDevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'lianli') {
+    return <LianLiDevicePage key={device.key} />;
   }
 
   if (device.curatedId === 'np50') {

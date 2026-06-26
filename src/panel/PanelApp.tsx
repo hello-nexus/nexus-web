@@ -42,7 +42,8 @@ import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
-import { useServiceStatus } from '../hooks/useServiceStatus';
+import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
+import { wiredPanelClass } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
 import {
   isPinnableAppKey,
@@ -279,7 +280,14 @@ export function PanelContent({
     applyHtmlChromeTheme(resolvedThemeMode);
   }, [embedded, simulator, resolvedThemeMode]);
   const nativeSettings = useNativeSettingsBridge(kioskBehavior && surface === 'phone');
-  const serviceStatus = useServiceStatus(kioskBehavior);
+  // A host-display panel (Y70/monitor) is the host's own loopback screen: a real
+  // service outage drops its connections at once, so a missed ping is almost
+  // always transient and it can ride one out instead of flipping offline and
+  // tearing down an open editor. Cabled surfaces (q60, USB phone) and WiFi/relay
+  // phones keep the instant offline response so a real unplug / signal loss
+  // surfaces right away.
+  const isHostDisplay = wiredPanelClass(surface) === 'host-display';
+  const serviceStatus = useServiceStatus(kioskBehavior, isHostDisplay ? HOST_DISPLAY_OFFLINE_GRACE_MS : 0);
   const multiplex = useMultiplex();
   // The context menu's "Pin to Sidebar" gates on the current pinned-tail
   // (only pinnable types not already pinned). Always inside a
@@ -313,7 +321,20 @@ export function PanelContent({
       setOverlayWidgets(list.map(w => ({ id: w.id, type: w.type })));
     });
   });
-  const isOffline = kioskBehavior && (serviceStatus.state === 'offline' || serviceStatus.state === 'offline-installed');
+  // The HTTP /ping shares the browser's 6-connection pool and the host's CPU
+  // with whatever the panel is doing, so a widget that floods the pool (deck
+  // app-icon loads) or pegs the box (a benchmark run) can starve the ping past
+  // its 3s abort and read "offline" while the service is fine. The multiplex
+  // websocket is a separate long-lived connection that stays up through both
+  // (the benchmark even pushes progress over it), so a live socket proves the
+  // service is reachable - suppress the false offline. Scoped to host-display:
+  // there a real outage drops the loopback socket at once, whereas a phone's
+  // socket can linger open (no heartbeat) after WiFi loss, where prompt offline
+  // is wanted.
+  const wsConnected = multiplex?.connected ?? false;
+  const isOffline = kioskBehavior
+    && (serviceStatus.state === 'offline' || serviceStatus.state === 'offline-installed')
+    && !(isHostDisplay && wsConnected);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [sheetMode, setSheetMode] = useState<SheetMode | null>(null);

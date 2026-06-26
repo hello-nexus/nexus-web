@@ -10,48 +10,50 @@ import styles from './ConflictWarning.module.scss';
 
 interface ConflictWarningProps {
   conflicts: readonly DetectedConflict[];
+  /** Whether conflict alerts are currently suppressed (the persisted setting). */
+  suppressed: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   /**
-   * Persist the "don't show conflict warnings" preference. Called when the
-   * user ticks the "Don't show this again" checkbox inside the modal.
+   * Persist the "don't show conflict warnings" preference. Driven by the
+   * in-modal checkbox, which mirrors `suppressed` and toggles both ways.
    * The parent owns the preference (it lives in NexusSettings.Ui), so the
    * badge stays purely presentational.
    */
-  onDismissForever: () => void;
+  onSuppressedChange: (suppressed: boolean) => void;
 }
 
 /**
  * Top-bar amber button that opens the conflict modal. The button is hidden
- * when there are no conflicts, but the modal stays mounted as long as the
- * user has it open - so it doesn't auto-close mid-read when the watcher clears
- * the last conflict; instead it shows an "all clear" empty state until
- * dismissed.
+ * when there are no conflicts (or alerts are suppressed), but the modal stays
+ * mounted as long as the user has it open - so it doesn't auto-close mid-read
+ * when the watcher clears the last conflict or the user ticks "don't show
+ * again"; instead it shows an "all clear" empty state until dismissed.
  */
-export function ConflictWarningBadge({ conflicts, onDismissForever }: ConflictWarningProps) {
+export function ConflictWarningBadge({ conflicts, suppressed, open, onOpenChange, onSuppressedChange }: ConflictWarningProps) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
   const count = conflicts.length;
+  const showButton = count > 0 && !suppressed;
 
   // No button and no open modal → render nothing.
-  if (count === 0 && !open) return null;
+  if (!showButton && !open) return null;
 
   return (
     <>
-      {count > 0 && (
+      {showButton && (
         <TopBarStatusButton
           tone="warn"
           icon={<AlertTriangle size={16} />}
           label={t('conflicts.badge.text')}
-          onClick={() => setOpen(true)}
+          onClick={() => onOpenChange(true)}
         />
       )}
       <ConflictWarningModal
         open={open}
         conflicts={conflicts}
-        onClose={() => setOpen(false)}
-        onDismissForever={() => {
-          onDismissForever();
-          setOpen(false);
-        }}
+        suppressed={suppressed}
+        onClose={() => onOpenChange(false)}
+        onSuppressedChange={onSuppressedChange}
       />
     </>
   );
@@ -60,8 +62,9 @@ export function ConflictWarningBadge({ conflicts, onDismissForever }: ConflictWa
 interface ConflictWarningModalProps {
   open: boolean;
   conflicts: readonly DetectedConflict[];
+  suppressed: boolean;
   onClose: () => void;
-  onDismissForever: () => void;
+  onSuppressedChange: (suppressed: boolean) => void;
 }
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
@@ -77,12 +80,11 @@ function translateCategory(t: TranslateFn, category: string): string {
   return category;
 }
 
-function ConflictWarningModal({ open, conflicts, onClose, onDismissForever }: ConflictWarningModalProps) {
+function ConflictWarningModal({ open, conflicts, suppressed, onClose, onSuppressedChange }: ConflictWarningModalProps) {
   const { t } = useTranslation();
   // Track per-id in-flight kill so the End-task button shows a spinner
   // without freezing the whole list while another row is being killed.
   const [killing, setKilling] = useState<string | null>(null);
-  const [dismissChecked, setDismissChecked] = useState(false);
 
   const handleKill = useCallback(async (id: string) => {
     setKilling(id);
@@ -92,16 +94,6 @@ function ConflictWarningModal({ open, conflicts, onClose, onDismissForever }: Co
       setKilling(null);
     }
   }, []);
-
-  const handleDismissToggle = useCallback(() => {
-    setDismissChecked(current => {
-      const next = !current;
-      // Write the preference on tick (not on modal close) so the badge
-      // disappears immediately.
-      if (next) onDismissForever();
-      return next;
-    });
-  }, [onDismissForever]);
 
   if (!open) return null;
 
@@ -152,8 +144,8 @@ function ConflictWarningModal({ open, conflicts, onClose, onDismissForever }: Co
         <label className={styles.dismissRow}>
           <input
             type="checkbox"
-            checked={dismissChecked}
-            onChange={handleDismissToggle}
+            checked={suppressed}
+            onChange={() => onSuppressedChange(!suppressed)}
           />
           <span className={styles.dismissText}>
             <ShieldOff size={14} className={styles.dismissIcon} />

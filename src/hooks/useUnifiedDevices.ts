@@ -48,6 +48,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 const CURATED_ICONS: Record<string, string> = {
   cnvs: '/assets/devices/cnvs.svg',
+  lianli: '/assets/devices/fan-hub.svg',
   // Q60 and Q80 share the QSeriesHandler (id 'qseries') on the service side.
   // Use the Q60 art as the family icon since the silhouettes are nearly
   // identical at thumbnail size.
@@ -69,6 +70,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   // "Q-series".
   cnvs: 'CNVS',
   keeb: 'Keeb',
+  lianli: 'Lian Li Uni Hub SL-Infinity',
   'fan-hub': 'iBUYPOWER MiniHub',
 };
 
