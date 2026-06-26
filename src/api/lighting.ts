@@ -1,6 +1,6 @@
 // Lighting API wrapper - authenticated fetch/post to the local service.
 
-import { fetchService, postService, deleteService, resolveAuthWs } from './service';
+import { fetchService, postService, deleteService, putService, resolveAuthWs } from './service';
 
 export async function lightingOutputUrl(): Promise<string> {
   return resolveAuthWs('/lighting/output');
@@ -379,6 +379,23 @@ export interface DeviceZone {
   slices: ZoneSlice[];
 }
 
+export interface HubComposition {
+  hubId: string;
+  hubKind: 'lianli' | 'smarthub';
+  portCount: number;
+  hasRingsAxis: boolean;
+  hasPortToggle: boolean;
+  mirror: boolean;
+  combineRings: boolean;
+  activePorts: boolean[];
+}
+
+export interface HubCompositionPatch {
+  mirror?: boolean;
+  combineRings?: boolean;
+  ports?: boolean[];
+}
+
 export interface DeviceStructureResponse {
   id: string;
   name: string;
@@ -386,6 +403,7 @@ export interface DeviceStructureResponse {
   segments: DeviceSegment[];
   zones: DeviceZone[];
   isDefaultPartition: boolean;
+  hubComposition?: HubComposition;
 }
 
 /** Zone definition as posted back to the service (ids are service-assigned). */
@@ -396,6 +414,9 @@ export interface DeviceZoneDef {
 
 export const fetchDeviceStructure = (deviceId: string) =>
   fetchService<DeviceStructureResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/structure`);
+
+export const setHubComposition = (hubKind: 'lianli' | 'smarthub', patch: HubCompositionPatch) =>
+  putService<ApiEnvelope>(`/devices/${encodeURIComponent(hubKind)}/composition`, patch);
 
 // Replaces the device's partition with the posted zone list. The service
 // validates full segment cover, rebuilds cards/frames, drops stale per-zone

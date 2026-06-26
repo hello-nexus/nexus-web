@@ -7,34 +7,53 @@ export interface ChipOption {
   readonly disabled?: boolean;
 }
 
-export interface ChipGroupProps {
-  options: readonly ChipOption[];
+type ChipGroupSingleProps = {
+  multiSelect?: false;
   activeKey: string;
   onChange: (key: string) => void;
+};
+
+type ChipGroupMultiProps = {
+  multiSelect: true;
+  activeKeys: ReadonlySet<string>;
+  onToggleKey: (key: string) => void;
+};
+
+export type ChipGroupProps = {
+  options: readonly ChipOption[];
   ariaLabel?: string;
   className?: string;
-}
+} & (ChipGroupSingleProps | ChipGroupMultiProps);
 
 /**
- * Single-select chip row - the cooling curve/mode `.chip-action` buttons as a
- * reusable control. The selected option carries the solid-accent `.chip-active`
- * fill. For settings and listings that pick one of a small set of options.
+ * Chip row for selecting from a small set of options.
+ * Single-select (default): `activeKey` + `onChange` - one chip active at a time.
+ * Multi-select (`multiSelect: true`): `activeKeys` + `onToggleKey` - chips toggle independently.
  */
-export function ChipGroup({ options, activeKey, onChange, ariaLabel, className }: ChipGroupProps) {
+export function ChipGroup(props: ChipGroupProps) {
+  const { options, ariaLabel, className } = props;
   return (
     <div className={classNames('chip-group', className)} role="group" aria-label={ariaLabel}>
-      {options.map(opt => (
-        <button
-          key={opt.key}
-          type="button"
-          aria-pressed={opt.key === activeKey}
-          disabled={opt.disabled}
-          className={`chip-action${opt.key === activeKey ? ' chip-active' : ''}`}
-          onClick={() => onChange(opt.key)}
-        >
-          {opt.label}
-        </button>
-      ))}
+      {options.map(opt => {
+        const active = props.multiSelect
+          ? props.activeKeys.has(opt.key)
+          : props.activeKey === opt.key;
+        const handleClick = props.multiSelect
+          ? () => props.onToggleKey(opt.key)
+          : () => props.onChange(opt.key);
+        return (
+          <button
+            key={opt.key}
+            type="button"
+            aria-pressed={active}
+            disabled={opt.disabled}
+            className={`chip-action${active ? ' chip-active' : ''}`}
+            onClick={handleClick}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

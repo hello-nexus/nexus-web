@@ -203,6 +203,36 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     openEditorFor(id, true);
   }, [openEditorFor]);
 
+  // After a hub composition change the device set may have changed (ports added/
+  // removed, mirror toggled). Refetch devices and re-target the editor to the
+  // first device that belongs to the same hub. The epoch counter forces the
+  // editor to remount even when the deviceId doesn't change, so load() re-fires.
+  const [compositionEpoch, setCompositionEpoch] = useState(0);
+  const handleCompositionChanged = useCallback(async (hubId: string) => {
+    const data = await fetchLightingDevices();
+    if (!data) return;
+    const next = (data.devices ?? []).map(d => ({
+      ...d,
+      canvasW: Math.max(60, d.canvasW),
+      canvasH: Math.max(60, d.canvasH),
+    }));
+    setDevices(next);
+    // Re-target the editor to the hub's first device. Match on parentDeviceId
+    // (the exact hub identity each card carries) so a multi-hub setup can't be
+    // mis-targeted by a shared id prefix.
+    const match = next.find(d => d.parentDeviceId === hubId);
+    if (match) {
+      setEditorTarget({
+        deviceId: match.deviceId || match.id,
+        zoneId: match.id,
+        zoneCustomizable: match.zoneCustomizable === true,
+      });
+      setCompositionEpoch(e => e + 1);
+    } else {
+      setEditorTarget(null);
+    }
+  }, []);
+
   // Cached community-layout counts for the device-card badges. Cache-only on
   // the service side, so a single fetch per page mount is enough.
   const [mappingCounts, setMappingCounts] = useState<Record<string, number>>({});
@@ -1045,12 +1075,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       )}
       {editorTarget && (
         <LedMapEditor
+          key={`${editorTarget.deviceId}-${compositionEpoch}`}
           deviceId={editorTarget.deviceId}
           initialZoneId={editorTarget.zoneId}
           devices={devices}
           zoneCustomizable={editorTarget.zoneCustomizable}
           initialCommunityOpen={editorCommunityOpen}
           onClose={() => setEditorTarget(null)}
+          onCompositionChanged={hubId => { void handleCompositionChanged(hubId); }}
         />
       )}
     </div>
