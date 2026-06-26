@@ -32,7 +32,7 @@ export function BackgroundMediaPicker({
   deviceAspect: number;
   deviceW: number;
   deviceH: number;
-  onSelect: (mediaId: string, type: 'static' | 'animated') => void;
+  onSelect: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
 }) {
   const { t } = useTranslation();
   const { items, thumbs, refresh, removeLocal } = useBackgroundMedia(deviceId);
@@ -109,10 +109,16 @@ export function BackgroundMediaPicker({
   };
 
   const handleDelete = async (id: string) => {
+    const isActive = id === activeId;
+    const nextItem = isActive ? items.filter(item => item.id !== id)[0] ?? null : null;
     const ok = await deleteBackgroundMedia(deviceId, id);
     if (!ok) { await refresh(); return; }
     removeLocal(id);
     await refresh();
+    if (isActive) {
+      if (nextItem) onSelect(nextItem.id, nextItem.type);
+      else onSelect(null, null);
+    }
   };
 
   const requestDelete = (id: string, name: string) => setPendingDelete({ id, name });
