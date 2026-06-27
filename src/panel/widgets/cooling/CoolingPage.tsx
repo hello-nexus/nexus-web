@@ -87,11 +87,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Manual on any one fan of a hub. Seeded from the same persistent
   // cache so the per-fan dropdowns don't blink to a default on visit.
   const [hubModes, setHubModes] = useState<Record<string, FanCardHubMode>>(() => cachedSeed.hubModes);
-  // Lian Li only: tracks whether the user last selected 'fw' (Firmware speed) or
-  // 'manual' (Nexus-controlled duty) per fan-id. Both modes are software-fixed-duty
-  // at the hardware level; this state keeps the dropdown showing the right selection
-  // within the session. Defaults to 'fw' on reload per the hub's intended mode.
-  const [lianLiFanSource, setLianLiFanSource] = useState<Record<string, 'fw' | 'manual'>>({});
   // Per-group collapse state for the fan grid (external hub groups + the
   // Disconnected group), persisted across restarts. Keyed by the group's
   // deviceId, plus the literal 'disconnected'. Default: only Disconnected
@@ -472,35 +467,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const isNp50 = !!deviceId && deviceId.startsWith('np50:');
     const isMiniHub = !!deviceId && deviceId.startsWith('minihub:');
     const isQSeries = !!deviceId && deviceId.startsWith('qseries:');
-    const isLianLi = !!deviceId && deviceId.startsWith('lianli:');
-
-    // Track fw vs manual source for Lian Li (both map to software-fixed-duty; only
-    // the label differs). Update before the async paths so the dropdown reflects
-    // the new selection immediately.
-    if (isLianLi && (value === 'fw' || value === 'manual')) {
-      setLianLiFanSource(prev => ({ ...prev, [fanId]: value as 'fw' | 'manual' }));
-    }
-
-    // Lian Li 'fw' (Firmware speed): software-control the fan at the current
-    // port duty. The hub has no onboard firmware speed mode; this differs from
-    // 'manual' only by label and the duty seed value.
-    if (value === 'fw' && isLianLi) {
-      await exitOffToCustomIfNeeded();
-      const duty = channel?.dutyPercent ?? 50;
-      const wasSw = fanStates[fanId]?.softwareControl ?? false;
-      if (!wasSw) {
-        const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: null } };
-        setFanStates(nextStates);
-        await setFanSpeed(fanId, duty);
-        await pushCurves(curves, nextStates);
-        const fans = await fetchFanChannels();
-        if (fans?.channels) setChannels(fans.channels);
-      } else {
-        await assignCurve(fanId, null);
-        await setFanSpeed(fanId, duty);
-      }
-      return;
-    }
 
     // NP50 has no motherboard "BIOS" hand-off of its own, so both 'fw' and the
     // 'bios' value mean "hand the hub back to firmware control" (Static @
@@ -992,33 +958,22 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               const moboIds = mobo.map(c => c.id);
               const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k);
 
-              const renderFanCard = (ch: FanChannel, drag: SortableRowArgs) => {
-                const isLianLi = !!ch.deviceId?.startsWith('lianli:');
-                // Lian Li: software-controlled-no-curve fans show 'fw' or 'manual' based on
-                // what the user last selected; default 'fw' on session start.
-                const lianLiState = fanStates[ch.id];
-                const lianLiSoftwareNoSurface = isLianLi && !!(lianLiState?.softwareControl && !lianLiState?.curveId);
-                // eslint-disable-next-line i18next/no-literal-string -- internal mode key, not displayed
-                const lianLiOverride = lianLiSoftwareNoSurface ? (lianLiFanSource[ch.id] ?? 'fw') : undefined;
-                return (
-                  <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
-                    compact
-                    calibrating={calibrating}
-                    canCreateCurve={curves.length < MAX_CURVES}
-                    highlighted={highlightedFanIds.has(ch.id) && ch.classification !== 'Unresponsive'}
-                    hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
-                    hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:') || isLianLi}
-                    hubSupportsBios={!ch.deviceId?.startsWith('np50:')}
-                    firmwareLabel={isLianLi ? t('devices.lianli.modeFirmwareSpeed') : undefined}
-                    forcedModeValue={lianLiOverride}
-                    onSetMode={v => setFanMode(ch.id, v)}
-                    onCreateCurve={() => createCurveAndAssign(ch.id)}
-                    onRename={handleRename}
-                    onSpeedChange={handleSpeedChange}
-                    drag={drag}
-                  />
-                );
-              };
+              const renderFanCard = (ch: FanChannel, drag: SortableRowArgs) => (
+                <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
+                  compact
+                  calibrating={calibrating}
+                  canCreateCurve={curves.length < MAX_CURVES}
+                  highlighted={highlightedFanIds.has(ch.id) && ch.classification !== 'Unresponsive'}
+                  hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
+                  hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
+                  hubSupportsBios={!ch.deviceId?.startsWith('np50:')}
+                  onSetMode={v => setFanMode(ch.id, v)}
+                  onCreateCurve={() => createCurveAndAssign(ch.id)}
+                  onRename={handleRename}
+                  onSpeedChange={handleSpeedChange}
+                  drag={drag}
+                />
+              );
 
               return (
                 <>
@@ -1109,29 +1064,21 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       title={t('cooling.fan.disconnected')} ariaLabel={t('cooling.fan.disconnected')}
                       open={!isFanGroupCollapsed('disconnected')} onToggle={() => toggleFanGroup('disconnected')}
                       right={<span className={styles.fanGroupCount}>{disconnected.length}</span>}>
-                      <div className={styles.fanGroupChildren}>{disconnected.map(ch => {
-                        const isLianLiD = !!ch.deviceId?.startsWith('lianli:');
-                        const lianLiStateD = fanStates[ch.id];
-                        const lianLiSwNoSurfaceD = isLianLiD && !!(lianLiStateD?.softwareControl && !lianLiStateD?.curveId);
-                        const lianLiOverrideD = lianLiSwNoSurfaceD ? (lianLiFanSource[ch.id] ?? 'fw') : undefined;
-                        return (
-                          <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
-                            compact
-                            calibrating={calibrating}
-                            canCreateCurve={curves.length < MAX_CURVES}
-                            highlighted={false}
-                            hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
-                            hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:') || isLianLiD}
-                            hubSupportsBios={!ch.deviceId?.startsWith('np50:')}
-                            firmwareLabel={isLianLiD ? t('devices.lianli.modeFirmwareSpeed') : undefined}
-                            forcedModeValue={lianLiOverrideD}
-                            onSetMode={v => setFanMode(ch.id, v)}
-                            onCreateCurve={() => createCurveAndAssign(ch.id)}
-                            onRename={handleRename}
-                            onSpeedChange={handleSpeedChange}
-                          />
-                        );
-                      })}</div>
+                      <div className={styles.fanGroupChildren}>{disconnected.map(ch => (
+                        <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
+                          compact
+                          calibrating={calibrating}
+                          canCreateCurve={curves.length < MAX_CURVES}
+                          highlighted={false}
+                          hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
+                          hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
+                          hubSupportsBios={!ch.deviceId?.startsWith('np50:')}
+                          onSetMode={v => setFanMode(ch.id, v)}
+                          onCreateCurve={() => createCurveAndAssign(ch.id)}
+                          onRename={handleRename}
+                          onSpeedChange={handleSpeedChange}
+                        />
+                      ))}</div>
                     </CollapsibleSection>
                   )}
                 </>
