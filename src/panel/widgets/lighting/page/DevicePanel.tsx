@@ -42,7 +42,7 @@ type DeviceBlock =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, onOpenSmartLights }: {
+export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights }: {
   devices: LightingDevice[];
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
@@ -67,6 +67,8 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
   smartHubFirmwareControl?: boolean;
   /** Toggle FW Control for the HYTE SmartHub. */
   onSetSmartHubFirmwareControl?: (enabled: boolean) => void;
+  /** When true, Lian Li device cards are shown in the firmwareControlled (dimmed) state. */
+  lianLiFirmwareActive?: boolean;
   /** Renders a dashed "add smart lights" entry at the bottom of the list. */
   onOpenSmartLights?: () => void;
 }) {
@@ -160,7 +162,7 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
       drag={drag}
       communityCount={communityCounts?.[d.id]}
       onOpenCommunity={onOpenCommunity ? () => onOpenCommunity(d.id) : undefined}
-      firmwareControlled={fwControlled}
+      firmwareControlled={fwControlled || (!!lianLiFirmwareActive && d.id.startsWith('lianli:'))}
     />
   );
 

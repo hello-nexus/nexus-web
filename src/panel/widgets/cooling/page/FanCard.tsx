@@ -36,6 +36,8 @@ export const FanCard = memo(function FanCard({
   channel, state, curves, calibrating, compact, canCreateCurve = true, highlighted,
   hubMode, hubSupportsFirmware,
   hubSupportsBios = true,
+  firmwareLabel,
+  forcedModeValue,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
   onSetMode, onCreateCurve, onRename, onSpeedChange, drag,
 }: {
@@ -60,6 +62,13 @@ export const FanCard = memo(function FanCard({
    *  except NP50 (firmware control IS its off setting). A Q-series pump sets
    *  both this and hubSupportsFirmware so its dropdown lists BIOS + FW Control. */
   hubSupportsBios?: boolean;
+  /** Override label for the 'fw' option. Lian Li uses "Firmware speed" to
+   *  distinguish its port-fixed-duty from the generic "Manual" (Nexus-controlled). */
+  firmwareLabel?: string;
+  /** Override for the computed modeValue shown in the Select. Used by hubs where
+   *  two distinct UX modes map to the same service state (e.g. Lian Li 'fw' vs
+   *  'manual', both = software-fixed-duty). */
+  forcedModeValue?: string;
   /** Ref handed to the input nub so the wire SVG can read its bbox. */
   nubRef?: (el: HTMLDivElement | null) => void;
   /** Ref handed to the card root so the wire DnD hit-test can treat the
@@ -93,8 +102,8 @@ export const FanCard = memo(function FanCard({
     : hubMode === 'firmware'  ? 'fw'
     : null;
   const isManual = swEnabled && !assignedCurveId && hubOverrideMode === null;
-  const modeValue = hubOverrideMode
-    ?? (!swEnabled ? offMode : (assignedCurveId || 'manual'));
+  const modeValue = forcedModeValue ?? (hubOverrideMode
+    ?? (!swEnabled ? offMode : (assignedCurveId || 'manual')));
   // Driven = Nexus controls this fan (Manual or a Curve), i.e. not BIOS/FW.
   // Highlighted on the duty bar (see .fanCardActive), not by tinting the card.
   const driven = swEnabled && hubOverrideMode === null;
@@ -260,7 +269,7 @@ export const FanCard = memo(function FanCard({
             {/* NP50 lists only FW Control (no BIOS hand-off); a Q-series pump
                 lists both; everything else lists only BIOS. */}
             {hubSupportsFirmware && (
-              <option value="fw">{t('cooling.card.firmware')}</option>
+              <option value="fw">{firmwareLabel ?? t('cooling.card.firmware')}</option>
             )}
             {hubSupportsBios && (
               <option value="bios">{t('cooling.card.bios')}</option>

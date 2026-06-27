@@ -48,7 +48,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 const CURATED_ICONS: Record<string, string> = {
   cnvs: '/assets/devices/cnvs.svg',
-  lianli: '/assets/devices/fan-hub.svg',
+  lianli: '/assets/devices/lianli.svg',
   // Q60 and Q80 share the QSeriesHandler (id 'qseries') on the service side.
   // Use the Q60 art as the family icon since the silhouettes are nearly
   // identical at thumbnail size.

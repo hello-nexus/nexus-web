@@ -88,11 +88,13 @@ export function ZoneCard({
       <span className={styles.deviceName}>{displayName ?? device.name}</span>
       <div className={styles.deviceMetaRow}>
         {firmwareControlled ? (
-          <span className={styles.deviceMetaFirmware}>
-            {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-            <Cpu className={styles.deviceMetaIcon} aria-hidden="true" />
-            {t('lighting.devices.smarthub.firmwareBadge')}
-          </span>
+          <HoverTooltip body={t('lighting.devices.firmwareTooltip')} side="top">
+            <span className={styles.deviceMetaFirmware}>
+              {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+              <Cpu className={styles.deviceMetaIcon} aria-hidden="true" />
+              {t('lighting.devices.smarthub.firmwareBadge')}
+            </span>
+          </HoverTooltip>
         ) : unavailable ? (
           <span className={styles.deviceMetaUnavailable}>
             {t('lighting.devices.detectionFailed')}
