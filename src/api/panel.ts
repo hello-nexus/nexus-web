@@ -76,7 +76,8 @@ export interface PanelDevicePatch {
   backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
   backgroundMediaId?: string | null;
-  backgroundMediaType?: 'static' | 'animated' | null;
+  // '' clears the reference server-side (NullIfEmpty); a JSON null is ignored by the patch-merge.
+  backgroundMediaType?: 'static' | 'animated' | '' | null;
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetBlur?: boolean;
