@@ -505,6 +505,7 @@ export function Dashboard() {
           serviceOnline={online}
           connectionState={status.state}
           onOpenFirmware={() => navigate('system', 'devices', 'firmware')}
+          onSectionNavigate={(target) => setView(target)}
         />
       );
       case 'clock':      return <ClockPage />;

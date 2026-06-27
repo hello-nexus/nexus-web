@@ -1,21 +1,50 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Lightbulb, Wind } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { Placeholder } from '../Placeholder';
 import { Select } from '../../common/Select/Select';
+import { Slider } from '../../common/Slider/Slider';
+import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
+import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { getLianLiState, setLianLiFanCount, type LianLiState } from '../../../api/lianli';
+import {
+  getLianLiState,
+  getLianLiLighting,
+  getLianLiCooling,
+  setLianLiFanCount,
+  setLianLiLighting,
+  setLianLiPortCooling,
+  type LianLiState,
+  type LianLiLighting,
+  type LianLiCooling,
+  type LianLiLightingPatch,
+} from '../../../api/lianli';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiDevicePage.module.scss';
 
 const PORT_COUNT = 4;
 const FAN_COUNT_OPTIONS = [0, 1, 2, 3, 4] as const;
+const FW_LEVEL_MAX = 4;
+const DEFAULT_COLOR = '#ffffff';
 
-export function LianLiDevicePage() {
+type Tab = 'lighting' | 'cooling';
+
+const TABS: readonly { key: Tab; labelKey: string }[] = [
+  { key: 'lighting', labelKey: 'devices.lianli.tabLighting' },
+  { key: 'cooling', labelKey: 'devices.lianli.tabCooling' },
+];
+
+interface LianLiDevicePageProps {
+  onSectionNavigate?: (section: string) => void;
+}
+
+export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   const { t } = useTranslation();
-  // Tri-state: 'unknown' = still loading, 'connected' = hub up,
-  // 'disconnected' = explicit not-connected response.
+  const [tab, setTab] = useState<Tab>('lighting');
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
-  const [state, setState] = useState<LianLiState | null>(null);
+  const [lianliState, setLianliState] = useState<LianLiState | null>(null);
+  const [lighting, setLighting] = useState<LianLiLighting | null>(null);
+  const [cooling, setCooling] = useState<LianLiCooling | null>(null);
   const [saving, setSaving] = useState(false);
   const aliveRef = useRef(true);
 
@@ -25,11 +54,20 @@ export function LianLiDevicePage() {
     if (s === null) return;
     if (!s.isConnected) {
       setConnection('disconnected');
-      setState(null);
+      setLianliState(null);
+      setLighting(null);
+      setCooling(null);
       return;
     }
     setConnection('connected');
-    setState(s);
+    setLianliState(s);
+    const [lt, cl] = await Promise.all([
+      getLianLiLighting().catch(() => null),
+      getLianLiCooling().catch(() => null),
+    ]);
+    if (!aliveRef.current) return;
+    if (lt) setLighting(lt);
+    if (cl) setCooling(cl);
   }, []);
 
   useEffect(() => {
@@ -44,7 +82,7 @@ export function LianLiDevicePage() {
   }, [refresh]);
 
   const commitFanCount = useCallback(async (port: number, count: number) => {
-    setState(prev => {
+    setLianliState(prev => {
       if (!prev) return prev;
       const next = { ...prev, fansPerPort: [...prev.fansPerPort] };
       next.fansPerPort[port] = count;
@@ -53,6 +91,28 @@ export function LianLiDevicePage() {
     setSaving(true);
     try {
       await setLianLiFanCount(port, count);
+    } finally {
+      if (aliveRef.current) setSaving(false);
+    }
+  }, []);
+
+  const commitLighting = useCallback(async (patch: LianLiLightingPatch) => {
+    setSaving(true);
+    try {
+      await setLianLiLighting(patch);
+    } finally {
+      if (aliveRef.current) setSaving(false);
+    }
+  }, []);
+
+  const commitPortCooling = useCallback(async (
+    port: number,
+    mode: 'Manual' | 'Auto',
+    dutyPercent?: number,
+  ) => {
+    setSaving(true);
+    try {
+      await setLianLiPortCooling(port, mode, dutyPercent);
     } finally {
       if (aliveRef.current) setSaving(false);
     }
@@ -70,39 +130,316 @@ export function LianLiDevicePage() {
     );
   }
 
-  const stateLoaded = state !== null;
+  const stateLoaded = lianliState !== null;
+  const lightingLoaded = lighting !== null;
+  const coolingLoaded = cooling !== null;
+
+  const selectedMode = lighting
+    ? (lighting.modes.find(m => m.key === lighting.mode) ?? null)
+    : null;
+  const isCustomMode = lighting?.mode === 'custom';
 
   return (
     <div className={styles.page}>
       <ViewHeader
         // eslint-disable-next-line i18next/no-literal-string -- brand + model name
         title="Lian Li Uni Hub SL-Infinity"
+        tabs={TABS.map(tb => ({ key: tb.key, label: t(tb.labelKey) }))}
+        activeTab={tab}
+        onTabChange={(k) => setTab(k as Tab)}
         actions={saving ? <span className={styles.savingBadge}>{t('devices.saving')}</span> : null}
       />
       <div className={`${styles.pageBody} pageBody`}>
-        <SettingsSection
-          title={t('devices.lianli.portsSection')}
-          boxClassName={styles.sectionBox}
-        >
-          {Array.from({ length: PORT_COUNT }, (_, port) => (
-            <div key={port} className={`${styles.row} ${!stateLoaded ? styles.rowDisabled : ''}`}>
-              <span className={styles.rowLabel}>{t('devices.lianli.port', { n: port + 1 })}</span>
+        {tab === 'lighting' && (
+          <SettingsSection
+            title={t('devices.lianli.lightingSection')}
+            boxClassName={styles.sectionBox}
+          >
+            <div className={`${styles.row} ${!lightingLoaded ? styles.rowDisabled : ''}`}>
+              <span className={styles.rowLabel}>{t('devices.lianli.lightingMode')}</span>
               <Select
-                value={String(state?.fansPerPort[port] ?? 0)}
-                onChange={v => { void commitFanCount(port, Number(v)); }}
-                options={FAN_COUNT_OPTIONS.map(count => ({
-                  value: String(count),
-                  label: t(`devices.lianli.fanCount${count}` as Parameters<typeof t>[0]),
-                }))}
-                disabled={!stateLoaded}
-                ariaLabel={t('devices.lianli.fanCountAria', { n: port + 1 })}
+                value={lighting?.mode ?? ''}
+                onChange={v => {
+                  if (!lighting) return;
+                  setLighting({ ...lighting, mode: v });
+                  void commitLighting({ mode: v });
+                }}
+                options={(lighting?.modes ?? []).map(m => ({ value: m.key, label: m.label }))}
+                disabled={!lightingLoaded}
+                ariaLabel={t('devices.lianli.lightingModeAria')}
               />
-              <span className={styles.rowValue}>
-                {stateLoaded ? `${state.rpm[port] ?? 0} RPM` : ''}
-              </span>
             </div>
-          ))}
-        </SettingsSection>
+
+            {isCustomMode ? (
+              <>
+                <p className={styles.customNote}>{t('devices.lianli.customModeNote')}</p>
+                {onSectionNavigate && (
+                  <Button
+                    className={styles.lightingLink}
+                    size="sm"
+                    tone="neutral"
+                    icon={<Lightbulb size={14} />}
+                    onClick={() => onSectionNavigate('lighting')}
+                  >
+                    {t('smartLights.colorOnLightingPage')}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                {selectedMode?.hasSpeed && (
+                  <div className={`${styles.row} ${!lightingLoaded ? styles.rowDisabled : ''}`}>
+                    <span className={styles.rowLabel}>{t('devices.lianli.lightingSpeed')}</span>
+                    <Slider
+                      className={styles.slider}
+                      value={lighting?.speed ?? 0}
+                      min={0}
+                      max={FW_LEVEL_MAX}
+                      step={1}
+                      ariaLabel={t('devices.lianli.lightingSpeedAria')}
+                      onChange={(v: number) => {
+                        if (!lighting) return;
+                        setLighting({ ...lighting, speed: Math.round(v) });
+                      }}
+                      onCommit={(v: number) => {
+                        void commitLighting({ speed: Math.round(v) });
+                      }}
+                    />
+                    <span className={styles.rowValue}>
+                      {lighting?.speed === 0
+                        ? t('devices.lianli.speedSlowest')
+                        : lighting?.speed === FW_LEVEL_MAX
+                          ? t('devices.lianli.speedFastest')
+                          : String(lighting?.speed ?? 0)}
+                    </span>
+                  </div>
+                )}
+
+                {selectedMode?.hasDirection && (
+                  <div className={`${styles.row} ${!lightingLoaded ? styles.rowDisabled : ''}`}>
+                    <span className={styles.rowLabel}>{t('devices.lianli.lightingDirection')}</span>
+                    <Select
+                      value={String(lighting?.direction ?? 0)}
+                      onChange={v => {
+                        if (!lighting) return;
+                        const d = Number(v);
+                        setLighting({ ...lighting, direction: d });
+                        void commitLighting({ direction: d });
+                      }}
+                      options={[
+                        { value: '0', label: t('devices.lianli.directionLtr') },
+                        { value: '1', label: t('devices.lianli.directionRtl') },
+                      ]}
+                      disabled={!lightingLoaded}
+                      ariaLabel={t('devices.lianli.lightingDirectionAria')}
+                    />
+                  </div>
+                )}
+
+                {selectedMode?.hasBrightness && (
+                  <div className={`${styles.row} ${!lightingLoaded ? styles.rowDisabled : ''}`}>
+                    <span className={styles.rowLabel}>{t('devices.lianli.lightingBrightness')}</span>
+                    <Slider
+                      className={styles.slider}
+                      value={lighting?.brightness ?? 0}
+                      min={0}
+                      max={FW_LEVEL_MAX}
+                      step={1}
+                      ariaLabel={t('devices.lianli.lightingBrightnessAria')}
+                      onChange={(v: number) => {
+                        if (!lighting) return;
+                        setLighting({ ...lighting, brightness: Math.round(v) });
+                      }}
+                      onCommit={(v: number) => {
+                        void commitLighting({ brightness: Math.round(v) });
+                      }}
+                    />
+                    <span className={styles.rowValue}>
+                      {`${Math.round(((lighting?.brightness ?? 0) / FW_LEVEL_MAX) * 100)}%`}
+                    </span>
+                  </div>
+                )}
+
+                {selectedMode && selectedMode.colorsMax > 0 && lightingLoaded && (
+                  <div className={styles.colorBlock}>
+                    {(lighting?.colors ?? []).map((color, i) => (
+                      <div key={i} className={styles.colorEntry}>
+                        <HsvPicker
+                          value={color}
+                          onPreview={(hex: string) => {
+                            if (!lighting) return;
+                            const next = [...lighting.colors];
+                            next[i] = hex;
+                            setLighting({ ...lighting, colors: next });
+                          }}
+                          onCommit={(hex: string) => {
+                            if (!lighting) return;
+                            const next = [...lighting.colors];
+                            next[i] = hex;
+                            setLighting({ ...lighting, colors: next });
+                            void commitLighting({ colors: next });
+                          }}
+                        />
+                        <div className={styles.colorActions}>
+                          {(lighting?.colors.length ?? 0) > selectedMode.colorsMin && (
+                            <Button
+                              size="sm"
+                              tone="neutral"
+                              onClick={() => {
+                                if (!lighting) return;
+                                const next = lighting.colors.filter((_, idx) => idx !== i);
+                                setLighting({ ...lighting, colors: next });
+                                void commitLighting({ colors: next });
+                              }}
+                            >
+                              {t('devices.lianli.removeColor')}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {(lighting?.colors.length ?? 0) < selectedMode.colorsMax && (
+                      <div className={styles.colorActions}>
+                        <Button
+                          size="sm"
+                          tone="neutral"
+                          onClick={() => {
+                            if (!lighting) return;
+                            const next = [...lighting.colors, DEFAULT_COLOR];
+                            setLighting({ ...lighting, colors: next });
+                            void commitLighting({ colors: next });
+                          }}
+                        >
+                          {t('devices.lianli.addColor')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {onSectionNavigate && (
+                  <Button
+                    className={styles.lightingLink}
+                    size="sm"
+                    tone="neutral"
+                    icon={<Lightbulb size={14} />}
+                    onClick={() => onSectionNavigate('lighting')}
+                  >
+                    {t('smartLights.colorOnLightingPage')}
+                  </Button>
+                )}
+              </>
+            )}
+          </SettingsSection>
+        )}
+
+        {tab === 'cooling' && (
+          <>
+            <SettingsSection
+              title={t('devices.lianli.coolingSection')}
+              boxClassName={styles.sectionBox}
+            >
+              {Array.from({ length: PORT_COUNT }, (_, port) => {
+                if (stateLoaded && (lianliState.fansPerPort[port] ?? 0) === 0) return null;
+                const portData = cooling?.ports.find(p => p.port === port) ?? null;
+                const isManual = portData?.mode === 'Manual';
+                return (
+                  <Fragment key={port}>
+                    <div className={`${styles.row} ${!coolingLoaded ? styles.rowDisabled : ''}`}>
+                      <span className={styles.rowLabel}>{t('devices.lianli.port', { n: port + 1 })}</span>
+                      <Select
+                        className={styles.portSelect}
+                        value={portData?.mode ?? 'Auto'}
+                        onChange={v => {
+                          if (!cooling) return;
+                          const next = {
+                            ...cooling,
+                            ports: cooling.ports.map(p =>
+                              p.port === port ? { ...p, mode: v as 'Manual' | 'Auto' } : p,
+                            ),
+                          };
+                          setCooling(next);
+                          void commitPortCooling(port, v as 'Manual' | 'Auto');
+                        }}
+                        options={[
+                          { value: 'Manual', label: t('devices.lianli.modeFirmwareSpeed') },
+                          { value: 'Auto', label: t('devices.lianli.modeMotherboardPwm') },
+                        ]}
+                        disabled={!coolingLoaded}
+                        ariaLabel={t('devices.lianli.coolingModeAria', { n: port + 1 })}
+                      />
+                      <span className={styles.rowValue}>
+                        {stateLoaded ? `${lianliState.rpm[port] ?? 0} RPM` : ''}
+                      </span>
+                    </div>
+                    {isManual && (
+                      <div className={`${styles.row} ${!coolingLoaded ? styles.rowDisabled : ''}`}>
+                        <span className={styles.rowLabel}>{t('devices.lianli.dutyLabel')}</span>
+                        <Slider
+                          className={styles.slider}
+                          value={portData?.dutyPercent ?? 0}
+                          min={0}
+                          max={100}
+                          step={1}
+                          ariaLabel={t('devices.lianli.dutyAria', { n: port + 1 })}
+                          onChange={(v: number) => {
+                            if (!cooling) return;
+                            setCooling({
+                              ...cooling,
+                              ports: cooling.ports.map(p =>
+                                p.port === port ? { ...p, dutyPercent: Math.round(v) } : p,
+                              ),
+                            });
+                          }}
+                          onCommit={(v: number) => {
+                            void commitPortCooling(port, 'Manual', Math.round(v));
+                          }}
+                        />
+                        <span className={styles.rowValue}>{portData?.dutyPercent ?? 0}%</span>
+                      </div>
+                    )}
+                  </Fragment>
+                );
+              })}
+              {onSectionNavigate && (
+                <Button
+                  className={styles.lightingLink}
+                  size="sm"
+                  tone="neutral"
+                  icon={<Wind size={14} />}
+                  onClick={() => onSectionNavigate('cooling')}
+                >
+                  {t('devices.lianli.coolingPageLink')}
+                </Button>
+              )}
+            </SettingsSection>
+
+            <SettingsSection
+              title={t('devices.lianli.portsSection')}
+              boxClassName={styles.sectionBox}
+            >
+              {Array.from({ length: PORT_COUNT }, (_, port) => (
+                <div key={port} className={`${styles.row} ${!stateLoaded ? styles.rowDisabled : ''}`}>
+                  <span className={styles.rowLabel}>{t('devices.lianli.port', { n: port + 1 })}</span>
+                  <Select
+                    className={styles.portSelect}
+                    value={String(lianliState?.fansPerPort[port] ?? 0)}
+                    onChange={v => { void commitFanCount(port, Number(v)); }}
+                    options={FAN_COUNT_OPTIONS.map(count => ({
+                      value: String(count),
+                      label: t(`devices.lianli.fanCount${count}` as Parameters<typeof t>[0]),
+                    }))}
+                    disabled={!stateLoaded}
+                    ariaLabel={t('devices.lianli.fanCountAria', { n: port + 1 })}
+                  />
+                  <span className={styles.rowValue}>
+                    {stateLoaded ? `${lianliState.rpm[port] ?? 0} RPM` : ''}
+                  </span>
+                </div>
+              ))}
+            </SettingsSection>
+          </>
+        )}
       </div>
     </div>
   );

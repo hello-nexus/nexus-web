@@ -32,9 +32,10 @@ interface DevicePageProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
   onOpenFirmware?: () => void;
+  onSectionNavigate?: (section: string) => void;
 }
 
-export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFirmware }: DevicePageProps) {
+export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFirmware, onSectionNavigate }: DevicePageProps) {
   const { t } = useTranslation();
   const { unified } = useUnifiedDevices(serviceOnline);
   const device = useMemo<UnifiedDevice | undefined>(
@@ -75,7 +76,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
   }
 
   if (device.curatedId === 'lianli') {
-    return <LianLiDevicePage key={device.key} />;
+    return <LianLiDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
   }
 
   if (device.curatedId === 'np50') {
