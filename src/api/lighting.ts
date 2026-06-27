@@ -249,6 +249,46 @@ export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h:
 export const resetDeviceLayouts = () =>
   deleteService('/devices/lighting-devices/layouts');
 
+export interface DeviceLayoutDto {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rotation: number;
+}
+
+export interface LayoutPreset {
+  id: string;
+  name: string;
+  layouts: Record<string, DeviceLayoutDto>;
+}
+
+export interface LayoutPresetsResponse {
+  presets: LayoutPreset[];
+  activeId: string | null;
+}
+
+export const fetchLayoutPresets = () =>
+  fetchService<LayoutPresetsResponse>('/devices/lighting-devices/layout-presets');
+
+export const createLayoutPreset = (name: string) =>
+  postService<{ preset: LayoutPreset; activeId: string | null }>('/devices/lighting-devices/layout-presets', { name });
+
+export const updateLayoutPreset = (id: string, body: { name?: string; saveCurrent?: boolean }) =>
+  putService('/devices/lighting-devices/layout-presets/' + encodeURIComponent(id), body);
+
+export const deleteLayoutPreset = (id: string) =>
+  deleteService<{ activeId: string | null }>('/devices/lighting-devices/layout-presets/' + encodeURIComponent(id));
+
+export const setActiveLayoutPreset = (id: string | null) =>
+  putService('/devices/lighting-devices/layout-presets/active', { id });
+
+export const activateLayoutPreset = (id: string) =>
+  postService('/devices/lighting-devices/layout-presets/' + encodeURIComponent(id) + '/activate', {});
+
+export const applyDeviceLayouts = (layouts: Record<string, DeviceLayoutDto>) =>
+  postService('/devices/lighting-devices/layouts', { layouts });
+
 export const setLightingDevicePower = (id: string, on: boolean) =>
   postService('/devices/lighting-devices/power', { id, on });
 

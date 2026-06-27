@@ -7,9 +7,12 @@ import {
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
   steamArtworkUrl, resolveActiveGame,
+  resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
-  type GameSyncGame,
+  type GameSyncGame, type DeviceLayoutDto,
 } from '../../../api/lighting';
+import { useUndoRedo } from '../../../hooks/useUndoRedo';
+import { useLayoutPresets, devicesToLayouts } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
@@ -70,6 +73,11 @@ interface LightingViewProps {
 
 const DEFAULT_POST_PROCESS: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
 
+interface LayoutHistorySnapshot {
+  layouts: Record<string, DeviceLayoutDto>;
+  activeId: string | null;
+}
+
 const RIGHT_PANE_TAB_KEY = 'lighting.rightPaneTab';
 function loadRightPaneTab(): RightPaneTab {
   try {
@@ -110,7 +118,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   };
   const [devices, setDevices] = useState<LightingDevice[]>([]);
   const deviceDraggingRef = useRef(false);
-  const handleDragActiveChange = useCallback((active: boolean) => { deviceDraggingRef.current = active; }, []);
+  const pushLayoutRef = useRef<((snap: LayoutHistorySnapshot) => void) | null>(null);
+  const layoutActiveIdRef = useRef<string | null>(null);
+  const handleDragActiveChange = useCallback((active: boolean) => {
+    deviceDraggingRef.current = active;
+    if (active) {
+      pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
+    }
+  }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Multi-selection on the canvas + right-side device panel. The set drives
   // visual highlighting on both surfaces; `primaryDeviceId` is the single
@@ -126,6 +141,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const handleSetSelection = useCallback((ids: Set<string>, primary: string | null) => {
     setSelectedDeviceIds(ids);
     setPrimaryDeviceId(primary);
+  }, []);
+  const handleBeforeLayoutSave = useCallback(() => {
+    pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
   }, []);
   const [catalogOpen, setCatalogOpen] = useState(false);
 
@@ -850,6 +868,76 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     prevScanningRef.current = rgb.scanning;
   }, [rgb.scanning, refreshDevices]);
 
+  const {
+    presets, activeId: layoutActiveId, dirty,
+    presetCount, loadPresets,
+    handleCreate: handlePresetCreate,
+    handleSave: handlePresetSave,
+    handleRename: handlePresetRename,
+    handleDelete: handlePresetDelete,
+    handleLoad: handlePresetLoad,
+  } = useLayoutPresets(serviceOnline, devices);
+
+  layoutActiveIdRef.current = layoutActiveId;
+
+  const undoRedoRef = useRef<{
+    undo: (current: LayoutHistorySnapshot) => LayoutHistorySnapshot | null;
+    redo: (current: LayoutHistorySnapshot) => LayoutHistorySnapshot | null;
+  }>({ undo: () => null, redo: () => null });
+
+  const handleUndoLayout = useCallback(async () => {
+    const current: LayoutHistorySnapshot = { layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current };
+    const restored = undoRedoRef.current.undo(current);
+    if (!restored) return;
+    await applyDeviceLayouts(restored.layouts);
+    if (restored.activeId !== layoutActiveIdRef.current) {
+      await setActiveLayoutPreset(restored.activeId);
+    }
+    await loadPresets();
+    await refreshDevices();
+  }, [loadPresets, refreshDevices]);
+
+  const handleRedoLayout = useCallback(async () => {
+    const current: LayoutHistorySnapshot = { layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current };
+    const restored = undoRedoRef.current.redo(current);
+    if (!restored) return;
+    await applyDeviceLayouts(restored.layouts);
+    if (restored.activeId !== layoutActiveIdRef.current) {
+      await setActiveLayoutPreset(restored.activeId);
+    }
+    await loadPresets();
+    await refreshDevices();
+  }, [loadPresets, refreshDevices]);
+
+  const {
+    push: pushLayout,
+    undo: undoLayout,
+    redo: redoLayout,
+    canUndo: canUndoLayout,
+    canRedo: canRedoLayout,
+  } = useUndoRedo<LayoutHistorySnapshot>({
+    maxDepth: 50,
+    enabled: activeRightTab === 'devices',
+    onUndo: handleUndoLayout,
+    onRedo: handleRedoLayout,
+  });
+
+  undoRedoRef.current = { undo: undoLayout, redo: redoLayout };
+  pushLayoutRef.current = pushLayout;
+
+  const handlePresetLoadWithHistory = useCallback(async (id: string) => {
+    pushLayout({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
+    await handlePresetLoad(id);
+    await refreshDevices();
+  }, [pushLayout, handlePresetLoad, refreshDevices]);
+
+  const handleResetWithHistory = useCallback(async () => {
+    pushLayout({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
+    await resetDeviceLayouts();
+    await loadPresets();
+    await refreshDevices();
+  }, [pushLayout, loadPresets, refreshDevices]);
+
   const handleModeChange = useCallback(async (m: LightingMode) => {
     setMode(m);
     // Set rawSync optimistically so content renders the new mode immediately
@@ -965,7 +1053,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           ) : (
             <>
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
+                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} />
                 {effectiveMode === 'animate' && activeEffect && currentState && activeRightTab === 'effect' && (
                   <>
                     {EFFECTS.find(e => e.key === activeEffect)?.audio && (
@@ -1031,6 +1119,20 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 smartHubFirmwareControl={smartHubFirmwareControl}
                 onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
                 onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
+                presets={presets}
+                layoutActiveId={layoutActiveId}
+                dirty={dirty}
+                presetCount={presetCount}
+                canUndo={canUndoLayout}
+                canRedo={canRedoLayout}
+                onPresetLoad={handlePresetLoadWithHistory}
+                onPresetCreate={handlePresetCreate}
+                onPresetSave={handlePresetSave}
+                onPresetRename={handlePresetRename}
+                onPresetDelete={handlePresetDelete}
+                onLayoutReset={handleResetWithHistory}
+                onLayoutUndo={handleUndoLayout}
+                onLayoutRedo={handleRedoLayout}
               />
               <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
             </>

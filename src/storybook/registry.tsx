@@ -1678,4 +1678,10 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Tabbed desktop page for the Benchmark app: Run (hardware detection + start/progress/cancel), Results (scorecard + history sparkline), Leaderboards (public board with version filter). Tab state drives the URL subtab via onTabChange.',
     notes: 'No live preview -- requires a running service for the Run tab and cloud API for Leaderboards.',
   },
+  {
+    name: 'LayoutToolbar', category: 'panel-kit',
+    filePath: 'src/panel/widgets/lighting/page/LayoutToolbar.tsx',
+    description: 'Toolbar for lighting canvas layout presets: preset dropdown (with Rename/Delete when active), Save / New / Reset icon buttons, Undo/Redo with keyboard shortcuts.',
+    notes: 'No live preview -- bound to live preset state via useLayoutPresets and requires a running service.',
+  },
 ];

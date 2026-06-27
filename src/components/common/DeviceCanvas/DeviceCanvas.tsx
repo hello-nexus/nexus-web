@@ -43,6 +43,8 @@ interface DeviceCanvasProps {
   onOpenSettings?: (id: string) => void;
   /** Notifies parent when a drag starts or ends, so it can pause state updates. */
   onDragActiveChange?: (active: boolean) => void;
+  /** Called before a rotate or maximize saves a layout, so callers can snapshot for undo. */
+  onBeforeLayoutSave?: () => void;
 }
 
 const CW = 1000;
@@ -65,7 +67,7 @@ const CanvasBackground = memo(function CanvasBackground({ canvasPixels, canvasW,
   return <canvas ref={bgRef} className={styles.bgCanvas} />;
 });
 
-const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange }: {
+const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave }: {
   devices: LightingDevice[];
   selectedIds: Set<string>;
   primaryDeviceId: string | null;
@@ -75,8 +77,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   selectedDeviceLeds?: LedMapEntry[] | null;
   onOpenSettings?: (id: string) => void;
   onDragActiveChange?: (active: boolean) => void;
+  onBeforeLayoutSave?: () => void;
 }) {
   const { t } = useTranslation();
+  const onBeforeLayoutSaveRef = useRef(onBeforeLayoutSave);
+  onBeforeLayoutSaveRef.current = onBeforeLayoutSave;
   // Single-frame drag carries one orig rect; group drag carries the orig
   // rects of every selected device so handlePointerMove can apply the same
   // (clamped) delta to all of them while keeping the dragged frame as the
@@ -333,6 +338,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   }, [drag, marquee, devices, onSelectDevice, onSetSelection, onDragActiveChange]);
 
   const handleRotate = useCallback((dev: LightingDevice, dir: 1 | -1) => {
+    onBeforeLayoutSaveRef.current?.();
     const prevVisual = visualAngleRef.current.get(dev.id) ?? (dev.canvasRotation ?? 0);
     const nextVisual = prevVisual + dir * 90;
     visualAngleRef.current.set(dev.id, nextVisual);
@@ -370,6 +376,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     && dev.canvasY + dev.canvasH >= CH - PAD - 0.5, []);
 
   const handleMaximize = useCallback((dev: LightingDevice) => {
+    onBeforeLayoutSaveRef.current?.();
     if (isMaximized(dev)) {
       dev.canvasX = CW / 2 - 60;
       dev.canvasY = CH / 2 - 15;
@@ -527,7 +534,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   );
 });
 
-export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange }: DeviceCanvasProps) {
+export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave }: DeviceCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const shaderStateRef = useRef(shaderState ?? null);
@@ -544,7 +551,7 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
     <div ref={containerRef} className={styles.canvas}>
       <CanvasBackground canvasPixels={canvasPixels} canvasW={canvasW} canvasH={canvasH} />
       <canvas ref={glCanvasRef} className={`${styles.glCanvas} ${ready ? styles.glCanvasReady : ''}`} />
-      <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} />
+      <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} />
     </div>
   );
 }
