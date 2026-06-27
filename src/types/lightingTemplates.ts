@@ -64,6 +64,16 @@ function simpleFeelsFor(key: string): [Feel, Feel, Feel, Feel] | null {
   return hue === undefined ? null : simpleColorFeels(hue);
 }
 
+// Per-slot uniform overrides shared by every simple fill. Slot 1 drops the
+// gradient and wave so it reads as a flat, even solid colour; the other slots
+// keep the SIMPLE_PARAMS defaults (gradient + gentle wave).
+const SIMPLE_PARAM_VARIATIONS: [Record<string, number>, Record<string, number>, Record<string, number>, Record<string, number>] = [
+  {},
+  { u_gradient: 0, u_wave: 0 },
+  {},
+  {},
+];
+
 function isRainbowSignature(f: Feel): boolean {
   return Math.abs(f.hue) < 1e-4 && Math.abs(f.colorize) < 1e-4;
 }
@@ -628,11 +638,13 @@ function feelsForSignature(sig: Feel): [Feel, Feel, Feel, Feel] {
  */
 export function buildDefaultTemplates(effectKey: string): EffectTemplateBundle {
   const baseParams = defaultParamsFor(effectKey);
-  const variations = PARAM_VARIATIONS[effectKey];
   const signature = SIGNATURES[effectKey] ?? RAINBOW;
-  // Simple fills carry their own 4 same-colour feels; everything else derives
-  // its slots from the signature (rainbow / warm / cool / green logic).
-  const feels = simpleFeelsFor(effectKey) ?? feelsForSignature(signature);
+  // Simple fills carry their own 4 same-colour feels and their own per-slot
+  // param overrides; everything else derives its slots from the signature
+  // (rainbow / warm / cool / green logic) and PARAM_VARIATIONS.
+  const simpleFeels = simpleFeelsFor(effectKey);
+  const feels = simpleFeels ?? feelsForSignature(signature);
+  const variations = simpleFeels ? SIMPLE_PARAM_VARIATIONS : PARAM_VARIATIONS[effectKey];
   const slots: EffectState[] = feels.map((feel, i) => {
     const overrides = variations?.[i] ?? {};
     return {

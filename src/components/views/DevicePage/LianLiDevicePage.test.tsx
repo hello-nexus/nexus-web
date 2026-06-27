@@ -42,6 +42,7 @@ const defaultLighting = {
   modes: [
     { key: 'static', label: 'Static', hasSpeed: true, hasDirection: false, hasBrightness: true, colorsMin: 1, colorsMax: 6 },
     { key: 'rainbowWave', label: 'Rainbow Wave', hasSpeed: true, hasDirection: true, hasBrightness: true, colorsMin: 0, colorsMax: 0 },
+    { key: 'dualColor', label: 'Dual Color', hasSpeed: false, hasDirection: false, hasBrightness: true, colorsMin: 2, colorsMax: 2 },
     { key: 'custom', label: 'Custom (per-LED effects)', hasSpeed: false, hasDirection: false, hasBrightness: false, colorsMin: 0, colorsMax: 0 },
   ],
 };
@@ -60,12 +61,17 @@ function clickTab(name: string) {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers();
   mockGetLianLiState.mockResolvedValue(defaultState);
   mockGetLianLiLighting.mockResolvedValue(defaultLighting);
   mockGetLianLiCooling.mockResolvedValue(defaultCooling);
   mockSetLianLiLighting.mockResolvedValue(null);
   mockSetLianLiPortCooling.mockResolvedValue(null);
   mockSetLianLiFanCount.mockResolvedValue(null);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('LianLiDevicePage', () => {
@@ -84,7 +90,7 @@ describe('LianLiDevicePage', () => {
     expect(screen.queryByText('devices.lianli.coolingSection')).not.toBeInTheDocument();
   });
 
-  it('Cooling tab: fan-speed section only shows ports with fans; controls render correctly', async () => {
+  it('Cooling tab: all 4 ports shown in fan-speed section', async () => {
     const spy = vi.fn();
     await act(async () => {
       render(<LianLiDevicePage onSectionNavigate={spy} />);
@@ -93,43 +99,66 @@ describe('LianLiDevicePage', () => {
       clickTab('devices.lianli.tabCooling');
     });
 
-    // scope assertions to the fan-speed section
     const fanSpeedSection = screen.getByText('devices.lianli.coolingSection').closest('section')!;
 
-    // ports 1 and 2 have fans - shown in fan-speed section
+    // All 4 ports render regardless of fansPerPort count.
     expect(within(fanSpeedSection).getByText('devices.lianli.port:{"n":1}')).toBeInTheDocument();
     expect(within(fanSpeedSection).getByText('devices.lianli.port:{"n":2}')).toBeInTheDocument();
+    expect(within(fanSpeedSection).getByText('devices.lianli.port:{"n":3}')).toBeInTheDocument();
+    expect(within(fanSpeedSection).getByText('devices.lianli.port:{"n":4}')).toBeInTheDocument();
 
-    // ports 3 and 4 have 0 fans - hidden from fan-speed section
-    expect(within(fanSpeedSection).queryByText('devices.lianli.port:{"n":3}')).not.toBeInTheDocument();
-    expect(within(fanSpeedSection).queryByText('devices.lianli.port:{"n":4}')).not.toBeInTheDocument();
+    // Duty rows present (no per-port mode Select).
+    const dutyRows = within(fanSpeedSection).getAllByText('devices.lianli.dutyLabel');
+    expect(dutyRows.length).toBe(4);
 
-    // port 1 is Manual in defaultCooling - duty row shows
-    expect(within(fanSpeedSection).getByText('devices.lianli.dutyLabel')).toBeInTheDocument();
+    // No mode Select: neither firmware-speed nor motherboard-pwm labels appear here.
+    expect(within(fanSpeedSection).queryByText('devices.lianli.modeFirmwareSpeed')).not.toBeInTheDocument();
+    expect(within(fanSpeedSection).queryByText('devices.lianli.modeMotherboardPwm')).not.toBeInTheDocument();
 
-    // mode option labels appear as trigger selected values
-    expect(within(fanSpeedSection).getByText('devices.lianli.modeFirmwareSpeed')).toBeInTheDocument();
-    expect(within(fanSpeedSection).getByText('devices.lianli.modeMotherboardPwm')).toBeInTheDocument();
-
-    // coolingPageLink button navigates to the cooling page
+    // coolingPageLink button navigates to the cooling page.
     const coolingBtn = within(fanSpeedSection).getByRole('button', { name: 'devices.lianli.coolingPageLink' });
     fireEvent.click(coolingBtn);
     expect(spy).toHaveBeenCalledWith('cooling');
   });
 
-  it('custom mode shows customModeNote instead of mode-conditional controls', async () => {
+  it('custom mode shows customModeNote and lighting-page button; no speed/brightness sliders', async () => {
     mockGetLianLiLighting.mockResolvedValue({
       ...defaultLighting,
       mode: 'custom',
     });
     await act(async () => {
-      render(<LianLiDevicePage />);
+      render(<LianLiDevicePage onSectionNavigate={vi.fn()} />);
     });
     expect(screen.getByText('devices.lianli.customModeNote')).toBeInTheDocument();
     expect(screen.queryByText('devices.lianli.lightingSpeed')).not.toBeInTheDocument();
     expect(screen.queryByText('devices.lianli.lightingBrightness')).not.toBeInTheDocument();
-    // mode Select stays rendered in custom mode (regression guard for Fix 1)
+    // Mode Select stays rendered in custom mode.
     expect(screen.getByText('devices.lianli.lightingMode')).toBeInTheDocument();
+    // Lighting-page link button present only in custom mode.
+    expect(screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' })).toBeInTheDocument();
+  });
+
+  it('firmware mode does NOT show lighting-page link button', async () => {
+    const spy = vi.fn();
+    await act(async () => {
+      render(<LianLiDevicePage onSectionNavigate={spy} />);
+    });
+    // defaultLighting.mode is 'static' (a firmware mode).
+    expect(screen.queryByRole('button', { name: /smartLights\.colorOnLightingPage/i })).not.toBeInTheDocument();
+  });
+
+  it('firmware mode shows brightness slider first', async () => {
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    // In static mode (firmware), brightness should appear.
+    expect(screen.getByText('devices.lianli.lightingBrightness')).toBeInTheDocument();
+    // Speed also appears (static hasSpeed=true).
+    expect(screen.getByText('devices.lianli.lightingSpeed')).toBeInTheDocument();
+    // Verify brightness comes before speed in the DOM.
+    const brightness = screen.getByText('devices.lianli.lightingBrightness');
+    const speed = screen.getByText('devices.lianli.lightingSpeed');
+    expect(brightness.compareDocumentPosition(speed) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('rainbowWave mode shows direction select but no color pickers', async () => {
@@ -144,13 +173,33 @@ describe('LianLiDevicePage', () => {
     expect(screen.queryByText('devices.lianli.addColor')).not.toBeInTheDocument();
   });
 
-  it('Lighting tab shows Color & brightness link when onSectionNavigate provided', async () => {
+  it('colorsMax===2 mode renders exactly 2 HsvPicker side-by-side with no add/remove', async () => {
+    mockGetLianLiLighting.mockResolvedValue({
+      ...defaultLighting,
+      mode: 'dualColor',
+      colors: ['#ff0000'],
+    });
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    const section = screen.getByText('devices.lianli.lightingSection').closest('section')!;
+    // Each HsvPicker renders one hex input; the fixed 2-color pair shows exactly two.
+    expect(within(section).getAllByLabelText('common.hexColor')).toHaveLength(2);
+    // No add/remove controls in the fixed 2-color pair.
+    expect(within(section).queryByText('devices.lianli.addColor')).not.toBeInTheDocument();
+    expect(within(section).queryByText('devices.lianli.removeColor')).not.toBeInTheDocument();
+  });
+
+  it('Lighting tab custom mode link navigates to lighting page', async () => {
+    mockGetLianLiLighting.mockResolvedValue({
+      ...defaultLighting,
+      mode: 'custom',
+    });
     const spy = vi.fn();
     await act(async () => {
       render(<LianLiDevicePage onSectionNavigate={spy} />);
     });
-    const btn = screen.getByRole('button', { name: /smartLights\.colorOnLightingPage/i });
-    expect(btn).toBeInTheDocument();
+    const btn = screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' });
     fireEvent.click(btn);
     expect(spy).toHaveBeenCalledWith('lighting');
   });

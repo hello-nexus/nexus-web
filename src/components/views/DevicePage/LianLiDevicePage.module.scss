@@ -70,6 +70,13 @@
   padding-top: 0.25rem;
 }
 
+.colorPairRow {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .colorEntry {
   display: flex;
   flex-direction: column;

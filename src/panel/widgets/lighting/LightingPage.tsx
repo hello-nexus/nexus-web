@@ -15,6 +15,7 @@ import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useLayoutPresets, devicesToLayouts } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
+import { getLianLiLighting } from '../../../api/lianli';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
 import { useLightingSync } from '../../../hooks/useLightingSync';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -148,6 +149,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [catalogOpen, setCatalogOpen] = useState(false);
 
   const [smartHubFirmwareControl, setSmartHubFirmwareControlState] = useState(false);
+  const [lianLiMode, setLianLiMode] = useState<string | null>(null);
+  // true when the hub's active lighting mode is not 'custom' (firmware animation overrides per-LED engine).
+  const lianLiFirmwareActive = lianLiMode !== null && lianLiMode !== 'custom';
 
   const handleSetSmartHubFirmwareControl = useCallback(async (enabled: boolean) => {
     setSmartHubFirmwareControlState(enabled);
@@ -844,6 +848,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     getSmartHubFirmwareControl().then(v => {
       if (!cancelled && v !== null) setSmartHubFirmwareControlState(v);
     }).catch(() => {});
+    getLianLiLighting().then(data => {
+      if (!cancelled && data) setLianLiMode(data.mode);
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, [serviceOnline]);
 
@@ -852,6 +859,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       if (!serviceOnline) return;
       getSmartHubFirmwareControl().then(v => {
         if (v !== null) setSmartHubFirmwareControlState(v);
+      }).catch(() => {});
+      getLianLiLighting().then(data => {
+        if (data) setLianLiMode(data.mode);
       }).catch(() => {});
     };
     window.addEventListener('focus', onFocus);
@@ -1118,6 +1128,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onOpenCommunity={handleOpenCommunity}
                 smartHubFirmwareControl={smartHubFirmwareControl}
                 onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
+                lianLiFirmwareActive={lianLiFirmwareActive}
                 onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
                 presets={presets}
                 layoutActiveId={layoutActiveId}
