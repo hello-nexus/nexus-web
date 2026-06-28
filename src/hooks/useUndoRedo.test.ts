@@ -116,4 +116,28 @@ describe('useUndoRedo', () => {
     act(() => { v = result.current.undo(0); });
     expect(v).toBe(5);
   });
+
+  // metaKey+ctrlKey both set so the shortcut fires on either platform branch.
+  it('Cmd/Ctrl+Z is inert while disabled (e.g. a modal with its own undo is open)', () => {
+    let undos = 0;
+    renderHook(() => useUndoRedo<number>({ enabled: false, onUndo: () => { undos++; } }));
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyZ', metaKey: true, ctrlKey: true }));
+    });
+    expect(undos).toBe(0);
+  });
+
+  it('Cmd/Ctrl+Z fires undo, Shift+ fires redo, while enabled', () => {
+    let undos = 0;
+    let redos = 0;
+    renderHook(() => useUndoRedo<number>({ enabled: true, onUndo: () => { undos++; }, onRedo: () => { redos++; } }));
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyZ', metaKey: true, ctrlKey: true }));
+    });
+    expect(undos).toBe(1);
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyZ', metaKey: true, ctrlKey: true, shiftKey: true }));
+    });
+    expect(redos).toBe(1);
+  });
 });

@@ -132,9 +132,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const layoutActiveIdRef = useRef<string | null>(null);
   const handleDragActiveChange = useCallback((active: boolean) => {
     deviceDraggingRef.current = active;
-    if (active) {
-      pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
-    }
   }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Multi-selection on the canvas + right-side device panel. The set drives
@@ -942,7 +939,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     reset: resetLayoutHistory,
   } = useUndoRedo<LayoutHistorySnapshot>({
     maxDepth: 50,
-    enabled: activeRightTab === 'devices',
+    // Off while the LED map editor is open: it has its own undo/redo on the same
+    // Cmd/Ctrl+Z, and both listen on window, so an enabled layout history would
+    // also fire and undo the canvas underneath the modal.
+    enabled: activeRightTab === 'devices' && editorTarget === null,
     onUndo: handleUndoLayout,
     onRedo: handleRedoLayout,
     store: layoutHistoryStore,

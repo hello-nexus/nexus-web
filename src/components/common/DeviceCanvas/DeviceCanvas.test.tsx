@@ -12,7 +12,16 @@ vi.mock('../../../lib/ledFrame', () => ({ paintLedFrame: vi.fn() }));
 beforeAll(() => {
   window.ResizeObserver = class { observe() {} disconnect() {} unobserve() {} };
   HTMLCanvasElement.prototype.getContext = () => null as unknown as CanvasRenderingContext2D;
+  HTMLElement.prototype.setPointerCapture = () => {};
+  HTMLElement.prototype.releasePointerCapture = () => {};
 });
+
+function dragDevice(id: string, name: string): LightingDevice {
+  return {
+    id, name, ledsOn: true, ledCount: 0,
+    canvasX: 100, canvasY: 100, canvasW: 200, canvasH: 100, canvasRotation: 0,
+  } as unknown as LightingDevice;
+}
 
 describe('DeviceCanvas', () => {
   it('fires onBeforeLayoutSave with pre-rotation canvasRotation on rotate', () => {
@@ -138,5 +147,44 @@ describe('DeviceCanvas', () => {
 
     const label = screen.getByText('Test Device 3');
     expect(label.style.transform).toBe('rotate(0deg)');
+  });
+
+  it('a tap that does not move fires no onBeforeLayoutSave (no no-op undo snapshot)', () => {
+    const device = dragDevice('dev4', 'Tap Device');
+    const onBeforeLayoutSave = vi.fn();
+    render(
+      <DeviceCanvas
+        devices={[device]} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set()} primaryDeviceId={null}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} onBeforeLayoutSave={onBeforeLayoutSave}
+      />
+    );
+    const frame = screen.getByText('Tap Device').parentElement!;
+    fireEvent.pointerDown(frame, { button: 0, clientX: 150, clientY: 150 });
+    fireEvent.pointerUp(frame, { clientX: 150, clientY: 150 });
+    expect(onBeforeLayoutSave).not.toHaveBeenCalled();
+  });
+
+  it('a drag past the threshold fires onBeforeLayoutSave once', () => {
+    const device = dragDevice('dev5', 'Drag Device');
+    const onBeforeLayoutSave = vi.fn();
+    // jsdom returns a zero rect; map client px 1:1 to canvas px so a move registers.
+    const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(
+      { left: 0, top: 0, width: 1000, height: 500, right: 1000, bottom: 500, x: 0, y: 0, toJSON() {} } as DOMRect,
+    );
+    render(
+      <DeviceCanvas
+        devices={[device]} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set()} primaryDeviceId={null}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} onBeforeLayoutSave={onBeforeLayoutSave}
+      />
+    );
+    const frame = screen.getByText('Drag Device').parentElement!;
+    fireEvent.pointerDown(frame, { button: 0, clientX: 150, clientY: 150 });
+    fireEvent.pointerMove(frame, { clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(frame, { clientX: 320, clientY: 150 });
+    fireEvent.pointerUp(frame, { clientX: 320, clientY: 150 });
+    expect(onBeforeLayoutSave).toHaveBeenCalledTimes(1);
+    rectSpy.mockRestore();
   });
 });
