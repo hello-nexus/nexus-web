@@ -56,6 +56,7 @@ const CURATED_ICONS: Record<string, string> = {
   qseries: '/assets/devices/q60.svg',
   y70: '/assets/devices/y70.svg',
   keeb: '/assets/devices/keeb.svg',
+  np50: '/assets/devices/np50.svg',
   'fan-hub': '/assets/devices/fan-hub.svg',
 };
 
