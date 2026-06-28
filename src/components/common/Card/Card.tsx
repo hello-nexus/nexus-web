@@ -8,7 +8,8 @@ import styles from './Card.module.scss';
  * render a fully custom header inside `children`.
  *
  * `interactive` adds a hover state (border + bg lift) for cards that act as
- * buttons or selection targets.
+ * buttons or selection targets. `compact` tightens padding for dense layouts
+ * such as tile grids.
  */
 export interface CardProps {
   title?: ReactNode;
@@ -16,14 +17,15 @@ export interface CardProps {
   actions?: ReactNode;
   children?: ReactNode;
   interactive?: boolean;
+  compact?: boolean;
   className?: string;
   onClick?: () => void;
 }
 
-export function Card({ title, subtitle, actions, children, interactive, className, onClick }: CardProps) {
+export function Card({ title, subtitle, actions, children, interactive, compact, className, onClick }: CardProps) {
   const hasHeader = title !== undefined || subtitle !== undefined || actions !== undefined;
   return (
-    <div className={`${styles.root} ${interactive || onClick ? styles.interactive : ''} ${className ?? ''}`} onClick={onClick}>
+    <div className={`${styles.root} ${interactive || onClick ? styles.interactive : ''} ${compact ? styles.compact : ''} ${className ?? ''}`} onClick={onClick}>
       {hasHeader && (
         <div className={styles.header}>
           <div className={styles.titleCol}>

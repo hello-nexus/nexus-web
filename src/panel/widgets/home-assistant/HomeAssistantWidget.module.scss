@@ -43,7 +43,15 @@
 
 .widget[data-size='2x2'] .label { font-size: var(--type-mini); }
 
+.iconWrap {
+  position: relative;
+  display: inline-flex;
+}
+
 .statusDot {
+  position: absolute;
+  bottom: 0;
+  right: -4px;
   width: 8px;
   height: 8px;
   border-radius: 50%;

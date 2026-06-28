@@ -1315,7 +1315,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Card', category: 'cards',
     filePath: 'src/components/common/Card/Card.tsx',
-    description: 'Canonical card surface (background, border, radius, padding) with optional title / subtitle / actions header. Compose for any panel.', Preview: PreviewCard,
+    description: 'Canonical card surface (background, border, radius, padding) with optional title / subtitle / actions header. Compose for any panel. `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids).', Preview: PreviewCard,
   },
   {
     name: 'SensorCard', category: 'cards',

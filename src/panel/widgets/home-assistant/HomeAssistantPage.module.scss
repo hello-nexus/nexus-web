@@ -74,6 +74,21 @@
   &:focus { border-color: var(--accent); }
 }
 
+.guideList {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.guideLink {
+  font-size: var(--type-small);
+  align-self: flex-start;
+}
+
 .connectRow {
   display: flex;
   align-items: center;
@@ -94,84 +109,101 @@
   gap: 1rem;
 }
 
-.entityGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.categoryCount {
+  margin-left: auto;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
 }
 
-// Single entity row inside a collapsible area group.
-.entityRow {
+// Responsive tile grid inside each area CollapsibleSection.
+.tileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem;
+}
+
+// Flex row: circular badge on the left, name+state on the right.
+.tileInner {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius);
-  background: var(--surface);
+  gap: 0.75rem;
+
+  &[data-unreachable='true'] { opacity: 0.5; }
 }
 
-.entityRow[data-unreachable='true'] {
-  opacity: 0.5;
+// Circular icon-badge button. Tinted via inline style when the entity is on.
+.tileBadge {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--gauge-track);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  &[data-on='true'] { color: var(--accent-text); }
+  &:disabled { opacity: 0.45; cursor: default; }
+  &:not(:disabled):hover { filter: brightness(1.12); }
 }
 
-.entityInfo {
-  flex: 0 0 auto;
-  min-width: 120px;
+.tileInfo {
+  min-width: 0;
+  flex: 1;
 }
 
-.entityName {
+.tileName {
   font-weight: var(--weight-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tileState {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// More-info detail dialog surface (Overlay className override).
+.moreInfoDialog {
+  background: var(--backdrop-base);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  width: min(380px, 100%);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: var(--shadow-xl);
+}
+
+.moreInfoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.moreInfoTitle {
+  margin: 0;
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.entityMeta {
-  font-size: var(--type-mini);
-  color: var(--text-dim);
-}
-
-.entityControls {
-  flex: 1;
+.moreInfoBody {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-
-.sliderWrap {
-  flex: 1;
-  min-width: 120px;
-}
-
-.colorWrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.colorPickerPopup {
-  position: absolute;
-  top: 36px;
-  left: 0;
-  z-index: 100;
-}
-
-.colorSwatch {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--border);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.categoryCount {
-  margin-left: auto;
-  font-size: var(--type-mini);
-  color: var(--text-dim);
+  flex-direction: column;
+  gap: 1rem;
 }

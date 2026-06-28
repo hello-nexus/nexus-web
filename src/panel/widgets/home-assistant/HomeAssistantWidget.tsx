@@ -41,12 +41,11 @@ export function HomeAssistantWidget({ widget, onSectionNavigate }: WidgetProps) 
 
   const content = (
     <>
-      <div style={{ position: 'relative', display: 'inline-flex' }}>
+      <div className={styles.iconWrap}>
         <House size={iconSize} className={styles.icon} aria-hidden />
         <span
           className={styles.statusDot}
           data-connected={connected ? 'true' : 'false'}
-          style={{ position: 'absolute', bottom: 0, right: -4 }}
           aria-hidden
         />
       </div>
