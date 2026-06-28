@@ -902,7 +902,6 @@
   "lighting.gameSync.signal.receiving": "Recibiendo de {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Un juego está controlando tu iluminación.",
   "lighting.layoutPresets.capReached": "Se alcanzó el límite de {max} presets",
-  "lighting.layoutPresets.default": "Predeterminado",
   "lighting.layoutPresets.defaultName": "Preset {n}",
   "lighting.layoutPresets.delete": "Eliminar",
   "lighting.layoutPresets.deleteConfirm": "¿Eliminar preset \"{name}\"?",

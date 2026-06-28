@@ -24,7 +24,6 @@ interface LayoutToolbarProps {
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
   onReset: () => void;
-  onSelectDefault: () => void;
   onUndo: () => void;
   onRedo: () => void;
 }
@@ -32,7 +31,7 @@ interface LayoutToolbarProps {
 export function LayoutToolbar({
   presets, activeId, presetCount,
   canUndo, canRedo,
-  onLoad, onCreate, onRename, onDelete, onReset, onSelectDefault, onUndo, onRedo,
+  onLoad, onCreate, onRename, onDelete, onReset, onUndo, onRedo,
 }: LayoutToolbarProps) {
   const { t } = useTranslation();
   const [promptOpen, setPromptOpen] = useState(false);
@@ -46,7 +45,6 @@ export function LayoutToolbar({
   const atCap = presetCount >= LAYOUT_PRESET_CAP;
 
   const selectOptions = [
-    { value: '', label: t('lighting.layoutPresets.default'), className: styles.defaultOption },
     ...presets.map(p => ({ value: p.id, label: p.name })),
     ...(activeId ? [
       { value: '__sep__', label: '------', disabled: true, className: styles.sepOption },
@@ -66,7 +64,6 @@ export function LayoutToolbar({
     }
     if (value === '__rename__') { setPromptMode('rename'); setPromptOpen(true); return; }
     if (value === '__delete__') { setDeleteConfirmOpen(true); return; }
-    if (value === '') { onSelectDefault(); return; }
   };
 
   const createValidate = (v: string): string | null => {
@@ -103,8 +100,8 @@ export function LayoutToolbar({
         onChange={handleSelectChange}
         options={selectOptions}
         ariaLabel={t('lighting.layoutPresets.placeholder')}
+        placeholder={t('lighting.layoutPresets.placeholder')}
         className={styles.presetSelect}
-        dimValue={!activeId}
       />
       <Button
         tone="ghost"

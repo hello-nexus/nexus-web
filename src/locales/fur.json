@@ -911,7 +911,6 @@
   "lighting.gameSync.signal.receiving": "Daûr a ricevi di {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Un zûc al controle la tô iluminazion.",
   "lighting.layoutPresets.capReached": "Limite di {max} presets",
-  "lighting.layoutPresets.default": "Predefinît",
   "lighting.layoutPresets.defaultName": "Preset {n}",
   "lighting.layoutPresets.delete": "Elimine",
   "lighting.layoutPresets.deleteConfirm": "Eliminâ il preset \"{name}\"?",

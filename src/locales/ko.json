@@ -902,7 +902,6 @@
   "lighting.gameSync.signal.receiving": "{activeApp}에서 수신 중",
   "lighting.gameSync.signal.receivingUnknown": "게임이 조명을 제어하고 있습니다.",
   "lighting.layoutPresets.capReached": "프리셋은 최대 {max}개까지 허용됩니다",
-  "lighting.layoutPresets.default": "기본값",
   "lighting.layoutPresets.defaultName": "프리셋 {n}",
   "lighting.layoutPresets.delete": "삭제",
   "lighting.layoutPresets.deleteConfirm": "프리셋 \"{name}\"을(를) 삭제할까요?",

@@ -902,7 +902,6 @@
   "lighting.gameSync.signal.receiving": "{activeApp} から受信中",
   "lighting.gameSync.signal.receivingUnknown": "ゲームが照明を制御しています。",
   "lighting.layoutPresets.capReached": "プリセットは最大{max}個まで",
-  "lighting.layoutPresets.default": "デフォルト",
   "lighting.layoutPresets.defaultName": "プリセット {n}",
   "lighting.layoutPresets.delete": "削除",
   "lighting.layoutPresets.deleteConfirm": "プリセット「{name}」を削除しますか?",

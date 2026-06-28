@@ -902,7 +902,6 @@
   "lighting.gameSync.signal.receiving": "Получение от {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Игра управляет вашим освещением.",
   "lighting.layoutPresets.capReached": "Достигнут лимит в {max} пресетов",
-  "lighting.layoutPresets.default": "По умолчанию",
   "lighting.layoutPresets.defaultName": "Пресет {n}",
   "lighting.layoutPresets.delete": "Удалить",
   "lighting.layoutPresets.deleteConfirm": "Удалить пресет \"{name}\"?",

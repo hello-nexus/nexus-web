@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { LightingDevice } from '../../../../api/lighting';
 import {
   fetchLayoutPresets, createLayoutPreset, updateLayoutPreset,
-  deleteLayoutPreset, setActiveLayoutPreset, activateLayoutPreset,
+  deleteLayoutPreset, activateLayoutPreset,
   type LayoutPreset, type DeviceLayoutDto,
 } from '../../../../api/lighting';
 
@@ -24,7 +24,6 @@ export interface UseLayoutPresetsResult {
   handleRename: (id: string, name: string) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
   handleLoad: (id: string) => Promise<void>;
-  handleSetActive: (id: string | null) => Promise<void>;
 }
 
 export function useLayoutPresets(serviceOnline: boolean): UseLayoutPresetsResult {
@@ -67,11 +66,6 @@ export function useLayoutPresets(serviceOnline: boolean): UseLayoutPresetsResult
     await loadPresets();
   }, [loadPresets]);
 
-  const handleSetActive = useCallback(async (id: string | null) => {
-    await setActiveLayoutPreset(id);
-    await loadPresets();
-  }, [loadPresets]);
-
   return {
     presets,
     activeId,
@@ -82,6 +76,5 @@ export function useLayoutPresets(serviceOnline: boolean): UseLayoutPresetsResult
     handleRename,
     handleDelete,
     handleLoad,
-    handleSetActive,
   };
 }

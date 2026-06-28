@@ -18,9 +18,18 @@ vi.mock('../../../../lib/platform', () => ({
 }));
 
 vi.mock('../../../../components/common/Select/Select', () => ({
-  Select: ({ value, onChange, ariaLabel }: { value: string; onChange: (v: string) => void; ariaLabel?: string }) => (
-    <select aria-label={ariaLabel} value={value} onChange={e => onChange(e.target.value)} data-testid="preset-select" />
-  ),
+  Select: ({ value, onChange, ariaLabel, placeholder, options }: { value: string; onChange: (v: string) => void; ariaLabel?: string; placeholder?: string; options?: Array<{ value: string; label: string }> }) => {
+    const matched = options?.find(o => o.value === value);
+    const displayText = matched ? matched.label : (placeholder ?? '');
+    return (
+      <>
+        <button aria-label={ariaLabel} data-testid="preset-trigger">{displayText}</button>
+        <select aria-label={ariaLabel} value={value} onChange={e => onChange(e.target.value)} data-testid="preset-select">
+          {options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </>
+    );
+  },
 }));
 
 vi.mock('../../../../components/common/HoverTooltip/HoverTooltip', () => ({
@@ -49,7 +58,6 @@ function defaultProps(overrides: Partial<Parameters<typeof LayoutToolbar>[0]> = 
     onRename: vi.fn(),
     onDelete: vi.fn(),
     onReset: vi.fn(),
-    onSelectDefault: vi.fn(),
     onUndo: vi.fn(),
     onRedo: vi.fn(),
     ...overrides,
@@ -57,6 +65,23 @@ function defaultProps(overrides: Partial<Parameters<typeof LayoutToolbar>[0]> = 
 }
 
 describe('LayoutToolbar', () => {
+  it('trigger shows placeholder when no preset is active', () => {
+    render(<LayoutToolbar {...defaultProps()} />);
+    expect(screen.getByTestId('preset-trigger')).toHaveTextContent('lighting.layoutPresets.placeholder');
+  });
+
+  it('no Default option in the dropdown list', () => {
+    render(<LayoutToolbar {...defaultProps()} />);
+    const opts = screen.queryAllByRole('option');
+    const labels = opts.map(o => o.textContent ?? '');
+    expect(labels).not.toContain('lighting.layoutPresets.default');
+  });
+
+  it('trigger shows preset name when a preset is active', () => {
+    render(<LayoutToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a' })} />);
+    expect(screen.getByTestId('preset-trigger')).toHaveTextContent('My Preset');
+  });
+
   it('renders a select when no active preset', () => {
     render(<LayoutToolbar {...defaultProps()} />);
     const sel = screen.getByTestId('preset-select');

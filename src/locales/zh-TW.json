@@ -902,7 +902,6 @@
   "lighting.gameSync.signal.receiving": "正在從 {activeApp} 接收",
   "lighting.gameSync.signal.receivingUnknown": "遊戲正在控制您的燈光。",
   "lighting.layoutPresets.capReached": "已達到 {max} 個預設的上限",
-  "lighting.layoutPresets.default": "預設",
   "lighting.layoutPresets.defaultName": "預設 {n}",
   "lighting.layoutPresets.delete": "刪除",
   "lighting.layoutPresets.deleteConfirm": "刪除預設「{name}」？",

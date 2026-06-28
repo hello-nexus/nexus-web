@@ -53,8 +53,8 @@ export interface SelectProps {
   variant?: 'standard' | 'ghost';
   /** Tint the displayed value (selected label) with the accent color. */
   accentValue?: boolean;
-  /** Dim the displayed value (selected label) with muted text color. */
-  dimValue?: boolean;
+  /** Shown dimmed when no option matches `value`. */
+  placeholder?: string;
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -111,12 +111,13 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 
 export function Select({
   value, onChange, options, children, disabled,
-  ariaLabel, className, variant = 'standard', accentValue, dimValue,
+  ariaLabel, className, variant = 'standard', accentValue, placeholder,
 }: SelectProps) {
   const resolved = options ? options : optionsFromChildren(children);
   const selectedIndex = resolved.findIndex(o => o.value === value);
   const selectedLabel = selectedIndex >= 0 ? resolved[selectedIndex].label : '';
   const selectedIcon = selectedIndex >= 0 ? resolved[selectedIndex].icon : undefined;
+  const showPlaceholder = selectedIndex < 0 && placeholder != null;
 
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -306,9 +307,9 @@ export function Select({
         onClick={() => { if (disabled) return; if (open) close(); else openMenu(); }}
         onKeyDown={onTriggerKeyDown}
       >
-        <span className={classNames(styles.value, accentValue && styles.accentValue, dimValue && styles.dimValue)}>
-          {selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
-          {selectedLabel}
+        <span className={classNames(styles.value, accentValue && styles.accentValue, showPlaceholder && styles.placeholder)}>
+          {!showPlaceholder && selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
+          {showPlaceholder ? placeholder : selectedLabel}
         </span>
       </button>
       <ChevronDown

@@ -43,7 +43,7 @@ type DeviceBlock =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, presets, layoutActiveId, presetCount, canUndo, canRedo, onPresetLoad, onPresetCreate, onPresetRename, onPresetDelete, onLayoutReset, onSelectDefault, onLayoutUndo, onLayoutRedo }: {
+export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, presets, layoutActiveId, presetCount, canUndo, canRedo, onPresetLoad, onPresetCreate, onPresetRename, onPresetDelete, onLayoutReset, onLayoutUndo, onLayoutRedo }: {
   devices: LightingDevice[];
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
@@ -82,7 +82,6 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
   onPresetRename: (id: string, name: string) => void;
   onPresetDelete: (id: string) => void;
   onLayoutReset: () => void;
-  onSelectDefault: () => void;
   onLayoutUndo: () => void;
   onLayoutRedo: () => void;
 }) {
@@ -255,7 +254,6 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
           onRename={onPresetRename}
           onDelete={onPresetDelete}
           onReset={onLayoutReset}
-          onSelectDefault={onSelectDefault}
           onUndo={onLayoutUndo}
           onRedo={onLayoutRedo}
         />

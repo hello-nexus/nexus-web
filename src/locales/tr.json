@@ -902,7 +902,6 @@
   "lighting.gameSync.signal.receiving": "{activeApp} kaynağından alınıyor",
   "lighting.gameSync.signal.receivingUnknown": "Bir oyun aydınlatmanızı yönetiyor.",
   "lighting.layoutPresets.capReached": "{max} önayar sınırına ulaşıldı",
-  "lighting.layoutPresets.default": "Varsayılan",
   "lighting.layoutPresets.defaultName": "Önayar {n}",
   "lighting.layoutPresets.delete": "Sil",
   "lighting.layoutPresets.deleteConfirm": "\"{name}\" önayarı silinsin mi?",

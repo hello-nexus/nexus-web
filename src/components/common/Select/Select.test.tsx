@@ -78,4 +78,14 @@ describe('Select', () => {
     fireEvent.click(screen.getByRole('button', { name: 'fruit' }));
     expect(screen.queryByRole('listbox')).toBeNull();
   });
+
+  it('shows placeholder when value matches no option', () => {
+    render(<Select value="" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" placeholder="Pick one" />);
+    expect(screen.getByRole('button', { name: 'fruit' })).toHaveTextContent('Pick one');
+  });
+
+  it('shows selected label (not placeholder) when value matches an option', () => {
+    render(<Select value="b" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" placeholder="Pick one" />);
+    expect(screen.getByRole('button', { name: 'fruit' })).toHaveTextContent('Banana');
+  });
 });

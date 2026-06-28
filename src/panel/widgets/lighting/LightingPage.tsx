@@ -894,7 +894,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     handleRename: handlePresetRename,
     handleDelete: handlePresetDelete,
     handleLoad: handlePresetLoad,
-    handleSetActive,
   } = useLayoutPresets(serviceOnline);
 
   layoutActiveIdRef.current = layoutActiveId;
@@ -977,12 +976,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     await updateLayoutPreset(id, { saveCurrent: true });
     await loadPresets();
   }, [loadPresets]);
-
-  const handleSelectDefault = useCallback(async () => {
-    pushLayout({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
-    await handleSetActive(null);
-    await refreshDevices();
-  }, [pushLayout, handleSetActive, refreshDevices]);
 
   const handleModeChange = useCallback(async (m: LightingMode) => {
     setMode(m);
@@ -1176,7 +1169,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onPresetRename={handlePresetRename}
                 onPresetDelete={handlePresetDelete}
                 onLayoutReset={handleResetWithHistory}
-                onSelectDefault={handleSelectDefault}
                 onLayoutUndo={handleUndoLayout}
                 onLayoutRedo={handleRedoLayout}
               />
