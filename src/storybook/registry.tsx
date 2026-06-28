@@ -1684,4 +1684,16 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Toolbar for lighting canvas layout presets: preset dropdown (with Rename/Delete when active), Save / New / Reset icon buttons, Undo/Redo with keyboard shortcuts.',
     notes: 'No live preview -- bound to live preset state via useLayoutPresets and requires a running service.',
   },
+  {
+    name: 'HomeAssistantWidget', category: 'panel-kit',
+    filePath: 'src/panel/widgets/home-assistant/HomeAssistantWidget.tsx',
+    description: 'Home Assistant tile widget (2x2 / 4x2): connection status dot, on/off entity count. Click opens the Home Assistant management page. Shows a "not configured" prompt when HA is not connected.',
+    notes: 'No live preview -- requires a running service with Home Assistant configured.',
+  },
+  {
+    name: 'HomeAssistantPage', category: 'panel-kit',
+    filePath: 'src/panel/widgets/home-assistant/HomeAssistantPage.tsx',
+    description: 'Home Assistant management page: setup form (URL + long-lived access token) or entity list (lights and switches grouped by area, with toggle, brightness slider, and color picker per entity).',
+    notes: 'No live preview -- requires a running service with Home Assistant configured.',
+  },
 ];
