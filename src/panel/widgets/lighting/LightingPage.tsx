@@ -79,6 +79,15 @@ interface LayoutHistorySnapshot {
   activeId: string | null;
 }
 
+// Module scope so the layout undo/redo history survives LightingPage's unmount
+// on navigation. Session-only; not persisted to storage. Assumes one mounted
+// LightingPage - two concurrent instances would share and clobber this history.
+let layoutHistoryStacks: { undo: LayoutHistorySnapshot[]; redo: LayoutHistorySnapshot[] } | null = null;
+const layoutHistoryStore = {
+  read: () => layoutHistoryStacks,
+  write: (s: { undo: LayoutHistorySnapshot[]; redo: LayoutHistorySnapshot[] }) => { layoutHistoryStacks = s; },
+};
+
 const RIGHT_PANE_TAB_KEY = 'lighting.rightPaneTab';
 function loadRightPaneTab(): RightPaneTab {
   try {
@@ -937,6 +946,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     enabled: activeRightTab === 'devices',
     onUndo: handleUndoLayout,
     onRedo: handleRedoLayout,
+    store: layoutHistoryStore,
   });
 
   undoRedoRef.current = { undo: undoLayout, redo: redoLayout };

@@ -90,4 +90,53 @@ describe('DeviceCanvas', () => {
     await new Promise(r => setTimeout(r, 0));
     expect(onLayoutCommit).toHaveBeenCalled();
   });
+
+  it('label transform uses canvasRotation so undo/redo restores the correct angle', () => {
+    const device = {
+      id: 'dev3',
+      name: 'Test Device 3',
+      ledsOn: true,
+      ledCount: 0,
+      canvasX: 100,
+      canvasY: 100,
+      canvasW: 200,
+      canvasH: 100,
+      canvasRotation: 0,
+    } as unknown as LightingDevice;
+
+    const { rerender } = render(
+      <DeviceCanvas
+        devices={[device]}
+        canvasPixels={null}
+        canvasW={1000}
+        canvasH={500}
+        selectedIds={new Set()}
+        primaryDeviceId={null}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />
+    );
+
+    // Rotate CW: device.canvasRotation becomes 90.
+    fireEvent.contextMenu(screen.getByText('Test Device 3'));
+    fireEvent.click(screen.getByText('lighting.devices.rotateCw'));
+
+    // Simulate undo restoring the layout: canvasRotation reset to 0 via new props.
+    device.canvasRotation = 0;
+    rerender(
+      <DeviceCanvas
+        devices={[device]}
+        canvasPixels={null}
+        canvasW={1000}
+        canvasH={500}
+        selectedIds={new Set()}
+        primaryDeviceId={null}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />
+    );
+
+    const label = screen.getByText('Test Device 3');
+    expect(label.style.transform).toBe('rotate(0deg)');
+  });
 });

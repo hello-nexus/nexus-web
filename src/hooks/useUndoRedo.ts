@@ -3,11 +3,17 @@ import { isApplePlatform } from '../lib/platform';
 
 const isMac = isApplePlatform();
 
-export interface UseUndoRedoOptions {
+export interface UndoRedoStore<T> {
+  read: () => { undo: T[]; redo: T[] } | null;
+  write: (stacks: { undo: T[]; redo: T[] }) => void;
+}
+
+export interface UseUndoRedoOptions<T = unknown> {
   maxDepth?: number;
   enabled?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
+  store?: UndoRedoStore<T>;
 }
 
 export interface UseUndoRedoResult<T> {
@@ -19,15 +25,18 @@ export interface UseUndoRedoResult<T> {
   reset: () => void;
 }
 
-export function useUndoRedo<T>(opts: UseUndoRedoOptions = {}): UseUndoRedoResult<T> {
+export function useUndoRedo<T>(opts: UseUndoRedoOptions<T> = {}): UseUndoRedoResult<T> {
   const { maxDepth = 50, enabled = true, onUndo, onRedo } = opts;
-  const [stacks, setStacks] = useState<{ undo: T[]; redo: T[] }>({ undo: [], redo: [] });
+  const [stacks, setStacks] = useState<{ undo: T[]; redo: T[] }>(() => opts.store?.read() ?? { undo: [], redo: [] });
   const stacksRef = useRef(stacks);
   stacksRef.current = stacks;
   const onUndoRef = useRef(onUndo);
   onUndoRef.current = onUndo;
   const onRedoRef = useRef(onRedo);
   onRedoRef.current = onRedo;
+  const storeRef = useRef(opts.store);
+  storeRef.current = opts.store;
+  useEffect(() => { storeRef.current?.write(stacks); }, [stacks]);
 
   const push = useCallback((snapshot: T) => {
     setStacks(prev => {

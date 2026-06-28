@@ -117,7 +117,6 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   // Right-click context menu anchored at the click point. Opening it never
   // changes the selection - a right-click is not a left-click.
   const [ctxMenu, setCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
-  const visualAngleRef = useRef<Map<string, number>>(new Map());
   const containerSizeRef = useRef({ w: 675, h: 380 });
   useEffect(() => {
     const el = containerRef.current;
@@ -345,10 +344,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
 
   const handleRotate = useCallback((dev: LightingDevice, dir: 1 | -1) => {
     onBeforeLayoutSaveRef.current?.();
-    const prevVisual = visualAngleRef.current.get(dev.id) ?? (dev.canvasRotation ?? 0);
-    const nextVisual = prevVisual + dir * 90;
-    visualAngleRef.current.set(dev.id, nextVisual);
-    dev.canvasRotation = ((nextVisual % 360) + 360) % 360;
+    dev.canvasRotation = ((((dev.canvasRotation ?? 0) + dir * 90) % 360) + 360) % 360;
 
     // Rotate the whole box footprint, not just the label: each 90° step swaps
     // width and height about the frame's center (two steps = 180° swaps back to
@@ -451,17 +447,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       onPointerMove={handlePointerMove} onPointerUp={handlePointerUpWithMarquee}
       onPointerDown={handleOverlayPointerDown}
       onContextMenu={e => e.preventDefault()}>
-      {/* visualAngleRef is the device-side rotation accumulator (handleRotate
-          adds 90 each call). It's stored in a ref + paired with forceRender
-          so we can read the unwrapped angle (for smooth visual rotation
-          through the 360° boundary) without triggering a render storm. */}
-      { }
       {devices.map(dev => {
         // selectedIds is kept in sync with the live marquee preview by
         // handlePointerMove, so no marquee-specific branch is needed here.
         const selected = selectedIds.has(dev.id);
         const isPrimary = dev.id === primaryDeviceId;
-        const visualAngle = visualAngleRef.current.get(dev.id) ?? (dev.canvasRotation ?? 0);
         const rot = ((dev.canvasRotation ?? 0) % 360 + 360) % 360;
         const { w, h } = containerSizeRef.current;
         const bgX = -(dev.canvasX / CW) * w;
@@ -476,7 +466,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
             }}
             onPointerDown={e => handleFramePointerDown(e, dev)}
             onContextMenu={e => handleFrameContextMenu(e, dev)}>
-            <span className={styles.deviceLabel} style={{ transform: `rotate(${visualAngle}deg)` }}>{dev.name}</span>
+            <span className={styles.deviceLabel} style={{ transform: `rotate(${rot}deg)` }}>{dev.name}</span>
             <div className={styles.resizeHandle} onPointerDown={e => startDrag(e, dev, 'resize-br')} />
             {isPrimary && selectedDeviceLeds && selectedDeviceLeds
               .filter(l => !l.disabled)

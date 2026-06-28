@@ -89,4 +89,31 @@ describe('useUndoRedo', () => {
     act(() => { v = result.current.redo(5); });
     expect(v).toBeNull();
   });
+
+  it('external store: second mount reads history from first mount', () => {
+    let stored: { undo: number[]; redo: number[] } | null = null;
+    const store = {
+      read: () => stored,
+      write: (s: { undo: number[]; redo: number[] }) => { stored = s; },
+    };
+
+    const { result: r1 } = renderHook(() => useUndoRedo<number>({ store }));
+    act(() => { r1.current.push(10); r1.current.push(20); });
+
+    // Simulate remount: second hook instance reads the store populated by r1.
+    const { result: r2 } = renderHook(() => useUndoRedo<number>({ store }));
+    expect(r2.current.canUndo).toBe(true);
+    let restored: number | null = null;
+    act(() => { restored = r2.current.undo(99); });
+    expect(restored).toBe(20);
+  });
+
+  it('without store the hook still works', () => {
+    const { result } = renderHook(() => useUndoRedo<number>());
+    act(() => { result.current.push(5); });
+    expect(result.current.canUndo).toBe(true);
+    let v: number | null = null;
+    act(() => { v = result.current.undo(0); });
+    expect(v).toBe(5);
+  });
 });
