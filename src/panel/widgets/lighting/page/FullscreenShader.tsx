@@ -3,6 +3,7 @@ import type { AudioSnapshot } from '../../../../hooks/useAudioState';
 import type { EffectState, EffectTemplateBundle } from '../../../../types/lighting';
 import { useShaderRenderer } from '../../../../hooks/useShaderRenderer';
 import { useTranslation } from '../../../../lib/i18n';
+import { CanvasNoticeBar } from '../../../../components/common/CanvasNoticeBar';
 import { AnimateDrawer } from './AnimateDrawer';
 import styles from './FullscreenShader.module.scss';
 
@@ -21,11 +22,12 @@ interface FullscreenShaderProps {
   onNext: () => void;
   /** Preset slots used as a background by ≥1 panel (panel badge). */
   panelSlots?: Set<number> | null;
+  gpuAvailable?: boolean;
 }
 
 export function FullscreenShader({
   effect, state, bundle, canReset, audioRef,
-  onTemplateSelect, onChange, onCommit, onReset, onClose, onPrev, onNext, panelSlots,
+  onTemplateSelect, onChange, onCommit, onReset, onClose, onPrev, onNext, panelSlots, gpuAvailable,
 }: FullscreenShaderProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -82,6 +84,7 @@ export function FullscreenShader({
   return (
     <div ref={containerRef} className={styles.container} onMouseMove={handleMouseMove}>
       <canvas ref={canvasRef} className={styles.canvas} onClick={handleCanvasClick} />
+      <CanvasNoticeBar visible={gpuAvailable === false} message={t('lighting.gpuUnavailableNotice')} />
       {loading && <div className={styles.overlay}>{t('lighting.fullscreen.loadingShader')}</div>}
       {error && <div className={styles.overlay}>{error}</div>}
       <button type="button" aria-label={t('lighting.fullscreen.prevEffect')} className={`${styles.navZone} ${styles.navZoneLeft}`} onClick={onPrev}>

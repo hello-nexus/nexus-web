@@ -44,6 +44,7 @@ import { galleryApp } from './gallery';
 import { transferApp } from './transfer';
 import { cameraApp } from './camera';
 import { benchmarkApp } from './benchmark';
+import { homeAssistantApp } from './home-assistant';
 
 // Single source of truth for app type -> manifest. "App" is the
 // conceptual unit (one per widget type); the manifest carries up to
@@ -56,6 +57,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   screentime: screentimeApp,
   lighting:   lightingApp,
   'smart-lights': smartLightsApp,
+  'home-assistant': homeAssistantApp,
   obs:        obsApp,
   steam:      steamApp,
   discord:    discordApp,
