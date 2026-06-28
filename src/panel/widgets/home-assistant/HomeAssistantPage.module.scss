@@ -1,0 +1,177 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+  min-height: 0;
+  padding: 0 0 1rem;
+  box-sizing: border-box;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 1.5rem;
+}
+
+// Fill + scroll inside an ImmersiveLayout cell (Touch facet).
+.bodyImmersive {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+// Setup form (shown when not configured or on connection error).
+.setupCard {
+  padding: 1.25rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 480px;
+}
+
+.setupPrompt {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.formLabel {
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+
+.formInput {
+  width: 100%;
+  padding: 7px 10px;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+  transition: border-color var(--ease-fast);
+  box-sizing: border-box;
+
+  &:hover { border-color: var(--border-strong); }
+  &:focus { border-color: var(--accent); }
+}
+
+.connectRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.error {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--bad);
+}
+
+// Entity list (shown when configured + connected).
+.entityList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.entityGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Single entity row inside a collapsible area group.
+.entityRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.entityRow[data-unreachable='true'] {
+  opacity: 0.5;
+}
+
+.entityInfo {
+  flex: 0 0 auto;
+  min-width: 120px;
+}
+
+.entityName {
+  font-weight: var(--weight-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entityMeta {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
+.entityControls {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.sliderWrap {
+  flex: 1;
+  min-width: 120px;
+}
+
+.colorWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.colorPickerPopup {
+  position: absolute;
+  top: 36px;
+  left: 0;
+  z-index: 100;
+}
+
+.colorSwatch {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.categoryCount {
+  margin-left: auto;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
