@@ -43,7 +43,8 @@ interface DeviceCanvasProps {
   onOpenSettings?: (id: string) => void;
   /** Notifies parent when a drag starts or ends, so it can pause state updates. */
   onDragActiveChange?: (active: boolean) => void;
-  /** Called before a rotate or maximize saves a layout, so callers can snapshot for undo. */
+  /** Called before a layout-changing edit (first drag movement, rotate, maximize)
+   *  so callers can snapshot for undo. Not fired for a tap that never moves. */
   onBeforeLayoutSave?: () => void;
   /** Called after a drag/rotate/maximize layout save completes, so callers can auto-save to the active preset. */
   onLayoutCommit?: () => void;
@@ -246,9 +247,17 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     if (!drag) return;
     const p = toCanvas(e.clientX, e.clientY);
     const dx = p.x - drag.startX, dy = p.y - drag.startY;
-    if (tapRef.current && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+    if (tapRef.current && !tapRef.current.moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
       tapRef.current.moved = true;
+      // First movement past the tap threshold: snapshot the layout for undo,
+      // once per drag, before any position change. The device is still at its
+      // exact pre-drag spot here (sub-threshold moves are skipped below), and a
+      // tap that never crosses pushes nothing.
+      onBeforeLayoutSaveRef.current?.();
     }
+    // Hold position until the drag crosses the threshold: a sub-threshold wiggle
+    // stays a tap and the undo snapshot above stays exact.
+    if (tapRef.current && !tapRef.current.moved) return;
     if (drag.mode === 'move' && drag.groupOrigs) {
       // Group move: clamp the GROUP's delta so the most-constrained device
       // hits the wall first and the others stay locked together. Per-device

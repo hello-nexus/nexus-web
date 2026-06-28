@@ -132,9 +132,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const layoutActiveIdRef = useRef<string | null>(null);
   const handleDragActiveChange = useCallback((active: boolean) => {
     deviceDraggingRef.current = active;
-    if (active) {
-      pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
-    }
   }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Multi-selection on the canvas + right-side device panel. The set drives
