@@ -866,7 +866,7 @@
   "lighting.devices.detectionFailed": "已检测到但无法控制",
   "lighting.devices.detectionFailedTooltip": "OpenRGB 检测到此设备，但其检测器初始化失败，Nexus 无法控制其灯光。",
   "lighting.devices.empty": "未检测到灯光设备",
-  "lighting.devices.firmwareTooltip": "这些 LED 由设备内置的固件灯光控制，无法在此编辑。关闭固件控制即可单独编辑它们。",
+  "lighting.devices.firmwareTooltip": "这些 LED 由设备内置的固件灯光控制，无法在此编辑。将设备切换出固件模式即可单独控制它们。",
   "lighting.devices.hue": "色相",
   "lighting.devices.identify": "识别",
   "lighting.devices.maximize": "最大化到整个画布",

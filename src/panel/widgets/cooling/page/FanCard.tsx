@@ -24,11 +24,10 @@ import styles from '../CoolingPage.module.scss';
  * surface a "live" hub mode that overrides per-fan softwareControl:
  *   - 'motherboard': hub passes PWM through from the motherboard. Reads as
  *      BIOS on every fan on that hub.
- *   - 'firmware'   : NP50 only. Hub plays its EEPROM static-speed setpoint.
- *      Reads as a new "FW Control" option on every NP50 fan.
+ *   - 'firmware'   : NP50 and Q-series. Hub plays its firmware speed setpoint.
+ *      Reads as a new "FW Control" option on every NP50 and Q-series fan.
  *   - 'software'   : Nexus drives. Fall through to per-fan state.
- * Motherboard fans (no deviceId) leave this undefined and behave exactly
- * as before.
+ * Motherboard fans (no deviceId) leave this undefined.
  */
 export type FanCardHubMode = 'software' | 'motherboard' | 'firmware';
 
@@ -52,8 +51,8 @@ export const FanCard = memo(function FanCard({
   /** When set, overrides the per-fan softwareControl-derived modeValue. See
    *  FanCardHubMode for semantics. Undefined for motherboard fans. */
   hubMode?: FanCardHubMode;
-  /** True for NP50 fans (the hub has an EEPROM "Static" mode). Adds the
-   *  "FW Control" dropdown option. MiniHub fans get only BIOS / Manual /
+  /** True for NP50 and Q-series fans (the hub drives fan speed from firmware).
+   *  Adds the "FW Control" dropdown option. MiniHub fans get only BIOS / Manual /
    *  curves. */
   hubSupportsFirmware?: boolean;
   /** Whether the hub offers a motherboard "BIOS" hand-off. True for everything

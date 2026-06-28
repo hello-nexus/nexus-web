@@ -866,7 +866,7 @@
   "lighting.devices.detectionFailed": "Détecté mais non contrôlable",
   "lighting.devices.detectionFailedTooltip": "Cet appareil a été vu par OpenRGB mais son détecteur n'a pas pu l'initialiser, Nexus ne peut donc pas contrôler son éclairage.",
   "lighting.devices.empty": "Aucun appareil d'éclairage détecté",
-  "lighting.devices.firmwareTooltip": "Ces LED sont pilotées par l'éclairage firmware intégré de l'appareil et ne peuvent pas être modifiées ici. Désactivez le contrôle firmware pour les modifier individuellement.",
+  "lighting.devices.firmwareTooltip": "Ces LED sont pilotées par l'éclairage firmware intégré de l'appareil et ne peuvent pas être modifiées ici. Faites passer l'appareil hors de son mode firmware pour les contrôler individuellement.",
   "lighting.devices.hue": "Teinte",
   "lighting.devices.identify": "Identifier",
   "lighting.devices.maximize": "Agrandir à toute la zone",
