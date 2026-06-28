@@ -41,8 +41,13 @@
 }
 
 .rowValue {
-  flex: 0 0 5rem;
-  text-align: right;
+  // Fixed width keeps the widest RPM reading and its icon on one line.
+  flex: 0 0 6.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
   font-size: var(--type-small);
   color: var(--text-dim);
@@ -57,19 +62,6 @@
   border-radius: var(--radius-sm);
   padding: 2px 5px;
   white-space: nowrap;
-}
-
-.serialValue {
-  margin-left: auto;
-  font-size: var(--type-mini);
-  font-family: var(--font-mono);
-  color: var(--text-dim);
-  opacity: 0.55;
-  max-width: 8rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: default;
 }
 
 .hintNote {

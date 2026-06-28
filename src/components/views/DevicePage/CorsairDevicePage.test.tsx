@@ -12,11 +12,9 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 const mockGetCorsairState = vi.fn();
-const mockSetCorsairSettings = vi.fn();
 
 vi.mock('../../../api/corsair', () => ({
   getCorsairState: (...args: any[]) => mockGetCorsairState(...args),
-  setCorsairSettings: (...args: any[]) => mockSetCorsairSettings(...args),
 }));
 
 const connectedState = {
@@ -32,7 +30,6 @@ const connectedState = {
 beforeEach(() => {
   vi.useFakeTimers();
   mockGetCorsairState.mockResolvedValue(connectedState);
-  mockSetCorsairSettings.mockResolvedValue({ ok: true });
 });
 
 afterEach(() => {
@@ -49,7 +46,7 @@ describe('CorsairDevicePage', () => {
     expect(screen.getByText('iCUE LINK LX360')).toBeInTheDocument();
   });
 
-  it('renders channel position badges, LED counts, and serial values', async () => {
+  it('renders channel position badges and LED counts', async () => {
     await act(async () => {
       render(<CorsairDevicePage />);
     });
@@ -57,8 +54,14 @@ describe('CorsairDevicePage', () => {
     expect(screen.getByText('devices.corsair.channel:{"n":2}')).toBeInTheDocument();
     expect(screen.getByText('devices.corsair.leds:{"n":34}')).toBeInTheDocument();
     expect(screen.getByText('devices.corsair.leds:{"n":16}')).toBeInTheDocument();
-    expect(screen.getByText('A1B2C3D4E5F60001')).toBeInTheDocument();
-    expect(screen.getByText('A1B2C3D4E5F60002')).toBeInTheDocument();
+  });
+
+  it('does not render device serials', async () => {
+    await act(async () => {
+      render(<CorsairDevicePage />);
+    });
+    expect(screen.queryByText('A1B2C3D4E5F60001')).not.toBeInTheDocument();
+    expect(screen.queryByText('A1B2C3D4E5F60002')).not.toBeInTheDocument();
   });
 
   it('renders disconnected placeholder when not connected', async () => {
@@ -69,12 +72,12 @@ describe('CorsairDevicePage', () => {
     expect(screen.getByText('devices.corsair.notConnected')).toBeInTheDocument();
   });
 
-  it('renders the stopConflictingApps toggle', async () => {
+  it('does not render the stopConflictingApps toggle', async () => {
     await act(async () => {
       render(<CorsairDevicePage />);
     });
-    expect(screen.getByText('devices.corsair.stopConflictingApps')).toBeInTheDocument();
-    expect(screen.getByRole('switch', { name: 'devices.corsair.stopConflictingAppsAria' })).toBeInTheDocument();
+    expect(screen.queryByText('devices.corsair.stopConflictingApps')).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'devices.corsair.stopConflictingAppsAria' })).not.toBeInTheDocument();
   });
 
   it('renders navigation buttons when onSectionNavigate is provided', async () => {

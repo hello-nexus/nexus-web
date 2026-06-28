@@ -1,17 +1,15 @@
 import { Fan, Lightbulb, Thermometer } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  getCorsairState, setCorsairSettings,
-  type CorsairState,
-} from '../../../api/corsair';
+import { getCorsairState, type CorsairState } from '../../../api/corsair';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../common/Button/Button';
-import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { Placeholder } from '../Placeholder';
 import styles from './CorsairDevicePage.module.scss';
 
+// Re-enumerates the chain each tick so a fan moved between ports or hot-plugged
+// shows up without a manual refresh; the service re-detects on its own poll.
 const RPM_POLL_MS = 2000;
 
 interface CorsairDevicePageProps {
@@ -22,7 +20,6 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
   const { t } = useTranslation();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [state, setState] = useState<CorsairState | null>(null);
-  const [saving, setSaving] = useState(false);
   const aliveRef = useRef(true);
   const connectedRef = useRef(false);
 
@@ -51,6 +48,7 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
       setState(null);
       return;
     }
+    // Replace the whole device list so a port change (add/remove/move) is reflected.
     setState(prev => prev ? { ...prev, devices: s.devices } : s);
   }, [refresh]);
 
@@ -66,16 +64,6 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
       window.clearInterval(id);
     };
   }, [refresh, refreshLive]);
-
-  const commitStopConflictingApps = useCallback(async (value: boolean) => {
-    setState(prev => prev ? { ...prev, stopConflictingApps: value } : prev);
-    setSaving(true);
-    try {
-      await setCorsairSettings({ stopConflictingApps: value });
-    } finally {
-      if (aliveRef.current) setSaving(false);
-    }
-  }, []);
 
   if (connection === 'disconnected') {
     return (
@@ -97,13 +85,10 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
         // eslint-disable-next-line i18next/no-literal-string -- brand + model name
         title="Corsair iCUE LINK System Hub"
         actions={
-          <>
-            {state?.firmware && (
-              // eslint-disable-next-line i18next/no-literal-string -- firmware label prefix
-              <span className={styles.savingBadge}>fw {state.firmware}</span>
-            )}
-            {saving && <span className={styles.savingBadge}>{t('devices.saving')}</span>}
-          </>
+          state?.firmware
+            // eslint-disable-next-line i18next/no-literal-string -- firmware label prefix
+            ? <span className={styles.savingBadge}>fw {state.firmware}</span>
+            : undefined
         }
       />
       <div className={`${styles.pageBody} pageBody`}>
@@ -135,28 +120,9 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
                       {device.tempC != null ? `${device.tempC.toFixed(1)} °C` : '-'}
                     </span>
                   )}
-                  {device.serial && (
-                    <span
-                      className={styles.serialValue}
-                      title={device.serial}
-                      aria-label={`${t('devices.corsair.serialLabel')} ${device.serial}`}
-                    >
-                      {device.serial}
-                    </span>
-                  )}
                 </div>
               ))
             : null}
-        </SettingsSection>
-
-        <SettingsSection boxClassName={styles.sectionBox} title={null}>
-          <SettingToggle
-            label={t('devices.corsair.stopConflictingApps')}
-            ariaLabel={t('devices.corsair.stopConflictingAppsAria')}
-            checked={state?.stopConflictingApps ?? false}
-            onChange={v => { void commitStopConflictingApps(v); }}
-            disabled={!loaded}
-          />
         </SettingsSection>
 
         {onSectionNavigate && (
@@ -167,6 +133,7 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
               <Button
                 size="sm"
                 tone="neutral"
+                icon={<Fan size={14} />}
                 onClick={() => onSectionNavigate('cooling')}
               >
                 {t('devices.corsair.goToCooling')}
