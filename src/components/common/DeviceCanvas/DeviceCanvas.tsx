@@ -45,6 +45,8 @@ interface DeviceCanvasProps {
   onDragActiveChange?: (active: boolean) => void;
   /** Called before a rotate or maximize saves a layout, so callers can snapshot for undo. */
   onBeforeLayoutSave?: () => void;
+  /** Called after a drag/rotate/maximize layout save completes, so callers can auto-save to the active preset. */
+  onLayoutCommit?: () => void;
 }
 
 const CW = 1000;
@@ -67,7 +69,7 @@ const CanvasBackground = memo(function CanvasBackground({ canvasPixels, canvasW,
   return <canvas ref={bgRef} className={styles.bgCanvas} />;
 });
 
-const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave }: {
+const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit }: {
   devices: LightingDevice[];
   selectedIds: Set<string>;
   primaryDeviceId: string | null;
@@ -78,10 +80,13 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   onOpenSettings?: (id: string) => void;
   onDragActiveChange?: (active: boolean) => void;
   onBeforeLayoutSave?: () => void;
+  onLayoutCommit?: () => void;
 }) {
   const { t } = useTranslation();
   const onBeforeLayoutSaveRef = useRef(onBeforeLayoutSave);
   onBeforeLayoutSaveRef.current = onBeforeLayoutSave;
+  const onLayoutCommitRef = useRef(onLayoutCommit);
+  onLayoutCommitRef.current = onLayoutCommit;
   // Single-frame drag carries one orig rect; group drag carries the orig
   // rects of every selected device so handlePointerMove can apply the same
   // (clamped) delta to all of them while keeping the dragged frame as the
@@ -285,7 +290,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     forceRender(n => n + 1);
   }, [drag, marquee, devices, toCanvas, onSetSelection]);
 
-  const handlePointerUp = useCallback(() => {
+  const handlePointerUp = useCallback(async () => {
     if (marquee) {
       // Click on empty space (no drag) clears the selection - preserves the
       // pre-marquee behaviour of "tap canvas to deselect". A Cmd/Ctrl+click never
@@ -312,16 +317,17 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     const tap = tapRef.current;
     tapRef.current = null;
     if (drag.mode === 'move' && drag.groupOrigs) {
-      // Save every moved device. Fire in parallel - saveDeviceLayout is an
-      // independent PATCH per id, ordering doesn't matter.
-      for (const sd of devices) {
-        if (drag.groupOrigs.has(sd.id)) {
-          saveDeviceLayout(sd.id, sd.canvasX, sd.canvasY, sd.canvasW, sd.canvasH, sd.canvasRotation ?? 0);
-        }
-      }
+      // Save every moved device in parallel - saveDeviceLayout is an independent POST per id.
+      await Promise.all(devices.filter(d => drag.groupOrigs!.has(d.id)).map(sd =>
+        saveDeviceLayout(sd.id, sd.canvasX, sd.canvasY, sd.canvasW, sd.canvasH, sd.canvasRotation ?? 0),
+      ));
+      if (tap?.moved) onLayoutCommitRef.current?.();
     } else {
       const dev = devices.find(d => d.id === drag.id);
-      if (dev) saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation ?? 0);
+      if (dev) {
+        await saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation ?? 0);
+        if (tap?.moved) onLayoutCommitRef.current?.();
+      }
     }
     onDragActiveChange?.(false);
     setDrag(null);
@@ -363,8 +369,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     dev.canvasX = Math.max(PAD, Math.min(CW - PAD - w, cx - w / 2));
     dev.canvasY = Math.max(PAD, Math.min(CH - PAD - h, cy - h / 2));
 
-    saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation);
     forceRender(n => n + 1);
+    void saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation).then(() => onLayoutCommitRef.current?.());
   }, []);
 
   // A frame counts as "maximized" when it fills the padded canvas. Geometric
@@ -388,8 +394,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       dev.canvasW = CW - 2 * PAD;
       dev.canvasH = CH - 2 * PAD;
     }
-    saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation ?? 0);
     forceRender(n => n + 1);
+    void saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation ?? 0).then(() => onLayoutCommitRef.current?.());
   }, [isMaximized]);
 
   const handleFrameContextMenu = useCallback((e: React.MouseEvent, dev: LightingDevice) => {
@@ -425,9 +431,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   // Wrap handlePointerUp so the marquee branch resets the drag-active flag
   // (so parents resume polling) and the keyboard-listener selection mirror
   // stays consistent.
-  const handlePointerUpWithMarquee = useCallback(() => {
+  const handlePointerUpWithMarquee = useCallback(async () => {
     if (marquee) onDragActiveChange?.(false);
-    handlePointerUp();
+    await handlePointerUp();
   }, [marquee, handlePointerUp, onDragActiveChange]);
 
   // Marquee rect in % units so it scales with the container without a
@@ -534,7 +540,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   );
 });
 
-export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave }: DeviceCanvasProps) {
+export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit }: DeviceCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const shaderStateRef = useRef(shaderState ?? null);
@@ -551,7 +557,7 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
     <div ref={containerRef} className={styles.canvas}>
       <CanvasBackground canvasPixels={canvasPixels} canvasW={canvasW} canvasH={canvasH} />
       <canvas ref={glCanvasRef} className={`${styles.glCanvas} ${ready ? styles.glCanvasReady : ''}`} />
-      <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} />
+      <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} />
     </div>
   );
 }

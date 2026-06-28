@@ -20,9 +20,8 @@
   margin: 0 0.15rem;
 }
 
-.dimOption {
+.defaultOption {
   color: var(--text-dim);
-  font-style: italic;
 }
 
 .sepOption {
@@ -36,4 +35,9 @@
 
 .deleteOption {
   color: var(--danger);
+}
+
+.createOption {
+  color: var(--accent);
+  font-style: italic;
 }

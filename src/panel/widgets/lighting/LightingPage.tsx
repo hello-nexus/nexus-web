@@ -7,7 +7,7 @@ import {
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
   steamArtworkUrl, resolveActiveGame,
-  resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset,
+  resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
   type GameSyncGame, type DeviceLayoutDto,
 } from '../../../api/lighting';
@@ -879,14 +879,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [rgb.scanning, refreshDevices]);
 
   const {
-    presets, activeId: layoutActiveId, dirty,
+    presets, activeId: layoutActiveId,
     presetCount, loadPresets,
     handleCreate: handlePresetCreate,
-    handleSave: handlePresetSave,
     handleRename: handlePresetRename,
     handleDelete: handlePresetDelete,
     handleLoad: handlePresetLoad,
-  } = useLayoutPresets(serviceOnline, devices);
+    handleSetActive,
+  } = useLayoutPresets(serviceOnline);
 
   layoutActiveIdRef.current = layoutActiveId;
 
@@ -903,6 +903,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (restored.activeId !== layoutActiveIdRef.current) {
       await setActiveLayoutPreset(restored.activeId);
     }
+    if (restored.activeId) {
+      await updateLayoutPreset(restored.activeId, { saveCurrent: true });
+    }
     await loadPresets();
     await refreshDevices();
   }, [loadPresets, refreshDevices]);
@@ -915,6 +918,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (restored.activeId !== layoutActiveIdRef.current) {
       await setActiveLayoutPreset(restored.activeId);
     }
+    if (restored.activeId) {
+      await updateLayoutPreset(restored.activeId, { saveCurrent: true });
+    }
     await loadPresets();
     await refreshDevices();
   }, [loadPresets, refreshDevices]);
@@ -925,6 +931,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     redo: redoLayout,
     canUndo: canUndoLayout,
     canRedo: canRedoLayout,
+    reset: resetLayoutHistory,
   } = useUndoRedo<LayoutHistorySnapshot>({
     maxDepth: 50,
     enabled: activeRightTab === 'devices',
@@ -942,11 +949,30 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [pushLayout, handlePresetLoad, refreshDevices]);
 
   const handleResetWithHistory = useCallback(async () => {
-    pushLayout({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
+    resetLayoutHistory();
     await resetDeviceLayouts();
+    const id = layoutActiveIdRef.current;
+    if (id) {
+      // saveCurrent after resetDeviceLayouts writes an empty layouts map into the preset,
+      // which the service interprets as "use provider defaults" on next activation.
+      await updateLayoutPreset(id, { saveCurrent: true });
+    }
     await loadPresets();
     await refreshDevices();
-  }, [pushLayout, loadPresets, refreshDevices]);
+  }, [resetLayoutHistory, loadPresets, refreshDevices]);
+
+  const handleLayoutCommit = useCallback(async () => {
+    const id = layoutActiveIdRef.current;
+    if (!id) return;
+    await updateLayoutPreset(id, { saveCurrent: true });
+    await loadPresets();
+  }, [loadPresets]);
+
+  const handleSelectDefault = useCallback(async () => {
+    pushLayout({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
+    await handleSetActive(null);
+    await refreshDevices();
+  }, [pushLayout, handleSetActive, refreshDevices]);
 
   const handleModeChange = useCallback(async (m: LightingMode) => {
     setMode(m);
@@ -1063,7 +1089,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           ) : (
             <>
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} />
+                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} />
                 {effectiveMode === 'animate' && activeEffect && currentState && activeRightTab === 'effect' && (
                   <>
                     {EFFECTS.find(e => e.key === activeEffect)?.audio && (
@@ -1132,16 +1158,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
                 presets={presets}
                 layoutActiveId={layoutActiveId}
-                dirty={dirty}
                 presetCount={presetCount}
                 canUndo={canUndoLayout}
                 canRedo={canRedoLayout}
                 onPresetLoad={handlePresetLoadWithHistory}
                 onPresetCreate={handlePresetCreate}
-                onPresetSave={handlePresetSave}
                 onPresetRename={handlePresetRename}
                 onPresetDelete={handlePresetDelete}
                 onLayoutReset={handleResetWithHistory}
+                onSelectDefault={handleSelectDefault}
                 onLayoutUndo={handleUndoLayout}
                 onLayoutRedo={handleRedoLayout}
               />

@@ -5,7 +5,7 @@ import type { LightingDevice } from '../../../api/lighting';
 
 vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock('../../../lib/platform', () => ({ isMultiSelectModifier: () => false }));
-vi.mock('../../../api/lighting', () => ({ saveDeviceLayout: vi.fn(), identifyLightingDevice: vi.fn() }));
+vi.mock('../../../api/lighting', () => ({ saveDeviceLayout: vi.fn(() => Promise.resolve()), identifyLightingDevice: vi.fn() }));
 vi.mock('../../../hooks/useShaderRenderer', () => ({ useShaderRenderer: () => ({ ready: false }) }));
 vi.mock('../../../lib/ledFrame', () => ({ paintLedFrame: vi.fn() }));
 
@@ -52,5 +52,42 @@ describe('DeviceCanvas', () => {
 
     expect(onBeforeLayoutSave).toHaveBeenCalled();
     expect(capturedRotation).toBe(0);
+  });
+
+  it('fires onLayoutCommit after rotate completes', async () => {
+    const device = {
+      id: 'dev2',
+      name: 'Test Device 2',
+      ledsOn: true,
+      ledCount: 0,
+      canvasX: 100,
+      canvasY: 100,
+      canvasW: 200,
+      canvasH: 100,
+      canvasRotation: 0,
+    } as unknown as LightingDevice;
+
+    const onLayoutCommit = vi.fn();
+
+    render(
+      <DeviceCanvas
+        devices={[device]}
+        canvasPixels={null}
+        canvasW={1000}
+        canvasH={500}
+        selectedIds={new Set()}
+        primaryDeviceId={null}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+        onLayoutCommit={onLayoutCommit}
+      />
+    );
+
+    fireEvent.contextMenu(screen.getByText('Test Device 2'));
+    fireEvent.click(screen.getByText('lighting.devices.rotateCw'));
+
+    // onLayoutCommit is called after the async saveDeviceLayout resolves
+    await new Promise(r => setTimeout(r, 0));
+    expect(onLayoutCommit).toHaveBeenCalled();
   });
 });

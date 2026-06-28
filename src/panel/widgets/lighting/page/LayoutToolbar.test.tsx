@@ -41,16 +41,15 @@ function defaultProps(overrides: Partial<Parameters<typeof LayoutToolbar>[0]> = 
   return {
     presets: [],
     activeId: null,
-    dirty: false,
     presetCount: 0,
     canUndo: false,
     canRedo: false,
     onLoad: vi.fn(),
     onCreate: vi.fn(() => Promise.resolve({ error: false })),
-    onSave: vi.fn(),
     onRename: vi.fn(),
     onDelete: vi.fn(),
     onReset: vi.fn(),
+    onSelectDefault: vi.fn(),
     onUndo: vi.fn(),
     onRedo: vi.fn(),
     ...overrides,
@@ -58,40 +57,22 @@ function defaultProps(overrides: Partial<Parameters<typeof LayoutToolbar>[0]> = 
 }
 
 describe('LayoutToolbar', () => {
-  it('renders a select with placeholder label when no active preset', () => {
+  it('renders a select when no active preset', () => {
     render(<LayoutToolbar {...defaultProps()} />);
     const sel = screen.getByTestId('preset-select');
     expect(sel).toBeTruthy();
   });
 
-  it('save button is disabled when no active preset', () => {
+  it('renders a select when active preset is set', () => {
+    render(<LayoutToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a' })} />);
+    const sel = screen.getByTestId('preset-select');
+    expect(sel).toBeTruthy();
+  });
+
+  it('reset button is always present', () => {
     render(<LayoutToolbar {...defaultProps()} />);
-    const saveBtn = screen.getByRole('button', { name: 'lighting.layoutPresets.save' });
-    expect(saveBtn).toBeDisabled();
-  });
-
-  it('save button is disabled when activeId set but not dirty', () => {
-    render(<LayoutToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', dirty: false })} />);
-    const saveBtn = screen.getByRole('button', { name: 'lighting.layoutPresets.save' });
-    expect(saveBtn).toBeDisabled();
-  });
-
-  it('save button is enabled when activeId set and dirty', () => {
-    render(<LayoutToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', dirty: true })} />);
-    const saveBtn = screen.getByRole('button', { name: 'lighting.layoutPresets.save' });
-    expect(saveBtn).not.toBeDisabled();
-  });
-
-  it('plus button is disabled at cap (presetCount >= 10)', () => {
-    render(<LayoutToolbar {...defaultProps({ presetCount: 10 })} />);
-    const newBtn = screen.getByRole('button', { name: 'lighting.layoutPresets.new' });
-    expect(newBtn).toBeDisabled();
-  });
-
-  it('plus button is enabled when under cap', () => {
-    render(<LayoutToolbar {...defaultProps({ presetCount: 5 })} />);
-    const newBtn = screen.getByRole('button', { name: 'lighting.layoutPresets.new' });
-    expect(newBtn).not.toBeDisabled();
+    const resetBtn = screen.getByRole('button', { name: 'lighting.layoutPresets.reset' });
+    expect(resetBtn).toBeTruthy();
   });
 
   it('undo button is disabled when canUndo=false', () => {

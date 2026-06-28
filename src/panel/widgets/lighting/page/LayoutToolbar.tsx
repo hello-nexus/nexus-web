@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, Plus, RotateCcw, Undo2, Redo2 } from 'lucide-react';
+import { RotateCcw, Undo2, Redo2 } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { isApplePlatform } from '../../../../lib/platform';
 import { Button } from '../../../../components/common/Button/Button';
@@ -16,29 +16,29 @@ const isMac = isApplePlatform();
 interface LayoutToolbarProps {
   presets: LayoutPreset[];
   activeId: string | null;
-  dirty: boolean;
   presetCount: number;
   canUndo: boolean;
   canRedo: boolean;
   onLoad: (id: string) => void;
   onCreate: (name: string) => Promise<{ error: boolean; msg?: string }>;
-  onSave: () => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
   onReset: () => void;
+  onSelectDefault: () => void;
   onUndo: () => void;
   onRedo: () => void;
 }
 
 export function LayoutToolbar({
-  presets, activeId, dirty, presetCount,
+  presets, activeId, presetCount,
   canUndo, canRedo,
-  onLoad, onCreate, onSave, onRename, onDelete, onReset, onUndo, onRedo,
+  onLoad, onCreate, onRename, onDelete, onReset, onSelectDefault, onUndo, onRedo,
 }: LayoutToolbarProps) {
   const { t } = useTranslation();
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptMode, setPromptMode] = useState<'create' | 'rename'>('create');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [lastAttemptedValue, setLastAttemptedValue] = useState('');
 
@@ -46,19 +46,27 @@ export function LayoutToolbar({
   const atCap = presetCount >= LAYOUT_PRESET_CAP;
 
   const selectOptions = [
-    { value: '', label: t('lighting.layoutPresets.placeholder'), disabled: true, className: styles.dimOption },
+    { value: '', label: t('lighting.layoutPresets.default'), className: styles.defaultOption },
     ...presets.map(p => ({ value: p.id, label: p.name })),
     ...(activeId ? [
       { value: '__sep__', label: '------', disabled: true, className: styles.sepOption },
       { value: '__rename__', label: t('lighting.layoutPresets.rename'), className: styles.actionOption },
       { value: '__delete__', label: t('lighting.layoutPresets.delete'), className: styles.deleteOption },
     ] : []),
+    { value: '__create__', label: t('lighting.layoutPresets.newOption'), className: styles.createOption, disabled: atCap },
   ];
 
   const handleSelectChange = (value: string) => {
     if (presets.some(p => p.id === value)) { onLoad(value); return; }
+    if (value === '__create__') {
+      setPromptMode('create');
+      setCreateError(null);
+      setPromptOpen(true);
+      return;
+    }
     if (value === '__rename__') { setPromptMode('rename'); setPromptOpen(true); return; }
     if (value === '__delete__') { setDeleteConfirmOpen(true); return; }
+    if (value === '') { onSelectDefault(); return; }
   };
 
   const createValidate = (v: string): string | null => {
@@ -85,13 +93,6 @@ export function LayoutToolbar({
     setPromptOpen(false);
   };
 
-  const handleNew = () => {
-    if (atCap) return;
-    setPromptMode('create');
-    setCreateError(null);
-    setPromptOpen(true);
-  };
-
   const undoTitle = `${t('lighting.layoutPresets.undo')} (${isMac ? 'Cmd' : 'Ctrl'}+Z)`;
   const redoTitle = `${t('lighting.layoutPresets.redo')} (${isMac ? 'Cmd' : 'Ctrl'}+Shift+Z)`;
 
@@ -103,24 +104,7 @@ export function LayoutToolbar({
         options={selectOptions}
         ariaLabel={t('lighting.layoutPresets.placeholder')}
         className={styles.presetSelect}
-      />
-      <Button
-        tone="ghost"
-        size="sm"
-        icon={<Save size={14} />}
-        title={t('lighting.layoutPresets.save')}
-        aria-label={t('lighting.layoutPresets.save')}
-        onClick={onSave}
-        disabled={!activeId || !dirty}
-      />
-      <Button
-        tone="ghost"
-        size="sm"
-        icon={<Plus size={14} />}
-        title={atCap ? t('lighting.layoutPresets.capReached', { max: LAYOUT_PRESET_CAP }) : t('lighting.layoutPresets.new')}
-        aria-label={t('lighting.layoutPresets.new')}
-        onClick={handleNew}
-        disabled={atCap}
+        dimValue={!activeId}
       />
       <Button
         tone="ghost"
@@ -128,7 +112,7 @@ export function LayoutToolbar({
         icon={<RotateCcw size={14} />}
         title={t('lighting.layoutPresets.reset')}
         aria-label={t('lighting.layoutPresets.reset')}
-        onClick={onReset}
+        onClick={() => setResetConfirmOpen(true)}
       />
       <div className={styles.sep} aria-hidden="true" />
       <Button
@@ -153,7 +137,7 @@ export function LayoutToolbar({
         open={promptOpen}
         title={t('lighting.layoutPresets.namePrompt')}
         initialValue={promptMode === 'rename' ? (activePreset?.name ?? '') : t('lighting.layoutPresets.defaultName', { n: presetCount + 1 })}
-        maxLength={40}
+        maxLength={20}
         confirmLabel={promptMode === 'rename' ? t('lighting.layoutPresets.rename') : t('lighting.layoutPresets.new')}
         validate={promptMode === 'create' ? createValidate : undefined}
         onConfirm={handlePromptConfirm}
@@ -165,6 +149,13 @@ export function LayoutToolbar({
         message={t('lighting.layoutPresets.deleteConfirm', { name: activePreset?.name ?? '' })}
         onConfirm={() => { if (activeId) { onDelete(activeId); } setDeleteConfirmOpen(false); }}
         onCancel={() => setDeleteConfirmOpen(false)}
+      />
+      <ConfirmModal
+        open={resetConfirmOpen}
+        title={t('lighting.layoutPresets.reset')}
+        message={t('lighting.layoutPresets.resetConfirm')}
+        onConfirm={() => { setResetConfirmOpen(false); onReset(); }}
+        onCancel={() => setResetConfirmOpen(false)}
       />
     </div>
   );

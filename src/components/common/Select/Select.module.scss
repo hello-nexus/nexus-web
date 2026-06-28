@@ -49,6 +49,7 @@
 // Accent-tinted value: opt-in via the `accentValue` prop (the cooling fan
 // dropdown uses it to flag the fan is on the curve currently being viewed).
 .value.accentValue { color: var(--accent); }
+.value.dimValue { color: var(--text-dim); }
 
 // Leading glyph (e.g. a language flag) in the trigger value and each option
 // row. Fixed-width box so every flag occupies the same space and the labels

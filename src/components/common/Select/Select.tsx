@@ -53,6 +53,8 @@ export interface SelectProps {
   variant?: 'standard' | 'ghost';
   /** Tint the displayed value (selected label) with the accent color. */
   accentValue?: boolean;
+  /** Dim the displayed value (selected label) with muted text color. */
+  dimValue?: boolean;
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -109,7 +111,7 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 
 export function Select({
   value, onChange, options, children, disabled,
-  ariaLabel, className, variant = 'standard', accentValue,
+  ariaLabel, className, variant = 'standard', accentValue, dimValue,
 }: SelectProps) {
   const resolved = options ? options : optionsFromChildren(children);
   const selectedIndex = resolved.findIndex(o => o.value === value);
@@ -304,7 +306,7 @@ export function Select({
         onClick={() => { if (disabled) return; if (open) close(); else openMenu(); }}
         onKeyDown={onTriggerKeyDown}
       >
-        <span className={`${styles.value}${accentValue ? ' ' + styles.accentValue : ''}`}>
+        <span className={classNames(styles.value, accentValue && styles.accentValue, dimValue && styles.dimValue)}>
           {selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
           {selectedLabel}
         </span>
