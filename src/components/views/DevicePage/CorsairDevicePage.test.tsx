@@ -24,8 +24,8 @@ const connectedState = {
   firmware: '3.2.571',
   stopConflictingApps: false,
   devices: [
-    { channel: 1, name: 'iCUE LINK QX RGB', deviceClass: 'Fan', ledCount: 34, hasSpeed: true, hasTemperature: true, rpm: 480, tempC: 28.5 },
-    { channel: 2, name: 'iCUE LINK LX360', deviceClass: 'Aio', ledCount: 16, hasSpeed: false, hasTemperature: false, rpm: -1, tempC: null },
+    { channel: 1, name: 'iCUE LINK QX RGB', deviceClass: 'Fan', ledCount: 34, hasSpeed: true, hasTemperature: true, rpm: 480, tempC: 28.5, serial: 'A1B2C3D4E5F60001' },
+    { channel: 2, name: 'iCUE LINK LX360', deviceClass: 'Aio', ledCount: 16, hasSpeed: false, hasTemperature: false, rpm: -1, tempC: null, serial: 'A1B2C3D4E5F60002' },
   ],
 };
 
@@ -47,6 +47,18 @@ describe('CorsairDevicePage', () => {
     expect(screen.getByText('devices.corsair.devicesSection')).toBeInTheDocument();
     expect(screen.getByText('iCUE LINK QX RGB')).toBeInTheDocument();
     expect(screen.getByText('iCUE LINK LX360')).toBeInTheDocument();
+  });
+
+  it('renders channel position badges, LED counts, and serial values', async () => {
+    await act(async () => {
+      render(<CorsairDevicePage />);
+    });
+    expect(screen.getByText('devices.corsair.channel:{"n":1}')).toBeInTheDocument();
+    expect(screen.getByText('devices.corsair.channel:{"n":2}')).toBeInTheDocument();
+    expect(screen.getByText('devices.corsair.leds:{"n":34}')).toBeInTheDocument();
+    expect(screen.getByText('devices.corsair.leds:{"n":16}')).toBeInTheDocument();
+    expect(screen.getByText('A1B2C3D4E5F60001')).toBeInTheDocument();
+    expect(screen.getByText('A1B2C3D4E5F60002')).toBeInTheDocument();
   });
 
   it('renders disconnected placeholder when not connected', async () => {

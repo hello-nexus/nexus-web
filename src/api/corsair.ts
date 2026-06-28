@@ -9,6 +9,7 @@ export interface CorsairDevice {
   hasTemperature: boolean;
   rpm: number;
   tempC: number | null;
+  serial: string;
 }
 
 export interface CorsairState {

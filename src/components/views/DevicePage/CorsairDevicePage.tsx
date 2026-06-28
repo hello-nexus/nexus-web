@@ -114,7 +114,15 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
           {loaded
             ? state.devices.map(device => (
                 <div key={device.channel} className={styles.row}>
+                  <span className={styles.channelBadge}>
+                    {t('devices.corsair.channel', { n: device.channel })}
+                  </span>
                   <span className={styles.rowLabel}>{device.name}</span>
+                  {device.ledCount > 0 && (
+                    <span className={styles.rowValue}>
+                      {t('devices.corsair.leds', { n: device.ledCount })}
+                    </span>
+                  )}
                   {device.hasSpeed && (
                     <span className={styles.rowValue}>
                       <Fan size={12} aria-hidden />
@@ -125,6 +133,15 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
                     <span className={styles.rowValue}>
                       <Thermometer size={12} aria-hidden />
                       {device.tempC != null ? `${device.tempC.toFixed(1)} °C` : '-'}
+                    </span>
+                  )}
+                  {device.serial && (
+                    <span
+                      className={styles.serialValue}
+                      title={device.serial}
+                      aria-label={`${t('devices.corsair.serialLabel')} ${device.serial}`}
+                    >
+                      {device.serial}
                     </span>
                   )}
                 </div>
