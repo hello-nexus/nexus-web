@@ -869,6 +869,7 @@
   "lighting.devices.firmwareTooltip": "这些 LED 由设备内置的固件灯光控制，无法在此编辑。将设备切换出固件模式即可单独控制它们。",
   "lighting.devices.hue": "色相",
   "lighting.devices.identify": "识别",
+  "lighting.devices.lianliStreamRate": "Lian Li 控制器只能以 1 Hz 推送灯效。",
   "lighting.devices.maximize": "最大化到整个画布",
   "lighting.devices.minimize": "最小化",
   "lighting.devices.motherboardHeader": "主板 ARGB",

@@ -878,6 +878,7 @@
   "lighting.devices.firmwareTooltip": "Chestis LED a son controlâts de iluminazion firmware integrade dal dispositîf e no si puedin modificâ culì. Puartait il dispositîf fûr dal so mût firmware par controlâlis singolarmentri.",
   "lighting.devices.hue": "Tonalitât",
   "lighting.devices.identify": "Identifiche",
+  "lighting.devices.lianliStreamRate": "I controlôrs Lian Li a puedin trasmeti la iluminazion dome a 1 Hz.",
   "lighting.devices.maximize": "Slargje a dute la tele",
   "lighting.devices.minimize": "Riduç",
   "lighting.devices.motherboardHeader": "ARGB de schede mari",

@@ -869,6 +869,7 @@
   "lighting.devices.firmwareTooltip": "Estes LEDs são controlados pela iluminação de firmware integrada do dispositivo e não podem ser editados aqui. Mude o dispositivo para fora do modo firmware para controlá-los individualmente.",
   "lighting.devices.hue": "Matiz",
   "lighting.devices.identify": "Identificar",
+  "lighting.devices.lianliStreamRate": "Os controladores Lian Li só conseguem transmitir a iluminação a 1 Hz.",
   "lighting.devices.maximize": "Maximizar para tela cheia",
   "lighting.devices.minimize": "Minimizar",
   "lighting.devices.motherboardHeader": "ARGB da placa-mae",

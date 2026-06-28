@@ -869,6 +869,7 @@
   "lighting.devices.firmwareTooltip": "Bu LED'ler, cihazın yerleşik firmware aydınlatması tarafından kontrol edilmektedir ve burada düzenlenemez. Bunları ayrı ayrı kontrol etmek için cihazı firmware modundan çıkarın.",
   "lighting.devices.hue": "Renk tonu",
   "lighting.devices.identify": "Tanimla",
+  "lighting.devices.lianliStreamRate": "Lian Li denetleyicileri aydınlatmayı yalnızca 1 Hz'de akıtabilir.",
   "lighting.devices.maximize": "Tam tuvale genis let",
   "lighting.devices.minimize": "Simge Durumuna Küçült",
   "lighting.devices.motherboardHeader": "Anakart ARGB",

@@ -3,6 +3,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { DeviceNotice } from './DeviceNotice';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -24,6 +25,7 @@ export function MotherboardGroup({
   onToggleCollapsed,
   leftAction,
   powerDisabled,
+  notice,
   drag,
 }: {
   parentName: string;
@@ -43,6 +45,8 @@ export function MotherboardGroup({
   leftAction?: React.ReactNode;
   /** When true, the power button is rendered disabled. */
   powerDisabled?: boolean;
+  /** Optional advisory shown via an (i) right after the group title. */
+  notice?: string;
   /** Optional reorder drag wiring; makes the whole group draggable. */
   drag?: SortableRowArgs;
 }) {
@@ -58,6 +62,7 @@ export function MotherboardGroup({
       open={expanded}
       onToggle={onToggleCollapsed}
       ariaLabel={toggleLabel}
+      titleAfter={notice != null ? <DeviceNotice notice={notice} /> : undefined}
       drag={drag}
       rightInteractive
       right={

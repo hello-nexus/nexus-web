@@ -869,6 +869,7 @@
   "lighting.devices.firmwareTooltip": "Diese LEDs werden von der integrierten Firmware-Beleuchtung des Geräts gesteuert und können hier nicht bearbeitet werden. Wechseln Sie das Gerät aus dem Firmware-Modus, um sie einzeln zu steuern.",
   "lighting.devices.hue": "Farbton",
   "lighting.devices.identify": "Identifizieren",
+  "lighting.devices.lianliStreamRate": "Lian-Li-Controller können Beleuchtung nur mit 1 Hz streamen.",
   "lighting.devices.maximize": "Auf gesamte Fläche vergrößern",
   "lighting.devices.minimize": "Minimieren",
   "lighting.devices.motherboardHeader": "Mainboard ARGB",

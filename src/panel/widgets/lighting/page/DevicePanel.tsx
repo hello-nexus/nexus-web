@@ -5,6 +5,7 @@ import { LayoutToolbar } from './LayoutToolbar';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { ZoneCard } from './ZoneCard';
 import { MotherboardGroup } from './MotherboardGroup';
+import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { SortableList, type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
@@ -162,6 +163,11 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
     onSelectDevice(selectedIds.size === 1 && selectedIds.has(id) ? null : id);
   };
 
+  const noticeFor = (d: LightingDevice): string | undefined => {
+    const key = lightingDeviceNoticeKey(d);
+    return key ? t(key) : undefined;
+  };
+
   const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean, drag?: SortableRowArgs) => (
     <ZoneCard
       key={d.id}
@@ -176,6 +182,8 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
       communityCount={communityCounts?.[d.id]}
       onOpenCommunity={onOpenCommunity ? () => onOpenCommunity(d.id) : undefined}
       firmwareControlled={fwControlled || (!!lianLiFirmwareActive && d.id.startsWith('lianli:'))}
+      // Grouped members carry the notice on their group header instead.
+      notice={indent ? undefined : noticeFor(d)}
     />
   );
 
@@ -209,6 +217,7 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
         groupOn={groupOn} onTogglePower={handleToggle}
         collapsed={isCollapsed(groupKey)} onToggleCollapsed={() => toggleCollapsed(groupKey)}
         leftAction={leftAction} powerDisabled={fwOn}
+        notice={noticeFor(members[0])}
         drag={a ?? undefined}>
         <SortableList
           ids={memberIds}

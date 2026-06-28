@@ -869,6 +869,7 @@
   "lighting.devices.firmwareTooltip": "這些 LED 由裝置內建的韌體燈光控制，無法在此編輯。將裝置切換出韌體模式即可單獨控制它們。",
   "lighting.devices.hue": "色相",
   "lighting.devices.identify": "識別",
+  "lighting.devices.lianliStreamRate": "Lian Li 控制器只能以 1 Hz 串流燈效。",
   "lighting.devices.maximize": "最大化至整個畫布",
   "lighting.devices.minimize": "最小化",
   "lighting.devices.motherboardHeader": "主板 ARGB",

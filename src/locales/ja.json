@@ -869,6 +869,7 @@
   "lighting.devices.firmwareTooltip": "これらの LED はデバイスの内蔵ファームウェアライティングによって制御されており、ここでは編集できません。個別に制御するには、デバイスをファームウェアモードから切り替えてください。",
   "lighting.devices.hue": "色相",
   "lighting.devices.identify": "識別",
+  "lighting.devices.lianliStreamRate": "Lian Li コントローラーはライティングを 1 Hz でのみストリーミングできます。",
   "lighting.devices.maximize": "キャンバス全体に最大化",
   "lighting.devices.minimize": "最小化",
   "lighting.devices.motherboardHeader": "マザーボード ARGB",

@@ -989,6 +989,7 @@
   "lighting.devices.firmwareTooltip": "These LEDs are driven by the device's built-in firmware lighting and can't be edited here. Switch the device out of its firmware mode to control them individually.",
   "lighting.devices.hue": "Hue",
   "lighting.devices.identify": "Identify",
+  "lighting.devices.lianliStreamRate": "Lian Li controllers only support streaming lighting at 1 Hz.",
   "lighting.devices.maximize": "Maximize to full canvas",
   "lighting.devices.minimize": "Minimize",
   "lighting.devices.motherboardHeader": "Motherboard ARGB",

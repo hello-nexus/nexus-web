@@ -869,6 +869,7 @@
   "lighting.devices.firmwareTooltip": "Эти светодиоды управляются встроенным режимом подсветки устройства и не могут быть изменены здесь. Переключите устройство из режима прошивки, чтобы управлять ими по отдельности.",
   "lighting.devices.hue": "Оттенок",
   "lighting.devices.identify": "Определить",
+  "lighting.devices.lianliStreamRate": "Контроллеры Lian Li могут передавать подсветку только с частотой 1 Hz.",
   "lighting.devices.maximize": "Развернуть на весь холст",
   "lighting.devices.minimize": "Свернуть",
   "lighting.devices.motherboardHeader": "Материнская плата ARGB",
