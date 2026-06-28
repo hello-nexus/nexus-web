@@ -875,7 +875,7 @@
   "lighting.devices.detectionFailed": "Rilevât ma no controlabil",
   "lighting.devices.detectionFailedTooltip": "Chest dispositîf al è stât viodût di OpenRGB ma il so rilevatôr nol è rivât a inizializâlu, cussì Nexus nol pues controlâ la sô iluminazion.",
   "lighting.devices.empty": "Nissun dispositîf di iluminazion rilevât",
-  "lighting.devices.firmwareTooltip": "Chestis LED a son controlâts de iluminazion firmware integrade dal dispositîf e no si puedin modificâ culì. Disative il control firmware par modificâlis singolarmentri.",
+  "lighting.devices.firmwareTooltip": "Chestis LED a son controlâts de iluminazion firmware integrade dal dispositîf e no si puedin modificâ culì. Puartait il dispositîf fûr dal so mût firmware par controlâlis singolarmentri.",
   "lighting.devices.hue": "Tonalitât",
   "lighting.devices.identify": "Identifiche",
   "lighting.devices.maximize": "Slargje a dute la tele",

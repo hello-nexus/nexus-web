@@ -866,7 +866,7 @@
   "lighting.devices.detectionFailed": "Wykryto, ale nie mozna sterowac",
   "lighting.devices.detectionFailedTooltip": "Urzadzenie zostalo wykryte przez OpenRGB, ale detektor nie zdolal go zainicjalizowac, wiec Nexus nie moze sterowac jego podswietleniem.",
   "lighting.devices.empty": "Nie wykryto urzadzen podswietlenia",
-  "lighting.devices.firmwareTooltip": "Te diody LED są sterowane przez wbudowane oświetlenie firmware urządzenia i nie można ich tutaj edytować. Wyłącz sterowanie firmware, aby edytować je indywidualnie.",
+  "lighting.devices.firmwareTooltip": "Te diody LED są sterowane przez wbudowane oświetlenie firmware urządzenia i nie można ich tutaj edytować. Przełącz urządzenie z trybu firmware, aby sterować nimi indywidualnie.",
   "lighting.devices.hue": "Barwa",
   "lighting.devices.identify": "Identyfikuj",
   "lighting.devices.maximize": "Maksymalizuj do pelnego plotna",

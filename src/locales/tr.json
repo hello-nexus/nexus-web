@@ -866,7 +866,7 @@
   "lighting.devices.detectionFailed": "Algilandi ancak kontrol edilemiyor",
   "lighting.devices.detectionFailedTooltip": "Bu cihaz OpenRGB tarafindan goruldu ancak surucu baslatma basarisiz oldu, bu yuzden Nexus aydinlatmasini kontrol edemiyor.",
   "lighting.devices.empty": "Aydinlatma cihazi algilanmadi",
-  "lighting.devices.firmwareTooltip": "Bu LED'ler, cihazın yerleşik firmware aydınlatması tarafından kontrol edilmektedir ve burada düzenlenemez. Bunları ayrı ayrı düzenlemek için firmware kontrolünü kapatın.",
+  "lighting.devices.firmwareTooltip": "Bu LED'ler, cihazın yerleşik firmware aydınlatması tarafından kontrol edilmektedir ve burada düzenlenemez. Bunları ayrı ayrı kontrol etmek için cihazı firmware modundan çıkarın.",
   "lighting.devices.hue": "Renk tonu",
   "lighting.devices.identify": "Tanimla",
   "lighting.devices.maximize": "Tam tuvale genis let",

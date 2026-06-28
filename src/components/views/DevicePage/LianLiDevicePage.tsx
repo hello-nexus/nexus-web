@@ -203,28 +203,29 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
             </>
           ) : (
             <>
-              {/* Brightness is always present in firmware modes. */}
-              <Slider
-                // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                orientation="stacked"
-                editable
-                trackFill
-                label={t('devices.lianli.lightingBrightness')}
-                value={(lighting?.brightness ?? 0) * PERCENT_PER_LEVEL}
-                min={0}
-                max={100}
-                step={PERCENT_PER_LEVEL}
-                formatValue={v => `${v}%`}
-                ariaLabel={t('devices.lianli.lightingBrightnessAria')}
-                disabled={!lightingLoaded}
-                onChange={(v: number) => {
-                  if (!lighting) return;
-                  setLighting({ ...lighting, brightness: Math.round(v / PERCENT_PER_LEVEL) });
-                }}
-                onCommit={(v: number) => {
-                  void commitLighting({ brightness: Math.round(v / PERCENT_PER_LEVEL) });
-                }}
-              />
+              {selectedMode?.hasBrightness && (
+                <Slider
+                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+                  orientation="stacked"
+                  editable
+                  trackFill
+                  label={t('devices.lianli.lightingBrightness')}
+                  value={(lighting?.brightness ?? 0) * PERCENT_PER_LEVEL}
+                  min={0}
+                  max={100}
+                  step={PERCENT_PER_LEVEL}
+                  formatValue={v => `${v}%`}
+                  ariaLabel={t('devices.lianli.lightingBrightnessAria')}
+                  disabled={!lightingLoaded}
+                  onChange={(v: number) => {
+                    if (!lighting) return;
+                    setLighting({ ...lighting, brightness: Math.round(v / PERCENT_PER_LEVEL) });
+                  }}
+                  onCommit={(v: number) => {
+                    void commitLighting({ brightness: Math.round(v / PERCENT_PER_LEVEL) });
+                  }}
+                />
+              )}
 
               {selectedMode?.hasSpeed && (
                 <Slider
