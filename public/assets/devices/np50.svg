@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="currentColor">
+  <!-- HYTE NP50: flat portrait hub silhouette. fill-rule evenodd punches the
+       H-badge circle (top right) out as a hole; rendered as a CSS mask, so
+       the hole reads as background. -->
+  <path fill-rule="evenodd"
+        d="M20 7 H28 A8 8 0 0 1 36 15 V33 A8 8 0 0 1 28 41 H20 A8 8 0 0 1 12 33 V15 A8 8 0 0 1 20 7 Z
+           M23.5 17 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0 Z" />
+</svg>
