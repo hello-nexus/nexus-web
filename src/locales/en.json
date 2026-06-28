@@ -883,7 +883,7 @@
   "lighting.devices.motherboardHeader": "Motherboard ARGB",
   "lighting.devices.powerOff": "Off",
   "lighting.devices.powerOn": "On",
-  "lighting.devices.rescan": "Rescan",
+  "lighting.devices.rescan": "Rescan devices",
   "lighting.devices.rotateCcw": "Rotate counter-clockwise",
   "lighting.devices.rotateCw": "Rotate clockwise",
   "lighting.devices.saturation": "Saturation",

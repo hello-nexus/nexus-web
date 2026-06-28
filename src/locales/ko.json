@@ -874,7 +874,7 @@
   "lighting.devices.motherboardHeader": "메인보드 ARGB",
   "lighting.devices.powerOff": "끄기",
   "lighting.devices.powerOn": "켜기",
-  "lighting.devices.rescan": "다시 스캔",
+  "lighting.devices.rescan": "기기 다시 스캔",
   "lighting.devices.rotateCcw": "반시계 방향으로 회전",
   "lighting.devices.rotateCw": "시계 방향으로 회전",
   "lighting.devices.saturation": "채도",

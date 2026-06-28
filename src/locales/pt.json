@@ -874,7 +874,7 @@
   "lighting.devices.motherboardHeader": "ARGB placa-mae",
   "lighting.devices.powerOff": "Desligado",
   "lighting.devices.powerOn": "Ligado",
-  "lighting.devices.rescan": "Reanalisar",
+  "lighting.devices.rescan": "Reanalisar dispositivos",
   "lighting.devices.rotateCcw": "Girar no sentido anti-horário",
   "lighting.devices.rotateCw": "Girar no sentido horário",
   "lighting.devices.saturation": "Saturacao",

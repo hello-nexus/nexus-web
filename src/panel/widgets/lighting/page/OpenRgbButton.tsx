@@ -6,8 +6,8 @@ import styles from '../LightingPage.module.scss';
 
 /**
  * Full-width OpenRGB control at the bottom of the device pane. Left: a status
- * dot reflecting the subprocess, then the OpenRGB label (swapped for
- * "Rescanning" while a scan is in flight). Right edge: a refresh icon that
+ * dot reflecting the subprocess, then a localized rescan label (swapped for
+ * the scanning label while a scan is in flight). Right edge: a refresh icon that
  * re-enumerates devices on press (disabled while the subprocess is down or a
  * scan is running). Sized to match the dashboard's "Add widget" button.
  */
@@ -33,8 +33,7 @@ export function OpenRgbButton({ rgbRunning, scanning }: {
     finally { setTimeout(() => setUserRescanning(false), 2000); }
   };
 
-  const brand = 'OpenRGB';
-  const label = busy ? t('lighting.devices.scanning') : brand;
+  const label = busy ? t('lighting.devices.scanning') : t('lighting.devices.rescan');
 
   return (
     <button

@@ -874,7 +874,7 @@
   "lighting.devices.motherboardHeader": "主板 ARGB",
   "lighting.devices.powerOff": "关",
   "lighting.devices.powerOn": "开",
-  "lighting.devices.rescan": "重新扫描",
+  "lighting.devices.rescan": "重新扫描设备",
   "lighting.devices.rotateCcw": "逆时针旋转",
   "lighting.devices.rotateCw": "顺时针旋转",
   "lighting.devices.saturation": "饱和度",

@@ -874,7 +874,7 @@
   "lighting.devices.motherboardHeader": "マザーボード ARGB",
   "lighting.devices.powerOff": "オフ",
   "lighting.devices.powerOn": "オン",
-  "lighting.devices.rescan": "再スキャン",
+  "lighting.devices.rescan": "デバイスを再スキャン",
   "lighting.devices.rotateCcw": "反時計回りに回転",
   "lighting.devices.rotateCw": "時計回りに回転",
   "lighting.devices.saturation": "彩度",
