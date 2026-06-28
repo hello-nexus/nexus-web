@@ -1712,6 +1712,12 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview -- bound to live preset state via useLayoutPresets and requires a running service.',
   },
   {
+    name: 'CorsairDevicePage', category: 'panel-kit',
+    filePath: 'src/components/views/DevicePage/CorsairDevicePage.tsx',
+    description: 'Device settings page for the Corsair iCUE LINK System Hub. Shows auto-detected connected devices (channel position badge, name, LED count, live RPM, live temperature, truncated serial), the Stop Corsair iCUE toggle, and navigation hints to the Cooling and Lighting pages.',
+    notes: 'No live preview - requires a running service with a connected Corsair iCUE LINK System Hub.',
+  },
+  {
     name: 'HomeAssistantWidget', category: 'panel-kit',
     filePath: 'src/panel/widgets/home-assistant/HomeAssistantWidget.tsx',
     description: 'Home Assistant tile widget (2x2 / 4x2): connection status dot, on/off entity count. Click opens the Home Assistant management page. Shows a "not configured" prompt when HA is not connected.',

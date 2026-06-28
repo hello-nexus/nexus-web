@@ -7,6 +7,7 @@ import { PanelDevicePage } from './PanelDevicePage';
 import { PeripheralDevicePage } from './PeripheralDevicePage';
 import { KeebDevicePage } from './KeebDevicePage';
 import { LianLiDevicePage } from './LianLiDevicePage';
+import { CorsairDevicePage } from './CorsairDevicePage';
 import { Np50DevicePage } from './Np50DevicePage';
 import { SmartHubDevicePage } from './SmartHubDevicePage';
 import { CnvsDevicePage } from './CnvsDevicePage';
@@ -77,6 +78,10 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
 
   if (device.curatedId === 'lianli') {
     return <LianLiDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
+  }
+
+  if (device.curatedId === 'corsair') {
+    return <CorsairDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
   }
 
   if (device.curatedId === 'np50') {
