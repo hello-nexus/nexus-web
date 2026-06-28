@@ -916,6 +916,7 @@
   "lighting.gameSync.signal.idle": "ゲームを待機中...",
   "lighting.gameSync.signal.receiving": "{activeApp} から受信中",
   "lighting.gameSync.signal.receivingUnknown": "ゲームが照明を制御しています。",
+  "lighting.gpuUnavailableNotice": "このPCに使用可能なGPUがないため、エフェクトはここでプレビューされますが、デバイスは点灯しません。",
   "lighting.layoutPresets.capReached": "プリセットは最大{max}個まで",
   "lighting.layoutPresets.defaultName": "プリセット {n}",
   "lighting.layoutPresets.delete": "削除",

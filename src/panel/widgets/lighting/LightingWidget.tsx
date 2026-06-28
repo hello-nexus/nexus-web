@@ -6,6 +6,7 @@ import {
   effectThumbnailPath,
   fetchAnimateSettings,
   fetchCurrentSync,
+  fetchLightingStatus,
   fetchScreenEffect,
   setMusicReactive,
   setScreenEffect,
@@ -64,6 +65,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // Preview forces simple mode for determinism.
   const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
   const [mode, setMode] = useState<LightingMode>(preview ? LIGHTING_PREVIEW_MODE : 'none');
+  const [gpuAvailable, setGpuAvailable] = useState(true);
   const [activeEffect, setActiveEffect] = useState('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>(buildAllDefaultTemplates);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -106,11 +108,13 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     : null;
 
   const hydrate = useCallback(async () => {
-    const [sync, animate, screen] = await Promise.all([
+    const [sync, animate, screen, lightStatus] = await Promise.all([
       fetchCurrentSync(),
       fetchAnimateSettings(),
       fetchScreenEffect(),
+      fetchLightingStatus(),
     ]);
+    setGpuAvailable(lightStatus?.gpuAvailable ?? true);
 
     const nextTemplates = buildAllDefaultTemplates();
     if (animate?.templates) {
@@ -444,7 +448,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
                         fully occludes this one, so only one WebGL context runs
                         at a time. The shader source is cached, so the remount
                         on close is instant. */}
-                    {!shaderFullscreen && <LightingShaderPreview effect={activeEffect} state={animateState} />}
+                    {!shaderFullscreen && <LightingShaderPreview effect={activeEffect} state={animateState} gpuAvailable={gpuAvailable} />}
                   </button>
                 )
                 : <LightingLivePreview />}
@@ -460,7 +464,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
             data-panel-no-sheet-swipe="true"
             aria-label={t('lighting.fullscreen.exit')}
           >
-            <LightingShaderPreview effect={activeEffect} state={animateState} />
+            <LightingShaderPreview effect={activeEffect} state={animateState} gpuAvailable={gpuAvailable} />
           </button>
         )}
       </div>

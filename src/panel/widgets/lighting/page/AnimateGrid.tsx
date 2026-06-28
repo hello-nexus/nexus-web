@@ -11,7 +11,7 @@ import { EffectCard } from '../../../../components/common/EffectCard/EffectCard'
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
 import styles from '../LightingPage.module.scss';
 
-function AnimateGridCell({ fx, slot, version, active, live, panel, label, onSelect }: {
+function AnimateGridCell({ fx, slot, version, active, live, panel, label, gpuAvailable, onSelect }: {
   fx: EffectDef;
   slot: number;
   version: string;
@@ -19,10 +19,12 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, onSele
   live: boolean;
   panel: boolean;
   label: string;
+  gpuAvailable?: boolean;
   onSelect: () => void;
 }) {
   const { t } = useTranslation();
-  const url = useEffectThumbnail(fx.key, slot, version);
+  const noGpu = gpuAvailable === false;
+  const url = useEffectThumbnail(fx.key, slot, version, noGpu);
   const hints = [live && t('lighting.badge.liveOnLeds'), panel && t('lighting.badge.usedByPanel')].filter(Boolean) as string[];
   return (
     <EffectCard
@@ -30,6 +32,7 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, onSele
       dataEffectKey={fx.key}
       label={label}
       thumbUrl={url}
+      thumbStatic={noGpu}
       active={active}
       onClick={onSelect}
       audio={fx.audio}
@@ -52,7 +55,7 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, onSele
  * hardware gets a bulb. Effects are listed in pre-expanded category groups
  * (EFFECT_CATEGORIES order), each under a header in the cooling-panel style.
  */
-export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, versionFor, rgbActiveEffect, panelEffects }: {
+export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, versionFor, rgbActiveEffect, panelEffects, gpuAvailable }: {
   effect: string;
   onSelect: (key: string) => void;
   /** Effect pool to show. Defaults to the full RGB set; panel backgrounds pass
@@ -66,6 +69,8 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
   rgbActiveEffect?: string | null;
   /** Effects used as a background by ≥1 panel - those cells show a panel icon. */
   panelEffects?: Set<string> | null;
+  /** When false, thumbnail fetches are skipped and a static placeholder is shown. */
+  gpuAvailable?: boolean;
 }) {
   const { t } = useTranslation();
   const gridRef = useRef<HTMLDivElement>(null);
@@ -127,6 +132,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
                   live={!!rgbActiveEffect && fx.key === rgbActiveEffect}
                   panel={!!panelEffects && panelEffects.has(fx.key)}
                   label={t(fx.labelKey)}
+                  gpuAvailable={gpuAvailable}
                   onSelect={() => onSelect(fx.key)}
                 />
               ))}

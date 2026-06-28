@@ -916,6 +916,7 @@
   "lighting.gameSync.signal.idle": "Oyun bekleniyor...",
   "lighting.gameSync.signal.receiving": "{activeApp} kaynağından alınıyor",
   "lighting.gameSync.signal.receivingUnknown": "Bir oyun aydınlatmanızı yönetiyor.",
+  "lighting.gpuUnavailableNotice": "Bu PC'de kullanılabilir GPU yok - efekt burada önizleniyor, ancak cihazlarınızı aydınlatmayacak.",
   "lighting.layoutPresets.capReached": "{max} önayar sınırına ulaşıldı",
   "lighting.layoutPresets.defaultName": "Önayar {n}",
   "lighting.layoutPresets.delete": "Sil",

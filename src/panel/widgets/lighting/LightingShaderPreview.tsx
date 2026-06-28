@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useShaderRenderer } from '../../../hooks/useShaderRenderer';
+import { useTranslation } from '../../../lib/i18n';
 import type { EffectState } from '../../../types/lighting';
+import { CanvasNoticeBar } from '../../../components/common/CanvasNoticeBar';
 import styles from './LightingWidget.module.scss';
 
 /**
@@ -12,7 +14,8 @@ import styles from './LightingWidget.module.scss';
  * are left at 0 (no live audio wired here), so audio-reactive effects animate
  * but do not pulse to sound in this preview.
  */
-export function LightingShaderPreview({ effect, state }: { effect: string; state: EffectState }) {
+export function LightingShaderPreview({ effect, state, gpuAvailable }: { effect: string; state: EffectState; gpuAvailable?: boolean }) {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef(state);
   useEffect(() => {
@@ -21,11 +24,14 @@ export function LightingShaderPreview({ effect, state }: { effect: string; state
   const { ready, error } = useShaderRenderer(canvasRef, effect, stateRef);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className={styles.shaderPreview}
-      data-ready={ready && !error ? 'true' : 'false'}
-      aria-hidden="true"
-    />
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <canvas
+        ref={canvasRef}
+        className={styles.shaderPreview}
+        data-ready={ready && !error ? 'true' : 'false'}
+        aria-hidden="true"
+      />
+      <CanvasNoticeBar visible={gpuAvailable === false} message={t('lighting.gpuUnavailableNotice')} />
+    </div>
   );
 }

@@ -8,6 +8,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
 import type { EffectState } from '../../../types/lighting';
+import { CanvasNoticeBar } from '../CanvasNoticeBar';
 import { DeviceContextMenu, type DeviceMenuItem } from './DeviceContextMenu';
 import styles from './DeviceCanvas.module.scss';
 
@@ -48,6 +49,7 @@ interface DeviceCanvasProps {
   onBeforeLayoutSave?: () => void;
   /** Called after a drag/rotate/maximize layout save completes, so callers can auto-save to the active preset. */
   onLayoutCommit?: () => void;
+  gpuAvailable?: boolean;
 }
 
 const CW = 1000;
@@ -539,7 +541,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   );
 });
 
-export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit }: DeviceCanvasProps) {
+export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, gpuAvailable }: DeviceCanvasProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const shaderStateRef = useRef(shaderState ?? null);
@@ -557,6 +560,7 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
       <CanvasBackground canvasPixels={canvasPixels} canvasW={canvasW} canvasH={canvasH} />
       <canvas ref={glCanvasRef} className={`${styles.glCanvas} ${ready ? styles.glCanvasReady : ''}`} />
       <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} />
+      <CanvasNoticeBar visible={gpuAvailable === false && shaderEffect != null} message={t('lighting.gpuUnavailableNotice')} />
     </div>
   );
 }

@@ -33,13 +33,21 @@ function load(effect: string, slot: number, version: string): Promise<string | n
   return p;
 }
 
-/** Resolve a preset slot's thumbnail blob URL (null while loading). */
-export function useEffectThumbnail(effect: string, slot: number, version: string): string | null {
-  const cached = cache.get(`${effect}:${slot}`);
+/**
+ * Resolve a preset slot's thumbnail blob URL (null while loading or skipped).
+ * Pass skip=true to suppress the fetch when thumbnails cannot be generated
+ * (e.g. GPU unavailable on the host).
+ */
+export function useEffectThumbnail(effect: string, slot: number, version: string, skip?: boolean): string | null {
+  const cached = skip ? null : cache.get(`${effect}:${slot}`);
   const [url, setUrl] = useState<string | null>(
-    cached && cached.version === version ? cached.url : null,
+    !skip && cached && cached.version === version ? cached.url : null,
   );
   useEffect(() => {
+    if (skip) {
+      setUrl(null);
+      return;
+    }
     let cancelled = false;
     const c = cache.get(`${effect}:${slot}`);
     if (c && c.version === version) {
@@ -49,6 +57,6 @@ export function useEffectThumbnail(effect: string, slot: number, version: string
     setUrl(null);
     load(effect, slot, version).then(u => { if (!cancelled) setUrl(u); });
     return () => { cancelled = true; };
-  }, [effect, slot, version]);
+  }, [effect, slot, version, skip]);
   return url;
 }

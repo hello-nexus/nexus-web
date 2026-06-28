@@ -37,6 +37,15 @@ export async function fetchShaderSource(name: string): Promise<ShaderSource | nu
   return src;
 }
 
+// --- Service status ---
+
+export interface LightingStatusResponse {
+  gpuAvailable: boolean;
+}
+
+export const fetchLightingStatus = () =>
+  fetchService<LightingStatusResponse>('/lighting/status');
+
 // --- Current state ---
 
 export interface CurrentSyncResponse {

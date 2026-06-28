@@ -1092,7 +1092,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           ) : (
             <>
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} />
+                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
                 {effectiveMode === 'animate' && activeEffect && currentState && activeRightTab === 'effect' && (
                   <>
                     {EFFECTS.find(e => e.key === activeEffect)?.audio && (
@@ -1119,7 +1119,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 )}
               </div>
               {effectiveMode === 'animate' ? (
-                <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} />
+                <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
               ) : (
                 <div className={styles.controls}>
                   <ModeControls
@@ -1211,6 +1211,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onClose={() => setFullscreenOpen(false)}
           onPrev={handlePrevEffect}
           onNext={handleNextEffect}
+          gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
         />
       )}
       {editorTarget && (

@@ -22,6 +22,7 @@ interface LightingStatus {
    *  `running`; consumers like the "OpenRGB running" badge and the rescan
    *  button gate on this, not on effect-engine state. */
   rgbRunning: boolean;
+  gpuAvailable: boolean;
   scanning: boolean;
 }
 

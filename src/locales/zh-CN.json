@@ -916,6 +916,7 @@
   "lighting.gameSync.signal.idle": "等待游戏...",
   "lighting.gameSync.signal.receiving": "正在从 {activeApp} 接收",
   "lighting.gameSync.signal.receivingUnknown": "游戏正在控制您的灯光。",
+  "lighting.gpuUnavailableNotice": "此PC没有可用的GPU，效果在此处预览，但不会点亮您的设备。",
   "lighting.layoutPresets.capReached": "已达到 {max} 个预设的上限",
   "lighting.layoutPresets.defaultName": "预设 {n}",
   "lighting.layoutPresets.delete": "删除",

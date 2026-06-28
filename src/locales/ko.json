@@ -916,6 +916,7 @@
   "lighting.gameSync.signal.idle": "게임을 기다리는 중...",
   "lighting.gameSync.signal.receiving": "{activeApp}에서 수신 중",
   "lighting.gameSync.signal.receivingUnknown": "게임이 조명을 제어하고 있습니다.",
+  "lighting.gpuUnavailableNotice": "이 PC에 사용 가능한 GPU가 없어 효과가 여기서 미리보기로 표시되지만 장치에는 적용되지 않습니다.",
   "lighting.layoutPresets.capReached": "프리셋은 최대 {max}개까지 허용됩니다",
   "lighting.layoutPresets.defaultName": "프리셋 {n}",
   "lighting.layoutPresets.delete": "삭제",
