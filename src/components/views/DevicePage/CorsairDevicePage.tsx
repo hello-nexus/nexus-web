@@ -6,8 +6,8 @@ import {
 } from '../../../api/corsair';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../common/Button/Button';
+import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { Toggle } from '../../common/Toggle/Toggle';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { Placeholder } from '../Placeholder';
 import styles from './CorsairDevicePage.module.scss';
@@ -133,19 +133,13 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
         </SettingsSection>
 
         <SettingsSection boxClassName={styles.sectionBox} title={null}>
-          <div className={styles.toggleRow}>
-            <div className={styles.toggleLabel}>
-              <span className={styles.toggleLabelText}>
-                {t('devices.corsair.stopConflictingApps')}
-              </span>
-            </div>
-            <Toggle
-              checked={state?.stopConflictingApps ?? false}
-              onChange={v => { void commitStopConflictingApps(v); }}
-              disabled={!loaded}
-              ariaLabel={t('devices.corsair.stopConflictingAppsAria')}
-            />
-          </div>
+          <SettingToggle
+            label={t('devices.corsair.stopConflictingApps')}
+            ariaLabel={t('devices.corsair.stopConflictingAppsAria')}
+            checked={state?.stopConflictingApps ?? false}
+            onChange={v => { void commitStopConflictingApps(v); }}
+            disabled={!loaded}
+          />
         </SettingsSection>
 
         {onSectionNavigate && (

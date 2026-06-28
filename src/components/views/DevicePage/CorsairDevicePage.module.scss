@@ -34,11 +34,6 @@
   min-height: 2rem;
 }
 
-.rowDisabled {
-  opacity: 0.45;
-  pointer-events: none;
-}
-
 .rowLabel {
   flex: 0 0 9.5rem;
   font-size: var(--type-small);
@@ -51,29 +46,6 @@
   font-variant-numeric: tabular-nums;
   font-size: var(--type-small);
   color: var(--text-dim);
-}
-
-.toggleRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  min-height: 2rem;
-}
-
-.toggleLabel {
-  flex: 1;
-}
-
-.toggleLabelText {
-  font-size: var(--type-small);
-  display: block;
-}
-
-.toggleHint {
-  font-size: var(--type-mini);
-  color: var(--text-dim);
-  margin-top: 0.25rem;
-  display: block;
 }
 
 .hintNote {
