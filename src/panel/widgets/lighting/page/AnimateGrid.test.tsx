@@ -66,6 +66,15 @@ describe('AnimateGrid live-on-RGB bulb', () => {
   });
 });
 
+describe('AnimateGrid gpuAvailable=false', () => {
+  it('renders all effect cells without error when gpu is unavailable', () => {
+    const { container } = render(
+      <AnimateGrid effect="plasma" onSelect={() => {}} gpuAvailable={false} />,
+    );
+    expect(container.querySelectorAll('[data-effect-key]').length).toBeGreaterThan(0);
+  });
+});
+
 describe('AnimateGrid category sections', () => {
   const has = (c: HTMLElement, key: string) => !!c.querySelector(`[data-effect-key="${key}"]`);
 

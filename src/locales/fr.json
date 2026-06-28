@@ -901,6 +901,7 @@
   "lighting.gameSync.signal.idle": "En attente d'un jeu...",
   "lighting.gameSync.signal.receiving": "Réception depuis {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Un jeu contrôle votre éclairage.",
+  "lighting.gpuUnavailableNotice": "Aucun GPU utilisable sur ce PC - l'effet est affiché en aperçu ici, mais n'éclairera pas vos appareils.",
   "lighting.layoutPresets.capReached": "Limite de {max} presets atteinte",
   "lighting.layoutPresets.defaultName": "Preset {n}",
   "lighting.layoutPresets.delete": "Supprimer",

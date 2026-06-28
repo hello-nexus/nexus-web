@@ -76,6 +76,7 @@ import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import type { DeckIcon } from '../panel/widgets/deck/types';
 import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
+import { CanvasNoticeBar } from '../components/common/CanvasNoticeBar';
 // Side-effect: pulls the global `.panel-root { --panel-*: … }` token rules into
 // the Storybook bundle so the panel-scoped preview below resolves its vars.
 // Idempotent - PanelDevicePage imports the same sheet.
@@ -574,6 +575,18 @@ function PreviewEffectCard() {
           thumbUrl={null}
           active={active === 'overlayB'}
           onClick={() => setActive('overlayB')}
+        />
+      </div>
+      {/* Static placeholder: shown when GPU is unavailable (no thumbnail can
+          be generated). Non-animated so it doesn't imply a loading state. */}
+      <div className={styles.previewGridTwo}>
+        <EffectCard
+          overlay
+          label="Plasma"
+          thumbUrl={null}
+          thumbStatic
+          active={false}
+          onClick={() => {}}
         />
       </div>
       {/* Default (caption-below) layout: media library grid, meta line +
@@ -1108,6 +1121,14 @@ function PreviewMediaCropper() {
   );
 }
 
+function PreviewCanvasNoticeBar() {
+  return (
+    <div style={{ position: 'relative', width: '100%', height: 56, background: '#111', borderRadius: 6, overflow: 'hidden' }}>
+      <CanvasNoticeBar visible message="No usable GPU on this PC - this effect previews here but won't light your devices." />
+    </div>
+  );
+}
+
 /* ── Registry ────────────────────────────────────────────────────────────── */
 
 export const REGISTRY: StorybookEntry[] = [
@@ -1503,6 +1524,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/OpenInAppBanner/OpenInAppBanner.tsx',
     description: 'Mobile-only banner offering to open the current page in the native app via the hellonexus:// scheme. Detects platform, remembers dismissal per version suffix.',
     notes: 'No live preview - renders null outside a mobile browser context.',
+  },
+  {
+    name: 'CanvasNoticeBar', category: 'status',
+    filePath: 'src/components/common/CanvasNoticeBar/CanvasNoticeBar.tsx',
+    description: 'Bottom-docked translucent notice bar overlaid on a preview canvas. pointer-events: none so it never blocks canvas interaction. Used to warn that a GPU shader effect previews in the browser but won\'t run on the service (no usable GPU).',
+    Preview: PreviewCanvasNoticeBar,
   },
 
   // ── Panel kit ─────────────────────────────────────────────────────────

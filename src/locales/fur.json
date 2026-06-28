@@ -910,6 +910,7 @@
   "lighting.gameSync.signal.idle": "In spiete di un zûc...",
   "lighting.gameSync.signal.receiving": "Daûr a ricevi di {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Un zûc al controle la tô iluminazion.",
+  "lighting.gpuUnavailableNotice": "Nissun GPU disponibil su chest PC - l'efiet al mostre chi la anteprime, ma nol luminarà i tiei dispositîfs.",
   "lighting.layoutPresets.capReached": "Limite di {max} presets",
   "lighting.layoutPresets.defaultName": "Preset {n}",
   "lighting.layoutPresets.delete": "Elimine",
