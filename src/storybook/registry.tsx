@@ -1684,4 +1684,10 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Toolbar for lighting canvas layout presets: preset dropdown (with Rename/Delete when active), Save / New / Reset icon buttons, Undo/Redo with keyboard shortcuts.',
     notes: 'No live preview -- bound to live preset state via useLayoutPresets and requires a running service.',
   },
+  {
+    name: 'CorsairDevicePage', category: 'panel-kit',
+    filePath: 'src/components/views/DevicePage/CorsairDevicePage.tsx',
+    description: 'Device settings page for the Corsair iCUE LINK System Hub. Shows auto-detected connected devices (name, channel, live RPM, live temperature), the Stop Corsair iCUE toggle, and navigation hints to the Cooling and Lighting pages.',
+    notes: 'No live preview - requires a running service with a connected Corsair iCUE LINK System Hub.',
+  },
 ];

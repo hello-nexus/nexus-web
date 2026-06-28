@@ -78,10 +78,10 @@ export const FanCard = memo(function FanCard({
   const dutyPct = Math.max(0, Math.min(100, channel.dutyPercent));
   const swEnabled = state?.softwareControl ?? false;
   const assignedCurveId = state?.curveId ?? '';
-  // The hub's "off" / hand-off mode. A USB hub with firmware control but no
-  // motherboard hand-off (NP50) surfaces 'fw' where other devices show 'bios';
-  // a Q-series pump has both, defaulting off to BIOS (motherboard).
-  const offMode = hubSupportsBios ? 'bios' : (hubSupportsFirmware ? 'fw' : 'bios');
+  // The hub's "off" / hand-off mode: BIOS (motherboard) when supported;
+  // FW when only firmware control is available (NP50); 'manual' when the hub
+  // has no hand-off at all (software-only, e.g. Corsair iCUE LINK).
+  const offMode = hubSupportsBios ? 'bios' : (hubSupportsFirmware ? 'fw' : 'manual');
   // When the hub is in motherboard or firmware mode, the per-fan
   // softwareControl flag is meaningless - the hub takes over for every
   // fan on it. Surface that in the dropdown so the user sees the same
