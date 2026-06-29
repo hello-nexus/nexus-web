@@ -23,6 +23,11 @@ import { ClockWorldView } from '../../panel/widgets/clock/ClockWorldView';
 import { CLOCK_DESIGNS } from '../../panel/widgets/clock/designs';
 import { MediaCropper } from '../../components/common/MediaCropper/MediaCropper';
 import type { NormalizedCrop } from '../../components/common/MediaCropper/MediaCropper';
+import { MediaGrid } from '../../panel/widgets/lighting/effecteditor/MediaGrid';
+import type { MediaItem } from '../../api/mediaLibrary';
+import { ConfirmModal } from '../../components/common/ConfirmModal/ConfirmModal';
+import { CollapsibleSection } from '../../components/common/CollapsibleSection/CollapsibleSection';
+import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { postServiceForm } from '../../api/service';
 import { useTranslation } from '../../lib/i18n';
 import { useMediaImportAllowlist } from '../mediaImportContext';
@@ -50,10 +55,10 @@ export function WorldClock(p: HostProps) {
 // Standard page header (title shown in the top bar; this renders the tab strip).
 // Gives SDK pages the same chrome + tabs native pages get.
 export function ViewHeaderHost(p: HostProps) {
-  const rawTabs = Array.isArray(p.tabs) ? (p.tabs as Array<{ key?: unknown; label?: unknown; disabled?: unknown }>) : undefined;
+  const rawTabs = Array.isArray(p.tabs) ? (p.tabs as Array<{ key?: unknown; label?: unknown; disabled?: unknown; icon?: unknown }>) : undefined;
   const tabs: TabDef[] | undefined = rawTabs
     ?.filter((t) => typeof t?.key === 'string')
-    .map((t) => ({ key: String(t.key), label: String(t.label ?? t.key), disabled: !!t.disabled }));
+    .map((t) => ({ key: String(t.key), label: String(t.label ?? t.key), disabled: !!t.disabled, icon: iconNode(t.icon) }));
   return (
     <ViewHeader
       title={str(p.title) ?? ''}
@@ -323,5 +328,96 @@ export function MediaImportHost(p: HostProps) {
         />
       </div>
     </>
+  );
+}
+
+// The media library grid - the real MediaGrid the panel-background picker renders
+// (grid of EffectCard tiles, hover-X delete, selected state). The worker supplies
+// serializable items + a thumbnail-URL map; durationSec > 0 marks an animated clip
+// so MediaGrid shows its length, otherwise it reads as a static image.
+export function MediaGridHost(p: HostProps) {
+  const rawItems = Array.isArray(p.items) ? (p.items as Array<Record<string, unknown>>) : [];
+  const items: MediaItem[] = rawItems
+    .filter((it) => typeof it?.id === 'string' && typeof it?.name === 'string')
+    .map((it) => {
+      const dur = num(it.durationSec) ?? 0;
+      const animated = dur > 0;
+      // MediaGrid renders the duration label as frames/fps; the service reports
+      // seconds only, so fps is a fixed synthetic base and frames is derived to match.
+      return {
+        id: String(it.id),
+        name: String(it.name),
+        type: animated ? 'animated' : 'static',
+        fps: 30,
+        frames: animated ? Math.max(1, Math.round(dur * 30)) : 0,
+        width: 0,
+        height: 0,
+        importedAtUnixMs: 0,
+      };
+    });
+  const rawThumbs = (p.thumbs && typeof p.thumbs === 'object') ? (p.thumbs as Record<string, unknown>) : {};
+  const thumbs: Record<string, string> = {};
+  for (const k of Object.keys(rawThumbs)) {
+    const v = rawThumbs[k];
+    if (typeof v === 'string') thumbs[k] = v;
+  }
+  const onDelete = p.__events?.delete;
+  return (
+    <MediaGrid
+      items={items}
+      activeId={str(p.activeId) ?? null}
+      thumbs={thumbs}
+      onPlay={(id) => p.__events?.play?.(id)}
+      onDelete={onDelete ? (id) => onDelete(id) : undefined}
+      deleteAriaLabel={str(p.deleteAriaLabel)}
+      thumbAspect={num(p.thumbAspect)}
+    />
+  );
+}
+
+// The native themed confirm dialog. The worker owns the open flag + the pending
+// target; the host fires confirm/cancel.
+export function ConfirmHost(p: HostProps) {
+  return (
+    <ConfirmModal
+      open={!!p.open}
+      title={str(p.title) ?? ''}
+      message={str(p.message) ?? ''}
+      note={str(p.note)}
+      confirmLabel={str(p.confirmLabel)}
+      cancelLabel={str(p.cancelLabel)}
+      destructive={p.destructive !== false}
+      onConfirm={() => p.__events?.confirm?.()}
+      onCancel={() => p.__events?.cancel?.()}
+    />
+  );
+}
+
+// The canonical collapsible section header. Controlled: the worker holds `open`
+// and toggles it from the `toggle` event. `right` is optional non-interactive text.
+export function CollapsibleHost(p: HostProps) {
+  return (
+    <CollapsibleSection
+      title={str(p.title) ?? ''}
+      open={p.open !== false}
+      onToggle={() => p.__events?.toggle?.()}
+      right={p.right != null ? String(p.right) : undefined}
+      compact={!!p.compact}
+    >
+      {p.children}
+    </CollapsibleSection>
+  );
+}
+
+// A hover/focus tooltip. HoverTooltip clones its handlers + ref onto a SINGLE
+// child element, so wrap the worker's subtree in one inline-flex span (a real box
+// for positioning) rather than passing a possibly-multi-node fragment.
+export function TooltipHost(p: HostProps) {
+  const rawSide = str(p.side);
+  const side = rawSide === 'top' || rawSide === 'bottom' || rawSide === 'left' || rawSide === 'right' ? rawSide : undefined;
+  return (
+    <HoverTooltip title={str(p.title)} body={str(p.body) ?? ''} side={side}>
+      <span style={{ display: 'inline-flex', minWidth: 0 }}>{p.children}</span>
+    </HoverTooltip>
   );
 }

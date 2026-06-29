@@ -131,7 +131,7 @@ export interface ClockFaceProps {
   showSeconds?: boolean; showDate?: boolean; hour12?: boolean;
   useAccentColor?: boolean; size?: string;
 }
-export interface ViewHeaderTab { key: string; label: string; disabled?: boolean }
+export interface ViewHeaderTab { key: string; label: string; disabled?: boolean; icon?: string }
 export interface ViewHeaderProps {
   title: string;
   tabs?: ViewHeaderTab[];
@@ -201,6 +201,36 @@ export interface MediaImportProps {
   onError?: (message: string) => void;
 }
 
+/** The media library grid - the real MediaGrid the panel-background picker uses.
+ *  `thumbs` maps an item id to a thumbnail URL; `durationSec` (when > 0) marks an
+ *  animated clip so the tile shows its length. */
+export interface MediaGridItem { id: string; name: string; durationSec?: number }
+export interface MediaGridProps {
+  items: MediaGridItem[];
+  thumbs: Record<string, string>;
+  activeId?: string;
+  thumbAspect?: number;
+  deleteAriaLabel?: string;
+  onPlay?: (id: string) => void;
+  onDelete?: (id: string) => void;
+}
+/** The native themed confirm dialog. `open` is worker-controlled. */
+export interface ConfirmDialogProps {
+  open: boolean; title: string; message: string;
+  note?: string; confirmLabel?: string; cancelLabel?: string; destructive?: boolean;
+  onConfirm?: () => void; onCancel?: () => void;
+}
+/** The canonical collapsible section header. Controlled: hold `open` and flip it
+ *  from onToggle. `right` is optional non-interactive text. */
+export interface CollapsibleProps extends WithChildren {
+  title: string; open: boolean; right?: string; compact?: boolean;
+  onToggle?: () => void;
+}
+/** A hover/focus tooltip wrapping a single child trigger. */
+export interface TooltipProps extends WithChildren {
+  body: string; title?: string; side?: 'top' | 'bottom' | 'left' | 'right';
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const Stack = createRemoteComponent('ui-stack' as any, ELEMENT_CTORS['ui-stack']) as unknown as React.FC<StackProps>;
 export const Grid = createRemoteComponent('ui-grid' as any, ELEMENT_CTORS['ui-grid']) as unknown as React.FC<GridProps>;
@@ -234,4 +264,8 @@ export const Badge = createRemoteComponent('ui-badge' as any, ELEMENT_CTORS['ui-
 export const Empty = createRemoteComponent('ui-empty' as any, ELEMENT_CTORS['ui-empty']) as unknown as React.FC<EmptyProps>;
 export const Section = createRemoteComponent('ui-section' as any, ELEMENT_CTORS['ui-section']) as unknown as React.FC<SectionProps>;
 export const MediaImport = eventComponent<MediaImportProps>('ui-mediaimport', ELEMENT_CTORS['ui-mediaimport'], [['onProgress', 'progress'], ['onComplete', 'complete'], ['onError', 'error']]);
+export const MediaGrid = eventComponent<MediaGridProps>('ui-mediagrid', ELEMENT_CTORS['ui-mediagrid'], [['onPlay', 'play'], ['onDelete', 'delete']]);
+export const ConfirmDialog = eventComponent<ConfirmDialogProps>('ui-confirm', ELEMENT_CTORS['ui-confirm'], [['onConfirm', 'confirm'], ['onCancel', 'cancel']]);
+export const Collapsible = eventComponent<CollapsibleProps>('ui-collapsible', ELEMENT_CTORS['ui-collapsible'], [['onToggle', 'toggle']]);
+export const Tooltip = createRemoteComponent('ui-tooltip' as any, ELEMENT_CTORS['ui-tooltip']) as unknown as React.FC<TooltipProps>;
 /* eslint-enable @typescript-eslint/no-explicit-any */

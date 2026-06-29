@@ -731,6 +731,63 @@ visible error hint. The host posts the file as `multipart/form-data` with a
 `file` part and a normalized `crop` string (`"x,y,w,h"` in 0..1 of the source).
 If `targetWidth`/`targetHeight` are set they are appended as form fields.
 
+### `MediaGrid`
+
+The media library grid - the same `MediaGrid` the Q-series/Y70 panel-background
+picker renders: a responsive grid of thumbnail tiles with a selected state and a
+hover-revealed delete X. Pair it with `<MediaImport>` for upload and
+`<ConfirmDialog>` for delete confirmation (the picker pattern).
+
+| Prop | Type | Notes |
+|---|---|---|
+| `items` | `{ id, name, durationSec? }[]` | one tile per item; `durationSec > 0` shows the clip length, else the tile reads as a static image |
+| `thumbs` | `Record<string, string>` | item id -> thumbnail URL (`https:`/`data:`/`blob:`) |
+| `activeId` | `string` | the selected item's id (accent border) |
+| `thumbAspect` | `number` | thumbnail aspect (width/height) |
+| `deleteAriaLabel` | `string` | aria-label for the delete X |
+| `onPlay` | `(id: string) => void` | fires when a tile is tapped |
+| `onDelete` | `(id: string) => void` | fires the delete X (omit to hide it) |
+
+### `ConfirmDialog`
+
+The native themed confirm modal. Controlled: hold `open` in state, flip it from
+`onConfirm`/`onCancel`. Esc cancels, Enter confirms, click-outside cancels.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `open` | `boolean` | |
+| `title` | `string` | |
+| `message` | `string` | newlines render as paragraph breaks |
+| `note` | `string` | optional dimmed hint below the message |
+| `confirmLabel` / `cancelLabel` | `string` | defaults "OK" / "Cancel" |
+| `destructive` | `boolean` | red confirm button (default true) |
+| `onConfirm` / `onCancel` | `() => void` | |
+
+### `Collapsible`
+
+The canonical collapsible section header (chevron + title, holds children).
+Controlled: hold `open` in state, flip it from `onToggle`.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `title` | `string` | |
+| `open` | `boolean` | |
+| `right` | `string` | optional non-interactive text on the right of the header |
+| `compact` | `boolean` | smaller uppercase header |
+| `onToggle` | `() => void` | |
+| `children` | `ReactNode` | shown when open |
+
+### `Tooltip`
+
+A hover/focus tooltip wrapping a single child trigger.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `body` | `string` | tooltip text |
+| `title` | `string` | optional bold first line |
+| `side` | `'top' \| 'bottom' \| 'left' \| 'right'` | placement (default bottom) |
+| `children` | `ReactNode` | the trigger element |
+
 ---
 
 ## Utility functions

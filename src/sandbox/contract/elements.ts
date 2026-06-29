@@ -141,6 +141,31 @@ export const UI_ELEMENTS = {
     ],
     events: ['progress', 'complete', 'error'],
   },
+  // The media library grid - the SAME MediaGrid the Q-series/Y70 panel-background
+  // picker uses: a responsive grid of EffectCard tiles with selected state and a
+  // hover-revealed delete X. `items` is [{ id, name, durationSec? }]; `thumbs`
+  // maps id -> an https/data/blob thumbnail URL; `activeId` is the selected id;
+  // `thumbAspect` is width/height. Fires `play`/`delete` with the item id.
+  'ui-mediagrid': {
+    properties: ['items', 'thumbs', 'activeId', 'thumbAspect', 'deleteAriaLabel'],
+    events: ['play', 'delete'],
+  },
+  // The native themed confirm dialog (ConfirmModal). `open` is controlled by the
+  // worker; fires `confirm` or `cancel`. `message` may carry plain newlines.
+  'ui-confirm': {
+    properties: ['open', 'title', 'message', 'note', 'confirmLabel', 'cancelLabel', 'destructive'],
+    events: ['confirm', 'cancel'],
+  },
+  // The canonical collapsible section header (CollapsibleSection): chevron + title,
+  // optional right-side text, holds children. `open` is controlled by the worker;
+  // fires `toggle`. `compact` is the smaller uppercase header variant.
+  'ui-collapsible': {
+    properties: ['title', 'open', 'right', 'compact'],
+    events: ['toggle'],
+  },
+  // A hover/focus tooltip (HoverTooltip) wrapping its single child trigger.
+  // `body` is the text (with an optional bold `title` line); `side` placement.
+  'ui-tooltip': { properties: ['title', 'body', 'side'] },
 } as const satisfies Record<string, UiElementSpec>;
 
 export type UiElementName = keyof typeof UI_ELEMENTS;
