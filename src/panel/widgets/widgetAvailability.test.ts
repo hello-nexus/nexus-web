@@ -1,6 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { isSingleWidgetSurface, surfaceSupportsTouch } from '../types';
-import { sizesForSurface, APP_REGISTRY, appAvailableForSurface, pickerSizeFor } from './registry';
+import {
+  sizesForSurface,
+  APP_REGISTRY,
+  appAvailableForSurface,
+  pickerSizeFor,
+  getCatalogEntries,
+  lookupApp,
+} from './registry';
+import {
+  _resetMarketplaceRegistryForTests,
+  _seedMarketplaceRegistryForTests,
+  typeForMarketplace,
+} from '../../widgets/marketplaceRegistry';
+import type { AppInstalledListing, AppManifestCapabilities } from '../../widgets/types';
 import enLocale from '../../locales/en.json';
 
 describe('surfaceSupportsTouch', () => {
@@ -241,6 +254,59 @@ describe('isSingleWidgetSurface', () => {
     expect(isSingleWidgetSurface('y70')).toBe(false);
     expect(isSingleWidgetSurface('phone')).toBe(false);
     expect(isSingleWidgetSurface('desktop')).toBe(false);
+  });
+});
+
+describe('catalog listing (delist)', () => {
+  // Delisted from the Add-a-Widget picker but still resolvable: an existing
+  // placed instance keeps rendering; only new insertion is removed.
+  const DELISTED = ['discord', 'obs', 'steam', 'twitch'] as const;
+
+  it('hides the delisted built-ins from the picker yet keeps them resolvable', () => {
+    const listedTypes = new Set(
+      getCatalogEntries()
+        .filter(([, def]) => def.meta.listed !== false)
+        .map(([type]) => type),
+    );
+    for (const type of DELISTED) {
+      expect(APP_REGISTRY[type], `missing widget type: ${type}`).toBeDefined();
+      expect(APP_REGISTRY[type].meta.listed, `${type} should be delisted`).toBe(false);
+      expect(listedTypes.has(type), `${type} must not appear in the picker`).toBe(false);
+      expect(lookupApp(type), `${type} must stay resolvable for placed instances`).toBeDefined();
+    }
+  });
+
+  it('leaves every other built-in listed', () => {
+    for (const [type, def] of Object.entries(APP_REGISTRY)) {
+      if ((DELISTED as readonly string[]).includes(type)) continue;
+      expect(def.meta.listed !== false, `${type} should stay listed`).toBe(true);
+    }
+  });
+});
+
+describe('marketplace listing derives from the enable allowlist', () => {
+  function listing(over: Partial<AppInstalledListing>): AppInstalledListing {
+    return {
+      id: 'x',
+      name: 'X',
+      version: '1.0.0',
+      surfaces: ['dashboard'],
+      capabilities: {} as AppManifestCapabilities,
+      source: 'bundled',
+      trusted: true,
+      ...over,
+    };
+  }
+  afterEach(() => _resetMarketplaceRegistryForTests());
+
+  it('lists only allowlisted SDK apps; a preinstalled non-allowlisted one stays delisted', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.hellonexus.weather', name: 'Weather' }),
+      listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true }),
+    ]);
+    const byType = new Map(getCatalogEntries());
+    expect(byType.get(typeForMarketplace('com.hellonexus.weather'))?.meta.listed).toBe(true);
+    expect(byType.get(typeForMarketplace('com.ibuypower.control'))?.meta.listed).toBe(false);
   });
 });
 

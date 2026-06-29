@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
@@ -34,6 +34,9 @@ import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
+import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
+import { EmptyState } from '../../common/EmptyState/EmptyState';
+import { Button } from '../../common/Button/Button';
 import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
@@ -57,6 +60,9 @@ import styles from './PanelDevicePage.module.scss';
 
 interface PanelDevicePageProps {
   device: PanelDevice;
+  // Threaded from the app router (Dashboard); useRoute is per-instance, so a
+  // navigate() owned here would update the URL but not drive the visible page.
+  onOpenFirmware?: () => void;
 }
 
 interface BrightnessResponse { brightness: number }
@@ -67,7 +73,9 @@ const Y70_ORIENTATIONS = ['Landscape', 'Portrait', 'LandscapeFlipped', 'Portrait
 type Y70Orientation = (typeof Y70_ORIENTATIONS)[number];
 
 function normalizeOrientation(value: string | undefined | null): Y70Orientation {
-  if (!value) return 'Landscape';
+  // The Y70 panel is a fixed portrait strip; an unset/unknown value defaults to
+  // PortraitFlipped rather than landscape.
+  if (!value) return 'PortraitFlipped';
   // Map legacy lowercase 'landscape' / 'portrait' to the Windows-style
   // PascalCase values the backend expects.
   const lower = value.toLowerCase();
@@ -77,16 +85,18 @@ function normalizeOrientation(value: string | undefined | null): Y70Orientation 
   if (lower === 'landscape') return 'Landscape';
   return (Y70_ORIENTATIONS as readonly string[]).includes(value)
     ? (value as Y70Orientation)
-    : 'Landscape';
+    : 'PortraitFlipped';
 }
 
 type Tab = 'widgets' | 'theme' | 'settings';
 
-export function PanelDevicePage({ device }: PanelDevicePageProps) {
+export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps) {
   const { t } = useTranslation();
+  const isQSeries = device?.runtimeSurface === 'q60';
+  const { items: firmwareItems, loaded: firmwareLoaded } = useFirmwareStatus(isQSeries);
   const [tab, setTab] = useState<Tab>('widgets');
   const [brightness, setBrightness] = useState(50);
-  const [orientation, setOrientation] = useState<Y70Orientation>('Landscape');
+  const [orientation, setOrientation] = useState<Y70Orientation>('PortraitFlipped');
   const [screenOn, setScreenOn] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState(false);
   const [reserveMonitor, setReserveMonitor] = useState(true);
@@ -369,17 +379,35 @@ export function PanelDevicePage({ device }: PanelDevicePageProps) {
   const currentPageIndex = Math.max(0, layout.activePageId ? layout.pages.findIndex(p => p.id === layout.activePageId) : 0);
   const showPageArrows = !singleWidget && pageCount > 1;
 
+  // Decide only after both the layout and the firmware status load, so the gate
+  // resolves once instead of flashing block-then-content.
+  const panelAppItem = firmwareItems.find(item => item.deviceType === 'qseries-app');
+  const panelAppInstalled = !!panelAppItem && panelAppItem.currentVersion !== '';
+  const fwGateReady = loaded && (!isQSeries || firmwareLoaded);
+  const showFwGate = isQSeries && fwGateReady && !panelAppInstalled;
+
   return (
     <section className={styles.page}>
       <ViewHeader
         title={pageTitle}
-        tabs={tabs}
+        tabs={showFwGate ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={(k) => { setConfiguringWidget(null); setTab(k as Tab); }}
       />
       <div className={`${styles.pageBody} pageBody`}>
-      {!loaded ? (
+      {!fwGateReady ? (
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
+      ) : showFwGate ? (
+        <EmptyState
+          icon={<Download size={48} />}
+          title={t('devices.qseries.fwGate.title')}
+          hint={t('devices.qseries.fwGate.hint')}
+          action={
+            <Button type="button" tone="accent" onClick={onOpenFirmware}>
+              {t('devices.qseries.fwGate.cta')}
+            </Button>
+          }
+        />
       ) : (
         <div className={styles.splitLayout}>
           {/* Options pane on the left; live preview on the right. */}

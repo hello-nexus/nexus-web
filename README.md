@@ -62,9 +62,10 @@ Everything ships from `src/`. Top-level folders:
 | `api/` | Typed REST/WS clients for `nexus-service` + the cloud API - one file per domain (`cooling`, `lighting`, `displays`, `keeb`, `gallery`, `panel`, `internetPairing`…). Host resolution lives in `api/service.ts`. |
 | `app/` | Desktop **dashboard shell**: `Dashboard.tsx`, sidebar, pairing modals, panel entrypoint + routing, window caption buttons. |
 | `components/` | Shared React components - `common/` (design-system primitives), `views/` (full dashboard sections), `builder/` (PC-builder UI), `peripherals/`, `icons/`. |
+| `diag/` | Renderer diagnostics - the memory/health probe that reports JS-heap, DOM-node, and reconnect samples to the service log (`/diagnostics/client-mem`) on significant change. |
 | `hooks/` | Reusable hooks, mostly data/state (`useDevices`, `useCooling`, `useMultiplexSocket`…). |
 | `lib/` | Non-React utilities + stores (`appStore`, `monitoringStore`, `i18n`, `settings`, `webhid/`, codecs, sensor resolvers). |
-| `locales/` | The i18n JSON bundles (en + 13 others). |
+| `locales/` | The i18n JSON bundles (en + 14 others). |
 | `overlay/` | The `/overlay` surface - per-monitor overlay shell + bridge to `nexus-overlay.exe`. |
 | `panel/` | The kiosk/phone **panel** surface and its own rendering engine (`engine/`, `editor/`, `chrome/`, `theme/`, `dnd/`, `background/`, `overlays/`, `embed/` simulator). `panel/widgets/` holds the built-in widget implementations. |
 | `sandbox/` | Host runtime for **sandboxed SDK widgets** ("Nexus apps"): boots a hardened Web Worker per widget, installs the `nexus.*` API, and renders the worker's remote-dom tree. This is what executes third-party app bundles. |

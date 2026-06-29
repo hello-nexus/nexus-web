@@ -9,7 +9,7 @@ async function mockService(page: Page, savedPreferencePatches: unknown[]) {
     language: 'en',
     themeMode: 'system',
     accentColor: '#22c55e',
-    disableConflictAlerts: false,
+    showConflictAlerts: true,
     monitoringShowAverage: true,
     monitoringDetailedCollapsed: [],
     showMacStatusBarIcon: true,

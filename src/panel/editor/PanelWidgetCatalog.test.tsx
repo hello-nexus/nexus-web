@@ -7,10 +7,15 @@ vi.mock('../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
+// Curation only applies on beta/prod; DEV_TOOLS builds show everything. Pin the
+// curated (non-dev) path so the delist assertions below are meaningful.
+vi.mock('../../lib/devTools', () => ({ DEV_TOOLS: false }));
+
 interface MockMeta {
   i18nKey: string;
   sizes: string[];
   touch: boolean;
+  listed?: boolean;
 }
 
 vi.mock('../widgets/registry', () => {
@@ -34,6 +39,14 @@ vi.mock('../widgets/registry', () => {
         i18nKey: 'panel.widget.media',
         sizes: ['2x2'],
         touch: false,
+      },
+    },
+    discord: {
+      meta: {
+        i18nKey: 'panel.widget.discord',
+        sizes: ['4x4'],
+        touch: true,
+        listed: false,
       },
     },
   };
@@ -99,5 +112,12 @@ describe('PanelWidgetCatalog', () => {
     render(<PanelWidgetCatalog surface="y70" onAdd={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toBeInTheDocument();
+  });
+
+  it('omits delisted widgets (meta.listed === false) on beta/prod builds', () => {
+    render(<PanelWidgetCatalog surface="y70" onAdd={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'panel.widget.clock' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'panel.widget.discord' })).toBeNull();
   });
 });

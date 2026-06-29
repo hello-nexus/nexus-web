@@ -17,6 +17,8 @@ export interface UpdateStatus {
   lastCheckError: string;
   state: UpdateState;
   justUpdatedTo: string;
+  // Unix seconds the latest release was published on GitHub. 0 when unknown.
+  publishedAtUnix: number;
 }
 
 export interface UpdateProgress {

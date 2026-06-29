@@ -114,6 +114,16 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-size: var(--type-mini);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sourceIcon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-dim);
+  flex-shrink: 0;
 }
 
 .model {

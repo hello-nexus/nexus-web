@@ -126,6 +126,7 @@ function FansTab({ cooling }: { cooling: CoolingImmersiveController }) {
       canCreateCurve={cooling.canAddCurve}
       hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
       hubSupportsFirmware={ch.deviceId?.startsWith('np50:')}
+      hubSupportsBios={!ch.deviceId?.startsWith('corsair:')}
       onSetMode={v => cooling.setFanMode(ch.id, v)}
       onCreateCurve={() => cooling.createCurveAndAssign(ch.id)}
       onRename={cooling.renameFan}

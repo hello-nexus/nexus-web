@@ -14,20 +14,22 @@ export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
  * report more bundled widgets; the picker shows only the allowlisted ones to
  * stay curated. Installed widgets not on the list still resolve via
  * `lookupApp` (already-placed instances keep rendering) but aren't offered.
+ *
+ * Weather is the only SDK app surfaced here: screentime / displays / media have
+ * native built-in equivalents, so their SDK copies stay delisted to avoid
+ * offering two of each. Weather has no native widget, so its SDK app is the one
+ * users add (with a native-style picker face via the registry's Preview map).
  */
 export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
-  // The Nexus apps (sandboxed remote-component SDK widgets - the single model).
   'com.hellonexus.weather',
-  'com.hellonexus.screentime',
-  'com.hellonexus.displays',
-  'com.hellonexus.media',
 ]);
 
+// Picker visibility is the curated allowlist alone. `preinstalled` (OEM bake-in)
+// drives first-boot auto-pin via getPreinstalledPageAppTypes, NOT the
+// Add-a-Widget picker - otherwise an OEM app like com.ibuypower.control would
+// leak into the catalog on every build that bundles it, past the allowlist.
 export function isMarketplaceIdEnabled(id: string): boolean {
-  if (ENABLED_MARKETPLACE_IDS.has(id)) return true;
-  // Preinstalled (OEM bake-in) apps are catalog-visible too, so a removed copy can
-  // be re-added - derived from the registry, no specific app named here.
-  return getMarketplaceListing(id)?.preinstalled === true;
+  return ENABLED_MARKETPLACE_IDS.has(id);
 }
 
 export function isMarketplaceType(type: string | null | undefined): boolean {

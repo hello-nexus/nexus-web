@@ -2,9 +2,11 @@ import { Boxes } from 'lucide-react';
 import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
 import { SdkMarketplacePage } from './marketplace/SdkMarketplacePage';
+import { WeatherPreview } from './weather/WeatherPreview';
 import {
   getAllMarketplaceListings,
   getMarketplaceListing,
+  isMarketplaceIdEnabled,
   isMarketplaceType,
   marketplaceIdFromType,
   typeForMarketplace,
@@ -42,6 +44,7 @@ import { galleryApp } from './gallery';
 import { transferApp } from './transfer';
 import { cameraApp } from './camera';
 import { benchmarkApp } from './benchmark';
+import { homeAssistantApp } from './home-assistant';
 
 // Single source of truth for app type -> manifest. "App" is the
 // conceptual unit (one per widget type); the manifest carries up to
@@ -54,6 +57,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   screentime: screentimeApp,
   lighting:   lightingApp,
   'smart-lights': smartLightsApp,
+  'home-assistant': homeAssistantApp,
   obs:        obsApp,
   steam:      steamApp,
   discord:    discordApp,
@@ -133,6 +137,14 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
 // falls through the filter so a typo can't crash the picker.
 const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '4x2', '4x4'];
 
+// Native-style catalog faces for specific SDK apps. The picker renders this in
+// place of the live sandbox load (MarketplaceWidget) so the tile shows a real
+// preview; the placed widget is still the SDK bundle. Weather has no native
+// widget, so it gets the original native weather layout as its picker face.
+const MARKETPLACE_PREVIEWS: Record<string, AppManifest['Preview']> = {
+  'com.hellonexus.weather': WeatherPreview,
+};
+
 // Synthesise an AppManifest for a marketplace app. Sizes come from
 // the listing's manifest so a 1x1 app stays 1x1 and a 4x2-only
 // weather stays 4x2. Anything the manifest declares that the panel
@@ -161,8 +173,13 @@ function makeMarketplaceAppManifest(
       supportsImmersive: { portrait: false, landscape: false },
       hasConfig: true,
       touch: false,
+      // Marketplace curation runs through the same flag as built-ins: only
+      // allowlisted SDK apps are listed in the picker; an installed-but-unlisted
+      // one stays resolvable (placed instances render) but is delisted.
+      listed: isMarketplaceIdEnabled(id),
     },
     Widget: MarketplaceWidget,
+    Preview: MARKETPLACE_PREVIEWS[id],
     // A page-capable SDK widget becomes click-through into a desktop section
     // view (Dashboard.renderSystemView). The wrapper reads the marketplace type
     // from its props and spawns the bundle's page surface.

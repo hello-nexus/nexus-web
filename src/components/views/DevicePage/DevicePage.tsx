@@ -6,11 +6,16 @@ import { Placeholder } from '../Placeholder';
 import { PanelDevicePage } from './PanelDevicePage';
 import { PeripheralDevicePage } from './PeripheralDevicePage';
 import { KeebDevicePage } from './KeebDevicePage';
+import { LianLiDevicePage } from './LianLiDevicePage';
+import { CorsairDevicePage } from './CorsairDevicePage';
 import { Np50DevicePage } from './Np50DevicePage';
 import { SmartHubDevicePage } from './SmartHubDevicePage';
 import { CnvsDevicePage } from './CnvsDevicePage';
 import { SdkMarketplacePage } from '../../../panel/widgets/marketplace/SdkMarketplacePage';
 import { typeForMarketplace } from '../../../widgets/marketplaceRegistry';
+import { LianLiTlDevicePage } from './LianLiTlDevicePage';
+import { Galahad2DevicePage } from './Galahad2DevicePage';
+import { StrimerDevicePage } from './StrimerDevicePage';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import styles from './DevicePage.module.scss';
@@ -33,9 +38,11 @@ interface DevicePageProps {
   deviceKey: string;
   serviceOnline: boolean;
   connectionState?: ConnectionState;
+  onOpenFirmware?: () => void;
+  onSectionNavigate?: (section: string) => void;
 }
 
-export function DevicePage({ deviceKey, serviceOnline, connectionState }: DevicePageProps) {
+export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFirmware, onSectionNavigate }: DevicePageProps) {
   const { t } = useTranslation();
   const { unified } = useUnifiedDevices(serviceOnline);
   const device = useMemo<UnifiedDevice | undefined>(
@@ -64,7 +71,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
     // the previous device, so the new page paints at the old device's
     // scale until the tree is torn down. Remounting rebuilds the iframe
     // against the new device's canvas/DPR.
-    return <PanelDevicePage key={device.key} device={device.panelDevice} />;
+    return <PanelDevicePage key={device.key} device={device.panelDevice} onOpenFirmware={onOpenFirmware} />;
   }
 
   if (device.kind === 'peripheral' && device.peripheral) {
@@ -73,6 +80,14 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
 
   if (device.curatedId === 'keeb') {
     return <KeebDevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'lianli') {
+    return <LianLiDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
+  }
+
+  if (device.curatedId === 'corsair') {
+    return <CorsairDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
   }
 
   if (device.curatedId === 'np50') {
@@ -85,6 +100,18 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState }: Device
 
   if (device.curatedId === 'cnvs') {
     return <CnvsDevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'lianli-tl') {
+    return <LianLiTlDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
+  }
+
+  if (device.curatedId === 'lianli-aio') {
+    return <Galahad2DevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
+  }
+
+  if (device.curatedId === 'strimer') {
+    return <StrimerDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
   }
 
   if (device.kind === 'app-device') {

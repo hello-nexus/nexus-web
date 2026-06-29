@@ -6,11 +6,17 @@ import { ServiceRequired } from './ServiceRequired';
 import { GenericSkeleton } from './PageSkeleton/PageSkeleton';
 import { Card } from '../common/Card/Card';
 import { Button } from '../common/Button/Button';
-// Storybook lives behind the debug Tools page. Lazy so the component-catalog
-// chunk is split out and only fetched when the user opens it.
-const StorybookModal = lazy(() =>
-  import('../../storybook/StorybookModal').then(m => ({ default: m.StorybookModal })),
-);
+// Storybook lives behind the debug Tools page. Lazy so the catalog chunk is
+// split out and fetched on open. The import() is guarded by the raw build
+// defines (NOT the DEV_TOOLS const): esbuild folds `false || false` during
+// transform and drops the import(), so the chunk is never emitted in a
+// production build. The const does not inline far enough to eliminate a
+// dynamic import, so it must stay as the literal defines here.
+const StorybookModal = (import.meta.env.DEV || __DEV_TOOLS__)
+  ? lazy(() =>
+      import('../../storybook/StorybookModal').then(m => ({ default: m.StorybookModal })),
+    )
+  : null;
 import {
   formatPanelInches,
   getAllSimulatedPanels,
@@ -83,7 +89,7 @@ function StorybookCard() {
     <Card title={t('tools.storybook')}>
       <span className={styles.dim}>{t('tools.storybook.label')}</span>
       <Button tone="accent" size="sm" onClick={() => setOpen(true)}>{t('tools.storybook.open')}</Button>
-      {open && (
+      {open && StorybookModal && (
         <Suspense fallback={null}>
           <StorybookModal open={open} onClose={() => setOpen(false)} />
         </Suspense>

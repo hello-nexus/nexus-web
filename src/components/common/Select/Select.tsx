@@ -33,6 +33,13 @@ export interface SelectOption {
   // Extra class on the option row (e.g. a styled "create new" affordance),
   // carried through from `<option className>` when options arrive as children.
   className?: string;
+  // Glyph rendered before the label in both the trigger and the menu row (e.g.
+  // a language flag). Decorative; the label carries the accessible text.
+  icon?: ReactNode;
+  // Renders a thin rule instead of a selectable row, grouping the options above
+  // and below it. Non-navigable and removed from the a11y tree; value/label are
+  // ignored.
+  divider?: boolean;
 }
 
 export interface SelectProps {
@@ -50,6 +57,8 @@ export interface SelectProps {
   variant?: 'standard' | 'ghost';
   /** Tint the displayed value (selected label) with the accent color. */
   accentValue?: boolean;
+  /** Shown dimmed when no option matches `value`. */
+  placeholder?: string;
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -84,11 +93,15 @@ function optionsFromChildren(children: ReactNode): SelectOption[] {
   return out;
 }
 
+// Dividers and disabled options are never focusable or selectable.
+function selectable(o: SelectOption): boolean {
+  return !o.disabled && !o.divider;
+}
 function firstEnabled(opts: readonly SelectOption[]): number {
-  return opts.findIndex(o => !o.disabled);
+  return opts.findIndex(selectable);
 }
 function lastEnabled(opts: readonly SelectOption[]): number {
-  for (let i = opts.length - 1; i >= 0; i--) if (!opts[i].disabled) return i;
+  for (let i = opts.length - 1; i >= 0; i--) if (selectable(opts[i])) return i;
   return -1;
 }
 // Next enabled index wrapping in `dir`; returns `from` if none other is enabled.
@@ -97,7 +110,7 @@ function nextEnabled(opts: readonly SelectOption[], from: number, dir: 1 | -1): 
   let i = from;
   for (let step = 0; step < opts.length; step++) {
     i = (i + dir + opts.length) % opts.length;
-    if (!opts[i].disabled) return i;
+    if (selectable(opts[i])) return i;
   }
   return from;
 }
@@ -106,11 +119,13 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 
 export function Select({
   value, onChange, options, children, disabled,
-  ariaLabel, className, variant = 'standard', accentValue,
+  ariaLabel, className, variant = 'standard', accentValue, placeholder,
 }: SelectProps) {
   const resolved = options ? options : optionsFromChildren(children);
   const selectedIndex = resolved.findIndex(o => o.value === value);
   const selectedLabel = selectedIndex >= 0 ? resolved[selectedIndex].label : '';
+  const selectedIcon = selectedIndex >= 0 ? resolved[selectedIndex].icon : undefined;
+  const showPlaceholder = selectedIndex < 0 && placeholder != null;
 
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -269,7 +284,7 @@ export function Select({
       case ' ': {
         e.preventDefault();
         const opt = resolved[activeIndex];
-        if (opt && !opt.disabled) commit(opt.value);
+        if (opt && selectable(opt)) commit(opt.value);
         break;
       }
       case 'Escape': e.preventDefault(); close(true); break;
@@ -280,7 +295,7 @@ export function Select({
           const ta = typeahead.current;
           ta.buffer = (now - ta.time > TYPEAHEAD_RESET_MS ? '' : ta.buffer) + e.key.toLowerCase();
           ta.time = now;
-          const match = resolved.findIndex(o => !o.disabled && o.label.toLowerCase().startsWith(ta.buffer));
+          const match = resolved.findIndex(o => selectable(o) && o.label.toLowerCase().startsWith(ta.buffer));
           if (match >= 0) setActiveIndex(match);
         }
     }
@@ -300,7 +315,10 @@ export function Select({
         onClick={() => { if (disabled) return; if (open) close(); else openMenu(); }}
         onKeyDown={onTriggerKeyDown}
       >
-        <span className={`${styles.value}${accentValue ? ' ' + styles.accentValue : ''}`}>{selectedLabel}</span>
+        <span className={classNames(styles.value, accentValue && styles.accentValue, showPlaceholder && styles.placeholder)}>
+          {!showPlaceholder && selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
+          {showPlaceholder ? placeholder : selectedLabel}
+        </span>
       </button>
       <ChevronDown
         className={styles.chevron}
@@ -333,7 +351,11 @@ export function Select({
           }}
           onKeyDown={onMenuKeyDown}
         >
-          {resolved.map((opt, i) => (
+          {resolved.map((opt, i) => opt.divider ? (
+            // Structural rule, removed from the a11y tree so it isn't announced
+            // as an empty option.
+            <li key={`${opt.value}-${i}`} className={styles.divider} aria-hidden="true" />
+          ) : (
             <li
               key={`${opt.value}-${i}`}
               id={optionId(i)}
@@ -352,6 +374,7 @@ export function Select({
               onPointerEnter={() => { if (!opt.disabled) setActiveIndex(i); }}
               onClick={() => { if (!opt.disabled) commit(opt.value); }}
             >
+              {opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
               {opt.label}
             </li>
           ))}

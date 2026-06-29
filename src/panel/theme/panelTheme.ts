@@ -367,7 +367,9 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
 
   const commitBackgroundMedia = useCallback((mediaId: string | null, type: 'static' | 'animated' | null) => {
     setTheme(prev => ({ ...prev, backgroundMediaId: mediaId, backgroundMediaType: type }));
-    persistPatch({ backgroundMediaId: mediaId, backgroundMediaType: type });
+    // The service patch-merge ignores a JSON null (means "no change"); an empty
+    // string clears the field via NullIfEmpty, same as the other theme fields.
+    persistPatch({ backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '' });
   }, [persistPatch]);
 
   const commitWidgetOpacity = useCallback((opacity: number) => {

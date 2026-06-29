@@ -126,8 +126,8 @@ function sampleCurveShape(curve: CurveDef, allCurves: CurveDef[], sources: Tempe
 // the curve. `height` sizes the SVG + its y-axis gutter (CSS default 140).
 // `tempMin`/`tempMax` set the x-axis span (default 20-100). When `editable`, the
 // point markers can be dragged (clamped between their neighbours and 0-100% duty,
-// snapped to whole units) and `onChange` fires with the new point set on release;
-// points cannot be added or removed.
+// snapped to whole units), double-click adds a point at the cursor and right-click
+// removes one (down to 2); `onChange` fires with the new point set.
 export function CurveGraph({
   points, currentTemp, showPoints = true, height = GRAPH_H,
   tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent,
@@ -215,9 +215,9 @@ export function CurveGraph({
     return sorted[sorted.length - 1].speed;
   };
 
-  // Drag a handle: invert the pixel position back to (temp, duty), clamp between
-  // the handle's neighbours and 0-100, snap to whole units. No add/remove.
-  const pointerToData = (e: React.PointerEvent) => {
+  // Invert a pixel position back to (temp, duty) in chart space; used by the
+  // drag handler and double-click-to-add.
+  const pointerToData = (e: { clientX: number; clientY: number }) => {
     const rect = svgRef.current!.getBoundingClientRect();
     const vbX = ((e.clientX - rect.left) / rect.width) * width;
     const vbY = ((e.clientY - rect.top) / rect.height) * height;
@@ -255,6 +255,25 @@ export function CurveGraph({
     setDragPoints(null);
     if (committed) onChange?.(committed);
   };
+  // The engine clamps outside the point range, so an added point only needs to
+  // land in 0-100 / tempMin-tempMax. Removal floors at 2 points. Both abandon
+  // any in-flight drag so a stale dragIdx can't write into the new point set.
+  const onAddPoint = (e: React.MouseEvent) => {
+    if (!editable || !onChange) return;
+    const { temp, speed } = pointerToData(e);
+    dragIdxRef.current = null; setDragPoints(null);
+    onChange([...sorted, {
+      temp: Math.round(Math.max(tempMin, Math.min(tempMax, temp))),
+      speed: Math.round(Math.max(0, Math.min(100, speed))),
+    }].sort((a, b) => a.temp - b.temp));
+  };
+  const onRemovePoint = (idx: number, e: React.MouseEvent) => {
+    if (!editable || !onChange) return;
+    e.preventDefault();
+    if (sorted.length <= 2) return;
+    dragIdxRef.current = null; setDragPoints(null);
+    onChange(sorted.filter((_, i) => i !== idx));
+  };
 
   // Intersection of the live source temperature with the curve. Drives the
   // dot, the two dotted guide lines (up from the bottom temp axis, in from the
@@ -269,7 +288,8 @@ export function CurveGraph({
     <div className={styles.curveGraphWrap}>
       <div className={styles.curveGraphFrame}>
         <div className={styles.curveChartArea}>
-          <svg ref={svgRef} className={styles.curveGraph} style={{ height, touchAction: editable ? 'none' : undefined }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+          <svg ref={svgRef} className={styles.curveGraph} style={{ height, touchAction: editable ? 'none' : undefined }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
+            onDoubleClick={editable ? onAddPoint : undefined}>
             {H_LINES.map(s => (<g key={`h${s}`}><line x1={PAD.left} y1={speedToY(s)} x2={width - PAD.right} y2={speedToY(s)} className={styles.gridLine} /></g>))}
             {vLines.map(v => (<g key={`v${v}`}><line x1={tempToX(v)} y1={PAD.top} x2={tempToX(v)} y2={height - PAD.bottom} className={styles.gridLine} /></g>))}
             <defs><linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" /><stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" /></linearGradient></defs>
@@ -294,7 +314,8 @@ export function CurveGraph({
                 style={editable ? { cursor: 'grab' } : undefined}
                 onPointerDown={editable ? (e) => onHandleDown(i, e) : undefined}
                 onPointerMove={editable ? onHandleMove : undefined}
-                onPointerUp={editable ? onHandleUp : undefined} />
+                onPointerUp={editable ? onHandleUp : undefined}
+                onContextMenu={editable ? (e) => onRemovePoint(i, e) : undefined} />
             ))}
           </svg>
           <div className={styles.curveXAxis} aria-hidden="true">
@@ -597,8 +618,10 @@ export const CurveCard = memo(function CurveCard({
           <CurveGraph
             points={isMp ? curve.multipoint.points : sampleCurveShape(curve, allCurves, sources)}
             showPoints={isMp}
+            editable={isMp}
             height={PINNED_GRAPH_H}
             currentTemp={dotTemp}
+            onChange={isMp ? pts => set({ multipoint: { ...curve.multipoint, points: pts } }) : undefined}
           />
         </div>
         {/* Curve selector (with its own header) sits under the graph. */}
@@ -676,7 +699,8 @@ export const CurveCard = memo(function CurveCard({
           {curve.type === 'linear' && linearBlock}
           {curve.type === 'multipoint' && (
             <>
-              <CurveGraph points={curve.multipoint.points} currentTemp={dotTemp} />
+              <CurveGraph points={curve.multipoint.points} currentTemp={dotTemp} editable
+                onChange={pts => set({ multipoint: { ...curve.multipoint, points: pts } })} />
               {multipointResponse}
             </>
           )}

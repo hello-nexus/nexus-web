@@ -16,9 +16,8 @@
   min-height: 0;
   width: 100%;
   display: block;
-  background: var(--gauge-track);
   border-radius: var(--panel-element-radius);
-  // Clip the edge-to-edge graph to the rounded backdrop.
+  // Clip the edge-to-edge graph to the rounded corners.
   overflow: hidden;
 
   :global(svg) {

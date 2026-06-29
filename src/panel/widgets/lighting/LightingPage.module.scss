@@ -423,6 +423,19 @@
   min-height: 0;
 }
 
+// Label + Select dropdown for effect params that carry `options`.
+.paramEnumRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.paramEnumLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
 // Pinned-to-bottom footer holding the scoped Reset button; stays
 // visible while the slider list scrolls.
 .drawerFooter {
@@ -876,6 +889,17 @@
   opacity: 1;
 }
 
+// Device name plus an optional (i) advisory, kept on one row so the icon
+// rides beside the name while a long name still wraps below it.
+.deviceNameRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-width: 0;
+
+  .deviceName { flex: 1 1 auto; min-width: 0; }
+}
+
 .deviceName {
   font-size: var(--type-small);
   font-weight: var(--weight-body);
@@ -885,6 +909,20 @@
   // truncating; the card stretches down, action buttons stay anchored
   // bottom-right.
   word-break: break-word;
+}
+
+// The (i) notice icon at the end of a device label or group title. Bare icon
+// (no button) so it can nest inside the group-header toggle; HoverTooltip owns
+// the hover reveal.
+.deviceNotice {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-dim);
+  cursor: help;
+  transition: color var(--ease-fast);
+
+  &:hover { color: var(--text); }
 }
 
 .deviceMeta {

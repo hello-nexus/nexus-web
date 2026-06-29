@@ -3,6 +3,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { useSupportedDevices, type SupportedDevice, type SupportedSource } from '../../../hooks/useSupportedDevices';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
+import { NexusMark, OpenRgbGlyph } from '../../icons/NexusBrand';
 import { SearchInput } from '../SearchInput/SearchInput';
 import styles from './SupportedDevicesModal.module.scss';
 
@@ -122,6 +123,8 @@ export function SupportedDevicesModal({
 
 function DeviceRow({ device, detected }: { device: SupportedDevice; detected: boolean }) {
   const { t } = useTranslation();
+  const sourceName = device.source === 'nexus' ? 'Nexus' : device.source === 'openrgb' ? 'OpenRGB' : null;
+  const sourceLabel = sourceName !== null ? t('supported.source.drivenBy', { name: sourceName }) : null;
   return (
     <tr className={detected ? styles.detected : ''}>
       <td className={styles.colStatus}>
@@ -131,7 +134,18 @@ function DeviceRow({ device, detected }: { device: SupportedDevice; detected: bo
           </HoverTooltip>
         )}
       </td>
-      <td className={styles.brand}>{device.vendor}</td>
+      <td className={styles.brand}>
+        {sourceLabel !== null && (
+          <HoverTooltip body={sourceLabel} side="right">
+            <span className={styles.sourceIcon} aria-label={sourceLabel}>
+              <span aria-hidden={true}>
+                {device.source === 'nexus' ? <NexusMark size={14} /> : <OpenRgbGlyph size={14} />}
+              </span>
+            </span>
+          </HoverTooltip>
+        )}
+        {device.vendor}
+      </td>
       <td className={styles.model}>{device.model}</td>
       <td className={styles.type}>{device.category}</td>
       <td className={styles.mono}>{device.vendorId}:{device.productId.replace(/^0x/, '')}</td>

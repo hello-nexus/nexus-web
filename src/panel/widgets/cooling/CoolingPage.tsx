@@ -966,7 +966,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   highlighted={highlightedFanIds.has(ch.id) && ch.classification !== 'Unresponsive'}
                   hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
                   hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
-                  hubSupportsBios={!ch.deviceId?.startsWith('np50:')}
+                  hubSupportsBios={!ch.deviceId?.startsWith('np50:') && !ch.deviceId?.startsWith('corsair:')}
                   onSetMode={v => setFanMode(ch.id, v)}
                   onCreateCurve={() => createCurveAndAssign(ch.id)}
                   onRename={handleRename}
@@ -1019,6 +1019,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                           : key.startsWith('minihub:') ? 'iBUYPOWER MiniHub'
                           // eslint-disable-next-line i18next/no-literal-string -- hardware product name
                           : key.startsWith('smarthub:') ? 'HYTE SmartHub'
+                          // eslint-disable-next-line i18next/no-literal-string -- hardware product name
+                          : key.startsWith('lianli:') ? 'Lian Li Uni Hub SL-Infinity'
+                          // eslint-disable-next-line i18next/no-literal-string -- hardware product name
+                          : key.startsWith('corsair:') ? 'Corsair iCUE LINK'
                           : key);
                         return (
                           <CollapsibleSection
@@ -1070,7 +1074,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                           highlighted={false}
                           hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
                           hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
-                          hubSupportsBios={!ch.deviceId?.startsWith('np50:')}
+                          hubSupportsBios={!ch.deviceId?.startsWith('np50:') && !ch.deviceId?.startsWith('corsair:')}
                           onSetMode={v => setFanMode(ch.id, v)}
                           onCreateCurve={() => createCurveAndAssign(ch.id)}
                           onRename={handleRename}

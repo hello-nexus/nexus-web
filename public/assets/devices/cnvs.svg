@@ -1,14 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Controller box -->
-  <rect x="8" y="10" width="32" height="28" rx="2" />
-  <!-- PCB traces -->
-  <line x1="13" y1="18" x2="25" y2="18" />
-  <line x1="13" y1="23" x2="30" y2="23" />
-  <line x1="13" y1="28" x2="22" y2="28" />
-  <line x1="27" y1="28" x2="35" y2="28" />
-  <!-- Vertical trace -->
-  <line x1="25" y1="18" x2="25" y2="23" />
-  <line x1="30" y1="23" x2="30" y2="33" />
-  <!-- LED indicator dot -->
-  <circle cx="35" cy="14" r="2" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round">
+  <!-- HYTE CNVS desk mat: outline of a landscape sheet whose bottom-right
+       corner is folded inward (the page gets smaller), with a solid curl
+       flap. Rendered as a CSS mask, so the stroke is the glyph and the
+       hollow interior reads as background. -->
+  <path d="M12 15 H36 A4 4 0 0 1 40 19 V21 L28 33 H12 A4 4 0 0 1 8 29 V19 A4 4 0 0 1 12 15 Z" />
+  <path d="M40 21 L28 33 Q31 25 40 21 Z" fill="currentColor" stroke="none" />
 </svg>

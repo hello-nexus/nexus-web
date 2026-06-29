@@ -11,8 +11,8 @@ function loadLocale(filename: string): Record<string, string> {
 }
 
 describe('locale files', () => {
-  it('has exactly 14 locale files', () => {
-    expect(LOCALE_FILES).toHaveLength(14);
+  it('has exactly 15 locale files', () => {
+    expect(LOCALE_FILES).toHaveLength(15);
   });
 
   it('all files parse as valid JSON', () => {

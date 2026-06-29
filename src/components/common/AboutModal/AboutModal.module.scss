@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 .modal {
   // Standard modal box surface (matches ConfirmModal / PromptModal).
   background: var(--backdrop-base);
@@ -73,6 +75,18 @@
   font-size: var(--type-small);
   color: var(--accent-glow);
   text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+.checkUpdateLink {
+  @include text-button;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: var(--accent-glow);
+  text-align: center;
 
   &:hover { text-decoration: underline; }
 }

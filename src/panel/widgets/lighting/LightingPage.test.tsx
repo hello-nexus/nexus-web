@@ -64,6 +64,14 @@ vi.mock('../../../api/lighting', async importOriginal => {
     setScreenEffect: vi.fn(() => Promise.resolve(null)),
     setMediaEffect: vi.fn(() => Promise.resolve(null)),
     saveDeviceLayout: vi.fn(() => Promise.resolve(null)),
+    fetchLayoutPresets: vi.fn(() => Promise.resolve(null)),
+    createLayoutPreset: vi.fn(() => Promise.resolve(null)),
+    updateLayoutPreset: vi.fn(() => Promise.resolve(null)),
+    deleteLayoutPreset: vi.fn(() => Promise.resolve(null)),
+    setActiveLayoutPreset: vi.fn(() => Promise.resolve(null)),
+    activateLayoutPreset: vi.fn(() => Promise.resolve(null)),
+    applyDeviceLayouts: vi.fn(() => Promise.resolve(null)),
+    resetDeviceLayouts: vi.fn(() => Promise.resolve(null)),
   };
 });
 

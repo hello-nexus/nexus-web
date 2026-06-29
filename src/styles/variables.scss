@@ -111,6 +111,10 @@
   --space-lg: 16px;        // section gap, card body padding
   --space-xl: 24px;        // page-level section break
 
+  // Monitoring gauge line weight: SVG stroke (line/sparkline) and CSS
+  // bar-top / liquid-surface border. Mirror in GAUGE_LINE_THICKNESS (gauges/types.ts).
+  --gauge-line-thickness: 3.2px;
+
   // Opacity tiers. 3 wide rungs absorb ~80% of the literal alphas that
   // used to scatter across the codebase. Use via
   // `color-mix(in srgb, X var(--alpha-Y), transparent)` or

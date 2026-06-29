@@ -25,11 +25,16 @@ export interface FirmwareStatusItem {
 // the device list), so plugging/unplugging a device updates the table.
 export function useFirmwareStatus(enabled: boolean) {
   const [items, setItems] = useState<FirmwareStatusItem[]>([]);
+  // Flips true once the first fetch settles, so consumers can tell "still
+  // loading" from "loaded, no matching item" (the Q-series install gate).
+  const [loaded, setLoaded] = useState(false);
   const mountedRef = useRef(true);
 
   const refresh = useCallback(async () => {
     const data = await fetchService<FirmwareStatusItem[]>('/devices/firmware/status');
-    if (data && mountedRef.current) setItems(data);
+    if (!mountedRef.current) return;
+    if (data) setItems(data);
+    setLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -45,5 +50,5 @@ export function useFirmwareStatus(enabled: boolean) {
     void refresh();
   });
 
-  return items;
+  return { items, loaded };
 }

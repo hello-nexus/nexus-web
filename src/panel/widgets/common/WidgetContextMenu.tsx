@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, ExternalLink, Maximize2, Monitor, MonitorOff, Pin, PinOff, Settings, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, Lock, Maximize2, Monitor, MonitorOff, Pin, PinOff, Settings, Trash2, Unlock } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -44,6 +44,14 @@ interface WidgetContextMenuProps {
   // "Always on top" item with a checkmark reflecting `alwaysOnTop`.
   alwaysOnTop?: boolean;
   onToggleAlwaysOnTop?: () => void;
+  // Desktop-overlay-only lock controls. When onToggleLock is provided, the
+  // menu renders a Lock/Unlock row (per `locked`) plus a Lock all / Unlock
+  // all row; while `locked`, the move/edit/resize items (size row, Edit,
+  // Immersive) are hidden. Remove stays available.
+  locked?: boolean;
+  onToggleLock?: () => void;
+  onLockAll?: () => void;
+  onUnlockAll?: () => void;
   // Desktop-overlay-only bottom action. Renders a separator + "Open
   // dashboard" shortcut at the foot of the menu when provided.
   onOpenDashboard?: () => void;
@@ -69,6 +77,10 @@ export function WidgetContextMenu({
   removeLabel,
   alwaysOnTop,
   onToggleAlwaysOnTop,
+  locked,
+  onToggleLock,
+  onLockAll,
+  onUnlockAll,
   onOpenDashboard,
   onBoundsChange,
 }: WidgetContextMenuProps) {
@@ -165,7 +177,7 @@ export function WidgetContextMenu({
       data-state={closing ? 'closing' : 'open'}
       style={menuStyle}
     >
-      {sizes.length > 1 && (
+      {sizes.length > 1 && !locked && (
         <>
           <div className={styles.sizeRow}>
             {sizes.map(size => {
@@ -201,14 +213,36 @@ export function WidgetContextMenu({
         </button>
       )}
 
-      {hasConfig && (
+      {onToggleLock && (
+        <>
+          <button type="button" className={styles.item} onClick={() => runAndClose(onToggleLock)}>
+            {locked ? <Unlock size={14} /> : <Lock size={14} />}
+            <span>{t(locked ? 'panel.widget.menu.unlock' : 'panel.widget.menu.lock')}</span>
+          </button>
+          {locked
+            ? onUnlockAll && (
+                <button type="button" className={styles.item} onClick={() => runAndClose(onUnlockAll)}>
+                  <Unlock size={14} />
+                  <span>{t('panel.widget.menu.unlockAll')}</span>
+                </button>
+              )
+            : onLockAll && (
+                <button type="button" className={styles.item} onClick={() => runAndClose(onLockAll)}>
+                  <Lock size={14} />
+                  <span>{t('panel.widget.menu.lockAll')}</span>
+                </button>
+              )}
+        </>
+      )}
+
+      {hasConfig && !locked && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
           <Settings size={14} />
           <span>{t('panel.widget.menu.edit')}</span>
         </button>
       )}
 
-      {onImmersive && (
+      {onImmersive && !locked && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onImmersive)}>
           <Maximize2 size={14} />
           <span>{t('panel.widget.menu.immersive')}</span>

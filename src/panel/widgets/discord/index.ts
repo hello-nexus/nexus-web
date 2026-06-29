@@ -13,6 +13,7 @@ export const discordApp: AppManifest = {
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
     touch: true,
+    listed: false,
   },
   Widget: DiscordWidget,
   Settings: DiscordSettings,

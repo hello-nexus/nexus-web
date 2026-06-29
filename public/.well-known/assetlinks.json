@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.hellonexus.panel",
       "sha256_cert_fingerprints": [
-        "B8:95:EF:7E:5B:2B:D6:7D:95:BE:FD:6D:4B:5B:EF:B2:B5:D3:07:F9:6A:0A:10:DC:69:A2:D4:5F:1B:67:A5:70"
+        "B8:95:EF:7E:5B:2B:D6:7D:95:BE:FD:6D:4B:5B:EF:B2:B5:D3:07:F9:6A:0A:10:DC:69:A2:D4:5F:1B:67:A5:70",
+        "50:6A:FC:48:BC:DD:1A:C8:BC:38:FC:D6:AF:02:BA:F8:85:D2:41:D2:D3:46:14:2B:73:AD:AA:5B:71:43:00:15"
       ]
     }
   }

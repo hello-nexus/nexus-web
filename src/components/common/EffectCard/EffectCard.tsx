@@ -24,6 +24,12 @@ interface EffectCardProps {
   asDiv?: boolean;
   /** Overlay rendered inside the thumbnail, centred (used for the importing spinner). */
   thumbOverlay?: ReactNode;
+  /**
+   * When true and thumbUrl is null, renders a static non-animated placeholder
+   * instead of the shimmer skeleton. Use when thumbnail absence is expected
+   * rather than a transient loading state.
+   */
+  thumbStatic?: boolean;
   /** Small node pinned to the thumbnail's top-right (e.g. the live-on-RGB bulb). */
   cornerBadge?: ReactNode;
   ariaLabel?: string;
@@ -47,7 +53,7 @@ interface EffectCardProps {
 export function EffectCard({
   label, thumbUrl, active, onClick,
   audio, meta, onDelete, deleteAriaLabel,
-  asDiv, thumbOverlay, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect,
+  asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect,
 }: EffectCardProps) {
   const { t } = useTranslation();
   const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''}`;
@@ -65,7 +71,7 @@ export function EffectCard({
       <div className={styles.thumbWrap} style={thumbBoxStyle}>
         {thumbUrl
           ? <img className={styles.thumbImg} src={thumbUrl} alt={label} style={thumbImgStyle} />
-          : <div className={styles.thumbSkeleton} aria-hidden="true" style={thumbSkeletonStyle} />}
+          : <div className={thumbStatic ? styles.thumbStaticPlaceholder : styles.thumbSkeleton} aria-hidden="true" style={thumbSkeletonStyle} />}
         {audio && (
           <svg className={styles.audioBadge} width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />

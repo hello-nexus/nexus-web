@@ -8,6 +8,7 @@ export interface AudioSnapshot {
   high: number;
   beat: number;
   spectrum: number[];
+  spectrum64: number[];
 }
 
 export function useAudioState(enabled: boolean): React.RefObject<AudioSnapshot | null> {

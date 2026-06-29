@@ -10,6 +10,7 @@ export interface SupportedDevice {
   vendorId: string;
   productId: string;
   capabilities: string[];
+  source: 'nexus' | 'openrgb';
 }
 
 interface SupportedResponse {

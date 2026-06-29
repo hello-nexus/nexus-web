@@ -8,6 +8,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
 import type { EffectState } from '../../../types/lighting';
+import { CanvasNoticeBar } from '../CanvasNoticeBar';
 import { DeviceContextMenu, type DeviceMenuItem } from './DeviceContextMenu';
 import styles from './DeviceCanvas.module.scss';
 
@@ -43,14 +44,17 @@ interface DeviceCanvasProps {
   onOpenSettings?: (id: string) => void;
   /** Notifies parent when a drag starts or ends, so it can pause state updates. */
   onDragActiveChange?: (active: boolean) => void;
+  /** Called before a layout-changing edit (first drag movement, rotate, maximize)
+   *  so callers can snapshot for undo. Not fired for a tap that never moves. */
+  onBeforeLayoutSave?: () => void;
+  /** Called after a drag/rotate/maximize layout save completes, so callers can auto-save to the active preset. */
+  onLayoutCommit?: () => void;
+  gpuAvailable?: boolean;
 }
 
 const CW = 1000;
 const CH = 600;
-// Inset device rectangles from the canvas border so they don't sit flush
-// against the edge when the window is maximized. Mirrors the small corner
-// offset used by the fullscreen button on the canvas area.
-const PAD = 12;
+const PAD = 0;
 
 type DragMode = 'move' | 'resize-br';
 
@@ -68,7 +72,7 @@ const CanvasBackground = memo(function CanvasBackground({ canvasPixels, canvasW,
   return <canvas ref={bgRef} className={styles.bgCanvas} />;
 });
 
-const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange }: {
+const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit }: {
   devices: LightingDevice[];
   selectedIds: Set<string>;
   primaryDeviceId: string | null;
@@ -78,8 +82,14 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   selectedDeviceLeds?: LedMapEntry[] | null;
   onOpenSettings?: (id: string) => void;
   onDragActiveChange?: (active: boolean) => void;
+  onBeforeLayoutSave?: () => void;
+  onLayoutCommit?: () => void;
 }) {
   const { t } = useTranslation();
+  const onBeforeLayoutSaveRef = useRef(onBeforeLayoutSave);
+  onBeforeLayoutSaveRef.current = onBeforeLayoutSave;
+  const onLayoutCommitRef = useRef(onLayoutCommit);
+  onLayoutCommitRef.current = onLayoutCommit;
   // Single-frame drag carries one orig rect; group drag carries the orig
   // rects of every selected device so handlePointerMove can apply the same
   // (clamped) delta to all of them while keeping the dragged frame as the
@@ -110,7 +120,6 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   // Right-click context menu anchored at the click point. Opening it never
   // changes the selection - a right-click is not a left-click.
   const [ctxMenu, setCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
-  const visualAngleRef = useRef<Map<string, number>>(new Map());
   const containerSizeRef = useRef({ w: 675, h: 380 });
   useEffect(() => {
     const el = containerRef.current;
@@ -240,9 +249,17 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     if (!drag) return;
     const p = toCanvas(e.clientX, e.clientY);
     const dx = p.x - drag.startX, dy = p.y - drag.startY;
-    if (tapRef.current && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+    if (tapRef.current && !tapRef.current.moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
       tapRef.current.moved = true;
+      // First movement past the tap threshold: snapshot the layout for undo,
+      // once per drag, before any position change. The device is still at its
+      // exact pre-drag spot here (sub-threshold moves are skipped below), and a
+      // tap that never crosses pushes nothing.
+      onBeforeLayoutSaveRef.current?.();
     }
+    // Hold position until the drag crosses the threshold: a sub-threshold wiggle
+    // stays a tap and the undo snapshot above stays exact.
+    if (tapRef.current && !tapRef.current.moved) return;
     if (drag.mode === 'move' && drag.groupOrigs) {
       // Group move: clamp the GROUP's delta so the most-constrained device
       // hits the wall first and the others stay locked together. Per-device
@@ -283,7 +300,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     forceRender(n => n + 1);
   }, [drag, marquee, devices, toCanvas, onSetSelection]);
 
-  const handlePointerUp = useCallback(() => {
+  const handlePointerUp = useCallback(async () => {
     if (marquee) {
       // Click on empty space (no drag) clears the selection - preserves the
       // pre-marquee behaviour of "tap canvas to deselect". A Cmd/Ctrl+click never
@@ -310,16 +327,17 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     const tap = tapRef.current;
     tapRef.current = null;
     if (drag.mode === 'move' && drag.groupOrigs) {
-      // Save every moved device. Fire in parallel - saveDeviceLayout is an
-      // independent PATCH per id, ordering doesn't matter.
-      for (const sd of devices) {
-        if (drag.groupOrigs.has(sd.id)) {
-          saveDeviceLayout(sd.id, sd.canvasX, sd.canvasY, sd.canvasW, sd.canvasH, sd.canvasRotation ?? 0);
-        }
-      }
+      // Save every moved device in parallel - saveDeviceLayout is an independent POST per id.
+      await Promise.all(devices.filter(d => drag.groupOrigs!.has(d.id)).map(sd =>
+        saveDeviceLayout(sd.id, sd.canvasX, sd.canvasY, sd.canvasW, sd.canvasH, sd.canvasRotation ?? 0),
+      ));
+      if (tap?.moved) onLayoutCommitRef.current?.();
     } else {
       const dev = devices.find(d => d.id === drag.id);
-      if (dev) saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation ?? 0);
+      if (dev) {
+        await saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation ?? 0);
+        if (tap?.moved) onLayoutCommitRef.current?.();
+      }
     }
     onDragActiveChange?.(false);
     setDrag(null);
@@ -336,10 +354,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   }, [drag, marquee, devices, onSelectDevice, onSetSelection, onDragActiveChange]);
 
   const handleRotate = useCallback((dev: LightingDevice, dir: 1 | -1) => {
-    const prevVisual = visualAngleRef.current.get(dev.id) ?? (dev.canvasRotation ?? 0);
-    const nextVisual = prevVisual + dir * 90;
-    visualAngleRef.current.set(dev.id, nextVisual);
-    dev.canvasRotation = ((nextVisual % 360) + 360) % 360;
+    onBeforeLayoutSaveRef.current?.();
+    dev.canvasRotation = ((((dev.canvasRotation ?? 0) + dir * 90) % 360) + 360) % 360;
 
     // Rotate the whole box footprint, not just the label: each 90° step swaps
     // width and height about the frame's center (two steps = 180° swaps back to
@@ -360,8 +376,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     dev.canvasX = Math.max(PAD, Math.min(CW - PAD - w, cx - w / 2));
     dev.canvasY = Math.max(PAD, Math.min(CH - PAD - h, cy - h / 2));
 
-    saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation);
     forceRender(n => n + 1);
+    void saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation).then(() => onLayoutCommitRef.current?.());
   }, []);
 
   // A frame counts as "maximized" when it fills the padded canvas. Geometric
@@ -373,6 +389,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     && dev.canvasY + dev.canvasH >= CH - PAD - 0.5, []);
 
   const handleMaximize = useCallback((dev: LightingDevice) => {
+    onBeforeLayoutSaveRef.current?.();
     if (isMaximized(dev)) {
       dev.canvasX = CW / 2 - 60;
       dev.canvasY = CH / 2 - 15;
@@ -384,8 +401,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       dev.canvasW = CW - 2 * PAD;
       dev.canvasH = CH - 2 * PAD;
     }
-    saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation ?? 0);
     forceRender(n => n + 1);
+    void saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation ?? 0).then(() => onLayoutCommitRef.current?.());
   }, [isMaximized]);
 
   const handleFrameContextMenu = useCallback((e: React.MouseEvent, dev: LightingDevice) => {
@@ -421,9 +438,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   // Wrap handlePointerUp so the marquee branch resets the drag-active flag
   // (so parents resume polling) and the keyboard-listener selection mirror
   // stays consistent.
-  const handlePointerUpWithMarquee = useCallback(() => {
+  const handlePointerUpWithMarquee = useCallback(async () => {
     if (marquee) onDragActiveChange?.(false);
-    handlePointerUp();
+    await handlePointerUp();
   }, [marquee, handlePointerUp, onDragActiveChange]);
 
   // Marquee rect in % units so it scales with the container without a
@@ -441,17 +458,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       onPointerMove={handlePointerMove} onPointerUp={handlePointerUpWithMarquee}
       onPointerDown={handleOverlayPointerDown}
       onContextMenu={e => e.preventDefault()}>
-      {/* visualAngleRef is the device-side rotation accumulator (handleRotate
-          adds 90 each call). It's stored in a ref + paired with forceRender
-          so we can read the unwrapped angle (for smooth visual rotation
-          through the 360° boundary) without triggering a render storm. */}
-      { }
       {devices.map(dev => {
         // selectedIds is kept in sync with the live marquee preview by
         // handlePointerMove, so no marquee-specific branch is needed here.
         const selected = selectedIds.has(dev.id);
         const isPrimary = dev.id === primaryDeviceId;
-        const visualAngle = visualAngleRef.current.get(dev.id) ?? (dev.canvasRotation ?? 0);
         const rot = ((dev.canvasRotation ?? 0) % 360 + 360) % 360;
         const { w, h } = containerSizeRef.current;
         const bgX = -(dev.canvasX / CW) * w;
@@ -466,7 +477,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
             }}
             onPointerDown={e => handleFramePointerDown(e, dev)}
             onContextMenu={e => handleFrameContextMenu(e, dev)}>
-            <span className={styles.deviceLabel} style={{ transform: `rotate(${visualAngle}deg)` }}>{dev.name}</span>
+            <span className={styles.deviceLabel} style={{ transform: `rotate(${rot}deg)` }}>{dev.name}</span>
             <div className={styles.resizeHandle} onPointerDown={e => startDrag(e, dev, 'resize-br')} />
             {isPrimary && selectedDeviceLeds && selectedDeviceLeds
               .filter(l => !l.disabled)
@@ -530,7 +541,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   );
 });
 
-export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange }: DeviceCanvasProps) {
+export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, gpuAvailable }: DeviceCanvasProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const shaderStateRef = useRef(shaderState ?? null);
@@ -547,7 +559,8 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
     <div ref={containerRef} className={styles.canvas}>
       <CanvasBackground canvasPixels={canvasPixels} canvasW={canvasW} canvasH={canvasH} />
       <canvas ref={glCanvasRef} className={`${styles.glCanvas} ${ready ? styles.glCanvasReady : ''}`} />
-      <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} />
+      <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} />
+      <CanvasNoticeBar visible={gpuAvailable === false && shaderEffect != null} message={t('lighting.gpuUnavailableNotice')} />
     </div>
   );
 }

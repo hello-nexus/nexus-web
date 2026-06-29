@@ -19,6 +19,10 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
   // Disables the button and renders a spinner in place of the icon. For the
   // brief click-to-commit gap (~100-1000ms), not for state-tracked async work.
   loading?: boolean;
+  // While loading, hide the label and center the spinner over it so the spinner
+  // sits in place of the text. The label stays in the DOM (visibility:hidden)
+  // to hold the button width, so there is no layout shift.
+  loadingHidesLabel?: boolean;
   // When set, renders as an <a> link with identical styling - for actions that
   // navigate to an external URL (e.g. "Report a bug"), so links and buttons
   // share one component instead of a bespoke link style.
@@ -41,6 +45,7 @@ export function Button({
   iconTrailing,
   status,
   loading = false,
+  loadingHidesLabel = false,
   disabled,
   className,
   children,
@@ -53,6 +58,7 @@ export function Button({
 }: ButtonProps) {
   const isIconOnly = !children && Boolean(icon || iconTrailing);
   const isDisabled = disabled || loading;
+  const hideLabel = loading && loadingHidesLabel;
 
   const classes = classNames(
     styles.button,
@@ -60,15 +66,16 @@ export function Button({
     styles[`tone-${tone}`],
     pill && styles.pill,
     isIconOnly && styles.iconOnly,
+    hideLabel && styles.hidesLabel,
     className,
   );
 
   const content = (
     <>
       {loading
-        ? <span className={styles.spinner} aria-hidden="true" />
+        ? <span className={classNames(styles.spinner, hideLabel && styles.spinnerCentered)} aria-hidden="true" />
         : icon && <span className={styles.icon}>{icon}</span>}
-      {children && <span className={styles.label}>{children}</span>}
+      {children && <span className={classNames(styles.label, hideLabel && styles.labelHidden)}>{children}</span>}
       {!loading && iconTrailing && <span className={styles.iconTrailing}>{iconTrailing}</span>}
       {status && (
         <span

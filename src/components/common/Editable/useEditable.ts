@@ -75,6 +75,11 @@ export function useEditable<T>({ value, onCommit, parse, format }: UseEditableOp
       onBlur: commit,
       onClick: e => e.stopPropagation(),
       onKeyDown: e => {
+        // Keep keystrokes inside the input: an ancestor drag handler
+        // (dnd-kit's KeyboardSensor uses Space/Enter to pick up a sortable row)
+        // would otherwise hijack Space as a drag pickup and swallow the typed
+        // character instead of inserting a space into the name.
+        e.stopPropagation();
         if (e.key === 'Enter') { e.preventDefault(); commit(); }
         else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
       },

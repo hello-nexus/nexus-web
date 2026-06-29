@@ -5,6 +5,34 @@ import { fetchService, fetchServiceBlob } from '../../../api/service';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import styles from './AppPicker.module.scss';
 
+// Cap concurrent icon fetches. A screenful of picker rows - or a deck full of
+// launch buttons (each useAppIcon below) - would otherwise fire one fetch per
+// item at once and occupy all 6 of the browser's per-origin connections. The
+// panel's /ping health check shares that pool, so it queues behind the backlog
+// and blows its 3s abort, reading "offline" and tearing down the editor. A
+// first browse is the worst case: icon-less apps re-extract server-side every
+// time, so the backlog drains slowly. The cap stays below the per-origin pool
+// so /ping and live traffic always have a free connection; icons are lazy, so
+// the slightly slower fill is unseen.
+const ICON_FETCH_CONCURRENCY = 3;
+let iconPermits = ICON_FETCH_CONCURRENCY;
+const iconWaiters: Array<() => void> = [];
+
+function withIconSlot<T>(run: () => Promise<T>): Promise<T> {
+  const acquire = iconPermits > 0
+    ? (iconPermits--, Promise.resolve())
+    : new Promise<void>(resolve => iconWaiters.push(resolve));
+  return acquire.then(async () => {
+    try {
+      return await run();
+    } finally {
+      const next = iconWaiters.shift();
+      if (next) next();
+      else iconPermits++;
+    }
+  });
+}
+
 interface Shortcut {
   id: string;
   name: string;
@@ -80,31 +108,31 @@ function AppRow({ app, selected, onSelect }: {
     const el = rowRef.current;
     if (!el) return;
 
+    let cancelled = false;
+    let revoke = '';
     const observer = new IntersectionObserver(entries => {
       if (!entries[0]?.isIntersecting) return;
       observer.disconnect();
       loadedRef.current = true;
-
-      let revoke = '';
-      let cancelled = false;
-      const load = async () => {
+      void withIconSlot(async () => {
+        if (cancelled) return;
         const blob = await fetchServiceBlob(`/shortcuts/icon?targetId=${encodeURIComponent(app.id)}`);
         if (!cancelled && blob && blob.size > 0) {
           const url = URL.createObjectURL(blob);
           revoke = url;
           setIconUrl(url);
         }
-      };
-      load();
-
-      return () => {
-        cancelled = true;
-        if (revoke) URL.revokeObjectURL(revoke);
-      };
+      });
     }, { rootMargin: '100px' });
 
     observer.observe(el);
-    return () => observer.disconnect();
+    // Revoke on unmount: the IntersectionObserver callback's return value is
+    // discarded, so the object URL must be freed from the effect cleanup.
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+      if (revoke) URL.revokeObjectURL(revoke);
+    };
   }, [app.id]);
 
   return (
@@ -140,15 +168,15 @@ export function useAppIcon(appId: string | undefined): string | null {
     setIconUrl(null);
     let revoke = '';
     let cancelled = false;
-    const load = async () => {
+    void withIconSlot(async () => {
+      if (cancelled) return;
       const blob = await fetchServiceBlob(`/shortcuts/icon?targetId=${encodeURIComponent(appId)}`);
       if (!cancelled && blob && blob.size > 0) {
         const url = URL.createObjectURL(blob);
         revoke = url;
         setIconUrl(url);
       }
-    };
-    load();
+    });
     return () => {
       cancelled = true;
       if (revoke) URL.revokeObjectURL(revoke);

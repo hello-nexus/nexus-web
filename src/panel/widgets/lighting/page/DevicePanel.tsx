@@ -1,9 +1,11 @@
 import { Cpu, Plus } from 'lucide-react';
-import { type LightingDevice } from '../../../../api/lighting';
+import { type LightingDevice, type LayoutPreset } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
+import { LayoutToolbar } from './LayoutToolbar';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { ZoneCard } from './ZoneCard';
 import { MotherboardGroup } from './MotherboardGroup';
+import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { SortableList, type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
@@ -42,7 +44,7 @@ type DeviceBlock =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, onOpenSmartLights }: {
+export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, presets, layoutActiveId, presetCount, canUndo, canRedo, onPresetLoad, onPresetCreate, onPresetRename, onPresetDelete, onLayoutReset, onLayoutUndo, onLayoutRedo }: {
   devices: LightingDevice[];
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
@@ -67,8 +69,22 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
   smartHubFirmwareControl?: boolean;
   /** Toggle FW Control for the HYTE SmartHub. */
   onSetSmartHubFirmwareControl?: (enabled: boolean) => void;
+  /** When true, Lian Li device cards are shown in the firmwareControlled (dimmed) state. */
+  lianLiFirmwareActive?: boolean;
   /** Renders a dashed "add smart lights" entry at the bottom of the list. */
   onOpenSmartLights?: () => void;
+  presets: LayoutPreset[];
+  layoutActiveId: string | null;
+  presetCount: number;
+  canUndo: boolean;
+  canRedo: boolean;
+  onPresetLoad: (id: string) => void;
+  onPresetCreate: (name: string) => Promise<{ error: boolean; msg?: string }>;
+  onPresetRename: (id: string, name: string) => void;
+  onPresetDelete: (id: string) => void;
+  onLayoutReset: () => void;
+  onLayoutUndo: () => void;
+  onLayoutRedo: () => void;
 }) {
   const { t } = useTranslation();
 
@@ -147,6 +163,11 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
     onSelectDevice(selectedIds.size === 1 && selectedIds.has(id) ? null : id);
   };
 
+  const noticeFor = (d: LightingDevice): string | undefined => {
+    const key = lightingDeviceNoticeKey(d);
+    return key ? t(key) : undefined;
+  };
+
   const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean, drag?: SortableRowArgs) => (
     <ZoneCard
       key={d.id}
@@ -160,7 +181,9 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
       drag={drag}
       communityCount={communityCounts?.[d.id]}
       onOpenCommunity={onOpenCommunity ? () => onOpenCommunity(d.id) : undefined}
-      firmwareControlled={fwControlled}
+      firmwareControlled={fwControlled || (!!lianLiFirmwareActive && d.id.startsWith('lianli:'))}
+      // Grouped members carry the notice on their group header instead.
+      notice={indent ? undefined : noticeFor(d)}
     />
   );
 
@@ -194,6 +217,7 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
         groupOn={groupOn} onTogglePower={handleToggle}
         collapsed={isCollapsed(groupKey)} onToggleCollapsed={() => toggleCollapsed(groupKey)}
         leftAction={leftAction} powerDisabled={fwOn}
+        notice={noticeFor(members[0])}
         drag={a ?? undefined}>
         <SortableList
           ids={memberIds}
@@ -228,6 +252,20 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
   return (
     <aside className={styles.devicePanel}>
       <div className={styles.deviceList}>
+        <LayoutToolbar
+          presets={presets}
+          activeId={layoutActiveId}
+          presetCount={presetCount}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onLoad={onPresetLoad}
+          onCreate={onPresetCreate}
+          onRename={onPresetRename}
+          onDelete={onPresetDelete}
+          onReset={onLayoutReset}
+          onUndo={onLayoutUndo}
+          onRedo={onLayoutRedo}
+        />
         {devices.length === 0 && (
           <p className={styles.deviceEmpty}>{t(lightingOff ? 'lighting.devices.selectModeHint' : 'lighting.devices.empty')}</p>
         )}

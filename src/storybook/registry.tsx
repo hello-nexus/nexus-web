@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { RankedList } from '../components/common/RankedList/RankedList';
@@ -66,6 +66,7 @@ import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopO
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { UpdateBadge } from '../components/common/UpdateBadge/UpdateBadge';
+import { TopBarStatusButton } from '../components/common/TopBarStatusButton/TopBarStatusButton';
 import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
@@ -83,6 +84,7 @@ import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';
 import { TextInput } from '../components/common/TextInput/TextInput';
 import { Ring as StorybookRing } from '../components/common/Ring/Ring';
 import { Gauge as StorybookGauge } from '../components/common/Gauge/Gauge';
+import { CanvasNoticeBar } from '../components/common/CanvasNoticeBar';
 // Side-effect: pulls the global `.panel-root { --panel-*: … }` token rules into
 // the Storybook bundle so the panel-scoped preview below resolves its vars.
 // Idempotent - PanelDevicePage imports the same sheet.
@@ -353,6 +355,26 @@ function PreviewChipGroup() {
   />;
 }
 
+function PreviewChipGroupMulti() {
+  const [active, setActive] = useState<ReadonlySet<string>>(new Set(['port1', 'port3']));
+  return <ChipGroup
+    ariaLabel="Sample multi-select chip group"
+    multiSelect
+    options={[
+      { key: 'port1', label: 'Port 1' },
+      { key: 'port2', label: 'Port 2' },
+      { key: 'port3', label: 'Port 3' },
+      { key: 'port4', label: 'Port 4' },
+    ]}
+    activeKeys={active}
+    onToggleKey={key => setActive(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) { next.delete(key); } else { next.add(key); }
+      return next;
+    })}
+  />;
+}
+
 function PreviewConfirmModal() {
   const [open, setOpen] = useState(false);
   return (
@@ -563,6 +585,18 @@ function PreviewEffectCard() {
           onClick={() => setActive('overlayB')}
         />
       </div>
+      {/* Static placeholder: shown when GPU is unavailable (no thumbnail can
+          be generated). Non-animated so it doesn't imply a loading state. */}
+      <div className={styles.previewGridTwo}>
+        <EffectCard
+          overlay
+          label="Plasma"
+          thumbUrl={null}
+          thumbStatic
+          active={false}
+          onClick={() => {}}
+        />
+      </div>
       {/* Default (caption-below) layout: media library grid, meta line +
           hover-reveal delete. */}
       <div className={styles.previewGridTwo}>
@@ -692,6 +726,7 @@ function PreviewButtonMatrix() {
         <Button pill>Pill</Button>
         <Button pill tone="accent">Active</Button>
         <Button loading>Saving</Button>
+        <Button loading loadingHidesLabel tone="danger">End task</Button>
         <Button disabled>Disabled</Button>
       </div>
     </div>
@@ -720,9 +755,14 @@ function PreviewSelect() {
       value={v}
       onChange={setV}
       options={[
-        { value: 'silent', label: 'Silent' },
-        { value: 'balanced', label: 'Balanced' },
-        { value: 'turbo', label: 'Turbo' },
+        // The optional `icon` slot renders before the label in both the trigger
+        // and each row (used by the language picker for flags). A `divider`
+        // entry renders a thin rule grouping the options around it.
+        { value: 'silent', label: 'Silent', icon: '🌙' },
+        { value: 'balanced', label: 'Balanced', icon: '⚖️' },
+        { value: 'turbo', label: 'Turbo', icon: '🔥' },
+        { value: '__sep__', label: '', divider: true },
+        { value: 'custom', label: 'Custom...', icon: '⚙️' },
       ]}
       ariaLabel="Profile"
     />
@@ -841,7 +881,7 @@ function PreviewSettingsSection() {
     <div style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 24 }}>
       <SettingsSection title="General" description="Optional muted description under the title.">
         <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Language</div>
-        <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Hide conflict warnings</div>
+        <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Show conflict warnings</div>
       </SettingsSection>
       <SettingsSection title="Danger zone" titleStyle={{ color: 'var(--bad)' }}>
         <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Shut down · Reset to defaults</div>
@@ -927,15 +967,24 @@ function PreviewAboutModal() {
       <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
         Open About
       </button>
-      <AboutModal open={open} onClose={() => setOpen(false)} />
+      <AboutModal open={open} onClose={() => setOpen(false)} onCheckUpdate={() => setOpen(false)} />
     </>
   );
 }
 
 function PreviewUpdateBadge() {
   return (
-    <div style={{ width: 200, padding: 8 }}>
-      <UpdateBadge updateMode="notify" compact={false} onOpen={() => {}} onInstall={() => {}} />
+    <div style={{ padding: 8 }}>
+      <UpdateBadge updateMode="notify" onOpen={() => {}} onInstall={() => {}} />
+    </div>
+  );
+}
+
+function PreviewTopBarStatusButton() {
+  return (
+    <div style={{ display: 'flex', gap: '0.35rem', padding: 8 }}>
+      <TopBarStatusButton tone="warn" icon={<AlertTriangle size={16} />} label="App conflict" onClick={() => {}} />
+      <TopBarStatusButton tone="good" icon={<Download size={16} />} label="Install update" onClick={() => {}} />
     </div>
   );
 }
@@ -949,6 +998,7 @@ function PreviewUpdateModal() {
       </button>
       <UpdateModal
         open={open}
+        autoCheck={false}
         onClose={() => setOpen(false)}
         status={{
           currentVersion: '1.0.0',
@@ -962,6 +1012,7 @@ function PreviewUpdateModal() {
           lastCheckError: '',
           state: 'idle',
           justUpdatedTo: '',
+          publishedAtUnix: 1719619200,
         }}
       />
     </>
@@ -1090,6 +1141,14 @@ function PreviewSpinner() {
       <StorybookSpinner size={16} />
       <StorybookSpinner size={20} />
       <StorybookSpinner size={28} />
+    </div>
+  );
+}
+
+function PreviewCanvasNoticeBar() {
+  return (
+    <div style={{ position: 'relative', width: '100%', height: 56, background: '#111', borderRadius: 6, overflow: 'hidden' }}>
+      <CanvasNoticeBar visible message="No usable GPU on this PC - this effect previews here but won't light your devices." />
     </div>
   );
 }
@@ -1234,9 +1293,14 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Single-select chip row reusing the cooling curve/mode .chip-action buttons (solid-accent .chip-active on the selected one). For settings and listings that pick one of a few options - replaces Tabs for the theme/background/accent selectors.', Preview: PreviewChipGroup,
   },
   {
+    name: 'ChipGroup (multi-select)', category: 'inputs',
+    filePath: 'src/components/common/ChipGroup/ChipGroup.tsx',
+    description: 'Same ChipGroup in multi-select mode (multiSelect: true). Each chip toggles independently via onToggleKey; activeKeys is a ReadonlySet. Used by the hub composition port picker.', Preview: PreviewChipGroupMulti,
+  },
+  {
     name: 'Select', category: 'inputs',
     filePath: 'src/components/common/Select/Select.tsx',
-    description: 'Custom select: a button trigger plus a listbox portaled to <body> and clamped to the viewport, not the native <select> popup, which renders off-screen on the Y70 kiosk WebView. One control across desktop, phone, and Y70. Pass options for flat lists or <option> children (value + text, optional disabled/className); optgroups are unsupported. Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
+    description: 'Custom select: a button trigger plus a listbox portaled to <body> and clamped to the viewport, not the native <select> popup, which renders off-screen on the Y70 kiosk WebView. One control across desktop, phone, and Y70. Pass options for flat lists or <option> children (value + text, optional disabled/className/icon); optgroups are unsupported. Each option takes an optional `icon` ReactNode shown before the label in the trigger and the row (the language picker uses it for flags). Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
     notes: 'One size across the app. variant="ghost" drops the border/background for selects already inside a bordered card (cooling fan / curve rows).',
   },
   {
@@ -1317,7 +1381,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PaletteRing', category: 'editable',
     filePath: 'src/components/common/PaletteRing/PaletteRing.tsx',
-    description: 'Radial hue + palette-width picker. Drag the arc body to rotate (hue), drag a handle to resize (colorize). Min arc span enforces a minimum palette width so mono-ish presets stay draggable. Used as the hero control in the Lighting animate drawer.', Preview: PreviewPaletteRing,
+    description: 'Radial hue + palette-width picker. Drag the arc body to rotate (hue), drag a handle to resize (colorize). A triangle indicator on the inner edge marks the centre of the selection; at mono (single circle) it points opposite the circle to indicate the effective colour. Handle and triangle fill use var(--text) so they flip dark in light theme. Used as the hero control in the Lighting animate drawer.', Preview: PreviewPaletteRing,
     notes: 'Colorize caps at 0.75 so even the tightest arc still shows a touch of palette variation.',
   },
   {
@@ -1337,7 +1401,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Card', category: 'cards',
     filePath: 'src/components/common/Card/Card.tsx',
-    description: 'Canonical card surface (background, border, radius, padding) with optional title / subtitle / actions header. Compose for any panel.', Preview: PreviewCard,
+    description: 'Canonical card surface (background, border, radius, padding) with optional title / subtitle / actions header. Compose for any panel. `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids).', Preview: PreviewCard,
   },
   {
     name: 'SensorCard', category: 'cards',
@@ -1401,8 +1465,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'UpdateBadge', category: 'status',
     filePath: 'src/components/common/UpdateBadge/UpdateBadge.tsx',
-    description: 'Sidebar badge shown when a software update is available. Compact mode renders an icon-only button with a tooltip; full mode shows an icon + text strip. Clicking opens the UpdateModal.',
+    description: 'Top-bar green status button shown when a software update is available. Renders a TopBarStatusButton whose tooltip + action follow the update mode: notify opens the UpdateModal (release notes), staged installs immediately.',
     Preview: PreviewUpdateBadge,
+  },
+  {
+    name: 'TopBarStatusButton', category: 'status',
+    filePath: 'src/components/common/TopBarStatusButton/TopBarStatusButton.tsx',
+    description: 'Tinted icon-only alert button for the top bar\'s right cluster. Shares the bar\'s 32px icon-button footprint but stays coloured in its tone (warn = amber conflicts, good = green updates) to flag an active state; hover washes the same tone and the label shows as a bottom tooltip. Used by ConflictWarningBadge and UpdateBadge.',
+    Preview: PreviewTopBarStatusButton,
   },
   {
     name: 'UpdateModal', category: 'modals',
@@ -1577,6 +1647,12 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Mobile-only banner offering to open the current page in the native app via the hellonexus:// scheme. Detects platform, remembers dismissal per version suffix.',
     notes: 'No live preview - renders null outside a mobile browser context.',
   },
+  {
+    name: 'CanvasNoticeBar', category: 'status',
+    filePath: 'src/components/common/CanvasNoticeBar/CanvasNoticeBar.tsx',
+    description: 'Bottom-docked translucent notice bar overlaid on a preview canvas. pointer-events: none so it never blocks canvas interaction. Used to warn that a GPU shader effect previews in the browser but won\'t run on the service (no usable GPU).',
+    Preview: PreviewCanvasNoticeBar,
+  },
 
   // ── Panel kit ─────────────────────────────────────────────────────────
   {
@@ -1718,7 +1794,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ImmersiveLayout / ImmersiveCell', category: 'panel-kit',
     filePath: 'src/panel/widgets/common/ImmersiveLayout.tsx',
-    description: 'Layout grid for a widget\'s fullscreen immersive page: cellsPerPage adapts to the panel orientation (2 stacked on portrait, 2 side-by-side on landscape, 3 on Y70 portrait). ImmersiveCell wraps each region.',
+    description: 'Layout grid for a widget\'s fullscreen immersive page: cellsPerPage adapts to the panel grid (2 stacked on a 4x6/4x8 phone portrait, 2 side-by-side on landscape, 3 on Y70 portrait). ImmersiveCell wraps each region.',
     notes: 'No live preview - sized by the immersive overlay surface.',
   },
   {
@@ -1750,5 +1826,29 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/benchmark/BenchmarkPage.tsx',
     description: 'Tabbed desktop page for the Benchmark app: Run (hardware detection + start/progress/cancel), Results (scorecard + history sparkline), Leaderboards (public board with version filter). Tab state drives the URL subtab via onTabChange.',
     notes: 'No live preview -- requires a running service for the Run tab and cloud API for Leaderboards.',
+  },
+  {
+    name: 'LayoutToolbar', category: 'panel-kit',
+    filePath: 'src/panel/widgets/lighting/page/LayoutToolbar.tsx',
+    description: 'Toolbar for lighting canvas layout presets: preset dropdown (with Rename/Delete when active), Save / New / Reset icon buttons, Undo/Redo with keyboard shortcuts.',
+    notes: 'No live preview -- bound to live preset state via useLayoutPresets and requires a running service.',
+  },
+  {
+    name: 'CorsairDevicePage', category: 'panel-kit',
+    filePath: 'src/components/views/DevicePage/CorsairDevicePage.tsx',
+    description: 'Device settings page for the Corsair iCUE LINK Hub. Shows auto-detected connected devices (channel position badge, name, LED count, live RPM, live temperature) and navigation hints to the Cooling and Lighting pages.',
+    notes: 'No live preview - requires a running service with a connected Corsair iCUE LINK Hub.',
+  },
+  {
+    name: 'HomeAssistantWidget', category: 'panel-kit',
+    filePath: 'src/panel/widgets/home-assistant/HomeAssistantWidget.tsx',
+    description: 'Home Assistant tile widget (2x2 / 4x2): connection status dot, on/off entity count. Click opens the Home Assistant management page. Shows a "not configured" prompt when HA is not connected.',
+    notes: 'No live preview -- requires a running service with Home Assistant configured.',
+  },
+  {
+    name: 'HomeAssistantPage', category: 'panel-kit',
+    filePath: 'src/panel/widgets/home-assistant/HomeAssistantPage.tsx',
+    description: 'Home Assistant management page: setup form (URL + long-lived access token) or entity list (lights and switches grouped by area, with toggle, brightness slider, and color picker per entity).',
+    notes: 'No live preview -- requires a running service with Home Assistant configured.',
   },
 ];

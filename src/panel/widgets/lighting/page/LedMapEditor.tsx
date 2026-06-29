@@ -2,14 +2,16 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
   Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square, Sun, SunDim,
-  Pencil, Merge, Scissors, ListRestart, Lock, Users, Palette, Droplet, Lightbulb,
+  Pencil, Merge, Scissors, ListRestart, Lock, Users, Palette, Droplet, Lightbulb, CircleDot,
 } from 'lucide-react';
 import {
   fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
   highlightLeds, testLedPattern, clearLedEditor, postLedPreviewLayout,
-  setZoneLedCount, setLightingDeviceBrightness, setLightingDeviceColor,
+  setZoneLedCount, setLightingDeviceBrightness, setLightingDeviceColor, setHubComposition,
   type ApiEnvelope, type DeviceStructureResponse, type DeviceZone, type LightingDevice,
+  type HubCompositionPatch,
 } from '../../../../api/lighting';
+import { HubCompositionPanel } from './HubCompositionPanel';
 import { useTranslation } from '../../../../lib/i18n';
 import { useToast } from '../../../../components/common/Toast/Toast';
 import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceModal';
@@ -99,9 +101,11 @@ interface Props {
   onClose: () => void;
   /** Open with the community modal already stacked on top; the device-card community badge deep-links here. */
   initialCommunityOpen?: boolean;
+  /** Called after a hub composition change is confirmed. Receives the hubId so the parent can find matching devices. */
+  onCompositionChanged?: (hubId: string) => void;
 }
 
-export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizable, onClose, initialCommunityOpen }: Props) {
+export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizable, onClose, initialCommunityOpen, onCompositionChanged }: Props) {
   const { t } = useTranslation();
   const { push } = useToast();
 
@@ -131,6 +135,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [resetPartitionConfirm, setResetPartitionConfirm] = useState(false);
   const [resetMapConfirm, setResetMapConfirm] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
+  const [compositionConfirm, setCompositionConfirm] = useState(false);
+  const [pendingCompositionPatch, setPendingCompositionPatch] = useState<HubCompositionPatch | null>(null);
 
   // Locally staged partition (zone split / merge / rename / reset). Replaces
   // the loaded zone list for everything the editor renders, rides the same
@@ -185,7 +191,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [communityDialogOpen, setCommunityDialogOpen] = useState(false);
   const childDialogOpenRef = useRef(false);
   childDialogOpenRef.current = zonePrompt !== null || communityDialogOpen
-    || pendingDiscardAction !== null || resetPartitionConfirm || resetMapConfirm;
+    || pendingDiscardAction !== null || resetPartitionConfirm || resetMapConfirm || compositionConfirm;
 
   const [editorMode, setEditorMode] = useState<EditorMode>('animation');
 
@@ -1554,6 +1560,57 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setDirty(true);
   }, [getSelectedSorted, getSelectionUvBounds, pushUndo]);
 
+  const handleAlignCircle = useCallback(() => {
+    const sel = getSelectedSorted();
+    if (sel.length < 2) return;
+    const bounds = getSelectionUvBounds();
+    if (!bounds) return;
+    pushUndo();
+    const cu = (bounds.minU + bounds.maxU) / 2;
+    const cv = (bounds.minV + bounds.maxV) / 2;
+    // Aspect-correct so LEDs land on a visually round circle. With
+    // ar = rectRatio = width/height, one u-unit spans ar v-units worth of
+    // pixels, so a v-space radius rV equals a u-space radius rV/ar. rV is the
+    // largest radius (in v-units) that fits the selection in both axes:
+    // min(du/2 * ar, dv/2). Mirrors the correction in handleRotate90.
+    const ar = Math.max(0.01, rectRatio);
+    const rV = Math.min((bounds.maxU - bounds.minU) / 2 * ar, (bounds.maxV - bounds.minV) / 2);
+    const rU = rV / ar;
+    const byIndex = new Map<number, { u: number; v: number }>();
+    sel.forEach((led, i) => {
+      // Start at the top (angle -PI/2) and go clockwise.
+      const angle = (2 * Math.PI * i) / sel.length - Math.PI / 2;
+      byIndex.set(led.index, {
+        u: Math.max(0, Math.min(1, cu + Math.cos(angle) * rU)),
+        v: Math.max(0, Math.min(1, cv + Math.sin(angle) * rV)),
+      });
+    });
+    setLeds(prev => prev.map(l => {
+      const p = byIndex.get(l.index);
+      return p ? { ...l, u: p.u, v: p.v, isCustom: true } : l;
+    }));
+    setDirty(true);
+  }, [getSelectedSorted, getSelectionUvBounds, pushUndo, rectRatio]);
+
+  const handleCompositionChangeRequest = useCallback((patch: HubCompositionPatch) => {
+    setPendingCompositionPatch(patch);
+    setCompositionConfirm(true);
+  }, []);
+
+  const handleCompositionConfirm = useCallback(async () => {
+    const hub = structure?.hubComposition;
+    const patch = pendingCompositionPatch;
+    if (!hub || !patch) return;
+    setCompositionConfirm(false);
+    setPendingCompositionPatch(null);
+    const result = await setHubComposition(hub.hubKind, patch);
+    if (!result || result.error) {
+      push({ title: t('lighting.ledMap.hubCompositionFailed') });
+      return;
+    }
+    onCompositionChanged?.(hub.hubId);
+  }, [structure, pendingCompositionPatch, onCompositionChanged, push, t]);
+
   const handleDeleteSelected = useCallback(() => {
     if (selected.size === 0) return;
     pushUndo();
@@ -1929,6 +1986,12 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         <div className={styles.loading}>{t('lighting.ledMap.title')}...</div>
       ) : (
         <div className={styles.content}>
+          {structure?.hubComposition && (
+            <HubCompositionPanel
+              composition={structure.hubComposition}
+              onChange={handleCompositionChangeRequest}
+            />
+          )}
           {showZonesBar && (
             <div className={styles.zonesBar}>
               <span className={styles.zonesLabel}>{t('lighting.ledMap.zones')}</span>
@@ -2400,6 +2463,16 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                         <Grid3x3 size={14} />
                       </button>
                     </HoverTooltip>
+                    <HoverTooltip body={t('lighting.ledMap.alignCircle')} side="top">
+                      <button
+                        type="button"
+                        className={styles.selectionBtn}
+                        onClick={handleAlignCircle}
+                        aria-label={t('lighting.ledMap.alignCircle')}
+                      >
+                        <CircleDot size={14} />
+                      </button>
+                    </HoverTooltip>
                     <HoverTooltip body={t('lighting.ledMap.rotate90')} side="top">
                       <button
                         type="button"
@@ -2633,6 +2706,16 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         destructive
         onConfirm={handleResetPartitionConfirm}
         onCancel={() => setResetPartitionConfirm(false)}
+      />
+      <ConfirmModal
+        open={compositionConfirm}
+        title={t('lighting.ledMap.hubCompositionConfirmTitle')}
+        message={t('lighting.ledMap.hubCompositionConfirmMessage')}
+        confirmLabel={t('lighting.ledMap.hubCompositionConfirmApply')}
+        cancelLabel={t('lighting.ledMap.keepEditing')}
+        destructive
+        onConfirm={() => { void handleCompositionConfirm(); }}
+        onCancel={() => { setCompositionConfirm(false); setPendingCompositionPatch(null); }}
       />
       <ConfirmModal
         open={resetMapConfirm}

@@ -1,0 +1,209 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+  min-height: 0;
+  padding: 0 0 1rem;
+  box-sizing: border-box;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 1.5rem;
+}
+
+// Fill + scroll inside an ImmersiveLayout cell (Touch facet).
+.bodyImmersive {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+// Setup form (shown when not configured or on connection error).
+.setupCard {
+  padding: 1.25rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 480px;
+}
+
+.setupPrompt {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.formLabel {
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+
+.formInput {
+  width: 100%;
+  padding: 7px 10px;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+  transition: border-color var(--ease-fast);
+  box-sizing: border-box;
+
+  &:hover { border-color: var(--border-strong); }
+  &:focus { border-color: var(--accent); }
+}
+
+.guideList {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.guideLink {
+  font-size: var(--type-small);
+  align-self: flex-start;
+}
+
+.connectRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.error {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--bad);
+}
+
+// Entity list (shown when configured + connected).
+.entityList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.categoryCount {
+  margin-left: auto;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
+// Responsive tile grid inside each area CollapsibleSection.
+.tileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem;
+}
+
+// Flex row: circular badge on the left, name+state on the right.
+.tileInner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  &[data-unreachable='true'] { opacity: 0.5; }
+}
+
+// Circular icon-badge button. Tinted via inline style when the entity is on.
+.tileBadge {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--gauge-track);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  &[data-on='true'] { color: var(--accent-text); }
+  &:disabled { opacity: 0.45; cursor: default; }
+  &:not(:disabled):hover { filter: brightness(1.12); }
+}
+
+.tileInfo {
+  min-width: 0;
+  flex: 1;
+}
+
+.tileName {
+  font-weight: var(--weight-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tileState {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// More-info detail dialog surface (Overlay className override).
+.moreInfoDialog {
+  background: var(--backdrop-base);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  width: min(380px, 100%);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: var(--shadow-xl);
+}
+
+.moreInfoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.moreInfoTitle {
+  margin: 0;
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moreInfoBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}

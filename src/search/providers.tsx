@@ -9,6 +9,7 @@ import { postService } from '../api/service';
 import { COOLING_PRESETS, type CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { getCatalogEntries } from '../panel/widgets/registry';
+import { DEV_TOOLS } from '../lib/devTools';
 import type { CommandContext, SearchEntry, SearchSource } from './types';
 import { requestSearchScroll } from './scroll';
 import styles from './TopSearch.module.scss';
@@ -114,7 +115,7 @@ const ACCENT_NAMES: Record<string, string> = {
 const LANG_EN: Record<string, string> = {
   en: 'English', 'zh-TW': 'Chinese Traditional', 'zh-CN': 'Chinese Simplified', ja: 'Japanese', ko: 'Korean',
   de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese', 'pt-BR': 'Portuguese Brazil',
-  ru: 'Russian', tr: 'Turkish', pl: 'Polish',
+  ru: 'Russian', tr: 'Turkish', pl: 'Polish', fur: 'Friulian',
 };
 
 // Lighting modes, keyed by the canonical MODES. `apply` present → runs now;
@@ -161,11 +162,11 @@ const standalonePages: SearchSource = (ctx) => [
     keywords: ['profile', 'profiles', 'preset', 'switch', 'manage'],
     to: () => ctx.host.goView('profiles'),
   }),
-  go('page:tools', {
+  ...(DEV_TOOLS ? [go('page:tools', {
     title: ctx.t('settings.tab.tools'), icon: <FlaskConical size={18} />,
     keywords: ['developer', 'dev tools', 'debug', 'advanced', 'storybook', 'diagnostics'],
     to: () => ctx.host.goView('tools'),
-  }),
+  })] : []),
 ];
 
 // Every installed app that ships a page - built-ins plus installed marketplace
@@ -296,10 +297,10 @@ const remoteAccess: SearchSource = (ctx) => {
 
 // Boolean settings as single toggles (the action half), paired with the
 // settings-item entries above that open the tab. Generic over UiSettingsValue.
-const TOGGLES: { id: string; labelKey: string; field: 'showWindowsTrayIcon' | 'showMacStatusBarIcon' | 'disableConflictAlerts'; words: string[] }[] = [
+const TOGGLES: { id: string; labelKey: string; field: 'showWindowsTrayIcon' | 'showMacStatusBarIcon' | 'showConflictAlerts'; words: string[] }[] = [
   { id: 'tray',    labelKey: 'settings.windowsTray.label',  field: 'showWindowsTrayIcon', words: ['tray', 'icon', 'windows', 'taskbar', 'notification area'] },
   { id: 'menubar', labelKey: 'settings.macStatusBar.label', field: 'showMacStatusBarIcon', words: ['menu bar', 'status bar', 'macos', 'mac', 'icon'] },
-  { id: 'alerts',  labelKey: 'settings.alerts.label',       field: 'disableConflictAlerts', words: ['conflict', 'alerts', 'warnings', 'notifications'] },
+  { id: 'alerts',  labelKey: 'settings.alerts.label',       field: 'showConflictAlerts', words: ['conflict', 'alerts', 'warnings', 'notifications'] },
 ];
 const settingsToggles: SearchSource = (ctx) =>
   TOGGLES.map(({ id, labelKey, field, words }) => toggleEntry(`toggle:${id}`, {

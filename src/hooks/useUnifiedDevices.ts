@@ -48,18 +48,24 @@ const CATEGORY_ICONS: Record<string, string> = {
   gamepad: '/assets/devices/gamepad.svg',
   display: '/assets/devices/y70.svg',
   controller: '/assets/devices/cnvs.svg',
-  hub: '/assets/devices/fan-hub.svg',
 };
 
 const CURATED_ICONS: Record<string, string> = {
   cnvs: '/assets/devices/cnvs.svg',
+  corsair: '/assets/devices/corsair.svg',
+  lianli: '/assets/devices/lianli.svg',
   // Q60 and Q80 share the QSeriesHandler (id 'qseries') on the service side.
   // Use the Q60 art as the family icon since the silhouettes are nearly
   // identical at thumbnail size.
   qseries: '/assets/devices/q60.svg',
   y70: '/assets/devices/y70.svg',
   keeb: '/assets/devices/keeb.svg',
-  'fan-hub': '/assets/devices/fan-hub.svg',
+  np50: '/assets/devices/np50.svg',
+  'fan-hub': '/assets/devices/ibuypower.svg',
+  smarthub: '/assets/devices/smarthub.svg',
+  'lianli-tl': '/assets/devices/lianli.svg',
+  'lianli-aio': '/assets/devices/lianli.svg',
+  strimer: '/assets/devices/device.svg',
 };
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
@@ -73,8 +79,13 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   // "Q80") on the device record; overriding would collapse both to
   // "Q-series".
   cnvs: 'CNVS',
+  corsair: 'Corsair iCUE LINK Hub',
   keeb: 'Keeb',
+  lianli: 'Lian Li Uni Hub',
   'fan-hub': 'iBUYPOWER MiniHub',
+  'lianli-tl': 'Lian Li Uni Fan TL',
+  'lianli-aio': 'Lian Li Galahad II',
+  strimer: 'Lian Li Strimer',
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';

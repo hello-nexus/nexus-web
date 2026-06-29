@@ -31,6 +31,14 @@ export function useShaderRenderer(
   const epochRef = useRef(0);
   const uniformsRef = useRef<Record<string, WebGLUniformLocation | null>>({});
   const compiledRef = useRef<string | null>(null);
+  // Beat Builder peak-holds and history ring (reused across frames).
+  const levelPeakRef = useRef(0);
+  const bassPeakRef = useRef(0);
+  const midPeakRef = useRef(0);
+  const highPeakRef = useRef(0);
+  // 16-band × 16-frame history; index = frame*16 + band, frame 0 = newest.
+  const histRingRef = useRef(new Float32Array(256));
+  const lastSnapshotRef = useRef<AudioSnapshot | null>(null);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +131,8 @@ export function useShaderRenderer(
         'u_hue', 'u_colorize', 'u_saturation', 'u_contrast',
         'u_audioLevel', 'u_audioBass', 'u_audioMid', 'u_audioHigh',
         'u_audioBeat', 'u_audioBoost', 'u_spectrum',
+        'u_spectrum64', 'u_specHist',
+        'u_levelPeak', 'u_bassPeak', 'u_midPeak', 'u_highPeak',
       ];
       const cache: Record<string, WebGLUniformLocation | null> = {};
       for (const n of names) cache[n] = gl.getUniformLocation(prog, n);
@@ -169,6 +179,26 @@ export function useShaderRenderer(
         if (u.u_contrast) g.uniform1f(u.u_contrast, st.contrast);
 
         const audio = audioRef?.current;
+
+        if (audio !== lastSnapshotRef.current) {
+          lastSnapshotRef.current = audio ?? null;
+          if (audio) {
+            levelPeakRef.current = Math.max(levelPeakRef.current * 0.90, audio.level);
+            bassPeakRef.current  = Math.max(bassPeakRef.current  * 0.90, audio.bass);
+            midPeakRef.current   = Math.max(midPeakRef.current   * 0.90, audio.mid);
+            highPeakRef.current  = Math.max(highPeakRef.current  * 0.90, audio.high);
+            histRingRef.current.copyWithin(16, 0, 240);
+            const sp = audio.spectrum;
+            for (let i = 0; i < 16; i++) histRingRef.current[i] = sp[i] ?? 0;
+          } else {
+            levelPeakRef.current = 0;
+            bassPeakRef.current  = 0;
+            midPeakRef.current   = 0;
+            highPeakRef.current  = 0;
+            histRingRef.current.fill(0);
+          }
+        }
+
         if (u.u_audioLevel) g.uniform1f(u.u_audioLevel, audio?.level ?? 0);
         if (u.u_audioBass) g.uniform1f(u.u_audioBass, audio?.bass ?? 0);
         if (u.u_audioMid) g.uniform1f(u.u_audioMid, audio?.mid ?? 0);
@@ -176,6 +206,12 @@ export function useShaderRenderer(
         if (u.u_audioBeat) g.uniform1f(u.u_audioBeat, audio?.beat ?? 0);
         if (u.u_audioBoost) g.uniform1f(u.u_audioBoost, audio ? (st.params?.u_audioBoost ?? 1) : 0);
         if (u.u_spectrum) g.uniform1fv(u.u_spectrum, audio?.spectrum ?? new Float32Array(16));
+        if (u.u_spectrum64) g.uniform1fv(u.u_spectrum64, audio?.spectrum64 ?? new Float32Array(64));
+        if (u.u_specHist) g.uniform4fv(u.u_specHist, histRingRef.current);
+        if (u.u_levelPeak) g.uniform1f(u.u_levelPeak, levelPeakRef.current);
+        if (u.u_bassPeak)  g.uniform1f(u.u_bassPeak,  bassPeakRef.current);
+        if (u.u_midPeak)   g.uniform1f(u.u_midPeak,   midPeakRef.current);
+        if (u.u_highPeak)  g.uniform1f(u.u_highPeak,  highPeakRef.current);
 
         if (st.params) {
           for (const [key, val] of Object.entries(st.params)) {

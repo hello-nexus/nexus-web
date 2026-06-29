@@ -31,7 +31,7 @@ export function SettingsView({ serviceOnline, connectionState, platform }: Setti
       backgroundMode: ui.backgroundMode,
       accentSource: ui.accentSource,
       startOnLogin: ui.startOnLogin,
-      disableConflictAlerts: ui.disableConflictAlerts,
+      showConflictAlerts: ui.showConflictAlerts,
       monitoringShowAverage: ui.monitoringShowAverage,
       monitoringDetailedCollapsed: ui.monitoringDetailedCollapsed,
       showMacStatusBarIcon: ui.showMacStatusBarIcon,

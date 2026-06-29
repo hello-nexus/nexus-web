@@ -22,8 +22,19 @@ app.get('/.well-known/apple-app-site-association', (_req, res) => {
   });
 });
 
+// Android App Links fetch /.well-known/assetlinks.json - same dotfile-dir
+// problem as the Apple file above: express.static skips it and the SPA
+// catchall returns index.html, so Play can't verify the link.
+app.get('/.well-known/assetlinks.json', (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.type('application/json');
+  res.sendFile(join(__dirname, 'dist', '.well-known', 'assetlinks.json'), {
+    dotfiles: 'allow',
+  });
+});
+
 // Public installer download redirects. The actual binaries live in
-// hello-nexus/nexus-releases (a separate public repo); these routes 302 to
+// hello-nexus/nexus (a separate public repo); these routes 302 to
 // GitHub's `latest/download/<asset>` alias so the URLs we hand out from
 // hellonexus.com / marketing material never need to change when we cut a
 // new version. `Cache-Control: no-store` prevents Cloudflare (in front of
@@ -33,7 +44,7 @@ app.get('/.well-known/apple-app-site-association', (_req, res) => {
 // Linux is intentionally absent: there's no Linux build published yet, so
 // Linux UAs and any /download/linux hit fall through to the SPA, which
 // shows the chooser with a "coming soon" affordance instead of a 404.
-const RELEASES_BASE = 'https://github.com/hello-nexus/nexus-releases/releases/latest/download';
+const RELEASES_BASE = 'https://github.com/hello-nexus/nexus/releases/latest/download';
 const DOWNLOAD_ASSETS = {
   windows: 'Nexus-Setup.exe',
   macos: 'Nexus.dmg',

@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
 import { EFFECTS, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
 import { Slider } from '../../../../components/common/Slider/Slider';
+import { Select } from '../../../../components/common/Select/Select';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { EffectTemplateSelector } from '../../../../components/common/EffectTemplateSelector/EffectTemplateSelector';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
@@ -58,8 +59,10 @@ export const EffectControls = memo(function EffectControls({
             onCommit={onCommit}
           />
         </div>
-        <Slider orientation="stacked" editable trackFill label={t('lighting.controls.speed')} value={state.speed} min={-100} max={100} zeroMarker
-          onChange={(v, commit) => onChange({ speed: v }, commit)} onCommit={onCommit} />
+        {!def.hideSpeed && (
+          <Slider orientation="stacked" editable trackFill label={t('lighting.controls.speed')} value={state.speed} min={-100} max={100} zeroMarker
+            onChange={(v, commit) => onChange({ speed: v }, commit)} onCommit={onCommit} />
+        )}
         <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')} value={Math.round(state.saturation * 100)} min={0} max={400}
           onChange={(v, commit) => onChange({ saturation: v / 100 }, commit)} onCommit={onCommit} />
         <Slider orientation="stacked" editable trackFill label={t('lighting.controls.contrast')} value={Math.round(state.contrast * 100)} min={0} max={400}
@@ -69,12 +72,27 @@ export const EffectControls = memo(function EffectControls({
             onChange={(v, commit) => onChange({ intensity: v / 100 }, commit)} onCommit={onCommit} />
         )}
         {def.params.map(p => {
+          const label = p.labelKey ? t(p.labelKey) : p.label;
+          if (p.options) {
+            const currentVal = Math.round(state.params[p.name] ?? p.defaultValue);
+            return (
+              <div key={p.name} className={styles.paramEnumRow}>
+                <span className={styles.paramEnumLabel}>{label}</span>
+                <Select
+                  ariaLabel={label}
+                  options={p.options.map(o => ({ value: String(o.value), label: t(o.labelKey) }))}
+                  value={String(currentVal)}
+                  onChange={v => onChange({ params: { ...state.params, [p.name]: Number(v) } }, true)}
+                />
+              </div>
+            );
+          }
           const scale = p.step < 1 ? Math.round(1 / p.step) : 1;
           const displayValue = Math.round((state.params[p.name] ?? p.defaultValue) * scale);
           const min = Math.round(p.min * scale);
           const max = Math.round(p.max * scale);
           return (
-            <Slider orientation="stacked" editable trackFill key={p.name} label={p.label} value={displayValue} min={min} max={max}
+            <Slider orientation="stacked" editable trackFill key={p.name} label={label} value={displayValue} min={min} max={max}
               onChange={(v, commit) => onChange({ params: { ...state.params, [p.name]: v / scale } }, commit)}
               onCommit={onCommit} />
           );

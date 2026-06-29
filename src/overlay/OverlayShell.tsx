@@ -3,6 +3,7 @@ import {
   listOverlayWidgets,
   patchOverlayWidget,
   deleteOverlayWidget,
+  setAllOverlayWidgetsLocked,
   type OverlayWidgetDto,
 } from '../api/overlay';
 import { fetchService, postService } from '../api/service';
@@ -325,10 +326,14 @@ export default function OverlayShell() {
         id: entry.id,
         ...widgetPixelRect(entry.col, entry.row, entry.size, cellPx),
       }));
-      // Edit sheet rect takes priority over the context menu rect when both
-      // happen to be open (e.g. quick reopen). With neither, we report just
-      // widget rects so the rest of the WebView2 stays click-through.
-      const popover = editingSheetRect ?? menuRect;
+      // While the edit sheet is open, make the whole overlay hit-testable so a
+      // click anywhere outside the sheet reaches the SPA and dismisses it. The
+      // WebView2 composites transparent pixels, so the desktop still shows
+      // through the empty areas; only input capture changes. The context menu
+      // keeps its tight carve-out so clicks elsewhere fall through to it.
+      const popover = editingSheetRect
+        ? { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight }
+        : menuRect;
       if (popover) {
         reportLayoutWithPopover(widgetRects, popover);
       } else {
@@ -392,18 +397,33 @@ export default function OverlayShell() {
     if (ok) await reload();
   }, [reload]);
 
-  // While either the context menu or the edit sheet is open, force the
-  // desktop overlay always-on-top so the popover can't slip behind another
-  // window. Whenever both close, restore the user's persisted value. The
-  // ref keeps the latest saved value accessible without re-firing this
-  // effect when prefs broadcasts arrive mid-popover. No POST to
-  // /preferences here - the persisted setting is unchanged.
-  const alwaysOnTopRef = useRef(alwaysOnTop);
-  useEffect(() => { alwaysOnTopRef.current = alwaysOnTop; }, [alwaysOnTop]);
-  const popoverOpen = menu !== null || editingWidgetId !== null;
+  const handleToggleLock = useCallback(async (id: string) => {
+    setMenu(null);
+    const entry = layout.find(w => w.id === id);
+    if (!entry) return;
+    const next = !entry.locked;
+    setLayout(prev => prev.map(w => w.id === id ? { ...w, locked: next } : w));
+    await patchOverlayWidget(id, { locked: next });
+  }, [layout]);
+
+  const handleSetAllLocked = useCallback(async (locked: boolean) => {
+    setMenu(null);
+    setLayout(prev => prev.map(w => ({ ...w, locked })));
+    await setAllOverlayWidgetsLocked(locked);
+  }, []);
+
+  // Desktop overlay z-order = transient raise OR the persisted always-on-top
+  // pref. Raise while a context menu / edit sheet is open or a widget is being
+  // dragged so the active widget and its popover float above other windows;
+  // otherwise honor the saved pref. Re-applied whenever either input changes,
+  // so toggling always-on-top (or a prefs broadcast carrying it) reaches the
+  // host even with no interaction. A broadcast mid-interaction still posts true
+  // because `raised` dominates, so it can't sink the window under the user. No
+  // POST to /preferences here - the persisted setting is unchanged.
+  const raised = menu !== null || editingWidgetId !== null || dragOverride !== null;
   useEffect(() => {
-    postToHost({ type: 'setAlwaysOnTop', value: popoverOpen ? true : alwaysOnTopRef.current });
-  }, [popoverOpen]);
+    postToHost({ type: 'setAlwaysOnTop', value: raised || alwaysOnTop });
+  }, [raised, alwaysOnTop]);
 
   // Reset the slot picker any time we open the editor on a new widget,
   // matching PanelApp's expected starting state (slot 0).
@@ -434,6 +454,7 @@ export default function OverlayShell() {
             entry={entry}
             cellPx={cellPx}
             contentZoom={scaleFactor}
+            locked={!!entry.locked}
             isDragging={dragOverride?.id === entry.id}
             selectedSlot={editingThis ? selectedMonitoringSlot : undefined}
             onSelectSlot={editingThis ? setSelectedMonitoringSlot : undefined}
@@ -470,10 +491,14 @@ export default function OverlayShell() {
             removeLabel={t('overlay.unpin')}
             alwaysOnTop={alwaysOnTop}
             onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
+            locked={!!entry?.locked}
+            onToggleLock={() => { if (entry) void handleToggleLock(entry.id); }}
+            onLockAll={() => { void handleSetAllLocked(true); }}
+            onUnlockAll={() => { void handleSetAllLocked(false); }}
             onOpenDashboard={handleOpenDashboard}
             onBoundsChange={setMenuRect}
-            onResize={size => { if (entry) void handleResize(entry.id, size); }}
-            onEdit={() => { if (entry) setEditingWidgetId(entry.id); }}
+            onResize={size => { if (entry && !entry.locked) void handleResize(entry.id, size); }}
+            onEdit={() => { if (entry && !entry.locked) setEditingWidgetId(entry.id); }}
             onRemove={() => { if (entry) void handleUnpin(entry.id); }}
             onClose={() => setMenu(null)}
           />
@@ -530,6 +555,7 @@ interface TileProps {
   entry: OverlayWidgetDto;
   cellPx: number;
   contentZoom: number;
+  locked: boolean;
   isDragging: boolean;
   selectedSlot?: number;
   onSelectSlot?: (slot: number) => void;
@@ -540,7 +566,7 @@ interface TileProps {
   onDragEnd: (col: number, row: number) => void;
 }
 
-function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlot, onSelectSlot, editView, onEditViewChange, onContextMenu, onDragMove, onDragEnd }: TileProps) {
+function OverlayWidgetTile({ entry, cellPx, contentZoom, locked, isDragging, selectedSlot, onSelectSlot, editView, onEditViewChange, onContextMenu, onDragMove, onDragEnd }: TileProps) {
   const def = APP_REGISTRY[entry.type];
   const w = widthCells(entry.size);
   const h = heightCells(entry.size);
@@ -559,8 +585,10 @@ function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlo
   // falls through to inner controls (calculator buttons, sliders) as a click.
   // Past the threshold, capture the pointer to the container so subsequent
   // moves arrive regardless of which inner element is under the cursor.
+  // A locked widget never starts a drag; the pointerdown falls through so
+  // its inner controls keep working.
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 || locked) return;
     const startX = event.clientX;
     const startY = event.clientY;
     const originCol = entry.col;
@@ -624,6 +652,7 @@ function OverlayWidgetTile({ entry, cellPx, contentZoom, isDragging, selectedSlo
       style={{ left, top, width, height }}
       data-widget-id={entry.id}
       data-dragging={isDragging ? 'true' : 'false'}
+      data-locked={locked ? 'true' : 'false'}
       onContextMenu={onContext}
       onPointerDown={onPointerDown}
     >

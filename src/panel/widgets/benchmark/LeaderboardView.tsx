@@ -4,6 +4,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { getLeaderboard, getLastSubmissionId } from '../../../api/nexusApi';
 import type { LeaderboardEntry, LeaderboardResponse } from '../../../types/benchmark';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
+import { Button } from '../../../components/common/Button/Button';
 import { Select } from '../../../components/common/Select/Select';
 import styles from './LeaderboardView.module.scss';
 
@@ -15,6 +16,7 @@ export function LeaderboardView() {
   const [scoringVersion, setScoringVersion] = useState('');
   const [allVersions, setAllVersions] = useState<string[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const myId = getLastSubmissionId();
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function LeaderboardView() {
       setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [scoringVersion]);
+  }, [scoringVersion, reloadKey]);
 
   const toggleRow = (id: string) => {
     setExpandedId(prev => (prev === id ? null : id));
@@ -71,6 +73,11 @@ export function LeaderboardView() {
           <EmptyState
             icon={<Trophy size={32} />}
             title={t('benchmark.leaderboard.error')}
+            action={
+              <Button tone="ghost" onClick={() => setReloadKey(k => k + 1)}>
+                {t('benchmark.leaderboard.retry')}
+              </Button>
+            }
           />
         )}
 
@@ -173,9 +180,6 @@ function EntryDetail({ entry }: { entry: LeaderboardEntry }) {
           {/* eslint-disable-next-line i18next/no-literal-string -- Storage is a hardware category proper noun */}
           <li><span className={styles.detailKey}>Storage</span> {entry.hardware.storageModel}</li>
           <li><span className={styles.detailKey}>{t('benchmark.leaderboard.os')}</span> {entry.hardware.os}</li>
-          <li>
-            {t('benchmark.leaderboard.cores', { n: String(entry.hardware.logicalCores) })}
-          </li>
         </ul>
       </div>
 

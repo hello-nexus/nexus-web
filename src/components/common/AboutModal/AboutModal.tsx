@@ -1,12 +1,15 @@
+import { useEffect, useState } from 'react';
 import { ExternalLink, Globe } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { GithubGlyph, NexusWordmark } from '../../icons/NexusBrand';
+import { pingService } from '../../../api/service';
 import styles from './AboutModal.module.scss';
 
 interface AboutModalProps {
   open: boolean;
   onClose: () => void;
+  onCheckUpdate: () => void;
 }
 
 // Third-party open-source projects Nexus bundles. Names are proper nouns
@@ -22,8 +25,15 @@ const OSS_PROJECTS = [
 
 // "About Nexus" dialog opened from the top-bar "..." menu: brand, build
 // version, our links, and open-source acknowledgements.
-export function AboutModal({ open, onClose }: AboutModalProps) {
+export function AboutModal({ open, onClose, onCheckUpdate }: AboutModalProps) {
   const { t } = useTranslation();
+  const [liveVersion, setLiveVersion] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    pingService().then(p => { if (!cancelled && p?.version) setLiveVersion(p.version); });
+    return () => { cancelled = true; };
+  }, [open]);
   if (!open) return null;
 
   return (
@@ -32,7 +42,10 @@ export function AboutModal({ open, onClose }: AboutModalProps) {
       <div className={styles.hero}>
         <img className={styles.logo} src="/nexus-mark-color.png" alt="" width={84} height={84} />
         <NexusWordmark height={26} />
-        <div className={styles.version}>{t('about.versionAlpha', { version: __APP_VERSION__ })}</div>
+        <div className={styles.version}>{t('about.version', { version: liveVersion ?? __APP_VERSION__ })}</div>
+        <button type="button" className={styles.checkUpdateLink} onClick={() => { onClose(); onCheckUpdate(); }}>
+          {t('about.checkUpdate')}
+        </button>
       </div>
 
       <div className={styles.links}>

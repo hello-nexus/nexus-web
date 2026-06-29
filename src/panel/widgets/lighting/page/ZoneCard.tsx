@@ -7,6 +7,7 @@ import { cardEnabledLedCount } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
 import { isMultiSelectModifier } from '../../../../lib/platform';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { DeviceNotice } from './DeviceNotice';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
 
@@ -29,6 +30,7 @@ export function ZoneCard({
   communityCount,
   onOpenCommunity,
   firmwareControlled,
+  notice,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -49,6 +51,8 @@ export function ZoneCard({
   onOpenCommunity?: () => void;
   /** When true, the card is dimmed and non-interactive; the meta row shows a firmware badge. */
   firmwareControlled?: boolean;
+  /** Optional advisory shown via an (i) next to the device name. */
+  notice?: string;
 }) {
   const { t } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
@@ -85,14 +89,19 @@ export function ZoneCard({
       ].filter(Boolean).join(' ')}
       onClick={e => { if (!unavailable && !firmwareControlled) onSelect(isMultiSelectModifier(e)); }}
     >
-      <span className={styles.deviceName}>{displayName ?? device.name}</span>
+      <div className={styles.deviceNameRow}>
+        <span className={styles.deviceName}>{displayName ?? device.name}</span>
+        {notice != null && !unavailable && <DeviceNotice notice={notice} />}
+      </div>
       <div className={styles.deviceMetaRow}>
         {firmwareControlled ? (
-          <span className={styles.deviceMetaFirmware}>
-            {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-            <Cpu className={styles.deviceMetaIcon} aria-hidden="true" />
-            {t('lighting.devices.smarthub.firmwareBadge')}
-          </span>
+          <HoverTooltip body={t('lighting.devices.firmwareTooltip')} side="top">
+            <span className={styles.deviceMetaFirmware}>
+              {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+              <Cpu className={styles.deviceMetaIcon} aria-hidden="true" />
+              {t('lighting.devices.smarthub.firmwareBadge')}
+            </span>
+          </HoverTooltip>
         ) : unavailable ? (
           <span className={styles.deviceMetaUnavailable}>
             {t('lighting.devices.detectionFailed')}

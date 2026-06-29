@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Gamepad2 } from 'lucide-react';
+import { Gamepad2, Music } from 'lucide-react';
 import {
   startAnimate, startScreenMirror, stopLighting, startGameSync,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
@@ -7,11 +7,15 @@ import {
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
   steamArtworkUrl, resolveActiveGame,
+  resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
-  type GameSyncGame,
+  type GameSyncGame, type DeviceLayoutDto,
 } from '../../../api/lighting';
+import { useUndoRedo } from '../../../hooks/useUndoRedo';
+import { useLayoutPresets, devicesToLayouts } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
+import { getLianLiLighting } from '../../../api/lianli';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
 import { useLightingSync } from '../../../hooks/useLightingSync';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -70,6 +74,20 @@ interface LightingViewProps {
 
 const DEFAULT_POST_PROCESS: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
 
+interface LayoutHistorySnapshot {
+  layouts: Record<string, DeviceLayoutDto>;
+  activeId: string | null;
+}
+
+// Module scope so the layout undo/redo history survives LightingPage's unmount
+// on navigation. Session-only; not persisted to storage. Assumes one mounted
+// LightingPage - two concurrent instances would share and clobber this history.
+let layoutHistoryStacks: { undo: LayoutHistorySnapshot[]; redo: LayoutHistorySnapshot[] } | null = null;
+const layoutHistoryStore = {
+  read: () => layoutHistoryStacks,
+  write: (s: { undo: LayoutHistorySnapshot[]; redo: LayoutHistorySnapshot[] }) => { layoutHistoryStacks = s; },
+};
+
 const RIGHT_PANE_TAB_KEY = 'lighting.rightPaneTab';
 function loadRightPaneTab(): RightPaneTab {
   try {
@@ -110,7 +128,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   };
   const [devices, setDevices] = useState<LightingDevice[]>([]);
   const deviceDraggingRef = useRef(false);
-  const handleDragActiveChange = useCallback((active: boolean) => { deviceDraggingRef.current = active; }, []);
+  const pushLayoutRef = useRef<((snap: LayoutHistorySnapshot) => void) | null>(null);
+  const layoutActiveIdRef = useRef<string | null>(null);
+  const handleDragActiveChange = useCallback((active: boolean) => {
+    deviceDraggingRef.current = active;
+  }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Multi-selection on the canvas + right-side device panel. The set drives
   // visual highlighting on both surfaces; `primaryDeviceId` is the single
@@ -127,9 +149,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setSelectedDeviceIds(ids);
     setPrimaryDeviceId(primary);
   }, []);
+  const handleBeforeLayoutSave = useCallback(() => {
+    pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
+  }, []);
   const [catalogOpen, setCatalogOpen] = useState(false);
 
   const [smartHubFirmwareControl, setSmartHubFirmwareControlState] = useState(false);
+  const [lianLiMode, setLianLiMode] = useState<string | null>(null);
+  // true when the hub's active lighting mode is not 'custom' (firmware animation overrides per-LED engine).
+  const lianLiFirmwareActive = lianLiMode !== null && lianLiMode !== 'custom';
 
   const handleSetSmartHubFirmwareControl = useCallback(async (enabled: boolean) => {
     setSmartHubFirmwareControlState(enabled);
@@ -202,6 +230,36 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const handleOpenCommunity = useCallback((id: string) => {
     openEditorFor(id, true);
   }, [openEditorFor]);
+
+  // After a hub composition change the device set may have changed (ports added/
+  // removed, mirror toggled). Refetch devices and re-target the editor to the
+  // first device that belongs to the same hub. The epoch counter forces the
+  // editor to remount even when the deviceId doesn't change, so load() re-fires.
+  const [compositionEpoch, setCompositionEpoch] = useState(0);
+  const handleCompositionChanged = useCallback(async (hubId: string) => {
+    const data = await fetchLightingDevices();
+    if (!data) return;
+    const next = (data.devices ?? []).map(d => ({
+      ...d,
+      canvasW: Math.max(60, d.canvasW),
+      canvasH: Math.max(60, d.canvasH),
+    }));
+    setDevices(next);
+    // Re-target the editor to the hub's first device. Match on parentDeviceId
+    // (the exact hub identity each card carries) so a multi-hub setup can't be
+    // mis-targeted by a shared id prefix.
+    const match = next.find(d => d.parentDeviceId === hubId);
+    if (match) {
+      setEditorTarget({
+        deviceId: match.deviceId || match.id,
+        zoneId: match.id,
+        zoneCustomizable: match.zoneCustomizable === true,
+      });
+      setCompositionEpoch(e => e + 1);
+    } else {
+      setEditorTarget(null);
+    }
+  }, []);
 
   // Cached community-layout counts for the device-card badges. Cache-only on
   // the service side, so a single fetch per page mount is enough.
@@ -796,6 +854,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     getSmartHubFirmwareControl().then(v => {
       if (!cancelled && v !== null) setSmartHubFirmwareControlState(v);
     }).catch(() => {});
+    getLianLiLighting().then(data => {
+      if (!cancelled && data) setLianLiMode(data.mode);
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, [serviceOnline]);
 
@@ -804,6 +865,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       if (!serviceOnline) return;
       getSmartHubFirmwareControl().then(v => {
         if (v !== null) setSmartHubFirmwareControlState(v);
+      }).catch(() => {});
+      getLianLiLighting().then(data => {
+        if (data) setLianLiMode(data.mode);
       }).catch(() => {});
     };
     window.addEventListener('focus', onFocus);
@@ -819,6 +883,99 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (prevScanningRef.current && !rgb.scanning) void refreshDevices();
     prevScanningRef.current = rgb.scanning;
   }, [rgb.scanning, refreshDevices]);
+
+  const {
+    presets, activeId: layoutActiveId,
+    presetCount, loadPresets,
+    handleCreate: handlePresetCreate,
+    handleRename: handlePresetRename,
+    handleDelete: handlePresetDelete,
+    handleLoad: handlePresetLoad,
+  } = useLayoutPresets(serviceOnline);
+
+  layoutActiveIdRef.current = layoutActiveId;
+
+  const undoRedoRef = useRef<{
+    undo: (current: LayoutHistorySnapshot) => LayoutHistorySnapshot | null;
+    redo: (current: LayoutHistorySnapshot) => LayoutHistorySnapshot | null;
+  }>({ undo: () => null, redo: () => null });
+
+  const handleUndoLayout = useCallback(async () => {
+    const current: LayoutHistorySnapshot = { layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current };
+    const restored = undoRedoRef.current.undo(current);
+    if (!restored) return;
+    await applyDeviceLayouts(restored.layouts);
+    if (restored.activeId !== layoutActiveIdRef.current) {
+      await setActiveLayoutPreset(restored.activeId);
+    }
+    if (restored.activeId) {
+      await updateLayoutPreset(restored.activeId, { saveCurrent: true });
+    }
+    await loadPresets();
+    await refreshDevices();
+  }, [loadPresets, refreshDevices]);
+
+  const handleRedoLayout = useCallback(async () => {
+    const current: LayoutHistorySnapshot = { layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current };
+    const restored = undoRedoRef.current.redo(current);
+    if (!restored) return;
+    await applyDeviceLayouts(restored.layouts);
+    if (restored.activeId !== layoutActiveIdRef.current) {
+      await setActiveLayoutPreset(restored.activeId);
+    }
+    if (restored.activeId) {
+      await updateLayoutPreset(restored.activeId, { saveCurrent: true });
+    }
+    await loadPresets();
+    await refreshDevices();
+  }, [loadPresets, refreshDevices]);
+
+  const {
+    push: pushLayout,
+    undo: undoLayout,
+    redo: redoLayout,
+    canUndo: canUndoLayout,
+    canRedo: canRedoLayout,
+    reset: resetLayoutHistory,
+  } = useUndoRedo<LayoutHistorySnapshot>({
+    maxDepth: 50,
+    // Off while the LED map editor is open: it has its own undo/redo on the same
+    // Cmd/Ctrl+Z, and both listen on window, so an enabled layout history would
+    // also fire and undo the canvas underneath the modal.
+    enabled: activeRightTab === 'devices' && editorTarget === null,
+    onUndo: handleUndoLayout,
+    onRedo: handleRedoLayout,
+    store: layoutHistoryStore,
+  });
+
+  undoRedoRef.current = { undo: undoLayout, redo: redoLayout };
+  pushLayoutRef.current = pushLayout;
+
+  const handlePresetLoadWithHistory = useCallback(async (id: string) => {
+    pushLayout({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
+    await handlePresetLoad(id);
+    await refreshDevices();
+  }, [pushLayout, handlePresetLoad, refreshDevices]);
+
+  const handleResetWithHistory = useCallback(async () => {
+    resetLayoutHistory();
+    await resetDeviceLayouts();
+    const id = layoutActiveIdRef.current;
+    if (id) {
+      // saveCurrent after resetDeviceLayouts writes an empty layouts map into the preset,
+      // which the service interprets as "use provider defaults" on next activation.
+      await updateLayoutPreset(id, { saveCurrent: true });
+    }
+    await loadPresets();
+    await refreshDevices();
+  }, [resetLayoutHistory, loadPresets, refreshDevices]);
+
+  const handleLayoutCommit = useCallback(async () => {
+    const id = layoutActiveIdRef.current;
+    if (!id) return;
+    await updateLayoutPreset(id, { saveCurrent: true });
+    await loadPresets();
+  }, [loadPresets]);
 
   const handleModeChange = useCallback(async (m: LightingMode) => {
     setMode(m);
@@ -935,8 +1092,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           ) : (
             <>
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} />
-                {effectiveMode === 'animate' && activeEffect && currentState && (
+                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
+                {effectiveMode === 'animate' && activeEffect && currentState && activeRightTab === 'effect' && (
                   <>
                     {EFFECTS.find(e => e.key === activeEffect)?.audio && (
                       <HoverTooltip body={t('lighting.musicReactive')} side="left">
@@ -946,10 +1103,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                           onClick={handleMusicReactiveToggle}
                           aria-label={t('lighting.musicReactive')}
                         >
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 10.5a1.5 1.5 0 1 0 3 0v-7l6 -1.5v7" />
-                            <circle cx="10.5" cy="9.5" r="1.5" />
-                          </svg>
+                          <Music size={14} strokeWidth={1.5} />
                         </button>
                       </HoverTooltip>
                     )}
@@ -965,7 +1119,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 )}
               </div>
               {effectiveMode === 'animate' ? (
-                <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} />
+                <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
               ) : (
                 <div className={styles.controls}>
                   <ModeControls
@@ -1003,7 +1157,20 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onOpenCommunity={handleOpenCommunity}
                 smartHubFirmwareControl={smartHubFirmwareControl}
                 onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
+                lianLiFirmwareActive={lianLiFirmwareActive}
                 onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
+                presets={presets}
+                layoutActiveId={layoutActiveId}
+                presetCount={presetCount}
+                canUndo={canUndoLayout}
+                canRedo={canRedoLayout}
+                onPresetLoad={handlePresetLoadWithHistory}
+                onPresetCreate={handlePresetCreate}
+                onPresetRename={handlePresetRename}
+                onPresetDelete={handlePresetDelete}
+                onLayoutReset={handleResetWithHistory}
+                onLayoutUndo={handleUndoLayout}
+                onLayoutRedo={handleRedoLayout}
               />
               <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
             </>
@@ -1044,16 +1211,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onClose={() => setFullscreenOpen(false)}
           onPrev={handlePrevEffect}
           onNext={handleNextEffect}
+          gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
         />
       )}
       {editorTarget && (
         <LedMapEditor
+          key={`${editorTarget.deviceId}-${compositionEpoch}`}
           deviceId={editorTarget.deviceId}
           initialZoneId={editorTarget.zoneId}
           devices={devices}
           zoneCustomizable={editorTarget.zoneCustomizable}
           initialCommunityOpen={editorCommunityOpen}
           onClose={() => setEditorTarget(null)}
+          onCompositionChanged={hubId => { void handleCompositionChanged(hubId); }}
         />
       )}
     </div>

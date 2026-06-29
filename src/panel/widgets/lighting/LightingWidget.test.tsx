@@ -8,6 +8,7 @@ vi.mock('../../../api/lighting', () => ({
   effectThumbnailPath: (key: string) => `/lighting/effects/${key}/thumbnail.bmp`,
   fetchAnimateSettings: vi.fn(() => Promise.resolve({ effect: 'rainbow', templates: {} })),
   fetchCurrentSync: vi.fn(() => Promise.resolve({ sync: 'rainbow' })),
+  fetchLightingStatus: vi.fn(() => Promise.resolve({ gpuAvailable: true })),
   fetchScreenEffect: vi.fn(() => Promise.resolve({ hue: 0, colorize: 0, saturation: 1, contrast: 1, flipX: false, flipY: false })),
   setMusicReactive: vi.fn(() => Promise.resolve()),
   setScreenEffect: vi.fn(() => Promise.resolve()),

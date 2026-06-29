@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import {
   Binary,
+  ChevronDown,
   CircleDot,
   Clock3,
   FlipHorizontal,
@@ -13,6 +15,8 @@ import type { WidgetSettingsProps } from '../types';
 import { CLOCK_DESIGNS } from '../clock/designs';
 import { SettingsRow, SettingsToggle, SettingsSection, SettingsSelect } from '../common/SettingsRow/SettingsRow';
 import { useTranslation } from '../../../lib/i18n';
+import { TimezonePicker } from './TimezonePicker';
+import { humanizeTimeZone, safeTimeZone } from './timezones';
 import styles from './ClockSettings.module.scss';
 
 const DESIGN_KEYS = Object.keys(CLOCK_DESIGNS);
@@ -28,12 +32,15 @@ const DESIGN_ICONS: Record<string, LucideIcon> = {
 
 export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
   const { t } = useTranslation();
+  const [tzOpen, setTzOpen] = useState(false);
   const currentDesign = ((widget.config?.design as string | undefined) ?? 'digital');
   const format = ((widget.config?.format as string | undefined) ?? '24h');
   const showSeconds = ((widget.config?.showSeconds as boolean | undefined) ?? false);
   const showDate = ((widget.config?.showDate as boolean | undefined) ?? true);
   const useAccentColor = ((widget.config?.useAccentColor as boolean | undefined) ?? false);
-  const timezone = ((widget.config?.timezone as string | undefined) ?? '');
+  // safeTimeZone discards a stale invalid value (saved by an older build's
+  // free-text field) so the trigger shows Auto instead of a broken string.
+  const timezone = safeTimeZone(widget.config?.timezone as string | undefined) ?? null;
 
   const setDesign = (key: string) => {
     onUpdate({ design: key });
@@ -55,8 +62,9 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
     onUpdate({ useAccentColor: checked });
   };
 
-  const setTimezone = (value: string) => {
-    onUpdate({ timezone: value || null });
+  const setTimezone = (value: string | null) => {
+    onUpdate({ timezone: value });
+    setTzOpen(false);
   };
 
   return (
@@ -110,15 +118,19 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
 
       <SettingsSection title={t('panel.widget.clock.settings.timezone')}>
         <SettingsRow label={t('panel.widget.clock.settings.timezone')}>
-          <input
-            type="text"
-            className={styles.textInput}
-            value={timezone}
-            onChange={e => setTimezone(e.target.value)}
-            placeholder={t('panel.widget.clock.settings.timezoneAuto')}
-            spellCheck={false}
-          />
+          <button
+            type="button"
+            className={styles.tzTrigger}
+            onClick={() => setTzOpen(open => !open)}
+            aria-expanded={tzOpen}
+          >
+            <span className={styles.tzValue}>
+              {timezone ? humanizeTimeZone(timezone) : t('panel.widget.clock.settings.timezoneAuto')}
+            </span>
+            <ChevronDown size={14} className={styles.tzChevron} aria-hidden={true} />
+          </button>
         </SettingsRow>
+        {tzOpen && <TimezonePicker value={timezone} onChange={setTimezone} />}
       </SettingsSection>
     </div>
   );

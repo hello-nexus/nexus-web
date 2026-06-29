@@ -104,7 +104,7 @@ async function mockService(page: Page) {
           overlay: { enabled: false, alwaysOnTop: false, scale: 1, opacity: 1, monitor: 0, layout: [] },
           monitoring: { showAverage: true, showMacStatusBarIcon: true, showWindowsTrayIcon: true, detailedCollapsed: [] },
           cooling: {},
-          ui: { disableConflictAlerts: false, pinnedSidebarApps: ['monitoring', 'lighting', 'cooling'] },
+          ui: { showConflictAlerts: true, pinnedSidebarApps: ['monitoring', 'lighting', 'cooling'] },
         }),
       });
       return;

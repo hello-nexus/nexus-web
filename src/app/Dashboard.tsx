@@ -18,6 +18,7 @@ const MonitoringPage = lazy(() => import('../panel/widgets/monitoring/Monitoring
 const DevicesPage = lazy(() => import('../panel/widgets/devices/DevicesPage').then(m => ({ default: m.DevicesPage })));
 const LightingPage = lazy(() => import('../panel/widgets/lighting/LightingPage').then(m => ({ default: m.LightingPage })));
 const SmartLightsPage = lazy(() => import('../panel/widgets/smart-lights/SmartLightsPage').then(m => ({ default: m.SmartLightsPage })));
+const HomeAssistantPage = lazy(() => import('../panel/widgets/home-assistant/HomeAssistantPage').then(m => ({ default: m.HomeAssistantPage })));
 const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
 const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
 const GalleryPage = lazy(() => import('../panel/widgets/gallery/page/GalleryPage').then(m => ({ default: m.GalleryPage })));
@@ -31,7 +32,7 @@ import { useProfiles } from '../hooks/useProfiles';
 import { useRoute } from '../hooks/useRoute';
 import { useBuilder } from '../hooks/useBuilder';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
-import { fetchPanelRemoteControlState } from '../api/panel';
+import { fetchPanelRemoteControlState, setPanelRelay } from '../api/panel';
 import { isRemoteOrigin } from '../api/service';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
@@ -62,6 +63,7 @@ import { TransferToasts } from './TransferToasts';
 import { MappingAppliedToasts } from './MappingAppliedToasts';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { isWindowsAppShell, isMacAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
+import { DEV_TOOLS } from '../lib/devTools';
 import styles from '../App.module.scss';
 
 const PORTAL_URL = 'https://hellonexus.com';
@@ -74,6 +76,16 @@ function UpdateAutoOpener({ online, onOpen }: {
   onOpen: (status: UpdateStatus) => void;
 }) {
   const firedRef = useRef(false);
+
+  // The cloud relay is a DEV_TOOLS-only feature; its toggle is hidden on
+  // beta/prod. The enabled state persists server-side, so a build with the relay
+  // left on from a prior dev session would keep it running invisibly. Force it
+  // off once on the host dashboard whenever DEV_TOOLS is off (idempotent: the
+  // service no-ops when already disabled).
+  useEffect(() => {
+    if (DEV_TOOLS || !online) return;
+    void setPanelRelay(false).catch(() => {});
+  }, [online]);
 
   useEffect(() => {
     if (!online || firedRef.current) return;
@@ -177,7 +189,7 @@ export function Dashboard() {
       language: prefs.theme.language,
       themeMode: prefs.theme.themeMode,
       accentColor: prefs.theme.accentColor,
-      disableConflictAlerts: prefs.ui?.disableConflictAlerts,
+      showConflictAlerts: prefs.ui?.showConflictAlerts,
       monitoringShowAverage: prefs.monitoring?.showAverage,
       monitoringDetailedCollapsed: prefs.monitoring?.detailedCollapsed,
       showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
@@ -478,6 +490,7 @@ export function Dashboard() {
       case 'benchmark':  return <BenchmarkPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
       case 'lighting':   return <LightingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} platform={status.ping?.platform ?? ''} onSectionNavigate={(target) => setView(target)} />;
       case 'smart-lights': return <SmartLightsPage onSectionNavigate={(target) => setView(target)} />;
+      case 'home-assistant': return <HomeAssistantPage />;
       case 'cooling':    return <CoolingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
       case 'devices':    return (
         <DevicesPage
@@ -493,6 +506,8 @@ export function Dashboard() {
           deviceKey={subtab ?? ''}
           serviceOnline={online}
           connectionState={status.state}
+          onOpenFirmware={() => navigate('system', 'devices', 'firmware')}
+          onSectionNavigate={(target) => setView(target)}
         />
       );
       case 'clock':      return <ClockPage />;
@@ -500,7 +515,7 @@ export function Dashboard() {
       case 'gallery':    return <GalleryPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} />;
       case 'profiles':   return <ProfilesView serviceOnline={online} connectionState={status.state} profiles={profilesHook} />;
-      case 'tools':      return <ToolsView serviceOnline={online} connectionState={status.state} />;
+      case 'tools':      return DEV_TOOLS ? <ToolsView serviceOnline={online} connectionState={status.state} /> : <Placeholder title={activeView} />;
       default: {
         // Page-capable marketplace (SDK) widget: render its bundle's page surface
         // as a section view (e.g. the clock's world map). The synthetic manifest
@@ -585,6 +600,8 @@ export function Dashboard() {
           onPreferencesChanged={handlePreferencesChanged}
           onNavigateSettings={handleNavigateSettings}
           onNavigateTools={handleNavigateTools}
+          onOpenUpdate={() => handleUpdateOpen()}
+          onInstall={handleInstall}
           onManageProfiles={handleManageProfiles}
           isWindowsApp={isWindowsAppShell()}
           isMacApp={isMacAppShell()}
@@ -605,8 +622,6 @@ export function Dashboard() {
               remoteControlEnabled={remoteControlEnabled}
               phoneSubscribers={serviceState.panel?.phoneSubscribers ?? 0}
               onPairPhoneOpen={() => setPairPhoneOpen(true)}
-              onUpdateOpen={handleUpdateOpen}
-              onInstall={handleInstall}
               activeDeviceKey={section === 'system' && activeView === 'device' ? (subtab ?? '') : ''}
               onDeviceSelect={k => navigate('system', 'device', k)}
               onDevicesHeaderClick={() => navigate('system', 'devices')}

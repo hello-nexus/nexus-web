@@ -26,7 +26,44 @@
 
 .version {
   @include text-button;
+  color: var(--text);
+}
+
+.versionHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.newReleaseBanner {
+  @include text-heading;
+  color: var(--accent-glow);
+  font-weight: var(--weight-heading);
+}
+
+.releaseDate {
+  @include text-button;
   color: var(--text-dim);
+}
+
+.versionBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+
+  .version,
+  .versionUpgrade {
+    font-size: var(--type-body);
+  }
 }
 
 .versionUpgrade {
@@ -133,21 +170,31 @@
 
 .notesH1 {
   @include text-body;
+  font-size: var(--type-small);
   margin: 0;
   font-weight: var(--weight-heading);
   color: var(--text);
 }
 
 .notesH2 {
-  @include text-label;
+  @include text-body;
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
   margin: 0;
   color: var(--text);
 }
 
-.notesP {
-  @include text-caption;
+.upToDate {
+  @include text-button;
+  color: var(--good);
   margin: 0;
-  color: var(--text-dim);
+}
+
+.notesP {
+  @include text-body;
+  font-size: var(--type-small);
+  margin: 0;
+  color: var(--text);
 }
 
 .notesList {
@@ -158,8 +205,9 @@
   gap: 0.2rem;
 
   li {
-    @include text-caption;
-    color: var(--text-dim);
+    @include text-body;
+    font-size: var(--type-small);
+    color: var(--text);
   }
 }
 
@@ -170,16 +218,39 @@
   gap: 0.35rem;
   color: var(--accent-glow);
   text-decoration: none;
-  margin-right: auto;
+  align-self: flex-start;
+
+  &:hover { text-decoration: underline; }
+}
+
+// Inline links inside rendered release-notes markdown. Inherit the body font
+// from the surrounding <p>/<li>; break long bare URLs so they don't overflow
+// the notes box's horizontal bound.
+.notesLink {
+  color: var(--accent-glow);
+  text-decoration: none;
+  overflow-wrap: anywhere;
 
   &:hover { text-decoration: underline; }
 }
 
 .actions {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 1.25rem;
   padding-top: 0.5rem;
   margin-top: auto;
+}
+
+.buttonRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.buttonRowRight {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }

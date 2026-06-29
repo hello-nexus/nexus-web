@@ -64,6 +64,16 @@ function simpleFeelsFor(key: string): [Feel, Feel, Feel, Feel] | null {
   return hue === undefined ? null : simpleColorFeels(hue);
 }
 
+// Per-slot uniform overrides shared by every simple fill. Slot 1 drops the
+// gradient and wave so it reads as a flat, even solid colour; the other slots
+// keep the SIMPLE_PARAMS defaults (gradient + gentle wave).
+const SIMPLE_PARAM_VARIATIONS: [Record<string, number>, Record<string, number>, Record<string, number>, Record<string, number>] = [
+  {},
+  { u_gradient: 0, u_wave: 0 },
+  {},
+  {},
+];
+
 function isRainbowSignature(f: Feel): boolean {
   return Math.abs(f.hue) < 1e-4 && Math.abs(f.colorize) < 1e-4;
 }
@@ -165,6 +175,7 @@ const SIGNATURES: Record<string, Feel> = {
   harmonicstar:   { hue: 0.60, colorize: 0.30, speed: 55, saturation: 1.15, contrast: 1.10, intensity: 1 },
   audiotunnel:    { hue: 0.45, colorize: 0.35, speed: 60, saturation: 1.15, contrast: 1.10, intensity: 1 },
   bassbloom:      { hue: 0.85, colorize: 0.35, speed: 45, saturation: 1.15, contrast: 1.10, intensity: 1 },
+  beatbuilder:    { hue: 0.00, colorize: 0.00, speed: 50, saturation: 1.00, contrast: 1.00, intensity: 1 },
 };
 
 /**
@@ -594,6 +605,12 @@ const PARAM_VARIATIONS: Record<string, [Record<string, number>, Record<string, n
     { u_petals: 4,  u_shimmer: 0.3, u_bloomSize: 0.3 },
     { u_petals: 8,  u_shimmer: 1.3, u_bloomSize: 0.45 },
   ],
+  beatbuilder: [
+    { u_centerStyle: 0, u_colorMode: 1, u_barWidth: 0.85, u_centerSize: 0.9, u_beatPulse: 0.3 },
+    { u_centerStyle: 3, u_colorMode: 0, u_barCount: 56, u_barWidth: 0.8, u_centerGain: 1.3, u_flash: 0.5, u_beatPulse: 0.5 },
+    { u_centerStyle: 2, u_colorMode: 0, u_centerGain: 1.5, u_flash: 0.9, u_beatColor: 0.6, u_bgLevel: 0.1 },
+    { u_centerStyle: 1, u_colorMode: 0, u_centerSize: 0.95, u_beatPulse: 0.6, u_beatColor: 0.5, u_bgLevel: 0.15 },
+  ],
 };
 
 /**
@@ -621,11 +638,13 @@ function feelsForSignature(sig: Feel): [Feel, Feel, Feel, Feel] {
  */
 export function buildDefaultTemplates(effectKey: string): EffectTemplateBundle {
   const baseParams = defaultParamsFor(effectKey);
-  const variations = PARAM_VARIATIONS[effectKey];
   const signature = SIGNATURES[effectKey] ?? RAINBOW;
-  // Simple fills carry their own 4 same-colour feels; everything else derives
-  // its slots from the signature (rainbow / warm / cool / green logic).
-  const feels = simpleFeelsFor(effectKey) ?? feelsForSignature(signature);
+  // Simple fills carry their own 4 same-colour feels and their own per-slot
+  // param overrides; everything else derives its slots from the signature
+  // (rainbow / warm / cool / green logic) and PARAM_VARIATIONS.
+  const simpleFeels = simpleFeelsFor(effectKey);
+  const feels = simpleFeels ?? feelsForSignature(signature);
+  const variations = simpleFeels ? SIMPLE_PARAM_VARIATIONS : PARAM_VARIATIONS[effectKey];
   const slots: EffectState[] = feels.map((feel, i) => {
     const overrides = variations?.[i] ?? {};
     return {

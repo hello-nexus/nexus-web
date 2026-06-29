@@ -18,6 +18,10 @@
   &:hover { border-color: var(--border-strong); background: var(--bg-card-hover); }
 }
 
+.compact {
+  padding: 0.75rem;
+}
+
 .header {
   display: flex;
   align-items: baseline;

@@ -100,35 +100,38 @@ export function NotConnectedBadge({ state, t, compact }: {
   return compact ? <HoverTooltip body={label} side="right">{node}</HoverTooltip> : node;
 }
 
-// ── Sidebar footer (debug + version) ────────────────────────────────────────
+// ── Top-bar status slots (conflict + update alerts) ─────────────────────────
 
 /**
- * Bottom-left sidebar conflict warning slot. The `disableConflictAlerts`
- * UiSettings pref gates the WebSocket subscription and is the same flag the
- * in-modal "Don't show again" checkbox persists.
+ * Conflict warning slot for the top bar. Owns the modal `open` state and the
+ * `showConflictAlerts` pref (the in-modal "Don't show again" checkbox
+ * toggles it), keeping the badge presentational.
  */
-export function SidebarConflictSlot({ serviceOnline, compact }: {
+export function ConflictStatusSlot({ serviceOnline }: {
   serviceOnline: boolean;
-  compact: boolean;
 }) {
   const { settings, update } = useUiSettings();
-  const enabled = serviceOnline && !settings.disableConflictAlerts;
+  const [open, setOpen] = useState(false);
+  const suppressed = !settings.showConflictAlerts;
+  // Keep the subscription alive while the modal is open even after the user
+  // suppresses alerts, so the list they are acting on stays live instead of
+  // collapsing to the "all clear" state mid-read.
+  const enabled = serviceOnline && (!suppressed || open);
   const conflicts = useConflictApps(enabled);
-
-  if (!enabled) return null;
 
   return (
     <ConflictWarningBadge
       conflicts={conflicts}
-      compact={compact}
-      onDismissForever={() => update({ disableConflictAlerts: true })}
+      suppressed={suppressed}
+      open={open}
+      onOpenChange={setOpen}
+      onSuppressedChange={value => update({ showConflictAlerts: !value })}
     />
   );
 }
 
-export function SidebarUpdateSlot({ serviceOnline, compact, onOpen, onInstall }: {
+export function UpdateStatusSlot({ serviceOnline, onOpen, onInstall }: {
   serviceOnline: boolean;
-  compact: boolean;
   onOpen: () => void;
   onInstall: () => void;
 }) {
@@ -167,7 +170,6 @@ export function SidebarUpdateSlot({ serviceOnline, compact, onOpen, onInstall }:
   return (
     <UpdateBadge
       updateMode={updateMode}
-      compact={compact}
       onOpen={onOpen}
       onInstall={onInstall}
     />

@@ -1,9 +1,8 @@
-import { Cpu, Monitor, MemoryStick, HardDrive } from 'lucide-react';
+import { Cpu, Monitor, MemoryStick, HardDrive, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { BenchmarkResult, BenchmarkSubScore } from '../../../types/benchmark';
 import { Card } from '../../../components/common/Card/Card';
-import { InfoList, InfoRow } from '../../../components/common/InfoList/InfoList';
-import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
+import { SpecBlock } from './SpecBlock';
 import styles from './BenchmarkPage.module.scss';
 
 interface Props {
@@ -20,7 +19,7 @@ const SUBSYSTEM_ICONS: Record<string, React.ReactNode> = {
   storage: <HardDrive size={16} />,
 };
 
-function SubsystemCard({ s }: { s: BenchmarkSubScore }) {
+function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
   const { t } = useTranslation();
   return (
     <Card
@@ -38,15 +37,21 @@ function SubsystemCard({ s }: { s: BenchmarkSubScore }) {
         {s.rawValue.toFixed(1)}{' '}
         <span className={styles.subUnit}>{s.rawUnit}</span>
       </div>
+      {model && <div className={styles.subModel} title={model}>{model}</div>}
     </Card>
   );
 }
 
 export function BenchmarkResults({ result, submission, submitting }: Props) {
   const { t } = useTranslation();
+  const hw = result.hardware;
   const subs: BenchmarkSubScore[] = [result.cpu, result.gpu, result.ram, result.storage];
-
-  const gpuModels = result.hardware.gpuModels ?? [];
+  const models: Record<string, string> = {
+    cpu: hw.cpuModel,
+    gpu: (hw.gpuModels ?? []).join(' + '),
+    ram: hw.ramModel,
+    storage: hw.storageModel,
+  };
 
   return (
     <div className={styles.resultsPanel}>
@@ -81,22 +86,8 @@ export function BenchmarkResults({ result, submission, submitting }: Props) {
       </div>
 
       <div className={styles.subGrid}>
-        {subs.map(s => <SubsystemCard key={s.key} s={s} />)}
-      </div>
-
-      <div className={styles.metaSection}>
-        <SectionHeader>{t('benchmark.result.hardware')}</SectionHeader>
-        <InfoList>
-          <InfoRow label="CPU" value={result.hardware.cpuModel || '-'} />
-          {gpuModels.map((g, i) => (
-            <InfoRow key={i} label="GPU" value={g} />
-          ))}
-          <InfoRow label="RAM" value={result.hardware.ramModel || '-'} />
-          {/* eslint-disable-next-line i18next/no-literal-string -- Storage is a hardware category proper noun */}
-          <InfoRow label="Storage" value={result.hardware.storageModel || '-'} />
-          <InfoRow label={t('benchmark.leaderboard.os')} value={result.hardware.os || '-'} />
-          <InfoRow label={t('builder.col.cores')} value={String(result.hardware.logicalCores)} />
-        </InfoList>
+        {subs.map(s => <SubsystemCard key={s.key} s={s} model={models[s.key] ?? ''} />)}
+        <SpecBlock icon={<AppWindow size={16} />} label={t('benchmark.leaderboard.os')} value={hw.os} />
       </div>
     </div>
   );

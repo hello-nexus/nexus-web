@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Toggle } from '../Toggle/Toggle';
-import { Select } from '../Select/Select';
+import { Select, type SelectOption } from '../Select/Select';
 import styles from './SettingRow.module.scss';
 
 /**
@@ -58,6 +58,7 @@ export function SettingToggle({
   onChange,
   disabled,
   anchorId,
+  ariaLabel,
 }: {
   label: string;
   description?: ReactNode;
@@ -66,10 +67,11 @@ export function SettingToggle({
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   anchorId?: string;
+  ariaLabel?: string;
 }) {
   return (
     <SettingRow label={label} description={description} icon={icon} disabled={disabled} anchorId={anchorId}>
-      <Toggle checked={checked} onChange={onChange} disabled={disabled} ariaLabel={label} />
+      <Toggle checked={checked} onChange={onChange} disabled={disabled} ariaLabel={ariaLabel ?? label} />
     </SettingRow>
   );
 }
@@ -85,7 +87,7 @@ export function SettingSelect({
 }: {
   label?: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: SelectOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
   description?: ReactNode;

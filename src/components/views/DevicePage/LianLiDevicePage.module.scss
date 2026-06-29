@@ -1,0 +1,101 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.pageBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1rem 0 1.25rem;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.savingBadge {
+  font-size: var(--type-mini);
+  text-transform: uppercase;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.sectionBox {
+  gap: 0.75rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2rem;
+}
+
+.rowDisabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.rowLabel {
+  flex: 0 0 9.5rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.rowValue {
+  flex: 0 0 5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.portSelect {
+  width: 10rem;
+  flex: none;
+}
+
+.colorBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 0.25rem;
+}
+
+.colorPairRow {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.colorEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.colorLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.colorActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.customNote {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.lightingLink {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+}

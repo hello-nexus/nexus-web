@@ -13,6 +13,7 @@ import {
   type Language, type NexusSettings,
 } from '../../../lib/settings';
 import type { UpdateChannel, UpdateMode } from '../../../api/update';
+import friuliFlag from '../../../assets/flags/friuli.png';
 import styles from './SettingsView.module.scss';
 
 export interface GeneralTabProps {
@@ -122,15 +123,20 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           label={t('settings.language')}
           anchorId="set-language"
           value={settings.general.language}
-          options={LANGUAGES.map(l => ({ value: l, label: `${LANGUAGE_FLAGS[l]}  ${LANGUAGE_LABELS[l]}` }))}
+          options={LANGUAGES.map(l => ({
+            value: l,
+            label: LANGUAGE_LABELS[l],
+            // Friûl has no flag emoji - render its flag from an image asset.
+            icon: l === 'fur' ? <img src={friuliFlag} alt="" /> : LANGUAGE_FLAGS[l],
+          }))}
           onChange={v => updateGeneral({ language: v as Language })}
         />
         <SettingToggle
           label={t('settings.alerts.label')}
           anchorId="set-alerts"
           description={t('settings.alerts.description')}
-          checked={settings.general.disableConflictAlerts}
-          onChange={() => updateGeneral({ disableConflictAlerts: !settings.general.disableConflictAlerts })}
+          checked={settings.general.showConflictAlerts}
+          onChange={() => updateGeneral({ showConflictAlerts: !settings.general.showConflictAlerts })}
         />
       </SettingsSection>
 

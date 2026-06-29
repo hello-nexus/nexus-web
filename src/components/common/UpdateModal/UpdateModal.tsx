@@ -4,7 +4,7 @@ import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { Button } from '../Button/Button';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { GithubGlyph } from '../../icons/NexusBrand';
-import { getUpdateProgress, getUpdateStatus, startUpdate, type UpdateStatus, type UpdateProgress, type UpdatePhase } from '../../../api/update';
+import { checkForUpdate, getUpdateProgress, getUpdateStatus, startUpdate, type UpdateStatus, type UpdateProgress, type UpdatePhase } from '../../../api/update';
 import { pingService } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './UpdateModal.module.scss';
@@ -20,6 +20,9 @@ interface UpdateModalProps {
   // When true, an install was already started externally before the modal opened;
   // latch installActiveRef so the reconnecting transition fires if the service exits.
   startedInstall?: boolean;
+  // Default true. Set false to suppress the auto-check-on-open (e.g. the
+  // Storybook preview, which must not fire a live POST /update/check).
+  autoCheck?: boolean;
 }
 
 type ModalView = 'progress' | 'reconnecting' | 'notes' | 'whatsNew';
@@ -36,9 +39,17 @@ function phaseLabel(t: (key: string) => string, phase: UpdatePhase): string {
   }
 }
 
+// Only http(s) are linkified; a release-notes URL with any other scheme
+// (javascript:, data:) renders as plain text so author markdown can't inject
+// an active link.
+function isSafeHref(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
 function renderInline(text: string): React.ReactNode {
-  // Bold alternative is listed first so ** is matched before the single-* italic rule.
-  const parts = text.split(/(\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g);
+  // Order matters: ** before single-* so bold wins; markdown links before bare
+  // URLs so a [text](url) link's own URL isn't matched a second time.
+  const parts = text.split(/(\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s)]+)/g);
   if (parts.length === 1) return text;
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -47,6 +58,26 @@ function renderInline(text: string): React.ReactNode {
     if (part.length >= 2
       && ((part.startsWith('_') && part.endsWith('_')) || (part.startsWith('*') && part.endsWith('*')))) {
       return <em key={i}>{part.slice(1, -1)}</em>;
+    }
+    const mdLink = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (mdLink && isSafeHref(mdLink[2])) {
+      return (
+        <a key={i} className={styles.notesLink} href={mdLink[2]} target="_blank" rel="noopener noreferrer">
+          {mdLink[1]}
+        </a>
+      );
+    }
+    if (isSafeHref(part)) {
+      // Peel trailing sentence punctuation so a prose URL like "see https://x."
+      // doesn't bake the period into the href; render it as text after the link.
+      const trail = part.match(/[.,;:!?]+$/)?.[0] ?? '';
+      const href = trail ? part.slice(0, -trail.length) : part;
+      return (
+        <span key={i}>
+          <a className={styles.notesLink} href={href} target="_blank" rel="noopener noreferrer">{href}</a>
+          {trail}
+        </span>
+      );
     }
     return part;
   });
@@ -71,12 +102,16 @@ function renderMarkdown(text: string): React.ReactNode[] {
 
   for (const raw of lines) {
     const line = raw.trimEnd();
-    if (line.startsWith('## ')) {
+    // ATX headings, any level 1-6. GitHub's generated notes use `### <repo>`.
+    const heading = line.match(/^(#{1,6})\s+(.*)$/);
+    if (heading) {
       flushList();
-      nodes.push(<h4 key={keyIdx++} className={styles.notesH2}>{renderInline(line.slice(3))}</h4>);
-    } else if (line.startsWith('# ')) {
-      flushList();
-      nodes.push(<h3 key={keyIdx++} className={styles.notesH1}>{renderInline(line.slice(2))}</h3>);
+      const inner = renderInline(heading[2]);
+      if (heading[1].length <= 2) {
+        nodes.push(<h3 key={keyIdx++} className={styles.notesH1}>{inner}</h3>);
+      } else {
+        nodes.push(<h4 key={keyIdx++} className={styles.notesH2}>{inner}</h4>);
+      }
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
       listItems.push(line.slice(2));
     } else if (line === '') {
@@ -92,11 +127,17 @@ function renderMarkdown(text: string): React.ReactNode[] {
 
 const RECONNECT_TIMEOUT_MS = 120_000;
 
-export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdateNow, startedInstall }: UpdateModalProps) {
-  const { t } = useTranslation();
+function formatReleaseDate(unixSeconds: number, locale: string): string {
+  return new Date(unixSeconds * 1000).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdateNow, startedInstall, autoCheck = true }: UpdateModalProps) {
+  const { t, language } = useTranslation();
   const [view, setView] = useState<ModalView>('notes');
   const [progress, setProgress] = useState<UpdateProgress | null>(null);
   const [starting, setStarting] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [checked, setChecked] = useState(false);
   // Error message shown in the notes view when a start call or watchdog fails.
   const [startError, setStartError] = useState('');
   // Captured on open; persists so live status re-fetches can't clobber the whatsNew view.
@@ -114,19 +155,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   const isInstallActive = !reconnectGaveUp
     && ((view === 'progress' && (progress?.active ?? false)) || view === 'reconnecting');
 
-  // Refresh /update/status when the modal opens so action button label reflects
-  // current state (ready vs available) without relying on the caller's snapshot.
-  // The re-fetch must NOT touch the whatsNew view - the justUpdatedTo field is
-  // cleared server-side on first read, so any later fetch returns "" for it.
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    getUpdateStatus().then(s => {
-      if (!cancelled && s && onStatusRefreshed) onStatusRefreshed(s);
-    });
-    return () => { cancelled = true; };
-  }, [open, onStatusRefreshed]);
-
   // On open, capture justUpdatedTo into a ref before any re-fetch can clear it,
   // resolve the initial view, and reset all per-open latches.
   useEffect(() => {
@@ -134,6 +162,8 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     installActiveRef.current = startedInstall ?? false;
     neverActiveDeadlineRef.current = 0;
     setStartError('');
+    setChecking(false);
+    setChecked(false);
     setReconnectGaveUp(false);
     const justUpdatedTo = status?.justUpdatedTo ?? '';
     whatsNewVersionRef.current = justUpdatedTo;
@@ -232,6 +262,36 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     };
   }, [open, view, status?.latestVersion]);
 
+  const handleCheck = async () => {
+    setChecking(true);
+    setStartError('');
+    const s = await checkForUpdate();
+    setChecking(false);
+    if (!s) { setStartError(t('update.modal.checkFailed')); return; }
+    setChecked(true);
+    if (onStatusRefreshed) onStatusRefreshed(s);
+  };
+
+  // On open, the default (notes) flow runs a real check so the button shows its
+  // checking spinner immediately. whatsNew (post-update) and an
+  // install-in-progress open only re-read status - a check would clobber those
+  // flows, and justUpdatedTo is cleared server-side on first read. Runs after
+  // the reset effect so its setChecking(true) is not overwritten.
+  useEffect(() => {
+    if (!open) return;
+    if (autoCheck && !status?.justUpdatedTo && !startedInstall) {
+      void handleCheck();
+      return;
+    }
+    let cancelled = false;
+    getUpdateStatus().then(s => {
+      if (!cancelled && s && onStatusRefreshed) onStatusRefreshed(s);
+    });
+    return () => { cancelled = true; };
+  // Fire once per open from the status snapshot captured at open time.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const handleUpdateNow = async () => {
     // Latch before calling start so the poll can drive reconnecting if the
     // service goes away before the 2s poll sees a launching/installing frame.
@@ -259,12 +319,10 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   const isFailed = phase === 'failed' || (progress !== null && !progress.active && !progress.success && progress.error !== '');
 
   const whatsNewVersion = whatsNewVersionRef.current;
+  const publishedUnix = status?.publishedAtUnix ?? 0;
 
   let title = t('update.modal.title');
   if (view === 'reconnecting' && !reconnectGaveUp) title = t('update.modal.reconnecting');
-  if (view === 'whatsNew' && whatsNewVersion) {
-    title = t('update.modal.whatsNewTitle', { version: whatsNewVersion });
-  }
 
   return (
     <DeviceModal
@@ -306,24 +364,50 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
         {(view === 'notes' || view === 'whatsNew' || reconnectGaveUp) && (
           <div className={styles.notesView}>
             {view === 'notes' && status?.latestVersion && (
-              status.currentVersion && status.currentVersion !== status.latestVersion ? (
-                <div className={styles.versionUpgrade}>
-                  <span className={styles.versionCurrent}>{status.currentVersion}</span>
-                  <ArrowRight size={14} className={styles.versionArrow} />
-                  <span className={styles.versionNew}>{status.latestVersion}</span>
+              <div className={styles.versionHeader}>
+                {status.updateAvailable && (
+                  <div className={styles.newReleaseBanner}>
+                    {status.channel === 'beta' ? t('update.modal.newBetaRelease') : t('update.modal.newRelease')}
+                  </div>
+                )}
+                <div className={styles.versionBox}>
+                  {status.currentVersion && status.currentVersion !== status.latestVersion ? (
+                    <div className={styles.versionUpgrade}>
+                      <span className={styles.versionCurrent}>{status.currentVersion}</span>
+                      <ArrowRight size={14} className={styles.versionArrow} />
+                      <span className={styles.versionNew}>{status.latestVersion}</span>
+                    </div>
+                  ) : (
+                    <div className={styles.version}>{t('update.modal.version', { version: status.latestVersion })}</div>
+                  )}
                 </div>
-              ) : (
-                <div className={styles.version}>{t('update.modal.version', { version: status.latestVersion })}</div>
-              )
+                {publishedUnix > 0 && (
+                  <div className={styles.releaseDate}>
+                    {t('update.modal.released', { date: formatReleaseDate(publishedUnix, language) })}
+                  </div>
+                )}
+              </div>
             )}
             {view === 'whatsNew' && whatsNewVersion && (
-              <div className={styles.version}>{t('update.modal.version', { version: whatsNewVersion })}</div>
+              <div className={styles.versionHeader}>
+                <div className={styles.versionBox}>
+                  <div className={styles.version}>{t('update.modal.version', { version: whatsNewVersion })}</div>
+                </div>
+                {publishedUnix > 0 && (
+                  <div className={styles.releaseDate}>
+                    {t('update.modal.released', { date: formatReleaseDate(publishedUnix, language) })}
+                  </div>
+                )}
+              </div>
             )}
             {reconnectGaveUp && (
               <p className={styles.failedMessage}>{t('update.modal.reconnectGaveUp')}</p>
             )}
             {!reconnectGaveUp && (isFailed || startError) && (
               <p className={styles.failedMessage}>{startError || t('update.modal.failedMessage')}</p>
+            )}
+            {view === 'notes' && checked && !status?.updateAvailable && !isFailed && !startError && (
+              <p className={styles.upToDate}>{t('update.modal.upToDate')}</p>
             )}
             {status?.releaseNotes ? (
               <SettingsSection title={t('update.modal.releaseNotes')} boxClassName={styles.releaseNotesBody}>
@@ -333,27 +417,32 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
             <div className={styles.actions}>
               <a
                 className={styles.releasesLink}
-                href="https://github.com/hello-nexus/nexus-releases/releases"
+                href="https://github.com/hello-nexus/nexus/releases"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <GithubGlyph size={13} />
                 {t('update.modal.releases')}
               </a>
-              {view === 'notes' && status?.updateMode === 'notify' && status?.updateAvailable && !isFailed && !startError && (
-                <Button tone="accent" size="sm" loading={starting} onClick={handleUpdateNow}>
-                  {t('update.modal.downloadAndInstall')}
-                </Button>
-              )}
-              {view === 'notes' && status?.updateMode === 'notify' && status?.updateAvailable && !isFailed && !startError ? (
-                <Button tone="neutral" size="sm" onClick={onClose}>
-                  {t('update.modal.cancel')}
-                </Button>
-              ) : (
-                <Button tone="neutral" size="sm" onClick={onClose}>
-                  {t('update.modal.close')}
-                </Button>
-              )}
+              <div className={styles.buttonRow}>
+                {view === 'notes' && (
+                  <Button tone="neutral" size="md" loading={checking} onClick={handleCheck}>
+                    {t('update.modal.checkNow')}
+                  </Button>
+                )}
+                <div className={styles.buttonRowRight}>
+                  {view === 'notes' && status?.updateAvailable && !isFailed && !startError && (
+                    <Button tone="accent" size="md" loading={starting} onClick={handleUpdateNow}>
+                      {t('update.modal.downloadAndInstall')}
+                    </Button>
+                  )}
+                  {(view === 'whatsNew' || reconnectGaveUp) && (
+                    <Button tone="neutral" size="md" onClick={onClose}>
+                      {t('update.modal.close')}
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}

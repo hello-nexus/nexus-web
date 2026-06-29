@@ -4,7 +4,7 @@ import type { UpdateChannel, UpdateMode } from '../api/update';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-export const LANGUAGES = ['en', 'zh-TW', 'zh-CN', 'ja', 'ko', 'de', 'fr', 'es', 'it', 'pt', 'pt-BR', 'ru', 'tr', 'pl'] as const;
+export const LANGUAGES = ['en', 'zh-TW', 'zh-CN', 'ja', 'ko', 'de', 'fr', 'es', 'it', 'pt', 'pt-BR', 'ru', 'tr', 'pl', 'fur'] as const;
 export type Language = (typeof LANGUAGES)[number];
 
 export const LANGUAGE_LABELS: Record<Language, string> = {
@@ -22,6 +22,7 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
   ru: 'Русский',
   tr: 'Türkçe',
   pl: 'Polski',
+  fur: 'Furlan',
 };
 
 export const LANGUAGE_FLAGS: Record<Language, string> = {
@@ -39,6 +40,10 @@ export const LANGUAGE_FLAGS: Record<Language, string> = {
   ru: '\u{1F1F7}\u{1F1FA}',
   tr: '\u{1F1F9}\u{1F1F7}',
   pl: '\u{1F1F5}\u{1F1F1}',
+  // Friûl has no Unicode flag emoji. Required by the exhaustive Record type;
+  // the value is unused - GeneralTab special-cases fur and renders its flag
+  // from an image asset instead.
+  fur: '',
 };
 
 
@@ -109,7 +114,7 @@ export interface GeneralSettings {
   backgroundMode: BackgroundMode;
   accentSource: AccentSource;
   startOnLogin: boolean;
-  disableConflictAlerts: boolean;
+  showConflictAlerts: boolean;
   monitoringShowAverage: boolean;
   monitoringDetailedCollapsed: string[];
   showMacStatusBarIcon: boolean;
@@ -148,7 +153,7 @@ export function getDefaultSettings(): NexusSettings {
       backgroundMode: 'glass',
       accentSource: 'system',
       startOnLogin: false,
-      disableConflictAlerts: false,
+      showConflictAlerts: true,
       monitoringShowAverage: true,
       monitoringDetailedCollapsed: [],
       showMacStatusBarIcon: true,
@@ -193,7 +198,7 @@ export function saveSettings(settings: NexusSettings): void {
 
 export function cachePreferencesLocally(prefs: {
   language?: string; themeMode?: string; accentColor?: string;
-  disableConflictAlerts?: boolean; monitoringShowAverage?: boolean;
+  showConflictAlerts?: boolean; monitoringShowAverage?: boolean;
   monitoringDetailedCollapsed?: string[];
   showMacStatusBarIcon?: boolean;
   showWindowsTrayIcon?: boolean;
@@ -203,7 +208,7 @@ export function cachePreferencesLocally(prefs: {
   if (prefs.language) current.general.language = prefs.language as Language;
   if (prefs.themeMode) current.general.themeMode = prefs.themeMode as ThemeMode;
   if (prefs.accentColor) current.general.accentColor = prefs.accentColor;
-  if (prefs.disableConflictAlerts !== undefined) current.general.disableConflictAlerts = prefs.disableConflictAlerts;
+  if (prefs.showConflictAlerts !== undefined) current.general.showConflictAlerts = prefs.showConflictAlerts;
   if (prefs.monitoringShowAverage !== undefined) current.general.monitoringShowAverage = prefs.monitoringShowAverage;
   if (prefs.monitoringDetailedCollapsed !== undefined) current.general.monitoringDetailedCollapsed = prefs.monitoringDetailedCollapsed;
   if (prefs.showMacStatusBarIcon !== undefined) current.general.showMacStatusBarIcon = prefs.showMacStatusBarIcon;

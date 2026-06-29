@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PANEL_DEVICE_ID_KEY } from './panelRouting';
 
@@ -63,6 +63,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  delete (window as { nexusNative?: unknown }).nexusNative;
 });
 
 describe('PanelEntrypoint allocate-or-recover', () => {
@@ -170,5 +171,43 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         .toBe(FRESH_ID),
     );
     expect(localStorage.getItem(PANEL_DEVICE_ID_KEY)).toBe(FRESH_ID);
+  });
+});
+
+describe('PanelEntrypoint failure gate', () => {
+  it('offers a Find your computer escape and calls the native bridge', async () => {
+    // Native wrapper present: the gate is otherwise a dead end inside the app.
+    const findComputer = vi.fn();
+    (window as { nexusNative?: { findComputer: () => void } }).nexusNative = { findComputer };
+    allocateMock.mockResolvedValueOnce({ ok: false, status: 500 });
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair={false}
+        pairToken={null}
+        pairDeviceId={null}
+      />,
+    );
+
+    const button = await screen.findByRole('button', { name: 'panel.gate.findComputer' });
+    fireEvent.click(button);
+    expect(findComputer).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the Find your computer escape outside the native app', async () => {
+    allocateMock.mockResolvedValueOnce({ ok: false, status: 500 });
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair={false}
+        pairToken={null}
+        pairDeviceId={null}
+      />,
+    );
+
+    await screen.findByRole('button', { name: 'panel.gate.retry' });
+    expect(screen.queryByRole('button', { name: 'panel.gate.findComputer' })).toBeNull();
   });
 });

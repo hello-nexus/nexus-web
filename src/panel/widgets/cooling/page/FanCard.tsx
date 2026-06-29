@@ -1,11 +1,11 @@
 import { memo, useRef, useState } from 'react';
-import { Droplets, Fan } from 'lucide-react';
+import { Droplets, Fan, Plus } from 'lucide-react';
 import type { FanChannel } from '../../../../api/cooling';
 import { useTranslation } from '../../../../lib/i18n';
 import type { CurveDef, FanState } from '../../../../types/cooling';
 import { EditableText } from '../../../../components/common/Editable/EditableText';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
-import { Select } from '../../../../components/common/Select/Select';
+import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../CoolingPage.module.scss';
 
@@ -24,11 +24,10 @@ import styles from '../CoolingPage.module.scss';
  * surface a "live" hub mode that overrides per-fan softwareControl:
  *   - 'motherboard': hub passes PWM through from the motherboard. Reads as
  *      BIOS on every fan on that hub.
- *   - 'firmware'   : NP50 only. Hub plays its EEPROM static-speed setpoint.
- *      Reads as a new "FW Control" option on every NP50 fan.
+ *   - 'firmware'   : NP50 and Q-series. Hub plays its firmware speed setpoint.
+ *      Reads as a new "FW Control" option on every NP50 and Q-series fan.
  *   - 'software'   : Nexus drives. Fall through to per-fan state.
- * Motherboard fans (no deviceId) leave this undefined and behave exactly
- * as before.
+ * Motherboard fans (no deviceId) leave this undefined.
  */
 export type FanCardHubMode = 'software' | 'motherboard' | 'firmware';
 
@@ -52,8 +51,8 @@ export const FanCard = memo(function FanCard({
   /** When set, overrides the per-fan softwareControl-derived modeValue. See
    *  FanCardHubMode for semantics. Undefined for motherboard fans. */
   hubMode?: FanCardHubMode;
-  /** True for NP50 fans (the hub has an EEPROM "Static" mode). Adds the
-   *  "FW Control" dropdown option. MiniHub fans get only BIOS / Manual /
+  /** True for NP50 and Q-series fans (the hub drives fan speed from firmware).
+   *  Adds the "FW Control" dropdown option. MiniHub fans get only BIOS / Manual /
    *  curves. */
   hubSupportsFirmware?: boolean;
   /** Whether the hub offers a motherboard "BIOS" hand-off. True for everything
@@ -79,10 +78,10 @@ export const FanCard = memo(function FanCard({
   const dutyPct = Math.max(0, Math.min(100, channel.dutyPercent));
   const swEnabled = state?.softwareControl ?? false;
   const assignedCurveId = state?.curveId ?? '';
-  // The hub's "off" / hand-off mode. A USB hub with firmware control but no
-  // motherboard hand-off (NP50) surfaces 'fw' where other devices show 'bios';
-  // a Q-series pump has both, defaulting off to BIOS (motherboard).
-  const offMode = hubSupportsBios ? 'bios' : (hubSupportsFirmware ? 'fw' : 'bios');
+  // The hub's "off" / hand-off mode: BIOS (motherboard) when supported;
+  // FW when only firmware control is available (NP50); 'manual' when the hub
+  // has no hand-off at all (software-only, e.g. Corsair iCUE LINK).
+  const offMode = hubSupportsBios ? 'bios' : (hubSupportsFirmware ? 'fw' : 'manual');
   // When the hub is in motherboard or firmware mode, the per-fan
   // softwareControl flag is meaningless - the hub takes over for every
   // fan on it. Surface that in the dropdown so the user sees the same
@@ -93,8 +92,7 @@ export const FanCard = memo(function FanCard({
     : hubMode === 'firmware'  ? 'fw'
     : null;
   const isManual = swEnabled && !assignedCurveId && hubOverrideMode === null;
-  const modeValue = hubOverrideMode
-    ?? (!swEnabled ? offMode : (assignedCurveId || 'manual'));
+  const modeValue = hubOverrideMode ?? (!swEnabled ? offMode : (assignedCurveId || 'manual'));
   // Driven = Nexus controls this fan (Manual or a Curve), i.e. not BIOS/FW.
   // Highlighted on the duty bar (see .fanCardActive), not by tinting the card.
   const driven = swEnabled && hubOverrideMode === null;
@@ -162,6 +160,7 @@ export const FanCard = memo(function FanCard({
     driven ? styles.fanCardActive : '',
     compact ? styles.fanCardCompact : '',
     isHwDisconnected ? styles.fanCardOff : '',
+    channel.kind === 'Pump' ? styles.fanCardPump : '',
     drag?.isDragging ? drag.placeholderClassName : '',
   ].filter(Boolean).join(' ');
 
@@ -169,6 +168,22 @@ export const FanCard = memo(function FanCard({
     cardRefProp?.(el);
     drag?.ref(el);
   };
+
+  const kindLabel = t(channel.kind === 'Pump' ? 'cooling.kind.pump' : 'cooling.kind.fan');
+
+  // NP50 lists only FW Control (no BIOS hand-off); a Q-series pump lists both;
+  // everything else lists only BIOS. The create-curve action sits below a thin
+  // rule separator, matching the lighting preset and Profile dropdowns.
+  const modeOptions: SelectOption[] = [
+    ...(hubSupportsFirmware ? [{ value: 'fw', label: t('cooling.card.firmware') }] : []),
+    ...(hubSupportsBios ? [{ value: 'bios', label: t('cooling.card.bios') }] : []),
+    { value: 'manual', label: t('cooling.card.manual') },
+    ...curves.map(c => ({ value: c.id, label: c.name })),
+    ...(canCreateCurve ? [
+      { value: '__sep__', label: '', divider: true },
+      { value: '__create__', label: t('cooling.card.createCurve'), className: styles.fanModeOptionCreate, icon: <Plus size={14} /> },
+    ] : []),
+  ];
 
   return (
     <div
@@ -181,12 +196,15 @@ export const FanCard = memo(function FanCard({
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
       <div className={styles.fanCardHeader}>
-        {/* Kind icon far left next to the name. When this fan is bound to the
-            curve currently shown in the graph, the highlight lives on the
-            dropdown value (accentValue) instead of the icon. */}
-        {channel.kind === 'Pump'
-          ? <Droplets size={16} className={styles.fanKindIcon} aria-hidden />
-          : <Fan size={16} className={styles.fanKindIcon} aria-hidden />}
+        {/* Kind icon far left next to the name; its tooltip names the channel
+            type (fan vs pump). When this fan is bound to the curve currently
+            shown in the graph, the highlight lives on the dropdown value
+            (accentValue) instead of the icon. */}
+        <HoverTooltip body={kindLabel} side="top">
+          {channel.kind === 'Pump'
+            ? <Droplets size={16} className={styles.fanKindIcon} role="img" aria-label={kindLabel} />
+            : <Fan size={16} className={styles.fanKindIcon} role="img" aria-label={kindLabel} />}
+        </HoverTooltip>
         {/* display:contents span carries data-no-dnd onto a real DOM node
             (EditableText doesn't forward unknown props) so a press on the name
             edits it instead of starting a card drag; no layout change. */}
@@ -256,23 +274,8 @@ export const FanCard = memo(function FanCard({
               onSetMode(v);
             }}
             ariaLabel={t('cooling.card.mode')}
-          >
-            {/* NP50 lists only FW Control (no BIOS hand-off); a Q-series pump
-                lists both; everything else lists only BIOS. */}
-            {hubSupportsFirmware && (
-              <option value="fw">{t('cooling.card.firmware')}</option>
-            )}
-            {hubSupportsBios && (
-              <option value="bios">{t('cooling.card.bios')}</option>
-            )}
-            <option value="manual">{t('cooling.card.manual')}</option>
-            {curves.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            {canCreateCurve && (
-              <option value="__create__" className={styles.fanModeOptionCreate}>
-                {t('cooling.card.createCurve')}
-              </option>
-            )}
-          </Select>
+            options={modeOptions}
+          />
           </span>
         </>
       )}

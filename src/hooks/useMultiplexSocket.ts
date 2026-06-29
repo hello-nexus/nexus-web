@@ -34,6 +34,18 @@ interface TopicListener {
 // as a real server push and trigger unnecessary refetches.
 const lastFrameCache = new Map<string, unknown>();
 
+// Live counters read by the renderer memory probe (src/diag/memoryProbe.ts).
+// `opens` increments on every transport open, so `opens - 1` approximates the
+// reconnect count (it also counts lan/relay/sealed transport switches).
+// Module-scoped so the probe reads it without threading through React context.
+export const multiplexDiag = {
+  opens: 0,
+  topics: 0,
+  listeners: 0,
+  transport: null as 'lan' | 'relay' | 'lan-sealed' | null,
+  connected: false,
+};
+
 export interface MultiplexContextValue {
   subscribe: (topic: string, listener: (data: unknown) => void) => void;
   unsubscribe: (topic: string, listener: (data: unknown) => void) => void;
@@ -363,6 +375,9 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   ) => {
     transport.onopen = () => {
       onOpen?.();
+      multiplexDiag.opens++;
+      multiplexDiag.transport = kind;
+      multiplexDiag.connected = true;
       setTransport(kind);
       lastTransportRef.current = kind;
       // Publish the live transport to the REST fetch layer so off-LAN (relay)
@@ -411,6 +426,8 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     };
 
     transport.onclose = (event) => {
+      multiplexDiag.connected = false;
+      multiplexDiag.transport = null;
       setConnected(false);
       setTransport(null);
       setActiveTransport(null);
@@ -607,6 +624,8 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     }
     entry.refCount++;
     entry.listeners.add(listener);
+    multiplexDiag.listeners++;
+    multiplexDiag.topics = topics.size;
 
     if (entry.refCount === 1) {
       const ws = wsRef.current;
@@ -625,9 +644,11 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
 
     entry.listeners.delete(listener);
     entry.refCount--;
+    multiplexDiag.listeners = Math.max(0, multiplexDiag.listeners - 1);
 
     if (entry.refCount <= 0) {
       topics.delete(topic);
+      multiplexDiag.topics = topics.size;
       pendingSubsRef.current.delete(topic);
       const ws = wsRef.current;
       if (ws && ws.readyState === WebSocket.OPEN) {

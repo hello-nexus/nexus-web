@@ -73,9 +73,36 @@ describe('Select', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it('renders a divider that is not an announced option and is skipped by nav', () => {
+    const onChange = vi.fn();
+    const withDivider = [
+      { value: 'a', label: 'Apple' },
+      { value: '__sep__', label: '', divider: true },
+      { value: 'b', label: 'Banana' },
+    ];
+    render(<Select value="a" onChange={onChange} options={withDivider} ariaLabel="fruit" />);
+    const listbox = open();
+    // The divider is not exposed as an option.
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    // ArrowDown from Apple skips the divider and lands on Banana.
+    fireEvent.keyDown(listbox, { key: 'ArrowDown' });
+    fireEvent.keyDown(listbox, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('b');
+  });
+
   it('does not open when disabled', () => {
     render(<Select value="a" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" disabled />);
     fireEvent.click(screen.getByRole('button', { name: 'fruit' }));
     expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('shows placeholder when value matches no option', () => {
+    render(<Select value="" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" placeholder="Pick one" />);
+    expect(screen.getByRole('button', { name: 'fruit' })).toHaveTextContent('Pick one');
+  });
+
+  it('shows selected label (not placeholder) when value matches an option', () => {
+    render(<Select value="b" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" placeholder="Pick one" />);
+    expect(screen.getByRole('button', { name: 'fruit' })).toHaveTextContent('Banana');
   });
 });

@@ -6,6 +6,7 @@ interface NativeSettingsWindow extends Window {
     haptic?: (style?: string) => void;
     transferFiles?: () => void;
     sendClipboard?: () => void;
+    findComputer?: () => void;
   };
   webkit?: {
     messageHandlers?: {
@@ -13,6 +14,9 @@ interface NativeSettingsWindow extends Window {
         postMessage?: (message: string) => void;
       };
       nexusNativeHaptics?: {
+        postMessage?: (message: string) => void;
+      };
+      nexusNativeFindComputer?: {
         postMessage?: (message: string) => void;
       };
     };
@@ -35,6 +39,27 @@ export function isNativeApp() {
     || typeof nativeWindow.nexusNative?.haptic === 'function'
     || typeof nativeWindow.webkit?.messageHandlers?.nexusNativeSettings?.postMessage === 'function'
     || typeof nativeWindow.webkit?.messageHandlers?.nexusNativeHaptics?.postMessage === 'function';
+}
+
+// The native wrapper can return the user to its "Find your computer" page
+// (LAN discovery + pair, keeping the current pairing). Present only inside the
+// app; a plain browser has no such surface, so the panel gate hides the
+// affordance when this is absent.
+export function hasNativeFindComputerBridge() {
+  const nativeWindow = window as NativeSettingsWindow;
+  return typeof nativeWindow.nexusNative?.findComputer === 'function'
+    || typeof nativeWindow.webkit?.messageHandlers?.nexusNativeFindComputer?.postMessage === 'function';
+}
+
+// Ask the native wrapper to open its "Find your computer" page. No-op outside
+// the app.
+export function openFindComputer() {
+  const nativeWindow = window as NativeSettingsWindow;
+  if (typeof nativeWindow.nexusNative?.findComputer === 'function') {
+    nativeWindow.nexusNative.findComputer();
+    return;
+  }
+  nativeWindow.webkit?.messageHandlers?.nexusNativeFindComputer?.postMessage?.('open');
 }
 
 // Fire a device haptic tick: the iOS app bridge first, then the web Vibration

@@ -33,33 +33,3 @@
   font-weight: var(--weight-heading);
   line-height: 1.4;
 }
-
-// Catalog group label - plain muted text, no underline, matching the settings
-// "header outside the box" look (these stay grid dividers, not cards).
-.sectionHeader {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 18px 4px 6px;
-  color: var(--text-dim);
-  font-family: var(--panel-font);
-  font-size: var(--type-small);
-  font-weight: var(--weight-body);
-}
-
-.sectionHeaderLabel {
-  white-space: nowrap;
-}
-
-.sectionHeaderTag {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--panel-accent, currentColor) 18%, transparent);
-  color: var(--panel-accent, currentColor);
-  font-size: var(--type-tiny);
-  font-weight: var(--weight-heading);
-  letter-spacing: 0.1em;
-  line-height: 1;
-}
