@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ShieldOff } from 'lucide-react';
 import type { DetectedConflict } from '../../../api/conflicts';
 import { killConflict } from '../../../api/conflicts';
@@ -82,16 +82,39 @@ function translateCategory(t: TranslateFn, category: string): string {
 
 function ConflictWarningModal({ open, conflicts, suppressed, onClose, onSuppressedChange }: ConflictWarningModalProps) {
   const { t } = useTranslation();
-  // Track per-id in-flight kill so the End-task button shows a spinner
-  // without freezing the whole list while another row is being killed.
-  const [killing, setKilling] = useState<string | null>(null);
+  // Ids with a kill in flight (or killed but not yet dropped from the list).
+  // The watcher only rebroadcasts the conflict set on its periodic poll, so a
+  // killed row lingers until the next one; keep the spinner up across that gap
+  // rather than clearing it when the kill POST returns. A set so ending one app
+  // does not reset another row's spinner.
+  const [killing, setKilling] = useState<ReadonlySet<string>>(() => new Set());
+
+  // Drop ids the watcher has cleared so a relaunched app gets a fresh button.
+  useEffect(() => {
+    setKilling(prev => {
+      if (prev.size === 0) return prev;
+      const next = new Set([...prev].filter(id => conflicts.some(c => c.id === id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [conflicts]);
 
   const handleKill = useCallback(async (id: string) => {
-    setKilling(id);
+    setKilling(prev => new Set(prev).add(id));
+    let killed = false;
     try {
-      await killConflict(id);
-    } finally {
-      setKilling(null);
+      const res = await killConflict(id);
+      killed = res?.killed ?? false;
+    } catch {
+      killed = false;
+    }
+    // Keep the spinner until the watcher drops the row (the prune effect clears
+    // the id); on failure re-enable the button so the user can retry.
+    if (!killed) {
+      setKilling(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   }, []);
 
@@ -126,7 +149,7 @@ function ConflictWarningModal({ open, conflicts, suppressed, onClose, onSuppress
                 <Button
                   tone="danger"
                   size="sm"
-                  loading={killing === conflict.id}
+                  loading={killing.has(conflict.id)}
                   loadingHidesLabel
                   onClick={() => handleKill(conflict.id)}
                 >
