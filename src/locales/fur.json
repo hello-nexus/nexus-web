@@ -1417,6 +1417,8 @@
   "panel.widget.clock.settings.timeFormat": "Formât de ore",
   "panel.widget.clock.settings.timezone": "Fûs orari",
   "panel.widget.clock.settings.timezoneAuto": "Automatic (locâl)",
+  "panel.widget.clock.settings.timezoneNoResults": "Nissun fûs orari corispondent",
+  "panel.widget.clock.settings.timezoneSearch": "Cîr fûs oraris…",
   "panel.widget.clock.settings.useAccentColor": "Dopre colôr di acent",
   "panel.widget.cooling": "Rinfrescjament",
   "panel.widget.deck": "Deck",

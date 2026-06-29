@@ -1408,6 +1408,8 @@
   "panel.widget.clock.settings.timeFormat": "时间格式",
   "panel.widget.clock.settings.timezone": "时区",
   "panel.widget.clock.settings.timezoneAuto": "自动（本地）",
+  "panel.widget.clock.settings.timezoneNoResults": "没有匹配的时区",
+  "panel.widget.clock.settings.timezoneSearch": "搜索时区…",
   "panel.widget.clock.settings.useAccentColor": "使用强调色",
   "panel.widget.cooling": "散热",
   "panel.widget.deck": "Deck",

@@ -1408,6 +1408,8 @@
   "panel.widget.clock.settings.timeFormat": "Zeitformat",
   "panel.widget.clock.settings.timezone": "Zeitzone",
   "panel.widget.clock.settings.timezoneAuto": "Auto (lokal)",
+  "panel.widget.clock.settings.timezoneNoResults": "Keine passenden Zeitzonen",
+  "panel.widget.clock.settings.timezoneSearch": "Zeitzonen suchen…",
   "panel.widget.clock.settings.useAccentColor": "Akzentfarbe verwenden",
   "panel.widget.cooling": "Kühlung",
   "panel.widget.deck": "Deck",

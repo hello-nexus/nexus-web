@@ -40,8 +40,11 @@
   min-width: 0;
 }
 
-.textInput {
+.tzTrigger {
   appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: var(--panel-element-bg);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
@@ -51,14 +54,27 @@
   font-weight: var(--weight-strong);
   padding: 5px 10px;
   min-width: 140px;
+  cursor: pointer;
   outline: none;
   transition: border-color var(--ease);
 
-  &::placeholder {
-    color: var(--text-dim);
-  }
-
-  &:focus {
+  &:hover,
+  &:focus,
+  &[aria-expanded='true'] {
     border-color: var(--panel-accent);
   }
+}
+
+.tzValue {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.tzChevron {
+  flex-shrink: 0;
+  color: var(--text-dim);
 }
