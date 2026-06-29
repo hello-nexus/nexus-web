@@ -412,20 +412,18 @@ export default function OverlayShell() {
     await setAllOverlayWidgetsLocked(locked);
   }, []);
 
-  // While the context menu / edit sheet is open OR a widget is being dragged,
-  // force the desktop overlay always-on-top so the active widget floats above
-  // other windows and the popover can't slip behind one. Whenever all three
-  // clear, restore the user's persisted value - sinking back to the wallpaper
-  // layer unless they pinned it on top. The ref keeps the latest saved value
-  // accessible without re-firing this effect when prefs broadcasts arrive
-  // mid-interaction. No POST to /preferences here - the persisted setting is
-  // unchanged.
-  const alwaysOnTopRef = useRef(alwaysOnTop);
-  useEffect(() => { alwaysOnTopRef.current = alwaysOnTop; }, [alwaysOnTop]);
+  // Desktop overlay z-order = transient raise OR the persisted always-on-top
+  // pref. Raise while a context menu / edit sheet is open or a widget is being
+  // dragged so the active widget and its popover float above other windows;
+  // otherwise honor the saved pref. Re-applied whenever either input changes,
+  // so toggling always-on-top (or a prefs broadcast carrying it) reaches the
+  // host even with no interaction. A broadcast mid-interaction still posts true
+  // because `raised` dominates, so it can't sink the window under the user. No
+  // POST to /preferences here - the persisted setting is unchanged.
   const raised = menu !== null || editingWidgetId !== null || dragOverride !== null;
   useEffect(() => {
-    postToHost({ type: 'setAlwaysOnTop', value: raised ? true : alwaysOnTopRef.current });
-  }, [raised]);
+    postToHost({ type: 'setAlwaysOnTop', value: raised || alwaysOnTop });
+  }, [raised, alwaysOnTop]);
 
   // Reset the slot picker any time we open the editor on a new widget,
   // matching PanelApp's expected starting state (slot 0).
