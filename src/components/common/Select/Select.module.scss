@@ -162,3 +162,12 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+// Thin rule grouping options above/below it, matching the Profile dropdown's
+// group separator (ProfileDropdown.module.scss .actionSep).
+.divider {
+  height: 1px;
+  margin: 0.2rem 0.6rem;
+  background: var(--separator);
+  pointer-events: none;
+}
