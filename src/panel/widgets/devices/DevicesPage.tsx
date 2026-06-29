@@ -255,9 +255,9 @@ const FW_ICONS: Record<string, string> = {
   cnvs: '/assets/devices/cnvs.svg',
   qseries: '/assets/devices/q60.svg',
   y70: '/assets/devices/y70.svg',
-  'fan-hub': '/assets/devices/fan-hub.svg',
+  'fan-hub': '/assets/devices/ibuypower.svg',
   np50: '/assets/devices/np50.svg',
-  smarthub: '/assets/devices/fan-hub.svg',
+  smarthub: '/assets/devices/smarthub.svg',
 };
 const FW_FALLBACK_ICON = '/assets/devices/device.svg';
 

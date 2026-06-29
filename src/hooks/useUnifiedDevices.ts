@@ -43,7 +43,6 @@ const CATEGORY_ICONS: Record<string, string> = {
   gamepad: '/assets/devices/gamepad.svg',
   display: '/assets/devices/y70.svg',
   controller: '/assets/devices/cnvs.svg',
-  hub: '/assets/devices/fan-hub.svg',
 };
 
 const CURATED_ICONS: Record<string, string> = {
@@ -57,7 +56,8 @@ const CURATED_ICONS: Record<string, string> = {
   y70: '/assets/devices/y70.svg',
   keeb: '/assets/devices/keeb.svg',
   np50: '/assets/devices/np50.svg',
-  'fan-hub': '/assets/devices/fan-hub.svg',
+  'fan-hub': '/assets/devices/ibuypower.svg',
+  smarthub: '/assets/devices/smarthub.svg',
   'lianli-tl': '/assets/devices/lianli.svg',
   'lianli-aio': '/assets/devices/lianli.svg',
   strimer: '/assets/devices/device.svg',
