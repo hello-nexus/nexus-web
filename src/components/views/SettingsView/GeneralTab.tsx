@@ -135,8 +135,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           label={t('settings.alerts.label')}
           anchorId="set-alerts"
           description={t('settings.alerts.description')}
-          checked={settings.general.disableConflictAlerts}
-          onChange={() => updateGeneral({ disableConflictAlerts: !settings.general.disableConflictAlerts })}
+          checked={settings.general.showConflictAlerts}
+          onChange={() => updateGeneral({ showConflictAlerts: !settings.general.showConflictAlerts })}
         />
       </SettingsSection>
 

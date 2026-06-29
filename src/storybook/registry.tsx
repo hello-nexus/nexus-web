@@ -870,7 +870,7 @@ function PreviewSettingsSection() {
     <div style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 24 }}>
       <SettingsSection title="General" description="Optional muted description under the title.">
         <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Language</div>
-        <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Hide conflict warnings</div>
+        <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Show conflict warnings</div>
       </SettingsSection>
       <SettingsSection title="Danger zone" titleStyle={{ color: 'var(--bad)' }}>
         <div style={{ color: 'var(--text)', fontSize: 14, padding: '0.4rem 0' }}>Shut down · Reset to defaults</div>

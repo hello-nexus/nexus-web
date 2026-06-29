@@ -297,10 +297,10 @@ const remoteAccess: SearchSource = (ctx) => {
 
 // Boolean settings as single toggles (the action half), paired with the
 // settings-item entries above that open the tab. Generic over UiSettingsValue.
-const TOGGLES: { id: string; labelKey: string; field: 'showWindowsTrayIcon' | 'showMacStatusBarIcon' | 'disableConflictAlerts'; words: string[] }[] = [
+const TOGGLES: { id: string; labelKey: string; field: 'showWindowsTrayIcon' | 'showMacStatusBarIcon' | 'showConflictAlerts'; words: string[] }[] = [
   { id: 'tray',    labelKey: 'settings.windowsTray.label',  field: 'showWindowsTrayIcon', words: ['tray', 'icon', 'windows', 'taskbar', 'notification area'] },
   { id: 'menubar', labelKey: 'settings.macStatusBar.label', field: 'showMacStatusBarIcon', words: ['menu bar', 'status bar', 'macos', 'mac', 'icon'] },
-  { id: 'alerts',  labelKey: 'settings.alerts.label',       field: 'disableConflictAlerts', words: ['conflict', 'alerts', 'warnings', 'notifications'] },
+  { id: 'alerts',  labelKey: 'settings.alerts.label',       field: 'showConflictAlerts', words: ['conflict', 'alerts', 'warnings', 'notifications'] },
 ];
 const settingsToggles: SearchSource = (ctx) =>
   TOGGLES.map(({ id, labelKey, field, words }) => toggleEntry(`toggle:${id}`, {

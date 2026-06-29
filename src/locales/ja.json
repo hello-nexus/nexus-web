@@ -1616,7 +1616,7 @@
   "settings.accent.custom": "カスタム",
   "settings.accent.system": "システム",
   "settings.alerts.description": "ライティングやファン制御の操作が他の実行中のソフトウェアに影響される可能性がある場合に通知を受け取ります",
-  "settings.alerts.label": "競合警告を非表示",
+  "settings.alerts.label": "競合警告を表示",
   "settings.background": "背景",
   "settings.background.flat": "フラット",
   "settings.background.glass": "ガラス",

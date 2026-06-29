@@ -48,7 +48,7 @@ export interface UiSettingsValue {
   language: Language;
   themeMode: ThemeMode;
   accentColor: string;
-  disableConflictAlerts: boolean;
+  showConflictAlerts: boolean;
   monitoringShowAverage: boolean;
   monitoringDetailedCollapsed: string[];
   showMacStatusBarIcon: boolean;
@@ -97,7 +97,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     language: src.general.language,
     themeMode: src.general.themeMode,
     accentColor: src.general.accentColor,
-    disableConflictAlerts: src.general.disableConflictAlerts,
+    showConflictAlerts: src.general.showConflictAlerts,
     monitoringShowAverage: src.general.monitoringShowAverage,
     monitoringDetailedCollapsed: src.general.monitoringDetailedCollapsed,
     showMacStatusBarIcon: src.general.showMacStatusBarIcon,
@@ -123,7 +123,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       backgroundMode: src.backgroundMode,
       accentSource: src.accentSource,
       startOnLogin: src.startOnLogin,
-      disableConflictAlerts: src.disableConflictAlerts,
+      showConflictAlerts: src.showConflictAlerts,
       monitoringShowAverage: src.monitoringShowAverage,
       monitoringDetailedCollapsed: src.monitoringDetailedCollapsed,
       showMacStatusBarIcon: src.showMacStatusBarIcon,
@@ -158,8 +158,8 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ disableConflictAlerts: boolean; pinnedSidebarApps: string[] }> = {};
-  if (patch.disableConflictAlerts !== undefined) ui.disableConflictAlerts = patch.disableConflictAlerts;
+  const ui: Partial<{ showConflictAlerts: boolean; pinnedSidebarApps: string[] }> = {};
+  if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
@@ -177,7 +177,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     language: (server.theme?.language as Language) ?? base.language,
     themeMode: (server.theme?.themeMode as ThemeMode) ?? base.themeMode,
     accentColor: server.theme?.accentColor ?? base.accentColor,
-    disableConflictAlerts: server.ui?.disableConflictAlerts ?? base.disableConflictAlerts,
+    showConflictAlerts: server.ui?.showConflictAlerts ?? base.showConflictAlerts,
     monitoringShowAverage: server.monitoring?.showAverage ?? base.monitoringShowAverage,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     showMacStatusBarIcon: server.monitoring?.showMacStatusBarIcon ?? base.showMacStatusBarIcon,
@@ -299,7 +299,7 @@ export function UiSettingsProvider({
         language: prefs.theme?.language,
         themeMode: prefs.theme?.themeMode,
         accentColor: prefs.theme?.accentColor,
-        disableConflictAlerts: prefs.ui?.disableConflictAlerts,
+        showConflictAlerts: prefs.ui?.showConflictAlerts,
         monitoringShowAverage: prefs.monitoring?.showAverage,
         monitoringDetailedCollapsed: prefs.monitoring?.detailedCollapsed,
         showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,

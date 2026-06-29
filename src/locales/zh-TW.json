@@ -1616,7 +1616,7 @@
   "settings.accent.custom": "自訂",
   "settings.accent.system": "系統",
   "settings.alerts.description": "當燈光和/或風扇控制操作可能受到其他執行中軟體影響時發出通知",
-  "settings.alerts.label": "隱藏衝突警告",
+  "settings.alerts.label": "顯示衝突警告",
   "settings.background": "背景",
   "settings.background.flat": "純色",
   "settings.background.glass": "玻璃",

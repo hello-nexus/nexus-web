@@ -75,7 +75,7 @@ export interface CoolingPrefs {
 }
 
 export interface UiPrefs {
-  disableConflictAlerts: boolean;
+  showConflictAlerts: boolean;
   // Order of the user's pinnable sidebar apps after the locked Dashboard
   // row. Optional - older services return Preferences without this field;
   // the client falls back to DEFAULT_PINNED_TAIL in that case.

@@ -1616,7 +1616,7 @@
   "settings.accent.custom": "Niestandardowy",
   "settings.accent.system": "Systemowy",
   "settings.alerts.description": "Otrzymuj powiadomienia, gdy podswietlenie lub sterowanie wentylatorami moze byc zaburzone przez inne uruchomione oprogramowanie",
-  "settings.alerts.label": "Ukryj ostrzezenia o konfliktach",
+  "settings.alerts.label": "Pokaz ostrzezenia o konfliktach",
   "settings.background": "Tło",
   "settings.background.flat": "Jednolity",
   "settings.background.glass": "Szkło",

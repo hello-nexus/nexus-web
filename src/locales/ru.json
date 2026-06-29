@@ -1616,7 +1616,7 @@
   "settings.accent.custom": "Пользовательский",
   "settings.accent.system": "Системный",
   "settings.alerts.description": "Получать уведомления, если подсветка и/или управление вентиляторами могут быть затронуты другим запущенным ПО",
-  "settings.alerts.label": "Скрыть предупреждения о конфликтах",
+  "settings.alerts.label": "Показывать предупреждения о конфликтах",
   "settings.background": "Фон",
   "settings.background.flat": "Сплошной",
   "settings.background.glass": "Стекло",

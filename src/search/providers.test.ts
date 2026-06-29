@@ -9,7 +9,7 @@ function ctx(online: boolean): CommandContext {
     devices: [],
     settings: {
       themeMode: 'dark', accentColor: '#2563eb', language: 'en',
-      showWindowsTrayIcon: true, showMacStatusBarIcon: false, disableConflictAlerts: false,
+      showWindowsTrayIcon: true, showMacStatusBarIcon: false, showConflictAlerts: false,
     } as CommandContext['settings'],
     updateSettings: () => {},
     panel: { remoteEnabled: true, relayEnabled: false, wifiEnabled: false },

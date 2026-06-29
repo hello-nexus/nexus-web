@@ -1736,7 +1736,7 @@
   "settings.accent.custom": "Custom",
   "settings.accent.system": "System",
   "settings.alerts.description": "Get notified if lighting and/or fan control operations may be impacted by other running software",
-  "settings.alerts.label": "Hide conflict warnings",
+  "settings.alerts.label": "Show conflict warnings",
   "settings.background": "Background",
   "settings.background.flat": "Flat",
   "settings.background.glass": "Glass",

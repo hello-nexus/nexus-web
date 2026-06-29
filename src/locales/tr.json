@@ -1616,7 +1616,7 @@
   "settings.accent.custom": "Özel",
   "settings.accent.system": "Sistem",
   "settings.alerts.description": "Aydinlatma ve/veya fan kontrol islemleri calisan diger yazilimlardan etkilenebiliyorsa bildirim alin",
-  "settings.alerts.label": "Cakisma uyarilarini gizle",
+  "settings.alerts.label": "Cakisma uyarilarini goster",
   "settings.background": "Arka plan",
   "settings.background.flat": "Düz",
   "settings.background.glass": "Cam",

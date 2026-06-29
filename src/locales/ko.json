@@ -1616,7 +1616,7 @@
   "settings.accent.custom": "사용자 지정",
   "settings.accent.system": "시스템",
   "settings.alerts.description": "라이팅 및/또는 팬 제어 작업이 다른 실행 중인 소프트웨어에 의해 영향을 받을 수 있는 경우 알림을 받습니다",
-  "settings.alerts.label": "충돌 경고 숨기기",
+  "settings.alerts.label": "충돌 경고 표시",
   "settings.background": "배경",
   "settings.background.flat": "단색",
   "settings.background.glass": "유리",

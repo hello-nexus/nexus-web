@@ -189,7 +189,7 @@ export function Dashboard() {
       language: prefs.theme.language,
       themeMode: prefs.theme.themeMode,
       accentColor: prefs.theme.accentColor,
-      disableConflictAlerts: prefs.ui?.disableConflictAlerts,
+      showConflictAlerts: prefs.ui?.showConflictAlerts,
       monitoringShowAverage: prefs.monitoring?.showAverage,
       monitoringDetailedCollapsed: prefs.monitoring?.detailedCollapsed,
       showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,

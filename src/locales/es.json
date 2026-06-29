@@ -1616,7 +1616,7 @@
   "settings.accent.custom": "Personalizado",
   "settings.accent.system": "Sistema",
   "settings.alerts.description": "Recibir notificaciones si las operaciones de iluminación y/o control de ventiladores pueden verse afectadas por otro software en ejecución",
-  "settings.alerts.label": "Ocultar advertencias de conflicto",
+  "settings.alerts.label": "Mostrar advertencias de conflicto",
   "settings.background": "Fondo",
   "settings.background.flat": "Plano",
   "settings.background.glass": "Cristal",

@@ -104,7 +104,7 @@ export function NotConnectedBadge({ state, t, compact }: {
 
 /**
  * Conflict warning slot for the top bar. Owns the modal `open` state and the
- * `disableConflictAlerts` pref (the in-modal "Don't show again" checkbox
+ * `showConflictAlerts` pref (the in-modal "Don't show again" checkbox
  * toggles it), keeping the badge presentational.
  */
 export function ConflictStatusSlot({ serviceOnline }: {
@@ -112,7 +112,7 @@ export function ConflictStatusSlot({ serviceOnline }: {
 }) {
   const { settings, update } = useUiSettings();
   const [open, setOpen] = useState(false);
-  const suppressed = settings.disableConflictAlerts;
+  const suppressed = !settings.showConflictAlerts;
   // Keep the subscription alive while the modal is open even after the user
   // suppresses alerts, so the list they are acting on stays live instead of
   // collapsing to the "all clear" state mid-read.
@@ -125,7 +125,7 @@ export function ConflictStatusSlot({ serviceOnline }: {
       suppressed={suppressed}
       open={open}
       onOpenChange={setOpen}
-      onSuppressedChange={value => update({ disableConflictAlerts: value })}
+      onSuppressedChange={value => update({ showConflictAlerts: !value })}
     />
   );
 }

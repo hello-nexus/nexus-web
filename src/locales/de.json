@@ -1616,7 +1616,7 @@
   "settings.accent.custom": "Benutzerdefiniert",
   "settings.accent.system": "System",
   "settings.alerts.description": "Benachrichtigung erhalten, wenn Beleuchtungs- und/oder Lüftersteuerung durch andere laufende Software beeinträchtigt werden könnte",
-  "settings.alerts.label": "Konfliktwarnungen ausblenden",
+  "settings.alerts.label": "Konfliktwarnungen anzeigen",
   "settings.background": "Hintergrund",
   "settings.background.flat": "Einfarbig",
   "settings.background.glass": "Glas",

@@ -114,7 +114,7 @@ export interface GeneralSettings {
   backgroundMode: BackgroundMode;
   accentSource: AccentSource;
   startOnLogin: boolean;
-  disableConflictAlerts: boolean;
+  showConflictAlerts: boolean;
   monitoringShowAverage: boolean;
   monitoringDetailedCollapsed: string[];
   showMacStatusBarIcon: boolean;
@@ -153,7 +153,7 @@ export function getDefaultSettings(): NexusSettings {
       backgroundMode: 'glass',
       accentSource: 'system',
       startOnLogin: false,
-      disableConflictAlerts: false,
+      showConflictAlerts: true,
       monitoringShowAverage: true,
       monitoringDetailedCollapsed: [],
       showMacStatusBarIcon: true,
@@ -198,7 +198,7 @@ export function saveSettings(settings: NexusSettings): void {
 
 export function cachePreferencesLocally(prefs: {
   language?: string; themeMode?: string; accentColor?: string;
-  disableConflictAlerts?: boolean; monitoringShowAverage?: boolean;
+  showConflictAlerts?: boolean; monitoringShowAverage?: boolean;
   monitoringDetailedCollapsed?: string[];
   showMacStatusBarIcon?: boolean;
   showWindowsTrayIcon?: boolean;
@@ -208,7 +208,7 @@ export function cachePreferencesLocally(prefs: {
   if (prefs.language) current.general.language = prefs.language as Language;
   if (prefs.themeMode) current.general.themeMode = prefs.themeMode as ThemeMode;
   if (prefs.accentColor) current.general.accentColor = prefs.accentColor;
-  if (prefs.disableConflictAlerts !== undefined) current.general.disableConflictAlerts = prefs.disableConflictAlerts;
+  if (prefs.showConflictAlerts !== undefined) current.general.showConflictAlerts = prefs.showConflictAlerts;
   if (prefs.monitoringShowAverage !== undefined) current.general.monitoringShowAverage = prefs.monitoringShowAverage;
   if (prefs.monitoringDetailedCollapsed !== undefined) current.general.monitoringDetailedCollapsed = prefs.monitoringDetailedCollapsed;
   if (prefs.showMacStatusBarIcon !== undefined) current.general.showMacStatusBarIcon = prefs.showMacStatusBarIcon;

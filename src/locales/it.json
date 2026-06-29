@@ -1616,7 +1616,7 @@
   "settings.accent.custom": "Personalizzato",
   "settings.accent.system": "Sistema",
   "settings.alerts.description": "Ricevi una notifica se le operazioni di illuminazione e/o controllo ventole possono essere influenzate da altri software in esecuzione",
-  "settings.alerts.label": "Nascondi avvisi di conflitto",
+  "settings.alerts.label": "Mostra avvisi di conflitto",
   "settings.background": "Sfondo",
   "settings.background.flat": "Tinta unita",
   "settings.background.glass": "Vetro",
