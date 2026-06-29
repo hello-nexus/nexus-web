@@ -20,6 +20,9 @@ interface UpdateModalProps {
   // When true, an install was already started externally before the modal opened;
   // latch installActiveRef so the reconnecting transition fires if the service exits.
   startedInstall?: boolean;
+  // Default true. Set false to suppress the auto-check-on-open (e.g. the
+  // Storybook preview, which must not fire a live POST /update/check).
+  autoCheck?: boolean;
 }
 
 type ModalView = 'progress' | 'reconnecting' | 'notes' | 'whatsNew';
@@ -124,7 +127,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
 
 const RECONNECT_TIMEOUT_MS = 120_000;
 
-export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdateNow, startedInstall }: UpdateModalProps) {
+export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdateNow, startedInstall, autoCheck = true }: UpdateModalProps) {
   const { t } = useTranslation();
   const [view, setView] = useState<ModalView>('notes');
   const [progress, setProgress] = useState<UpdateProgress | null>(null);
@@ -147,19 +150,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   // never trapped behind an empty modal.
   const isInstallActive = !reconnectGaveUp
     && ((view === 'progress' && (progress?.active ?? false)) || view === 'reconnecting');
-
-  // Refresh /update/status when the modal opens so action button label reflects
-  // current state (ready vs available) without relying on the caller's snapshot.
-  // The re-fetch must NOT touch the whatsNew view - the justUpdatedTo field is
-  // cleared server-side on first read, so any later fetch returns "" for it.
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    getUpdateStatus().then(s => {
-      if (!cancelled && s && onStatusRefreshed) onStatusRefreshed(s);
-    });
-    return () => { cancelled = true; };
-  }, [open, onStatusRefreshed]);
 
   // On open, capture justUpdatedTo into a ref before any re-fetch can clear it,
   // resolve the initial view, and reset all per-open latches.
@@ -277,6 +267,26 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     setChecked(true);
     if (onStatusRefreshed) onStatusRefreshed(s);
   };
+
+  // On open, the default (notes) flow runs a real check so the button shows its
+  // checking spinner immediately. whatsNew (post-update) and an
+  // install-in-progress open only re-read status - a check would clobber those
+  // flows, and justUpdatedTo is cleared server-side on first read. Runs after
+  // the reset effect so its setChecking(true) is not overwritten.
+  useEffect(() => {
+    if (!open) return;
+    if (autoCheck && !status?.justUpdatedTo && !startedInstall) {
+      void handleCheck();
+      return;
+    }
+    let cancelled = false;
+    getUpdateStatus().then(s => {
+      if (!cancelled && s && onStatusRefreshed) onStatusRefreshed(s);
+    });
+    return () => { cancelled = true; };
+  // Fire once per open from the status snapshot captured at open time.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleUpdateNow = async () => {
     // Latch before calling start so the poll can drive reconnecting if the

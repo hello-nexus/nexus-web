@@ -987,6 +987,7 @@ function PreviewUpdateModal() {
       </button>
       <UpdateModal
         open={open}
+        autoCheck={false}
         onClose={() => setOpen(false)}
         status={{
           currentVersion: '1.0.0',
