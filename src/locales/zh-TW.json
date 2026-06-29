@@ -2063,5 +2063,8 @@
   "lighting.controls.param.wind": "風",
   "lighting.controls.param.zoom": "縮放",
   "cooling.kind.fan": "風扇",
-  "cooling.kind.pump": "水泵"
+  "cooling.kind.pump": "水泵",
+  "update.modal.newBetaRelease": "新測試版！",
+  "update.modal.newRelease": "新版本！",
+  "update.modal.released": "發佈於 {date}"
 }

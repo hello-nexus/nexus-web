@@ -2063,5 +2063,8 @@
   "lighting.controls.param.wind": "Rüzgâr",
   "lighting.controls.param.zoom": "Yakınlaştırma",
   "cooling.kind.fan": "Fan",
-  "cooling.kind.pump": "Pompa"
+  "cooling.kind.pump": "Pompa",
+  "update.modal.newBetaRelease": "Yeni beta sürümü!",
+  "update.modal.newRelease": "Yeni sürüm!",
+  "update.modal.released": "{date} tarihinde yayınlandı"
 }

@@ -180,7 +180,7 @@ export const FanCard = memo(function FanCard({
     { value: 'manual', label: t('cooling.card.manual') },
     ...curves.map(c => ({ value: c.id, label: c.name })),
     ...(canCreateCurve ? [
-      { value: '__sep__', label: '', disabled: true, className: styles.fanModeOptionSep },
+      { value: '__sep__', label: '', divider: true },
       { value: '__create__', label: t('cooling.card.createCurve'), className: styles.fanModeOptionCreate, icon: <Plus size={14} /> },
     ] : []),
   ];

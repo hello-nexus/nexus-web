@@ -2063,5 +2063,8 @@
   "lighting.controls.param.wind": "Wiatr",
   "lighting.controls.param.zoom": "Powiększenie",
   "cooling.kind.fan": "Wentylator",
-  "cooling.kind.pump": "Pompa"
+  "cooling.kind.pump": "Pompa",
+  "update.modal.newBetaRelease": "Nowa wersja beta!",
+  "update.modal.newRelease": "Nowa wersja!",
+  "update.modal.released": "Wydano {date}"
 }

@@ -748,10 +748,13 @@ function PreviewSelect() {
       onChange={setV}
       options={[
         // The optional `icon` slot renders before the label in both the trigger
-        // and each row (used by the language picker for flags).
+        // and each row (used by the language picker for flags). A `divider`
+        // entry renders a thin rule grouping the options around it.
         { value: 'silent', label: 'Silent', icon: '🌙' },
         { value: 'balanced', label: 'Balanced', icon: '⚖️' },
         { value: 'turbo', label: 'Turbo', icon: '🔥' },
+        { value: '__sep__', label: '', divider: true },
+        { value: 'custom', label: 'Custom...', icon: '⚙️' },
       ]}
       ariaLabel="Profile"
     />
@@ -1001,6 +1004,7 @@ function PreviewUpdateModal() {
           lastCheckError: '',
           state: 'idle',
           justUpdatedTo: '',
+          publishedAtUnix: 1719619200,
         }}
       />
     </>

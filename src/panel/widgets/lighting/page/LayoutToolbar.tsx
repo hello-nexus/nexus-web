@@ -47,7 +47,7 @@ export function LayoutToolbar({
   const selectOptions = [
     ...presets.map(p => ({ value: p.id, label: p.name })),
     ...(activeId ? [
-      { value: '__sep__', label: '', disabled: true, className: styles.sepOption },
+      { value: '__sep__', label: '', divider: true },
       { value: '__rename__', label: t('lighting.layoutPresets.rename'), className: styles.actionOption, icon: <Pencil size={14} /> },
       { value: '__delete__', label: t('lighting.layoutPresets.delete'), className: styles.actionOption, icon: <Trash2 size={14} /> },
     ] : []),
