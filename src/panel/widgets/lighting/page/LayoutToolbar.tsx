@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RotateCcw, Undo2, Redo2 } from 'lucide-react';
+import { RotateCcw, Undo2, Redo2, Pencil, Trash2, Plus } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { isApplePlatform } from '../../../../lib/platform';
 import { Button } from '../../../../components/common/Button/Button';
@@ -47,11 +47,11 @@ export function LayoutToolbar({
   const selectOptions = [
     ...presets.map(p => ({ value: p.id, label: p.name })),
     ...(activeId ? [
-      { value: '__sep__', label: '------', disabled: true, className: styles.sepOption },
-      { value: '__rename__', label: t('lighting.layoutPresets.rename'), className: styles.actionOption },
-      { value: '__delete__', label: t('lighting.layoutPresets.delete'), className: styles.deleteOption },
+      { value: '__sep__', label: '', disabled: true, className: styles.sepOption },
+      { value: '__rename__', label: t('lighting.layoutPresets.rename'), className: styles.actionOption, icon: <Pencil size={14} /> },
+      { value: '__delete__', label: t('lighting.layoutPresets.delete'), className: styles.actionOption, icon: <Trash2 size={14} /> },
     ] : []),
-    { value: '__create__', label: t('lighting.layoutPresets.newOption'), className: styles.createOption, disabled: atCap },
+    { value: '__create__', label: t('lighting.layoutPresets.newOption'), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> },
   ];
 
   const handleSelectChange = (value: string) => {

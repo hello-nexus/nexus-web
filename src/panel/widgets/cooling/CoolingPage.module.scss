@@ -604,12 +604,22 @@
 .fanModeSelectAccent:hover,
 .fanModeSelectAccent:focus-within { border-color: var(--control-border-accent); }
 
-// Styling native <option> is partial (Chromium honors `color` and
-// `font-style`; Firefox less so) but setting them here is enough to signal
-// the "Create curve" entry as distinct from the concrete curve list above.
+// Accent + italic signals the "Create curve" entry as distinct from the
+// concrete curve list above it.
 .fanModeOptionCreate {
   color: var(--accent);
   font-style: italic;
+}
+
+// Thin rule above the "Create curve" action, matching the Profile dropdown's
+// group separator (ProfileDropdown.module.scss .actionSep).
+.fanModeOptionSep {
+  height: 1px;
+  padding: 0;
+  margin: 0.2rem 0.6rem;
+  background: var(--separator);
+  border-radius: 0;
+  pointer-events: none;
 }
 
 // Binding marker. The wired variant shows the curve name as a small
