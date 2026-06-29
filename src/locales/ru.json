@@ -2057,5 +2057,7 @@
   "lighting.controls.param.wavelength": "Длина волны",
   "lighting.controls.param.width": "Ширина",
   "lighting.controls.param.wind": "Ветер",
-  "lighting.controls.param.zoom": "Масштаб"
+  "lighting.controls.param.zoom": "Масштаб",
+  "cooling.kind.fan": "Вентилятор",
+  "cooling.kind.pump": "Насос"
 }

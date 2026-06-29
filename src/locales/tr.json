@@ -2057,5 +2057,7 @@
   "lighting.controls.param.wavelength": "Dalga Boyu",
   "lighting.controls.param.width": "Genişlik",
   "lighting.controls.param.wind": "Rüzgâr",
-  "lighting.controls.param.zoom": "Yakınlaştırma"
+  "lighting.controls.param.zoom": "Yakınlaştırma",
+  "cooling.kind.fan": "Fan",
+  "cooling.kind.pump": "Pompa"
 }

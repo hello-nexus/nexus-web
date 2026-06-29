@@ -2057,5 +2057,7 @@
   "lighting.controls.param.wavelength": "Longueur d'onde",
   "lighting.controls.param.width": "Largeur",
   "lighting.controls.param.wind": "Vent",
-  "lighting.controls.param.zoom": "Zoom"
+  "lighting.controls.param.zoom": "Zoom",
+  "cooling.kind.fan": "Ventilateur",
+  "cooling.kind.pump": "Pompe"
 }
