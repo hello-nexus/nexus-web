@@ -1406,14 +1406,14 @@ export function PanelContent({
           && def.meta.supportsImmersive[orientationKey];
         const ctxWidget = touch.ctxMenu.widget;
         const ctxPoint = { x: touch.ctxMenu.x, y: touch.ctxMenu.y };
-        // Desktop overlay toggle: "Add to desktop" when no overlay instance of
-        // this type exists, else "Remove from desktop". Remove deletes every
-        // instance of the type.
+        // "Add to desktop" always pins another floating overlay copy; multiple
+        // same-type instances coexist, each with its own config. "Remove from
+        // desktop" deletes every instance of the type.
         const onDesktopSurface = embedded && surface === 'desktop';
         const overlayMatches = onDesktopSurface
           ? overlayWidgets.filter(o => o.type === ctxWidget.type)
           : [];
-        const desktopAddAvailable = onDesktopSurface && overlayMatches.length === 0;
+        const desktopAddAvailable = onDesktopSurface;
         const desktopRemoveAvailable = onDesktopSurface && overlayMatches.length > 0;
 
         // Sidebar pin toggle, only for pinnable types (isPinnableAppKey):

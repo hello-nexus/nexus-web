@@ -204,6 +204,10 @@ export function WidgetEditSheet({
     const onPointerDown = (e: PointerEvent) => {
       const el = sheetRef.current;
       if (el && e.target instanceof Node && el.contains(e.target)) return;
+      // The sensor Select portals its menu onto document.body (outside the
+      // sheet subtree), so a click on an option would read as outside and
+      // close the sheet; treat the portaled listbox as inside.
+      if (e.target instanceof Element && e.target.closest('[role="listbox"]')) return;
       if (keepOpenOnTargetRef.current?.(e.target)) return;
       onCloseRef.current();
     };

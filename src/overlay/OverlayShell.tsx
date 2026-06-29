@@ -325,10 +325,14 @@ export default function OverlayShell() {
         id: entry.id,
         ...widgetPixelRect(entry.col, entry.row, entry.size, cellPx),
       }));
-      // Edit sheet rect takes priority over the context menu rect when both
-      // happen to be open (e.g. quick reopen). With neither, we report just
-      // widget rects so the rest of the WebView2 stays click-through.
-      const popover = editingSheetRect ?? menuRect;
+      // While the edit sheet is open, make the whole overlay hit-testable so a
+      // click anywhere outside the sheet reaches the SPA and dismisses it. The
+      // WebView2 composites transparent pixels, so the desktop still shows
+      // through the empty areas; only input capture changes. The context menu
+      // keeps its tight carve-out so clicks elsewhere fall through to it.
+      const popover = editingSheetRect
+        ? { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight }
+        : menuRect;
       if (popover) {
         reportLayoutWithPopover(widgetRects, popover);
       } else {
