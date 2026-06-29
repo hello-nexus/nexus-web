@@ -1715,8 +1715,8 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'CorsairDevicePage', category: 'panel-kit',
     filePath: 'src/components/views/DevicePage/CorsairDevicePage.tsx',
-    description: 'Device settings page for the Corsair iCUE LINK System Hub. Shows auto-detected connected devices (channel position badge, name, LED count, live RPM, live temperature, truncated serial), the Stop Corsair iCUE toggle, and navigation hints to the Cooling and Lighting pages.',
-    notes: 'No live preview - requires a running service with a connected Corsair iCUE LINK System Hub.',
+    description: 'Device settings page for the Corsair iCUE LINK Hub. Shows auto-detected connected devices (channel position badge, name, LED count, live RPM, live temperature) and navigation hints to the Cooling and Lighting pages.',
+    notes: 'No live preview - requires a running service with a connected Corsair iCUE LINK Hub.',
   },
   {
     name: 'HomeAssistantWidget', category: 'panel-kit',

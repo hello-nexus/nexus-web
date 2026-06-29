@@ -306,7 +306,7 @@
   "devices.corsair.goToLighting": "Va ae luminositât",
   "devices.corsair.leds": "{n} LED",
   "devices.corsair.lightingHint": "La luminositât LED e je gjestinade te pagjine di Luminositât.",
-  "devices.corsair.notConnected": "Corsair iCUE LINK System Hub no coletât",
+  "devices.corsair.notConnected": "Corsair iCUE LINK Hub no coletât",
   "devices.firmware.column.current": "Version instalade",
   "devices.firmware.column.device": "Dispositîf",
   "devices.firmware.column.status": "Stât",

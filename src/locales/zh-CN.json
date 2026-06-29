@@ -306,7 +306,7 @@
   "devices.corsair.goToLighting": "前往灯光",
   "devices.corsair.leds": "{n} 个 LED",
   "devices.corsair.lightingHint": "LED 灯光在灯光页面中管理。",
-  "devices.corsair.notConnected": "Corsair iCUE LINK System Hub 未连接",
+  "devices.corsair.notConnected": "Corsair iCUE LINK Hub 未连接",
   "devices.firmware.column.current": "已安装版本",
   "devices.firmware.column.device": "设备",
   "devices.firmware.column.status": "状态",
