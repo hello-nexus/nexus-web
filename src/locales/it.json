@@ -1408,6 +1408,8 @@
   "panel.widget.clock.settings.timeFormat": "Formato ora",
   "panel.widget.clock.settings.timezone": "Fuso orario",
   "panel.widget.clock.settings.timezoneAuto": "Auto (locale)",
+  "panel.widget.clock.settings.timezoneNoResults": "Nessun fuso orario corrispondente",
+  "panel.widget.clock.settings.timezoneSearch": "Cerca fusi orari…",
   "panel.widget.clock.settings.useAccentColor": "Usa colore di accento",
   "panel.widget.cooling": "Raffreddamento",
   "panel.widget.deck": "Deck",

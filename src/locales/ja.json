@@ -1408,6 +1408,8 @@
   "panel.widget.clock.settings.timeFormat": "時刻形式",
   "panel.widget.clock.settings.timezone": "タイムゾーン",
   "panel.widget.clock.settings.timezoneAuto": "自動（ローカル）",
+  "panel.widget.clock.settings.timezoneNoResults": "一致するタイムゾーンがありません",
+  "panel.widget.clock.settings.timezoneSearch": "タイムゾーンを検索…",
   "panel.widget.clock.settings.useAccentColor": "アクセントカラーを使用",
   "panel.widget.cooling": "冷却",
   "panel.widget.deck": "Deck",

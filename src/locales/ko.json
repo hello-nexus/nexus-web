@@ -1408,6 +1408,8 @@
   "panel.widget.clock.settings.timeFormat": "시간 형식",
   "panel.widget.clock.settings.timezone": "시간대",
   "panel.widget.clock.settings.timezoneAuto": "자동 (현지)",
+  "panel.widget.clock.settings.timezoneNoResults": "일치하는 시간대가 없습니다",
+  "panel.widget.clock.settings.timezoneSearch": "시간대 검색…",
   "panel.widget.clock.settings.useAccentColor": "강조 색상 사용",
   "panel.widget.cooling": "쿨링",
   "panel.widget.deck": "Deck",

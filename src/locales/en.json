@@ -1528,6 +1528,8 @@
   "panel.widget.clock.settings.timeFormat": "Time format",
   "panel.widget.clock.settings.timezone": "Timezone",
   "panel.widget.clock.settings.timezoneAuto": "Auto (local)",
+  "panel.widget.clock.settings.timezoneNoResults": "No matching time zones",
+  "panel.widget.clock.settings.timezoneSearch": "Search time zones…",
   "panel.widget.clock.settings.useAccentColor": "Use accent color",
   "panel.widget.cooling": "Cooling",
   "panel.widget.deck": "Deck",

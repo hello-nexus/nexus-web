@@ -35,7 +35,9 @@ describe('ClockSettings', () => {
     render(<ClockSettings widget={clockWidget()} onUpdate={vi.fn()} onResize={vi.fn()} />);
 
     const labels = ['Digital', 'Analog', 'Split Flap', 'Rolling', 'LED', 'Dots', 'Matrix'];
-    expect(screen.getAllByRole('button')).toHaveLength(labels.length);
+    // Design buttons carry aria-pressed; the timezone trigger (aria-expanded) does not.
+    const designButtons = screen.getAllByRole('button').filter(b => b.hasAttribute('aria-pressed'));
+    expect(designButtons).toHaveLength(labels.length);
 
     for (const label of labels) {
       expect(screen.getByRole('button', { name: label }).querySelector('svg')).toBeInTheDocument();

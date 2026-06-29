@@ -1408,6 +1408,8 @@
   "panel.widget.clock.settings.timeFormat": "Saat biçimi",
   "panel.widget.clock.settings.timezone": "Saat dilimi",
   "panel.widget.clock.settings.timezoneAuto": "Otomatik (yerel)",
+  "panel.widget.clock.settings.timezoneNoResults": "Eşleşen saat dilimi yok",
+  "panel.widget.clock.settings.timezoneSearch": "Saat dilimi ara…",
   "panel.widget.clock.settings.useAccentColor": "Vurgu rengini kullan",
   "panel.widget.cooling": "Sogutma",
   "panel.widget.deck": "Deck",
