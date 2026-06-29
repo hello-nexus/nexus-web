@@ -15,7 +15,7 @@ export function LineGauge({ formatted, label, history, historyDomain }: GaugePro
           color="var(--panel-accent)"
           sampleCount={PERF_HISTORY_SAMPLES}
           showFill={false}
-          strokeWidth={2.4}
+          strokeWidth={3.2}
           width={160}
           height={36}
         />
