@@ -8,6 +8,7 @@ export interface OverlayWidgetDto {
   monitor: number;
   col: number;
   row: number;
+  locked?: boolean;
   config?: Record<string, PanelConfigValue>;
 }
 
@@ -25,6 +26,7 @@ export interface OverlayWidgetPatch {
   monitor?: number;
   col?: number;
   row?: number;
+  locked?: boolean;
   config?: Record<string, PanelConfigValue>;
 }
 
@@ -50,5 +52,14 @@ export async function deleteOverlayWidget(
   id: string,
 ): Promise<boolean> {
   const result = await deleteService<{ error: boolean }>(`/overlay/widgets/${id}`);
+  return result !== null && !result.error;
+}
+
+// Sets `locked` on every overlay widget in one request so "Lock all" /
+// "Unlock all" apply atomically with a single prefs broadcast.
+export async function setAllOverlayWidgetsLocked(
+  locked: boolean,
+): Promise<boolean> {
+  const result = await postService<{ error: boolean }>('/overlay/widgets/lock', { locked });
   return result !== null && !result.error;
 }

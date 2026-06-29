@@ -39,6 +39,12 @@
     cursor: grabbing;
     z-index: 5;
   }
+
+  // A locked widget can't be dragged; drop the grab affordance. Inner
+  // controls keep their own cursors via pointer-events.
+  &[data-locked="true"] {
+    cursor: default;
+  }
 }
 
 
