@@ -1,6 +1,7 @@
 import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { PERF_HISTORY_SAMPLES } from '../../common/panelHistoryConfig';
 import { splitFormatted } from './format';
+import { GAUGE_LINE_THICKNESS } from './types';
 import type { GaugeProps } from './types';
 import styles from './SparklineGauge.module.scss';
 
@@ -15,7 +16,7 @@ export function LineGauge({ formatted, label, history, historyDomain }: GaugePro
           color="var(--panel-accent)"
           sampleCount={PERF_HISTORY_SAMPLES}
           showFill={false}
-          strokeWidth={3.2}
+          strokeWidth={GAUGE_LINE_THICKNESS}
           width={160}
           height={36}
         />

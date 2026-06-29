@@ -24,7 +24,7 @@
 .fill {
   width: 100%;
   background: var(--panel-accent-soft);
-  border-top: 3.2px solid var(--panel-accent);
+  border-top: var(--gauge-line-thickness) solid var(--panel-accent);
 }
 
 .overlay {

@@ -22,7 +22,7 @@
   flex: 1;
   min-height: 3px;
   background: color-mix(in srgb, var(--panel-accent) 40%, transparent);
-  border-top: 3.2px solid var(--panel-accent);
+  border-top: var(--gauge-line-thickness) solid var(--panel-accent);
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 

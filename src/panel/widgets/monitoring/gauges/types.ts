@@ -1,3 +1,6 @@
+/** Monitoring gauge line weight in px. Mirror of --gauge-line-thickness (variables.scss). */
+export const GAUGE_LINE_THICKNESS = 3.2;
+
 export interface GaugeProps {
   value: number;
   rawValue: number;
