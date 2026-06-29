@@ -76,7 +76,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   cnvs: 'CNVS',
   corsair: 'Corsair iCUE LINK Hub',
   keeb: 'Keeb',
-  lianli: 'Lian Li Uni Hub SL-Infinity',
+  lianli: 'Lian Li Uni Hub',
   'fan-hub': 'iBUYPOWER MiniHub',
   'lianli-tl': 'Lian Li Uni Fan TL',
   'lianli-aio': 'Lian Li Galahad II',

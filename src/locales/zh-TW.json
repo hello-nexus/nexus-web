@@ -353,7 +353,7 @@
   "devices.lianli.lightingSection": "LED 動畫",
   "devices.lianli.lightingSpeed": "速度",
   "devices.lianli.lightingSpeedAria": "動畫速度",
-  "devices.lianli.notConnected": "Lian Li Uni Hub SL-Infinity 未連線",
+  "devices.lianli.notConnected": "Lian Li Uni Hub 未連線",
   "devices.lianli.port": "連接埠 {n}",
   "devices.lianli.portsSection": "連接埠設定",
   "devices.lianli.removeColor": "移除",

@@ -353,7 +353,7 @@
   "devices.lianli.lightingSection": "LED animasyonu",
   "devices.lianli.lightingSpeed": "Hız",
   "devices.lianli.lightingSpeedAria": "Animasyon hızı",
-  "devices.lianli.notConnected": "Lian Li Uni Hub SL-Infinity bağlı değil",
+  "devices.lianli.notConnected": "Lian Li Uni Hub bağlı değil",
   "devices.lianli.port": "Port {n}",
   "devices.lianli.portsSection": "Port yapılandırması",
   "devices.lianli.removeColor": "Kaldır",

@@ -353,7 +353,7 @@
   "devices.lianli.lightingSection": "LED 애니메이션",
   "devices.lianli.lightingSpeed": "속도",
   "devices.lianli.lightingSpeedAria": "애니메이션 속도",
-  "devices.lianli.notConnected": "Lian Li Uni Hub SL-Infinity가 연결되지 않음",
+  "devices.lianli.notConnected": "Lian Li Uni Hub가 연결되지 않음",
   "devices.lianli.port": "포트 {n}",
   "devices.lianli.portsSection": "포트 설정",
   "devices.lianli.removeColor": "제거",

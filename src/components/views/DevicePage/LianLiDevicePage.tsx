@@ -118,7 +118,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
     return (
       <div className={styles.page}>
         {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
-        <ViewHeader title="Lian Li Uni Hub SL-Infinity" />
+        <ViewHeader title="Lian Li Uni Hub" />
         <div className={`${styles.pageBody} pageBody`}>
           <Placeholder title={t('devices.lianli.notConnected')} />
         </div>
@@ -138,7 +138,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
     <div className={styles.page}>
       <ViewHeader
         // eslint-disable-next-line i18next/no-literal-string -- brand + model name
-        title="Lian Li Uni Hub SL-Infinity"
+        title="Lian Li Uni Hub"
         actions={saving ? <span className={styles.savingBadge}>{t('devices.saving')}</span> : null}
       />
       <div className={`${styles.pageBody} pageBody`}>

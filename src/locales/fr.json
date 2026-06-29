@@ -353,7 +353,7 @@
   "devices.lianli.lightingSection": "Animation LED",
   "devices.lianli.lightingSpeed": "Vitesse",
   "devices.lianli.lightingSpeedAria": "Vitesse d'animation",
-  "devices.lianli.notConnected": "Lian Li Uni Hub SL-Infinity non connecté",
+  "devices.lianli.notConnected": "Lian Li Uni Hub non connecté",
   "devices.lianli.port": "Port {n}",
   "devices.lianli.portsSection": "Configuration des ports",
   "devices.lianli.removeColor": "Supprimer",
