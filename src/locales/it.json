@@ -306,7 +306,7 @@
   "devices.corsair.goToLighting": "Vai all'illuminazione",
   "devices.corsair.leds": "{n} LED",
   "devices.corsair.lightingHint": "L'illuminazione LED è gestita nella pagina Illuminazione.",
-  "devices.corsair.notConnected": "Corsair iCUE LINK System Hub non connesso",
+  "devices.corsair.notConnected": "Corsair iCUE LINK Hub non connesso",
   "devices.firmware.column.current": "Versione installata",
   "devices.firmware.column.device": "Dispositivo",
   "devices.firmware.column.status": "Stato",

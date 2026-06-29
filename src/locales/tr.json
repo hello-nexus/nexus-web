@@ -306,7 +306,7 @@
   "devices.corsair.goToLighting": "Aydınlatmaya git",
   "devices.corsair.leds": "{n} LED",
   "devices.corsair.lightingHint": "LED aydınlatma, Aydınlatma sayfasında yönetilir.",
-  "devices.corsair.notConnected": "Corsair iCUE LINK System Hub bağlı değil",
+  "devices.corsair.notConnected": "Corsair iCUE LINK Hub bağlı değil",
   "devices.firmware.column.current": "Yüklü sürüm",
   "devices.firmware.column.device": "Cihaz",
   "devices.firmware.column.status": "Durum",

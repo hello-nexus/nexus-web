@@ -306,7 +306,7 @@
   "devices.corsair.goToLighting": "ライティングへ",
   "devices.corsair.leds": "{n} LED",
   "devices.corsair.lightingHint": "LEDライティングはライティングページで管理します。",
-  "devices.corsair.notConnected": "Corsair iCUE LINK System Hub が接続されていません",
+  "devices.corsair.notConnected": "Corsair iCUE LINK Hub が接続されていません",
   "devices.firmware.column.current": "インストール済みバージョン",
   "devices.firmware.column.device": "デバイス",
   "devices.firmware.column.status": "ステータス",

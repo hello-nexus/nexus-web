@@ -71,7 +71,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   // "Q80") on the device record; overriding would collapse both to
   // "Q-series".
   cnvs: 'CNVS',
-  corsair: 'Corsair iCUE LINK System Hub',
+  corsair: 'Corsair iCUE LINK Hub',
   keeb: 'Keeb',
   lianli: 'Lian Li Uni Hub SL-Infinity',
   'fan-hub': 'iBUYPOWER MiniHub',

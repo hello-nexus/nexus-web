@@ -69,7 +69,7 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
     return (
       <div className={styles.page}>
         {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
-        <ViewHeader title="Corsair iCUE LINK System Hub" />
+        <ViewHeader title="Corsair iCUE LINK Hub" />
         <div className={`${styles.pageBody} pageBody`}>
           <Placeholder title={t('devices.corsair.notConnected')} />
         </div>
@@ -83,7 +83,7 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
     <div className={styles.page}>
       <ViewHeader
         // eslint-disable-next-line i18next/no-literal-string -- brand + model name
-        title="Corsair iCUE LINK System Hub"
+        title="Corsair iCUE LINK Hub"
         actions={
           state?.firmware
             // eslint-disable-next-line i18next/no-literal-string -- firmware label prefix
