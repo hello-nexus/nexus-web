@@ -1228,6 +1228,7 @@
   "panel.gate.fail.registerHeadline": "Nie udało się zarejestrować tego panelu",
   "panel.gate.fail.serviceBody": "Sprawdź, czy nexus-service działa, a następnie spróbuj ponownie.",
   "panel.gate.fail.serviceHeadline": "Nie udało się połączyć z usługą",
+  "panel.gate.findComputer": "Znajdź komputer",
   "panel.gate.networkError": "Błąd sieci",
   "panel.gate.noDeviceId": "Brak identyfikatora urządzenia",
   "panel.gate.pairingPhone": "Parowanie telefonu...",

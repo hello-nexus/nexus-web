@@ -1228,6 +1228,7 @@
   "panel.gate.fail.registerHeadline": "Bu panel kaydedilemedi",
   "panel.gate.fail.serviceBody": "nexus-service'in çalıştığını kontrol edin, ardından yeniden deneyin.",
   "panel.gate.fail.serviceHeadline": "Servise ulaşılamadı",
+  "panel.gate.findComputer": "Bilgisayarını bul",
   "panel.gate.networkError": "Ağ hatası",
   "panel.gate.noDeviceId": "Cihaz kimliği yok",
   "panel.gate.pairingPhone": "Telefon eşleştiriliyor...",

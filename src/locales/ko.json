@@ -1228,6 +1228,7 @@
   "panel.gate.fail.registerHeadline": "이 패널을 등록할 수 없습니다",
   "panel.gate.fail.serviceBody": "nexus-service가 실행 중인지 확인한 다음 다시 시도하세요.",
   "panel.gate.fail.serviceHeadline": "서비스에 연결할 수 없습니다",
+  "panel.gate.findComputer": "컴퓨터 찾기",
   "panel.gate.networkError": "네트워크 오류",
   "panel.gate.noDeviceId": "기기 ID 없음",
   "panel.gate.pairingPhone": "휴대폰 페어링 중...",

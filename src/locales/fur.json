@@ -1237,6 +1237,7 @@
   "panel.gate.fail.registerHeadline": "Impussibil regjistrâ chest panel",
   "panel.gate.fail.serviceBody": "Controle che nexus-service al sedi in vore, dopo torne prove.",
   "panel.gate.fail.serviceHeadline": "Impussibil rivâ al servizi",
+  "panel.gate.findComputer": "Cjate il to computer",
   "panel.gate.networkError": "Erôr di rêt",
   "panel.gate.noDeviceId": "Nissun id dal dispositîf",
   "panel.gate.pairingPhone": "Daûr a associâ il telefon...",

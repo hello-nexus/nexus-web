@@ -1091,6 +1091,16 @@
   }
 }
 
+// Pairs with .panelPairGateRetry on the same element; inherits its typography,
+// padding, and border. Drops the fill and dims the text to read as a secondary
+// action, and zeroes retry's top margin so the two buttons keep the card's
+// 12px gap rhythm instead of 20px.
+.panelPairGateSecondary {
+  margin-top: 0;
+  color: rgba(255, 255, 255, 0.72);
+  background: transparent;
+}
+
 // ── Right column (content only, no top nav) ─────────────────────────────
 
 .mainColumn {

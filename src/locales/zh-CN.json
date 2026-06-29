@@ -1228,6 +1228,7 @@
   "panel.gate.fail.registerHeadline": "无法注册此面板",
   "panel.gate.fail.serviceBody": "请检查 nexus-service 是否正在运行，然后重试。",
   "panel.gate.fail.serviceHeadline": "无法连接到服务",
+  "panel.gate.findComputer": "查找您的电脑",
   "panel.gate.networkError": "网络错误",
   "panel.gate.noDeviceId": "无设备 id",
   "panel.gate.pairingPhone": "正在配对手机...",

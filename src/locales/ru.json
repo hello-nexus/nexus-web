@@ -1228,6 +1228,7 @@
   "panel.gate.fail.registerHeadline": "Не удалось зарегистрировать эту панель",
   "panel.gate.fail.serviceBody": "Проверьте, что nexus-service запущен, затем повторите.",
   "panel.gate.fail.serviceHeadline": "Не удалось связаться со службой",
+  "panel.gate.findComputer": "Найти компьютер",
   "panel.gate.networkError": "Ошибка сети",
   "panel.gate.noDeviceId": "Нет device id",
   "panel.gate.pairingPhone": "Сопряжение телефона...",

@@ -1228,6 +1228,7 @@
   "panel.gate.fail.registerHeadline": "このパネルを登録できませんでした",
   "panel.gate.fail.serviceBody": "nexus-service が実行されていることを確認してから、再試行してください。",
   "panel.gate.fail.serviceHeadline": "サービスに接続できませんでした",
+  "panel.gate.findComputer": "コンピューターを探す",
   "panel.gate.networkError": "ネットワークエラー",
   "panel.gate.noDeviceId": "デバイス ID がありません",
   "panel.gate.pairingPhone": "スマートフォンをペアリング中...",

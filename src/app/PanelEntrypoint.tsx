@@ -4,6 +4,7 @@ import { PanelSimulatorContent } from '../panel/embed/PanelSimulatorContent';
 import OverlayShell from '../overlay/OverlayShell';
 import { inferSurfaceFromViewport } from '../panel/device/inferSurface';
 import { isWiredPanel } from '../panel/device/wiredPanel';
+import { hasNativeFindComputerBridge, openFindComputer } from '../panel/device/panelNativeBridge';
 import {
   allocatePanelDeviceWithStatus,
   patchPanelDeviceWithStatus,
@@ -236,6 +237,12 @@ function PanelEntrypointFailure({ kind, detail, isPhone, onRetry }: {
     body = t('panel.gate.fail.serviceBody');
   }
 
+  // Inside the native app this gate is otherwise a dead end - the panel never
+  // mounted, so there is no in-panel chrome to leave it. Offer a route back to
+  // the wrapper's "Find your computer" page (keeps the pairing). A plain
+  // browser has no such surface, so the affordance is hidden there.
+  const canFindComputer = hasNativeFindComputerBridge();
+
   return (
     <div className={styles.panelPairGate}>
       <div className={styles.panelPairGateCard}>
@@ -245,6 +252,15 @@ function PanelEntrypointFailure({ kind, detail, isPhone, onRetry }: {
         <button type="button" className={styles.panelPairGateRetry} onClick={onRetry}>
           {t('panel.gate.retry')}
         </button>
+        {canFindComputer && (
+          <button
+            type="button"
+            className={`${styles.panelPairGateRetry} ${styles.panelPairGateSecondary}`}
+            onClick={openFindComputer}
+          >
+            {t('panel.gate.findComputer')}
+          </button>
+        )}
       </div>
     </div>
   );

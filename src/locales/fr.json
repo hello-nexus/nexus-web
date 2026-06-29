@@ -1228,6 +1228,7 @@
   "panel.gate.fail.registerHeadline": "Impossible d'enregistrer ce panneau",
   "panel.gate.fail.serviceBody": "Vérifiez que nexus-service est en cours d'exécution, puis réessayez.",
   "panel.gate.fail.serviceHeadline": "Impossible de joindre le service",
+  "panel.gate.findComputer": "Trouver votre ordinateur",
   "panel.gate.networkError": "Erreur réseau",
   "panel.gate.noDeviceId": "Aucun identifiant d'appareil",
   "panel.gate.pairingPhone": "Appairage du téléphone...",

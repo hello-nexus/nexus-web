@@ -1348,6 +1348,7 @@
   "panel.gate.fail.registerHeadline": "Could not register this panel",
   "panel.gate.fail.serviceBody": "Check that nexus-service is running, then retry.",
   "panel.gate.fail.serviceHeadline": "Could not reach the service",
+  "panel.gate.findComputer": "Find your computer",
   "panel.gate.networkError": "Network error",
   "panel.gate.noDeviceId": "No device id",
   "panel.gate.pairingPhone": "Pairing phone...",
