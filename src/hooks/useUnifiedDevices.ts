@@ -58,6 +58,9 @@ const CURATED_ICONS: Record<string, string> = {
   keeb: '/assets/devices/keeb.svg',
   np50: '/assets/devices/np50.svg',
   'fan-hub': '/assets/devices/fan-hub.svg',
+  'lianli-tl': '/assets/devices/lianli.svg',
+  'lianli-aio': '/assets/devices/lianli.svg',
+  strimer: '/assets/devices/device.svg',
 };
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
@@ -75,6 +78,9 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   keeb: 'Keeb',
   lianli: 'Lian Li Uni Hub SL-Infinity',
   'fan-hub': 'iBUYPOWER MiniHub',
+  'lianli-tl': 'Lian Li Uni Fan TL',
+  'lianli-aio': 'Lian Li Galahad II',
+  strimer: 'Lian Li Strimer',
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';

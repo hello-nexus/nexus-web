@@ -11,6 +11,9 @@ import { CorsairDevicePage } from './CorsairDevicePage';
 import { Np50DevicePage } from './Np50DevicePage';
 import { SmartHubDevicePage } from './SmartHubDevicePage';
 import { CnvsDevicePage } from './CnvsDevicePage';
+import { LianLiTlDevicePage } from './LianLiTlDevicePage';
+import { Galahad2DevicePage } from './Galahad2DevicePage';
+import { StrimerDevicePage } from './StrimerDevicePage';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 
@@ -94,6 +97,18 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
 
   if (device.curatedId === 'cnvs') {
     return <CnvsDevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'lianli-tl') {
+    return <LianLiTlDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
+  }
+
+  if (device.curatedId === 'lianli-aio') {
+    return <Galahad2DevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
+  }
+
+  if (device.curatedId === 'strimer') {
+    return <StrimerDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
   }
 
   // Curated devices with no bespoke page: render the name + a hint so a
