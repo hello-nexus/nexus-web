@@ -160,6 +160,7 @@ export const FanCard = memo(function FanCard({
     driven ? styles.fanCardActive : '',
     compact ? styles.fanCardCompact : '',
     isHwDisconnected ? styles.fanCardOff : '',
+    channel.kind === 'Pump' ? styles.fanCardPump : '',
     drag?.isDragging ? drag.placeholderClassName : '',
   ].filter(Boolean).join(' ');
 
@@ -167,6 +168,8 @@ export const FanCard = memo(function FanCard({
     cardRefProp?.(el);
     drag?.ref(el);
   };
+
+  const kindLabel = t(channel.kind === 'Pump' ? 'cooling.kind.pump' : 'cooling.kind.fan');
 
   return (
     <div
@@ -179,12 +182,15 @@ export const FanCard = memo(function FanCard({
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
       <div className={styles.fanCardHeader}>
-        {/* Kind icon far left next to the name. When this fan is bound to the
-            curve currently shown in the graph, the highlight lives on the
-            dropdown value (accentValue) instead of the icon. */}
-        {channel.kind === 'Pump'
-          ? <Droplets size={16} className={styles.fanKindIcon} aria-hidden />
-          : <Fan size={16} className={styles.fanKindIcon} aria-hidden />}
+        {/* Kind icon far left next to the name; its tooltip names the channel
+            type (fan vs pump). When this fan is bound to the curve currently
+            shown in the graph, the highlight lives on the dropdown value
+            (accentValue) instead of the icon. */}
+        <HoverTooltip body={kindLabel} side="top">
+          {channel.kind === 'Pump'
+            ? <Droplets size={16} className={styles.fanKindIcon} role="img" aria-label={kindLabel} />
+            : <Fan size={16} className={styles.fanKindIcon} role="img" aria-label={kindLabel} />}
+        </HoverTooltip>
         {/* display:contents span carries data-no-dnd onto a real DOM node
             (EditableText doesn't forward unknown props) so a press on the name
             edits it instead of starting a card drag; no layout change. */}

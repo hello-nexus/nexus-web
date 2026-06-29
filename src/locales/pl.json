@@ -2057,5 +2057,7 @@
   "lighting.controls.param.wavelength": "Długość fali",
   "lighting.controls.param.width": "Szerokość",
   "lighting.controls.param.wind": "Wiatr",
-  "lighting.controls.param.zoom": "Powiększenie"
+  "lighting.controls.param.zoom": "Powiększenie",
+  "cooling.kind.fan": "Wentylator",
+  "cooling.kind.pump": "Pompa"
 }

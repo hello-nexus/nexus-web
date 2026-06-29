@@ -2057,5 +2057,7 @@
   "lighting.controls.param.wavelength": "波長",
   "lighting.controls.param.width": "幅",
   "lighting.controls.param.wind": "風",
-  "lighting.controls.param.zoom": "ズーム"
+  "lighting.controls.param.zoom": "ズーム",
+  "cooling.kind.fan": "ファン",
+  "cooling.kind.pump": "ポンプ"
 }
