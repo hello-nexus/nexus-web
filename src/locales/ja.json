@@ -2059,5 +2059,8 @@
   "lighting.controls.param.wind": "風",
   "lighting.controls.param.zoom": "ズーム",
   "cooling.kind.fan": "ファン",
-  "cooling.kind.pump": "ポンプ"
+  "cooling.kind.pump": "ポンプ",
+  "update.modal.newBetaRelease": "新しいベータ版！",
+  "update.modal.newRelease": "新しいリリース！",
+  "update.modal.released": "{date} にリリース"
 }

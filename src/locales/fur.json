@@ -2059,5 +2059,8 @@
   "lighting.controls.param.wind": "Aiar",
   "lighting.controls.param.zoom": "Zoom",
   "cooling.kind.fan": "Ventiladôr",
-  "cooling.kind.pump": "Pompe"
+  "cooling.kind.pump": "Pompe",
+  "update.modal.newBetaRelease": "Gnove version beta!",
+  "update.modal.newRelease": "Gnove version!",
+  "update.modal.released": "Publicât il {date}"
 }

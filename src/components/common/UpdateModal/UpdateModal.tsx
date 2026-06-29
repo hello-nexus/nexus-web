@@ -127,8 +127,12 @@ function renderMarkdown(text: string): React.ReactNode[] {
 
 const RECONNECT_TIMEOUT_MS = 120_000;
 
+function formatReleaseDate(unixSeconds: number, locale: string): string {
+  return new Date(unixSeconds * 1000).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdateNow, startedInstall, autoCheck = true }: UpdateModalProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [view, setView] = useState<ModalView>('notes');
   const [progress, setProgress] = useState<UpdateProgress | null>(null);
   const [starting, setStarting] = useState(false);
@@ -315,6 +319,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   const isFailed = phase === 'failed' || (progress !== null && !progress.active && !progress.success && progress.error !== '');
 
   const whatsNewVersion = whatsNewVersionRef.current;
+  const publishedUnix = status?.publishedAtUnix ?? 0;
 
   let title = t('update.modal.title');
   if (view === 'reconnecting' && !reconnectGaveUp) title = t('update.modal.reconnecting');
@@ -359,21 +364,40 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
         {(view === 'notes' || view === 'whatsNew' || reconnectGaveUp) && (
           <div className={styles.notesView}>
             {view === 'notes' && status?.latestVersion && (
-              <div className={styles.versionBox}>
-                {status.currentVersion && status.currentVersion !== status.latestVersion ? (
-                  <div className={styles.versionUpgrade}>
-                    <span className={styles.versionCurrent}>{status.currentVersion}</span>
-                    <ArrowRight size={14} className={styles.versionArrow} />
-                    <span className={styles.versionNew}>{status.latestVersion}</span>
+              <div className={styles.versionHeader}>
+                {status.updateAvailable && (
+                  <div className={styles.newReleaseBanner}>
+                    {status.channel === 'beta' ? t('update.modal.newBetaRelease') : t('update.modal.newRelease')}
                   </div>
-                ) : (
-                  <div className={styles.version}>{t('update.modal.version', { version: status.latestVersion })}</div>
+                )}
+                <div className={styles.versionBox}>
+                  {status.currentVersion && status.currentVersion !== status.latestVersion ? (
+                    <div className={styles.versionUpgrade}>
+                      <span className={styles.versionCurrent}>{status.currentVersion}</span>
+                      <ArrowRight size={14} className={styles.versionArrow} />
+                      <span className={styles.versionNew}>{status.latestVersion}</span>
+                    </div>
+                  ) : (
+                    <div className={styles.version}>{t('update.modal.version', { version: status.latestVersion })}</div>
+                  )}
+                </div>
+                {publishedUnix > 0 && (
+                  <div className={styles.releaseDate}>
+                    {t('update.modal.released', { date: formatReleaseDate(publishedUnix, language) })}
+                  </div>
                 )}
               </div>
             )}
             {view === 'whatsNew' && whatsNewVersion && (
-              <div className={styles.versionBox}>
-                <div className={styles.version}>{t('update.modal.version', { version: whatsNewVersion })}</div>
+              <div className={styles.versionHeader}>
+                <div className={styles.versionBox}>
+                  <div className={styles.version}>{t('update.modal.version', { version: whatsNewVersion })}</div>
+                </div>
+                {publishedUnix > 0 && (
+                  <div className={styles.releaseDate}>
+                    {t('update.modal.released', { date: formatReleaseDate(publishedUnix, language) })}
+                  </div>
+                )}
               </div>
             )}
             {reconnectGaveUp && (

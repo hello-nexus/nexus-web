@@ -29,6 +29,24 @@
   color: var(--text);
 }
 
+.versionHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.newReleaseBanner {
+  @include text-heading;
+  color: var(--accent-glow);
+  font-weight: var(--weight-heading);
+}
+
+.releaseDate {
+  @include text-button;
+  color: var(--text-dim);
+}
+
 .versionBox {
   display: flex;
   align-items: center;

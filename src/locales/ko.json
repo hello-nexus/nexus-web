@@ -2059,5 +2059,8 @@
   "lighting.controls.param.wind": "바람",
   "lighting.controls.param.zoom": "줌",
   "cooling.kind.fan": "팬",
-  "cooling.kind.pump": "펌프"
+  "cooling.kind.pump": "펌프",
+  "update.modal.newBetaRelease": "새 베타 릴리스!",
+  "update.modal.newRelease": "새 릴리스!",
+  "update.modal.released": "{date}에 출시됨"
 }

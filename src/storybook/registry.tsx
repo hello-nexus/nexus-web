@@ -1001,6 +1001,7 @@ function PreviewUpdateModal() {
           lastCheckError: '',
           state: 'idle',
           justUpdatedTo: '',
+          publishedAtUnix: 1719619200,
         }}
       />
     </>
