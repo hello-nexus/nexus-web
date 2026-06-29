@@ -127,6 +127,7 @@ function ConflictWarningModal({ open, conflicts, suppressed, onClose, onSuppress
                   tone="danger"
                   size="sm"
                   loading={killing === conflict.id}
+                  loadingHidesLabel
                   onClick={() => handleKill(conflict.id)}
                 >
                   {t('conflicts.modal.endTask')}

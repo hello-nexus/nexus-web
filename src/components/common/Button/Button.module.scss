@@ -153,6 +153,23 @@
   min-width: 0;
 }
 
+// loadingHidesLabel: positioning context for the centered spinner; scoped to
+// this case so it never affects a caller's absolutely-positioned children.
+.hidesLabel {
+  position: relative;
+}
+
+.labelHidden {
+  visibility: hidden;
+}
+
+// Centered without transform; the spin keyframe owns transform.
+.spinnerCentered {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+}
+
 // ── Loading spinner ───────────────────────────────────────────────────────
 
 .spinner {

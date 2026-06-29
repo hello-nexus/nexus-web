@@ -718,6 +718,7 @@ function PreviewButtonMatrix() {
         <Button pill>Pill</Button>
         <Button pill tone="accent">Active</Button>
         <Button loading>Saving</Button>
+        <Button loading loadingHidesLabel tone="danger">End task</Button>
         <Button disabled>Disabled</Button>
       </div>
     </div>
