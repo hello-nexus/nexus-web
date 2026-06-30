@@ -895,7 +895,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     handleRename: handlePresetRename,
     handleDelete: handlePresetDelete,
     handleLoad: handlePresetLoad,
-  } = useLayoutPresets(serviceOnline);
+  } = useLayoutPresets(serviceOnline, activeProfileId);
 
   layoutActiveIdRef.current = layoutActiveId;
 

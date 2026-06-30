@@ -34,7 +34,7 @@ export interface UseLayoutPresetsResult {
   handleLoad: (id: string) => Promise<void>;
 }
 
-export function useLayoutPresets(serviceOnline: boolean): UseLayoutPresetsResult {
+export function useLayoutPresets(serviceOnline: boolean, activeProfileId?: string): UseLayoutPresetsResult {
   const [presets, setPresets] = useState<LayoutPreset[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -47,10 +47,12 @@ export function useLayoutPresets(serviceOnline: boolean): UseLayoutPresetsResult
     setActiveId(data.activeId);
   }, []);
 
+  // Layout presets are profile-scoped server-side; activeProfileId triggers a
+  // re-fetch on profile switch.
   useEffect(() => {
     if (!serviceOnline) return;
     void loadPresets();
-  }, [serviceOnline, loadPresets]);
+  }, [serviceOnline, activeProfileId, loadPresets]);
 
   const handleCreate = useCallback(async (name: string): Promise<{ error: boolean; msg?: string }> => {
     const res = await createLayoutPreset(name);
