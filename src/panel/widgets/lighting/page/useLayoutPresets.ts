@@ -14,6 +14,14 @@ export function devicesToLayouts(devices: LightingDevice[]): Record<string, Devi
   return out;
 }
 
+export function devicesToPower(devices: LightingDevice[]): Record<string, boolean> {
+  const out: Record<string, boolean> = {};
+  for (const d of devices) {
+    out[d.id] = d.ledsOn;
+  }
+  return out;
+}
+
 export interface UseLayoutPresetsResult {
   presets: LayoutPreset[];
   activeId: string | null;

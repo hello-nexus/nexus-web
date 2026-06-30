@@ -12,7 +12,7 @@ import {
   type GameSyncGame, type DeviceLayoutDto,
 } from '../../../api/lighting';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
-import { useLayoutPresets, devicesToLayouts } from './page/useLayoutPresets';
+import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
 import { getLianLiLighting } from '../../../api/lianli';
@@ -77,6 +77,10 @@ const DEFAULT_POST_PROCESS: PostProcessState = { hue: 0, colorize: 0, saturation
 interface LayoutHistorySnapshot {
   layouts: Record<string, DeviceLayoutDto>;
   activeId: string | null;
+  power: Record<string, boolean>;
+  /** Device ids whose power this action changed; empty for layout-only edits.
+   *  Scopes power reconciliation on undo/redo to exactly the touched devices. */
+  powerIds: string[];
 }
 
 // Module scope so the layout undo/redo history survives LightingPage's unmount
@@ -150,7 +154,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setPrimaryDeviceId(primary);
   }, []);
   const handleBeforeLayoutSave = useCallback(() => {
-    pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
+    pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), power: devicesToPower(devicesRef.current), activeId: layoutActiveIdRef.current, powerIds: [] });
   }, []);
   const [catalogOpen, setCatalogOpen] = useState(false);
 
@@ -901,10 +905,23 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }>({ undo: () => null, redo: () => null });
 
   const handleUndoLayout = useCallback(async () => {
-    const current: LayoutHistorySnapshot = { layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current };
+    const current: LayoutHistorySnapshot = { layouts: devicesToLayouts(devicesRef.current), power: devicesToPower(devicesRef.current), activeId: layoutActiveIdRef.current, powerIds: [] };
     const restored = undoRedoRef.current.undo(current);
     if (!restored) return;
+    // The entry now on the redo stack must reconcile the same ids when redone.
+    // setStacks stored a reference to current, so this mutation updates the stored entry.
+    current.powerIds = restored.powerIds;
     await applyDeviceLayouts(restored.layouts);
+    const powerIds = restored.powerIds ?? [];
+    const powerChanges = powerIds.filter(id => {
+      const dev = devicesRef.current.find(d => d.id === id);
+      return dev !== undefined && restored.power[id] !== undefined && dev.ledsOn !== restored.power[id];
+    });
+    if (powerChanges.length > 0) {
+      const changeSet = new Set(powerChanges);
+      setDevices(prev => prev.map(d => changeSet.has(d.id) ? { ...d, ledsOn: restored.power[d.id] } : d));
+      await Promise.all(powerChanges.map(id => setLightingDevicePower(id, restored.power[id]).catch(() => { /* 3s poll reconciles */ })));
+    }
     if (restored.activeId !== layoutActiveIdRef.current) {
       await setActiveLayoutPreset(restored.activeId);
     }
@@ -916,10 +933,23 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [loadPresets, refreshDevices]);
 
   const handleRedoLayout = useCallback(async () => {
-    const current: LayoutHistorySnapshot = { layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current };
+    const current: LayoutHistorySnapshot = { layouts: devicesToLayouts(devicesRef.current), power: devicesToPower(devicesRef.current), activeId: layoutActiveIdRef.current, powerIds: [] };
     const restored = undoRedoRef.current.redo(current);
     if (!restored) return;
+    // The entry now on the undo stack must reconcile the same ids when undone.
+    // setStacks stored a reference to current, so this mutation updates the stored entry.
+    current.powerIds = restored.powerIds;
     await applyDeviceLayouts(restored.layouts);
+    const powerIds = restored.powerIds ?? [];
+    const powerChanges = powerIds.filter(id => {
+      const dev = devicesRef.current.find(d => d.id === id);
+      return dev !== undefined && restored.power[id] !== undefined && dev.ledsOn !== restored.power[id];
+    });
+    if (powerChanges.length > 0) {
+      const changeSet = new Set(powerChanges);
+      setDevices(prev => prev.map(d => changeSet.has(d.id) ? { ...d, ledsOn: restored.power[d.id] } : d));
+      await Promise.all(powerChanges.map(id => setLightingDevicePower(id, restored.power[id]).catch(() => { /* 3s poll reconciles */ })));
+    }
     if (restored.activeId !== layoutActiveIdRef.current) {
       await setActiveLayoutPreset(restored.activeId);
     }
@@ -952,7 +982,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   pushLayoutRef.current = pushLayout;
 
   const handlePresetLoadWithHistory = useCallback(async (id: string) => {
-    pushLayout({ layouts: devicesToLayouts(devicesRef.current), activeId: layoutActiveIdRef.current });
+    pushLayout({ layouts: devicesToLayouts(devicesRef.current), power: devicesToPower(devicesRef.current), activeId: layoutActiveIdRef.current, powerIds: devicesRef.current.map(d => d.id) });
     await handlePresetLoad(id);
     await refreshDevices();
   }, [pushLayout, handlePresetLoad, refreshDevices]);
@@ -975,6 +1005,21 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (!id) return;
     await updateLayoutPreset(id, { saveCurrent: true });
     await loadPresets();
+  }, [loadPresets]);
+
+  const handleSetDevicesPower = useCallback(async (ids: string[], on: boolean) => {
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
+    pushLayoutRef.current?.({
+      layouts: devicesToLayouts(devicesRef.current),
+      power: devicesToPower(devicesRef.current),
+      activeId: layoutActiveIdRef.current,
+      powerIds: ids,
+    });
+    setDevices(prev => prev.map(d => idSet.has(d.id) ? { ...d, ledsOn: on } : d));
+    await Promise.all(ids.map(id => setLightingDevicePower(id, on).catch(() => { /* 3s poll reconciles */ })));
+    const presetId = layoutActiveIdRef.current;
+    if (presetId) { await updateLayoutPreset(presetId, { saveCurrent: true }); await loadPresets(); }
   }, [loadPresets]);
 
   const handleModeChange = useCallback(async (m: LightingMode) => {
@@ -1092,7 +1137,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           ) : (
             <>
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
+                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
                 {effectiveMode === 'animate' && activeEffect && currentState && activeRightTab === 'effect' && (
                   <>
                     {EFFECTS.find(e => e.key === activeEffect)?.audio && (

@@ -72,8 +72,8 @@
   app-region: no-drag;
 }
 
-// Round button echoing the search pill: same surface fill, flat at rest, and
-// 34px height, but a circle. Hover/focus mirror the in-page settings button.
+// Flat icon button matching the "..." menu chrome: transparent at rest, a
+// hover-only fill, and a small rounded-square radius (no circle).
 .pageSettingsButton {
   display: grid;
   place-items: center;
@@ -81,13 +81,14 @@
   height: 34px;
   padding: 0;
   border: var(--border-width) solid transparent;
-  border-radius: 50%;
-  background: var(--surface);
+  border-radius: var(--radius-sm);
+  background: transparent;
   color: var(--text-dim);
   cursor: pointer;
   transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
 
   &:hover {
+    background: var(--bg-card-hover);
     color: var(--text);
   }
 
