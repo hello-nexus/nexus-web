@@ -10,6 +10,8 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useRef, useState } from 'react';
 import type { HostProps } from './components';
 import { ICON_TABLE } from './icons';
+import { Select as NativeSelect } from '../../components/common/Select/Select';
+import type { SelectOption } from '../../components/common/Select/Select';
 import { ViewHeader } from '../../components/common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../components/common/Tabs/Tabs';
 import { Toggle } from '../../components/common/Toggle/Toggle';
@@ -125,6 +127,27 @@ export function Segmented(p: HostProps) {
         );
       })}
     </div>
+  );
+}
+
+// The native themed dropdown (Select, portaled to <body>). The worker passes a
+// flat `options` array of { value, label } objects; the host fires `change` with
+// the chosen value string.
+export function SelectHost(p: HostProps) {
+  const rawOptions = Array.isArray(p.options)
+    ? (p.options as Array<{ value?: unknown; label?: unknown }>)
+    : [];
+  const options: SelectOption[] = rawOptions
+    .filter((o) => typeof o?.value === 'string')
+    .map((o) => ({ value: String(o.value), label: String(o.label ?? o.value) }));
+  return (
+    <NativeSelect
+      value={str(p.value) ?? ''}
+      options={options}
+      placeholder={str(p.placeholder)}
+      disabled={!!p.disabled}
+      onChange={(v) => p.__events?.change?.(v)}
+    />
   );
 }
 

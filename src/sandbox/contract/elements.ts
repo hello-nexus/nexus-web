@@ -88,6 +88,11 @@ export const UI_ELEMENTS = {
   // the clock's design picker. `options` is [{ key, label?, icon? }]; `value` is
   // the active key; the host fires `change` with the chosen key.
   'ui-segmented': { properties: ['options', 'value', 'disabled'], events: ['change'] },
+  // A dropdown select (the native themed Select, portaled to <body>). `options`
+  // is [{ value, label }]; `value` is the selected value string; `placeholder`
+  // is shown dimmed when nothing matches; the host fires `change` with the
+  // chosen value string.
+  'ui-select': { properties: ['value', 'options', 'placeholder', 'disabled'], events: ['change'] },
   // The native free-form HSV colour picker (SV square + hue strip + hex field) -
   // the same control lighting uses. `value` is a hex string; the host fires
   // `preview` continuously during a drag and `change` once on commit.

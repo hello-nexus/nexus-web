@@ -769,6 +769,22 @@ function PreviewSelect() {
   );
 }
 
+function PreviewSdkSelect() {
+  const [v, setV] = useState('cpu-temp');
+  return (
+    <Select
+      value={v}
+      onChange={setV}
+      options={[
+        { value: 'cpu-temp', label: 'CPU Temperature' },
+        { value: 'gpu-temp', label: 'GPU Temperature' },
+        { value: 'mem-util', label: 'Memory Utilization' },
+      ]}
+      placeholder="Choose a stat"
+    />
+  );
+}
+
 function PreviewIconLabelButton() {
   const [active, setActive] = useState('spark');
   return (
@@ -1302,6 +1318,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/Select/Select.tsx',
     description: 'Custom select: a button trigger plus a listbox portaled to <body> and clamped to the viewport, not the native <select> popup, which renders off-screen on the Y70 kiosk WebView. One control across desktop, phone, and Y70. Pass options for flat lists or <option> children (value + text, optional disabled/className/icon); optgroups are unsupported. Each option takes an optional `icon` ReactNode shown before the label in the trigger and the row (the language picker uses it for flags). Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
     notes: 'One size across the app. variant="ghost" drops the border/background for selects already inside a bordered card (cooling fan / curve rows).',
+  },
+  {
+    name: 'ui-select (SDK dropdown)', category: 'inputs',
+    filePath: 'src/sandbox/ui/richComponents.tsx',
+    description: 'SDK host-renderer bridge for the ui-select element. Wraps the native Select; the worker passes value (string), options ({value,label}[]), placeholder, and disabled; the host fires change with the chosen value string.',
+    Preview: PreviewSdkSelect,
   },
   {
     name: 'IconLabelButton', category: 'inputs',

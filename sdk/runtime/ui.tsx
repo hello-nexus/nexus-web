@@ -153,6 +153,14 @@ export interface SegmentedProps {
   options: SegmentedOption[]; value?: string; disabled?: boolean;
   onChange?: (key: string) => void;
 }
+export interface SelectOption { value: string; label: string }
+export interface SelectProps {
+  value?: string;
+  options: SelectOption[];
+  placeholder?: string;
+  disabled?: boolean;
+  onChange?: (value: string) => void;
+}
 export interface ColorProps {
   /** The selected colour as a hex string (e.g. "#ff8800"). */
   value: string;
@@ -264,6 +272,7 @@ export const ClockFace = createRemoteComponent('ui-clockface' as any, ELEMENT_CT
 export const ViewHeader = eventComponent<ViewHeaderProps>('ui-viewheader', ELEMENT_CTORS['ui-viewheader'], [['onChange', 'change']]);
 export const Toggle = eventComponent<ToggleProps>('ui-toggle', ELEMENT_CTORS['ui-toggle'], [['onChange', 'change']]);
 export const Segmented = eventComponent<SegmentedProps>('ui-segmented', ELEMENT_CTORS['ui-segmented'], [['onChange', 'change']]);
+export const Select = eventComponent<SelectProps>('ui-select', ELEMENT_CTORS['ui-select'], [['onChange', 'change']]);
 export const Color = eventComponent<ColorProps>('ui-color', ELEMENT_CTORS['ui-color'], [['onPreview', 'preview'], ['onChange', 'change']]);
 export const Card = eventComponent<CardProps>('ui-card', ELEMENT_CTORS['ui-card'], [['onPress', 'press'], ['onLongPress', 'longpress']]);
 export const Curve = eventComponent<CurveProps>('ui-curve', ELEMENT_CTORS['ui-curve'], [['onPreview', 'preview'], ['onChange', 'change']]);
