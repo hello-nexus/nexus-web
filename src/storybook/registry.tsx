@@ -785,6 +785,21 @@ function PreviewSdkSelect() {
   );
 }
 
+function PreviewSdkChipGroup() {
+  const [v, setV] = useState('center');
+  return (
+    <ChipGroup
+      activeKey={v}
+      onChange={setV}
+      options={[
+        { key: 'left', label: 'Left' },
+        { key: 'center', label: 'Center' },
+        { key: 'right', label: 'Right' },
+      ]}
+    />
+  );
+}
+
 function PreviewIconLabelButton() {
   const [active, setActive] = useState('spark');
   return (
@@ -1324,6 +1339,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/sandbox/ui/richComponents.tsx',
     description: 'SDK host-renderer bridge for the ui-select element. Wraps the native Select; the worker passes value (string), options ({value,label}[]), placeholder, and disabled; the host fires change with the chosen value string.',
     Preview: PreviewSdkSelect,
+  },
+  {
+    name: 'ui-chipgroup (SDK chip row)', category: 'inputs',
+    filePath: 'src/sandbox/ui/richComponents.tsx',
+    description: 'SDK host-renderer bridge for the ui-chipgroup element. Wraps the native ChipGroup (single-select); the worker passes value (the active key string), options ({key,label}[]), and disabled; the host fires change with the chosen key string.',
+    Preview: PreviewSdkChipGroup,
   },
   {
     name: 'IconLabelButton', category: 'inputs',

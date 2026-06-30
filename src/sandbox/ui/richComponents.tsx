@@ -12,6 +12,8 @@ import type { HostProps } from './components';
 import { ICON_TABLE } from './icons';
 import { Select as NativeSelect } from '../../components/common/Select/Select';
 import type { SelectOption } from '../../components/common/Select/Select';
+import { ChipGroup as NativeChipGroup } from '../../components/common/ChipGroup/ChipGroup';
+import type { ChipOption } from '../../components/common/ChipGroup/ChipGroup';
 import { ViewHeader } from '../../components/common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../components/common/Tabs/Tabs';
 import { Toggle } from '../../components/common/Toggle/Toggle';
@@ -147,6 +149,25 @@ export function SelectHost(p: HostProps) {
       placeholder={str(p.placeholder)}
       disabled={!!p.disabled}
       onChange={(v) => p.__events?.change?.(v)}
+    />
+  );
+}
+
+// The native chip row (ChipGroup, single-select). The worker passes `options`
+// as [{ key, label }] and the active `value` key; the host fires `change` with
+// the chosen key.
+export function ChipGroupHost(p: HostProps) {
+  const rawOptions = Array.isArray(p.options)
+    ? (p.options as Array<{ key?: unknown; label?: unknown }>)
+    : [];
+  const options: ChipOption[] = rawOptions
+    .filter((o) => typeof o?.key === 'string')
+    .map((o) => ({ key: String(o.key), label: String(o.label ?? o.key) }));
+  return (
+    <NativeChipGroup
+      options={options}
+      activeKey={str(p.value) ?? ''}
+      onChange={(key) => p.__events?.change?.(key)}
     />
   );
 }

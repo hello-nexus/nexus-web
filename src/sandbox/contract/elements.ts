@@ -93,6 +93,9 @@ export const UI_ELEMENTS = {
   // is shown dimmed when nothing matches; the host fires `change` with the
   // chosen value string.
   'ui-select': { properties: ['value', 'options', 'placeholder', 'disabled'], events: ['change'] },
+  // A chip row (ChipGroup, single-select). `options` is [{ key, label }]; `value`
+  // is the active key; the host fires `change` with the chosen key.
+  'ui-chipgroup': { properties: ['value', 'options', 'disabled'], events: ['change'] },
   // The native free-form HSV colour picker (SV square + hue strip + hex field) -
   // the same control lighting uses. `value` is a hex string; the host fires
   // `preview` continuously during a drag and `change` once on commit.

@@ -13,7 +13,7 @@ import {
 } from './ui/components';
 import {
   WorldClock, ClockFace, ViewHeaderHost,
-  ToggleHost, Segmented, SelectHost, CardHost, EmptyHost, Section, ColorHost,
+  ToggleHost, Segmented, SelectHost, ChipGroupHost, CardHost, EmptyHost, Section, ColorHost,
   MediaImportHost, MediaGridHost, ConfirmHost, CollapsibleHost, TooltipHost,
 } from './ui/richComponents';
 import { CurveHost } from './ui/CurveHost';
@@ -43,6 +43,7 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-toggle': ToggleHost,
   'ui-segmented': Segmented,
   'ui-select': SelectHost,
+  'ui-chipgroup': ChipGroupHost,
   'ui-color': ColorHost,
   'ui-curve': CurveHost,
   'ui-card': CardHost,
