@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Settings, Eye, Maximize2, Minimize2, RotateCw, RotateCcw } from 'lucide-react';
+import { Settings, Eye, Maximize2, Minimize2, RotateCw, RotateCcw, Power } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
@@ -49,6 +49,8 @@ interface DeviceCanvasProps {
   onBeforeLayoutSave?: () => void;
   /** Called after a drag/rotate/maximize layout save completes, so callers can auto-save to the active preset. */
   onLayoutCommit?: () => void;
+  /** Set power on/off for one or many device ids; caller persists to the active preset and pushes undo. */
+  onSetDevicesPower?: (ids: string[], on: boolean) => void;
   gpuAvailable?: boolean;
 }
 
@@ -72,7 +74,7 @@ const CanvasBackground = memo(function CanvasBackground({ canvasPixels, canvasW,
   return <canvas ref={bgRef} className={styles.bgCanvas} />;
 });
 
-const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit }: {
+const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower }: {
   devices: LightingDevice[];
   selectedIds: Set<string>;
   primaryDeviceId: string | null;
@@ -84,6 +86,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   onDragActiveChange?: (active: boolean) => void;
   onBeforeLayoutSave?: () => void;
   onLayoutCommit?: () => void;
+  onSetDevicesPower?: (ids: string[], on: boolean) => void;
 }) {
   const { t } = useTranslation();
   const onBeforeLayoutSaveRef = useRef(onBeforeLayoutSave);
@@ -574,6 +577,15 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
           label: group ? t('lighting.devices.rotateCcwCount', { count }) : t('lighting.devices.rotateCcw'),
           onSelect: () => group ? handleRotateGroup(targets, -1) : handleRotate(dev, -1),
         });
+        const anyOn = targets.some(d => d.ledsOn);
+        items.push({
+          key: 'power',
+          icon: <Power size={14} />,
+          label: group
+            ? (anyOn ? t('lighting.devices.turnOffCount', { count }) : t('lighting.devices.turnOnCount', { count }))
+            : (dev.ledsOn ? t('lighting.devices.turnOff') : t('lighting.devices.turnOn')),
+          onSelect: () => onSetDevicesPower?.(targets.map(d => d.id), !anyOn),
+        });
         return (
           <DeviceContextMenu
             key={`${ctxMenu.id}:${ctxMenu.x}:${ctxMenu.y}`}
@@ -587,7 +599,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   );
 });
 
-export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, gpuAvailable }: DeviceCanvasProps) {
+export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable }: DeviceCanvasProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -605,7 +617,7 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
     <div ref={containerRef} className={styles.canvas}>
       <CanvasBackground canvasPixels={canvasPixels} canvasW={canvasW} canvasH={canvasH} />
       <canvas ref={glCanvasRef} className={`${styles.glCanvas} ${ready ? styles.glCanvasReady : ''}`} />
-      <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} />
+      <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} onSetDevicesPower={onSetDevicesPower} />
       <CanvasNoticeBar visible={gpuAvailable === false && shaderEffect != null} message={t('lighting.gpuUnavailableNotice')} />
     </div>
   );
