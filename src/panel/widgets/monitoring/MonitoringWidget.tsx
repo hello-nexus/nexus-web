@@ -38,44 +38,52 @@ export function resolveSensor(
   fpsSensors: HardwareSensor[],
   networkSensors: HardwareSensor[],
   device: DeviceKey,
-  sensorName: string,
+  sensorKey: string,
   tempPrefs?: TempSensorPrefs,
 ): HardwareSensor | undefined {
   switch (device) {
     case 'cpu':
-      if (sensorName === 'Temperature') {
+      if (sensorKey === 'Temperature') {
         return resolveCpuTempSensor(sensors.cpu, tempPrefs?.cpuId ?? '');
       }
-      return sensorName
-        ? sensors.cpu.find(s => s.name === sensorName) ?? sensors.cpu.find(s => s.name === 'CPU Total')
+      return sensorKey
+        ? sensors.cpu.find(s => s.id === sensorKey)
+          ?? sensors.cpu.find(s => s.name === sensorKey)
+          ?? sensors.cpu.find(s => s.name === 'CPU Total')
         : sensors.cpu.find(s => s.name === 'CPU Total') ?? sensors.cpu[0];
     case 'gpu':
-      if (sensorName === 'Temperature') {
+      if (sensorKey === 'Temperature') {
         return resolveGpuTempSensor(sensors.gpu, tempPrefs?.gpuId ?? '');
       }
-      return sensorName
-        ? sensors.gpu.find(s => s.name === sensorName || (s.name === 'GPU Core' && s.type === sensorName))
+      return sensorKey
+        ? sensors.gpu.find(s => s.id === sensorKey)
+          ?? sensors.gpu.find(s => s.name === sensorKey)
           ?? sensors.gpu.find(s => s.name === 'GPU Core' && s.type === 'Load')
           ?? sensors.gpu[0]
         : sensors.gpu.find(s => s.name === 'GPU Core' && s.type === 'Load') ?? sensors.gpu[0];
     case 'memory':
-      return sensorName
-        ? sensors.memory.find(s => s.name === sensorName) ?? sensors.memory.find(s => s.name === 'Memory Usage')
+      return sensorKey
+        ? sensors.memory.find(s => s.id === sensorKey)
+          ?? sensors.memory.find(s => s.name === sensorKey)
+          ?? sensors.memory.find(s => s.name === 'Memory Usage')
         : sensors.memory.find(s => s.name === 'Memory Usage') ?? sensors.memory[0];
     case 'fan':
-      return sensorName
-        ? sensors.motherboard.find(s => s.type === 'Fan' && s.name === sensorName)
+      return sensorKey
+        ? sensors.motherboard.find(s => s.id === sensorKey)
+          ?? sensors.motherboard.find(s => s.type === 'Fan' && s.name === sensorKey)
           ?? sensors.motherboard.find(s => s.type === 'Fan')
         : sensors.motherboard.find(s => s.type === 'Fan');
     case 'storage':
-      return sensors.storageSensors.find(s => s.name === sensorName) ?? sensors.storageSensors[0];
+      return sensors.storageSensors.find(s => s.id === sensorKey)
+        ?? sensors.storageSensors.find(s => s.name === sensorKey)
+        ?? sensors.storageSensors[0];
     case 'network':
-      return sensorName
-        ? networkSensors.find(s => s.name === sensorName) ?? networkSensors.find(s => s.name === NETWORK_SENSOR_TOTAL)
+      return sensorKey
+        ? networkSensors.find(s => s.name === sensorKey) ?? networkSensors.find(s => s.name === NETWORK_SENSOR_TOTAL)
         : networkSensors.find(s => s.name === NETWORK_SENSOR_TOTAL);
     case 'fps':
-      return sensorName
-        ? fpsSensors.find(s => s.name === sensorName)
+      return sensorKey
+        ? fpsSensors.find(s => s.name === sensorKey)
         : fpsSensors[0];
     default:
       return undefined;
@@ -204,7 +212,7 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, devic
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor?.formatted ?? '-';
-  const label = labelForDevice(device, effectiveSensorName);
+  const label = labelForDevice(device, sensor?.name ?? effectiveSensorName);
   // Shared key so the tile + immersive instance for the same sensor share one
   // 60-sample buffer; re-mounting in immersive shows existing history at once.
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;

@@ -101,7 +101,8 @@ function MicroRow({ sensors, fpsSensors, networkSensors, device, sensorName, tem
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor?.formatted ?? '-';
-  const label = bareSensorLabel(device, effectiveSensorName) || effectiveSensorName;
+  const sensorDisplayName = sensor?.name ?? '';
+  const label = bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;
   const history = useSharedSensorHistory(sensorKey, rawValue) as number[];
   const maxValue = device === 'network'
