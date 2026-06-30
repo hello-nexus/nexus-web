@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, afterEach } from 'vitest';
 import type { PanelConfigValue, PanelWidget } from '../../types';
 import { MonitoringWidget } from '../monitoring/MonitoringWidget';
 import { GAUGE_DESIGN_KEYS } from '../monitoring/gauges';
 import { MonitoringSettings } from './MonitoringSettings';
+import { resolveSensor } from './MonitoringWidget';
 
 // Drive the dropdown as a native <select> here: these tests exercise the
 // widget's sensor wiring, not the custom Select's open/close mechanics (those
@@ -21,20 +22,22 @@ vi.mock('../../../components/common/Select/Select', () => ({
   ),
 }));
 
+const mockSensors = {
+  cpu: [{ id: 'cpu-total', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'CPU' } }],
+  gpu: [{ id: 'gpu-core', name: 'GPU Core', type: 'Load', value: 36, units: '%', formatted: '36%', parent: { id: 'gpu', name: 'GPU' } }],
+  memory: [{ id: 'mem-usage', name: 'Memory Usage', type: 'Load', value: 62, units: '%', formatted: '62%', parent: { id: 'mem', name: 'Memory' } }],
+  storage: [],
+  storageComponents: {},
+  storageSensors: [{ id: 'storage-c', name: 'Drive C', type: 'Load', value: 51, units: '%', formatted: '51%', parent: { id: 'storage', name: 'Storage' } }],
+  motherboard: [{ id: 'fan-1', name: 'Fan 1', type: 'Fan', value: 1200, units: 'RPM', formatted: '1200 RPM', parent: { id: 'mobo', name: 'Motherboard' } }],
+  motherboardModel: '',
+  cpuModel: '',
+  gpuModels: [],
+  memoryTotal: '',
+};
+
 vi.mock('../../../hooks/useSensors', () => ({
-  useSensors: () => ({
-    cpu: [{ id: 'cpu-total', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'CPU' } }],
-    gpu: [{ id: 'gpu-core', name: 'GPU Core', type: 'Load', value: 36, units: '%', formatted: '36%', parent: { id: 'gpu', name: 'GPU' } }],
-    memory: [{ id: 'mem-usage', name: 'Memory Usage', type: 'Load', value: 62, units: '%', formatted: '62%', parent: { id: 'mem', name: 'Memory' } }],
-    storage: [],
-    storageComponents: {},
-    storageSensors: [{ id: 'storage-c', name: 'Drive C', type: 'Load', value: 51, units: '%', formatted: '51%', parent: { id: 'storage', name: 'Storage' } }],
-    motherboard: [{ id: 'fan-1', name: 'Fan 1', type: 'Fan', value: 1200, units: 'RPM', formatted: '1200 RPM', parent: { id: 'mobo', name: 'Motherboard' } }],
-    motherboardModel: '',
-    cpuModel: '',
-    gpuModels: [],
-    memoryTotal: '',
-  }),
+  useSensors: () => mockSensors,
 }));
 
 vi.mock('../../../hooks/useFpsSensors', () => ({
@@ -133,7 +136,7 @@ describe('MonitoringSettings', () => {
 
     expect(onUpdate).toHaveBeenLastCalledWith({
       slot1_device: 'fan',
-      slot1_sensor: 'Fan 1',
+      slot1_sensor: 'fan-1',
     });
   });
 
@@ -170,5 +173,73 @@ describe('MonitoringSettings', () => {
 
     fireEvent.change(deviceSelect, { target: { value: 'fan' } });
     expect(optionLabels(sensorSelect)).toEqual(['Fan 1']);
+  });
+});
+
+type SensorMock = typeof mockSensors.cpu[0];
+
+describe('MonitoringSettings - id-keyed dedup', () => {
+  const savedCpu = mockSensors.cpu;
+
+  afterEach(() => {
+    mockSensors.cpu = savedCpu;
+  });
+
+  it('lists both same-named sensors as distinct options when types differ', () => {
+    mockSensors.cpu = [
+      { id: '/intelcpu/0/temperature/9', name: 'P-Core #1', type: 'Temperature', value: 65, units: 'C', formatted: '65 C', parent: { id: 'cpu', name: 'CPU' } },
+      { id: '/intelcpu/0/clock/1', name: 'P-Core #1', type: 'Clock', value: 5200, units: 'MHz', formatted: '5200 MHz', parent: { id: 'cpu', name: 'CPU' } },
+    ] as SensorMock[];
+
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
+
+    const sensorSelect = screen.getByRole('combobox', { name: 'monitoring.settings.sensor' });
+    const labels = optionLabels(sensorSelect);
+    expect(labels).toContain('P-Core #1 (Temperature)');
+    expect(labels).toContain('P-Core #1 (Clock)');
+    expect(labels).toHaveLength(2);
+  });
+});
+
+describe('resolveSensor - id-keyed lookup', () => {
+  const tempSensor = { id: '/intelcpu/0/temperature/9', name: 'P-Core #1', type: 'Temperature', value: 65, units: 'C', formatted: '65 C', parent: { id: 'cpu', name: 'CPU' } };
+  const clockSensor = { id: '/intelcpu/0/clock/1', name: 'P-Core #1', type: 'Clock', value: 5200, units: 'MHz', formatted: '5200 MHz', parent: { id: 'cpu', name: 'CPU' } };
+
+  const emptySensors = {
+    cpu: [tempSensor, clockSensor],
+    gpu: [],
+    memory: [],
+    storage: [],
+    storageComponents: {},
+    storageSensors: [],
+    motherboard: [],
+    motherboardModel: '',
+    cpuModel: '',
+    gpuModel: '',
+    gpuModels: [],
+    gpuComponents: [],
+    memoryTotal: '',
+  };
+
+  it('resolves the Temperature sensor by id, not the Clock sensor sharing the same name', () => {
+    const result = resolveSensor(emptySensors, [], [], 'cpu', '/intelcpu/0/temperature/9');
+    expect(result?.id).toBe('/intelcpu/0/temperature/9');
+    expect(result?.type).toBe('Temperature');
+  });
+
+  it('resolves the Clock sensor by id, not the Temperature sensor sharing the same name', () => {
+    const result = resolveSensor(emptySensors, [], [], 'cpu', '/intelcpu/0/clock/1');
+    expect(result?.id).toBe('/intelcpu/0/clock/1');
+    expect(result?.type).toBe('Clock');
+  });
+
+  it('falls back to name lookup for a legacy stored sensor name', () => {
+    const sensors = {
+      ...emptySensors,
+      cpu: [{ id: '/intelcpu/0/load/0', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'CPU' } }],
+    };
+    const result = resolveSensor(sensors, [], [], 'cpu', 'CPU Total');
+    expect(result?.name).toBe('CPU Total');
+    expect(result?.id).toBe('/intelcpu/0/load/0');
   });
 });

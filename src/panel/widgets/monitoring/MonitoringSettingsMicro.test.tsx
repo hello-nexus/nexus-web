@@ -135,10 +135,10 @@ describe('MonitoringSettings - Micro mode', () => {
 
     const last = updates[updates.length - 1];
     expect(last.micro_device).toBe('gpu');
-    expect(last.micro_sensor0).toBe('GPU Core');
-    expect(last.micro_sensor1).toBe('GPU Hotspot');
-    expect(last.micro_sensor2).toBe('GPU Memory');
-    expect(last.micro_sensor3).toBe('GPU Power');
+    expect(last.micro_sensor0).toBe('gpu-load');
+    expect(last.micro_sensor1).toBe('gpu-temp');
+    expect(last.micro_sensor2).toBe('gpu-mem');
+    expect(last.micro_sensor3).toBe('gpu-pwr');
     // Multi-sensor keys must not be touched by the device-change handler.
     expect(last.slot0_device).toBeUndefined();
     expect(last.slot1_design).toBeUndefined();

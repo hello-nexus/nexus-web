@@ -29,6 +29,7 @@ const SCALE_OPTIONS: { value: ScaleMode; label: string }[] = [
 interface SensorOption {
   value: string;
   label: string;
+  sensorName?: string;
 }
 
 const DEVICE_OPTIONS: { value: DeviceKey; label: string }[] = [
@@ -49,21 +50,21 @@ function sensorsForDevice(
   let options: SensorOption[];
   switch (device) {
     case 'cpu':
-      options = sensors.cpu.map(s => ({ value: s.name, label: `${bareSensorLabel('cpu', s.name) || s.name} (${s.type})` }));
+      options = sensors.cpu.map(s => ({ value: s.id, label: `${bareSensorLabel('cpu', s.name) || s.name} (${s.type})`, sensorName: s.name }));
       break;
     case 'gpu':
-      options = sensors.gpu.map(s => ({ value: s.name, label: `${bareSensorLabel('gpu', s.name) || s.name} (${s.type})` }));
+      options = sensors.gpu.map(s => ({ value: s.id, label: `${bareSensorLabel('gpu', s.name) || s.name} (${s.type})`, sensorName: s.name }));
       break;
     case 'memory':
-      options = sensors.memory.map(s => ({ value: s.name, label: `${bareSensorLabel('memory', s.name) || s.name} (${s.type})` }));
+      options = sensors.memory.map(s => ({ value: s.id, label: `${bareSensorLabel('memory', s.name) || s.name} (${s.type})`, sensorName: s.name }));
       break;
     case 'fan':
       options = sensors.motherboard
         .filter(s => s.type === 'Fan')
-        .map(s => ({ value: s.name, label: s.name }));
+        .map(s => ({ value: s.id, label: s.name, sensorName: s.name }));
       break;
     case 'storage':
-      options = sensors.storageSensors.map(s => ({ value: s.name, label: s.name }));
+      options = sensors.storageSensors.map(s => ({ value: s.id, label: s.name, sensorName: s.name }));
       break;
     case 'network':
       options = networkSensors.length > 0
@@ -103,8 +104,10 @@ function uniqueOptions(options: SensorOption[]): SensorOption[] {
   });
 }
 
-function selectedSensorValue(options: SensorOption[], sensorName: string): string {
-  if (sensorName && options.some(opt => opt.value === sensorName)) return sensorName;
+function selectedSensorValue(options: SensorOption[], storedKey: string): string {
+  if (storedKey && options.some(opt => opt.value === storedKey)) return storedKey;
+  const byName = storedKey ? options.find(opt => opt.sensorName === storedKey) : undefined;
+  if (byName) return byName.value;
   return options[0]?.value ?? '';
 }
 
@@ -160,9 +163,12 @@ function microNormalizationPatch(
 
   for (let i = 0; i < count; i++) {
     const stored = ((widget.config?.[`micro_sensor${i}`] as string | undefined) ?? '');
-    const valid = stored && sensorList.some(opt => opt.value === stored);
-    if (!valid) {
+    const byId = stored ? sensorList.some(opt => opt.value === stored) : false;
+    const byLegacyName = !byId && stored ? sensorList.find(opt => opt.sensorName === stored) : undefined;
+    if (!byId && !byLegacyName) {
       patch[`micro_sensor${i}`] = sensorList[i]?.value ?? sensorList[0]?.value ?? '';
+    } else if (byLegacyName) {
+      patch[`micro_sensor${i}`] = byLegacyName.value;
     }
   }
 
