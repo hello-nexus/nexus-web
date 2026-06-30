@@ -67,6 +67,9 @@ export const UI_ELEMENTS = {
   // An image from an https/data/blob URL (the host validates the scheme). The
   // worker supplies a URL string; the host owns sizing/fit/radius via tokens.
   'ui-image': { properties: ['src', 'alt', 'fit', 'radius', 'width', 'height', 'aspect', 'tone'] },
+  // A looping muted video from a same-origin (/...), https, or blob URL (the host
+  // validates the scheme). Autoplays muted+inline for a live preview tile.
+  'ui-video': { properties: ['src', 'fit', 'radius', 'width', 'height', 'aspect', 'tone', 'loop'] },
   // A scrollable container - the missing primitive for long lists (steam, emoji).
   'ui-scroll': { properties: ['direction', 'gap', 'padding', 'grow'] },
   // Text/number input. `value` is for programmatic sets (reset/compute); typing is

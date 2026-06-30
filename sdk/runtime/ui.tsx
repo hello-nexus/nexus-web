@@ -106,6 +106,12 @@ export interface ImageProps {
   src: string; alt?: string; fit?: 'cover' | 'contain' | 'fill' | 'none';
   radius?: number; width?: number; height?: number; aspect?: string | number; tone?: UiTone;
 }
+export interface VideoProps {
+  src: string; fit?: 'cover' | 'contain' | 'fill' | 'none';
+  radius?: number; width?: number; height?: number; aspect?: string | number; tone?: UiTone;
+  /** Loop playback (default true). Always muted + autoplay + inline. */
+  loop?: boolean;
+}
 export interface ScrollProps extends WithChildren {
   direction?: 'vertical' | 'horizontal' | 'both'; gap?: number; padding?: number; grow?: boolean;
 }
@@ -249,6 +255,7 @@ export const Slider = eventComponent<SliderProps>('ui-slider', ELEMENT_CTORS['ui
 export const Button = eventComponent<ButtonProps>('ui-button', ELEMENT_CTORS['ui-button'], [['onPress', 'press'], ['onLongPress', 'longpress']]);
 export const Stepper = eventComponent<StepperProps>('ui-stepper', ELEMENT_CTORS['ui-stepper'], [['onChange', 'change']]);
 export const Image = createRemoteComponent('ui-image' as any, ELEMENT_CTORS['ui-image']) as unknown as React.FC<ImageProps>;
+export const Video = createRemoteComponent('ui-video' as any, ELEMENT_CTORS['ui-video']) as unknown as React.FC<VideoProps>;
 export const Scroll = createRemoteComponent('ui-scroll' as any, ELEMENT_CTORS['ui-scroll']) as unknown as React.FC<ScrollProps>;
 export const Input = eventComponent<InputProps>('ui-input', ELEMENT_CTORS['ui-input'], [['onValueChange', 'input'], ['onEnter', 'submit'], ['onLeave', 'blur']]);
 export const Chart = createRemoteComponent('ui-chart' as any, ELEMENT_CTORS['ui-chart']) as unknown as React.FC<ChartProps>;

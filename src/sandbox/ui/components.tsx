@@ -291,6 +291,30 @@ export function Image(p: HostProps) {
   return <img src={src} alt={str(p.alt) ?? ''} style={style} loading="lazy" referrerPolicy="no-referrer" draggable={false} />;
 }
 
+// Same-origin (/...) is allowed in addition to https/blob: the worker only ever
+// points this at our own service media route; arbitrary http: is still rejected.
+const SAFE_VIDEO = /^(https:|blob:|\/)/i;
+export function Video(p: HostProps) {
+  let src = str(p.src);
+  if (!src || !SAFE_VIDEO.test(src)) return null;
+  // A <video> GET can't carry the SPA's Authorization header, so a same-origin
+  // media URL is authenticated with the desktop session's query token instead.
+  if (src.startsWith('/')) {
+    let tok: string | null = null;
+    try { tok = localStorage.getItem('nexus_token'); } catch { tok = null; }
+    if (tok) src += (src.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(tok);
+  }
+  const style: CSSProperties = {
+    objectFit: (str(p.fit) ?? 'cover') as CSSProperties['objectFit'],
+    width: num(p.width) ?? '100%', height: num(p.height),
+    aspectRatio: p.aspect != null ? String(p.aspect) : undefined,
+    borderRadius: num(p.radius) ?? 0,
+    background: p.tone ? toneVar(str(p.tone)) : undefined,
+    display: 'block', minWidth: 0,
+  };
+  return <video src={src} style={style} autoPlay loop={p.loop !== false} muted playsInline preload="auto" />;
+}
+
 export function Scroll(p: HostProps) {
   const dir = str(p.direction) ?? 'vertical';
   const style: CSSProperties = {
