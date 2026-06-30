@@ -35,9 +35,8 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
 
   const handleSwitch = useCallback((id: string) => {
     if (id === profiles.activeId) return;
-    // Close the dropdown immediately - the optimistic update inside
-    // switchProfile already flips the active highlight, so awaiting here
-    // would just delay the dismissal.
+    // Close the dropdown immediately rather than waiting on switchProfile,
+    // which only flips the active highlight once the server confirms.
     setOpen(false);
     profiles.switchProfile(id).then(prefs => {
       if (prefs) onPreferencesChanged(prefs);

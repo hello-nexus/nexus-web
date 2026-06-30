@@ -26,17 +26,20 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
   const [createOpen, setCreateOpen] = useState(false);
   const [renameError, setRenameError] = useState<{ profileId: string; message: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const switchingRef = useRef(false);
 
   const handleSwitch = (id: string) => {
-    // switchProfile flips the active state optimistically inside the hook,
-    // so this returns control synchronously - awaiting would just delay
-    // the visual update by the round-trip.
+    if (switchingRef.current) return;
+    switchingRef.current = true;
+    // Don't await - the active state flips once switchProfile's server
+    // round-trip resolves, but the click handler doesn't need to block on it.
     profiles.switchProfile(id).then(ui => {
+      switchingRef.current = false;
       if (ui) onPreferencesChanged(ui);
+      // Primary badge follows whatever profile is active; refresh once the
+      // switch has actually landed server-side.
+      sharing.refresh();
     });
-    // Primary badge follows whatever profile is active; refresh in the
-    // background, do not block the click.
-    sharing.refresh();
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {

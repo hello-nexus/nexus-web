@@ -64,21 +64,21 @@ export function useProfiles(enabled: boolean): UseProfilesResult {
   }, [enabled, refresh]);
 
   const switchProfileFn = useCallback(async (id: string): Promise<Preferences | null> => {
-    // Optimistic: flip the active highlight immediately. The server call +
-    // manifest refresh run in the background; on failure the refresh reverts
-    // local state.
-    setActiveId(id);
+    // activeId flips only once the server confirms the switch - consumers
+    // (e.g. LightingPage) key profile-scoped fetches off activeId, and
+    // flipping it before the server call resolves lets those fetches race
+    // the switch and land on the still-active old profile.
     try {
       const resp = await apiSwitch(id);
       if (resp) {
-        if (resp.switched && resp.switched !== id) setActiveId(resp.switched);
+        setActiveId(resp.switched && resp.switched !== id ? resp.switched : id);
         // Background refresh - manifest `updatedAt` etc. drive the settings
         // list ordering, not the switch UX.
         refresh().catch(() => { /* best-effort */ });
         return resp.prefs;
       }
     } catch {
-      // fall through to revert
+      // resync profiles/activeId with the server in case of partial failure
     }
     refresh().catch(() => { /* best-effort */ });
     return null;
