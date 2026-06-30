@@ -353,8 +353,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     onSelectDevice(stack[idx + 1].id); // step one level deeper
   }, [drag, marquee, devices, onSelectDevice, onSetSelection, onDragActiveChange]);
 
-  const handleRotate = useCallback((dev: LightingDevice, dir: 1 | -1) => {
-    onBeforeLayoutSaveRef.current?.();
+  // Mutates dev's rect in place by one 90° step; no save/render side effects so
+  // group rotation can apply it to every target before a single batched save.
+  const rotateDevice = useCallback((dev: LightingDevice, dir: 1 | -1) => {
     dev.canvasRotation = ((((dev.canvasRotation ?? 0) + dir * 90) % 360) + 360) % 360;
 
     // Rotate the whole box footprint, not just the label: each 90° step swaps
@@ -375,10 +376,21 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     // Keep the same center, then clamp fully inside the padded canvas.
     dev.canvasX = Math.max(PAD, Math.min(CW - PAD - w, cx - w / 2));
     dev.canvasY = Math.max(PAD, Math.min(CH - PAD - h, cy - h / 2));
+  }, []);
 
+  const handleRotate = useCallback((dev: LightingDevice, dir: 1 | -1) => {
+    onBeforeLayoutSaveRef.current?.();
+    rotateDevice(dev, dir);
     forceRender(n => n + 1);
     void saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation).then(() => onLayoutCommitRef.current?.());
-  }, []);
+  }, [rotateDevice]);
+
+  const handleRotateGroup = useCallback((targets: LightingDevice[], dir: 1 | -1) => {
+    onBeforeLayoutSaveRef.current?.();
+    targets.forEach(d => rotateDevice(d, dir));
+    forceRender(n => n + 1);
+    void Promise.all(targets.map(d => saveDeviceLayout(d.id, d.canvasX, d.canvasY, d.canvasW, d.canvasH, d.canvasRotation))).then(() => onLayoutCommitRef.current?.());
+  }, [rotateDevice]);
 
   // A frame counts as "maximized" when it fills the padded canvas. Geometric
   // (not a stored flag) so a manual resize/move drops it out of the maximized
@@ -388,22 +400,35 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     && dev.canvasX + dev.canvasW >= CW - PAD - 0.5
     && dev.canvasY + dev.canvasH >= CH - PAD - 0.5, []);
 
-  const handleMaximize = useCallback((dev: LightingDevice) => {
-    onBeforeLayoutSaveRef.current?.();
-    if (isMaximized(dev)) {
-      dev.canvasX = CW / 2 - 60;
-      dev.canvasY = CH / 2 - 15;
-      dev.canvasW = 120;
-      dev.canvasH = 30;
-    } else {
+  // Mutates dev's rect to the full-canvas or the small centered box; no save/
+  // render side effects so group maximize can set every target one direction.
+  const setMaximized = useCallback((dev: LightingDevice, maximize: boolean) => {
+    if (maximize) {
       dev.canvasX = PAD;
       dev.canvasY = PAD;
       dev.canvasW = CW - 2 * PAD;
       dev.canvasH = CH - 2 * PAD;
+    } else {
+      dev.canvasX = CW / 2 - 60;
+      dev.canvasY = CH / 2 - 15;
+      dev.canvasW = 120;
+      dev.canvasH = 30;
     }
+  }, []);
+
+  const handleMaximize = useCallback((dev: LightingDevice) => {
+    onBeforeLayoutSaveRef.current?.();
+    setMaximized(dev, !isMaximized(dev));
     forceRender(n => n + 1);
     void saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation ?? 0).then(() => onLayoutCommitRef.current?.());
-  }, [isMaximized]);
+  }, [isMaximized, setMaximized]);
+
+  const handleMaximizeGroup = useCallback((targets: LightingDevice[], maximize: boolean) => {
+    onBeforeLayoutSaveRef.current?.();
+    targets.forEach(d => setMaximized(d, maximize));
+    forceRender(n => n + 1);
+    void Promise.all(targets.map(d => saveDeviceLayout(d.id, d.canvasX, d.canvasY, d.canvasW, d.canvasH, d.canvasRotation ?? 0))).then(() => onLayoutCommitRef.current?.());
+  }, [setMaximized]);
 
   const handleFrameContextMenu = useCallback((e: React.MouseEvent, dev: LightingDevice) => {
     e.preventDefault();
@@ -498,35 +523,56 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       {ctxMenu && (() => {
         const dev = devices.find(d => d.id === ctxMenu.id);
         if (!dev) return null;
+        // Group mode: a right-click on a frame that is part of a multi-selection
+        // acts on every selected frame. `devices` is already the visible subset
+        // (hidden frames excluded), so derive the targets and gate on their
+        // count - not the parent's full selectedIds, which can include hidden
+        // frames and yield "(1 devices)" labels / partial application. A
+        // right-click outside the selection (or a single visible target) stays
+        // single-device and keeps LED settings.
+        const targets = selectedIds.has(dev.id) ? devices.filter(d => selectedIds.has(d.id)) : [dev];
+        const group = targets.length >= 2;
+        const count = targets.length;
         const items: DeviceMenuItem[] = [];
-        if (dev.ledCount > 0) {
+        // Identify only reaches LED-bearing devices; the group label counts just
+        // those so it never promises to flash a frame with no LEDs.
+        const ledTargets = targets.filter(d => d.ledCount > 0);
+        if (ledTargets.length > 0) {
           items.push({
-            key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'),
-            onSelect: () => { identifyLightingDevice(dev.id, 2000).catch(() => { /* silent */ }); },
+            key: 'identify', icon: <Eye size={14} />,
+            label: group ? t('lighting.devices.identifyCount', { count: ledTargets.length }) : t('lighting.devices.identify'),
+            onSelect: () => { ledTargets.forEach(d => identifyLightingDevice(d.id, 2000).catch(() => { /* silent */ })); },
           });
         }
-        // LED-map editor opens for every device (positional mapping is always
-        // available, even at 0 LEDs); only identify above is gated on LEDs.
-        if (onOpenSettings) {
+        // LED-map editor is single-device only (it edits one device's zones), so
+        // it is hidden for a group selection. For a single device it opens even
+        // at 0 LEDs (positional mapping is always available).
+        if (onOpenSettings && !group) {
           items.push({
             key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
             onSelect: () => onOpenSettings(dev.id),
           });
         }
-        const maxed = isMaximized(dev);
+        // Group toggle reads "all maximized": minimize them only when every
+        // target already fills the canvas, otherwise maximize them all.
+        const maxed = group ? targets.every(isMaximized) : isMaximized(dev);
         items.push({
           key: 'maximize',
           icon: maxed ? <Minimize2 size={14} /> : <Maximize2 size={14} />,
-          label: maxed ? t('lighting.devices.minimize') : t('lighting.devices.maximize'),
-          onSelect: () => handleMaximize(dev),
+          label: group
+            ? (maxed ? t('lighting.devices.minimizeCount', { count }) : t('lighting.devices.maximizeCount', { count }))
+            : (maxed ? t('lighting.devices.minimize') : t('lighting.devices.maximize')),
+          onSelect: () => group ? handleMaximizeGroup(targets, !maxed) : handleMaximize(dev),
         });
         items.push({
-          key: 'rotate-cw', icon: <RotateCw size={14} />, label: t('lighting.devices.rotateCw'),
-          onSelect: () => handleRotate(dev, 1),
+          key: 'rotate-cw', icon: <RotateCw size={14} />,
+          label: group ? t('lighting.devices.rotateCwCount', { count }) : t('lighting.devices.rotateCw'),
+          onSelect: () => group ? handleRotateGroup(targets, 1) : handleRotate(dev, 1),
         });
         items.push({
-          key: 'rotate-ccw', icon: <RotateCcw size={14} />, label: t('lighting.devices.rotateCcw'),
-          onSelect: () => handleRotate(dev, -1),
+          key: 'rotate-ccw', icon: <RotateCcw size={14} />,
+          label: group ? t('lighting.devices.rotateCcwCount', { count }) : t('lighting.devices.rotateCcw'),
+          onSelect: () => group ? handleRotateGroup(targets, -1) : handleRotate(dev, -1),
         });
         return (
           <DeviceContextMenu
