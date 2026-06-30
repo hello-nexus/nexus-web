@@ -83,6 +83,20 @@
     z-index: 10;
     .resizeHandle { opacity: 1; }
   }
+
+  // While a selection is active the unselected frames recede so the selection
+  // reads as the focus: no border, faded label, no drop-shadow. This wins over
+  // :hover, so a receded frame shows no border or resize handle until selected.
+  &.deemphasized {
+    border-color: transparent;
+
+    .deviceLabel {
+      opacity: var(--alpha-medium);
+      text-shadow: none;
+    }
+
+    &:hover .resizeHandle { opacity: 0; }
+  }
 }
 
 .deviceLabel {
@@ -96,6 +110,7 @@
   pointer-events: none;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
   font-weight: var(--weight-body);
+  transition: opacity var(--ease-fast);
 }
 
 .ledDot {

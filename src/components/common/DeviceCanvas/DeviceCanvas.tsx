@@ -490,6 +490,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         // selectedIds is kept in sync with the live marquee preview by
         // handlePointerMove, so no marquee-specific branch is needed here.
         const selected = selectedIds.has(dev.id);
+        const deemphasized = selectedIds.size > 0 && !selected;
         const isPrimary = dev.id === primaryDeviceId;
         const rot = ((dev.canvasRotation ?? 0) % 360 + 360) % 360;
         const { w, h } = containerSizeRef.current;
@@ -497,7 +498,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         const bgY = -(dev.canvasY / CH) * h;
         return (
           <div key={dev.id}
-            className={`${styles.device} ${drag?.id === dev.id ? styles.dragging : ''} ${selected ? styles.selected : ''}`}
+            className={`${styles.device} ${drag?.id === dev.id ? styles.dragging : ''} ${selected ? styles.selected : ''} ${deemphasized ? styles.deemphasized : ''}`}
             style={{
               left: `${(dev.canvasX / CW) * 100}%`, top: `${(dev.canvasY / CH) * 100}%`,
               width: `${(dev.canvasW / CW) * 100}%`, height: `${(dev.canvasH / CH) * 100}%`,
