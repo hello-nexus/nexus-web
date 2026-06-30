@@ -1318,7 +1318,7 @@ function GameSyncActivityBlock({ isReceiving, activeApp, games }: GameSyncActivi
           aria-hidden
         />
       )}
-      <span className={styles.gameSyncActivityLabel}>
+      <span className={`${styles.gameSyncActivityLabel} ${showImage ? styles.gameSyncActivityLabelOverArt : ''}`}>
         {isReceiving
           ? (activeApp
               ? t('lighting.gameSync.signal.receiving', { activeApp })

@@ -1262,13 +1262,17 @@
   font-size: var(--type-body);
   color: var(--text-dim);
   text-align: center;
-  // Anchored to the frame bottom, sitting above the gradient scrim.
+  padding: 0 0.5rem;
+  z-index: 2;
+}
+
+// With artwork the label anchors to the frame bottom over the gradient scrim;
+// without it (icon state) the label flows directly beneath the icon.
+.gameSyncActivityLabelOverArt {
   position: absolute;
   bottom: 0.6rem;
   left: 0;
   right: 0;
-  padding: 0 0.5rem;
-  z-index: 2;
 }
 
 // Steam header art (460x215). Rounded corners via parent overflow:hidden.
