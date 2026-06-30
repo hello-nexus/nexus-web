@@ -70,6 +70,20 @@ const PORTAL_URL = 'https://hellonexus.com';
 
 const BuilderView = lazy(() => import('../components/views/BuilderView'));
 
+const WHATS_NEW_SHOWN_KEY = 'nexus.whatsNewShownFor';
+
+// True only the first time it sees a given version. The service holds
+// justUpdatedTo for a fixed window after an update, so a window close+reopen
+// inside that window would re-auto-open; persisting the shown version pins the
+// auto-open to once per update.
+function markWhatsNewShown(version: string): boolean {
+  try {
+    if (localStorage.getItem(WHATS_NEW_SHOWN_KEY) === version) return false;
+    localStorage.setItem(WHATS_NEW_SHOWN_KEY, version);
+  } catch { /* localStorage unavailable; fall through and show */ }
+  return true;
+}
+
 // Auto-opens the modal when justUpdatedTo is set (post-install what's-new view).
 function UpdateAutoOpener({ online, onOpen }: {
   online: boolean;
@@ -102,7 +116,10 @@ function UpdateAutoOpener({ online, onOpen }: {
         if (cancelled || firedRef.current || !s) return;
         if (s.justUpdatedTo) {
           firedRef.current = true;
-          onOpen(s);
+          // Auto-open once per update; a reopen within the service's
+          // justUpdatedTo hold window must not re-trigger. Manual opens (update
+          // icon / "check updates") go through onOpen directly and bypass this.
+          if (markWhatsNewShown(s.justUpdatedTo)) onOpen(s);
           return;
         }
         if (++tries < 8) timer = setTimeout(check, 2000);
