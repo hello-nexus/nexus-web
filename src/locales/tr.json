@@ -914,7 +914,7 @@
   "lighting.devices.hue": "Renk tonu",
   "lighting.devices.identify": "Tanimla",
   "lighting.devices.identifyCount": "Tanimla ({count} cihaz)",
-  "lighting.devices.lianliStreamRate": "Lian Li denetleyicileri aydınlatmayı yalnızca 1 Hz'de akıtabilir.",
+  "lighting.devices.lianliStreamRate": "Bu denetleyici yalnızca kısmi gerçek zamanlı akışı destekler.",
   "lighting.devices.maximize": "Tam tuvale genis let",
   "lighting.devices.maximizeCount": "Genişlet ({count} cihaz)",
   "lighting.devices.minimize": "Simge Durumuna Küçült",

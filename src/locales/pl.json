@@ -914,7 +914,7 @@
   "lighting.devices.hue": "Barwa",
   "lighting.devices.identify": "Identyfikuj",
   "lighting.devices.identifyCount": "Identyfikuj ({count} urządzeń)",
-  "lighting.devices.lianliStreamRate": "Kontrolery Lian Li mogą przesyłać podświetlenie tylko z częstotliwością 1 Hz.",
+  "lighting.devices.lianliStreamRate": "Ten kontroler obsługuje tylko częściowe przesyłanie w czasie rzeczywistym.",
   "lighting.devices.maximize": "Maksymalizuj do pelnego plotna",
   "lighting.devices.maximizeCount": "Maksymalizuj ({count} urządzeń)",
   "lighting.devices.minimize": "Minimalizuj",

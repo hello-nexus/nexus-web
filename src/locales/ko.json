@@ -914,7 +914,7 @@
   "lighting.devices.hue": "색조",
   "lighting.devices.identify": "식별",
   "lighting.devices.identifyCount": "식별 ({count}개 장치)",
-  "lighting.devices.lianliStreamRate": "Lian Li 컨트롤러는 조명을 1 Hz로만 스트리밍할 수 있습니다.",
+  "lighting.devices.lianliStreamRate": "이 컨트롤러는 부분적인 실시간 스트리밍만 지원합니다.",
   "lighting.devices.maximize": "전체 캔버스로 최대화",
   "lighting.devices.maximizeCount": "최대화 ({count}개 장치)",
   "lighting.devices.minimize": "최소화",

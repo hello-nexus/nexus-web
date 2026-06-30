@@ -914,7 +914,7 @@
   "lighting.devices.hue": "Matiz",
   "lighting.devices.identify": "Identificar",
   "lighting.devices.identifyCount": "Identificar ({count} dispositivos)",
-  "lighting.devices.lianliStreamRate": "Os controladores Lian Li só conseguem transmitir a iluminação a 1 Hz.",
+  "lighting.devices.lianliStreamRate": "Este controlador só suporta transmissão em tempo real parcial.",
   "lighting.devices.maximize": "Maximizar para toda a area",
   "lighting.devices.maximizeCount": "Maximizar ({count} dispositivos)",
   "lighting.devices.minimize": "Minimizar",

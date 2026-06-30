@@ -914,7 +914,7 @@
   "lighting.devices.hue": "Farbton",
   "lighting.devices.identify": "Identifizieren",
   "lighting.devices.identifyCount": "Identifizieren ({count} Geräte)",
-  "lighting.devices.lianliStreamRate": "Lian-Li-Controller können Beleuchtung nur mit 1 Hz streamen.",
+  "lighting.devices.lianliStreamRate": "Dieser Controller unterstützt nur teilweises Echtzeit-Streaming.",
   "lighting.devices.maximize": "Auf gesamte Fläche vergrößern",
   "lighting.devices.maximizeCount": "Vergrößern ({count} Geräte)",
   "lighting.devices.minimize": "Minimieren",

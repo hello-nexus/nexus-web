@@ -914,7 +914,7 @@
   "lighting.devices.hue": "Teinte",
   "lighting.devices.identify": "Identifier",
   "lighting.devices.identifyCount": "Identifier ({count} appareils)",
-  "lighting.devices.lianliStreamRate": "Les contrôleurs Lian Li ne peuvent diffuser l'éclairage qu'à 1 Hz.",
+  "lighting.devices.lianliStreamRate": "Ce contrôleur ne prend en charge que le streaming en temps réel partiel.",
   "lighting.devices.maximize": "Agrandir à toute la zone",
   "lighting.devices.maximizeCount": "Agrandir ({count} appareils)",
   "lighting.devices.minimize": "Réduire",

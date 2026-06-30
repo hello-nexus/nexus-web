@@ -914,7 +914,7 @@
   "lighting.devices.hue": "Оттенок",
   "lighting.devices.identify": "Определить",
   "lighting.devices.identifyCount": "Определить ({count} устройств)",
-  "lighting.devices.lianliStreamRate": "Контроллеры Lian Li могут передавать подсветку только с частотой 1 Hz.",
+  "lighting.devices.lianliStreamRate": "Этот контроллер поддерживает только частичную потоковую передачу в реальном времени.",
   "lighting.devices.maximize": "Развернуть на весь холст",
   "lighting.devices.maximizeCount": "Развернуть ({count} устройств)",
   "lighting.devices.minimize": "Свернуть",

@@ -914,7 +914,7 @@
   "lighting.devices.hue": "Tono",
   "lighting.devices.identify": "Identificar",
   "lighting.devices.identifyCount": "Identificar ({count} dispositivos)",
-  "lighting.devices.lianliStreamRate": "Los controladores Lian Li solo admiten la transmisión de iluminación a 1 Hz.",
+  "lighting.devices.lianliStreamRate": "Este controlador solo admite la transmisión en tiempo real parcial.",
   "lighting.devices.maximize": "Maximizar a todo el área",
   "lighting.devices.maximizeCount": "Maximizar ({count} dispositivos)",
   "lighting.devices.minimize": "Minimizar",

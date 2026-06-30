@@ -1036,7 +1036,7 @@
   "lighting.devices.hue": "Hue",
   "lighting.devices.identify": "Identify",
   "lighting.devices.identifyCount": "Identify ({count} devices)",
-  "lighting.devices.lianliStreamRate": "Lian Li controllers only support streaming lighting at 1 Hz.",
+  "lighting.devices.lianliStreamRate": "This controller only supports partial real-time streaming.",
   "lighting.devices.maximize": "Maximize to full canvas",
   "lighting.devices.maximizeCount": "Maximize ({count} devices)",
   "lighting.devices.minimize": "Minimize",
