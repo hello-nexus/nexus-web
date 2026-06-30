@@ -71,6 +71,9 @@ const NUDGE_STEP_UV = 0.005;
 const NUDGE_STEP_UV_COARSE = 0.025;
 const MERGE_EPSILON = 0.018;
 const CENTER_SNAP_EPSILON = 0.02;
+// A Lian Li port device's ring segment holds one LED ring per fan, so dividing
+// the segment's LED count by the per-fan ring size recovers the fan count.
+const LIANLI_LEDS_PER_FAN = 16;
 
 type EditorMode = 'animation' | 'horizontal' | 'vertical' | 'none';
 
@@ -2000,6 +2003,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             <HubCompositionPanel
               composition={structure.hubComposition}
               onChange={handleCompositionChangeRequest}
+              fanCount={
+                structure.hubComposition.hubKind === 'lianli'
+                  ? Math.round((structure.segments[0]?.ledCount ?? 0) / LIANLI_LEDS_PER_FAN)
+                  : undefined
+              }
               onOpenDeviceSettings={
                 onNavigateToDevicePage && structure.hubComposition.hubKind === 'lianli'
                   ? handleOpenHubDeviceSettings

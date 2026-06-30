@@ -1,77 +1,55 @@
-import { useMemo } from 'react';
+import { useId } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
-import { SettingsSection } from '../../../../components/common/SettingsSection/SettingsSection';
-import { SettingToggle, SettingRow } from '../../../../components/common/SettingRow/SettingRow';
-import { ChipGroup } from '../../../../components/common/ChipGroup/ChipGroup';
+import { Toggle } from '../../../../components/common/Toggle/Toggle';
 import { Button } from '../../../../components/common/Button/Button';
 import type { HubComposition, HubCompositionPatch } from '../../../../api/lighting';
+import styles from './HubCompositionPanel.module.scss';
 
 interface Props {
   composition: HubComposition;
   onChange: (patch: HubCompositionPatch) => void;
+  /** Fan count of the port whose LED space the editor is rendering. Omitted for
+   * hubs without a per-port fan count (e.g. SmartHub). */
+  fanCount?: number;
   /** When set, render a button that deep-links to the hub's device page (where
    * per-port fan counts - and thus the device set - are configured). */
   onOpenDeviceSettings?: () => void;
 }
 
-export function HubCompositionPanel({ composition, onChange, onOpenDeviceSettings }: Props) {
+// A single composition row styled like the zone-selection bar.
+export function HubCompositionPanel({ composition, onChange, fanCount, onOpenDeviceSettings }: Props) {
   const { t } = useTranslation();
-
-  const portOptions = useMemo(() =>
-    Array.from({ length: composition.portCount }, (_, i) => ({
-      key: String(i),
-      label: t('lighting.ledMap.hubPortLabel', { n: String(i + 1) }),
-    })),
-    [composition.portCount, t],
-  );
-
-  const activePortKeys = useMemo(() => {
-    const s = new Set<string>();
-    composition.activePorts.forEach((on, i) => { if (on) s.add(String(i)); });
-    return s;
-  }, [composition.activePorts]);
-
-  const activePortCount = composition.mirror ? 1 : composition.activePorts.filter(Boolean).length;
-  const zonesPerPort = composition.hasRingsAxis && !composition.combineRings ? 2 : 1;
-  const deviceCount = activePortCount * zonesPerPort;
-
-  const handleTogglePort = (key: string) => {
-    const idx = parseInt(key, 10);
-    const next = [...composition.activePorts];
-    next[idx] = !next[idx];
-    onChange({ ports: next });
-  };
+  const mirrorLabelId = useId();
+  const combineLabelId = useId();
 
   return (
-    <SettingsSection
-      title={t('lighting.ledMap.hubCompositionTitle')}
-      description={t('lighting.ledMap.hubDeviceCount', { count: String(deviceCount) })}
-    >
+    <div className={styles.hubBar}>
       {composition.hasMirror && (
-        <SettingToggle
-          label={t('lighting.ledMap.hubMirror')}
-          checked={composition.mirror}
-          onChange={v => onChange({ mirror: v })}
-        />
+        <span className={styles.toggleItem}>
+          <Toggle
+            checked={composition.mirror}
+            onChange={v => onChange({ mirror: v })}
+            ariaLabelledBy={mirrorLabelId}
+          />
+          <span id={mirrorLabelId}>{t('lighting.ledMap.hubMirror')}</span>
+        </span>
       )}
       {composition.hasRingsAxis && (
-        <SettingToggle
-          label={t('lighting.ledMap.hubCombineRings')}
-          checked={composition.combineRings}
-          onChange={v => onChange({ combineRings: v })}
-        />
-      )}
-      {composition.hasPortToggle && (
-        <SettingRow label={t('lighting.ledMap.hubPorts')}>
-          <ChipGroup
-            multiSelect
-            options={portOptions}
-            activeKeys={activePortKeys}
-            onToggleKey={handleTogglePort}
-            ariaLabel={t('lighting.ledMap.hubPorts')}
+        <span className={styles.toggleItem}>
+          <Toggle
+            checked={composition.combineRings}
+            onChange={v => onChange({ combineRings: v })}
+            ariaLabelledBy={combineLabelId}
           />
-        </SettingRow>
+          <span id={combineLabelId}>{t('lighting.ledMap.hubCombineRings')}</span>
+        </span>
+      )}
+      <div className={styles.spacer} />
+      {fanCount != null && (
+        <span className={styles.fanCount}>
+          {t('lighting.ledMap.hubFanCount', { count: String(fanCount) })}
+        </span>
       )}
       {onOpenDeviceSettings && (
         <Button
@@ -83,6 +61,6 @@ export function HubCompositionPanel({ composition, onChange, onOpenDeviceSetting
           {t('lighting.ledMap.hubOpenDeviceSettings')}
         </Button>
       )}
-    </SettingsSection>
+    </div>
   );
 }

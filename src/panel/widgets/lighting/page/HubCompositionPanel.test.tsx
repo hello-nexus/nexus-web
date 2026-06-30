@@ -8,21 +8,10 @@ vi.mock('../../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock('../../../../components/common/SettingsSection/SettingsSection', () => ({
-  SettingsSection: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock('../../../../components/common/SettingRow/SettingRow', () => ({
-  SettingRow: ({ label, children }: { label: string; children: ReactNode }) => (
-    <div><span>{label}</span>{children}</div>
+vi.mock('../../../../components/common/Toggle/Toggle', () => ({
+  Toggle: ({ checked, onChange, ariaLabel }: { checked: boolean; onChange: (v: boolean) => void; ariaLabel?: string }) => (
+    <button type="button" role="switch" aria-checked={checked} aria-label={ariaLabel} onClick={() => onChange(!checked)} />
   ),
-  SettingToggle: ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) => (
-    <label>{label}<input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} /></label>
-  ),
-}));
-
-vi.mock('../../../../components/common/ChipGroup/ChipGroup', () => ({
-  ChipGroup: ({ ariaLabel }: { ariaLabel?: string }) => <div data-testid="chipgroup">{ariaLabel}</div>,
 }));
 
 vi.mock('../../../../components/common/Button/Button', () => ({
@@ -44,23 +33,28 @@ const smarthub: HubComposition = {
 };
 
 describe('HubCompositionPanel', () => {
-  it('hides mirror + ports and shows the device-settings button for Lian Li', () => {
+  it('shows the ring toggle, fan count, and device-settings button for Lian Li', () => {
     const onOpenDeviceSettings = vi.fn();
     render(
-      <HubCompositionPanel composition={lianli} onChange={() => {}} onOpenDeviceSettings={onOpenDeviceSettings} />,
+      <HubCompositionPanel
+        composition={lianli}
+        onChange={() => {}}
+        fanCount={2}
+        onOpenDeviceSettings={onOpenDeviceSettings}
+      />,
     );
     expect(screen.queryByText('lighting.ledMap.hubMirror')).toBeNull();
-    expect(screen.queryByText('lighting.ledMap.hubPorts')).toBeNull();
-    expect(screen.queryByTestId('chipgroup')).toBeNull();
     expect(screen.getByText('lighting.ledMap.hubCombineRings')).toBeTruthy();
+    expect(screen.getByText('lighting.ledMap.hubFanCount')).toBeTruthy();
     fireEvent.click(screen.getByText('lighting.ledMap.hubOpenDeviceSettings'));
     expect(onOpenDeviceSettings).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the mirror toggle and omits the button for SmartHub', () => {
+  it('keeps the mirror toggle and omits fan count + button for SmartHub', () => {
     render(<HubCompositionPanel composition={smarthub} onChange={() => {}} />);
     expect(screen.getByText('lighting.ledMap.hubMirror')).toBeTruthy();
     expect(screen.queryByText('lighting.ledMap.hubCombineRings')).toBeNull();
+    expect(screen.queryByText('lighting.ledMap.hubFanCount')).toBeNull();
     expect(screen.queryByText('lighting.ledMap.hubOpenDeviceSettings')).toBeNull();
   });
 });
