@@ -1269,6 +1269,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           initialCommunityOpen={editorCommunityOpen}
           onClose={() => setEditorTarget(null)}
           onCompositionChanged={hubId => { void handleCompositionChanged(hubId); }}
+          onNavigateToDevicePage={deviceKey => onSectionNavigate?.('device', { deviceKey })}
         />
       )}
     </div>

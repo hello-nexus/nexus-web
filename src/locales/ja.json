@@ -1040,6 +1040,7 @@
   "lighting.ledMap.hubCompositionTitle": "ハブのレイアウト",
   "lighting.ledMap.hubDeviceCount": "デバイス: {count}",
   "lighting.ledMap.hubMirror": "全ポートをミラー",
+  "lighting.ledMap.hubOpenDeviceSettings": "ポートごとにファンを設定",
   "lighting.ledMap.hubPortLabel": "ポート {n}",
   "lighting.ledMap.hubPorts": "アクティブポート",
   "lighting.mappings.adopters": "{count}人のユーザー",

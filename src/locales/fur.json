@@ -1049,6 +1049,7 @@
   "lighting.ledMap.hubCompositionTitle": "Disposizion dal hub",
   "lighting.ledMap.hubDeviceCount": "Dispositîfs: {count}",
   "lighting.ledMap.hubMirror": "Speculâ ducj i pors",
+  "lighting.ledMap.hubOpenDeviceSettings": "Impostâ i ventiladôrs par puart",
   "lighting.ledMap.hubPortLabel": "Port {n}",
   "lighting.ledMap.hubPorts": "Pors atîfs",
   "lighting.mappings.adopters": "{count} utents",

@@ -1040,6 +1040,7 @@
   "lighting.ledMap.hubCompositionTitle": "허브 레이아웃",
   "lighting.ledMap.hubDeviceCount": "장치: {count}",
   "lighting.ledMap.hubMirror": "모든 포트 미러",
+  "lighting.ledMap.hubOpenDeviceSettings": "포트별 팬 수 설정",
   "lighting.ledMap.hubPortLabel": "포트 {n}",
   "lighting.ledMap.hubPorts": "활성 포트",
   "lighting.mappings.adopters": "사용자 {count}명",

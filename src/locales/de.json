@@ -1040,6 +1040,7 @@
   "lighting.ledMap.hubCompositionTitle": "Hub-Layout",
   "lighting.ledMap.hubDeviceCount": "Geräte: {count}",
   "lighting.ledMap.hubMirror": "Alle Ports spiegeln",
+  "lighting.ledMap.hubOpenDeviceSettings": "Lüfter pro Port einstellen",
   "lighting.ledMap.hubPortLabel": "Port {n}",
   "lighting.ledMap.hubPorts": "Aktive Ports",
   "lighting.mappings.adopters": "{count} Nutzer",

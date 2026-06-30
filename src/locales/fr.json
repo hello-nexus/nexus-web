@@ -1040,6 +1040,7 @@
   "lighting.ledMap.hubCompositionTitle": "Disposition du hub",
   "lighting.ledMap.hubDeviceCount": "Appareils : {count}",
   "lighting.ledMap.hubMirror": "Mettre tous les ports en miroir",
+  "lighting.ledMap.hubOpenDeviceSettings": "Configurer les ventilateurs par port",
   "lighting.ledMap.hubPortLabel": "Port {n}",
   "lighting.ledMap.hubPorts": "Ports actifs",
   "lighting.mappings.adopters": "{count} utilisateurs",

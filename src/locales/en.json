@@ -1115,6 +1115,7 @@
   "lighting.ledMap.hubCompositionTitle": "Hub layout",
   "lighting.ledMap.hubDeviceCount": "Devices: {count}",
   "lighting.ledMap.hubMirror": "Mirror all ports",
+  "lighting.ledMap.hubOpenDeviceSettings": "Set fans per port",
   "lighting.ledMap.hubPortLabel": "Port {n}",
   "lighting.ledMap.hubPorts": "Active ports",
   "lighting.ledMap.keepEditing": "Keep editing",

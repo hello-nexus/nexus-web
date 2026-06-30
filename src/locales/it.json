@@ -1040,6 +1040,7 @@
   "lighting.ledMap.hubCompositionTitle": "Disposizione dell'hub",
   "lighting.ledMap.hubDeviceCount": "Dispositivi: {count}",
   "lighting.ledMap.hubMirror": "Specchia tutte le porte",
+  "lighting.ledMap.hubOpenDeviceSettings": "Imposta i ventilatori per porta",
   "lighting.ledMap.hubPortLabel": "Porta {n}",
   "lighting.ledMap.hubPorts": "Porte attive",
   "lighting.mappings.adopters": "{count} utenti",

@@ -1,16 +1,21 @@
 import { useMemo } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { SettingsSection } from '../../../../components/common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingRow } from '../../../../components/common/SettingRow/SettingRow';
 import { ChipGroup } from '../../../../components/common/ChipGroup/ChipGroup';
+import { Button } from '../../../../components/common/Button/Button';
 import type { HubComposition, HubCompositionPatch } from '../../../../api/lighting';
 
 interface Props {
   composition: HubComposition;
   onChange: (patch: HubCompositionPatch) => void;
+  /** When set, render a button that deep-links to the hub's device page (where
+   * per-port fan counts - and thus the device set - are configured). */
+  onOpenDeviceSettings?: () => void;
 }
 
-export function HubCompositionPanel({ composition, onChange }: Props) {
+export function HubCompositionPanel({ composition, onChange, onOpenDeviceSettings }: Props) {
   const { t } = useTranslation();
 
   const portOptions = useMemo(() =>
@@ -43,11 +48,13 @@ export function HubCompositionPanel({ composition, onChange }: Props) {
       title={t('lighting.ledMap.hubCompositionTitle')}
       description={t('lighting.ledMap.hubDeviceCount', { count: String(deviceCount) })}
     >
-      <SettingToggle
-        label={t('lighting.ledMap.hubMirror')}
-        checked={composition.mirror}
-        onChange={v => onChange({ mirror: v })}
-      />
+      {composition.hasMirror && (
+        <SettingToggle
+          label={t('lighting.ledMap.hubMirror')}
+          checked={composition.mirror}
+          onChange={v => onChange({ mirror: v })}
+        />
+      )}
       {composition.hasRingsAxis && (
         <SettingToggle
           label={t('lighting.ledMap.hubCombineRings')}
@@ -65,6 +72,16 @@ export function HubCompositionPanel({ composition, onChange }: Props) {
             ariaLabel={t('lighting.ledMap.hubPorts')}
           />
         </SettingRow>
+      )}
+      {onOpenDeviceSettings && (
+        <Button
+          size="sm"
+          tone="neutral"
+          icon={<SlidersHorizontal size={14} />}
+          onClick={onOpenDeviceSettings}
+        >
+          {t('lighting.ledMap.hubOpenDeviceSettings')}
+        </Button>
       )}
     </SettingsSection>
   );

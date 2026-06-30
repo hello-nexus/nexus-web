@@ -103,9 +103,12 @@ interface Props {
   initialCommunityOpen?: boolean;
   /** Called after a hub composition change is confirmed. Receives the hubId so the parent can find matching devices. */
   onCompositionChanged?: (hubId: string) => void;
+  /** Navigate to a device page by its unified device key; backs the hub
+   * composition panel's "configure ports" deep link. */
+  onNavigateToDevicePage?: (deviceKey: string) => void;
 }
 
-export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizable, onClose, initialCommunityOpen, onCompositionChanged }: Props) {
+export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizable, onClose, initialCommunityOpen, onCompositionChanged, onNavigateToDevicePage }: Props) {
   const { t } = useTranslation();
   const { push } = useToast();
 
@@ -1611,6 +1614,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     onCompositionChanged?.(hub.hubId);
   }, [structure, pendingCompositionPatch, onCompositionChanged, push, t]);
 
+  // Deep link to the Lian Li device page (per-port fan counts live there and
+  // drive this LED composition). Routed through the unsaved-edits guard so a
+  // mid-edit navigation does not silently drop LED overrides.
+  const handleOpenHubDeviceSettings = useCallback(() => {
+    confirmDiscardEdits(() => onNavigateToDevicePage?.('curated-lianli'));
+  }, [confirmDiscardEdits, onNavigateToDevicePage]);
+
   const handleDeleteSelected = useCallback(() => {
     if (selected.size === 0) return;
     pushUndo();
@@ -1990,6 +2000,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             <HubCompositionPanel
               composition={structure.hubComposition}
               onChange={handleCompositionChangeRequest}
+              onOpenDeviceSettings={
+                onNavigateToDevicePage && structure.hubComposition.hubKind === 'lianli'
+                  ? handleOpenHubDeviceSettings
+                  : undefined
+              }
             />
           )}
           {showZonesBar && (

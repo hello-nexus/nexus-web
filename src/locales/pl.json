@@ -1040,6 +1040,7 @@
   "lighting.ledMap.hubCompositionTitle": "Układ koncentratora",
   "lighting.ledMap.hubDeviceCount": "Urządzenia: {count}",
   "lighting.ledMap.hubMirror": "Lustrzane odbicie wszystkich portów",
+  "lighting.ledMap.hubOpenDeviceSettings": "Ustaw wentylatory na port",
   "lighting.ledMap.hubPortLabel": "Port {n}",
   "lighting.ledMap.hubPorts": "Aktywne porty",
   "lighting.mappings.adopters": "{count} użytkowników",

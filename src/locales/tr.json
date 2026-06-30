@@ -1040,6 +1040,7 @@
   "lighting.ledMap.hubCompositionTitle": "Hub düzeni",
   "lighting.ledMap.hubDeviceCount": "Cihazlar: {count}",
   "lighting.ledMap.hubMirror": "Tüm bağlantı noktalarını yansıt",
+  "lighting.ledMap.hubOpenDeviceSettings": "Port başına fan sayısını ayarla",
   "lighting.ledMap.hubPortLabel": "Bağlantı Noktası {n}",
   "lighting.ledMap.hubPorts": "Aktif bağlantı noktaları",
   "lighting.mappings.adopters": "{count} kullanıcı",

@@ -1040,6 +1040,7 @@
   "lighting.ledMap.hubCompositionTitle": "集線器佈局",
   "lighting.ledMap.hubDeviceCount": "裝置：{count}",
   "lighting.ledMap.hubMirror": "鏡像所有連接埠",
+  "lighting.ledMap.hubOpenDeviceSettings": "設定每個連接埠的風扇數",
   "lighting.ledMap.hubPortLabel": "連接埠 {n}",
   "lighting.ledMap.hubPorts": "使用中的連接埠",
   "lighting.mappings.adopters": "{count} 位使用者",

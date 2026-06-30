@@ -434,6 +434,7 @@ export interface HubComposition {
   portCount: number;
   hasRingsAxis: boolean;
   hasPortToggle: boolean;
+  hasMirror: boolean;
   mirror: boolean;
   combineRings: boolean;
   activePorts: boolean[];
