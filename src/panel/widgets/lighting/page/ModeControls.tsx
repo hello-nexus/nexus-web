@@ -169,7 +169,7 @@ function MediaControls() {
     if (!result || result.error) {
       setImporting(false);
       setImportingName(null);
-      setImportError(t('lighting.controls.importFailed'));
+      setImportError(result?.msg || t('lighting.controls.importFailed'));
       return;
     }
     setImporting(false);
