@@ -16,6 +16,8 @@ import { typeForMarketplace } from '../../../widgets/marketplaceRegistry';
 import { LianLiTlDevicePage } from './LianLiTlDevicePage';
 import { Galahad2DevicePage } from './Galahad2DevicePage';
 import { StrimerDevicePage } from './StrimerDevicePage';
+import { TryxDevicePage } from './TryxDevicePage';
+import { Toggle } from '../../common/Toggle/Toggle';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import styles from './DevicePage.module.scss';
@@ -44,7 +46,7 @@ interface DevicePageProps {
 
 export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFirmware, onSectionNavigate }: DevicePageProps) {
   const { t } = useTranslation();
-  const { unified } = useUnifiedDevices(serviceOnline);
+  const { unified, controlDevice } = useUnifiedDevices(serviceOnline);
   const device = useMemo<UnifiedDevice | undefined>(
     () => unified.find(d => d.key === deviceKey),
     [unified, deviceKey],
@@ -60,6 +62,19 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
         <ViewHeader title={t('devices.page.title')} />
         <Placeholder title={t('devices.page.notFound')} />
       </section>
+    );
+  }
+
+  // When the user turns Nexus Control off, the device's settings are
+  // meaningless (Nexus holds no connection), so the page collapses to a single
+  // re-enable switch instead of the normal body.
+  if (device.supportsNexusControl && !device.nexusControlEnabled && device.curatedId) {
+    return (
+      <NexusControlOff
+        key={device.key}
+        deviceName={device.name}
+        onEnable={() => controlDevice(device.curatedId as string, true)}
+      />
     );
   }
 
@@ -114,6 +129,10 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     return <StrimerDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
   }
 
+  if (device.curatedId === 'tryx') {
+    return <TryxDevicePage key={device.key} />;
+  }
+
   if (device.kind === 'app-device') {
     const type = typeForMarketplace(device.key.replace('app-device-', ''));
     return (
@@ -131,6 +150,19 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     <section>
       <ViewHeader title={device.name} />
       <Placeholder title={t('devices.page.noPageYet', { category: device.category })} />
+    </section>
+  );
+}
+
+function NexusControlOff({ deviceName, onEnable }: { deviceName: string; onEnable: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <section className={styles.page}>
+      <div className={styles.controlOff}>
+        <h2 className={styles.controlOffTitle}>{t('devices.nexusControl')}</h2>
+        <p className={styles.controlOffHint}>{t('devices.nexusControlOffHint', { name: deviceName })}</p>
+        <Toggle checked={false} onChange={() => onEnable()} ariaLabel={t('devices.nexusControl')} />
+      </div>
     </section>
   );
 }

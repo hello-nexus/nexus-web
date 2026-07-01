@@ -11,3 +11,30 @@
   display: flex;
   flex-direction: column;
 }
+
+.controlOff {
+  flex: 1;
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.controlOffTitle {
+  font-family: var(--font-sans);
+  font-size: var(--type-heading);
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.controlOffHint {
+  font-size: var(--type-body);
+  color: var(--text-dim);
+  max-width: 32rem;
+  margin: 0;
+}

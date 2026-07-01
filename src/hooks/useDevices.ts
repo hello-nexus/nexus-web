@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchService } from '../api/service';
+import { setDeviceControl } from '../api/devices';
 import { useTopicCallback } from './useMultiplexSocket';
 
 export interface DeviceListItem {
@@ -8,6 +9,12 @@ export interface DeviceListItem {
   category: string;
   connected: boolean;
   firmwareVersion: string;
+  // Whether the service actively controls this device. Missing/undefined
+  // means an older payload shape; treated as on (default) by callers.
+  nexusControlEnabled?: boolean;
+  // True only for first-party handlers whose worker honors the on/off gate.
+  // Plugin devices manage their own hardware, so the toggle is hidden.
+  supportsNexusControl?: boolean;
 }
 
 export function useDevices(enabled: boolean) {
@@ -36,5 +43,15 @@ export function useDevices(enabled: boolean) {
     void refresh();
   });
 
-  return devices;
+  // Optimistic flip for the toggling card; the `devices` topic refetch
+  // (triggered by the service after the POST) supplies the authoritative
+  // state. Reverts via refresh() if the call itself fails.
+  const controlDevice = useCallback(async (id: string, nextEnabled: boolean) => {
+    setDevices(prev => prev.map(d => (d.id === id ? { ...d, nexusControlEnabled: nextEnabled } : d)));
+    const result = await setDeviceControl(id, nextEnabled);
+    if (result && mountedRef.current) setDevices(result);
+    else if (mountedRef.current) await refresh();
+  }, [refresh]);
+
+  return { devices, controlDevice };
 }

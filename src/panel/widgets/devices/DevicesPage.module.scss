@@ -137,6 +137,19 @@
   font-family: var(--font-mono);
 }
 
+.controlGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.controlLabel {
+  font-family: var(--font-sans);
+  font-size: var(--type-small);
+  color: var(--text);
+}
+
 // Action row at the top of the available list: connect a browser device,
 // open the full connected-USB modal, and browse the supported-devices catalog.
 .deviceActions {

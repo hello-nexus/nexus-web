@@ -39,6 +39,12 @@ export interface UnifiedDevice {
   // pages (e.g. MiniHub - fans on Cooling, ARGB on Lighting) are
   // non-navigable so a click doesn't land on a "no page yet" placeholder.
   navigable: boolean;
+  // Whether the service actively controls this device. Always true for
+  // non-curated kinds (panel/peripheral/app-device), which have no toggle.
+  nexusControlEnabled: boolean;
+  // True only for first-party curated handlers; gates whether the on/off
+  // toggle renders. False for panel/peripheral/app-device and plugin devices.
+  supportsNexusControl: boolean;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -48,6 +54,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   gamepad: '/assets/devices/gamepad.svg',
   display: '/assets/devices/y70.svg',
   controller: '/assets/devices/cnvs.svg',
+  cooler: '/assets/devices/np50.svg',
 };
 
 const CURATED_ICONS: Record<string, string> = {
@@ -66,6 +73,7 @@ const CURATED_ICONS: Record<string, string> = {
   'lianli-tl': '/assets/devices/lianli.svg',
   'lianli-aio': '/assets/devices/lianli.svg',
   strimer: '/assets/devices/device.svg',
+  tryx: '/assets/devices/tryx.svg',
 };
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
@@ -86,6 +94,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   'lianli-tl': 'Lian Li Uni Fan TL',
   'lianli-aio': 'Lian Li Galahad II',
   strimer: 'Lian Li Strimer',
+  tryx: 'Tryx Panorama',
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';
@@ -115,7 +124,7 @@ export function useUnifiedDevices(enabled: boolean) {
     });
   }, []);
 
-  const devices = useDevices(enabled);
+  const { devices, controlDevice } = useDevices(enabled);
   const peripherals = usePeripherals(enabled);
   const webhid = useWebHidPeripherals(enabled);
   // Y70 follows the same rules as every other panel: in the list only if
@@ -138,7 +147,7 @@ export function useUnifiedDevices(enabled: boolean) {
     // surface (Devices page, sidebar, search, detail route). Managed from the
     // Pair Phone modal via /panel/phone/sessions instead.
     const filteredPanels = panels.devices.filter(p => !isRemotePanel(p.connectionKind));
-    return buildUnifiedList(filteredPanels, devices.filter(d => d.connected), merged, deviceApps);
+    return buildUnifiedList(filteredPanels, devices, merged, deviceApps);
   }, [panels.devices, devices, merged, deviceApps]);
 
   return {
@@ -146,12 +155,13 @@ export function useUnifiedDevices(enabled: boolean) {
     merged,
     webhidAvailable: webhid.available,
     requestWebHid: webhid.requestDevice,
+    controlDevice,
   };
 }
 
 function buildUnifiedList(
   panelDevices: PanelDevice[],
-  curated: { id: string; name: string; category: string; connected: boolean; firmwareVersion: string }[],
+  curated: { id: string; name: string; category: string; connected: boolean; firmwareVersion: string; nexusControlEnabled?: boolean; supportsNexusControl?: boolean }[],
   peripherals: Peripheral[],
   deviceApps: AppInstalledListing[] = [],
 ): UnifiedDevice[] {
@@ -169,6 +179,9 @@ function buildUnifiedList(
     const shortName = isSimulated
       ? p.name
       : (sourceId && CURATED_SHORT_NAMES[sourceId]) || p.name;
+    // A hardware panel (Q60/Y70) is backed by a first-party handler of the same
+    // id; inherit its Nexus Control gate so the toggle shows on the panel card.
+    const backing = sourceId ? curated.find(c => c.id === sourceId) : undefined;
     list.push({
       key: `panel-${p.id}`,
       shortName,
@@ -181,11 +194,14 @@ function buildUnifiedList(
       panelDevice: p,
       curatedId: sourceId,
       navigable: true,
+      nexusControlEnabled: backing?.nexusControlEnabled ?? true,
+      supportsNexusControl: backing?.supportsNexusControl ?? false,
     });
   }
 
   for (const d of curated) {
     if (claimedCuratedIds.has(d.id)) continue;
+    if (!d.connected) continue;
     list.push({
       key: `curated-${d.id}`,
       shortName: CURATED_SHORT_NAMES[d.id] || d.name,
@@ -198,6 +214,8 @@ function buildUnifiedList(
       kind: 'curated',
       curatedId: d.id,
       navigable: !CURATED_WITHOUT_PAGE.has(d.id),
+      nexusControlEnabled: d.nexusControlEnabled ?? true,
+      supportsNexusControl: d.supportsNexusControl ?? false,
     });
   }
 
@@ -217,6 +235,8 @@ function buildUnifiedList(
       // and shown as a static card on the Devices page rather than deep-linking
       // to an empty "No Capabilities" page.
       navigable: p.capabilities.length > 0,
+      nexusControlEnabled: true,
+      supportsNexusControl: false,
     });
   }
 
@@ -231,6 +251,8 @@ function buildUnifiedList(
       connected: true,
       kind: 'app-device',
       navigable: true,
+      nexusControlEnabled: true,
+      supportsNexusControl: false,
     });
   }
 

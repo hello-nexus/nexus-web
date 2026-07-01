@@ -10,6 +10,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Button } from '../../../components/common/Button/Button';
 import { Select } from '../../../components/common/Select/Select';
+import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DevicesSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
@@ -47,7 +48,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   const [connectedModalOpen, setConnectedModalOpen] = useState(false);
 
   const availableActive = tab === 'available';
-  const { unified, merged, webhidAvailable, requestWebHid } = useUnifiedDevices(serviceOnline && availableActive);
+  const { unified, merged, webhidAvailable, requestWebHid, controlDevice } = useUnifiedDevices(serviceOnline && availableActive);
   // Single USB subscription, reused for both the catalog "detected" highlight
   // and the Connected Devices modal - no second socket subscription.
   const allUsb = useUsbDevices(serviceOnline);
@@ -120,7 +121,16 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
               ) : (
                 <div className={styles.list}>
                   {orderedDevices.map(d => (
-                    <DeviceCard key={d.key} device={d} onClick={() => onDeviceSelect(d.key)} />
+                    <DeviceCard
+                      key={d.key}
+                      device={d}
+                      onClick={() => onDeviceSelect(d.key)}
+                      onToggleControl={
+                        d.curatedId && d.supportsNexusControl
+                          ? (next) => void controlDevice(d.curatedId as string, next)
+                          : undefined
+                      }
+                    />
                   ))}
                 </div>
               )}
@@ -200,7 +210,14 @@ function deviceMetaLine(device: UnifiedDevice): string {
   return parts.join('  ·  ');
 }
 
-function DeviceCard({ device, onClick }: { device: UnifiedDevice; onClick: () => void }) {
+function DeviceCard({
+  device, onClick, onToggleControl,
+}: {
+  device: UnifiedDevice;
+  onClick: () => void;
+  onToggleControl?: (next: boolean) => void;
+}) {
+  const { t } = useTranslation();
   const meta = deviceMetaLine(device);
   const statusText = device.panelDevice?.statusLabel ?? (device.connected ? 'Connected' : 'Offline');
   const body = (
@@ -217,10 +234,27 @@ function DeviceCard({ device, onClick }: { device: UnifiedDevice; onClick: () =>
         <span className={styles.rowName}>{device.name}</span>
         {meta && <span className={styles.rowMeta}>{meta}</span>}
       </div>
-      <span className={styles.statusLine}>
-        <span className={styles.statusDot} />
-        <span className={styles.statusText}>{statusText}</span>
-      </span>
+      {onToggleControl ? (
+        // Stop click + keydown so toggling the control doesn't also fire the
+        // card's onClick / Enter-key navigation.
+        <span
+          className={styles.controlGroup}
+          onClick={e => e.stopPropagation()}
+          onKeyDown={e => e.stopPropagation()}
+        >
+          <span className={styles.controlLabel}>{t('devices.nexusControl')}</span>
+          <Toggle
+            checked={device.nexusControlEnabled}
+            onChange={onToggleControl}
+            ariaLabel={t('devices.nexusControl')}
+          />
+        </span>
+      ) : (
+        <span className={styles.statusLine}>
+          <span className={styles.statusDot} />
+          <span className={styles.statusText}>{statusText}</span>
+        </span>
+      )}
     </>
   );
 

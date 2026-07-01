@@ -91,7 +91,7 @@ export function usePanelDevices(
   } = {},
 ) {
   const { t } = useTranslation();
-  const curatedDevices = useDevices(enabled);
+  const { devices: curatedDevices } = useDevices(enabled);
   const [status, setStatus] = useState<PanelStatus | null>(null);
   const [phoneSessions, setPhoneSessions] = useState<PanelPhoneSession[]>([]);
   const [records, setRecords] = useState<PanelDeviceRecord[]>([]);
