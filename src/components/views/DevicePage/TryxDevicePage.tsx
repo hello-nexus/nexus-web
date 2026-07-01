@@ -8,6 +8,7 @@ import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { Button } from '../../common/Button/Button';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
+import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { EffectCard } from '../../common/EffectCard/EffectCard';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { MediaCropper, type NormalizedCrop } from '../../common/MediaCropper/MediaCropper';
@@ -66,7 +67,22 @@ const TRYX_STATS = [
   'Date&Time',
 ] as const;
 
-const TRYX_STAT_OPTIONS = TRYX_STATS.map(s => ({ value: s, label: s }));
+// Display labels are localized; the wire value above stays fixed regardless
+// of locale since it is what the service maps to a sensor reading.
+const TRYX_STAT_LABEL_KEYS: Record<(typeof TRYX_STATS)[number], string> = {
+  'CPU Temperature': 'devices.tryx.statCpuTemperature',
+  'CPU Frequency': 'devices.tryx.statCpuFrequency',
+  'CPU Usage': 'devices.tryx.statCpuUsage',
+  'CPU Voltage': 'devices.tryx.statCpuVoltage',
+  'GPU Temperature': 'devices.tryx.statGpuTemperature',
+  'GPU Frequency': 'devices.tryx.statGpuFrequency',
+  'GPU Usage': 'devices.tryx.statGpuUsage',
+  'GPU Voltage': 'devices.tryx.statGpuVoltage',
+  'Motherboard Temperature': 'devices.tryx.statMotherboardTemperature',
+  'Memory Frequency': 'devices.tryx.statMemoryFrequency',
+  'Memory Utilization': 'devices.tryx.statMemoryUtilization',
+  'Date&Time': 'devices.tryx.statDateTime',
+};
 
 interface OverlayLine {
   enabled: boolean;
@@ -272,10 +288,7 @@ export function TryxDevicePage() {
     { key: 'Center', label: t('devices.tryx.alignCenter') },
     { key: 'Right', label: t('devices.tryx.alignRight') },
   ];
-  const colorOptions = [
-    { key: '#ffffff', label: t('devices.tryx.colorWhite') },
-    { key: '#000000', label: t('devices.tryx.colorBlack') },
-  ];
+  const statOptions = TRYX_STATS.map(stat => ({ value: stat, label: t(TRYX_STAT_LABEL_KEYS[stat]) }));
 
   return (
     <div className={styles.page}>
@@ -356,7 +369,7 @@ export function TryxDevicePage() {
                     <Select
                       className={styles.overlaySelect}
                       value={overlayLines[i].stat}
-                      options={TRYX_STAT_OPTIONS}
+                      options={statOptions}
                       disabled={!overlayLines[i].enabled}
                       onChange={stat => {
                         const next = overlayLines.map((l, idx) => (idx === i ? { ...l, stat } : l));
@@ -379,16 +392,15 @@ export function TryxDevicePage() {
                     options={alignOptions}
                   />
                 </div>
-                <div className={styles.chipRow}>
+                <div className={styles.colorSection}>
                   <span className={styles.chipRowLabel}>{t('devices.tryx.color')}</span>
-                  <ChipGroup
-                    ariaLabel={t('devices.tryx.color')}
-                    activeKey={overlayColor}
-                    onChange={color => {
+                  <HsvPicker
+                    value={overlayColor}
+                    onPreview={setOverlayColor}
+                    onCommit={color => {
                       setOverlayColor(color);
                       dispatchOverlay(overlayLines, color, overlayAlign);
                     }}
-                    options={colorOptions}
                   />
                 </div>
               </SettingsSection>
