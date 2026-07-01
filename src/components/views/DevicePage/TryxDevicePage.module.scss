@@ -2,6 +2,8 @@
 // plus a two-column body (scrollable tab content + a fixed preview pane)
 // matching the SDK app's split layout.
 
+@use '../../../styles/text' as *;
+
 .page {
   display: flex;
   flex-direction: column;
@@ -73,7 +75,7 @@
 }
 
 .previewFrameLabel {
-  font-size: 0.75rem;
+  font-size: var(--type-mini);
   color: var(--text-dim);
   max-width: 100%;
   overflow: hidden;
@@ -82,9 +84,7 @@
 }
 
 .savingBadge {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  @include text-label;
   color: var(--accent);
   font-family: var(--font-mono);
 }
@@ -107,7 +107,7 @@
 
 .rowLabel {
   flex: 1;
-  font-size: 0.8rem;
+  font-size: var(--type-small);
   color: var(--text-dim);
 }
 
@@ -136,7 +136,7 @@
 
 .chipRowLabel {
   flex: 1;
-  font-size: 0.8rem;
+  font-size: var(--type-small);
   color: var(--text-dim);
 }
 
