@@ -20,6 +20,7 @@ import { useWindowDragRegion } from './useWindowDragRegion';
 import { ConnectedProfileSlot, ConflictStatusSlot, UpdateStatusSlot } from './sidebar';
 import type { ConnectionState } from '../hooks/useServiceStatus';
 import type { UseProfilesResult } from '../hooks/useProfiles';
+import type { UseCloudAccountsResult } from '../hooks/useCloudAccounts';
 import type { Preferences } from '../api/profiles';
 import styles from './TopBar.module.scss';
 
@@ -44,6 +45,10 @@ interface TopBarProps {
   // its fade-in once (mirrors the old sidebar header behavior).
   connectEpoch: number;
   profiles: UseProfilesResult;
+  // Cloud account state, for the top-bar avatar image/initial and the profile
+  // dropdown's "Manage account" entry. Undefined/no active account keeps the
+  // trigger's generic person icon unchanged.
+  cloudAccounts: UseCloudAccountsResult;
   onPreferencesChanged: (prefs: Preferences) => void;
   onNavigateSettings: () => void;
   // The "..." menu's "Dev tools" target (standalone developer page).
@@ -55,6 +60,8 @@ interface TopBarProps {
   onInstall: () => void;
   // Profile dropdown's "Manage profiles" target (standalone Profiles page).
   onManageProfiles: () => void;
+  // Profile dropdown's "Manage account" target (standalone Account page).
+  onNavigateAccount: () => void;
   // True only inside the Nexus Windows --app shell (custom caption buttons).
   isWindowsApp: boolean;
   // True only inside the Nexus macOS shell. The native traffic lights overlay
@@ -134,12 +141,14 @@ export function TopBar({
   connectionState,
   connectEpoch,
   profiles,
+  cloudAccounts,
   onPreferencesChanged,
   onNavigateSettings,
   onNavigateTools,
   onOpenUpdate,
   onInstall,
   onManageProfiles,
+  onNavigateAccount,
   isWindowsApp,
   isMacApp,
 }: TopBarProps) {
@@ -243,6 +252,9 @@ export function TopBar({
                 profiles={profiles}
                 onPreferencesChanged={onPreferencesChanged}
                 onNavigateSettings={onManageProfiles}
+                onNavigateAccount={onNavigateAccount}
+                accountAvatarUrl={cloudAccounts.activeAccount?.avatar?.small}
+                accountInitial={cloudAccounts.activeAccount?.username?.charAt(0).toUpperCase()}
                 variant="avatar"
               />
             </ConnectedProfileSlot>

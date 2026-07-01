@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import styles from './ConfirmModal.module.scss';
@@ -14,6 +14,8 @@ interface ConfirmModalProps {
   note?: string;
   /** 'danger' renders the note as a red-bordered callout with red text. */
   noteTone?: 'default' | 'danger';
+  /** Extra content rendered after the note, before the actions row (e.g. a password field for a destructive confirm). */
+  children?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   /** Style the confirm button as destructive (red). Default true since this is used for deletes. */
@@ -37,6 +39,7 @@ export function ConfirmModal({
   bullets,
   note,
   noteTone = 'default',
+  children,
   confirmLabel,
   cancelLabel,
   destructive = true,
@@ -66,6 +69,7 @@ export function ConfirmModal({
           </ul>
         )}
         {note && <p className={noteTone === 'danger' ? styles.noteDanger : styles.note}>{note}</p>}
+        {children}
       </div>
       <div className={styles.actions}>
         <button ref={cancelRef} type="button" className={styles.cancelBtn} onClick={onCancel}>

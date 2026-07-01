@@ -20,3 +20,7 @@
 .mono {
   font-family: ui-monospace, monospace;
 }
+
+.invalid {
+  border-color: var(--bad, #ef4444);
+}

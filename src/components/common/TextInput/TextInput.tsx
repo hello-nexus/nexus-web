@@ -11,6 +11,12 @@ export interface TextInputProps {
   mono?: boolean;
   align?: 'left' | 'center' | 'right';
   color?: string;
+  id?: string;
+  name?: string;
+  autoComplete?: string;
+  ariaLabel?: string;
+  /** Applies an error-state border. Purely visual; pair with a role="alert" message elsewhere. */
+  invalid?: boolean;
   onInput?: (value: string) => void;
   onSubmit?: (value: string) => void;
   onBlur?: (value: string) => void;
@@ -26,6 +32,11 @@ export function TextInput({
   mono = false,
   align,
   color,
+  id,
+  name,
+  autoComplete,
+  ariaLabel,
+  invalid = false,
   onInput,
   onSubmit,
   onBlur,
@@ -40,11 +51,14 @@ export function TextInput({
   }, [value]);
 
   const sizeClass = size === 'sm' ? styles.sm : styles.md;
-  const classNames = [styles.input, sizeClass, mono ? styles.mono : ''].filter(Boolean).join(' ');
+  const classNames = [styles.input, sizeClass, mono ? styles.mono : '', invalid ? styles.invalid : '']
+    .filter(Boolean).join(' ');
 
   return (
     <input
       ref={ref}
+      id={id}
+      name={name}
       type={type}
       placeholder={placeholder}
       disabled={disabled}
@@ -55,6 +69,9 @@ export function TextInput({
         textAlign: align,
         '--text-input-color': color,
       } as CSSProperties}
+      autoComplete={autoComplete}
+      aria-label={ariaLabel}
+      aria-invalid={invalid || undefined}
       onInput={(e) => onInput?.(e.currentTarget.value)}
       onKeyDown={(e) => { if (e.key === 'Enter') onSubmit?.((e.currentTarget as HTMLInputElement).value); }}
       onBlur={(e) => onBlur?.(e.currentTarget.value)}

@@ -76,6 +76,7 @@ import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import type { DeckIcon } from '../panel/widgets/deck/types';
 import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
+import { SyncConflictModal } from '../components/common/SyncConflictModal/SyncConflictModal';
 import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinner';
 import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
@@ -389,7 +390,11 @@ function PreviewConfirmModal() {
         note="Only applies to this device. Other profiles are unaffected."
         onConfirm={() => setOpen(false)}
         onCancel={() => setOpen(false)}
-      />
+      >
+        <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text-dim)' }}>
+          children renders extra content here, e.g. a password field for a destructive confirm.
+        </p>
+      </ConfirmModal>
     </>
   );
 }
@@ -1217,7 +1222,39 @@ function PreviewSeriesChart() {
 
 function PreviewTextInput() {
   const [v, setV] = useState('');
-  return <TextInput value={v} placeholder="Type here..." onInput={setV} />;
+  return <TextInput value={v} placeholder="Type here..." onInput={setV} ariaLabel="Sample text input" />;
+}
+
+const SYNC_CONFLICT_PREVIEW = [
+  {
+    profileId: 'profile-1',
+    name: 'Gaming',
+    localUpdatedAt: '2026-06-30T18:04:00.000Z',
+    cloudRevision: 4,
+    cloudUpdatedAt: '2026-06-30T20:11:00.000Z',
+    cloudName: 'Gaming',
+    updatedByInstallId: 'install-abc',
+  },
+];
+
+function PreviewSyncConflictModal() {
+  const [open, setOpen] = useState(true);
+  const [conflicts, setConflicts] = useState(SYNC_CONFLICT_PREVIEW);
+  if (!open || conflicts.length === 0) {
+    return (
+      <button type="button" className={styles.previewBtn} onClick={() => { setConflicts(SYNC_CONFLICT_PREVIEW); setOpen(true); }}>
+        Reopen
+      </button>
+    );
+  }
+  return (
+    <SyncConflictModal
+      open={open}
+      conflicts={conflicts}
+      onResolve={(profileId) => { setConflicts(prev => prev.filter(c => c.profileId !== profileId)); }}
+      onClose={() => setOpen(false)}
+    />
+  );
 }
 
 function PreviewRing() {
@@ -1270,6 +1307,7 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/TextInput/TextInput.tsx',
     description: 'Single-line text input. Programmatic value sync via ref (preserves cursor). Supports sm/md padding, mono font, alignment, and optional tone color. Host-renderer bridge for the SDK Input element.',
     Preview: PreviewTextInput,
+    notes: 'id / name / autoComplete / ariaLabel / invalid are optional pass-through props for form fields that need password-manager hints (autoComplete) or an inline error border (invalid).',
   },
   {
     name: 'Slider (inline)', category: 'inputs',
@@ -1485,7 +1523,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'ConfirmModal', category: 'modals',
     filePath: 'src/components/common/ConfirmModal/ConfirmModal.tsx',
     description: 'Native-in-app confirmation modal with title + body + optional note + confirm/cancel actions. Esc cancels, Enter confirms, click-outside cancels. Cancel autofocused so destructive intent must be explicit. Used instead of window.confirm so the dialog matches app chrome.', Preview: PreviewConfirmModal,
-    notes: 'destructive defaults to true (red confirm button). Pass destructive={false} for non-destructive confirmations like "save changes?".',
+    notes: 'destructive defaults to true (red confirm button). Pass destructive={false} for non-destructive confirmations like "save changes?". Optional children render after the note, before the actions row - e.g. a current-password field for delete-account.',
   },
   {
     name: 'PromptModal', category: 'modals',
@@ -1526,8 +1564,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'MediaCropper', category: 'modals',
     filePath: 'src/components/common/MediaCropper/MediaCropper.tsx',
-    description: 'Aspect-locked image cropper modal. Drag to pan, corner handles to resize. Emits NormalizedCrop { x, y, w, h } in 0..1 of the source image. Used when importing lighting media and when selecting a background media item for a panel device.',
+    description: 'Aspect-locked image cropper modal. Drag to pan, corner handles to resize. Emits NormalizedCrop { x, y, w, h } in 0..1 of the source image. Used when importing lighting media, selecting a background media item for a panel device, and cropping the account avatar (aspect={1}).',
     Preview: PreviewMediaCropper,
+  },
+  {
+    name: 'SyncConflictModal', category: 'modals',
+    filePath: 'src/components/common/SyncConflictModal/SyncConflictModal.tsx',
+    description: 'Steam-cloud-style keep-local/take-cloud prompt for profile sync conflicts. Lists each conflicting profile with a this-machine-vs-cloud comparison (name + updated time) and Keep local / Use cloud actions. Auto-shown by SyncConflictGate at the app layout root; also opened manually from the Account page\'s sync section.',
+    Preview: PreviewSyncConflictModal,
   },
 
   // ── Charts ────────────────────────────────────────────────────────────

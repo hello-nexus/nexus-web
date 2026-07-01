@@ -1,0 +1,274 @@
+@use '../../../../styles/text' as *;
+
+// ── Signed-in page ───────────────────────────────────────────────────────────
+
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding-bottom: var(--space-xl);
+}
+
+// ── Signed-out forms ─────────────────────────────────────────────────────────
+
+.wrap {
+  max-width: 360px;
+  margin: 0 auto;
+  padding: var(--space-xl) 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.fieldLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.error {
+  @include text-caption;
+  color: var(--bad);
+  margin: 0;
+}
+
+.hint {
+  @include text-caption;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.linkBtn {
+  @include text-caption;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.pendingBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.pendingRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.title {
+  @include text-heading;
+  color: var(--text);
+  margin: 0 0 var(--space-xs);
+}
+
+.subtitle {
+  @include text-body;
+  color: var(--text-dim);
+  margin: 0 0 var(--space-lg);
+}
+
+// ── Account card ─────────────────────────────────────────────────────────────
+
+.accountCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.avatarWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.avatarLarge {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface);
+}
+
+.avatarLargeFallback {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--accent-glow);
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+}
+
+.avatarCameraBtn {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--bg-elevated);
+  border: var(--border-width) solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--ease-fast), border-color var(--ease-fast);
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--text-dim);
+  }
+}
+
+.accountInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.accountNameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.accountName {
+  @include text-body;
+  color: var(--text);
+  font-weight: var(--weight-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountEmail {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.hiddenInput {
+  display: none;
+}
+
+// ── Username / password ──────────────────────────────────────────────────────
+
+.inlineField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+// ── Account switcher ─────────────────────────────────────────────────────────
+
+.switcherList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.switcherRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+
+  &.switcherRowActive {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
+.switcherAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.switcherAvatarFallback {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--accent-glow);
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  flex-shrink: 0;
+}
+
+.switcherInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.switcherName {
+  @include text-button;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcherEmail {
+  @include text-caption;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcherActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.profileButtons {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.deletePasswordField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}

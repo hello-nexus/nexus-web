@@ -45,6 +45,24 @@
   }
 }
 
+// Cloud account avatar image / initial filling the top-bar avatarTrigger.
+.accountAvatarImg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.accountAvatarInitial {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+  color: var(--text-dim);
+}
+
 // Right-align the menu under the avatar so it never overflows the window's
 // right edge. Compound selector so it overrides the base .dropdown { left: 0 }
 // regardless of source order.

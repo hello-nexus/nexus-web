@@ -8,6 +8,7 @@ import { AppsView } from '../components/views/AppsView/AppsView';
 import { OpenInAppBanner } from '../components/common/OpenInAppBanner/OpenInAppBanner';
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
 import { ProfilesView } from '../components/views/SettingsView/ProfilesView';
+import { AccountView } from '../components/views/SettingsView/Account/AccountView';
 import { ToolsView } from '../components/views/ToolsView';
 import { DevicePage } from '../components/views/DevicePage/DevicePage';
 // Widget Pages are code-split: the dashboard only loads the immersive view
@@ -29,6 +30,8 @@ import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
 import { useProfiles } from '../hooks/useProfiles';
+import { useCloudAccounts } from '../hooks/useCloudAccounts';
+import { useSyncStatus } from '../hooks/useSyncStatus';
 import { useRoute } from '../hooks/useRoute';
 import { useBuilder } from '../hooks/useBuilder';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
@@ -61,6 +64,7 @@ import { IncomingPairModal } from './IncomingPairModal';
 import { ToastProvider } from '../components/common/Toast/Toast';
 import { TransferToasts } from './TransferToasts';
 import { MappingAppliedToasts } from './MappingAppliedToasts';
+import { SyncConflictGate } from './SyncConflictGate';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { isWindowsAppShell, isMacAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
 import { DEV_TOOLS } from '../lib/devTools';
@@ -182,6 +186,12 @@ export function Dashboard() {
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
+  const cloudAccounts = useCloudAccounts(online);
+  // Sync conflicts only exist while a cloud account is signed in; without this
+  // gate the 25s poll in useSyncStatus would run forever on every install,
+  // signed in or not. useCloudAccounts itself only fetches once per online
+  // flip (no poll), so activeAccountId is a safe, non-polling presence signal.
+  const syncStatus = useSyncStatus(online && cloudAccounts.activeAccountId != null);
   // Used only to resolve the active device's display name for the top-bar
   // title on /system/device/<key>.
   const unifiedDevices = useUnifiedDevices(online);
@@ -223,6 +233,12 @@ export function Dashboard() {
   // page, not Settings.
   const handleManageProfiles = useCallback(() => {
     navigate('system', 'profiles');
+  }, [navigate]);
+
+  // The profile dropdown's "Manage account" lands on the standalone Account
+  // page, not Settings.
+  const handleNavigateAccount = useCallback(() => {
+    navigate('system', 'account');
   }, [navigate]);
 
   // The "..." overflow menu's "Dev tools" entry opens the standalone developer
@@ -292,6 +308,7 @@ export function Dashboard() {
     if (section !== 'system') return t(`nav.section.${section}`);
     if (activeView === 'settings') return t('settings.title');
     if (activeView === 'profiles') return t('settings.tab.profiles');
+    if (activeView === 'account') return t('account.title');
     if (activeView === 'tools') return t('settings.tab.tools');
     // A specific device page shows the device's own name; the all-devices
     // landing keeps the generic "Devices" label.
@@ -536,6 +553,7 @@ export function Dashboard() {
       case 'gallery':    return <GalleryPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} />;
       case 'profiles':   return <ProfilesView serviceOnline={online} connectionState={status.state} profiles={profilesHook} />;
+      case 'account':    return <AccountView serviceOnline={online} connectionState={status.state} accounts={cloudAccounts} sync={syncStatus} />;
       case 'tools':      return DEV_TOOLS ? <ToolsView serviceOnline={online} connectionState={status.state} /> : <Placeholder title={activeView} />;
       default: {
         // Page-capable marketplace (SDK) widget: render its bundle's page surface
@@ -618,12 +636,14 @@ export function Dashboard() {
           connectionState={status.state}
           connectEpoch={connectEpoch}
           profiles={profilesHook}
+          cloudAccounts={cloudAccounts}
           onPreferencesChanged={handlePreferencesChanged}
           onNavigateSettings={handleNavigateSettings}
           onNavigateTools={handleNavigateTools}
           onOpenUpdate={() => handleUpdateOpen()}
           onInstall={handleInstall}
           onManageProfiles={handleManageProfiles}
+          onNavigateAccount={handleNavigateAccount}
           isWindowsApp={isWindowsAppShell()}
           isMacApp={isMacAppShell()}
         />
@@ -673,6 +693,8 @@ export function Dashboard() {
         <TransferToasts />
         {/* Community-layout auto-apply announcements with Undo, active regardless of view. */}
         <MappingAppliedToasts />
+        {/* Steam-cloud-style profile sync conflict prompt, active regardless of view. */}
+        <SyncConflictGate sync={syncStatus} />
         <PairPhoneModal
           open={pairPhoneOpen}
           connectedCount={serviceState.panel?.phoneSubscribers ?? 0}

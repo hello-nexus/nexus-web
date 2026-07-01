@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ChevronDown, Plus, Download, Upload, UsersRound, UserRound } from 'lucide-react';
+import { ChevronDown, Plus, Download, Upload, UsersRound, UserRound, UserCog } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../../lib/i18n';
 import { useClickOutside } from '../../../hooks/useClickOutside';
@@ -15,6 +15,14 @@ interface ProfileDropdownProps {
   profiles: UseProfilesResult;
   onPreferencesChanged: (prefs: Preferences) => void;
   onNavigateSettings: () => void;
+  // Cloud account management page (distinct from in-app profiles above).
+  // Optional so every existing call site keeps working unchanged.
+  onNavigateAccount?: () => void;
+  // Active cloud account's avatar, for the 'avatar' variant trigger. Both
+  // undefined when logged out - the trigger then renders its original
+  // generic person icon, unchanged.
+  accountAvatarUrl?: string;
+  accountInitial?: string;
   compact?: boolean;
   // 'sidebar' (default) renders the full trigger or letter circle in the
   // sidebar header. 'avatar' renders a round person-icon button for the
@@ -22,7 +30,10 @@ interface ProfileDropdownProps {
   variant?: 'sidebar' | 'avatar';
 }
 
-export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSettings, compact = false, variant = 'sidebar' }: ProfileDropdownProps) {
+export function ProfileDropdown({
+  profiles, onPreferencesChanged, onNavigateSettings, onNavigateAccount,
+  accountAvatarUrl, accountInitial, compact = false, variant = 'sidebar',
+}: ProfileDropdownProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -116,7 +127,13 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
       aria-haspopup="menu"
       aria-expanded={open}
     >
-      <UserRound size={16} aria-hidden />
+      {accountAvatarUrl ? (
+        <img className={styles.accountAvatarImg} src={accountAvatarUrl} alt="" />
+      ) : accountInitial ? (
+        <span className={styles.accountAvatarInitial}>{accountInitial}</span>
+      ) : (
+        <UserRound size={16} aria-hidden />
+      )}
     </button>
   ) : (
     <button
@@ -177,6 +194,11 @@ export function ProfileDropdown({ profiles, onPreferencesChanged, onNavigateSett
             <button type="button" className={styles.actionBtn} onClick={handleManage}>
               <UsersRound size={14} /> {t('profile.manage')}
             </button>
+            {onNavigateAccount && (
+              <button type="button" className={styles.actionBtn} onClick={() => { onNavigateAccount(); setOpen(false); }}>
+                <UserCog size={14} /> {t('account.navEntry')}
+              </button>
+            )}
           </div>
           <input ref={fileRef} type="file" accept=".json" className={styles.hiddenInput} onChange={handleFileChange} />
         </div>
