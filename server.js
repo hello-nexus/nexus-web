@@ -2,10 +2,12 @@ import express from 'express';
 import compression from 'compression';
 import { fileURLToPath } from 'url';
 import { basename, dirname, join, sep } from 'path';
+import { readFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = process.env.PORT || 3000;
+const indexHtmlPath = join(__dirname, 'dist', 'index.html');
 
 app.use(compression());
 
@@ -82,6 +84,85 @@ app.get(['/download/win', '/download/windows', '/downloads/win', '/downloads/win
 app.get(['/download/mac', '/download/macos', '/downloads/mac', '/downloads/macos'],
   (_req, res) => redirectToAsset(res, 'macos'));
 app.get(['/download/linux', '/downloads/linux'], (_req, res) => redirectToChooser(res));
+
+// OG meta injection for /u/:username link previews (Discord, Slack, iMessage,
+// etc. - they render og:* tags from the raw HTML response, never execute the
+// SPA's JS). The SPA itself still serves the actual page and its
+// not-found/private states; this only decorates the <head> for crawlers.
+const NEXUS_API_BASE = process.env.NEXUS_API_BASE || 'https://api.hellonexus.com';
+const PROFILE_OG_TIMEOUT_MS = 2000;
+const PROFILE_OG_CACHE_MS = 60_000;
+// :username is attacker-controlled on a public route; cap entries so an
+// enumeration scrape can't grow this map unbounded. Map preserves insertion
+// order, so the oldest entry is evicted first; entries expire fast enough
+// that approximate LRU adds nothing.
+const PROFILE_OG_CACHE_MAX_ENTRIES = 1000;
+const profileOgCache = new Map(); // lower(username) -> { account: object|null, expiresAt: number }
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Returns the public profile (or null for unknown/private/unreachable) with a
+// short in-memory cache so a hot profile link doesn't hammer nexus-api.
+async function fetchProfileForOg(username) {
+  const key = username.toLowerCase();
+  const cached = profileOgCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.account;
+
+  let account = null;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PROFILE_OG_TIMEOUT_MS);
+    const res = await fetch(`${NEXUS_API_BASE}/u/${encodeURIComponent(username)}`, { signal: controller.signal });
+    clearTimeout(timer);
+    if (res.ok) account = await res.json();
+  } catch {
+    account = null;
+  }
+
+  if (profileOgCache.size >= PROFILE_OG_CACHE_MAX_ENTRIES) {
+    profileOgCache.delete(profileOgCache.keys().next().value);
+  }
+  profileOgCache.set(key, { account, expiresAt: Date.now() + PROFILE_OG_CACHE_MS });
+  return account;
+}
+
+app.get('/u/:username', async (req, res) => {
+  const account = await fetchProfileForOg(req.params.username);
+
+  // Unknown/private accounts get neutral tags - no 404 at the HTML level (the
+  // SPA renders the not-found/private state); only a genuinely public account
+  // gets its username and avatar in the preview.
+  let title = 'Nexus';
+  let description = 'The next generation of Nexus is almost here.';
+  let image = null;
+  if (account && account.isPrivate === false) {
+    title = `${account.username} on Nexus`;
+    description = `${account.username}'s machines and profile on Nexus.`;
+    if (account.avatar && account.avatar.large) image = account.avatar.large;
+  }
+
+  const ogTags = [
+    `<meta property="og:type" content="profile">`,
+    `<meta property="og:title" content="${escapeHtml(title)}">`,
+    `<meta name="description" content="${escapeHtml(description)}">`,
+    image ? `<meta property="og:image" content="${escapeHtml(image)}">` : '',
+  ].filter(Boolean).join('\n    ');
+
+  // Read fresh per request (small file, low-traffic route) rather than
+  // caching at module load - matches the SPA catchall's freshness guarantee
+  // below so a redeploy without a process restart never serves a shell
+  // referencing purged content-hashed asset filenames.
+  const indexHtml = readFileSync(indexHtmlPath, 'utf8');
+  res.set('Cache-Control', 'no-cache');
+  res.type('html').send(indexHtml.replace('</head>', `    ${ogTags}\n  </head>`));
+});
 
 app.use(express.static(join(__dirname, 'dist'), {
   maxAge: '1d',

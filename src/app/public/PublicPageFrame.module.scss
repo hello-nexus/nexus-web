@@ -1,0 +1,30 @@
+.frame {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  box-sizing: border-box;
+}
+
+.logo {
+  display: inline-flex;
+  color: var(--text);
+  opacity: 0.9;
+  transition: opacity var(--ease-fast);
+
+  &:hover { opacity: 1; }
+}
+
+.stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+}

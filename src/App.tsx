@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { PairRedirect } from './PairRedirect';
 import { TelemetryReference } from './telemetry/reference/TelemetryReference';
 import { I18nProvider } from './lib/i18n';
@@ -11,6 +12,23 @@ import { RESERVED_PANEL_PATH_SEGMENTS, shouldForcePhonePanelRoute } from './app/
 import { Dashboard } from './app/Dashboard';
 import { isRemoteOrigin, setForceLanMode } from './api/service';
 import { isWindowsAppShell, isMacAppShell } from './app/windowActions';
+
+// The public account pages (/u/<username>, /auth/verify, /auth/recover) are
+// browser-only - `npm run build:service` must dead-code-eliminate their route
+// chunks from the desktop/app bundle. The import() is guarded by the raw
+// build define (NOT a wrapped const): esbuild folds `!false` to `true` /
+// `!true` to `false` during transform, and Rollup then tree-shakes the dead
+// branch's dynamic import so the chunk is never emitted - same technique as
+// the DEV_TOOLS-gated StorybookModal in ToolsView.tsx.
+const PublicProfilePage = !__SERVICE_BUILD__
+  ? lazy(() => import('./app/public/PublicProfilePage').then(m => ({ default: m.PublicProfilePage })))
+  : null;
+const VerifyEmailPage = !__SERVICE_BUILD__
+  ? lazy(() => import('./app/public/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage })))
+  : null;
+const RecoverPage = !__SERVICE_BUILD__
+  ? lazy(() => import('./app/public/RecoverPage').then(m => ({ default: m.RecoverPage })))
+  : null;
 
 // The public web at hellonexus.com: an ordinary browser origin that is NOT the
 // bundled local service (:9400/:9443 ⇒ isServedFromService ⇒ the real app), NOT
@@ -41,6 +59,23 @@ function consumeUrlToken(params: URLSearchParams) {
     '',
     `${window.location.origin}${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`,
   );
+}
+
+// Reads a single-use magic-link token from `?token=...` and strips it from
+// the URL, so an unconsumed token cannot linger in (possibly synced) browser
+// history if the consuming POST never reaches the API.
+function readAndStripUrlToken(): string {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  if (!token) return '';
+  params.delete('token');
+  const query = params.toString();
+  window.history.replaceState(
+    null,
+    '',
+    `${window.location.origin}${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`,
+  );
+  return token;
 }
 
 export default function App() {
@@ -117,6 +152,48 @@ export default function App() {
           pairToken={params.get('pair')}
           pairDeviceId={params.get('deviceId')}
         />
+      </I18nProvider>
+    );
+  }
+
+  // /u/<username> - public account profile. Absent (PublicProfilePage is
+  // null) in the service/app bundle - see the lazy() guards above.
+  if (PublicProfilePage && (path === '/u' || path.startsWith('/u/'))) {
+    const username = path.split('/').filter(Boolean)[1] ?? '';
+    if (username) {
+      return (
+        <I18nProvider>
+          <Suspense fallback={null}>
+            <PublicProfilePage username={username} />
+          </Suspense>
+        </I18nProvider>
+      );
+    }
+  }
+
+  // /auth/verify?token=... - email verification landing (magic link from the
+  // registration email). Absent in the service/app bundle.
+  if (VerifyEmailPage && path === '/auth/verify') {
+    const token = readAndStripUrlToken();
+    return (
+      <I18nProvider>
+        <Suspense fallback={null}>
+          <VerifyEmailPage token={token} />
+        </Suspense>
+      </I18nProvider>
+    );
+  }
+
+  // /auth/recover?token=... - lost-password magic-link landing (device-grant
+  // model: the app polls and picks up the recovery session; no password form
+  // here). Absent in the service/app bundle.
+  if (RecoverPage && path === '/auth/recover') {
+    const token = readAndStripUrlToken();
+    return (
+      <I18nProvider>
+        <Suspense fallback={null}>
+          <RecoverPage token={token} />
+        </Suspense>
       </I18nProvider>
     );
   }
