@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { Button } from '../../../common/Button/Button';
 import { TextInput } from '../../../common/TextInput/TextInput';
 import { useTranslation } from '../../../../lib/i18n';
@@ -9,9 +10,10 @@ import styles from './Account.module.scss';
 interface CreateAccountFormProps {
   backend: AuthBackend;
   onSuccess: (email: string, password: string) => void;
+  onBackToSignIn: () => void;
 }
 
-export function CreateAccountForm({ backend, onSuccess }: CreateAccountFormProps) {
+export function CreateAccountForm({ backend, onSuccess, onBackToSignIn }: CreateAccountFormProps) {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -48,6 +50,19 @@ export function CreateAccountForm({ backend, onSuccess }: CreateAccountFormProps
       return;
     }
     setFormError(result.body?.msg === 'username_taken' ? t('account.error.usernameTaken') : t('account.create.error.duplicate'));
+  };
+
+  // Chromium infers a successful login when a filled password field unmounts,
+  // and offers to save it. flushSync commits the cleared fields to the DOM
+  // before onBackToSignIn runs the caller's unmount, so it never sees them filled.
+  const handleBackToSignIn = () => {
+    flushSync(() => {
+      setEmail('');
+      setUsername('');
+      setPassword('');
+      setConfirmPassword('');
+    });
+    onBackToSignIn();
   };
 
   return (
@@ -111,6 +126,11 @@ export function CreateAccountForm({ backend, onSuccess }: CreateAccountFormProps
       <Button type="submit" tone="accent" loading={submitting} disabled={submitting}>
         {t('account.create.submit')}
       </Button>
+      <div className={styles.links}>
+        <button type="button" className={styles.linkBtn} onClick={handleBackToSignIn}>
+          {t('account.signIn.backToSignIn')}
+        </button>
+      </div>
     </form>
   );
 }

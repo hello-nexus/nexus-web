@@ -64,12 +64,8 @@ export function RegisterFlow({ backend, onBackToSignIn, onSignedIn }: RegisterFl
       <CreateAccountForm
         backend={backend}
         onSuccess={(email, password) => { setRetryError(null); setPendingCreds({ email, password }); }}
+        onBackToSignIn={onBackToSignIn}
       />
-      <div className={styles.links}>
-        <button type="button" className={styles.linkBtn} onClick={onBackToSignIn}>
-          {t('account.signIn.backToSignIn')}
-        </button>
-      </div>
     </div>
   );
 }
