@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ChevronDown, Plus, Download, Upload, UsersRound, UserRound, UserCog } from 'lucide-react';
+import { ChevronDown, Plus, Download, Upload, UsersRound, UserRound, KeyRound } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../../lib/i18n';
 import { useClickOutside } from '../../../hooks/useClickOutside';
@@ -196,7 +196,7 @@ export function ProfileDropdown({
             </button>
             {onNavigateAccount && (
               <button type="button" className={styles.actionBtn} onClick={() => { onNavigateAccount(); setOpen(false); }}>
-                <UserCog size={14} /> {t('account.navEntry')}
+                <KeyRound size={14} /> {t('account.navEntry')}
               </button>
             )}
           </div>
