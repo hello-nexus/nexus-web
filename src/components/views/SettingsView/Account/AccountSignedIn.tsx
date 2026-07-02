@@ -15,9 +15,10 @@ import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts'
 import type { UseSyncStatusResult } from '../../../../hooks/useSyncStatus';
 import type { SyncState } from '../../../../api/cloud';
 import { SignInForm } from './SignInForm';
+import { ChangePasswordModal } from './ChangePasswordModal';
 import { authErrorMessage, currentPasswordErrorMessage } from './accountErrors';
 import { cropToSourceRect } from './avatarCrop';
-import { isValidPassword, isValidUsername } from './accountValidation';
+import { isValidUsername } from './accountValidation';
 import { usePublishPageSyncConflictModalOpen } from '../../../../app/syncConflictModalCoordination';
 import styles from './Account.module.scss';
 
@@ -146,6 +147,11 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
       return;
     }
     if (result.status === 409 && (result.body?.msg === 'username_cooldown' || result.body?.retryAt)) {
+      // Always set the static fallback text, even when retryAt is present -
+      // useRetryCountdown rejects an unparseable or already-elapsed retryAt
+      // (returns null), and the render below only prefers the live message
+      // over this one when `cooldown` actually computed a value, so a bad
+      // retryAt still leaves the user with a message instead of none.
       if (result.body?.retryAt) setUsernameRetryAt(result.body.retryAt);
       setUsernameError(t('account.username.error.cooldown'));
       return;
@@ -154,41 +160,14 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
   };
 
   // ── Password ────────────────────────────────────────────────────────────
-  const passwordSectionRef = useRef<HTMLDivElement>(null);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordSaving, setPasswordSaving] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
+  // A recovery-approved session (from the email magic link) opens the
+  // change-password modal directly, passwordless, instead of the user
+  // having to find and click the button themselves.
   useEffect(() => {
-    if (recoveryFresh) passwordSectionRef.current?.scrollIntoView({ block: 'center' });
+    if (recoveryFresh) setPasswordModalOpen(true);
   }, [recoveryFresh]);
-
-  const passwordCanSubmit = isValidPassword(newPassword) && newPassword === confirmPassword
-    && (recoveryFresh || currentPassword.length > 0);
-
-  const handlePasswordSave = async () => {
-    if (!passwordCanSubmit || passwordSaving) return;
-    const sentWithoutCurrentPassword = recoveryFresh;
-    setPasswordSaving(true);
-    setPasswordError(null);
-    const result = await accounts.changePassword(sentWithoutCurrentPassword ? undefined : currentPassword, newPassword);
-    setPasswordSaving(false);
-    if (result.status >= 200 && result.status < 300) {
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      onRecoveryFreshConsumed();
-      push({ title: t('account.password.updated') });
-      return;
-    }
-    // A recovery-fresh request that still failed means that session expired
-    // server-side since we last checked - drop the flag so the current-password
-    // field reappears instead of silently retrying the same passwordless call.
-    if (sentWithoutCurrentPassword) onRecoveryFreshConsumed();
-    setPasswordError(currentPasswordErrorMessage(t, result.body !== null, sentWithoutCurrentPassword));
-  };
 
   // ── Privacy ─────────────────────────────────────────────────────────────
   const [privacySaving, setPrivacySaving] = useState(false);
@@ -253,19 +232,29 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
   // Every per-account form/error state above is scoped to the PREVIOUSLY
   // active account and must not leak across a switch (e.g. a stale username
   // cooldown message or a half-typed password field from account A showing
-  // up under account B's form).
+  // up under account B's form). Closing the password modal drops its
+  // self-contained field state the same way, since DeviceModal unmounts it -
+  // unless a recovery-fresh session is still live, in which case the modal
+  // stays open for it rather than being force-closed mid-switch.
+  // Skipped on the initial mount (ref starts equal to accountId) so this
+  // does not fight the recovery-fresh effect above, which opens the modal
+  // on that same first render - AccountView only mounts this component once
+  // `accounts` and `activeAccountId` have already resolved together, so
+  // `accountId` is stable from the first render. The recoveryFresh check on
+  // the modal-close guards the same race if that mount invariant ever
+  // changes.
   const accountId = account?.accountId ?? null;
+  const previousAccountId = useRef(accountId);
   useEffect(() => {
+    if (previousAccountId.current === accountId) return;
+    previousAccountId.current = accountId;
     setUsernameError(null);
     setUsernameRetryAt(null);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setPasswordError(null);
+    if (!recoveryFresh) setPasswordModalOpen(false);
     setDeletePassword('');
     setDeleteError(null);
     setAvatarError(null);
-  }, [accountId]);
+  }, [accountId, recoveryFresh]);
 
   if (!account) return null;
 
@@ -334,64 +323,27 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
             </Button>
           </div>
         </SettingRow>
-        {usernameError && <p className={styles.error} role="alert">{usernameError}</p>}
-        {cooldown && (
-          <p className={styles.hint}>{t('account.username.retryIn', { hours: cooldown.hours, minutes: cooldown.minutes })}</p>
+        {usernameError && (
+          <p className={styles.error} role="alert">
+            {cooldown
+              ? t('account.username.error.cooldownIn', { hours: cooldown.hours, minutes: cooldown.minutes })
+              : usernameError}
+          </p>
         )}
       </SettingsSection>
 
       <SettingsSection title={t('account.password.title')} description={t('account.password.description')}>
-        <div ref={passwordSectionRef}>
-          {!recoveryFresh && (
-            <SettingRow label={t('account.password.current')}>
-              <TextInput
-                value={currentPassword}
-                type="password"
-                onInput={setCurrentPassword}
-                name="current-password"
-                autoComplete="current-password"
-                ariaLabel={t('account.password.current')}
-              />
-            </SettingRow>
-          )}
-          <SettingRow label={t('account.password.new')}>
-            <TextInput
-              value={newPassword}
-              type="password"
-              onInput={setNewPassword}
-              name="new-password"
-              autoComplete="new-password"
-              ariaLabel={t('account.password.new')}
-              invalid={newPassword.length > 0 && !isValidPassword(newPassword)}
-            />
-          </SettingRow>
-          <SettingRow label={t('account.password.confirm')}>
-            <TextInput
-              value={confirmPassword}
-              type="password"
-              onInput={setConfirmPassword}
-              name="new-password"
-              autoComplete="new-password"
-              ariaLabel={t('account.password.confirm')}
-              invalid={confirmPassword.length > 0 && confirmPassword !== newPassword}
-            />
-          </SettingRow>
-          {newPassword.length > 0 && !isValidPassword(newPassword) && (
-            <p className={styles.hint}>{t('account.create.passwordHint')}</p>
-          )}
-          {passwordError && <p className={styles.error} role="alert">{passwordError}</p>}
-          <Button
-            type="button"
-            tone="neutral"
-            size="sm"
-            loading={passwordSaving}
-            disabled={!passwordCanSubmit || passwordSaving}
-            onClick={() => void handlePasswordSave()}
-          >
-            {t('account.save')}
-          </Button>
-        </div>
+        <Button type="button" tone="neutral" size="sm" onClick={() => setPasswordModalOpen(true)}>
+          {t('account.password.change')}
+        </Button>
       </SettingsSection>
+      <ChangePasswordModal
+        open={passwordModalOpen}
+        onClose={() => setPasswordModalOpen(false)}
+        recoveryFresh={recoveryFresh}
+        onRecoveryFreshConsumed={onRecoveryFreshConsumed}
+        changePassword={accounts.changePassword}
+      />
 
       <SettingsSection title={t('account.privacy.title')}>
         <SettingToggle
