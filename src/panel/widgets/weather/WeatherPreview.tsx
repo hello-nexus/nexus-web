@@ -3,6 +3,7 @@ import {
   Sun, Cloud, CloudSun, CloudFog, CloudDrizzle, CloudRain,
   CloudSnow, CloudRainWind, CloudLightning, HelpCircle, Droplet, Wind,
 } from 'lucide-react';
+import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import {
   WEATHER_PREVIEW,
@@ -11,12 +12,19 @@ import {
 } from './weatherPreviewData';
 import styles from './WeatherWidget.module.scss';
 
-// Static catalog face for the Weather SDK app. Renders the original native
-// weather layout from a fixed snapshot - no fetch, no config, no live clock -
-// so the Add-a-Widget picker shows a real weather tile. The placed widget is
-// still the SDK bundle; this only stands in for the picker preview.
+// Static catalog face for the native Weather widget. Renders the real layout
+// from a fixed snapshot - no fetch, no config, no live clock - so the
+// Add-a-Widget picker shows a real weather tile without any I/O.
 
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_LABEL_KEYS = [
+  'panel.widget.weather.day.sun',
+  'panel.widget.weather.day.mon',
+  'panel.widget.weather.day.tue',
+  'panel.widget.weather.day.wed',
+  'panel.widget.weather.day.thu',
+  'panel.widget.weather.day.fri',
+  'panel.widget.weather.day.sat',
+];
 const unit: 'C' | 'F' = 'F';
 
 function WeatherIcon({ code, className, strokeWidth }: { code: number; className: string; strokeWidth: number }) {
@@ -36,19 +44,6 @@ function formatTemp(value: number | null | undefined) {
   return value === null || value === undefined ? '-' : `${Math.round(value)}°`;
 }
 
-function hourLabel(time: string) {
-  const date = new Date(time);
-  if (Number.isNaN(date.getTime())) return time.split('T')[1]?.slice(0, 5) || '';
-  const hour = date.getHours();
-  return `${hour % 12 || 12}${hour >= 12 ? 'PM' : 'AM'}`;
-}
-
-function dayLabel(date: string, index: number) {
-  if (index === 0) return 'Today';
-  const parsed = new Date(`${date}T12:00:00`);
-  return Number.isNaN(parsed.getTime()) ? date.slice(5) : (DAY_LABELS[parsed.getDay()] || date.slice(5));
-}
-
 function hourlyTemp(item: WeatherHourlyForecast) {
   return unit === 'F' ? item.temperatureF : item.temperatureC;
 }
@@ -62,8 +57,23 @@ function dailyMax(item: WeatherDailyForecast) {
 }
 
 export function WeatherPreview({ widget }: WidgetProps) {
+  const { t } = useTranslation();
   const snap = WEATHER_PREVIEW;
   const tempText = formatTemp(unit === 'F' ? snap.temperatureF : snap.temperatureC);
+
+  function hourLabel(time: string) {
+    const date = new Date(time);
+    if (Number.isNaN(date.getTime())) return time.split('T')[1]?.slice(0, 5) || '';
+    const hour = date.getHours();
+    const suffix = hour >= 12 ? t('panel.widget.weather.pm') : t('panel.widget.weather.am');
+    return `${hour % 12 || 12}${suffix}`;
+  }
+
+  function dayLabel(date: string, index: number) {
+    if (index === 0) return t('datepicker.today');
+    const parsed = new Date(`${date}T12:00:00`);
+    return Number.isNaN(parsed.getTime()) ? date.slice(5) : (t(DAY_LABEL_KEYS[parsed.getDay()]) || date.slice(5));
+  }
 
   const wide = widget.size === '4x2';
   const large = widget.size === '4x4';
@@ -74,7 +84,7 @@ export function WeatherPreview({ widget }: WidgetProps) {
   const todayMin = dailyItems[0] ? dailyMin(dailyItems[0]) : null;
   const todayMax = dailyItems[0] ? dailyMax(dailyItems[0]) : null;
   const hiLoText = todayMax !== null && todayMin !== null
-    ? `H:${Math.round(todayMax)}° L:${Math.round(todayMin)}°`
+    ? t('panel.widget.weather.hiLo', { hi: Math.round(todayMax), lo: Math.round(todayMin) })
     : null;
   const lows = dailyItems.map(dailyMin).filter((v): v is number => v !== null);
   const highs = dailyItems.map(dailyMax).filter((v): v is number => v !== null);

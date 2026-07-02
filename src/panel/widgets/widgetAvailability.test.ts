@@ -299,13 +299,13 @@ describe('marketplace listing derives from the enable allowlist', () => {
   }
   afterEach(() => _resetMarketplaceRegistryForTests());
 
-  it('lists only allowlisted SDK apps; a preinstalled non-allowlisted one stays delisted', () => {
+  it('delists every SDK app now that the allowlist is empty, preinstalled or not', () => {
     _seedMarketplaceRegistryForTests([
       listing({ id: 'com.hellonexus.weather', name: 'Weather' }),
       listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true }),
     ]);
     const byType = new Map(getCatalogEntries());
-    expect(byType.get(typeForMarketplace('com.hellonexus.weather'))?.meta.listed).toBe(true);
+    expect(byType.get(typeForMarketplace('com.hellonexus.weather'))?.meta.listed).toBe(false);
     expect(byType.get(typeForMarketplace('com.ibuypower.control'))?.meta.listed).toBe(false);
   });
 });

@@ -41,8 +41,8 @@ describe('getPreinstalledPageAppTypes', () => {
 });
 
 describe('isMarketplaceIdEnabled', () => {
-  it('enables an allowlisted app', () => {
-    expect(isMarketplaceIdEnabled('com.hellonexus.weather')).toBe(true);
+  it('has no default allowlisted app (every SDK app currently has a native built-in equivalent)', () => {
+    expect(isMarketplaceIdEnabled('com.hellonexus.weather')).toBe(false);
   });
 
   it('does not enable a non-allowlisted app even when preinstalled (OEM bake-in)', () => {

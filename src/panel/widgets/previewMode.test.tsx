@@ -80,6 +80,7 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   discord: ['Nova', 'discord.notificationCount'],
   obs: ['Gameplay'],
   media: ['Midnight Drive', 'The Wavelengths'],
+  weather: ['Mostly sunny', 'San Francisco', 'panel.widget.weather.hiLo'],
   screentime: ['Figma', 'Chrome'],
   displays: ['DISPLAY 1', 'DISPLAY 2'],
   cooling: ['cooling.preset.balanced'],

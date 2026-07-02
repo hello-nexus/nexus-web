@@ -15,14 +15,11 @@ export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
  * stay curated. Installed widgets not on the list still resolve via
  * `lookupApp` (already-placed instances keep rendering) but aren't offered.
  *
- * Weather is the only SDK app surfaced here: screentime / displays / media have
- * native built-in equivalents, so their SDK copies stay delisted to avoid
- * offering two of each. Weather has no native widget, so its SDK app is the one
- * users add (with a native-style picker face via the registry's Preview map).
+ * Empty: screentime / displays / media / weather all have native built-in
+ * equivalents, so their SDK copies stay delisted to avoid offering two of
+ * each. A future SDK app with no native equivalent gets added here.
  */
-export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set([
-  'com.hellonexus.weather',
-]);
+export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set<string>([]);
 
 // Picker visibility is the curated allowlist alone. `preinstalled` (OEM bake-in)
 // drives first-boot auto-pin via getPreinstalledPageAppTypes, NOT the

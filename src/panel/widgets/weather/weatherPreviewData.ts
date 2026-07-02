@@ -1,7 +1,6 @@
-// Static fixture for the Weather widget's Add-a-Widget catalog face. The live
-// widget is the SDK app (com.hellonexus.weather); this mock gives its picker
-// tile a representative face instead of a blank sandbox load. Content imitates
-// an open-meteo snapshot - untranslated by design (see widget-preview-fixtures).
+// Static fixture for the Weather widget's Add-a-Widget catalog face. Content
+// imitates an open-meteo snapshot - untranslated by design (see
+// widget-preview-fixtures).
 
 export interface WeatherHourlyForecast {
   time: string;

@@ -2,7 +2,6 @@ import { Boxes } from 'lucide-react';
 import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
 import { SdkMarketplacePage } from './marketplace/SdkMarketplacePage';
-import { WeatherPreview } from './weather/WeatherPreview';
 import {
   getAllMarketplaceListings,
   getMarketplaceListing,
@@ -26,6 +25,7 @@ import {
 import { clockApp } from './clock';
 import { monitoringApp } from './monitoring';
 import { mediaApp } from './media';
+import { weatherApp } from './weather';
 import { screentimeApp } from './screentime';
 import { lightingApp } from './lighting';
 import { smartLightsApp } from './smart-lights';
@@ -54,6 +54,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   clock:      clockApp,
   monitoring: monitoringApp,
   media:      mediaApp,
+  weather:    weatherApp,
   screentime: screentimeApp,
   lighting:   lightingApp,
   'smart-lights': smartLightsApp,
@@ -139,11 +140,9 @@ const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '
 
 // Native-style catalog faces for specific SDK apps. The picker renders this in
 // place of the live sandbox load (MarketplaceWidget) so the tile shows a real
-// preview; the placed widget is still the SDK bundle. Weather has no native
-// widget, so it gets the original native weather layout as its picker face.
-const MARKETPLACE_PREVIEWS: Record<string, AppManifest['Preview']> = {
-  'com.hellonexus.weather': WeatherPreview,
-};
+// preview instead of a blank sandbox load. Empty until an SDK app without a
+// native built-in equivalent needs one; the mechanism stays wired for that case.
+const MARKETPLACE_PREVIEWS: Record<string, AppManifest['Preview']> = {};
 
 // Synthesise an AppManifest for a marketplace app. Sizes come from
 // the listing's manifest so a 1x1 app stays 1x1 and a 4x2-only
