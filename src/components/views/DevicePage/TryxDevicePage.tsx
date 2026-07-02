@@ -207,12 +207,22 @@ export function TryxDevicePage() {
     if (selectedMedia && reportedMedia === selectedMedia) setSelectedMedia(null);
   }, [reportedMedia, selectedMedia]);
 
+  // Release the optimistic preset pin once the cooler reports it, so a later
+  // change from another client is reflected instead of the stale pin.
+  useEffect(() => {
+    if (selectedPreset && reportedMedia.startsWith(`${selectedPreset}.`)) setSelectedPreset(null);
+  }, [reportedMedia, selectedPreset]);
+
   const activeThumb = media.find(m => m.name === currentMedia)?.thumb ?? null;
   const reportedCustom = status?.state?.currentMediaIsCustom ?? false;
   // Highlighted preset: optimistic pick wins; otherwise derive from the
-  // cooler's reported non-custom selection.
+  // cooler's reported non-custom selection. The cooler reports the full media
+  // filename (default_03.mp4.h264_2240x1080) while preset ids are the bare
+  // default_NN, so match on the id prefix.
   const activePreset = selectedPreset
-    ?? (!reportedCustom ? (presets.find(p => p.id === reportedMedia || p.name === reportedMedia)?.id ?? null) : null);
+    ?? (!reportedCustom
+      ? (presets.find(p => p.id === reportedMedia || reportedMedia.startsWith(`${p.id}.`))?.id ?? null)
+      : null);
   const isCustom = selectedMedia != null || reportedCustom;
 
   const dispatchOverlay = useCallback((lines: OverlayLine[], color: string, align: string) => {
