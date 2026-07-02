@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { BadgeCheck, Camera, LogOut, RefreshCw, Trash2, UserPlus } from 'lucide-react';
+import { BadgeCheck, Camera, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from '../../../common/Button/Button';
 import { Badge } from '../../../common/Badge/Badge';
 import { TextInput } from '../../../common/TextInput/TextInput';
 import { ConfirmModal } from '../../../common/ConfirmModal/ConfirmModal';
-import { DeviceModal } from '../../../common/DeviceModal/DeviceModal';
 import { MediaCropper, type NormalizedCrop } from '../../../common/MediaCropper/MediaCropper';
 import { SyncConflictModal } from '../../../common/SyncConflictModal/SyncConflictModal';
 import { SettingsSection } from '../../../common/SettingsSection/SettingsSection';
@@ -13,7 +12,6 @@ import { useToast } from '../../../common/Toast/Toast';
 import { useTranslation } from '../../../../lib/i18n';
 import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts';
 import type { UseSyncStatusResult } from '../../../../hooks/useSyncStatus';
-import { SignInForm } from './SignInForm';
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { authErrorMessage, currentPasswordErrorMessage } from './accountErrors';
 import { cropToSourceRect } from './avatarCrop';
@@ -199,23 +197,12 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
     }
   }, [sync.state, sync.profiles, syncingProfileId, syncBaseline, ownRefreshLanded]);
 
-  // ── Account switcher ────────────────────────────────────────────────────
-  const [switchingId, setSwitchingId] = useState<string | null>(null);
-  const [addAccountOpen, setAddAccountOpen] = useState(false);
-
-  const handleActivate = async (accountId: string) => {
-    setSwitchingId(accountId);
-    await accounts.activate(accountId);
-    setSwitchingId(null);
-  };
-
-  const handleLogout = async (accountId: string) => {
-    setSwitchingId(accountId);
-    await accounts.logout(accountId);
-    setSwitchingId(null);
-  };
-
   // ── Danger zone ─────────────────────────────────────────────────────────
+  const handleLogout = () => {
+    if (!account) return;
+    void accounts.logout(account.accountId);
+  };
+
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -269,58 +256,6 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
 
   return (
     <div className={styles.tabPanel}>
-      <SettingsSection title={t('account.switcher.title')} description={t('account.switcher.description')}>
-        <div className={styles.switcherList}>
-          {accounts.accounts.map(entry => (
-            <div key={entry.accountId} className={`${styles.switcherRow} ${entry.active ? styles.switcherRowActive : ''}`}>
-              {entry.avatar?.small ? (
-                <img className={styles.switcherAvatar} src={entry.avatar.small} alt="" />
-              ) : (
-                <div className={styles.switcherAvatarFallback}>{entry.username.charAt(0).toUpperCase()}</div>
-              )}
-              <div className={styles.switcherInfo}>
-                <span className={styles.switcherName}>{entry.username}</span>
-                <span className={styles.switcherEmail}>{entry.email}</span>
-              </div>
-              <div className={styles.switcherActions}>
-                <Button
-                  type="button"
-                  tone="ghost"
-                  size="sm"
-                  disabled={entry.active || switchingId === entry.accountId}
-                  loading={switchingId === entry.accountId}
-                  onClick={() => void handleActivate(entry.accountId)}
-                >
-                  {t('account.switcher.activate')}
-                </Button>
-                <Button
-                  type="button"
-                  tone="ghost"
-                  size="sm"
-                  icon={<LogOut size={14} />}
-                  disabled={switchingId === entry.accountId}
-                  onClick={() => void handleLogout(entry.accountId)}
-                  aria-label={t('account.switcher.logOut')}
-                  title={t('account.switcher.logOut')}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className={styles.profileButtons}>
-          <Button type="button" tone="neutral" size="sm" icon={<UserPlus size={14} />} onClick={() => setAddAccountOpen(true)}>
-            {t('account.switcher.addAccount')}
-          </Button>
-        </div>
-      </SettingsSection>
-      <DeviceModal open={addAccountOpen} onClose={() => setAddAccountOpen(false)} title={t('account.switcher.addAccount')}>
-        <SignInForm
-          onLogin={accounts.login}
-          onSuccess={() => setAddAccountOpen(false)}
-          submitLabel={t('account.signIn.submit')}
-        />
-      </DeviceModal>
-
       <SettingsSection title={t('account.authentication.title')} description={t('account.authentication.description')}>
         <div className={styles.accountCard}>
           <div className={styles.avatarWrap}>
@@ -450,8 +385,8 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
       {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
       <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
         <SettingRow label={t('account.danger.logOut.label')} description={t('account.danger.logOut.description')}>
-          <Button type="button" tone="danger" size="sm" onClick={() => void handleLogout(account.accountId)}>
-            {t('account.switcher.logOut')}
+          <Button type="button" tone="danger" size="sm" onClick={handleLogout}>
+            {t('account.danger.logOut.label')}
           </Button>
         </SettingRow>
         <SettingRow label={t('account.danger.delete.label')} description={t('account.danger.delete.description')}>
