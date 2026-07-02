@@ -31,6 +31,7 @@
   "account.danger.delete.label": "Usuń konto",
   "account.danger.logOut.description": "Wyloguj się z tego konta na tym komputerze.",
   "account.danger.logOut.label": "Wyloguj",
+  "account.dropdown.logIn": "Zaloguj się",
   "account.error.emailUnverified": "Zweryfikuj swój e-mail przed zalogowaniem",
   "account.error.generic": "Coś poszło nie tak. Spróbuj ponownie.",
   "account.error.invalidCredentials": "Nieprawidłowy e-mail/nazwa użytkownika lub hasło",

@@ -31,6 +31,7 @@
   "account.danger.delete.label": "Konto löschen",
   "account.danger.logOut.description": "Melden Sie sich auf diesem Gerät von diesem Konto ab.",
   "account.danger.logOut.label": "Abmelden",
+  "account.dropdown.logIn": "Anmelden",
   "account.error.emailUnverified": "Bitte bestätigen Sie Ihre E-Mail-Adresse, bevor Sie sich anmelden",
   "account.error.generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
   "account.error.invalidCredentials": "E-Mail/Benutzername oder Passwort ist falsch",

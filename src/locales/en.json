@@ -31,6 +31,7 @@
   "account.danger.delete.label": "Delete account",
   "account.danger.logOut.description": "Sign out of this account on this machine.",
   "account.danger.logOut.label": "Log out",
+  "account.dropdown.logIn": "Log in",
   "account.error.emailUnverified": "Please verify your email before signing in",
   "account.error.generic": "Something went wrong. Please try again.",
   "account.error.invalidCredentials": "Incorrect email/username or password",

@@ -31,6 +31,7 @@
   "account.danger.delete.label": "Eliminar cuenta",
   "account.danger.logOut.description": "Cierre la sesión de esta cuenta en este equipo.",
   "account.danger.logOut.label": "Cerrar sesión",
+  "account.dropdown.logIn": "Iniciar sesión",
   "account.error.emailUnverified": "Verifique su correo electrónico antes de iniciar sesión",
   "account.error.generic": "Algo ha salido mal. Inténtelo de nuevo.",
   "account.error.invalidCredentials": "Correo electrónico/usuario o contraseña incorrectos",

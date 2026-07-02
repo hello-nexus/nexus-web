@@ -163,6 +163,33 @@
   top: 0;
 }
 
+// Top-of-dropdown account entry: log-in prompt when signed out, avatar +
+// username when signed in. Reuses .actionBtn for the row and .actionSep for
+// the divider below.
+.accountSection {
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem;
+}
+
+.accountEntryAvatar {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-dim);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.accountEntryName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 // New category-header treatment, matching the SectionHeader component (a muted,
 // non-caps body label) instead of the old all-caps eyebrow. Sized to
 // --type-small so every row in the menu reads at one size (matches the actions

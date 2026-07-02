@@ -31,6 +31,7 @@
   "account.danger.delete.label": "Elimine account",
   "account.danger.logOut.description": "Jes di chest account su chest computer.",
   "account.danger.logOut.label": "Jes",
+  "account.dropdown.logIn": "Jentre",
   "account.error.emailUnverified": "Verifiche la tô email prime di jentrâ",
   "account.error.generic": "Alc al è lât mâl. Torne prove.",
   "account.error.invalidCredentials": "Email/non utent o password sbaliâts",

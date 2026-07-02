@@ -31,6 +31,7 @@
   "account.danger.delete.label": "删除账户",
   "account.danger.logOut.description": "在此设备上登出此账户。",
   "account.danger.logOut.label": "登出",
+  "account.dropdown.logIn": "登录",
   "account.error.emailUnverified": "请先验证邮箱后再登录",
   "account.error.generic": "出现问题，请重试。",
   "account.error.invalidCredentials": "邮箱/用户名或密码错误",

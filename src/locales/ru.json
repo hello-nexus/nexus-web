@@ -31,6 +31,7 @@
   "account.danger.delete.label": "Удалить аккаунт",
   "account.danger.logOut.description": "Выйти из этого аккаунта на этом устройстве.",
   "account.danger.logOut.label": "Выйти",
+  "account.dropdown.logIn": "Войти",
   "account.error.emailUnverified": "Подтвердите email перед входом",
   "account.error.generic": "Что-то пошло не так. Попробуйте ещё раз.",
   "account.error.invalidCredentials": "Неверный email/имя пользователя или пароль",

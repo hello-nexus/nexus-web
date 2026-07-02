@@ -31,6 +31,7 @@
   "account.danger.delete.label": "Excluir conta",
   "account.danger.logOut.description": "Saia desta conta nesta máquina.",
   "account.danger.logOut.label": "Sair",
+  "account.dropdown.logIn": "Entrar",
   "account.error.emailUnverified": "Verifique seu e-mail antes de entrar",
   "account.error.generic": "Algo deu errado. Tente novamente.",
   "account.error.invalidCredentials": "E-mail/nome de usuário ou senha incorretos",

@@ -31,6 +31,7 @@
   "account.danger.delete.label": "Hesabı sil",
   "account.danger.logOut.description": "Bu cihazda bu hesabın oturumunu kapatın.",
   "account.danger.logOut.label": "Oturumu kapat",
+  "account.dropdown.logIn": "Oturum aç",
   "account.error.emailUnverified": "Oturum açmadan önce lütfen e-postanızı doğrulayın",
   "account.error.generic": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
   "account.error.invalidCredentials": "E-posta/kullanıcı adı veya parola hatalı",

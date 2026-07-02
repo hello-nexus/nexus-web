@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ChevronDown, Plus, Download, Upload, UsersRound, UserRound, KeyRound } from 'lucide-react';
+import { ChevronDown, Plus, Download, Upload, UsersRound, UserRound, LogIn } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../../lib/i18n';
 import { useClickOutside } from '../../../hooks/useClickOutside';
@@ -19,11 +19,17 @@ interface ProfileDropdownProps {
   // Cloud account management page (distinct from in-app profiles above).
   // Optional so every existing call site keeps working unchanged.
   onNavigateAccount?: () => void;
-  // Active cloud account's avatar, for the 'avatar' variant trigger. Both
-  // undefined when logged out - the trigger then renders its original
-  // generic person icon, unchanged.
+  // Active cloud account's avatar, for the 'avatar' variant trigger and the
+  // dropdown's top account entry. Both undefined when logged out - the
+  // trigger then renders its original generic person icon, unchanged.
   accountAvatarUrl?: string;
   accountInitial?: string;
+  // Active cloud account's username, shown in the dropdown's top account
+  // entry when signedIn is true.
+  accountUsername?: string;
+  // Whether a cloud account is currently signed in on this machine. Drives
+  // the top entry: a "Log in" row when false, the account row when true.
+  signedIn?: boolean;
   compact?: boolean;
   // 'sidebar' (default) renders the full trigger or letter circle in the
   // sidebar header. 'avatar' renders a round person-icon button for the
@@ -33,7 +39,8 @@ interface ProfileDropdownProps {
 
 export function ProfileDropdown({
   profiles, onPreferencesChanged, onNavigateSettings, onNavigateAccount,
-  accountAvatarUrl, accountInitial, compact = false, variant = 'sidebar',
+  accountAvatarUrl, accountInitial, accountUsername, signedIn = false,
+  compact = false, variant = 'sidebar',
 }: ProfileDropdownProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -117,6 +124,11 @@ export function ProfileDropdown({
     setOpen(false);
   }, [onNavigateSettings]);
 
+  const handleAccountEntry = useCallback(() => {
+    onNavigateAccount?.();
+    setOpen(false);
+  }, [onNavigateAccount]);
+
   const atLimit = profiles.profiles.length >= 5;
   const displayName = activeEntry?.name ?? t('profile.default');
   const initial = displayName.charAt(0).toUpperCase();
@@ -178,6 +190,38 @@ export function ProfileDropdown({
           [styles.compactDropdown]: compact,
           [styles.avatarDropdown]: isAvatar,
         })}>
+          {onNavigateAccount && (
+            <>
+              <div className={styles.accountSection}>
+                <button
+                  type="button"
+                  className={styles.actionBtn}
+                  onClick={handleAccountEntry}
+                  aria-label={signedIn ? `${t('account.title')}: ${accountUsername}` : undefined}
+                >
+                  {signedIn ? (
+                    <>
+                      <span className={styles.accountEntryAvatar}>
+                        {accountAvatarUrl ? (
+                          <img className={styles.accountAvatarImg} src={accountAvatarUrl} alt="" />
+                        ) : accountInitial ? (
+                          <span className={styles.accountAvatarInitial}>{accountInitial}</span>
+                        ) : (
+                          <UserRound size={12} aria-hidden />
+                        )}
+                      </span>
+                      <span className={styles.accountEntryName}>{accountUsername}</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogIn size={14} aria-hidden /> {t('account.dropdown.logIn')}
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className={styles.actionSep} />
+            </>
+          )}
           <div className={styles.dropdownHeader}>{t('profile.header')}</div>
           <div className={styles.profileList}>
             {profiles.profiles.map(p => (
@@ -203,11 +247,6 @@ export function ProfileDropdown({
             <button type="button" className={styles.actionBtn} onClick={handleManage}>
               <UsersRound size={14} /> {t('profile.manage')}
             </button>
-            {onNavigateAccount && (
-              <button type="button" className={styles.actionBtn} onClick={() => { onNavigateAccount(); setOpen(false); }}>
-                <KeyRound size={14} /> {t('account.navEntry')}
-              </button>
-            )}
           </div>
           {importError && <p className={styles.importError} role="alert">{importError}</p>}
           <input ref={fileRef} type="file" accept=".json" className={styles.hiddenInput} onChange={handleFileChange} />

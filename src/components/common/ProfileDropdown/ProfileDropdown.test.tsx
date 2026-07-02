@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProfileDropdown } from './ProfileDropdown';
@@ -42,12 +43,13 @@ function buildProfiles(overrides: Partial<UseProfilesResult> = {}): UseProfilesR
   };
 }
 
-function openDropdown(profiles: UseProfilesResult) {
+function openDropdown(profiles: UseProfilesResult, extra: Partial<ComponentProps<typeof ProfileDropdown>> = {}) {
   render(
     <ProfileDropdown
       profiles={profiles}
       onPreferencesChanged={vi.fn()}
       onNavigateSettings={vi.fn()}
+      {...extra}
     />,
   );
   fireEvent.click(screen.getByRole('button', { name: /profile.label/ }));
@@ -108,5 +110,39 @@ describe('ProfileDropdown import', () => {
 
     await waitFor(() => expect(profiles.importProfile).toHaveBeenCalled());
     expect(screen.queryByText('profile.importDuplicateName')).not.toBeInTheDocument();
+  });
+});
+
+describe('ProfileDropdown account entry', () => {
+  it('renders no account entry when onNavigateAccount is not provided', () => {
+    const profiles = buildProfiles();
+    openDropdown(profiles);
+
+    expect(screen.queryByText('account.dropdown.logIn')).not.toBeInTheDocument();
+  });
+
+  it('signed out: shows a Log in row that navigates to the account page and closes', () => {
+    const profiles = buildProfiles();
+    const onNavigateAccount = vi.fn();
+    openDropdown(profiles, { onNavigateAccount });
+
+    fireEvent.click(screen.getByText('account.dropdown.logIn'));
+
+    expect(onNavigateAccount).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('account.dropdown.logIn')).not.toBeInTheDocument();
+  });
+
+  it('signed in: shows the account avatar and username instead of the Log in row', () => {
+    const profiles = buildProfiles();
+    const onNavigateAccount = vi.fn();
+    openDropdown(profiles, {
+      onNavigateAccount, signedIn: true, accountUsername: 'nicola', accountInitial: 'N',
+    });
+
+    expect(screen.queryByText('account.dropdown.logIn')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('nicola'));
+
+    expect(onNavigateAccount).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('nicola')).not.toBeInTheDocument();
   });
 });
