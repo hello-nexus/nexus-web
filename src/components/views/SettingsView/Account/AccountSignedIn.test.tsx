@@ -192,14 +192,15 @@ describe('AccountSignedIn profile sync rows', () => {
   const PROFILE_MAIN: SyncProfileStatus = { profileId: 'p1', name: 'Main', lastSyncedAt: '', revision: 0 };
   const PROFILE_WORK: SyncProfileStatus = { profileId: 'p2', name: 'Work', lastSyncedAt: '', revision: 0 };
 
-  it('renders one row per profile with a never-synced label when lastSyncedAt is empty', () => {
+  it('renders one row per profile with a never-synced label and no per-row buttons', () => {
     const sync: UseSyncStatusResult = { ...SYNC, profiles: [PROFILE_MAIN, PROFILE_WORK] };
     renderSignedIn(false, makeAccounts(ACCOUNT_ONE), vi.fn(), sync);
 
     expect(screen.getByText('Main')).toBeInTheDocument();
     expect(screen.getByText('Work')).toBeInTheDocument();
     expect(screen.getAllByText('account.sync.neverSyncedYet')).toHaveLength(2);
-    expect(screen.getAllByRole('button', { name: 'account.sync.syncNow' })).toHaveLength(2);
+    // Only the section header's single Sync Now control exists.
+    expect(screen.getAllByRole('button', { name: 'account.sync.syncNow' })).toHaveLength(1);
   });
 
   it('shows a formatted timestamp instead of the never-synced label once a profile has synced', () => {
@@ -209,12 +210,17 @@ describe('AccountSignedIn profile sync rows', () => {
 
     expect(screen.queryByText('account.sync.neverSyncedYet')).toBeNull();
   });
+});
 
-  it('spins the clicked row and disables the other row until this click\'s own sync request settles', async () => {
-    const syncNow = vi.fn().mockResolvedValue(undefined);
-    const sync: UseSyncStatusResult = { ...SYNC, profiles: [PROFILE_MAIN, PROFILE_WORK], syncNow };
-    const { rerender } = renderSignedIn(false, makeAccounts(ACCOUNT_ONE), vi.fn(), sync);
-    const rerenderWith = (nextSync: UseSyncStatusResult) => rerender(
+describe('AccountSignedIn sync now control', () => {
+  const PROFILE_MAIN: SyncProfileStatus = { profileId: 'p1', name: 'Main', lastSyncedAt: '', revision: 0 };
+
+  function syncNowButton() {
+    return screen.getByRole('button', { name: 'account.sync.syncNow' });
+  }
+
+  function rerenderWith(rerender: ReturnType<typeof renderSignedIn>['rerender'], nextSync: UseSyncStatusResult) {
+    rerender(
       <ToastProvider>
         <AccountSignedIn
           accounts={makeAccounts(ACCOUNT_ONE)}
@@ -224,32 +230,60 @@ describe('AccountSignedIn profile sync rows', () => {
         />
       </ToastProvider>,
     );
+  }
 
-    const buttons = () => screen.getAllByRole('button', { name: 'account.sync.syncNow' });
-    fireEvent.click(buttons()[0]);
+  it('spins from click until the triggered pass leaves the syncing state', async () => {
+    const syncNow = vi.fn().mockResolvedValue(undefined);
+    const sync: UseSyncStatusResult = { ...SYNC, state: 'idle', profiles: [PROFILE_MAIN], syncNow };
+    const { rerender } = renderSignedIn(false, makeAccounts(ACCOUNT_ONE), vi.fn(), sync);
 
+    fireEvent.click(syncNowButton());
     expect(syncNow).toHaveBeenCalledTimes(1);
-    expect(buttons()[0]).toHaveAttribute('data-loading', 'true');
-    expect(buttons()[1]).toBeDisabled();
+    expect(syncNowButton()).toHaveAttribute('data-loading', 'true');
 
-    // An unrelated background poll (a fresh object, unchanged values) that
-    // races ahead of this click's own request resolving must not clear the
-    // spinner - only a poll that lands AFTER this click's own syncNow() call
-    // has itself resolved may.
-    rerenderWith({ ...SYNC, profiles: [PROFILE_MAIN, PROFILE_WORK], syncNow });
-    expect(buttons()[0]).toHaveAttribute('data-loading', 'true');
-    expect(buttons()[1]).toBeDisabled();
+    // A background poll landing before this click's own request resolves
+    // reports the pass actively running - must not affect anything yet,
+    // the settle check has not even run (ownRefreshLanded is still false).
+    rerenderWith(rerender, { ...SYNC, state: 'syncing', profiles: [PROFILE_MAIN], syncNow });
+    expect(syncNowButton()).toHaveAttribute('data-loading', 'true');
 
     // Let this click's own syncNow() promise resolve, mirroring production
-    // where syncNow() performs its own refresh before resolving.
+    // where syncNow() performs its own refresh before resolving. The most
+    // recent state is still 'syncing' (the pass has not finished), so the
+    // settle check (now gated open) must still not clear the spinner.
     await act(async () => { await Promise.resolve(); });
+    expect(syncNowButton()).toHaveAttribute('data-loading', 'true');
 
-    const advanced: SyncProfileStatus = { ...PROFILE_MAIN, lastSyncedAt: '2026-01-01T00:00:00.000Z' };
-    rerenderWith({ ...SYNC, profiles: [advanced, PROFILE_WORK], syncNow });
+    // A later poll reports the pass finished.
+    rerenderWith(rerender, { ...SYNC, state: 'idle', profiles: [PROFILE_MAIN], syncNow });
+    await waitFor(() => {
+      expect(syncNowButton()).not.toHaveAttribute('data-loading', 'true');
+    });
+  });
+
+  it('regression: settles once state leaves syncing even though a clean profile\'s lastSyncedAt never advances', async () => {
+    const syncNow = vi.fn().mockResolvedValue(undefined);
+    const cleanProfile: SyncProfileStatus = { profileId: 'p1', name: 'Main', lastSyncedAt: '', revision: 0 };
+    const dirtyProfile: SyncProfileStatus = { profileId: 'p2', name: 'Work', lastSyncedAt: '2026-01-01T00:00:00.000Z', revision: 4 };
+    const sync: UseSyncStatusResult = { ...SYNC, state: 'idle', profiles: [cleanProfile, dirtyProfile], syncNow };
+    const { rerender } = renderSignedIn(false, makeAccounts(ACCOUNT_ONE), vi.fn(), sync);
+
+    fireEvent.click(syncNowButton());
+
+    // The pass is actively running; this click's own refresh lands mid-pass.
+    rerenderWith(rerender, { ...SYNC, state: 'syncing', profiles: [cleanProfile, dirtyProfile], syncNow });
+    await act(async () => { await Promise.resolve(); });
+    expect(syncNowButton()).toHaveAttribute('data-loading', 'true');
+
+    // The pass finishes: the dirty profile's timestamp moved, the clean
+    // profile's never did (nothing to push) - the old per-row settle check
+    // keyed to a specific profile's lastSyncedAt would hang forever for a
+    // row on the clean profile. The header button settles on state alone.
+    const dirtyProfileSynced: SyncProfileStatus = { ...dirtyProfile, lastSyncedAt: '2026-01-01T00:05:00.000Z' };
+    rerenderWith(rerender, { ...SYNC, state: 'idle', profiles: [cleanProfile, dirtyProfileSynced], syncNow });
 
     await waitFor(() => {
-      expect(buttons()[0]).not.toHaveAttribute('data-loading', 'true');
+      expect(syncNowButton()).not.toHaveAttribute('data-loading', 'true');
     });
-    expect(buttons()[1]).not.toBeDisabled();
   });
 });

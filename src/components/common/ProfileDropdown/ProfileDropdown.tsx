@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ChevronDown, Plus, Download, Upload, UsersRound, UserRound, KeyRound } from 'lucide-react';
+import { ChevronDown, Plus, Download, Upload, UsersRound, UserRound, LogIn } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../../lib/i18n';
 import { useClickOutside } from '../../../hooks/useClickOutside';
@@ -8,6 +8,7 @@ import { PRESET_ACCENTS, loadSettings } from '../../../lib/settings';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import type { Preferences } from '../../../api/profiles';
 import { savePreferences } from '../../../api/profiles';
+import { isProfileNameTaken } from '../../../hooks/profileNameUtils';
 import { PromptModal } from '../PromptModal/PromptModal';
 import styles from './ProfileDropdown.module.scss';
 
@@ -18,11 +19,17 @@ interface ProfileDropdownProps {
   // Cloud account management page (distinct from in-app profiles above).
   // Optional so every existing call site keeps working unchanged.
   onNavigateAccount?: () => void;
-  // Active cloud account's avatar, for the 'avatar' variant trigger. Both
-  // undefined when logged out - the trigger then renders its original
-  // generic person icon, unchanged.
+  // Active cloud account's avatar, for the 'avatar' variant trigger and the
+  // dropdown's top account entry. Both undefined when logged out - the
+  // trigger then renders its original generic person icon, unchanged.
   accountAvatarUrl?: string;
   accountInitial?: string;
+  // Active cloud account's username, shown in the dropdown's top account
+  // entry when signedIn is true.
+  accountUsername?: string;
+  // Whether a cloud account is currently signed in on this machine. Drives
+  // the top entry: a "Log in" row when false, the account row when true.
+  signedIn?: boolean;
   compact?: boolean;
   // 'sidebar' (default) renders the full trigger or letter circle in the
   // sidebar header. 'avatar' renders a round person-icon button for the
@@ -32,11 +39,13 @@ interface ProfileDropdownProps {
 
 export function ProfileDropdown({
   profiles, onPreferencesChanged, onNavigateSettings, onNavigateAccount,
-  accountAvatarUrl, accountInitial, compact = false, variant = 'sidebar',
+  accountAvatarUrl, accountInitial, accountUsername, signedIn = false,
+  compact = false, variant = 'sidebar',
 }: ProfileDropdownProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -62,13 +71,17 @@ export function ProfileDropdown({
   const handleCreateConfirm = useCallback(async (rawName: string) => {
     const name = rawName.trim().slice(0, 20);
     if (!name) return;
-    setCreateOpen(false);
 
     const currentAccent = loadSettings().general.accentColor;
     const others = PRESET_ACCENTS.filter(c => c !== currentAccent);
     const newAccent = others[Math.floor(Math.random() * others.length)];
 
-    await profiles.createProfile(name);
+    const result = await profiles.createProfile(name);
+    if (result.body?.msg === 'profile_name_taken') {
+      return t('profile.duplicateName');
+    }
+    setCreateOpen(false);
+
     const updated = profiles.profiles;
     const created = updated[updated.length - 1];
     if (created) {
@@ -79,13 +92,12 @@ export function ProfileDropdown({
         theme: { ...prefs.theme, accentColor: newAccent },
       });
     }
-  }, [profiles, onPreferencesChanged]);
+  }, [profiles, onPreferencesChanged, t]);
 
   const validateNewName = useCallback((raw: string): string | null => {
     const trimmed = raw.trim();
     if (!trimmed) return null;
-    const dupe = profiles.profiles.some(p => p.name.toLowerCase() === trimmed.toLowerCase());
-    return dupe ? t('profile.duplicateName') : null;
+    return isProfileNameTaken(profiles.profiles, trimmed) ? t('profile.duplicateName') : null;
   }, [profiles.profiles, t]);
 
   const handleExport = useCallback(async () => {
@@ -99,14 +111,23 @@ export function ProfileDropdown({
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await profiles.importProfile(file);
+    setImportError(null);
+    const result = await profiles.importProfile(file);
+    if (result.body?.msg === 'profile_name_taken') {
+      setImportError(t('profile.importDuplicateName'));
+    }
     e.target.value = '';
-  }, [profiles]);
+  }, [profiles, t]);
 
   const handleManage = useCallback(() => {
     onNavigateSettings();
     setOpen(false);
   }, [onNavigateSettings]);
+
+  const handleAccountEntry = useCallback(() => {
+    onNavigateAccount?.();
+    setOpen(false);
+  }, [onNavigateAccount]);
 
   const atLimit = profiles.profiles.length >= 5;
   const displayName = activeEntry?.name ?? t('profile.default');
@@ -169,6 +190,38 @@ export function ProfileDropdown({
           [styles.compactDropdown]: compact,
           [styles.avatarDropdown]: isAvatar,
         })}>
+          {onNavigateAccount && (
+            <>
+              <div className={styles.accountSection}>
+                <button
+                  type="button"
+                  className={styles.actionBtn}
+                  onClick={handleAccountEntry}
+                  aria-label={signedIn ? `${t('account.title')}: ${accountUsername}` : undefined}
+                >
+                  {signedIn ? (
+                    <>
+                      <span className={styles.accountEntryAvatar}>
+                        {accountAvatarUrl ? (
+                          <img className={styles.accountAvatarImg} src={accountAvatarUrl} alt="" />
+                        ) : accountInitial ? (
+                          <span className={styles.accountAvatarInitial}>{accountInitial}</span>
+                        ) : (
+                          <UserRound size={12} aria-hidden />
+                        )}
+                      </span>
+                      <span className={styles.accountEntryName}>{accountUsername}</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogIn size={14} aria-hidden /> {t('account.dropdown.logIn')}
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className={styles.actionSep} />
+            </>
+          )}
           <div className={styles.dropdownHeader}>{t('profile.header')}</div>
           <div className={styles.profileList}>
             {profiles.profiles.map(p => (
@@ -194,12 +247,8 @@ export function ProfileDropdown({
             <button type="button" className={styles.actionBtn} onClick={handleManage}>
               <UsersRound size={14} /> {t('profile.manage')}
             </button>
-            {onNavigateAccount && (
-              <button type="button" className={styles.actionBtn} onClick={() => { onNavigateAccount(); setOpen(false); }}>
-                <KeyRound size={14} /> {t('account.navEntry')}
-              </button>
-            )}
           </div>
+          {importError && <p className={styles.importError} role="alert">{importError}</p>}
           <input ref={fileRef} type="file" accept=".json" className={styles.hiddenInput} onChange={handleFileChange} />
         </div>
       )}

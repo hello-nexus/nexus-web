@@ -16,7 +16,7 @@ import { ChangePasswordModal } from './ChangePasswordModal';
 import { authErrorMessage, currentPasswordErrorMessage } from './accountErrors';
 import { cropToSourceRect } from './avatarCrop';
 import { isValidUsername } from './accountValidation';
-import { isProfileSyncSettled } from './syncProfileRows';
+import { isSyncPassSettled } from './syncProfileRows';
 import { usePublishPageSyncConflictModalOpen } from '../../../../app/syncConflictModalCoordination';
 import styles from './Account.module.scss';
 
@@ -167,8 +167,7 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
   };
 
   // ── Profile sync ────────────────────────────────────────────────────────
-  const [syncingProfileId, setSyncingProfileId] = useState<string | null>(null);
-  const [syncBaseline, setSyncBaseline] = useState('');
+  const [syncNowBusy, setSyncNowBusy] = useState(false);
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
   usePublishPageSyncConflictModalOpen(conflictModalOpen);
 
@@ -182,20 +181,17 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
   // fresh as this click's own confirmed round trip.
   const [ownRefreshLanded, setOwnRefreshLanded] = useState(false);
 
-  const handleProfileSyncNow = (profileId: string, lastSyncedAt: string) => {
-    if (syncingProfileId) return;
+  const handleSyncNow = () => {
+    if (syncNowBusy) return;
     setOwnRefreshLanded(false);
-    setSyncBaseline(lastSyncedAt);
-    setSyncingProfileId(profileId);
+    setSyncNowBusy(true);
     void sync.syncNow().finally(() => setOwnRefreshLanded(true));
   };
 
   useEffect(() => {
-    if (!syncingProfileId || !ownRefreshLanded) return;
-    if (isProfileSyncSettled(sync.state, syncBaseline, sync.profiles, syncingProfileId)) {
-      setSyncingProfileId(null);
-    }
-  }, [sync.state, sync.profiles, syncingProfileId, syncBaseline, ownRefreshLanded]);
+    if (!syncNowBusy || !ownRefreshLanded) return;
+    if (isSyncPassSettled(sync.state)) setSyncNowBusy(false);
+  }, [sync.state, syncNowBusy, ownRefreshLanded]);
 
   // ── Danger zone ─────────────────────────────────────────────────────────
   const handleLogout = () => {
@@ -249,14 +245,14 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
     setDeletePassword('');
     setDeleteError(null);
     setAvatarError(null);
-    setSyncingProfileId(null);
+    setSyncNowBusy(false);
   }, [accountId, recoveryFresh]);
 
   if (!account) return null;
 
   return (
     <div className={styles.tabPanel}>
-      <SettingsSection title={t('account.authentication.title')} description={t('account.authentication.description')}>
+      <SettingsSection title={t('account.authentication.title')}>
         <div className={styles.accountCard}>
           <div className={styles.avatarWrap}>
             {account.avatar?.large ? (
@@ -347,25 +343,27 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
         changePassword={accounts.changePassword}
       />
 
-      <SettingsSection title={t('account.sync.title')} description={t('account.sync.description')}>
+      <SettingsSection
+        title={t('account.sync.title')}
+        action={(
+          <Button
+            type="button"
+            tone="neutral"
+            size="sm"
+            icon={<RefreshCw size={14} />}
+            loading={syncNowBusy}
+            onClick={handleSyncNow}
+          >
+            {t('account.sync.syncNow')}
+          </Button>
+        )}
+      >
         {sync.profiles.map(profile => (
           <SettingRow
             key={profile.profileId}
             label={profile.name}
             description={profile.lastSyncedAt ? new Date(profile.lastSyncedAt).toLocaleString() : t('account.sync.neverSyncedYet')}
-          >
-            <Button
-              type="button"
-              tone="neutral"
-              size="sm"
-              icon={<RefreshCw size={14} />}
-              loading={syncingProfileId === profile.profileId}
-              disabled={syncingProfileId !== null && syncingProfileId !== profile.profileId}
-              onClick={() => handleProfileSyncNow(profile.profileId, profile.lastSyncedAt)}
-            >
-              {t('account.sync.syncNow')}
-            </Button>
-          </SettingRow>
+          />
         ))}
         {sync.conflicts.length > 0 && (
           <SettingRow label={t('account.sync.conflict.title')} description={t('account.sync.conflict.pendingCount', { count: sync.conflicts.length })}>

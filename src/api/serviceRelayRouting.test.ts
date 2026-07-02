@@ -25,6 +25,7 @@ vi.mock('./auth', () => ({
 import {
   fetchService,
   postService,
+  authFetchWithStatus,
   isRelayActive,
   isLanSealedActive,
   isLanSealedEligible,
@@ -93,6 +94,57 @@ describe('service.ts transport routing', () => {
 
     const out = await fetchService('/panel/devices');
     expect(out).toBeNull();
+  });
+});
+
+// authFetchWithStatus is the status-preserving sibling of authFetch, used by
+// callers (profiles.ts) that need to branch on a non-2xx body instead of
+// having it collapsed to null. It must follow the exact same transport
+// routing as authFetch/fetchService/postService above - a caller that hits
+// the local service (not api.hellonexus.com) must still tunnel off-LAN.
+describe('service.ts authFetchWithStatus transport routing', () => {
+  it('routes through relayFetch on the relay transport and preserves a non-2xx status', async () => {
+    relayFetchMock.mockResolvedValueOnce({ status: 409, body: JSON.stringify({ error: true, msg: 'taken' }), contentType: 'application/json' });
+    const directFetch = vi.fn();
+    vi.stubGlobal('fetch', directFetch);
+    setActiveTransport('relay');
+
+    const { status, response } = await authFetchWithStatus('/profiles/create', { method: 'POST', body: { name: 'x' } });
+
+    expect(status).toBe(409);
+    expect(await response?.json()).toEqual({ error: true, msg: 'taken' });
+    expect(directFetch).not.toHaveBeenCalled();
+    const call = relayFetchMock.mock.calls[0] as unknown[];
+    expect(call[2]).toBe('POST');
+    expect(call[3]).toBe('/profiles/create');
+    expect(call[4]).toBe(JSON.stringify({ name: 'x' }));
+  });
+
+  it('uses direct window.fetch on the LAN transport and preserves a non-2xx status', async () => {
+    const directFetch = vi.fn(async () => new Response(JSON.stringify({ error: true, msg: 'taken' }), { status: 409 }));
+    vi.stubGlobal('fetch', directFetch);
+    setActiveTransport('lan');
+
+    const { status, response } = await authFetchWithStatus('/profiles/create', { method: 'POST', body: { name: 'x' } });
+
+    expect(status).toBe(409);
+    expect(await response?.json()).toEqual({ error: true, msg: 'taken' });
+    expect(relayFetchMock).not.toHaveBeenCalled();
+  });
+
+  it('returns status 0 on a remote origin with no usable relay yet', async () => {
+    authState.hasToken = false;
+    const directFetch = vi.fn();
+    vi.stubGlobal('fetch', directFetch);
+    // No setActiveTransport call and no token ⇒ neither the eager relay
+    // default nor the LAN path is reachable on this remote-origin test surface.
+
+    const { status, response } = await authFetchWithStatus('/profiles/create', { method: 'POST', body: { name: 'x' } });
+
+    expect(status).toBe(0);
+    expect(response).toBeNull();
+    expect(directFetch).not.toHaveBeenCalled();
+    expect(relayFetchMock).not.toHaveBeenCalled();
   });
 });
 

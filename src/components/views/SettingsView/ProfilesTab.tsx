@@ -9,6 +9,7 @@ import { PromptModal } from '../../common/PromptModal/PromptModal';
 import { SortableList } from '../../common/SortableList/SortableList';
 import { exportProfile, type Preferences, type ProfileCategory } from '../../../api/profiles';
 import { useProfileSharing, type UseProfilesResult } from '../../../hooks/useProfiles';
+import { isProfileNameTaken } from '../../../hooks/profileNameUtils';
 import { useTranslation } from '../../../lib/i18n';
 import { SharingSection } from './SharingSection';
 import styles from './SettingsView.module.scss';
@@ -25,8 +26,13 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
   const [confirmTarget, setConfirmTarget] = useState<ConfirmKind | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [renameError, setRenameError] = useState<{ profileId: string; message: string } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const switchingRef = useRef(false);
+  // Per-profile attempt counter so a stale rename response (superseded by a
+  // second rename on the same row before the first round-trip resolves)
+  // can't redisplay a collision error over a state that already succeeded.
+  const renameSeqRef = useRef<Record<string, number>>({});
 
   const handleSwitch = (id: string) => {
     if (switchingRef.current) return;
@@ -45,8 +51,12 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await profiles.importProfile(file);
     e.target.value = '';
+    setImportError(null);
+    const result = await profiles.importProfile(file);
+    if (result.body?.msg === 'profile_name_taken') {
+      setImportError(t('profile.importDuplicateName'));
+    }
   };
 
   const atLimit = profiles.profiles.length >= 5;
@@ -163,13 +173,19 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
                           if (renameError?.profileId === p.id) setRenameError(null);
                           return;
                         }
-                        const dupe = profiles.profiles.some(pp => pp.id !== p.id && pp.name.toLowerCase() === trimmed.toLowerCase());
-                        if (dupe) {
+                        if (isProfileNameTaken(profiles.profiles, trimmed, p.id)) {
                           setRenameError({ profileId: p.id, message: t('profile.duplicateName') });
                           return;
                         }
                         setRenameError(null);
-                        profiles.renameProfile(p.id, trimmed);
+                        const seq = (renameSeqRef.current[p.id] ?? 0) + 1;
+                        renameSeqRef.current[p.id] = seq;
+                        profiles.renameProfile(p.id, trimmed).then(result => {
+                          if (renameSeqRef.current[p.id] !== seq) return; // superseded by a later rename
+                          if (result.body?.msg === 'profile_name_taken') {
+                            setRenameError({ profileId: p.id, message: t('profile.duplicateName') });
+                          }
+                        });
                       }}
                       className={styles.profileName}
                       ariaLabel={t('profile.rename')}
@@ -267,6 +283,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
       </div>
       {atLimit && <p className={styles.note}>{t('profile.maxReached')}</p>}
+      {importError && <p className={styles.profileImportError} role="alert">{importError}</p>}
       </SettingsSection>
 
       <PromptModal
@@ -277,14 +294,16 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         validate={raw => {
           const trimmed = raw.trim();
           if (!trimmed) return null;
-          const dupe = profiles.profiles.some(pp => pp.name.toLowerCase() === trimmed.toLowerCase());
-          return dupe ? t('profile.duplicateName') : null;
+          return isProfileNameTaken(profiles.profiles, trimmed) ? t('profile.duplicateName') : null;
         }}
         onConfirm={async raw => {
           const trimmed = raw.trim().slice(0, 20);
           if (!trimmed) return;
+          const result = await profiles.createProfile(trimmed);
+          if (result.body?.msg === 'profile_name_taken') {
+            return t('profile.duplicateName');
+          }
           setCreateOpen(false);
-          await profiles.createProfile(trimmed);
         }}
         onCancel={() => setCreateOpen(false)}
       />

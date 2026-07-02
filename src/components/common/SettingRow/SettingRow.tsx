@@ -26,7 +26,8 @@ export function SettingRow({
   description?: ReactNode;
   // Optional accent glyph rendered inline before the label text.
   icon?: ReactNode;
-  children: ReactNode;
+  // Omit for a pure status row (label/description only, no control).
+  children?: ReactNode;
   disabled?: boolean;
   // Search deep-link target: stamps the row so the command palette can scroll
   // to + shine it. Optional; nothing else reads it.

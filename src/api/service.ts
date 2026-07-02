@@ -396,6 +396,51 @@ export async function relayRequestWithStatus(
   }
 }
 
+/**
+ * Status-preserving authFetch: the same transport routing (cloud relay / LAN
+ * sealed tunnel / direct LAN) and 401-retry as authFetch, but never collapses
+ * a non-2xx response to null - callers branch on the real status/body (e.g. a
+ * machine error code in a 409). status 0 means a transport failure (network
+ * error, or blockedLocalhostFetch on a remote origin with no tunnel yet).
+ */
+export async function authFetchWithStatus(path: string, opts: RequestOptions = {}): Promise<{ response: Response | null; status: number }> {
+  if (isTunnelActive()) {
+    const method = (opts.method ?? 'GET') as RelayHttpMethod;
+    return relayRequestWithStatus(method, path, opts.body);
+  }
+
+  if (blockedLocalhostFetch()) return { response: null, status: 0 };
+
+  try {
+    const token = await getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
+
+    const init: RequestInit = {
+      method: opts.method,
+      headers,
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      signal: opts.signal,
+      cache: opts.cache,
+    };
+
+    let response = await fetch(resolveHttp(path), init);
+
+    if (response.status === 401) {
+      const newToken = await handleUnauthorized();
+      if (newToken) {
+        headers['Authorization'] = `Bearer ${newToken}`;
+        response = await fetch(resolveHttp(path), init);
+      }
+    }
+
+    return { response, status: response.status };
+  } catch {
+    return { response: null, status: 0 };
+  }
+}
+
 export async function fetchService<T>(path: string): Promise<T | null> {
   const r = await authFetch(path, { cache: 'no-store' });
   return r ? (await r.json()) as T : null;

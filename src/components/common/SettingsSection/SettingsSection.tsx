@@ -16,6 +16,7 @@ export function SettingsSection({
   title,
   description,
   titleStyle,
+  action,
   children,
   className,
   boxClassName,
@@ -26,6 +27,9 @@ export function SettingsSection({
   description?: ReactNode;
   // Per-section title colour override (e.g. the danger zone red).
   titleStyle?: CSSProperties;
+  // Optional trailing control next to the title (e.g. a section-wide "Sync
+  // now" button), aligned on the same row.
+  action?: ReactNode;
   children: ReactNode;
   className?: string;
   boxClassName?: string;
@@ -34,7 +38,10 @@ export function SettingsSection({
   return (
     <section className={className ? `${styles.section} ${className}` : styles.section} aria-label={ariaLabel}>
       <div className={styles.header}>
-        <SectionHeader style={titleStyle}>{title}</SectionHeader>
+        <div className={styles.titleRow}>
+          <SectionHeader style={titleStyle}>{title}</SectionHeader>
+          {action !== undefined && <div className={styles.action}>{action}</div>}
+        </div>
         {description !== undefined && <div className={styles.description}>{description}</div>}
       </div>
       <div className={boxClassName ? `${styles.box} ${boxClassName}` : styles.box}>

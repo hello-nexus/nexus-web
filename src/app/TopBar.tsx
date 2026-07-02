@@ -46,8 +46,8 @@ interface TopBarProps {
   connectEpoch: number;
   profiles: UseProfilesResult;
   // Cloud account state, for the top-bar avatar image/initial and the profile
-  // dropdown's "Manage account" entry. Undefined/no active account keeps the
-  // trigger's generic person icon unchanged.
+  // dropdown's top account entry (log in / account row). Undefined/no active
+  // account keeps the trigger's generic person icon unchanged.
   cloudAccounts: UseCloudAccountsResult;
   onPreferencesChanged: (prefs: Preferences) => void;
   onNavigateSettings: () => void;
@@ -60,7 +60,7 @@ interface TopBarProps {
   onInstall: () => void;
   // Profile dropdown's "Manage profiles" target (standalone Profiles page).
   onManageProfiles: () => void;
-  // Profile dropdown's "Manage account" target (standalone Account page).
+  // Profile dropdown's top account entry target (standalone Account page).
   onNavigateAccount: () => void;
   // True only inside the Nexus Windows --app shell (custom caption buttons).
   isWindowsApp: boolean;
@@ -255,6 +255,8 @@ export function TopBar({
                 onNavigateAccount={onNavigateAccount}
                 accountAvatarUrl={cloudAccounts.activeAccount?.avatar?.small}
                 accountInitial={cloudAccounts.activeAccount?.username?.charAt(0).toUpperCase()}
+                accountUsername={cloudAccounts.activeAccount?.username}
+                signedIn={cloudAccounts.activeAccount != null}
                 variant="avatar"
               />
             </ConnectedProfileSlot>

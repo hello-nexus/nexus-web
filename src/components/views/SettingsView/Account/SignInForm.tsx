@@ -4,6 +4,7 @@ import { TextInput } from '../../../common/TextInput/TextInput';
 import { useTranslation } from '../../../../lib/i18n';
 import type { CloudFetchResult, CloudLoginResponse } from '../../../../api/cloud';
 import { authErrorMessage } from './accountErrors';
+import { storeLoginCredential } from './credentialStore';
 import styles from './Account.module.scss';
 
 interface SignInFormProps {
@@ -31,6 +32,7 @@ export function SignInForm({ onLogin, onSuccess, onForgotPassword, onCreateAccou
     const result = await onLogin(trimmedIdentifier, password);
     setSubmitting(false);
     if (result.status >= 200 && result.status < 300) {
+      void storeLoginCredential(trimmedIdentifier, password);
       onSuccess();
       return;
     }
