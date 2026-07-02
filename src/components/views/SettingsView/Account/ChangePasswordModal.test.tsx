@@ -132,4 +132,41 @@ describe('ChangePasswordModal', () => {
     fireEvent.input(screen.getByLabelText('account.password.confirm'), { target: { value: 'NewPass1' } });
     expect(submit).not.toBeDisabled();
   });
+
+  it('clears all password fields before onClose unmounts the form via the header close button', () => {
+    let currentAtCloseTime: string | null = null;
+    let newAtCloseTime: string | null = null;
+    let confirmAtCloseTime: string | null = null;
+    const onClose = vi.fn(() => {
+      currentAtCloseTime = (screen.getByLabelText('account.password.current') as HTMLInputElement).value;
+      newAtCloseTime = (screen.getByLabelText('account.password.new') as HTMLInputElement).value;
+      confirmAtCloseTime = (screen.getByLabelText('account.password.confirm') as HTMLInputElement).value;
+    });
+    renderModal({ recoveryFresh: false, onClose });
+
+    fireEvent.input(screen.getByLabelText('account.password.current'), { target: { value: 'oldPass1' } });
+    fireEvent.input(screen.getByLabelText('account.password.new'), { target: { value: 'NewPass1' } });
+    fireEvent.input(screen.getByLabelText('account.password.confirm'), { target: { value: 'NewPass1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'app.window.close' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(currentAtCloseTime).toBe('');
+    expect(newAtCloseTime).toBe('');
+    expect(confirmAtCloseTime).toBe('');
+  });
+
+  it('clears new/confirm password before onClose on a recovery-fresh close (no current-password field)', () => {
+    let newAtCloseTime: string | null = null;
+    const onClose = vi.fn(() => {
+      newAtCloseTime = (screen.getByLabelText('account.password.new') as HTMLInputElement).value;
+    });
+    renderModal({ recoveryFresh: true, onClose });
+
+    fireEvent.input(screen.getByLabelText('account.password.new'), { target: { value: 'NewPass1' } });
+    fireEvent.input(screen.getByLabelText('account.password.confirm'), { target: { value: 'NewPass1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'app.window.close' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(newAtCloseTime).toBe('');
+  });
 });

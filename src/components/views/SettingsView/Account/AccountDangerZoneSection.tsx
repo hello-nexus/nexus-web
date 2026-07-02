@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Trash2 } from 'lucide-react';
 import { Button } from '../../../common/Button/Button';
 import { TextInput } from '../../../common/TextInput/TextInput';
@@ -51,6 +52,18 @@ export function AccountDangerZoneSection({
     setDeleteError(currentPasswordErrorMessage(t, result.body !== null, sentWithoutCurrentPassword));
   };
 
+  // Chromium infers a successful login when a filled password field unmounts,
+  // and offers to save it. flushSync commits the cleared password to the DOM
+  // while ConfirmModal is still open, before the separate open=false update
+  // unmounts it, so it never sees the field filled.
+  const handleDeleteCancel = () => {
+    flushSync(() => {
+      setDeletePassword('');
+      setDeleteError(null);
+    });
+    setDeleteConfirmOpen(false);
+  };
+
   return (
     <>
       {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
@@ -77,7 +90,7 @@ export function AccountDangerZoneSection({
         confirmLabel={t('account.danger.delete.button')}
         destructive
         onConfirm={() => void handleDeleteConfirm()}
-        onCancel={() => { setDeleteConfirmOpen(false); setDeletePassword(''); setDeleteError(null); }}
+        onCancel={handleDeleteCancel}
       >
         {!recoveryFresh && (
           <div className={styles.deletePasswordField}>

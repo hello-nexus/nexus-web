@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { Button } from '../../../common/Button/Button';
 import { TextInput } from '../../../common/TextInput/TextInput';
 import { DeviceModal } from '../../../common/DeviceModal/DeviceModal';
@@ -19,9 +20,6 @@ interface ChangePasswordModalProps {
   changePassword: AuthBackend['changePassword'];
 }
 
-// DeviceModal unmounts its children on close, so every field here resets to
-// its initial empty state on the next mount - no password value is ever
-// held outside this component's lifetime.
 export function ChangePasswordModal({ open, onClose, recoveryFresh, onRecoveryFreshConsumed, changePassword }: ChangePasswordModalProps) {
   const { t } = useTranslation();
   const { push } = useToast();
@@ -60,8 +58,22 @@ export function ChangePasswordModal({ open, onClose, recoveryFresh, onRecoveryFr
     void handleSave();
   };
 
+  // Chromium infers a successful login when a filled password field unmounts,
+  // and offers to save it. flushSync commits the cleared fields to the DOM
+  // before onClose runs Overlay's open=false unmount, so it never sees them
+  // filled. Not applied to the handleSave success path above, which wants
+  // the real password-change to trigger the browser's save-password prompt.
+  const handleClose = () => {
+    flushSync(() => {
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    });
+    onClose();
+  };
+
   return (
-    <DeviceModal open={open} onClose={onClose} title={t('account.password.change')}>
+    <DeviceModal open={open} onClose={handleClose} title={t('account.password.change')}>
       <form className={styles.form} onSubmit={handleSubmit}>
         {!recoveryFresh && (
           <label className={styles.field}>
