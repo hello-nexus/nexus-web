@@ -19,6 +19,8 @@ import {
   getTryxStatus,
   getTryxPresets,
   getTryxMedia,
+  getTryxCloudCatalog,
+  installTryxCloudMaterial,
   setTryxEnabled,
   setTryxBrightness,
   setTryxFan,
@@ -34,6 +36,7 @@ import {
   type TryxPreset,
   type TryxMediaItem,
   type TryxFanMode,
+  type TryxCloudMaterial,
 } from '../../../api/tryx';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './TryxDevicePage.module.scss';
@@ -112,6 +115,9 @@ export function TryxDevicePage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [presets, setPresets] = useState<TryxPreset[]>([]);
   const [media, setMedia] = useState<TryxMediaItem[]>([]);
+  const [cloudCatalog, setCloudCatalog] = useState<TryxCloudMaterial[]>([]);
+  const [cloudInstallingId, setCloudInstallingId] = useState<number | null>(null);
+  const [cloudInstallError, setCloudInstallError] = useState<{ id: number; msg: string } | null>(null);
   const [tab, setTab] = useState<TryxTab>('display');
 
   const [brightness, setBrightness] = useState(80);
@@ -153,11 +159,17 @@ export function TryxDevicePage() {
     if (aliveRef.current) setMedia(m);
   }, []);
 
+  const refreshCloudCatalog = useCallback(async () => {
+    const items = await getTryxCloudCatalog();
+    if (aliveRef.current) setCloudCatalog(items);
+  }, []);
+
   useEffect(() => {
     aliveRef.current = true;
     void refreshStatus();
     void refreshPresets();
     void refreshMedia();
+    void refreshCloudCatalog();
     const statusId = window.setInterval(() => { void refreshStatus(); }, STATUS_POLL_MS);
     const mediaId = window.setInterval(() => { void refreshMedia(); }, MEDIA_POLL_MS);
     const onFocus = () => { void refreshStatus(); void refreshPresets(); void refreshMedia(); };
@@ -168,7 +180,7 @@ export function TryxDevicePage() {
       window.clearInterval(mediaId);
       window.removeEventListener('focus', onFocus);
     };
-  }, [refreshStatus, refreshPresets, refreshMedia]);
+  }, [refreshStatus, refreshPresets, refreshMedia, refreshCloudCatalog]);
 
   // Local brightness wins while the user is dragging; otherwise it tracks the
   // polled state so opening the page shows the screen's real brightness.
@@ -229,8 +241,46 @@ export function TryxDevicePage() {
       : null);
   const isCustom = selectedMedia != null || reportedCustom;
 
+  // Same derivation as activePreset above, applied to the cloud catalog: an
+  // installed material's preset id is `download_${id}`, which never appears in
+  // `presets`, so it needs its own reportedMedia match against cloudCatalog.
+  const activeCloudMaterialId = selectedPreset
+    ? (selectedPreset.startsWith('download_') ? Number(selectedPreset.slice('download_'.length)) : null)
+    : (!reportedCustom
+      ? (cloudCatalog.find(m => {
+        const id = `download_${m.id}`;
+        return reportedMedia === id || reportedMedia.startsWith(`${id}.`);
+      })?.id ?? null)
+      : null);
+
   const dispatchOverlay = useCallback((lines: OverlayLine[], color: string, align: string) => {
     void setTryxOverlay({ stats: lines.filter(l => l.enabled).map(l => l.stat), color, align });
+  }, []);
+
+  const handleCloudInstall = useCallback((id: number) => {
+    if (cloudInstallingId != null) return;
+    setCloudInstallError(null);
+    setCloudInstallingId(id);
+    void (async () => {
+      const result = await installTryxCloudMaterial(id);
+      if (!aliveRef.current) return;
+      setCloudInstallingId(null);
+      if (result.ok) {
+        await refreshCloudCatalog();
+        await refreshPresets();
+      } else {
+        setCloudInstallError({ id, msg: result.msg || t('devices.tryx.cloudInstallFailed') });
+      }
+    })();
+  }, [cloudInstallingId, refreshCloudCatalog, refreshPresets, t]);
+
+  const handleCloudSelect = useCallback((materialId: number) => {
+    const presetId = `download_${materialId}`;
+    setSelectedPreset(presetId);
+    setSelectedMedia(null);
+    void setTryxPreset(presetId).then(ok => {
+      if (!ok) setSelectedPreset(cur => (cur === presetId ? null : cur));
+    });
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -444,6 +494,36 @@ export function TryxDevicePage() {
                         {p.name}
                       </Button>
                     ))}
+                  </div>
+                </SettingsSection>
+              )}
+
+              {cloudCatalog.length > 0 && (
+                <SettingsSection title={t('devices.tryx.cloudSection')} boxClassName={styles.sectionBox}>
+                  <div className={styles.cloudGrid}>
+                    {cloudCatalog.map(material => {
+                      const isInstalling = cloudInstallingId === material.id;
+                      const error = cloudInstallError?.id === material.id ? cloudInstallError.msg : null;
+                      return (
+                        <div key={material.id} className={styles.cloudCardWrap}>
+                          <EffectCard
+                            label={material.name}
+                            thumbUrl={material.coverUrl}
+                            thumbAspect={UPLOAD_ASPECT}
+                            active={material.id === activeCloudMaterialId}
+                            meta={material.installed
+                              ? t('devices.tryx.cloudInstalled')
+                              : (isInstalling ? t('devices.tryx.cloudInstalling') : t('devices.tryx.cloudDownload'))}
+                            thumbOverlay={isInstalling ? <Spinner size={20} /> : undefined}
+                            onClick={() => {
+                              if (material.installed) handleCloudSelect(material.id);
+                              else handleCloudInstall(material.id);
+                            }}
+                          />
+                          {error && <p className={styles.cloudError}>{error}</p>}
+                        </div>
+                      );
+                    })}
                   </div>
                 </SettingsSection>
               )}
