@@ -29,7 +29,6 @@ import {
   deleteTryxMedia,
   setTryxOverlay,
   uploadTryxMedia,
-  tryxMediaFileUrl,
   TRYX_MEDIA_WIDTH,
   TRYX_MEDIA_HEIGHT,
   type TryxStatus,
@@ -44,6 +43,10 @@ import styles from './TryxDevicePage.module.scss';
 const STATUS_POLL_MS = 4000;
 const MEDIA_POLL_MS = 8000;
 const UPLOAD_ASPECT = TRYX_MEDIA_WIDTH / TRYX_MEDIA_HEIGHT;
+
+// Custom uploads carry the on-device filename (stem + ".mp4.h264_2240x1080");
+// show just the stem in the library.
+const mediaDisplayName = (deviceName: string): string => deviceName.split('.mp4')[0] || deviceName;
 
 const DEFAULT_CURVE: CurvePoint[] = [
   { temp: 0, speed: 20 },
@@ -230,7 +233,6 @@ export function TryxDevicePage() {
     }
   }, [reportedMedia, reportedCustom, selectedPreset]);
 
-  const activeThumb = media.find(m => m.name === currentMedia)?.thumb ?? null;
   // Highlighted preset: optimistic pick wins; otherwise derive from the
   // cooler's reported non-custom selection. The cooler reports the full media
   // filename (default_03.mp4.h264_2240x1080) while preset ids are the bare
@@ -239,7 +241,6 @@ export function TryxDevicePage() {
     ?? (!reportedCustom
       ? (presets.find(p => p.id === reportedMedia || reportedMedia.startsWith(`${p.id}.`))?.id ?? null)
       : null);
-  const isCustom = selectedMedia != null || reportedCustom;
 
   // Same derivation as activePreset above, applied to the cloud catalog: an
   // installed material's preset id is `download_${id}`, which never appears in
@@ -473,62 +474,7 @@ export function TryxDevicePage() {
 
           {tab === 'media' && (
             <>
-              {presets.length > 0 && (
-                <SettingsSection title={t('devices.tryx.presetsSection')} boxClassName={styles.sectionBox}>
-                  <div className={styles.presetsRow}>
-                    {presets.map(p => (
-                      <Button
-                        key={p.id}
-                        size="sm"
-                        tone={activePreset === p.id ? 'accent' : 'neutral'}
-                        onClick={() => {
-                          setSelectedPreset(p.id);
-                          setSelectedMedia(null);
-                          // Drop the optimistic pin if the cooler rejects it, so a
-                          // failed select doesn't leave the wrong card highlighted.
-                          void setTryxPreset(p.id).then(ok => {
-                            if (!ok) setSelectedPreset(cur => (cur === p.id ? null : cur));
-                          });
-                        }}
-                      >
-                        {p.name}
-                      </Button>
-                    ))}
-                  </div>
-                </SettingsSection>
-              )}
-
-              {cloudCatalog.length > 0 && (
-                <SettingsSection title={t('devices.tryx.cloudSection')} boxClassName={styles.sectionBox}>
-                  <div className={styles.cloudGrid}>
-                    {cloudCatalog.map(material => {
-                      const isInstalling = cloudInstallingId === material.id;
-                      const error = cloudInstallError?.id === material.id ? cloudInstallError.msg : null;
-                      return (
-                        <div key={material.id} className={styles.cloudCardWrap}>
-                          <EffectCard
-                            label={material.name}
-                            thumbUrl={material.coverUrl}
-                            thumbAspect={UPLOAD_ASPECT}
-                            active={material.id === activeCloudMaterialId}
-                            meta={material.installed
-                              ? t('devices.tryx.cloudInstalled')
-                              : (isInstalling ? t('devices.tryx.cloudInstalling') : t('devices.tryx.cloudDownload'))}
-                            thumbOverlay={isInstalling ? <Spinner size={20} /> : undefined}
-                            onClick={() => {
-                              if (material.installed) handleCloudSelect(material.id);
-                              else handleCloudInstall(material.id);
-                            }}
-                          />
-                          {error && <p className={styles.cloudError}>{error}</p>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </SettingsSection>
-              )}
-
-              <SettingsSection title={t('devices.tryx.librarySection')} boxClassName={styles.sectionBox}>
+              <SettingsSection title={t('devices.tryx.wallpapersSection')} boxClassName={styles.sectionBox}>
                 <div className={styles.libraryBlock}>
                   <Button
                     size="sm"
@@ -546,13 +492,35 @@ export function TryxDevicePage() {
                     onChange={handleFileChange}
                   />
 
-                  {media.length > 0 ? (
+                  {(presets.length > 0 || media.length > 0 || cloudCatalog.length > 0) ? (
                     <div className={styles.mediaGrid}>
+                      {/* Built-in presets */}
+                      {presets.map(p => (
+                        <EffectCard
+                          key={`preset-${p.id}`}
+                          asDiv
+                          label={p.name}
+                          thumbUrl={p.thumb ?? null}
+                          thumbStatic
+                          thumbAspect={2}
+                          active={activePreset === p.id}
+                          onClick={() => {
+                            setSelectedPreset(p.id);
+                            setSelectedMedia(null);
+                            // Drop the optimistic pin if the cooler rejects it.
+                            void setTryxPreset(p.id).then(ok => {
+                              if (!ok) setSelectedPreset(cur => (cur === p.id ? null : cur));
+                            });
+                          }}
+                        />
+                      ))}
+
+                      {/* Custom uploads */}
                       {media.map(item => (
                         <EffectCard
-                          key={item.name}
+                          key={`custom-${item.name}`}
                           asDiv
-                          label={item.name}
+                          label={mediaDisplayName(item.name)}
                           thumbUrl={item.thumb ?? null}
                           thumbStatic
                           thumbAspect={2}
@@ -569,6 +537,32 @@ export function TryxDevicePage() {
                           deleteAriaLabel={t('devices.tryx.deleteMediaAria')}
                         />
                       ))}
+
+                      {/* Cloud themes (download on click if not installed) */}
+                      {cloudCatalog.map(material => {
+                        const isInstalling = cloudInstallingId === material.id;
+                        const error = cloudInstallError?.id === material.id ? cloudInstallError.msg : null;
+                        return (
+                          <EffectCard
+                            key={`cloud-${material.id}`}
+                            asDiv
+                            label={material.name}
+                            thumbUrl={material.coverUrl}
+                            thumbStatic
+                            thumbAspect={2}
+                            active={material.id === activeCloudMaterialId}
+                            meta={error
+                              ?? (material.installed
+                                ? t('devices.tryx.cloudInstalled')
+                                : (isInstalling ? t('devices.tryx.cloudInstalling') : t('devices.tryx.cloudDownload')))}
+                            thumbOverlay={isInstalling ? <Spinner size={20} /> : undefined}
+                            onClick={() => {
+                              if (material.installed) handleCloudSelect(material.id);
+                              else handleCloudInstall(material.id);
+                            }}
+                          />
+                        );
+                      })}
                     </div>
                   ) : (
                     <EmptyState
@@ -656,30 +650,6 @@ export function TryxDevicePage() {
                 </div>
               )}
             </SettingsSection>
-          )}
-        </div>
-
-        <div className={styles.preview}>
-          {screenEnabled && isCustom && currentMedia ? (
-            <video
-              className={styles.previewMedia}
-              src={tryxMediaFileUrl(currentMedia)}
-              autoPlay
-              loop
-              muted
-              playsInline
-            />
-          ) : screenEnabled && activeThumb ? (
-            <img className={styles.previewMedia} src={activeThumb} alt={currentMedia || ''} />
-          ) : (
-            <div className={styles.previewFrame}>
-              {screenEnabled
-                ? <Monitor size={48} className={styles.previewFrameIconOn} aria-hidden />
-                : <MonitorOff size={48} className={styles.previewFrameIconOff} aria-hidden />}
-              <span className={styles.previewFrameLabel}>
-                {screenEnabled ? (currentMedia || t('devices.tryx.defaultPreset')) : t('devices.tryx.screenOff')}
-              </span>
-            </div>
           )}
         </div>
       </div>

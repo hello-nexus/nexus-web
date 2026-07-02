@@ -42,6 +42,7 @@ export interface TryxStatus {
 export interface TryxPreset {
   id: string;
   name: string;
+  thumb?: string;
 }
 
 export interface TryxMediaItem {
@@ -148,14 +149,20 @@ export function tryxMediaFileUrl(name: string): string {
 export interface TryxCloudMaterial {
   id: number;
   name: string;
-  // Ready-to-use service-local image URL; served directly, no auth token needed.
+  // Absolute, token-carrying cover URL ready for an <img> src (see tokenParam).
   coverUrl: string;
   installed: boolean;
 }
 
 export async function getTryxCloudCatalog(): Promise<TryxCloudMaterial[]> {
   const r = await fetchService<{ materials: TryxCloudMaterial[] }>('/tryx/cloud/catalog');
-  return r?.materials ?? [];
+  // The server returns a relative cover path; an <img> load can't send a Bearer
+  // header, so make it absolute and carry the session token as a query param.
+  const tok = tokenParam();
+  return (r?.materials ?? []).map(m => {
+    const base = resolveHttp(m.coverUrl);
+    return { ...m, coverUrl: tok ? `${base}?${tok}` : base };
+  });
 }
 
 export interface TryxCloudInstallResult {
