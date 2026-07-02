@@ -87,29 +87,30 @@ describe('ProfileDropdown create dialog', () => {
   });
 });
 
-describe('ProfileDropdown import', () => {
-  it('shows the import-specific inline error on a 409 profile_name_taken', async () => {
-    const profiles = buildProfiles({ importProfile: vi.fn().mockResolvedValue(taken()) });
-    openDropdown(profiles);
-
-    const file = new File([JSON.stringify({ name: 'Gaming' })], 'profile.json', { type: 'application/json' });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(fileInput, { target: { files: [file] } });
-
-    await waitFor(() => expect(profiles.importProfile).toHaveBeenCalled());
-    await waitFor(() => expect(screen.getByText('profile.importDuplicateName')).toBeInTheDocument());
-  });
-
-  it('shows no error on a successful import', async () => {
+describe('ProfileDropdown groups', () => {
+  it('does not render import or export actions (moved to the Profiles settings page)', () => {
     const profiles = buildProfiles();
     openDropdown(profiles);
 
-    const file = new File([JSON.stringify({ name: 'Gaming' })], 'profile.json', { type: 'application/json' });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(fileInput, { target: { files: [file] } });
+    expect(screen.queryByText('profile.import')).not.toBeInTheDocument();
+    expect(screen.queryByText('profile.export')).not.toBeInTheDocument();
+    expect(document.querySelector('input[type="file"]')).not.toBeInTheDocument();
+  });
 
-    await waitFor(() => expect(profiles.importProfile).toHaveBeenCalled());
-    expect(screen.queryByText('profile.importDuplicateName')).not.toBeInTheDocument();
+  it('labels the account entry with the Account group header when onNavigateAccount is provided', () => {
+    const profiles = buildProfiles();
+    openDropdown(profiles, { onNavigateAccount: vi.fn() });
+
+    expect(screen.getByText('account.title')).toBeInTheDocument();
+    expect(screen.getByText('profile.header')).toBeInTheDocument();
+  });
+
+  it('omits the Account group header when onNavigateAccount is not provided', () => {
+    const profiles = buildProfiles();
+    openDropdown(profiles);
+
+    expect(screen.queryByText('account.title')).not.toBeInTheDocument();
+    expect(screen.getByText('profile.header')).toBeInTheDocument();
   });
 });
 
