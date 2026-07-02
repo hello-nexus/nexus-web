@@ -13,12 +13,12 @@ import { useToast } from '../../../common/Toast/Toast';
 import { useTranslation } from '../../../../lib/i18n';
 import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts';
 import type { UseSyncStatusResult } from '../../../../hooks/useSyncStatus';
-import type { SyncState } from '../../../../api/cloud';
 import { SignInForm } from './SignInForm';
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { authErrorMessage, currentPasswordErrorMessage } from './accountErrors';
 import { cropToSourceRect } from './avatarCrop';
 import { isValidUsername } from './accountValidation';
+import { isProfileSyncSettled } from './syncProfileRows';
 import { usePublishPageSyncConflictModalOpen } from '../../../../app/syncConflictModalCoordination';
 import styles from './Account.module.scss';
 
@@ -51,16 +51,6 @@ async function cropToAvatarBlob(objectUrl: string, crop: NormalizedCrop): Promis
   if (!ctx) return null;
   ctx.drawImage(image, sx, sy, sw, sh, 0, 0, AVATAR_OUTPUT_SIZE, AVATAR_OUTPUT_SIZE);
   return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-}
-
-function syncStateColor(state: SyncState): string {
-  switch (state) {
-    case 'syncing': return 'var(--accent)';
-    case 'dirty': return 'var(--warn, #f59e0b)';
-    case 'offline': return 'var(--text-dim)';
-    case 'error': return 'var(--bad, #ef4444)';
-    default: return 'var(--good, #22c55e)';
-  }
 }
 
 // Ticks off `retryAt` (an ISO date) into whole hours/minutes remaining, for
@@ -178,18 +168,36 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
     setPrivacySaving(false);
   };
 
-  // ── Sync ────────────────────────────────────────────────────────────────
-  const [syncing, setSyncing] = useState(false);
+  // ── Profile sync ────────────────────────────────────────────────────────
+  const [syncingProfileId, setSyncingProfileId] = useState<string | null>(null);
+  const [syncBaseline, setSyncBaseline] = useState('');
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
   usePublishPageSyncConflictModalOpen(conflictModalOpen);
-  const handleSyncNow = async () => {
-    setSyncing(true);
-    await sync.syncNow();
-    setSyncing(false);
+
+  // The click's own re-render still carries the pre-click `sync` prop (no
+  // fetch has landed yet), and the background 25s poll (useSyncStatus) can
+  // also land a stale refresh in the same window - both would read
+  // pre-click data and could clear the spinner instantly if the account
+  // happened to already be idle. Gating on `ownRefreshLanded` (flipped only
+  // once this click's own syncNow() call has itself resolved) guarantees
+  // every `sync` value the settle check reads from then on is at least as
+  // fresh as this click's own confirmed round trip.
+  const [ownRefreshLanded, setOwnRefreshLanded] = useState(false);
+
+  const handleProfileSyncNow = (profileId: string, lastSyncedAt: string) => {
+    if (syncingProfileId) return;
+    setOwnRefreshLanded(false);
+    setSyncBaseline(lastSyncedAt);
+    setSyncingProfileId(profileId);
+    void sync.syncNow().finally(() => setOwnRefreshLanded(true));
   };
-  const lastSyncedText = sync.lastSyncAt
-    ? new Date(sync.lastSyncAt).toLocaleString()
-    : t('account.sync.never');
+
+  useEffect(() => {
+    if (!syncingProfileId || !ownRefreshLanded) return;
+    if (isProfileSyncSettled(sync.state, syncBaseline, sync.profiles, syncingProfileId)) {
+      setSyncingProfileId(null);
+    }
+  }, [sync.state, sync.profiles, syncingProfileId, syncBaseline, ownRefreshLanded]);
 
   // ── Account switcher ────────────────────────────────────────────────────
   const [switchingId, setSwitchingId] = useState<string | null>(null);
@@ -254,131 +262,13 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
     setDeletePassword('');
     setDeleteError(null);
     setAvatarError(null);
+    setSyncingProfileId(null);
   }, [accountId, recoveryFresh]);
 
   if (!account) return null;
 
   return (
     <div className={styles.tabPanel}>
-      <SettingsSection title={t('account.title')} description={t('account.subtitle')}>
-        <div className={styles.accountCard}>
-          <div className={styles.avatarWrap}>
-            {account.avatar?.large ? (
-              <img className={styles.avatarLarge} src={account.avatar.large} alt="" />
-            ) : (
-              <div className={styles.avatarLargeFallback}>{initial}</div>
-            )}
-            <button
-              type="button"
-              className={styles.avatarCameraBtn}
-              onClick={() => fileInputRef.current?.click()}
-              aria-label={t('account.avatar.change')}
-            >
-              <Camera size={14} />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className={styles.hiddenInput}
-              onChange={handleAvatarPick}
-            />
-          </div>
-          <div className={styles.accountInfo}>
-            <div className={styles.accountNameRow}>
-              <span className={styles.accountName}>{account.username}</span>
-              {account.emailVerified && (
-                <Badge label={t('account.verifiedBadge')} color="var(--good, #22c55e)" icon={<BadgeCheck size={12} />} />
-              )}
-            </div>
-            <span className={styles.accountEmail}>{account.email}</span>
-          </div>
-        </div>
-        {avatarError && <p className={styles.error} role="alert">{avatarError}</p>}
-        {cropSrc && (
-          <MediaCropper src={cropSrc} aspect={1} busy={avatarBusy} onConfirm={c => void handleCropConfirm(c)} onCancel={handleCropCancel} />
-        )}
-      </SettingsSection>
-
-      <SettingsSection title={t('account.username.title')} description={t('account.username.description')}>
-        <SettingRow label={t('account.username.label')}>
-          <div className={styles.inlineField}>
-            <TextInput
-              value={usernameValue}
-              onInput={setUsernameValue}
-              maxLength={15}
-              ariaLabel={t('account.username.label')}
-              disabled={usernameSaving || cooldown != null}
-              invalid={usernameError != null}
-            />
-            <Button
-              type="button"
-              tone="neutral"
-              size="sm"
-              loading={usernameSaving}
-              disabled={usernameSaving || cooldown != null || usernameValue.trim() === account.username || !isValidUsername(usernameValue.trim())}
-              onClick={() => void handleUsernameSave()}
-            >
-              {t('account.save')}
-            </Button>
-          </div>
-        </SettingRow>
-        {usernameError && (
-          <p className={styles.error} role="alert">
-            {cooldown
-              ? t('account.username.error.cooldownIn', { hours: cooldown.hours, minutes: cooldown.minutes })
-              : usernameError}
-          </p>
-        )}
-      </SettingsSection>
-
-      <SettingsSection title={t('account.password.title')} description={t('account.password.description')}>
-        <Button type="button" tone="neutral" size="sm" onClick={() => setPasswordModalOpen(true)}>
-          {t('account.password.change')}
-        </Button>
-      </SettingsSection>
-      <ChangePasswordModal
-        open={passwordModalOpen}
-        onClose={() => setPasswordModalOpen(false)}
-        recoveryFresh={recoveryFresh}
-        onRecoveryFreshConsumed={onRecoveryFreshConsumed}
-        changePassword={accounts.changePassword}
-      />
-
-      <SettingsSection title={t('account.privacy.title')}>
-        <SettingToggle
-          label={t('account.privacy.label')}
-          description={t('account.privacy.description')}
-          checked={account.isPrivate}
-          onChange={() => void handlePrivacyToggle()}
-          disabled={privacySaving}
-        />
-      </SettingsSection>
-
-      <SettingsSection title={t('account.sync.title')} description={t('account.sync.description')}>
-        <SettingRow label={t('account.sync.statusLabel')}>
-          <Badge label={t(`account.sync.state.${sync.state}`)} color={syncStateColor(sync.state)} />
-        </SettingRow>
-        <SettingRow label={t('account.sync.lastSyncedLabel')} description={lastSyncedText}>
-          <Button type="button" tone="neutral" size="sm" icon={<RefreshCw size={14} />} loading={syncing} onClick={() => void handleSyncNow()}>
-            {t('account.sync.syncNow')}
-          </Button>
-        </SettingRow>
-        {sync.conflicts.length > 0 && (
-          <SettingRow label={t('account.sync.conflict.title')} description={t('account.sync.conflict.pendingCount', { count: sync.conflicts.length })}>
-            <Button type="button" tone="danger" size="sm" onClick={() => setConflictModalOpen(true)}>
-              {t('account.sync.conflict.review')}
-            </Button>
-          </SettingRow>
-        )}
-      </SettingsSection>
-      <SyncConflictModal
-        open={conflictModalOpen}
-        conflicts={sync.conflicts}
-        onResolve={(profileId, choice) => void sync.resolve(profileId, choice)}
-        onClose={() => setConflictModalOpen(false)}
-      />
-
       <SettingsSection title={t('account.switcher.title')} description={t('account.switcher.description')}>
         <div className={styles.switcherList}>
           {accounts.accounts.map(entry => (
@@ -430,6 +320,132 @@ export function AccountSignedIn({ accounts, sync, recoveryFresh, onRecoveryFresh
           submitLabel={t('account.signIn.submit')}
         />
       </DeviceModal>
+
+      <SettingsSection title={t('account.authentication.title')} description={t('account.authentication.description')}>
+        <div className={styles.accountCard}>
+          <div className={styles.avatarWrap}>
+            {account.avatar?.large ? (
+              <img className={styles.avatarLarge} src={account.avatar.large} alt="" />
+            ) : (
+              <div className={styles.avatarLargeFallback}>{initial}</div>
+            )}
+            <button
+              type="button"
+              className={styles.avatarCameraBtn}
+              onClick={() => fileInputRef.current?.click()}
+              aria-label={t('account.avatar.change')}
+            >
+              <Camera size={14} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className={styles.hiddenInput}
+              onChange={handleAvatarPick}
+            />
+          </div>
+          <div className={styles.accountInfo}>
+            <div className={styles.accountNameRow}>
+              <span className={styles.accountName}>{account.username}</span>
+              {account.emailVerified && (
+                <Badge label={t('account.verifiedBadge')} color="var(--good, #22c55e)" icon={<BadgeCheck size={12} />} />
+              )}
+            </div>
+            <span className={styles.accountEmail}>{account.email}</span>
+          </div>
+        </div>
+        {avatarError && <p className={styles.error} role="alert">{avatarError}</p>}
+        {cropSrc && (
+          <MediaCropper src={cropSrc} aspect={1} busy={avatarBusy} onConfirm={c => void handleCropConfirm(c)} onCancel={handleCropCancel} />
+        )}
+
+        <SettingRow label={t('account.username.label')} description={t('account.username.description')}>
+          <div className={styles.inlineField}>
+            <TextInput
+              value={usernameValue}
+              onInput={setUsernameValue}
+              maxLength={15}
+              ariaLabel={t('account.username.label')}
+              disabled={usernameSaving || cooldown != null}
+              invalid={usernameError != null}
+            />
+            <Button
+              type="button"
+              tone="neutral"
+              size="sm"
+              loading={usernameSaving}
+              disabled={usernameSaving || cooldown != null || usernameValue.trim() === account.username || !isValidUsername(usernameValue.trim())}
+              onClick={() => void handleUsernameSave()}
+            >
+              {t('account.save')}
+            </Button>
+          </div>
+        </SettingRow>
+        {usernameError && (
+          <p className={styles.error} role="alert">
+            {cooldown
+              ? t('account.username.error.cooldownIn', { hours: cooldown.hours, minutes: cooldown.minutes })
+              : usernameError}
+          </p>
+        )}
+
+        <SettingRow label={t('account.password.title')} description={t('account.password.description')}>
+          <Button type="button" tone="neutral" size="sm" onClick={() => setPasswordModalOpen(true)}>
+            {t('account.password.change')}
+          </Button>
+        </SettingRow>
+
+        <SettingToggle
+          label={t('account.privacy.label')}
+          description={t('account.privacy.description')}
+          checked={account.isPrivate}
+          onChange={() => void handlePrivacyToggle()}
+          disabled={privacySaving}
+        />
+      </SettingsSection>
+      <ChangePasswordModal
+        open={passwordModalOpen}
+        onClose={() => setPasswordModalOpen(false)}
+        recoveryFresh={recoveryFresh}
+        onRecoveryFreshConsumed={onRecoveryFreshConsumed}
+        changePassword={accounts.changePassword}
+      />
+
+      <SettingsSection title={t('account.sync.title')} description={t('account.sync.description')}>
+        {sync.profiles.map(profile => (
+          <SettingRow
+            key={profile.profileId}
+            label={profile.name}
+            description={profile.lastSyncedAt ? new Date(profile.lastSyncedAt).toLocaleString() : t('account.sync.neverSyncedYet')}
+          >
+            <Button
+              type="button"
+              tone="neutral"
+              size="sm"
+              icon={<RefreshCw size={14} />}
+              loading={syncingProfileId === profile.profileId}
+              disabled={syncingProfileId !== null && syncingProfileId !== profile.profileId}
+              onClick={() => handleProfileSyncNow(profile.profileId, profile.lastSyncedAt)}
+            >
+              {t('account.sync.syncNow')}
+            </Button>
+          </SettingRow>
+        ))}
+        {sync.conflicts.length > 0 && (
+          <SettingRow label={t('account.sync.conflict.title')} description={t('account.sync.conflict.pendingCount', { count: sync.conflicts.length })}>
+            <Button type="button" tone="danger" size="sm" onClick={() => setConflictModalOpen(true)}>
+              {t('account.sync.conflict.review')}
+            </Button>
+          </SettingRow>
+        )}
+      </SettingsSection>
+      <SyncConflictModal
+        open={conflictModalOpen}
+        conflicts={sync.conflicts}
+        onResolve={(profileId, choice) => void sync.resolve(profileId, choice)}
+        onClose={() => setConflictModalOpen(false)}
+      />
 
       {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
       <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>

@@ -1,10 +1,10 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AccountSignedIn } from './AccountSignedIn';
 import { ToastProvider } from '../../../common/Toast/Toast';
 import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts';
 import type { UseSyncStatusResult } from '../../../../hooks/useSyncStatus';
-import type { CloudAccountSummary } from '../../../../api/cloud';
+import type { CloudAccountSummary, SyncProfileStatus } from '../../../../api/cloud';
 
 vi.mock('../../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -60,17 +60,23 @@ const SYNC: UseSyncStatusResult = {
   state: 'idle',
   lastSyncAt: null,
   conflicts: [],
+  profiles: [],
   syncNow: vi.fn(),
   resolve: vi.fn(),
   refresh: vi.fn(),
 };
 
-function renderSignedIn(recoveryFresh: boolean, accounts: UseCloudAccountsResult, onRecoveryFreshConsumed = vi.fn()) {
+function renderSignedIn(
+  recoveryFresh: boolean,
+  accounts: UseCloudAccountsResult,
+  onRecoveryFreshConsumed = vi.fn(),
+  sync: UseSyncStatusResult = SYNC,
+) {
   return render(
     <ToastProvider>
       <AccountSignedIn
         accounts={accounts}
-        sync={SYNC}
+        sync={sync}
         recoveryFresh={recoveryFresh}
         onRecoveryFreshConsumed={onRecoveryFreshConsumed}
       />
@@ -158,5 +164,71 @@ describe('AccountSignedIn username cooldown', () => {
     await waitFor(() => {
       expect(screen.getByText('account.username.error.cooldown')).toBeInTheDocument();
     });
+  });
+});
+
+describe('AccountSignedIn profile sync rows', () => {
+  const PROFILE_MAIN: SyncProfileStatus = { profileId: 'p1', name: 'Main', lastSyncedAt: '', revision: 0 };
+  const PROFILE_WORK: SyncProfileStatus = { profileId: 'p2', name: 'Work', lastSyncedAt: '', revision: 0 };
+
+  it('renders one row per profile with a never-synced label when lastSyncedAt is empty', () => {
+    const sync: UseSyncStatusResult = { ...SYNC, profiles: [PROFILE_MAIN, PROFILE_WORK] };
+    renderSignedIn(false, makeAccounts(ACCOUNT_ONE), vi.fn(), sync);
+
+    expect(screen.getByText('Main')).toBeInTheDocument();
+    expect(screen.getByText('Work')).toBeInTheDocument();
+    expect(screen.getAllByText('account.sync.neverSyncedYet')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'account.sync.syncNow' })).toHaveLength(2);
+  });
+
+  it('shows a formatted timestamp instead of the never-synced label once a profile has synced', () => {
+    const synced: SyncProfileStatus = { ...PROFILE_MAIN, lastSyncedAt: '2026-01-01T00:00:00.000Z' };
+    const sync: UseSyncStatusResult = { ...SYNC, profiles: [synced] };
+    renderSignedIn(false, makeAccounts(ACCOUNT_ONE), vi.fn(), sync);
+
+    expect(screen.queryByText('account.sync.neverSyncedYet')).toBeNull();
+  });
+
+  it('spins the clicked row and disables the other row until this click\'s own sync request settles', async () => {
+    const syncNow = vi.fn().mockResolvedValue(undefined);
+    const sync: UseSyncStatusResult = { ...SYNC, profiles: [PROFILE_MAIN, PROFILE_WORK], syncNow };
+    const { rerender } = renderSignedIn(false, makeAccounts(ACCOUNT_ONE), vi.fn(), sync);
+    const rerenderWith = (nextSync: UseSyncStatusResult) => rerender(
+      <ToastProvider>
+        <AccountSignedIn
+          accounts={makeAccounts(ACCOUNT_ONE)}
+          sync={nextSync}
+          recoveryFresh={false}
+          onRecoveryFreshConsumed={vi.fn()}
+        />
+      </ToastProvider>,
+    );
+
+    const buttons = () => screen.getAllByRole('button', { name: 'account.sync.syncNow' });
+    fireEvent.click(buttons()[0]);
+
+    expect(syncNow).toHaveBeenCalledTimes(1);
+    expect(buttons()[0]).toHaveAttribute('data-loading', 'true');
+    expect(buttons()[1]).toBeDisabled();
+
+    // An unrelated background poll (a fresh object, unchanged values) that
+    // races ahead of this click's own request resolving must not clear the
+    // spinner - only a poll that lands AFTER this click's own syncNow() call
+    // has itself resolved may.
+    rerenderWith({ ...SYNC, profiles: [PROFILE_MAIN, PROFILE_WORK], syncNow });
+    expect(buttons()[0]).toHaveAttribute('data-loading', 'true');
+    expect(buttons()[1]).toBeDisabled();
+
+    // Let this click's own syncNow() promise resolve, mirroring production
+    // where syncNow() performs its own refresh before resolving.
+    await act(async () => { await Promise.resolve(); });
+
+    const advanced: SyncProfileStatus = { ...PROFILE_MAIN, lastSyncedAt: '2026-01-01T00:00:00.000Z' };
+    rerenderWith({ ...SYNC, profiles: [advanced, PROFILE_WORK], syncNow });
+
+    await waitFor(() => {
+      expect(buttons()[0]).not.toHaveAttribute('data-loading', 'true');
+    });
+    expect(buttons()[1]).not.toBeDisabled();
   });
 });

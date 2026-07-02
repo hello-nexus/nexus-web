@@ -61,10 +61,20 @@ export interface SyncConflict {
   updatedByInstallId: string;
 }
 
+// lastSyncedAt is "" (never populated by ISO string) rather than null - the
+// service ships an empty string for a profile that has not synced yet.
+export interface SyncProfileStatus {
+  profileId: string;
+  name: string;
+  lastSyncedAt: string;
+  revision: number;
+}
+
 export interface SyncStatus {
   state: SyncState;
   lastSyncAt: string | null;
   conflicts: SyncConflict[];
+  profiles: SyncProfileStatus[];
 }
 
 export interface CloudFetchResult<T> {

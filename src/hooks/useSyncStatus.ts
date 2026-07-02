@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchCloudSyncStatus, resolveCloudSyncConflict, syncCloudNow,
-  type SyncConflict, type SyncState,
+  type SyncConflict, type SyncProfileStatus, type SyncState,
 } from '../api/cloud';
 
 const POLL_MS = 25_000;
@@ -10,6 +10,7 @@ export interface UseSyncStatusResult {
   state: SyncState;
   lastSyncAt: string | null;
   conflicts: SyncConflict[];
+  profiles: SyncProfileStatus[];
   syncNow: () => Promise<void>;
   resolve: (profileId: string, choice: 'local' | 'cloud') => Promise<void>;
   refresh: () => Promise<void>;
@@ -22,6 +23,7 @@ export function useSyncStatus(enabled: boolean): UseSyncStatusResult {
   const [state, setState] = useState<SyncState>('idle');
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
+  const [profiles, setProfiles] = useState<SyncProfileStatus[]>([]);
   const mountedRef = useRef(true);
 
   const refresh = useCallback(async () => {
@@ -30,6 +32,7 @@ export function useSyncStatus(enabled: boolean): UseSyncStatusResult {
       setState(data.state);
       setLastSyncAt(data.lastSyncAt ?? null);
       setConflicts(data.conflicts ?? []);
+      setProfiles(data.profiles ?? []);
     }
   }, []);
 
@@ -41,6 +44,7 @@ export function useSyncStatus(enabled: boolean): UseSyncStatusResult {
       setState('idle');
       setLastSyncAt(null);
       setConflicts([]);
+      setProfiles([]);
       return;
     }
     void refresh();
@@ -62,5 +66,5 @@ export function useSyncStatus(enabled: boolean): UseSyncStatusResult {
     await refresh();
   }, [refresh]);
 
-  return { state, lastSyncAt, conflicts, syncNow, resolve, refresh };
+  return { state, lastSyncAt, conflicts, profiles, syncNow, resolve, refresh };
 }
