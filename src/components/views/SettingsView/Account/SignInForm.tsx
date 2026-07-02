@@ -11,14 +11,11 @@ interface SignInFormProps {
   onSuccess: () => void;
   onForgotPassword?: () => void;
   onCreateAccount?: () => void;
-  submitLabel?: string;
 }
 
-// Extracted from AccountSignedOut's 'signIn' state so it can also open inside
-// a DeviceModal from the account switcher's "Add account" button. Holds
-// identifier/password itself so an email_unverified response can retry the
-// same credentials without the caller re-plumbing them.
-export function SignInForm({ onLogin, onSuccess, onForgotPassword, onCreateAccount, submitLabel }: SignInFormProps) {
+// Holds identifier/password itself so an email_unverified response can retry
+// the same credentials without the caller re-plumbing them.
+export function SignInForm({ onLogin, onSuccess, onForgotPassword, onCreateAccount }: SignInFormProps) {
   const { t } = useTranslation();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -92,7 +89,7 @@ export function SignInForm({ onLogin, onSuccess, onForgotPassword, onCreateAccou
       </label>
       {error && <p className={styles.error} role="alert">{error}</p>}
       <Button type="submit" tone="accent" loading={submitting} disabled={submitting || !identifier.trim() || !password}>
-        {submitLabel ?? t('account.signIn.submit')}
+        {t('account.signIn.submit')}
       </Button>
       {(onForgotPassword || onCreateAccount) && (
         <div className={styles.links}>

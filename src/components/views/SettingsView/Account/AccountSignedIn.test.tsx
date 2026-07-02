@@ -84,6 +84,27 @@ function renderSignedIn(
   );
 }
 
+describe('AccountSignedIn single-account model', () => {
+  it('renders no account switcher or add-account affordances', () => {
+    renderSignedIn(false, makeAccounts(ACCOUNT_ONE, [ACCOUNT_ONE, ACCOUNT_TWO]));
+    expect(screen.queryByText('account.switcher.title')).toBeNull();
+    expect(screen.queryByText('beta')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'account.switcher.addAccount' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'account.switcher.activate' })).toBeNull();
+  });
+
+  it('logs out the active account from the danger zone', () => {
+    const logout = vi.fn().mockResolvedValue(undefined);
+    const accounts = makeAccounts(ACCOUNT_ONE);
+    accounts.logout = logout;
+    renderSignedIn(false, accounts);
+
+    fireEvent.click(screen.getByRole('button', { name: 'account.danger.logOut.label' }));
+
+    expect(logout).toHaveBeenCalledWith('acct-1');
+  });
+});
+
 describe('AccountSignedIn password modal', () => {
   it('opens the change-password modal automatically on a recovery-fresh mount', () => {
     renderSignedIn(true, makeAccounts(ACCOUNT_ONE));
