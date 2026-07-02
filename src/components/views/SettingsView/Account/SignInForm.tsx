@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react';
-import { flushSync } from 'react-dom';
 import { Button } from '../../../common/Button/Button';
 import { TextInput } from '../../../common/TextInput/TextInput';
 import { useTranslation } from '../../../../lib/i18n';
@@ -51,17 +50,6 @@ export function SignInForm({ backend, onSuccess, onForgotPassword, onCreateAccou
     void attemptLogin();
   };
 
-  // Chromium infers a successful login when a filled password field unmounts,
-  // and offers to save it. flushSync commits the cleared fields to the DOM
-  // before navigate() runs the caller's unmount, so it never sees them filled.
-  const clearAndNavigate = (navigate: () => void) => {
-    flushSync(() => {
-      setIdentifier('');
-      setPassword('');
-    });
-    navigate();
-  };
-
   return (
     <div className={styles.wrap}>
       <h1 className={styles.title}>{t('account.signIn.title')}</h1>
@@ -108,12 +96,12 @@ export function SignInForm({ backend, onSuccess, onForgotPassword, onCreateAccou
           {(onForgotPassword || onCreateAccount) && (
             <div className={styles.links}>
               {onForgotPassword && (
-                <button type="button" className={styles.linkBtn} onClick={() => clearAndNavigate(onForgotPassword)}>
+                <button type="button" className={styles.linkBtn} onClick={onForgotPassword}>
                   {t('account.signIn.forgotPassword')}
                 </button>
               )}
               {onCreateAccount && (
-                <button type="button" className={styles.linkBtn} onClick={() => clearAndNavigate(onCreateAccount)}>
+                <button type="button" className={styles.linkBtn} onClick={onCreateAccount}>
                   {t('account.signIn.createAccount')}
                 </button>
               )}
