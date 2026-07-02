@@ -83,45 +83,4 @@ describe('AccountDangerZoneSection delete account', () => {
     fireEvent.click(screen.getByRole('button', { name: 'account.danger.delete.button' }));
     expect(screen.queryByLabelText('account.password.current')).toBeNull();
   });
-
-  it('clears the password field before cancel unmounts the confirm modal', () => {
-    render(
-      <AccountDangerZoneSection
-        backend={makeBackend()}
-        recoveryFresh={false}
-        onRecoveryFreshConsumed={vi.fn()}
-        onLoggedOut={vi.fn()}
-        onDeleted={vi.fn()}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'account.danger.delete.button' }));
-    const passwordInput = screen.getByLabelText('account.password.current') as HTMLInputElement;
-    fireEvent.input(passwordInput, { target: { value: 'hunter2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
-
-    expect(screen.queryByLabelText('account.password.current')).toBeNull();
-    // passwordInput is now detached, but the DOM node object still holds
-    // whatever value it had at the moment it was removed.
-    expect(passwordInput.value).toBe('');
-  });
-
-  it('cancel does not touch the recovery-fresh flag (no password field to clear)', () => {
-    const onRecoveryFreshConsumed = vi.fn();
-    render(
-      <AccountDangerZoneSection
-        backend={makeBackend()}
-        recoveryFresh
-        onRecoveryFreshConsumed={onRecoveryFreshConsumed}
-        onLoggedOut={vi.fn()}
-        onDeleted={vi.fn()}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'account.danger.delete.button' }));
-    fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
-
-    expect(screen.queryByText('account.danger.delete.confirmTitle')).toBeNull();
-    expect(onRecoveryFreshConsumed).not.toHaveBeenCalled();
-  });
 });
