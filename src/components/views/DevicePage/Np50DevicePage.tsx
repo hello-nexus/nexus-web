@@ -175,13 +175,19 @@ export function Np50DevicePage() {
             />
           </div>
           <div className={`${styles.row} ${!defaultsLoaded || !isStatic ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>{t('devices.np50.staticFanPercent')}</span>
             <Slider
               className={styles.slider}
+              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+              orientation="stacked"
+              editable
+              trackFill
+              label={t('devices.np50.staticFanPercent')}
               value={defaults?.staticFanPercent ?? 50}
               min={0}
               max={100}
               step={1}
+              formatValue={v => `${Math.round(v)}%`}
+              disabled={!defaultsLoaded || !isStatic}
               ariaLabel={t('devices.np50.staticFanPercentAria')}
               onChange={(v: number) => {
                 if (!defaults) return;
@@ -191,7 +197,6 @@ export function Np50DevicePage() {
                 if (defaults) void commitDefaults(defaults);
               }}
             />
-            <span className={styles.rowValue}>{defaults?.staticFanPercent ?? 50}%</span>
           </div>
         </SettingsSection>
 
@@ -220,13 +225,19 @@ export function Np50DevicePage() {
             />
           </div>
           <div className={`${styles.row} ${!animationLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>{t('devices.y70.brightness')}</span>
             <Slider
               className={styles.slider}
+              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+              orientation="stacked"
+              editable
+              trackFill
+              label={t('devices.y70.brightness')}
               value={animation?.brightness ?? 100}
               min={0}
               max={100}
               step={1}
+              formatValue={v => `${Math.round(v)}%`}
+              disabled={!animationLoaded}
               ariaLabel={t('devices.y70.brightness')}
               onChange={(v: number) => {
                 if (!animation) return;
@@ -236,7 +247,6 @@ export function Np50DevicePage() {
                 if (animation) void commitAnimation(animation);
               }}
             />
-            <span className={styles.rowValue}>{animation?.brightness ?? 100}%</span>
           </div>
           {showColorPicker && animationLoaded && (
             <div className={styles.colorBlock}>
