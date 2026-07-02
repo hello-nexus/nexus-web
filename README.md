@@ -49,9 +49,20 @@ The app routes a small set of top-level surfaces from the URL path:
 | `/panel/phone` | Mobile remote surface (paired via QR). |
 | `/overlay` | Per-monitor overlay hosted by `nexus-overlay.exe`. |
 | `/r/pair` | iOS Universal Link landing page (App Store / browser fallback). |
+| `/u/:username` | Public account profile page. Browser-only. |
+| `/auth/verify` | Email verification landing page. Browser-only. |
+| `/auth/recover` | Lost-password recovery landing page. Browser-only. |
 
 `/touch` and `/panel/q60` are legacy aliases that land in the panel
 allocation flow.
+
+`/u/:username`, `/auth/verify`, and `/auth/recover` are dead-code-eliminated
+from `npm run build:service` (same `__SERVICE_BUILD__` build-define technique
+as the `__DEV_TOOLS__` gate) - they only ever ship in the standalone build
+served at hellonexus.com. `server.js` additionally injects og:title/og:image/
+description meta tags into `/u/:username` responses for link previews, backed
+by a short-lived in-memory cache of the nexus-api lookup (`NEXUS_API_BASE`,
+below).
 
 ## Project layout
 
@@ -60,7 +71,7 @@ Everything ships from `src/`. Top-level folders:
 | Folder | Contents |
 |---|---|
 | `api/` | Typed REST/WS clients for `nexus-service` + the cloud API - one file per domain (`cooling`, `lighting`, `displays`, `keeb`, `gallery`, `panel`, `internetPairing`…). Host resolution lives in `api/service.ts`. |
-| `app/` | Desktop **dashboard shell**: `Dashboard.tsx`, sidebar, pairing modals, panel entrypoint + routing, window caption buttons. |
+| `app/` | Desktop **dashboard shell**: `Dashboard.tsx`, sidebar, pairing modals, panel entrypoint + routing, window caption buttons. `app/public/` holds the browser-only public account pages (see Surfaces above). |
 | `components/` | Shared React components - `common/` (design-system primitives), `views/` (full dashboard sections), `builder/` (PC-builder UI), `peripherals/`, `icons/`. |
 | `diag/` | Renderer diagnostics - the memory/health probe that reports JS-heap, DOM-node, and reconnect samples to the service log (`/diagnostics/client-mem`) on significant change. |
 | `hooks/` | Reusable hooks, mostly data/state (`useDevices`, `useCooling`, `useMultiplexSocket`…). |
@@ -108,6 +119,9 @@ npm run audit:styles     # style audits (also: audit:css-chunks, audit:text-styl
   `https://api.hellonexus.com`; set this to point the embedded build at a
   local/staging API instead.
 - `VITE_RELAY_URL` - relay origin override for local relay testing.
+- `NEXUS_API_BASE` - `server.js`-only (not a Vite define): the nexus-api
+  origin `/u/:username` OG injection fetches against. Defaults to
+  `https://api.hellonexus.com`.
 
 Host resolution logic lives in `src/api/service.ts`.
 

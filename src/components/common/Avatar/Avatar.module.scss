@@ -1,0 +1,18 @@
+/* Circular avatar: an image, or an accent-filled initial-letter fallback. */
+
+.root {
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: var(--weight-heading);
+  font-family: var(--font-sans);
+  user-select: none;
+}

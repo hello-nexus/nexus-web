@@ -9,6 +9,7 @@ import { RankedList } from '../components/common/RankedList/RankedList';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
+import { Avatar } from '../components/common/Avatar/Avatar';
 import { BatteryBar } from '../components/peripherals/BatteryBar';
 import { Slider } from '../components/common/Slider/Slider';
 import { RangeSlider } from '../components/common/Slider/RangeSlider';
@@ -1181,6 +1182,16 @@ function PreviewSpinner() {
   );
 }
 
+function PreviewAvatar() {
+  return (
+    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+      <Avatar name="Nova" size={28} />
+      <Avatar name="Kestrel" size={36} />
+      <Avatar name="Ryder" size={96} />
+    </div>
+  );
+}
+
 function PreviewCanvasNoticeBar() {
   return (
     <div style={{ position: 'relative', width: '100%', height: 56, background: '#111', borderRadius: 6, overflow: 'hidden' }}>
@@ -1680,6 +1691,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/Spinner/Spinner.tsx',
     description: 'Indeterminate loading spinner: rotating arc over faint track, SMIL-animated. Size (default 20px) and color are props. Host-renderer bridge for the SDK Spinner element.',
     Preview: PreviewSpinner,
+  },
+  {
+    name: 'Avatar', category: 'status',
+    filePath: 'src/components/common/Avatar/Avatar.tsx',
+    description: 'Circular avatar. Renders the src image when present; falls back to the first letter of name over an accent-filled circle when src is absent or fails to load. size is a px diameter (default 36, matching the control-avatar size token). Used by the public account profile page (/u/<username>).',
+    Preview: PreviewAvatar,
   },
   {
     name: 'Badge', category: 'status',
