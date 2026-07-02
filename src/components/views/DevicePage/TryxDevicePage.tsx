@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Monitor, MonitorOff, Power, Wind, Film } from 'lucide-react';
+import { Monitor, MonitorOff, Power, Wind, Film, Download } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Spinner } from '../../common/Spinner/Spinner';
@@ -459,14 +459,16 @@ export function TryxDevicePage() {
                 </div>
                 <div className={styles.colorSection}>
                   <span className={styles.chipRowLabel}>{t('devices.tryx.color')}</span>
-                  <HsvPicker
-                    value={overlayColor}
-                    onPreview={setOverlayColor}
-                    onCommit={color => {
-                      setOverlayColor(color);
-                      dispatchOverlay(overlayLines, color, overlayAlign);
-                    }}
-                  />
+                  <div className={styles.colorPicker}>
+                    <HsvPicker
+                      value={overlayColor}
+                      onPreview={setOverlayColor}
+                      onCommit={color => {
+                        setOverlayColor(color);
+                        dispatchOverlay(overlayLines, color, overlayAlign);
+                      }}
+                    />
+                  </div>
                 </div>
               </SettingsSection>
             </>
@@ -525,7 +527,6 @@ export function TryxDevicePage() {
                           thumbStatic
                           thumbAspect={2}
                           active={item.name === currentMedia}
-                          meta={`${item.durationSec.toFixed(1)}s`}
                           onClick={() => {
                             setSelectedMedia(item.name);
                             setSelectedPreset(null);
@@ -551,11 +552,17 @@ export function TryxDevicePage() {
                             thumbStatic
                             thumbAspect={2}
                             active={material.id === activeCloudMaterialId}
-                            meta={error
-                              ?? (material.installed
-                                ? t('devices.tryx.cloudInstalled')
-                                : (isInstalling ? t('devices.tryx.cloudInstalling') : t('devices.tryx.cloudDownload')))}
-                            thumbOverlay={isInstalling ? <Spinner size={20} /> : undefined}
+                            meta={error ?? undefined}
+                            thumbOverlay={
+                              isInstalling
+                                ? <span className={styles.mediaOverlay}><Spinner size={26} /></span>
+                                : (!material.installed
+                                  ? (
+                                    <span className={styles.mediaOverlay} aria-label={t('devices.tryx.cloudDownload')}>
+                                      <Download size={34} strokeWidth={2.5} />
+                                    </span>
+                                  )
+                                  : undefined)}
                             onClick={() => {
                               if (material.installed) handleCloudSelect(material.id);
                               else handleCloudInstall(material.id);
