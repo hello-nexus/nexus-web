@@ -144,3 +144,28 @@ export function tryxMediaFileUrl(name: string): string {
   const tok = tokenParam();
   return tok ? `${base}&${tok}` : base;
 }
+
+export interface TryxCloudMaterial {
+  id: number;
+  name: string;
+  // Ready-to-use service-local image URL; served directly, no auth token needed.
+  coverUrl: string;
+  installed: boolean;
+}
+
+export async function getTryxCloudCatalog(): Promise<TryxCloudMaterial[]> {
+  const r = await fetchService<{ materials: TryxCloudMaterial[] }>('/tryx/cloud/catalog');
+  return r?.materials ?? [];
+}
+
+export interface TryxCloudInstallResult {
+  ok: boolean;
+  msg: string;
+}
+
+// The install is a large download + on-device push (10-60s); no client-side
+// timeout is applied, matching every other postService call in this file.
+export async function installTryxCloudMaterial(id: number): Promise<TryxCloudInstallResult> {
+  const r = await postService<OkResponse>('/tryx/cloud/install', { id });
+  return { ok: isOk(r), msg: r?.msg ?? '' };
+}
