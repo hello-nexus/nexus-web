@@ -30,18 +30,20 @@
 }
 
 .fieldLabel {
-  @include text-caption;
-  color: var(--text-dim);
+  @include text-body;
+  color: var(--text);
 }
 
 .error {
-  @include text-caption;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
   color: var(--bad);
   margin: 0;
 }
 
 .hint {
-  @include text-caption;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
   color: var(--text-dim);
   margin: 0;
 }
@@ -54,7 +56,8 @@
 }
 
 .linkBtn {
-  @include text-caption;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
   background: none;
   border: none;
   padding: 0;

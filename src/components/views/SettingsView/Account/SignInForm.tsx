@@ -2,13 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { Button } from '../../../common/Button/Button';
 import { TextInput } from '../../../common/TextInput/TextInput';
 import { useTranslation } from '../../../../lib/i18n';
-import type { CloudFetchResult, CloudLoginResponse } from '../../../../api/cloud';
+import type { AuthBackend } from '../../../../api/authBackend';
 import { authErrorMessage } from './accountErrors';
 import { storeLoginCredential } from './credentialStore';
 import styles from './Account.module.scss';
 
 interface SignInFormProps {
-  onLogin: (identifier: string, password: string) => Promise<CloudFetchResult<CloudLoginResponse>>;
+  backend: AuthBackend;
   onSuccess: () => void;
   onForgotPassword?: () => void;
   onCreateAccount?: () => void;
@@ -16,7 +16,7 @@ interface SignInFormProps {
 
 // Holds identifier/password itself so an email_unverified response can retry
 // the same credentials without the caller re-plumbing them.
-export function SignInForm({ onLogin, onSuccess, onForgotPassword, onCreateAccount }: SignInFormProps) {
+export function SignInForm({ backend, onSuccess, onForgotPassword, onCreateAccount }: SignInFormProps) {
   const { t } = useTranslation();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +29,7 @@ export function SignInForm({ onLogin, onSuccess, onForgotPassword, onCreateAccou
     if (!trimmedIdentifier || !password || submitting) return;
     setSubmitting(true);
     setError(null);
-    const result = await onLogin(trimmedIdentifier, password);
+    const result = await backend.login(trimmedIdentifier, password);
     setSubmitting(false);
     if (result.status >= 200 && result.status < 300) {
       void storeLoginCredential(trimmedIdentifier, password);
@@ -50,63 +50,65 @@ export function SignInForm({ onLogin, onSuccess, onForgotPassword, onCreateAccou
     void attemptLogin();
   };
 
-  if (unverified) {
-    return (
-      <div className={styles.pendingBlock}>
-        <p className={styles.subtitle}>{t('account.verify.pendingMessage')}</p>
-        {error && <p className={styles.error} role="alert">{error}</p>}
-        <Button type="button" tone="accent" loading={submitting} onClick={() => void attemptLogin()}>
-          {t('account.create.verifiedRetry')}
-        </Button>
-        <button type="button" className={styles.linkBtn} onClick={() => setUnverified(false)}>
-          {t('account.signIn.backToSignIn')}
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <label className={styles.field}>
-        <span className={styles.fieldLabel}>{t('account.signIn.identifier')}</span>
-        <TextInput
-          value={identifier}
-          onInput={setIdentifier}
-          name="username"
-          autoComplete="username"
-          ariaLabel={t('account.signIn.identifier')}
-          placeholder={t('account.signIn.identifierPlaceholder')}
-        />
-      </label>
-      <label className={styles.field}>
-        <span className={styles.fieldLabel}>{t('account.signIn.password')}</span>
-        <TextInput
-          value={password}
-          type="password"
-          onInput={setPassword}
-          name="current-password"
-          autoComplete="current-password"
-          ariaLabel={t('account.signIn.password')}
-        />
-      </label>
-      {error && <p className={styles.error} role="alert">{error}</p>}
-      <Button type="submit" tone="accent" loading={submitting} disabled={submitting || !identifier.trim() || !password}>
-        {t('account.signIn.submit')}
-      </Button>
-      {(onForgotPassword || onCreateAccount) && (
-        <div className={styles.links}>
-          {onForgotPassword && (
-            <button type="button" className={styles.linkBtn} onClick={onForgotPassword}>
-              {t('account.signIn.forgotPassword')}
-            </button>
-          )}
-          {onCreateAccount && (
-            <button type="button" className={styles.linkBtn} onClick={onCreateAccount}>
-              {t('account.signIn.createAccount')}
-            </button>
-          )}
+    <div className={styles.wrap}>
+      <h1 className={styles.title}>{t('account.signIn.title')}</h1>
+      <p className={styles.subtitle}>{t('account.signIn.subtitle')}</p>
+      {unverified ? (
+        <div className={styles.pendingBlock}>
+          <p className={styles.subtitle}>{t('account.verify.pendingMessage')}</p>
+          {error && <p className={styles.error} role="alert">{error}</p>}
+          <Button type="button" tone="accent" loading={submitting} onClick={() => void attemptLogin()}>
+            {t('account.create.verifiedRetry')}
+          </Button>
+          <button type="button" className={styles.linkBtn} onClick={() => setUnverified(false)}>
+            {t('account.signIn.backToSignIn')}
+          </button>
         </div>
+      ) : (
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>{t('account.signIn.identifier')}</span>
+            <TextInput
+              value={identifier}
+              onInput={setIdentifier}
+              name="username"
+              autoComplete="username"
+              ariaLabel={t('account.signIn.identifier')}
+              placeholder={t('account.signIn.identifierPlaceholder')}
+            />
+          </label>
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>{t('account.signIn.password')}</span>
+            <TextInput
+              value={password}
+              type="password"
+              onInput={setPassword}
+              name="current-password"
+              autoComplete="current-password"
+              ariaLabel={t('account.signIn.password')}
+            />
+          </label>
+          {error && <p className={styles.error} role="alert">{error}</p>}
+          <Button type="submit" tone="accent" loading={submitting} disabled={submitting || !identifier.trim() || !password}>
+            {t('account.signIn.submit')}
+          </Button>
+          {(onForgotPassword || onCreateAccount) && (
+            <div className={styles.links}>
+              {onForgotPassword && (
+                <button type="button" className={styles.linkBtn} onClick={onForgotPassword}>
+                  {t('account.signIn.forgotPassword')}
+                </button>
+              )}
+              {onCreateAccount && (
+                <button type="button" className={styles.linkBtn} onClick={onCreateAccount}>
+                  {t('account.signIn.createAccount')}
+                </button>
+              )}
+            </div>
+          )}
+        </form>
       )}
-    </form>
+    </div>
   );
 }

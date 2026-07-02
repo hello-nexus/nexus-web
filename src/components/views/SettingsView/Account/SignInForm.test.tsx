@@ -23,9 +23,9 @@ describe('SignInForm password manager handoff', () => {
   });
 
   it('hands the credential to the browser password manager on a successful login', async () => {
-    const onLogin = vi.fn().mockResolvedValue({ status: 200, body: null });
+    const login = vi.fn().mockResolvedValue({ status: 200, body: null });
     const onSuccess = vi.fn();
-    render(<SignInForm onLogin={onLogin} onSuccess={onSuccess} />);
+    render(<SignInForm backend={{ login } as never} onSuccess={onSuccess} />);
 
     fillAndSubmit('alice', 'hunter2');
 
@@ -34,12 +34,12 @@ describe('SignInForm password manager handoff', () => {
   });
 
   it('does not store a credential when the login fails', async () => {
-    const onLogin = vi.fn().mockResolvedValue({ status: 401, body: { error: true, msg: 'invalid_credentials' } });
-    render(<SignInForm onLogin={onLogin} onSuccess={vi.fn()} />);
+    const login = vi.fn().mockResolvedValue({ status: 401, body: { error: true, msg: 'invalid_credentials' } });
+    render(<SignInForm backend={{ login } as never} onSuccess={vi.fn()} />);
 
     fillAndSubmit('alice', 'wrong');
 
-    await waitFor(() => expect(onLogin).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(login).toHaveBeenCalledTimes(1));
     expect(storeLoginCredential).not.toHaveBeenCalled();
   });
 });

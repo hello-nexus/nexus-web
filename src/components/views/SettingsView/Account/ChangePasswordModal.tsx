@@ -4,7 +4,7 @@ import { TextInput } from '../../../common/TextInput/TextInput';
 import { DeviceModal } from '../../../common/DeviceModal/DeviceModal';
 import { useToast } from '../../../common/Toast/Toast';
 import { useTranslation } from '../../../../lib/i18n';
-import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts';
+import type { AuthBackend } from '../../../../api/authBackend';
 import { currentPasswordErrorMessage } from './accountErrors';
 import { isValidPassword } from './accountValidation';
 import styles from './Account.module.scss';
@@ -16,7 +16,7 @@ interface ChangePasswordModalProps {
   // authorizes a passwordless change - hides the current-password field.
   recoveryFresh: boolean;
   onRecoveryFreshConsumed: () => void;
-  changePassword: UseCloudAccountsResult['changePassword'];
+  changePassword: AuthBackend['changePassword'];
 }
 
 // DeviceModal unmounts its children on close, so every field here resets to

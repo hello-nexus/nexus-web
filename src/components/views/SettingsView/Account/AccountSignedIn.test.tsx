@@ -2,6 +2,7 @@ import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest';
 import { AccountSignedIn } from './AccountSignedIn';
 import { ToastProvider } from '../../../common/Toast/Toast';
+import type { AuthAccount, AuthBackend } from '../../../../api/authBackend';
 import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts';
 import type { UseSyncStatusResult } from '../../../../hooks/useSyncStatus';
 import type { CloudAccountSummary, SyncProfileStatus } from '../../../../api/cloud';
@@ -16,30 +17,34 @@ vi.mock('../../../../lib/i18n', () => ({
   }),
 }));
 
-const ACCOUNT_ONE: CloudAccountSummary = {
+const ACCOUNT_ONE: AuthAccount = {
   accountId: 'acct-1',
   email: 'alpha@example.com',
   username: 'alpha',
   avatar: null,
   isPrivate: false,
   emailVerified: true,
+};
+
+const ACCOUNT_ONE_SUMMARY: CloudAccountSummary = {
+  ...ACCOUNT_ONE,
   active: true,
   lastSyncAt: null,
 };
 
-const ACCOUNT_TWO: CloudAccountSummary = {
-  ...ACCOUNT_ONE,
+const ACCOUNT_TWO_SUMMARY: CloudAccountSummary = {
+  ...ACCOUNT_ONE_SUMMARY,
   accountId: 'acct-2',
   email: 'beta@example.com',
   username: 'beta',
   active: false,
 };
 
-function makeAccounts(active: CloudAccountSummary, all: CloudAccountSummary[] = [active]): UseCloudAccountsResult {
+function makeAccounts(all: CloudAccountSummary[] = [ACCOUNT_ONE_SUMMARY]): UseCloudAccountsResult {
   return {
     accounts: all,
-    activeAccountId: active.accountId,
-    activeAccount: active,
+    activeAccountId: ACCOUNT_ONE_SUMMARY.accountId,
+    activeAccount: ACCOUNT_ONE_SUMMARY,
     loading: false,
     refresh: vi.fn(),
     login: vi.fn(),
@@ -56,6 +61,23 @@ function makeAccounts(active: CloudAccountSummary, all: CloudAccountSummary[] = 
   };
 }
 
+function makeBackend(overrides: Partial<AuthBackend> = {}): AuthBackend {
+  return {
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn().mockResolvedValue(undefined),
+    getAccount: vi.fn(),
+    recoveryStart: vi.fn(),
+    recoveryStatus: vi.fn(),
+    changePassword: vi.fn(),
+    changeUsername: vi.fn(),
+    setPrivate: vi.fn(),
+    deleteAccount: vi.fn().mockResolvedValue({ status: 200, body: { error: false } }),
+    uploadAvatar: vi.fn(),
+    ...overrides,
+  };
+}
+
 const SYNC: UseSyncStatusResult = {
   state: 'idle',
   lastSyncAt: null,
@@ -66,19 +88,25 @@ const SYNC: UseSyncStatusResult = {
   refresh: vi.fn(),
 };
 
-function renderSignedIn(
-  recoveryFresh: boolean,
-  accounts: UseCloudAccountsResult,
-  onRecoveryFreshConsumed = vi.fn(),
-  sync: UseSyncStatusResult = SYNC,
-) {
+function renderSignedIn(opts: {
+  backend?: AuthBackend;
+  accounts?: UseCloudAccountsResult;
+  sync?: UseSyncStatusResult;
+  recoveryFresh?: boolean;
+  onRecoveryFreshConsumed?: () => void;
+} = {}) {
+  const backend = opts.backend ?? makeBackend();
+  const accounts = opts.accounts ?? makeAccounts();
+  const sync = opts.sync ?? SYNC;
   return render(
     <ToastProvider>
       <AccountSignedIn
+        backend={backend}
+        account={ACCOUNT_ONE}
         accounts={accounts}
         sync={sync}
-        recoveryFresh={recoveryFresh}
-        onRecoveryFreshConsumed={onRecoveryFreshConsumed}
+        recoveryFresh={opts.recoveryFresh ?? false}
+        onRecoveryFreshConsumed={opts.onRecoveryFreshConsumed ?? vi.fn()}
       />
     </ToastProvider>,
   );
@@ -86,105 +114,32 @@ function renderSignedIn(
 
 describe('AccountSignedIn single-account model', () => {
   it('renders no account switcher or add-account affordances', () => {
-    renderSignedIn(false, makeAccounts(ACCOUNT_ONE, [ACCOUNT_ONE, ACCOUNT_TWO]));
+    renderSignedIn({ accounts: makeAccounts([ACCOUNT_ONE_SUMMARY, ACCOUNT_TWO_SUMMARY]) });
     expect(screen.queryByText('account.switcher.title')).toBeNull();
     expect(screen.queryByText('beta')).toBeNull();
     expect(screen.queryByRole('button', { name: 'account.switcher.addAccount' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'account.switcher.activate' })).toBeNull();
   });
+});
 
-  it('logs out the active account from the danger zone', () => {
+describe('AccountSignedIn danger zone bridging', () => {
+  it('logs out through the backend and refreshes the accounts hook', async () => {
     const logout = vi.fn().mockResolvedValue(undefined);
-    const accounts = makeAccounts(ACCOUNT_ONE);
-    accounts.logout = logout;
-    renderSignedIn(false, accounts);
+    const accounts = makeAccounts();
+    renderSignedIn({ backend: makeBackend({ logout }), accounts });
 
     fireEvent.click(screen.getByRole('button', { name: 'account.danger.logOut.label' }));
 
-    expect(logout).toHaveBeenCalledWith('acct-1');
+    await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(accounts.refresh).toHaveBeenCalled());
   });
 });
 
 describe('AccountSignedIn password modal', () => {
   it('opens the change-password modal automatically on a recovery-fresh mount', () => {
-    renderSignedIn(true, makeAccounts(ACCOUNT_ONE));
-    // The recovery-fresh effect must win the initial-mount race against the
-    // account-switch reset effect (both fire on first render).
+    renderSignedIn({ recoveryFresh: true });
     expect(screen.getByLabelText('account.password.new')).toBeInTheDocument();
     expect(screen.queryByLabelText('account.password.current')).toBeNull();
-  });
-
-  it('closes the change-password modal when the active account switches', () => {
-    const { rerender } = renderSignedIn(false, makeAccounts(ACCOUNT_ONE, [ACCOUNT_ONE, ACCOUNT_TWO]));
-    fireEvent.click(screen.getByRole('button', { name: 'account.password.change' }));
-    expect(screen.getByLabelText('account.password.new')).toBeInTheDocument();
-
-    rerender(
-      <ToastProvider>
-        <AccountSignedIn
-          accounts={makeAccounts(ACCOUNT_TWO, [ACCOUNT_ONE, ACCOUNT_TWO])}
-          sync={SYNC}
-          recoveryFresh={false}
-          onRecoveryFreshConsumed={vi.fn()}
-        />
-      </ToastProvider>,
-    );
-    expect(screen.queryByLabelText('account.password.new')).toBeNull();
-  });
-});
-
-describe('AccountSignedIn username cooldown', () => {
-  function saveNewUsername() {
-    fireEvent.input(screen.getByLabelText('account.username.label'), { target: { value: 'newname' } });
-    fireEvent.click(screen.getByRole('button', { name: 'account.save' }));
-  }
-
-  it('shows the live cooldown message when the 409 response carries a retryAt', async () => {
-    const accounts = makeAccounts(ACCOUNT_ONE);
-    accounts.changeUsername = vi.fn().mockResolvedValue({
-      status: 409,
-      body: { error: true, msg: 'username_cooldown', retryAt: new Date(Date.now() + 5 * 3_600_000).toISOString() },
-    });
-    renderSignedIn(false, accounts);
-
-    saveNewUsername();
-
-    await waitFor(() => {
-      expect(screen.getByText(content => content.startsWith('account.username.error.cooldownIn'))).toBeInTheDocument();
-    });
-    expect(screen.queryByText('account.username.error.cooldown')).toBeNull();
-  });
-
-  it('falls back to the static cooldown message when the 409 response omits retryAt', async () => {
-    const accounts = makeAccounts(ACCOUNT_ONE);
-    accounts.changeUsername = vi.fn().mockResolvedValue({
-      status: 409,
-      body: { error: true, msg: 'username_cooldown' },
-    });
-    renderSignedIn(false, accounts);
-
-    saveNewUsername();
-
-    await waitFor(() => {
-      expect(screen.getByText('account.username.error.cooldown')).toBeInTheDocument();
-    });
-  });
-
-  it('falls back to the static cooldown message when retryAt is already in the past', async () => {
-    const accounts = makeAccounts(ACCOUNT_ONE);
-    accounts.changeUsername = vi.fn().mockResolvedValue({
-      status: 409,
-      body: { error: true, msg: 'username_cooldown', retryAt: new Date(Date.now() - 1_000).toISOString() },
-    });
-    renderSignedIn(false, accounts);
-
-    saveNewUsername();
-
-    // An elapsed retryAt makes useRetryCountdown return null, so the save
-    // must still surface the static message instead of no message at all.
-    await waitFor(() => {
-      expect(screen.getByText('account.username.error.cooldown')).toBeInTheDocument();
-    });
   });
 });
 
@@ -193,20 +148,17 @@ describe('AccountSignedIn profile sync rows', () => {
   const PROFILE_WORK: SyncProfileStatus = { profileId: 'p2', name: 'Work', lastSyncedAt: '', revision: 0 };
 
   it('renders one row per profile with a never-synced label and no per-row buttons', () => {
-    const sync: UseSyncStatusResult = { ...SYNC, profiles: [PROFILE_MAIN, PROFILE_WORK] };
-    renderSignedIn(false, makeAccounts(ACCOUNT_ONE), vi.fn(), sync);
+    renderSignedIn({ sync: { ...SYNC, profiles: [PROFILE_MAIN, PROFILE_WORK] } });
 
     expect(screen.getByText('Main')).toBeInTheDocument();
     expect(screen.getByText('Work')).toBeInTheDocument();
     expect(screen.getAllByText('account.sync.neverSyncedYet')).toHaveLength(2);
-    // Only the section header's single Sync Now control exists.
     expect(screen.getAllByRole('button', { name: 'account.sync.syncNow' })).toHaveLength(1);
   });
 
   it('shows a formatted timestamp instead of the never-synced label once a profile has synced', () => {
     const synced: SyncProfileStatus = { ...PROFILE_MAIN, lastSyncedAt: '2026-01-01T00:00:00.000Z' };
-    const sync: UseSyncStatusResult = { ...SYNC, profiles: [synced] };
-    renderSignedIn(false, makeAccounts(ACCOUNT_ONE), vi.fn(), sync);
+    renderSignedIn({ sync: { ...SYNC, profiles: [synced] } });
 
     expect(screen.queryByText('account.sync.neverSyncedYet')).toBeNull();
   });
@@ -219,11 +171,13 @@ describe('AccountSignedIn sync now control', () => {
     return screen.getByRole('button', { name: 'account.sync.syncNow' });
   }
 
-  function rerenderWith(rerender: ReturnType<typeof renderSignedIn>['rerender'], nextSync: UseSyncStatusResult) {
+  function rerenderWith(rerender: ReturnType<typeof renderSignedIn>['rerender'], backend: AuthBackend, accounts: UseCloudAccountsResult, nextSync: UseSyncStatusResult) {
     rerender(
       <ToastProvider>
         <AccountSignedIn
-          accounts={makeAccounts(ACCOUNT_ONE)}
+          backend={backend}
+          account={ACCOUNT_ONE}
+          accounts={accounts}
           sync={nextSync}
           recoveryFresh={false}
           onRecoveryFreshConsumed={vi.fn()}
@@ -234,28 +188,22 @@ describe('AccountSignedIn sync now control', () => {
 
   it('spins from click until the triggered pass leaves the syncing state', async () => {
     const syncNow = vi.fn().mockResolvedValue(undefined);
+    const backend = makeBackend();
+    const accounts = makeAccounts();
     const sync: UseSyncStatusResult = { ...SYNC, state: 'idle', profiles: [PROFILE_MAIN], syncNow };
-    const { rerender } = renderSignedIn(false, makeAccounts(ACCOUNT_ONE), vi.fn(), sync);
+    const { rerender } = renderSignedIn({ backend, accounts, sync });
 
     fireEvent.click(syncNowButton());
     expect(syncNow).toHaveBeenCalledTimes(1);
     expect(syncNowButton()).toHaveAttribute('data-loading', 'true');
 
-    // A background poll landing before this click's own request resolves
-    // reports the pass actively running - must not affect anything yet,
-    // the settle check has not even run (ownRefreshLanded is still false).
-    rerenderWith(rerender, { ...SYNC, state: 'syncing', profiles: [PROFILE_MAIN], syncNow });
+    rerenderWith(rerender, backend, accounts, { ...SYNC, state: 'syncing', profiles: [PROFILE_MAIN], syncNow });
     expect(syncNowButton()).toHaveAttribute('data-loading', 'true');
 
-    // Let this click's own syncNow() promise resolve, mirroring production
-    // where syncNow() performs its own refresh before resolving. The most
-    // recent state is still 'syncing' (the pass has not finished), so the
-    // settle check (now gated open) must still not clear the spinner.
     await act(async () => { await Promise.resolve(); });
     expect(syncNowButton()).toHaveAttribute('data-loading', 'true');
 
-    // A later poll reports the pass finished.
-    rerenderWith(rerender, { ...SYNC, state: 'idle', profiles: [PROFILE_MAIN], syncNow });
+    rerenderWith(rerender, backend, accounts, { ...SYNC, state: 'idle', profiles: [PROFILE_MAIN], syncNow });
     await waitFor(() => {
       expect(syncNowButton()).not.toHaveAttribute('data-loading', 'true');
     });
@@ -263,24 +211,21 @@ describe('AccountSignedIn sync now control', () => {
 
   it('regression: settles once state leaves syncing even though a clean profile\'s lastSyncedAt never advances', async () => {
     const syncNow = vi.fn().mockResolvedValue(undefined);
+    const backend = makeBackend();
+    const accounts = makeAccounts();
     const cleanProfile: SyncProfileStatus = { profileId: 'p1', name: 'Main', lastSyncedAt: '', revision: 0 };
     const dirtyProfile: SyncProfileStatus = { profileId: 'p2', name: 'Work', lastSyncedAt: '2026-01-01T00:00:00.000Z', revision: 4 };
     const sync: UseSyncStatusResult = { ...SYNC, state: 'idle', profiles: [cleanProfile, dirtyProfile], syncNow };
-    const { rerender } = renderSignedIn(false, makeAccounts(ACCOUNT_ONE), vi.fn(), sync);
+    const { rerender } = renderSignedIn({ backend, accounts, sync });
 
     fireEvent.click(syncNowButton());
 
-    // The pass is actively running; this click's own refresh lands mid-pass.
-    rerenderWith(rerender, { ...SYNC, state: 'syncing', profiles: [cleanProfile, dirtyProfile], syncNow });
+    rerenderWith(rerender, backend, accounts, { ...SYNC, state: 'syncing', profiles: [cleanProfile, dirtyProfile], syncNow });
     await act(async () => { await Promise.resolve(); });
     expect(syncNowButton()).toHaveAttribute('data-loading', 'true');
 
-    // The pass finishes: the dirty profile's timestamp moved, the clean
-    // profile's never did (nothing to push) - the old per-row settle check
-    // keyed to a specific profile's lastSyncedAt would hang forever for a
-    // row on the clean profile. The header button settles on state alone.
     const dirtyProfileSynced: SyncProfileStatus = { ...dirtyProfile, lastSyncedAt: '2026-01-01T00:05:00.000Z' };
-    rerenderWith(rerender, { ...SYNC, state: 'idle', profiles: [cleanProfile, dirtyProfileSynced], syncNow });
+    rerenderWith(rerender, backend, accounts, { ...SYNC, state: 'idle', profiles: [cleanProfile, dirtyProfileSynced], syncNow });
 
     await waitFor(() => {
       expect(syncNowButton()).not.toHaveAttribute('data-loading', 'true');

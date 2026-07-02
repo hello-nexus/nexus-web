@@ -29,6 +29,18 @@ const VerifyEmailPage = !__SERVICE_BUILD__
 const RecoverPage = !__SERVICE_BUILD__
   ? lazy(() => import('./app/public/RecoverPage').then(m => ({ default: m.RecoverPage })))
   : null;
+const LoginPage = !__SERVICE_BUILD__
+  ? lazy(() => import('./app/public/LoginPage').then(m => ({ default: m.LoginPage })))
+  : null;
+const RegisterPage = !__SERVICE_BUILD__
+  ? lazy(() => import('./app/public/RegisterPage').then(m => ({ default: m.RegisterPage })))
+  : null;
+const RecoverAccountPage = !__SERVICE_BUILD__
+  ? lazy(() => import('./app/public/RecoverAccountPage').then(m => ({ default: m.RecoverAccountPage })))
+  : null;
+const AccountPage = !__SERVICE_BUILD__
+  ? lazy(() => import('./app/public/AccountPage').then(m => ({ default: m.AccountPage })))
+  : null;
 
 // The public web at hellonexus.com: an ordinary browser origin that is NOT the
 // bundled local service (:9400/:9443 ⇒ isServedFromService ⇒ the real app), NOT
@@ -193,6 +205,47 @@ export default function App() {
       <I18nProvider>
         <Suspense fallback={null}>
           <RecoverPage token={token} />
+        </Suspense>
+      </I18nProvider>
+    );
+  }
+
+  // /login, /register, /recover, /account - public auth pages (browser-only,
+  // same components as the in-app Settings > Account view, wired to
+  // DirectApiBackend instead of the local service). Absent in the
+  // service/app bundle.
+  if (LoginPage && path === '/login') {
+    return (
+      <I18nProvider>
+        <Suspense fallback={null}>
+          <LoginPage />
+        </Suspense>
+      </I18nProvider>
+    );
+  }
+  if (RegisterPage && path === '/register') {
+    return (
+      <I18nProvider>
+        <Suspense fallback={null}>
+          <RegisterPage />
+        </Suspense>
+      </I18nProvider>
+    );
+  }
+  if (RecoverAccountPage && path === '/recover') {
+    return (
+      <I18nProvider>
+        <Suspense fallback={null}>
+          <RecoverAccountPage />
+        </Suspense>
+      </I18nProvider>
+    );
+  }
+  if (AccountPage && path === '/account') {
+    return (
+      <I18nProvider>
+        <Suspense fallback={null}>
+          <AccountPage />
         </Suspense>
       </I18nProvider>
     );
