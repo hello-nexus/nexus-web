@@ -536,7 +536,7 @@
   "devices.tryx.cloudInstalled": "Installato",
   "devices.tryx.cloudInstalling": "Installazione…",
   "devices.tryx.cloudSection": "Sfondi cloud",
-  "devices.tryx.wallpapersSection": "Sfondi",
+  "devices.tryx.customSection": "Personalizzato",
   "devices.tryx.color": "Colore",
   "devices.tryx.defaultPreset": "Preset predefinito",
   "devices.tryx.deleteMediaAria": "Elimina file multimediale",

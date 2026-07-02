@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
-import { ChevronDown, Plus, Download, Upload, UsersRound, UserRound, LogIn } from 'lucide-react';
+import { ChevronDown, Plus, UsersRound, UserRound, LogIn } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../../lib/i18n';
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
+import { MenuDivider } from '../MenuDivider/MenuDivider';
 import { PRESET_ACCENTS, loadSettings } from '../../../lib/settings';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import type { Preferences } from '../../../api/profiles';
@@ -45,9 +46,7 @@ export function ProfileDropdown({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   useClickOutside(ref, () => setOpen(false), open);
 
@@ -99,25 +98,6 @@ export function ProfileDropdown({
     if (!trimmed) return null;
     return isProfileNameTaken(profiles.profiles, trimmed) ? t('profile.duplicateName') : null;
   }, [profiles.profiles, t]);
-
-  const handleExport = useCallback(async () => {
-    await profiles.exportProfile(profiles.activeId);
-  }, [profiles]);
-
-  const handleImport = useCallback(() => {
-    fileRef.current?.click();
-  }, []);
-
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImportError(null);
-    const result = await profiles.importProfile(file);
-    if (result.body?.msg === 'profile_name_taken') {
-      setImportError(t('profile.importDuplicateName'));
-    }
-    e.target.value = '';
-  }, [profiles, t]);
 
   const handleManage = useCallback(() => {
     onNavigateSettings();
@@ -192,6 +172,7 @@ export function ProfileDropdown({
         })}>
           {onNavigateAccount && (
             <>
+              <div className={styles.groupLabel}>{t('account.title')}</div>
               <div className={styles.accountSection}>
                 <button
                   type="button"
@@ -219,10 +200,10 @@ export function ProfileDropdown({
                   )}
                 </button>
               </div>
-              <div className={styles.actionSep} />
+              <MenuDivider />
             </>
           )}
-          <div className={styles.dropdownHeader}>{t('profile.header')}</div>
+          <div className={styles.groupLabel}>{t('profile.header')}</div>
           <div className={styles.profileList}>
             {profiles.profiles.map(p => (
               <button key={p.id} type="button"
@@ -233,23 +214,16 @@ export function ProfileDropdown({
               </button>
             ))}
           </div>
+          <MenuDivider />
           <div className={styles.actions}>
             <button type="button" className={styles.actionBtn} onClick={handleCreate} disabled={atLimit}>
               <Plus size={14} /> {t('profile.create')}
             </button>
-            <button type="button" className={styles.actionBtn} onClick={handleImport} disabled={atLimit}>
-              <Download size={14} /> {t('profile.import')}
-            </button>
-            <button type="button" className={styles.actionBtn} onClick={handleExport}>
-              <Upload size={14} /> {t('profile.export')}
-            </button>
-            <div className={styles.actionSep} />
+            <MenuDivider />
             <button type="button" className={styles.actionBtn} onClick={handleManage}>
               <UsersRound size={14} /> {t('profile.manage')}
             </button>
           </div>
-          {importError && <p className={styles.importError} role="alert">{importError}</p>}
-          <input ref={fileRef} type="file" accept=".json" className={styles.hiddenInput} onChange={handleFileChange} />
         </div>
       )}
       <PromptModal

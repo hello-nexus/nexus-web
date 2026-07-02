@@ -536,7 +536,7 @@
   "devices.tryx.cloudInstalled": "インストール済み",
   "devices.tryx.cloudInstalling": "インストール中…",
   "devices.tryx.cloudSection": "クラウド壁紙",
-  "devices.tryx.wallpapersSection": "壁紙",
+  "devices.tryx.customSection": "カスタム",
   "devices.tryx.color": "色",
   "devices.tryx.defaultPreset": "デフォルトプリセット",
   "devices.tryx.deleteMediaAria": "メディアを削除",

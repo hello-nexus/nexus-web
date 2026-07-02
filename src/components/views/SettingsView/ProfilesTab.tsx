@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Anchor, Download, RotateCcw, Trash2, Upload } from 'lucide-react';
+import { Anchor, Download, Plus, RotateCcw, Trash2, Upload } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { EditableText } from '../../common/Editable/EditableText';
@@ -265,6 +265,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
           type="button"
           tone="neutral"
           size="sm"
+          icon={<Plus />}
           onClick={() => setCreateOpen(true)}
           disabled={atLimit}
         >

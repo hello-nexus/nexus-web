@@ -536,7 +536,7 @@
   "devices.tryx.cloudInstalled": "已安装",
   "devices.tryx.cloudInstalling": "正在安装…",
   "devices.tryx.cloudSection": "云端壁纸",
-  "devices.tryx.wallpapersSection": "壁纸",
+  "devices.tryx.customSection": "自定义",
   "devices.tryx.color": "颜色",
   "devices.tryx.defaultPreset": "默认预设",
   "devices.tryx.deleteMediaAria": "删除媒体",

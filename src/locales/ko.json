@@ -536,7 +536,7 @@
   "devices.tryx.cloudInstalled": "설치됨",
   "devices.tryx.cloudInstalling": "설치 중…",
   "devices.tryx.cloudSection": "클라우드 배경화면",
-  "devices.tryx.wallpapersSection": "배경화면",
+  "devices.tryx.customSection": "사용자 지정",
   "devices.tryx.color": "색상",
   "devices.tryx.defaultPreset": "기본 프리셋",
   "devices.tryx.deleteMediaAria": "미디어 삭제",

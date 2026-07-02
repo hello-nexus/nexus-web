@@ -1,5 +1,4 @@
 @use '../../../styles/interactions' as *;
-@use '../../../styles/text' as *;
 
 .wrapper {
   position: relative;
@@ -164,8 +163,8 @@
 }
 
 // Top-of-dropdown account entry: log-in prompt when signed out, avatar +
-// username when signed in. Reuses .actionBtn for the row and .actionSep for
-// the divider below.
+// username when signed in. Reuses .actionBtn for the row; MenuDivider draws
+// the rule below.
 .accountSection {
   display: flex;
   flex-direction: column;
@@ -190,12 +189,13 @@
   white-space: nowrap;
 }
 
-// New category-header treatment, matching the SectionHeader component (a muted,
-// non-caps body label) instead of the old all-caps eyebrow. Sized to
-// --type-small so every row in the menu reads at one size (matches the actions
-// below, e.g. "Manage profiles").
-.dropdownHeader {
-  padding: 0.55rem 0.75rem 0.5rem;
+// Group label above a section of the dropdown (Account, Profiles). Matches the
+// SectionHeader component (a muted, non-caps body label) instead of an
+// all-caps eyebrow, sized to --type-small so every row in the menu reads at
+// one size. Horizontal padding is set to match the combined container + row
+// inset below it, so the label text lines up with the row icons.
+.groupLabel {
+  padding: 0.55rem 0.95rem 0.5rem;
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   color: var(--text-dim);
@@ -255,7 +255,6 @@
   display: flex;
   flex-direction: column;
   padding: 0.35rem;
-  border-top: 1px solid var(--separator);
 }
 
 .actionBtn {
@@ -288,19 +287,3 @@
   }
 }
 
-.actionSep {
-  height: 1px;
-  background: var(--separator);
-  margin: 0.2rem 0.6rem;
-}
-
-.hiddenInput {
-  display: none;
-}
-
-.importError {
-  @include text-button;
-  margin: 0;
-  padding: 0 0.6rem 0.4rem;
-  color: var(--bad);
-}

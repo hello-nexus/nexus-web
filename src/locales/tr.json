@@ -536,7 +536,7 @@
   "devices.tryx.cloudInstalled": "Kurulu",
   "devices.tryx.cloudInstalling": "Yükleniyor…",
   "devices.tryx.cloudSection": "Bulut duvar kağıtları",
-  "devices.tryx.wallpapersSection": "Duvar kağıtları",
+  "devices.tryx.customSection": "Özel",
   "devices.tryx.color": "Renk",
   "devices.tryx.defaultPreset": "Varsayılan ön ayar",
   "devices.tryx.deleteMediaAria": "Medyayı sil",

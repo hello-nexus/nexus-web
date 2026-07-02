@@ -98,8 +98,28 @@
 
 .colorSection {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+// Static width so the picker doesn't stretch the full section; the label's
+// flex:1 (chipRowLabel) pushes it to the right, matching the alignment row.
+.colorPicker {
+  flex: 0 0 auto;
+  width: 200px;
+}
+
+// Centered action badge over a media thumbnail (download prompt / install
+// spinner). The scrim keeps a white icon legible over any cover art.
+.mediaOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  pointer-events: none;
 }
 
 .libraryBlock {
