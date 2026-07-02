@@ -58,6 +58,7 @@ import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
 import { pairingPreviewQr } from '../components/common/PairingQr/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
+import { MenuDivider } from '../components/common/MenuDivider/MenuDivider';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
 import { SortableList } from '../components/common/SortableList/SortableList';
 import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
@@ -1172,6 +1173,16 @@ function PreviewMediaCropper() {
   );
 }
 
+function PreviewMenuDivider() {
+  return (
+    <div style={{ width: 200, background: 'var(--bg-elevated)', padding: '0.35rem', borderRadius: 'var(--radius-sm)' }}>
+      <div style={{ padding: '0.4rem 0.6rem', color: 'var(--text-dim)', fontSize: 'var(--type-small)' }}>Row above</div>
+      <MenuDivider />
+      <div style={{ padding: '0.4rem 0.6rem', color: 'var(--text-dim)', fontSize: 'var(--type-small)' }}>Row below</div>
+    </div>
+  );
+}
+
 function PreviewSpinner() {
   return (
     <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
@@ -1676,8 +1687,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ProfileDropdown', category: 'navigation',
     filePath: 'src/components/common/ProfileDropdown/ProfileDropdown.tsx',
-    description: 'Profile picker with create / import / export actions. sidebar and avatar variants; compact mode collapses to the avatar disc.',
+    description: 'Profile picker grouped into an Account section (log in / signed-in account) and a Profiles section (switch list + create + manage). sidebar and avatar variants; compact mode collapses to the avatar disc. Import/export live on the Profiles settings page.',
     notes: 'No live preview - bound to the profiles store and save API.',
+  },
+  {
+    name: 'MenuDivider', category: 'navigation',
+    filePath: 'src/components/common/MenuDivider/MenuDivider.tsx',
+    description: 'Thin rule separating groups of rows in a dropdown or menu popover. Used by ProfileDropdown to split Account / Profiles / actions.',
+    Preview: PreviewMenuDivider,
   },
   {
     name: 'LeaderboardView', category: 'navigation',
