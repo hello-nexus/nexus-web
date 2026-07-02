@@ -16,6 +16,17 @@
   padding: 0 1.1rem;
 }
 
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.action {
+  flex-shrink: 0;
+}
+
 .description {
   font-size: var(--type-small);
   font-weight: var(--weight-body);
