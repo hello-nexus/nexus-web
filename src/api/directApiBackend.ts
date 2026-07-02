@@ -89,6 +89,14 @@ function clearStoredRefreshToken(): void {
   }
 }
 
+function clearStoredRecoveryGrant(): void {
+  try {
+    sessionStorage.removeItem(RECOVERY_GRANT_STORAGE_KEY);
+  } catch {
+    // storage unavailable - nothing durable to clear
+  }
+}
+
 // The refresh token is written before the access token is cached: a crash
 // between the two lines must never leave the session with neither a usable
 // access token nor the (now server-rotated) refresh token.
@@ -286,6 +294,8 @@ export const directApiBackend: AuthBackend = {
     sessionStorage.setItem(RECOVERY_GRANT_STORAGE_KEY, JSON.stringify({ grantId, deviceSecret }));
     return { grantId };
   },
+
+  recoveryCancel: () => clearStoredRecoveryGrant(),
 
   recoveryStatus: async () => {
     const stored = sessionStorage.getItem(RECOVERY_GRANT_STORAGE_KEY);

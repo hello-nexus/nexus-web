@@ -16,7 +16,7 @@ import { usePublicAccount } from './usePublicAccount';
  * recovery-fresh session), prompting the password-change modal - no
  * redirect, matching the in-app AccountView's same-page transition.
  */
-export function RecoverAccountPage() {
+export function ForgotPasswordPage() {
   const { account, refresh } = usePublicAccount();
   const [recoveryFresh, setRecoveryFresh] = useState(false);
 

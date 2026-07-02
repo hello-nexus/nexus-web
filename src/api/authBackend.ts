@@ -57,6 +57,10 @@ export interface AuthBackend {
   getAccount(): Promise<AuthAccount | null>;
   recoveryStart(email: string): Promise<AuthRecoveryStartResponse | null>;
   recoveryStatus(): Promise<AuthRecoveryStatusResponse | null>;
+  // Discards any client-held recovery grant when the user backs out of the
+  // pending phase - only DirectApiBackend holds one (sessionStorage); the
+  // in-app backend leaves grant custody to the service.
+  recoveryCancel?: () => void;
   changePassword(currentPassword: string | undefined, newPassword: string): Promise<AuthFetchResult<AuthPasswordResponse>>;
   changeUsername(username: string): Promise<AuthFetchResult<AuthUsernameResponse>>;
   setPrivate(isPrivate: boolean): Promise<boolean>;

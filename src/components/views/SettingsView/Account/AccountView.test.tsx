@@ -34,28 +34,13 @@ const ACCOUNT: CloudAccountSummary = {
   avatar: null,
   isPrivate: false,
   emailVerified: true,
-  active: true,
-  lastSyncAt: null,
 };
 
 function makeAccounts(activeAccountId: string | null): UseCloudAccountsResult {
   return {
-    accounts: activeAccountId ? [ACCOUNT] : [],
     activeAccountId,
     activeAccount: activeAccountId ? ACCOUNT : null,
-    loading: false,
     refresh: vi.fn(),
-    login: vi.fn(),
-    register: vi.fn(),
-    logout: vi.fn(),
-    activate: vi.fn(),
-    recoveryStart: vi.fn(),
-    recoveryStatus: vi.fn(),
-    changePassword: vi.fn(),
-    changeUsername: vi.fn(),
-    setPrivate: vi.fn(),
-    deleteAccount: vi.fn(),
-    uploadAvatar: vi.fn(),
   };
 }
 

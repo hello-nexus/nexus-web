@@ -175,13 +175,12 @@ export function AccountAuthenticationSection({
     if (ok) onAccountChanged();
   };
 
-  // Every per-account form/error state above is scoped to the PREVIOUSLY
-  // active account and must not leak across a switch (e.g. a stale username
-  // cooldown message or a half-typed password field from account A showing
-  // up under account B's form). Closing the password modal drops its
-  // self-contained field state the same way, since DeviceModal unmounts it -
-  // unless a recovery-fresh session is still live, in which case the modal
-  // stays open for it rather than being force-closed mid-switch.
+  // Defensive reset if `account.accountId` ever changes while this component
+  // stays mounted (e.g. a stale username cooldown message or a half-typed
+  // password field from the prior account bleeding into the new one's form).
+  // The password modal stays open through the reset only when a
+  // recovery-fresh session is live, so a passwordless recovery in progress
+  // is never force-closed.
   const accountId = account.accountId;
   const previousAccountId = useRef(accountId);
   useEffect(() => {

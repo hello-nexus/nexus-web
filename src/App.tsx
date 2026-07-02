@@ -35,8 +35,8 @@ const LoginPage = !__SERVICE_BUILD__
 const RegisterPage = !__SERVICE_BUILD__
   ? lazy(() => import('./app/public/RegisterPage').then(m => ({ default: m.RegisterPage })))
   : null;
-const RecoverAccountPage = !__SERVICE_BUILD__
-  ? lazy(() => import('./app/public/RecoverAccountPage').then(m => ({ default: m.RecoverAccountPage })))
+const ForgotPasswordPage = !__SERVICE_BUILD__
+  ? lazy(() => import('./app/public/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })))
   : null;
 const AccountPage = !__SERVICE_BUILD__
   ? lazy(() => import('./app/public/AccountPage').then(m => ({ default: m.AccountPage })))
@@ -232,11 +232,11 @@ export default function App() {
       </I18nProvider>
     );
   }
-  if (RecoverAccountPage && path === '/recover') {
+  if (ForgotPasswordPage && path === '/recover') {
     return (
       <I18nProvider>
         <Suspense fallback={null}>
-          <RecoverAccountPage />
+          <ForgotPasswordPage />
         </Suspense>
       </I18nProvider>
     );

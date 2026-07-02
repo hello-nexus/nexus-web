@@ -1,6 +1,7 @@
 // Pure coordinate math for the avatar crop-to-canvas step. No canvas/DOM
 // polyfill exists in this project's test setup, so only this projection is
-// unit-tested; the actual canvas draw + toBlob lives in AccountSignedIn.tsx.
+// unit-tested; the actual canvas draw + toBlob lives in
+// AccountAuthenticationSection.tsx.
 
 import type { NormalizedCrop } from '../../../common/MediaCropper/MediaCropper';
 

@@ -26,38 +26,13 @@ const ACCOUNT_ONE: AuthAccount = {
   emailVerified: true,
 };
 
-const ACCOUNT_ONE_SUMMARY: CloudAccountSummary = {
-  ...ACCOUNT_ONE,
-  active: true,
-  lastSyncAt: null,
-};
+const ACCOUNT_ONE_SUMMARY: CloudAccountSummary = { ...ACCOUNT_ONE };
 
-const ACCOUNT_TWO_SUMMARY: CloudAccountSummary = {
-  ...ACCOUNT_ONE_SUMMARY,
-  accountId: 'acct-2',
-  email: 'beta@example.com',
-  username: 'beta',
-  active: false,
-};
-
-function makeAccounts(all: CloudAccountSummary[] = [ACCOUNT_ONE_SUMMARY]): UseCloudAccountsResult {
+function makeAccounts(active: CloudAccountSummary = ACCOUNT_ONE_SUMMARY): UseCloudAccountsResult {
   return {
-    accounts: all,
-    activeAccountId: ACCOUNT_ONE_SUMMARY.accountId,
-    activeAccount: ACCOUNT_ONE_SUMMARY,
-    loading: false,
+    activeAccountId: active.accountId,
+    activeAccount: active,
     refresh: vi.fn(),
-    login: vi.fn(),
-    register: vi.fn(),
-    logout: vi.fn(),
-    activate: vi.fn(),
-    recoveryStart: vi.fn(),
-    recoveryStatus: vi.fn(),
-    changePassword: vi.fn(),
-    changeUsername: vi.fn(),
-    setPrivate: vi.fn(),
-    deleteAccount: vi.fn(),
-    uploadAvatar: vi.fn(),
   };
 }
 
@@ -111,16 +86,6 @@ function renderSignedIn(opts: {
     </ToastProvider>,
   );
 }
-
-describe('AccountSignedIn single-account model', () => {
-  it('renders no account switcher or add-account affordances', () => {
-    renderSignedIn({ accounts: makeAccounts([ACCOUNT_ONE_SUMMARY, ACCOUNT_TWO_SUMMARY]) });
-    expect(screen.queryByText('account.switcher.title')).toBeNull();
-    expect(screen.queryByText('beta')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'account.switcher.addAccount' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'account.switcher.activate' })).toBeNull();
-  });
-});
 
 describe('AccountSignedIn danger zone bridging', () => {
   it('logs out through the backend and refreshes the accounts hook', async () => {

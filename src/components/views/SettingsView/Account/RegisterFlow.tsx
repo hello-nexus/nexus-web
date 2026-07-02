@@ -17,8 +17,8 @@ interface RegisterFlowProps {
 }
 
 // Owns the create-account form and the post-submit "check your email, then
-// retry sign-in" phase. A self-contained flow (like ForgotPasswordFlow) so it
-// resets cleanly whenever the parent re-enters the register subtab.
+// retry sign-in" phase. A self-contained flow (like ForgotPasswordFlow) so
+// its state resets whenever the parent re-enters the register subtab.
 export function RegisterFlow({ backend, onBackToSignIn, onSignedIn }: RegisterFlowProps) {
   const { t } = useTranslation();
   const [pendingCreds, setPendingCreds] = useState<{ email: string; password: string } | null>(null);

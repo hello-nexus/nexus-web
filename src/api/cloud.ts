@@ -13,8 +13,6 @@ export interface CloudAccountSummary {
   avatar: CloudAvatar | null;
   isPrivate: boolean;
   emailVerified: boolean;
-  active: boolean;
-  lastSyncAt: string | null;
 }
 
 export interface GetAccountsResponse {
@@ -129,9 +127,6 @@ export const cloudLogin = (identifier: string, password: string) =>
 
 export const cloudLogout = (accountId: string) =>
   postService('/cloud/logout', { accountId });
-
-export const activateCloudAccount = (accountId: string) =>
-  postService(`/cloud/accounts/${encodeURIComponent(accountId)}/activate`, {});
 
 export const startCloudRecovery = (email: string) =>
   postService<RecoveryStartResponse>('/cloud/recovery/start', { email });

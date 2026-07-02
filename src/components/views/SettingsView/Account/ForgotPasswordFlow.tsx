@@ -92,7 +92,7 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
             <Spinner size={18} />
             <p className={styles.subtitle}>{t('account.recovery.pendingMessage', { email })}</p>
           </div>
-          <button type="button" className={styles.linkBtn} onClick={() => setPhase('email')}>
+          <button type="button" className={styles.linkBtn} onClick={() => { backend.recoveryCancel?.(); setPhase('email'); }}>
             {t('account.recovery.cancel')}
           </button>
         </div>

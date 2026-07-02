@@ -51,18 +51,30 @@ The app routes a small set of top-level surfaces from the URL path:
 | `/r/pair` | iOS Universal Link landing page (App Store / browser fallback). |
 | `/u/:username` | Public account profile page. Browser-only. |
 | `/auth/verify` | Email verification landing page. Browser-only. |
-| `/auth/recover` | Lost-password recovery landing page. Browser-only. |
+| `/auth/recover` | Lost-password magic-link landing page. Browser-only. |
+| `/login` | Public sign-in page. Browser-only. |
+| `/register` | Public account creation page. Browser-only. |
+| `/recover` | Public lost-password request+poll flow. Browser-only. |
+| `/account` | Public signed-in account page (profile management, no sync). Browser-only. |
 
 `/touch` and `/panel/q60` are legacy aliases that land in the panel
 allocation flow.
 
-`/u/:username`, `/auth/verify`, and `/auth/recover` are dead-code-eliminated
-from `npm run build:service` (same `__SERVICE_BUILD__` build-define technique
-as the `__DEV_TOOLS__` gate) - they only ever ship in the standalone build
-served at hellonexus.com. `server.js` additionally injects og:title/og:image/
+`/u/:username`, `/auth/verify`, `/auth/recover`, `/login`, `/register`,
+`/recover`, and `/account` are dead-code-eliminated from `npm run
+build:service` (same `__SERVICE_BUILD__` build-define technique as the
+`__DEV_TOOLS__` gate) - they only ever ship in the standalone build served at
+hellonexus.com. `server.js` additionally injects og:title/og:image/
 description meta tags into `/u/:username` responses for link previews, backed
 by a short-lived in-memory cache of the nexus-api lookup (`NEXUS_API_BASE`,
 below).
+
+`/login`, `/register`, `/recover`, and `/account` render the same
+sign-in/register/recovery/account-management components as the in-app
+Settings > Account view, swapped onto an `AuthBackend` adapter that talks to
+`api.hellonexus.com` directly (`api/directApiBackend.ts`) instead of the
+in-app adapter that proxies through the local service
+(`api/localServiceBackend.ts`).
 
 ## Project layout
 
