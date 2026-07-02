@@ -1737,6 +1737,7 @@
   "profile.export": "프로필 내보내기",
   "profile.header": "프로필",
   "profile.import": "프로필 가져오기",
+  "profile.importDuplicateName": "이 이름의 프로필이 이미 있습니다. 이름을 변경하거나 삭제한 후 다시 가져오세요.",
   "profile.label": "프로필",
   "profile.manage": "프로필 관리",
   "profile.maxReached": "최대 5개의 프로필까지 생성할 수 있습니다.",

@@ -1859,6 +1859,7 @@
   "profile.export": "Export Profile",
   "profile.header": "Profiles",
   "profile.import": "Import Profile",
+  "profile.importDuplicateName": "A profile with this name already exists. Rename or delete it, then import again.",
   "profile.label": "Profile",
   "profile.manage": "Manage profiles",
   "profile.maxReached": "Maximum of 5 profiles reached.",

@@ -1737,6 +1737,7 @@
   "profile.export": "Profil Disari Aktar",
   "profile.header": "Profiller",
   "profile.import": "Profil Aktar",
+  "profile.importDuplicateName": "Bu ada sahip bir profil zaten var. Yeniden adlandırın veya silin, ardından tekrar içe aktarın.",
   "profile.label": "Profil",
   "profile.manage": "Profilleri Yonet",
   "profile.maxReached": "En fazla 5 profil olusturulabilir.",

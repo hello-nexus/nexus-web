@@ -1737,6 +1737,7 @@
   "profile.export": "プロファイルをエクスポート",
   "profile.header": "プロファイル",
   "profile.import": "プロファイルをインポート",
+  "profile.importDuplicateName": "この名前のプロファイルは既に存在します。名前を変更するか削除してから、再度インポートしてください。",
   "profile.label": "プロファイル",
   "profile.manage": "プロファイルを管理",
   "profile.maxReached": "プロファイルは最大5つまでです。",

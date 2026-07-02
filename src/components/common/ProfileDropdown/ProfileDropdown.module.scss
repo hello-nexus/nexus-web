@@ -1,4 +1,5 @@
 @use '../../../styles/interactions' as *;
+@use '../../../styles/text' as *;
 
 .wrapper {
   position: relative;
@@ -268,4 +269,11 @@
 
 .hiddenInput {
   display: none;
+}
+
+.importError {
+  @include text-button;
+  margin: 0;
+  padding: 0 0.6rem 0.4rem;
+  color: var(--bad);
 }

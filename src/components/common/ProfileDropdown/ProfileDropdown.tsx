@@ -8,6 +8,7 @@ import { PRESET_ACCENTS, loadSettings } from '../../../lib/settings';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import type { Preferences } from '../../../api/profiles';
 import { savePreferences } from '../../../api/profiles';
+import { isProfileNameTaken } from '../../../hooks/profileNameUtils';
 import { PromptModal } from '../PromptModal/PromptModal';
 import styles from './ProfileDropdown.module.scss';
 
@@ -37,6 +38,7 @@ export function ProfileDropdown({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -62,13 +64,17 @@ export function ProfileDropdown({
   const handleCreateConfirm = useCallback(async (rawName: string) => {
     const name = rawName.trim().slice(0, 20);
     if (!name) return;
-    setCreateOpen(false);
 
     const currentAccent = loadSettings().general.accentColor;
     const others = PRESET_ACCENTS.filter(c => c !== currentAccent);
     const newAccent = others[Math.floor(Math.random() * others.length)];
 
-    await profiles.createProfile(name);
+    const result = await profiles.createProfile(name);
+    if (result.body?.msg === 'profile_name_taken') {
+      return t('profile.duplicateName');
+    }
+    setCreateOpen(false);
+
     const updated = profiles.profiles;
     const created = updated[updated.length - 1];
     if (created) {
@@ -79,13 +85,12 @@ export function ProfileDropdown({
         theme: { ...prefs.theme, accentColor: newAccent },
       });
     }
-  }, [profiles, onPreferencesChanged]);
+  }, [profiles, onPreferencesChanged, t]);
 
   const validateNewName = useCallback((raw: string): string | null => {
     const trimmed = raw.trim();
     if (!trimmed) return null;
-    const dupe = profiles.profiles.some(p => p.name.toLowerCase() === trimmed.toLowerCase());
-    return dupe ? t('profile.duplicateName') : null;
+    return isProfileNameTaken(profiles.profiles, trimmed) ? t('profile.duplicateName') : null;
   }, [profiles.profiles, t]);
 
   const handleExport = useCallback(async () => {
@@ -99,9 +104,13 @@ export function ProfileDropdown({
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await profiles.importProfile(file);
+    setImportError(null);
+    const result = await profiles.importProfile(file);
+    if (result.body?.msg === 'profile_name_taken') {
+      setImportError(t('profile.importDuplicateName'));
+    }
     e.target.value = '';
-  }, [profiles]);
+  }, [profiles, t]);
 
   const handleManage = useCallback(() => {
     onNavigateSettings();
@@ -200,6 +209,7 @@ export function ProfileDropdown({
               </button>
             )}
           </div>
+          {importError && <p className={styles.importError} role="alert">{importError}</p>}
           <input ref={fileRef} type="file" accept=".json" className={styles.hiddenInput} onChange={handleFileChange} />
         </div>
       )}

@@ -1737,6 +1737,7 @@
   "profile.export": "匯出設定檔",
   "profile.header": "設定檔",
   "profile.import": "匯入設定檔",
+  "profile.importDuplicateName": "已有同名的設定檔。請重新命名或刪除後，再重新匯入。",
   "profile.label": "設定檔",
   "profile.manage": "管理設定檔",
   "profile.maxReached": "最多只能建立 5 個設定檔。",

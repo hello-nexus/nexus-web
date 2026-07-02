@@ -1737,6 +1737,7 @@
   "profile.export": "导出配置",
   "profile.header": "配置文件",
   "profile.import": "导入配置",
+  "profile.importDuplicateName": "已存在同名的配置文件。请重命名或删除后，重新导入。",
   "profile.label": "配置文件",
   "profile.manage": "管理配置",
   "profile.maxReached": "最多只能创建 5 个配置。",

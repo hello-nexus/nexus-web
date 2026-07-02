@@ -1,4 +1,4 @@
-import { fetchService, postService, putService, deleteService, resolveHttp } from './service';
+import { fetchService, postService, putService, deleteService, resolveHttp, authFetchWithStatus } from './service';
 import { getToken } from './auth';
 import type { PanelLayout } from '../panel/types';
 import type { OverlayWidgetDto } from './overlay';
@@ -116,8 +116,17 @@ interface GetProfilesResponse {
   activeId: string;
 }
 
-interface ProfileResponse {
-  profile: ProfileEntry;
+// error/msg mirror the service's ApiResponse envelope, present on every
+// response (including success); profile is populated only on success.
+export interface ProfileResponse {
+  error?: boolean;
+  msg?: string;
+  profile?: ProfileEntry;
+}
+
+export interface ProfileFetchResult<T> {
+  status: number;
+  body: T | null;
 }
 
 interface SwitchProfileResponse {
@@ -128,14 +137,29 @@ interface SwitchProfileResponse {
 export const fetchProfiles = () =>
   fetchService<GetProfilesResponse>('/profiles');
 
+// Status-preserving fetch for the three profile mutations whose non-2xx body
+// carries a machine error code (profile_name_taken) the caller must branch
+// on. postService collapses any non-2xx to null, discarding that body -
+// unusable here. Built on authFetchWithStatus (not a hand-rolled fetch) so
+// these calls keep the same relay / LAN-sealed tunnel routing as every other
+// local-service call - unlike cloud.ts's api.hellonexus.com calls, these hit
+// the local service and MUST tunnel off-LAN.
+async function profileFetch<T>(path: string, method: string, body?: unknown): Promise<ProfileFetchResult<T>> {
+  const { response, status } = await authFetchWithStatus(path, { method, body });
+  if (!response) return { status, body: null };
+  let parsedBody: T | null = null;
+  try { parsedBody = (await response.json()) as T; } catch { parsedBody = null; }
+  return { status, body: parsedBody };
+}
+
 export const createProfile = (name: string) =>
-  postService<ProfileResponse>('/profiles/create', { name });
+  profileFetch<ProfileResponse>('/profiles/create', 'POST', { name });
 
 export const switchProfile = (id: string) =>
   postService<SwitchProfileResponse>(`/profiles/${encodeURIComponent(id)}/switch`, {});
 
 export const renameProfile = (id: string, name: string) =>
-  postService<ProfileResponse>(`/profiles/${encodeURIComponent(id)}/rename`, { name });
+  profileFetch<ProfileResponse>(`/profiles/${encodeURIComponent(id)}/rename`, 'POST', { name });
 
 export const deleteProfile = (id: string) =>
   deleteService(`/profiles/${encodeURIComponent(id)}`);
@@ -191,15 +215,12 @@ export async function exportProfile(id: string, name: string): Promise<void> {
   } catch { /* ignore download errors */ }
 }
 
-export async function importProfileFile(file: File): Promise<ProfileResponse | null> {
+export async function importProfileFile(file: File): Promise<ProfileFetchResult<ProfileResponse>> {
   try {
     const text = await file.text();
-    JSON.parse(text);
-    const token = await getToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const resp = await fetch(resolveHttp('/profiles/import'), { method: 'POST', headers, body: text });
-    if (!resp.ok) return null;
-    return await resp.json();
-  } catch { return null; }
+    const parsed = JSON.parse(text);
+    return await profileFetch<ProfileResponse>('/profiles/import', 'POST', parsed);
+  } catch {
+    return { status: 0, body: null };
+  }
 }

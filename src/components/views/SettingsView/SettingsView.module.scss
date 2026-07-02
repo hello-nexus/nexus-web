@@ -172,6 +172,12 @@
   flex-basis: 100%;
 }
 
+.profileImportError {
+  @include text-button;
+  margin: 0.5rem 0 0;
+  color: var(--bad);
+}
+
 .profileBadge {
   @include text-label;
   padding: 0.1rem 0.45rem;

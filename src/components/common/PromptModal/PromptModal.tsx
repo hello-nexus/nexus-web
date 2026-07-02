@@ -18,7 +18,14 @@ interface PromptModalProps {
    * the user types and again on submit.
    */
   validate?: (value: string) => string | null | undefined;
-  onConfirm: (value: string) => void;
+  /**
+   * May return (or resolve to) an error string instead of committing - the
+   * modal stays open and displays it immediately, through the same slot as
+   * `validate`. Used for a server-side rejection (e.g. a 409 name collision)
+   * that a synchronous `validate` can't catch. A void/undefined result is a
+   * normal commit; the caller is responsible for closing the modal.
+   */
+  onConfirm: (value: string) => void | string | null | undefined | Promise<void | string | null | undefined>;
   onCancel: () => void;
 }
 
@@ -48,15 +55,21 @@ export function PromptModal({
   const errorId = useId();
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  // Bumped on every open-transition so a still-pending onConfirm from a
+  // cancelled-then-reopened cycle can't land its error on the new session.
+  const attemptRef = useRef(0);
 
   useEffect(() => {
     if (!open) return;
     // Reset form state when the modal transitions from closed -> open. The
     // caller may pass a new initialValue between open cycles; we can't
     // useMemo this because the user then types into `value`.
-     
+
+    attemptRef.current += 1;
     setValue(initialValue);
     setError(null);
+    setSubmitting(false);
     // Defer focus to the next frame so the Overlay surface has mounted.
     const handle = requestAnimationFrame(() => {
       inputRef.current?.focus();
@@ -68,6 +81,7 @@ export function PromptModal({
   if (!open) return null;
 
   const submit = () => {
+    if (submitting) return;
     const trimmed = value;
     if (validate) {
       const err = validate(trimmed);
@@ -82,7 +96,21 @@ export function PromptModal({
       onCancel();
       return;
     }
-    onConfirm(trimmed);
+    const result = onConfirm(trimmed);
+    if (result instanceof Promise) {
+      const attempt = attemptRef.current;
+      setSubmitting(true);
+      result.then(err => {
+        if (attemptRef.current !== attempt) return; // superseded by a later open cycle
+        setSubmitting(false);
+        if (err) setError(err);
+      }).catch(() => {
+        if (attemptRef.current !== attempt) return;
+        setSubmitting(false);
+      });
+      return;
+    }
+    if (result) setError(result);
   };
 
   const handleChange = (next: string) => {
@@ -93,7 +121,7 @@ export function PromptModal({
   };
 
   const isInvalid = error != null;
-  const submitDisabled = isInvalid || !value.trim();
+  const submitDisabled = isInvalid || !value.trim() || submitting;
 
   return (
     <Overlay open={open} onClose={onCancel} variant="alert" onEnter={submit}

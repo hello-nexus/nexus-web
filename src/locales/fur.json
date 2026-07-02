@@ -1746,6 +1746,7 @@
   "profile.export": "Esporte profîl",
   "profile.header": "Profîi",
   "profile.import": "Impuarte profîl",
+  "profile.importDuplicateName": "Un profîl cun chest non al esist za. Cambie non o eliminilu, dopo torne a impuartâlu.",
   "profile.label": "Profîl",
   "profile.manage": "Gjestìs i profîi",
   "profile.maxReached": "Rivât al massim di 5 profîi.",

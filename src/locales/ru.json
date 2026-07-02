@@ -1737,6 +1737,7 @@
   "profile.export": "Экспорт профиля",
   "profile.header": "Профили",
   "profile.import": "Импорт профиля",
+  "profile.importDuplicateName": "Профиль с таким именем уже существует. Переименуйте его или удалите, а затем повторите импорт.",
   "profile.label": "Профиль",
   "profile.manage": "Управление профилями",
   "profile.maxReached": "Достигнут максимум - 5 профилей.",

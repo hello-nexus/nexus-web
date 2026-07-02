@@ -6,6 +6,7 @@ import {
   fetchSharing, setPrimaryProfile as apiSetPrimary, setCategoryShared as apiSetCategoryShared,
   resetProfile as apiResetProfile, resetProfileCategory as apiResetProfileCategory,
   type ProfileEntry, type Preferences, type ProfileCategory, type SharingConfig,
+  type ProfileFetchResult, type ProfileResponse,
 } from '../api/profiles';
 
 const ORDER_KEY = 'nexus_profile_order';
@@ -33,11 +34,11 @@ export interface UseProfilesResult {
   profiles: ProfileEntry[];
   activeId: string;
   switchProfile: (id: string) => Promise<Preferences | null>;
-  createProfile: (name: string) => Promise<void>;
-  renameProfile: (id: string, name: string) => Promise<void>;
+  createProfile: (name: string) => Promise<ProfileFetchResult<ProfileResponse>>;
+  renameProfile: (id: string, name: string) => Promise<ProfileFetchResult<ProfileResponse>>;
   deleteProfile: (id: string) => Promise<void>;
   exportProfile: (id: string) => Promise<void>;
-  importProfile: (file: File) => Promise<void>;
+  importProfile: (file: File) => Promise<ProfileFetchResult<ProfileResponse>>;
   reorderProfiles: (ids: string[]) => void;
   refresh: () => Promise<void>;
   loading: boolean;
@@ -85,13 +86,15 @@ export function useProfiles(enabled: boolean): UseProfilesResult {
   }, [refresh]);
 
   const createProfileFn = useCallback(async (name: string) => {
-    await apiCreate(name);
-    await refresh();
+    const result = await apiCreate(name);
+    if (result.status >= 200 && result.status < 300) await refresh();
+    return result;
   }, [refresh]);
 
   const renameProfileFn = useCallback(async (id: string, name: string) => {
-    await apiRename(id, name);
-    await refresh();
+    const result = await apiRename(id, name);
+    if (result.status >= 200 && result.status < 300) await refresh();
+    return result;
   }, [refresh]);
 
   const deleteProfileFn = useCallback(async (id: string) => {
@@ -105,8 +108,9 @@ export function useProfiles(enabled: boolean): UseProfilesResult {
   }, [profiles]);
 
   const importProfileFn = useCallback(async (file: File) => {
-    await apiImport(file);
-    await refresh();
+    const result = await apiImport(file);
+    if (result.status >= 200 && result.status < 300) await refresh();
+    return result;
   }, [refresh]);
 
   const reorderProfilesFn = useCallback((ids: string[]) => {
