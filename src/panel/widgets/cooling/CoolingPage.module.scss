@@ -363,19 +363,21 @@
   cursor: pointer;
   &:hover .fanKindIcon { color: var(--text); }
 }
-// Overlaid on the fan icon's bottom-right corner. The surface-colored ring
-// punches a gap through the fan blades behind it so the accent-colored glyph
-// stays legible against them.
+// Overlaid on the fan icon's bottom-right corner; the fan dims when locked so
+// this reads as the primary glyph. The surface-colored ring punches a gap
+// through the fan blades behind it so the lock stays legible against them.
 .fanLockBadge {
   position: absolute;
-  right: -3px;
-  bottom: -3px;
-  color: var(--accent);
+  right: -4px;
+  bottom: -4px;
+  color: var(--text);
   background: var(--surface);
   border-radius: 50%;
   padding: 1px;
   box-shadow: 0 0 0 2px var(--surface);
 }
+// Locked fans dim the fan glyph so the lock badge is the dominant mark.
+.fanKindIconDim { opacity: 0.3; }
 .fanCardCalibrating { opacity: 0.5; pointer-events: none; }
 // Hardware-unresponsive: the fan block reads as "off". Border desaturates,
 // background sits flat, no hover transition - matches the Disconnected

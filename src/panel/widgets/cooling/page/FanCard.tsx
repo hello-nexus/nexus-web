@@ -206,8 +206,8 @@ export const FanCard = memo(function FanCard({
         <HoverTooltip body={lockTooltip} side="top">
           {isReadOnly ? (
             <span className={styles.fanKindToggle} role="img" aria-label={lockTooltip}>
-              <Fan size={18} className={styles.fanKindIcon} aria-hidden="true" />
-              {locked && <Lock size={10} className={styles.fanLockBadge} aria-hidden="true" />}
+              <Fan size={18} className={locked ? `${styles.fanKindIcon} ${styles.fanKindIconDim}` : styles.fanKindIcon} aria-hidden="true" />
+              {locked && <Lock size={14} className={styles.fanLockBadge} aria-hidden="true" />}
             </span>
           ) : (
             <button
@@ -218,8 +218,8 @@ export const FanCard = memo(function FanCard({
               aria-label={lockTooltip}
               onClick={() => onToggleLock(channel.id, !locked)}
             >
-              <Fan size={18} className={styles.fanKindIcon} aria-hidden="true" />
-              {locked && <Lock size={10} className={styles.fanLockBadge} aria-hidden="true" />}
+              <Fan size={18} className={locked ? `${styles.fanKindIcon} ${styles.fanKindIconDim}` : styles.fanKindIcon} aria-hidden="true" />
+              {locked && <Lock size={14} className={styles.fanLockBadge} aria-hidden="true" />}
             </button>
           )}
         </HoverTooltip>
