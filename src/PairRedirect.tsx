@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NexusMark } from './components/icons/NexusBrand';
+import { Spinner } from './components/common/Spinner/Spinner';
 import { pairOverInternet, pairOverRelayClaim, type InternetPairResult } from './api/internetPairing';
 import { isRemoteOrigin, setRelayRegion } from './api/service';
 import { getDeviceId } from './api/deviceId';
@@ -229,23 +230,18 @@ export function PairRedirect() {
   if (phase.state === 'relay') {
     return (
       <Frame>
-        {/* eslint-disable i18next/no-literal-string -- renders outside I18nProvider, see file note */}
-        <Title>Connecting over the internet…</Title>
-        <Sub>{phase.machineName ? `Paired with ${phase.machineName}` : 'Paired - opening your panel.'}</Sub>
-        {/* eslint-enable i18next/no-literal-string */}
+        <Spinner size={32} />
       </Frame>
     );
   }
 
   // 'pairing' (probing LAN, then relay) and 'lan' (redirect in flight) both
-  // show the connecting card; 'lan' adds the manual Continue fallback in case
-  // the auto-redirect is blocked.
+  // show the connecting spinner; 'lan' adds the manual Continue fallback in
+  // case the auto-redirect is blocked.
   const lanURL = phase.state === 'lan' ? phase.lanURL : '';
   return (
     <Frame>
-      {/* eslint-disable-next-line i18next/no-literal-string -- renders outside I18nProvider, see file note */}
-      <Title>Connecting to your PC…</Title>
-      <Sub mono>{`${host}:${httpPort}`}</Sub>
+      <Spinner size={32} />
       {lanURL && (
         // eslint-disable-next-line i18next/no-literal-string -- renders outside I18nProvider, see file note
         <a href={lanURL} style={fallbackLink}>

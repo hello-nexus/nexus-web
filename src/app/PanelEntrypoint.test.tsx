@@ -164,6 +164,10 @@ describe('PanelEntrypoint allocate-or-recover', () => {
       />,
     );
 
+    // Allocating state shows a bare spinner - no "Registering panel..." text.
+    expect(screen.getByRole('img', { name: 'common.loading' })).toBeInTheDocument();
+    expect(screen.queryByText(/registering/i)).toBeNull();
+
     await waitFor(() => expect(allocateMock).toHaveBeenCalledTimes(1));
     expect(patchMock).not.toHaveBeenCalled();
     await waitFor(() =>

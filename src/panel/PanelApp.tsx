@@ -8,6 +8,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
+import { Spinner } from '../components/common/Spinner/Spinner';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
 import { useFlashWidgets } from './engine/useFlashWidgets';
@@ -1261,7 +1262,7 @@ export function PanelContent({
           />
         )}
         {!loaded ? (
-          <div className={styles.loading}>{t('panel.loadingPanel')}</div>
+          <div className={styles.loading}><Spinner size={28} /></div>
         ) : (
           <>
             <div className={styles.panelStage}>

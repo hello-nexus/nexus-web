@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import PanelApp from '../panel/PanelApp';
+import { Spinner } from '../components/common/Spinner/Spinner';
 import { PanelSimulatorContent } from '../panel/embed/PanelSimulatorContent';
 import OverlayShell from '../overlay/OverlayShell';
 import { inferSurfaceFromViewport } from '../panel/device/inferSurface';
@@ -193,11 +194,8 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
     setState('allocating');
   }, []);
 
-  if (state === 'claiming') {
-    return <div className={styles.panelPairGate}>{t('panel.gate.pairingPhone')}</div>;
-  }
-  if (state === 'allocating') {
-    return <div className={styles.panelPairGate}>{t('panel.gate.registering')}</div>;
+  if (state === 'claiming' || state === 'allocating') {
+    return <div className={styles.panelPairGate}><Spinner size={28} /></div>;
   }
   if (state === 'failed') {
     return (
