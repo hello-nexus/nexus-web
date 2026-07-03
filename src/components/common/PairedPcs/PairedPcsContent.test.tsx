@@ -19,6 +19,20 @@ describe('PairedPcsContent', () => {
     expect(screen.getByText('pairedPcs.empty')).toBeInTheDocument();
   });
 
+  it('offers a Pair a new PC action when the list is empty', () => {
+    render(<PairedPcsContent />);
+    const link = screen.getByText('connection.lost.newDevice').closest('a');
+    expect(link?.getAttribute('href')).toBe('/r/pair');
+  });
+
+  it('still offers the Pair a new PC action alongside a non-empty list', () => {
+    upsertPairedPc({ machineName: 'Tower', token: 't1', spki: 'AA' });
+    render(<PairedPcsContent />);
+    const link = screen.getByText('connection.lost.newDevice').closest('a');
+    expect(link?.getAttribute('href')).toBe('/r/pair');
+    expect(screen.getByText('Tower')).toBeInTheDocument();
+  });
+
   it('lists every stored PC by machine name', () => {
     upsertPairedPc({ machineName: 'Tower', token: 't1', spki: 'AA' });
     upsertPairedPc({ machineName: 'Laptop', token: 't2', spki: 'BB' });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Lock, MonitorSmartphone, Plus, QrCode, Settings2 } from 'lucide-react';
+import { Lock, Plus, QrCode, Settings2 } from 'lucide-react';
 import { usePanelTraySwipe } from '../engine/usePanelTraySwipe';
 import { cssPxPerMm } from '../engine/panelGrid';
 import { TRAY_COMMIT_FLICK_MM_PER_MS, TRAY_COMMIT_TRAVEL_MM, TRAY_ENGAGE_TRAVEL_MM } from '../engine/gestureThresholds';
@@ -18,15 +18,12 @@ interface PanelActionsTrayProps {
   onSettings?: () => void;
   onPair?: () => void;
   pairAvailable: boolean;
-  // Opens the in-panel pairing sheet on a local hardwired kiosk (Y70, touch
-  // monitor). Distinct from onPair, which triggers the native app's OS dialog.
+  // Opens the in-panel pairing sheet: on a local hardwired kiosk (Y70, touch
+  // monitor) this PC's authorized-devices list, on a phone surface the
+  // phone's own remembered-PCs list. Distinct from onPair, which triggers the
+  // native app's OS dialog.
   onPairSheet?: () => void;
   pairSheetAvailable?: boolean;
-  // Opens the phone's own remembered-PCs sheet. Phone-only (surface ===
-  // 'phone'): a hardwired kiosk is always exactly one PC, so there is nothing
-  // to list or switch between.
-  onPairedPcsSheet?: () => void;
-  pairedPcsSheetAvailable?: boolean;
   // Surface element the swipe-up gesture binds to. The hook walks
   // touch targets for [data-panel-scrollable="true"] ancestors and
   // yields to the widget's own scroller when found.
@@ -56,8 +53,6 @@ export function PanelActionsTray({
   pairAvailable,
   onPairSheet,
   pairSheetAvailable = false,
-  onPairedPcsSheet,
-  pairedPcsSheetAvailable = false,
   surfaceRef,
   surface,
   disabled = false,
@@ -106,9 +101,10 @@ export function PanelActionsTray({
   const showScrim = (open && !pinnedOpen) || dragging;
 
   // The pairing button shows on two surfaces with different actions: inside the
-  // native app wrapper it triggers the OS pairing dialog (onPair); on a local
-  // hardwired kiosk it opens the in-panel pairing sheet (onPairSheet). A plain
-  // remote browser panel gets neither, so the button is hidden.
+  // native app wrapper it triggers the OS pairing dialog (onPair); everywhere
+  // else it opens the in-panel pairing sheet (onPairSheet) - the host's
+  // authorized-devices list on a local hardwired kiosk, or the phone's own
+  // remembered-PCs list on a phone surface.
   const pairAction = isNativeApp()
     ? (pairAvailable && onPair ? onPair : undefined)
     : (pairSheetAvailable && onPairSheet ? onPairSheet : undefined);
@@ -178,18 +174,6 @@ export function PanelActionsTray({
               className={styles.trayButtonCompact}
               onClick={() => { pairAction(); onClose(); }}
               aria-label={t('panel.actions.pairing')}
-            />
-          </HoverTooltip>
-        )}
-        {pairedPcsSheetAvailable && onPairedPcsSheet && (
-          <HoverTooltip body={t('pairedPcs.title')} side="top">
-            <Button
-              size="lg"
-              tone="neutral"
-              icon={<MonitorSmartphone />}
-              className={styles.trayButtonCompact}
-              onClick={() => { onPairedPcsSheet(); onClose(); }}
-              aria-label={t('pairedPcs.title')}
             />
           </HoverTooltip>
         )}

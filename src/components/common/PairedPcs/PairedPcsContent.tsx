@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QrCode } from 'lucide-react';
 import { Card } from '../Card/Card';
 import { CardDeleteButton } from '../CardDeleteButton/CardDeleteButton';
 import { Button } from '../Button/Button';
@@ -18,7 +19,10 @@ import styles from './PairedPcsContent.module.scss';
  * at all. Applies a record's session token, then does a full navigation into
  * /panel/phone: the token/relay-region state this reads is per-origin
  * localStorage, so a hot in-place swap of the live connection isn't possible
- * - the same reasoning every claim path in this app already follows.
+ * - the same reasoning every claim path in this app already follows. The
+ * primary entry point on a phone surface (PanelActionsTray's QR button) opens
+ * this list; pairing a new PC is the "Pair a new PC" row below, not a
+ * separate entry point.
  */
 export function PairedPcsContent() {
   const { t } = useTranslation();
@@ -36,47 +40,58 @@ export function PairedPcsContent() {
     setActiveId(getActivePcId());
   };
 
-  if (records.length === 0) {
-    return <p className={styles.empty}>{t('pairedPcs.empty')}</p>;
-  }
-
   return (
-    <div className={styles.grid}>
-      {records.map(pc => {
-        const isActive = pc.id === activeId;
-        const displayName = pc.machineName || t('pairedPcs.unnamed');
-        const tone = isActive ? 'good' : pc.needsRepair ? 'bad' : 'neutral';
-        const statusLabel = isActive
-          ? t('pairedPcs.statusConnected')
-          : pc.needsRepair
-          ? t('pairedPcs.statusNeedsRepair')
-          : t('pairedPcs.statusSaved');
-        return (
-          <Card key={pc.id} title={displayName} className={styles.card}>
-            <div className={styles.footer}>
-              <span className={styles.status} data-tone={tone}>
-                <span className={styles.statusDot} data-tone={tone} aria-hidden="true" />
-                {statusLabel}
-              </span>
-              {isActive ? null : pc.needsRepair ? (
-                <Button size="sm" tone="accent" href="/r/pair">
-                  {t('connection.sessionRevoked.pairAgain')}
-                </Button>
-              ) : (
-                <Button size="sm" tone="accent" onClick={() => handleConnect(pc.id)}>
-                  {t('pairedPcs.connect')}
-                </Button>
-              )}
-            </div>
-            <CardDeleteButton
-              onDelete={() => handleRemove(pc.id)}
-              ariaLabel={t('pairedPcs.remove', { name: displayName })}
-              revealOnHover={false}
-              className={styles.delete}
-            />
-          </Card>
-        );
-      })}
+    <div className={styles.root}>
+      <Button
+        size="sm"
+        tone="neutral"
+        icon={<QrCode size={14} />}
+        href="/r/pair"
+        className={styles.addNew}
+      >
+        {t('connection.lost.newDevice')}
+      </Button>
+      {records.length === 0 ? (
+        <p className={styles.empty}>{t('pairedPcs.empty')}</p>
+      ) : (
+        <div className={styles.grid}>
+          {records.map(pc => {
+            const isActive = pc.id === activeId;
+            const displayName = pc.machineName || t('pairedPcs.unnamed');
+            const tone = isActive ? 'good' : pc.needsRepair ? 'bad' : 'neutral';
+            const statusLabel = isActive
+              ? t('pairedPcs.statusConnected')
+              : pc.needsRepair
+              ? t('pairedPcs.statusNeedsRepair')
+              : t('pairedPcs.statusSaved');
+            return (
+              <Card key={pc.id} title={displayName} className={styles.card}>
+                <div className={styles.footer}>
+                  <span className={styles.status} data-tone={tone}>
+                    <span className={styles.statusDot} data-tone={tone} aria-hidden="true" />
+                    {statusLabel}
+                  </span>
+                  {isActive ? null : pc.needsRepair ? (
+                    <Button size="sm" tone="accent" href="/r/pair">
+                      {t('connection.sessionRevoked.pairAgain')}
+                    </Button>
+                  ) : (
+                    <Button size="sm" tone="accent" onClick={() => handleConnect(pc.id)}>
+                      {t('pairedPcs.connect')}
+                    </Button>
+                  )}
+                </div>
+                <CardDeleteButton
+                  onDelete={() => handleRemove(pc.id)}
+                  ariaLabel={t('pairedPcs.remove', { name: displayName })}
+                  revealOnHover={false}
+                  className={styles.delete}
+                />
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

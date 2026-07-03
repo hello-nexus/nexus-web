@@ -1,3 +1,13 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.addNew {
+  align-self: flex-start;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -47,7 +57,7 @@
 
 .empty {
   margin: 0;
-  padding: 1rem 0;
+  padding: 0.25rem 0;
   font-size: var(--type-small);
   color: var(--text-dim);
   text-align: center;

@@ -1357,10 +1357,12 @@ export function PanelContent({
                 onSettings={() => openSheet('panelSettings')}
                 onPair={nativePairingAvailable ? nativeSettings.open : undefined}
                 pairAvailable={nativePairingAvailable}
-                onPairSheet={localPairAvailable ? () => openSheet('pairRemote') : undefined}
-                pairSheetAvailable={localPairAvailable}
-                onPairedPcsSheet={pairedPcsAvailable ? () => openSheet('pairedPcs') : undefined}
-                pairedPcsSheetAvailable={pairedPcsAvailable}
+                onPairSheet={
+                  localPairAvailable ? () => openSheet('pairRemote')
+                    : pairedPcsAvailable ? () => openSheet('pairedPcs')
+                    : undefined
+                }
+                pairSheetAvailable={localPairAvailable || pairedPcsAvailable}
                 surfaceRef={rootRef}
                 surface={surface}
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
