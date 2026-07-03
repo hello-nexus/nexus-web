@@ -127,7 +127,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
   }
 
   if (device.curatedId === 'lianli-wireless') {
-    return <LianLiWirelessDevicePage key={device.key} />;
+    return <LianLiWirelessDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
   }
 
   if (device.curatedId === 'strimer') {

@@ -72,6 +72,15 @@
   padding-left: 0.75rem;
 }
 
+// Cooling tab - groups one port's RPM/mode/speed rows so multiple ports in
+// the same chain read as distinct blocks rather than one flat row list.
+.portBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
 .actionsRow {
   display: flex;
   gap: 0.6rem;

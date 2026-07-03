@@ -15,12 +15,16 @@ const RPM_POLL_MS = 2000;
 
 type LianLiWirelessTab = 'fans' | 'lighting' | 'cooling' | 'screen';
 
+interface LianLiWirelessDevicePageProps {
+  onSectionNavigate?: (section: string) => void;
+}
+
 /**
  * Routed page for the Lian Li L-Wireless controller (SLV3 2.4GHz dongle).
  * Owns the connection poll and the active-tab state; each tab renders its
  * own controls from its own file.
  */
-export function LianLiWirelessDevicePage() {
+export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDevicePageProps) {
   const { t } = useTranslation();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [state, setState] = useState<LianLiWirelessState | null>(null);
@@ -98,7 +102,9 @@ export function LianLiWirelessDevicePage() {
         <div hidden={disconnected}>
           {activeTab === 'fans' && <LianLiWirelessFansTab state={state} refresh={refresh} />}
           {activeTab === 'lighting' && <LianLiWirelessLightingTab />}
-          {activeTab === 'cooling' && <LianLiWirelessCoolingTab />}
+          {activeTab === 'cooling' && (
+            <LianLiWirelessCoolingTab state={state} onSectionNavigate={onSectionNavigate} />
+          )}
           {activeTab === 'screen' && <LianLiWirelessScreenTab />}
         </div>
       </div>
