@@ -95,10 +95,13 @@ const SIM_STATUS: TryxStatus = {
     lastFrameMs: 0,
   },
   overlay: {
+    // Empty sensorId + distinct groups: the page's reconcile effect fills each
+    // from the host's first real CPU/GPU/Memory sensor, so the simulator shows
+    // live values on any machine instead of hardware-specific canned ids.
     items: [
-      { sensorId: '/intelcpu/0/temperature/0', device: 'cpu', label: 'CPU Package', x: 0.04, y: 0.10 },
-      { sensorId: '/intelcpu/0/clock/0', device: 'cpu', label: 'CPU Clock', x: 0.04, y: 0.30 },
-      { sensorId: '/gpu/0/load/0', device: 'gpu', label: 'GPU Core', x: 0.04, y: 0.50 },
+      { sensorId: '', device: 'cpu', label: '', x: 0.04, y: 0.10 },
+      { sensorId: '', device: 'gpu', label: '', x: 0.04, y: 0.30 },
+      { sensorId: '', device: 'memory', label: '', x: 0.04, y: 0.50 },
     ],
     font: 'roboto-regular',
     size: 100,

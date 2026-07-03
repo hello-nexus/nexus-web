@@ -271,6 +271,33 @@ export function TryxDevicePage() {
     setOverlayDocked(status.overlay?.docked ?? DEFAULT_OVERLAY_DOCKED);
   }, [status]);
 
+  // Live sensor lists arrive after the status seed. Replace any stored sensorId
+  // this machine doesn't actually have - a config saved on other hardware, or
+  // the simulator's canned ids - with the group's first real sensor, so the
+  // dropdown selects it and the preview shows a live value instead of "--".
+  // Idempotent: only ever rewrites an item whose current sensorId is invalid.
+  // Count of enabled items whose stored sensorId isn't valid for the currently
+  // available sensors (empty, or a config saved on other hardware, or the
+  // simulator's canned ids). Keying the reconcile effect on this - rather than
+  // just the sensor counts - fires it whenever either the items OR the sensors
+  // change into a fixable state, regardless of which arrives first.
+  const overlayItemsNeedingSensor = overlayItems.filter(item => {
+    if (!item.enabled) return false;
+    const options = tryxSensorOptionsForGroup(item.device, sensorsByGroup);
+    return options.length > 0 && !options.some(o => o.value === item.sensorId);
+  }).length;
+  useEffect(() => {
+    if (overlayItemsNeedingSensor === 0) return;
+    setOverlayItems(prev => prev.map(item => {
+      if (!item.enabled) return item;
+      const options = tryxSensorOptionsForGroup(item.device, sensorsByGroup);
+      if (options.length === 0 || options.some(o => o.value === item.sensorId)) return item;
+      const first = options[0];
+      return { ...item, sensorId: first.value, label: first.bareLabel, sensorType: first.type };
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlayItemsNeedingSensor]);
+
   // Measures the preview canvas's rendered height so scalePanelMetric can
   // convert the panel's fixed-height layout constants into preview px; the
   // canvas is CSS aspect-ratio: 2, so its height tracks the pane's
