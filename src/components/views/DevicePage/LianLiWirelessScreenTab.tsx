@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  MonitorOff, Image as ImageIcon, Film, Video, Gauge, Clock, Sparkles, Layers,
+  MonitorOff, Image as ImageIcon, Film, Video, Gauge, Clock, Sparkles,
 } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
@@ -32,7 +32,6 @@ const SCREENS_POLL_MS = 2000;
 // One poll interval plus margin: long enough that the poll following an edit's
 // POST observes the applied server state before it resumes overwriting.
 const EDIT_POLL_GRACE_MS = 2500;
-const GROUP_ALL = 'all';
 
 const CONTENT_TYPES: { value: LianLiWirelessScreenContentType; labelKey: string }[] = [
   { value: 'off', labelKey: 'devices.lianli-wireless.contentTypeOff' },
@@ -66,15 +65,15 @@ function contentTypeIcon(type: LianLiWirelessScreenContentType) {
 
 /**
  * Screen tab: LCD content, brightness and rotation for the wireless SLV3-LCD
- * fan screens. Screens are addressed individually (by serial) or as a group
- * (`GROUP_ALL`) that broadcasts the next change to every screen. Polls its
- * own `/screens` list independently of the shell's fan-state poll.
+ * fan screens. Fans are selected by toggling their tiles; every edit is
+ * broadcast to all selected fans, so selecting several edits them as a group.
+ * Polls its own `/screens` list independently of the shell's fan-state poll.
  */
 export function LianLiWirelessScreenTab() {
   const { t } = useTranslation();
   const [screens, setScreens] = useState<LianLiWirelessScreen[] | null>(null);
   const [media, setMedia] = useState<LianLiWirelessMediaItem[]>([]);
-  const [target, setTarget] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [brightnessDraft, setBrightnessDraft] = useState(50);
   const [uploadKind, setUploadKind] = useState<LianLiWirelessMediaKind>('image');
   const [uploading, setUploading] = useState(false);
@@ -122,17 +121,27 @@ export function LianLiWirelessScreenTab() {
     [screens],
   );
 
-  // Default the selection to the first (by position) screen once the list
-  // first loads; never overrides a selection the user already made.
+  // Select the first screen once the list first loads; after that the user's
+  // toggles stand, including selecting none.
+  const selectionInitedRef = useRef(false);
   useEffect(() => {
-    if (target === null && orderedScreens.length > 0) setTarget(orderedScreens[0].serial);
-  }, [orderedScreens, target]);
-  const targetScreens = target === GROUP_ALL
-    ? orderedScreens
-    : orderedScreens.filter(s => s.serial === target);
-  // The screen(s) a control edit applies to. In group mode every screen is
-  // targeted; the FIRST one's current value is shown as the representative
-  // state (screens are expected to converge to the same settings in group use).
+    if (!selectionInitedRef.current && orderedScreens.length > 0) {
+      selectionInitedRef.current = true;
+      setSelected(new Set([orderedScreens[0].serial]));
+    }
+  }, [orderedScreens]);
+
+  const toggleScreen = useCallback((serial: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(serial)) next.delete(serial); else next.add(serial);
+      return next;
+    });
+  }, []);
+
+  // The screens a control edit applies to (the selected group); the FIRST one's
+  // current value is the representative shown in the controls.
+  const targetScreens = orderedScreens.filter(s => selected.has(s.serial));
   const representative = targetScreens[0] ?? null;
 
   useEffect(() => {
@@ -147,11 +156,10 @@ export function LianLiWirelessScreenTab() {
   ) => {
     if (!screens) return;
     lastEditRef.current = performance.now();
-    const serials = (target === GROUP_ALL ? screens : screens.filter(s => s.serial === target))
-      .map(s => s.serial);
+    const serials = screens.filter(s => selected.has(s.serial)).map(s => s.serial);
     setScreens(prev => prev ? prev.map(s => (serials.includes(s.serial) ? mutate(s) : s)) : prev);
     for (const serial of serials) dispatch(serial);
-  }, [screens, target]);
+  }, [screens, selected]);
 
   const commitBrightness = useCallback((v: number) => {
     brightnessInteractingRef.current = false;
@@ -226,14 +234,15 @@ export function LianLiWirelessScreenTab() {
     setUploading(true);
     void (async () => {
       try {
-        await importLianLiWirelessMedia(file, crop);
+        const item = await importLianLiWirelessMedia(file, crop);
         await refreshMedia();
+        if (item && aliveRef.current) handleMediaSelect(item);
       } finally {
         URL.revokeObjectURL(src);
         if (aliveRef.current) setUploading(false);
       }
     })();
-  }, [cropState, refreshMedia]);
+  }, [cropState, refreshMedia, handleMediaSelect]);
 
   const handleCropCancel = useCallback(() => {
     if (cropState) URL.revokeObjectURL(cropState.src);
@@ -258,22 +267,24 @@ export function LianLiWirelessScreenTab() {
         {orderedScreens.length > 0 && (
           <>
             {/* Icon tiles are the selector: each mirrors its screen's live
-                content/brightness/rotation and picks it on click. Numbered by
-                list order (1-based) since GetPosIndex returns 0 on this firmware. */}
+                content/brightness/rotation. Clicking toggles a fan in or out of
+                the selection; edits apply to every selected fan, so selecting
+                several groups them. Numbered by list order (1-based) since
+                GetPosIndex returns 0 on this firmware. */}
             <div
               className={styles.screenPreviewGrid}
               role="group"
               aria-label={t('devices.lianli-wireless.screensAria')}
             >
               {orderedScreens.map((s, i) => {
-                const active = target === s.serial;
+                const active = selected.has(s.serial);
                 return (
                   <button
                     key={s.serial}
                     type="button"
                     className={`${styles.screenPreviewTile} ${active ? styles.screenPreviewTileActive : ''}`}
                     aria-pressed={active}
-                    onClick={() => setTarget(s.serial)}
+                    onClick={() => toggleScreen(s.serial)}
                   >
                     <span
                       className={styles.screenPreviewThumb}
@@ -287,21 +298,6 @@ export function LianLiWirelessScreenTab() {
                   </button>
                 );
               })}
-              {orderedScreens.length > 1 && (
-                <button
-                  type="button"
-                  className={`${styles.screenPreviewTile} ${target === GROUP_ALL ? styles.screenPreviewTileActive : ''}`}
-                  aria-pressed={target === GROUP_ALL}
-                  onClick={() => setTarget(GROUP_ALL)}
-                >
-                  <span className={styles.screenPreviewThumb}>
-                    <Layers size={20} aria-hidden />
-                  </span>
-                  <span className={styles.screenPreviewLabel}>
-                    {t('devices.lianli-wireless.screenGroupAll')}
-                  </span>
-                </button>
-              )}
             </div>
             <div className={`${styles.sliderBlock} ${!representative ? styles.rowDisabled : ''}`}>
               <Slider
@@ -483,7 +479,7 @@ function MediaPanel({
               key={item.id}
               asDiv
               label={item.name}
-              thumbUrl={null}
+              thumbUrl={item.thumb}
               thumbStatic
               thumbAspect={1}
               active={item.id === currentMediaId}
