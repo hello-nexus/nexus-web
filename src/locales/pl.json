@@ -513,8 +513,6 @@
   "devices.lianli-wireless.slot": "Slot {n}",
   "devices.lianli-wireless.tab.cooling": "Chłodzenie",
   "devices.lianli-wireless.tab.fans": "Wentylatory",
-  "devices.lianli-wireless.tab.lighting": "Podświetlenie",
-  "devices.lianli-wireless.tab.placeholder": "Dostępne w przyszłej aktualizacji",
   "devices.lianli-wireless.tab.screen": "Ekran",
   "devices.lianli-wireless.tempUnitCelsius": "°C",
   "devices.lianli-wireless.tempUnitFahrenheit": "°F",

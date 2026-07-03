@@ -513,8 +513,6 @@
   "devices.lianli-wireless.slot": "スロット {n}",
   "devices.lianli-wireless.tab.cooling": "冷却",
   "devices.lianli-wireless.tab.fans": "ファン",
-  "devices.lianli-wireless.tab.lighting": "ライティング",
-  "devices.lianli-wireless.tab.placeholder": "今後のアップデートで追加されます",
   "devices.lianli-wireless.tab.screen": "画面",
   "devices.lianli-wireless.tempUnitCelsius": "摂氏",
   "devices.lianli-wireless.tempUnitFahrenheit": "華氏",

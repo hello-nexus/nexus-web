@@ -513,8 +513,6 @@
   "devices.lianli-wireless.slot": "슬롯 {n}",
   "devices.lianli-wireless.tab.cooling": "쿨링",
   "devices.lianli-wireless.tab.fans": "팬",
-  "devices.lianli-wireless.tab.lighting": "조명",
-  "devices.lianli-wireless.tab.placeholder": "추후 업데이트에서 제공됩니다",
   "devices.lianli-wireless.tab.screen": "화면",
   "devices.lianli-wireless.tempUnitCelsius": "섭씨",
   "devices.lianli-wireless.tempUnitFahrenheit": "화씨",

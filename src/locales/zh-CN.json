@@ -513,8 +513,6 @@
   "devices.lianli-wireless.slot": "插槽 {n}",
   "devices.lianli-wireless.tab.cooling": "散热",
   "devices.lianli-wireless.tab.fans": "风扇",
-  "devices.lianli-wireless.tab.lighting": "灯效",
-  "devices.lianli-wireless.tab.placeholder": "将在后续更新中推出",
   "devices.lianli-wireless.tab.screen": "屏幕",
   "devices.lianli-wireless.tempUnitCelsius": "摄氏度",
   "devices.lianli-wireless.tempUnitFahrenheit": "华氏度",

@@ -241,27 +241,16 @@ describe('LianLiWirelessDevicePage - bind/unbind/identify', () => {
 });
 
 describe('LianLiWirelessDevicePage - tabs', () => {
-  it('renders all 4 tabs with Fans active by default', async () => {
+  it('renders all 3 tabs with Fans active by default', async () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
 
     expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.fans/ })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.lighting/ })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.cooling/ })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.screen/ })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /devices\.lianli-wireless\.tab\.lighting/ })).not.toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.connectionSection')).toBeInTheDocument();
-  });
-
-  it('switching to a placeholder tab shows the placeholder and hides the Fans content', async () => {
-    await act(async () => {
-      render(<LianLiWirelessDevicePage />);
-    });
-
-    fireEvent.click(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.lighting/ }));
-
-    expect(screen.getByText('devices.lianli-wireless.tab.placeholder')).toBeInTheDocument();
-    expect(screen.queryByText('devices.lianli-wireless.connectionSection')).not.toBeInTheDocument();
   });
 
   it('keeps a pending bind across a transient disconnect/reconnect blip', async () => {

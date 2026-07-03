@@ -257,18 +257,12 @@ export function PairRedirect() {
   }
 
   // 'pairing' (probing LAN, then relay) and 'lan' (redirect in flight) both
-  // show the connecting spinner; 'lan' adds the manual Continue fallback in
-  // case the auto-redirect is blocked.
-  const lanURL = phase.state === 'lan' ? phase.lanURL : '';
+  // show the connecting spinner. The LAN redirect is a same-tab
+  // location.assign, which no popup blocker intercepts; a failed commit falls
+  // through to the relay claim, so no manual fallback link is needed.
   return (
     <Frame>
       <div style={spinnerFrame}><Spinner size={32} /></div>
-      {lanURL && (
-        // eslint-disable-next-line i18next/no-literal-string -- renders outside I18nProvider, see file note
-        <a href={lanURL} style={fallbackLink}>
-          Continue
-        </a>
-      )}
     </Frame>
   );
 }
@@ -361,15 +355,3 @@ const subStyle: React.CSSProperties = {
   lineHeight: 1.5,
 };
 
-const fallbackLink: React.CSSProperties = {
-  display: 'inline-block',
-  marginTop: 24,
-  padding: '10px 18px',
-  borderRadius: 'var(--radius)',
-  border: '1px solid var(--border)',
-  background: 'transparent',
-  color: 'var(--text)',
-  fontSize: 'var(--type-small)',
-  fontWeight: 600,
-  textDecoration: 'none',
-};

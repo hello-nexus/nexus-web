@@ -513,8 +513,6 @@
   "devices.lianli-wireless.slot": "Ranura {n}",
   "devices.lianli-wireless.tab.cooling": "Refrigeración",
   "devices.lianli-wireless.tab.fans": "Ventiladores",
-  "devices.lianli-wireless.tab.lighting": "Iluminación",
-  "devices.lianli-wireless.tab.placeholder": "Disponible en una futura actualización",
   "devices.lianli-wireless.tab.screen": "Pantalla",
   "devices.lianli-wireless.tempUnitCelsius": "°C",
   "devices.lianli-wireless.tempUnitFahrenheit": "°F",
