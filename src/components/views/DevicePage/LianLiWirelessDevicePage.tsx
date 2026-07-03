@@ -99,7 +99,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
         {disconnected && <Placeholder title={t('devices.lianli-wireless.notConnected')} />}
         {/* Tab body stays mounted across a transient disconnect so a fan's
             in-flight bind/unbind pending state survives the reconnect. */}
-        <div hidden={disconnected}>
+        <div className={styles.tabBody} hidden={disconnected}>
           {activeTab === 'fans' && <LianLiWirelessFansTab state={state} refresh={refresh} />}
           {activeTab === 'lighting' && <LianLiWirelessLightingTab />}
           {activeTab === 'cooling' && (

@@ -27,6 +27,19 @@
   color: var(--accent);
 }
 
+// Each tab returns several SettingsSections; space them like pageBody would if
+// they were its direct children. The [hidden] override keeps display:flex from
+// defeating the hidden attribute during a transient disconnect.
+.tabBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
 .sectionBox {
   gap: 1rem;
 }
