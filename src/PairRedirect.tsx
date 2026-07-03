@@ -230,7 +230,7 @@ export function PairRedirect() {
   if (phase.state === 'relay') {
     return (
       <Frame>
-        <Spinner size={32} />
+        <div style={spinnerFrame}><Spinner size={32} /></div>
       </Frame>
     );
   }
@@ -241,7 +241,7 @@ export function PairRedirect() {
   const lanURL = phase.state === 'lan' ? phase.lanURL : '';
   return (
     <Frame>
-      <Spinner size={32} />
+      <div style={spinnerFrame}><Spinner size={32} /></div>
       {lanURL && (
         // eslint-disable-next-line i18next/no-literal-string -- renders outside I18nProvider, see file note
         <a href={lanURL} style={fallbackLink}>
@@ -309,6 +309,15 @@ const card: React.CSSProperties = {
   background: 'var(--surface)',
   border: '1px solid var(--border)',
   textAlign: 'center',
+};
+
+// Spinner.module.scss forces display:block on the SVG, so card's
+// textAlign:center (which only centers inline content, for Title/Sub text)
+// leaves it flush against the left edge - center it explicitly instead,
+// matching how every other Spinner consumer in the app is a flex parent.
+const spinnerFrame: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'center',
 };
 
 const logoStyle: React.CSSProperties = {
