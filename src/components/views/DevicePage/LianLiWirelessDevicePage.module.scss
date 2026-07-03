@@ -1,0 +1,106 @@
+// Routed Lian Li Wireless page. Same .page / .pageBody contract every device
+// page uses, so the chrome sits flush under the dashboard's view header.
+
+@use '../../../styles/text' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.pageBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1rem 0 1.25rem;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.statusBadge {
+  @include text-label;
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+
+.sectionBox {
+  gap: 0.75rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2rem;
+}
+
+.rowLabel {
+  flex: 0 0 9.5rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.rowValue {
+  flex: 0 0 6.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.rowValueMono {
+  flex: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  color: var(--text);
+}
+
+.chainBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-left: 0.5rem;
+  margin-left: 0.3rem;
+}
+
+.slotBadge,
+.boundBadge,
+.unboundBadge {
+  flex: 0 0 auto;
+  font-size: var(--type-mini);
+  font-family: var(--font-mono);
+  border-radius: var(--radius-sm);
+  padding: 2px 5px;
+  white-space: nowrap;
+}
+
+.slotBadge {
+  color: var(--text-dim);
+  background: color-mix(in srgb, var(--text-dim) 10%, transparent);
+}
+
+.boundBadge {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.unboundBadge {
+  color: var(--text-dim);
+  background: color-mix(in srgb, var(--text-dim) 10%, transparent);
+}
+
+.emptyNote {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  margin: 0;
+}

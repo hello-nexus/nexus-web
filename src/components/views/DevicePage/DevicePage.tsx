@@ -14,6 +14,7 @@ import { CnvsDevicePage } from './CnvsDevicePage';
 import { SdkMarketplacePage } from '../../../panel/widgets/marketplace/SdkMarketplacePage';
 import { typeForMarketplace } from '../../../widgets/marketplaceRegistry';
 import { LianLiTlDevicePage } from './LianLiTlDevicePage';
+import { LianLiWirelessDevicePage } from './LianLiWirelessDevicePage';
 import { Galahad2DevicePage } from './Galahad2DevicePage';
 import { StrimerDevicePage } from './StrimerDevicePage';
 import { TryxDevicePage } from './TryxDevicePage';
@@ -123,6 +124,10 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
 
   if (device.curatedId === 'lianli-aio') {
     return <Galahad2DevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
+  }
+
+  if (device.curatedId === 'lianli-wireless') {
+    return <LianLiWirelessDevicePage key={device.key} />;
   }
 
   if (device.curatedId === 'strimer') {

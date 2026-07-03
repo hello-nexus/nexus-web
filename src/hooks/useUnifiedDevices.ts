@@ -72,6 +72,7 @@ const CURATED_ICONS: Record<string, string> = {
   smarthub: '/assets/devices/smarthub.svg',
   'lianli-tl': '/assets/devices/lianli.svg',
   'lianli-aio': '/assets/devices/lianli.svg',
+  'lianli-wireless': '/assets/devices/lianli.svg',
   strimer: '/assets/devices/device.svg',
   tryx: '/assets/devices/tryx.svg',
 };
@@ -93,6 +94,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   'fan-hub': 'iBUYPOWER MiniHub',
   'lianli-tl': 'Lian Li Uni Fan TL',
   'lianli-aio': 'Lian Li Galahad II',
+  'lianli-wireless': 'Lian Li Uni Fan Wireless',
   strimer: 'Lian Li Strimer',
   tryx: 'Tryx Panorama',
 };
