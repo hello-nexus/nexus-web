@@ -2076,7 +2076,7 @@
   "tools.panelSim.label": "为本地截图、录像及触控/编辑器测试模拟连接面板目标。",
   "tools.panelSim.shortSideJump": "短边跳转",
   "tools.panelSim.shortSideJumpAria": "短边网格跳转英寸数",
-  "tools.panelSim.title": "面板测试设备",
+  "tools.panelSim.title": "模拟器",
   "tools.pawnio": "PawnIO 驱动程序",
   "tools.pawnio.installed": "已安装",
   "tools.pawnio.loading": "加载中...",
@@ -2270,9 +2270,6 @@
   "update.modal.newBetaRelease": "新测试版！",
   "update.modal.newRelease": "新版本！",
   "update.modal.released": "发布于 {date}",
-  "devices.tryx.simulatedName": "Tryx Panorama（模拟）",
-  "tools.tryxSim.title": "Tryx 模拟器",
-  "tools.tryxSim.label": "使用模拟数据渲染 Tryx 设备页面，无需硬件。",
-  "tools.tryxSim.enable": "启用",
-  "tools.tryxSim.disable": "禁用"
+  "devices.tryx.simulatedName": "Tryx Panorama",
+  "tools.tryxSim.label": "使用模拟数据渲染 Tryx 设备页面，无需硬件。"
 }

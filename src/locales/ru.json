@@ -2076,7 +2076,7 @@
   "tools.panelSim.label": "Фиктивное подключение целевых панелей для локальных скриншотов, видео и тестирования касаний/редактора.",
   "tools.panelSim.shortSideJump": "Шаг по короткой стороне",
   "tools.panelSim.shortSideJumpAria": "Шаг сетки по короткой стороне в дюймах",
-  "tools.panelSim.title": "Тестовые устройства панели",
+  "tools.panelSim.title": "Симуляторы",
   "tools.pawnio": "Драйвер PawnIO",
   "tools.pawnio.installed": "Установлен",
   "tools.pawnio.loading": "Загрузка...",
@@ -2270,9 +2270,6 @@
   "update.modal.newBetaRelease": "Новая бета-версия!",
   "update.modal.newRelease": "Новая версия!",
   "update.modal.released": "Выпущено {date}",
-  "devices.tryx.simulatedName": "Tryx Panorama (Симуляция)",
-  "tools.tryxSim.title": "Симулятор Tryx",
-  "tools.tryxSim.label": "Отображает страницу устройства Tryx с тестовыми данными, без оборудования.",
-  "tools.tryxSim.enable": "Включить",
-  "tools.tryxSim.disable": "Выключить"
+  "devices.tryx.simulatedName": "Tryx Panorama",
+  "tools.tryxSim.label": "Отображает страницу устройства Tryx с тестовыми данными, без оборудования."
 }

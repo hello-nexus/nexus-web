@@ -2076,7 +2076,7 @@
   "tools.panelSim.label": "Panel-Ziele zum Schein verbinden für lokale Screenshots, Videos und Touch-/Editor-Tests.",
   "tools.panelSim.shortSideJump": "Kurzseiten-Sprung",
   "tools.panelSim.shortSideJumpAria": "Kurzseiten-Rastersprung in Zoll",
-  "tools.panelSim.title": "Panel-Testgeräte",
+  "tools.panelSim.title": "Simulatoren",
   "tools.pawnio": "PawnIO-Treiber",
   "tools.pawnio.installed": "Installiert",
   "tools.pawnio.loading": "Laden...",
@@ -2270,9 +2270,6 @@
   "update.modal.newBetaRelease": "Neue Beta-Version!",
   "update.modal.newRelease": "Neue Version!",
   "update.modal.released": "Veröffentlicht am {date}",
-  "devices.tryx.simulatedName": "Tryx Panorama (Simuliert)",
-  "tools.tryxSim.title": "Tryx-Simulator",
-  "tools.tryxSim.label": "Tryx-Geräteseite mit Beispieldaten anzeigen, ohne Hardware.",
-  "tools.tryxSim.enable": "Aktivieren",
-  "tools.tryxSim.disable": "Deaktivieren"
+  "devices.tryx.simulatedName": "Tryx Panorama",
+  "tools.tryxSim.label": "Tryx-Geräteseite mit Beispieldaten anzeigen, ohne Hardware."
 }

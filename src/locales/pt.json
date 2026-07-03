@@ -2076,7 +2076,7 @@
   "tools.panelSim.label": "Liga falsamente alvos de painel para capturas de ecrã, vídeos e testes de toque/editor locais.",
   "tools.panelSim.shortSideJump": "Salto do lado curto",
   "tools.panelSim.shortSideJumpAria": "Polegadas de salto da grelha do lado curto",
-  "tools.panelSim.title": "Dispositivos de teste de painel",
+  "tools.panelSim.title": "Simuladores",
   "tools.pawnio": "Controlador PawnIO",
   "tools.pawnio.installed": "Instalado",
   "tools.pawnio.loading": "A carregar...",
@@ -2270,9 +2270,6 @@
   "update.modal.newBetaRelease": "Nova versão beta!",
   "update.modal.newRelease": "Nova versão!",
   "update.modal.released": "Lançado a {date}",
-  "devices.tryx.simulatedName": "Tryx Panorama (Simulado)",
-  "tools.tryxSim.title": "Simulador Tryx",
-  "tools.tryxSim.label": "Renderiza a página do dispositivo Tryx com dados fictícios, sem hardware.",
-  "tools.tryxSim.enable": "Ativar",
-  "tools.tryxSim.disable": "Desativar"
+  "devices.tryx.simulatedName": "Tryx Panorama",
+  "tools.tryxSim.label": "Renderiza a página do dispositivo Tryx com dados fictícios, sem hardware."
 }

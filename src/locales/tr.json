@@ -2076,7 +2076,7 @@
   "tools.panelSim.label": "Yerel ekran görüntüleri, videolar ve dokunma/düzenleyici testi için sahte bağlantılı panel hedefleri.",
   "tools.panelSim.shortSideJump": "Kısa kenar atlaması",
   "tools.panelSim.shortSideJumpAria": "Kısa kenar ızgara atlaması inç",
-  "tools.panelSim.title": "Panel test cihazları",
+  "tools.panelSim.title": "Simülatörler",
   "tools.pawnio": "PawnIO Surucu",
   "tools.pawnio.installed": "Kurulu",
   "tools.pawnio.loading": "Yukleniyor...",
@@ -2270,9 +2270,6 @@
   "update.modal.newBetaRelease": "Yeni beta sürümü!",
   "update.modal.newRelease": "Yeni sürüm!",
   "update.modal.released": "{date} tarihinde yayınlandı",
-  "devices.tryx.simulatedName": "Tryx Panorama (Simülasyon)",
-  "tools.tryxSim.title": "Tryx simülatörü",
-  "tools.tryxSim.label": "Tryx cihaz sayfasını donanım olmadan örnek verilerle gösterir.",
-  "tools.tryxSim.enable": "Etkinleştir",
-  "tools.tryxSim.disable": "Devre dışı bırak"
+  "devices.tryx.simulatedName": "Tryx Panorama",
+  "tools.tryxSim.label": "Tryx cihaz sayfasını donanım olmadan örnek verilerle gösterir."
 }

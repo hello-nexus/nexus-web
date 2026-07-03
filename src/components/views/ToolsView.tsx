@@ -74,7 +74,6 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             <InstallDefaultsCard />
             <PawnIoCard />
             <PanelSimulatorCard />
-            <TryxSimulatorCard />
             <FontDebugCard />
           </div>
         </div>
@@ -321,29 +320,6 @@ function InstallDefaultsTabBody({ doc, tab }: { doc: InstallDefaultsDocument; ta
   );
 }
 
-function TryxSimulatorCard() {
-  const { t } = useTranslation();
-  const [on, setOn] = useState(() => isTryxSimulated());
-  const toggle = () => {
-    const next = !on;
-    setTryxSimulated(next);
-    setOn(next);
-  };
-  return (
-    <Card title={t('tools.tryxSim.title')}>
-      <span className={styles.dim}>{t('tools.tryxSim.label')}</span>
-      <div className={styles.simRow}>
-        <div className={styles.simMeta}>
-          <strong>{t('devices.tryx.simulatedName')}</strong>
-        </div>
-        <Button type="button" tone={on ? 'danger' : 'accent'} size="sm" onClick={toggle}>
-          {on ? t('tools.tryxSim.disable') : t('tools.tryxSim.enable')}
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
 function PanelSimulatorCard() {
   const { t } = useTranslation();
   const [connectedIds, setConnectedIds] = useState(() => getConnectedSimulatedPanelIds());
@@ -351,6 +327,13 @@ function PanelSimulatorCard() {
   const [customHeight, setCustomHeight] = useState(() => getCustomSimulatedPanel().height);
   const [customDpi, setCustomDpi] = useState(() => getCustomSimulatedPanel().dpi);
   const [gridSizing, setGridSizing] = useState(() => getPanelGridSizingSettings());
+  const [tryxOn, setTryxOn] = useState(() => isTryxSimulated());
+
+  const toggleTryx = () => {
+    const next = !tryxOn;
+    setTryxSimulated(next);
+    setTryxOn(next);
+  };
 
   const customPhysical = getSimulatedPanelPhysicalSize({
     width: customWidth,
@@ -470,6 +453,21 @@ function PanelSimulatorCard() {
             </div>
           );
         })}
+        <div className={styles.simRow}>
+          <div className={styles.simMeta}>
+            <strong>{t('devices.tryx.simulatedName')}</strong>
+            <span>{t('tools.tryxSim.label')}</span>
+          </div>
+          <Button
+            type="button"
+            tone={tryxOn ? 'danger' : 'accent'}
+            size="sm"
+            onClick={toggleTryx}
+          >
+            {/* eslint-disable-next-line i18next/no-literal-string -- dev-tools sim toggle, matches panel rows */}
+            {tryxOn ? 'Disconnect' : 'Connect'}
+          </Button>
+        </div>
       </div>
     </Card>
   );

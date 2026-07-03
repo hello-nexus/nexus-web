@@ -2095,7 +2095,7 @@
   "tools.panelSim.label": "Conet par finte panei di destinazion par screenshot locâi, video e provis di toc/editôr.",
   "tools.panelSim.shortSideJump": "Salt dal lât curt",
   "tools.panelSim.shortSideJumpAria": "Poleârs di salt de gridie dal lât curt",
-  "tools.panelSim.title": "Dispositîfs di prove dal panel",
+  "tools.panelSim.title": "Simuladôrs",
   "tools.pawnio": "Driver PawnIO",
   "tools.pawnio.installed": "Instalât",
   "tools.pawnio.loading": "Daûr a cjariâ...",
@@ -2270,9 +2270,6 @@
   "update.modal.newBetaRelease": "Gnove version beta!",
   "update.modal.newRelease": "Gnove version!",
   "update.modal.released": "Publicât il {date}",
-  "devices.tryx.simulatedName": "Tryx Panorama (Simulât)",
-  "tools.tryxSim.title": "Simuladôr Tryx",
-  "tools.tryxSim.label": "Mostre la pagjine dal dispositîf Tryx cun dâts fizi, cence hardware.",
-  "tools.tryxSim.enable": "Ative",
-  "tools.tryxSim.disable": "Disative"
+  "devices.tryx.simulatedName": "Tryx Panorama",
+  "tools.tryxSim.label": "Mostre la pagjine dal dispositîf Tryx cun dâts fizi, cence hardware."
 }

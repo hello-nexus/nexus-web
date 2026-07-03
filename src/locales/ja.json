@@ -2076,7 +2076,7 @@
   "tools.panelSim.label": "ローカルでのスクリーンショット、動画、タッチ/エディターのテスト用に、パネルターゲットを擬似接続します。",
   "tools.panelSim.shortSideJump": "短辺ジャンプ",
   "tools.panelSim.shortSideJumpAria": "短辺グリッドジャンプ（インチ）",
-  "tools.panelSim.title": "パネルテストデバイス",
+  "tools.panelSim.title": "シミュレーター",
   "tools.pawnio": "PawnIO ドライバー",
   "tools.pawnio.installed": "インストール済み",
   "tools.pawnio.loading": "読み込み中...",
@@ -2270,9 +2270,6 @@
   "update.modal.newBetaRelease": "新しいベータ版！",
   "update.modal.newRelease": "新しいリリース！",
   "update.modal.released": "{date} にリリース",
-  "devices.tryx.simulatedName": "Tryx Panorama（シミュレート）",
-  "tools.tryxSim.title": "Tryxシミュレーター",
-  "tools.tryxSim.label": "ハードウェアなしでモックデータでTryxデバイスページを表示します。",
-  "tools.tryxSim.enable": "有効化",
-  "tools.tryxSim.disable": "無効化"
+  "devices.tryx.simulatedName": "Tryx Panorama",
+  "tools.tryxSim.label": "ハードウェアなしでモックデータでTryxデバイスページを表示します。"
 }
