@@ -196,17 +196,29 @@
   padding-top: 0.5rem;
 }
 
-.comingSoon {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  font-style: italic;
-  margin: 0;
-}
-
 .sliderBlock {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+// Sensor/clock/animation panels - accent + secondary color pickers side by side.
+.colorPairRow {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.colorEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.colorLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
 }
 
 .hiddenInput {

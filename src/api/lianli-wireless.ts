@@ -52,6 +52,12 @@ export async function identifyLianLiWirelessFan(mac: string): Promise<boolean> {
 export type LianLiWirelessScreenContentType =
   | 'off' | 'image' | 'gif' | 'video' | 'sensor' | 'clock' | 'animation';
 
+export type LianLiWirelessSensorSource = 'cpuLoad' | 'cpuTemp' | 'gpuLoad' | 'gpuTemp' | 'fanRpm';
+export type LianLiWirelessSensorStyle = 'ring' | 'bar';
+export type LianLiWirelessClockFace = 'digital' | 'digitalMinimal' | 'analogClassic' | 'analogMinimal';
+export type LianLiWirelessAnimationId = 'pulse' | 'spectrum' | 'spin';
+export type LianLiWirelessTempUnit = 'c' | 'f';
+
 export interface LianLiWirelessScreen {
   serial: string;
   position: number;
@@ -62,6 +68,30 @@ export interface LianLiWirelessScreen {
   rotation: number;
   contentType: LianLiWirelessScreenContentType;
   mediaId?: string;
+  /** Set when contentType is "sensor". */
+  sensorSource?: LianLiWirelessSensorSource;
+  /** Set when contentType is "sensor". */
+  sensorStyle?: LianLiWirelessSensorStyle;
+  /** Set when contentType is "clock". */
+  clockFace?: LianLiWirelessClockFace;
+  /** Set when contentType is "animation". */
+  animationId?: LianLiWirelessAnimationId;
+  /** Accent hex color "#RRGGBB": gauge fill, clock hands/digits, animation primary color. */
+  colorA?: string;
+  /** Secondary hex color "#RRGGBB": gauge/clock text color, animation secondary color. */
+  colorB?: string;
+  /** Display unit for a temperature sensor source. */
+  tempUnit?: LianLiWirelessTempUnit;
+}
+
+export interface LianLiWirelessScreenContentExtra {
+  sensorSource?: LianLiWirelessSensorSource;
+  sensorStyle?: LianLiWirelessSensorStyle;
+  clockFace?: LianLiWirelessClockFace;
+  animationId?: LianLiWirelessAnimationId;
+  colorA?: string;
+  colorB?: string;
+  tempUnit?: LianLiWirelessTempUnit;
 }
 
 export async function getLianLiWirelessScreens(): Promise<LianLiWirelessScreen[] | null> {
@@ -80,11 +110,13 @@ export async function setLianLiWirelessScreenContent(
   serial: string,
   contentType: LianLiWirelessScreenContentType,
   mediaId?: string,
+  extra?: LianLiWirelessScreenContentExtra,
 ): Promise<boolean> {
   return isOk(await postService<OkResponse>('/devices/lianli-wireless/screen/content', {
     serial,
     contentType,
     ...(mediaId ? { mediaId } : {}),
+    ...(extra ?? {}),
   }));
 }
 

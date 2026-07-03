@@ -21,6 +21,7 @@ import {
   deleteLianLiWirelessMedia,
   type LianLiWirelessScreen,
   type LianLiWirelessScreenContentType,
+  type LianLiWirelessScreenContentExtra,
   type LianLiWirelessMediaItem,
   type LianLiWirelessMediaKind,
 } from '../../../api/lianli-wireless';
@@ -28,6 +29,9 @@ import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 const SCREENS_POLL_MS = 2000;
+// One poll interval plus margin: long enough that the poll following an edit's
+// POST observes the applied server state before it resumes overwriting.
+const EDIT_POLL_GRACE_MS = 2500;
 const GROUP_ALL = 'all';
 
 const CONTENT_TYPES: { value: LianLiWirelessScreenContentType; labelKey: string }[] = [
@@ -80,10 +84,17 @@ export function LianLiWirelessScreenTab() {
   const aliveRef = useRef(true);
   const brightnessInteractingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Suppress the poll's setScreens for a beat after any local edit so an
+  // in-flight poll (fired before the edit's POST landed) can't snap an
+  // optimistic value - a mid-drag color, a just-picked face - back to stale
+  // server state before the service has applied it.
+  const lastEditRef = useRef(Number.NEGATIVE_INFINITY);
 
   const refreshScreens = useCallback(async () => {
     const s = await getLianLiWirelessScreens();
-    if (aliveRef.current) setScreens(s);
+    if (aliveRef.current && performance.now() - lastEditRef.current > EDIT_POLL_GRACE_MS) {
+      setScreens(s);
+    }
   }, []);
 
   const refreshMedia = useCallback(async () => {
@@ -135,6 +146,7 @@ export function LianLiWirelessScreenTab() {
     dispatch: (serial: string) => void,
   ) => {
     if (!screens) return;
+    lastEditRef.current = performance.now();
     const serials = (target === GROUP_ALL ? screens : screens.filter(s => s.serial === target))
       .map(s => s.serial);
     setScreens(prev => prev ? prev.map(s => (serials.includes(s.serial) ? mutate(s) : s)) : prev);
@@ -169,6 +181,22 @@ export function LianLiWirelessScreenTab() {
     applyToTargets(
       s => ({ ...s, contentType: item.kind, mediaId: item.id }),
       serial => { void setLianLiWirelessScreenContent(serial, item.kind, item.id); },
+    );
+  }, [applyToTargets]);
+
+  // Optimistic-only update for a color drag preview: mirrors the picker's
+  // live value in the tile/target state without posting to the service.
+  const previewContentField = useCallback((patch: Partial<LianLiWirelessScreen>) => {
+    applyToTargets(s => ({ ...s, ...patch }), () => {});
+  }, [applyToTargets]);
+
+  const commitContentField = useCallback((
+    contentType: LianLiWirelessScreenContentType,
+    patch: LianLiWirelessScreenContentExtra,
+  ) => {
+    applyToTargets(
+      s => ({ ...s, contentType, ...patch }),
+      serial => { void setLianLiWirelessScreenContent(serial, contentType, undefined, patch); },
     );
   }, [applyToTargets]);
 
@@ -321,9 +349,27 @@ export function LianLiWirelessScreenTab() {
             onDeleteRequest={setPendingDeleteMedia}
           />
         )}
-        {representative?.contentType === 'sensor' && <SensorPanel />}
-        {representative?.contentType === 'clock' && <ClockPanel />}
-        {representative?.contentType === 'animation' && <AnimationPanel />}
+        {representative?.contentType === 'sensor' && (
+          <SensorPanel
+            screen={representative}
+            onPreview={previewContentField}
+            onCommit={patch => commitContentField('sensor', patch)}
+          />
+        )}
+        {representative?.contentType === 'clock' && (
+          <ClockPanel
+            screen={representative}
+            onPreview={previewContentField}
+            onCommit={patch => commitContentField('clock', patch)}
+          />
+        )}
+        {representative?.contentType === 'animation' && (
+          <AnimationPanel
+            screen={representative}
+            onPreview={previewContentField}
+            onCommit={patch => commitContentField('animation', patch)}
+          />
+        )}
 
         <input
           ref={fileInputRef}
@@ -453,11 +499,56 @@ function MediaPanel({
   );
 }
 
-function SensorPanel() {
+const DEFAULT_COLOR_A = '#00d1ff';
+const DEFAULT_COLOR_B = '#ffffff';
+// Slv3LcdAnimationRenderer's secondary-color fallback differs from the sensor
+// and clock renderers (which default to white).
+const DEFAULT_ANIMATION_COLOR_B = '#9b5de5';
+
+interface ContentPanelProps {
+  screen: LianLiWirelessScreen;
+  onPreview: (patch: Partial<LianLiWirelessScreen>) => void;
+  onCommit: (patch: LianLiWirelessScreenContentExtra) => void;
+}
+
+// Shared accent/secondary color row for the sensor, clock and animation
+// panels: same two labels everywhere, the per-content-type meaning is
+// documented on LianLiWirelessScreen.colorA/colorB.
+function ColorPairRow({ colorA, colorB, onPreview, onCommit }: {
+  colorA: string;
+  colorB: string;
+  onPreview: (patch: Partial<LianLiWirelessScreen>) => void;
+  onCommit: (patch: LianLiWirelessScreenContentExtra) => void;
+}) {
   const { t } = useTranslation();
-  const [source, setSource] = useState('cpuTemp');
-  const [style, setStyle] = useState('digits');
-  const [color, setColor] = useState('#ffffff');
+  return (
+    <div className={styles.colorPairRow}>
+      <div className={styles.colorEntry}>
+        <span className={styles.colorLabel}>{t('devices.lianli-wireless.colorAccentLabel')}</span>
+        <HsvPicker
+          value={colorA}
+          onPreview={hex => onPreview({ colorA: hex })}
+          onCommit={hex => onCommit({ colorA: hex })}
+        />
+      </div>
+      <div className={styles.colorEntry}>
+        <span className={styles.colorLabel}>{t('devices.lianli-wireless.colorSecondaryLabel')}</span>
+        <HsvPicker
+          value={colorB}
+          onPreview={hex => onPreview({ colorB: hex })}
+          onCommit={hex => onCommit({ colorB: hex })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SensorPanel({ screen, onPreview, onCommit }: ContentPanelProps) {
+  const { t } = useTranslation();
+  const source = screen.sensorSource ?? 'cpuTemp';
+  const style = screen.sensorStyle ?? 'ring';
+  const tempUnit = screen.tempUnit ?? 'c';
+  const isTempSource = source === 'cpuTemp' || source === 'gpuTemp';
 
   const sourceOptions: SelectOption[] = [
     { value: 'cpuTemp', label: t('devices.lianli-wireless.sensorSourceCpuTemp') },
@@ -466,96 +557,115 @@ function SensorPanel() {
     { value: 'gpuLoad', label: t('devices.lianli-wireless.sensorSourceGpuLoad') },
     { value: 'fanRpm', label: t('devices.lianli-wireless.sensorSourceFanRpm') },
   ];
-  const styleOptions: SelectOption[] = [
-    { value: 'digits', label: t('devices.lianli-wireless.sensorStyleDigits') },
-    { value: 'gauge', label: t('devices.lianli-wireless.sensorStyleGauge') },
-    { value: 'bar', label: t('devices.lianli-wireless.sensorStyleBar') },
+  const styleOptions: ChipOption[] = [
+    { key: 'ring', label: t('devices.lianli-wireless.sensorStyleRing') },
+    { key: 'bar', label: t('devices.lianli-wireless.sensorStyleBar') },
+  ];
+  const tempUnitOptions: ChipOption[] = [
+    { key: 'c', label: t('devices.lianli-wireless.tempUnitCelsius') },
+    { key: 'f', label: t('devices.lianli-wireless.tempUnitFahrenheit') },
   ];
 
   return (
     <div className={styles.typePanel}>
-      <p className={styles.comingSoon}>{t('devices.lianli-wireless.comingSoon')}</p>
-      <div className={`${styles.row} ${styles.rowDisabled}`}>
+      <div className={styles.row}>
         <span className={styles.rowLabel}>{t('devices.lianli-wireless.sensorSourceLabel')}</span>
         <Select
           value={source}
           options={sourceOptions}
-          onChange={setSource}
-          disabled
+          onChange={v => onCommit({ sensorSource: v as LianLiWirelessScreen['sensorSource'] })}
           ariaLabel={t('devices.lianli-wireless.sensorSourceLabel')}
         />
       </div>
-      <div className={`${styles.row} ${styles.rowDisabled}`}>
+      <div className={styles.row}>
         <span className={styles.rowLabel}>{t('devices.lianli-wireless.sensorStyleLabel')}</span>
-        <Select
-          value={style}
-          options={styleOptions}
-          onChange={setStyle}
-          disabled
+        <ChipGroup
           ariaLabel={t('devices.lianli-wireless.sensorStyleLabel')}
+          activeKey={style}
+          onChange={v => onCommit({ sensorStyle: v as LianLiWirelessScreen['sensorStyle'] })}
+          options={styleOptions}
         />
       </div>
-      <div className={`${styles.sliderBlock} ${styles.rowDisabled}`}>
-        <span className={styles.rowLabel}>{t('devices.lianli-wireless.colorLabel')}</span>
-        <HsvPicker value={color} onPreview={setColor} onCommit={setColor} />
-      </div>
+      {isTempSource && (
+        <div className={styles.row}>
+          <span className={styles.rowLabel}>{t('devices.lianli-wireless.tempUnitLabel')}</span>
+          <ChipGroup
+            ariaLabel={t('devices.lianli-wireless.tempUnitLabel')}
+            activeKey={tempUnit}
+            onChange={v => onCommit({ tempUnit: v as LianLiWirelessScreen['tempUnit'] })}
+            options={tempUnitOptions}
+          />
+        </div>
+      )}
+      <ColorPairRow
+        colorA={screen.colorA ?? DEFAULT_COLOR_A}
+        colorB={screen.colorB ?? DEFAULT_COLOR_B}
+        onPreview={onPreview}
+        onCommit={onCommit}
+      />
     </div>
   );
 }
 
-function ClockPanel() {
+function ClockPanel({ screen, onPreview, onCommit }: ContentPanelProps) {
   const { t } = useTranslation();
-  const [face, setFace] = useState('analog');
-  const [color, setColor] = useState('#ffffff');
+  const face = screen.clockFace ?? 'digital';
 
-  const faceOptions: SelectOption[] = [
-    { value: 'analog', label: t('devices.lianli-wireless.clockFaceAnalog') },
-    { value: 'digital', label: t('devices.lianli-wireless.clockFaceDigital') },
-    { value: 'digitalDate', label: t('devices.lianli-wireless.clockFaceDigitalDate') },
+  const faceOptions: ChipOption[] = [
+    { key: 'digital', label: t('devices.lianli-wireless.clockFaceDigital') },
+    { key: 'digitalMinimal', label: t('devices.lianli-wireless.clockFaceDigitalMinimal') },
+    { key: 'analogClassic', label: t('devices.lianli-wireless.clockFaceAnalogClassic') },
+    { key: 'analogMinimal', label: t('devices.lianli-wireless.clockFaceAnalogMinimal') },
   ];
 
   return (
     <div className={styles.typePanel}>
-      <p className={styles.comingSoon}>{t('devices.lianli-wireless.comingSoon')}</p>
-      <div className={`${styles.row} ${styles.rowDisabled}`}>
+      <div className={styles.row}>
         <span className={styles.rowLabel}>{t('devices.lianli-wireless.clockFaceLabel')}</span>
-        <Select
-          value={face}
-          options={faceOptions}
-          onChange={setFace}
-          disabled
+        <ChipGroup
           ariaLabel={t('devices.lianli-wireless.clockFaceLabel')}
+          activeKey={face}
+          onChange={v => onCommit({ clockFace: v as LianLiWirelessScreen['clockFace'] })}
+          options={faceOptions}
         />
       </div>
-      <div className={`${styles.sliderBlock} ${styles.rowDisabled}`}>
-        <span className={styles.rowLabel}>{t('devices.lianli-wireless.colorLabel')}</span>
-        <HsvPicker value={color} onPreview={setColor} onCommit={setColor} />
-      </div>
+      <ColorPairRow
+        colorA={screen.colorA ?? DEFAULT_COLOR_A}
+        colorB={screen.colorB ?? DEFAULT_COLOR_B}
+        onPreview={onPreview}
+        onCommit={onCommit}
+      />
     </div>
   );
 }
 
-const ANIMATION_OPTIONS = [1, 2, 3, 4];
-
-function AnimationPanel() {
+function AnimationPanel({ screen, onPreview, onCommit }: ContentPanelProps) {
   const { t } = useTranslation();
+  const animationId = screen.animationId ?? 'pulse';
+
+  const animationOptions: ChipOption[] = [
+    { key: 'pulse', label: t('devices.lianli-wireless.animationPulse') },
+    { key: 'spectrum', label: t('devices.lianli-wireless.animationSpectrum') },
+    { key: 'spin', label: t('devices.lianli-wireless.animationSpin') },
+  ];
+
   return (
     <div className={styles.typePanel}>
-      <p className={styles.comingSoon}>{t('devices.lianli-wireless.comingSoon')}</p>
-      <div className={`${styles.mediaGrid} ${styles.rowDisabled}`}>
-        {ANIMATION_OPTIONS.map(n => (
-          <EffectCard
-            key={n}
-            asDiv
-            label={t('devices.lianli-wireless.animationOption', { n })}
-            thumbUrl={null}
-            thumbStatic
-            thumbAspect={1}
-            active={false}
-            onClick={() => {}}
-          />
-        ))}
+      <div className={styles.row}>
+        <span className={styles.rowLabel}>{t('devices.lianli-wireless.animationLabel')}</span>
+        <ChipGroup
+          ariaLabel={t('devices.lianli-wireless.animationLabel')}
+          activeKey={animationId}
+          onChange={v => onCommit({ animationId: v as LianLiWirelessScreen['animationId'] })}
+          options={animationOptions}
+        />
       </div>
+      <ColorPairRow
+        colorA={screen.colorA ?? DEFAULT_COLOR_A}
+        colorB={screen.colorB ?? DEFAULT_ANIMATION_COLOR_B}
+        onPreview={onPreview}
+        onCommit={onCommit}
+      />
     </div>
   );
 }

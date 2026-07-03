@@ -111,10 +111,116 @@ describe('LianLiWirelessScreenTab', () => {
     expect(mockSetContent).toHaveBeenCalledWith('S1', 'sensor');
   });
 
-  it('shows a coming-soon note for the sensor, clock and animation panels', async () => {
-    await renderTab();
-    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":3}' }));
-    expect(screen.getByText('devices.lianli-wireless.comingSoon')).toBeInTheDocument();
+  describe('sensor panel', () => {
+    async function renderOnSensorScreen() {
+      await renderTab();
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":3}' }));
+    }
+
+    it('shows the source and style defaults and posts a change to the source', async () => {
+      await renderOnSensorScreen();
+
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.sensorSourceLabel' }))
+        .toHaveTextContent('devices.lianli-wireless.sensorSourceCpuTemp');
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.sensorStyleRing' }))
+        .toHaveAttribute('aria-pressed', 'true');
+
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.sensorSourceLabel' }));
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.sensorSourceGpuTemp' }));
+
+      expect(mockSetContent).toHaveBeenCalledWith('S3', 'sensor', undefined, { sensorSource: 'gpuTemp' });
+    });
+
+    it('posts a change to the gauge style', async () => {
+      await renderOnSensorScreen();
+
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.sensorStyleBar' }));
+
+      expect(mockSetContent).toHaveBeenCalledWith('S3', 'sensor', undefined, { sensorStyle: 'bar' });
+    });
+
+    it('shows the temperature unit toggle for a temperature source and posts a change', async () => {
+      await renderOnSensorScreen();
+
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.tempUnitFahrenheit' }));
+
+      expect(mockSetContent).toHaveBeenCalledWith('S3', 'sensor', undefined, { tempUnit: 'f' });
+    });
+
+    it('hides the temperature unit toggle for a non-temperature source', async () => {
+      await renderOnSensorScreen();
+
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.sensorSourceLabel' }));
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.sensorSourceFanRpm' }));
+
+      expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.tempUnitLabel' })).not.toBeInTheDocument();
+    });
+
+    it('commits the accent color from the hex input', async () => {
+      await renderOnSensorScreen();
+
+      const [accentHex] = screen.getAllByLabelText('common.hexColor');
+      fireEvent.change(accentHex, { target: { value: '#123456' } });
+
+      expect(mockSetContent).toHaveBeenCalledWith('S3', 'sensor', undefined, { colorA: '#123456' });
+    });
+  });
+
+  describe('clock panel', () => {
+    async function renderOnClockScreen() {
+      await renderTab();
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":3}' }));
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.contentTypeAria' }));
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.contentTypeClock' }));
+    }
+
+    it('shows the default clock face and posts a change', async () => {
+      await renderOnClockScreen();
+
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.clockFaceDigital' }))
+        .toHaveAttribute('aria-pressed', 'true');
+
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.clockFaceAnalogClassic' }));
+
+      expect(mockSetContent).toHaveBeenCalledWith('S3', 'clock', undefined, { clockFace: 'analogClassic' });
+    });
+
+    it('commits the secondary color from the hex input', async () => {
+      await renderOnClockScreen();
+
+      const [, secondaryHex] = screen.getAllByLabelText('common.hexColor');
+      fireEvent.change(secondaryHex, { target: { value: '#abcdef' } });
+
+      expect(mockSetContent).toHaveBeenCalledWith('S3', 'clock', undefined, { colorB: '#abcdef' });
+    });
+  });
+
+  describe('animation panel', () => {
+    async function renderOnAnimationScreen() {
+      await renderTab();
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":3}' }));
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.contentTypeAria' }));
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.contentTypeAnimation' }));
+    }
+
+    it('shows the default animation and posts a change', async () => {
+      await renderOnAnimationScreen();
+
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.animationPulse' }))
+        .toHaveAttribute('aria-pressed', 'true');
+
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.animationSpin' }));
+
+      expect(mockSetContent).toHaveBeenCalledWith('S3', 'animation', undefined, { animationId: 'spin' });
+    });
+
+    it('shows the default accent and secondary colors matching the service render defaults', async () => {
+      await renderOnAnimationScreen();
+
+      const [accentHex, secondaryHex] = screen.getAllByLabelText('common.hexColor') as HTMLInputElement[];
+      expect(accentHex.value).toBe('#00D1FF');
+      expect(secondaryHex.value).toBe('#9B5DE5');
+    });
   });
 
   it('selecting the group-all chip broadcasts a brightness commit to every screen', async () => {

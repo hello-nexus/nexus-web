@@ -38,7 +38,7 @@ export interface LianLiWirelessFansTabProps {
  * bind/unbind and identify controls. The shell owns the state poll; this
  * tab owns the per-fan interaction and pending state.
  */
-export function LianLiWirelessFansTab({ state }: LianLiWirelessFansTabProps) {
+export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
@@ -104,16 +104,16 @@ export function LianLiWirelessFansTab({ state }: LianLiWirelessFansTabProps) {
 
   const handleBind = useCallback((mac: string) => {
     startPending(mac, 'bind');
-    void bindLianLiWirelessFan(mac);
-  }, [startPending]);
+    void bindLianLiWirelessFan(mac).then(() => { void refresh(); });
+  }, [startPending, refresh]);
 
   const handleUnbindConfirmed = useCallback(() => {
     const mac = unbindTarget;
     setUnbindTarget(null);
     if (!mac) return;
     startPending(mac, 'unbind');
-    void unbindLianLiWirelessFan(mac);
-  }, [unbindTarget, startPending]);
+    void unbindLianLiWirelessFan(mac).then(() => { void refresh(); });
+  }, [unbindTarget, startPending, refresh]);
 
   const handleIdentify = useCallback((mac: string) => {
     setIdentifying(prev => ({ ...prev, [mac]: true }));
