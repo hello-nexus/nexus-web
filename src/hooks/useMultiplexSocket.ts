@@ -105,6 +105,27 @@ export interface MultiplexContextValue {
    * we stop the reconnect loop.
    */
   sessionRevoked: boolean;
+  /**
+   * True once a WebRTC direct-upgrade punch has definitively failed (or was
+   * discarded after landing on a dead relay session) at least once this
+   * session and the user hasn't dismissed the resulting prompt yet. Only ever
+   * set while connected over the relay - never lan/lan-sealed/wired, and never
+   * while direct is active - since a punch is only ever attempted off an
+   * open relay connection. Cleared by dismissDirectUpgradePrompt(); a later
+   * successful upgrade needs no UI, and background re-punches keep running
+   * silently regardless of this flag.
+   */
+  directUpgradeFailed: boolean;
+  /** Dismisses the direct-upgrade-failed prompt for the rest of this session (in-memory only - not persisted). */
+  dismissDirectUpgradePrompt: () => void;
+  /**
+   * True after the user explicitly ends the session via disconnectSession().
+   * Terminal: the connection is torn down and no further reconnect is
+   * attempted until the panel remounts (e.g. a fresh pair/reload).
+   */
+  sessionEnded: boolean;
+  /** Tears down the live connection and stops all reconnect attempts (the "Disconnect" choice on the direct-upgrade-failed prompt). */
+  disconnectSession: () => void;
   reconnect: () => void;
   /** Wall-clock ms when the next scheduled reconnect attempt will fire, or null if a connect is in flight or the socket is open. */
   nextAttemptAt: number | null;
@@ -212,6 +233,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   const remoteDisabledRef = useRef(false);
   const relayDisabledRef = useRef(false);
   const sessionRevokedRef = useRef(false);
+  const sessionEndedRef = useRef(false);
   // Which transport the last OPENED connection ran over. handleDisconnect reads
   // it to tell a relay drop (candidate for the relay-disabled popup) from a LAN
   // drop. Set in wireTransport's onopen; never cleared on close so it still
@@ -236,11 +258,17 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   // healthy. Cleared on close()/teardown, on that relay channel closing, and
   // on a successful swap; re-arming replaces whatever was pending.
   const directRetryTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Whether the direct-upgrade-failed prompt has already been shown and
+  // dismissed this session - once true, a later punch failure never re-arms
+  // directUpgradeFailed, matching the one-time/session-scoped prompt contract.
+  const directPromptDismissedRef = useRef(false);
   const [connected, setConnected] = useState(false);
   const [transport, setTransport] = useState<ActiveTransport | null>(null);
   const [remoteDisabled, setRemoteDisabled] = useState(false);
   const [relayDisabled, setRelayDisabled] = useState(false);
   const [sessionRevoked, setSessionRevoked] = useState(false);
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const [directUpgradeFailed, setDirectUpgradeFailed] = useState(false);
   const [nextAttemptAt, setNextAttemptAt] = useState<number | null>(null);
 
   const close = useCallback(() => {
@@ -529,6 +557,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     directBackoffStepRef.current = 0;
     clearTimeout(directRetryTimerRef.current);
     directRetryTimerRef.current = undefined;
+    setDirectUpgradeFailed(false);
     multiplexDiag.upgradeSuccesses++;
     wireTransport(conn.runtime, 'direct', (code) => {
       multiplexDiag.directDrops++;
@@ -584,6 +613,13 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
         attemptDirectUpgrade(relayChannel);
       }, delayMs);
     };
+    // Surfaces the relay-consent prompt on the first genuine punch failure
+    // this session (not a stale/superseded discard); a no-op once the user
+    // has already dismissed it, so later background retries stay silent.
+    const markDirectUpgradeFailed = () => {
+      if (directPromptDismissedRef.current || !mountedRef.current) return;
+      setDirectUpgradeFailed(true);
+    };
 
     if (Date.now() < directNextAttemptAtRef.current) {
       if (relayChannel.readyState === RelayChannel.OPEN) {
@@ -611,13 +647,17 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
           && relayChannel.readyState === RelayChannel.OPEN;
         if (!relayStillOpen || conn.runtime.readyState !== RtcRuntimeChannel.OPEN) {
           conn.close();
-          if (relayStillOpen) armRetry(scheduleDirectBackoff());
+          if (relayStillOpen) {
+            armRetry(scheduleDirectBackoff());
+            markDirectUpgradeFailed();
+          }
           return;
         }
         swapToDirect(relayChannel, conn);
       } catch {
         multiplexDiag.upgradeFailures++;
         armRetry(scheduleDirectBackoff());
+        markDirectUpgradeFailed();
         conn?.close();
       } finally {
         directUpgradeInFlightRef.current = false;
@@ -680,6 +720,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   }, [handleDisconnect, wireTransport]);
 
   const connect = useCallback(async () => {
+    if (sessionEndedRef.current) return;
     close();
     setNextAttemptAt(null);
     // Remote origin (e.g. hellonexus.com) with a session token: the LAN /ws
@@ -767,6 +808,26 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     }
     connect();
   }, [connect, enabled, handleDisconnect]);
+
+  const dismissDirectUpgradePrompt = useCallback(() => {
+    directPromptDismissedRef.current = true;
+    setDirectUpgradeFailed(false);
+  }, []);
+
+  const disconnectSession = useCallback(() => {
+    directPromptDismissedRef.current = true;
+    setDirectUpgradeFailed(false);
+    sessionEndedRef.current = true;
+    setSessionEnded(true);
+    // close() nulls the transport's onclose before closing it (so a normal
+    // close doesn't chain into handleDisconnect's reconnect logic), which
+    // means the connected/transport state it would otherwise clear never
+    // fires here either - set it explicitly.
+    close();
+    setConnected(false);
+    setTransport(null);
+    setActiveTransport(null);
+  }, [close]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -859,8 +920,14 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
 
   return useMemo<MultiplexContextValue | null>(
     () => enabled
-      ? { subscribe, unsubscribe, connected, transport, remoteDisabled, relayDisabled, sessionRevoked, reconnect, nextAttemptAt }
+      ? {
+        subscribe, unsubscribe, connected, transport, remoteDisabled, relayDisabled, sessionRevoked,
+        directUpgradeFailed, dismissDirectUpgradePrompt, sessionEnded, disconnectSession, reconnect, nextAttemptAt,
+      }
       : null,
-    [enabled, subscribe, unsubscribe, connected, transport, remoteDisabled, relayDisabled, sessionRevoked, reconnect, nextAttemptAt],
+    [
+      enabled, subscribe, unsubscribe, connected, transport, remoteDisabled, relayDisabled, sessionRevoked,
+      directUpgradeFailed, dismissDirectUpgradePrompt, sessionEnded, disconnectSession, reconnect, nextAttemptAt,
+    ],
   );
 }

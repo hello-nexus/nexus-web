@@ -36,6 +36,12 @@ interface PanelOfflineOverlayProps {
    * would never succeed.
    */
   sessionRevoked: boolean;
+  /**
+   * True after the user chose "Disconnect" on the direct-upgrade-failed
+   * prompt. Terminal like sessionRevoked - the connection is torn down and
+   * only re-pairing brings the panel back.
+   */
+  sessionEnded: boolean;
   onRetry: () => void;
   onOpenNativePairing: () => void;
 }
@@ -73,6 +79,7 @@ export function PanelOfflineOverlay({
   remoteDisabled,
   relayDisabled,
   sessionRevoked,
+  sessionEnded,
   onRetry,
   onOpenNativePairing,
 }: PanelOfflineOverlayProps) {
@@ -84,6 +91,32 @@ export function PanelOfflineOverlay({
   // widget to the clock on disconnect (see PanelApp's allFiltered) and keeps
   // its background, then restores the configured widgets on reconnect.
   if (surface === 'q60') return null;
+
+  if (sessionEnded) {
+    return (
+      <div
+        className={`panel-root ${styles.overlay}`}
+        data-theme={resolvedThemeMode}
+        data-surface={surface}
+        style={themeStyle}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="panel-offline-title"
+      >
+        <div className={`panel-card ${styles.card}`}>
+          <div className={styles.lockIcon} aria-hidden="true"><Lock size={28} /></div>
+          <h2 id="panel-offline-title" className={styles.title}>{t('connection.sessionEnded.title')}</h2>
+          <p className={styles.message}>{t('connection.sessionEnded.message')}</p>
+          <div className={styles.actions}>
+            <a className={styles.primaryButton} href={NEW_DEVICE_HREF}>
+              <QrCode size={15} />
+              <span>{t('connection.sessionRevoked.pairAgain')}</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (sessionRevoked) {
     // Host removed this device from the paired list. No retry / no auto-poll

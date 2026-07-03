@@ -42,6 +42,7 @@ import type { DeckEditView } from './widgets/types';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
+import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
 import { wiredPanelClass } from './device/wiredPanel';
@@ -1561,8 +1562,20 @@ export function PanelContent({
           remoteDisabled={multiplex?.remoteDisabled ?? false}
           relayDisabled={multiplex?.relayDisabled ?? false}
           sessionRevoked={multiplex?.sessionRevoked ?? false}
+          sessionEnded={multiplex?.sessionEnded ?? false}
           onRetry={handleRetry}
           onOpenNativePairing={nativeSettings.open}
+        />
+      )}
+      {kioskBehavior && surface === 'phone' && (
+        <ConfirmModal
+          open={(multiplex?.directUpgradeFailed ?? false) && multiplex?.transport === 'relay'}
+          title={t('connection.directFailed.title')}
+          message={t('connection.directFailed.message')}
+          cancelLabel={t('connection.directFailed.useRelay')}
+          confirmLabel={t('connection.directFailed.disconnect')}
+          onCancel={() => multiplex?.dismissDirectUpgradePrompt()}
+          onConfirm={() => multiplex?.disconnectSession()}
         />
       )}
       <DragOverlay dropAnimation={null}>
