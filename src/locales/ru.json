@@ -2269,5 +2269,10 @@
   "cooling.kind.pump": "Насос",
   "update.modal.newBetaRelease": "Новая бета-версия!",
   "update.modal.newRelease": "Новая версия!",
-  "update.modal.released": "Выпущено {date}"
+  "update.modal.released": "Выпущено {date}",
+  "devices.tryx.simulatedName": "Tryx Panorama (Симуляция)",
+  "tools.tryxSim.title": "Симулятор Tryx",
+  "tools.tryxSim.label": "Отображает страницу устройства Tryx с тестовыми данными, без оборудования.",
+  "tools.tryxSim.enable": "Включить",
+  "tools.tryxSim.disable": "Выключить"
 }

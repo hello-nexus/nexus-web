@@ -2269,5 +2269,10 @@
   "cooling.kind.pump": "水泵",
   "update.modal.newBetaRelease": "新測試版！",
   "update.modal.newRelease": "新版本！",
-  "update.modal.released": "發佈於 {date}"
+  "update.modal.released": "發佈於 {date}",
+  "devices.tryx.simulatedName": "Tryx Panorama（模擬）",
+  "tools.tryxSim.title": "Tryx 模擬器",
+  "tools.tryxSim.label": "使用模擬資料渲染 Tryx 裝置頁面，無需硬體。",
+  "tools.tryxSim.enable": "啟用",
+  "tools.tryxSim.disable": "停用"
 }

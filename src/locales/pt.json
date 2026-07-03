@@ -2269,5 +2269,10 @@
   "cooling.kind.pump": "Bomba",
   "update.modal.newBetaRelease": "Nova versão beta!",
   "update.modal.newRelease": "Nova versão!",
-  "update.modal.released": "Lançado a {date}"
+  "update.modal.released": "Lançado a {date}",
+  "devices.tryx.simulatedName": "Tryx Panorama (Simulado)",
+  "tools.tryxSim.title": "Simulador Tryx",
+  "tools.tryxSim.label": "Renderiza a página do dispositivo Tryx com dados fictícios, sem hardware.",
+  "tools.tryxSim.enable": "Ativar",
+  "tools.tryxSim.disable": "Desativar"
 }

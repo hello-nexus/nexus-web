@@ -2269,5 +2269,10 @@
   "cooling.kind.pump": "펌프",
   "update.modal.newBetaRelease": "새 베타 릴리스!",
   "update.modal.newRelease": "새 릴리스!",
-  "update.modal.released": "{date}에 출시됨"
+  "update.modal.released": "{date}에 출시됨",
+  "devices.tryx.simulatedName": "Tryx Panorama (시뮬레이션)",
+  "tools.tryxSim.title": "Tryx 시뮬레이터",
+  "tools.tryxSim.label": "하드웨어 없이 목업 데이터로 Tryx 기기 페이지를 렌더링합니다.",
+  "tools.tryxSim.enable": "활성화",
+  "tools.tryxSim.disable": "비활성화"
 }

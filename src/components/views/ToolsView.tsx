@@ -29,6 +29,7 @@ import {
   setCustomSimulatedPanelSize,
   setSimulatedPanelConnected,
 } from '../../lib/panelSimulation';
+import { isTryxSimulated, setTryxSimulated } from '../../lib/tryxSimulation';
 import { FontDebugCard } from './FontDebugCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DeviceModal } from '../common/DeviceModal/DeviceModal';
@@ -73,6 +74,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             <InstallDefaultsCard />
             <PawnIoCard />
             <PanelSimulatorCard />
+            <TryxSimulatorCard />
             <FontDebugCard />
           </div>
         </div>
@@ -316,6 +318,29 @@ function InstallDefaultsTabBody({ doc, tab }: { doc: InstallDefaultsDocument; ta
         })}
       </div>
     </>
+  );
+}
+
+function TryxSimulatorCard() {
+  const { t } = useTranslation();
+  const [on, setOn] = useState(() => isTryxSimulated());
+  const toggle = () => {
+    const next = !on;
+    setTryxSimulated(next);
+    setOn(next);
+  };
+  return (
+    <Card title={t('tools.tryxSim.title')}>
+      <span className={styles.dim}>{t('tools.tryxSim.label')}</span>
+      <div className={styles.simRow}>
+        <div className={styles.simMeta}>
+          <strong>{t('devices.tryx.simulatedName')}</strong>
+        </div>
+        <Button type="button" tone={on ? 'danger' : 'accent'} size="sm" onClick={toggle}>
+          {on ? t('tools.tryxSim.disable') : t('tools.tryxSim.enable')}
+        </Button>
+      </div>
+    </Card>
   );
 }
 

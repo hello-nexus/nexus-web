@@ -12,6 +12,8 @@ import {
   PANEL_SIMULATION_CHANGED_EVENT,
 } from '../lib/panelSimulation';
 import { isRemotePanel, type PanelDevice } from '../panel/device/panelDevices';
+import { useTryxSimulated } from '../lib/tryxSimulation';
+import { useTranslation } from '../lib/i18n';
 import {
   getAllMarketplaceListings,
   subscribeMarketplaceRegistry,
@@ -33,6 +35,8 @@ export interface UnifiedDevice {
   curatedId?: string;
   peripheral?: Peripheral;
   panelDevice?: PanelDevice;
+  /** Dev-tools simulated device: the page runs on mock data, no hardware. */
+  simulated?: boolean;
   // Whether this device has its own settings page. Drives the sidebar
   // DEVICES section (only navigable devices get a row) and whether the
   // Devices-list card is clickable. Devices whose controls live on shared
@@ -107,6 +111,8 @@ const FALLBACK_ICON = '/assets/devices/device.svg';
 const CURATED_WITHOUT_PAGE = new Set<string>(['fan-hub']);
 
 export function useUnifiedDevices(enabled: boolean) {
+  const { t } = useTranslation();
+  const tryxSimulated = useTryxSimulated();
   const [simulatedPanels, setSimulatedPanels] = useState(() => getConnectedSimulatedPanels());
   const [deviceApps, setDeviceApps] = useState<AppInstalledListing[]>(
     () => getAllMarketplaceListings().filter(a => a.category === 'device'),
@@ -147,8 +153,28 @@ export function useUnifiedDevices(enabled: boolean) {
     // surface (Devices page, sidebar, search, detail route). Managed from the
     // Pair Phone modal via /panel/phone/sessions instead.
     const filteredPanels = panels.devices.filter(p => !isRemotePanel(p.connectionKind));
-    return buildUnifiedList(filteredPanels, devices, merged, deviceApps);
-  }, [panels.devices, devices, merged, deviceApps]);
+    const list = buildUnifiedList(filteredPanels, devices, merged, deviceApps);
+    // Dev-tools: a simulated Tryx so the device page renders with no hardware.
+    // Skipped if a real Tryx is already present, to avoid a duplicate row.
+    if (tryxSimulated && !list.some(d => d.curatedId === 'tryx')) {
+      list.push({
+        key: 'curated-tryx-sim',
+        shortName: t('devices.tryx.simulatedName'),
+        name: CURATED_SHORT_NAMES.tryx ?? 'Tryx Panorama',
+        subtitle: 'cooler',
+        category: 'cooler',
+        iconSrc: CURATED_ICONS.tryx ?? FALLBACK_ICON,
+        connected: true,
+        kind: 'curated',
+        curatedId: 'tryx',
+        simulated: true,
+        navigable: true,
+        nexusControlEnabled: true,
+        supportsNexusControl: false,
+      });
+    }
+    return list;
+  }, [panels.devices, devices, merged, deviceApps, tryxSimulated, t]);
 
   return {
     unified,

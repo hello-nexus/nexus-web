@@ -4,6 +4,7 @@
 
 import { fetchService, postService, postServiceForm, resolveHttp } from './service';
 import { getTokenSync } from './auth';
+import { isTryxSimulated } from '../lib/tryxSimulation';
 
 // <video>/<img> element loads can't send a Bearer header, so the authenticated
 // media-file URL carries the session token as a query param (the server's
@@ -70,15 +71,49 @@ function isOk(r: OkResponse | null): boolean {
   return !!r && r.ok !== false && r.error !== true;
 }
 
+// Dev-tools simulated device: a static "connected" snapshot so the page renders
+// a wallpaper + overlay with no hardware. Writes are no-ops (the page's own
+// optimistic state carries edits); status is served once (the page skips polling
+// in sim mode, so this never overrides those edits).
+const SIM_STATUS: TryxStatus = {
+  connected: true,
+  state: {
+    serial: 'SIMULATED',
+    adbSerial: '',
+    portName: 'sim',
+    modelName: 'Tryx Panorama',
+    productId: '391A:1011',
+    screenEnabled: true,
+    brightness: 80,
+    currentMedia: 'default_01.mp4.h264_2240x1080',
+    currentMediaIsCustom: false,
+    lastConnectedMs: 0,
+    lastFrameMs: 0,
+  },
+  overlay: {
+    items: [
+      { stat: 'CPU Temperature', x: 0.05, y: 0.12 },
+      { stat: 'CPU Frequency', x: 0.05, y: 0.42 },
+      { stat: 'CPU Usage', x: 0.05, y: 0.72 },
+    ],
+    font: 'roboto-regular',
+    size: 100,
+    color: '#ffffff',
+  },
+};
+
 export function getTryxStatus(): Promise<TryxStatus | null> {
+  if (isTryxSimulated()) return Promise.resolve(SIM_STATUS);
   return fetchService<TryxStatus>('/tryx/status');
 }
 
 export async function setTryxEnabled(enable: boolean): Promise<boolean> {
+  if (isTryxSimulated()) return true;
   return isOk(await postService<OkResponse>('/tryx/enable', { enable }));
 }
 
 export async function setTryxBrightness(value: number): Promise<boolean> {
+  if (isTryxSimulated()) return true;
   return isOk(await postService<OkResponse>('/tryx/brightness', { value }));
 }
 
@@ -88,6 +123,7 @@ export async function setTryxFan(
   mode: TryxFanMode,
   options: { fixed?: number; curve?: number[][] } = {},
 ): Promise<boolean> {
+  if (isTryxSimulated()) return true;
   return isOk(await postService<OkResponse>('/tryx/fan', { mode, ...options }));
 }
 
@@ -97,19 +133,23 @@ export async function getTryxPresets(): Promise<TryxPreset[]> {
 }
 
 export async function setTryxPreset(id: string): Promise<boolean> {
+  if (isTryxSimulated()) return true;
   return isOk(await postService<OkResponse>('/tryx/preset', { id }));
 }
 
 export async function getTryxMedia(): Promise<TryxMediaItem[]> {
+  if (isTryxSimulated()) return [];
   const r = await fetchService<{ media: TryxMediaItem[] }>('/tryx/media');
   return r?.media ?? [];
 }
 
 export async function selectTryxMedia(name: string): Promise<boolean> {
+  if (isTryxSimulated()) return true;
   return isOk(await postService<OkResponse>('/tryx/media/select', { name }));
 }
 
 export async function deleteTryxMedia(name: string): Promise<boolean> {
+  if (isTryxSimulated()) return true;
   return isOk(await postService<OkResponse>('/tryx/media/delete', { name }));
 }
 
@@ -119,6 +159,7 @@ export async function setTryxOverlay(overlay: {
   size: number;
   color: string;
 }): Promise<boolean> {
+  if (isTryxSimulated()) return true;
   return isOk(await postService<OkResponse>('/tryx/overlay', overlay));
 }
 
@@ -139,6 +180,7 @@ export async function uploadTryxMedia(
   targetWidth = TRYX_MEDIA_WIDTH,
   targetHeight = TRYX_MEDIA_HEIGHT,
 ): Promise<boolean> {
+  if (isTryxSimulated()) return true;
   const form = new FormData();
   form.append('file', file, file.name);
   form.append('crop', `${crop.x.toFixed(6)},${crop.y.toFixed(6)},${crop.w.toFixed(6)},${crop.h.toFixed(6)}`);
@@ -163,6 +205,7 @@ export interface TryxCloudMaterial {
 }
 
 export async function getTryxCloudCatalog(): Promise<TryxCloudMaterial[]> {
+  if (isTryxSimulated()) return [];
   const r = await fetchService<{ materials: TryxCloudMaterial[] }>('/tryx/cloud/catalog');
   // The server returns a relative cover path; an <img> load can't send a Bearer
   // header, so make it absolute and carry the session token as a query param.
@@ -181,6 +224,7 @@ export interface TryxCloudInstallResult {
 // The install is a large download + on-device push (10-60s); no client-side
 // timeout is applied, matching every other postService call in this file.
 export async function installTryxCloudMaterial(id: number): Promise<TryxCloudInstallResult> {
+  if (isTryxSimulated()) return { ok: true, msg: '' };
   const r = await postService<OkResponse>('/tryx/cloud/install', { id });
   return { ok: isOk(r), msg: r?.msg ?? '' };
 }

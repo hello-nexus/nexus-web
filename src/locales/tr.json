@@ -2269,5 +2269,10 @@
   "cooling.kind.pump": "Pompa",
   "update.modal.newBetaRelease": "Yeni beta sürümü!",
   "update.modal.newRelease": "Yeni sürüm!",
-  "update.modal.released": "{date} tarihinde yayınlandı"
+  "update.modal.released": "{date} tarihinde yayınlandı",
+  "devices.tryx.simulatedName": "Tryx Panorama (Simülasyon)",
+  "tools.tryxSim.title": "Tryx simülatörü",
+  "tools.tryxSim.label": "Tryx cihaz sayfasını donanım olmadan örnek verilerle gösterir.",
+  "tools.tryxSim.enable": "Etkinleştir",
+  "tools.tryxSim.disable": "Devre dışı bırak"
 }

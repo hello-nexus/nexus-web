@@ -50,6 +50,7 @@ import {
   TRYX_VALUE_FONT_PANEL_PX,
 } from './tryxOverlayUtils';
 import { useTranslation } from '../../../lib/i18n';
+import { useTryxSimulated } from '../../../lib/tryxSimulation';
 import styles from './TryxDevicePage.module.scss';
 
 // Debounce window for pushing overlay edits (stat/font/size/color/drag) to
@@ -135,6 +136,7 @@ type TryxTab = 'display' | 'media' | 'cooling';
  */
 export function TryxDevicePage() {
   const { t } = useTranslation();
+  const simulated = useTryxSimulated();
   const [status, setStatus] = useState<TryxStatus | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [presets, setPresets] = useState<TryxPreset[]>([]);
@@ -201,6 +203,11 @@ export function TryxDevicePage() {
     void refreshPresets();
     void refreshMedia();
     void refreshCloudCatalog();
+    // Simulated device: the mock status is served once; no polling, so the
+    // page's optimistic edits are never overwritten by a re-fetched snapshot.
+    if (simulated) {
+      return () => { aliveRef.current = false; };
+    }
     const statusId = window.setInterval(() => { void refreshStatus(); }, STATUS_POLL_MS);
     const mediaId = window.setInterval(() => { void refreshMedia(); }, MEDIA_POLL_MS);
     const onFocus = () => { void refreshStatus(); void refreshPresets(); void refreshMedia(); };
@@ -211,7 +218,7 @@ export function TryxDevicePage() {
       window.clearInterval(mediaId);
       window.removeEventListener('focus', onFocus);
     };
-  }, [refreshStatus, refreshPresets, refreshMedia, refreshCloudCatalog]);
+  }, [refreshStatus, refreshPresets, refreshMedia, refreshCloudCatalog, simulated]);
 
   // Local brightness wins while the user is dragging; otherwise it tracks the
   // polled state so opening the page shows the screen's real brightness.
@@ -249,12 +256,18 @@ export function TryxDevicePage() {
   useEffect(() => {
     const el = previewCanvasRef.current;
     if (!el) return;
-    const update = () => setPreviewHeightPx(el.getBoundingClientRect().height);
+    // Guard the 0 a pre-layout measurement can report; the canvas mounts only
+    // after the loading skeleton clears, so re-run on initialLoading too or the
+    // observer is set up while the ref is still null and height stays 0.
+    const update = () => {
+      const h = el.getBoundingClientRect().height;
+      if (h > 0) setPreviewHeightPx(h);
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [tab]);
+  }, [tab, initialLoading]);
 
   // Flushes a pending debounced overlay push immediately instead of
   // discarding it, so navigating away right after an edit still persists it.
