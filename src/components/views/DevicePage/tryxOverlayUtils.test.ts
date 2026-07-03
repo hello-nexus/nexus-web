@@ -9,6 +9,7 @@ import {
   scalePanelMetric,
   tryxFontCssStyle,
   tryxOverlayJustifyStyle,
+  formatTryxSensorValue,
   tryxOverlayPreviewValue,
   tryxSensorOptionsForGroup,
   tryxSensorPlaceholder,
@@ -220,13 +221,31 @@ describe('tryxSensorPlaceholder', () => {
   });
 });
 
+describe('formatTryxSensorValue', () => {
+  it('rounds whole-number types to integers (matches the panel firmware)', () => {
+    expect(formatTryxSensorValue('Temperature', 52.4)).toBe('52°C');
+    expect(formatTryxSensorValue('Load', 33.6)).toBe('34%');
+    expect(formatTryxSensorValue('Clock', 4699.8)).toBe('4700MHz');
+    expect(formatTryxSensorValue('Frequency', 5999.5)).toBe('6000MHz');
+    expect(formatTryxSensorValue('SmallData', 511.6)).toBe('512MB');
+    expect(formatTryxSensorValue('Power', 64.7)).toBe('65W');
+    expect(formatTryxSensorValue('Fan', 1199.4)).toBe('1199RPM');
+  });
+
+  it('keeps fixed decimals for voltage/data/throughput', () => {
+    expect(formatTryxSensorValue('Voltage', 1.234)).toBe('1.23V');
+    expect(formatTryxSensorValue('Data', 12.94)).toBe('12.9GB');
+    expect(formatTryxSensorValue('Throughput', 40.06)).toBe('40.1MB/s');
+  });
+});
+
 describe('tryxOverlayPreviewValue', () => {
   const sensorsByGroup: TryxSensorsByGroup = {
-    cpu: [sensor({ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', formatted: '52°C' })],
+    cpu: [sensor({ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 52.4, formatted: '52.4 °C' })],
     gpu: [], memory: [], motherboard: [], storage: [], network: [],
   };
 
-  it('uses the live formatted value when the sensor is present', () => {
+  it('formats the live value with the panel firmware rounding, not the monitoring string', () => {
     expect(tryxOverlayPreviewValue('cpu', 'cpu-temp', 'Temperature', sensorsByGroup)).toBe('52°C');
   });
 

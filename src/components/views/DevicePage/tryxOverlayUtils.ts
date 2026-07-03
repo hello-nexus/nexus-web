@@ -216,8 +216,29 @@ export function tryxSensorPlaceholder(sensorType: string): string {
   return SENSOR_TYPE_PLACEHOLDERS[sensorType] ?? '--';
 }
 
+// Mirror the service's TryxPanoramaHub.FormatSensorValue byte-for-byte: the panel
+// firmware renders exactly this string, so the preview must round the same way (whole
+// numbers for temp/load/clock/power/fan, fixed decimals for voltage/data/throughput)
+// rather than the monitoring `formatted` string, which keeps a decimal the panel drops.
+export function formatTryxSensorValue(sensorType: string, value: number): string {
+  switch (sensorType) {
+    case 'Temperature': return `${Math.round(value)}°C`;
+    case 'Load': return `${Math.round(value)}%`;
+    case 'Clock':
+    case 'Frequency': return `${Math.round(value)}MHz`;
+    case 'Voltage': return `${value.toFixed(2)}V`;
+    case 'Data': return `${value.toFixed(1)}GB`;
+    case 'SmallData': return `${Math.round(value)}MB`;
+    case 'Power': return `${Math.round(value)}W`;
+    case 'Fan': return `${Math.round(value)}RPM`;
+    case 'Throughput': return `${value.toFixed(1)}MB/s`;
+    default: return String(value);
+  }
+}
+
 /**
- * Live formatted sensor value if the page currently has it, else a
+ * Live sensor value formatted exactly as the panel firmware renders it (see
+ * {@link formatTryxSensorValue}) if the page currently has the reading, else a
  * type-appropriate placeholder.
  */
 export function tryxOverlayPreviewValue(
@@ -227,5 +248,5 @@ export function tryxOverlayPreviewValue(
   sensorsByGroup: TryxSensorsByGroup,
 ): string {
   const live = (sensorsByGroup[device] ?? []).find(s => s.id === sensorId);
-  return live ? live.formatted : tryxSensorPlaceholder(fallbackType);
+  return live ? formatTryxSensorValue(live.type, live.value) : tryxSensorPlaceholder(fallbackType);
 }
