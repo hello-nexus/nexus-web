@@ -158,6 +158,8 @@ describe('MonitoringSettings - Micro mode', () => {
     // memory (1) and fps (1) do not have enough sensors.
     expect(optionByValue('memory').disabled).toBe(true);
     expect(optionByValue('fps').disabled).toBe(true);
+    // No motherboard sensors in this fixture.
+    expect(optionByValue('motherboard').disabled).toBe(true);
   });
 
   it('hides Network from the picker at count=4 (only 3 distinct network sensors exist)', () => {

@@ -67,6 +67,12 @@ export function resolveSensor(
           ?? sensors.memory.find(s => s.name === sensorKey)
           ?? sensors.memory.find(s => s.name === 'Memory Usage')
         : sensors.memory.find(s => s.name === 'Memory Usage') ?? sensors.memory[0];
+    case 'motherboard':
+      return sensorKey
+        ? sensors.motherboard.find(s => s.id === sensorKey)
+          ?? sensors.motherboard.find(s => s.name === sensorKey)
+          ?? sensors.motherboard[0]
+        : sensors.motherboard[0];
     case 'fan':
       return sensorKey
         ? sensors.motherboard.find(s => s.id === sensorKey)
@@ -96,6 +102,7 @@ export function labelForDevice(device: DeviceKey, sensorName: string): string {
     case 'cpu': return 'CPU';
     case 'gpu': return 'GPU';
     case 'memory': return 'RAM';
+    case 'motherboard': return 'MB';
     case 'fan': return 'FAN';
     case 'storage': return 'Storage';
     case 'network': return 'Network';
@@ -103,10 +110,23 @@ export function labelForDevice(device: DeviceKey, sensorName: string): string {
   }
 }
 
-export function staticMaxForDevice(device: DeviceKey, sensorName?: string): number {
+// Adaptive fallback ceiling for a motherboard Clock sensor with no
+// theoreticalMaximum - clock sensors don't carry an installed-capacity max
+// the way Data sensors do.
+const MOTHERBOARD_CLOCK_MAX = 6000;
+
+export function staticMaxForDevice(device: DeviceKey, sensorName?: string, sensorType?: string): number {
   if (device === 'fan') return 2500;
   if (device === 'storage') return 100;
   if (device === 'fps') return sensorName === 'Frame Time' ? 50 : 240;
+  if (device === 'motherboard') {
+    switch (sensorType) {
+      case 'Fan': return 2500;
+      case 'Clock': return MOTHERBOARD_CLOCK_MAX;
+      case 'Voltage': return 2;
+      default: return 100;
+    }
+  }
   // Load/temperature/clock sensors: percentage max.
   return 100;
 }
@@ -119,6 +139,15 @@ export function percentForSensor(device: DeviceKey, sensor: HardwareSensor | und
   // 9.76% on a 32 GB box.
   if (sensor.theoreticalMaximum && sensor.theoreticalMaximum > 0) {
     return Math.max(0, Math.min(100, (sensor.value / sensor.theoreticalMaximum) * 100));
+  }
+  if (device === 'motherboard') {
+    // Motherboard sensors are heterogeneous: Load/Control/Level and
+    // Temperature already read 0-100, everything else (Fan, Voltage, Clock)
+    // needs to scale against the resolved ceiling.
+    if (sensor.type === 'Load' || sensor.type === 'Control' || sensor.type === 'Level' || sensor.type === 'Temperature') {
+      return Math.max(0, Math.min(100, sensor.value));
+    }
+    return Math.min(100, (sensor.value / maxValue) * 100);
   }
   if (device === 'fan' || device === 'network' || device === 'fps') {
     return Math.min(100, (sensor.value / maxValue) * 100);
@@ -220,9 +249,9 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, devic
   const sensorMax = sensor?.theoreticalMaximum && sensor.theoreticalMaximum > 0 ? sensor.theoreticalMaximum : 0;
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
-    : sensorMax || staticMaxForDevice(device, sensor?.name);
+    : sensorMax || staticMaxForDevice(device, sensor?.name, sensor?.type);
   const value = percentForSensor(device, sensor, maxValue);
-  const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name);
+  const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name, sensor?.type);
   // Stable tuple reference so the Sparkline path-memo keys on bound values,
   // not array identity.
   const historyDomain = useMemo<[number, number]>(() => [domainMin, domainMax], [domainMin, domainMax]);

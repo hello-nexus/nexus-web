@@ -634,6 +634,7 @@
   "devices.tryx.deleteMediaMessage": "Supprimer « {name} » ? Cette action est irréversible.",
   "devices.tryx.deleteMediaTitle": "Supprimer le média",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "Mémoire",
   "devices.tryx.deviceMotherboard": "Carte mère",

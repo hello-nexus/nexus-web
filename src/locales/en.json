@@ -651,6 +651,7 @@
   "devices.tryx.deleteMediaMessage": "Delete \"{name}\"? This cannot be undone.",
   "devices.tryx.deleteMediaTitle": "Delete media",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "Memory",
   "devices.tryx.deviceMotherboard": "Motherboard",

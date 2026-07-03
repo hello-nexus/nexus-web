@@ -634,6 +634,7 @@
   "devices.tryx.deleteMediaMessage": "删除\"{name}\"？此操作无法撤销。",
   "devices.tryx.deleteMediaTitle": "删除媒体",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "内存",
   "devices.tryx.deviceMotherboard": "主板",

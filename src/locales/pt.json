@@ -634,6 +634,7 @@
   "devices.tryx.deleteMediaMessage": "Eliminar \"{name}\"? Esta ação não pode ser anulada.",
   "devices.tryx.deleteMediaTitle": "Eliminar multimédia",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "Memória",
   "devices.tryx.deviceMotherboard": "Placa-mãe",
