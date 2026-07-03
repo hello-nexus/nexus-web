@@ -5,6 +5,7 @@ import {
   renameFan as apiRenameFan,
   resetPresetCurve as apiResetPresetCurve,
   setFanSpeed as apiSetFanSpeed,
+  setFanLock as apiSetFanLock,
   type FanChannel, type TemperatureSource,
 } from '../../../../api/cooling';
 import {
@@ -57,6 +58,7 @@ export interface CoolingImmersiveController {
   resetPresetCurve: (presetKey: string) => void;
   renameFan: (id: string, name: string) => void;
   setFanSpeed: (id: string, speed: number) => void;
+  setFanLock: (id: string, locked: boolean) => void;
 }
 
 /**
@@ -398,6 +400,13 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     setChannels(prev => prev.map(ch => ch.id === id ? { ...ch, name } : ch));
   }, []);
 
+  const setFanLockHandler = useCallback(async (id: string, locked: boolean) => {
+    setChannels(prev => prev.map(ch => ch.id === id ? { ...ch, locked } : ch));
+    await apiSetFanLock(id, locked);
+    const fans = await fetchFanChannels();
+    if (fans?.channels) setChannels(fans.channels);
+  }, []);
+
   const setFanSpeed = useCallback(async (id: string, speed: number) => {
     await exitOffToCustomIfNeeded();
     await apiSetFanSpeed(id, speed);
@@ -418,5 +427,6 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     resetPresetCurve: (presetKey) => { void resetPresetCurve(presetKey); },
     renameFan: (id, name) => { void renameFan(id, name); },
     setFanSpeed: (id, speed) => { void setFanSpeed(id, speed); },
+    setFanLock: (id, locked) => { void setFanLockHandler(id, locked); },
   };
 }

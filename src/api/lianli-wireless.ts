@@ -1,4 +1,5 @@
-import { fetchService, postService, postServiceForm, deleteService } from './service';
+import { fetchService, postService, postServiceForm, deleteService, resolveHttp } from './service';
+import { getTokenSync } from './auth';
 
 export interface LianLiWirelessFan {
   mac: string;
@@ -126,11 +127,28 @@ export interface LianLiWirelessMediaItem {
   id: string;
   name: string;
   kind: LianLiWirelessMediaKind;
+  /** Absolute, token-carrying first-frame URL for an <img> src (see below). */
+  thumb: string;
+}
+
+// <img> loads can't send a Bearer header, so the authenticated thumbnail URL
+// carries the session token as a query param (server's ExtractBearerOrQueryToken
+// accepts ?token=), same scheme as tryxMediaFileUrl.
+function mediaThumbUrl(id: string): string {
+  const base = resolveHttp(`/devices/lianli-wireless/media/${encodeURIComponent(id)}/thumb`);
+  const t = getTokenSync();
+  return t ? `${base}?token=${encodeURIComponent(t)}` : base;
+}
+
+interface MediaListItem {
+  id: string;
+  name: string;
+  kind: LianLiWirelessMediaKind;
 }
 
 export async function getLianLiWirelessMedia(): Promise<LianLiWirelessMediaItem[]> {
-  const r = await fetchService<{ items: LianLiWirelessMediaItem[] }>('/devices/lianli-wireless/media');
-  return r?.items ?? [];
+  const r = await fetchService<{ items: MediaListItem[] }>('/devices/lianli-wireless/media');
+  return (r?.items ?? []).map(it => ({ ...it, thumb: mediaThumbUrl(it.id) }));
 }
 
 // LCD screens are a fixed 400x400 square; every upload is cropped to that
@@ -163,7 +181,7 @@ export async function importLianLiWirelessMedia(
   form.append('targetHeight', String(LIANLI_WIRELESS_MEDIA_HEIGHT));
   const r = await postServiceForm<MediaImportResponse>('/devices/lianli-wireless/media/import', form);
   if (!r || r.error || !r.mediaId) return null;
-  return { id: r.mediaId, name: r.name ?? file.name, kind: r.kind ?? 'image' };
+  return { id: r.mediaId, name: r.name ?? file.name, kind: r.kind ?? 'image', thumb: mediaThumbUrl(r.mediaId) };
 }
 
 export async function deleteLianLiWirelessMedia(id: string): Promise<boolean> {

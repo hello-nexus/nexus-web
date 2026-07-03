@@ -61,18 +61,51 @@ async function renderTab() {
   });
 }
 
+function fanTile(n: number) {
+  return screen.getByRole('button', { name: `devices.lianli-wireless.fanN:{"n":${n}}` });
+}
+
+// Selection is multi-toggle; deselect the default (Fan 1) and select fan n so
+// only it is targeted.
+function selectOnly(n: number) {
+  fireEvent.click(fanTile(1));
+  fireEvent.click(fanTile(n));
+}
+
 describe('LianLiWirelessScreenTab', () => {
-  it('renders a tile per screen plus a group-all tile, defaulting to the first screen', async () => {
+  it('renders a tile per screen, first selected by default, with no group-all tile', async () => {
     await renderTab();
 
-    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":1}' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":2}' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":3}' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.screenGroupAll' })).toBeInTheDocument();
+    expect(fanTile(1)).toHaveAttribute('aria-pressed', 'true');
+    expect(fanTile(2)).toHaveAttribute('aria-pressed', 'false');
+    expect(fanTile(3)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.screenGroupAll' })).not.toBeInTheDocument();
 
     // Defaults to screen 1 (image content type).
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.contentTypeAria' }))
       .toHaveTextContent('devices.lianli-wireless.contentTypePicture');
+  });
+
+  it('selects one fan at a time in single mode (the default)', async () => {
+    await renderTab();
+
+    expect(fanTile(1)).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(fanTile(2));
+    expect(fanTile(2)).toHaveAttribute('aria-pressed', 'true');
+    expect(fanTile(1)).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('toggles a fan in and out of the selection in multiple mode', async () => {
+    await renderTab();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
+
+    expect(fanTile(2)).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(fanTile(2));
+    expect(fanTile(2)).toHaveAttribute('aria-pressed', 'true');
+    // Fan 1 (the default) is still selected: multiple mode groups them.
+    expect(fanTile(1)).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(fanTile(2));
+    expect(fanTile(2)).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('shows a loading note before the screens list resolves', async () => {
@@ -94,10 +127,10 @@ describe('LianLiWirelessScreenTab', () => {
     expect(screen.getByText('devices.lianli-wireless.noScreens')).toBeInTheDocument();
   });
 
-  it('switching the selected screen updates the shown content type', async () => {
+  it('selecting only a different fan shows its content type', async () => {
     await renderTab();
 
-    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":2}' }));
+    selectOnly(2);
 
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.contentTypeAria' }))
       .toHaveTextContent('devices.lianli-wireless.contentTypeOff');
@@ -116,7 +149,7 @@ describe('LianLiWirelessScreenTab', () => {
   describe('sensor panel', () => {
     async function renderOnSensorScreen() {
       await renderTab();
-      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":3}' }));
+      selectOnly(3);
     }
 
     it('shows the source and style defaults and posts a change to the source', async () => {
@@ -171,7 +204,7 @@ describe('LianLiWirelessScreenTab', () => {
   describe('clock panel', () => {
     async function renderOnClockScreen() {
       await renderTab();
-      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":3}' }));
+      selectOnly(3);
       fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.contentTypeAria' }));
       fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.contentTypeClock' }));
     }
@@ -200,7 +233,7 @@ describe('LianLiWirelessScreenTab', () => {
   describe('animation panel', () => {
     async function renderOnAnimationScreen() {
       await renderTab();
-      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":3}' }));
+      selectOnly(3);
       fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.contentTypeAria' }));
       fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.contentTypeAnimation' }));
     }
@@ -223,12 +256,23 @@ describe('LianLiWirelessScreenTab', () => {
       expect(accentHex.value).toBe('#00D1FF');
       expect(secondaryHex.value).toBe('#9B5DE5');
     });
+
+    it('hides the color pickers for the spectrum animation', async () => {
+      await renderOnAnimationScreen();
+
+      expect(screen.getAllByLabelText('common.hexColor').length).toBe(2);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.animationSpectrum' }));
+      expect(screen.queryByLabelText('common.hexColor')).not.toBeInTheDocument();
+    });
   });
 
-  it('selecting the group-all tile broadcasts a brightness commit to every screen', async () => {
+  it('selecting several fans broadcasts a brightness commit to every selected screen', async () => {
     await renderTab();
 
-    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.screenGroupAll' }));
+    // Switch to multiple mode, then add Fan 2 and Fan 3 to Fan 1's selection.
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
+    fireEvent.click(fanTile(2));
+    fireEvent.click(fanTile(3));
 
     const slider = screen.getByRole('slider', { name: 'devices.lianli-wireless.brightness' }) as HTMLInputElement;
     fireEvent.change(slider, { target: { value: '30' } });
@@ -238,6 +282,23 @@ describe('LianLiWirelessScreenTab', () => {
     expect(mockSetSettings).toHaveBeenCalledWith('S1', { brightness: 30 });
     expect(mockSetSettings).toHaveBeenCalledWith('S2', { brightness: 30 });
     expect(mockSetSettings).toHaveBeenCalledWith('S3', { brightness: 30 });
+  });
+
+  it('shows a mixed state and hides content panels when selected fans differ', async () => {
+    await renderTab();
+    // Fan 1 is image, Fan 2 is off; select both in multiple mode.
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
+    fireEvent.click(fanTile(2));
+
+    expect(screen.getByText('devices.lianli-wireless.contentMixedHint')).toBeInTheDocument();
+    // Fan 1's image media panel is not shown while the selection is mixed.
+    expect(screen.queryByRole('button', { name: 'Wallpaper' })).not.toBeInTheDocument();
+
+    // Picking a type applies it to every selected fan.
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.contentTypeAria' }));
+    fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.contentTypeClock' }));
+    expect(mockSetContent).toHaveBeenCalledWith('S1', 'clock');
+    expect(mockSetContent).toHaveBeenCalledWith('S2', 'clock');
   });
 
   it('changing the rotation chip commits the new rotation for the selected screen', async () => {

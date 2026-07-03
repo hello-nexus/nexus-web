@@ -126,16 +126,6 @@ export async function setTryxBrightness(value: number): Promise<boolean> {
   return isOk(await postService<OkResponse>('/tryx/brightness', { value }));
 }
 
-export type TryxFanMode = 'smart' | 'fixed';
-
-export async function setTryxFan(
-  mode: TryxFanMode,
-  options: { fixed?: number; curve?: number[][] } = {},
-): Promise<boolean> {
-  if (isTryxSimulated()) return true;
-  return isOk(await postService<OkResponse>('/tryx/fan', { mode, ...options }));
-}
-
 export async function getTryxPresets(): Promise<TryxPreset[]> {
   const r = await fetchService<{ presets: TryxPreset[] }>('/tryx/presets');
   return r?.presets ?? [];

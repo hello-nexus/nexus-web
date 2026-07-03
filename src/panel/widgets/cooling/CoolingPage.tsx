@@ -22,7 +22,7 @@ import {
 } from '../../../api/qseries';
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
-  setFanSpeed, releaseFanAuto, saveCurves, renameFan,
+  setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock,
   startCalibration, fetchCalibrations, fetchProfiles, applyProfile,
   resetPresetCurve,
   type FanChannel, type TemperatureSource,
@@ -433,6 +433,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const handleRename = useCallback(async (id: string, name: string) => {
     await renameFan(id, name);
     setChannels(prev => prev.map(ch => ch.id === id ? { ...ch, name } : ch));
+  }, []);
+
+  const handleToggleLock = useCallback(async (id: string, locked: boolean) => {
+    setChannels(prev => prev.map(ch => ch.id === id ? { ...ch, locked } : ch));
+    await setFanLock(id, locked);
+    const fans = await fetchFanChannels();
+    if (fans?.channels) setChannels(fans.channels);
   }, []);
 
   const addCurve = useCallback((): string => {
@@ -971,6 +978,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   onCreateCurve={() => createCurveAndAssign(ch.id)}
                   onRename={handleRename}
                   onSpeedChange={handleSpeedChange}
+                  onToggleLock={handleToggleLock}
                   drag={drag}
                 />
               );
@@ -1079,6 +1087,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                           onCreateCurve={() => createCurveAndAssign(ch.id)}
                           onRename={handleRename}
                           onSpeedChange={handleSpeedChange}
+                          onToggleLock={handleToggleLock}
                         />
                       ))}</div>
                     </CollapsibleSection>

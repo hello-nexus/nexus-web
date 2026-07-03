@@ -17,6 +17,11 @@ export function LineGauge({ formatted, label, history, historyDomain }: GaugePro
           sampleCount={PERF_HISTORY_SAMPLES}
           showFill={false}
           strokeWidth={GAUGE_LINE_THICKNESS}
+          // Lift the line off the clip edge so the non-scaling stroke isn't
+          // cropped by .chart's overflow:hidden at domain min/max. padding is in
+          // viewBox units, so a full stroke gives generous headroom around the
+          // nominal 36px render height and more on taller tiles.
+          padding={GAUGE_LINE_THICKNESS}
           width={160}
           height={36}
         />

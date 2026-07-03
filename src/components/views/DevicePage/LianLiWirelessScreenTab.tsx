@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  MonitorOff, Image as ImageIcon, Film, Video, Gauge, Clock, Sparkles, Layers,
+  MonitorOff, Image as ImageIcon, Film, Video, Gauge, Clock, Sparkles,
 } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
@@ -32,7 +32,6 @@ const SCREENS_POLL_MS = 2000;
 // One poll interval plus margin: long enough that the poll following an edit's
 // POST observes the applied server state before it resumes overwriting.
 const EDIT_POLL_GRACE_MS = 2500;
-const GROUP_ALL = 'all';
 
 const CONTENT_TYPES: { value: LianLiWirelessScreenContentType; labelKey: string }[] = [
   { value: 'off', labelKey: 'devices.lianli-wireless.contentTypeOff' },
@@ -45,6 +44,11 @@ const CONTENT_TYPES: { value: LianLiWirelessScreenContentType; labelKey: string 
 ];
 
 const ROTATIONS = [0, 1, 2, 3];
+
+const SELECTION_MODES: { key: 'single' | 'multiple'; labelKey: string }[] = [
+  { key: 'single', labelKey: 'devices.lianli-wireless.selectionModeSingle' },
+  { key: 'multiple', labelKey: 'devices.lianli-wireless.selectionModeMultiple' },
+];
 
 function acceptForKind(kind: LianLiWirelessMediaKind): string {
   if (kind === 'video') return 'video/mp4';
@@ -66,15 +70,16 @@ function contentTypeIcon(type: LianLiWirelessScreenContentType) {
 
 /**
  * Screen tab: LCD content, brightness and rotation for the wireless SLV3-LCD
- * fan screens. Screens are addressed individually (by serial) or as a group
- * (`GROUP_ALL`) that broadcasts the next change to every screen. Polls its
- * own `/screens` list independently of the shell's fan-state poll.
+ * fan screens. Fans are selected by toggling their tiles; every edit is
+ * broadcast to all selected fans, so selecting several edits them as a group.
+ * Polls its own `/screens` list independently of the shell's fan-state poll.
  */
 export function LianLiWirelessScreenTab() {
   const { t } = useTranslation();
   const [screens, setScreens] = useState<LianLiWirelessScreen[] | null>(null);
   const [media, setMedia] = useState<LianLiWirelessMediaItem[]>([]);
-  const [target, setTarget] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [selectionMode, setSelectionMode] = useState<'single' | 'multiple'>('single');
   const [brightnessDraft, setBrightnessDraft] = useState(50);
   const [uploadKind, setUploadKind] = useState<LianLiWirelessMediaKind>('image');
   const [uploading, setUploading] = useState(false);
@@ -122,18 +127,48 @@ export function LianLiWirelessScreenTab() {
     [screens],
   );
 
-  // Default the selection to the first (by position) screen once the list
-  // first loads; never overrides a selection the user already made.
+  // Select the first screen once the list first loads; after that the user's
+  // toggles stand, including selecting none.
+  const selectionInitedRef = useRef(false);
   useEffect(() => {
-    if (target === null && orderedScreens.length > 0) setTarget(orderedScreens[0].serial);
-  }, [orderedScreens, target]);
-  const targetScreens = target === GROUP_ALL
-    ? orderedScreens
-    : orderedScreens.filter(s => s.serial === target);
-  // The screen(s) a control edit applies to. In group mode every screen is
-  // targeted; the FIRST one's current value is shown as the representative
-  // state (screens are expected to converge to the same settings in group use).
+    if (!selectionInitedRef.current && orderedScreens.length > 0) {
+      selectionInitedRef.current = true;
+      setSelected(new Set([orderedScreens[0].serial]));
+    }
+  }, [orderedScreens]);
+
+  const toggleScreen = useCallback((serial: string) => {
+    setSelected(prev => {
+      if (selectionMode === 'single') return new Set([serial]);
+      const next = new Set(prev);
+      if (next.has(serial)) next.delete(serial); else next.add(serial);
+      return next;
+    });
+  }, [selectionMode]);
+
+  const handleModeChange = useCallback((mode: string) => {
+    const next = mode === 'multiple' ? 'multiple' : 'single';
+    setSelectionMode(next);
+    if (next === 'single') {
+      // Collapse a multi-selection down to the first selected fan.
+      setSelected(prev => {
+        const first = orderedScreens.find(s => prev.has(s.serial));
+        return new Set(first ? [first.serial] : []);
+      });
+    }
+  }, [orderedScreens]);
+
+  // The screens a control edit applies to (the selected group); the FIRST one's
+  // current value is the representative shown in the controls.
+  const targetScreens = orderedScreens.filter(s => selected.has(s.serial));
   const representative = targetScreens[0] ?? null;
+  // When several fans with different content types are selected the content
+  // controls can't show one truth; force a fresh pick instead.
+  const sharedContentType = targetScreens.length > 0
+    && targetScreens.every(s => s.contentType === targetScreens[0].contentType)
+    ? targetScreens[0].contentType
+    : null;
+  const contentMixed = targetScreens.length > 0 && sharedContentType === null;
 
   useEffect(() => {
     if (!brightnessInteractingRef.current && representative) {
@@ -147,11 +182,10 @@ export function LianLiWirelessScreenTab() {
   ) => {
     if (!screens) return;
     lastEditRef.current = performance.now();
-    const serials = (target === GROUP_ALL ? screens : screens.filter(s => s.serial === target))
-      .map(s => s.serial);
+    const serials = screens.filter(s => selected.has(s.serial)).map(s => s.serial);
     setScreens(prev => prev ? prev.map(s => (serials.includes(s.serial) ? mutate(s) : s)) : prev);
     for (const serial of serials) dispatch(serial);
-  }, [screens, target]);
+  }, [screens, selected]);
 
   const commitBrightness = useCallback((v: number) => {
     brightnessInteractingRef.current = false;
@@ -219,21 +253,25 @@ export function LianLiWirelessScreenTab() {
     setCropState({ src: URL.createObjectURL(file), file });
   };
 
-  const handleCropConfirm = useCallback((crop: NormalizedCrop) => {
+  const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
     if (!cropState) return;
     const { file, src } = cropState;
-    setCropState(null);
+    // Keep the cropper mounted + busy through the encode (gif/video transcode
+    // is slow); it disables its own buttons and shows a converting overlay.
+    // Close only once the import fully resolves.
     setUploading(true);
-    void (async () => {
-      try {
-        await importLianLiWirelessMedia(file, crop);
-        await refreshMedia();
-      } finally {
-        URL.revokeObjectURL(src);
-        if (aliveRef.current) setUploading(false);
+    try {
+      const item = await importLianLiWirelessMedia(file, crop);
+      await refreshMedia();
+      if (item && aliveRef.current) handleMediaSelect(item);
+    } finally {
+      URL.revokeObjectURL(src);
+      if (aliveRef.current) {
+        setUploading(false);
+        setCropState(null);
       }
-    })();
-  }, [cropState, refreshMedia]);
+    }
+  }, [cropState, refreshMedia, handleMediaSelect]);
 
   const handleCropCancel = useCallback(() => {
     if (cropState) URL.revokeObjectURL(cropState.src);
@@ -248,7 +286,7 @@ export function LianLiWirelessScreenTab() {
   return (
     <>
       <SettingsSection
-        title={t('devices.lianli-wireless.screensSection')}
+        title={t('devices.lianli-wireless.selectionSection')}
         boxClassName={styles.sectionBox}
       >
         {!loaded && <p className={styles.emptyNote}>{t('devices.lianli-wireless.loadingScreens')}</p>}
@@ -257,23 +295,34 @@ export function LianLiWirelessScreenTab() {
         )}
         {orderedScreens.length > 0 && (
           <>
-            {/* Icon tiles are the selector: each mirrors its screen's live
-                content/brightness/rotation and picks it on click. Numbered by
-                list order (1-based) since GetPosIndex returns 0 on this firmware. */}
+            <div className={styles.row}>
+              <span className={styles.rowLabel}>{t('devices.lianli-wireless.selectionModeLabel')}</span>
+              <ChipGroup
+                ariaLabel={t('devices.lianli-wireless.selectionModeLabel')}
+                activeKey={selectionMode}
+                onChange={handleModeChange}
+                options={SELECTION_MODES.map(m => ({ key: m.key, label: t(m.labelKey) }))}
+              />
+            </div>
+            {/* Icon tiles: each mirrors its screen's live content/brightness/
+                rotation. In single mode a click selects that one fan; in multiple
+                mode it toggles the fan in/out and edits apply to every selected
+                fan. Numbered by list order (1-based) since GetPosIndex returns 0
+                on this firmware. */}
             <div
               className={styles.screenPreviewGrid}
               role="group"
               aria-label={t('devices.lianli-wireless.screensAria')}
             >
               {orderedScreens.map((s, i) => {
-                const active = target === s.serial;
+                const active = selected.has(s.serial);
                 return (
                   <button
                     key={s.serial}
                     type="button"
                     className={`${styles.screenPreviewTile} ${active ? styles.screenPreviewTileActive : ''}`}
                     aria-pressed={active}
-                    onClick={() => setTarget(s.serial)}
+                    onClick={() => toggleScreen(s.serial)}
                   >
                     <span
                       className={styles.screenPreviewThumb}
@@ -287,132 +336,38 @@ export function LianLiWirelessScreenTab() {
                   </button>
                 );
               })}
-              {orderedScreens.length > 1 && (
-                <button
-                  type="button"
-                  className={`${styles.screenPreviewTile} ${target === GROUP_ALL ? styles.screenPreviewTileActive : ''}`}
-                  aria-pressed={target === GROUP_ALL}
-                  onClick={() => setTarget(GROUP_ALL)}
-                >
-                  <span className={styles.screenPreviewThumb}>
-                    <Layers size={20} aria-hidden />
-                  </span>
-                  <span className={styles.screenPreviewLabel}>
-                    {t('devices.lianli-wireless.screenGroupAll')}
-                  </span>
-                </button>
-              )}
-            </div>
-            <div className={`${styles.sliderBlock} ${!representative ? styles.rowDisabled : ''}`}>
-              <Slider
-                // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                orientation="stacked"
-                editable
-                trackFill
-                label={t('devices.lianli-wireless.brightness')}
-                value={brightnessDraft}
-                min={0}
-                max={100}
-                step={1}
-                formatValue={v => `${v}%`}
-                ariaLabel={t('devices.lianli-wireless.brightness')}
-                disabled={!representative}
-                onChange={(v, commit) => {
-                  const rounded = Math.round(v);
-                  if (commit) { commitBrightness(rounded); return; }
-                  brightnessInteractingRef.current = true;
-                  setBrightnessDraft(rounded);
-                }}
-                onCommit={commitBrightness}
-              />
             </div>
           </>
         )}
       </SettingsSection>
 
       <SettingsSection
-        title={t('devices.lianli-wireless.contentSection')}
-        boxClassName={styles.sectionBox}
-      >
-        <div className={`${styles.contentTypeRow} ${!representative ? styles.rowDisabled : ''}`}>
-          <Select
-            className={styles.contentTypeSelect}
-            value={representative?.contentType ?? 'off'}
-            options={contentTypeOptions}
-            disabled={!representative}
-            onChange={v => handleContentTypeChange(v as LianLiWirelessScreenContentType)}
-            ariaLabel={t('devices.lianli-wireless.contentTypeAria')}
-          />
-        </div>
-
-        {representative?.contentType === 'image' && (
-          <MediaPanel
-            kind="image"
-            media={media}
-            currentMediaId={representative.mediaId ?? null}
-            uploading={uploading}
-            onUploadClick={() => openUpload('image')}
-            onSelect={handleMediaSelect}
-            onDeleteRequest={setPendingDeleteMedia}
-          />
-        )}
-        {representative?.contentType === 'gif' && (
-          <MediaPanel
-            kind="gif"
-            media={media}
-            currentMediaId={representative.mediaId ?? null}
-            uploading={uploading}
-            onUploadClick={() => openUpload('gif')}
-            onSelect={handleMediaSelect}
-            onDeleteRequest={setPendingDeleteMedia}
-          />
-        )}
-        {representative?.contentType === 'video' && (
-          <MediaPanel
-            kind="video"
-            media={media}
-            currentMediaId={representative.mediaId ?? null}
-            uploading={uploading}
-            onUploadClick={() => openUpload('video')}
-            onSelect={handleMediaSelect}
-            onDeleteRequest={setPendingDeleteMedia}
-          />
-        )}
-        {representative?.contentType === 'sensor' && (
-          <SensorPanel
-            screen={representative}
-            onPreview={previewContentField}
-            onCommit={patch => commitContentField('sensor', patch)}
-          />
-        )}
-        {representative?.contentType === 'clock' && (
-          <ClockPanel
-            screen={representative}
-            onPreview={previewContentField}
-            onCommit={patch => commitContentField('clock', patch)}
-          />
-        )}
-        {representative?.contentType === 'animation' && (
-          <AnimationPanel
-            screen={representative}
-            onPreview={previewContentField}
-            onCommit={patch => commitContentField('animation', patch)}
-          />
-        )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={acceptForKind(uploadKind)}
-          className={styles.hiddenInput}
-          onChange={handleFileChange}
-        />
-      </SettingsSection>
-
-      <SettingsSection
         title={t('devices.lianli-wireless.displaySection')}
         boxClassName={styles.sectionBox}
       >
+        <div className={`${styles.sliderBlock} ${!representative ? styles.rowDisabled : ''}`}>
+          <Slider
+            // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+            orientation="stacked"
+            editable
+            trackFill
+            label={t('devices.lianli-wireless.brightness')}
+            value={brightnessDraft}
+            min={0}
+            max={100}
+            step={1}
+            formatValue={v => `${v}%`}
+            ariaLabel={t('devices.lianli-wireless.brightness')}
+            disabled={!representative}
+            onChange={(v, commit) => {
+              const rounded = Math.round(v);
+              if (commit) { commitBrightness(rounded); return; }
+              brightnessInteractingRef.current = true;
+              setBrightnessDraft(rounded);
+            }}
+            onCommit={commitBrightness}
+          />
+        </div>
         <div className={`${styles.row} ${!representative ? styles.rowDisabled : ''}`}>
           <span className={styles.rowLabel}>{t('devices.lianli-wireless.rotationLabel')}</span>
           <ChipGroup
@@ -425,6 +380,93 @@ export function LianLiWirelessScreenTab() {
             }))}
           />
         </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title={t('devices.lianli-wireless.contentSection')}
+        boxClassName={styles.sectionBox}
+      >
+        <div className={`${styles.contentTypeRow} ${!representative ? styles.rowDisabled : ''}`}>
+          <Select
+            className={styles.contentTypeSelect}
+            value={contentMixed ? '' : (sharedContentType ?? 'off')}
+            placeholder={t('devices.lianli-wireless.contentTypeMixed')}
+            options={contentTypeOptions}
+            disabled={!representative}
+            onChange={v => handleContentTypeChange(v as LianLiWirelessScreenContentType)}
+            ariaLabel={t('devices.lianli-wireless.contentTypeAria')}
+          />
+        </div>
+        {contentMixed && (
+          <p className={styles.emptyNote}>{t('devices.lianli-wireless.contentMixedHint')}</p>
+        )}
+
+        {representative && !contentMixed && (
+          <>
+            {representative.contentType === 'image' && (
+              <MediaPanel
+                kind="image"
+                media={media}
+                currentMediaId={representative.mediaId ?? null}
+                uploading={uploading}
+                onUploadClick={() => openUpload('image')}
+                onSelect={handleMediaSelect}
+                onDeleteRequest={setPendingDeleteMedia}
+              />
+            )}
+            {representative.contentType === 'gif' && (
+              <MediaPanel
+                kind="gif"
+                media={media}
+                currentMediaId={representative.mediaId ?? null}
+                uploading={uploading}
+                onUploadClick={() => openUpload('gif')}
+                onSelect={handleMediaSelect}
+                onDeleteRequest={setPendingDeleteMedia}
+              />
+            )}
+            {representative.contentType === 'video' && (
+              <MediaPanel
+                kind="video"
+                media={media}
+                currentMediaId={representative.mediaId ?? null}
+                uploading={uploading}
+                onUploadClick={() => openUpload('video')}
+                onSelect={handleMediaSelect}
+                onDeleteRequest={setPendingDeleteMedia}
+              />
+            )}
+            {representative.contentType === 'sensor' && (
+              <SensorPanel
+                screen={representative}
+                onPreview={previewContentField}
+                onCommit={patch => commitContentField('sensor', patch)}
+              />
+            )}
+            {representative.contentType === 'clock' && (
+              <ClockPanel
+                screen={representative}
+                onPreview={previewContentField}
+                onCommit={patch => commitContentField('clock', patch)}
+              />
+            )}
+            {representative.contentType === 'animation' && (
+              <AnimationPanel
+                screen={representative}
+                onPreview={previewContentField}
+                onCommit={patch => commitContentField('animation', patch)}
+              />
+            )}
+          </>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={acceptForKind(uploadKind)}
+          className={styles.hiddenInput}
+          onChange={handleFileChange}
+        />
       </SettingsSection>
 
       <ConfirmModal
@@ -483,7 +525,7 @@ function MediaPanel({
               key={item.id}
               asDiv
               label={item.name}
-              thumbUrl={null}
+              thumbUrl={item.thumb}
               thumbStatic
               thumbAspect={1}
               active={item.id === currentMediaId}
@@ -666,12 +708,15 @@ function AnimationPanel({ screen, onPreview, onCommit }: ContentPanelProps) {
           options={animationOptions}
         />
       </div>
-      <ColorPairRow
-        colorA={screen.colorA ?? DEFAULT_COLOR_A}
-        colorB={screen.colorB ?? DEFAULT_ANIMATION_COLOR_B}
-        onPreview={onPreview}
-        onCommit={onCommit}
-      />
+      {/* Spectrum generates its own rainbow and ignores the palette. */}
+      {animationId !== 'spectrum' && (
+        <ColorPairRow
+          colorA={screen.colorA ?? DEFAULT_COLOR_A}
+          colorB={screen.colorB ?? DEFAULT_ANIMATION_COLOR_B}
+          onPreview={onPreview}
+          onCommit={onCommit}
+        />
+      )}
     </div>
   );
 }

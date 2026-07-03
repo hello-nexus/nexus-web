@@ -318,15 +318,6 @@
 // Sidebar variant: fill the column width.
 .fanCardCompact { width: 100%; }
 
-// Pump channels behave differently from fans (skipped by the global
-// Silent/Balanced/Turbo presets), so they carry a persistent accent border
-// alongside the droplet icon. Kept at a partial mix so it reads as a type
-// marker, not the brighter --accent-glow used for selection/hover elsewhere.
-.fanCardPump {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  &:hover { border-color: color-mix(in srgb, var(--accent) 70%, transparent); }
-}
-
 
 // Software-controlled (not BIOS/FW): keep the card surface unchanged and
 // signal it on the duty bar instead - a much lighter cue than a full-card
@@ -344,9 +335,40 @@
   gap: 0.5rem;
   min-width: 0;
 }
-// Pump/fan icon next to the name. Turns accent when the fan is bound to the
-// curve currently shown in the graph (the highlight, replacing the old border).
+// Fan icon next to the name, doubling as the lock toggle. Turns accent when
+// the fan is bound to the curve currently shown in the graph (the highlight,
+// replacing the old border).
 .fanKindIcon { flex-shrink: 0; color: var(--text-dim); }
+
+// Positioning context shared by the read-only display and the interactive
+// toggle button so the lock badge overlays the same spot in both cases.
+.fanKindToggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.fanLockToggle {
+  background: none; border: none; padding: 0; margin: 0;
+  cursor: pointer;
+  &:hover .fanKindIcon { color: var(--text); }
+}
+// Overlaid on the fan icon's bottom-right corner; the fan dims when locked so
+// this reads as the primary glyph. The surface-colored ring punches a gap
+// through the fan blades behind it so the lock stays legible against them.
+.fanLockBadge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  color: var(--text);
+  background: var(--surface);
+  border-radius: 50%;
+  padding: 1px;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+// Locked fans dim the fan glyph so the lock badge is the dominant mark.
+.fanKindIconDim { opacity: 0.3; }
 .fanCardCalibrating { opacity: 0.5; pointer-events: none; }
 // Hardware-unresponsive: the fan block reads as "off". Border desaturates,
 // background sits flat, no hover transition - matches the Disconnected

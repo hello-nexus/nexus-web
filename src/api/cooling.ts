@@ -10,7 +10,8 @@ export interface FanChannel {
   dutyPercent: number;
   rpm: number;
   mode: string; // "Auto" | "Manual" | "Curve"
-  kind?: string; // "Fan" | "Pump" - drives the fan card's header icon
+  kind?: string; // "Fan" | "Pump" - hardware channel type reported by the service
+  locked?: boolean; // skipped by the global preset buttons; still settable from the mode dropdown
   readOnly?: boolean; // telemetry-only channel: header readout, no duty bar / mode control
   minRpm?: number | null;
   maxRpm?: number | null;
@@ -155,6 +156,9 @@ export const resetPresetCurve = (name: string) =>
 
 export const renameFan = (id: string, name: string) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/name`, { name });
+
+export const setFanLock = (id: string, locked: boolean) =>
+  postService(`/cooling/fan/${encodeURIComponent(id)}/lock`, { locked });
 
 export const saveCurves = (body: {
   globalSpeedModifier: number;
