@@ -638,19 +638,23 @@ describe('useMultiplexConnection direct upgrade', () => {
     expect(result.current?.transport).toBe('direct');
     expect(FakeRelayChannel.instances.length).toBe(1);
 
+    // That connection drops - schedules a fresh backoff at step 0 (reset by
+    // the swap above), so 30s again rather than the doubled 60s a leaked
+    // step would produce.
     openRtcDirectMock.mockResolvedValueOnce(makeDirectConnection());
     await act(async () => { conn.runtime.triggerDrop(1006); await flushRelayDetour(); });
 
-    // 29s after this drop: still under the RESET (30s) backoff.
-    await act(async () => { await vi.advanceTimersByTimeAsync(29000); });
-    await act(async () => { result.current?.reconnect(); await flushRelayDetour(); });
+    // 29s after the drop: the relay has reconnected by now (its own 5s
+    // backoff, crossed within this advance) and armed a retry for the
+    // remainder of the 30s window, but nothing has fired yet.
+    await act(async () => { await vi.advanceTimersByTimeAsync(29000); await flushRelayDetour(); });
     expect(openRtcDirectMock).toHaveBeenCalledTimes(2);
 
-    // 2s more (31s total since the drop): past the reset 30s backoff - this
-    // would still be gated at 31s if the earlier failure's step (needing 60s)
-    // had leaked into this cycle instead of being reset on the swap.
-    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
-    await act(async () => { result.current?.reconnect(); await flushRelayDetour(); });
+    // 2s more (31s total since the drop): the retry fires on its own and
+    // succeeds. This would still be pending at 31s if the earlier failure's
+    // step (needing the doubled 60s) had leaked into this cycle instead of
+    // being reset on the swap.
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); await flushRelayDetour(); });
     expect(openRtcDirectMock).toHaveBeenCalledTimes(3);
   });
 
@@ -825,25 +829,26 @@ describe('useMultiplexConnection direct upgrade', () => {
     expect(result.current?.transport).toBe(null);
 
     // The existing reconnect machinery brings a fresh relay connection back up
-    // at the normal 5s backoff start.
+    // at the normal 5s backoff start - too early for the 30s re-punch
+    // backoff, so this arms a retry against it rather than attempting now.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5000);
       await flushRelayDetour();
     });
     expect(result.current?.transport).toBe('relay');
-    // Re-punch backoff (30s) hasn't elapsed yet - no second attempt.
     expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
+    // relay #1 (the initial swap) plus relay #2 (this post-drop reconnect).
+    expect(FakeRelayChannel.instances.length).toBe(2);
 
-    // Advance well past the 30s direct-upgrade backoff, then force a fresh
-    // relay connection (reconnect()) - the punch is retried this time.
+    // The armed retry fires on its own once the 30s backoff (from the drop)
+    // expires - no further relay reconnect needed.
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(26000);
-    });
-    await act(async () => {
-      result.current?.reconnect();
+      await vi.advanceTimersByTimeAsync(25000);
       await flushRelayDetour();
     });
     expect(openRtcDirectMock).toHaveBeenCalledTimes(2);
+    expect(result.current?.transport).toBe('direct');
+    expect(FakeRelayChannel.instances.length).toBe(2);
   });
 
   it('parks in relayDisabled when a DIRECT connection drops and the host has the cloud relay OFF', async () => {

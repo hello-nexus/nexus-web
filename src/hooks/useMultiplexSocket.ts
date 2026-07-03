@@ -559,15 +559,14 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   // opens while another attempt is still in flight is remembered
   // (pendingRetryChannelRef) and re-attempted once that attempt settles,
   // rather than skipped forever. Skipped entirely for a wired/kiosk surface,
-  // while the killswitch/relay-off/revoked terminal states are active, or
-  // before the re-punch backoff has elapsed. A failed punch (including a 403
-  // killswitch-off answer) engages that backoff so a flapping relay
-  // connection can't hammer POST /rtc/offer - and, if the relay connection is
-  // still open, arms a timer to retry against THIS SAME connection when the
-  // backoff expires. A future relay open is the only other trigger, and none
-  // may come if this connection stays healthy (e.g. the network condition
-  // that broke the punch clears up without the relay ever dropping) -
-  // without the timer the phone would stay on relay indefinitely.
+  // or while the killswitch/relay-off/revoked terminal states are active.
+  // Two more cases arm a single retry timer against this SAME still-open
+  // connection rather than relying on a future relay open, which may never
+  // come if this connection stays healthy: a call that arrives before the
+  // re-punch backoff has elapsed (e.g. this relay reconnected faster than an
+  // earlier drop's backoff), and a punch that itself failed or was discarded
+  // (including a 403 killswitch-off answer). attemptDirectUpgrade's own
+  // guards make a stale timer fire harmless.
   const attemptDirectUpgrade = useCallback((relayChannel: RelayChannel) => {
     if (wired) return;
     if (directUpgradeInFlightRef.current) {
@@ -576,20 +575,25 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     }
     if (!isRtcDirectEligible()) return;
     if (remoteDisabledRef.current || relayDisabledRef.current || sessionRevokedRef.current) return;
-    if (Date.now() < directNextAttemptAtRef.current) return;
-    directUpgradeInFlightRef.current = true;
-    multiplexDiag.upgradeAttempts++;
-    // attemptDirectUpgrade's own guards (in-flight, eligibility, terminal
-    // states, the backoff gate, and the wsRef identity + readyState check
-    // below) make a stale fire harmless even if this relayChannel closes
-    // between now and when the timer fires and something misses clearing it.
+
+    // Never clobbers an already-armed timer - the first one wins.
     const armRetry = (delayMs: number) => {
-      clearTimeout(directRetryTimerRef.current);
+      if (directRetryTimerRef.current) return;
       directRetryTimerRef.current = setTimeout(() => {
         directRetryTimerRef.current = undefined;
         attemptDirectUpgrade(relayChannel);
       }, delayMs);
     };
+
+    if (Date.now() < directNextAttemptAtRef.current) {
+      if (relayChannel.readyState === RelayChannel.OPEN) {
+        armRetry(directNextAttemptAtRef.current - Date.now());
+      }
+      return;
+    }
+
+    directUpgradeInFlightRef.current = true;
+    multiplexDiag.upgradeAttempts++;
     void (async () => {
       let conn: RtcDirectConnection | null = null;
       try {
@@ -607,9 +611,6 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
           && relayChannel.readyState === RelayChannel.OPEN;
         if (!relayStillOpen || conn.runtime.readyState !== RtcRuntimeChannel.OPEN) {
           conn.close();
-          // The punch itself failed to land even though nothing else
-          // superseded this relay session - retry it directly rather than
-          // wait on a relay-open event that may never come.
           if (relayStillOpen) armRetry(scheduleDirectBackoff());
           return;
         }
