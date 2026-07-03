@@ -513,8 +513,6 @@
   "devices.lianli-wireless.slot": "Emplacement {n}",
   "devices.lianli-wireless.tab.cooling": "Refroidissement",
   "devices.lianli-wireless.tab.fans": "Ventilateurs",
-  "devices.lianli-wireless.tab.lighting": "Éclairage",
-  "devices.lianli-wireless.tab.placeholder": "Disponible dans une prochaine mise à jour",
   "devices.lianli-wireless.tab.screen": "Écran",
   "devices.lianli-wireless.tempUnitCelsius": "°C",
   "devices.lianli-wireless.tempUnitFahrenheit": "°F",

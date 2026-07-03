@@ -513,8 +513,6 @@
   "devices.lianli-wireless.slot": "Yuva {n}",
   "devices.lianli-wireless.tab.cooling": "Soğutma",
   "devices.lianli-wireless.tab.fans": "Fanlar",
-  "devices.lianli-wireless.tab.lighting": "Aydınlatma",
-  "devices.lianli-wireless.tab.placeholder": "Daha sonraki bir güncellemede gelecek",
   "devices.lianli-wireless.tab.screen": "Ekran",
   "devices.lianli-wireless.tempUnitCelsius": "°C",
   "devices.lianli-wireless.tempUnitFahrenheit": "°F",
