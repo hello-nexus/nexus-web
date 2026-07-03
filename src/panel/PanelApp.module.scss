@@ -500,6 +500,12 @@
   position: relative;
 }
 
+// Desktop widgets are click-to-edit (a tap opens the widget's edit menu), so
+// the cell reads as a button.
+.panelRoot[data-surface='desktop'] .cellWrap {
+  cursor: pointer;
+}
+
 .panelRoot[data-surface='phone'][data-context-menu-open='true'],
 .panelRoot[data-surface='phone'][data-editing='true'] {
   overflow: hidden;
