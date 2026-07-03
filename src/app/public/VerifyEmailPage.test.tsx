@@ -36,15 +36,16 @@ describe('VerifyEmailPage', () => {
     expect(screen.getByText('common.backToNexus')).toBeInTheDocument();
   });
 
-  it('shows the already-used state', async () => {
-    verifyEmailMock.mockResolvedValue({ ok: false, reason: 'already-used' });
+  it('shows the already-verified state when a re-clicked link resolves ok', async () => {
+    verifyEmailMock.mockResolvedValue({ ok: true, alreadyVerified: true });
     render(<VerifyEmailPage token="tok" />);
 
-    await waitFor(() => expect(screen.getByText('auth.verify.alreadyUsed.title')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('auth.verify.alreadyVerified.title')).toBeInTheDocument());
+    expect(screen.queryByText('auth.verify.success.title')).not.toBeInTheDocument();
   });
 
-  it('shows the invalid state on any other failure reason', async () => {
-    verifyEmailMock.mockResolvedValue({ ok: false, reason: 'invalid' });
+  it('shows the invalid state on failure', async () => {
+    verifyEmailMock.mockResolvedValue({ ok: false });
     render(<VerifyEmailPage token="tok" />);
 
     await waitFor(() => expect(screen.getByText('auth.verify.invalid.title')).toBeInTheDocument());
