@@ -148,11 +148,6 @@
   gap: 0.6rem;
 }
 
-.fanModeRow {
-  display: flex;
-  gap: 0.5rem;
-}
-
 // Fixed-width column beside the scrollable tab content, matching the SDK
 // app's split layout. Non-scrolling: the canvas below sizes to the pane's
 // width via aspect-ratio, so there is nothing else to scroll.

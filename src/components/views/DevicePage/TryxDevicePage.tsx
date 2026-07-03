@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { Monitor, MonitorOff, Wind, Film, Download } from 'lucide-react';
+import { Monitor, MonitorOff, Film, Download } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Spinner } from '../../common/Spinner/Spinner';
@@ -13,8 +13,6 @@ import { EffectCard } from '../../common/EffectCard/EffectCard';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { MediaCropper, type NormalizedCrop } from '../../common/MediaCropper/MediaCropper';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { CurveGraph } from '../../../panel/widgets/cooling/page/CurveEditor';
-import type { CurvePoint } from '../../../api/cooling';
 import { useSensors } from '../../../hooks/useSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
 import { buildNetworkSensors } from '../../../panel/widgets/monitoring/networkSensors';
@@ -26,7 +24,6 @@ import {
   installTryxCloudMaterial,
   setTryxEnabled,
   setTryxBrightness,
-  setTryxFan,
   setTryxPreset,
   selectTryxMedia,
   deleteTryxMedia,
@@ -37,7 +34,6 @@ import {
   type TryxStatus,
   type TryxPreset,
   type TryxMediaItem,
-  type TryxFanMode,
   type TryxCloudMaterial,
   type TryxOverlayItem,
 } from '../../../api/tryx';
@@ -86,13 +82,6 @@ const UPLOAD_ASPECT = TRYX_MEDIA_WIDTH / TRYX_MEDIA_HEIGHT;
 // show just the stem in the library.
 const mediaDisplayName = (deviceName: string): string => deviceName.split('.mp4')[0] || deviceName;
 
-const DEFAULT_CURVE: CurvePoint[] = [
-  { temp: 0, speed: 20 },
-  { temp: 50, speed: 40 },
-  { temp: 75, speed: 70 },
-  { temp: 100, speed: 100 },
-];
-
 interface OverlayItemState {
   enabled: boolean;
   device: TryxSensorGroup;
@@ -116,11 +105,11 @@ const DEFAULT_OVERLAY_ITEMS: OverlayItemState[] = OVERLAY_ITEM_SLOTS.map(i => ({
   ...dockedOverlayItemPosition(DEFAULT_OVERLAY_ALIGN, i),
 }));
 
-type TryxTab = 'display' | 'media' | 'cooling';
+type TryxTab = 'display' | 'media';
 
 /**
- * Native first-party page for the Tryx Panorama AIO screen (Display / Media /
- * Cooling), driving the `/tryx/*` routes.
+ * Native first-party page for the Tryx Panorama AIO screen (Display / Media),
+ * driving the `/tryx/*` routes.
  *
  * Optimistic-state race avoidance: brightness and the overlay block win locally
  * until the polled status confirms them (brightnessInteractingRef /
@@ -140,11 +129,6 @@ export function TryxDevicePage() {
   const [tab, setTab] = useState<TryxTab>('display');
 
   const [brightness, setBrightness] = useState(80);
-  // Fan mode/curve are write-only: the cooler's status stream carries no fan
-  // config, so these default to Smart and only reflect edits made in-session.
-  const [fanMode, setFanMode] = useState<TryxFanMode>('smart');
-  const [fanFixed, setFanFixed] = useState(50);
-  const [fanCurve, setFanCurve] = useState<CurvePoint[]>(DEFAULT_CURVE);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
@@ -590,7 +574,6 @@ export function TryxDevicePage() {
   const TABS = [
     { key: 'display', label: t('devices.tryx.tabDisplay'), icon: <Monitor size={14} /> },
     { key: 'media', label: t('devices.tryx.tabMedia'), icon: <Film size={14} /> },
-    { key: 'cooling', label: t('devices.tryx.tabCooling'), icon: <Wind size={14} /> },
   ];
 
   const fontOptions = TRYX_FONTS.map(font => ({ value: font, label: t(TRYX_FONT_LABEL_KEYS[font]) }));
@@ -892,68 +875,6 @@ export function TryxDevicePage() {
                 }}
               />
             </>
-          )}
-
-          {tab === 'cooling' && (
-            <SettingsSection title={t('devices.tryx.fanCurveSection')} boxClassName={styles.sectionBox}>
-              <div className={styles.fanModeRow}>
-                <Button
-                  size="sm"
-                  tone={fanMode === 'smart' ? 'accent' : 'neutral'}
-                  onClick={() => setFanMode('smart')}
-                >
-                  {t('devices.tryx.fanModeSmart')}
-                </Button>
-                <Button
-                  size="sm"
-                  tone={fanMode === 'fixed' ? 'accent' : 'neutral'}
-                  onClick={() => setFanMode('fixed')}
-                >
-                  {t('devices.tryx.fanModeFixed')}
-                </Button>
-              </div>
-
-              {fanMode === 'smart' && (
-                <CurveGraph
-                  points={fanCurve}
-                  tempMin={0}
-                  tempMax={100}
-                  editable
-                  onChange={points => {
-                    setFanCurve(points);
-                    void setTryxFan('smart', { curve: points.map(p => [p.temp, p.speed]) });
-                  }}
-                />
-              )}
-
-              {fanMode === 'fixed' && (
-                <div className={styles.sliderBlock}>
-                  <Slider
-                    // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                    orientation="stacked"
-                    editable
-                    trackFill
-                    label={t('devices.tryx.fanSpeed')}
-                    value={fanFixed}
-                    min={0}
-                    max={100}
-                    step={1}
-                    formatValue={v => `${v}%`}
-                    ariaLabel={t('devices.tryx.fanSpeed')}
-                    onChange={(v, commit) => {
-                      const rounded = Math.round(v);
-                      setFanFixed(rounded);
-                      if (commit) void setTryxFan('fixed', { fixed: rounded });
-                    }}
-                    onCommit={v => {
-                      const rounded = Math.round(v);
-                      setFanFixed(rounded);
-                      void setTryxFan('fixed', { fixed: rounded });
-                    }}
-                  />
-                </div>
-              )}
-            </SettingsSection>
           )}
         </div>
 

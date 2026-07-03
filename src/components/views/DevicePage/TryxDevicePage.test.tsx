@@ -57,7 +57,6 @@ vi.mock('../../../api/tryx', () => ({
   installTryxCloudMaterial: vi.fn(),
   setTryxEnabled: (...args: any[]) => mockSetTryxEnabled(...args),
   setTryxBrightness: (...args: any[]) => mockSetTryxBrightness(...args),
-  setTryxFan: vi.fn(),
   setTryxPreset: vi.fn(),
   selectTryxMedia: vi.fn(),
   deleteTryxMedia: vi.fn(),
