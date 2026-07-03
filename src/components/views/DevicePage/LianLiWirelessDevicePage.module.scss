@@ -41,7 +41,7 @@
 .rowLabel {
   flex: 0 0 9.5rem;
   font-size: var(--type-small);
-  color: var(--text-dim);
+  color: var(--text);
 }
 
 .rowValue {
@@ -53,7 +53,7 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   font-size: var(--type-small);
-  color: var(--text-dim);
+  color: var(--text);
 }
 
 .rowValueMono {
@@ -71,6 +71,12 @@
   gap: 0.35rem;
   padding-left: 0.5rem;
   margin-left: 0.3rem;
+}
+
+.actionsRow {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
 }
 
 .slotBadge,

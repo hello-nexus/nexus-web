@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiWirelessDevicePage, fanTypeKey } from './LianLiWirelessDevicePage';
 
@@ -12,9 +12,15 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 const mockGetLianLiWirelessState = vi.fn();
+const mockBindLianLiWirelessFan = vi.fn();
+const mockUnbindLianLiWirelessFan = vi.fn();
+const mockIdentifyLianLiWirelessFan = vi.fn();
 
 vi.mock('../../../api/lianli-wireless', () => ({
   getLianLiWirelessState: (...args: any[]) => mockGetLianLiWirelessState(...args),
+  bindLianLiWirelessFan: (...args: any[]) => mockBindLianLiWirelessFan(...args),
+  unbindLianLiWirelessFan: (...args: any[]) => mockUnbindLianLiWirelessFan(...args),
+  identifyLianLiWirelessFan: (...args: any[]) => mockIdentifyLianLiWirelessFan(...args),
 }));
 
 const connectedState = {
@@ -40,7 +46,11 @@ const connectedState = {
 
 beforeEach(() => {
   vi.useFakeTimers();
+  vi.clearAllMocks();
   mockGetLianLiWirelessState.mockResolvedValue(connectedState);
+  mockBindLianLiWirelessFan.mockResolvedValue(true);
+  mockUnbindLianLiWirelessFan.mockResolvedValue(true);
+  mockIdentifyLianLiWirelessFan.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -113,5 +123,118 @@ describe('LianLiWirelessDevicePage', () => {
       render(<LianLiWirelessDevicePage />);
     });
     expect(screen.getByText('devices.lianli-wireless.noFansPaired')).toBeInTheDocument();
+  });
+});
+
+const unboundFan = {
+  ...connectedState.fans[0],
+  mac: 'AABBCCDDEEFF',
+  boundToUs: false,
+  slot: 0,
+};
+
+describe('LianLiWirelessDevicePage - bind/unbind/identify', () => {
+  it('shows Bind for an unbound fan and Unbind for a bound fan, both with Identify', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [connectedState.fans[0], unboundFan],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'devices.lianli-wireless.identify' })).toHaveLength(2);
+  });
+
+  it('clicking Bind calls the API and shows a pending state until the poll confirms it bound', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, fans: [unboundFan] });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' }));
+    expect(mockBindLianLiWirelessFan).toHaveBeenCalledWith(unboundFan.mac);
+
+    const pendingButton = screen.getByRole('button', { name: 'devices.lianli-wireless.binding' });
+    expect(pendingButton).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeDisabled();
+
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...unboundFan, boundToUs: true, slot: 1 }],
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.binding' })).not.toBeInTheDocument();
+  });
+
+  it('clears the pending state after the timeout if the poll never confirms it', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, fans: [unboundFan] });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' }));
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.binding' })).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10000);
+    });
+
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeDisabled();
+  });
+
+  it('clicking Unbind opens a confirm dialog and does not call the API until confirmed', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, fans: [connectedState.fans[0]] });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' }));
+    const dialog = screen.getByRole('alertdialog', { name: 'devices.lianli-wireless.unbindConfirmTitle' });
+    expect(within(dialog).getByText('devices.lianli-wireless.unbindConfirmMessage')).toBeInTheDocument();
+    expect(mockUnbindLianLiWirelessFan).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'confirm.cancel' }));
+    expect(mockUnbindLianLiWirelessFan).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('confirming Unbind calls the API and shows a pending state until the poll confirms it unbound', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, fans: [connectedState.fans[0]] });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' }));
+    const dialog = screen.getByRole('alertdialog', { name: 'devices.lianli-wireless.unbindConfirmTitle' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'devices.lianli-wireless.unbindConfirmLabel' }));
+
+    expect(mockUnbindLianLiWirelessFan).toHaveBeenCalledWith(connectedState.fans[0].mac);
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbinding' })).toBeDisabled();
+
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], boundToUs: false, slot: 0 }],
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
+  });
+
+  it('clicking Identify calls the API for that fan', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, fans: [connectedState.fans[0]] });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' }));
+    expect(mockIdentifyLianLiWirelessFan).toHaveBeenCalledWith(connectedState.fans[0].mac);
   });
 });

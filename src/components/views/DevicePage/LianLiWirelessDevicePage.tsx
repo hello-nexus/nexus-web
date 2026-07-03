@@ -4,8 +4,13 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { Placeholder } from '../Placeholder';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
+import { Button } from '../../common/Button/Button';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import {
   getLianLiWirelessState,
+  bindLianLiWirelessFan,
+  unbindLianLiWirelessFan,
+  identifyLianLiWirelessFan,
   type LianLiWirelessFan,
   type LianLiWirelessState,
 } from '../../../api/lianli-wireless';
@@ -14,6 +19,12 @@ import styles from './LianLiWirelessDevicePage.module.scss';
 
 // Polling interval matches the service RpmPollMs.
 const RPM_POLL_MS = 2000;
+
+// Bind/unbind converge on the service in ~2-6s; give up waiting for the
+// state poll to confirm it and let the poll speak for itself past this.
+const BIND_PENDING_TIMEOUT_MS = 10000;
+
+type BindAction = 'bind' | 'unbind';
 
 /** Fan subtype (fans_type[0]) -> i18n key suffix. */
 export function fanTypeKey(fanType: number): 'fanTypeSlv3Lcd' | 'fanTypeSlv3Led' | 'fanTypeSlInfinity' | 'fanTypeGeneric' {
@@ -32,8 +43,35 @@ export function LianLiWirelessDevicePage() {
   const { t } = useTranslation();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [state, setState] = useState<LianLiWirelessState | null>(null);
+  const [pending, setPending] = useState<Record<string, BindAction>>({});
+  const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
+  const [unbindTarget, setUnbindTarget] = useState<string | null>(null);
   const aliveRef = useRef(true);
   const connectedRef = useRef(false);
+  const pendingTimeoutsRef = useRef<Record<string, ReturnType<typeof window.setTimeout>>>({});
+
+  const clearPendingTimeout = useCallback((mac: string) => {
+    const id = pendingTimeoutsRef.current[mac];
+    if (id !== undefined) {
+      window.clearTimeout(id);
+      delete pendingTimeoutsRef.current[mac];
+    }
+  }, []);
+
+  const startPending = useCallback((mac: string, action: BindAction) => {
+    clearPendingTimeout(mac);
+    setPending(prev => ({ ...prev, [mac]: action }));
+    pendingTimeoutsRef.current[mac] = window.setTimeout(() => {
+      delete pendingTimeoutsRef.current[mac];
+      if (!aliveRef.current) return;
+      setPending(prev => {
+        if (prev[mac] !== action) return prev;
+        const next = { ...prev };
+        delete next[mac];
+        return next;
+      });
+    }, BIND_PENDING_TIMEOUT_MS);
+  }, [clearPendingTimeout]);
 
   const refresh = useCallback(async () => {
     const s = await getLianLiWirelessState();
@@ -75,8 +113,60 @@ export function LianLiWirelessDevicePage() {
       aliveRef.current = false;
       window.removeEventListener('focus', onFocus);
       window.clearInterval(id);
+      for (const macId of Object.keys(pendingTimeoutsRef.current)) {
+        window.clearTimeout(pendingTimeoutsRef.current[macId]);
+      }
+      pendingTimeoutsRef.current = {};
     };
   }, [refresh, refreshLive]);
+
+  // Reconcile pending bind/unbind against the freshly polled state: clear a
+  // fan's pending flag once boundToUs reports the action's expected value.
+  useEffect(() => {
+    if (!state) return;
+    setPending(prev => {
+      if (Object.keys(prev).length === 0) return prev;
+      let changed = false;
+      const next = { ...prev };
+      for (const fan of state.fans) {
+        const action = next[fan.mac];
+        if (!action) continue;
+        const resolved = (action === 'bind' && fan.boundToUs) || (action === 'unbind' && !fan.boundToUs);
+        if (resolved) {
+          delete next[fan.mac];
+          clearPendingTimeout(fan.mac);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [state, clearPendingTimeout]);
+
+  const handleBind = useCallback((mac: string) => {
+    startPending(mac, 'bind');
+    void bindLianLiWirelessFan(mac);
+  }, [startPending]);
+
+  const handleUnbindConfirmed = useCallback(() => {
+    const mac = unbindTarget;
+    setUnbindTarget(null);
+    if (!mac) return;
+    startPending(mac, 'unbind');
+    void unbindLianLiWirelessFan(mac);
+  }, [unbindTarget, startPending]);
+
+  const handleIdentify = useCallback((mac: string) => {
+    setIdentifying(prev => ({ ...prev, [mac]: true }));
+    void identifyLianLiWirelessFan(mac).finally(() => {
+      if (!aliveRef.current) return;
+      setIdentifying(prev => {
+        if (!prev[mac]) return prev;
+        const next = { ...prev };
+        delete next[mac];
+        return next;
+      });
+    });
+  }, []);
 
   if (connection === 'disconnected') {
     return (
@@ -123,18 +213,59 @@ export function LianLiWirelessDevicePage() {
           boxClassName={styles.sectionBox}
         >
           {loaded && state.fans.length > 0
-            ? state.fans.map(fan => <FanChain key={fan.mac} fan={fan} />)
+            ? state.fans.map(fan => (
+              <FanChain
+                key={fan.mac}
+                fan={fan}
+                pending={pending[fan.mac]}
+                identifying={!!identifying[fan.mac]}
+                onBind={handleBind}
+                onUnbindRequest={setUnbindTarget}
+                onIdentify={handleIdentify}
+              />
+            ))
             : <p className={styles.emptyNote}>{t('devices.lianli-wireless.noFansPaired')}</p>}
         </SettingsSection>
       </div>
+
+      <ConfirmModal
+        open={unbindTarget != null}
+        title={t('devices.lianli-wireless.unbindConfirmTitle')}
+        message={t('devices.lianli-wireless.unbindConfirmMessage')}
+        confirmLabel={t('devices.lianli-wireless.unbindConfirmLabel')}
+        onCancel={() => setUnbindTarget(null)}
+        onConfirm={handleUnbindConfirmed}
+      />
     </div>
   );
 }
 
-function FanChain({ fan }: { fan: LianLiWirelessFan }) {
+function FanChain({
+  fan,
+  pending,
+  identifying,
+  onBind,
+  onUnbindRequest,
+  onIdentify,
+}: {
+  fan: LianLiWirelessFan;
+  pending: BindAction | undefined;
+  identifying: boolean;
+  onBind: (mac: string) => void;
+  onUnbindRequest: (mac: string) => void;
+  onIdentify: (mac: string) => void;
+}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const typeLabel = t(`devices.lianli-wireless.${fanTypeKey(fan.fanType)}` as Parameters<typeof t>[0]);
+  const busy = pending !== undefined || identifying;
+
+  const bindLabel = pending === 'bind'
+    ? t('devices.lianli-wireless.binding')
+    : t('devices.lianli-wireless.bind');
+  const unbindLabel = pending === 'unbind'
+    ? t('devices.lianli-wireless.unbinding')
+    : t('devices.lianli-wireless.unbind');
 
   return (
     <CollapsibleSection
@@ -161,6 +292,20 @@ function FanChain({ fan }: { fan: LianLiWirelessFan }) {
             </span>
           </div>
         ))}
+        <div className={styles.actionsRow}>
+          {fan.boundToUs ? (
+            <Button size="sm" tone="danger" disabled={busy} onClick={() => onUnbindRequest(fan.mac)}>
+              {unbindLabel}
+            </Button>
+          ) : (
+            <Button size="sm" tone="accent" disabled={busy} onClick={() => onBind(fan.mac)}>
+              {bindLabel}
+            </Button>
+          )}
+          <Button size="sm" tone="neutral" disabled={busy} onClick={() => onIdentify(fan.mac)}>
+            {t('devices.lianli-wireless.identify')}
+          </Button>
+        </div>
       </div>
     </CollapsibleSection>
   );

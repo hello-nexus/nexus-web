@@ -1,4 +1,4 @@
-import { fetchService } from './service';
+import { fetchService, postService } from './service';
 
 export interface LianLiWirelessFan {
   mac: string;
@@ -26,4 +26,25 @@ export interface LianLiWirelessState {
 
 export function getLianLiWirelessState(): Promise<LianLiWirelessState | null> {
   return fetchService<LianLiWirelessState>('/devices/lianli-wireless/state');
+}
+
+interface OkResponse {
+  error?: boolean;
+  msg?: string;
+}
+
+function isOk(r: OkResponse | null): boolean {
+  return !!r && r.error !== true;
+}
+
+export async function bindLianLiWirelessFan(mac: string): Promise<boolean> {
+  return isOk(await postService<OkResponse>('/devices/lianli-wireless/bind', { mac }));
+}
+
+export async function unbindLianLiWirelessFan(mac: string): Promise<boolean> {
+  return isOk(await postService<OkResponse>('/devices/lianli-wireless/unbind', { mac }));
+}
+
+export async function identifyLianLiWirelessFan(mac: string): Promise<boolean> {
+  return isOk(await postService<OkResponse>('/devices/lianli-wireless/identify', { mac }));
 }
