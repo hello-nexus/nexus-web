@@ -23,6 +23,30 @@ function setLocationSearch(search: string) {
   window.history.pushState({}, '', `/r/pair${search}`);
 }
 
+// jsdom has no real navigation; capture the Tier-1 `location.href = url`
+// assignment so tests can assert the redirect target. jsdom's Location
+// getters are brand-checked, so the stub snapshots plain values instead of
+// prototype-delegating. Restored in afterEach; call AFTER setLocationSearch.
+const realLocation = window.location;
+function spyOnLocationHref(): () => string {
+  let captured = '';
+  const stub = {
+    search: realLocation.search,
+    pathname: realLocation.pathname,
+    origin: realLocation.origin,
+    protocol: realLocation.protocol,
+    host: realLocation.host,
+    hostname: realLocation.hostname,
+    port: realLocation.port,
+    replace: (v: string) => { captured = v; },
+    assign: (v: string) => { captured = v; },
+    get href() { return captured || 'http://localhost/'; },
+    set href(v: string) { captured = v; },
+  };
+  Object.defineProperty(window, 'location', { value: stub, configurable: true });
+  return () => captured;
+}
+
 // PairRedirect.tsx is mounted outside I18nProvider (see the file's own note),
 // so its spinner wrapper is verified by inline style rather than i18n copy.
 describe('PairRedirect', () => {
@@ -34,6 +58,7 @@ describe('PairRedirect', () => {
   });
 
   afterEach(() => {
+    Object.defineProperty(window, 'location', { value: realLocation, configurable: true });
     window.history.pushState({}, '', '/');
   });
 
@@ -59,18 +84,27 @@ describe('PairRedirect', () => {
 
   it('forwards the QR fp param into the LAN redirect URL for the same-origin claim to pick up', () => {
     setLocationSearch('?host=192.168.1.50&pair=abc123&httpPort=9400&fp=AA:BB:CC');
+    const assigned = spyOnLocationHref();
     render(<PairRedirect />);
 
-    const link = screen.getByText('Continue').closest('a');
-    expect(link?.getAttribute('href')).toContain('&fp=AA%3ABB%3ACC');
+    expect(assigned()).toContain('&fp=AA%3ABB%3ACC');
   });
 
   it('omits the fp query param entirely when the QR carries none', () => {
     setLocationSearch('?host=192.168.1.50&pair=abc123&httpPort=9400');
+    const assigned = spyOnLocationHref();
     render(<PairRedirect />);
 
-    const link = screen.getByText('Continue').closest('a');
-    expect(link?.getAttribute('href')).not.toContain('fp=');
+    expect(assigned()).not.toContain('fp=');
+  });
+
+  it('shows only the centered spinner in the lan phase (no manual fallback link)', () => {
+    setLocationSearch('?host=192.168.1.50&pair=abc123&httpPort=9400');
+    spyOnLocationHref();
+    render(<PairRedirect />);
+
+    expect(screen.getByRole('img', { name: 'common.loading' })).toBeInTheDocument();
+    expect(document.querySelector('a')).toBeNull();
   });
 
   it('persists a paired-PC record with the relay result once the direct-LAN probe times out', async () => {
