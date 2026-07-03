@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LianLiWirelessDevicePage, fanTypeKey } from './LianLiWirelessDevicePage';
+import { LianLiWirelessDevicePage } from './LianLiWirelessDevicePage';
+import { fanTypeKey } from './LianLiWirelessFansTab';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -236,5 +237,59 @@ describe('LianLiWirelessDevicePage - bind/unbind/identify', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' }));
     expect(mockIdentifyLianLiWirelessFan).toHaveBeenCalledWith(connectedState.fans[0].mac);
+  });
+});
+
+describe('LianLiWirelessDevicePage - tabs', () => {
+  it('renders all 4 tabs with Fans active by default', async () => {
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+
+    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.fans/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.lighting/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.cooling/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.screen/ })).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.connectionSection')).toBeInTheDocument();
+  });
+
+  it('switching to a placeholder tab shows the placeholder and hides the Fans content', async () => {
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.lighting/ }));
+
+    expect(screen.getByText('devices.lianli-wireless.tab.placeholder')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.connectionSection')).not.toBeInTheDocument();
+  });
+
+  it('keeps a pending bind across a transient disconnect/reconnect blip', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, fans: [unboundFan] });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' }));
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.binding' })).toBeInTheDocument();
+
+    mockGetLianLiWirelessState.mockResolvedValue({
+      isConnected: false,
+      masterMac: '',
+      channel: 0,
+      txFirmwareVersion: 0,
+      fans: [],
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(screen.getByText('devices.lianli-wireless.notConnected')).toBeInTheDocument();
+
+    mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, fans: [unboundFan] });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.binding' })).toBeInTheDocument();
   });
 });
