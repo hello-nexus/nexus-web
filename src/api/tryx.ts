@@ -27,10 +27,19 @@ export interface TryxState {
   lastFrameMs: number;
 }
 
+export interface TryxOverlayItem {
+  stat: string;
+  /** Normalized top-left of the value text, 0..1. */
+  x: number;
+  y: number;
+}
+
 export interface TryxOverlay {
-  stats: string[];
+  items: TryxOverlayItem[];
+  font: string;
+  /** Percent, 50..150. */
+  size: number;
   color: string;
-  align: string;
 }
 
 export interface TryxStatus {
@@ -105,11 +114,10 @@ export async function deleteTryxMedia(name: string): Promise<boolean> {
 }
 
 export async function setTryxOverlay(overlay: {
-  stats: string[];
+  items: TryxOverlayItem[];
+  font: string;
+  size: number;
   color: string;
-  align: string;
-  filter?: string;
-  opacity?: number;
 }): Promise<boolean> {
   return isOk(await postService<OkResponse>('/tryx/overlay', overlay));
 }
