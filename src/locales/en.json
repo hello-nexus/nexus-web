@@ -521,8 +521,6 @@
   "devices.lianli-wireless.slot": "Slot {n}",
   "devices.lianli-wireless.tab.cooling": "Cooling",
   "devices.lianli-wireless.tab.fans": "Fans",
-  "devices.lianli-wireless.tab.lighting": "Lighting",
-  "devices.lianli-wireless.tab.placeholder": "Coming in a later update",
   "devices.lianli-wireless.tab.screen": "Screen",
   "devices.lianli-wireless.tempUnitCelsius": "°C",
   "devices.lianli-wireless.tempUnitFahrenheit": "°F",
