@@ -1041,4 +1041,41 @@ describe('useMultiplexConnection direct-upgrade-failed relay-consent prompt', ()
     expect(FakeRelayChannel.instances.length).toBe(relayInstancesBefore);
     expect(result.current?.connected).toBe(false);
   });
+
+  it('a punch still in flight when disconnectSession runs does not re-arm a retry once it later rejects', async () => {
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    // openRtcDirect never resolves on its own - driven manually so the punch
+    // is still pending when disconnectSession() runs.
+    let rejectOpen: (err: Error) => void = () => {};
+    openRtcDirectMock.mockImplementation(() => new Promise((_resolve, reject) => { rejectOpen = reject; }));
+
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
+
+    act(() => { result.current?.disconnectSession(); });
+    expect(result.current?.sessionEnded).toBe(true);
+
+    // The in-flight punch now rejects, well after disconnectSession() ran.
+    await act(async () => {
+      rejectOpen(new Error('rtc direct: offer rejected (403)'));
+      await flushRelayDetour();
+    });
+    expect(result.current?.directUpgradeFailed).toBe(false);
+
+    // Its catch block's armRetry() may still schedule a stale timer, but
+    // attemptDirectUpgrade's own sessionEndedRef guard must no-op it - no
+    // second punch, no new relay connection, still disconnected.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60000);
+      await flushRelayDetour();
+    });
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
+    expect(result.current?.connected).toBe(false);
+    expect(result.current?.sessionEnded).toBe(true);
+  });
 });

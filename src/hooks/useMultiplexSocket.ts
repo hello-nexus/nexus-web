@@ -603,7 +603,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
       return;
     }
     if (!isRtcDirectEligible()) return;
-    if (remoteDisabledRef.current || relayDisabledRef.current || sessionRevokedRef.current) return;
+    if (remoteDisabledRef.current || relayDisabledRef.current || sessionRevokedRef.current || sessionEndedRef.current) return;
 
     // Never clobbers an already-armed timer - the first one wins.
     const armRetry = (delayMs: number) => {
