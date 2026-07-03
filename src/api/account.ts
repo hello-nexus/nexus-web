@@ -87,27 +87,28 @@ async function postTokenWithNetworkRetry(url: string, token: string): Promise<Re
 
 export interface VerifyEmailResult {
   ok: boolean;
-  reason?: 'already-used' | 'invalid';
+  /** On ok: the account was verified before this click (re-clicked link). */
+  alreadyVerified?: boolean;
 }
 
 /**
  * POST /auth/verify. The token is opaque and single-use, so unlike
- * register/recovery this route is not enumeration-sensitive and can report a
- * specific reason. Any non-2xx response or a malformed body degrades to
- * reason: 'invalid' so an unexpected server shape still resolves to a sane
- * UI state; a pure network failure (see postTokenWithNetworkRetry) also
- * degrades to 'invalid' after retries are exhausted rather than leaving the
- * page stuck loading.
+ * register/recovery this route is not enumeration-sensitive and can report
+ * alreadyVerified on a re-clicked link. Any non-2xx response or a malformed
+ * body degrades to a plain failure so an unexpected server shape still
+ * resolves to a sane UI state; a pure network failure (see
+ * postTokenWithNetworkRetry) also degrades to failure after retries are
+ * exhausted rather than leaving the page stuck loading.
  */
 export async function verifyEmail(token: string): Promise<VerifyEmailResult> {
   try {
     const res = await postTokenWithNetworkRetry(`${BASE}/auth/verify`, token);
-    if (!res || !res.ok) return { ok: false, reason: 'invalid' };
-    const data = (await res.json()) as { ok?: boolean; reason?: string };
-    if (data.ok) return { ok: true };
-    return { ok: false, reason: data.reason === 'already-used' ? 'already-used' : 'invalid' };
+    if (!res || !res.ok) return { ok: false };
+    const data = (await res.json()) as { ok?: boolean; alreadyVerified?: boolean };
+    if (data.ok) return data.alreadyVerified ? { ok: true, alreadyVerified: true } : { ok: true };
+    return { ok: false };
   } catch {
-    return { ok: false, reason: 'invalid' };
+    return { ok: false };
   }
 }
 

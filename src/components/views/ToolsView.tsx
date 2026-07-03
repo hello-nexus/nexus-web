@@ -29,6 +29,7 @@ import {
   setCustomSimulatedPanelSize,
   setSimulatedPanelConnected,
 } from '../../lib/panelSimulation';
+import { isTryxSimulated, setTryxSimulated } from '../../lib/tryxSimulation';
 import { FontDebugCard } from './FontDebugCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DeviceModal } from '../common/DeviceModal/DeviceModal';
@@ -326,6 +327,13 @@ function PanelSimulatorCard() {
   const [customHeight, setCustomHeight] = useState(() => getCustomSimulatedPanel().height);
   const [customDpi, setCustomDpi] = useState(() => getCustomSimulatedPanel().dpi);
   const [gridSizing, setGridSizing] = useState(() => getPanelGridSizingSettings());
+  const [tryxOn, setTryxOn] = useState(() => isTryxSimulated());
+
+  const toggleTryx = () => {
+    const next = !tryxOn;
+    setTryxSimulated(next);
+    setTryxOn(next);
+  };
 
   const customPhysical = getSimulatedPanelPhysicalSize({
     width: customWidth,
@@ -445,6 +453,21 @@ function PanelSimulatorCard() {
             </div>
           );
         })}
+        <div className={styles.simRow}>
+          <div className={styles.simMeta}>
+            <strong>{t('devices.tryx.simulatedName')}</strong>
+            <span>{t('tools.tryxSim.label')}</span>
+          </div>
+          <Button
+            type="button"
+            tone={tryxOn ? 'danger' : 'accent'}
+            size="sm"
+            onClick={toggleTryx}
+          >
+            {/* eslint-disable-next-line i18next/no-literal-string -- dev-tools sim toggle, matches panel rows */}
+            {tryxOn ? 'Disconnect' : 'Connect'}
+          </Button>
+        </div>
       </div>
     </Card>
   );

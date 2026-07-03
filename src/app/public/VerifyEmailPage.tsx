@@ -4,7 +4,7 @@ import { verifyEmail } from '../../api/account';
 import { PublicPageFrame } from './PublicPageFrame';
 import { AuthLoadingCard, AuthResultCard } from './AuthResultCard';
 
-type VerifyState = 'loading' | 'success' | 'already-used' | 'invalid';
+type VerifyState = 'loading' | 'success' | 'already-verified' | 'invalid';
 
 /** /auth/verify?token=... - email verification landing (browser-only). */
 export function VerifyEmailPage({ token }: { token: string }) {
@@ -16,8 +16,8 @@ export function VerifyEmailPage({ token }: { token: string }) {
     let cancelled = false;
     void verifyEmail(token).then((result) => {
       if (cancelled) return;
-      if (result.ok) setState('success');
-      else setState(result.reason === 'already-used' ? 'already-used' : 'invalid');
+      if (result.ok) setState(result.alreadyVerified ? 'already-verified' : 'success');
+      else setState('invalid');
     });
     return () => { cancelled = true; };
   }, [token]);
@@ -28,8 +28,8 @@ export function VerifyEmailPage({ token }: { token: string }) {
       {state === 'success' && (
         <AuthResultCard title={t('auth.verify.success.title')} body={t('auth.verify.success.body')} showBackLink />
       )}
-      {state === 'already-used' && (
-        <AuthResultCard title={t('auth.verify.alreadyUsed.title')} body={t('auth.verify.alreadyUsed.body')} showBackLink />
+      {state === 'already-verified' && (
+        <AuthResultCard title={t('auth.verify.alreadyVerified.title')} body={t('auth.verify.alreadyVerified.body')} showBackLink />
       )}
       {state === 'invalid' && (
         <AuthResultCard title={t('auth.verify.invalid.title')} body={t('auth.verify.invalid.body')} showBackLink />

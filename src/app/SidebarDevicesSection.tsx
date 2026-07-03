@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import classNames from 'classnames';
-import { FlaskConical, Usb } from 'lucide-react';
+import { Ghost, Usb } from 'lucide-react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { useTranslation } from '../lib/i18n';
@@ -91,7 +91,7 @@ export function SidebarDevicesSection({
       ) : (
         sorted.map(device => {
           const isActive = device.key === activeDeviceKey;
-          const isSimulated = device.panelDevice?.connectionKind === 'simulated';
+          const isSimulated = device.panelDevice?.connectionKind === 'simulated' || device.simulated === true;
           const tooltip = isSimulated
             ? `${device.shortName} (${t('devices.panels.simulated')})`
             : device.shortName;
@@ -117,7 +117,7 @@ export function SidebarDevicesSection({
                 <>
                   <span className={styles.label}>{device.shortName}</span>
                   {isSimulated && (
-                    <FlaskConical
+                    <Ghost
                       size={12}
                       className={styles.simulatedBadge}
                       aria-label={t('devices.panels.simulated')}

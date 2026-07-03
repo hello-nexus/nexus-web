@@ -95,21 +95,21 @@ describe('verifyEmail', () => {
     expect(await verifyEmail('tok')).toEqual({ ok: true });
   });
 
-  it('reports the already-used reason', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { ok: false, reason: 'already-used' })));
-    expect(await verifyEmail('tok')).toEqual({ ok: false, reason: 'already-used' });
+  it('reports alreadyVerified on a re-clicked link', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { ok: true, alreadyVerified: true })));
+    expect(await verifyEmail('tok')).toEqual({ ok: true, alreadyVerified: true });
   });
 
-  it('degrades an unrecognized reason to invalid', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { ok: false, reason: 'something-else' })));
-    expect(await verifyEmail('tok')).toEqual({ ok: false, reason: 'invalid' });
+  it('degrades a malformed ok body to failure', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, {})));
+    expect(await verifyEmail('tok')).toEqual({ ok: false });
   });
 
   it('does not retry a definitive non-2xx HTTP response', async () => {
     const fetchMock = vi.fn(async () => jsonResponse(500, {}));
     vi.stubGlobal('fetch', fetchMock);
 
-    expect(await verifyEmail('tok')).toEqual({ ok: false, reason: 'invalid' });
+    expect(await verifyEmail('tok')).toEqual({ ok: false });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -125,13 +125,13 @@ describe('verifyEmail', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('degrades to invalid after exhausting network retries', async () => {
+  it('degrades to failure after exhausting network retries', async () => {
     const fetchMock = vi.fn(async () => { throw new Error('connection refused'); });
     vi.stubGlobal('fetch', fetchMock);
 
     const promise = verifyEmail('tok');
     await vi.runAllTimersAsync();
-    expect(await promise).toEqual({ ok: false, reason: 'invalid' });
+    expect(await promise).toEqual({ ok: false });
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });
