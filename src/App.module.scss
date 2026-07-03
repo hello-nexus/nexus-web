@@ -976,9 +976,10 @@
   color: var(--warn);
 }
 
-// Satellite glyph on a session row whose live connection came in over the cloud
-// relay. Shares the relay iconography used by the panel's relay-mode badge and
-// the "Cloud relay" toggle so the feature reads the same everywhere.
+// Connection-mode glyph on a session row: the satellite for a cloud-relay
+// connection (shares the relay iconography used by the panel's relay-mode
+// badge and the "Cloud relay" toggle) or the bolt for a direct WebRTC
+// P2P upgrade off that relay session.
 .phonePairSessionRelay {
   display: inline-flex;
   align-items: center;

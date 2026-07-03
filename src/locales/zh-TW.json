@@ -288,6 +288,7 @@
   "cropper.reset": "重設",
   "cropper.converting": "轉換中…",
   "cropper.title": "裁剪圖片",
+  "connection.directMode": "已直接連線（P2P）",
   "connection.lost.checkUsb": "請檢查USB連線",
   "connection.lost.message": "正在嘗試連線您的系統。我們會在背景持續重試。",
   "connection.lost.newDevice": "連線新系統",

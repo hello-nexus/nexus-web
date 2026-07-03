@@ -4,6 +4,7 @@
 
 import { getToken, handleUnauthorized, hasSessionToken } from './auth';
 import { relayFetch, type RelayHttpMethod } from './relayHttp';
+import type { RelayResponse } from './httpTunnelFraming';
 
 const DEFAULT_SERVICE_PORT = '9400';
 const DEFAULT_HTTPS_PORT = '9443';
@@ -143,12 +144,29 @@ export function resolveLanSealedWs(): string {
 // Which transport the panel's live multiplex connection runs over. Set by
 // useMultiplexSocket (its only writer) whenever the active transport changes:
 // 'lan' for the direct /ws socket, 'relay' for the cloud RelayChannel fallback,
-// 'lan-sealed' for the local sealed /secure-tunnel, null while disconnected. The
-// fetch layer reads it to decide whether REST calls go directly to the local
-// service (LAN) or tunnel over a sealed channel. A module-level signal keeps the
-// fetch helpers' signatures unchanged - callers stay oblivious to which
-// transport is live.
-let activeTransport: 'lan' | 'relay' | 'lan-sealed' | null = null;
+// 'lan-sealed' for the local sealed /secure-tunnel, 'direct' for the WebRTC
+// data-channel hole-punch upgrade (hot-swapped in from an open relay
+// connection), null while disconnected. The fetch layer reads it to decide
+// whether REST calls go directly to the local service (LAN) or tunnel over a
+// sealed channel. A module-level signal keeps the fetch helpers' signatures
+// unchanged - callers stay oblivious to which transport is live.
+export type ActiveTransport = 'lan' | 'relay' | 'lan-sealed' | 'direct';
+let activeTransport: ActiveTransport | null = null;
+
+// The live WebRTC "http" data-channel tunnel, published by useMultiplexSocket
+// only while activeTransport === 'direct'. A structural type (not an import
+// from rtcDirect.ts) avoids a service.ts <-> rtcDirect.ts import cycle -
+// rtcDirect.ts already imports authFetchWithStatus from here to POST the SDP
+// offer over the tunnel-aware path.
+interface DirectHttpTunnelLike {
+  request(method: RelayHttpMethod, path: string, body: string | null, contentType: string | null): Promise<RelayResponse>;
+}
+let activeHttpTunnel: DirectHttpTunnelLike | null = null;
+
+/** Publish (or clear) the live direct-transport HTTP tunnel. Called only by useMultiplexSocket. */
+export function setActiveHttpTunnel(tunnel: DirectHttpTunnelLike | null): void {
+  activeHttpTunnel = tunnel;
+}
 
 // Desktop-on-hellonexus override. The remote-origin model otherwise assumes
 // "no local PC to reach" (phone → relay / fail-closed). But a DESKTOP browser on
@@ -174,7 +192,7 @@ export function isForceLanMode(): boolean {
  * closes. Off-LAN (transport === 'relay') REST calls tunnel over the relay;
  * otherwise they hit the local service directly (the unchanged LAN path).
  */
-export function setActiveTransport(transport: 'lan' | 'relay' | 'lan-sealed' | null): void {
+export function setActiveTransport(transport: ActiveTransport | null): void {
   activeTransport = transport;
 }
 
@@ -194,7 +212,7 @@ export function setActiveTransport(transport: 'lan' | 'relay' | 'lan-sealed' | n
  * On a local (service-served) origin this returns `activeTransport` unchanged,
  * so the LAN-first-with-relay-fallback behavior is untouched.
  */
-function effectiveTransport(): 'lan' | 'relay' | 'lan-sealed' | null {
+function effectiveTransport(): ActiveTransport | null {
   if (activeTransport !== null) return activeTransport;
   // forceLanMode (detected local desktop) keeps the LAN path even with a token.
   if (isRemoteOrigin && !forceLanMode && hasSessionToken()) return 'relay';
@@ -226,15 +244,43 @@ export function isLanSealedActive(): boolean {
 }
 
 /**
+ * Whether the live transport is the WebRTC direct data-channel upgrade. Read
+ * by the tunnel dispatch below to route REST through activeHttpTunnel instead
+ * of relayFetch; there is no eager-direct case (unlike relay/lan-sealed) since
+ * direct only ever becomes active via an explicit hot-swap off an already-open
+ * relay connection.
+ */
+export function isDirectActive(): boolean {
+  return effectiveTransport() === 'direct';
+}
+
+/**
  * Whether REST should tunnel over a sealed channel right now - the cloud relay
- * (off-LAN) OR the local sealed tunnel (flag-on LAN phone). Both seal the same
- * way and use the same relayFetch path; only the WS URL differs. With the
- * lan-sealed flag off this is exactly isRelayActive(), so the REST routing is
- * unchanged from the relay-only behavior.
+ * (off-LAN), the local sealed tunnel (flag-on LAN phone), or the WebRTC direct
+ * upgrade. All three seal the same way and dispatch through the same
+ * relayAuthFetch/relayRequestWithStatus path; only the underlying transport
+ * differs. With the lan-sealed flag off and no direct upgrade this is exactly
+ * isRelayActive(), so the REST routing is unchanged from the relay-only
+ * behavior.
  */
 export function isTunnelActive(): boolean {
   const t = effectiveTransport();
-  return t === 'relay' || t === 'lan-sealed';
+  return t === 'relay' || t === 'lan-sealed' || t === 'direct';
+}
+
+/**
+ * Dispatch one sealed HTTP-tunnel request over whichever transport is live:
+ * the WebRTC direct data channel when up, else the relay/lan-sealed WS tunnel.
+ * A direct drop clears activeHttpTunnel (useMultiplexSocket), so the very next
+ * call here transparently falls back to relayFetch - no special-casing needed
+ * at the call sites.
+ */
+async function tunnelRequest(method: RelayHttpMethod, path: string, body: string | null, contentType: string | null): Promise<RelayResponse> {
+  if (isDirectActive() && activeHttpTunnel) {
+    return activeHttpTunnel.request(method, path, body, contentType);
+  }
+  const token = await getToken();
+  return relayFetch(token, resolveTunnelWs(), method, path, body, contentType);
 }
 
 /** The WS URL the REST/runtime tunnel should target: the LAN sealed tunnel when lan-sealed is active, else the cloud relay. */
@@ -329,19 +375,18 @@ async function authFetch(path: string, opts: RequestOptions = {}): Promise<Respo
   }
 }
 
-// Run an authFetch-equivalent request over the relay HTTP tunnel. The PC
-// dispatches it authorized as this relay session's phone session (no bearer
-// needed). Returns the same Response|null contract as the LAN path: null on a
-// non-2xx status or any transport failure, so every existing caller behaves
-// identically off-LAN.
+// Run an authFetch-equivalent request over the live tunnel (direct data
+// channel, else relay/lan-sealed WS). The PC dispatches it authorized as this
+// session's phone session (no bearer needed). Returns the same Response|null
+// contract as the LAN path: null on a non-2xx status or any transport
+// failure, so every existing caller behaves identically off-LAN.
 async function relayAuthFetch(path: string, opts: RequestOptions): Promise<Response | null> {
   try {
-    const token = await getToken();
     const method = (opts.method ?? 'GET') as RelayHttpMethod;
     const hasBody = opts.body !== undefined;
     const body = hasBody ? JSON.stringify(opts.body) : null;
     const contentType = hasBody ? 'application/json' : null;
-    const res = await relayFetch(token, resolveTunnelWs(), method, path, body, contentType);
+    const res = await tunnelRequest(method, path, body, contentType);
     if (res.status < 200 || res.status >= 300) return null;
     return toResponse(res.status, res.body, res.contentType, res.base64);
   } catch {
@@ -372,12 +417,13 @@ function base64ToBytes(b64: string): ArrayBuffer {
 }
 
 /**
- * Status-preserving relay request for the few callers that bypass authFetch to
- * read the raw HTTP status (the panel.ts *WithStatus helpers + form upload).
- * Unlike relayAuthFetch this does NOT collapse a non-2xx to null - it returns
- * the real Response (and a status of 0 on a transport failure) so those callers
- * branch on 401/403/404 over the relay exactly as they do on the LAN. Used only
- * when isRelayActive(); the LAN path is the unchanged window.fetch below.
+ * Status-preserving tunnel request for the few callers that bypass authFetch
+ * to read the raw HTTP status (the panel.ts *WithStatus helpers + form
+ * upload). Unlike relayAuthFetch this does NOT collapse a non-2xx to null - it
+ * returns the real Response (and a status of 0 on a transport failure) so
+ * those callers branch on 401/403/404 over the tunnel exactly as they do on
+ * the LAN. Used only when isTunnelActive(); the LAN path is the unchanged
+ * window.fetch below.
  */
 export async function relayRequestWithStatus(
   method: RelayHttpMethod,
@@ -385,11 +431,10 @@ export async function relayRequestWithStatus(
   body?: unknown,
 ): Promise<{ response: Response | null; status: number }> {
   try {
-    const token = await getToken();
     const hasBody = body !== undefined;
     const payload = hasBody ? JSON.stringify(body) : null;
     const contentType = hasBody ? 'application/json' : null;
-    const res = await relayFetch(token, resolveTunnelWs(), method, path, payload, contentType);
+    const res = await tunnelRequest(method, path, payload, contentType);
     return { response: toResponse(res.status, res.body, res.contentType, res.base64), status: res.status };
   } catch {
     return { response: null, status: 0 };

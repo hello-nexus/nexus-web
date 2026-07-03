@@ -288,6 +288,7 @@
   "cropper.reset": "Sıfırla",
   "cropper.converting": "Dönüştürülüyor…",
   "cropper.title": "Görüntüyü kırp",
+  "connection.directMode": "Doğrudan bağlandı (P2P)",
   "connection.lost.checkUsb": "USB bağlantınızı kontrol edin",
   "connection.lost.message": "Sisteminize ulaşmaya çalışıyoruz. Arka planda denemeye devam edeceğiz.",
   "connection.lost.newDevice": "Yeni bir sistem bağla",

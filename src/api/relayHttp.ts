@@ -31,6 +31,18 @@ import {
   open as openFrame,
   seal,
 } from './relayCrypto';
+import {
+  PendingRequestTracker,
+  buildRequestWire,
+  type HttpTunnelResponseWire,
+  type RelayHttpMethod,
+  type RelayResponse,
+} from './httpTunnelFraming';
+
+// Re-exported so existing callers (service.ts) keep importing these types from
+// relayHttp.ts unchanged; the definitions now live in the shared framing
+// module alongside RtcHttpTunnel's (rtcDirect.ts).
+export type { RelayHttpMethod, RelayResponse };
 
 // How long to wait for the relay's peer-up after the client hello before
 // treating the tunnel open as failed. Matches the runtime RelayChannel timeout:
@@ -41,32 +53,6 @@ const PEER_UP_TIMEOUT_MS = 6000;
 // on that single request (the tunnel stays open for other ids). Generous: the
 // PC has to dispatch through its real route pipeline before answering.
 const REQUEST_TIMEOUT_MS = 20000;
-
-/** A fetch-like result returned by relayFetch - status + the parsed/raw body. */
-export interface RelayResponse {
-  status: number;
-  body: string;
-  contentType: string | null;
-  /** True when `body` is base64-encoded bytes (binary response) vs raw text. */
-  base64: boolean;
-}
-
-export type RelayHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-
-// Wire shape of a sealed response frame from the PC (dir=1).
-interface SealedHttpResponse {
-  id?: number;
-  status?: number;
-  body?: string;
-  contentType?: string | null;
-  base64?: boolean;
-}
-
-interface PendingRequest {
-  resolve: (r: RelayResponse) => void;
-  reject: (e: Error) => void;
-  timer: ReturnType<typeof setTimeout>;
-}
 
 /**
  * One relay HTTP-tunnel connection: a single relay WS (client role, rid_http)
@@ -87,7 +73,7 @@ class RelayHttpTunnel {
   private readonly ready: Promise<void>;
   private readyResolve!: () => void;
   private readyReject!: (e: Error) => void;
-  private readonly pending = new Map<number, PendingRequest>();
+  private readonly tracker = new PendingRequestTracker();
   // connSalt is fresh per connection ⇒ a fresh aeadKey ⇒ the (dir,counter)
   // nonce space never repeats across connections.
   private readonly connSalt: Uint8Array;
@@ -200,36 +186,26 @@ class RelayHttpTunnel {
     }
     if (opened.dir !== DIR_HOST_TO_CLIENT) { this.die(new Error('relay http: wrong direction')); return; }
 
-    let resp: SealedHttpResponse;
-    try { resp = JSON.parse(opened.plaintext) as SealedHttpResponse; } catch { return; }
-    if (typeof resp.id !== 'number') return;
-    const entry = this.pending.get(resp.id);
-    if (!entry) return; // unknown / already-settled id
-    this.pending.delete(resp.id);
-    clearTimeout(entry.timer);
-    entry.resolve({
-      status: typeof resp.status === 'number' ? resp.status : 0,
-      body: typeof resp.body === 'string' ? resp.body : '',
-      contentType: resp.contentType ?? null,
-      base64: resp.base64 === true,
-    });
+    let resp: HttpTunnelResponseWire;
+    try { resp = JSON.parse(opened.plaintext) as HttpTunnelResponseWire; } catch { return; }
+    this.tracker.resolve(resp);
   }
 
   /** Seal an HTTP request frame and await the sealed response matched by id. */
   async request(method: RelayHttpMethod, path: string, body: string | null, contentType: string | null): Promise<RelayResponse> {
     await this.ready; // throws if the tunnel failed to open
     if (this.dead || !this.aeadKey || !this.ws) throw new Error('relay http: tunnel not open');
-    const id = this.nextId();
-    const payload = JSON.stringify({ id, method, path, body, contentType });
+    const id = this.tracker.nextId();
+    const payload = JSON.stringify(buildRequestWire(id, method, path, body, contentType));
     const counter = this.sendCounter++;
     const frame = await seal(this.aeadKey, DIR_CLIENT_TO_HOST, counter, payload);
     if (this.dead || !this.ws) throw new Error('relay http: tunnel closed before send');
 
     return new Promise<RelayResponse>((resolve, reject) => {
       const timer = setTimeout(() => {
-        if (this.pending.delete(id)) reject(new Error('relay http: request timeout'));
+        if (this.tracker.drop(id)) reject(new Error('relay http: request timeout'));
       }, REQUEST_TIMEOUT_MS);
-      this.pending.set(id, { resolve, reject, timer });
+      this.tracker.register(id, resolve, reject, timer);
       try {
         // Copy into a standalone ArrayBuffer for the WS send (seal() returns a
         // fresh tightly-packed Uint8Array, so its buffer is exactly the frame).
@@ -237,18 +213,11 @@ class RelayHttpTunnel {
         new Uint8Array(out).set(frame);
         this.ws!.send(out);
       } catch {
-        this.pending.delete(id);
+        this.tracker.drop(id);
         clearTimeout(timer);
         reject(new Error('relay http: request send failed'));
       }
     });
-  }
-
-  // Monotonic per-tunnel request id. A control-only tunnel never approaches
-  // Number.MAX_SAFE_INTEGER, so a plain counter is enough.
-  private idCounter = 0;
-  private nextId(): number {
-    return ++this.idCounter;
   }
 
   /** Tear the tunnel down: reject all in-flight requests, close the socket. */
@@ -258,11 +227,7 @@ class RelayHttpTunnel {
     clearTimeout(this.peerUpTimer);
     // Reject the ready gate (a no-op if it already resolved at peer-up).
     this.readyReject(err);
-    for (const [, entry] of this.pending) {
-      clearTimeout(entry.timer);
-      entry.reject(err);
-    }
-    this.pending.clear();
+    this.tracker.rejectAll(err);
     if (this.ws) {
       this.ws.onopen = null;
       this.ws.onmessage = null;

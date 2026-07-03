@@ -288,6 +288,7 @@
   "cropper.reset": "Сбросить",
   "cropper.converting": "Конвертация…",
   "cropper.title": "Обрезать изображение",
+  "connection.directMode": "Подключено напрямую (P2P)",
   "connection.lost.checkUsb": "Проверьте USB-соединение",
   "connection.lost.message": "Пытаемся связаться с вашей системой. Продолжим попытки в фоне.",
   "connection.lost.newDevice": "Подключить новую систему",

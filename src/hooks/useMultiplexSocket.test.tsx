@@ -7,12 +7,14 @@ import { useMultiplexConnection } from './useMultiplexSocket';
 // flips it true. resolveHttp is kept for any indirect import but the hook no
 // longer fetches via it directly.
 const serviceState = { relayActive: false, lanSealedActive: false };
+const setActiveHttpTunnelMock = vi.fn();
 vi.mock('../api/service', () => ({
   resolveAuthWs: vi.fn(async (path: string) => `ws://test.local${path}`),
   resolveHttp: vi.fn((path: string) => `http://test.local${path}`),
   resolveRelayWs: vi.fn(() => 'wss://relay.test.local/relay'),
   resolveLanSealedWs: vi.fn(() => 'ws://test.local/secure-tunnel'),
   setActiveTransport: vi.fn(),
+  setActiveHttpTunnel: (...args: unknown[]) => setActiveHttpTunnelMock(...args),
   isRelayActive: vi.fn(() => serviceState.relayActive),
   isLanSealedActive: vi.fn(() => serviceState.lanSealedActive),
 }));
@@ -78,6 +80,69 @@ const { FakeRelayChannel, relayState } = vi.hoisted(() => {
 });
 
 vi.mock('./relayChannel', () => ({ RelayChannel: FakeRelayChannel }));
+
+// Controllable fake for the WebRTC direct-upgrade layer. openRtcDirectMock is
+// configured per test (resolve/reject); FakeDirectChannel mirrors the
+// WebSocket-shaped surface RtcRuntimeChannel exposes (readyState constants
+// included, since useMultiplexSocket compares against RtcRuntimeChannel.OPEN)
+// so wireTransport drives it exactly like a real one. triggerDrop() simulates
+// a real drop (channel close / pc failure) distinct from an intentional
+// close(), so tests can exercise the revert-to-relay path.
+const { FakeDirectChannel, directState, openRtcDirectMock } = vi.hoisted(() => {
+  const directState = { eligible: true };
+  const openRtcDirectMock = vi.fn();
+  class FakeDirectChannel {
+    static CONNECTING = 0;
+    static OPEN = 1;
+    static CLOSING = 2;
+    static CLOSED = 3;
+    readyState = FakeDirectChannel.OPEN;
+    onmessage: ((e: { data: unknown }) => void) | null = null;
+    onclose: ((e: { code: number }) => void) | null = null;
+    onerror: ((e: unknown) => void) | null = null;
+    sent: string[] = [];
+    // Mirrors the real RtcRuntimeChannel's onopen accessor: the channel is
+    // already open by the time openRtcDirect resolves, so assigning onopen
+    // (wireTransport's job) must still fire it - asynchronously, same as the
+    // real implementation - rather than rely on a 'open' event that already
+    // happened.
+    private _onopen: ((e: unknown) => void) | null = null;
+    get onopen() { return this._onopen; }
+    set onopen(handler: ((e: unknown) => void) | null) {
+      this._onopen = handler;
+      if (handler && this.readyState === FakeDirectChannel.OPEN) {
+        queueMicrotask(() => this._onopen === handler && handler({}));
+      }
+    }
+    send(text: string) { this.sent.push(text); }
+    close() {
+      if (this.readyState === FakeDirectChannel.CLOSED) return;
+      this.readyState = FakeDirectChannel.CLOSED;
+      this.onclose?.({ code: 1000 });
+    }
+    triggerDrop(code = 1006) {
+      if (this.readyState === FakeDirectChannel.CLOSED) return;
+      this.readyState = FakeDirectChannel.CLOSED;
+      this.onclose?.({ code });
+    }
+  }
+  return { FakeDirectChannel, directState, openRtcDirectMock };
+});
+
+vi.mock('../api/rtcDirect', () => ({
+  isRtcDirectEligible: () => directState.eligible,
+  openRtcDirect: (...args: unknown[]) => openRtcDirectMock(...args),
+  RtcRuntimeChannel: FakeDirectChannel,
+}));
+
+// A fresh RtcDirectConnection-shaped object each call: pc is opaque to the
+// hook (only .close() on the returned object matters), http is a minimal
+// RtcHttpTunnel-shaped stub.
+function makeDirectConnection() {
+  const runtime = new FakeDirectChannel();
+  const http = { request: vi.fn(), close: vi.fn() };
+  return { pc: {}, runtime, http, close: vi.fn() };
+}
 
 class FakeWebSocket {
   static CONNECTING = 0;
@@ -412,5 +477,173 @@ describe('useMultiplexConnection relay fallback', () => {
     expect(FakeRelayChannel.instances[0].url).toBe('ws://test.local/secure-tunnel');
     expect(result.current?.connected).toBe(true);
     expect(result.current?.transport).toBe('lan-sealed');
+  });
+});
+
+describe('useMultiplexConnection direct upgrade', () => {
+  beforeEach(() => {
+    FakeWebSocket.instances = [];
+    FakeRelayChannel.instances = [];
+    relayState.nextPeerUp = false;
+    serviceState.relayActive = false;
+    serviceState.lanSealedActive = false;
+    directState.eligible = true;
+    openRtcDirectMock.mockReset();
+    setActiveHttpTunnelMock.mockClear();
+    remoteControlMock.mockClear();
+    remoteControlMock.mockResolvedValue(null);
+    relayStateMock.mockClear();
+    relayStateMock.mockResolvedValue(null);
+    mockRejectingFetch();
+    vi.useFakeTimers();
+    (globalThis as unknown as { WebSocket: typeof FakeWebSocket }).WebSocket = FakeWebSocket;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('hot-swaps to direct after a background punch succeeds off an open relay connection, re-subscribing topics', async () => {
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    const conn = makeDirectConnection();
+    openRtcDirectMock.mockResolvedValue(conn);
+
+    // Subscribe before anything opens - queued (pendingSubsRef) regardless of
+    // which transport ends up live, so this proves resubscription lands on
+    // the FINAL (direct) channel without racing the swap's exact timing (the
+    // punch can complete within the same tick the relay opens, since none of
+    // the mocks here have real async delay).
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    act(() => { result.current?.subscribe('monitoring', () => {}); });
+
+    await act(async () => { await flushRelayDetour(); });
+
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
+    expect(result.current?.transport).toBe('direct');
+    expect(result.current?.connected).toBe(true);
+    expect(setActiveHttpTunnelMock).toHaveBeenCalledWith(conn.http);
+    // The superseded relay socket is closed, but the swap must not have routed
+    // through handleDisconnect (no reconnect/backoff state left behind).
+    expect(FakeRelayChannel.instances[0].closed).toBe(true);
+    expect(result.current?.sessionRevoked).toBe(false);
+    // Re-subscribed (or sent for the first time) onto the direct channel.
+    expect(conn.runtime.sent.some((s: string) => s.includes('monitoring'))).toBe(true);
+  });
+
+  it('leaves the relay connection untouched when the punch attempt fails', async () => {
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    openRtcDirectMock.mockRejectedValue(new Error('rtc direct: offer rejected (403)'));
+
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current?.transport).toBe('relay');
+    const relayChannel = FakeRelayChannel.instances[0];
+
+    await act(async () => { await flushRelayDetour(); });
+
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
+    expect(result.current?.transport).toBe('relay');
+    expect(result.current?.connected).toBe(true);
+    expect(relayChannel.closed).toBe(false);
+    expect(setActiveHttpTunnelMock).not.toHaveBeenCalled();
+  });
+
+  it('reverts to the relay path on a direct drop and backs off the next punch attempt', async () => {
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    openRtcDirectMock.mockImplementation(async () => makeDirectConnection());
+
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await act(async () => { await flushRelayDetour(); });
+    expect(result.current?.transport).toBe('direct');
+    // mockImplementation is async, so the recorded call result is the Promise.
+    const firstConn = await (openRtcDirectMock.mock.results[0].value as Promise<ReturnType<typeof makeDirectConnection>>);
+
+    // The direct channel drops (e.g. an ICE failure).
+    await act(async () => {
+      firstConn.runtime.triggerDrop(1006);
+      await flushRelayDetour();
+    });
+    expect(result.current?.connected).toBe(false);
+    expect(result.current?.transport).toBe(null);
+
+    // The existing reconnect machinery brings a fresh relay connection back up
+    // at the normal 5s backoff start.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+      await flushRelayDetour();
+    });
+    expect(result.current?.transport).toBe('relay');
+    // Re-punch backoff (30s) hasn't elapsed yet - no second attempt.
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
+
+    // Advance well past the 30s direct-upgrade backoff, then force a fresh
+    // relay connection (reconnect()) - the punch is retried this time.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(26000);
+    });
+    await act(async () => {
+      result.current?.reconnect();
+      await flushRelayDetour();
+    });
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('never attempts a punch when the rtcDirect killswitch flag is off', async () => {
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    directState.eligible = false;
+
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current?.transport).toBe('relay');
+
+    await act(async () => { await flushRelayDetour(); });
+
+    expect(openRtcDirectMock).not.toHaveBeenCalled();
+  });
+
+  it('never attempts a punch on a wired/kiosk surface even when relay is active', async () => {
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+
+    const { result } = renderHook(() => useMultiplexConnection(true, true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current?.transport).toBe('relay');
+
+    await act(async () => { await flushRelayDetour(); });
+
+    expect(openRtcDirectMock).not.toHaveBeenCalled();
+  });
+
+  it('never attempts a punch when the live transport is the plain LAN socket', async () => {
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    act(() => { FakeWebSocket.instances[0].triggerOpen(); });
+    expect(result.current?.transport).toBe('lan');
+
+    await act(async () => { await flushRelayDetour(); });
+
+    expect(openRtcDirectMock).not.toHaveBeenCalled();
   });
 });

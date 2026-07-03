@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Smartphone, LogOut, SatelliteDish, Lock } from 'lucide-react';
+import { Smartphone, LogOut, SatelliteDish, Zap, Lock } from 'lucide-react';
 import classNames from 'classnames';
 import { ConfirmModal } from '../ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
@@ -636,6 +636,16 @@ export function PairRemoteContent({
                             aria-label={t('connection.relayMode')}
                           >
                             <SatelliteDish size={14} aria-hidden="true" />
+                          </span>
+                        </HoverTooltip>
+                      )}
+                      {session.connectedVia === 'direct' && (
+                        <HoverTooltip body={t('connection.directMode')} side="top">
+                          <span
+                            className={appStyles.phonePairSessionRelay}
+                            aria-label={t('connection.directMode')}
+                          >
+                            <Zap size={14} aria-hidden="true" />
                           </span>
                         </HoverTooltip>
                       )}

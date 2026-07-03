@@ -237,10 +237,12 @@ export interface PanelPhoneSession {
   expiresAt: number;
   recentlyActive: boolean;
   // How this session's live connection (if any) reached the host: 'relay' when
-  // it came in over the cloud relay, 'lan' for a direct LAN connection, null
-  // when the session is not currently connected. Surfaced by the service's GET
-  // /panel/phone/sessions so the dashboard can flag relay-connected devices.
-  connectedVia: 'relay' | 'lan' | null;
+  // it came in over the cloud relay, 'lan' for a direct LAN connection,
+  // 'direct' for the WebRTC data-channel P2P upgrade off a relay session,
+  // null when the session is not currently connected. Surfaced by the
+  // service's GET /panel/phone/sessions so the dashboard can flag
+  // relay-connected / direct-connected devices.
+  connectedVia: 'relay' | 'lan' | 'direct' | null;
 }
 
 export interface PanelPhoneSessionsResponse {

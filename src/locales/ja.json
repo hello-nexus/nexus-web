@@ -288,6 +288,7 @@
   "cropper.reset": "リセット",
   "cropper.converting": "変換中…",
   "cropper.title": "画像をトリミング",
+  "connection.directMode": "直接接続（P2P）",
   "connection.lost.checkUsb": "USB接続を確認してください",
   "connection.lost.message": "システムに接続を試みています。バックグラウンドで再試行を続けます。",
   "connection.lost.newDevice": "新しいシステムを接続",

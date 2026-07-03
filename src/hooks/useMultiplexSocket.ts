@@ -1,16 +1,22 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { fetchPanelRelay, fetchPanelRemoteControlState } from '../api/panel';
-import { isLanSealedActive, isRelayActive, resolveAuthWs, resolveLanSealedWs, resolveRelayWs, setActiveTransport } from '../api/service';
+import {
+  isLanSealedActive, isRelayActive, resolveAuthWs, resolveLanSealedWs, resolveRelayWs,
+  setActiveHttpTunnel, setActiveTransport, type ActiveTransport,
+} from '../api/service';
 import { getToken } from '../api/auth';
 import { RelayChannel } from './relayChannel';
+import { isRtcDirectEligible, openRtcDirect, RtcRuntimeChannel, type RtcDirectConnection } from '../api/rtcDirect';
 
 // The multiplex client drives either the raw LAN WebSocket or, when the LAN
-// path can't open, the cloud RelayChannel. Both expose the same WebSocket-like
-// surface (readyState + onopen/onmessage/onclose/onerror + send/close), so the
-// connection plumbing below treats them uniformly; the only difference is which
-// one connect() instantiates. The handler signatures mirror the DOM
-// WebSocket's so a native socket assigns directly; RelayChannel implements the
-// same shape (synthesizing minimal Event-like objects).
+// path can't open, the cloud RelayChannel (which a live relay connection may
+// itself later hot-swap for the WebRTC direct upgrade, RtcRuntimeChannel). All
+// three expose the same WebSocket-like surface (readyState +
+// onopen/onmessage/onclose/onerror + send/close), so the connection plumbing
+// below treats them uniformly; the only difference is which one connect()
+// instantiates. The handler signatures mirror the DOM WebSocket's so a native
+// socket assigns directly; the others implement the same shape (synthesizing
+// minimal Event-like objects).
 interface MultiplexTransport {
   readyState: number;
   send: (data: string) => void;
@@ -20,6 +26,12 @@ interface MultiplexTransport {
   onclose: ((e: CloseEvent) => void) | null;
   onerror: ((e: Event) => void) | null;
 }
+
+// Re-punch backoff after a failed/dropped direct upgrade: doubles up to a cap
+// so a flapping punch (or a 403 killswitch) never hammers POST /rtc/offer on
+// every relay reconnect.
+const DIRECT_BACKOFF_MIN_MS = 30000;
+const DIRECT_BACKOFF_MAX_MS = 300000;
 
 interface TopicListener {
   refCount: number;
@@ -36,14 +48,19 @@ const lastFrameCache = new Map<string, unknown>();
 
 // Live counters read by the renderer memory probe (src/diag/memoryProbe.ts).
 // `opens` increments on every transport open, so `opens - 1` approximates the
-// reconnect count (it also counts lan/relay/sealed transport switches).
+// reconnect count (it also counts lan/relay/sealed/direct transport
+// switches). upgrade* + directDrops track the WebRTC hot-swap attempts.
 // Module-scoped so the probe reads it without threading through React context.
 export const multiplexDiag = {
   opens: 0,
   topics: 0,
   listeners: 0,
-  transport: null as 'lan' | 'relay' | 'lan-sealed' | null,
+  transport: null as ActiveTransport | null,
   connected: false,
+  upgradeAttempts: 0,
+  upgradeSuccesses: 0,
+  upgradeFailures: 0,
+  directDrops: 0,
 };
 
 export interface MultiplexContextValue {
@@ -53,13 +70,14 @@ export interface MultiplexContextValue {
   /**
    * Which transport the currently-open connection runs over: 'lan' for the
    * direct /ws WebSocket, 'relay' for the cloud RelayChannel fallback,
-   * 'lan-sealed' for the local sealed /secure-tunnel, or null while
-   * disconnected. Driven off whichever transport actually opened (set in its
-   * onopen, cleared on close), so the UI can surface a relay-mode indicator
-   * without inferring it from connection failures. The cloud-relay indicator
-   * keys off 'relay' only, so a sealed LAN connection shows no satellite icon.
+   * 'lan-sealed' for the local sealed /secure-tunnel, 'direct' for the WebRTC
+   * data-channel P2P upgrade, or null while disconnected. Driven off whichever
+   * transport actually opened (set in its onopen, cleared on close), so the UI
+   * can surface a relay/direct-mode indicator without inferring it from
+   * connection failures. The cloud-relay indicator keys off 'relay' only, so a
+   * sealed LAN connection shows no satellite icon.
    */
-  transport: 'lan' | 'relay' | 'lan-sealed' | null;
+  transport: ActiveTransport | null;
   /**
    * True when the Nexus service has disabled Pair Remote (killswitch off).
    * Phone clients in this state can't open the WS or call protected REST
@@ -197,9 +215,21 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   // it to tell a relay drop (candidate for the relay-disabled popup) from a LAN
   // drop. Set in wireTransport's onopen; never cleared on close so it still
   // reflects the just-dropped connection when handleDisconnect inspects it.
-  const lastTransportRef = useRef<'lan' | 'relay' | 'lan-sealed' | null>(null);
+  const lastTransportRef = useRef<ActiveTransport | null>(null);
+  // Direct-upgrade (WebRTC) state. See attemptDirectUpgrade/swapToDirect below
+  // for the state machine; kept as refs (not React state) since none of it
+  // drives a render on its own - only the resulting transport/connected
+  // changes do, via the normal wireTransport plumbing.
+  const directConnRef = useRef<RtcDirectConnection | null>(null);
+  const directUpgradeInFlightRef = useRef(false);
+  const directBackoffStepRef = useRef(0);
+  const directNextAttemptAtRef = useRef(0);
+  // Set immediately before intentionally closing the relay socket that a
+  // direct upgrade just superseded; wireTransport's onclose checks this so
+  // the swap never trips handleDisconnect's reconnect/fallback logic.
+  const swapInProgressRef = useRef(false);
   const [connected, setConnected] = useState(false);
-  const [transport, setTransport] = useState<'lan' | 'relay' | 'lan-sealed' | null>(null);
+  const [transport, setTransport] = useState<ActiveTransport | null>(null);
   const [remoteDisabled, setRemoteDisabled] = useState(false);
   const [relayDisabled, setRelayDisabled] = useState(false);
   const [sessionRevoked, setSessionRevoked] = useState(false);
@@ -211,6 +241,13 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
       wsRef.current.onclose = null;
       wsRef.current.close();
       wsRef.current = null;
+    }
+    // The direct connection owns a peer connection + a second (http) data
+    // channel beyond wsRef's runtime channel - tear the whole thing down too.
+    if (directConnRef.current) {
+      directConnRef.current.close();
+      directConnRef.current = null;
+      setActiveHttpTunnel(null);
     }
   }, []);
 
@@ -369,7 +406,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   // caller can decide between relay fallback and the normal backoff path.
   const wireTransport = useCallback((
     transport: MultiplexTransport,
-    kind: 'lan' | 'relay' | 'lan-sealed',
+    kind: ActiveTransport,
     onClose: (code: number) => void,
     onOpen?: () => void,
   ) => {
@@ -426,6 +463,13 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     };
 
     transport.onclose = (event) => {
+      // A direct upgrade closes the just-superseded relay socket itself; that
+      // close must not run the normal disconnect side effects (it would clear
+      // the 'direct' state the swap just published) or reach handleDisconnect.
+      if (swapInProgressRef.current) {
+        swapInProgressRef.current = false;
+        return;
+      }
       multiplexDiag.connected = false;
       multiplexDiag.transport = null;
       setConnected(false);
@@ -436,6 +480,91 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
 
     transport.onerror = () => transport.close();
   }, []);
+
+  // Re-punch backoff reset: an actual network change (Wi-Fi reconnect, network
+  // switch) makes the last punch failure's backoff stale, so the next relay
+  // open should try again promptly rather than wait out the old delay.
+  useEffect(() => {
+    const handleOnline = () => {
+      directBackoffStepRef.current = 0;
+      directNextAttemptAtRef.current = 0;
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
+
+  const scheduleDirectBackoff = useCallback(() => {
+    const delay = Math.min(
+      DIRECT_BACKOFF_MAX_MS,
+      DIRECT_BACKOFF_MIN_MS * Math.pow(2, directBackoffStepRef.current),
+    );
+    directBackoffStepRef.current += 1;
+    directNextAttemptAtRef.current = Date.now() + delay;
+  }, []);
+
+  // Hot-swap the live relay connection for a freshly opened direct connection.
+  // Wires the runtime channel through the same wireTransport plumbing - its
+  // already-open state publishes 'direct' and re-subscribes topics exactly
+  // like any other transport open - routes REST at the direct HTTP tunnel,
+  // then closes the superseded relay socket via the swapInProgressRef guard so
+  // that close never reaches handleDisconnect.
+  const swapToDirect = useCallback((relayChannel: RelayChannel, conn: RtcDirectConnection) => {
+    directConnRef.current = conn;
+    multiplexDiag.upgradeSuccesses++;
+    wireTransport(conn.runtime, 'direct', (code) => {
+      multiplexDiag.directDrops++;
+      if (directConnRef.current === conn) directConnRef.current = null;
+      setActiveHttpTunnel(null);
+      scheduleDirectBackoff();
+      conn.close();
+      // Revert to the relay path via the existing reconnect machinery - a
+      // fresh connect() picks relay again on a remote origin.
+      if (wsRef.current === conn.runtime) {
+        wsRef.current = null;
+        void handleDisconnect(code);
+      }
+    });
+    wsRef.current = conn.runtime;
+    setActiveHttpTunnel(conn.http);
+    swapInProgressRef.current = true;
+    relayChannel.close();
+  }, [wireTransport, handleDisconnect, scheduleDirectBackoff]);
+
+  // Background WebRTC hole-punch off a just-opened relay connection. At most
+  // one attempt in flight (directUpgradeInFlightRef); skipped entirely for a
+  // wired/kiosk surface, while the killswitch/relay-off/revoked terminal
+  // states are active, or before the re-punch backoff has elapsed. A failed
+  // punch (including a 403 killswitch-off answer) engages that backoff so a
+  // flapping relay connection can't hammer POST /rtc/offer.
+  const attemptDirectUpgrade = useCallback((relayChannel: RelayChannel) => {
+    if (wired || directUpgradeInFlightRef.current) return;
+    if (!isRtcDirectEligible()) return;
+    if (remoteDisabledRef.current || relayDisabledRef.current || sessionRevokedRef.current) return;
+    if (Date.now() < directNextAttemptAtRef.current) return;
+    directUpgradeInFlightRef.current = true;
+    multiplexDiag.upgradeAttempts++;
+    void (async () => {
+      let conn: RtcDirectConnection | null = null;
+      try {
+        const token = await getToken();
+        if (!token) throw new Error('rtc direct: no token');
+        conn = await openRtcDirect(token);
+        // Superseded (unmounted, a different relay connection took over, or
+        // the fresh connection didn't actually land open) - discard it.
+        if (!mountedRef.current || wsRef.current !== relayChannel || conn.runtime.readyState !== RtcRuntimeChannel.OPEN) {
+          conn.close();
+          return;
+        }
+        swapToDirect(relayChannel, conn);
+      } catch {
+        multiplexDiag.upgradeFailures++;
+        scheduleDirectBackoff();
+        conn?.close();
+      } finally {
+        directUpgradeInFlightRef.current = false;
+      }
+    })();
+  }, [wired, swapToDirect, scheduleDirectBackoff]);
 
   // Cloud-relay fallback. Connect a RelayChannel (client role) and, on
   // peer-up, run the identical {t,d} multiplex protocol over the encrypted
@@ -451,15 +580,16 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     const channel = new RelayChannel(resolveRelayWs(), token);
     wsRef.current = channel;
     // On relay peer-up, clear the relay-tried gate so a later LAN failure can
-    // re-attempt relay; on relay close, return to the normal backoff path.
+    // re-attempt relay, and kick off a background direct-upgrade attempt for
+    // this connection; on relay close, return to the normal backoff path.
     wireTransport(
       channel,
       'relay',
       () => { void handleDisconnect(); },
-      () => { relayTriedRef.current = false; },
+      () => { relayTriedRef.current = false; attemptDirectUpgrade(channel); },
     );
     void channel.connect();
-  }, [handleDisconnect, wireTransport]);
+  }, [handleDisconnect, wireTransport, attemptDirectUpgrade]);
 
   // LAN sealed-tunnel transport (Phase 2). A flag-on LAN phone runs the same
   // {t,d} multiplex over a RelayChannel pointed at the local /secure-tunnel

@@ -288,6 +288,7 @@
   "cropper.reset": "Zurücksetzen",
   "cropper.converting": "Konvertierung…",
   "cropper.title": "Bild zuschneiden",
+  "connection.directMode": "Direkt verbunden (P2P)",
   "connection.lost.checkUsb": "USB-Verbindung prüfen",
   "connection.lost.message": "Wir versuchen, Ihr System zu erreichen. Im Hintergrund wird weiter versucht.",
   "connection.lost.newDevice": "Neues System verbinden",

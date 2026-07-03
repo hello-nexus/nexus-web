@@ -288,6 +288,7 @@
   "cropper.reset": "초기화",
   "cropper.converting": "변환 중…",
   "cropper.title": "이미지 자르기",
+  "connection.directMode": "직접 연결됨 (P2P)",
   "connection.lost.checkUsb": "USB 연결을 확인하세요",
   "connection.lost.message": "시스템에 연결을 시도하고 있습니다. 백그라운드에서 계속 시도합니다.",
   "connection.lost.newDevice": "새 시스템 연결",

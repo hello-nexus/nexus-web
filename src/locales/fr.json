@@ -288,6 +288,7 @@
   "cropper.reset": "Réinitialiser",
   "cropper.converting": "Conversion en cours…",
   "cropper.title": "Recadrer l'image",
+  "connection.directMode": "Connecté directement (P2P)",
   "connection.lost.checkUsb": "Vérifiez votre connexion USB",
   "connection.lost.message": "Tentative de connexion à votre système. Nous continuons en arrière-plan.",
   "connection.lost.newDevice": "Connecter un nouveau système",
