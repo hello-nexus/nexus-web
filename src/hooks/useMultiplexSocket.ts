@@ -230,6 +230,12 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   // attempt's completion can re-trigger a punch for it, rather than that
   // connection never getting one at all.
   const pendingRetryChannelRef = useRef<RelayChannel | null>(null);
+  // Single retry timer for a punch that failed while its relay connection
+  // stayed open: a future relay open is the only OTHER trigger for
+  // attemptDirectUpgrade, and none may ever come if this connection stays
+  // healthy. Cleared on close()/teardown, on that relay channel closing, and
+  // on a successful swap; re-arming replaces whatever was pending.
+  const directRetryTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [connected, setConnected] = useState(false);
   const [transport, setTransport] = useState<ActiveTransport | null>(null);
   const [remoteDisabled, setRemoteDisabled] = useState(false);
@@ -239,6 +245,8 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
 
   const close = useCallback(() => {
     clearTimeout(reconnectTimer.current);
+    clearTimeout(directRetryTimerRef.current);
+    directRetryTimerRef.current = undefined;
     if (wsRef.current) {
       wsRef.current.onclose = null;
       wsRef.current.close();
@@ -493,13 +501,16 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     return () => window.removeEventListener('online', handleOnline);
   }, []);
 
-  const scheduleDirectBackoff = useCallback(() => {
+  // Returns the delay so the caller can arm a retry timer for exactly when
+  // this backoff expires.
+  const scheduleDirectBackoff = useCallback((): number => {
     const delay = Math.min(
       DIRECT_BACKOFF_MAX_MS,
       DIRECT_BACKOFF_MIN_MS * Math.pow(2, directBackoffStepRef.current),
     );
     directBackoffStepRef.current += 1;
     directNextAttemptAtRef.current = Date.now() + delay;
+    return delay;
   }, []);
 
   // Hot-swap the live relay connection for a freshly opened direct connection.
@@ -516,6 +527,8 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   const swapToDirect = useCallback((relayChannel: RelayChannel, conn: RtcDirectConnection) => {
     directConnRef.current = conn;
     directBackoffStepRef.current = 0;
+    clearTimeout(directRetryTimerRef.current);
+    directRetryTimerRef.current = undefined;
     multiplexDiag.upgradeSuccesses++;
     wireTransport(conn.runtime, 'direct', (code) => {
       multiplexDiag.directDrops++;
@@ -549,7 +562,12 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   // while the killswitch/relay-off/revoked terminal states are active, or
   // before the re-punch backoff has elapsed. A failed punch (including a 403
   // killswitch-off answer) engages that backoff so a flapping relay
-  // connection can't hammer POST /rtc/offer.
+  // connection can't hammer POST /rtc/offer - and, if the relay connection is
+  // still open, arms a timer to retry against THIS SAME connection when the
+  // backoff expires. A future relay open is the only other trigger, and none
+  // may come if this connection stays healthy (e.g. the network condition
+  // that broke the punch clears up without the relay ever dropping) -
+  // without the timer the phone would stay on relay indefinitely.
   const attemptDirectUpgrade = useCallback((relayChannel: RelayChannel) => {
     if (wired) return;
     if (directUpgradeInFlightRef.current) {
@@ -561,6 +579,17 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     if (Date.now() < directNextAttemptAtRef.current) return;
     directUpgradeInFlightRef.current = true;
     multiplexDiag.upgradeAttempts++;
+    // attemptDirectUpgrade's own guards (in-flight, eligibility, terminal
+    // states, the backoff gate, and the wsRef identity + readyState check
+    // below) make a stale fire harmless even if this relayChannel closes
+    // between now and when the timer fires and something misses clearing it.
+    const armRetry = (delayMs: number) => {
+      clearTimeout(directRetryTimerRef.current);
+      directRetryTimerRef.current = setTimeout(() => {
+        directRetryTimerRef.current = undefined;
+        attemptDirectUpgrade(relayChannel);
+      }, delayMs);
+    };
     void (async () => {
       let conn: RtcDirectConnection | null = null;
       try {
@@ -574,16 +603,20 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
         // drop leaves wsRef pointing at the same now-CLOSED channel until the
         // next connect() runs, so identity alone would miss it and swap
         // against a dead relay session.
-        if (!mountedRef.current || wsRef.current !== relayChannel
-            || relayChannel.readyState !== RelayChannel.OPEN
-            || conn.runtime.readyState !== RtcRuntimeChannel.OPEN) {
+        const relayStillOpen = mountedRef.current && wsRef.current === relayChannel
+          && relayChannel.readyState === RelayChannel.OPEN;
+        if (!relayStillOpen || conn.runtime.readyState !== RtcRuntimeChannel.OPEN) {
           conn.close();
+          // The punch itself failed to land even though nothing else
+          // superseded this relay session - retry it directly rather than
+          // wait on a relay-open event that may never come.
+          if (relayStillOpen) armRetry(scheduleDirectBackoff());
           return;
         }
         swapToDirect(relayChannel, conn);
       } catch {
         multiplexDiag.upgradeFailures++;
-        scheduleDirectBackoff();
+        armRetry(scheduleDirectBackoff());
         conn?.close();
       } finally {
         directUpgradeInFlightRef.current = false;
@@ -615,7 +648,13 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     wireTransport(
       channel,
       'relay',
-      () => { void handleDisconnect(); },
+      () => {
+        // This relay connection is gone - any retry timer armed against it
+        // is moot (a fresh relay open, if one comes, re-triggers directly).
+        clearTimeout(directRetryTimerRef.current);
+        directRetryTimerRef.current = undefined;
+        void handleDisconnect();
+      },
       () => { relayTriedRef.current = false; attemptDirectUpgrade(channel); },
     );
     void channel.connect();

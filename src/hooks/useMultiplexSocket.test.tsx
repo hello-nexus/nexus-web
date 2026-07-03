@@ -618,20 +618,25 @@ describe('useMultiplexConnection direct upgrade', () => {
     serviceState.relayActive = true;
     relayState.nextPeerUp = true;
 
-    // Attempt 1 fails - engages the re-punch backoff at step 1 (a next punch
-    // would need the DOUBLED 60s if this step were never reset).
+    // Attempt 1 fails - engages the re-punch backoff at step 1 (a retry would
+    // need the DOUBLED 60s if this step were never reset).
     openRtcDirectMock.mockRejectedValueOnce(new Error('offer rejected'));
+    const conn = makeDirectConnection();
+    // Consumed by the automatic retry once the first 30s backoff elapses.
+    openRtcDirectMock.mockResolvedValueOnce(conn);
     const { result } = renderHook(() => useMultiplexConnection(true));
     await act(async () => { await flushRelayDetour(); });
     expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
 
-    // Attempt 2 (once the first 30s backoff elapses) succeeds and swaps in.
-    await act(async () => { await vi.advanceTimersByTimeAsync(30000); });
-    const conn = makeDirectConnection();
-    openRtcDirectMock.mockResolvedValueOnce(conn);
-    await act(async () => { result.current?.reconnect(); await flushRelayDetour(); });
+    // The automatic retry (armed at 30s, the reset value) succeeds and swaps
+    // in - no relay drop/reconnect needed to trigger it.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30000);
+      await flushRelayDetour();
+    });
     expect(openRtcDirectMock).toHaveBeenCalledTimes(2);
     expect(result.current?.transport).toBe('direct');
+    expect(FakeRelayChannel.instances.length).toBe(1);
 
     openRtcDirectMock.mockResolvedValueOnce(makeDirectConnection());
     await act(async () => { conn.runtime.triggerDrop(1006); await flushRelayDetour(); });
@@ -709,6 +714,91 @@ describe('useMultiplexConnection direct upgrade', () => {
     expect(result.current?.connected).toBe(true);
     expect(relayChannel.closed).toBe(false);
     expect(setActiveHttpTunnelMock).not.toHaveBeenCalled();
+  });
+
+  it('retries a failed punch against the SAME still-open relay connection once the backoff expires, without any relay reconnect', async () => {
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    openRtcDirectMock.mockRejectedValueOnce(new Error('rtc direct: offer rejected (403)'));
+    const conn = makeDirectConnection();
+    openRtcDirectMock.mockResolvedValueOnce(conn);
+
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => { await flushRelayDetour(); });
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
+    expect(result.current?.transport).toBe('relay');
+    // The failed punch's relay connection is the ONLY one that ever opens -
+    // no relay drop or reconnect happens anywhere in this test.
+    expect(FakeRelayChannel.instances.length).toBe(1);
+    const relayChannel = FakeRelayChannel.instances[0];
+
+    // 1s before the 30s backoff expires: no retry yet.
+    await act(async () => { await vi.advanceTimersByTimeAsync(29000); });
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
+
+    // The backoff expires - the retry fires on its own and succeeds.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+      await flushRelayDetour();
+    });
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(2);
+    expect(result.current?.transport).toBe('direct');
+    expect(setActiveHttpTunnelMock).toHaveBeenCalledWith(conn.http);
+    // Still the one relay connection throughout - the retry never reconnected it.
+    expect(FakeRelayChannel.instances.length).toBe(1);
+    expect(relayChannel.closed).toBe(true); // closed only as part of the swap
+  });
+
+  it('does not retry a failed punch once the rtcDirect killswitch flag latches before the retry fires', async () => {
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    openRtcDirectMock.mockRejectedValueOnce(new Error('rtc direct: offer rejected (403)'));
+
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => { await flushRelayDetour(); });
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
+    // The relay connection stays open throughout - only the timer fire itself
+    // (not a close) is what re-evaluates attemptDirectUpgrade's guards here.
+    expect(FakeRelayChannel.instances.length).toBe(1);
+    expect(result.current?.transport).toBe('relay');
+
+    // The flag flips off while the retry is pending - the retry timer still
+    // fires at the backoff mark, but attemptDirectUpgrade's own eligibility
+    // guard bails before ever calling openRtcDirect again.
+    directState.eligible = false;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30000);
+      await flushRelayDetour();
+    });
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
+    expect(result.current?.transport).toBe('relay');
+  });
+
+  it('does not retry a failed punch once the killswitch/relay-off terminal states latch (via the relay drop that sets them, which also clears the timer)', async () => {
+    serviceState.relayActive = true;
+    relayState.nextPeerUp = true;
+    openRtcDirectMock.mockRejectedValueOnce(new Error('rtc direct: offer rejected (403)'));
+
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => { await flushRelayDetour(); });
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
+    const relayChannel = FakeRelayChannel.instances[0];
+
+    // The only way remoteDisabled/relayDisabled/sessionRevoked latch is via a
+    // transport close reaching handleDisconnect - and that same close already
+    // clears the pending retry timer (see tryRelay's onClose). Killswitch off
+    // while Pair Remote itself stays reachable enough to answer the poll.
+    remoteControlMock.mockResolvedValue({ enabled: false });
+    await act(async () => {
+      relayChannel.close();
+      await flushRelayDetour();
+    });
+    expect(result.current?.remoteDisabled).toBe(true);
+
+    // Advancing well past the original 30s backoff never fires a stray retry
+    // for the now-dead relay connection - the timer was cleared on close.
+    await act(async () => { await vi.advanceTimersByTimeAsync(30000); });
+    expect(openRtcDirectMock).toHaveBeenCalledTimes(1);
   });
 
   it('reverts to the relay path on a direct drop and backs off the next punch attempt', async () => {
