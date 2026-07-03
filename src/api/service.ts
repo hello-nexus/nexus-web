@@ -268,16 +268,25 @@ export function isTunnelActive(): boolean {
   return t === 'relay' || t === 'lan-sealed' || t === 'direct';
 }
 
+// The RTC data channel caps a sealed frame at 256KB; the host replies this
+// status (never an oversized frame) when a response would exceed that cap.
+// The relay WS leg has no such cap, so a GET that hits it is retried there.
+const DIRECT_RESPONSE_TOO_LARGE = 413;
+
 /**
  * Dispatch one sealed HTTP-tunnel request over whichever transport is live:
  * the WebRTC direct data channel when up, else the relay/lan-sealed WS tunnel.
  * A direct drop clears activeHttpTunnel (useMultiplexSocket), so the very next
  * call here transparently falls back to relayFetch - no special-casing needed
- * at the call sites.
+ * at the call sites. A GET that the direct channel rejects as too large (a
+ * thumbnail/media byte response, typically) is retried once over the relay
+ * tunnel instead of surfacing a hard failure - safe only for GET, since a
+ * mutating method may have already taken effect server-side before replying.
  */
 async function tunnelRequest(method: RelayHttpMethod, path: string, body: string | null, contentType: string | null): Promise<RelayResponse> {
   if (isDirectActive() && activeHttpTunnel) {
-    return activeHttpTunnel.request(method, path, body, contentType);
+    const res = await activeHttpTunnel.request(method, path, body, contentType);
+    if (res.status !== DIRECT_RESPONSE_TOO_LARGE || method !== 'GET') return res;
   }
   const token = await getToken();
   return relayFetch(token, resolveTunnelWs(), method, path, body, contentType);
@@ -292,10 +301,14 @@ function resolveTunnelWs(): string {
  * A direct window.fetch(resolveHttp(...)) here would target http://localhost -
  * which on a REMOTE origin is the wrong host (the phone, not the PC) AND
  * mixed-content-blocked on an https page. So when we're on a remote origin but
- * the relay isn't usable yet (no session token to derive the rid - e.g. the
- * pre-pairing /r/pair boot), the direct fetch must NOT fire: fail closed
- * instead. On a local (service-served) origin this is always false, so the LAN
- * fetch path is untouched.
+ * no sealed tunnel (relay, lan-sealed, or the WebRTC direct upgrade) is usable
+ * yet - no session token to derive the rid, e.g. the pre-pairing /r/pair boot -
+ * the direct fetch must NOT fire: fail closed instead. On a local
+ * (service-served) origin this is always false, so the LAN fetch path is
+ * untouched. Every actual caller already checks isTunnelActive() first and
+ * short-circuits before reaching this function when a tunnel is live; this
+ * check stays isTunnelActive()-based (not isRelayActive()) so it can't
+ * silently block a caller that skips that check in the future.
  *
  * An EXPLICIT 'lan' transport is the one exception: useMultiplexSocket only
  * publishes 'lan' after a direct /ws socket actually OPENED, which on a remote
@@ -304,7 +317,7 @@ function resolveTunnelWs(): string {
  */
 function blockedLocalhostFetch(): boolean {
   if (forceLanMode) return false; // detected local desktop: localhost is the PC
-  return isRemoteOrigin && activeTransport !== 'lan' && !isRelayActive();
+  return isRemoteOrigin && activeTransport !== 'lan' && !isTunnelActive();
 }
 
 /** Resolve a WS URL with the auth token as a query parameter. */
