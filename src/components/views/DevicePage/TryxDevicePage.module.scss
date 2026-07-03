@@ -56,15 +56,10 @@
   min-height: 2rem;
 }
 
-.rowIcon {
-  color: var(--text-dim);
-  flex: 0 0 auto;
-}
-
 .rowLabel {
   flex: 1;
   font-size: var(--type-small);
-  color: var(--text-dim);
+  color: var(--text);
 }
 
 .sliderBlock {
@@ -84,6 +79,14 @@
   min-width: 0;
 }
 
+// Narrower device-group dropdown beside the wider sensor dropdown, matching
+// MonitoringSettings' selectSmall/selectWide sensor-row proportions.
+.overlayDeviceSelect {
+  flex: 0 0 auto;
+  width: 116px;
+  min-width: 0;
+}
+
 .controlRow {
   display: flex;
   align-items: center;
@@ -93,7 +96,7 @@
 .controlRowLabel {
   flex: 1;
   font-size: var(--type-small);
-  color: var(--text-dim);
+  color: var(--text);
 }
 
 .fontSelect {

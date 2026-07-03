@@ -1,8 +1,11 @@
 // Pure helpers for the Tryx overlay WYSIWYG editor: font -> CSS mapping,
-// panel-to-preview scale math, drag clamping, and placeholder formatting.
-// Kept free of React/DOM so they are unit-testable.
+// panel-to-preview scale math, drag clamping, docked-layout math, and the
+// monitoring sensor-picker option lists. Kept free of React/DOM so they are
+// unit-testable.
 
 import type { CSSProperties } from 'react';
+import type { HardwareSensor } from '../../../hooks/useSensors';
+import { bareSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
 
 // Only the panel canvas's height matters here - every scaled metric below is
 // a fraction of it (width plays no part in the font/offset math).
@@ -11,11 +14,6 @@ export const TRYX_VALUE_FONT_PANEL_PX = 130;
 export const TRYX_LABEL_FONT_PANEL_PX = 52;
 export const TRYX_LABEL_OFFSET_PANEL_PX = 150;
 
-/** Left-stack default layout when the service reports no overlay items yet. */
-export function defaultOverlayItemPosition(index: number): { x: number; y: number } {
-  return { x: 0.04, y: 0.12 + index * 0.16 };
-}
-
 /** Clamp a normalized drag coordinate to the on-canvas 0..1 range. */
 export function clampUnit(n: number): number {
   return Math.max(0, Math.min(1, n));
@@ -23,7 +21,7 @@ export function clampUnit(n: number): number {
 
 // Fixed device-firmware vocabulary forwarded verbatim to the `/tryx/overlay`
 // font field - the wire value the panel firmware parses, not freely
-// translatable UI chrome (same precedent as TRYX_STATS).
+// translatable UI chrome.
 export const TRYX_FONTS = [
   'roboto-regular',
   'roboto-thin',
@@ -80,30 +78,154 @@ export function scalePanelMetric(panelPx: number, sizePercent: number, previewHe
   return (panelPx * (sizePercent / 100) / TRYX_PANEL_HEIGHT) * previewHeightPx;
 }
 
-const STAT_PLACEHOLDERS: Record<string, string> = {
-  'CPU Temperature': '45°C',
-  'CPU Frequency': '4.7GHz',
-  'CPU Usage': '18%',
-  'CPU Voltage': '1.25V',
-  'GPU Temperature': '52°C',
-  'GPU Frequency': '2.4GHz',
-  'GPU Usage': '34%',
-  'GPU Voltage': '1.05V',
-  'Motherboard Temperature': '38°C',
-  'Memory Frequency': '6000MHz',
-  'Memory Utilization': '42%',
+// ── Alignment ────────────────────────────────────────────────────────────────
+
+export const TRYX_OVERLAY_ALIGNS = ['left', 'center', 'right'] as const;
+export type TryxOverlayAlign = (typeof TRYX_OVERLAY_ALIGNS)[number];
+
+export const TRYX_OVERLAY_ALIGN_LABEL_KEYS: Record<TryxOverlayAlign, string> = {
+  left: 'devices.tryx.alignLeft',
+  center: 'devices.tryx.alignCenter',
+  right: 'devices.tryx.alignRight',
 };
 
-/**
- * Representative preview value for a stat. `Date&Time` renders the actual
- * current time (always available, no sensor dependency); every other stat
- * has no live reading on this page, so a plausible placeholder stands in.
- */
-export function tryxOverlayStatPlaceholder(stat: string, now: Date = new Date()): string {
-  if (stat === 'Date&Time') {
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    return `${hh}:${mm}`;
+export function isTryxOverlayAlign(value: unknown): value is TryxOverlayAlign {
+  return typeof value === 'string' && (TRYX_OVERLAY_ALIGNS as readonly string[]).includes(value);
+}
+
+/** CSS text-justification for a preview stat, matching the panel's own render. */
+export function tryxOverlayJustifyStyle(align: TryxOverlayAlign): CSSProperties {
+  switch (align) {
+    case 'center': return { textAlign: 'center', transform: 'translateX(-50%)' };
+    case 'right': return { textAlign: 'right', transform: 'translateX(-100%)' };
+    default: return { textAlign: 'left' };
   }
-  return STAT_PLACEHOLDERS[stat] ?? '--';
+}
+
+// Anchor x per alignment (justification-side inset from the panel edge / center).
+const DOCKED_ALIGN_X: Record<TryxOverlayAlign, number> = { left: 0.04, center: 0.5, right: 0.96 };
+const DOCKED_Y_START = 0.10;
+const DOCKED_Y_STEP = 0.20;
+
+/**
+ * Docked-mode anchor for the nth enabled stat (0-based, in stack order): x
+ * follows the current text alignment, y stacks the enabled stats evenly.
+ */
+export function dockedOverlayItemPosition(align: TryxOverlayAlign, indexAmongEnabled: number): { x: number; y: number } {
+  return { x: DOCKED_ALIGN_X[align], y: DOCKED_Y_START + indexAmongEnabled * DOCKED_Y_STEP };
+}
+
+export interface TryxOverlayLayoutItem {
+  enabled: boolean;
+  x: number;
+  y: number;
+}
+
+/**
+ * Recomputes x/y for every enabled item from `align`, in slot order. Disabled
+ * items are left untouched - they are never sent to the service, so a stale
+ * position doesn't matter until the item is re-enabled.
+ */
+export function applyDockedOverlayLayout<T extends TryxOverlayLayoutItem>(
+  items: readonly T[],
+  align: TryxOverlayAlign,
+): T[] {
+  let enabledIndex = 0;
+  return items.map(item => {
+    if (!item.enabled) return item;
+    const pos = dockedOverlayItemPosition(align, enabledIndex);
+    enabledIndex += 1;
+    return { ...item, x: pos.x, y: pos.y };
+  });
+}
+
+// ── Sensor picker (monitoring library) ──────────────────────────────────────
+
+export const TRYX_SENSOR_GROUPS = ['cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network'] as const;
+export type TryxSensorGroup = (typeof TRYX_SENSOR_GROUPS)[number];
+
+export const TRYX_SENSOR_GROUP_LABEL_KEYS: Record<TryxSensorGroup, string> = {
+  cpu: 'devices.tryx.deviceCpu',
+  gpu: 'devices.tryx.deviceGpu',
+  memory: 'devices.tryx.deviceMemory',
+  motherboard: 'devices.tryx.deviceMotherboard',
+  storage: 'devices.tryx.deviceStorage',
+  network: 'devices.tryx.deviceNetwork',
+};
+
+export function isTryxSensorGroup(value: unknown): value is TryxSensorGroup {
+  return typeof value === 'string' && (TRYX_SENSOR_GROUPS as readonly string[]).includes(value);
+}
+
+export type TryxSensorsByGroup = Readonly<Record<TryxSensorGroup, readonly HardwareSensor[]>>;
+
+export interface TryxSensorOption {
+  value: string;
+  /** Dropdown row text, disambiguated with the sensor type. */
+  optionLabel: string;
+  /** Concise label stored on the item and shown on the panel/preview. */
+  bareLabel: string;
+  type: string;
+}
+
+// bareSensorLabel only strips a prefix for cpu/gpu/memory/network (its
+// DEVICE_PREFIXES map); motherboard isn't a valid DeviceKey there at all, so
+// it's special-cased here rather than passed through as a type error.
+function bareLabelForGroup(group: TryxSensorGroup, name: string): string {
+  if (group === 'motherboard') return name;
+  return bareSensorLabel(group, name) || name;
+}
+
+/**
+ * Sensor options for one device group, deduped by id - mirrors
+ * MonitoringSettings' `sensorsForDevice`.
+ */
+export function tryxSensorOptionsForGroup(
+  group: TryxSensorGroup,
+  sensorsByGroup: TryxSensorsByGroup,
+): TryxSensorOption[] {
+  const seen = new Set<string>();
+  const options: TryxSensorOption[] = [];
+  for (const s of sensorsByGroup[group] ?? []) {
+    if (!s.id || seen.has(s.id)) continue;
+    seen.add(s.id);
+    const bareLabel = bareLabelForGroup(group, s.name);
+    options.push({ value: s.id, bareLabel, type: s.type, optionLabel: `${bareLabel} (${s.type})` });
+  }
+  return options;
+}
+
+// Representative placeholder per sensor type, shown when no live reading is
+// available for the picked sensor (e.g. right after picking it, before the
+// next websocket frame, or a sensor that has since disappeared).
+const SENSOR_TYPE_PLACEHOLDERS: Record<string, string> = {
+  Temperature: '45°C',
+  Load: '34%',
+  Level: '80%',
+  Clock: '4.70GHz',
+  Frequency: '6000MHz',
+  Voltage: '1.25V',
+  Power: '65W',
+  Fan: '1200RPM',
+  Data: '8.2GB',
+  SmallData: '512MB',
+  Rate: '12.4MB/s',
+};
+
+export function tryxSensorPlaceholder(sensorType: string): string {
+  return SENSOR_TYPE_PLACEHOLDERS[sensorType] ?? '--';
+}
+
+/**
+ * Live formatted sensor value if the page currently has it, else a
+ * type-appropriate placeholder.
+ */
+export function tryxOverlayPreviewValue(
+  device: TryxSensorGroup,
+  sensorId: string,
+  fallbackType: string,
+  sensorsByGroup: TryxSensorsByGroup,
+): string {
+  const live = (sensorsByGroup[device] ?? []).find(s => s.id === sensorId);
+  return live ? live.formatted : tryxSensorPlaceholder(fallbackType);
 }

@@ -15,6 +15,32 @@ vi.mock('../../../lib/i18n', () => ({
   }),
 }));
 
+const mockSensors = {
+  cpu: [{ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 45, units: '°C', formatted: '45°C', parent: { id: 'cpu', name: 'CPU' } }],
+  gpu: [{ id: 'gpu-load', name: 'GPU Core', type: 'Load', value: 34, units: '%', formatted: '34%', parent: { id: 'gpu', name: 'GPU' } }],
+  gpuModel: '',
+  gpuComponents: [],
+  memory: [],
+  storage: [],
+  storageComponents: {},
+  storageSensors: [],
+  motherboard: [],
+  motherboardModel: '',
+  cpuModel: '',
+  gpuModels: [],
+  memoryTotal: '',
+};
+
+vi.mock('../../../hooks/useSensors', () => ({
+  useSensors: () => mockSensors,
+}));
+
+vi.mock('../../../hooks/useNetworkMonitor', () => ({
+  useNetworkMonitor: () => ({
+    series: [], sampleCount: 0, totalRate: 0, totalRateIn: 0, totalRateOut: 0, entries: [],
+  }),
+}));
+
 const mockGetTryxStatus = vi.fn();
 const mockGetTryxPresets = vi.fn();
 const mockGetTryxMedia = vi.fn();
@@ -57,10 +83,12 @@ const defaultStatus = {
     lastFrameMs: 0,
   },
   overlay: {
-    items: [{ stat: 'CPU Temperature', x: 0.04, y: 0.12 }],
+    items: [{ sensorId: 'cpu-temp', device: 'cpu', label: 'CPU Package', x: 0.04, y: 0.10 }],
     font: 'roboto-regular',
     size: 100,
     color: '#ffffff',
+    align: 'left',
+    docked: true,
   },
 };
 
@@ -88,41 +116,51 @@ async function renderPage() {
   return result!;
 }
 
+function mockCanvasRect(drag: HTMLElement) {
+  const canvas = drag.parentElement as HTMLElement;
+  vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+    left: 0, top: 0, width: 200, height: 100, right: 200, bottom: 100, x: 0, y: 0, toJSON: () => ({}),
+  });
+  return canvas;
+}
+
 describe('TryxDevicePage - overlay editor', () => {
-  it('renders the font select and size slider, with no alignment chips', async () => {
+  it('renders the align chips and a docked toggle', async () => {
     await renderPage();
-    expect(screen.getByRole('button', { name: 'devices.tryx.font' })).toBeInTheDocument();
-    expect(screen.getByText('devices.tryx.size')).toBeInTheDocument();
-    expect(screen.queryByText('devices.tryx.alignment')).not.toBeInTheDocument();
-    expect(screen.queryByText('devices.tryx.alignLeft')).not.toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'devices.tryx.align' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.tryx.alignLeft' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.tryx.alignCenter' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.tryx.alignRight' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'devices.tryx.docked' })).toBeInTheDocument();
   });
 
-  it('loads font/size/color and the first item stat from status.overlay', async () => {
+  it('loads font/size/color and item 1\'s device + sensor from status.overlay', async () => {
     await renderPage();
     expect(screen.getByRole('button', { name: 'devices.tryx.font' })).toHaveTextContent('devices.tryx.fontRegular');
     expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.tryx.overlayDeviceAria:{"n":1}' }))
+      .toHaveTextContent('devices.tryx.deviceCpu');
+    expect(screen.getByRole('button', { name: 'devices.tryx.overlaySensorAria:{"n":1}' }))
+      .toHaveTextContent('Package (Temperature)');
+    expect(screen.getByRole('switch', { name: 'devices.tryx.docked' })).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('renders the preview canvas with a draggable stat showing a placeholder value + label', async () => {
+  it('renders the preview canvas with a draggable stat showing the live sensor value + label', async () => {
     await renderPage();
-    const drag = screen.getByRole('button', {
-      name: 'devices.tryx.overlayDragAria:{"stat":"devices.tryx.statCpuTemperature"}',
-    });
+    const drag = screen.getByRole('button', { name: 'devices.tryx.overlayDragAria:{"stat":"CPU Package"}' });
     expect(drag).toBeInTheDocument();
     expect(drag).toHaveTextContent('45°C');
-    expect(drag).toHaveTextContent('devices.tryx.statCpuTemperature');
+    expect(drag).toHaveTextContent('CPU Package');
     expect(drag.style.left).toBe('4%');
-    expect(drag.style.top).toBe('12%');
+    expect(drag.style.top).toBe('10%');
   });
 
   it('does not render a drag handle for a disabled overlay slot', async () => {
     await renderPage();
-    expect(screen.queryByRole('button', {
-      name: 'devices.tryx.overlayDragAria:{"stat":"devices.tryx.statCpuFrequency"}',
-    })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /overlayDragAria/ })).toHaveLength(1);
   });
 
-  it('debounces a font change into a single setTryxOverlay call after 150ms', async () => {
+  it('debounces a font change into a single setTryxOverlay call with the full payload', async () => {
     await renderPage();
     const fontSelect = screen.getByRole('button', { name: 'devices.tryx.font' });
     fireEvent.click(fontSelect);
@@ -134,10 +172,12 @@ describe('TryxDevicePage - overlay editor', () => {
 
     expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
     expect(mockSetTryxOverlay).toHaveBeenCalledWith({
-      items: [{ stat: 'CPU Temperature', x: 0.04, y: 0.12 }],
+      items: [{ sensorId: 'cpu-temp', device: 'cpu', label: 'CPU Package', x: 0.04, y: 0.10 }],
       font: 'roboto-bold',
       size: 100,
       color: '#ffffff',
+      align: 'left',
+      docked: true,
     });
   });
 
@@ -153,22 +193,19 @@ describe('TryxDevicePage - overlay editor', () => {
 
     expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
     expect(mockSetTryxOverlay).toHaveBeenCalledWith({
-      items: [{ stat: 'CPU Temperature', x: 0.04, y: 0.12 }],
+      items: [{ sensorId: 'cpu-temp', device: 'cpu', label: 'CPU Package', x: 0.04, y: 0.10 }],
       font: 'roboto-bold',
       size: 100,
       color: '#ffffff',
+      align: 'left',
+      docked: true,
     });
   });
 
-  it('coalesces a rapid drag into a single debounced push with the final position', async () => {
+  it('coalesces a rapid drag into a single debounced push, clearing docked', async () => {
     await renderPage();
-    const drag = screen.getByRole('button', {
-      name: 'devices.tryx.overlayDragAria:{"stat":"devices.tryx.statCpuTemperature"}',
-    });
-    const canvas = drag.parentElement as HTMLElement;
-    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
-      left: 0, top: 0, width: 200, height: 100, right: 200, bottom: 100, x: 0, y: 0, toJSON: () => ({}),
-    });
+    const drag = screen.getByRole('button', { name: 'devices.tryx.overlayDragAria:{"stat":"CPU Package"}' });
+    mockCanvasRect(drag);
 
     fireEvent.pointerDown(drag, { clientX: 8, clientY: 12, pointerId: 1 });
     fireEvent.pointerMove(drag, { clientX: 28, clientY: 12, pointerId: 1 });
@@ -182,21 +219,94 @@ describe('TryxDevicePage - overlay editor', () => {
     const call = mockSetTryxOverlay.mock.calls[0][0];
     // Dragged 40px right on a 200px-wide canvas = +0.2 normalized, from 0.04.
     expect(call.items[0].x).toBeCloseTo(0.24, 5);
-    expect(call.items[0].y).toBeCloseTo(0.12, 5);
+    expect(call.items[0].y).toBeCloseTo(0.10, 5);
+    expect(call.docked).toBe(false);
   });
 
-  it('nudges position by arrow key and pushes the update debounced', async () => {
+  it('nudges position by arrow key, pushes debounced, and clears docked', async () => {
     await renderPage();
-    const drag = screen.getByRole('button', {
-      name: 'devices.tryx.overlayDragAria:{"stat":"devices.tryx.statCpuTemperature"}',
-    });
+    const drag = screen.getByRole('button', { name: 'devices.tryx.overlayDragAria:{"stat":"CPU Package"}' });
     fireEvent.keyDown(drag, { key: 'ArrowRight' });
     await act(async () => { vi.advanceTimersByTime(150); });
 
     expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
     const call = mockSetTryxOverlay.mock.calls[0][0];
     expect(call.items[0].x).toBeCloseTo(0.05, 5);
-    expect(call.items[0].y).toBeCloseTo(0.12, 5);
+    expect(call.items[0].y).toBeCloseTo(0.10, 5);
+    expect(call.docked).toBe(false);
+  });
+
+  it('changing align while docked re-anchors the enabled item, keeping docked on', async () => {
+    await renderPage();
+    const rightChip = screen.getByRole('button', { name: 'devices.tryx.alignRight' });
+    fireEvent.click(rightChip);
+    await act(async () => { vi.advanceTimersByTime(150); });
+
+    expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
+    const call = mockSetTryxOverlay.mock.calls[0][0];
+    expect(call.align).toBe('right');
+    expect(call.docked).toBe(true);
+    expect(call.items[0].x).toBeCloseTo(0.96, 5);
+    expect(call.items[0].y).toBeCloseTo(0.10, 5);
+  });
+
+  it('re-enabling docked snaps a dragged item back to the align-derived anchor', async () => {
+    await renderPage();
+    const drag = screen.getByRole('button', { name: 'devices.tryx.overlayDragAria:{"stat":"CPU Package"}' });
+    mockCanvasRect(drag);
+    fireEvent.pointerDown(drag, { clientX: 8, clientY: 12, pointerId: 1 });
+    fireEvent.pointerMove(drag, { clientX: 108, clientY: 62, pointerId: 1 });
+    fireEvent.pointerUp(drag, { clientX: 108, clientY: 62, pointerId: 1 });
+    await act(async () => { vi.advanceTimersByTime(150); });
+    mockSetTryxOverlay.mockClear();
+
+    const dockedToggle = screen.getByRole('switch', { name: 'devices.tryx.docked' });
+    expect(dockedToggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(dockedToggle);
+    await act(async () => { vi.advanceTimersByTime(150); });
+
+    expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
+    const call = mockSetTryxOverlay.mock.calls[0][0];
+    expect(call.docked).toBe(true);
+    expect(call.items[0].x).toBeCloseTo(0.04, 5);
+    expect(call.items[0].y).toBeCloseTo(0.10, 5);
+  });
+
+  it('picking a different device group resets the sensor to the first of that group', async () => {
+    await renderPage();
+    const deviceSelect = screen.getByRole('button', { name: 'devices.tryx.overlayDeviceAria:{"n":1}' });
+    fireEvent.click(deviceSelect);
+    const gpuOption = screen.getByRole('option', { name: 'devices.tryx.deviceGpu' });
+    fireEvent.click(gpuOption);
+    await act(async () => { vi.advanceTimersByTime(150); });
+
+    expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
+    const call = mockSetTryxOverlay.mock.calls[0][0];
+    expect(call.items[0]).toEqual({ sensorId: 'gpu-load', device: 'gpu', label: 'Core', x: 0.04, y: 0.10 });
+  });
+
+  it('disables a device group with no live sensors in the picker', async () => {
+    await renderPage();
+    const deviceSelect = screen.getByRole('button', { name: 'devices.tryx.overlayDeviceAria:{"n":1}' });
+    fireEvent.click(deviceSelect);
+    // mockSensors.memory is empty, so the group can't be picked.
+    expect(screen.getByRole('option', { name: 'devices.tryx.deviceMemory' })).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('enabling a never-configured slot auto-picks its default device\'s first sensor', async () => {
+    await renderPage();
+    const secondToggle = screen.getByRole('switch', { name: 'devices.tryx.overlayLineAria:{"n":2}' });
+    fireEvent.click(secondToggle);
+    await act(async () => { vi.advanceTimersByTime(150); });
+
+    expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
+    const call = mockSetTryxOverlay.mock.calls[0][0];
+    expect(call.items).toHaveLength(2);
+    expect(call.items[1].sensorId).toBe('cpu-temp');
+    expect(call.items[1].device).toBe('cpu');
+    expect(call.items[1].label).toBe('Package');
+    expect(call.items[1].x).toBeCloseTo(0.04);
+    expect(call.items[1].y).toBeCloseTo(0.30);
   });
 
   it('falls back to the neutral background when no wallpaper is active', async () => {
@@ -205,9 +315,7 @@ describe('TryxDevicePage - overlay editor', () => {
       state: { ...defaultStatus.state, currentMedia: '' },
     });
     await renderPage();
-    const drag = screen.getByRole('button', {
-      name: 'devices.tryx.overlayDragAria:{"stat":"devices.tryx.statCpuTemperature"}',
-    });
+    const drag = screen.getByRole('button', { name: 'devices.tryx.overlayDragAria:{"stat":"CPU Package"}' });
     const canvas = drag.parentElement as HTMLElement;
     expect(canvas.style.backgroundImage).toBe('');
   });

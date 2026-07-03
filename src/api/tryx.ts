@@ -29,8 +29,10 @@ export interface TryxState {
 }
 
 export interface TryxOverlayItem {
-  stat: string;
-  /** Normalized top-left of the value text, 0..1. */
+  sensorId: string;
+  device: string;
+  label: string;
+  /** Normalized justification anchor / top of the value text, 0..1. */
   x: number;
   y: number;
 }
@@ -41,6 +43,8 @@ export interface TryxOverlay {
   /** Percent, 50..150. */
   size: number;
   color: string;
+  align: 'left' | 'center' | 'right';
+  docked: boolean;
 }
 
 export interface TryxStatus {
@@ -92,13 +96,15 @@ const SIM_STATUS: TryxStatus = {
   },
   overlay: {
     items: [
-      { stat: 'CPU Temperature', x: 0.05, y: 0.12 },
-      { stat: 'CPU Frequency', x: 0.05, y: 0.42 },
-      { stat: 'CPU Usage', x: 0.05, y: 0.72 },
+      { sensorId: '/intelcpu/0/temperature/0', device: 'cpu', label: 'CPU Package', x: 0.04, y: 0.10 },
+      { sensorId: '/intelcpu/0/clock/0', device: 'cpu', label: 'CPU Clock', x: 0.04, y: 0.30 },
+      { sensorId: '/gpu/0/load/0', device: 'gpu', label: 'GPU Core', x: 0.04, y: 0.50 },
     ],
     font: 'roboto-regular',
     size: 100,
     color: '#ffffff',
+    align: 'left',
+    docked: true,
   },
 };
 
@@ -158,6 +164,8 @@ export async function setTryxOverlay(overlay: {
   font: string;
   size: number;
   color: string;
+  align: 'left' | 'center' | 'right';
+  docked: boolean;
 }): Promise<boolean> {
   if (isTryxSimulated()) return true;
   return isOk(await postService<OkResponse>('/tryx/overlay', overlay));

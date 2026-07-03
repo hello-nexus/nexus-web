@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { Monitor, MonitorOff, Power, Wind, Film, Download } from 'lucide-react';
+import { Monitor, MonitorOff, Wind, Film, Download } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Spinner } from '../../common/Spinner/Spinner';
@@ -7,6 +7,7 @@ import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { Button } from '../../common/Button/Button';
+import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { EffectCard } from '../../common/EffectCard/EffectCard';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -14,6 +15,9 @@ import { MediaCropper, type NormalizedCrop } from '../../common/MediaCropper/Med
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { CurveGraph } from '../../../panel/widgets/cooling/page/CurveEditor';
 import type { CurvePoint } from '../../../api/cooling';
+import { useSensors } from '../../../hooks/useSensors';
+import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
+import { buildNetworkSensors } from '../../../panel/widgets/monitoring/networkSensors';
 import {
   getTryxStatus,
   getTryxPresets,
@@ -38,26 +42,41 @@ import {
   type TryxOverlayItem,
 } from '../../../api/tryx';
 import {
+  applyDockedOverlayLayout,
   clampUnit,
-  defaultOverlayItemPosition,
+  dockedOverlayItemPosition,
+  isTryxOverlayAlign,
+  isTryxSensorGroup,
   scalePanelMetric,
   tryxFontCssStyle,
-  tryxOverlayStatPlaceholder,
+  tryxOverlayJustifyStyle,
+  tryxOverlayPreviewValue,
+  tryxSensorOptionsForGroup,
   TRYX_FONTS,
   TRYX_FONT_LABEL_KEYS,
   TRYX_LABEL_FONT_PANEL_PX,
   TRYX_LABEL_OFFSET_PANEL_PX,
+  TRYX_OVERLAY_ALIGNS,
+  TRYX_OVERLAY_ALIGN_LABEL_KEYS,
+  TRYX_SENSOR_GROUPS,
+  TRYX_SENSOR_GROUP_LABEL_KEYS,
   TRYX_VALUE_FONT_PANEL_PX,
+  type TryxOverlayAlign,
+  type TryxSensorGroup,
+  type TryxSensorsByGroup,
 } from './tryxOverlayUtils';
 import { useTranslation } from '../../../lib/i18n';
 import { useTryxSimulated } from '../../../lib/tryxSimulation';
 import styles from './TryxDevicePage.module.scss';
 
-// Debounce window for pushing overlay edits (stat/font/size/color/drag) to
-// the service - long enough to coalesce a drag's pointermove flood into one
-// request, short enough to feel live.
+// Debounce window for pushing overlay edits (item/font/size/color/align/
+// docked/drag) to the service - long enough to coalesce a drag's pointermove
+// flood into one request, short enough to feel live.
 const OVERLAY_PUSH_DEBOUNCE_MS = 150;
 const OVERLAY_KEYBOARD_STEP = 0.01;
+const OVERLAY_ITEM_SLOTS = [0, 1, 2, 3] as const;
+const DEFAULT_OVERLAY_ALIGN: TryxOverlayAlign = 'left';
+const DEFAULT_OVERLAY_DOCKED = true;
 
 const STATUS_POLL_MS = 4000;
 const MEDIA_POLL_MS = 8000;
@@ -74,53 +93,27 @@ const DEFAULT_CURVE: CurvePoint[] = [
   { temp: 100, speed: 100 },
 ];
 
-// Fixed device-firmware vocabulary forwarded verbatim to the `/tryx/overlay`
-// stats array - the wire value the panel firmware parses, not freely
-// translatable UI chrome (same precedent as the cooling-curve sensor names).
-const TRYX_STATS = [
-  'CPU Temperature',
-  'CPU Frequency',
-  'CPU Usage',
-  'CPU Voltage',
-  'GPU Temperature',
-  'GPU Frequency',
-  'GPU Usage',
-  'GPU Voltage',
-  'Motherboard Temperature',
-  'Memory Frequency',
-  'Memory Utilization',
-  'Date&Time',
-] as const;
-
-// Display labels are localized; the wire value above stays fixed regardless
-// of locale since it is what the service maps to a sensor reading.
-const TRYX_STAT_LABEL_KEYS: Record<(typeof TRYX_STATS)[number], string> = {
-  'CPU Temperature': 'devices.tryx.statCpuTemperature',
-  'CPU Frequency': 'devices.tryx.statCpuFrequency',
-  'CPU Usage': 'devices.tryx.statCpuUsage',
-  'CPU Voltage': 'devices.tryx.statCpuVoltage',
-  'GPU Temperature': 'devices.tryx.statGpuTemperature',
-  'GPU Frequency': 'devices.tryx.statGpuFrequency',
-  'GPU Usage': 'devices.tryx.statGpuUsage',
-  'GPU Voltage': 'devices.tryx.statGpuVoltage',
-  'Motherboard Temperature': 'devices.tryx.statMotherboardTemperature',
-  'Memory Frequency': 'devices.tryx.statMemoryFrequency',
-  'Memory Utilization': 'devices.tryx.statMemoryUtilization',
-  'Date&Time': 'devices.tryx.statDateTime',
-};
-
 interface OverlayItemState {
   enabled: boolean;
-  stat: string;
-  /** Normalized top-left of the value text, 0..1. */
+  device: TryxSensorGroup;
+  sensorId: string;
+  /** Concise label sent to the service and shown on the panel/preview. */
+  label: string;
+  /** Sensor type at pick time - local-only fallback for the preview
+   *  placeholder if the live sensor later drops out; never sent to the service. */
+  sensorType: string;
+  /** Normalized justification anchor / top of the value text, 0..1. */
   x: number;
   y: number;
 }
 
-const DEFAULT_OVERLAY_ITEMS: OverlayItemState[] = [0, 1, 2].map(i => ({
+const DEFAULT_OVERLAY_ITEMS: OverlayItemState[] = OVERLAY_ITEM_SLOTS.map(i => ({
   enabled: i === 0,
-  stat: TRYX_STATS[i],
-  ...defaultOverlayItemPosition(i),
+  device: 'cpu',
+  sensorId: '',
+  label: '',
+  sensorType: '',
+  ...dockedOverlayItemPosition(DEFAULT_OVERLAY_ALIGN, i),
 }));
 
 type TryxTab = 'display' | 'media' | 'cooling';
@@ -160,11 +153,29 @@ export function TryxDevicePage() {
   const [overlayFont, setOverlayFont] = useState<string>(TRYX_FONTS[0]);
   const [overlaySize, setOverlaySize] = useState(100);
   const [overlayColor, setOverlayColor] = useState('#ffffff');
+  const [overlayAlign, setOverlayAlign] = useState<TryxOverlayAlign>(DEFAULT_OVERLAY_ALIGN);
+  const [overlayDocked, setOverlayDocked] = useState(DEFAULT_OVERLAY_DOCKED);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [previewHeightPx, setPreviewHeightPx] = useState(0);
 
   const [cropState, setCropState] = useState<{ src: string; file: File } | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Live monitoring sensor library backing the overlay's device/sensor
+  // dropdowns and the preview's live values - independent of Tryx being
+  // simulated (these are real hardware sensor topics either way).
+  const sensors = useSensors(true);
+  const usesNetworkSensor = overlayItems.some(item => item.device === 'network');
+  const network = useNetworkMonitor(usesNetworkSensor);
+  const networkSensors = buildNetworkSensors(network);
+  const sensorsByGroup: TryxSensorsByGroup = {
+    cpu: sensors.cpu,
+    gpu: sensors.gpu,
+    memory: sensors.memory,
+    motherboard: sensors.motherboard,
+    storage: sensors.storageSensors,
+    network: networkSensors,
+  };
 
   const aliveRef = useRef(true);
   const brightnessInteractingRef = useRef(false);
@@ -172,7 +183,9 @@ export function TryxDevicePage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previewCanvasRef = useRef<HTMLDivElement | null>(null);
   const overlayPushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingOverlayRef = useRef<{ items: TryxOverlayItem[]; font: string; size: number; color: string } | null>(null);
+  const pendingOverlayRef = useRef<{
+    items: TryxOverlayItem[]; font: string; size: number; color: string; align: TryxOverlayAlign; docked: boolean;
+  } | null>(null);
   const dragRef = useRef<{ index: number; startPx: number; startPy: number; startX: number; startY: number } | null>(null);
 
   const refreshStatus = useCallback(async () => {
@@ -234,19 +247,28 @@ export function TryxDevicePage() {
     if (overlayInitRef.current || !status) return;
     overlayInitRef.current = true;
     const items = status.overlay?.items ?? [];
-    setOverlayItems([0, 1, 2].map(i => {
+    const align = isTryxOverlayAlign(status.overlay?.align) ? status.overlay.align : DEFAULT_OVERLAY_ALIGN;
+    setOverlayItems(OVERLAY_ITEM_SLOTS.map(i => {
       const item = items[i];
-      const pos = defaultOverlayItemPosition(i);
+      const pos = dockedOverlayItemPosition(align, i);
+      if (!item) {
+        return { enabled: false, device: 'cpu', sensorId: '', label: '', sensorType: '', x: pos.x, y: pos.y };
+      }
       return {
-        enabled: i < items.length,
-        stat: item?.stat ?? TRYX_STATS[i],
-        x: item ? clampUnit(item.x) : pos.x,
-        y: item ? clampUnit(item.y) : pos.y,
+        enabled: true,
+        device: isTryxSensorGroup(item.device) ? item.device : 'cpu',
+        sensorId: item.sensorId,
+        label: item.label,
+        sensorType: '',
+        x: clampUnit(item.x),
+        y: clampUnit(item.y),
       };
     }));
     setOverlayFont(status.overlay?.font ?? TRYX_FONTS[0]);
     setOverlaySize(status.overlay?.size ?? 100);
     setOverlayColor(status.overlay?.color ?? '#ffffff');
+    setOverlayAlign(align);
+    setOverlayDocked(status.overlay?.docked ?? DEFAULT_OVERLAY_DOCKED);
   }, [status]);
 
   // Measures the preview canvas's rendered height so scalePanelMetric can
@@ -276,14 +298,16 @@ export function TryxDevicePage() {
     if (pendingOverlayRef.current) void setTryxOverlay(pendingOverlayRef.current);
   }, []);
 
-  // Debounced push of the full overlay block - every stat/font/size/color/drag
-  // edit calls this so a fast drag coalesces into one request instead of
-  // spamming the service on every pointermove.
-  const pushOverlay = useCallback((items: OverlayItemState[], font: string, size: number, color: string) => {
+  // Debounced push of the full overlay block - every item/font/size/color/
+  // align/docked/drag edit calls this so a fast drag coalesces into one
+  // request instead of spamming the service on every pointermove.
+  const pushOverlay = useCallback((
+    items: OverlayItemState[], font: string, size: number, color: string, align: TryxOverlayAlign, docked: boolean,
+  ) => {
     const wireItems: TryxOverlayItem[] = items
-      .filter(i => i.enabled)
-      .map(i => ({ stat: i.stat, x: i.x, y: i.y }));
-    pendingOverlayRef.current = { items: wireItems, font, size, color };
+      .filter(i => i.enabled && i.sensorId)
+      .map(i => ({ sensorId: i.sensorId, device: i.device, label: i.label, x: i.x, y: i.y }));
+    pendingOverlayRef.current = { items: wireItems, font, size, color, align, docked };
     if (overlayPushTimerRef.current) clearTimeout(overlayPushTimerRef.current);
     overlayPushTimerRef.current = setTimeout(() => {
       overlayPushTimerRef.current = null;
@@ -293,9 +317,15 @@ export function TryxDevicePage() {
     }, OVERLAY_PUSH_DEBOUNCE_MS);
   }, []);
 
-  const updateOverlayItems = useCallback((next: OverlayItemState[]) => {
-    setOverlayItems(next);
-    pushOverlay(next, overlayFont, overlaySize, overlayColor);
+  // Commits a new items/docked/align combination to state and dispatches it.
+  // Align always drives text justification; docked only decides whether
+  // positions are auto-derived from align or free to drag - callers resolve
+  // that distinction before calling in (see the handlers below).
+  const commitOverlay = useCallback((items: OverlayItemState[], docked: boolean, align: TryxOverlayAlign) => {
+    setOverlayItems(items);
+    setOverlayDocked(docked);
+    setOverlayAlign(align);
+    pushOverlay(items, overlayFont, overlaySize, overlayColor, align, docked);
   }, [pushOverlay, overlayFont, overlaySize, overlayColor]);
 
   const connected = !!status?.connected;
@@ -359,6 +389,54 @@ export function TryxDevicePage() {
     return { x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height };
   };
 
+  const handleItemEnabledChange = (i: number, enabled: boolean) => {
+    let toggled = overlayItems.map((it, idx) => (idx === i ? { ...it, enabled } : it));
+    // A slot enabled for the first time has no sensor picked yet (device
+    // defaults to cpu, sensorId ''); seed it from that device's first sensor
+    // so an unconfigured stat never reaches pushOverlay with a blank sensorId.
+    if (enabled && !toggled[i].sensorId) {
+      const first = tryxSensorOptionsForGroup(toggled[i].device, sensorsByGroup)[0];
+      if (first) {
+        toggled = toggled.map((it, idx) => (idx === i
+          ? { ...it, sensorId: first.value, label: first.bareLabel, sensorType: first.type }
+          : it));
+      }
+    }
+    const next = overlayDocked ? applyDockedOverlayLayout(toggled, overlayAlign) : toggled;
+    commitOverlay(next, overlayDocked, overlayAlign);
+  };
+
+  const handleItemDeviceChange = (i: number, device: TryxSensorGroup) => {
+    const first = tryxSensorOptionsForGroup(device, sensorsByGroup)[0];
+    // No sensor available for the target group (also disabled in the
+    // dropdown - see deviceGroupOptions): keep the current pick rather than
+    // switching to a device/sensor pair the service can't render.
+    if (!first) return;
+    const next = overlayItems.map((it, idx) => (idx === i
+      ? { ...it, device, sensorId: first.value, label: first.bareLabel, sensorType: first.type }
+      : it));
+    commitOverlay(next, overlayDocked, overlayAlign);
+  };
+
+  const handleItemSensorChange = (i: number, sensorId: string) => {
+    const options = tryxSensorOptionsForGroup(overlayItems[i].device, sensorsByGroup);
+    const picked = options.find(o => o.value === sensorId);
+    const next = overlayItems.map((it, idx) => (idx === i
+      ? { ...it, sensorId, label: picked?.bareLabel ?? it.label, sensorType: picked?.type ?? it.sensorType }
+      : it));
+    commitOverlay(next, overlayDocked, overlayAlign);
+  };
+
+  const handleAlignChange = (align: TryxOverlayAlign) => {
+    const next = overlayDocked ? applyDockedOverlayLayout(overlayItems, align) : overlayItems;
+    commitOverlay(next, overlayDocked, align);
+  };
+
+  const handleDockedChange = (docked: boolean) => {
+    const next = docked ? applyDockedOverlayLayout(overlayItems, overlayAlign) : overlayItems;
+    commitOverlay(next, docked, overlayAlign);
+  };
+
   const handleStatPointerDown = (index: number, e: PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -373,7 +451,8 @@ export function TryxDevicePage() {
     const p = getCanvasPercent(e);
     const nx = clampUnit(drag.startX + (p.x - drag.startPx));
     const ny = clampUnit(drag.startY + (p.y - drag.startPy));
-    updateOverlayItems(overlayItems.map((it, i) => (i === index ? { ...it, x: nx, y: ny } : it)));
+    const next = overlayItems.map((it, i) => (i === index ? { ...it, x: nx, y: ny } : it));
+    commitOverlay(next, false, overlayAlign);
   };
 
   const handleStatPointerEnd = () => {
@@ -391,9 +470,10 @@ export function TryxDevicePage() {
       default: return;
     }
     e.preventDefault();
-    updateOverlayItems(overlayItems.map((it, i) => (i === index
+    const next = overlayItems.map((it, i) => (i === index
       ? { ...it, x: clampUnit(it.x + dx), y: clampUnit(it.y + dy) }
-      : it)));
+      : it));
+    commitOverlay(next, false, overlayAlign);
   };
 
   const handleCloudInstall = useCallback((id: number) => {
@@ -486,8 +566,15 @@ export function TryxDevicePage() {
     { key: 'cooling', label: t('devices.tryx.tabCooling'), icon: <Wind size={14} /> },
   ];
 
-  const statOptions = TRYX_STATS.map(stat => ({ value: stat, label: t(TRYX_STAT_LABEL_KEYS[stat]) }));
   const fontOptions = TRYX_FONTS.map(font => ({ value: font, label: t(TRYX_FONT_LABEL_KEYS[font]) }));
+  // A group with no sensors currently reporting (no GPU, storage/network not
+  // wired yet, ...) is disabled rather than selectable-but-empty.
+  const deviceGroupOptions = TRYX_SENSOR_GROUPS.map(group => ({
+    value: group,
+    label: t(TRYX_SENSOR_GROUP_LABEL_KEYS[group]),
+    disabled: tryxSensorOptionsForGroup(group, sensorsByGroup).length === 0,
+  }));
+  const alignOptions = TRYX_OVERLAY_ALIGNS.map(align => ({ key: align, label: t(TRYX_OVERLAY_ALIGN_LABEL_KEYS[align]) }));
 
   return (
     <div className={styles.page}>
@@ -505,7 +592,6 @@ export function TryxDevicePage() {
             <>
               <SettingsSection title={t('devices.tryx.screenSection')} boxClassName={styles.sectionBox}>
                 <div className={styles.row}>
-                  <Power size={14} className={styles.rowIcon} aria-hidden />
                   <span className={styles.rowLabel}>{t('devices.tryx.screenOn')}</span>
                   <Toggle
                     checked={screenEnabled}
@@ -554,27 +640,49 @@ export function TryxDevicePage() {
               </SettingsSection>
 
               <SettingsSection title={t('devices.tryx.overlaySection')} boxClassName={styles.sectionBox}>
-                {([0, 1, 2] as const).map(i => (
+                {OVERLAY_ITEM_SLOTS.map(i => (
                   <div key={i} className={styles.overlayRow}>
                     <Toggle
                       checked={overlayItems[i].enabled}
-                      onChange={enabled => {
-                        updateOverlayItems(overlayItems.map((l, idx) => (idx === i ? { ...l, enabled } : l)));
-                      }}
+                      onChange={enabled => handleItemEnabledChange(i, enabled)}
                       ariaLabel={t('devices.tryx.overlayLineAria', { n: i + 1 })}
                     />
                     <Select
-                      className={styles.overlaySelect}
-                      value={overlayItems[i].stat}
-                      options={statOptions}
+                      className={styles.overlayDeviceSelect}
+                      value={overlayItems[i].device}
+                      options={deviceGroupOptions}
                       disabled={!overlayItems[i].enabled}
-                      onChange={stat => {
-                        updateOverlayItems(overlayItems.map((l, idx) => (idx === i ? { ...l, stat } : l)));
-                      }}
-                      ariaLabel={t('devices.tryx.overlayStatAria', { n: i + 1 })}
+                      onChange={device => handleItemDeviceChange(i, device as TryxSensorGroup)}
+                      ariaLabel={t('devices.tryx.overlayDeviceAria', { n: i + 1 })}
+                    />
+                    <Select
+                      className={styles.overlaySelect}
+                      value={overlayItems[i].sensorId}
+                      options={tryxSensorOptionsForGroup(overlayItems[i].device, sensorsByGroup)
+                        .map(o => ({ value: o.value, label: o.optionLabel }))}
+                      disabled={!overlayItems[i].enabled}
+                      onChange={sensorId => handleItemSensorChange(i, sensorId)}
+                      ariaLabel={t('devices.tryx.overlaySensorAria', { n: i + 1 })}
                     />
                   </div>
                 ))}
+                <div className={styles.controlRow}>
+                  <span className={styles.controlRowLabel}>{t('devices.tryx.align')}</span>
+                  <ChipGroup
+                    ariaLabel={t('devices.tryx.align')}
+                    activeKey={overlayAlign}
+                    onChange={align => handleAlignChange(align as TryxOverlayAlign)}
+                    options={alignOptions}
+                  />
+                </div>
+                <div className={styles.row}>
+                  <span className={styles.rowLabel}>{t('devices.tryx.docked')}</span>
+                  <Toggle
+                    checked={overlayDocked}
+                    onChange={handleDockedChange}
+                    ariaLabel={t('devices.tryx.docked')}
+                  />
+                </div>
                 <div className={styles.controlRow}>
                   <span className={styles.controlRowLabel}>{t('devices.tryx.font')}</span>
                   <Select
@@ -583,7 +691,7 @@ export function TryxDevicePage() {
                     options={fontOptions}
                     onChange={font => {
                       setOverlayFont(font);
-                      pushOverlay(overlayItems, font, overlaySize, overlayColor);
+                      pushOverlay(overlayItems, font, overlaySize, overlayColor, overlayAlign, overlayDocked);
                     }}
                     ariaLabel={t('devices.tryx.font')}
                   />
@@ -604,12 +712,12 @@ export function TryxDevicePage() {
                     onChange={v => {
                       const rounded = Math.round(v);
                       setOverlaySize(rounded);
-                      pushOverlay(overlayItems, overlayFont, rounded, overlayColor);
+                      pushOverlay(overlayItems, overlayFont, rounded, overlayColor, overlayAlign, overlayDocked);
                     }}
                     onCommit={v => {
                       const rounded = Math.round(v);
                       setOverlaySize(rounded);
-                      pushOverlay(overlayItems, overlayFont, rounded, overlayColor);
+                      pushOverlay(overlayItems, overlayFont, rounded, overlayColor, overlayAlign, overlayDocked);
                     }}
                   />
                 </div>
@@ -620,11 +728,11 @@ export function TryxDevicePage() {
                       value={overlayColor}
                       onPreview={color => {
                         setOverlayColor(color);
-                        pushOverlay(overlayItems, overlayFont, overlaySize, color);
+                        pushOverlay(overlayItems, overlayFont, overlaySize, color, overlayAlign, overlayDocked);
                       }}
                       onCommit={color => {
                         setOverlayColor(color);
-                        pushOverlay(overlayItems, overlayFont, overlaySize, color);
+                        pushOverlay(overlayItems, overlayFont, overlaySize, color, overlayAlign, overlayDocked);
                       }}
                     />
                   </div>
@@ -831,10 +939,9 @@ export function TryxDevicePage() {
             >
               {overlayItems.map((item, i) => {
                 if (!item.enabled) return null;
-                const stat = item.stat as (typeof TRYX_STATS)[number];
-                const label = t(TRYX_STAT_LABEL_KEYS[stat] ?? TRYX_STAT_LABEL_KEYS[TRYX_STATS[0]]);
-                const value = tryxOverlayStatPlaceholder(item.stat);
+                const value = tryxOverlayPreviewValue(item.device, item.sensorId, item.sensorType, sensorsByGroup);
                 const fontStyle = tryxFontCssStyle(overlayFont);
+                const justify = tryxOverlayJustifyStyle(overlayAlign);
                 const valueFontPx = scalePanelMetric(TRYX_VALUE_FONT_PANEL_PX, overlaySize, previewHeightPx);
                 const labelFontPx = scalePanelMetric(TRYX_LABEL_FONT_PANEL_PX, overlaySize, previewHeightPx);
                 const labelTopPx = scalePanelMetric(TRYX_LABEL_OFFSET_PANEL_PX, overlaySize, previewHeightPx);
@@ -845,7 +952,7 @@ export function TryxDevicePage() {
                     tabIndex={0}
                     className={styles.previewStat}
                     style={{ left: `${item.x * 100}%`, top: `${item.y * 100}%` }}
-                    aria-label={t('devices.tryx.overlayDragAria', { stat: label })}
+                    aria-label={t('devices.tryx.overlayDragAria', { stat: item.label })}
                     aria-pressed={draggingIndex === i}
                     onPointerDown={e => handleStatPointerDown(i, e)}
                     onPointerMove={e => handleStatPointerMove(i, e)}
@@ -853,11 +960,17 @@ export function TryxDevicePage() {
                     onPointerCancel={handleStatPointerEnd}
                     onKeyDown={e => handleStatKeyDown(i, e)}
                   >
-                    <span className={styles.previewValue} style={{ ...fontStyle, fontSize: `${valueFontPx}px`, color: overlayColor }}>
+                    <span
+                      className={styles.previewValue}
+                      style={{ ...fontStyle, ...justify, fontSize: `${valueFontPx}px`, color: overlayColor }}
+                    >
                       {value}
                     </span>
-                    <span className={styles.previewLabel} style={{ ...fontStyle, fontSize: `${labelFontPx}px`, top: `${labelTopPx}px`, color: overlayColor }}>
-                      {label}
+                    <span
+                      className={styles.previewLabel}
+                      style={{ ...fontStyle, ...justify, fontSize: `${labelFontPx}px`, top: `${labelTopPx}px`, color: overlayColor }}
+                    >
+                      {item.label}
                     </span>
                   </div>
                 );
