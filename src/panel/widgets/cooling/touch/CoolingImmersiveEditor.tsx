@@ -131,6 +131,7 @@ function FansTab({ cooling }: { cooling: CoolingImmersiveController }) {
       onCreateCurve={() => cooling.createCurveAndAssign(ch.id)}
       onRename={cooling.renameFan}
       onSpeedChange={cooling.setFanSpeed}
+      onToggleLock={cooling.setFanLock}
     />
   );
 

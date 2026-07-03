@@ -1,5 +1,5 @@
 import { memo, useRef, useState } from 'react';
-import { Droplets, Fan, Plus } from 'lucide-react';
+import { Fan, Lock, Plus } from 'lucide-react';
 import type { FanChannel } from '../../../../api/cooling';
 import { useTranslation } from '../../../../lib/i18n';
 import type { CurveDef, FanState } from '../../../../types/cooling';
@@ -36,7 +36,7 @@ export const FanCard = memo(function FanCard({
   hubMode, hubSupportsFirmware,
   hubSupportsBios = true,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
-  onSetMode, onCreateCurve, onRename, onSpeedChange, drag,
+  onSetMode, onCreateCurve, onRename, onSpeedChange, onToggleLock, drag,
 }: {
   channel: FanChannel;
   state: FanState | undefined;
@@ -72,6 +72,7 @@ export const FanCard = memo(function FanCard({
   onCreateCurve: () => void;
   onRename: (id: string, name: string) => void;
   onSpeedChange: (id: string, speed: number) => void;
+  onToggleLock: (id: string, locked: boolean) => void;
   drag?: SortableRowArgs;
 }) {
   const { t } = useTranslation();
@@ -103,6 +104,7 @@ export const FanCard = memo(function FanCard({
   // Telemetry-only channel (Q-series pump today): header readout only, no duty
   // bar or mode dropdown - nothing here drives it.
   const isReadOnly = channel.readOnly ?? false;
+  const locked = channel.locked ?? false;
 
   const [manualTarget, setManualTarget] = useState(channel.mode === 'Manual' ? channel.dutyPercent : 50);
   const barRef = useRef<HTMLDivElement>(null);
@@ -160,7 +162,7 @@ export const FanCard = memo(function FanCard({
     driven ? styles.fanCardActive : '',
     compact ? styles.fanCardCompact : '',
     isHwDisconnected ? styles.fanCardOff : '',
-    channel.kind === 'Pump' ? styles.fanCardPump : '',
+    locked ? styles.fanCardLocked : '',
     drag?.isDragging ? drag.placeholderClassName : '',
   ].filter(Boolean).join(' ');
 
@@ -169,7 +171,7 @@ export const FanCard = memo(function FanCard({
     drag?.ref(el);
   };
 
-  const kindLabel = t(channel.kind === 'Pump' ? 'cooling.kind.pump' : 'cooling.kind.fan');
+  const lockTooltip = locked ? t('cooling.lock.locked') : t('cooling.lock.unlocked');
 
   // NP50 lists only FW Control (no BIOS hand-off); a Q-series pump lists both;
   // everything else lists only BIOS. The create-curve action sits below a thin
@@ -196,14 +198,30 @@ export const FanCard = memo(function FanCard({
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
       <div className={styles.fanCardHeader}>
-        {/* Kind icon far left next to the name; its tooltip names the channel
-            type (fan vs pump). When this fan is bound to the curve currently
+        {/* Fan icon doubles as the lock toggle: click to exclude this fan
+            from the global preset buttons (still settable from the mode
+            dropdown below). When this fan is bound to the curve currently
             shown in the graph, the highlight lives on the dropdown value
             (accentValue) instead of the icon. */}
-        <HoverTooltip body={kindLabel} side="top">
-          {channel.kind === 'Pump'
-            ? <Droplets size={16} className={styles.fanKindIcon} role="img" aria-label={kindLabel} />
-            : <Fan size={16} className={styles.fanKindIcon} role="img" aria-label={kindLabel} />}
+        <HoverTooltip body={lockTooltip} side="top">
+          {isReadOnly ? (
+            <span className={styles.fanKindToggle} role="img" aria-label={lockTooltip}>
+              <Fan size={18} className={styles.fanKindIcon} aria-hidden="true" />
+              {locked && <Lock size={10} className={styles.fanLockBadge} aria-hidden="true" />}
+            </span>
+          ) : (
+            <button
+              type="button"
+              data-no-dnd
+              className={`${styles.fanKindToggle} ${styles.fanLockToggle}`}
+              aria-pressed={locked}
+              aria-label={lockTooltip}
+              onClick={() => onToggleLock(channel.id, !locked)}
+            >
+              <Fan size={18} className={styles.fanKindIcon} aria-hidden="true" />
+              {locked && <Lock size={10} className={styles.fanLockBadge} aria-hidden="true" />}
+            </button>
+          )}
         </HoverTooltip>
         {/* display:contents span carries data-no-dnd onto a real DOM node
             (EditableText doesn't forward unknown props) so a press on the name
