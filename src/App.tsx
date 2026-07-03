@@ -163,6 +163,7 @@ export default function App() {
           isPhonePair={isPhonePair}
           pairToken={params.get('pair')}
           pairDeviceId={params.get('deviceId')}
+          pairSpki={params.get('fp')}
         />
       </I18nProvider>
     );

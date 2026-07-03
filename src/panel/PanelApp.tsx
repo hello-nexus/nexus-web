@@ -597,6 +597,9 @@ export function PanelContent({
   // so they're excluded. The insecure-browser guard mirrors
   // nativePairingAvailable: the plain-HTTP LAN fallback can't deliver pairing.
   const localPairAvailable = surface !== 'phone' && !isInsecureBrowserPanel();
+  // The phone's own remembered-PCs list is the mirror image of localPairAvailable:
+  // only the remote end (a phone reaching a PC) has other PCs to switch between.
+  const pairedPcsAvailable = surface === 'phone';
 
   const onCellTap = useCallback((w: PanelWidget) => {
     if (simulator) {
@@ -1356,6 +1359,8 @@ export function PanelContent({
                 pairAvailable={nativePairingAvailable}
                 onPairSheet={localPairAvailable ? () => openSheet('pairRemote') : undefined}
                 pairSheetAvailable={localPairAvailable}
+                onPairedPcsSheet={pairedPcsAvailable ? () => openSheet('pairedPcs') : undefined}
+                pairedPcsSheetAvailable={pairedPcsAvailable}
                 surfaceRef={rootRef}
                 surface={surface}
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
