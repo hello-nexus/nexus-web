@@ -17,6 +17,11 @@ export function SparklineGauge({ formatted, label, history, historyDomain }: Gau
           // eslint-disable-next-line i18next/no-literal-string -- CSS color variable
           strokeColor="var(--panel-accent)"
           strokeWidth={GAUGE_LINE_THICKNESS}
+          // Lift the line off the clip edge so the non-scaling stroke isn't
+          // half-cropped by .chart's overflow:hidden at domain min/max. padding
+          // is viewBox units, so this equals half a stroke only near the
+          // nominal 36px render height and grows headroom on taller tiles.
+          padding={GAUGE_LINE_THICKNESS / 2}
           sampleCount={PERF_HISTORY_SAMPLES}
           width={160}
           height={36}
