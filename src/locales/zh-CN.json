@@ -2359,7 +2359,7 @@
   "lighting.controls.param.width": "宽度",
   "lighting.controls.param.wind": "风",
   "lighting.controls.param.zoom": "缩放",
-  "cooling.lock.locked": "已锁定 - 切换散热模式不会影响此风扇，可通过下拉菜单设置。",
+  "cooling.lock.locked": "已锁定 - 切换散热模式不会影响此风扇。点击解锁。",
   "cooling.lock.unlocked": "点击锁定 - 切换散热模式时保留此风扇的当前设置。",
   "update.modal.newBetaRelease": "新测试版！",
   "update.modal.newRelease": "新版本！",

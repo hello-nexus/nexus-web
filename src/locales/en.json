@@ -355,7 +355,7 @@
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Fans",
   "cooling.label.gpu": "GPU",
-  "cooling.lock.locked": "Locked - cooling modes won't change this fan. Set it with the dropdown.",
+  "cooling.lock.locked": "Locked - cooling modes won't change this fan. Click to unlock.",
   "cooling.lock.unlocked": "Click to lock - keeps this fan on its own setting when you switch cooling modes.",
   "cooling.panel.next": "Next fan profile",
   "cooling.panel.prev": "Previous fan profile",

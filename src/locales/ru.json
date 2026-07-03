@@ -2359,7 +2359,7 @@
   "lighting.controls.param.width": "Ширина",
   "lighting.controls.param.wind": "Ветер",
   "lighting.controls.param.zoom": "Масштаб",
-  "cooling.lock.locked": "Заблокирован - режимы охлаждения не изменят этот вентилятор. Настройте его в выпадающем списке.",
+  "cooling.lock.locked": "Заблокирован - режимы охлаждения не изменят этот вентилятор. Нажмите, чтобы разблокировать.",
   "cooling.lock.unlocked": "Нажмите, чтобы заблокировать - вентилятор сохранит свою настройку при смене режима охлаждения.",
   "update.modal.newBetaRelease": "Новая бета-версия!",
   "update.modal.newRelease": "Новая версия!",

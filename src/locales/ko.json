@@ -2359,7 +2359,7 @@
   "lighting.controls.param.width": "너비",
   "lighting.controls.param.wind": "바람",
   "lighting.controls.param.zoom": "줌",
-  "cooling.lock.locked": "잠금됨 - 냉각 모드를 전환해도 이 팬은 변경되지 않습니다. 드롭다운에서 설정하세요.",
+  "cooling.lock.locked": "잠금됨 - 냉각 모드를 전환해도 이 팬은 변경되지 않습니다. 클릭하여 잠금 해제.",
   "cooling.lock.unlocked": "클릭하여 잠금 - 냉각 모드를 전환해도 이 팬의 설정을 유지합니다.",
   "update.modal.newBetaRelease": "새 베타 릴리스!",
   "update.modal.newRelease": "새 릴리스!",

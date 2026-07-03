@@ -2359,7 +2359,7 @@
   "lighting.controls.param.width": "Largura",
   "lighting.controls.param.wind": "Vento",
   "lighting.controls.param.zoom": "Zoom",
-  "cooling.lock.locked": "Bloqueada - os modos de arrefecimento não vão alterar esta ventoinha. Defina-a através da lista pendente.",
+  "cooling.lock.locked": "Bloqueada - os modos de arrefecimento não vão alterar esta ventoinha. Clique para desbloquear.",
   "cooling.lock.unlocked": "Clique para bloquear - esta ventoinha mantém a sua própria definição quando muda o modo de arrefecimento.",
   "update.modal.newBetaRelease": "Nova versão beta!",
   "update.modal.newRelease": "Nova versão!",

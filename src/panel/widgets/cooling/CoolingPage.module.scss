@@ -318,15 +318,6 @@
 // Sidebar variant: fill the column width.
 .fanCardCompact { width: 100%; }
 
-// Locked fans are skipped by the global Silent/Balanced/Turbo presets, so
-// they carry a persistent accent border alongside the lock badge. Kept at a
-// partial mix so it reads as a status marker, not the brighter --accent-glow
-// used for selection/hover elsewhere.
-.fanCardLocked {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  &:hover { border-color: color-mix(in srgb, var(--accent) 70%, transparent); }
-}
-
 
 // Software-controlled (not BIOS/FW): keep the card surface unchanged and
 // signal it on the duty bar instead - a much lighter cue than a full-card

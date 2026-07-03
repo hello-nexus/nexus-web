@@ -2359,7 +2359,7 @@
   "lighting.controls.param.width": "Anchura",
   "lighting.controls.param.wind": "Viento",
   "lighting.controls.param.zoom": "Zoom",
-  "cooling.lock.locked": "Bloqueado - los modos de refrigeración no cambiarán este ventilador. Ajústalo con el menú desplegable.",
+  "cooling.lock.locked": "Bloqueado - los modos de refrigeración no cambiarán este ventilador. Haz clic para desbloquear.",
   "cooling.lock.unlocked": "Haz clic para bloquear - este ventilador conserva su propio ajuste cuando cambias de modo de refrigeración.",
   "update.modal.newBetaRelease": "¡Nueva versión beta!",
   "update.modal.newRelease": "¡Nueva versión!",

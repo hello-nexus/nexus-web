@@ -2359,7 +2359,7 @@
   "lighting.controls.param.width": "Breite",
   "lighting.controls.param.wind": "Wind",
   "lighting.controls.param.zoom": "Zoom",
-  "cooling.lock.locked": "Gesperrt - Kühlmodi ändern diesen Lüfter nicht. Stellen Sie ihn über das Dropdown-Menü ein.",
+  "cooling.lock.locked": "Gesperrt - Kühlmodi ändern diesen Lüfter nicht. Klicken Sie zum Entsperren.",
   "cooling.lock.unlocked": "Klicken Sie zum Sperren - so behält dieser Lüfter seine eigene Einstellung, wenn Sie den Kühlmodus wechseln.",
   "update.modal.newBetaRelease": "Neue Beta-Version!",
   "update.modal.newRelease": "Neue Version!",

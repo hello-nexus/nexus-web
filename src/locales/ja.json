@@ -2359,7 +2359,7 @@
   "lighting.controls.param.width": "幅",
   "lighting.controls.param.wind": "風",
   "lighting.controls.param.zoom": "ズーム",
-  "cooling.lock.locked": "ロック中 - 冷却モードを切り替えてもこのファンは変更されません。ドロップダウンから設定してください。",
+  "cooling.lock.locked": "ロック中 - 冷却モードを切り替えてもこのファンは変更されません。クリックでロック解除。",
   "cooling.lock.unlocked": "クリックでロック - 冷却モードを切り替えてもこのファンの設定を維持します。",
   "update.modal.newBetaRelease": "新しいベータ版！",
   "update.modal.newRelease": "新しいリリース！",

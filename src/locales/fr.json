@@ -2359,7 +2359,7 @@
   "lighting.controls.param.width": "Largeur",
   "lighting.controls.param.wind": "Vent",
   "lighting.controls.param.zoom": "Zoom",
-  "cooling.lock.locked": "Verrouillé - les modes de refroidissement ne modifieront pas ce ventilateur. Réglez-le avec le menu déroulant.",
+  "cooling.lock.locked": "Verrouillé - les modes de refroidissement ne modifieront pas ce ventilateur. Cliquez pour déverrouiller.",
   "cooling.lock.unlocked": "Cliquez pour verrouiller - ce ventilateur garde son propre réglage quand vous changez de mode de refroidissement.",
   "update.modal.newBetaRelease": "Nouvelle version bêta !",
   "update.modal.newRelease": "Nouvelle version !",

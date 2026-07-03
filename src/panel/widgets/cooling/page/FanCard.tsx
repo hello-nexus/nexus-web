@@ -162,7 +162,6 @@ export const FanCard = memo(function FanCard({
     driven ? styles.fanCardActive : '',
     compact ? styles.fanCardCompact : '',
     isHwDisconnected ? styles.fanCardOff : '',
-    locked ? styles.fanCardLocked : '',
     drag?.isDragging ? drag.placeholderClassName : '',
   ].filter(Boolean).join(' ');
 

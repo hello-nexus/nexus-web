@@ -2359,7 +2359,7 @@
   "lighting.controls.param.width": "Larghezza",
   "lighting.controls.param.wind": "Vento",
   "lighting.controls.param.zoom": "Zoom",
-  "cooling.lock.locked": "Bloccata - le modalità di raffreddamento non modificheranno questa ventola. Impostala dal menu a tendina.",
+  "cooling.lock.locked": "Bloccata - le modalità di raffreddamento non modificheranno questa ventola. Clicca per sbloccare.",
   "cooling.lock.unlocked": "Clicca per bloccare - questa ventola mantiene la propria impostazione quando cambi modalità di raffreddamento.",
   "update.modal.newBetaRelease": "Nuova versione beta!",
   "update.modal.newRelease": "Nuova versione!",
