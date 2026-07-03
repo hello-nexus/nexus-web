@@ -645,6 +645,7 @@
   "devices.tryx.deleteMediaMessage": "Eliminâ \"{name}\"? Cheste azion no pues jessi anulade.",
   "devices.tryx.deleteMediaTitle": "Elimine il file multimediâl",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "Memorie",
   "devices.tryx.deviceMotherboard": "Schede mari",

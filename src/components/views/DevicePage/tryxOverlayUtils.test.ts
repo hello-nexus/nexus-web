@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { HardwareSensor } from '../../../hooks/useSensors';
+import { SENSOR_CATEGORIES } from '../../../panel/widgets/monitoring/sensorCategories';
 import {
   applyDockedOverlayLayout,
   clampUnit,
@@ -154,8 +155,9 @@ describe('applyDockedOverlayLayout', () => {
 });
 
 describe('isTryxSensorGroup', () => {
-  it('accepts exactly the 6 monitoring groups', () => {
-    expect(TRYX_SENSOR_GROUPS).toEqual(['cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network']);
+  it('accepts exactly the 7 monitoring groups, matching SENSOR_CATEGORIES', () => {
+    expect(TRYX_SENSOR_GROUPS).toEqual(SENSOR_CATEGORIES);
+    expect(TRYX_SENSOR_GROUPS).toEqual(['cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network', 'fps']);
     for (const group of TRYX_SENSOR_GROUPS) expect(isTryxSensorGroup(group)).toBe(true);
   });
 
@@ -178,6 +180,7 @@ describe('tryxSensorOptionsForGroup', () => {
       motherboard: [],
       storage: [],
       network: [],
+      fps: [],
     };
     const options = tryxSensorOptionsForGroup('cpu', sensorsByGroup);
     expect(options).toEqual([
@@ -187,12 +190,23 @@ describe('tryxSensorOptionsForGroup', () => {
 
   it('does not strip a prefix for the motherboard group', () => {
     const sensorsByGroup: TryxSensorsByGroup = {
-      cpu: [], gpu: [], memory: [], storage: [], network: [],
+      cpu: [], gpu: [], memory: [], storage: [], network: [], fps: [],
       motherboard: [sensor({ id: 'fan-1', name: 'Fan 1', type: 'Fan' })],
     };
     const options = tryxSensorOptionsForGroup('motherboard', sensorsByGroup);
     expect(options).toEqual([
       { value: 'fan-1', bareLabel: 'Fan 1', type: 'Fan', optionLabel: 'Fan 1 (Fan)' },
+    ]);
+  });
+
+  it('does not strip a prefix for the fps group', () => {
+    const sensorsByGroup: TryxSensorsByGroup = {
+      cpu: [], gpu: [], memory: [], motherboard: [], storage: [], network: [],
+      fps: [sensor({ id: 'fps/current', name: 'FPS', type: 'Framerate' })],
+    };
+    const options = tryxSensorOptionsForGroup('fps', sensorsByGroup);
+    expect(options).toEqual([
+      { value: 'fps/current', bareLabel: 'FPS', type: 'Framerate', optionLabel: 'FPS (Framerate)' },
     ]);
   });
 
@@ -203,7 +217,7 @@ describe('tryxSensorOptionsForGroup', () => {
         sensor({ id: 'x', name: 'CPU Total dup', type: 'Load' }),
         sensor({ id: '', name: 'No id', type: 'Load' }),
       ],
-      gpu: [], memory: [], motherboard: [], storage: [], network: [],
+      gpu: [], memory: [], motherboard: [], storage: [], network: [], fps: [],
     };
     expect(tryxSensorOptionsForGroup('cpu', sensorsByGroup)).toHaveLength(1);
   });
@@ -214,6 +228,8 @@ describe('tryxSensorPlaceholder', () => {
     expect(tryxSensorPlaceholder('Temperature')).toBe('45°C');
     expect(tryxSensorPlaceholder('Load')).toBe('34%');
     expect(tryxSensorPlaceholder('Voltage')).toBe('1.25V');
+    expect(tryxSensorPlaceholder('Framerate')).toBe('60fps');
+    expect(tryxSensorPlaceholder('FrameTime')).toBe('16.7ms');
   });
 
   it('falls back to a dash for an unrecognized type', () => {
@@ -237,12 +253,18 @@ describe('formatTryxSensorValue', () => {
     expect(formatTryxSensorValue('Data', 12.94)).toBe('12.9GB');
     expect(formatTryxSensorValue('Throughput', 40.06)).toBe('40.1MB/s');
   });
+
+  it('mirrors the service fps formats (round fps, 1-decimal frame time)', () => {
+    expect(formatTryxSensorValue('Framerate', 59.6)).toBe('60fps');
+    expect(formatTryxSensorValue('FrameTime', 16.66)).toBe('16.7ms');
+  });
 });
 
 describe('tryxOverlayPreviewValue', () => {
   const sensorsByGroup: TryxSensorsByGroup = {
     cpu: [sensor({ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 52.4, formatted: '52.4 °C' })],
     gpu: [], memory: [], motherboard: [], storage: [], network: [],
+    fps: [sensor({ id: 'fps/current', name: 'FPS', type: 'Framerate', value: 59.6, formatted: '60' })],
   };
 
   it('formats the live value with the panel firmware rounding, not the monitoring string', () => {
@@ -251,5 +273,13 @@ describe('tryxOverlayPreviewValue', () => {
 
   it('falls back to a type-appropriate placeholder when the sensor is not live', () => {
     expect(tryxOverlayPreviewValue('cpu', 'missing-id', 'Load', sensorsByGroup)).toBe('34%');
+  });
+
+  it('formats a live fps sensor with the panel firmware rounding', () => {
+    expect(tryxOverlayPreviewValue('fps', 'fps/current', 'Framerate', sensorsByGroup)).toBe('60fps');
+  });
+
+  it('falls back to the fps placeholder when the sensor is not live', () => {
+    expect(tryxOverlayPreviewValue('fps', 'missing-id', 'FrameTime', sensorsByGroup)).toBe('16.7ms');
   });
 });

@@ -636,6 +636,7 @@
   "devices.tryx.deleteMediaMessage": "\"{name}\" silinsin mi? Bu işlem geri alınamaz.",
   "devices.tryx.deleteMediaTitle": "Medyayı sil",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "Bellek",
   "devices.tryx.deviceMotherboard": "Anakart",

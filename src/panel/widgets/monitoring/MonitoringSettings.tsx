@@ -17,6 +17,8 @@ import {
 import type { DeviceKey } from '../monitoring/perfSlots';
 import { buildNetworkSensors, networkSensorOptions, NETWORK_SENSOR_TOTAL } from '../monitoring/networkSensors';
 import { bareSensorLabel } from '../monitoring/sensorNames';
+import { SENSOR_CATEGORIES, sensorsForCategory } from '../monitoring/sensorCategories';
+import type { SensorCategory } from '../monitoring/sensorCategories';
 import { DEFAULT_SCALE_MODE, designSupportsScale, type ScaleMode } from '../monitoring/perfDomain';
 import { SettingsSection } from '../common/SettingsRow/SettingsRow';
 import styles from './MonitoringSettings.module.scss';
@@ -32,15 +34,20 @@ interface SensorOption {
   sensorName?: string;
 }
 
-const DEVICE_OPTIONS: { value: DeviceKey; label: string }[] = [
-  { value: 'cpu',     label: 'CPU' },
-  { value: 'gpu',     label: 'GPU' },
-  { value: 'memory',  label: 'Memory' },
-  { value: 'fan',     label: 'Fan' },
-  { value: 'storage', label: 'Storage' },
-  { value: 'network', label: 'Network' },
-  { value: 'fps',     label: 'FPS' },
-];
+const CATEGORY_LABELS: Record<SensorCategory, string> = {
+  cpu: 'CPU',
+  gpu: 'GPU',
+  memory: 'Memory',
+  motherboard: 'Motherboard',
+  storage: 'Storage',
+  network: 'Network',
+  fps: 'FPS',
+};
+
+const DEVICE_OPTIONS: { value: DeviceKey; label: string }[] = SENSOR_CATEGORIES.map(category => ({
+  value: category,
+  label: CATEGORY_LABELS[category],
+}));
 
 function sensorsForDevice(
   sensors: ReturnType<typeof useSensors>,
@@ -50,13 +57,14 @@ function sensorsForDevice(
   let options: SensorOption[];
   switch (device) {
     case 'cpu':
-      options = sensors.cpu.map(s => ({ value: s.id, label: `${bareSensorLabel('cpu', s.name) || s.name} (${s.type})`, sensorName: s.name }));
-      break;
     case 'gpu':
-      options = sensors.gpu.map(s => ({ value: s.id, label: `${bareSensorLabel('gpu', s.name) || s.name} (${s.type})`, sensorName: s.name }));
-      break;
     case 'memory':
-      options = sensors.memory.map(s => ({ value: s.id, label: `${bareSensorLabel('memory', s.name) || s.name} (${s.type})`, sensorName: s.name }));
+    case 'motherboard':
+      options = sensorsForCategory(device, sensors, networkSensors, []).map(s => ({
+        value: s.id,
+        label: `${bareSensorLabel(device, s.name) || s.name} (${s.type})`,
+        sensorName: s.name,
+      }));
       break;
     case 'fan':
       options = sensors.motherboard
@@ -64,18 +72,15 @@ function sensorsForDevice(
         .map(s => ({ value: s.id, label: s.name, sensorName: s.name }));
       break;
     case 'storage':
-      options = sensors.storageSensors.map(s => ({ value: s.id, label: s.name, sensorName: s.name }));
+      options = sensorsForCategory('storage', sensors, networkSensors, []).map(s => ({ value: s.id, label: s.name, sensorName: s.name }));
       break;
     case 'network':
-      options = networkSensors.length > 0
+      options = sensorsForCategory('network', sensors, networkSensors, []).length > 0
         ? networkSensorOptions().map(o => ({ value: o.value, label: bareSensorLabel('network', o.label) || o.label }))
         : [];
       break;
     case 'fps':
-      options = [
-        { value: 'FPS', label: 'FPS' },
-        { value: 'Frame Time', label: 'Frame Time' },
-      ];
+      options = sensorsForCategory('fps', sensors, networkSensors, []).map(s => ({ value: s.name, label: s.name }));
       break;
     default:
       options = [];
@@ -201,6 +206,23 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
     : slotConfigs.some(slot => slot.device === 'network');
   const network = useNetworkMonitor(usesNetwork);
   const networkSensors = buildNetworkSensors(network);
+
+  // The Fan category folded into Motherboard. Migrate any slot (or micro) device
+  // still stored as the legacy 'fan' so the picker shows Motherboard instead of a
+  // blank row and the gauge uses the type-aware motherboard scaling. Fan sensors
+  // resolve unchanged under motherboard, so each gauge renders identically.
+  useEffect(() => {
+    const patch: Record<string, PanelConfigValue> = {};
+    for (let i = 0; i < count; i++) {
+      if ((widget.config?.[`slot${i}_device`] as string | undefined) === 'fan') {
+        patch[`slot${i}_device`] = 'motherboard';
+      }
+    }
+    if ((widget.config?.micro_device as string | undefined) === 'fan') {
+      patch.micro_device = 'motherboard';
+    }
+    if (Object.keys(patch).length > 0) onUpdate(patch);
+  }, [count, widget, onUpdate]);
 
   // In Micro mode the `micro_*` keyspace may be uninitialised (first time) or
   // hold a sensor name absent for the current device (after a device switch).

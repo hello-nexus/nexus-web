@@ -636,6 +636,7 @@
   "devices.tryx.deleteMediaMessage": "「{name}」を削除しますか? この操作は取り消せません。",
   "devices.tryx.deleteMediaTitle": "メディアを削除",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "メモリ",
   "devices.tryx.deviceMotherboard": "マザーボード",

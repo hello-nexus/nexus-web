@@ -636,6 +636,7 @@
   "devices.tryx.deleteMediaMessage": "\"{name}\"을(를) 삭제할까요? 이 작업은 취소할 수 없습니다.",
   "devices.tryx.deleteMediaTitle": "미디어 삭제",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "메모리",
   "devices.tryx.deviceMotherboard": "메인보드",

@@ -636,6 +636,7 @@
   "devices.tryx.deleteMediaMessage": "Usunąć „{name}”? Tej operacji nie można cofnąć.",
   "devices.tryx.deleteMediaTitle": "Usuń multimedia",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "Pamięć",
   "devices.tryx.deviceMotherboard": "Płyta główna",

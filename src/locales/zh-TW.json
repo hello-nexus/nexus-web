@@ -636,6 +636,7 @@
   "devices.tryx.deleteMediaMessage": "刪除「{name}」？此操作無法復原。",
   "devices.tryx.deleteMediaTitle": "刪除媒體",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "記憶體",
   "devices.tryx.deviceMotherboard": "主機板",

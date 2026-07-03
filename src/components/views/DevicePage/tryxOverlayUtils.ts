@@ -6,6 +6,7 @@
 import type { CSSProperties } from 'react';
 import type { HardwareSensor } from '../../../hooks/useSensors';
 import { bareSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
+import { SENSOR_CATEGORIES } from '../../../panel/widgets/monitoring/sensorCategories';
 
 // Only the panel canvas's height matters here - every scaled metric below is
 // a fraction of it (width plays no part in the font/offset math).
@@ -141,7 +142,10 @@ export function applyDockedOverlayLayout<T extends TryxOverlayLayoutItem>(
 
 // ── Sensor picker (monitoring library) ──────────────────────────────────────
 
-export const TRYX_SENSOR_GROUPS = ['cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network'] as const;
+// Kept identical to SENSOR_CATEGORIES (same values, same order) so the Tryx
+// overlay picker and the monitoring widget picker can never list different
+// device groups.
+export const TRYX_SENSOR_GROUPS = SENSOR_CATEGORIES;
 export type TryxSensorGroup = (typeof TRYX_SENSOR_GROUPS)[number];
 
 export const TRYX_SENSOR_GROUP_LABEL_KEYS: Record<TryxSensorGroup, string> = {
@@ -151,6 +155,7 @@ export const TRYX_SENSOR_GROUP_LABEL_KEYS: Record<TryxSensorGroup, string> = {
   motherboard: 'devices.tryx.deviceMotherboard',
   storage: 'devices.tryx.deviceStorage',
   network: 'devices.tryx.deviceNetwork',
+  fps: 'devices.tryx.deviceFps',
 };
 
 export function isTryxSensorGroup(value: unknown): value is TryxSensorGroup {
@@ -169,10 +174,11 @@ export interface TryxSensorOption {
 }
 
 // bareSensorLabel only strips a prefix for cpu/gpu/memory/network (its
-// DEVICE_PREFIXES map); motherboard isn't a valid DeviceKey there at all, so
-// it's special-cased here rather than passed through as a type error.
+// DEVICE_PREFIXES map); motherboard and fps aren't valid DeviceKey lookups
+// there, so they're special-cased here rather than passed through as a type
+// error.
 function bareLabelForGroup(group: TryxSensorGroup, name: string): string {
-  if (group === 'motherboard') return name;
+  if (group === 'motherboard' || group === 'fps') return name;
   return bareSensorLabel(group, name) || name;
 }
 
@@ -210,6 +216,8 @@ const SENSOR_TYPE_PLACEHOLDERS: Record<string, string> = {
   Data: '8.2GB',
   SmallData: '512MB',
   Rate: '12.4MB/s',
+  Framerate: '60fps',
+  FrameTime: '16.7ms',
 };
 
 export function tryxSensorPlaceholder(sensorType: string): string {
@@ -232,6 +240,8 @@ export function formatTryxSensorValue(sensorType: string, value: number): string
     case 'Power': return `${Math.round(value)}W`;
     case 'Fan': return `${Math.round(value)}RPM`;
     case 'Throughput': return `${value.toFixed(1)}MB/s`;
+    case 'Framerate': return `${Math.round(value)}fps`;
+    case 'FrameTime': return `${value.toFixed(1)}ms`;
     default: return String(value);
   }
 }

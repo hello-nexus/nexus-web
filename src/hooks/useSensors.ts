@@ -84,6 +84,7 @@ export function useSensors(enabled: boolean): SensorState {
 
     const gpus = gpuComponents ?? [];
     const primaryGpu = resolvePrimaryGpu(gpus, preferredGpuId);
+    const drives = storageData ?? {};
     return {
       cpu: cpuComponent?.sensors ?? [],
       gpu: primaryGpu?.sensors ?? [],
@@ -91,8 +92,8 @@ export function useSensors(enabled: boolean): SensorState {
       gpuComponents: gpus,
       memory: memComponent?.sensors ?? [],
       storage: [],
-      storageComponents: storageData ?? {},
-      storageSensors: [],
+      storageComponents: drives,
+      storageSensors: Object.values(drives).flatMap(drive => drive.sensors ?? []),
       motherboard: moboComponent?.sensors ?? [],
       motherboardModel: moboComponent?.name ?? '',
       cpuModel: cpuComponent?.name ?? '',

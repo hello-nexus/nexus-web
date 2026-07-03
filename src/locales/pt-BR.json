@@ -636,6 +636,7 @@
   "devices.tryx.deleteMediaMessage": "Excluir \"{name}\"? Esta ação não pode ser desfeita.",
   "devices.tryx.deleteMediaTitle": "Excluir mídia",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "Memória",
   "devices.tryx.deviceMotherboard": "Placa-mãe",

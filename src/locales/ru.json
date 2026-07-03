@@ -636,6 +636,7 @@
   "devices.tryx.deleteMediaMessage": "Удалить «{name}»? Это действие нельзя отменить.",
   "devices.tryx.deleteMediaTitle": "Удалить медиафайл",
   "devices.tryx.deviceCpu": "CPU",
+  "devices.tryx.deviceFps": "FPS",
   "devices.tryx.deviceGpu": "GPU",
   "devices.tryx.deviceMemory": "Память",
   "devices.tryx.deviceMotherboard": "Материнская плата",
