@@ -245,59 +245,88 @@ export function LianLiWirelessScreenTab() {
     label: t(ct.labelKey),
   }));
 
-  const screenChips: ChipOption[] = orderedScreens.map(s => ({
-    key: s.serial,
-    label: t('devices.lianli-wireless.fanN', { n: s.position }),
-  }));
-  screenChips.push({ key: GROUP_ALL, label: t('devices.lianli-wireless.screenGroupAll') });
-
   return (
     <>
       <SettingsSection
         title={t('devices.lianli-wireless.screensSection')}
         boxClassName={styles.sectionBox}
       >
-        <div className={styles.screenSelectorRow}>
-          <ChipGroup
-            ariaLabel={t('devices.lianli-wireless.screensAria')}
-            activeKey={target ?? ''}
-            onChange={setTarget}
-            options={screenChips}
-          />
-        </div>
-        {/* Read-only glance strip: the ChipGroup above is the actual selector,
-            this only mirrors each screen's live content/brightness/rotation. */}
-        <div className={styles.screenPreviewGrid} aria-hidden="true">
-          {orderedScreens.map(s => (
-            <div
-              key={s.serial}
-              className={`${styles.screenPreviewTile} ${target === s.serial ? styles.screenPreviewTileActive : ''}`}
-            >
-              <span
-                className={styles.screenPreviewThumb}
-                style={{ transform: `rotate(${s.rotation * 90}deg)`, opacity: 0.3 + (s.brightness / 100) * 0.7 }}
-              >
-                {contentTypeIcon(s.contentType)}
-              </span>
-              <span className={styles.screenPreviewLabel}>
-                {t('devices.lianli-wireless.fanN', { n: s.position })}
-              </span>
-            </div>
-          ))}
-          {target === GROUP_ALL && (
-            <div className={`${styles.screenPreviewTile} ${styles.screenPreviewTileActive}`}>
-              <span className={styles.screenPreviewThumb}>
-                <Layers size={20} />
-              </span>
-              <span className={styles.screenPreviewLabel}>
-                {t('devices.lianli-wireless.screenGroupAll')}
-              </span>
-            </div>
-          )}
-        </div>
         {!loaded && <p className={styles.emptyNote}>{t('devices.lianli-wireless.loadingScreens')}</p>}
         {loaded && orderedScreens.length === 0 && (
           <p className={styles.emptyNote}>{t('devices.lianli-wireless.noScreens')}</p>
+        )}
+        {orderedScreens.length > 0 && (
+          <>
+            {/* Icon tiles are the selector: each mirrors its screen's live
+                content/brightness/rotation and picks it on click. Numbered by
+                list order (1-based) since GetPosIndex returns 0 on this firmware. */}
+            <div
+              className={styles.screenPreviewGrid}
+              role="group"
+              aria-label={t('devices.lianli-wireless.screensAria')}
+            >
+              {orderedScreens.map((s, i) => {
+                const active = target === s.serial;
+                return (
+                  <button
+                    key={s.serial}
+                    type="button"
+                    className={`${styles.screenPreviewTile} ${active ? styles.screenPreviewTileActive : ''}`}
+                    aria-pressed={active}
+                    onClick={() => setTarget(s.serial)}
+                  >
+                    <span
+                      className={styles.screenPreviewThumb}
+                      style={{ transform: `rotate(${s.rotation * 90}deg)`, opacity: 0.3 + (s.brightness / 100) * 0.7 }}
+                    >
+                      {contentTypeIcon(s.contentType)}
+                    </span>
+                    <span className={styles.screenPreviewLabel}>
+                      {t('devices.lianli-wireless.fanN', { n: i + 1 })}
+                    </span>
+                  </button>
+                );
+              })}
+              {orderedScreens.length > 1 && (
+                <button
+                  type="button"
+                  className={`${styles.screenPreviewTile} ${target === GROUP_ALL ? styles.screenPreviewTileActive : ''}`}
+                  aria-pressed={target === GROUP_ALL}
+                  onClick={() => setTarget(GROUP_ALL)}
+                >
+                  <span className={styles.screenPreviewThumb}>
+                    <Layers size={20} aria-hidden />
+                  </span>
+                  <span className={styles.screenPreviewLabel}>
+                    {t('devices.lianli-wireless.screenGroupAll')}
+                  </span>
+                </button>
+              )}
+            </div>
+            <div className={`${styles.sliderBlock} ${!representative ? styles.rowDisabled : ''}`}>
+              <Slider
+                // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+                orientation="stacked"
+                editable
+                trackFill
+                label={t('devices.lianli-wireless.brightness')}
+                value={brightnessDraft}
+                min={0}
+                max={100}
+                step={1}
+                formatValue={v => `${v}%`}
+                ariaLabel={t('devices.lianli-wireless.brightness')}
+                disabled={!representative}
+                onChange={(v, commit) => {
+                  const rounded = Math.round(v);
+                  if (commit) { commitBrightness(rounded); return; }
+                  brightnessInteractingRef.current = true;
+                  setBrightnessDraft(rounded);
+                }}
+                onCommit={commitBrightness}
+              />
+            </div>
+          </>
         )}
       </SettingsSection>
 
@@ -384,29 +413,6 @@ export function LianLiWirelessScreenTab() {
         title={t('devices.lianli-wireless.displaySection')}
         boxClassName={styles.sectionBox}
       >
-        <div className={`${styles.sliderBlock} ${!representative ? styles.rowDisabled : ''}`}>
-          <Slider
-            // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-            orientation="stacked"
-            editable
-            trackFill
-            label={t('devices.lianli-wireless.brightness')}
-            value={brightnessDraft}
-            min={0}
-            max={100}
-            step={1}
-            formatValue={v => `${v}%`}
-            ariaLabel={t('devices.lianli-wireless.brightness')}
-            disabled={!representative}
-            onChange={(v, commit) => {
-              const rounded = Math.round(v);
-              if (commit) { commitBrightness(rounded); return; }
-              brightnessInteractingRef.current = true;
-              setBrightnessDraft(rounded);
-            }}
-            onCommit={commitBrightness}
-          />
-        </div>
         <div className={`${styles.row} ${!representative ? styles.rowDisabled : ''}`}>
           <span className={styles.rowLabel}>{t('devices.lianli-wireless.rotationLabel')}</span>
           <ChipGroup

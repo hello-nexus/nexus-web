@@ -27,10 +27,12 @@ vi.mock('../../../api/lianli-wireless', () => ({
   deleteLianLiWirelessMedia: (...args: any[]) => mockDeleteMedia(...args),
 }));
 
+// Positions are all 0 on real hardware (GetPosIndex is unresolved), so the
+// tiles must number by list order; this fixture pins that, not s.position.
 const screensData = [
-  { serial: 'S1', position: 1, width: 400, height: 400, brightness: 80, rotation: 0, contentType: 'image', mediaId: 'm1' },
-  { serial: 'S2', position: 2, width: 400, height: 400, brightness: 50, rotation: 1, contentType: 'off' },
-  { serial: 'S3', position: 3, width: 400, height: 400, brightness: 60, rotation: 0, contentType: 'sensor' },
+  { serial: 'S1', position: 0, width: 400, height: 400, brightness: 80, rotation: 0, contentType: 'image', mediaId: 'm1' },
+  { serial: 'S2', position: 0, width: 400, height: 400, brightness: 50, rotation: 1, contentType: 'off' },
+  { serial: 'S3', position: 0, width: 400, height: 400, brightness: 60, rotation: 0, contentType: 'sensor' },
 ];
 
 const mediaData = [
@@ -60,7 +62,7 @@ async function renderTab() {
 }
 
 describe('LianLiWirelessScreenTab', () => {
-  it('renders a chip per screen plus a group-all chip, defaulting to the first screen', async () => {
+  it('renders a tile per screen plus a group-all tile, defaulting to the first screen', async () => {
     await renderTab();
 
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.fanN:{"n":1}' })).toBeInTheDocument();
@@ -223,7 +225,7 @@ describe('LianLiWirelessScreenTab', () => {
     });
   });
 
-  it('selecting the group-all chip broadcasts a brightness commit to every screen', async () => {
+  it('selecting the group-all tile broadcasts a brightness commit to every screen', async () => {
     await renderTab();
 
     fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.screenGroupAll' }));

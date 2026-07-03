@@ -125,13 +125,6 @@
 }
 
 // Screen tab - selector + live preview row.
-.screenSelectorRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-}
-
 .screenPreviewGrid {
   display: flex;
   flex-wrap: wrap;
@@ -149,6 +142,20 @@
   border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   color: var(--text-dim);
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--ease-fast), background var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    color: var(--text);
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+  }
 }
 
 .screenPreviewTileActive {
