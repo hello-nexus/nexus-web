@@ -154,7 +154,6 @@ export function useUnifiedDevices(enabled: boolean) {
     unified,
     merged,
     webhidAvailable: webhid.available,
-    requestWebHid: webhid.requestDevice,
     controlDevice,
   };
 }

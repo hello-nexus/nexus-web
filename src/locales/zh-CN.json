@@ -1665,7 +1665,6 @@
   "peripheral.source.service": "服务",
   "peripheral.source.webhid": "浏览器 (WebHID)",
   "peripheral.webhid.addMore": "点击通过浏览器添加另一台设备。",
-  "peripheral.webhid.connect": "通过浏览器连接",
   "peripheral.webhid.hint": "无需安装 -- Chrome 直接与设备通信。点击选择设备。",
   "peripheral.webhid.title": "通过浏览器配置",
   "peripheral.wireless": "无线",

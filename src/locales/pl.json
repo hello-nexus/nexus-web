@@ -1665,7 +1665,6 @@
   "peripheral.source.service": "Usluga",
   "peripheral.source.webhid": "Przegladarka (WebHID)",
   "peripheral.webhid.addMore": "Kliknij, aby dodac kolejne urzadzenie przez przegladarke.",
-  "peripheral.webhid.connect": "Polacz przez przegladarke",
   "peripheral.webhid.hint": "Bez instalacji - Chrome komunikuje sie z urzadzeniem bezposrednio. Kliknij, aby wybrac urzadzenie.",
   "peripheral.webhid.title": "Konfiguruj przez przegladarke",
   "peripheral.wireless": "Bezprzewodowy",

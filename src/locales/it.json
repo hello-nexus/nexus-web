@@ -1665,7 +1665,6 @@
   "peripheral.source.service": "Servizio",
   "peripheral.source.webhid": "Browser (WebHID)",
   "peripheral.webhid.addMore": "Clicca per aggiungere un altro dispositivo dal browser.",
-  "peripheral.webhid.connect": "Connetti dal browser",
   "peripheral.webhid.hint": "Nessuna installazione necessaria - Chrome comunica direttamente con il dispositivo. Clicca per sceglierne uno.",
   "peripheral.webhid.title": "Configura dal browser",
   "peripheral.wireless": "Wireless",

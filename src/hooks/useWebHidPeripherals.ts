@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   isWebHidAvailable,
-  requestPeripheral,
   getGrantedPeripherals,
 } from '../lib/webhid/discovery';
 import type { WebHidPeripheral } from '../lib/webhid/peripheral';
@@ -12,8 +11,6 @@ import type { Peripheral } from './usePeripherals';
 export interface WebHidPeripheralState {
   available: boolean;
   peripherals: Peripheral[];
-  /** Triggers Chrome's picker - must be called from a user-gesture. */
-  requestDevice: () => Promise<void>;
   /** Re-poll live state for all granted devices. */
   refresh: () => Promise<void>;
 }
@@ -100,14 +97,6 @@ export function useWebHidPeripherals(enabled: boolean): WebHidPeripheralState {
     }
   }, [available]);
 
-  const requestDevice = useCallback(async () => {
-    if (!available) return;
-    const wrapper = await requestPeripheral();
-    if (wrapper) {
-      await refresh();
-    }
-  }, [available, refresh]);
-
   useEffect(() => {
     mountedRef.current = true;
     if (!enabled || !available) return;
@@ -134,5 +123,5 @@ export function useWebHidPeripherals(enabled: boolean): WebHidPeripheralState {
     };
   }, [enabled, available, refresh]);
 
-  return { available, peripherals, requestDevice, refresh };
+  return { available, peripherals, refresh };
 }

@@ -1665,7 +1665,6 @@
   "peripheral.source.service": "サービス",
   "peripheral.source.webhid": "ブラウザ (WebHID)",
   "peripheral.webhid.addMore": "ブラウザ経由で別のデバイスを追加するにはクリック。",
-  "peripheral.webhid.connect": "ブラウザで接続",
   "peripheral.webhid.hint": "インストール不要 - Chromeがデバイスと直接通信します。クリックしてデバイスを選択。",
   "peripheral.webhid.title": "ブラウザから設定",
   "peripheral.wireless": "ワイヤレス",

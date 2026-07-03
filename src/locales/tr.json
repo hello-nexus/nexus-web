@@ -1665,7 +1665,6 @@
   "peripheral.source.service": "Servis",
   "peripheral.source.webhid": "Tarayici (WebHID)",
   "peripheral.webhid.addMore": "Tarayici uzerinden baska bir cihaz eklemek icin tiklayin.",
-  "peripheral.webhid.connect": "Tarayici ile baglan",
   "peripheral.webhid.hint": "Kurulum gerektirmez - Chrome cihazinizla dogrudan iletisim kurar. Bir cihaz secmek icin tiklayin.",
   "peripheral.webhid.title": "Tarayiciniz uzerinden yapilandirin",
   "peripheral.wireless": "Kablosuz",

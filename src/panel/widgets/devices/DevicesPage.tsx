@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Usb, Monitor, Microchip, FileText, Plug, Cable, BookOpen } from 'lucide-react';
+import { Usb, Monitor, Microchip, FileText, Cable, BookOpen } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
@@ -48,7 +48,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   const [connectedModalOpen, setConnectedModalOpen] = useState(false);
 
   const availableActive = tab === 'available';
-  const { unified, merged, webhidAvailable, requestWebHid, controlDevice } = useUnifiedDevices(serviceOnline && availableActive);
+  const { unified, merged, webhidAvailable, controlDevice } = useUnifiedDevices(serviceOnline && availableActive);
   // Single USB subscription, reused for both the catalog "detected" highlight
   // and the Connected Devices modal - no second socket subscription.
   const allUsb = useUsbDevices(serviceOnline);
@@ -101,11 +101,6 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
           ) : (
             <>
               <div className={styles.deviceActions}>
-                {webhidAvailable && (
-                  <Button size="sm" tone="neutral" icon={<Plug size={14} />} onClick={requestWebHid}>
-                    {t('peripheral.webhid.connect')}
-                  </Button>
-                )}
                 <Button size="sm" tone="neutral" icon={<Cable size={14} />} onClick={() => setConnectedModalOpen(true)}>
                   {t('devices.connected.browse')}
                 </Button>
@@ -219,7 +214,6 @@ function DeviceCard({
 }) {
   const { t } = useTranslation();
   const meta = deviceMetaLine(device);
-  const statusText = device.panelDevice?.statusLabel ?? (device.connected ? 'Connected' : 'Offline');
   const body = (
     <>
       <span className={styles.rowIconTile}>
@@ -234,7 +228,7 @@ function DeviceCard({
         <span className={styles.rowName}>{device.name}</span>
         {meta && <span className={styles.rowMeta}>{meta}</span>}
       </div>
-      {onToggleControl ? (
+      {onToggleControl && (
         // Stop click + keydown so toggling the control doesn't also fire the
         // card's onClick / Enter-key navigation.
         <span
@@ -249,16 +243,11 @@ function DeviceCard({
             ariaLabel={t('devices.nexusControl')}
           />
         </span>
-      ) : (
-        <span className={styles.statusLine}>
-          <span className={styles.statusDot} />
-          <span className={styles.statusText}>{statusText}</span>
-        </span>
       )}
     </>
   );
 
-  const stateClass = device.connected ? styles.connected : styles.disconnected;
+  const stateClass = device.connected ? '' : styles.disconnected;
 
   // Non-navigable devices (e.g. the MiniHub - controlled from Cooling/Lighting,
   // no dedicated page) render as a static status card: shown for visibility,

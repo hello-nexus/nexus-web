@@ -961,14 +961,15 @@ export function PanelContent({
   // Simulator uses distance activation so a press-and-move drags without a
   // long-press first; tap still opens settings (no movement).
   const desktopActivation = surface === 'desktop' || simulator;
-  const sensors = useSensors(
-    useSensor(
-      PointerSensor,
-      desktopActivation
-        ? { activationConstraint: { distance: 6 } }
-        : { activationConstraint: { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 } },
-    ),
+  const pointerSensor = useSensor(
+    PointerSensor,
+    desktopActivation
+      ? { activationConstraint: { distance: 6 } }
+      : { activationConstraint: { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 } },
   );
+  // Non-touch surfaces (Q60) can't move widgets; register no drag sensor so a
+  // pointer press never lifts a cell. Desktop mouse-drag and touch panels keep it.
+  const sensors = useSensors(surfaceSupportsTouch(surface, deviceTouch) ? pointerSensor : null);
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
   const handleDndDragMove = useCallback((event: DragMoveEvent) => {

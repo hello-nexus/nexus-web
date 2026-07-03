@@ -1665,7 +1665,6 @@
   "peripheral.source.service": "Сервис",
   "peripheral.source.webhid": "Браузер (WebHID)",
   "peripheral.webhid.addMore": "Нажмите, чтобы добавить ещё одно устройство через браузер.",
-  "peripheral.webhid.connect": "Подключить через браузер",
   "peripheral.webhid.hint": "Установка не требуется - Chrome подключается к устройству напрямую. Нажмите, чтобы выбрать устройство.",
   "peripheral.webhid.title": "Настройка через браузер",
   "peripheral.wireless": "Беспроводное",
