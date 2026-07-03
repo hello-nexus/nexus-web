@@ -2370,5 +2370,11 @@
   "update.modal.newRelease": "新しいリリース！",
   "update.modal.released": "{date} にリリース",
   "devices.tryx.simulatedName": "Tryx Panorama",
-  "tools.tryxSim.label": "ハードウェアなしでモックデータでTryxデバイスページを表示します。"
+  "tools.tryxSim.label": "ハードウェアなしでモックデータでTryxデバイスページを表示します。",
+  "devices.lianli-wireless.selectionSection": "選択",
+  "devices.lianli-wireless.selectionModeLabel": "モード",
+  "devices.lianli-wireless.selectionModeSingle": "単一",
+  "devices.lianli-wireless.selectionModeMultiple": "複数",
+  "devices.lianli-wireless.contentTypeMixed": "混在",
+  "devices.lianli-wireless.contentMixedHint": "選択したファンの内容が異なります。すべてに適用する種類を選んでください。"
 }

@@ -2370,5 +2370,11 @@
   "update.modal.newRelease": "新版本！",
   "update.modal.released": "發佈於 {date}",
   "devices.tryx.simulatedName": "Tryx Panorama",
-  "tools.tryxSim.label": "使用模擬資料渲染 Tryx 裝置頁面，無需硬體。"
+  "tools.tryxSim.label": "使用模擬資料渲染 Tryx 裝置頁面，無需硬體。",
+  "devices.lianli-wireless.selectionSection": "選擇",
+  "devices.lianli-wireless.selectionModeLabel": "模式",
+  "devices.lianli-wireless.selectionModeSingle": "單個",
+  "devices.lianli-wireless.selectionModeMultiple": "多個",
+  "devices.lianli-wireless.contentTypeMixed": "多種",
+  "devices.lianli-wireless.contentMixedHint": "所選風扇的內容不同。請選擇一種類型套用至全部。"
 }

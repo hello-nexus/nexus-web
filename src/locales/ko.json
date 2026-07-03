@@ -2370,5 +2370,11 @@
   "update.modal.newRelease": "새 릴리스!",
   "update.modal.released": "{date}에 출시됨",
   "devices.tryx.simulatedName": "Tryx Panorama",
-  "tools.tryxSim.label": "하드웨어 없이 목업 데이터로 Tryx 기기 페이지를 렌더링합니다."
+  "tools.tryxSim.label": "하드웨어 없이 목업 데이터로 Tryx 기기 페이지를 렌더링합니다.",
+  "devices.lianli-wireless.selectionSection": "선택",
+  "devices.lianli-wireless.selectionModeLabel": "모드",
+  "devices.lianli-wireless.selectionModeSingle": "단일",
+  "devices.lianli-wireless.selectionModeMultiple": "다중",
+  "devices.lianli-wireless.contentTypeMixed": "혼합",
+  "devices.lianli-wireless.contentMixedHint": "선택한 팬의 콘텐츠가 다릅니다. 모두에 적용할 유형을 선택하세요."
 }

@@ -2370,5 +2370,11 @@
   "update.modal.newRelease": "Новая версия!",
   "update.modal.released": "Выпущено {date}",
   "devices.tryx.simulatedName": "Tryx Panorama",
-  "tools.tryxSim.label": "Отображает страницу устройства Tryx с тестовыми данными, без оборудования."
+  "tools.tryxSim.label": "Отображает страницу устройства Tryx с тестовыми данными, без оборудования.",
+  "devices.lianli-wireless.selectionSection": "Выбор",
+  "devices.lianli-wireless.selectionModeLabel": "Режим",
+  "devices.lianli-wireless.selectionModeSingle": "Один",
+  "devices.lianli-wireless.selectionModeMultiple": "Несколько",
+  "devices.lianli-wireless.contentTypeMixed": "Разное",
+  "devices.lianli-wireless.contentMixedHint": "У выбранных вентиляторов разное содержимое. Выберите тип для всех."
 }

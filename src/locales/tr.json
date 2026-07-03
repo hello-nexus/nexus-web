@@ -2370,5 +2370,11 @@
   "update.modal.newRelease": "Yeni sürüm!",
   "update.modal.released": "{date} tarihinde yayınlandı",
   "devices.tryx.simulatedName": "Tryx Panorama",
-  "tools.tryxSim.label": "Tryx cihaz sayfasını donanım olmadan örnek verilerle gösterir."
+  "tools.tryxSim.label": "Tryx cihaz sayfasını donanım olmadan örnek verilerle gösterir.",
+  "devices.lianli-wireless.selectionSection": "Seçim",
+  "devices.lianli-wireless.selectionModeLabel": "Mod",
+  "devices.lianli-wireless.selectionModeSingle": "Tekli",
+  "devices.lianli-wireless.selectionModeMultiple": "Çoklu",
+  "devices.lianli-wireless.contentTypeMixed": "Karışık",
+  "devices.lianli-wireless.contentMixedHint": "Seçili fanların içeriği farklı. Hepsine uygulamak için bir tür seçin."
 }

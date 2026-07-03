@@ -2370,5 +2370,11 @@
   "update.modal.newRelease": "Nova versão!",
   "update.modal.released": "Lançado em {date}",
   "devices.tryx.simulatedName": "Tryx Panorama",
-  "tools.tryxSim.label": "Renderiza a página do dispositivo Tryx com dados fictícios, sem hardware."
+  "tools.tryxSim.label": "Renderiza a página do dispositivo Tryx com dados fictícios, sem hardware.",
+  "devices.lianli-wireless.selectionSection": "Seleção",
+  "devices.lianli-wireless.selectionModeLabel": "Modo",
+  "devices.lianli-wireless.selectionModeSingle": "Individual",
+  "devices.lianli-wireless.selectionModeMultiple": "Múltiplo",
+  "devices.lianli-wireless.contentTypeMixed": "Variado",
+  "devices.lianli-wireless.contentMixedHint": "Os ventiladores selecionados têm conteúdo diferente. Escolha um tipo para aplicar a todos."
 }
