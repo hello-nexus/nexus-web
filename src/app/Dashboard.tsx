@@ -35,7 +35,7 @@ import { useSyncStatus } from '../hooks/useSyncStatus';
 import { useRoute } from '../hooks/useRoute';
 import { useBuilder } from '../hooks/useBuilder';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
-import { fetchPanelRemoteControlState, setPanelRelay } from '../api/panel';
+import { fetchPanelRemoteControlState } from '../api/panel';
 import { isRemoteOrigin } from '../api/service';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
@@ -94,16 +94,6 @@ function UpdateAutoOpener({ online, onOpen }: {
   onOpen: (status: UpdateStatus) => void;
 }) {
   const firedRef = useRef(false);
-
-  // The cloud relay is a DEV_TOOLS-only feature; its toggle is hidden on
-  // beta/prod. The enabled state persists server-side, so a build with the relay
-  // left on from a prior dev session would keep it running invisibly. Force it
-  // off once on the host dashboard whenever DEV_TOOLS is off (idempotent: the
-  // service no-ops when already disabled).
-  useEffect(() => {
-    if (DEV_TOOLS || !online) return;
-    void setPanelRelay(false).catch(() => {});
-  }, [online]);
 
   useEffect(() => {
     if (!online || firedRef.current) return;

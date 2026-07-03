@@ -31,7 +31,6 @@ import {
   type PairBroadcastState,
 } from '../../../api/panel';
 import { useTranslation } from '../../../lib/i18n';
-import { DEV_TOOLS } from '../../../lib/devTools';
 import appStyles from '../../../App.module.scss';
 import local from './PairRemoteContent.module.scss';
 
@@ -530,29 +529,14 @@ export function PairRemoteContent({
         checked={effRemoteEnabled}
         onChange={handleRemoteToggle}
       />
-      {DEV_TOOLS ? (
-        <SettingToggle
-          label={t('phonePair.relay.label')}
-          description={t('phonePair.relay.hint')}
-          icon={<SatelliteDish size={14} />}
-          checked={effRemoteEnabled && relayEnabled}
-          onChange={applyRelayEnabled}
-          disabled={!effRemoteEnabled}
-        />
-      ) : (
-        <HoverTooltip body={t('placeholder.badge')} side="top">
-          <div>
-            <SettingToggle
-              label={t('phonePair.relay.label')}
-              description={t('phonePair.relay.hint')}
-              icon={<SatelliteDish size={14} />}
-              checked={false}
-              onChange={applyRelayEnabled}
-              disabled
-            />
-          </div>
-        </HoverTooltip>
-      )}
+      <SettingToggle
+        label={t('phonePair.relay.label')}
+        description={t('phonePair.relay.hint')}
+        icon={<SatelliteDish size={14} />}
+        checked={effRemoteEnabled && relayEnabled}
+        onChange={applyRelayEnabled}
+        disabled={!effRemoteEnabled}
+      />
       <PairBroadcastRow value={broadcast} onChange={updateBroadcast} now={now} />
     </SettingsSection>
   );
