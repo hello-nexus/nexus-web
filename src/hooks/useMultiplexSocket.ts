@@ -6,6 +6,7 @@ import {
 } from '../api/service';
 import { getToken } from '../api/auth';
 import { RelayChannel } from './relayChannel';
+import { resetRelayHttpTunnel } from '../api/relayHttp';
 import { isRtcDirectEligible, openRtcDirect, RtcRuntimeChannel, type RtcDirectConnection } from '../api/rtcDirect';
 
 // The multiplex client drives either the raw LAN WebSocket or, when the LAN
@@ -87,13 +88,13 @@ export interface MultiplexContextValue {
    */
   remoteDisabled: boolean;
   /**
-   * True when this panel was connected over the CLOUD RELAY and the relay
-   * dropped because the host turned the cloud relay OFF (Pair Remote itself is
-   * still on - only the relay fallback was disabled). Unlike sessionRevoked
-   * this is NOT terminal: the hook slow-polls GET /panel/phone/relay and
-   * reconnects automatically the moment the host re-enables the relay. The UI
-   * surfaces a "relay turned off" popup in the meantime. Only ever set on a
-   * relay transport; a LAN connection never enters this state.
+   * True when this panel was connected over the CLOUD RELAY (or the WebRTC
+   * direct upgrade off one) and dropped because the host turned the cloud
+   * relay OFF (Pair Remote itself is still on - only the relay fallback was
+   * disabled). Unlike sessionRevoked this is NOT terminal: the hook
+   * slow-polls GET /panel/phone/relay and reconnects automatically the moment
+   * the host re-enables the relay. The UI surfaces a "relay turned off"
+   * popup in the meantime. Only ever set off a LAN transport.
    */
   relayDisabled: boolean;
   /**
@@ -224,10 +225,11 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   const directUpgradeInFlightRef = useRef(false);
   const directBackoffStepRef = useRef(0);
   const directNextAttemptAtRef = useRef(0);
-  // Set immediately before intentionally closing the relay socket that a
-  // direct upgrade just superseded; wireTransport's onclose checks this so
-  // the swap never trips handleDisconnect's reconnect/fallback logic.
-  const swapInProgressRef = useRef(false);
+  // A relay connection that opened WHILE a punch attempt was already in
+  // flight for a different (earlier) connection - remembered so the in-flight
+  // attempt's completion can re-trigger a punch for it, rather than that
+  // connection never getting one at all.
+  const pendingRetryChannelRef = useRef<RelayChannel | null>(null);
   const [connected, setConnected] = useState(false);
   const [transport, setTransport] = useState<ActiveTransport | null>(null);
   const [remoteDisabled, setRemoteDisabled] = useState(false);
@@ -327,19 +329,24 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
       return;
     }
 
-    // Relay-disabled: the panel was running over the cloud relay and the relay
-    // dropped while Pair Remote itself is still ON. The likely cause is the host
-    // turning the cloud relay toggle OFF (GET /panel/phone/relay → {enabled:
-    // false}), which force-closes the relay socket. Mirror the killswitch's
-    // poll-and-reconnect, but with a visible "relay turned off" popup: park in a
-    // relayDisabled state and slow-poll the relay endpoint until the host
-    // re-enables it, then reconnect. Only relevant on a relay transport (LAN
-    // drops never enter here) and only while we can still confirm the relay
-    // toggle's state (a null read means "couldn't reach" - fall through to the
-    // normal backoff rather than guess). Once relayDisabledRef latches, the
-    // re-poll keeps re-checking even though lastTransportRef no longer matters.
+    // Relay-disabled: the panel was running over the cloud relay (or the
+    // WebRTC direct upgrade off one) and dropped while Pair Remote itself is
+    // still ON. The likely cause is the host turning the cloud relay toggle
+    // OFF (GET /panel/phone/relay → {enabled: false}), which force-closes the
+    // relay socket - a live direct connection also depends on that same
+    // session, so a direct drop probes the same way, or a killswitch-off
+    // relay never re-opens for the next punch and the phone would otherwise
+    // loop the normal backoff forever with no explanation. Mirror the
+    // killswitch's poll-and-reconnect, but with a visible "relay turned off"
+    // popup: park in a relayDisabled state and slow-poll the relay endpoint
+    // until the host re-enables it, then reconnect. Only relevant off LAN
+    // (LAN drops never enter here) and only while we can still confirm the
+    // relay toggle's state (a null read means "couldn't reach" - fall through
+    // to the normal backoff rather than guess). Once relayDisabledRef
+    // latches, the re-poll keeps re-checking even though lastTransportRef no
+    // longer matters.
     if (killswitchEnabled !== false
-        && (relayDisabledRef.current || lastTransportRef.current === 'relay')) {
+        && (relayDisabledRef.current || lastTransportRef.current === 'relay' || lastTransportRef.current === 'direct')) {
       let relayEnabled: boolean | null = null;
       try {
         const relayBody = await fetchPanelRelay();
@@ -463,13 +470,6 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     };
 
     transport.onclose = (event) => {
-      // A direct upgrade closes the just-superseded relay socket itself; that
-      // close must not run the normal disconnect side effects (it would clear
-      // the 'direct' state the swap just published) or reach handleDisconnect.
-      if (swapInProgressRef.current) {
-        swapInProgressRef.current = false;
-        return;
-      }
       multiplexDiag.connected = false;
       multiplexDiag.transport = null;
       setConnected(false);
@@ -506,10 +506,16 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
   // Wires the runtime channel through the same wireTransport plumbing - its
   // already-open state publishes 'direct' and re-subscribes topics exactly
   // like any other transport open - routes REST at the direct HTTP tunnel,
-  // then closes the superseded relay socket via the swapInProgressRef guard so
-  // that close never reaches handleDisconnect.
+  // then detaches the superseded relay socket's onclose before closing it
+  // (mirrors the top-level close() helper) so that close never reaches
+  // handleDisconnect. Detaching beats a consumed-once flag: closing an
+  // ALREADY-closed RelayChannel is a no-op that never fires onclose at all, so
+  // a flag expecting to be cleared by it would latch and swallow the next
+  // unrelated close (see attemptDirectUpgrade's readyState guard, which is
+  // what keeps a dead relayChannel from ever reaching this function).
   const swapToDirect = useCallback((relayChannel: RelayChannel, conn: RtcDirectConnection) => {
     directConnRef.current = conn;
+    directBackoffStepRef.current = 0;
     multiplexDiag.upgradeSuccesses++;
     wireTransport(conn.runtime, 'direct', (code) => {
       multiplexDiag.directDrops++;
@@ -526,18 +532,30 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     });
     wsRef.current = conn.runtime;
     setActiveHttpTunnel(conn.http);
-    swapInProgressRef.current = true;
+    // The REST-over-relay tunnel (a second, independent relay WS keyed off
+    // rid_http) is no longer read while direct is active - close it rather
+    // than leave it parked on the cloud relay for the whole direct session.
+    // It lazily reopens the moment REST falls back to relay (a direct drop).
+    resetRelayHttpTunnel();
+    relayChannel.onclose = null;
     relayChannel.close();
   }, [wireTransport, handleDisconnect, scheduleDirectBackoff]);
 
   // Background WebRTC hole-punch off a just-opened relay connection. At most
-  // one attempt in flight (directUpgradeInFlightRef); skipped entirely for a
-  // wired/kiosk surface, while the killswitch/relay-off/revoked terminal
-  // states are active, or before the re-punch backoff has elapsed. A failed
-  // punch (including a 403 killswitch-off answer) engages that backoff so a
-  // flapping relay connection can't hammer POST /rtc/offer.
+  // one attempt in flight (directUpgradeInFlightRef); a relay connection that
+  // opens while another attempt is still in flight is remembered
+  // (pendingRetryChannelRef) and re-attempted once that attempt settles,
+  // rather than skipped forever. Skipped entirely for a wired/kiosk surface,
+  // while the killswitch/relay-off/revoked terminal states are active, or
+  // before the re-punch backoff has elapsed. A failed punch (including a 403
+  // killswitch-off answer) engages that backoff so a flapping relay
+  // connection can't hammer POST /rtc/offer.
   const attemptDirectUpgrade = useCallback((relayChannel: RelayChannel) => {
-    if (wired || directUpgradeInFlightRef.current) return;
+    if (wired) return;
+    if (directUpgradeInFlightRef.current) {
+      pendingRetryChannelRef.current = relayChannel;
+      return;
+    }
     if (!isRtcDirectEligible()) return;
     if (remoteDisabledRef.current || relayDisabledRef.current || sessionRevokedRef.current) return;
     if (Date.now() < directNextAttemptAtRef.current) return;
@@ -549,9 +567,16 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
         const token = await getToken();
         if (!token) throw new Error('rtc direct: no token');
         conn = await openRtcDirect(token);
-        // Superseded (unmounted, a different relay connection took over, or
-        // the fresh connection didn't actually land open) - discard it.
-        if (!mountedRef.current || wsRef.current !== relayChannel || conn.runtime.readyState !== RtcRuntimeChannel.OPEN) {
+        // Superseded (unmounted, a different relay connection took over, the
+        // relay itself already dropped while the punch was in flight, or the
+        // fresh connection didn't actually land open) - discard it. Checking
+        // relayChannel.readyState (not just wsRef identity) matters: a relay
+        // drop leaves wsRef pointing at the same now-CLOSED channel until the
+        // next connect() runs, so identity alone would miss it and swap
+        // against a dead relay session.
+        if (!mountedRef.current || wsRef.current !== relayChannel
+            || relayChannel.readyState !== RelayChannel.OPEN
+            || conn.runtime.readyState !== RtcRuntimeChannel.OPEN) {
           conn.close();
           return;
         }
@@ -562,6 +587,11 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
         conn?.close();
       } finally {
         directUpgradeInFlightRef.current = false;
+        const retryChannel = pendingRetryChannelRef.current;
+        pendingRetryChannelRef.current = null;
+        if (retryChannel && retryChannel.readyState === RelayChannel.OPEN) {
+          attemptDirectUpgrade(retryChannel);
+        }
       }
     })();
   }, [wired, swapToDirect, scheduleDirectBackoff]);

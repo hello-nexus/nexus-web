@@ -8,7 +8,7 @@ import { EmptyState } from '../../../../components/common/EmptyState/EmptyState'
 import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
 import { useTranslation } from '../../../../lib/i18n';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
-import { fetchServiceBlob, isRelayActive } from '../../../../api/service';
+import { fetchServiceBlob, isDirectActive, isRelayActive } from '../../../../api/service';
 import { postGalleryDrop, subscribeGalleryDropPaths } from '../../../../app/windowActions';
 import {
   addGallerySource,
@@ -133,8 +133,9 @@ export function GalleryPage() {
   }), [addPaths, t]);
 
   // The native dialog opens on the host PC's screen; both buttons disable
-  // while one is open. Remote (relay) sessions can't summon it.
-  const pickingDisabled = picking !== null || isRelayActive();
+  // while one is open. Remote sessions (cloud relay or the WebRTC direct
+  // upgrade off one) can't summon it.
+  const pickingDisabled = picking !== null || isRelayActive() || isDirectActive();
 
   const pickAndAdd = async (kind: 'file' | 'folder') => {
     if (picking) return;

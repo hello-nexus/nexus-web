@@ -156,7 +156,13 @@ export class RtcRuntimeChannel {
     };
     dc.onclose = () => this.onFatal();
     dc.onerror = () => this.onFatal();
-    dc.onmessage = (e) => { this.inbox = this.inbox.then(() => this.handleMessage(e)); };
+    // A rejection (a throwing onmessage consumer, not handleMessage itself -
+    // it never rejects on its own) is caught here rather than left to poison
+    // the chain: .then() on a rejected promise skips every later handler, so
+    // every subsequent frame would silently stop being processed.
+    dc.onmessage = (e) => {
+      this.inbox = this.inbox.then(() => this.handleMessage(e)).catch(() => this.onFatal());
+    };
   }
 
   private async handleMessage(e: MessageEvent): Promise<void> {
@@ -229,7 +235,12 @@ export class RtcHttpTunnel {
     this.onFatal = onFatal;
     dc.onclose = () => this.onFatal();
     dc.onerror = () => this.onFatal();
-    dc.onmessage = (e) => { this.inbox = this.inbox.then(() => this.handleMessage(e)); };
+    // See RtcRuntimeChannel's identical onmessage - the .catch() keeps a
+    // throwing consumer (tracker.resolve's caller) from poisoning the chain
+    // for every later response.
+    dc.onmessage = (e) => {
+      this.inbox = this.inbox.then(() => this.handleMessage(e)).catch(() => this.onFatal());
+    };
   }
 
   private async handleMessage(e: MessageEvent): Promise<void> {

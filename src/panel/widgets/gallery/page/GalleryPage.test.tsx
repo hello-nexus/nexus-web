@@ -23,6 +23,7 @@ vi.mock('../../../../api/gallery', () => ({
 vi.mock('../../../../api/service', () => ({
   fetchServiceBlob: vi.fn(() => Promise.resolve(null)),
   isRelayActive: vi.fn(() => false),
+  isDirectActive: vi.fn(() => false),
 }));
 
 vi.mock('../../../../app/windowActions', () => ({

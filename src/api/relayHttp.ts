@@ -220,6 +220,11 @@ class RelayHttpTunnel {
     });
   }
 
+  /** Deliberately close this tunnel - not a failure (e.g. the caller upgraded to a different transport and no longer needs this parked channel). */
+  close(): void {
+    this.die(new Error('relay http: closed by caller'));
+  }
+
   /** Tear the tunnel down: reject all in-flight requests, close the socket. */
   private die(err: Error): void {
     if (this.dead) return;
@@ -268,7 +273,12 @@ export async function relayFetch(
   return tunnel.request(method, path, body, contentType);
 }
 
-/** Drop the cached tunnel (e.g. when the relay transport goes away). */
+/**
+ * Close and drop the cached tunnel (e.g. the live transport upgraded to
+ * WebRTC direct and no longer needs this parked relay channel). die()'s
+ * onDead callback already nulls the module `tunnel` reference; the next
+ * relayFetch lazily rebuilds a fresh connection.
+ */
 export function resetRelayHttpTunnel(): void {
-  tunnel = null;
+  tunnel?.close();
 }

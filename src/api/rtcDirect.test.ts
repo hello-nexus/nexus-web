@@ -282,6 +282,25 @@ describe('RtcRuntimeChannel sealed framing', () => {
     expect(closed).toHaveBeenCalledTimes(1);
     expect(channel.readyState).toBe(RtcRuntimeChannel.CLOSED);
   });
+
+  it('a throwing onmessage consumer triggers onFatal instead of silently poisoning later frames', async () => {
+    const key = await deriveTestKey();
+    const dc = new FakeDataChannel('runtime');
+    dc.readyState = 'open';
+    const onFatal = vi.fn();
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, key, onFatal);
+    // Without a .catch() on the chained handleMessage promise, this throw
+    // would leave the internal chain permanently rejected - .then() on a
+    // rejected promise skips every later handler, so no frame after this one
+    // would ever be processed again.
+    channel.onmessage = () => { throw new Error('consumer bug'); };
+
+    const frame0 = await seal(key, DIR_HOST_TO_CLIENT, 0, '{"t":"a","d":1}');
+    dc.simulateMessage(toArrayBuffer(frame0));
+    await flushAsync();
+
+    expect(onFatal).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('RtcHttpTunnel', () => {

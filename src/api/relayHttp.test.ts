@@ -195,4 +195,21 @@ describe('relayFetch (REST-over-relay tunnel)', () => {
     await relayFetch(TOKEN, RELAY_URL, 'GET', '/panel/second');
     expect(MockRelaySocket.instances).toHaveLength(2);
   });
+
+  it('resetRelayHttpTunnel actually closes the parked socket, not just the reference (self-heals on the next relayFetch)', async () => {
+    await relayFetch(TOKEN, RELAY_URL, 'GET', '/panel/first');
+    expect(MockRelaySocket.instances).toHaveLength(1);
+    const parked = MockRelaySocket.instances[0];
+    expect(parked.readyState).toBe(MockRelaySocket.OPEN);
+
+    resetRelayHttpTunnel();
+    expect(parked.readyState).toBe(MockRelaySocket.CLOSED);
+
+    // A fresh tunnel opens lazily on the next call - not an orphaned reuse of
+    // the (now-closed, unreachable) parked socket.
+    const res = await relayFetch(TOKEN, RELAY_URL, 'GET', '/panel/second');
+    expect(res.status).toBe(200);
+    expect(MockRelaySocket.instances).toHaveLength(2);
+    expect(MockRelaySocket.instances[1]).not.toBe(parked);
+  });
 });
