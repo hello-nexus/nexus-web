@@ -15,6 +15,10 @@ vi.mock('../api/panel', () => ({
 
 vi.mock('../api/auth', () => ({
   storePhoneToken: (...args: unknown[]) => storePhoneTokenMock(...args),
+  // pairedPcs.ts's migration check reads these - no legacy single-slot token
+  // to migrate in any of these tests.
+  hasSessionToken: () => false,
+  getTokenSync: () => null,
 }));
 
 // PanelApp + simulator + overlay drag in the whole panel tree; replace with
@@ -83,6 +87,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         isPhonePair={false}
         pairToken={null}
         pairDeviceId={null}
+        pairSpki={null}
       />,
     );
 
@@ -113,6 +118,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         isPhonePair={false}
         pairToken={null}
         pairDeviceId={null}
+        pairSpki={null}
       />,
     );
 
@@ -137,6 +143,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         isPhonePair={false}
         pairToken={null}
         pairDeviceId={null}
+        pairSpki={null}
       />,
     );
 
@@ -161,6 +168,7 @@ describe('PanelEntrypoint allocate-or-recover', () => {
         isPhonePair={false}
         pairToken={null}
         pairDeviceId={null}
+        pairSpki={null}
       />,
     );
 
@@ -191,6 +199,7 @@ describe('PanelEntrypoint failure gate', () => {
         isPhonePair={false}
         pairToken={null}
         pairDeviceId={null}
+        pairSpki={null}
       />,
     );
 
@@ -208,10 +217,46 @@ describe('PanelEntrypoint failure gate', () => {
         isPhonePair={false}
         pairToken={null}
         pairDeviceId={null}
+        pairSpki={null}
       />,
     );
 
     await screen.findByRole('button', { name: 'panel.gate.retry' });
     expect(screen.queryByRole('button', { name: 'panel.gate.findComputer' })).toBeNull();
+  });
+
+  it('offers a Pair again escape when a stored paired-PC token is rejected (not a fresh claim)', async () => {
+    allocateMock.mockResolvedValueOnce({ ok: false, status: 401 });
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair={false}
+        pairToken={null}
+        pairDeviceId={null}
+        pairSpki={null}
+      />,
+    );
+
+    const link = await screen.findByText('connection.sessionRevoked.pairAgain');
+    expect(link.closest('a')?.getAttribute('href')).toBe('/r/pair');
+  });
+
+  it('hides the Pair again escape when the 401 happens during a fresh QR claim\'s own allocate step', async () => {
+    claimMock.mockResolvedValueOnce({ paired: true, token: 'fresh-token', machineName: 'Tower' });
+    allocateMock.mockResolvedValueOnce({ ok: false, status: 401 });
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair
+        pairToken="pair-token"
+        pairDeviceId={null}
+        pairSpki={null}
+      />,
+    );
+
+    await screen.findByRole('button', { name: 'panel.gate.retry' });
+    expect(screen.queryByText('connection.sessionRevoked.pairAgain')).toBeNull();
   });
 });

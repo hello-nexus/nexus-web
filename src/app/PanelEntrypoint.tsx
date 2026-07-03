@@ -13,6 +13,7 @@ import {
 } from '../api/panel';
 import { storePhoneToken } from '../api/auth';
 import { getDeviceId } from '../api/deviceId';
+import { upsertPairedPc, markActivePcNeedsRepair } from '../api/pairedPcs';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
 import { useTranslation } from '../lib/i18n';
@@ -63,7 +64,7 @@ export function OverlayWrapper() {
   );
 }
 
-export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairDeviceId }: {
+export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairDeviceId, pairSpki }: {
   initialDeviceId: string | null;
   isPhonePair: boolean;
   pairToken: string | null;
@@ -72,6 +73,12 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
   // authorized-device session the relay path would have used. Absent on a fresh
   // local-origin scan - fall back to this origin's own stable id.
   pairDeviceId: string | null;
+  // The PC's cert fingerprint from the QR's `fp` param, forwarded by
+  // PairRedirect's LAN redirect. Absent on a bookmarked/manually-typed
+  // /panel/phone?pair= URL - the claim response carries no spki of its own
+  // (see PanelPhoneClaimResponse's success branch), so a LAN claim with no
+  // forwarded fp has no spki at all for the paired-PC record.
+  pairSpki: string | null;
 }) {
   const { t } = useTranslation();
   const needsPhoneClaim = isPhonePair && Boolean(pairToken);
@@ -113,6 +120,13 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       if (result?.paired && result.token) {
         storePhoneToken(result.token);
         localStorage.setItem(PHONE_PANEL_PWA_KEY, '1');
+        upsertPairedPc({
+          machineName: result.machineName,
+          token: result.token,
+          spki: pairSpki || undefined,
+          host: window.location.hostname,
+          httpPort: window.location.port || undefined,
+        });
         // Strip the pair token from the URL but stay on /panel/phone for the
         // alloc step below, which will then redirect to /panel/<id>.
         const cleanUrl = `${window.location.origin}/panel/phone`;
@@ -125,7 +139,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       }
     });
     return () => { cancelled = true; };
-  }, [needsPhoneClaim, pairToken, pairDeviceId]);
+  }, [needsPhoneClaim, pairToken, pairDeviceId, pairSpki]);
 
   // Allocate-or-recover flow: when no deviceId is in the URL, look for one in
   // localStorage (Option A: device caches its own id). Allocate a fresh one
@@ -155,6 +169,12 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       // 403 = phone session cookie present but server denied; also a
       // not-yet-paired symptom in practice.
       const kind: PanelFailureKind = result.status === 401 || result.status === 403 ? 'auth' : 'network';
+      if (kind === 'auth' && !needsPhoneClaim) {
+        // Reached 'allocating' via a stored paired-PC token (not a fresh
+        // claim) and the PC rejected it - flag that record so the paired-PCs
+        // list surfaces a re-pair affordance on it.
+        markActivePcNeedsRepair();
+      }
       setFailureKind(kind);
       setFailureDetail(result.status ? `HTTP ${result.status}` : t('panel.gate.networkError'));
       setState('failed');
@@ -186,7 +206,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       finish(cached);
     })();
     return () => { cancelled = true; };
-  }, [state, inferredSurface, viewportCapabilities, allocAttempt, t]);
+  }, [state, inferredSurface, viewportCapabilities, allocAttempt, t, needsPhoneClaim]);
 
   const retry = useCallback(() => {
     setFailureDetail('');
@@ -203,6 +223,12 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
         kind={failureKind}
         detail={failureDetail}
         isPhone={inferredSurface === 'phone' || isPhonePair}
+        // Reached this failure via a stored paired-PC token (not a fresh
+        // claim) - offer a way out other than retrying the same bad token
+        // forever: a fresh QR scan re-pairs (and, still being the active
+        // record, upgrades this same needsRepair entry rather than
+        // duplicating it - see upsertPairedPc).
+        showPairAgain={failureKind === 'auth' && !needsPhoneClaim}
         onRetry={retry}
       />
     );
@@ -213,10 +239,11 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
   return <PanelWrapper deviceId={deviceId} wired={isWiredPanel(inferredSurface)} />;
 }
 
-function PanelEntrypointFailure({ kind, detail, isPhone, onRetry }: {
+function PanelEntrypointFailure({ kind, detail, isPhone, showPairAgain, onRetry }: {
   kind: PanelFailureKind;
   detail: string;
   isPhone: boolean;
+  showPairAgain: boolean;
   onRetry: () => void;
 }) {
   const { t } = useTranslation();
@@ -250,6 +277,14 @@ function PanelEntrypointFailure({ kind, detail, isPhone, onRetry }: {
         <button type="button" className={styles.panelPairGateRetry} onClick={onRetry}>
           {t('panel.gate.retry')}
         </button>
+        {showPairAgain && (
+          <a
+            className={`${styles.panelPairGateRetry} ${styles.panelPairGateSecondary}`}
+            href="/r/pair"
+          >
+            {t('connection.sessionRevoked.pairAgain')}
+          </a>
+        )}
         {canFindComputer && (
           <button
             type="button"

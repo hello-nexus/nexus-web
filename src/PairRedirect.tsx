@@ -4,6 +4,7 @@ import { Spinner } from './components/common/Spinner/Spinner';
 import { pairOverInternet, pairOverRelayClaim, type InternetPairResult } from './api/internetPairing';
 import { isRemoteOrigin, setRelayRegion } from './api/service';
 import { getDeviceId } from './api/deviceId';
+import { upsertPairedPc } from './api/pairedPcs';
 import { PHONE_PANEL_PWA_KEY } from './app/panelRouting';
 import { deriveDeviceLabel } from './lib/platform';
 
@@ -72,6 +73,10 @@ export function PairRedirect() {
   // Regional relay tag (e.g. "ap"): the relay claim + the runtime panel both
   // target the relay the host registered on. Absent ⇒ legacy default.
   const region = params.get('r') ?? '';
+  // PC's leaf cert fingerprint. Carried in the QR for both native pinning and
+  // (forwarded below into directUrl) the paired-PC record's dedup key - the
+  // LAN claim response itself carries no spki of its own.
+  const fp = params.get('fp') ?? '';
 
   // Validity guard: native iOS uses `port` for the HTTPS-pinned path, but the
   // browser fallback only needs host + pair + httpPort. Any QR carrying both
@@ -108,7 +113,10 @@ export function PairRedirect() {
     // Carry the stable per-device id so the PC-served panel's same-origin claim
     // sends the SAME deviceId it would have over the relay - a QR scan dedups to
     // one authorized-device session whether it ends up LAN-direct or relay.
-    const directUrl = `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}&deviceId=${encodeURIComponent(getDeviceId())}`;
+    // The fp param carries the QR's spki forward so that same-origin claim can
+    // record it on the paired-PC entry (PanelEntrypoint reads it back).
+    const directUrl = `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}&deviceId=${encodeURIComponent(getDeviceId())}`
+      + (fp ? `&fp=${encodeURIComponent(fp)}` : '');
 
     // Settle the relay outcome (shared by both origins' relay paths). The relay
     // session token is stored under this origin, so render the panel over the
@@ -118,6 +126,12 @@ export function PairRedirect() {
     const applyResult = (result: InternetPairResult) => {
       if (result.kind === 'relay') {
         localStorage.setItem(PHONE_PANEL_PWA_KEY, '1');
+        upsertPairedPc({
+          machineName: result.machineName,
+          token: result.token,
+          spki: result.spki,
+          relayRegion: region,
+        });
         setPhase({ state: 'relay', machineName: result.machineName });
         window.location.replace(`${window.location.origin}/panel/phone`);
       } else if (result.kind === 'rejected') {
@@ -176,6 +190,13 @@ export function PairRedirect() {
       if (result.kind === 'lan') {
         // Fast path unchanged: hand the visitor straight to the LAN browser
         // panel. The PC already issued the token; the LAN panel uses it.
+        upsertPairedPc({
+          machineName: result.machineName,
+          token: result.token,
+          spki: fp || undefined,
+          host,
+          httpPort,
+        });
         setPhase({ state: 'lan', lanURL: directUrl, host, httpPort });
         window.location.replace(directUrl);
       } else {
@@ -183,7 +204,7 @@ export function PairRedirect() {
       }
     });
     return () => { cancelled = true; };
-  }, [valid, host, httpPort, pair, region]);
+  }, [valid, host, httpPort, pair, region, fp]);
 
   // NOTE: this component is mounted by App.tsx at /r/pair WITHOUT an
   // I18nProvider ancestor, so useTranslation()'s t() would return raw keys

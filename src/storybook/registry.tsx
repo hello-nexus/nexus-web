@@ -25,6 +25,7 @@ import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { Popover } from '../components/common/Popover/Popover';
 import { DatePicker } from '../components/common/DatePicker/DatePicker';
 import { EffectCard } from '../components/common/EffectCard/EffectCard';
+import { PairedPcsContent } from '../components/common/PairedPcs/PairedPcsContent';
 import { EffectControls } from '../panel/widgets/lighting/page/EffectControls';
 import { Tabs } from '../components/common/Tabs/Tabs';
 import { ChipGroup } from '../components/common/ChipGroup/ChipGroup';
@@ -567,6 +568,12 @@ function PreviewEffectControls() {
       />
     </div>
   );
+}
+
+// Self-contained (no props) - reads real localStorage on mount, so this
+// renders whatever paired PCs, if any, actually exist in this browser.
+function PreviewPairedPcsContent() {
+  return <PairedPcsContent />;
 }
 
 function PreviewEffectCard() {
@@ -1515,6 +1522,12 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'InfoList / InfoRow', category: 'cards',
     filePath: 'src/components/common/InfoList/InfoList.tsx',
     description: 'Bounded widget of label/value rows. Use for compact device meta, status keys, or any vertical key/value listing. Tones: accent / good / warn / bad / dim.', Preview: PreviewInfoList,
+  },
+  {
+    name: 'PairedPcsContent', category: 'cards',
+    filePath: 'src/components/common/PairedPcs/PairedPcsContent.tsx',
+    description: 'The phone panel\'s remembered-PCs list (swipe-up tray, phone surface only): Card + CardDeleteButton rows for every PC this phone has claimed, independent of current LAN reachability. Connect applies the record\'s token and navigates into /panel/phone; a needsRepair record offers a re-pair link instead.',
+    Preview: PreviewPairedPcsContent,
   },
   {
     name: 'EffectCard', category: 'cards',

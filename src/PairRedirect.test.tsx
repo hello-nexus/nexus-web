@@ -8,9 +8,15 @@ vi.mock('./api/service', () => ({
   setRelayRegion: (...args: unknown[]) => setRelayRegionMock(...args),
 }));
 
+const pairOverRelayClaimMock = vi.fn(() => new Promise(() => {}));
 vi.mock('./api/internetPairing', () => ({
   pairOverInternet: vi.fn(),
-  pairOverRelayClaim: vi.fn(() => new Promise(() => {})),
+  pairOverRelayClaim: (...args: unknown[]) => pairOverRelayClaimMock(...args),
+}));
+
+const upsertPairedPcMock = vi.fn();
+vi.mock('./api/pairedPcs', () => ({
+  upsertPairedPc: (...args: unknown[]) => upsertPairedPcMock(...args),
 }));
 
 function setLocationSearch(search: string) {
@@ -22,6 +28,9 @@ function setLocationSearch(search: string) {
 describe('PairRedirect', () => {
   beforeEach(() => {
     setRelayRegionMock.mockClear();
+    upsertPairedPcMock.mockClear();
+    pairOverRelayClaimMock.mockClear();
+    pairOverRelayClaimMock.mockReturnValue(new Promise(() => {}));
   });
 
   afterEach(() => {
@@ -46,5 +55,42 @@ describe('PairRedirect', () => {
 
     expect(screen.queryByRole('img', { name: 'common.loading' })).toBeNull();
     expect(screen.getByText('Invalid pairing link')).toBeInTheDocument();
+  });
+
+  it('forwards the QR fp param into the LAN redirect URL for the same-origin claim to pick up', () => {
+    setLocationSearch('?host=192.168.1.50&pair=abc123&httpPort=9400&fp=AA:BB:CC');
+    render(<PairRedirect />);
+
+    const link = screen.getByText('Continue').closest('a');
+    expect(link?.getAttribute('href')).toContain('&fp=AA%3ABB%3ACC');
+  });
+
+  it('omits the fp query param entirely when the QR carries none', () => {
+    setLocationSearch('?host=192.168.1.50&pair=abc123&httpPort=9400');
+    render(<PairRedirect />);
+
+    const link = screen.getByText('Continue').closest('a');
+    expect(link?.getAttribute('href')).not.toContain('fp=');
+  });
+
+  it('persists a paired-PC record with the relay result once the direct-LAN probe times out', async () => {
+    vi.useFakeTimers();
+    pairOverRelayClaimMock.mockResolvedValue({
+      kind: 'relay', token: 'relay-token', machineName: 'Tower', spki: 'AA:BB',
+    });
+    setLocationSearch('?host=192.168.1.50&pair=abc123&httpPort=9400&r=ap');
+    render(<PairRedirect />);
+
+    await vi.advanceTimersByTimeAsync(3000);
+    // Flush the microtask the relay-claim promise resolves on.
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(upsertPairedPcMock).toHaveBeenCalledWith({
+      machineName: 'Tower',
+      token: 'relay-token',
+      spki: 'AA:BB',
+      relayRegion: 'ap',
+    });
+    vi.useRealTimers();
   });
 });

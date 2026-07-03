@@ -12,6 +12,7 @@ import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
 import { PanelThemeSettings, type ResolvedPanelThemeMode } from './PanelThemeSettings';
 import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
+import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
 import { useTranslation } from '../../lib/i18n';
 import type { ThemeMode } from '../../lib/settings';
@@ -22,7 +23,7 @@ import type { PanelBackgroundMode } from '../background/panelBackground';
 import type { PanelThemeState } from '../theme/panelTheme';
 import styles from '../PanelApp.module.scss';
 
-export type SheetMode = 'catalog' | 'settings' | 'panelSettings' | 'pairRemote';
+export type SheetMode = 'catalog' | 'settings' | 'panelSettings' | 'pairRemote' | 'pairedPcs';
 
 export function PanelEditorSheet({
   mode,
@@ -131,6 +132,8 @@ export function PanelEditorSheet({
     ? t('panel.actions.settings')
     : mode === 'pairRemote'
     ? t('phonePair.title')
+    : mode === 'pairedPcs'
+    ? t('pairedPcs.title')
     : mode === 'settings' && editingWidget && def
     ? t(def.meta.i18nKey) || editingWidget.type
     : t('panel.editor.addWidgetTitle');
@@ -363,6 +366,12 @@ export function PanelEditorSheet({
         {mode === 'pairRemote' && (
           <div className={styles.settingsBody}>
             <PairRemoteContent active layout="stacked" />
+          </div>
+        )}
+
+        {mode === 'pairedPcs' && (
+          <div className={styles.settingsBody}>
+            <PairedPcsContent />
           </div>
         )}
       </aside>
