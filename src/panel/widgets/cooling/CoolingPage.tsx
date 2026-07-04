@@ -881,9 +881,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       />
 
       {/* Two columns: the curve block on the left, the fan sidebar (vertical
-          scroll) on the right. Full content width (not pageBody-capped) so the
-          fan column reaches the right edge, level with the header. */}
-      <div className={styles.body}>
+          scroll) on the right. Capped at --page-max (pageBody) so the page
+          matches every other view's width, level with the header. */}
+      <div className={`${styles.body} pageBody`}>
         <div className={styles.curveCol}>
         {selectedCurve ? (
           <CurveCard
