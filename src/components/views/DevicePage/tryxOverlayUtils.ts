@@ -5,7 +5,7 @@
 
 import type { CSSProperties } from 'react';
 import type { HardwareSensor } from '../../../hooks/useSensors';
-import { bareSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
+import { bareSensorLabel, prefixedSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
 import { SENSOR_CATEGORIES } from '../../../panel/widgets/monitoring/sensorCategories';
 
 // Only the panel canvas's height matters here - every scaled metric below is
@@ -105,15 +105,25 @@ export function tryxOverlayJustifyStyle(align: TryxOverlayAlign): CSSProperties 
 
 // Anchor x per alignment (justification-side inset from the panel edge / center).
 const DOCKED_ALIGN_X: Record<TryxOverlayAlign, number> = { left: 0.04, center: 0.5, right: 0.96 };
-const DOCKED_Y_START = 0.10;
-const DOCKED_Y_STEP = 0.20;
+// Vertical gap between stacked stats; sized so a full stack of four, centered,
+// still keeps the last stat's label on-panel.
+const DOCKED_Y_STEP = 0.24;
 
 /**
- * Docked-mode anchor for the nth enabled stat (0-based, in stack order): x
- * follows the current text alignment, y stacks the enabled stats evenly.
+ * Docked-mode anchor for the nth of `enabledCount` stacked stats (0-based): x
+ * follows the current text alignment; y stacks the stats a step apart and
+ * centers the whole stack vertically, so a single stat sits at the panel's
+ * vertical center and N stats straddle it evenly.
  */
-export function dockedOverlayItemPosition(align: TryxOverlayAlign, indexAmongEnabled: number): { x: number; y: number } {
-  return { x: DOCKED_ALIGN_X[align], y: DOCKED_Y_START + indexAmongEnabled * DOCKED_Y_STEP };
+export function dockedOverlayItemPosition(
+  align: TryxOverlayAlign,
+  indexAmongEnabled: number,
+  enabledCount: number,
+): { x: number; y: number } {
+  // Each stat occupies ~one step of height; center the whole stack on the panel's
+  // vertical midpoint, so a lone stat lands at center and N straddle it evenly.
+  const firstY = 0.5 - (Math.max(1, enabledCount) * DOCKED_Y_STEP) / 2;
+  return { x: DOCKED_ALIGN_X[align], y: firstY + indexAmongEnabled * DOCKED_Y_STEP };
 }
 
 export interface TryxOverlayLayoutItem {
@@ -123,18 +133,19 @@ export interface TryxOverlayLayoutItem {
 }
 
 /**
- * Recomputes x/y for every enabled item from `align`, in slot order. Disabled
- * items are left untouched - they are never sent to the service, so a stale
- * position doesn't matter until the item is re-enabled.
+ * Recomputes x/y for every enabled item from `align`, in slot order, centering
+ * the enabled stack vertically. Disabled items are left untouched - they are
+ * never sent to the service, so a stale position doesn't matter until re-enabled.
  */
 export function applyDockedOverlayLayout<T extends TryxOverlayLayoutItem>(
   items: readonly T[],
   align: TryxOverlayAlign,
 ): T[] {
+  const enabledCount = items.reduce((n, item) => n + (item.enabled ? 1 : 0), 0);
   let enabledIndex = 0;
   return items.map(item => {
     if (!item.enabled) return item;
-    const pos = dockedOverlayItemPosition(align, enabledIndex);
+    const pos = dockedOverlayItemPosition(align, enabledIndex, enabledCount);
     enabledIndex += 1;
     return { ...item, x: pos.x, y: pos.y };
   });
@@ -168,18 +179,26 @@ export interface TryxSensorOption {
   value: string;
   /** Dropdown row text, disambiguated with the sensor type. */
   optionLabel: string;
-  /** Concise label stored on the item and shown on the panel/preview. */
+  /** Bare sensor name for the dropdown (the device select names the category). */
   bareLabel: string;
+  /** "<Device> <Sensor>" (e.g. "CPU Total", "Network In") stored on the item and shown
+   *  standalone on the panel/preview, where no device select sits alongside it. */
+  prefixedLabel: string;
   type: string;
 }
 
-// bareSensorLabel only strips a prefix for cpu/gpu/memory/network (its
+// bareSensorLabel/prefixedSensorLabel only prefix cpu/gpu/memory/network (their
 // DEVICE_PREFIXES map); motherboard and fps aren't valid DeviceKey lookups
 // there, so they're special-cased here rather than passed through as a type
 // error.
 function bareLabelForGroup(group: TryxSensorGroup, name: string): string {
   if (group === 'motherboard' || group === 'fps') return name;
   return bareSensorLabel(group, name) || name;
+}
+
+function prefixedLabelForGroup(group: TryxSensorGroup, name: string): string {
+  if (group === 'motherboard' || group === 'fps') return name;
+  return prefixedSensorLabel(group, name);
 }
 
 /**
@@ -196,7 +215,8 @@ export function tryxSensorOptionsForGroup(
     if (!s.id || seen.has(s.id)) continue;
     seen.add(s.id);
     const bareLabel = bareLabelForGroup(group, s.name);
-    options.push({ value: s.id, bareLabel, type: s.type, optionLabel: `${bareLabel} (${s.type})` });
+    const prefixedLabel = prefixedLabelForGroup(group, s.name);
+    options.push({ value: s.id, bareLabel, prefixedLabel, type: s.type, optionLabel: `${bareLabel} (${s.type})` });
   }
   return options;
 }
@@ -239,6 +259,9 @@ export function formatTryxSensorValue(sensorType: string, value: number): string
     case 'SmallData': return `${Math.round(value)}MB`;
     case 'Power': return `${Math.round(value)}W`;
     case 'Fan': return `${Math.round(value)}RPM`;
+    // Device-side LHM types these 'Throughput'; the web network topic types them 'Rate'. Both
+    // are bytes/sec, so the panel and preview render identically.
+    case 'Rate':
     case 'Throughput': return formatTryxThroughput(value);
     case 'Framerate': return `${Math.round(value)}fps`;
     case 'FrameTime': return `${value.toFixed(1)}ms`;

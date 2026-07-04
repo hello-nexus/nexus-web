@@ -119,41 +119,44 @@ describe('tryxOverlayJustifyStyle', () => {
 
 describe('dockedOverlayItemPosition', () => {
   it('anchors x per alignment', () => {
-    expect(dockedOverlayItemPosition('left', 0).x).toBeCloseTo(0.04);
-    expect(dockedOverlayItemPosition('center', 0).x).toBeCloseTo(0.5);
-    expect(dockedOverlayItemPosition('right', 0).x).toBeCloseTo(0.96);
+    expect(dockedOverlayItemPosition('left', 0, 1).x).toBeCloseTo(0.04);
+    expect(dockedOverlayItemPosition('center', 0, 1).x).toBeCloseTo(0.5);
+    expect(dockedOverlayItemPosition('right', 0, 1).x).toBeCloseTo(0.96);
   });
 
-  it('stacks y 0.20 apart starting at 0.10, regardless of alignment', () => {
-    expect(dockedOverlayItemPosition('left', 0).y).toBeCloseTo(0.10);
-    expect(dockedOverlayItemPosition('left', 1).y).toBeCloseTo(0.30);
-    expect(dockedOverlayItemPosition('left', 2).y).toBeCloseTo(0.50);
-    expect(dockedOverlayItemPosition('right', 3).y).toBeCloseTo(0.70);
+  it('centers the stack vertically by enabled count, 0.24 apart', () => {
+    // One stat sits near the vertical center; four fill the panel evenly.
+    expect(dockedOverlayItemPosition('left', 0, 1).y).toBeCloseTo(0.38);
+    expect(dockedOverlayItemPosition('left', 0, 4).y).toBeCloseTo(0.02);
+    expect(dockedOverlayItemPosition('left', 1, 4).y).toBeCloseTo(0.26);
+    expect(dockedOverlayItemPosition('left', 2, 4).y).toBeCloseTo(0.50);
+    expect(dockedOverlayItemPosition('right', 3, 4).y).toBeCloseTo(0.74);
   });
 });
 
 describe('applyDockedOverlayLayout', () => {
-  it('recomputes positions only for enabled items, in slot order', () => {
+  it('recomputes positions only for enabled items, in slot order, centered', () => {
     const items = [
       { enabled: true, x: 0.11, y: 0.22 },
       { enabled: false, x: 0.33, y: 0.44 },
       { enabled: true, x: 0.55, y: 0.66 },
     ];
     const next = applyDockedOverlayLayout(items, 'left');
+    // Two enabled stats: the stack (2 * 0.24) is centered on 0.5, so it starts at 0.30.
     expect(next[0].enabled).toBe(true);
     expect(next[0].x).toBeCloseTo(0.04);
-    expect(next[0].y).toBeCloseTo(0.10);
+    expect(next[0].y).toBeCloseTo(0.26);
     // Disabled item is left untouched.
     expect(next[1]).toEqual({ enabled: false, x: 0.33, y: 0.44 });
-    // Second ENABLED item gets index 1's y, not slot index 2's.
+    // Second ENABLED item gets enabled-index 1, one step down.
     expect(next[2].enabled).toBe(true);
     expect(next[2].x).toBeCloseTo(0.04);
-    expect(next[2].y).toBeCloseTo(0.30);
+    expect(next[2].y).toBeCloseTo(0.50);
   });
 
-  it('re-anchors x when align changes, keeping the same y stack', () => {
+  it('centers a single docked stat vertically and re-anchors x by align', () => {
     const items = [{ enabled: true, x: 0.04, y: 0.10 }];
-    expect(applyDockedOverlayLayout(items, 'right')[0]).toEqual({ enabled: true, x: 0.96, y: 0.10 });
+    expect(applyDockedOverlayLayout(items, 'right')[0]).toEqual({ enabled: true, x: 0.96, y: 0.38 });
   });
 });
 
@@ -187,7 +190,7 @@ describe('tryxSensorOptionsForGroup', () => {
     };
     const options = tryxSensorOptionsForGroup('cpu', sensorsByGroup);
     expect(options).toEqual([
-      { value: 'cpu-temp', bareLabel: 'Package', type: 'Temperature', optionLabel: 'Package (Temperature)' },
+      { value: 'cpu-temp', bareLabel: 'Package', prefixedLabel: 'CPU Package', type: 'Temperature', optionLabel: 'Package (Temperature)' },
     ]);
   });
 
@@ -198,7 +201,7 @@ describe('tryxSensorOptionsForGroup', () => {
     };
     const options = tryxSensorOptionsForGroup('motherboard', sensorsByGroup);
     expect(options).toEqual([
-      { value: 'fan-1', bareLabel: 'Fan 1', type: 'Fan', optionLabel: 'Fan 1 (Fan)' },
+      { value: 'fan-1', bareLabel: 'Fan 1', prefixedLabel: 'Fan 1', type: 'Fan', optionLabel: 'Fan 1 (Fan)' },
     ]);
   });
 
@@ -209,7 +212,7 @@ describe('tryxSensorOptionsForGroup', () => {
     };
     const options = tryxSensorOptionsForGroup('fps', sensorsByGroup);
     expect(options).toEqual([
-      { value: 'fps/current', bareLabel: 'FPS', type: 'Framerate', optionLabel: 'FPS (Framerate)' },
+      { value: 'fps/current', bareLabel: 'FPS', prefixedLabel: 'FPS', type: 'Framerate', optionLabel: 'FPS (Framerate)' },
     ]);
   });
 

@@ -82,7 +82,7 @@ const defaultStatus = {
     lastFrameMs: 0,
   },
   overlay: {
-    items: [{ sensorId: 'cpu-temp', device: 'cpu', label: 'CPU Package', x: 0.04, y: 0.10 }],
+    items: [{ sensorId: 'cpu-temp', device: 'cpu', label: 'CPU Package', x: 0.04, y: 0.38 }],
     font: 'roboto-regular',
     size: 100,
     color: '#ffffff',
@@ -151,7 +151,7 @@ describe('TryxDevicePage - overlay editor', () => {
     expect(drag).toHaveTextContent('45°C');
     expect(drag).toHaveTextContent('CPU Package');
     expect(drag.style.left).toBe('4%');
-    expect(drag.style.top).toBe('10%');
+    expect(drag.style.top).toBe('38%');
   });
 
   it('does not render a drag handle for a disabled overlay slot', async () => {
@@ -171,7 +171,7 @@ describe('TryxDevicePage - overlay editor', () => {
 
     expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
     expect(mockSetTryxOverlay).toHaveBeenCalledWith({
-      items: [{ sensorId: 'cpu-temp', device: 'cpu', label: 'CPU Package', x: 0.04, y: 0.10 }],
+      items: [{ sensorId: 'cpu-temp', device: 'cpu', label: 'CPU Package', x: 0.04, y: 0.38 }],
       font: 'roboto-bold',
       size: 100,
       color: '#ffffff',
@@ -192,7 +192,7 @@ describe('TryxDevicePage - overlay editor', () => {
 
     expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
     expect(mockSetTryxOverlay).toHaveBeenCalledWith({
-      items: [{ sensorId: 'cpu-temp', device: 'cpu', label: 'CPU Package', x: 0.04, y: 0.10 }],
+      items: [{ sensorId: 'cpu-temp', device: 'cpu', label: 'CPU Package', x: 0.04, y: 0.38 }],
       font: 'roboto-bold',
       size: 100,
       color: '#ffffff',
@@ -218,7 +218,7 @@ describe('TryxDevicePage - overlay editor', () => {
     const call = mockSetTryxOverlay.mock.calls[0][0];
     // Dragged 40px right on a 200px-wide canvas = +0.2 normalized, from 0.04.
     expect(call.items[0].x).toBeCloseTo(0.24, 5);
-    expect(call.items[0].y).toBeCloseTo(0.10, 5);
+    expect(call.items[0].y).toBeCloseTo(0.38, 5);
     expect(call.docked).toBe(false);
   });
 
@@ -231,7 +231,7 @@ describe('TryxDevicePage - overlay editor', () => {
     expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
     const call = mockSetTryxOverlay.mock.calls[0][0];
     expect(call.items[0].x).toBeCloseTo(0.05, 5);
-    expect(call.items[0].y).toBeCloseTo(0.10, 5);
+    expect(call.items[0].y).toBeCloseTo(0.38, 5);
     expect(call.docked).toBe(false);
   });
 
@@ -246,7 +246,7 @@ describe('TryxDevicePage - overlay editor', () => {
     expect(call.align).toBe('right');
     expect(call.docked).toBe(true);
     expect(call.items[0].x).toBeCloseTo(0.96, 5);
-    expect(call.items[0].y).toBeCloseTo(0.10, 5);
+    expect(call.items[0].y).toBeCloseTo(0.38, 5);
   });
 
   it('re-enabling docked snaps a dragged item back to the align-derived anchor', async () => {
@@ -268,7 +268,7 @@ describe('TryxDevicePage - overlay editor', () => {
     const call = mockSetTryxOverlay.mock.calls[0][0];
     expect(call.docked).toBe(true);
     expect(call.items[0].x).toBeCloseTo(0.04, 5);
-    expect(call.items[0].y).toBeCloseTo(0.10, 5);
+    expect(call.items[0].y).toBeCloseTo(0.38, 5);
   });
 
   it('picking a different device group resets the sensor to the first of that group', async () => {
@@ -281,7 +281,7 @@ describe('TryxDevicePage - overlay editor', () => {
 
     expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
     const call = mockSetTryxOverlay.mock.calls[0][0];
-    expect(call.items[0]).toEqual({ sensorId: 'gpu-load', device: 'gpu', label: 'Core', x: 0.04, y: 0.10 });
+    expect(call.items[0]).toEqual({ sensorId: 'gpu-load', device: 'gpu', label: 'GPU Core', x: 0.04, y: 0.38 });
   });
 
   it('disables a device group with no live sensors in the picker', async () => {
@@ -309,7 +309,7 @@ describe('TryxDevicePage - overlay editor', () => {
 
     expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
     const call = mockSetTryxOverlay.mock.calls[0][0];
-    expect(call.items[0]).toEqual({ sensorId: 'fps/current', device: 'fps', label: 'FPS', x: 0.04, y: 0.10 });
+    expect(call.items[0]).toEqual({ sensorId: 'fps/current', device: 'fps', label: 'FPS', x: 0.04, y: 0.38 });
   });
 
   it('enabling a never-configured slot auto-picks its default device\'s first sensor', async () => {
@@ -323,9 +323,9 @@ describe('TryxDevicePage - overlay editor', () => {
     expect(call.items).toHaveLength(2);
     expect(call.items[1].sensorId).toBe('cpu-temp');
     expect(call.items[1].device).toBe('cpu');
-    expect(call.items[1].label).toBe('Package');
+    expect(call.items[1].label).toBe('CPU Package');
     expect(call.items[1].x).toBeCloseTo(0.04);
-    expect(call.items[1].y).toBeCloseTo(0.30);
+    expect(call.items[1].y).toBeCloseTo(0.50);
   });
 
   it('falls back to the neutral background when no wallpaper is active', async () => {

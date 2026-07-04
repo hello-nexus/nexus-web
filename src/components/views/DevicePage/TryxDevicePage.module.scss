@@ -69,6 +69,15 @@
   color: var(--text);
 }
 
+// Label + explanatory hint stacked, taking the row's flexible space so the
+// control (toggle) still sits at the far end, vertically centered.
+.rowLabelStack {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
 .sliderBlock {
   display: flex;
   flex-direction: column;
@@ -198,6 +207,21 @@
   background-color: var(--bg-elevated);
   background-size: cover;
   background-position: center;
+}
+
+// Drag guidance centered over the canvas; a shadow keeps it legible on any
+// wallpaper, and it never intercepts the drag pointer.
+.canvasHint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 80%;
+  text-align: center;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.7);
 }
 
 .previewStat {
