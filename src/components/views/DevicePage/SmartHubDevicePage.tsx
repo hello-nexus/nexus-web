@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { Placeholder } from '../Placeholder';
+import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
@@ -91,7 +92,7 @@ export function SmartHubDevicePage() {
     }
   }, []);
 
-  // Placeholder only renders when the service explicitly says the hub is
+  // The empty state only renders when the service explicitly says the hub is
   // gone. A transient setting null or a "still loading" state never
   // reaches this branch.
   if (connection === 'disconnected') {
@@ -100,7 +101,7 @@ export function SmartHubDevicePage() {
         {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
         <ViewHeader title="HYTE SmartHub" />
         <div className={`${styles.pageBody} pageBody`}>
-          <Placeholder title={t('devices.smartHub.notConnected')} />
+          <EmptyState icon={<Unplug size={40} />} title={t('devices.smartHub.notConnected')} />
         </div>
       </div>
     );

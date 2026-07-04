@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Thermometer } from 'lucide-react';
+import { Thermometer, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { Placeholder } from '../Placeholder';
+import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { getLianLiTlState, type LianLiTlState } from '../../../api/lianli-tl';
@@ -69,7 +69,7 @@ export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProp
         {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
         <ViewHeader title="Lian Li Uni Fan TL" />
         <div className={`${styles.pageBody} pageBody`}>
-          <Placeholder title={t('devices.lianli-tl.notConnected')} />
+          <EmptyState icon={<Unplug size={40} />} title={t('devices.lianli-tl.notConnected')} />
         </div>
       </div>
     );

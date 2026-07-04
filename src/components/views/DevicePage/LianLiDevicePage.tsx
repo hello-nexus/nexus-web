@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { Placeholder } from '../Placeholder';
+import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Select } from '../../common/Select/Select';
-import { Slider } from '../../common/Slider/Slider';
+import { SettingSlider } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -120,7 +120,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
         {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
         <ViewHeader title="Lian Li Uni Hub" />
         <div className={`${styles.pageBody} pageBody`}>
-          <Placeholder title={t('devices.lianli.notConnected')} />
+          <EmptyState icon={<Unplug size={40} />} title={t('devices.lianli.notConnected')} />
         </div>
       </div>
     );
@@ -204,9 +204,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
           ) : (
             <>
               {selectedMode?.hasBrightness && (
-                <Slider
-                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                  orientation="stacked"
+                <SettingSlider
                   editable
                   trackFill
                   label={t('devices.lianli.lightingBrightness')}
@@ -228,9 +226,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
               )}
 
               {selectedMode?.hasSpeed && (
-                <Slider
-                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                  orientation="stacked"
+                <SettingSlider
                   editable
                   trackFill
                   label={t('devices.lianli.lightingSpeed')}

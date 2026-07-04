@@ -5,7 +5,7 @@ import {
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
 import { Select, type SelectOption } from '../../common/Select/Select';
-import { Slider } from '../../common/Slider/Slider';
+import { SettingSlider } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { EffectCard } from '../../common/EffectCard/EffectCard';
@@ -345,29 +345,25 @@ export function LianLiWirelessScreenTab() {
         title={t('devices.lianli-wireless.displaySection')}
         boxClassName={styles.sectionBox}
       >
-        <div className={`${styles.sliderBlock} ${!representative ? styles.rowDisabled : ''}`}>
-          <Slider
-            // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-            orientation="stacked"
-            editable
-            trackFill
-            label={t('devices.lianli-wireless.brightness')}
-            value={brightnessDraft}
-            min={0}
-            max={100}
-            step={1}
-            formatValue={v => `${v}%`}
-            ariaLabel={t('devices.lianli-wireless.brightness')}
-            disabled={!representative}
-            onChange={(v, commit) => {
-              const rounded = Math.round(v);
-              if (commit) { commitBrightness(rounded); return; }
-              brightnessInteractingRef.current = true;
-              setBrightnessDraft(rounded);
-            }}
-            onCommit={commitBrightness}
-          />
-        </div>
+        <SettingSlider
+          editable
+          trackFill
+          label={t('devices.lianli-wireless.brightness')}
+          value={brightnessDraft}
+          min={0}
+          max={100}
+          step={1}
+          formatValue={v => `${v}%`}
+          ariaLabel={t('devices.lianli-wireless.brightness')}
+          disabled={!representative}
+          onChange={(v, commit) => {
+            const rounded = Math.round(v);
+            if (commit) { commitBrightness(rounded); return; }
+            brightnessInteractingRef.current = true;
+            setBrightnessDraft(rounded);
+          }}
+          onCommit={commitBrightness}
+        />
         <div className={`${styles.row} ${!representative ? styles.rowDisabled : ''}`}>
           <span className={styles.rowLabel}>{t('devices.lianli-wireless.rotationLabel')}</span>
           <ChipGroup

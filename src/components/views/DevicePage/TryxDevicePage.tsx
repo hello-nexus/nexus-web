@@ -4,7 +4,7 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Spinner } from '../../common/Spinner/Spinner';
 import { Select } from '../../common/Select/Select';
-import { Slider } from '../../common/Slider/Slider';
+import { SettingSlider } from '../../common/SettingRow/SettingRow';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { UsageBar } from '../../common/UsageBar/UsageBar';
 import { Button } from '../../common/Button/Button';
@@ -630,39 +630,35 @@ export function TryxDevicePage() {
                     ariaLabel={t('devices.tryx.screenOn')}
                   />
                 </div>
-                <div className={styles.sliderBlock}>
-                  <Slider
-                    // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                    orientation="stacked"
-                    editable
-                    trackFill
-                    label={t('devices.tryx.brightness')}
-                    value={brightness}
-                    min={0}
-                    max={100}
-                    step={1}
-                    formatValue={v => `${v}%`}
-                    ariaLabel={t('devices.tryx.brightness')}
-                    disabled={!screenEnabled}
-                    onChange={(v, commit) => {
-                      const rounded = Math.round(v);
-                      if (commit) {
-                        brightnessInteractingRef.current = false;
-                        setBrightness(rounded);
-                        void setTryxBrightness(rounded);
-                        return;
-                      }
-                      brightnessInteractingRef.current = true;
-                      setBrightness(rounded);
-                    }}
-                    onCommit={v => {
+                <SettingSlider
+                  editable
+                  trackFill
+                  label={t('devices.tryx.brightness')}
+                  value={brightness}
+                  min={0}
+                  max={100}
+                  step={1}
+                  formatValue={v => `${v}%`}
+                  ariaLabel={t('devices.tryx.brightness')}
+                  disabled={!screenEnabled}
+                  onChange={(v, commit) => {
+                    const rounded = Math.round(v);
+                    if (commit) {
                       brightnessInteractingRef.current = false;
-                      const rounded = Math.round(v);
                       setBrightness(rounded);
                       void setTryxBrightness(rounded);
-                    }}
-                  />
-                </div>
+                      return;
+                    }
+                    brightnessInteractingRef.current = true;
+                    setBrightness(rounded);
+                  }}
+                  onCommit={v => {
+                    brightnessInteractingRef.current = false;
+                    const rounded = Math.round(v);
+                    setBrightness(rounded);
+                    void setTryxBrightness(rounded);
+                  }}
+                />
               </SettingsSection>
 
               <SettingsSection title={t('devices.tryx.overlaySection')} boxClassName={styles.sectionBox}>
@@ -722,31 +718,27 @@ export function TryxDevicePage() {
                     ariaLabel={t('devices.tryx.font')}
                   />
                 </div>
-                <div className={styles.sliderBlock}>
-                  <Slider
-                    // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                    orientation="stacked"
-                    editable
-                    trackFill
-                    label={t('devices.tryx.size')}
-                    value={overlaySize}
-                    min={50}
-                    max={150}
-                    step={1}
-                    formatValue={v => `${v}%`}
-                    ariaLabel={t('devices.tryx.size')}
-                    onChange={v => {
-                      const rounded = Math.round(v);
-                      setOverlaySize(rounded);
-                      pushOverlay(overlayItems, overlayFont, rounded, overlayColor, overlayAlign, overlayDocked);
-                    }}
-                    onCommit={v => {
-                      const rounded = Math.round(v);
-                      setOverlaySize(rounded);
-                      pushOverlay(overlayItems, overlayFont, rounded, overlayColor, overlayAlign, overlayDocked);
-                    }}
-                  />
-                </div>
+                <SettingSlider
+                  editable
+                  trackFill
+                  label={t('devices.tryx.size')}
+                  value={overlaySize}
+                  min={50}
+                  max={150}
+                  step={1}
+                  formatValue={v => `${v}%`}
+                  ariaLabel={t('devices.tryx.size')}
+                  onChange={v => {
+                    const rounded = Math.round(v);
+                    setOverlaySize(rounded);
+                    pushOverlay(overlayItems, overlayFont, rounded, overlayColor, overlayAlign, overlayDocked);
+                  }}
+                  onCommit={v => {
+                    const rounded = Math.round(v);
+                    setOverlaySize(rounded);
+                    pushOverlay(overlayItems, overlayFont, rounded, overlayColor, overlayAlign, overlayDocked);
+                  }}
+                />
                 <div className={styles.colorSection}>
                   <span className={styles.controlRowLabel}>{t('devices.tryx.color')}</span>
                   <div className={styles.colorPicker}>

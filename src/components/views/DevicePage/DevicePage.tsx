@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Unplug } from 'lucide-react';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
+import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { ServiceRequired } from '../ServiceRequired';
 import { Placeholder } from '../Placeholder';
 import { PanelDevicePage } from './PanelDevicePage';
@@ -37,6 +39,12 @@ import styles from './DevicePage.module.scss';
  * Rendering these as pages (rather than fullscreen modals) lets the
  * sidebar's DEVICES section deep-link to each device.
  */
+// A device is transiently absent from `unified` while navigating between
+// device pages and while the service is still detecting freshly-attached
+// hardware. Hold this long before showing the not-connected notice so it
+// never flashes before detection lands.
+const DETECT_GRACE_MS = 700;
+
 interface DevicePageProps {
   deviceKey: string;
   serviceOnline: boolean;
@@ -53,16 +61,30 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     [unified, deviceKey],
   );
 
+  // The device appearing in `unified` re-renders and dispatches immediately,
+  // independent of this timer; the grace only defers the empty-state UI.
+  const [graceElapsed, setGraceElapsed] = useState(false);
+  useEffect(() => {
+    setGraceElapsed(false);
+    if (device) return;
+    const id = window.setTimeout(() => setGraceElapsed(true), DETECT_GRACE_MS);
+    return () => window.clearTimeout(id);
+  }, [device, deviceKey]);
+
   if (!serviceOnline) {
     return <ServiceRequired state={connectionState} skeleton={<div />} />;
   }
 
   if (!device) {
     return (
-      <section>
+      <div className={styles.page}>
         <ViewHeader title={t('devices.page.title')} />
-        <Placeholder title={t('devices.page.notFound')} />
-      </section>
+        {graceElapsed && (
+          <div className={`${styles.pageBody} pageBody`}>
+            <EmptyState icon={<Unplug size={40} />} title={t('devices.page.notConnected')} />
+          </div>
+        )}
+      </div>
     );
   }
 

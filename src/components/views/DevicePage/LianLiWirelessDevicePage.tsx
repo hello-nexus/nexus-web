@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Fan, Thermometer, MonitorSmartphone } from 'lucide-react';
+import { Fan, Thermometer, MonitorSmartphone, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { Placeholder } from '../Placeholder';
+import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { getLianLiWirelessState, type LianLiWirelessState } from '../../../api/lianli-wireless';
 import { useTranslation } from '../../../lib/i18n';
 import { LianLiWirelessFansTab } from './LianLiWirelessFansTab';
@@ -94,7 +94,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
         actions={loaded ? <span className={styles.statusBadge}>{t('devices.lianli-wireless.connected')}</span> : null}
       />
       <div className={`${styles.pageBody} pageBody`}>
-        {disconnected && <Placeholder title={t('devices.lianli-wireless.notConnected')} />}
+        {disconnected && <EmptyState icon={<Unplug size={40} />} title={t('devices.lianli-wireless.notConnected')} />}
         {/* Tab body stays mounted across a transient disconnect so a fan's
             in-flight bind/unbind pending state survives the reconnect. */}
         <div className={styles.tabBody} hidden={disconnected}>

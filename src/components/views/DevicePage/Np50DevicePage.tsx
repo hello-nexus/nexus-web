@@ -2,8 +2,7 @@ import { Unplug } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
-import { Select } from '../../common/Select/Select';
-import { Slider } from '../../common/Slider/Slider';
+import { SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import {
@@ -169,47 +168,39 @@ export function Np50DevicePage() {
           description={t('devices.np50.fanSectionDescription')}
           boxClassName={styles.sectionBox}
         >
-          <div className={`${styles.row} ${!defaultsLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>{t('devices.np50.defaultMode')}</span>
-            <Select
-              value={String(defaults?.defaultMode ?? NP50_DEFAULT_MODE_STATIC)}
-              onChange={v => {
-                if (!defaults) return;
-                const m = Number(v) as Np50DefaultMode;
-                void commitDefaults({ ...defaults, defaultMode: m });
-              }}
-              options={[
-                { value: String(NP50_DEFAULT_MODE_STATIC), label: t('devices.np50.modeStaticSetpoint') },
-                { value: String(NP50_DEFAULT_MODE_MOTHERBOARD), label: t('devices.np50.modeMotherboardPwm') },
-              ]}
-              disabled={!defaultsLoaded}
-              ariaLabel={t('devices.np50.defaultCoolingModeAria')}
-            />
-          </div>
-          <div className={`${styles.row} ${!defaultsLoaded || !isStatic ? styles.rowDisabled : ''}`}>
-            <Slider
-              className={styles.slider}
-              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              orientation="stacked"
-              editable
-              trackFill
-              label={t('devices.np50.staticFanPercent')}
-              value={defaults?.staticFanPercent ?? 50}
-              min={0}
-              max={100}
-              step={1}
-              formatValue={v => `${Math.round(v)}%`}
-              disabled={!defaultsLoaded || !isStatic}
-              ariaLabel={t('devices.np50.staticFanPercentAria')}
-              onChange={(v: number) => {
-                if (!defaults) return;
-                setDefaults({ ...defaults, staticFanPercent: Math.round(v) });
-              }}
-              onCommit={() => {
-                if (defaults) void commitDefaults(defaults);
-              }}
-            />
-          </div>
+          <SettingSelect
+            label={t('devices.np50.defaultMode')}
+            value={String(defaults?.defaultMode ?? NP50_DEFAULT_MODE_STATIC)}
+            onChange={v => {
+              if (!defaults) return;
+              const m = Number(v) as Np50DefaultMode;
+              void commitDefaults({ ...defaults, defaultMode: m });
+            }}
+            options={[
+              { value: String(NP50_DEFAULT_MODE_STATIC), label: t('devices.np50.modeStaticSetpoint') },
+              { value: String(NP50_DEFAULT_MODE_MOTHERBOARD), label: t('devices.np50.modeMotherboardPwm') },
+            ]}
+            disabled={!defaultsLoaded}
+          />
+          <SettingSlider
+            label={t('devices.np50.staticFanPercent')}
+            value={defaults?.staticFanPercent ?? 50}
+            min={0}
+            max={100}
+            step={1}
+            editable
+            trackFill
+            formatValue={v => `${Math.round(v)}%`}
+            disabled={!defaultsLoaded || !isStatic}
+            ariaLabel={t('devices.np50.staticFanPercentAria')}
+            onChange={(v: number) => {
+              if (!defaults) return;
+              setDefaults({ ...defaults, staticFanPercent: Math.round(v) });
+            }}
+            onCommit={() => {
+              if (defaults) void commitDefaults(defaults);
+            }}
+          />
         </SettingsSection>
 
         <SettingsSection
@@ -217,49 +208,41 @@ export function Np50DevicePage() {
           description={t('devices.np50.ledSectionDescription')}
           boxClassName={styles.sectionBox}
         >
-          <div className={`${styles.row} ${!animationLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>{t('devices.fwAnimation.effect')}</span>
-            <Select
-              value={String(animKind)}
-              onChange={v => {
-                if (!animation) return;
-                const k = Number(v) as Np50FwAnimationKind;
-                void commitAnimation({ ...animation, animation: k });
-              }}
-              options={[
-                { value: String(NP50_FW_ANIMATION_COLOR), label: t('devices.fwAnimation.solidColor') },
-                { value: String(NP50_FW_ANIMATION_RAINBOW), label: t('devices.fwAnimation.rainbowCycle') },
-                { value: String(NP50_FW_ANIMATION_BREATHE), label: t('devices.fwAnimation.breathing') },
-                { value: String(NP50_FW_ANIMATION_RAINBOW_GRADIENT), label: t('devices.fwAnimation.rainbowGradient') },
-              ]}
-              disabled={!animationLoaded}
-              ariaLabel={t('devices.np50.firmwareAnimationAria')}
-            />
-          </div>
-          <div className={`${styles.row} ${!animationLoaded ? styles.rowDisabled : ''}`}>
-            <Slider
-              className={styles.slider}
-              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              orientation="stacked"
-              editable
-              trackFill
-              label={t('devices.y70.brightness')}
-              value={animation?.brightness ?? 100}
-              min={0}
-              max={100}
-              step={1}
-              formatValue={v => `${Math.round(v)}%`}
-              disabled={!animationLoaded}
-              ariaLabel={t('devices.y70.brightness')}
-              onChange={(v: number) => {
-                if (!animation) return;
-                setAnimation({ ...animation, brightness: Math.round(v) });
-              }}
-              onCommit={() => {
-                if (animation) void commitAnimation(animation);
-              }}
-            />
-          </div>
+          <SettingSelect
+            label={t('devices.fwAnimation.effect')}
+            value={String(animKind)}
+            onChange={v => {
+              if (!animation) return;
+              const k = Number(v) as Np50FwAnimationKind;
+              void commitAnimation({ ...animation, animation: k });
+            }}
+            options={[
+              { value: String(NP50_FW_ANIMATION_COLOR), label: t('devices.fwAnimation.solidColor') },
+              { value: String(NP50_FW_ANIMATION_RAINBOW), label: t('devices.fwAnimation.rainbowCycle') },
+              { value: String(NP50_FW_ANIMATION_BREATHE), label: t('devices.fwAnimation.breathing') },
+              { value: String(NP50_FW_ANIMATION_RAINBOW_GRADIENT), label: t('devices.fwAnimation.rainbowGradient') },
+            ]}
+            disabled={!animationLoaded}
+          />
+          <SettingSlider
+            label={t('devices.y70.brightness')}
+            value={animation?.brightness ?? 100}
+            min={0}
+            max={100}
+            step={1}
+            editable
+            trackFill
+            formatValue={v => `${Math.round(v)}%`}
+            disabled={!animationLoaded}
+            ariaLabel={t('devices.y70.brightness')}
+            onChange={(v: number) => {
+              if (!animation) return;
+              setAnimation({ ...animation, brightness: Math.round(v) });
+            }}
+            onCommit={() => {
+              if (animation) void commitAnimation(animation);
+            }}
+          />
           {showColorPicker && animationLoaded && (
             <div className={styles.colorBlock}>
               <HsvPicker

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Lightbulb } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { Select } from '../../common/Select/Select';
-import { Slider } from '../../common/Slider/Slider';
+import { SettingSlider } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -106,9 +106,7 @@ export function StrimerDevicePage({ onSectionNavigate }: StrimerDevicePageProps)
           ) : (
             <>
               {selectedMode?.hasBrightness && (
-                <Slider
-                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                  orientation="stacked"
+                <SettingSlider
                   editable
                   trackFill
                   label={t('devices.lianli.lightingBrightness')}
@@ -130,9 +128,7 @@ export function StrimerDevicePage({ onSectionNavigate }: StrimerDevicePageProps)
               )}
 
               {selectedMode?.hasSpeed && (
-                <Slider
-                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                  orientation="stacked"
+                <SettingSlider
                   editable
                   trackFill
                   label={t('devices.lianli.lightingSpeed')}

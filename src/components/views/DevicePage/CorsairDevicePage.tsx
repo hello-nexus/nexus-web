@@ -1,11 +1,11 @@
-import { Fan, Lightbulb, Thermometer } from 'lucide-react';
+import { Fan, Lightbulb, Thermometer, Unplug } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getCorsairState, type CorsairState } from '../../../api/corsair';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { Placeholder } from '../Placeholder';
+import { EmptyState } from '../../common/EmptyState/EmptyState';
 import styles from './CorsairDevicePage.module.scss';
 
 // Re-enumerates the chain each tick so a fan moved between ports or hot-plugged
@@ -71,7 +71,7 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
         {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
         <ViewHeader title="Corsair iCUE LINK Hub" />
         <div className={`${styles.pageBody} pageBody`}>
-          <Placeholder title={t('devices.corsair.notConnected')} />
+          <EmptyState icon={<Unplug size={40} />} title={t('devices.corsair.notConnected')} />
         </div>
       </div>
     );
