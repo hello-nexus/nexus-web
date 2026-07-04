@@ -352,7 +352,6 @@ export function TryxDevicePage() {
   }, [pushOverlay, overlayFont, overlaySize, overlayColor]);
 
   const connected = !!status?.connected;
-  const mediaFileCount = status?.mediaFileCount ?? 0;
   const mediaUsedBytes = status?.mediaUsedBytes ?? 0;
   const storageUsedPercent = 100 - tryxStorageFreePercent(mediaUsedBytes);
   const hasEnabledOverlayItem = overlayItems.some(item => item.enabled);
@@ -844,16 +843,14 @@ export function TryxDevicePage() {
                       className={styles.hiddenInput}
                       onChange={handleFileChange}
                     />
-                    {mediaFileCount > 0 && (
-                      <div className={styles.storageIndicator}>
-                        <div className={styles.storageBarTrack} aria-hidden="true">
-                          <div className={styles.storageBarFill} style={{ width: `${storageUsedPercent}%` }} />
-                        </div>
-                        <span className={styles.hintText}>
-                          {t('devices.tryx.storageFree', { percent: formatTryxStorageFreePercent(mediaUsedBytes) })}
-                        </span>
+                    <div className={styles.storageIndicator}>
+                      <div className={styles.storageBarTrack} aria-hidden="true">
+                        <div className={styles.storageBarFill} style={{ width: `${storageUsedPercent}%` }} />
                       </div>
-                    )}
+                      <span className={styles.hintText}>
+                        {t('devices.tryx.storageFree', { percent: formatTryxStorageFreePercent(mediaUsedBytes) })}
+                      </span>
+                    </div>
                   </div>
 
                   {media.length > 0 ? (
