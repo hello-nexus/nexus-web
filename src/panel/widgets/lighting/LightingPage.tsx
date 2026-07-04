@@ -1104,10 +1104,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         detectedVidPids={detectedVidPids}
       />
       {/* ViewHeader lives in the left grid column so the device column (right)
-          can rise to the very top of the page, level with the mode tabs. Full
-          content width (not pageBody-capped) so the device column reaches the
-          right edge. */}
-      <div className={styles.body}>
+          can rise to the very top of the page, level with the mode tabs. Capped
+          at --page-max (pageBody) so the page matches every other view's width. */}
+      <div className={`${styles.body} pageBody`}>
         <div className={styles.headerCell}>
           <ViewHeader
             title={t('lighting.title')}

@@ -42,8 +42,8 @@ import {
 } from '../../../api/tryx';
 import {
   applyDockedOverlayLayout,
-  clampUnit,
   dockedOverlayItemPosition,
+  clampUnit,
   formatTryxStorageFreePercent,
   isTryxOverlayAlign,
   isTryxSensorGroup,
@@ -106,14 +106,20 @@ interface OverlayItemState {
   y: number;
 }
 
-const DEFAULT_OVERLAY_ITEMS: OverlayItemState[] = OVERLAY_ITEM_SLOTS.map(i => ({
-  enabled: i === 0,
-  device: 'cpu',
-  sensorId: '',
-  label: '',
-  sensorType: '',
-  ...dockedOverlayItemPosition(DEFAULT_OVERLAY_ALIGN, i),
-}));
+const DEFAULT_OVERLAY_ITEMS: OverlayItemState[] = applyDockedOverlayLayout(
+  OVERLAY_ITEM_SLOTS.map(i => ({
+    enabled: i === 0,
+    device: 'cpu' as TryxSensorGroup,
+    sensorId: '',
+    label: '',
+    sensorType: '',
+    // Staggered per-slot seed so a slot enabled while UNDOCKED lands somewhere
+    // sensible, not at the panel origin; applyDockedOverlayLayout re-centers the
+    // enabled subset below.
+    ...dockedOverlayItemPosition(DEFAULT_OVERLAY_ALIGN, i, OVERLAY_ITEM_SLOTS.length),
+  })),
+  DEFAULT_OVERLAY_ALIGN,
+);
 
 type TryxTab = 'display' | 'media';
 
@@ -245,11 +251,14 @@ export function TryxDevicePage() {
     overlayInitRef.current = true;
     const items = status.overlay?.items ?? [];
     const align = isTryxOverlayAlign(status.overlay?.align) ? status.overlay.align : DEFAULT_OVERLAY_ALIGN;
-    setOverlayItems(OVERLAY_ITEM_SLOTS.map(i => {
+    const docked = status.overlay?.docked ?? DEFAULT_OVERLAY_DOCKED;
+    const built = OVERLAY_ITEM_SLOTS.map(i => {
       const item = items[i];
-      const pos = dockedOverlayItemPosition(align, i);
       if (!item) {
-        return { enabled: false, device: 'cpu', sensorId: '', label: '', sensorType: '', x: pos.x, y: pos.y };
+        // Staggered seed (see DEFAULT_OVERLAY_ITEMS) so enabling this slot while
+        // undocked lands it somewhere sensible, not at the panel origin.
+        const pos = dockedOverlayItemPosition(align, i, OVERLAY_ITEM_SLOTS.length);
+        return { enabled: false, device: 'cpu' as TryxSensorGroup, sensorId: '', label: '', sensorType: '', x: pos.x, y: pos.y };
       }
       return {
         enabled: true,
@@ -260,12 +269,15 @@ export function TryxDevicePage() {
         x: clampUnit(item.x),
         y: clampUnit(item.y),
       };
-    }));
+    });
+    // Recompute a docked stack from the enabled count so an old top-aligned config
+    // recenters; free (undocked) layouts keep their saved drag positions.
+    setOverlayItems(docked ? applyDockedOverlayLayout(built, align) : built);
     setOverlayFont(status.overlay?.font ?? TRYX_FONTS[0]);
     setOverlaySize(status.overlay?.size ?? 100);
     setOverlayColor(status.overlay?.color ?? '#ffffff');
     setOverlayAlign(align);
-    setOverlayDocked(status.overlay?.docked ?? DEFAULT_OVERLAY_DOCKED);
+    setOverlayDocked(docked);
   }, [status]);
 
   // Live sensor lists arrive after the status seed. Replace any stored sensorId
@@ -273,27 +285,35 @@ export function TryxDevicePage() {
   // the simulator's canned ids - with the group's first real sensor, so the
   // dropdown selects it and the preview shows a live value instead of "--".
   // Idempotent: only ever rewrites an item whose current sensorId is invalid.
-  // Count of enabled items whose stored sensorId isn't valid for the currently
-  // available sensors (empty, or a config saved on other hardware, or the
-  // simulator's canned ids). Keying the reconcile effect on this - rather than
-  // just the sensor counts - fires it whenever either the items OR the sensors
-  // change into a fixable state, regardless of which arrives first.
-  const overlayItemsNeedingSensor = overlayItems.filter(item => {
+  // Count of enabled items that need reconciling: either the stored sensorId
+  // isn't valid for the currently available sensors (a config saved on other
+  // hardware, or the simulator's canned ids), or the label is stale - the panel
+  // label is a non-editable snapshot of the sensor's "<Device> <Sensor>" name,
+  // so it must track the current prefixedLabel. Keying the effect on this count
+  // fires it whenever items OR sensors change into a fixable state.
+  const overlayItemsNeedingFix = overlayItems.filter(item => {
     if (!item.enabled) return false;
     const options = tryxSensorOptionsForGroup(item.device, sensorsByGroup);
-    return options.length > 0 && !options.some(o => o.value === item.sensorId);
+    if (options.length === 0) return false;
+    const opt = options.find(o => o.value === item.sensorId);
+    return !opt || item.label !== opt.prefixedLabel;
   }).length;
   useEffect(() => {
-    if (overlayItemsNeedingSensor === 0) return;
+    if (overlayItemsNeedingFix === 0) return;
     setOverlayItems(prev => prev.map(item => {
       if (!item.enabled) return item;
       const options = tryxSensorOptionsForGroup(item.device, sensorsByGroup);
-      if (options.length === 0 || options.some(o => o.value === item.sensorId)) return item;
-      const first = options[0];
-      return { ...item, sensorId: first.value, label: first.bareLabel, sensorType: first.type };
+      if (options.length === 0) return item;
+      const opt = options.find(o => o.value === item.sensorId);
+      if (!opt) {
+        const first = options[0];
+        return { ...item, sensorId: first.value, label: first.prefixedLabel, sensorType: first.type };
+      }
+      if (item.label !== opt.prefixedLabel) return { ...item, label: opt.prefixedLabel, sensorType: opt.type };
+      return item;
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overlayItemsNeedingSensor]);
+  }, [overlayItemsNeedingFix]);
 
   // Measures the preview canvas's rendered height so scalePanelMetric can
   // convert the panel's fixed-height layout constants into preview px; the
@@ -425,7 +445,7 @@ export function TryxDevicePage() {
       const first = tryxSensorOptionsForGroup(toggled[i].device, sensorsByGroup)[0];
       if (first) {
         toggled = toggled.map((it, idx) => (idx === i
-          ? { ...it, sensorId: first.value, label: first.bareLabel, sensorType: first.type }
+          ? { ...it, sensorId: first.value, label: first.prefixedLabel, sensorType: first.type }
           : it));
       }
     }
@@ -440,7 +460,7 @@ export function TryxDevicePage() {
     // switching to a device/sensor pair the service can't render.
     if (!first) return;
     const next = overlayItems.map((it, idx) => (idx === i
-      ? { ...it, device, sensorId: first.value, label: first.bareLabel, sensorType: first.type }
+      ? { ...it, device, sensorId: first.value, label: first.prefixedLabel, sensorType: first.type }
       : it));
     commitOverlay(next, overlayDocked, overlayAlign);
   };
@@ -449,7 +469,7 @@ export function TryxDevicePage() {
     const options = tryxSensorOptionsForGroup(overlayItems[i].device, sensorsByGroup);
     const picked = options.find(o => o.value === sensorId);
     const next = overlayItems.map((it, idx) => (idx === i
-      ? { ...it, sensorId, label: picked?.bareLabel ?? it.label, sensorType: picked?.type ?? it.sensorType }
+      ? { ...it, sensorId, label: picked?.prefixedLabel ?? it.label, sensorType: picked?.type ?? it.sensorType }
       : it));
     commitOverlay(next, overlayDocked, overlayAlign);
   };
@@ -698,7 +718,10 @@ export function TryxDevicePage() {
                   />
                 </div>
                 <div className={styles.row}>
-                  <span className={styles.rowLabel}>{t('devices.tryx.docked')}</span>
+                  <div className={styles.rowLabelStack}>
+                    <span className={styles.rowLabel}>{t('devices.tryx.docked')}</span>
+                    <span className={styles.hintText}>{t('devices.tryx.dockedHint')}</span>
+                  </div>
                   <Toggle
                     checked={overlayDocked}
                     onChange={handleDockedChange}
@@ -941,10 +964,10 @@ export function TryxDevicePage() {
                   </div>
                 );
               })}
+              {hasEnabledOverlayItem && (
+                <span className={styles.canvasHint}>{t('devices.tryx.overlayDragHint')}</span>
+              )}
             </div>
-            {hasEnabledOverlayItem && (
-              <span className={styles.hintText}>{t('devices.tryx.overlayDragHint')}</span>
-            )}
           </div>
         )}
       </div>

@@ -27,14 +27,12 @@
 }
 .offStatusLabel { letter-spacing: 0.02em; }
 
-// ── Body (single column) ───────────────────────────────────────────────────
-// The page scrolls as one column: the pinned curve card + its selector
-// buttons, then the fan grid. Spans the full content width (not pageBody-
-// capped) so the fan column reaches the right edge.
-// The curve hero card docks at the top (flex-shrink:0); only the fan section
-// below scrolls, so the graph stays put as the user scrolls the fan grid.
+// ── Body ────────────────────────────────────────────────────────────────────
 // Two columns: the curve block (left) flexes, the fan sidebar (right) is a
-// fixed-width vertical scroller, mirroring the lighting page.
+// fixed-width vertical scroller, mirroring the lighting page. The curve hero
+// card docks at the top of its column (flex-shrink:0); only the fan section
+// below scrolls, so the graph stays put as the user scrolls the fan grid.
+// Width cap comes from the pageBody utility on the wrapping div.
 .body {
   display: grid;
   // 260px: with the 0.4rem right inset the fan cards land at the same width as
