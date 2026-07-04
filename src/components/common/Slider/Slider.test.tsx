@@ -51,4 +51,17 @@ describe('Slider', () => {
     expect(onChange).toHaveBeenCalledWith(35, false);
     await waitFor(() => expect(onCommit).toHaveBeenCalledWith(35));
   });
+
+  it('inline editable value opens a number input on click', () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <Slider orientation="inline" editable label="Level" value={80} min={0} max={100}
+        formatValue={v => `${v}%`} ariaLabel="Level" onChange={onChange} />,
+    );
+    // The inline root must NOT be a <label>: a label forwards a value click to
+    // the range input and steals focus from the edit input (reverts it).
+    expect(container.querySelector('label')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Level' }));
+    expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+  });
 });

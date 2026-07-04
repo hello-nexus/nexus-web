@@ -50,29 +50,15 @@
   white-space: nowrap;
 }
 
-/* Inline value column reserves the widest endpoint's width (hidden sizers
-   set the grid cell size) so the track edge never shifts as the value's
-   width changes; the visible value right-aligns within the fixed column. */
-.inline .value {
-  display: inline-grid;
-  justify-items: end;
-}
-
-.inline .value > * {
-  grid-area: 1 / 1;
-}
-
-/* Presentational width reservation only: the value string lives in
-   data-sizer and renders via ::before, so it sizes the grid cell without
-   adding a queryable/announced text node. */
-.valueSizer {
-  visibility: hidden;
-  height: 0;
-  overflow: hidden;
-}
-
-.valueSizer::before {
-  content: attr(data-sizer);
+/* Inline value reserver: a min-width holder that right-aligns the sole value
+   child, so the track edge never shifts as the value's width changes while the
+   value keeps a full, un-overlapped click/hit area. Font matches the value so
+   the ch-based min-width is measured in the value's own type. */
+.inline .inlineValue {
+  display: inline-flex;
+  justify-content: flex-end;
+  font-size: var(--type-small);
+  white-space: nowrap;
 }
 
 .head {

@@ -111,19 +111,19 @@ export function Slider({
     <span className={styles.value}>{fmt(value)}</span>
   );
 
-  // Inline layout only: reserve the value column at the width of the widest
-  // value the slider can show (the formatted endpoints), so the track's right
-  // edge stays put as the value's digit count changes. Hidden sizers size the
-  // grid cell; the visible value right-aligns within it.
+  // Inline layout only: reserve the value column at the widest formatted
+  // endpoint (in ch, +1 to cover a suffix glyph wider than a digit) so the
+  // track's right edge doesn't shift as the value's width changes. The value
+  // is the sole, right-aligned child of the reserver, so its click/hit area
+  // is never overlapped.
+  const reserveCh = Math.max(fmt(min).length, fmt(max).length) + 1;
   const inlineValueNode = (
-    <span className={styles.value}>
-      <span className={styles.valueSizer} aria-hidden="true" data-sizer={fmt(min)} />
-      <span className={styles.valueSizer} aria-hidden="true" data-sizer={fmt(max)} />
+    <span className={styles.inlineValue} style={{ minWidth: `${reserveCh}ch` }}>
       {editable ? (
         <EditableNumber value={value} min={min} max={max} step={step}
-          onCommit={v => handleChange(v, true)} format={formatValue} className={styles.valueActual} />
+          onCommit={v => handleChange(v, true)} format={formatValue} ariaLabel={ariaLabel} className={styles.value} />
       ) : (
-        <span className={styles.valueActual}>{fmt(value)}</span>
+        <span className={styles.value}>{fmt(value)}</span>
       )}
     </span>
   );
@@ -189,14 +189,18 @@ export function Slider({
     );
   }
 
+  // A div, not a label: a label forwards a click on the value to its first
+  // labelable descendant (the range input) and focuses it, which in the inline
+  // order (range before value) steals focus from the just-opened edit input and
+  // reverts it. The range carries its own aria-label, so no label is needed.
   return (
-    <label className={`${styles.root} ${styles.inline} ${className ?? ''}`}>
+    <div className={`${styles.root} ${styles.inline} ${className ?? ''}`}>
       {label && <span className={styles.label}>{label}</span>}
       <div className={styles.track}>
         {range}
         {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
       </div>
       {inlineValueNode}
-    </label>
+    </div>
   );
 }
