@@ -2384,5 +2384,9 @@
   "devices.lianli-wireless.selectionModeSingle": "単一",
   "devices.lianli-wireless.selectionModeMultiple": "複数",
   "devices.lianli-wireless.contentTypeMixed": "混在",
-  "devices.lianli-wireless.contentMixedHint": "選択したファンの内容が異なります。すべてに適用する種類を選んでください。"
+  "devices.lianli-wireless.contentMixedHint": "選択したファンの内容が異なります。すべてに適用する種類を選んでください。",
+  "devices.lianli-wireless.deviceStrimer": "Strimer",
+  "devices.lianli-wireless.deviceWaterBlock": "ウォーターブロック",
+  "devices.lianli-wireless.deviceGeneric": "デバイス",
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
 }

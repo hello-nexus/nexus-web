@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiWirelessDevicePage } from './LianLiWirelessDevicePage';
-import { fanTypeKey } from './LianLiWirelessFansTab';
+import { fanTypeKey, deviceTypeKey, isFanDevice } from './LianLiWirelessFansTab';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -77,6 +77,43 @@ describe('fanTypeKey', () => {
     expect(fanTypeKey(0)).toBe('fanTypeGeneric');
     expect(fanTypeKey(99)).toBe('fanTypeGeneric');
   });
+
+  it('maps 27-35 to TL-V2', () => {
+    expect(fanTypeKey(27)).toBe('fanTypeTlv2');
+    expect(fanTypeKey(28)).toBe('fanTypeTlv2');
+    expect(fanTypeKey(35)).toBe('fanTypeTlv2');
+  });
+});
+
+describe('deviceTypeKey', () => {
+  it('names a Strimer from dev_type 1-9', () => {
+    expect(deviceTypeKey(1, 0)).toBe('deviceStrimer');
+    expect(deviceTypeKey(9, 0)).toBe('deviceStrimer');
+  });
+
+  it('names a Water Block from dev_type 10/11', () => {
+    expect(deviceTypeKey(10, 0)).toBe('deviceWaterBlock');
+    expect(deviceTypeKey(11, 0)).toBe('deviceWaterBlock');
+  });
+
+  it('names a fan chain by its sub-family (dev_type 0, sub-family in fanType)', () => {
+    expect(deviceTypeKey(0, 24)).toBe('fanTypeSlv3Lcd');
+    expect(deviceTypeKey(0, 36)).toBe('fanTypeSlInfinity');
+    expect(deviceTypeKey(0, 0)).toBe('fanTypeGeneric');
+  });
+
+  it('falls back to a generic device label for unknown categories', () => {
+    expect(deviceTypeKey(15, 0)).toBe('deviceGeneric');
+    expect(deviceTypeKey(90, 0)).toBe('deviceGeneric');
+  });
+
+  it('isFanDevice: dev_type 0 and 20-42 are fans, others are not', () => {
+    expect(isFanDevice(0)).toBe(true);
+    expect(isFanDevice(20)).toBe(true);
+    expect(isFanDevice(42)).toBe(true);
+    expect(isFanDevice(5)).toBe(false);
+    expect(isFanDevice(10)).toBe(false);
+  });
 });
 
 describe('LianLiWirelessDevicePage', () => {
@@ -124,6 +161,29 @@ describe('LianLiWirelessDevicePage', () => {
       render(<LianLiWirelessDevicePage />);
     });
     expect(screen.getByText('devices.lianli-wireless.noFansPaired')).toBeInTheDocument();
+  });
+
+  it('names a non-fan device (Strimer) and shows no fan rows', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{
+        mac: '112233445566',
+        masterMac: '8A0EEF6232DC',
+        boundToUs: true,
+        channel: 8,
+        slot: 2,
+        devType: 5,   // a Strimer
+        fanType: 0,
+        fanCount: 0,
+        rpm: [0, 0, 0, 0],
+        pwm: [0, 0, 0, 0],
+      }],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByText('devices.lianli-wireless.deviceStrimer')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.fanN:{"n":1}')).not.toBeInTheDocument();
   });
 });
 

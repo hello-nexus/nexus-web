@@ -2384,5 +2384,9 @@
   "devices.lianli-wireless.selectionModeSingle": "Einzeln",
   "devices.lianli-wireless.selectionModeMultiple": "Mehrere",
   "devices.lianli-wireless.contentTypeMixed": "Gemischt",
-  "devices.lianli-wireless.contentMixedHint": "Ausgewählte Lüfter haben unterschiedliche Inhalte. Wähle einen Typ für alle."
+  "devices.lianli-wireless.contentMixedHint": "Ausgewählte Lüfter haben unterschiedliche Inhalte. Wähle einen Typ für alle.",
+  "devices.lianli-wireless.deviceStrimer": "Strimer",
+  "devices.lianli-wireless.deviceWaterBlock": "Wasserblock",
+  "devices.lianli-wireless.deviceGeneric": "Gerät",
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
 }

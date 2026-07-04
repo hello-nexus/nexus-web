@@ -2384,5 +2384,9 @@
   "devices.lianli-wireless.selectionModeSingle": "Singul",
   "devices.lianli-wireless.selectionModeMultiple": "Multiplis",
   "devices.lianli-wireless.contentTypeMixed": "Miscliç",
-  "devices.lianli-wireless.contentMixedHint": "I ventiladôrs selezionâts a àn contignûts diferents. Sielç un gjenar par ducj."
+  "devices.lianli-wireless.contentMixedHint": "I ventiladôrs selezionâts a àn contignûts diferents. Sielç un gjenar par ducj.",
+  "devices.lianli-wireless.deviceStrimer": "Strimer",
+  "devices.lianli-wireless.deviceWaterBlock": "Bloc di aghe",
+  "devices.lianli-wireless.deviceGeneric": "Dispositîf",
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
 }

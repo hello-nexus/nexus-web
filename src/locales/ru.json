@@ -2384,5 +2384,9 @@
   "devices.lianli-wireless.selectionModeSingle": "Один",
   "devices.lianli-wireless.selectionModeMultiple": "Несколько",
   "devices.lianli-wireless.contentTypeMixed": "Разное",
-  "devices.lianli-wireless.contentMixedHint": "У выбранных вентиляторов разное содержимое. Выберите тип для всех."
+  "devices.lianli-wireless.contentMixedHint": "У выбранных вентиляторов разное содержимое. Выберите тип для всех.",
+  "devices.lianli-wireless.deviceStrimer": "Strimer",
+  "devices.lianli-wireless.deviceWaterBlock": "Водоблок",
+  "devices.lianli-wireless.deviceGeneric": "Устройство",
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
 }

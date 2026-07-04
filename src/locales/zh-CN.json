@@ -2384,5 +2384,9 @@
   "devices.lianli-wireless.selectionModeSingle": "单个",
   "devices.lianli-wireless.selectionModeMultiple": "多个",
   "devices.lianli-wireless.contentTypeMixed": "多种",
-  "devices.lianli-wireless.contentMixedHint": "所选风扇的内容不同。请选择一种类型应用于全部。"
+  "devices.lianli-wireless.contentMixedHint": "所选风扇的内容不同。请选择一种类型应用于全部。",
+  "devices.lianli-wireless.deviceStrimer": "Strimer",
+  "devices.lianli-wireless.deviceWaterBlock": "水冷头",
+  "devices.lianli-wireless.deviceGeneric": "设备",
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
 }

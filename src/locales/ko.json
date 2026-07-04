@@ -2384,5 +2384,9 @@
   "devices.lianli-wireless.selectionModeSingle": "단일",
   "devices.lianli-wireless.selectionModeMultiple": "다중",
   "devices.lianli-wireless.contentTypeMixed": "혼합",
-  "devices.lianli-wireless.contentMixedHint": "선택한 팬의 콘텐츠가 다릅니다. 모두에 적용할 유형을 선택하세요."
+  "devices.lianli-wireless.contentMixedHint": "선택한 팬의 콘텐츠가 다릅니다. 모두에 적용할 유형을 선택하세요.",
+  "devices.lianli-wireless.deviceStrimer": "Strimer",
+  "devices.lianli-wireless.deviceWaterBlock": "워터블록",
+  "devices.lianli-wireless.deviceGeneric": "장치",
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
 }

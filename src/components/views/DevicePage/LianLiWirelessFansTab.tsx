@@ -21,11 +21,29 @@ const BIND_PENDING_TIMEOUT_MS = 10000;
 type BindAction = 'bind' | 'unbind';
 
 /** Fan subtype (fans_type[0]) -> i18n key suffix. */
-export function fanTypeKey(fanType: number): 'fanTypeSlv3Lcd' | 'fanTypeSlv3Led' | 'fanTypeSlInfinity' | 'fanTypeGeneric' {
-  if (fanType === 24) return 'fanTypeSlv3Lcd';
+export function fanTypeKey(fanType: number): 'fanTypeSlv3Lcd' | 'fanTypeSlv3Led' | 'fanTypeTlv2' | 'fanTypeSlInfinity' | 'fanTypeGeneric' {
+  if (fanType >= 24 && fanType <= 26) return 'fanTypeSlv3Lcd';
   if (fanType >= 20 && fanType <= 23) return 'fanTypeSlv3Led';
+  if (fanType >= 27 && fanType <= 35) return 'fanTypeTlv2';
   if (fanType >= 36 && fanType <= 39) return 'fanTypeSlInfinity';
   return 'fanTypeGeneric';
+}
+
+/** A device record is a fan chain when dev_type is 0 (the SL-V3 chains report 0,
+ *  with the sub-family in fans_type[0]) or a fan's own DevTypes value. Standalone
+ *  non-fan devices report their category in dev_type. */
+export function isFanDevice(devType: number): boolean {
+  return devType === 0 || (devType >= 20 && devType <= 42);
+}
+
+/** dev_type (+ fan sub-family) -> i18n key naming the device, so the list says
+ *  what each paired device is instead of calling everything a fan. */
+export function deviceTypeKey(devType: number, fanType: number):
+  ReturnType<typeof fanTypeKey> | 'deviceStrimer' | 'deviceWaterBlock' | 'deviceGeneric' {
+  if (devType >= 1 && devType <= 9) return 'deviceStrimer';
+  if (devType === 10 || devType === 11) return 'deviceWaterBlock';
+  if (isFanDevice(devType)) return fanTypeKey(fanType);
+  return 'deviceGeneric';
 }
 
 export interface LianLiWirelessFansTabProps {
@@ -198,7 +216,8 @@ function FanChain({
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(true);
-  const typeLabel = t(`devices.lianli-wireless.${fanTypeKey(fan.fanType)}` as Parameters<typeof t>[0]);
+  const typeLabel = t(`devices.lianli-wireless.${deviceTypeKey(fan.devType, fan.fanType)}` as Parameters<typeof t>[0]);
+  const isFan = isFanDevice(fan.devType);
   const busy = pending !== undefined || identifying;
 
   const bindLabel = pending === 'bind'
@@ -224,7 +243,7 @@ function FanChain({
       }
     >
       <div className={styles.chainBody}>
-        {fan.rpm.slice(0, fan.fanCount).map((rpm, i) => (
+        {isFan && fan.rpm.slice(0, fan.fanCount).map((rpm, i) => (
           <div key={i} className={styles.row}>
             <span className={styles.rowLabel}>{t('devices.lianli-wireless.fanN', { n: i + 1 })}</span>
             <span className={styles.rowValue}>

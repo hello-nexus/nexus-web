@@ -2384,5 +2384,9 @@
   "devices.lianli-wireless.selectionModeSingle": "Tekli",
   "devices.lianli-wireless.selectionModeMultiple": "Çoklu",
   "devices.lianli-wireless.contentTypeMixed": "Karışık",
-  "devices.lianli-wireless.contentMixedHint": "Seçili fanların içeriği farklı. Hepsine uygulamak için bir tür seçin."
+  "devices.lianli-wireless.contentMixedHint": "Seçili fanların içeriği farklı. Hepsine uygulamak için bir tür seçin.",
+  "devices.lianli-wireless.deviceStrimer": "Strimer",
+  "devices.lianli-wireless.deviceWaterBlock": "Su bloğu",
+  "devices.lianli-wireless.deviceGeneric": "Cihaz",
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
 }

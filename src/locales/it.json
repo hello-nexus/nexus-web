@@ -2384,5 +2384,9 @@
   "devices.lianli-wireless.selectionModeSingle": "Singola",
   "devices.lianli-wireless.selectionModeMultiple": "Multipla",
   "devices.lianli-wireless.contentTypeMixed": "Misto",
-  "devices.lianli-wireless.contentMixedHint": "Le ventole selezionate hanno contenuti diversi. Scegli un tipo da applicare a tutte."
+  "devices.lianli-wireless.contentMixedHint": "Le ventole selezionate hanno contenuti diversi. Scegli un tipo da applicare a tutte.",
+  "devices.lianli-wireless.deviceStrimer": "Strimer",
+  "devices.lianli-wireless.deviceWaterBlock": "Waterblock",
+  "devices.lianli-wireless.deviceGeneric": "Dispositivo",
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
 }
