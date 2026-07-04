@@ -24,14 +24,20 @@ vi.mock('./auth', () => ({
 
 import {
   fetchService,
+  fetchServiceBlob,
   postService,
+  postServiceForm,
+  pingService,
   authFetchWithStatus,
   isRelayActive,
   isLanSealedActive,
   isLanSealedEligible,
+  isDirectActive,
   isTunnelActive,
   setActiveTransport,
+  setActiveHttpTunnel,
 } from './service';
+import { effectThumbnailPath } from './lighting';
 
 beforeEach(() => {
   relayFetchMock.mockClear();
@@ -241,5 +247,125 @@ describe('service.ts lan-sealed transport routing', () => {
     // false, so lan-sealed never auto-activates here regardless of the flag -
     // a remote origin is the cloud relay's domain, not the LAN sealed tunnel's.
     expect(isLanSealedEligible()).toBe(false);
+  });
+});
+
+// WebRTC direct data-channel transport. Same tunnel-routing contract as relay
+// (isTunnelActive() gates every authFetch-family caller before it can ever
+// reach blockedLocalhostFetch's http://localhost fallback), but dispatched
+// through activeHttpTunnel instead of relayFetch. base64ToArrayBuffer below
+// mirrors the encoding a real RtcHttpTunnel/RelayHttpTunnel response carries.
+function base64Of(bytes: number[]): string {
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
+describe('service.ts direct transport routing', () => {
+  afterEach(() => setActiveHttpTunnel(null));
+
+  it('routes fetchService (JSON REST) through the direct http tunnel, not relay or window.fetch', async () => {
+    const directFetch = vi.fn();
+    vi.stubGlobal('fetch', directFetch);
+    const requestMock = vi.fn(async () => ({ status: 200, body: JSON.stringify({ via: 'direct' }), contentType: 'application/json', base64: false }));
+    setActiveHttpTunnel({ request: requestMock });
+    setActiveTransport('direct');
+
+    expect(isDirectActive()).toBe(true);
+    expect(isTunnelActive()).toBe(true);
+    const out = await fetchService<{ via: string }>('/panel/devices');
+
+    expect(out).toEqual({ via: 'direct' });
+    expect(requestMock).toHaveBeenCalledTimes(1);
+    expect(requestMock.mock.calls[0]).toEqual(['GET', '/panel/devices', null, null]);
+    expect(directFetch).not.toHaveBeenCalled();
+    expect(relayFetchMock).not.toHaveBeenCalled();
+  });
+
+  it('routes a binary/thumbnail fetchServiceBlob through the direct http tunnel and decodes it', async () => {
+    const directFetch = vi.fn();
+    vi.stubGlobal('fetch', directFetch);
+    const requestMock = vi.fn(async () => ({ status: 200, body: base64Of([1, 2, 3, 4]), contentType: 'image/png', base64: true }));
+    setActiveHttpTunnel({ request: requestMock });
+    setActiveTransport('direct');
+
+    const blob = await fetchServiceBlob('/effects/thumb?key=x');
+
+    expect(blob).not.toBeNull();
+    expect(blob!.type).toBe('image/png');
+    expect(blob!.size).toBe(4);
+    expect(new Uint8Array(await blob!.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3, 4]));
+    expect(directFetch).not.toHaveBeenCalled();
+  });
+
+  it('routes the lighting widget thumbnail source (effectThumbnailPath) through the direct http tunnel', async () => {
+    const requestMock = vi.fn(async () => ({ status: 200, body: base64Of([9, 9]), contentType: 'image/bmp', base64: true }));
+    setActiveHttpTunnel({ request: requestMock });
+    setActiveTransport('direct');
+
+    const expectedPath = effectThumbnailPath('rainbow', 0, 'abc123');
+    const blob = await fetchServiceBlob(expectedPath);
+
+    expect(blob).not.toBeNull();
+    expect(requestMock).toHaveBeenCalledTimes(1);
+    const [, path] = requestMock.mock.calls[0] as [string, string];
+    expect(path).toBe(expectedPath);
+  });
+
+  it('postServiceForm and pingService also never fall through to http://localhost under direct', async () => {
+    const directFetch = vi.fn();
+    vi.stubGlobal('fetch', directFetch);
+    setActiveHttpTunnel({ request: vi.fn(async () => ({ status: 200, body: '{}', contentType: 'application/json', base64: false })) });
+    setActiveTransport('direct');
+
+    await pingService();
+    expect(directFetch).not.toHaveBeenCalled();
+
+    // Form uploads can't be tunneled at all (multipart body) - direct fails
+    // closed exactly like relay, never falling through to a doomed LAN fetch.
+    const form = new FormData();
+    const out = await postServiceForm('/media/stage', form);
+    expect(out).toBeNull();
+    expect(directFetch).not.toHaveBeenCalled();
+  });
+
+  it('retries a GET over relay when the direct tunnel rejects it as too large for the data channel', async () => {
+    const directFetch = vi.fn();
+    vi.stubGlobal('fetch', directFetch);
+    const requestMock = vi.fn(async () => ({ status: 413, body: '{"error":true,"msg":"response exceeds direct-channel cap"}', contentType: 'application/json', base64: false }));
+    setActiveHttpTunnel({ request: requestMock });
+    setActiveTransport('direct');
+
+    const out = await fetchServiceBlob('/media/big-item/thumbnail');
+
+    expect(requestMock).toHaveBeenCalledTimes(1);
+    expect(relayFetchMock).toHaveBeenCalledTimes(1);
+    expect((relayFetchMock.mock.calls[0] as unknown[])[2]).toBe('GET');
+    expect(out).not.toBeNull(); // the relay mock's default 200 JSON body decodes to a (non-null) blob
+    expect(directFetch).not.toHaveBeenCalled();
+  });
+
+  it('does NOT retry a mutating (non-GET) request over relay on a 413 - it may have already taken effect', async () => {
+    const requestMock = vi.fn(async () => ({ status: 413, body: '{"error":true}', contentType: 'application/json', base64: false }));
+    setActiveHttpTunnel({ request: requestMock });
+    setActiveTransport('direct');
+
+    const out = await postService('/media/commit', { name: 'x' });
+
+    expect(requestMock).toHaveBeenCalledTimes(1);
+    expect(relayFetchMock).not.toHaveBeenCalled();
+    expect(out).toBeNull();
+  });
+
+  it('falls back to the relay tunnel transparently once activeHttpTunnel clears (a direct drop)', async () => {
+    setActiveHttpTunnel(null);
+    setActiveTransport('direct');
+
+    expect(isDirectActive()).toBe(true); // transport is still 'direct'...
+    const out = await fetchService<{ via: string }>('/panel/devices');
+
+    // ...but with no registered tunnel, the request lands on relayFetch.
+    expect(out).toEqual({ via: 'relay' });
+    expect(relayFetchMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NexusMark } from './components/icons/NexusBrand';
+import { Spinner } from './components/common/Spinner/Spinner';
 import { pairOverInternet, pairOverRelayClaim, type InternetPairResult } from './api/internetPairing';
 import { isRemoteOrigin, setRelayRegion } from './api/service';
 import { getDeviceId } from './api/deviceId';
+import { upsertPairedPc } from './api/pairedPcs';
 import { PHONE_PANEL_PWA_KEY } from './app/panelRouting';
 import { deriveDeviceLabel } from './lib/platform';
 
@@ -71,6 +73,10 @@ export function PairRedirect() {
   // Regional relay tag (e.g. "ap"): the relay claim + the runtime panel both
   // target the relay the host registered on. Absent ⇒ legacy default.
   const region = params.get('r') ?? '';
+  // PC's leaf cert fingerprint. Carried in the QR for both native pinning and
+  // (forwarded below into directUrl) the paired-PC record's dedup key - the
+  // LAN claim response itself carries no spki of its own.
+  const fp = params.get('fp') ?? '';
 
   // Validity guard: native iOS uses `port` for the HTTPS-pinned path, but the
   // browser fallback only needs host + pair + httpPort. Any QR carrying both
@@ -107,7 +113,10 @@ export function PairRedirect() {
     // Carry the stable per-device id so the PC-served panel's same-origin claim
     // sends the SAME deviceId it would have over the relay - a QR scan dedups to
     // one authorized-device session whether it ends up LAN-direct or relay.
-    const directUrl = `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}&deviceId=${encodeURIComponent(getDeviceId())}`;
+    // The fp param carries the QR's spki forward so that same-origin claim can
+    // record it on the paired-PC entry (PanelEntrypoint reads it back).
+    const directUrl = `http://${host}:${httpPort}/panel/phone?pair=${encodeURIComponent(pair)}&deviceId=${encodeURIComponent(getDeviceId())}`
+      + (fp ? `&fp=${encodeURIComponent(fp)}` : '');
 
     // Settle the relay outcome (shared by both origins' relay paths). The relay
     // session token is stored under this origin, so render the panel over the
@@ -117,6 +126,12 @@ export function PairRedirect() {
     const applyResult = (result: InternetPairResult) => {
       if (result.kind === 'relay') {
         localStorage.setItem(PHONE_PANEL_PWA_KEY, '1');
+        upsertPairedPc({
+          machineName: result.machineName,
+          token: result.token,
+          spki: result.spki,
+          relayRegion: region,
+        });
         setPhase({ state: 'relay', machineName: result.machineName });
         window.location.replace(`${window.location.origin}/panel/phone`);
       } else if (result.kind === 'rejected') {
@@ -175,6 +190,13 @@ export function PairRedirect() {
       if (result.kind === 'lan') {
         // Fast path unchanged: hand the visitor straight to the LAN browser
         // panel. The PC already issued the token; the LAN panel uses it.
+        upsertPairedPc({
+          machineName: result.machineName,
+          token: result.token,
+          spki: fp || undefined,
+          host,
+          httpPort,
+        });
         setPhase({ state: 'lan', lanURL: directUrl, host, httpPort });
         window.location.replace(directUrl);
       } else {
@@ -182,7 +204,7 @@ export function PairRedirect() {
       }
     });
     return () => { cancelled = true; };
-  }, [valid, host, httpPort, pair, region]);
+  }, [valid, host, httpPort, pair, region, fp]);
 
   // NOTE: this component is mounted by App.tsx at /r/pair WITHOUT an
   // I18nProvider ancestor, so useTranslation()'s t() would return raw keys
@@ -229,29 +251,18 @@ export function PairRedirect() {
   if (phase.state === 'relay') {
     return (
       <Frame>
-        {/* eslint-disable i18next/no-literal-string -- renders outside I18nProvider, see file note */}
-        <Title>Connecting over the internet…</Title>
-        <Sub>{phase.machineName ? `Paired with ${phase.machineName}` : 'Paired - opening your panel.'}</Sub>
-        {/* eslint-enable i18next/no-literal-string */}
+        <div style={spinnerFrame}><Spinner size={32} /></div>
       </Frame>
     );
   }
 
   // 'pairing' (probing LAN, then relay) and 'lan' (redirect in flight) both
-  // show the connecting card; 'lan' adds the manual Continue fallback in case
-  // the auto-redirect is blocked.
-  const lanURL = phase.state === 'lan' ? phase.lanURL : '';
+  // show the connecting spinner. The LAN redirect is a same-tab
+  // location.assign, which no popup blocker intercepts; a failed commit falls
+  // through to the relay claim, so no manual fallback link is needed.
   return (
     <Frame>
-      {/* eslint-disable-next-line i18next/no-literal-string -- renders outside I18nProvider, see file note */}
-      <Title>Connecting to your PC…</Title>
-      <Sub mono>{`${host}:${httpPort}`}</Sub>
-      {lanURL && (
-        // eslint-disable-next-line i18next/no-literal-string -- renders outside I18nProvider, see file note
-        <a href={lanURL} style={fallbackLink}>
-          Continue
-        </a>
-      )}
+      <div style={spinnerFrame}><Spinner size={32} /></div>
     </Frame>
   );
 }
@@ -315,6 +326,15 @@ const card: React.CSSProperties = {
   textAlign: 'center',
 };
 
+// Spinner.module.scss forces display:block on the SVG, so card's
+// textAlign:center (which only centers inline content, for Title/Sub text)
+// leaves it flush against the left edge - center it explicitly instead,
+// matching how every other Spinner consumer in the app is a flex parent.
+const spinnerFrame: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'center',
+};
+
 const logoStyle: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
@@ -335,15 +355,3 @@ const subStyle: React.CSSProperties = {
   lineHeight: 1.5,
 };
 
-const fallbackLink: React.CSSProperties = {
-  display: 'inline-block',
-  marginTop: 24,
-  padding: '10px 18px',
-  borderRadius: 'var(--radius)',
-  border: '1px solid var(--border)',
-  background: 'transparent',
-  color: 'var(--text)',
-  fontSize: 'var(--type-small)',
-  fontWeight: 600,
-  textDecoration: 'none',
-};

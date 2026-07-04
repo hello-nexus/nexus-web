@@ -18,8 +18,10 @@ interface PanelActionsTrayProps {
   onSettings?: () => void;
   onPair?: () => void;
   pairAvailable: boolean;
-  // Opens the in-panel pairing sheet on a local hardwired kiosk (Y70, touch
-  // monitor). Distinct from onPair, which triggers the native app's OS dialog.
+  // Opens the in-panel pairing sheet: on a local hardwired kiosk (Y70, touch
+  // monitor) this PC's authorized-devices list, on a phone surface the
+  // phone's own remembered-PCs list. Distinct from onPair, which triggers the
+  // native app's OS dialog.
   onPairSheet?: () => void;
   pairSheetAvailable?: boolean;
   // Surface element the swipe-up gesture binds to. The hook walks
@@ -99,9 +101,10 @@ export function PanelActionsTray({
   const showScrim = (open && !pinnedOpen) || dragging;
 
   // The pairing button shows on two surfaces with different actions: inside the
-  // native app wrapper it triggers the OS pairing dialog (onPair); on a local
-  // hardwired kiosk it opens the in-panel pairing sheet (onPairSheet). A plain
-  // remote browser panel gets neither, so the button is hidden.
+  // native app wrapper it triggers the OS pairing dialog (onPair); everywhere
+  // else it opens the in-panel pairing sheet (onPairSheet) - the host's
+  // authorized-devices list on a local hardwired kiosk, or the phone's own
+  // remembered-PCs list on a phone surface.
   const pairAction = isNativeApp()
     ? (pairAvailable && onPair ? onPair : undefined)
     : (pairSheetAvailable && onPairSheet ? onPairSheet : undefined);

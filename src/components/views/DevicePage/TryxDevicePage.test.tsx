@@ -292,6 +292,26 @@ describe('TryxDevicePage - overlay editor', () => {
     expect(screen.getByRole('option', { name: 'devices.tryx.deviceMemory' })).toHaveAttribute('aria-disabled', 'true');
   });
 
+  it('never disables fps in the picker - the static template covers a not-yet-running game', async () => {
+    await renderPage();
+    const deviceSelect = screen.getByRole('button', { name: 'devices.tryx.overlayDeviceAria:{"n":1}' });
+    fireEvent.click(deviceSelect);
+    expect(screen.getByRole('option', { name: 'devices.tryx.deviceFps' })).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('picking fps as the device group resets the sensor to FPS (fps/current)', async () => {
+    await renderPage();
+    const deviceSelect = screen.getByRole('button', { name: 'devices.tryx.overlayDeviceAria:{"n":1}' });
+    fireEvent.click(deviceSelect);
+    const fpsOption = screen.getByRole('option', { name: 'devices.tryx.deviceFps' });
+    fireEvent.click(fpsOption);
+    await act(async () => { vi.advanceTimersByTime(150); });
+
+    expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
+    const call = mockSetTryxOverlay.mock.calls[0][0];
+    expect(call.items[0]).toEqual({ sensorId: 'fps/current', device: 'fps', label: 'FPS', x: 0.04, y: 0.10 });
+  });
+
   it('enabling a never-configured slot auto-picks its default device\'s first sensor', async () => {
     await renderPage();
     const secondToggle = screen.getByRole('switch', { name: 'devices.tryx.overlayLineAria:{"n":2}' });

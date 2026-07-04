@@ -6,6 +6,8 @@ import { MonitoringWidget } from '../monitoring/MonitoringWidget';
 import { GAUGE_DESIGN_KEYS } from '../monitoring/gauges';
 import { MonitoringSettings } from './MonitoringSettings';
 import { resolveSensor } from './MonitoringWidget';
+import { SENSOR_CATEGORIES } from './sensorCategories';
+import { TRYX_SENSOR_GROUPS } from '../../../components/views/DevicePage/tryxOverlayUtils';
 
 // Drive the dropdown as a native <select> here: these tests exercise the
 // widget's sensor wiring, not the custom Select's open/close mechanics (those
@@ -132,10 +134,10 @@ describe('MonitoringSettings', () => {
     fireEvent.click(screen.getByRole('button', { name: /select gpu core/i }));
     expect(screen.getByRole('button', { name: /select gpu core/i })).toHaveAttribute('aria-pressed', 'true');
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device' }), { target: { value: 'fan' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device' }), { target: { value: 'motherboard' } });
 
     expect(onUpdate).toHaveBeenLastCalledWith({
-      slot1_device: 'fan',
+      slot1_device: 'motherboard',
       slot1_sensor: 'fan-1',
     });
   });
@@ -171,12 +173,85 @@ describe('MonitoringSettings', () => {
     fireEvent.change(deviceSelect, { target: { value: 'network' } });
     expect(optionLabels(sensorSelect)).toEqual(['Total', 'In', 'Out']);
 
-    fireEvent.change(deviceSelect, { target: { value: 'fan' } });
-    expect(optionLabels(sensorSelect)).toEqual(['Fan 1']);
+    fireEvent.change(deviceSelect, { target: { value: 'motherboard' } });
+    expect(optionLabels(sensorSelect)).toEqual(['Fan 1 (Fan)']);
+
+    fireEvent.change(deviceSelect, { target: { value: 'storage' } });
+    expect(optionLabels(sensorSelect)).toEqual(['Drive C']);
+  });
+
+  it('exposes the same category set + order as the Tryx overlay picker', () => {
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
+    const values = Array.from(deviceSelect.options).map(o => o.value);
+    expect(values).toEqual([...SENSOR_CATEGORIES]);
+    expect(values).toEqual([...TRYX_SENSOR_GROUPS]);
+  });
+
+  it('migrates a widget saved on the pre-motherboard "fan" device to motherboard, keeping its fan sensor resolvable and not offering "fan" in the picker', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    function FanWidgetHarness() {
+      const [widget, setWidget] = useState<PanelWidget>({
+        id: 'monitoring-fan',
+        type: 'monitoring',
+        size: '4x2',
+        col: 0,
+        row: 0,
+        config: {
+          slotCount: 1,
+          slot0_device: 'fan',
+          slot0_sensor: '',
+          slot0_design: 'sparkline',
+        },
+      });
+      return (
+        <>
+          <MonitoringWidget widget={widget} selectedSlot={0} onSelectSlot={() => {}} />
+          <MonitoringSettings
+            widget={widget}
+            onUpdate={cfg => { updates.push(cfg); setWidget(prev => ({ ...prev, config: { ...prev.config, ...cfg } })); }}
+            onResize={vi.fn()}
+            selectedSlot={0}
+          />
+        </>
+      );
+    }
+
+    render(<FanWidgetHarness />);
+    // The legacy 'fan' device is rewritten to motherboard on mount.
+    expect(updates).toContainEqual({ slot0_device: 'motherboard' });
+    // Its fan sensor stays resolvable under the motherboard set.
+    expect(screen.getByRole('button', { name: /select fan 1/i })).toBeInTheDocument();
+
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
+    const values = Array.from(deviceSelect.options).map(o => o.value);
+    expect(values).not.toContain('fan');
   });
 });
 
 type SensorMock = typeof mockSensors.cpu[0];
+
+describe('MonitoringSettings - motherboard full sensor set', () => {
+  const savedMotherboard = mockSensors.motherboard;
+
+  afterEach(() => {
+    mockSensors.motherboard = savedMotherboard;
+  });
+
+  it('lists every motherboard sensor type, not just Fan', () => {
+    mockSensors.motherboard = [
+      { id: 'fan-1', name: 'Fan 1', type: 'Fan', value: 1200, units: 'RPM', formatted: '1200 RPM', parent: { id: 'mobo', name: 'Motherboard' } },
+      { id: 'vrm-temp', name: 'VRM Temperature', type: 'Temperature', value: 55, units: 'C', formatted: '55 C', parent: { id: 'mobo', name: 'Motherboard' } },
+      { id: 'cpu-vcore', name: 'CPU VCore', type: 'Voltage', value: 1.25, units: 'V', formatted: '1.25 V', parent: { id: 'mobo', name: 'Motherboard' } },
+    ] as SensorMock[];
+
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device' }), { target: { value: 'motherboard' } });
+
+    const labels = optionLabels(screen.getByRole('combobox', { name: 'monitoring.settings.sensor' }));
+    expect(labels).toEqual(['Fan 1 (Fan)', 'VRM Temperature (Temperature)', 'CPU VCore (Voltage)']);
+  });
+});
 
 describe('MonitoringSettings - id-keyed dedup', () => {
   const savedCpu = mockSensors.cpu;

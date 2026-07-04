@@ -1536,10 +1536,10 @@
 }
 
 .loading {
-  @include text-body;
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
-  padding: 40px;
-  color: var(--text-dim);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

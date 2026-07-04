@@ -8,6 +8,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
+import { Spinner } from '../components/common/Spinner/Spinner';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
 import { useFlashWidgets } from './engine/useFlashWidgets';
@@ -41,6 +42,7 @@ import type { DeckEditView } from './widgets/types';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
+import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
 import { wiredPanelClass } from './device/wiredPanel';
@@ -595,6 +597,9 @@ export function PanelContent({
   // so they're excluded. The insecure-browser guard mirrors
   // nativePairingAvailable: the plain-HTTP LAN fallback can't deliver pairing.
   const localPairAvailable = surface !== 'phone' && !isInsecureBrowserPanel();
+  // The phone's own remembered-PCs list is the mirror image of localPairAvailable:
+  // only the remote end (a phone reaching a PC) has other PCs to switch between.
+  const pairedPcsAvailable = surface === 'phone';
 
   const onCellTap = useCallback((w: PanelWidget) => {
     if (simulator) {
@@ -1261,7 +1266,7 @@ export function PanelContent({
           />
         )}
         {!loaded ? (
-          <div className={styles.loading}>{t('panel.loadingPanel')}</div>
+          <div className={styles.loading}><Spinner size={28} /></div>
         ) : (
           <>
             <div className={styles.panelStage}>
@@ -1352,8 +1357,12 @@ export function PanelContent({
                 onSettings={() => openSheet('panelSettings')}
                 onPair={nativePairingAvailable ? nativeSettings.open : undefined}
                 pairAvailable={nativePairingAvailable}
-                onPairSheet={localPairAvailable ? () => openSheet('pairRemote') : undefined}
-                pairSheetAvailable={localPairAvailable}
+                onPairSheet={
+                  localPairAvailable ? () => openSheet('pairRemote')
+                    : pairedPcsAvailable ? () => openSheet('pairedPcs')
+                    : undefined
+                }
+                pairSheetAvailable={localPairAvailable || pairedPcsAvailable}
                 surfaceRef={rootRef}
                 surface={surface}
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
@@ -1560,8 +1569,20 @@ export function PanelContent({
           remoteDisabled={multiplex?.remoteDisabled ?? false}
           relayDisabled={multiplex?.relayDisabled ?? false}
           sessionRevoked={multiplex?.sessionRevoked ?? false}
+          sessionEnded={multiplex?.sessionEnded ?? false}
           onRetry={handleRetry}
           onOpenNativePairing={nativeSettings.open}
+        />
+      )}
+      {kioskBehavior && surface === 'phone' && (
+        <ConfirmModal
+          open={(multiplex?.directUpgradeFailed ?? false) && multiplex?.transport === 'relay'}
+          title={t('connection.directFailed.title')}
+          message={t('connection.directFailed.message')}
+          cancelLabel={t('connection.directFailed.useRelay')}
+          confirmLabel={t('connection.directFailed.disconnect')}
+          onCancel={() => multiplex?.dismissDirectUpgradePrompt()}
+          onConfirm={() => multiplex?.disconnectSession()}
         />
       )}
       <DragOverlay dropAnimation={null}>

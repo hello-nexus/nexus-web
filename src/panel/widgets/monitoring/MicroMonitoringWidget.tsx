@@ -44,6 +44,7 @@ function bottomLabelForDevice(
     case 'cpu': return sensors.cpuModel || 'CPU';
     case 'gpu': return sensors.gpuModel || 'GPU';
     case 'memory': return sensors.memoryTotal ? `RAM | ${sensors.memoryTotal}` : 'RAM';
+    case 'motherboard': return sensors.motherboardModel || 'Motherboard';
     case 'fan': return sensors.motherboardModel || 'Fan';
     case 'storage': return 'Storage';
     case 'network': return 'Network';
@@ -107,7 +108,7 @@ function MicroRow({ sensors, fpsSensors, networkSensors, device, sensorName, tem
   const history = useSharedSensorHistory(sensorKey, rawValue) as number[];
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
-    : staticMaxForDevice(device, sensor?.name);
+    : staticMaxForDevice(device, sensor?.name, sensor?.type);
   const fillPercent = percentForSensor(device, sensor, maxValue);
 
   return <MicroBar label={label} formatted={formatted} fillPercent={fillPercent} />;

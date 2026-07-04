@@ -1,0 +1,64 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.addNew {
+  align-self: flex-start;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  position: relative;
+}
+
+// Positioning slot for the shared CardDeleteButton. revealOnHover={false} on
+// this touch-first surface, so it's always visible - no hover-reveal rule.
+.delete {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+
+  &[data-tone='good'] { color: var(--good); }
+  &[data-tone='bad'] { color: var(--bad); }
+}
+
+.statusDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-dim);
+
+  &[data-tone='good'] { background: var(--good); }
+  &[data-tone='bad'] { background: var(--bad); }
+}
+
+.empty {
+  margin: 0;
+  padding: 0.25rem 0;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  text-align: center;
+}

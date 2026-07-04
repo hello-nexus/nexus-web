@@ -15,7 +15,9 @@ import { MediaCropper, type NormalizedCrop } from '../../common/MediaCropper/Med
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useSensors } from '../../../hooks/useSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
+import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { buildNetworkSensors } from '../../../panel/widgets/monitoring/networkSensors';
+import { sensorsForCategory } from '../../../panel/widgets/monitoring/sensorCategories';
 import {
   getTryxStatus,
   getTryxPresets,
@@ -152,15 +154,18 @@ export function TryxDevicePage() {
   // simulated (these are real hardware sensor topics either way).
   const sensors = useSensors(true);
   const usesNetworkSensor = overlayItems.some(item => item.device === 'network');
+  const usesFpsSensor = overlayItems.some(item => item.device === 'fps');
   const network = useNetworkMonitor(usesNetworkSensor);
   const networkSensors = buildNetworkSensors(network);
+  const fpsSensors = useFpsSensors(usesFpsSensor);
   const sensorsByGroup: TryxSensorsByGroup = {
-    cpu: sensors.cpu,
-    gpu: sensors.gpu,
-    memory: sensors.memory,
-    motherboard: sensors.motherboard,
-    storage: sensors.storageSensors,
-    network: networkSensors,
+    cpu: sensorsForCategory('cpu', sensors, networkSensors, fpsSensors),
+    gpu: sensorsForCategory('gpu', sensors, networkSensors, fpsSensors),
+    memory: sensorsForCategory('memory', sensors, networkSensors, fpsSensors),
+    motherboard: sensorsForCategory('motherboard', sensors, networkSensors, fpsSensors),
+    storage: sensorsForCategory('storage', sensors, networkSensors, fpsSensors),
+    network: sensorsForCategory('network', sensors, networkSensors, fpsSensors),
+    fps: sensorsForCategory('fps', sensors, networkSensors, fpsSensors),
   };
 
   const aliveRef = useRef(true);

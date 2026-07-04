@@ -1,7 +1,10 @@
 import type { PanelWidgetSize } from '../../types';
 import type { GaugeDesignKey } from './gauges';
 
-export type DeviceKey = 'cpu' | 'gpu' | 'memory' | 'fan' | 'storage' | 'network' | 'fps';
+// 'fan' is kept only so a widget saved before the motherboard category
+// existed keeps resolving its Fan-typed sensor; it is no longer offered in
+// either picker (see MonitoringSettings' DEVICE_OPTIONS).
+export type DeviceKey = 'cpu' | 'gpu' | 'memory' | 'motherboard' | 'fan' | 'storage' | 'network' | 'fps';
 
 export interface SlotConfig {
   device: DeviceKey;
@@ -16,10 +19,10 @@ export const MICRO_MIN_COUNT = 3;
 export const MICRO_MAX_COUNT = 4;
 
 export const DEFAULT_SLOTS: SlotConfig[] = [
-  { device: 'cpu',    sensor: 'CPU Total',    design: 'sparkline' },
-  { device: 'gpu',    sensor: 'GPU Core',     design: 'sparkline' },
-  { device: 'memory', sensor: 'Memory Usage', design: 'sparkline' },
-  { device: 'fan',    sensor: '',             design: 'sparkline' },
+  { device: 'cpu',         sensor: 'CPU Total',    design: 'sparkline' },
+  { device: 'gpu',         sensor: 'GPU Core',     design: 'sparkline' },
+  { device: 'memory',      sensor: 'Memory Usage', design: 'sparkline' },
+  { device: 'motherboard', sensor: '',             design: 'sparkline' },
 ];
 
 // Default slot count for a freshly-resized widget when no explicit count is

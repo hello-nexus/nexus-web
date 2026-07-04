@@ -10,6 +10,7 @@ const baseProps = {
   remoteDisabled: false,
   relayDisabled: false,
   sessionRevoked: false,
+  sessionEnded: false,
   onRetry: () => {},
   onOpenNativePairing: () => {},
 };
@@ -151,6 +152,24 @@ describe('PanelOfflineOverlay', () => {
       />,
     );
     expect(screen.getByText('connection.sessionRevoked.title')).toBeInTheDocument();
+    expect(screen.queryByText('connection.relayDisabled.title')).toBeNull();
+  });
+
+  it('sessionEnded shows the disconnected terminal card and trumps sessionRevoked/relayDisabled', () => {
+    render(
+      <PanelOfflineOverlay
+        {...baseProps}
+        state="online"
+        surface="phone"
+        relayDisabled
+        sessionRevoked
+        sessionEnded
+      />,
+    );
+    expect(screen.getByText('connection.sessionEnded.title')).toBeInTheDocument();
+    expect(screen.getByText('connection.sessionEnded.message')).toBeInTheDocument();
+    expect(screen.getByText('connection.sessionRevoked.pairAgain')).toBeInTheDocument();
+    expect(screen.queryByText('connection.sessionRevoked.title')).toBeNull();
     expect(screen.queryByText('connection.relayDisabled.title')).toBeNull();
   });
 
