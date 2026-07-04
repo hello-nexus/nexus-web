@@ -82,6 +82,11 @@ const STATUS_POLL_MS = 4000;
 const MEDIA_POLL_MS = 8000;
 const UPLOAD_ASPECT = TRYX_MEDIA_WIDTH / TRYX_MEDIA_HEIGHT;
 
+// Fallback thumbnail for a device file we have no local frame for (a clip uploaded
+// via another tool): a muted play glyph so the card reads as a video, not a blank.
+const TRYX_MEDIA_PLACEHOLDER =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 48'%3E%3Crect width='96' height='48' fill='%23808890' opacity='0.10'/%3E%3Ccircle cx='48' cy='24' r='10' fill='none' stroke='%23808890' stroke-width='2' opacity='0.55'/%3E%3Cpath d='M44.5 19 L44.5 29 L53 24 Z' fill='%23808890' opacity='0.55'/%3E%3C/svg%3E";
+
 // Custom uploads carry the on-device filename (stem + ".mp4.h264_2240x1080");
 // show just the stem in the library.
 const mediaDisplayName = (deviceName: string): string => deviceName.split('.mp4')[0] || deviceName;
@@ -858,7 +863,7 @@ export function TryxDevicePage() {
                           key={`custom-${item.name}`}
                           asDiv
                           label={mediaDisplayName(item.name)}
-                          thumbUrl={item.thumb ?? null}
+                          thumbUrl={item.thumb ?? TRYX_MEDIA_PLACEHOLDER}
                           thumbStatic
                           thumbAspect={2}
                           active={item.name === currentMedia}
