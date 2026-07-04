@@ -359,9 +359,9 @@ describe('TryxDevicePage - media tab storage indicator', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'devices.tryx.tabMedia' }));
   }
 
-  it('renders nothing until the panel has reported at least one media file', async () => {
+  it('shows the storage indicator even before any media is uploaded', async () => {
     await openMediaTab();
-    expect(screen.queryByText(/devices\.tryx\.storageFree/)).not.toBeInTheDocument();
+    expect(screen.getByText(/devices\.tryx\.storageFree/)).toBeInTheDocument();
   });
 
   it('shows the remaining-capacity percent and fills the bar by the used portion', async () => {

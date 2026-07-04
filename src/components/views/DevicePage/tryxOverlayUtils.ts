@@ -247,7 +247,7 @@ export function formatTryxSensorValue(sensorType: string, value: number): string
 }
 
 // Throughput sensors (network up/down) are bytes/sec; scale to the largest fitting unit so the
-// overlay shows "11.4MB/s", not the raw "12000000.0MB/s". Mirrors the service FormatThroughput.
+// overlay shows a readable rate, not the raw byte count suffixed with MB/s. Mirrors the service.
 function formatTryxThroughput(bytesPerSec: number): string {
   if (bytesPerSec >= 1024 * 1024) return `${(bytesPerSec / 1024 / 1024).toFixed(1)}MB/s`;
   if (bytesPerSec >= 1024) return `${(bytesPerSec / 1024).toFixed(1)}KB/s`;

@@ -163,19 +163,10 @@
   gap: 0.5rem;
 }
 
-.storageBarTrack {
+// Fixed width for the shared UsageBar, which is otherwise full-width of its container.
+.storageBar {
   flex: 0 0 auto;
   width: 64px;
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  overflow: hidden;
-}
-
-.storageBarFill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: var(--radius-pill);
 }
 
 .mediaGrid {

@@ -6,6 +6,7 @@ import { Spinner } from '../../common/Spinner/Spinner';
 import { Select } from '../../common/Select/Select';
 import { Slider } from '../../common/Slider/Slider';
 import { Toggle } from '../../common/Toggle/Toggle';
+import { UsageBar } from '../../common/UsageBar/UsageBar';
 import { Button } from '../../common/Button/Button';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
@@ -844,8 +845,8 @@ export function TryxDevicePage() {
                       onChange={handleFileChange}
                     />
                     <div className={styles.storageIndicator}>
-                      <div className={styles.storageBarTrack} aria-hidden="true">
-                        <div className={styles.storageBarFill} style={{ width: `${storageUsedPercent}%` }} />
+                      <div className={styles.storageBar} aria-hidden="true">
+                        <UsageBar value={storageUsedPercent / 100} />
                       </div>
                       <span className={styles.hintText}>
                         {t('devices.tryx.storageFree', { percent: formatTryxStorageFreePercent(mediaUsedBytes) })}
