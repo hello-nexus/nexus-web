@@ -251,10 +251,15 @@ describe('formatTryxSensorValue', () => {
     expect(formatTryxSensorValue('Fan', 1199.4)).toBe('1199RPM');
   });
 
-  it('keeps fixed decimals for voltage/data/throughput', () => {
+  it('keeps fixed decimals for voltage/data', () => {
     expect(formatTryxSensorValue('Voltage', 1.234)).toBe('1.23V');
     expect(formatTryxSensorValue('Data', 12.94)).toBe('12.9GB');
-    expect(formatTryxSensorValue('Throughput', 40.06)).toBe('40.1MB/s');
+  });
+
+  it('scales throughput bytes/sec to a readable unit (matches the service)', () => {
+    expect(formatTryxSensorValue('Throughput', 12_000_000)).toBe('11.4MB/s');
+    expect(formatTryxSensorValue('Throughput', 50_000)).toBe('48.8KB/s');
+    expect(formatTryxSensorValue('Throughput', 512)).toBe('512B/s');
   });
 
   it('mirrors the service fps formats (round fps, 1-decimal frame time)', () => {

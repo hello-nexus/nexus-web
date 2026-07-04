@@ -239,11 +239,19 @@ export function formatTryxSensorValue(sensorType: string, value: number): string
     case 'SmallData': return `${Math.round(value)}MB`;
     case 'Power': return `${Math.round(value)}W`;
     case 'Fan': return `${Math.round(value)}RPM`;
-    case 'Throughput': return `${value.toFixed(1)}MB/s`;
+    case 'Throughput': return formatTryxThroughput(value);
     case 'Framerate': return `${Math.round(value)}fps`;
     case 'FrameTime': return `${value.toFixed(1)}ms`;
     default: return String(value);
   }
+}
+
+// Throughput sensors (network up/down) are bytes/sec; scale to the largest fitting unit so the
+// overlay shows "11.4MB/s", not the raw "12000000.0MB/s". Mirrors the service FormatThroughput.
+function formatTryxThroughput(bytesPerSec: number): string {
+  if (bytesPerSec >= 1024 * 1024) return `${(bytesPerSec / 1024 / 1024).toFixed(1)}MB/s`;
+  if (bytesPerSec >= 1024) return `${(bytesPerSec / 1024).toFixed(1)}KB/s`;
+  return `${Math.round(bytesPerSec)}B/s`;
 }
 
 /**
