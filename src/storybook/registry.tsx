@@ -63,7 +63,7 @@ import { MenuDivider } from '../components/common/MenuDivider/MenuDivider';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
 import { SortableList } from '../components/common/SortableList/SortableList';
 import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
-import { SettingToggle } from '../components/common/SettingRow/SettingRow';
+import { SettingSelect, SettingSlider, SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
 import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
@@ -980,11 +980,17 @@ function PreviewPanelThemeSettings() {
 function PreviewSettingRow() {
   const [startup, setStartup] = useState(true);
   const [beta, setBeta] = useState(false);
+  const [mode, setMode] = useState('balanced');
+  const [level, setLevel] = useState(60);
   return (
     <div className={styles.previewStack}>
       <SettingToggle label="Run at startup" description="Launch Nexus when you sign in"
         checked={startup} onChange={setStartup} />
       <SettingToggle label="Beta updates" checked={beta} onChange={setBeta} disabled />
+      <SettingSelect label="Performance mode" value={mode} onChange={setMode}
+        options={[{ value: 'quiet', label: 'Quiet' }, { value: 'balanced', label: 'Balanced' }, { value: 'max', label: 'Max' }]} />
+      <SettingSlider label="Brightness" value={level} min={0} max={100} step={1} editable trackFill
+        formatValue={v => `${Math.round(v)}%`} onChange={v => setLevel(v)} />
     </div>
   );
 }
@@ -1428,9 +1434,9 @@ export const REGISTRY: StorybookEntry[] = [
   },
 
   {
-    name: 'SettingRow / SettingToggle / SettingSelect', category: 'inputs',
+    name: 'SettingRow / SettingToggle / SettingSelect / SettingSlider', category: 'inputs',
     filePath: 'src/components/common/SettingRow/SettingRow.tsx',
-    description: 'Canonical settings row: label (+ optional description / icon) left, control right. The one settings row for the whole app (Settings pages, lighting/keeb pages, panel editor sheet, device Settings tab); the panel SettingsRow re-exports it. SettingToggle and SettingSelect bundle the matching control.',
+    description: 'Canonical settings row: label (+ optional description / icon) left, control right. The one settings row for the whole app (Settings pages, lighting/keeb pages, panel editor sheet, device Settings tab); the panel SettingsRow re-exports it. SettingToggle, SettingSelect, and SettingSlider (a right-aligned inline slider bar) bundle the matching control.',
     Preview: PreviewSettingRow,
     notes: 'Token fallbacks (--panel-* → app globals) keep it correct inside .panel-root and on the dashboard. No per-row divider - rules belong to SectionHeader.',
   },

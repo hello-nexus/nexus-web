@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Toggle } from '../Toggle/Toggle';
 import { Select, type SelectOption } from '../Select/Select';
+import { Slider } from '../Slider/Slider';
 import styles from './SettingRow.module.scss';
 
 /**
@@ -97,6 +98,60 @@ export function SettingSelect({
   return (
     <SettingRow label={label} description={description} anchorId={anchorId}>
       <Select value={value} onChange={onChange} options={options} ariaLabel={label} disabled={disabled} />
+    </SettingRow>
+  );
+}
+
+// Right-aligned inline slider bar in the control slot. `editable` makes the
+// value click-to-edit; `trackFill` paints the level accent (brightness/volume).
+export function SettingSlider({
+  label,
+  description,
+  value,
+  min,
+  max,
+  step,
+  formatValue,
+  onChange,
+  onCommit,
+  editable,
+  trackFill,
+  disabled,
+  anchorId,
+  ariaLabel,
+}: {
+  label?: string;
+  description?: ReactNode;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  formatValue?: (v: number) => string;
+  onChange: (value: number, commit?: boolean) => void;
+  onCommit?: (value: number) => void;
+  editable?: boolean;
+  trackFill?: boolean | number;
+  disabled?: boolean;
+  anchorId?: string;
+  ariaLabel?: string;
+}) {
+  return (
+    <SettingRow label={label} description={description} disabled={disabled} anchorId={anchorId}>
+      <div className={styles.sliderControl}>
+        <Slider
+          value={value}
+          min={min}
+          max={max}
+          step={step}
+          formatValue={formatValue}
+          onChange={onChange}
+          onCommit={onCommit}
+          editable={editable}
+          trackFill={trackFill}
+          disabled={disabled}
+          ariaLabel={ariaLabel ?? label}
+        />
+      </div>
     </SettingRow>
   );
 }

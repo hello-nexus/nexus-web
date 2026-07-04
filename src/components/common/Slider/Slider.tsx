@@ -103,11 +103,29 @@ export function Slider({
     onChange(next, commit);
   };
 
+  const fmt = (v: number) => (formatValue ? formatValue(v) : String(v));
   const valueNode = editable ? (
     <EditableNumber value={value} min={min} max={max} step={step}
       onCommit={v => handleChange(v, true)} format={formatValue} className={styles.value} />
   ) : (
-    <span className={styles.value}>{formatValue ? formatValue(value) : value}</span>
+    <span className={styles.value}>{fmt(value)}</span>
+  );
+
+  // Inline layout only: reserve the value column at the width of the widest
+  // value the slider can show (the formatted endpoints), so the track's right
+  // edge stays put as the value's digit count changes. Hidden sizers size the
+  // grid cell; the visible value right-aligns within it.
+  const inlineValueNode = (
+    <span className={styles.value}>
+      <span className={styles.valueSizer} aria-hidden="true" data-sizer={fmt(min)} />
+      <span className={styles.valueSizer} aria-hidden="true" data-sizer={fmt(max)} />
+      {editable ? (
+        <EditableNumber value={value} min={min} max={max} step={step}
+          onCommit={v => handleChange(v, true)} format={formatValue} className={styles.valueActual} />
+      ) : (
+        <span className={styles.valueActual}>{fmt(value)}</span>
+      )}
+    </span>
   );
 
   const handleEnd = () => {
@@ -173,12 +191,12 @@ export function Slider({
 
   return (
     <label className={`${styles.root} ${styles.inline} ${className ?? ''}`}>
-      <span className={styles.label}>{label}</span>
+      {label && <span className={styles.label}>{label}</span>}
       <div className={styles.track}>
         {range}
         {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
       </div>
-      {valueNode}
+      {inlineValueNode}
     </label>
   );
 }
