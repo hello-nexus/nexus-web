@@ -49,6 +49,13 @@
   gap: 0.75rem;
 }
 
+// Small dim line: the media tab's used-storage readout and the display tab's
+// drag legend under the preview canvas.
+.hintText {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
 .row {
   display: flex;
   align-items: center;
@@ -136,8 +143,39 @@
   gap: 0.75rem;
 }
 
+// Upload button on the left, the storage indicator on the right - both sized
+// to their own content, not stretched across the row.
+.libraryHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .hiddenInput {
   display: none;
+}
+
+.storageIndicator {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.storageBarTrack {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.storageBarFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
 }
 
 .mediaGrid {
@@ -152,9 +190,10 @@
 // app's split layout. Non-scrolling: the canvas below sizes to the pane's
 // width via aspect-ratio, so there is nothing else to scroll.
 .previewPane {
-  flex: 0 0 360px;
+  flex: 0 0 450px;
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
 }
 
 // Aspect matches the Panorama panel's canvas exactly, so the stat positions

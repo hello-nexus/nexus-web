@@ -318,4 +318,39 @@ describe('TryxDevicePage - overlay editor', () => {
     const canvas = drag.parentElement as HTMLElement;
     expect(canvas.style.backgroundImage).toBe('');
   });
+
+  it('shows the drag legend under the canvas while a stat is enabled', async () => {
+    await renderPage();
+    expect(screen.getByText('devices.tryx.overlayDragHint')).toBeInTheDocument();
+  });
+
+  it('hides the drag legend once no stat is enabled', async () => {
+    await renderPage();
+    const firstToggle = screen.getByRole('switch', { name: 'devices.tryx.overlayLineAria:{"n":1}' });
+    fireEvent.click(firstToggle);
+    await act(async () => { vi.advanceTimersByTime(150); });
+    expect(screen.queryByText('devices.tryx.overlayDragHint')).not.toBeInTheDocument();
+  });
+});
+
+describe('TryxDevicePage - media tab storage indicator', () => {
+  async function openMediaTab() {
+    await renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'devices.tryx.tabMedia' }));
+  }
+
+  it('renders nothing until the panel has reported at least one media file', async () => {
+    await openMediaTab();
+    expect(screen.queryByText(/devices\.tryx\.storageFree/)).not.toBeInTheDocument();
+  });
+
+  it('shows the remaining-capacity percent and fills the bar by the used portion', async () => {
+    mockGetTryxStatus.mockResolvedValue({
+      ...defaultStatus,
+      mediaFileCount: 8,
+      mediaUsedBytes: 50305560,
+    });
+    await openMediaTab();
+    expect(screen.getByText('devices.tryx.storageFree:{"percent":"99.4%"}')).toBeInTheDocument();
+  });
 });

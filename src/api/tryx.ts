@@ -50,6 +50,9 @@ export interface TryxOverlay {
 export interface TryxStatus {
   connected: boolean;
   state: TryxState | null;
+  // The panel reports no total capacity, so these are used-only figures.
+  mediaUsedBytes: number;
+  mediaFileCount: number;
   overlay: TryxOverlay;
 }
 
@@ -94,6 +97,8 @@ const SIM_STATUS: TryxStatus = {
     lastConnectedMs: 0,
     lastFrameMs: 0,
   },
+  mediaFileCount: 8,
+  mediaUsedBytes: 50305560,
   overlay: {
     // Empty sensorId + distinct groups: the page's reconcile effect fills each
     // from the host's first real CPU/GPU/Memory sensor, so the simulator shows

@@ -1,7 +1,7 @@
 // Pure helpers for the Tryx overlay WYSIWYG editor: font -> CSS mapping,
-// panel-to-preview scale math, drag clamping, docked-layout math, and the
-// monitoring sensor-picker option lists. Kept free of React/DOM so they are
-// unit-testable.
+// panel-to-preview scale math, drag clamping, docked-layout math, the
+// monitoring sensor-picker option lists, and media storage percent math.
+// Kept free of React/DOM so they are unit-testable.
 
 import type { CSSProperties } from 'react';
 import type { HardwareSensor } from '../../../hooks/useSensors';
@@ -249,4 +249,21 @@ export function tryxOverlayPreviewValue(
 ): string {
   const live = (sensorsByGroup[device] ?? []).find(s => s.id === sensorId);
   return live ? formatTryxSensorValue(live.type, live.value) : tryxSensorPlaceholder(fallbackType);
+}
+
+// ── Media storage ────────────────────────────────────────────────────────────
+
+// Fixed spec across every Tryx Panorama model; the panel itself reports no
+// capacity, only bytes used.
+export const TRYX_STORAGE_CAPACITY_BYTES = 8 * 1024 * 1024 * 1024;
+
+/** Remaining panel storage as a 0..100 percent (clamped) of the fixed capacity. */
+export function tryxStorageFreePercent(usedBytes: number): number {
+  const pct = ((TRYX_STORAGE_CAPACITY_BYTES - usedBytes) / TRYX_STORAGE_CAPACITY_BYTES) * 100;
+  return Math.max(0, Math.min(100, pct));
+}
+
+/** Remaining panel storage -> "99.4%" (one decimal). */
+export function formatTryxStorageFreePercent(usedBytes: number): string {
+  return `${tryxStorageFreePercent(usedBytes).toFixed(1)}%`;
 }

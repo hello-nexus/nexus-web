@@ -41,6 +41,7 @@ import {
   applyDockedOverlayLayout,
   clampUnit,
   dockedOverlayItemPosition,
+  formatTryxStorageFreePercent,
   isTryxOverlayAlign,
   isTryxSensorGroup,
   scalePanelMetric,
@@ -48,6 +49,7 @@ import {
   tryxOverlayJustifyStyle,
   tryxOverlayPreviewValue,
   tryxSensorOptionsForGroup,
+  tryxStorageFreePercent,
   TRYX_FONTS,
   TRYX_FONT_LABEL_KEYS,
   TRYX_LABEL_FONT_PANEL_PX,
@@ -340,6 +342,10 @@ export function TryxDevicePage() {
   }, [pushOverlay, overlayFont, overlaySize, overlayColor]);
 
   const connected = !!status?.connected;
+  const mediaFileCount = status?.mediaFileCount ?? 0;
+  const mediaUsedBytes = status?.mediaUsedBytes ?? 0;
+  const storageUsedPercent = 100 - tryxStorageFreePercent(mediaUsedBytes);
+  const hasEnabledOverlayItem = overlayItems.some(item => item.enabled);
   // Optimistic screen toggle wins until the poll confirms it.
   const screenEnabled = screenOverride ?? (status?.state?.screenEnabled ?? true);
   useEffect(() => {
@@ -812,21 +818,33 @@ export function TryxDevicePage() {
 
               <SettingsSection title={t('devices.tryx.customSection')} boxClassName={styles.sectionBox}>
                 <div className={styles.libraryBlock}>
-                  <Button
-                    size="sm"
-                    tone="neutral"
-                    disabled={uploading}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {uploading ? t('devices.tryx.uploading') : t('devices.tryx.uploadVideo')}
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="video/*"
-                    className={styles.hiddenInput}
-                    onChange={handleFileChange}
-                  />
+                  <div className={styles.libraryHeaderRow}>
+                    <Button
+                      size="sm"
+                      tone="neutral"
+                      disabled={uploading}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {uploading ? t('devices.tryx.uploading') : t('devices.tryx.uploadVideo')}
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="video/*"
+                      className={styles.hiddenInput}
+                      onChange={handleFileChange}
+                    />
+                    {mediaFileCount > 0 && (
+                      <div className={styles.storageIndicator}>
+                        <div className={styles.storageBarTrack} aria-hidden="true">
+                          <div className={styles.storageBarFill} style={{ width: `${storageUsedPercent}%` }} />
+                        </div>
+                        <span className={styles.hintText}>
+                          {t('devices.tryx.storageFree', { percent: formatTryxStorageFreePercent(mediaUsedBytes) })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
                   {media.length > 0 ? (
                     <div className={styles.mediaGrid}>
@@ -924,6 +942,9 @@ export function TryxDevicePage() {
                 );
               })}
             </div>
+            {hasEnabledOverlayItem && (
+              <span className={styles.hintText}>{t('devices.tryx.overlayDragHint')}</span>
+            )}
           </div>
         )}
       </div>

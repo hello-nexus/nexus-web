@@ -4,6 +4,7 @@ import {
   applyDockedOverlayLayout,
   clampUnit,
   dockedOverlayItemPosition,
+  formatTryxStorageFreePercent,
   isTryxOverlayAlign,
   isTryxSensorGroup,
   scalePanelMetric,
@@ -13,12 +14,14 @@ import {
   tryxOverlayPreviewValue,
   tryxSensorOptionsForGroup,
   tryxSensorPlaceholder,
+  tryxStorageFreePercent,
   TRYX_FONTS,
   TRYX_FONT_LABEL_KEYS,
   TRYX_LABEL_FONT_PANEL_PX,
   TRYX_LABEL_OFFSET_PANEL_PX,
   TRYX_OVERLAY_ALIGNS,
   TRYX_SENSOR_GROUPS,
+  TRYX_STORAGE_CAPACITY_BYTES,
   TRYX_VALUE_FONT_PANEL_PX,
   type TryxSensorsByGroup,
 } from './tryxOverlayUtils';
@@ -236,6 +239,27 @@ describe('formatTryxSensorValue', () => {
     expect(formatTryxSensorValue('Voltage', 1.234)).toBe('1.23V');
     expect(formatTryxSensorValue('Data', 12.94)).toBe('12.9GB');
     expect(formatTryxSensorValue('Throughput', 40.06)).toBe('40.1MB/s');
+  });
+});
+
+describe('tryxStorageFreePercent / formatTryxStorageFreePercent', () => {
+  it('computes remaining percent against the fixed 8 GiB capacity', () => {
+    expect(tryxStorageFreePercent(50305560)).toBeCloseTo(99.414, 3);
+    expect(formatTryxStorageFreePercent(50305560)).toBe('99.4%');
+  });
+
+  it('reports 100% free at zero bytes used', () => {
+    expect(tryxStorageFreePercent(0)).toBe(100);
+    expect(formatTryxStorageFreePercent(0)).toBe('100.0%');
+  });
+
+  it('reports 0% free once used bytes reach capacity', () => {
+    expect(tryxStorageFreePercent(TRYX_STORAGE_CAPACITY_BYTES)).toBe(0);
+    expect(formatTryxStorageFreePercent(TRYX_STORAGE_CAPACITY_BYTES)).toBe('0.0%');
+  });
+
+  it('clamps to 0 rather than going negative when used exceeds capacity', () => {
+    expect(tryxStorageFreePercent(TRYX_STORAGE_CAPACITY_BYTES * 2)).toBe(0);
   });
 });
 
