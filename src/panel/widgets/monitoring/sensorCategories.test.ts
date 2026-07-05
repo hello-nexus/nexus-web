@@ -7,20 +7,21 @@ function sensor(partial: Partial<HardwareSensor> & { id: string; name: string; t
 }
 
 const EMPTY_SENSORS: SensorState = {
-  cpu: [], gpu: [], gpuModel: '', gpuComponents: [], memory: [], storage: [], storageComponents: {},
+  summary: [], cpu: [], gpu: [], gpuModel: '', gpuComponents: [], memory: [], storage: [], storageComponents: {},
   storageSensors: [], motherboard: [], motherboardModel: '', cpuModel: '', gpuModels: [], memoryTotal: '',
 };
 
 describe('SENSOR_CATEGORIES', () => {
-  it('is exactly cpu, gpu, memory, motherboard, storage, network, fps in that order', () => {
-    expect(SENSOR_CATEGORIES).toEqual(['cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network', 'fps']);
+  it('is exactly quick, cpu, gpu, memory, motherboard, storage, network, fps in that order', () => {
+    expect(SENSOR_CATEGORIES).toEqual(['quick', 'cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network', 'fps']);
   });
 });
 
 describe('sensorsForCategory', () => {
-  it('resolves cpu/gpu/memory/motherboard/storage straight from SensorState', () => {
+  it('resolves quick/cpu/gpu/memory/motherboard/storage straight from SensorState', () => {
     const sensors: SensorState = {
       ...EMPTY_SENSORS,
+      summary: [sensor({ id: 'summary/cpu-temp', name: 'CPU Temperature', type: 'Temperature' })],
       cpu: [sensor({ id: 'cpu-total', name: 'CPU Total', type: 'Load' })],
       gpu: [sensor({ id: 'gpu-core', name: 'GPU Core', type: 'Load' })],
       memory: [sensor({ id: 'mem-usage', name: 'Memory Usage', type: 'Load' })],
@@ -31,6 +32,7 @@ describe('sensorsForCategory', () => {
       storageSensors: [sensor({ id: 'storage/C/used', name: 'Drive C Used', type: 'Data' })],
     };
 
+    expect(sensorsForCategory('quick', sensors, [], [])).toEqual(sensors.summary);
     expect(sensorsForCategory('cpu', sensors, [], [])).toEqual(sensors.cpu);
     expect(sensorsForCategory('gpu', sensors, [], [])).toEqual(sensors.gpu);
     expect(sensorsForCategory('memory', sensors, [], [])).toEqual(sensors.memory);

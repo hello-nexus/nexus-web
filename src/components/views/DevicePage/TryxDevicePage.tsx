@@ -109,7 +109,7 @@ interface OverlayItemState {
 const DEFAULT_OVERLAY_ITEMS: OverlayItemState[] = applyDockedOverlayLayout(
   OVERLAY_ITEM_SLOTS.map(i => ({
     enabled: i === 0,
-    device: 'cpu' as TryxSensorGroup,
+    device: 'quick' as TryxSensorGroup,
     sensorId: '',
     label: '',
     sensorType: '',
@@ -171,6 +171,7 @@ export function TryxDevicePage() {
   const networkSensors = buildNetworkSensors(network);
   const fpsSensors = useFpsSensors(usesFpsSensor);
   const sensorsByGroup: TryxSensorsByGroup = {
+    quick: sensorsForCategory('quick', sensors, networkSensors, fpsSensors),
     cpu: sensorsForCategory('cpu', sensors, networkSensors, fpsSensors),
     gpu: sensorsForCategory('gpu', sensors, networkSensors, fpsSensors),
     memory: sensorsForCategory('memory', sensors, networkSensors, fpsSensors),
@@ -258,7 +259,10 @@ export function TryxDevicePage() {
         // Staggered seed (see DEFAULT_OVERLAY_ITEMS) so enabling this slot while
         // undocked lands it somewhere sensible, not at the panel origin.
         const pos = dockedOverlayItemPosition(align, i, OVERLAY_ITEM_SLOTS.length);
-        return { enabled: false, device: 'cpu' as TryxSensorGroup, sensorId: '', label: '', sensorType: '', x: pos.x, y: pos.y };
+        // Fresh/unconfigured slots default to the Quick group (first enabled stat
+        // lands on CPU Temperature); a saved item with a bad device still falls
+        // back to always-present cpu below.
+        return { enabled: false, device: 'quick' as TryxSensorGroup, sensorId: '', label: '', sensorType: '', x: pos.x, y: pos.y };
       }
       return {
         enabled: true,
@@ -438,9 +442,9 @@ export function TryxDevicePage() {
 
   const handleItemEnabledChange = (i: number, enabled: boolean) => {
     let toggled = overlayItems.map((it, idx) => (idx === i ? { ...it, enabled } : it));
-    // A slot enabled for the first time has no sensor picked yet (device
-    // defaults to cpu, sensorId ''); seed it from that device's first sensor
-    // so an unconfigured stat never reaches pushOverlay with a blank sensorId.
+    // A slot enabled for the first time has no sensor picked yet (sensorId
+    // ''); seed it from its current device's first sensor so an unconfigured
+    // stat never reaches pushOverlay with a blank sensorId.
     if (enabled && !toggled[i].sensorId) {
       const first = tryxSensorOptionsForGroup(toggled[i].device, sensorsByGroup)[0];
       if (first) {

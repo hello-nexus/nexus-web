@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { fireEvent, render, screen, act } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, afterEach } from 'vitest';
 import type { PanelConfigValue, PanelWidget } from '../../types';
 import { MonitoringSettings } from './MonitoringSettings';
 
@@ -21,33 +21,37 @@ vi.mock('../../../components/common/Select/Select', () => ({
 
 // Mock with enough CPU + GPU sensors that Micro at 4 rows has real choices,
 // and one device (memory) intentionally short of MICRO_MAX_COUNT so the
-// disabled-eligibility branch is exercised.
+// disabled-eligibility branch is exercised. `summary` is mutable so a single
+// test can populate it to exercise the Quick-first eligibility fallback.
+const mockSensors = vi.hoisted(() => ({
+  summary: [] as Array<{ id: string; name: string; type: string; value: number; units: string; formatted: string; parent: { id: string; name: string } }>,
+  cpu: [
+    { id: 'cpu-total', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'AMD Ryzen 7 9800X3D' } },
+    { id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 68, units: 'C', formatted: '68 C', parent: { id: 'cpu', name: 'AMD Ryzen 7 9800X3D' } },
+    { id: 'cpu-pwr', name: 'CPU Power', type: 'Power', value: 92, units: 'W', formatted: '92 W', parent: { id: 'cpu', name: 'AMD Ryzen 7 9800X3D' } },
+    { id: 'cpu-clk', name: 'CPU Clock', type: 'Clock', value: 4500, units: 'MHz', formatted: '4500 MHz', parent: { id: 'cpu', name: 'AMD Ryzen 7 9800X3D' } },
+  ],
+  gpu: [
+    { id: 'gpu-load', name: 'GPU Core', type: 'Load', value: 55, units: '%', formatted: '55%', parent: { id: 'gpu', name: 'NVIDIA RTX 5080' } },
+    { id: 'gpu-temp', name: 'GPU Hotspot', type: 'Temperature', value: 72, units: 'C', formatted: '72 C', parent: { id: 'gpu', name: 'NVIDIA RTX 5080' } },
+    { id: 'gpu-mem', name: 'GPU Memory', type: 'Load', value: 60, units: '%', formatted: '60%', parent: { id: 'gpu', name: 'NVIDIA RTX 5080' } },
+    { id: 'gpu-pwr', name: 'GPU Power', type: 'Power', value: 230, units: 'W', formatted: '230 W', parent: { id: 'gpu', name: 'NVIDIA RTX 5080' } },
+  ],
+  memory: [
+    { id: 'mem-usage', name: 'Memory Usage', type: 'Load', value: 62, units: '%', formatted: '62%', parent: { id: 'mem', name: 'Memory' } },
+  ],
+  storage: [],
+  storageComponents: {},
+  storageSensors: [],
+  motherboard: [],
+  motherboardModel: '',
+  cpuModel: 'AMD Ryzen 7 9800X3D',
+  gpuModels: ['NVIDIA RTX 5080'],
+  memoryTotal: '32 GB',
+}));
+
 vi.mock('../../../hooks/useSensors', () => ({
-  useSensors: () => ({
-    cpu: [
-      { id: 'cpu-total', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'AMD Ryzen 7 9800X3D' } },
-      { id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 68, units: 'C', formatted: '68 C', parent: { id: 'cpu', name: 'AMD Ryzen 7 9800X3D' } },
-      { id: 'cpu-pwr', name: 'CPU Power', type: 'Power', value: 92, units: 'W', formatted: '92 W', parent: { id: 'cpu', name: 'AMD Ryzen 7 9800X3D' } },
-      { id: 'cpu-clk', name: 'CPU Clock', type: 'Clock', value: 4500, units: 'MHz', formatted: '4500 MHz', parent: { id: 'cpu', name: 'AMD Ryzen 7 9800X3D' } },
-    ],
-    gpu: [
-      { id: 'gpu-load', name: 'GPU Core', type: 'Load', value: 55, units: '%', formatted: '55%', parent: { id: 'gpu', name: 'NVIDIA RTX 5080' } },
-      { id: 'gpu-temp', name: 'GPU Hotspot', type: 'Temperature', value: 72, units: 'C', formatted: '72 C', parent: { id: 'gpu', name: 'NVIDIA RTX 5080' } },
-      { id: 'gpu-mem', name: 'GPU Memory', type: 'Load', value: 60, units: '%', formatted: '60%', parent: { id: 'gpu', name: 'NVIDIA RTX 5080' } },
-      { id: 'gpu-pwr', name: 'GPU Power', type: 'Power', value: 230, units: 'W', formatted: '230 W', parent: { id: 'gpu', name: 'NVIDIA RTX 5080' } },
-    ],
-    memory: [
-      { id: 'mem-usage', name: 'Memory Usage', type: 'Load', value: 62, units: '%', formatted: '62%', parent: { id: 'mem', name: 'Memory' } },
-    ],
-    storage: [],
-    storageComponents: {},
-    storageSensors: [],
-    motherboard: [],
-    motherboardModel: '',
-    cpuModel: 'AMD Ryzen 7 9800X3D',
-    gpuModels: ['NVIDIA RTX 5080'],
-    memoryTotal: '32 GB',
-  }),
+  useSensors: () => mockSensors,
 }));
 
 vi.mock('../../../hooks/useFpsSensors', () => ({
@@ -160,6 +164,8 @@ describe('MonitoringSettings - Micro mode', () => {
     expect(optionByValue('fps').disabled).toBe(true);
     // No motherboard sensors in this fixture.
     expect(optionByValue('motherboard').disabled).toBe(true);
+    // No summary sensors in this fixture.
+    expect(optionByValue('quick').disabled).toBe(true);
   });
 
   it('hides Network from the picker at count=4 (only 3 distinct network sensors exist)', () => {
@@ -186,5 +192,39 @@ describe('MonitoringSettings - Micro mode', () => {
     render(<MicroHarness initial={microWidget(4)} />);
     expect(screen.getByRole('combobox', { name: 'Sensor 1' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Sensor 4' })).toBeInTheDocument();
+  });
+});
+
+describe('MonitoringSettings - Micro mode with summary sensors present', () => {
+  const savedSummary = mockSensors.summary;
+
+  afterEach(() => {
+    mockSensors.summary = savedSummary;
+  });
+
+  it('reassigns a now-ineligible stored micro_device to Quick, first in DEVICE_OPTIONS order, instead of CPU', () => {
+    mockSensors.summary = [
+      { id: 'summary/cpu-temp', name: 'CPU Temperature', type: 'Temperature', value: 45, units: '°C', formatted: '45°C', parent: { id: 'summary', name: 'Quick' } },
+      { id: 'summary/cpu-usage', name: 'CPU Usage', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'summary', name: 'Quick' } },
+      { id: 'summary/gpu-temp', name: 'GPU Temperature', type: 'Temperature', value: 60, units: '°C', formatted: '60°C', parent: { id: 'summary', name: 'Quick' } },
+      { id: 'summary/gpu-usage', name: 'GPU Usage', type: 'Load', value: 55, units: '%', formatted: '55%', parent: { id: 'summary', name: 'Quick' } },
+      { id: 'summary/memory-usage', name: 'Memory Usage', type: 'Load', value: 62, units: '%', formatted: '62%', parent: { id: 'summary', name: 'Quick' } },
+    ];
+
+    // Stored on 'network' (only 3 distinct sensors), which count=4 makes
+    // ineligible - the normalization patch must reassign micro_device.
+    const widget: PanelWidget = {
+      id: 'monitoring-micro-network',
+      type: 'monitoring',
+      size: '4x2',
+      col: 0,
+      row: 0,
+      config: { slotCount: 4, micro_device: 'network' },
+    };
+
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={widget} onUpdate={cfg => updates.push(cfg)} />);
+
+    expect(mergedPatch(updates).micro_device).toBe('quick');
   });
 });

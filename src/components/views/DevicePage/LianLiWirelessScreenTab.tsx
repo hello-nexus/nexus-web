@@ -381,7 +381,7 @@ export function LianLiWirelessScreenTab() {
         title={t('devices.lianli-wireless.contentSection')}
         boxClassName={styles.sectionBox}
       >
-        <div className={`${styles.contentTypeRow} ${!representative ? styles.rowDisabled : ''}`}>
+        <SettingRow label={t('devices.lianli-wireless.contentTypeLabel')} disabled={!representative}>
           <Select
             className={styles.contentTypeSelect}
             value={contentMixed ? '' : (sharedContentType ?? 'off')}
@@ -391,7 +391,7 @@ export function LianLiWirelessScreenTab() {
             onChange={v => handleContentTypeChange(v as LianLiWirelessScreenContentType)}
             ariaLabel={t('devices.lianli-wireless.contentTypeAria')}
           />
-        </div>
+        </SettingRow>
         {contentMixed && (
           <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.contentMixedHint')}</p>
         )}
@@ -599,6 +599,8 @@ function SensorPanel({ screen, onPreview, onCommit }: ContentPanelProps) {
     { value: 'cpuLoad', label: t('devices.lianli-wireless.sensorSourceCpuLoad') },
     { value: 'gpuTemp', label: t('devices.lianli-wireless.sensorSourceGpuTemp') },
     { value: 'gpuLoad', label: t('devices.lianli-wireless.sensorSourceGpuLoad') },
+    { value: 'memoryUsage', label: t('devices.lianli-wireless.sensorSourceMemoryUsage') },
+    { value: 'vramUsage', label: t('devices.lianli-wireless.sensorSourceVramUsage') },
     { value: 'fanRpm', label: t('devices.lianli-wireless.sensorSourceFanRpm') },
   ];
   const styleOptions: ChipOption[] = [

@@ -17,6 +17,7 @@ import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
+import { formatScaledDataValue } from './sensorValueFormat';
 import { chartDomainForScale, DEFAULT_SCALE_MODE, type ScaleMode } from './perfDomain';
 import styles from './MonitoringWidget.module.scss';
 
@@ -42,6 +43,12 @@ export function resolveSensor(
   tempPrefs?: TempSensorPrefs,
 ): HardwareSensor | undefined {
   switch (device) {
+    case 'quick':
+      return sensorKey
+        ? sensors.summary.find(s => s.id === sensorKey)
+          ?? sensors.summary.find(s => s.name === sensorKey)
+          ?? sensors.summary[0]
+        : sensors.summary[0];
     case 'cpu':
       if (sensorKey === 'Temperature') {
         return resolveCpuTempSensor(sensors.cpu, tempPrefs?.cpuId ?? '');
@@ -99,6 +106,7 @@ export function resolveSensor(
 export function labelForDevice(device: DeviceKey, sensorName: string): string {
   if (sensorName) return prefixedSensorLabel(device, sensorName);
   switch (device) {
+    case 'quick': return 'Quick';
     case 'cpu': return 'CPU';
     case 'gpu': return 'GPU';
     case 'memory': return 'RAM';
@@ -240,7 +248,7 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, devic
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
   const rawValue = sensor?.value ?? 0;
-  const formatted = sensor?.formatted ?? '-';
+  const formatted = sensor ? (formatScaledDataValue(sensor.value, sensor.units) ?? sensor.formatted) : '-';
   const label = labelForDevice(device, sensor?.name ?? effectiveSensorName);
   // Shared key so the tile + immersive instance for the same sensor share one
   // 60-sample buffer; re-mounting in immersive shows existing history at once.

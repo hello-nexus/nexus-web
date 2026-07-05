@@ -63,3 +63,19 @@ describe('relativeHistoryDomain - motherboard is type-aware', () => {
     expect(relativeHistoryDomain('motherboard', 4700, [], 6000, undefined, 'Clock')).toEqual([0, 4700]);
   });
 });
+
+describe('relativeHistoryDomain - non-percent cpu/gpu/memory sensors are type-aware', () => {
+  it('SmallData GPU Memory Used (MB) stretches to the observed max instead of clamping to 100', () => {
+    expect(relativeHistoryDomain('gpu', 8000, [], 16000, 'GPU Memory Used', 'SmallData')).toEqual([0, 8000]);
+    expect(relativeHistoryDomain('gpu', 1400, [1000, 1400], 16000, 'GPU Memory Used', 'SmallData')).toEqual([0, 1400]);
+  });
+
+  it('Data memory sensors (GB) stretch past 100 too', () => {
+    expect(relativeHistoryDomain('memory', 12.5, [], 32, 'Memory Used', 'Data')).toEqual([0, 13]);
+  });
+
+  it('Load- and Temperature-typed cpu/gpu sensors still clamp to the 100 percent ceiling', () => {
+    expect(relativeHistoryDomain('gpu', 90, [], 100, 'GPU Core', 'Load')).toEqual([0, 100]);
+    expect(relativeHistoryDomain('gpu', 45, [], 100, 'GPU Core', 'Temperature')).toEqual([0, 50]);
+  });
+});

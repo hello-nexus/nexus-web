@@ -42,6 +42,7 @@ interface HardwareComponent {
 }
 
 export interface SensorState {
+  summary: HardwareSensor[];
   cpu: HardwareSensor[];
   /** Sensors of the resolved primary GPU (see `gpuComponents` for all GPUs). */
   gpu: HardwareSensor[];
@@ -61,7 +62,7 @@ export interface SensorState {
 }
 
 const EMPTY: SensorState = {
-  cpu: [], gpu: [], gpuModel: '', gpuComponents: [], memory: [], storage: [], storageComponents: {},
+  summary: [], cpu: [], gpu: [], gpuModel: '', gpuComponents: [], memory: [], storage: [], storageComponents: {},
   storageSensors: [], motherboard: [],
   motherboardModel: '', cpuModel: '', gpuModels: [], memoryTotal: '',
 };
@@ -73,6 +74,7 @@ const EMPTY: SensorState = {
  */
 export function useSensors(enabled: boolean): SensorState {
   const preferredGpuId = usePreferredGpuId();
+  const summaryComponent = useTopic<HardwareComponent>('summary', enabled);
   const cpuComponent = useTopic<HardwareComponent>('cpu', enabled);
   const gpuComponents = useTopic<HardwareComponent[]>('gpu', enabled);
   const memComponent = useTopic<HardwareComponent>('memory', enabled);
@@ -86,6 +88,7 @@ export function useSensors(enabled: boolean): SensorState {
     const primaryGpu = resolvePrimaryGpu(gpus, preferredGpuId);
     const drives = storageData ?? {};
     return {
+      summary: summaryComponent?.sensors ?? [],
       cpu: cpuComponent?.sensors ?? [],
       gpu: primaryGpu?.sensors ?? [],
       gpuModel: primaryGpu?.name ?? '',
@@ -100,5 +103,5 @@ export function useSensors(enabled: boolean): SensorState {
       gpuModels: gpus.map(g => g.name),
       memoryTotal: '',
     };
-  }, [enabled, preferredGpuId, cpuComponent, gpuComponents, memComponent, storageData, moboComponent]);
+  }, [enabled, preferredGpuId, summaryComponent, cpuComponent, gpuComponents, memComponent, storageData, moboComponent]);
 }

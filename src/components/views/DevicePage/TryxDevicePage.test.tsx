@@ -16,6 +16,7 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 const mockSensors = {
+  summary: [{ id: 'summary/cpu-temp', name: 'CPU Temperature', type: 'Temperature', value: 45, units: '°C', formatted: '45°C', parent: { id: 'summary', name: 'Quick' } }],
   cpu: [{ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 45, units: '°C', formatted: '45°C', parent: { id: 'cpu', name: 'CPU' } }],
   gpu: [{ id: 'gpu-load', name: 'GPU Core', type: 'Load', value: 34, units: '%', formatted: '34%', parent: { id: 'gpu', name: 'GPU' } }],
   gpuModel: '',
@@ -321,9 +322,9 @@ describe('TryxDevicePage - overlay editor', () => {
     expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
     const call = mockSetTryxOverlay.mock.calls[0][0];
     expect(call.items).toHaveLength(2);
-    expect(call.items[1].sensorId).toBe('cpu-temp');
-    expect(call.items[1].device).toBe('cpu');
-    expect(call.items[1].label).toBe('CPU Package');
+    expect(call.items[1].sensorId).toBe('summary/cpu-temp');
+    expect(call.items[1].device).toBe('quick');
+    expect(call.items[1].label).toBe('CPU Temperature');
     expect(call.items[1].x).toBeCloseTo(0.04);
     expect(call.items[1].y).toBeCloseTo(0.50);
   });

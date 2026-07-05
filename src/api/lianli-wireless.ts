@@ -53,7 +53,8 @@ export async function identifyLianLiWirelessFan(mac: string): Promise<boolean> {
 export type LianLiWirelessScreenContentType =
   | 'off' | 'image' | 'gif' | 'video' | 'sensor' | 'clock' | 'animation';
 
-export type LianLiWirelessSensorSource = 'cpuLoad' | 'cpuTemp' | 'gpuLoad' | 'gpuTemp' | 'fanRpm';
+export type LianLiWirelessSensorSource =
+  'cpuLoad' | 'cpuTemp' | 'gpuLoad' | 'gpuTemp' | 'memoryUsage' | 'vramUsage' | 'fanRpm';
 export type LianLiWirelessSensorStyle = 'ring' | 'bar';
 export type LianLiWirelessClockFace = 'digital' | 'digitalMinimal' | 'analogClassic' | 'analogMinimal';
 export type LianLiWirelessAnimationId = 'pulse' | 'spectrum' | 'spin';

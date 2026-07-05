@@ -7,7 +7,7 @@ function sensor(partial: Partial<HardwareSensor> & { id: string; name: string; t
 }
 
 const EMPTY_SENSORS: SensorState = {
-  cpu: [], gpu: [], gpuModel: '', gpuComponents: [], memory: [], storage: [], storageComponents: {},
+  summary: [], cpu: [], gpu: [], gpuModel: '', gpuComponents: [], memory: [], storage: [], storageComponents: {},
   storageSensors: [], motherboard: [], motherboardModel: '', cpuModel: '', gpuModels: [], memoryTotal: '',
 };
 
@@ -27,6 +27,28 @@ describe('resolveSensor - motherboard', () => {
   it('falls back to name lookup, then the first motherboard sensor', () => {
     expect(resolveSensor(sensors, [], [], 'motherboard', 'Fan 1')?.id).toBe('fan-1');
     expect(resolveSensor(sensors, [], [], 'motherboard', '')?.id).toBe('fan-1');
+  });
+});
+
+describe('resolveSensor - quick', () => {
+  const cpuTemp = sensor({ id: 'summary/cpu-temp', name: 'CPU Temperature', type: 'Temperature' });
+  const cpuUsage = sensor({ id: 'summary/cpu-usage', name: 'CPU Usage', type: 'Load' });
+  const sensors: SensorState = { ...EMPTY_SENSORS, summary: [cpuTemp, cpuUsage] };
+
+  it('resolves by id, falling back to name, then the first summary sensor', () => {
+    expect(resolveSensor(sensors, [], [], 'quick', 'summary/cpu-usage')?.id).toBe('summary/cpu-usage');
+    expect(resolveSensor(sensors, [], [], 'quick', 'CPU Usage')?.id).toBe('summary/cpu-usage');
+    expect(resolveSensor(sensors, [], [], 'quick', '')?.id).toBe('summary/cpu-temp');
+  });
+});
+
+describe('labelForDevice - quick', () => {
+  it('falls back to Quick with no sensor name', () => {
+    expect(labelForDevice('quick', '')).toBe('Quick');
+  });
+
+  it('prefixes nothing (no Quick prefix map) when a sensor name is given, since summary names are self-describing', () => {
+    expect(labelForDevice('quick', 'CPU Temperature')).toBe('CPU Temperature');
   });
 });
 
