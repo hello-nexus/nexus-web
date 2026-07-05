@@ -6,8 +6,11 @@ import { ThemeTab } from './ThemeTab';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
 import { fetchService, postService } from '../../../api/service';
+import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
+import { buildTelemetryConsentDescription } from '../../../lib/telemetryConsent';
+import { HeartBurst, useHeartBurstTrigger } from '../../common/HeartBurst/HeartBurst';
 import {
   LANGUAGE_FLAGS, LANGUAGE_LABELS, LANGUAGES,
   type Language, type NexusSettings,
@@ -41,6 +44,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   // also refuses /service/stop during a flash; this mirrors it in the UI.)
   const { status: flashStatus } = useFlashStatus(serviceOnline);
   const flashing = !!flashStatus?.active;
+  const telemetryBurstKey = useHeartBurstTrigger(telemetryOn);
 
   // Hydrate "Start Nexus at system startup" from the SCM-backed endpoint on
   // mount. The state is independent of the per-user "Show in tray" flag.
@@ -50,7 +54,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     // Runs on mount/online-flip; can't be folded into useMemo.
      
     setAutoStartLoading(true);
-    fetchService<{ autoStart: boolean }>('/service/startup-mode').then(data => {
+    fetchAutoStart().then(data => {
       if (data && !cancelled) setAutoStart(data.autoStart);
     }).finally(() => {
       if (!cancelled) setAutoStartLoading(false);
@@ -61,9 +65,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   const toggleAutoStart = async () => {
     if (autoStart === null) return;
     setAutoStartLoading(true);
-    const resp = await postService<{ autoStart: boolean }>('/service/startup-mode', {
-      autoStart: !autoStart,
-    });
+    const resp = await postAutoStart(!autoStart);
     if (resp) setAutoStart(resp.autoStart);
     setAutoStartLoading(false);
   };
@@ -210,13 +212,16 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
       <SettingsSection title={t('settings.privacy.title')}>
         {telemetryOn !== null && (
-          <SettingToggle
-            label={t('settings.telemetry.label')}
-            description={t('settings.telemetry.description')}
-            checked={telemetryOn}
-            onChange={toggleTelemetry}
-            disabled={!serviceOnline || telemetryLoading}
-          />
+          <div className={styles.telemetryRow}>
+            <SettingToggle
+              label={t('settings.telemetry.label')}
+              description={buildTelemetryConsentDescription(t)}
+              checked={telemetryOn}
+              onChange={toggleTelemetry}
+              disabled={!serviceOnline || telemetryLoading}
+            />
+            <HeartBurst burstKey={telemetryBurstKey} />
+          </div>
         )}
         <SettingRow
           label={t('settings.screentime.title')}

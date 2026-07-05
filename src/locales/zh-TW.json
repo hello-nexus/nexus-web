@@ -2066,7 +2066,7 @@
   "settings.systemStartup.label": "在系統啟動時啟動 Nexus",
   "settings.tab.profiles": "設定檔",
   "settings.tab.tools": "開發者工具",
-  "settings.telemetry.description": "協助我們改善 Nexus。一律匿名且加密。",
+  "settings.telemetry.description": "不包含任何個人資訊，有助於改善 Nexus。{privacy}",
   "settings.telemetry.label": "分享匿名使用資料",
   "settings.theme": "佈景主題",
   "settings.theme.dark": "深色",
@@ -2443,5 +2443,15 @@
   "devices.lianli-wireless.deviceStrimer": "Strimer",
   "devices.lianli-wireless.deviceWaterBlock": "水冷頭",
   "devices.lianli-wireless.deviceGeneric": "裝置",
-  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2",
+  "settings.telemetry.infoTooltip": "不包含任何個人資訊。有助於改善 Nexus。",
+  "settings.telemetry.privacyLink": "隱私權政策",
+  "welcome.enter": "繼續",
+  "welcome.preferences.title": "偏好設定",
+  "welcome.startAtLogin.label": "登入時啟動",
+  "welcome.startWithOs.label": "隨 Windows 啟動",
+  "welcome.tagline": "統一電腦控制",
+  "welcome.telemetry.label": "匿名遙測",
+  "welcome.title": "歡迎使用 Nexus",
+  "welcome.error": "無法儲存偏好設定，請再試一次。"
 }

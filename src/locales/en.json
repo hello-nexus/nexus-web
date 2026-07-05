@@ -2199,8 +2199,10 @@
   "settings.systemStartup.label": "Start Nexus at system startup",
   "settings.tab.profiles": "Profiles",
   "settings.tab.tools": "Dev tools",
-  "settings.telemetry.description": "Helps us make Nexus better. Always anonymous and encrypted.",
+  "settings.telemetry.description": "Contains no personal information and helps improve Nexus. {privacy}",
+  "settings.telemetry.infoTooltip": "Contains no personal information. Helps us improve Nexus.",
   "settings.telemetry.label": "Share anonymous usage data",
+  "settings.telemetry.privacyLink": "Privacy Policy",
   "settings.theme": "Theme",
   "settings.theme.dark": "Dark",
   "settings.theme.light": "Light",
@@ -2443,5 +2445,13 @@
   "update.modal.upToDate": "You're on the latest version.",
   "update.modal.updateNow": "Update now",
   "update.modal.verifying": "Verifying...",
-  "update.modal.version": "Version {version}"
+  "update.modal.version": "Version {version}",
+  "welcome.enter": "Enter",
+  "welcome.error": "Couldn't save your preferences. Please try again.",
+  "welcome.preferences.title": "Preferences",
+  "welcome.startAtLogin.label": "Start at login",
+  "welcome.startWithOs.label": "Start with Windows",
+  "welcome.tagline": "Unified Computer Control",
+  "welcome.telemetry.label": "Anonymous telemetry",
+  "welcome.title": "Welcome to Nexus"
 }

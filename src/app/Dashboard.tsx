@@ -29,6 +29,7 @@ import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketpl
 import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
+import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useProfiles } from '../hooks/useProfiles';
 import { useCloudAccounts } from '../hooks/useCloudAccounts';
 import { useSyncStatus } from '../hooks/useSyncStatus';
@@ -59,6 +60,7 @@ import { CrossZoneDragProvider } from './CrossZoneDrag';
 import { CommandPaletteProvider } from '../search/CommandPaletteProvider';
 import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
 import { PairPhoneModal } from './PairPhoneModal';
+import { WelcomeScreen } from '../components/common/WelcomeScreen/WelcomeScreen';
 import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
 import { getUpdateStatus, startUpdate, type UpdateStatus } from '../api/update';
 import { IncomingPairModal } from './IncomingPairModal';
@@ -174,6 +176,10 @@ export function Dashboard() {
   } = useRoute();
   const status = useServiceStatus();
   const online = status.state === 'online';
+  const onboardingStatus = useOnboardingStatus(online);
+  // Flips true once WelcomeScreen posts /onboarding/complete, so a later
+  // reconnect (which re-derives onboardingStatus) can't reopen it mid-session.
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
@@ -683,6 +689,14 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+        {/* First-run gate: server-authoritative (GET /onboarding), so a
+            factory reset correctly reopens it. Sits above everything else
+            below, same root-modal tier. */}
+        <WelcomeScreen
+          open={onboardingStatus === 'pending' && !onboardingDismissed}
+          platform={status.ping?.platform ?? ''}
+          onComplete={() => setOnboardingDismissed(true)}
+        />
         {/* Global incoming-pair prompt, at the layout root so it lands on top
             of any section. Pair Remote stays in its own modal below. */}
         <IncomingPairModal />

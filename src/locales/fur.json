@@ -2075,7 +2075,7 @@
   "settings.systemStartup.label": "Invie Nexus al inviament dal sisteme",
   "settings.tab.profiles": "Profîi",
   "settings.tab.tools": "Struments di svilup",
-  "settings.telemetry.description": "Nus jude a fâ Nexus miôr. Simpri anonim e cifrât.",
+  "settings.telemetry.description": "No conten nissune informazion personâl e nus jude a miorâ Nexus. {privacy}",
   "settings.telemetry.label": "Condivît dâts di ûs anonims",
   "settings.theme": "Teme",
   "settings.theme.dark": "Scûr",
@@ -2443,5 +2443,15 @@
   "devices.lianli-wireless.deviceStrimer": "Strimer",
   "devices.lianli-wireless.deviceWaterBlock": "Bloc di aghe",
   "devices.lianli-wireless.deviceGeneric": "Dispositîf",
-  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2",
+  "settings.telemetry.infoTooltip": "No conten nissune informazion personâl. Nus jude a miorâ Nexus.",
+  "settings.telemetry.privacyLink": "Politiche pe privacy",
+  "welcome.enter": "Continue",
+  "welcome.preferences.title": "Preferencis",
+  "welcome.startAtLogin.label": "Invie al acès",
+  "welcome.startWithOs.label": "Invie cun Windows",
+  "welcome.tagline": "Control unificât dal computer",
+  "welcome.telemetry.label": "Telemetrie anonime",
+  "welcome.title": "Benvignûts in Nexus",
+  "welcome.error": "No si è rivât a salvâ lis tôs preferencis. Torne prove."
 }
