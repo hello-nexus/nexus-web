@@ -508,6 +508,7 @@
   "devices.lianli-wireless.sensorSourceGpuLoad": "Загрузка GPU",
   "devices.lianli-wireless.sensorSourceGpuTemp": "Температура GPU",
   "devices.lianli-wireless.sensorSourceLabel": "Источник",
+  "devices.lianli-wireless.sensorSourceMemoryUsage": "Загрузка памяти",
   "devices.lianli-wireless.sensorStyleBar": "Полоса",
   "devices.lianli-wireless.sensorStyleLabel": "Стиль",
   "devices.lianli-wireless.sensorStyleRing": "Кольцо",

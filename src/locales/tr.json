@@ -508,6 +508,7 @@
   "devices.lianli-wireless.sensorSourceGpuLoad": "GPU kullanımı",
   "devices.lianli-wireless.sensorSourceGpuTemp": "GPU sıcaklığı",
   "devices.lianli-wireless.sensorSourceLabel": "Kaynak",
+  "devices.lianli-wireless.sensorSourceMemoryUsage": "Bellek kullanımı",
   "devices.lianli-wireless.sensorStyleBar": "Çubuk",
   "devices.lianli-wireless.sensorStyleLabel": "Stil",
   "devices.lianli-wireless.sensorStyleRing": "Halka",

@@ -508,6 +508,7 @@
   "devices.lianli-wireless.sensorSourceGpuLoad": "Ûs GPU",
   "devices.lianli-wireless.sensorSourceGpuTemp": "Temperadure GPU",
   "devices.lianli-wireless.sensorSourceLabel": "Sorzint",
+  "devices.lianli-wireless.sensorSourceMemoryUsage": "Ûs memorie",
   "devices.lianli-wireless.sensorStyleBar": "Bare",
   "devices.lianli-wireless.sensorStyleLabel": "Stîl",
   "devices.lianli-wireless.sensorStyleRing": "Anel",

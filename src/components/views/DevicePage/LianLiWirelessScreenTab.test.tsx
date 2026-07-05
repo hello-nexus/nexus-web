@@ -166,6 +166,15 @@ describe('LianLiWirelessScreenTab', () => {
       expect(mockSetContent).toHaveBeenCalledWith('S3', 'sensor', undefined, { sensorSource: 'gpuTemp' });
     });
 
+    it('posts a change to the source for memory usage', async () => {
+      await renderOnSensorScreen();
+
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.sensorSourceLabel' }));
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.sensorSourceMemoryUsage' }));
+
+      expect(mockSetContent).toHaveBeenCalledWith('S3', 'sensor', undefined, { sensorSource: 'memoryUsage' });
+    });
+
     it('posts a change to the gauge style', async () => {
       await renderOnSensorScreen();
 

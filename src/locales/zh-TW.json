@@ -508,6 +508,7 @@
   "devices.lianli-wireless.sensorSourceGpuLoad": "GPU 使用率",
   "devices.lianli-wireless.sensorSourceGpuTemp": "GPU 溫度",
   "devices.lianli-wireless.sensorSourceLabel": "來源",
+  "devices.lianli-wireless.sensorSourceMemoryUsage": "記憶體使用率",
   "devices.lianli-wireless.sensorStyleBar": "長條",
   "devices.lianli-wireless.sensorStyleLabel": "樣式",
   "devices.lianli-wireless.sensorStyleRing": "環形",

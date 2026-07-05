@@ -508,6 +508,7 @@
   "devices.lianli-wireless.sensorSourceGpuLoad": "GPU-Auslastung",
   "devices.lianli-wireless.sensorSourceGpuTemp": "GPU-Temperatur",
   "devices.lianli-wireless.sensorSourceLabel": "Quelle",
+  "devices.lianli-wireless.sensorSourceMemoryUsage": "Arbeitsspeicherauslastung",
   "devices.lianli-wireless.sensorStyleBar": "Balken",
   "devices.lianli-wireless.sensorStyleLabel": "Stil",
   "devices.lianli-wireless.sensorStyleRing": "Ring",
