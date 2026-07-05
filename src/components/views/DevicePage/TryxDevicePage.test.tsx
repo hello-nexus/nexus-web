@@ -371,6 +371,6 @@ describe('TryxDevicePage - media tab storage indicator', () => {
       mediaUsedBytes: 50305560,
     });
     await openMediaTab();
-    expect(screen.getByText('devices.tryx.storageFree:{"percent":"99.4%"}')).toBeInTheDocument();
+    expect(screen.getByText('devices.tryx.storageFree:{"percent":"97.7%"}')).toBeInTheDocument();
   });
 });

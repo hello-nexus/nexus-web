@@ -295,8 +295,8 @@ export function tryxOverlayPreviewValue(
 // ── Media storage ────────────────────────────────────────────────────────────
 
 // Fixed spec across every Tryx Panorama model; the panel itself reports no
-// capacity, only bytes used.
-export const TRYX_STORAGE_CAPACITY_BYTES = 8 * 1024 * 1024 * 1024;
+// capacity, only bytes used. Must mirror TryxPanoramaHub.MediaCapacityBytes.
+export const TRYX_STORAGE_CAPACITY_BYTES = 2 * 1024 * 1024 * 1024;
 
 /** Remaining panel storage as a 0..100 percent (clamped) of the fixed capacity. */
 export function tryxStorageFreePercent(usedBytes: number): number {

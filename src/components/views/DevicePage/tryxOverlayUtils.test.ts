@@ -272,9 +272,9 @@ describe('formatTryxSensorValue', () => {
 });
 
 describe('tryxStorageFreePercent / formatTryxStorageFreePercent', () => {
-  it('computes remaining percent against the fixed 8 GiB capacity', () => {
-    expect(tryxStorageFreePercent(50305560)).toBeCloseTo(99.414, 3);
-    expect(formatTryxStorageFreePercent(50305560)).toBe('99.4%');
+  it('computes remaining percent against the fixed 2 GiB capacity', () => {
+    expect(tryxStorageFreePercent(50305560)).toBeCloseTo(97.657, 3);
+    expect(formatTryxStorageFreePercent(50305560)).toBe('97.7%');
   });
 
   it('reports 100% free at zero bytes used', () => {
