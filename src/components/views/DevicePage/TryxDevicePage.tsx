@@ -861,7 +861,7 @@ export function TryxDevicePage() {
                         <EffectCard
                           key={`custom-${item.name}`}
                           asDiv
-                          label={mediaDisplayName(item.name)}
+                          label={item.label ?? mediaDisplayName(item.name)}
                           thumbUrl={item.thumb ?? TRYX_MEDIA_PLACEHOLDER}
                           thumbStatic
                           thumbAspect={2}

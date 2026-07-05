@@ -66,6 +66,8 @@ export interface TryxMediaItem {
   name: string;
   thumb?: string;
   durationSec: number;
+  /** Human name for media Nexus did not upload (from Kanali's library); shown instead of the device filename. */
+  label?: string;
 }
 
 interface OkResponse {
