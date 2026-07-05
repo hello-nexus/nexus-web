@@ -1,13 +1,14 @@
 import { Apple } from 'lucide-react';
 
-// Generic four-pane flag glyph (hand-drawn, not a traced Microsoft asset).
+// Flat four-square mark (the modern Windows 11 style, not the older tilted
+// flag). Hand-drawn, not a traced Microsoft asset.
 export function WindowsIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-      <path d="M3 5.1 11 4v7.4H3Z" />
-      <path d="M12 3.9 21 2.7v8.7h-9Z" />
-      <path d="M3 12.6h8V20l-8-1.1Z" />
-      <path d="M12 12.6h9v8.6l-9-1.2Z" />
+      <rect x="3" y="3" width="8" height="8" />
+      <rect x="13" y="3" width="8" height="8" />
+      <rect x="3" y="13" width="8" height="8" />
+      <rect x="13" y="13" width="8" height="8" />
     </svg>
   );
 }
