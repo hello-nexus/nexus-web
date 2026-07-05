@@ -39,12 +39,12 @@ import { sanitizePinnedTail } from '../app/sidebarApps';
 export interface UiSettingsValue {
   // Client-scoped (local only, never synced to server)
   startOnLogin: boolean;
+
+  // Profile-scoped (server is source of truth; localStorage mirrors)
   // Dashboard background style (glass / gradient / flat).
   backgroundMode: BackgroundMode;
   // Accent source: 'system' tracks the OS accent, 'custom' uses accentColor.
   accentSource: AccentSource;
-
-  // Profile-scoped (server is source of truth; localStorage mirrors)
   language: Language;
   themeMode: ThemeMode;
   accentColor: string;
@@ -85,6 +85,13 @@ interface UiSettingsContextValue {
   update: (patch: Patch) => void;
   /** Force a re-hydration from the server (e.g. after profile switch). */
   reload: () => void;
+  /**
+   * False until the first server hydrate lands. Consumers that would write a
+   * device-derived value back to the shared server state (SystemAccentSync's
+   * OS accent) must wait for this, or a fresh window's pre-hydrate default
+   * (accentSource='system') makes them clobber the real accent.
+   */
+  hydrated: boolean;
 }
 
 const UiSettingsContext = createContext<UiSettingsContextValue | null>(null);
@@ -138,10 +145,12 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
 function toServerPatch(patch: Patch): PreferencesPatch {
   const out: PreferencesPatch = {};
   // theme block
-  const theme: Partial<{ language: Language; themeMode: ThemeMode; accentColor: string }> = {};
+  const theme: Partial<{ language: Language; themeMode: ThemeMode; accentColor: string; backgroundMode: BackgroundMode; accentSource: AccentSource }> = {};
   if (patch.language !== undefined) theme.language = patch.language;
   if (patch.themeMode !== undefined) theme.themeMode = patch.themeMode;
   if (patch.accentColor !== undefined) theme.accentColor = patch.accentColor;
+  if (patch.backgroundMode !== undefined) theme.backgroundMode = patch.backgroundMode;
+  if (patch.accentSource !== undefined) theme.accentSource = patch.accentSource;
   if (Object.keys(theme).length > 0) out.theme = theme;
   // monitoring block
   const monitoring: Partial<{ showAverage: boolean; showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[] }> = {};
@@ -177,6 +186,10 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     language: (server.theme?.language as Language) ?? base.language,
     themeMode: (server.theme?.themeMode as ThemeMode) ?? base.themeMode,
     accentColor: server.theme?.accentColor ?? base.accentColor,
+    // Empty (never written) falls back to the local value, so an upgraded
+    // client keeps its choice until it seeds the server (see reload migration).
+    backgroundMode: (server.theme?.backgroundMode as BackgroundMode) || base.backgroundMode,
+    accentSource: (server.theme?.accentSource as AccentSource) || base.accentSource,
     showConflictAlerts: server.ui?.showConflictAlerts ?? base.showConflictAlerts,
     monitoringShowAverage: server.monitoring?.showAverage ?? base.monitoringShowAverage,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
@@ -223,8 +236,18 @@ export function UiSettingsProvider({
   const [settings, setSettings] = useState<UiSettingsValue>(() =>
     fromNexusSettings(loadSettings()),
   );
+  const [hydrated, setHydrated] = useState(false);
 
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // backgroundMode/accentSource moved from localStorage-only to the server
+  // Theme block. A window that already had saved settings before this change
+  // seeds the server once so an upgrade keeps the user's choice; a fresh window
+  // (no stored settings, e.g. a --app temp profile) has only defaults and must
+  // NOT seed, or it would overwrite the real window's values with defaults.
+  const hadStoredSettings = useRef(
+    typeof localStorage !== 'undefined' && localStorage.getItem('nexus_settings') !== null,
+  );
+  const migratedThemeScope = useRef(false);
 
   const persistLocal = useCallback((next: UiSettingsValue) => {
     saveSettings(toNexusSettings(next));
@@ -292,6 +315,21 @@ export function UiSettingsProvider({
         }
         return next;
       });
+      // One-time migration: if the server has never stored backgroundMode /
+      // accentSource (empty = pre-upgrade), seed it from this window's saved
+      // values so every window/context converges on the server copy. Gated on
+      // hadStoredSettings so a fresh --app window (defaults only) can't seed.
+      if (hadStoredSettings.current && !migratedThemeScope.current) {
+        const local = fromNexusSettings(loadSettings());
+        const seed: Patch = {};
+        if (!prefs.theme?.backgroundMode) seed.backgroundMode = local.backgroundMode;
+        if (!prefs.theme?.accentSource) seed.accentSource = local.accentSource;
+        if (Object.keys(seed).length > 0) {
+          migratedThemeScope.current = true;
+          scheduleServerWrite(seed);
+        }
+      }
+      setHydrated(true);
       // Mirror to the legacy cache so code paths still reading via
       // loadSettings() see refreshed values. Removable once every view
       // goes through this hook.
@@ -307,7 +345,7 @@ export function UiSettingsProvider({
         pinnedSidebarApps: prefs.ui?.pinnedSidebarApps,
       });
     }).catch(() => { /* best-effort */ });
-  }, [serviceOnline, persistLocal, setLanguage, manageDom]);
+  }, [serviceOnline, persistLocal, setLanguage, manageDom, scheduleServerWrite]);
 
   // Hydrate from server when online or when the profile changes.
   useEffect(() => {
@@ -331,8 +369,8 @@ export function UiSettingsProvider({
   }, []);
 
   const value = useMemo<UiSettingsContextValue>(() => ({
-    settings, update, reload,
-  }), [settings, update, reload]);
+    settings, update, reload, hydrated,
+  }), [settings, update, reload, hydrated]);
 
   return (
     <UiSettingsContext.Provider value={value}>

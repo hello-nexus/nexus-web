@@ -25,6 +25,11 @@ export interface ThemeSettings {
   // synced remote panels follow the desktop OS instead of their own. Optional:
   // older services omit it; '' means not yet published (fall back to themeMode).
   resolvedThemeMode?: string;
+  // Dashboard backdrop ('glass'|'gradient'|'flat') and accent policy
+  // ('system'|'custom'). '' = unset by any client yet; the client keeps its
+  // local default and seeds the server once (see useUiSettings migration).
+  backgroundMode?: string;
+  accentSource?: string;
 }
 
 export interface MonitoringSettings {

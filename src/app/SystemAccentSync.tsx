@@ -15,7 +15,7 @@ const SYSTEM_ACCENT_TOPIC = 'system/accent';
 // Linux dashboard is a browser) the service reads the accent from the XDG
 // portal - fetched on load and pushed live over the WS on change.
 export function SystemAccentSync() {
-  const { settings, update } = useUiSettings();
+  const { settings, update, hydrated } = useUiSettings();
   const source = settings.accentSource;
   const systemHex = useRef<string | null>(null);
   // Kept fresh each render so the (resubscribed-on-source) callback compares
@@ -24,12 +24,19 @@ export function SystemAccentSync() {
   accentRef.current = settings.accentColor;
   const sourceRef = useRef(source);
   sourceRef.current = source;
+  // accentSource is server-backed but a window seeds it from a localStorage
+  // default ('system') before the first hydrate. Writing the OS accent in that
+  // gap would clobber the real (custom) accent for every window. Hold the
+  // latest OS hex and let the hydrated effect below apply it once we know the
+  // real source.
+  const hydratedRef = useRef(hydrated);
+  hydratedRef.current = hydrated;
 
   // Stable so the live WS callback and the request/fetch effect share it; reads
   // source/accent through refs to avoid resubscribing.
   const applyAccent = useCallback((hex: string) => {
     systemHex.current = hex;
-    if (sourceRef.current === 'system' && hex !== accentRef.current) update({ accentColor: hex });
+    if (hydratedRef.current && sourceRef.current === 'system' && hex !== accentRef.current) update({ accentColor: hex });
   }, [update]);
 
   // Live OS-accent pushes from the Linux service (no-op frames elsewhere).
@@ -55,10 +62,10 @@ export function SystemAccentSync() {
   // what makes this re-run on a switch - without it the reloaded stale hex
   // sticks until the OS accent next changes.
   useEffect(() => {
-    if (source === 'system' && systemHex.current && systemHex.current !== settings.accentColor) {
+    if (hydrated && source === 'system' && systemHex.current && systemHex.current !== settings.accentColor) {
       update({ accentColor: systemHex.current });
     }
-  }, [source, settings.accentColor, update]);
+  }, [hydrated, source, settings.accentColor, update]);
 
   return null;
 }

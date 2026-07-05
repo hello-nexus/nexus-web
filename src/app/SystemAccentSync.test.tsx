@@ -9,6 +9,7 @@ import { SystemAccentSync } from './SystemAccentSync';
 const h = vi.hoisted(() => ({
   update: vi.fn(),
   settings: { accentSource: 'system' as 'system' | 'custom', accentColor: '#0000ff' },
+  hydrated: true,
   accentCb: null as null | ((hex: string) => void),
   topicCb: null as null | ((frame: unknown) => void),
   requestSystemAccent: vi.fn(),
@@ -16,7 +17,7 @@ const h = vi.hoisted(() => ({
 }));
 
 vi.mock('../hooks/useUiSettings', () => ({
-  useUiSettings: () => ({ settings: h.settings, update: h.update }),
+  useUiSettings: () => ({ settings: h.settings, update: h.update, hydrated: h.hydrated }),
 }));
 vi.mock('./windowActions', () => ({
   requestSystemAccent: h.requestSystemAccent,
@@ -40,6 +41,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.clearAllMocks();
   h.settings = { accentSource: 'system', accentColor: '#0000ff' };
+  h.hydrated = true;
   h.accentCb = null;
   h.topicCb = null;
 });
@@ -107,6 +109,22 @@ describe('SystemAccentSync', () => {
     // The Linux service pushes a new accent on the system/accent topic.
     act(() => h.topicCb!({ hex: '#875aa4' }));
 
+    expect(h.update).toHaveBeenCalledWith({ accentColor: '#875aa4' });
+  });
+
+  it('does not write the OS accent before the first server hydrate', () => {
+    // A fresh window seeds accentSource='system' from a localStorage default
+    // before hydrate; writing the OS accent here would clobber the real accent.
+    h.hydrated = false;
+    h.settings = { accentSource: 'system', accentColor: '#0000ff' };
+    const { rerender } = render(<SystemAccentSync />);
+
+    act(() => h.accentCb!('#875aa4'));
+    expect(h.update).not.toHaveBeenCalled();
+
+    // Once hydrated (server said this really is 'system'), the held OS accent applies.
+    h.hydrated = true;
+    rerender(<SystemAccentSync />);
     expect(h.update).toHaveBeenCalledWith({ accentColor: '#875aa4' });
   });
 
