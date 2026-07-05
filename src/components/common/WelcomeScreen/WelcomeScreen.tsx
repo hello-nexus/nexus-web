@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Activity, Lightbulb, Fan, LayoutGrid, Smartphone, Heart, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
-import { NexusMark } from '../../icons/NexusBrand';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingToggle } from '../SettingRow/SettingRow';
 import { Button } from '../Button/Button';
 import { HeartBurst, useHeartBurstTrigger } from '../HeartBurst/HeartBurst';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
+import { PlatformIcon } from '../../icons/PlatformIcons';
+import { NexusWordmark } from '../../icons/NexusBrand';
 import { buildTelemetryConsentDescription } from '../../../lib/telemetryConsent';
 import { postService } from '../../../api/service';
 import { completeOnboarding } from '../../../api/onboarding';
 import { setAutoStart } from '../../../api/autoStart';
+import { getUpdateStatus } from '../../../api/update';
 import styles from './WelcomeScreen.module.scss';
 
 export interface WelcomeScreenProps {
@@ -18,6 +22,20 @@ export interface WelcomeScreenProps {
   platform: string;
   onComplete: () => void;
 }
+
+const CAPABILITY_ICON_SIZE = 20;
+
+// Quiet summary row under the heading. Icons + copy are borrowed from where
+// each capability already lives (sidebar nav for monitoring/lighting/cooling,
+// the sidebar Apps section for widget personalization, Pair Remote for phone
+// access) so the welcome screen doesn't introduce a second icon vocabulary.
+const CAPABILITIES: readonly { Icon: LucideIcon; key: string }[] = [
+  { Icon: Activity, key: 'welcome.capabilities.monitoring' },
+  { Icon: Lightbulb, key: 'welcome.capabilities.lighting' },
+  { Icon: Fan, key: 'welcome.capabilities.cooling' },
+  { Icon: LayoutGrid, key: 'welcome.capabilities.widgets' },
+  { Icon: Smartphone, key: 'welcome.capabilities.remote' },
+];
 
 /**
  * First-run gate on the desktop dashboard. Non-dismissable: the Enter button
@@ -33,7 +51,18 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
   const [telemetryOn, setTelemetryOn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
+  const [currentVersion, setCurrentVersion] = useState('');
   const burstKey = useHeartBurstTrigger(telemetryOn);
+
+  // Same source as the "check for updates" modal (getUpdateStatus -> /update/status).
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    getUpdateStatus().then(s => {
+      if (s && !cancelled) setCurrentVersion(s.currentVersion);
+    });
+    return () => { cancelled = true; };
+  }, [open]);
 
   if (!open) return null;
 
@@ -76,17 +105,32 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
       onEnter={handleEnter}
       ariaLabel={t('welcome.title')}
       className={styles.surface}
+      backdropClassName={styles.backdrop}
     >
       <div className={styles.hero}>
-        <NexusMark size={72} />
-        <h1 className={styles.title}>{t('welcome.title')}</h1>
-        <p className={styles.tagline}>{t('welcome.tagline')}</p>
+        <img src="/nexus-mark-color.png" alt="" width={140} height={140} className={styles.logo} />
+        <NexusWordmark height={40} />
+        <div className={styles.capabilitiesGroup}>
+          <div className={styles.capabilities}>
+            {CAPABILITIES.map(({ Icon, key }) => (
+              <HoverTooltip key={key} body={t(key)}>
+                <span className={styles.capabilityIcon} tabIndex={0} role="img" aria-label={t(key)}>
+                  <Icon size={CAPABILITY_ICON_SIZE} />
+                </span>
+              </HoverTooltip>
+            ))}
+          </div>
+          <p className={styles.tagline}>{t('welcome.tagline')}</p>
+        </div>
       </div>
 
-      <SettingsSection title={t('welcome.preferences.title')} className={styles.section}>
+      <SettingsSection className={styles.section}>
         {showStartWithOs && (
           <SettingToggle
             label={startLabel}
+            description={t('welcome.startWithOs.description')}
+            icon={<PlatformIcon platform={platform} size={28} />}
+            iconLeading
             checked={startWithOs}
             onChange={setStartWithOsValue}
             disabled={submitting}
@@ -94,15 +138,18 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
         )}
         <div className={styles.telemetryRow}>
           <SettingToggle
-            label={t('welcome.telemetry.label')}
+            label={t('settings.telemetry.label')}
+            icon={<Heart size={28} />}
+            iconLeading
             description={buildTelemetryConsentDescription(t)}
             checked={telemetryOn}
             onChange={setTelemetryOn}
             disabled={submitting}
           />
-          <HeartBurst burstKey={burstKey} />
+          <HeartBurst burstKey={burstKey} originTop={24} />
         </div>
       </SettingsSection>
+      <p className={styles.hint}>{t('welcome.preferences.hint')}</p>
 
       {error && <p className={styles.error}>{t('welcome.error')}</p>}
 
@@ -116,6 +163,9 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
       >
         {t('welcome.enter')}
       </Button>
+      {currentVersion && (
+        <p className={styles.version}>{t('update.modal.version', { version: currentVersion })}</p>
+      )}
     </Overlay>
   );
 }

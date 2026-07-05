@@ -17,6 +17,14 @@
   gap: var(--space-xs);
 }
 
+// Groups the Key Reactive toggle with its conditional mask/mode/color reveal
+// as one SettingsSection box child, so the box's row divider lands before the
+// group instead of between the toggle and its own reveal.
+.toggleReveal {
+  display: flex;
+  flex-direction: column;
+}
+
 .loading {
   padding: var(--space-xl);
   text-align: center;

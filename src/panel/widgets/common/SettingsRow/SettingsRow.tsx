@@ -24,7 +24,7 @@ export function SettingsInput(props: InputHTMLAttributes<HTMLInputElement>) {
 }
 
 export function SettingsActions({ children }: { children: ReactNode }) {
-  return <div className={styles.actions}>{children}</div>;
+  return <div className={styles.actions} data-settings-aside="true">{children}</div>;
 }
 
 export function SettingsButton({
@@ -40,5 +40,5 @@ export function SettingsSaved({ children }: { children: ReactNode }) {
 }
 
 export function SettingsHint({ children }: { children: ReactNode }) {
-  return <span className={styles.hint}>{children}</span>;
+  return <span className={styles.hint} data-settings-aside="true">{children}</span>;
 }

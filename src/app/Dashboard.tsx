@@ -176,10 +176,15 @@ export function Dashboard() {
   } = useRoute();
   const status = useServiceStatus();
   const online = status.state === 'online';
-  const onboardingStatus = useOnboardingStatus(online);
+  const onboardingStatus = useOnboardingStatus();
   // Flips true once WelcomeScreen posts /onboarding/complete, so a later
   // reconnect (which re-derives onboardingStatus) can't reopen it mid-session.
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const welcomeOpen = onboardingStatus === 'pending' && !onboardingDismissed;
+  // 'unknown' renders neither the dashboard nor the welcome screen (only the
+  // app background) so a fresh install never flashes the dashboard chrome
+  // while the fast local /onboarding fetch is still in flight.
+  const showDashboard = onboardingStatus !== 'unknown' && !welcomeOpen;
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
@@ -626,74 +631,82 @@ export function Dashboard() {
           </>,
           document.body,
         )}
-        <TopBar
-          hasSidebar={hasSidebar}
-          compact={compact}
-          onToggleCompact={() => setManualOverride(!sidebarCompact)}
-          pageTitle={pageTitle}
-          canGoBack={canGoBack}
-          canGoForward={canGoForward}
-          goBack={goBack}
-          goForward={goForward}
-          online={online}
-          connectionState={status.state}
-          connectEpoch={connectEpoch}
-          profiles={profilesHook}
-          cloudAccounts={cloudAccounts}
-          onPreferencesChanged={handlePreferencesChanged}
-          onNavigateSettings={handleNavigateSettings}
-          onNavigateTools={handleNavigateTools}
-          onOpenUpdate={() => handleUpdateOpen()}
-          onInstall={handleInstall}
-          onManageProfiles={handleManageProfiles}
-          onNavigateAccount={handleNavigateAccount}
-          isWindowsApp={isWindowsAppShell()}
-          isMacApp={isMacAppShell()}
-        />
-        <PageVersionLabel />
-        {/* Body row: sidebar (/system only) + content */}
-        <div className={styles.bodyRow}>
-          {hasSidebar && (
-            <SidebarColumn
+        {/* Dashboard chrome renders only once onboarding status is resolved
+            (never on 'unknown') and only when the welcome gate isn't open -
+            hidden entirely, not just covered, so nothing behind WelcomeScreen
+            can ever show through its background in any theme/glass mode. */}
+        {showDashboard && (
+          <>
+            <TopBar
+              hasSidebar={hasSidebar}
               compact={compact}
+              onToggleCompact={() => setManualOverride(!sidebarCompact)}
+              pageTitle={pageTitle}
+              canGoBack={canGoBack}
+              canGoForward={canGoForward}
+              goBack={goBack}
+              goForward={goForward}
               online={online}
-              serviceState={serviceState}
-              serviceNavActive={serviceNavActive}
-              onServiceNavChange={handleServiceNavChange}
-              portalNav={portalNav}
-              portalNavActive={portalNavActive}
-              onPortalNavChange={handlePortalNavChange}
-              remoteControlEnabled={remoteControlEnabled}
-              phoneSubscribers={serviceState.panel?.phoneSubscribers ?? 0}
-              onPairPhoneOpen={() => setPairPhoneOpen(true)}
-              activeDeviceKey={section === 'system' && activeView === 'device' ? (subtab ?? '') : ''}
-              onDeviceSelect={k => navigate('system', 'device', k)}
-              onDevicesHeaderClick={() => navigate('system', 'devices')}
-              devicesHeaderActive={section === 'system' && activeView === 'devices'}
+              connectionState={status.state}
+              connectEpoch={connectEpoch}
+              profiles={profilesHook}
+              cloudAccounts={cloudAccounts}
+              onPreferencesChanged={handlePreferencesChanged}
+              onNavigateSettings={handleNavigateSettings}
+              onNavigateTools={handleNavigateTools}
+              onOpenUpdate={() => handleUpdateOpen()}
+              onInstall={handleInstall}
+              onManageProfiles={handleManageProfiles}
+              onNavigateAccount={handleNavigateAccount}
+              isWindowsApp={isWindowsAppShell()}
+              isMacApp={isMacAppShell()}
             />
-          )}
+            <PageVersionLabel />
+            {/* Body row: sidebar (/system only) + content */}
+            <div className={styles.bodyRow}>
+              {hasSidebar && (
+                <SidebarColumn
+                  compact={compact}
+                  online={online}
+                  serviceState={serviceState}
+                  serviceNavActive={serviceNavActive}
+                  onServiceNavChange={handleServiceNavChange}
+                  portalNav={portalNav}
+                  portalNavActive={portalNavActive}
+                  onPortalNavChange={handlePortalNavChange}
+                  remoteControlEnabled={remoteControlEnabled}
+                  phoneSubscribers={serviceState.panel?.phoneSubscribers ?? 0}
+                  onPairPhoneOpen={() => setPairPhoneOpen(true)}
+                  activeDeviceKey={section === 'system' && activeView === 'device' ? (subtab ?? '') : ''}
+                  onDeviceSelect={k => navigate('system', 'device', k)}
+                  onDevicesHeaderClick={() => navigate('system', 'devices')}
+                  devicesHeaderActive={section === 'system' && activeView === 'devices'}
+                />
+              )}
 
-          <div className={styles.mainColumn}>
-            <div className={styles.content}>
-              {/*
-                resetKey (not key) so the boundary instance is stable across
-                navigations - a key change would hard-unmount the Suspense
-                below it and defeat startTransition's "keep prior UI visible
-                while the next chunk loads" behavior, producing a one-frame
-                blank flash on every nav. resetKey clears caught errors when
-                the route changes without remounting the tree.
-              */}
-              <ErrorBoundary resetKey={`${section}/${view}`}>
-                <Suspense fallback={null}>{renderContent()}</Suspense>
-              </ErrorBoundary>
+              <div className={styles.mainColumn}>
+                <div className={styles.content}>
+                  {/*
+                    resetKey (not key) so the boundary instance is stable across
+                    navigations - a key change would hard-unmount the Suspense
+                    below it and defeat startTransition's "keep prior UI visible
+                    while the next chunk loads" behavior, producing a one-frame
+                    blank flash on every nav. resetKey clears caught errors when
+                    the route changes without remounting the tree.
+                  */}
+                  <ErrorBoundary resetKey={`${section}/${view}`}>
+                    <Suspense fallback={null}>{renderContent()}</Suspense>
+                  </ErrorBoundary>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
         {/* First-run gate: server-authoritative (GET /onboarding), so a
             factory reset correctly reopens it. Sits above everything else
             below, same root-modal tier. */}
         <WelcomeScreen
-          open={onboardingStatus === 'pending' && !onboardingDismissed}
+          open={welcomeOpen}
           platform={status.ping?.platform ?? ''}
           onComplete={() => setOnboardingDismissed(true)}
         />

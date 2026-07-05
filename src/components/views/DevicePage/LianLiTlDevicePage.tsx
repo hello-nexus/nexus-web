@@ -98,7 +98,7 @@ export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProp
               ))
             : <div className={`${styles.row} ${styles.rowDisabled}`} />
           }
-          <p className={styles.customNote}>{t('devices.lianli-tl.coolingHint')}</p>
+          <p className={styles.customNote} data-settings-aside="true">{t('devices.lianli-tl.coolingHint')}</p>
           {onSectionNavigate && (
             <Button
               className={styles.lightingLink}

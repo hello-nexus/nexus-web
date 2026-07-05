@@ -108,7 +108,7 @@ export function QSeriesCoolerSettings() {
   if (!state?.connected) {
     return (
       <SettingsSection title={t('devices.q60.firmwareSection')} boxClassName={styles.sectionBox}>
-        <div className={styles.note}>{t('devices.q60.notConnected')}</div>
+        <div className={styles.note} data-settings-aside="true">{t('devices.q60.notConnected')}</div>
       </SettingsSection>
     );
   }
@@ -126,10 +126,10 @@ export function QSeriesCoolerSettings() {
       />
 
       {curve && !curve.supported ? (
-        <div className={styles.note}>{t('devices.q60.curveUnsupported')}</div>
+        <div className={styles.note} data-settings-aside="true">{t('devices.q60.curveUnsupported')}</div>
       ) : (
         <>
-          <div className={styles.curveBlock}>
+          <div className={styles.curveBlock} data-settings-aside="true">
             <span className={styles.curveTitle}>{t('devices.q60.pumpCurve')}</span>
             <CurveGraph
               points={pumpPts}
@@ -140,7 +140,7 @@ export function QSeriesCoolerSettings() {
               onChange={pts => { setPumpPts(pts); setCurveDirty(true); }}
             />
           </div>
-          <div className={styles.curveBlock}>
+          <div className={styles.curveBlock} data-settings-aside="true">
             <span className={styles.curveTitle}>{t('devices.q60.fanCurve')}</span>
             <CurveGraph
               points={fanPts}
@@ -151,8 +151,8 @@ export function QSeriesCoolerSettings() {
               onChange={pts => { setFanPts(pts); setCurveDirty(true); }}
             />
           </div>
-          <span className={styles.helpText}>{t('devices.q60.curveHint')}</span>
-          <div className={styles.saveRow}>
+          <span className={styles.helpText} data-settings-aside="true">{t('devices.q60.curveHint')}</span>
+          <div className={styles.saveRow} data-settings-aside="true">
             <Button type="button" size="sm" tone="neutral" icon={<RotateCcw size={12} aria-hidden />}
               onClick={resetCurve} disabled={curveSaving}>
               {t('cooling.curves.resetBtn')}

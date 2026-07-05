@@ -93,7 +93,7 @@ export function CnvsDevicePage() {
               checked={settings.playWhenPCOff}
               onChange={(on) => commit({ ...settings, playWhenPCOff: on })} />
 
-            {error && <div className={styles.errorRow}>{error}</div>}
+            {error && <div className={styles.errorRow} data-settings-aside="true">{error}</div>}
           </SettingsSection>
         )}
       </div>

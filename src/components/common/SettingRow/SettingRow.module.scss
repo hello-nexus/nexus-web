@@ -43,6 +43,22 @@
   color: var(--accent);
 }
 
+// iconLeading variant: a large leading column beside label+description,
+// vertically centered against the row (via .row's align-items: center)
+// instead of an inline glyph on the label's own line. Caller sizes the icon
+// element itself; a fixed column width (rather than the icon's own rendered
+// width) keeps the label/description left edge aligned across rows whose
+// icons differ in ink density at the same nominal size.
+.leadingIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.75rem;
+  margin-right: 0.65rem;
+  color: var(--accent);
+}
+
 .desc {
   font-size: var(--type-small);
   font-weight: var(--weight-body);

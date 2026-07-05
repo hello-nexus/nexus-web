@@ -5,7 +5,6 @@ import { buildTelemetryConsentDescription } from './telemetryConsent';
 const STRINGS: Record<string, string> = {
   'settings.telemetry.description': 'Before the link. {privacy} After the link.',
   'settings.telemetry.privacyLink': 'Privacy Policy',
-  'settings.telemetry.infoTooltip': 'Info body.',
 };
 
 const t = (key: string) => STRINGS[key] ?? key;

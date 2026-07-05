@@ -53,4 +53,29 @@
   border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   background: var(--surface);
+
+  // Hairline between adjacent rows (none before the first, none after the
+  // last) - same --separator token + border-top-on-next-sibling idiom as
+  // .phonePairSessionRow in App.module.scss. Scoped to direct children so it
+  // reaches a row regardless of a wrapper div (e.g. WelcomeScreen's
+  // .telemetryRow) between it and its sibling.
+  //
+  // [data-settings-aside] marks a direct child that isn't a setting row -
+  // a hint, note, actions/button row, or a reveal panel dependent on the row
+  // above it. Attribute selectors outrank the plain `*` combinator on
+  // specificity alone, so these two rules always win over the base one
+  // regardless of source order: an aside never gets a top border itself, and
+  // the row/aside right after one doesn't either, so a divider only ever
+  // sits between two real rows.
+  > * + * {
+    border-top: 1px solid var(--separator);
+  }
+
+  > [data-settings-aside] {
+    border-top: none;
+  }
+
+  > [data-settings-aside] + * {
+    border-top: none;
+  }
 }

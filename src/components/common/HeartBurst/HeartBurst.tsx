@@ -36,8 +36,12 @@ function randomHeartStyle(): CSSProperties {
  * `useHeartBurstTrigger` to derive that key from an off-to-on toggle flip.
  * Pure CSS transform/opacity keyframes; each heart self-removes on its own
  * animationend, mirroring BackgroundEffects' particle lifecycle.
+ *
+ * `originTop` positions the burst's anchor within the `position: relative`
+ * wrapper the consumer places it in; each mount point tunes it to its own
+ * row's icon size, so it isn't shared CSS across mount points.
  */
-export function HeartBurst({ burstKey }: { burstKey: number }) {
+export function HeartBurst({ burstKey, originTop = 0 }: { burstKey: number; originTop?: number }) {
   const [hearts, setHearts] = useState<readonly Heart[]>([]);
   const idRef = useRef(0);
   const prevKeyRef = useRef(burstKey);
@@ -60,7 +64,7 @@ export function HeartBurst({ burstKey }: { burstKey: number }) {
   if (hearts.length === 0) return null;
 
   return (
-    <div className={styles.root} aria-hidden="true">
+    <div className={styles.root} aria-hidden="true" style={{ top: originTop }}>
       {hearts.map(h => (
         <HeartGlyph key={h.id} style={h.style} onDone={() => remove(h.id)} />
       ))}

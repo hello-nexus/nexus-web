@@ -17,6 +17,15 @@
   gap: 10px;
 }
 
+// Wraps a sync toggle with its conditional reveal (Tabs / ColorPickerWithPresets)
+// as one box child, so the box's row divider lands before the group instead of
+// between the toggle and its own reveal.
+.toggleReveal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .themeModeTabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

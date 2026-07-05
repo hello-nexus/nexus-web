@@ -219,40 +219,44 @@ export function PanelThemeSettings({
       )}
 
       <SettingsSection title={label('settings.theme', 'Theme')} boxClassName={styles.themeBox}>
-        <SettingToggle
-          label={syncWithDesktopLabel}
-          checked={theme.themeSyncWithDesktop}
-          onChange={onThemeSyncCommit}
-        />
-        {!theme.themeSyncWithDesktop && (
-          <Tabs
-            tabs={THEME_MODES.map(mode => ({
-              key: mode,
-              label: t(`settings.theme.${mode}`) || (mode === 'system' ? 'System' : mode === 'dark' ? 'Dark' : 'Light'),
-            }))}
-            activeKey={theme.themeMode}
-            onChange={key => onThemeModeCommit(key as ThemeMode)}
-            ariaLabel={label('settings.theme', 'Theme')}
-            className={styles.themeModeTabs}
+        <div className={styles.toggleReveal}>
+          <SettingToggle
+            label={syncWithDesktopLabel}
+            checked={theme.themeSyncWithDesktop}
+            onChange={onThemeSyncCommit}
           />
-        )}
+          {!theme.themeSyncWithDesktop && (
+            <Tabs
+              tabs={THEME_MODES.map(mode => ({
+                key: mode,
+                label: t(`settings.theme.${mode}`) || (mode === 'system' ? 'System' : mode === 'dark' ? 'Dark' : 'Light'),
+              }))}
+              activeKey={theme.themeMode}
+              onChange={key => onThemeModeCommit(key as ThemeMode)}
+              ariaLabel={label('settings.theme', 'Theme')}
+              className={styles.themeModeTabs}
+            />
+          )}
+        </div>
       </SettingsSection>
 
       <SettingsSection title={label('devices.y70.theme.accent', 'Accent Color')} boxClassName={styles.themeBox}>
-        <SettingToggle
-          label={syncWithDesktopLabel}
-          checked={theme.accentSyncWithDesktop}
-          onChange={onAccentSyncCommit}
-        />
-        {!theme.accentSyncWithDesktop && (
-          <ColorPickerWithPresets
-            value={theme.accentColor || theme.appAccentColor}
-            presets={PRESET_ACCENTS}
-            fallback={theme.appAccentColor || DEFAULT_ACCENT}
-            onPreview={onAccentPreview}
-            onCommit={onAccentCommit}
+        <div className={styles.toggleReveal}>
+          <SettingToggle
+            label={syncWithDesktopLabel}
+            checked={theme.accentSyncWithDesktop}
+            onChange={onAccentSyncCommit}
           />
-        )}
+          {!theme.accentSyncWithDesktop && (
+            <ColorPickerWithPresets
+              value={theme.accentColor || theme.appAccentColor}
+              presets={PRESET_ACCENTS}
+              fallback={theme.appAccentColor || DEFAULT_ACCENT}
+              onPreview={onAccentPreview}
+              onCommit={onAccentCommit}
+            />
+          )}
+        </div>
       </SettingsSection>
 
       {/* Background stays unboxed: a sticky live-preview dock + scrolling

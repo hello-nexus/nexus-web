@@ -130,7 +130,11 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
             <ChevronDown size={14} className={styles.tzChevron} aria-hidden={true} />
           </button>
         </SettingsRow>
-        {tzOpen && <TimezonePicker value={timezone} onChange={setTimezone} />}
+        {tzOpen && (
+          <div data-settings-aside="true">
+            <TimezonePicker value={timezone} onChange={setTimezone} />
+          </div>
+        )}
       </SettingsSection>
     </div>
   );

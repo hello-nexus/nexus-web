@@ -1,9 +1,8 @@
 // Overlay anchor: consumers place this inside a `position: relative` wrapper
 // near the toggle that fired the burst. Zero footprint so it never affects
-// sibling layout.
+// sibling layout. `top` is set inline via the `originTop` prop.
 .root {
   position: absolute;
-  top: 0;
   right: 0.5rem;
   width: 0;
   height: 0;

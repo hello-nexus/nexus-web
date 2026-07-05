@@ -62,7 +62,7 @@ export function PanelHostNameSetting({ machineName, onCommit }: PanelHostNameSet
         autoComplete="off"
         spellCheck={false}
       />
-      <div className={styles.hint}>{t('panel.editor.hostName.hint')}</div>
+      <div className={styles.hint} data-settings-aside="true">{t('panel.editor.hostName.hint')}</div>
     </SettingsSection>
   );
 }

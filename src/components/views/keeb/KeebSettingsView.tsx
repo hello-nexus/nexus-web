@@ -140,34 +140,36 @@ export function KeebSettingsView({
       </SettingsSection>
 
       <SettingsSection title={t('keeb.settings.passive.title')} description={t('keeb.settings.passive.subtitle')}>
-        <SettingToggle
-          label={t('keeb.settings.typeReactive')}
-          checked={local.keyReactive}
-          onChange={v => pushPassive({ keyReactive: v, keyReactiveMask: v ? local.keyReactiveMask : false })}
-        />
-        {local.keyReactive && (
-          <>
-            <SettingToggle
-              label={t('keeb.settings.maskEffect')}
-              description={t('keeb.settings.maskEffectHint')}
-              checked={local.keyReactiveMask}
-              onChange={v => pushPassive({ keyReactiveMask: v })}
-            />
-            <SettingSelect
-              label={t('keeb.settings.mode')}
-              value={local.keyReactiveMode}
-              onChange={v => pushPassive({ keyReactiveMode: v })}
-              options={KEY_REACTIVE_MODES.map(m => ({ value: m, label: t(`keeb.reactive.${m}`) }))}
-            />
-            <SettingRow label={t('keeb.settings.color')}>
-              <HsvPicker
-                value={rgbToHex(local.keyReactiveColor)}
-                onPreview={hex => setLocalField('keyReactiveColor', hexToRgba(hex, local.keyReactiveColor.a))}
-                onCommit={hex => pushPassive({ keyReactiveColor: hexToRgba(hex, local.keyReactiveColor.a) })}
+        <div className={styles.toggleReveal}>
+          <SettingToggle
+            label={t('keeb.settings.typeReactive')}
+            checked={local.keyReactive}
+            onChange={v => pushPassive({ keyReactive: v, keyReactiveMask: v ? local.keyReactiveMask : false })}
+          />
+          {local.keyReactive && (
+            <>
+              <SettingToggle
+                label={t('keeb.settings.maskEffect')}
+                description={t('keeb.settings.maskEffectHint')}
+                checked={local.keyReactiveMask}
+                onChange={v => pushPassive({ keyReactiveMask: v })}
               />
-            </SettingRow>
-          </>
-        )}
+              <SettingSelect
+                label={t('keeb.settings.mode')}
+                value={local.keyReactiveMode}
+                onChange={v => pushPassive({ keyReactiveMode: v })}
+                options={KEY_REACTIVE_MODES.map(m => ({ value: m, label: t(`keeb.reactive.${m}`) }))}
+              />
+              <SettingRow label={t('keeb.settings.color')}>
+                <HsvPicker
+                  value={rgbToHex(local.keyReactiveColor)}
+                  onPreview={hex => setLocalField('keyReactiveColor', hexToRgba(hex, local.keyReactiveColor.a))}
+                  onCommit={hex => pushPassive({ keyReactiveColor: hexToRgba(hex, local.keyReactiveColor.a) })}
+                />
+              </SettingRow>
+            </>
+          )}
+        </div>
       </SettingsSection>
 
       <SettingsSection title={t('keeb.settings.game.title')} description={t('keeb.settings.game.subtitle')}>

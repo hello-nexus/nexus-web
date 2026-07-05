@@ -22,7 +22,8 @@ export function SettingsSection({
   boxClassName,
   ariaLabel,
 }: {
-  title: ReactNode;
+  // Omit for a titleless box (e.g. the welcome screen's preferences group).
+  title?: ReactNode;
   // Optional muted hint under the title (still outside the box).
   description?: ReactNode;
   // Per-section title colour override (e.g. the danger zone red).
@@ -35,15 +36,18 @@ export function SettingsSection({
   boxClassName?: string;
   ariaLabel?: string;
 }) {
+  const hasHeader = title !== undefined || description !== undefined || action !== undefined;
   return (
     <section className={className ? `${styles.section} ${className}` : styles.section} aria-label={ariaLabel}>
-      <div className={styles.header}>
-        <div className={styles.titleRow}>
-          <SectionHeader style={titleStyle}>{title}</SectionHeader>
-          {action !== undefined && <div className={styles.action}>{action}</div>}
+      {hasHeader && (
+        <div className={styles.header}>
+          <div className={styles.titleRow}>
+            {title !== undefined && <SectionHeader style={titleStyle}>{title}</SectionHeader>}
+            {action !== undefined && <div className={styles.action}>{action}</div>}
+          </div>
+          {description !== undefined && <div className={styles.description}>{description}</div>}
         </div>
-        {description !== undefined && <div className={styles.description}>{description}</div>}
-      </div>
+      )}
       <div className={boxClassName ? `${styles.box} ${boxClassName}` : styles.box}>
         {children}
       </div>

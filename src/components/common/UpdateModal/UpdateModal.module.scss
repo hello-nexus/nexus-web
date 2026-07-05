@@ -166,6 +166,12 @@
   max-height: 320px;
   overflow-y: auto;
   gap: 0.4rem;
+
+  // Opts out of .box's row-divider rule: children here are markdown prose
+  // (headings/paragraphs/lists), not settings rows.
+  > * + * {
+    border-top: none;
+  }
 }
 
 .notesH1 {

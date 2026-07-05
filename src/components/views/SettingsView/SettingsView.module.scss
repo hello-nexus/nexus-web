@@ -37,6 +37,14 @@
 
 // ── Accent color section ─────────────────────────────────────────────────────
 
+// Groups the accent SettingRow with its conditional swatch reveal as one
+// SettingsSection box child, so the box's row divider lands before this
+// group (not between the accent row and its own swatches).
+.accentGroup {
+  display: flex;
+  flex-direction: column;
+}
+
 // ColorPickerWithPresets is a width:100% block (10-col fill grid). Pin it to
 // the full-swatch width so it right-aligns in the SettingRow's shrink-to-fit
 // control instead of collapsing to microscopic swatches.

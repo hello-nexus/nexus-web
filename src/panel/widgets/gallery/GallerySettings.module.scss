@@ -3,3 +3,11 @@
   flex-direction: column;
   gap: 16px;
 }
+
+// Groups the mode select with its conditional interval reveal as one
+// SettingsSection box child, so the box's row divider lands before the group
+// instead of between the mode row and its own reveal.
+.toggleReveal {
+  display: flex;
+  flex-direction: column;
+}

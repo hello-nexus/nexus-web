@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 
 const PRIVACY_POLICY_URL = 'https://hellonexus.com/privacy';
 
@@ -20,8 +19,6 @@ export function buildTelemetryConsentDescription(t: TFunction): ReactNode {
         {t('settings.telemetry.privacyLink')}
       </a>
       {after}
-      {' '}
-      <InfoTooltip message={t('settings.telemetry.infoTooltip')} side="right" />
     </>
   );
 }

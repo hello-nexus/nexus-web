@@ -289,9 +289,9 @@ export function LianLiWirelessScreenTab() {
         title={t('devices.lianli-wireless.selectionSection')}
         boxClassName={styles.sectionBox}
       >
-        {!loaded && <p className={styles.emptyNote}>{t('devices.lianli-wireless.loadingScreens')}</p>}
+        {!loaded && <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.loadingScreens')}</p>}
         {loaded && orderedScreens.length === 0 && (
-          <p className={styles.emptyNote}>{t('devices.lianli-wireless.noScreens')}</p>
+          <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noScreens')}</p>
         )}
         {orderedScreens.length > 0 && (
           <>
@@ -312,6 +312,7 @@ export function LianLiWirelessScreenTab() {
               className={styles.screenPreviewGrid}
               role="group"
               aria-label={t('devices.lianli-wireless.screensAria')}
+              data-settings-aside="true"
             >
               {orderedScreens.map((s, i) => {
                 const active = selected.has(s.serial);
@@ -392,11 +393,11 @@ export function LianLiWirelessScreenTab() {
           />
         </div>
         {contentMixed && (
-          <p className={styles.emptyNote}>{t('devices.lianli-wireless.contentMixedHint')}</p>
+          <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.contentMixedHint')}</p>
         )}
 
         {representative && !contentMixed && (
-          <>
+          <div data-settings-aside="true">
             {representative.contentType === 'image' && (
               <MediaPanel
                 kind="image"
@@ -451,7 +452,7 @@ export function LianLiWirelessScreenTab() {
                 onCommit={patch => commitContentField('animation', patch)}
               />
             )}
-          </>
+          </div>
         )}
 
         <input
@@ -460,6 +461,7 @@ export function LianLiWirelessScreenTab() {
           accept={acceptForKind(uploadKind)}
           className={styles.hiddenInput}
           onChange={handleFileChange}
+          data-settings-aside="true"
         />
       </SettingsSection>
 

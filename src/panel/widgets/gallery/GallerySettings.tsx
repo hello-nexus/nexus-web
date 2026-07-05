@@ -16,28 +16,30 @@ export function GallerySettings({ widget, onUpdate }: WidgetSettingsProps) {
   return (
     <div className={styles.settings}>
       <SettingsSection title={t('gallery.settings.title')}>
-        <SettingsSelect
-          label={t('gallery.settings.mode')}
-          value={mode}
-          options={[
-            // eslint-disable-next-line i18next/no-literal-string -- config enum value
-            { value: 'single', label: t('gallery.settings.single') },
-            // eslint-disable-next-line i18next/no-literal-string -- config enum value
-            { value: 'slideshow', label: t('gallery.settings.slideshow') },
-          ]}
-          onChange={v => onUpdate({ mode: v })}
-        />
-        {mode === 'slideshow' && (
+        <div className={styles.toggleReveal}>
           <SettingsSelect
-            label={t('gallery.settings.interval')}
-            value={interval}
-            options={INTERVAL_SECONDS.map(s => ({
-              value: String(s),
-              label: t('gallery.settings.intervalSeconds', { seconds: s }),
-            }))}
-            onChange={v => onUpdate({ interval: Number(v) })}
+            label={t('gallery.settings.mode')}
+            value={mode}
+            options={[
+              // eslint-disable-next-line i18next/no-literal-string -- config enum value
+              { value: 'single', label: t('gallery.settings.single') },
+              // eslint-disable-next-line i18next/no-literal-string -- config enum value
+              { value: 'slideshow', label: t('gallery.settings.slideshow') },
+            ]}
+            onChange={v => onUpdate({ mode: v })}
           />
-        )}
+          {mode === 'slideshow' && (
+            <SettingsSelect
+              label={t('gallery.settings.interval')}
+              value={interval}
+              options={INTERVAL_SECONDS.map(s => ({
+                value: String(s),
+                label: t('gallery.settings.intervalSeconds', { seconds: s }),
+              }))}
+              onChange={v => onUpdate({ interval: Number(v) })}
+            />
+          )}
+        </div>
         <SettingsToggle
           label={t('gallery.settings.fit')}
           checked={fit}

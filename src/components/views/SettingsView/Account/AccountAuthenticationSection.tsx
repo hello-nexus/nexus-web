@@ -194,7 +194,7 @@ export function AccountAuthenticationSection({
 
   return (
     <SettingsSection title={t('account.authentication.title')}>
-      <div className={styles.accountCard}>
+      <div className={styles.accountCard} data-settings-aside="true">
         <div className={styles.avatarWrap}>
           {account.avatar?.large ? (
             <img className={styles.avatarLarge} src={account.avatar.large} alt="" />
@@ -227,7 +227,7 @@ export function AccountAuthenticationSection({
           <span className={styles.accountEmail}>{account.email}</span>
         </div>
       </div>
-      {avatarError && <p className={styles.error} role="alert">{avatarError}</p>}
+      {avatarError && <p className={styles.error} role="alert" data-settings-aside="true">{avatarError}</p>}
       {cropSrc && (
         <MediaCropper src={cropSrc} aspect={1} busy={avatarBusy} onConfirm={c => void handleCropConfirm(c)} onCancel={handleCropCancel} />
       )}
@@ -255,7 +255,7 @@ export function AccountAuthenticationSection({
         </div>
       </SettingRow>
       {usernameError && (
-        <p className={styles.error} role="alert">
+        <p className={styles.error} role="alert" data-settings-aside="true">
           {cooldown
             ? t('account.username.error.cooldownIn', { hours: cooldown.hours, minutes: cooldown.minutes })
             : usernameError}

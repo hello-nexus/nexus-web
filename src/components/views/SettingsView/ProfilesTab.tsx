@@ -140,7 +140,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         description={t('settings.profiles.description')}
       >
       {profiles.profiles.length === 0 ? (
-        <p className={styles.note}>{t('settings.profiles.noProfiles')}</p>
+        <p className={styles.note} data-settings-aside="true">{t('settings.profiles.noProfiles')}</p>
       ) : (
         <SortableList
           className={styles.profileList}
@@ -260,7 +260,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         />
       )}
 
-      <div className={styles.profileButtons}>
+      <div className={styles.profileButtons} data-settings-aside="true">
         <Button
           type="button"
           tone="neutral"
@@ -283,8 +283,8 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         </Button>
         <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
       </div>
-      {atLimit && <p className={styles.note}>{t('profile.maxReached')}</p>}
-      {importError && <p className={styles.profileImportError} role="alert">{importError}</p>}
+      {atLimit && <p className={styles.note} data-settings-aside="true">{t('profile.maxReached')}</p>}
+      {importError && <p className={styles.profileImportError} role="alert" data-settings-aside="true">{importError}</p>}
       </SettingsSection>
 
       <PromptModal

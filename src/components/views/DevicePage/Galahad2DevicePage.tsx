@@ -153,7 +153,7 @@ export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProp
 
           {isCanvasMode ? (
             <>
-              <p className={styles.customNote}>{t('devices.lianli.customModeNote')}</p>
+              <p className={styles.customNote} data-settings-aside="true">{t('devices.lianli.customModeNote')}</p>
               {onSectionNavigate && (
                 <Button
                   className={styles.lightingLink}
@@ -235,7 +235,7 @@ export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProp
               )}
 
               {selectedMode && selectedMode.colorsMax > 0 && lightingLoaded && (
-                <div className={styles.colorBlock}>
+                <div className={styles.colorBlock} data-settings-aside="true">
                   {selectedMode.colorsMax === 2 ? (
                     <div className={styles.colorPairRow}>
                       {([0, 1] as const).map(i => {
@@ -327,7 +327,7 @@ export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProp
               )}
 
               {lightingLoaded && lighting?.mode === 'staticColor' && (
-                <div className={styles.colorBlock}>
+                <div className={styles.colorBlock} data-settings-aside="true">
                   <div className={styles.colorPairRow}>
                     <div className={styles.colorEntry}>
                       <span className={styles.colorLabel}>{t('devices.lianli-aio.innerColor')}</span>

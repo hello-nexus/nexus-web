@@ -94,31 +94,35 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
         />
       </SettingRow>
 
-      <SettingRow label={t('settings.accent')} anchorId="set-accent">
-        <ChipGroup
-          ariaLabel={t('settings.accent')}
-          activeKey={settings.general.accentSource}
-          onChange={k => handleAccentSourceChange(k as AccentSource)}
-          options={[
-            // eslint-disable-next-line i18next/no-literal-string -- accent source enum value
-            { key: 'system', label: t('settings.accent.system') },
-            // eslint-disable-next-line i18next/no-literal-string -- accent source enum value
-            { key: 'custom', label: t('settings.accent.custom') },
-          ]}
-        />
-      </SettingRow>
-      {settings.general.accentSource === 'custom' && (
-        <div className={styles.accentPickerRow}>
-          <div className={styles.accentPicker}>
-            <ColorPickerWithPresets
-              value={liveAccent}
-              presets={PRESET_ACCENTS}
-              onPreview={handleAccentPreview}
-              onCommit={handleAccentCommit}
-            />
+      {/* One box child: the swatch reveal is part of the accent row, not a
+          separate setting, so it must not pick up the box's row divider. */}
+      <div className={styles.accentGroup}>
+        <SettingRow label={t('settings.accent')} anchorId="set-accent">
+          <ChipGroup
+            ariaLabel={t('settings.accent')}
+            activeKey={settings.general.accentSource}
+            onChange={k => handleAccentSourceChange(k as AccentSource)}
+            options={[
+              // eslint-disable-next-line i18next/no-literal-string -- accent source enum value
+              { key: 'system', label: t('settings.accent.system') },
+              // eslint-disable-next-line i18next/no-literal-string -- accent source enum value
+              { key: 'custom', label: t('settings.accent.custom') },
+            ]}
+          />
+        </SettingRow>
+        {settings.general.accentSource === 'custom' && (
+          <div className={styles.accentPickerRow}>
+            <div className={styles.accentPicker}>
+              <ColorPickerWithPresets
+                value={liveAccent}
+                presets={PRESET_ACCENTS}
+                onPreview={handleAccentPreview}
+                onCommit={handleAccentCommit}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 }

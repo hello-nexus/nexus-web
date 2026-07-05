@@ -184,7 +184,7 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
               onIdentify={handleIdentify}
             />
           ))
-          : <p className={styles.emptyNote}>{t('devices.lianli-wireless.noFansPaired')}</p>}
+          : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noFansPaired')}</p>}
       </SettingsSection>
 
       <ConfirmModal

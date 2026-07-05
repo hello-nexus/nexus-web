@@ -62,11 +62,16 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     return () => { cancelled = true; };
   }, [serviceOnline, platform]);
 
+  // Optimistic: flip the toggle immediately so the row never dims/disables
+  // (and its text never flashes) for the loopback round trip - reconcile to
+  // the server's echoed value on response, or roll back on failure.
   const toggleAutoStart = async () => {
-    if (autoStart === null) return;
+    if (autoStart === null || autoStartLoading) return;
+    const previous = autoStart;
+    setAutoStart(!previous);
     setAutoStartLoading(true);
-    const resp = await postAutoStart(!autoStart);
-    if (resp) setAutoStart(resp.autoStart);
+    const resp = await postAutoStart(!previous);
+    setAutoStart(resp ? resp.autoStart : previous);
     setAutoStartLoading(false);
   };
 
@@ -81,13 +86,16 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     return () => { cancelled = true; };
   }, [serviceOnline]);
 
+  // Same optimistic pattern as toggleAutoStart - see its comment.
   const toggleTelemetry = async () => {
-    if (telemetryOn === null) return;
+    if (telemetryOn === null || telemetryLoading) return;
+    const previous = telemetryOn;
+    setTelemetryOn(!previous);
     setTelemetryLoading(true);
     const resp = await postService<{ enabled: boolean }>('/telemetry/consent', {
-      enabled: !telemetryOn,
+      enabled: !previous,
     });
-    if (resp) setTelemetryOn(resp.enabled);
+    setTelemetryOn(resp ? resp.enabled : previous);
     setTelemetryLoading(false);
   };
 
@@ -155,7 +163,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
               description={t('settings.systemStartup.description')}
               checked={autoStart}
               onChange={toggleAutoStart}
-              disabled={!serviceOnline || autoStartLoading}
+              disabled={!serviceOnline}
             />
           )}
           {platform === 'windows' && (
@@ -218,7 +226,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
               description={buildTelemetryConsentDescription(t)}
               checked={telemetryOn}
               onChange={toggleTelemetry}
-              disabled={!serviceOnline || telemetryLoading}
+              disabled={!serviceOnline}
             />
             <HeartBurst burstKey={telemetryBurstKey} />
           </div>

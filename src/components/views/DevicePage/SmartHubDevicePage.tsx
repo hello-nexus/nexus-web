@@ -201,7 +201,7 @@ export function SmartHubDevicePage() {
             }}
           />
           {showColorPicker && settingLoaded && (
-            <div className={styles.colorBlock}>
+            <div className={styles.colorBlock} data-settings-aside="true">
               <HsvPicker
                 value={hex}
                 onPreview={(next: string) => {

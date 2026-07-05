@@ -77,10 +77,10 @@ export function LianLiWirelessCoolingTab({ state, onSectionNavigate }: LianLiWir
             onSetManual={handleSetManual}
           />
         ))
-        : <p className={styles.emptyNote}>{t('devices.lianli-wireless.noFansPaired')}</p>}
-      <p className={styles.emptyNote}>{t('devices.lianli-wireless.coolingCurveHint')}</p>
+        : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noFansPaired')}</p>}
+      <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.coolingCurveHint')}</p>
       {onSectionNavigate && (
-        <div className={styles.actionsRow}>
+        <div className={styles.actionsRow} data-settings-aside="true">
           <Button
             size="sm"
             tone="neutral"

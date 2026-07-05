@@ -62,7 +62,7 @@ export function SharingSection({ profiles, sharing, primaryId, sharedCats, onlyO
       })}
 
       {onlyOneProfile && (
-        <p className={styles.note}>{t('settings.profiles.sharing.onlyOneProfile')}</p>
+        <p className={styles.note} data-settings-aside="true">{t('settings.profiles.sharing.onlyOneProfile')}</p>
       )}
     </SettingsSection>
   );

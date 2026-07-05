@@ -19,6 +19,7 @@ export function SettingRow({
   label,
   description,
   icon,
+  iconLeading,
   children,
   disabled,
   anchorId,
@@ -28,6 +29,11 @@ export function SettingRow({
   description?: ReactNode;
   // Optional accent glyph rendered inline before the label text.
   icon?: ReactNode;
+  // Renders `icon` as a large leading column beside label+description
+  // (vertically centered against the whole row) instead of the small inline
+  // glyph before the label text. Caller sizes the icon element itself larger
+  // to match.
+  iconLeading?: boolean;
   // Omit for a pure status row (label/description only, no control).
   children?: ReactNode;
   disabled?: boolean;
@@ -42,11 +48,12 @@ export function SettingRow({
     .filter(Boolean).join(' ');
   return (
     <div id={anchorId} data-search-anchor={anchorId} className={cls}>
+      {icon && iconLeading && <span className={styles.leadingIcon} aria-hidden="true">{icon}</span>}
       {(label || description) && (
         <div className={styles.info}>
           {label && (
             <span className={styles.label}>
-              {icon && <span className={styles.labelIcon} aria-hidden="true">{icon}</span>}
+              {icon && !iconLeading && <span className={styles.labelIcon} aria-hidden="true">{icon}</span>}
               {label}
             </span>
           )}
@@ -62,6 +69,7 @@ export function SettingToggle({
   label,
   description,
   icon,
+  iconLeading,
   checked,
   onChange,
   disabled,
@@ -71,6 +79,7 @@ export function SettingToggle({
   label: string;
   description?: ReactNode;
   icon?: ReactNode;
+  iconLeading?: boolean;
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
@@ -78,7 +87,14 @@ export function SettingToggle({
   ariaLabel?: string;
 }) {
   return (
-    <SettingRow label={label} description={description} icon={icon} disabled={disabled} anchorId={anchorId}>
+    <SettingRow
+      label={label}
+      description={description}
+      icon={icon}
+      iconLeading={iconLeading}
+      disabled={disabled}
+      anchorId={anchorId}
+    >
       <Toggle checked={checked} onChange={onChange} disabled={disabled} ariaLabel={ariaLabel ?? label} />
     </SettingRow>
   );
