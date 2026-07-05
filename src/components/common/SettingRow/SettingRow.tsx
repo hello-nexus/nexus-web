@@ -22,6 +22,7 @@ export function SettingRow({
   children,
   disabled,
   anchorId,
+  align,
 }: {
   label?: string;
   description?: ReactNode;
@@ -33,9 +34,14 @@ export function SettingRow({
   // Search deep-link target: stamps the row so the command palette can scroll
   // to + shine it. Optional; nothing else reads it.
   anchorId?: string;
+  // Vertical alignment of label vs control. Default center; 'start' top-aligns
+  // for a tall control (e.g. a color picker).
+  align?: 'center' | 'start';
 }) {
+  const cls = [styles.row, disabled && styles.disabled, align === 'start' && styles.alignStart]
+    .filter(Boolean).join(' ');
   return (
-    <div id={anchorId} data-search-anchor={anchorId} className={disabled ? `${styles.row} ${styles.disabled}` : styles.row}>
+    <div id={anchorId} data-search-anchor={anchorId} className={cls}>
       {(label || description) && (
         <div className={styles.info}>
           {label && (

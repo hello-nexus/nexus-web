@@ -4,7 +4,7 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Spinner } from '../../common/Spinner/Spinner';
 import { Select } from '../../common/Select/Select';
-import { SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { UsageBar } from '../../common/UsageBar/UsageBar';
 import { Button } from '../../common/Button/Button';
@@ -637,19 +637,16 @@ export function TryxDevicePage() {
           {tab === 'display' && (
             <>
               <SettingsSection title={t('devices.tryx.screenSection')} boxClassName={styles.sectionBox}>
-                <div className={styles.row}>
-                  <span className={styles.rowLabel}>{t('devices.tryx.screenOn')}</span>
-                  <Toggle
-                    checked={screenEnabled}
-                    onChange={enabled => {
-                      setScreenOverride(enabled);
-                      void setTryxEnabled(enabled).then(ok => {
-                        if (!ok) setScreenOverride(cur => (cur === enabled ? null : cur));
-                      });
-                    }}
-                    ariaLabel={t('devices.tryx.screenOn')}
-                  />
-                </div>
+                <SettingToggle
+                  label={t('devices.tryx.screenOn')}
+                  checked={screenEnabled}
+                  onChange={enabled => {
+                    setScreenOverride(enabled);
+                    void setTryxEnabled(enabled).then(ok => {
+                      if (!ok) setScreenOverride(cur => (cur === enabled ? null : cur));
+                    });
+                  }}
+                />
                 <SettingSlider
                   editable
                   trackFill
@@ -708,39 +705,29 @@ export function TryxDevicePage() {
                     />
                   </div>
                 ))}
-                <div className={styles.controlRow}>
-                  <span className={styles.controlRowLabel}>{t('devices.tryx.align')}</span>
+                <SettingRow label={t('devices.tryx.align')}>
                   <ChipGroup
                     ariaLabel={t('devices.tryx.align')}
                     activeKey={overlayAlign}
                     onChange={align => handleAlignChange(align as TryxOverlayAlign)}
                     options={alignOptions}
                   />
-                </div>
-                <div className={styles.row}>
-                  <div className={styles.rowLabelStack}>
-                    <span className={styles.rowLabel}>{t('devices.tryx.docked')}</span>
-                    <span className={styles.hintText}>{t('devices.tryx.dockedHint')}</span>
-                  </div>
-                  <Toggle
-                    checked={overlayDocked}
-                    onChange={handleDockedChange}
-                    ariaLabel={t('devices.tryx.docked')}
-                  />
-                </div>
-                <div className={styles.controlRow}>
-                  <span className={styles.controlRowLabel}>{t('devices.tryx.font')}</span>
-                  <Select
-                    className={styles.fontSelect}
-                    value={overlayFont}
-                    options={fontOptions}
-                    onChange={font => {
-                      setOverlayFont(font);
-                      pushOverlay(overlayItems, font, overlaySize, overlayColor, overlayAlign, overlayDocked);
-                    }}
-                    ariaLabel={t('devices.tryx.font')}
-                  />
-                </div>
+                </SettingRow>
+                <SettingToggle
+                  label={t('devices.tryx.docked')}
+                  description={t('devices.tryx.dockedHint')}
+                  checked={overlayDocked}
+                  onChange={handleDockedChange}
+                />
+                <SettingSelect
+                  label={t('devices.tryx.font')}
+                  value={overlayFont}
+                  options={fontOptions}
+                  onChange={font => {
+                    setOverlayFont(font);
+                    pushOverlay(overlayItems, font, overlaySize, overlayColor, overlayAlign, overlayDocked);
+                  }}
+                />
                 <SettingSlider
                   editable
                   trackFill
@@ -762,8 +749,7 @@ export function TryxDevicePage() {
                     pushOverlay(overlayItems, overlayFont, rounded, overlayColor, overlayAlign, overlayDocked);
                   }}
                 />
-                <div className={styles.colorSection}>
-                  <span className={styles.controlRowLabel}>{t('devices.tryx.color')}</span>
+                <SettingRow label={t('devices.tryx.color')} align="start">
                   <div className={styles.colorPicker}>
                     <HsvPicker
                       value={overlayColor}
@@ -777,7 +763,7 @@ export function TryxDevicePage() {
                       }}
                     />
                   </div>
-                </div>
+                </SettingRow>
               </SettingsSection>
             </>
           )}
