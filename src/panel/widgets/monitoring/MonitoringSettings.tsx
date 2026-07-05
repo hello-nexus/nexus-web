@@ -124,7 +124,7 @@ function selectedSensorValue(options: SensorOption[], storedKey: string): string
 // exposes at least `count` distinct sensors. Network has exactly 3 sensors,
 // so it qualifies at count=3 and is hidden at count=4. Bumping count above
 // the device's sensor budget falls back to the first eligible device in
-// DEVICE_OPTIONS order (Quick, whose 5 summary sensors clear every count,
+// DEVICE_OPTIONS order (Quick, whose summary sensors usually clear every count,
 // unless the box lacks a GPU and the service omits the GPU-derived ones).
 function deviceHasEnoughSensorsForMicro(
   sensors: ReturnType<typeof useSensors>,
