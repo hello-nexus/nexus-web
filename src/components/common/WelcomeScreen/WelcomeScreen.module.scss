@@ -87,7 +87,7 @@ $group-gap: 0.75rem;
   align-items: center;
   justify-content: center;
   gap: 1.1rem;
-  color: var(--text);
+  color: var(--text-dim);
 }
 
 .capabilityIcon {
@@ -100,17 +100,27 @@ $group-gap: 0.75rem;
   }
 }
 
-// White, same size as the version line (text-body / --text), not muted.
+// Dimmed, sits under the capability icon row.
 .tagline {
   @include text-body;
   margin: 0;
-  color: var(--text);
+  color: var(--text-dim);
 }
 
-// Footer version stamp under the Enter button; same muted style as the hint.
+// Wordmark + version stack tight, directly under the N mark.
+.brandGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+// Version line directly under the NEXUS wordmark; small, white.
 .version {
-  @include small-muted;
-  margin: -1.5rem 0 0;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  color: var(--text);
+  margin: 0;
 }
 
 .section {

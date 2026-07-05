@@ -109,7 +109,10 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
     >
       <div className={styles.hero}>
         <img src="/nexus-mark-color.png" alt="" width={140} height={140} className={styles.logo} />
-        <NexusWordmark height={40} />
+        <div className={styles.brandGroup}>
+          <NexusWordmark height={40} />
+          {currentVersion && <p className={styles.version}>{currentVersion}</p>}
+        </div>
         <div className={styles.capabilitiesGroup}>
           <div className={styles.capabilities}>
             {CAPABILITIES.map(({ Icon, key }) => (
@@ -163,9 +166,6 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
       >
         {t('welcome.enter')}
       </Button>
-      {currentVersion && (
-        <p className={styles.version}>{t('update.modal.version', { version: currentVersion })}</p>
-      )}
     </Overlay>
   );
 }
