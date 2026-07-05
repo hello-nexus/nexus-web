@@ -259,7 +259,10 @@ export function TryxDevicePage() {
         // Staggered seed (see DEFAULT_OVERLAY_ITEMS) so enabling this slot while
         // undocked lands it somewhere sensible, not at the panel origin.
         const pos = dockedOverlayItemPosition(align, i, OVERLAY_ITEM_SLOTS.length);
-        return { enabled: false, device: 'cpu' as TryxSensorGroup, sensorId: '', label: '', sensorType: '', x: pos.x, y: pos.y };
+        // Fresh/unconfigured slots default to the Quick group (first enabled stat
+        // lands on CPU Temperature); a saved item with a bad device still falls
+        // back to always-present cpu below.
+        return { enabled: false, device: 'quick' as TryxSensorGroup, sensorId: '', label: '', sensorType: '', x: pos.x, y: pos.y };
       }
       return {
         enabled: true,

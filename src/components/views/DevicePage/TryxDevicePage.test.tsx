@@ -322,9 +322,9 @@ describe('TryxDevicePage - overlay editor', () => {
     expect(mockSetTryxOverlay).toHaveBeenCalledTimes(1);
     const call = mockSetTryxOverlay.mock.calls[0][0];
     expect(call.items).toHaveLength(2);
-    expect(call.items[1].sensorId).toBe('cpu-temp');
-    expect(call.items[1].device).toBe('cpu');
-    expect(call.items[1].label).toBe('CPU Package');
+    expect(call.items[1].sensorId).toBe('summary/cpu-temp');
+    expect(call.items[1].device).toBe('quick');
+    expect(call.items[1].label).toBe('CPU Temperature');
     expect(call.items[1].x).toBeCloseTo(0.04);
     expect(call.items[1].y).toBeCloseTo(0.50);
   });
