@@ -160,6 +160,98 @@ function LiquidFillIcon(p: P) {
   );
 }
 
+function SegmentsIcon(p: P) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
+      <rect x="2" y="9" width="2.4" height="6" rx="1" fill="currentColor" />
+      <rect x="5.5" y="9" width="2.4" height="6" rx="1" fill="currentColor" />
+      <rect x="9" y="9" width="2.4" height="6" rx="1" fill="currentColor" />
+      <rect x="12.5" y="9" width="2.4" height="6" rx="1" fill="currentColor" />
+      <rect x="16" y="9" width="2.4" height="6" rx="1" fill="currentColor" opacity="0.2" />
+      <rect x="19.5" y="9" width="2.4" height="6" rx="1" fill="currentColor" opacity="0.2" />
+    </svg>
+  );
+}
+
+function MirrorWaveIcon(p: P) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
+      <path
+        d="M3 9 L7 5 L11 10 L15 6 L19 11 L21 8 L21 16 L19 13 L15 18 L11 14 L7 19 L3 15 Z"
+        fill="currentColor"
+        opacity="0.25"
+      />
+      <path d="M3 9 L7 5 L11 10 L15 6 L19 11 L21 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 15 L7 19 L11 14 L15 18 L19 13 L21 16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function HeatmapIcon(p: P) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
+      <rect x="2" y="9" width="3" height="6" rx="1" fill="currentColor" opacity="0.2" />
+      <rect x="6" y="9" width="3" height="6" rx="1" fill="currentColor" opacity="0.45" />
+      <rect x="10" y="9" width="3" height="6" rx="1" fill="currentColor" opacity="0.7" />
+      <rect x="14" y="9" width="3" height="6" rx="1" fill="currentColor" opacity="0.4" />
+      <rect x="18" y="9" width="3" height="6" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function DialIcon(p: P) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
+      <path d="M5 17 A8 8 0 1 1 19 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3" />
+      <line x1="12" y1="13" x2="16" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="13" r="1.8" fill="currentColor" />
+    </svg>
+  );
+}
+
+function TickRingIcon(p: P) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
+      <g stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+        <line x1="12" y1="3" x2="12" y2="5.5" />
+        <line x1="17" y1="5" x2="15.4" y2="6.8" opacity="0.3" />
+        <line x1="19" y1="10" x2="16.6" y2="10.8" opacity="0.3" />
+        <line x1="17" y1="15" x2="15.4" y2="13.9" opacity="0.3" />
+        <line x1="7" y1="15" x2="8.6" y2="13.9" />
+        <line x1="5" y1="10" x2="7.4" y2="10.8" />
+        <line x1="7" y1="5" x2="8.6" y2="6.8" />
+      </g>
+    </svg>
+  );
+}
+
+function BackdropIcon(p: P) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
+      <path d="M3 16 L7 12 L11 14 L15 8 L19 11 L21 9 L21 20 L3 20 Z" fill="currentColor" opacity="0.18" />
+      <text x="12" y="16" textAnchor="middle" fontFamily="sans-serif" fontWeight="800" fontSize="11" fill="currentColor">42</text>
+    </svg>
+  );
+}
+
+function WaffleIcon(p: P) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
+      <g fill="currentColor">
+        <rect x="3" y="14" width="5" height="5" rx="1" />
+        <rect x="9.5" y="14" width="5" height="5" rx="1" />
+        <rect x="16" y="14" width="5" height="5" rx="1" />
+        <rect x="3" y="7.5" width="5" height="5" rx="1" />
+        <rect x="9.5" y="7.5" width="5" height="5" rx="1" />
+        <rect x="16" y="7.5" width="5" height="5" rx="1" opacity="0.2" />
+        <rect x="3" y="1" width="5" height="5" rx="1" opacity="0.2" />
+        <rect x="9.5" y="1" width="5" height="5" rx="1" opacity="0.2" />
+        <rect x="16" y="1" width="5" height="5" rx="1" opacity="0.2" />
+      </g>
+    </svg>
+  );
+}
+
 export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   sparkline: AreaIcon,
   text: ValueIcon,
@@ -176,4 +268,11 @@ export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   halfgauge: HalfGaugeIcon,
   numberfill: NumberFillIcon,
   line: LineIcon,
+  segments: SegmentsIcon,
+  mirrorwave: MirrorWaveIcon,
+  heatmap: HeatmapIcon,
+  dial: DialIcon,
+  tickring: TickRingIcon,
+  backdrop: BackdropIcon,
+  waffle: WaffleIcon,
 };

@@ -6,7 +6,7 @@
   height: 100%;
   width: 100%;
   padding: 6px 6px 8px;
-  gap: 6px;
+  gap: 4px;
 }
 
 .textWrap {
@@ -33,6 +33,14 @@
 
 .textBright {
   color: var(--panel-accent);
+}
+
+// Inherit the layer's fill color instead of the global dim grey, so the unit
+// fills along the same water line as the value. Size stays the standard small
+// unit (baseline-aligned, so the fill reaches it together with the value).
+.textDim :global(.panel-gauge-unit),
+.textBright :global(.panel-gauge-unit) {
+  color: inherit;
 }
 
 .label {
