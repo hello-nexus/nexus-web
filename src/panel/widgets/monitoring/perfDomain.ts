@@ -5,8 +5,10 @@ export type ScaleMode = 'adaptive' | 'fixed';
 
 export const DEFAULT_SCALE_MODE: ScaleMode = 'adaptive';
 
-/** Line-trace designs that support a configurable Y range. */
-const SCALABLE_DESIGNS = new Set<GaugeDesignKey>(['sparkline', 'line']);
+/** Designs that normalize raw history through historyDomain, so a Y range applies. */
+const SCALABLE_DESIGNS = new Set<GaugeDesignKey>([
+  'sparkline', 'line', 'mirrorwave', 'heatmap', 'backdrop',
+]);
 
 export function designSupportsScale(design: GaugeDesignKey): boolean {
   return SCALABLE_DESIGNS.has(design);

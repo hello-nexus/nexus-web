@@ -23,7 +23,8 @@
 
 .fill {
   width: 100%;
-  background: var(--panel-accent-soft);
+  // Same body color the Filled Line gauge uses for its area.
+  background: color-mix(in srgb, var(--panel-accent-glow) 40%, transparent);
   border-top: var(--gauge-line-thickness) solid var(--panel-accent);
 }
 

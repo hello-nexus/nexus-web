@@ -1,4 +1,4 @@
-.microbars {
+.segments {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -9,22 +9,39 @@
   gap: 8px;
 }
 
-.barGroup {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
+.graphicWrap {
   flex: 1;
   min-height: 0;
-  width: 80%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.bar {
+// Bounded height shared with HeatmapGauge so both sit with the same top/bottom
+// margin; the flex:1 wrap keeps the value/label docked at the standard spot.
+.segGroup {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  width: 88%;
+  height: 100%;
+  max-height: 58px;
+}
+
+.filled,
+.empty {
   flex: 1;
-  min-height: 3px;
-  // Same body color the Filled Line gauge uses for its area.
-  background: color-mix(in srgb, var(--panel-accent-glow) 40%, transparent);
-  border-top: var(--gauge-line-thickness) solid var(--panel-accent);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  min-width: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.filled {
+  background: var(--panel-accent);
+}
+
+.empty {
+  background: var(--gauge-track);
 }
 
 .info {

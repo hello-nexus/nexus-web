@@ -27,4 +27,11 @@ export type GaugeDesignKey =
   | 'thermo'
   | 'arc270'
   | 'wedge'
-  | 'battery';
+  | 'battery'
+  | 'segments'
+  | 'mirrorwave'
+  | 'heatmap'
+  | 'dial'
+  | 'tickring'
+  | 'backdrop'
+  | 'waffle';

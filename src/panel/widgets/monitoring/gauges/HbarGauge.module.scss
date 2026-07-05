@@ -18,16 +18,21 @@
   justify-content: center;
 }
 
+// Bounded to the same height as SegmentsGauge/HeatmapGauge so the block stack
+// sits with matching top/bottom margins.
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   width: 55%;
+  height: 100%;
+  max-height: 58px;
 }
 
 .filled,
 .empty {
-  height: 5px;
+  flex: 1;
+  min-height: 2px;
   border-radius: var(--radius-sm);
 }
 

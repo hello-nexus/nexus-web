@@ -15,6 +15,13 @@ import { ThermometerGauge } from './ThermometerGauge';
 import { Arc270Gauge } from './Arc270Gauge';
 import { WedgeGauge } from './WedgeGauge';
 import { BatteryGauge } from './BatteryGauge';
+import { SegmentsGauge } from './SegmentsGauge';
+import { MirrorWaveGauge } from './MirrorWaveGauge';
+import { HeatmapGauge } from './HeatmapGauge';
+import { DialGauge } from './DialGauge';
+import { TickRingGauge } from './TickRingGauge';
+import { BackdropGauge } from './BackdropGauge';
+import { WaffleGauge } from './WaffleGauge';
 
 export type { GaugeProps, GaugeDesignKey };
 
@@ -34,6 +41,13 @@ export const GAUGE_DESIGNS: Record<GaugeDesignKey, ComponentType<GaugeProps>> = 
   arc270: Arc270Gauge,
   wedge: WedgeGauge,
   battery: BatteryGauge,
+  segments: SegmentsGauge,
+  mirrorwave: MirrorWaveGauge,
+  heatmap: HeatmapGauge,
+  dial: DialGauge,
+  tickring: TickRingGauge,
+  backdrop: BackdropGauge,
+  waffle: WaffleGauge,
 };
 
 export const GAUGE_DESIGN_LABELS: Record<GaugeDesignKey, string> = {
@@ -52,10 +66,20 @@ export const GAUGE_DESIGN_LABELS: Record<GaugeDesignKey, string> = {
   arc270: '3/4 Gauge',
   wedge: 'Wedge',
   battery: 'Battery',
+  segments: 'Segments',
+  mirrorwave: 'Waveform',
+  heatmap: 'Heatmap',
+  dial: 'Dial',
+  tickring: 'Tick Ring',
+  backdrop: 'Backdrop',
+  waffle: 'Waffle',
 };
 
 export const GAUGE_DESIGN_KEYS: GaugeDesignKey[] = [
-  'sparkline', 'line', 'microbars', 'text', 'numberfill',
-  'waterLevel', 'thermo', 'bar', 'battery', 'hbar', 'dotgrid',
-  'halfgauge', 'caterpillar', 'arc270', 'wedge',
+  'sparkline', 'line', 'mirrorwave', 'backdrop',
+  'microbars', 'heatmap', 'segments', 'waffle',
+  'text', 'numberfill',
+  'bar', 'thermo', 'battery', 'hbar', 'dotgrid',
+  'waterLevel',
+  'caterpillar', 'tickring', 'halfgauge', 'arc270', 'wedge', 'dial',
 ];
