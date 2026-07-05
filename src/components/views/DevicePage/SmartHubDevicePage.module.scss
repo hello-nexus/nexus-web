@@ -34,37 +34,6 @@
   gap: 0.75rem;
 }
 
-.row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-height: 2rem;
-}
-
-.rowDisabled {
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-.rowLabel {
-  flex: 0 0 9.5rem;
-  font-size: var(--type-small);
-  color: var(--text-dim);
-}
-
-.rowValue {
-  flex: 0 0 3rem;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  font-size: var(--type-small);
-  color: var(--text);
-}
-
-.slider {
-  flex: 1;
-  min-width: 0;
-}
-
 .colorBlock {
   display: flex;
   flex-direction: column;

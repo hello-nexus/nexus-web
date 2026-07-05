@@ -130,27 +130,6 @@
   @include scrollbar-visible($gutter: false);
 }
 
-// Reusable row layout for settings inside the modal body.
-// Each row: label on left, control on right.
-:global(.device-modal-row) {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  min-height: 2.25rem;
-}
-
-:global(.device-modal-label) {
-  font-size: var(--type-body);
-  color: var(--text);
-}
-
-:global(.device-modal-hint) {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  margin-top: 0.15rem;
-}
-
 // Section headers use the shared <SectionHeader> component
 // (components/common/SectionHeader).
 

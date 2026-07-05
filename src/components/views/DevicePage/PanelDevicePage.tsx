@@ -29,9 +29,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
-import { Select } from '../../common/Select/Select';
-import { Slider } from '../../common/Slider/Slider';
-import { Toggle } from '../../common/Toggle/Toggle';
+import { SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
@@ -778,46 +776,35 @@ function MonitorSettingsPanel({
     <div className={styles.settingsContent}>
       <SettingsSection title={t('devices.y70.display')} boxClassName={styles.deviceSettingsBox}>
       {brightness !== null && (
-        <div className="device-modal-row">
-          <div className="device-modal-label">{t('devices.y70.brightness')}</div>
-          <div className={styles.brightnessControl}>
-            <Slider
-              // eslint-disable-next-line i18next/no-literal-string -- slider layout variant
-              orientation="bare"
-              min={0}
-              max={100}
-              value={brightness}
-              trackFill={brightness}
-              onChange={onBrightness}
-              ariaLabel={t('devices.y70.brightness')}
-              className={styles.brightnessSlider}
-            />
-            <span className={styles.brightnessValue}>{brightness}</span>
-          </div>
-        </div>
+        <SettingSlider
+          editable
+          trackFill
+          label={t('devices.y70.brightness')}
+          value={brightness}
+          min={0}
+          max={100}
+          onChange={onBrightness}
+          onCommit={onBrightness}
+        />
       )}
       {orientation !== null && (
-        <div className="device-modal-row">
-          <div className="device-modal-label">{t('devices.y70.orientation')}</div>
-          <Select
-            value={orientation}
-            onChange={(v) => onOrientation(v as Y70Orientation)}
-            options={orientationOptions.map(o => ({
-              value: o,
-              label: t(`devices.y70.orientation.${o}`),
-            }))}
-            ariaLabel={t('devices.y70.orientation')}
-          />
-        </div>
+        <SettingSelect
+          label={t('devices.y70.orientation')}
+          value={orientation}
+          onChange={(v) => onOrientation(v as Y70Orientation)}
+          options={orientationOptions.map(o => ({
+            value: o,
+            label: t(`devices.y70.orientation.${o}`),
+          }))}
+        />
       )}
       {reserveMonitor !== null && (
-        <div className="device-modal-row">
-          <div>
-            <div className="device-modal-label">{t('devices.y70.reserveMonitor')}</div>
-            <div className="device-modal-hint">{t('devices.y70.reserveMonitorHint')}</div>
-          </div>
-          <Toggle checked={reserveMonitor} onChange={onReserveMonitorToggle} ariaLabel={t('devices.y70.reserveMonitor')} />
-        </div>
+        <SettingToggle
+          label={t('devices.y70.reserveMonitor')}
+          description={t('devices.y70.reserveMonitorHint')}
+          checked={reserveMonitor}
+          onChange={onReserveMonitorToggle}
+        />
       )}
       </SettingsSection>
     </div>
@@ -857,64 +844,51 @@ function SettingsPanel({
     <div className={styles.settingsContent}>
       {showDisplayControls && (
         <SettingsSection title={t('devices.y70.display')} boxClassName={styles.deviceSettingsBox}>
-          <div className="device-modal-row">
-            <div className="device-modal-label">{t('devices.y70.brightness')}</div>
-            <div className={styles.brightnessControl}>
-              <Slider
-                // eslint-disable-next-line i18next/no-literal-string -- slider layout variant
-                orientation="bare"
-                min={0}
-                max={100}
-                value={brightness}
-                trackFill={brightness}
-                onChange={onBrightness}
-                ariaLabel={t('devices.y70.brightness')}
-                className={styles.brightnessSlider}
-              />
-              <span className={styles.brightnessValue}>{brightness}</span>
-            </div>
-          </div>
+          <SettingSlider
+            editable
+            trackFill
+            label={t('devices.y70.brightness')}
+            value={brightness}
+            min={0}
+            max={100}
+            onChange={onBrightness}
+            onCommit={onBrightness}
+          />
 
-          <div className="device-modal-row">
-            <div className="device-modal-label">{t('devices.y70.orientation')}</div>
-            <Select
-              value={orientation}
-              onChange={(v) => onOrientation(v as Y70Orientation)}
-              options={orientationOptions.map(o => ({
-                value: o,
-                label: t(`devices.y70.orientation.${o}`),
-              }))}
-              ariaLabel={t('devices.y70.orientation')}
-            />
-          </div>
+          <SettingSelect
+            label={t('devices.y70.orientation')}
+            value={orientation}
+            onChange={(v) => onOrientation(v as Y70Orientation)}
+            options={orientationOptions.map(o => ({
+              value: o,
+              label: t(`devices.y70.orientation.${o}`),
+            }))}
+          />
 
-          <div className="device-modal-row">
-            <div>
-              <div className="device-modal-label">{t('devices.y70.screen')}</div>
-              <div className="device-modal-hint">{screenOn ? t('devices.y70.screenOn') : t('devices.y70.screenOff')}</div>
-            </div>
-            <Toggle checked={screenOn} onChange={onScreenToggle} ariaLabel={t('devices.y70.screen')} />
-          </div>
+          <SettingToggle
+            label={t('devices.y70.screen')}
+            description={screenOn ? t('devices.y70.screenOn') : t('devices.y70.screenOff')}
+            checked={screenOn}
+            onChange={onScreenToggle}
+          />
         </SettingsSection>
       )}
 
       {showAutoLaunch && (
         <SettingsSection title={t('devices.y70.panel')} boxClassName={styles.deviceSettingsBox}>
-          <div className="device-modal-row">
-            <div>
-              <div className="device-modal-label">{t('devices.y70.panelAutoLaunch')}</div>
-              <div className="device-modal-hint">{t('devices.y70.panelAutoLaunchHint')}</div>
-            </div>
-            <Toggle checked={autoLaunch} onChange={onAutoLaunchToggle} ariaLabel={t('devices.y70.panelAutoLaunch')} />
-          </div>
+          <SettingToggle
+            label={t('devices.y70.panelAutoLaunch')}
+            description={t('devices.y70.panelAutoLaunchHint')}
+            checked={autoLaunch}
+            onChange={onAutoLaunchToggle}
+          />
 
-          <div className="device-modal-row">
-            <div>
-              <div className="device-modal-label">{t('devices.y70.reserveMonitor')}</div>
-              <div className="device-modal-hint">{t('devices.y70.reserveMonitorHint')}</div>
-            </div>
-            <Toggle checked={reserveMonitor} onChange={onReserveMonitorToggle} ariaLabel={t('devices.y70.reserveMonitor')} />
-          </div>
+          <SettingToggle
+            label={t('devices.y70.reserveMonitor')}
+            description={t('devices.y70.reserveMonitorHint')}
+            checked={reserveMonitor}
+            onChange={onReserveMonitorToggle}
+          />
         </SettingsSection>
       )}
     </div>

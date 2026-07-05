@@ -193,9 +193,11 @@ export function Np50DevicePage() {
             formatValue={v => `${Math.round(v)}%`}
             disabled={!defaultsLoaded || !isStatic}
             ariaLabel={t('devices.np50.staticFanPercentAria')}
-            onChange={(v: number) => {
+            onChange={(v: number, commit?: boolean) => {
               if (!defaults) return;
-              setDefaults({ ...defaults, staticFanPercent: Math.round(v) });
+              const next = { ...defaults, staticFanPercent: Math.round(v) };
+              setDefaults(next);
+              if (commit) void commitDefaults(next);
             }}
             onCommit={() => {
               if (defaults) void commitDefaults(defaults);
@@ -235,9 +237,11 @@ export function Np50DevicePage() {
             formatValue={v => `${Math.round(v)}%`}
             disabled={!animationLoaded}
             ariaLabel={t('devices.y70.brightness')}
-            onChange={(v: number) => {
+            onChange={(v: number, commit?: boolean) => {
               if (!animation) return;
-              setAnimation({ ...animation, brightness: Math.round(v) });
+              const next = { ...animation, brightness: Math.round(v) };
+              setAnimation(next);
+              if (commit) void commitAnimation(next);
             }}
             onCommit={() => {
               if (animation) void commitAnimation(animation);

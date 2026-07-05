@@ -372,27 +372,7 @@
   gap: 0.75rem;
 }
 
-// Row spacing inside a SettingsSection box (device-modal-row has no gap of its
-// own - it relied on the .settingsContent gap before being boxed).
+// Row spacing inside a SettingsSection box.
 .deviceSettingsBox {
   gap: 0.5rem;
-}
-
-.brightnessControl {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 160px;
-}
-
-.brightnessSlider {
-  flex: 1;
-}
-
-.brightnessValue {
-  font-family: var(--font-mono);
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  min-width: 2.5ch;
-  text-align: right;
 }

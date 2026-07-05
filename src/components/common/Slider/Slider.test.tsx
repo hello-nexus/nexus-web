@@ -64,4 +64,19 @@ describe('Slider', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Level' }));
     expect(screen.getByRole('spinbutton')).toBeInTheDocument();
   });
+
+  it('a typed + committed value fires onChange with commit=true (so parents can persist)', () => {
+    const onChange = vi.fn();
+    render(
+      <Slider orientation="inline" editable label="Level" value={80} min={0} max={100}
+        formatValue={v => `${v}%`} ariaLabel="Level" onChange={onChange} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Level' }));
+    const input = screen.getByRole('spinbutton');
+    fireEvent.change(input, { target: { value: '42' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    // Editable commits route through onChange(v, true), NOT onCommit; parents
+    // that only persist in onCommit would silently drop typed edits.
+    expect(onChange).toHaveBeenCalledWith(42, true);
+  });
 });

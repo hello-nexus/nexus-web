@@ -5,7 +5,7 @@ import {
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
 import { Select, type SelectOption } from '../../common/Select/Select';
-import { SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { EffectCard } from '../../common/EffectCard/EffectCard';
@@ -295,15 +295,14 @@ export function LianLiWirelessScreenTab() {
         )}
         {orderedScreens.length > 0 && (
           <>
-            <div className={styles.row}>
-              <span className={styles.rowLabel}>{t('devices.lianli-wireless.selectionModeLabel')}</span>
+            <SettingRow label={t('devices.lianli-wireless.selectionModeLabel')}>
               <ChipGroup
                 ariaLabel={t('devices.lianli-wireless.selectionModeLabel')}
                 activeKey={selectionMode}
                 onChange={handleModeChange}
                 options={SELECTION_MODES.map(m => ({ key: m.key, label: t(m.labelKey) }))}
               />
-            </div>
+            </SettingRow>
             {/* Icon tiles: each mirrors its screen's live content/brightness/
                 rotation. In single mode a click selects that one fan; in multiple
                 mode it toggles the fan in/out and edits apply to every selected
@@ -364,8 +363,7 @@ export function LianLiWirelessScreenTab() {
           }}
           onCommit={commitBrightness}
         />
-        <div className={`${styles.row} ${!representative ? styles.rowDisabled : ''}`}>
-          <span className={styles.rowLabel}>{t('devices.lianli-wireless.rotationLabel')}</span>
+        <SettingRow label={t('devices.lianli-wireless.rotationLabel')} disabled={!representative}>
           <ChipGroup
             ariaLabel={t('devices.lianli-wireless.rotationLabel')}
             activeKey={String(representative?.rotation ?? 0)}
@@ -375,7 +373,7 @@ export function LianLiWirelessScreenTab() {
               label: t('devices.lianli-wireless.rotationDegrees', { n: r * 90 }),
             }))}
           />
-        </div>
+        </SettingRow>
       </SettingsSection>
 
       <SettingsSection
@@ -612,34 +610,29 @@ function SensorPanel({ screen, onPreview, onCommit }: ContentPanelProps) {
 
   return (
     <div className={styles.typePanel}>
-      <div className={styles.row}>
-        <span className={styles.rowLabel}>{t('devices.lianli-wireless.sensorSourceLabel')}</span>
-        <Select
-          value={source}
-          options={sourceOptions}
-          onChange={v => onCommit({ sensorSource: v as LianLiWirelessScreen['sensorSource'] })}
-          ariaLabel={t('devices.lianli-wireless.sensorSourceLabel')}
-        />
-      </div>
-      <div className={styles.row}>
-        <span className={styles.rowLabel}>{t('devices.lianli-wireless.sensorStyleLabel')}</span>
+      <SettingSelect
+        label={t('devices.lianli-wireless.sensorSourceLabel')}
+        value={source}
+        options={sourceOptions}
+        onChange={v => onCommit({ sensorSource: v as LianLiWirelessScreen['sensorSource'] })}
+      />
+      <SettingRow label={t('devices.lianli-wireless.sensorStyleLabel')}>
         <ChipGroup
           ariaLabel={t('devices.lianli-wireless.sensorStyleLabel')}
           activeKey={style}
           onChange={v => onCommit({ sensorStyle: v as LianLiWirelessScreen['sensorStyle'] })}
           options={styleOptions}
         />
-      </div>
+      </SettingRow>
       {isTempSource && (
-        <div className={styles.row}>
-          <span className={styles.rowLabel}>{t('devices.lianli-wireless.tempUnitLabel')}</span>
+        <SettingRow label={t('devices.lianli-wireless.tempUnitLabel')}>
           <ChipGroup
             ariaLabel={t('devices.lianli-wireless.tempUnitLabel')}
             activeKey={tempUnit}
             onChange={v => onCommit({ tempUnit: v as LianLiWirelessScreen['tempUnit'] })}
             options={tempUnitOptions}
           />
-        </div>
+        </SettingRow>
       )}
       <ColorPairRow
         colorA={screen.colorA ?? DEFAULT_COLOR_A}
@@ -664,15 +657,14 @@ function ClockPanel({ screen, onPreview, onCommit }: ContentPanelProps) {
 
   return (
     <div className={styles.typePanel}>
-      <div className={styles.row}>
-        <span className={styles.rowLabel}>{t('devices.lianli-wireless.clockFaceLabel')}</span>
+      <SettingRow label={t('devices.lianli-wireless.clockFaceLabel')}>
         <ChipGroup
           ariaLabel={t('devices.lianli-wireless.clockFaceLabel')}
           activeKey={face}
           onChange={v => onCommit({ clockFace: v as LianLiWirelessScreen['clockFace'] })}
           options={faceOptions}
         />
-      </div>
+      </SettingRow>
       <ColorPairRow
         colorA={screen.colorA ?? DEFAULT_COLOR_A}
         colorB={screen.colorB ?? DEFAULT_COLOR_B}
@@ -695,15 +687,14 @@ function AnimationPanel({ screen, onPreview, onCommit }: ContentPanelProps) {
 
   return (
     <div className={styles.typePanel}>
-      <div className={styles.row}>
-        <span className={styles.rowLabel}>{t('devices.lianli-wireless.animationLabel')}</span>
+      <SettingRow label={t('devices.lianli-wireless.animationLabel')}>
         <ChipGroup
           ariaLabel={t('devices.lianli-wireless.animationLabel')}
           activeKey={animationId}
           onChange={v => onCommit({ animationId: v as LianLiWirelessScreen['animationId'] })}
           options={animationOptions}
         />
-      </div>
+      </SettingRow>
       {/* Spectrum generates its own rainbow and ignores the palette. */}
       {animationId !== 'spectrum' && (
         <ColorPairRow

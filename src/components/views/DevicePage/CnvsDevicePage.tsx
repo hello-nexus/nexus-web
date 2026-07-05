@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { Placeholder } from '../Placeholder';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { Toggle } from '../../common/Toggle/Toggle';
+import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import {
   getCnvsSettings,
   setCnvsSettings,
@@ -81,15 +81,15 @@ export function CnvsDevicePage() {
             description={t('devices.cnvs.firmwareSectionDescription')}
             boxClassName={styles.sectionBox}
           >
-            <SettingRow
+            <SettingToggle
               label={t('devices.cnvs.disableConnectionAnimation')}
-              hint={t('devices.cnvs.disableConnectionAnimationHint')}
+              description={t('devices.cnvs.disableConnectionAnimationHint')}
               checked={settings.playAnimation}
               onChange={(disabled) => commit({ ...settings, playAnimation: disabled })} />
 
-            <SettingRow
+            <SettingToggle
               label={t('devices.cnvs.keepLedsOnWhenPcOff')}
-              hint={t('devices.cnvs.keepLedsOnWhenPcOffHint')}
+              description={t('devices.cnvs.keepLedsOnWhenPcOffHint')}
               checked={settings.playWhenPCOff}
               onChange={(on) => commit({ ...settings, playWhenPCOff: on })} />
 
@@ -98,25 +98,6 @@ export function CnvsDevicePage() {
         )}
       </div>
     </section>
-  );
-}
-
-interface SettingRowProps {
-  label: string;
-  hint: string;
-  checked: boolean;
-  onChange: (next: boolean) => void;
-}
-
-function SettingRow({ label, hint, checked, onChange }: SettingRowProps) {
-  return (
-    <div className={styles.row}>
-      <div className={styles.rowText}>
-        <div className={styles.rowLabel}>{label}</div>
-        <div className={styles.rowHint}>{hint}</div>
-      </div>
-      <Toggle checked={checked} onChange={onChange} ariaLabel={label} />
-    </div>
   );
 }
 

@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Lightbulb, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
-import { Select } from '../../common/Select/Select';
-import { SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -140,20 +139,17 @@ export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProp
           title={t('devices.lianli.lightingSection')}
           boxClassName={styles.sectionBox}
         >
-          <div className={`${styles.row} ${!lightingLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>{t('devices.lianli.lightingMode')}</span>
-            <Select
-              value={lighting?.mode ?? ''}
-              onChange={v => {
-                if (!lighting) return;
-                setLighting({ ...lighting, mode: v });
-                void commitLighting({ mode: v });
-              }}
-              options={(lighting?.modes ?? []).map(m => ({ value: m.key, label: m.label }))}
-              disabled={!lightingLoaded}
-              ariaLabel={t('devices.lianli.lightingModeAria')}
-            />
-          </div>
+          <SettingSelect
+            label={t('devices.lianli.lightingMode')}
+            value={lighting?.mode ?? ''}
+            onChange={v => {
+              if (!lighting) return;
+              setLighting({ ...lighting, mode: v });
+              void commitLighting({ mode: v });
+            }}
+            options={(lighting?.modes ?? []).map(m => ({ value: m.key, label: m.label }))}
+            disabled={!lightingLoaded}
+          />
 
           {isCanvasMode ? (
             <>
@@ -184,9 +180,11 @@ export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProp
                   formatValue={v => `${v}%`}
                   ariaLabel={t('devices.lianli.lightingBrightnessAria')}
                   disabled={!lightingLoaded}
-                  onChange={(v: number) => {
+                  onChange={(v: number, commit?: boolean) => {
                     if (!lighting) return;
-                    setLighting({ ...lighting, brightness: Math.round(v / PERCENT_PER_LEVEL) });
+                    const level = Math.round(v / PERCENT_PER_LEVEL);
+                    setLighting({ ...lighting, brightness: level });
+                    if (commit) void commitLighting({ brightness: level });
                   }}
                   onCommit={(v: number) => {
                     void commitLighting({ brightness: Math.round(v / PERCENT_PER_LEVEL) });
@@ -206,9 +204,11 @@ export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProp
                   formatValue={v => `${v}%`}
                   ariaLabel={t('devices.lianli.lightingSpeedAria')}
                   disabled={!lightingLoaded}
-                  onChange={(v: number) => {
+                  onChange={(v: number, commit?: boolean) => {
                     if (!lighting) return;
-                    setLighting({ ...lighting, speed: Math.round(v / PERCENT_PER_LEVEL) });
+                    const level = Math.round(v / PERCENT_PER_LEVEL);
+                    setLighting({ ...lighting, speed: level });
+                    if (commit) void commitLighting({ speed: level });
                   }}
                   onCommit={(v: number) => {
                     void commitLighting({ speed: Math.round(v / PERCENT_PER_LEVEL) });
@@ -217,24 +217,21 @@ export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProp
               )}
 
               {selectedMode?.hasDirection && (
-                <div className={`${styles.row} ${!lightingLoaded ? styles.rowDisabled : ''}`}>
-                  <span className={styles.rowLabel}>{t('devices.lianli.lightingDirection')}</span>
-                  <Select
-                    value={String(lighting?.direction ?? 0)}
-                    onChange={v => {
-                      if (!lighting) return;
-                      const d = Number(v);
-                      setLighting({ ...lighting, direction: d });
-                      void commitLighting({ direction: d });
-                    }}
-                    options={[
-                      { value: '0', label: t('devices.lianli.directionLtr') },
-                      { value: '1', label: t('devices.lianli.directionRtl') },
-                    ]}
-                    disabled={!lightingLoaded}
-                    ariaLabel={t('devices.lianli.lightingDirectionAria')}
-                  />
-                </div>
+                <SettingSelect
+                  label={t('devices.lianli.lightingDirection')}
+                  value={String(lighting?.direction ?? 0)}
+                  onChange={v => {
+                    if (!lighting) return;
+                    const d = Number(v);
+                    setLighting({ ...lighting, direction: d });
+                    void commitLighting({ direction: d });
+                  }}
+                  options={[
+                    { value: '0', label: t('devices.lianli.directionLtr') },
+                    { value: '1', label: t('devices.lianli.directionRtl') },
+                  ]}
+                  disabled={!lightingLoaded}
+                />
               )}
 
               {selectedMode && selectedMode.colorsMax > 0 && lightingLoaded && (

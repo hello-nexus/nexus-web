@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Fan, Thermometer } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
-import { Select, type SelectOption } from '../../common/Select/Select';
+import { type SelectOption } from '../../common/Select/Select';
+import { SettingSelect } from '../../common/SettingRow/SettingRow';
 import { Slider } from '../../common/Slider/Slider';
 import { Button } from '../../common/Button/Button';
 import { fetchFanChannels, setFanSpeed, releaseFanAuto, type FanChannel } from '../../../api/cooling';
@@ -168,20 +169,17 @@ function CoolingPortRow({
         <p className={styles.emptyNote}>{t('devices.lianli-wireless.coolingCurveActive')}</p>
       ) : (
         <>
-          <div className={`${styles.row} ${!loaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>{t('cooling.card.mode')}</span>
-            <Select
-              value={modeValue}
-              onChange={v => {
-                if (!channel) return;
-                if (v === 'manual') onSetManual(channel.id, draft);
-                else onSetAuto(channel.id);
-              }}
-              options={modeOptions}
-              disabled={!loaded}
-              ariaLabel={t('cooling.card.mode')}
-            />
-          </div>
+          <SettingSelect
+            label={t('cooling.card.mode')}
+            value={modeValue}
+            onChange={v => {
+              if (!channel) return;
+              if (v === 'manual') onSetManual(channel.id, draft);
+              else onSetAuto(channel.id);
+            }}
+            options={modeOptions}
+            disabled={!loaded}
+          />
           {isManual && (
             <Slider
               // eslint-disable-next-line i18next/no-literal-string -- slider layout enum

@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
-import { Select } from '../../common/Select/Select';
-import { Slider } from '../../common/Slider/Slider';
+import { SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import {
@@ -136,25 +135,27 @@ export function SmartHubDevicePage() {
           )}
           boxClassName={styles.sectionBox}
         >
-          <div className={`${styles.row} ${!settingLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>{t('devices.smartHub.standaloneFanPercent')}</span>
-            <Slider
-              className={styles.slider}
-              value={setting?.fanPercent ?? 50}
-              min={0}
-              max={100}
-              step={1}
-              ariaLabel={t('devices.smartHub.standaloneFanPercentAria')}
-              onChange={(v: number) => {
-                if (!setting) return;
-                setSetting({ ...setting, fanPercent: Math.round(v) });
-              }}
-              onCommit={() => {
-                if (setting) void commitSetting(setting);
-              }}
-            />
-            <span className={styles.rowValue}>{setting?.fanPercent ?? 50}%</span>
-          </div>
+          <SettingSlider
+            label={t('devices.smartHub.standaloneFanPercent')}
+            value={setting?.fanPercent ?? 50}
+            min={0}
+            max={100}
+            step={1}
+            editable
+            trackFill
+            formatValue={v => `${Math.round(v)}%`}
+            disabled={!settingLoaded}
+            ariaLabel={t('devices.smartHub.standaloneFanPercentAria')}
+            onChange={(v: number, commit?: boolean) => {
+              if (!setting) return;
+              const next = { ...setting, fanPercent: Math.round(v) };
+              setSetting(next);
+              if (commit) void commitSetting(next);
+            }}
+            onCommit={() => {
+              if (setting) void commitSetting(setting);
+            }}
+          />
         </SettingsSection>
 
         <SettingsSection
@@ -162,44 +163,43 @@ export function SmartHubDevicePage() {
           description={t('devices.smartHub.ledSectionDescription')}
           boxClassName={styles.sectionBox}
         >
-          <div className={`${styles.row} ${!settingLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>{t('devices.fwAnimation.effect')}</span>
-            <Select
-              value={String(animKind)}
-              onChange={v => {
-                if (!setting) return;
-                const k = Number(v) as SmartHubFwAnimationKind;
-                void commitSetting({ ...setting, animation: k });
-              }}
-              options={[
-                { value: String(SMARTHUB_FW_ANIMATION_COLOR), label: t('devices.fwAnimation.solidColor') },
-                { value: String(SMARTHUB_FW_ANIMATION_RAINBOW), label: t('devices.fwAnimation.rainbowCycle') },
-                { value: String(SMARTHUB_FW_ANIMATION_BREATHE), label: t('devices.fwAnimation.breathing') },
-                { value: String(SMARTHUB_FW_ANIMATION_RAINBOW_GRADIENT), label: t('devices.fwAnimation.rainbowGradient') },
-              ]}
-              disabled={!settingLoaded}
-              ariaLabel={t('devices.smartHub.firmwareAnimationAria')}
-            />
-          </div>
-          <div className={`${styles.row} ${!settingLoaded ? styles.rowDisabled : ''}`}>
-            <span className={styles.rowLabel}>{t('devices.y70.brightness')}</span>
-            <Slider
-              className={styles.slider}
-              value={setting?.brightness ?? 100}
-              min={0}
-              max={100}
-              step={1}
-              ariaLabel={t('devices.y70.brightness')}
-              onChange={(v: number) => {
-                if (!setting) return;
-                setSetting({ ...setting, brightness: Math.round(v) });
-              }}
-              onCommit={() => {
-                if (setting) void commitSetting(setting);
-              }}
-            />
-            <span className={styles.rowValue}>{setting?.brightness ?? 100}%</span>
-          </div>
+          <SettingSelect
+            label={t('devices.fwAnimation.effect')}
+            value={String(animKind)}
+            onChange={v => {
+              if (!setting) return;
+              const k = Number(v) as SmartHubFwAnimationKind;
+              void commitSetting({ ...setting, animation: k });
+            }}
+            options={[
+              { value: String(SMARTHUB_FW_ANIMATION_COLOR), label: t('devices.fwAnimation.solidColor') },
+              { value: String(SMARTHUB_FW_ANIMATION_RAINBOW), label: t('devices.fwAnimation.rainbowCycle') },
+              { value: String(SMARTHUB_FW_ANIMATION_BREATHE), label: t('devices.fwAnimation.breathing') },
+              { value: String(SMARTHUB_FW_ANIMATION_RAINBOW_GRADIENT), label: t('devices.fwAnimation.rainbowGradient') },
+            ]}
+            disabled={!settingLoaded}
+          />
+          <SettingSlider
+            label={t('devices.y70.brightness')}
+            value={setting?.brightness ?? 100}
+            min={0}
+            max={100}
+            step={1}
+            editable
+            trackFill
+            formatValue={v => `${Math.round(v)}%`}
+            disabled={!settingLoaded}
+            ariaLabel={t('devices.y70.brightness')}
+            onChange={(v: number, commit?: boolean) => {
+              if (!setting) return;
+              const next = { ...setting, brightness: Math.round(v) };
+              setSetting(next);
+              if (commit) void commitSetting(next);
+            }}
+            onCommit={() => {
+              if (setting) void commitSetting(setting);
+            }}
+          />
           {showColorPicker && settingLoaded && (
             <div className={styles.colorBlock}>
               <HsvPicker
