@@ -2066,7 +2066,7 @@
   "settings.systemStartup.label": "Sistem başlangıcında Nexus'u başlat",
   "settings.tab.profiles": "Profiller",
   "settings.tab.tools": "Geliştirici araçları",
-  "settings.telemetry.description": "Nexus'u daha iyi hale getirmemize yardımcı olur. Her zaman anonim ve şifrelenmiştir.",
+  "settings.telemetry.description": "Kişisel bilgi içermez ve Nexus'u geliştirmemize yardımcı olur. {privacy}",
   "settings.telemetry.label": "Anonim kullanım verilerini paylaş",
   "settings.theme": "Tema",
   "settings.theme.dark": "Koyu",
@@ -2443,5 +2443,15 @@
   "devices.lianli-wireless.deviceStrimer": "Strimer",
   "devices.lianli-wireless.deviceWaterBlock": "Su bloğu",
   "devices.lianli-wireless.deviceGeneric": "Cihaz",
-  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2",
+  "settings.telemetry.infoTooltip": "Kişisel bilgi içermez. Nexus'u geliştirmemize yardımcı olur.",
+  "settings.telemetry.privacyLink": "Gizlilik Politikası",
+  "welcome.enter": "Devam Et",
+  "welcome.preferences.title": "Tercihler",
+  "welcome.startAtLogin.label": "Oturum açılışında başlat",
+  "welcome.startWithOs.label": "Windows ile başlat",
+  "welcome.tagline": "Birleşik bilgisayar kontrolü",
+  "welcome.telemetry.label": "Anonim telemetri",
+  "welcome.title": "Nexus'a hoş geldiniz",
+  "welcome.error": "Tercihleriniz kaydedilemedi. Lütfen tekrar deneyin."
 }

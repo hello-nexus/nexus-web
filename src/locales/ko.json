@@ -2066,7 +2066,7 @@
   "settings.systemStartup.label": "시스템 시작 시 Nexus 실행",
   "settings.tab.profiles": "프로필",
   "settings.tab.tools": "개발자 도구",
-  "settings.telemetry.description": "Nexus를 개선하는 데 도움이 됩니다. 항상 익명이며 암호화됩니다.",
+  "settings.telemetry.description": "개인정보를 포함하지 않으며 Nexus 개선에 도움이 됩니다. {privacy}",
   "settings.telemetry.label": "익명 사용 데이터 공유",
   "settings.theme": "테마",
   "settings.theme.dark": "다크",
@@ -2443,5 +2443,15 @@
   "devices.lianli-wireless.deviceStrimer": "Strimer",
   "devices.lianli-wireless.deviceWaterBlock": "워터블록",
   "devices.lianli-wireless.deviceGeneric": "장치",
-  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2",
+  "settings.telemetry.infoTooltip": "개인정보를 포함하지 않습니다. Nexus 개선에 도움이 됩니다.",
+  "settings.telemetry.privacyLink": "개인정보 처리방침",
+  "welcome.enter": "계속",
+  "welcome.preferences.title": "환경설정",
+  "welcome.startAtLogin.label": "로그인 시 시작",
+  "welcome.startWithOs.label": "Windows와 함께 실행",
+  "welcome.tagline": "통합 컴퓨터 제어",
+  "welcome.telemetry.label": "익명 텔레메트리",
+  "welcome.title": "Nexus에 오신 것을 환영합니다",
+  "welcome.error": "환경설정을 저장하지 못했습니다. 다시 시도해 주세요."
 }

@@ -28,6 +28,13 @@
   padding-bottom: var(--space-xl);
 }
 
+// ── Telemetry section ────────────────────────────────────────────────────────
+
+// Anchors the HeartBurst overlay to the toggle it fires from.
+.telemetryRow {
+  position: relative;
+}
+
 // ── Accent color section ─────────────────────────────────────────────────────
 
 // ColorPickerWithPresets is a width:100% block (10-col fill grid). Pin it to

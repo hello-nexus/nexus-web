@@ -2066,7 +2066,7 @@
   "settings.systemStartup.label": "Запускать Nexus при старте системы",
   "settings.tab.profiles": "Профили",
   "settings.tab.tools": "Инструменты разработчика",
-  "settings.telemetry.description": "Помогает нам делать Nexus лучше. Всегда анонимно и зашифровано.",
+  "settings.telemetry.description": "Не содержит личных данных и помогает нам улучшать Nexus. {privacy}",
   "settings.telemetry.label": "Делиться анонимными данными об использовании",
   "settings.theme": "Тема",
   "settings.theme.dark": "Тёмная",
@@ -2443,5 +2443,15 @@
   "devices.lianli-wireless.deviceStrimer": "Strimer",
   "devices.lianli-wireless.deviceWaterBlock": "Водоблок",
   "devices.lianli-wireless.deviceGeneric": "Устройство",
-  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2",
+  "settings.telemetry.infoTooltip": "Не содержит личных данных. Помогает нам улучшать Nexus.",
+  "settings.telemetry.privacyLink": "Политика конфиденциальности",
+  "welcome.enter": "Продолжить",
+  "welcome.preferences.title": "Настройки",
+  "welcome.startAtLogin.label": "Запускать при входе в систему",
+  "welcome.startWithOs.label": "Запускать вместе с Windows",
+  "welcome.tagline": "Единое управление компьютером",
+  "welcome.telemetry.label": "Анонимная телеметрия",
+  "welcome.title": "Добро пожаловать в Nexus",
+  "welcome.error": "Не удалось сохранить настройки. Попробуйте ещё раз."
 }
