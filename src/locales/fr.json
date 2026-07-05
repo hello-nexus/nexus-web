@@ -509,6 +509,7 @@
   "devices.lianli-wireless.sensorSourceGpuTemp": "Température GPU",
   "devices.lianli-wireless.sensorSourceLabel": "Source",
   "devices.lianli-wireless.sensorSourceMemoryUsage": "Utilisation mémoire",
+  "devices.lianli-wireless.sensorSourceVramUsage": "Utilisation VRAM",
   "devices.lianli-wireless.sensorStyleBar": "Barre",
   "devices.lianli-wireless.sensorStyleLabel": "Style",
   "devices.lianli-wireless.sensorStyleRing": "Anneau",

@@ -598,6 +598,7 @@ function SensorPanel({ screen, onPreview, onCommit }: ContentPanelProps) {
     { value: 'gpuTemp', label: t('devices.lianli-wireless.sensorSourceGpuTemp') },
     { value: 'gpuLoad', label: t('devices.lianli-wireless.sensorSourceGpuLoad') },
     { value: 'memoryUsage', label: t('devices.lianli-wireless.sensorSourceMemoryUsage') },
+    { value: 'vramUsage', label: t('devices.lianli-wireless.sensorSourceVramUsage') },
     { value: 'fanRpm', label: t('devices.lianli-wireless.sensorSourceFanRpm') },
   ];
   const styleOptions: ChipOption[] = [
