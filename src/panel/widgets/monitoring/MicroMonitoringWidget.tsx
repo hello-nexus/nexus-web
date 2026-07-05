@@ -18,6 +18,7 @@ import {
 import { bareSensorLabel } from './sensorNames';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { MicroBar } from './MicroBar';
+import { formatScaledDataValue } from './sensorValueFormat';
 import styles from './MicroMonitoringWidget.module.scss';
 
 interface MicroMonitoringWidgetProps {
@@ -102,7 +103,7 @@ function MicroRow({ sensors, fpsSensors, networkSensors, device, sensorName, tem
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
   const rawValue = sensor?.value ?? 0;
-  const formatted = sensor?.formatted ?? '-';
+  const formatted = sensor ? (formatScaledDataValue(sensor.value, sensor.units) ?? sensor.formatted) : '-';
   const sensorDisplayName = sensor?.name ?? '';
   const label = bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;
