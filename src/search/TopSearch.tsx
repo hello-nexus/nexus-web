@@ -15,6 +15,9 @@ import { scoreEntry } from './match';
 import { frecencyBoost, recordUse, snapshotFrecency, type FrecencyMap } from './frecency';
 import { tryCalc } from './calc';
 import { metaKeyLabel } from './platform';
+import { emitRadialBloomFromElement } from '../lib/backgroundEffects';
+import { HelloGreeting } from './HelloGreeting';
+import { dismissHelloGreeting, useHelloGreetingPending } from './helloGreetingStore';
 import styles from './TopSearch.module.scss';
 
 const MAX_RESULTS = 40;
@@ -45,10 +48,25 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
   // The action row whose ⚡ is flashing just before close, for tactile feedback.
   const [triggered, setTriggered] = useState<string | null>(null);
   const dockRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(dockRef, close, isOpen);
+
+  // The boot greeting is dismissed by any disruption: opening the palette
+  // (click, ⌘K, or typing, which all require isOpen) or a route/page change.
+  const pendingGreeting = useHelloGreetingPending();
+  useEffect(() => {
+    if (isOpen) dismissHelloGreeting();
+  }, [isOpen]);
+  const lastPageTitleRef = useRef(pageTitle);
+  useEffect(() => {
+    if (lastPageTitleRef.current !== pageTitle) {
+      lastPageTitleRef.current = pageTitle;
+      dismissHelloGreeting();
+    }
+  }, [pageTitle]);
 
   // Rebuild entries when the marketplace registry refreshes (install/uninstall):
   // the installed-apps source reads a module-level cache React can't observe.
@@ -148,6 +166,7 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
   // row briefly so the change registers, then close; navigations close at once.
   const runEntry = useCallback((entry: SearchEntry) => {
     recordUse(entry.id);
+    if (pillRef.current) emitRadialBloomFromElement(pillRef.current);
     if (entry.kind === 'action') {
       setTriggered(entry.id);
       if (entry.toggle !== undefined) applyToggle(entry);
@@ -195,7 +214,7 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
   return (
     <div className={styles.dock} ref={dockRef} data-no-window-drag>
       {isOpen ? (
-        <div className={classNames(styles.pill, styles.pillActive)}>
+        <div className={classNames(styles.pill, styles.pillActive)} ref={pillRef}>
           <Search size={15} className={styles.glyph} aria-hidden />
           <input
             ref={inputRef}
@@ -223,7 +242,11 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
           aria-keyshortcuts="Meta+K Control+K"
         >
           <Search size={15} className={styles.glyph} aria-hidden />
-          <h1 className={styles.title}>{pageTitle}</h1>
+          {pendingGreeting ? (
+            <HelloGreeting key={pendingGreeting.id} textKey={pendingGreeting.textKey} />
+          ) : (
+            <h1 className={styles.title}>{pageTitle}</h1>
+          )}
           <span className={styles.kbdHint} aria-hidden>
             <kbd>{metaKey}</kbd><kbd>K</kbd>
           </span>

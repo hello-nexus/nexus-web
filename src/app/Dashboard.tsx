@@ -58,6 +58,7 @@ import { getSidebarAppMeta } from './sidebarApps';
 import { SidebarColumn } from './SidebarColumn';
 import { CrossZoneDragProvider } from './CrossZoneDrag';
 import { CommandPaletteProvider } from '../search/CommandPaletteProvider';
+import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
 import { PairPhoneModal } from './PairPhoneModal';
 import { WelcomeScreen } from '../components/common/WelcomeScreen/WelcomeScreen';
 import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
@@ -385,6 +386,12 @@ export function Dashboard() {
       cancelled = true;
       window.clearInterval(timer);
     };
+  }, [online]);
+  // One-time boot greeting for the top search bar: fetches the service's
+  // boot id once online and queues a greeting if this OS boot hasn't been
+  // greeted yet (checkHelloGreetingOnce no-ops after its first call).
+  useEffect(() => {
+    if (online) void checkHelloGreetingOnce();
   }, [online]);
   // Auto-collapse threshold. Stays above the OS-enforced min window
   // width (1000px - see MinClientWidth in nexus-overlay's DashboardWindow.cs)
