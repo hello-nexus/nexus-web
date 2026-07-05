@@ -964,10 +964,10 @@ export function TryxDevicePage() {
                   </div>
                 );
               })}
-              {hasEnabledOverlayItem && (
-                <span className={styles.canvasHint}>{t('devices.tryx.overlayDragHint')}</span>
-              )}
             </div>
+            {hasEnabledOverlayItem && (
+              <span className={styles.dragHint}>{t('devices.tryx.overlayDragHint')}</span>
+            )}
           </div>
         )}
       </div>
