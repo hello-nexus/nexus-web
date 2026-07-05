@@ -27,6 +27,10 @@
   flex-direction: column;
   gap: 0.15rem;
   min-width: 0;
+  // Fill the space between the (optional leading) icon and the control, so the
+  // label/description stay hard-left instead of the row's space-between
+  // floating a short info block into the middle.
+  flex: 1;
 }
 
 .label {
