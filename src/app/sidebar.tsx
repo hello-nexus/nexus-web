@@ -6,6 +6,7 @@ import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { useUiSettings } from '../hooks/useUiSettings';
 import { useConflictApps } from '../hooks/useConflictApps';
+import { useNewConflictPulse } from '../hooks/useNewConflictPulse';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import { useWindowDragRegion } from './useWindowDragRegion';
@@ -117,11 +118,13 @@ export function ConflictStatusSlot({ serviceOnline }: {
   // suppresses alerts, so the list they are acting on stays live instead of
   // collapsing to the "all clear" state mid-read.
   const enabled = serviceOnline && (!suppressed || open);
-  const conflicts = useConflictApps(enabled);
+  const { conflicts, ready } = useConflictApps(enabled);
+  const pulsing = useNewConflictPulse(conflicts, ready);
 
   return (
     <ConflictWarningBadge
       conflicts={conflicts}
+      pulsing={pulsing}
       suppressed={suppressed}
       open={open}
       onOpenChange={setOpen}

@@ -2,6 +2,17 @@ import { useEffect, useState } from 'react';
 import { fetchConflicts, type ConflictsFrame, type DetectedConflict } from '../api/conflicts';
 import { useTopic } from './useMultiplexSocket';
 
+export interface ConflictAppsState {
+  conflicts: DetectedConflict[];
+  /**
+   * True once the first snapshot (REST seed or WebSocket frame) has arrived.
+   * Consumers seed a baseline from real state instead of the pre-load empty
+   * list, so apps already running at load are not mistaken for new arrivals.
+   * False while disabled or before the first snapshot.
+   */
+  ready: boolean;
+}
+
 /**
  * Live list of competing third-party apps currently detected by the service.
  *
@@ -13,7 +24,7 @@ import { useTopic } from './useMultiplexSocket';
  * Pass enabled=false (e.g. when conflict alerts are hidden via the Settings
  * toggle) to opt out of both the WebSocket subscription and the REST seed.
  */
-export function useConflictApps(enabled: boolean): DetectedConflict[] {
+export function useConflictApps(enabled: boolean): ConflictAppsState {
   const frame = useTopic<ConflictsFrame>('conflicts', enabled);
   const [seed, setSeed] = useState<DetectedConflict[] | null>(null);
 
@@ -31,11 +42,13 @@ export function useConflictApps(enabled: boolean): DetectedConflict[] {
     return () => { cancelled = true; };
   }, [enabled]);
 
-  if (!enabled) return EMPTY;
+  if (!enabled) return NOT_READY;
   // Prefer the live WebSocket frame; fall back to the REST seed until the
-  // first frame arrives.
-  if (frame) return frame.conflicts ?? EMPTY;
-  return seed ?? EMPTY;
+  // first frame arrives. A loaded-but-empty seed ([]) still counts as ready.
+  if (frame) return { conflicts: frame.conflicts ?? EMPTY, ready: true };
+  if (seed) return { conflicts: seed, ready: true };
+  return NOT_READY;
 }
 
 const EMPTY: DetectedConflict[] = [];
+const NOT_READY: ConflictAppsState = { conflicts: EMPTY, ready: false };
