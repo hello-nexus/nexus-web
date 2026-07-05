@@ -28,6 +28,7 @@ vi.mock('../../../hooks/useProcessMonitor', () => ({
 }));
 
 const sensorState = {
+  summary: [] as Array<{ id: string; name: string; type: string; value: number; units: string; formatted: string; parent: { id: string; name: string } }>,
   cpu: [
     { id: 'cpu/load', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'cpu' } },
   ],

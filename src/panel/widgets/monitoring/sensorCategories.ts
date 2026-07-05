@@ -2,7 +2,7 @@ import type { HardwareSensor, SensorState } from '../../../hooks/useSensors';
 
 // Shared category set for both sensor pickers (monitoring widget + Tryx
 // overlay) so the two can never list different devices.
-export const SENSOR_CATEGORIES = ['cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network', 'fps'] as const;
+export const SENSOR_CATEGORIES = ['quick', 'cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network', 'fps'] as const;
 export type SensorCategory = typeof SENSOR_CATEGORIES[number];
 
 // Ids/types mirror WindowsFpsProvider's `fps/current` / `fps/frame-time`
@@ -25,6 +25,7 @@ export function sensorsForCategory(
   fpsSensors: HardwareSensor[],
 ): HardwareSensor[] {
   switch (category) {
+    case 'quick': return sensors.summary;
     case 'cpu': return sensors.cpu;
     case 'gpu': return sensors.gpu;
     case 'memory': return sensors.memory;

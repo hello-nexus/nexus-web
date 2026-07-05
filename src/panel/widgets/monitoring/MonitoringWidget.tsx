@@ -42,6 +42,12 @@ export function resolveSensor(
   tempPrefs?: TempSensorPrefs,
 ): HardwareSensor | undefined {
   switch (device) {
+    case 'quick':
+      return sensorKey
+        ? sensors.summary.find(s => s.id === sensorKey)
+          ?? sensors.summary.find(s => s.name === sensorKey)
+          ?? sensors.summary[0]
+        : sensors.summary[0];
     case 'cpu':
       if (sensorKey === 'Temperature') {
         return resolveCpuTempSensor(sensors.cpu, tempPrefs?.cpuId ?? '');
@@ -99,6 +105,7 @@ export function resolveSensor(
 export function labelForDevice(device: DeviceKey, sensorName: string): string {
   if (sensorName) return prefixedSensorLabel(device, sensorName);
   switch (device) {
+    case 'quick': return 'Quick';
     case 'cpu': return 'CPU';
     case 'gpu': return 'GPU';
     case 'memory': return 'RAM';

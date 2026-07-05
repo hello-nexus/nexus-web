@@ -16,6 +16,7 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 const mockSensors = {
+  summary: [{ id: 'summary/cpu-temp', name: 'CPU Temperature', type: 'Temperature', value: 45, units: '°C', formatted: '45°C', parent: { id: 'summary', name: 'Quick' } }],
   cpu: [{ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 45, units: '°C', formatted: '45°C', parent: { id: 'cpu', name: 'CPU' } }],
   gpu: [{ id: 'gpu-load', name: 'GPU Core', type: 'Load', value: 34, units: '%', formatted: '34%', parent: { id: 'gpu', name: 'GPU' } }],
   gpuModel: '',

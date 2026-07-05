@@ -161,9 +161,9 @@ describe('applyDockedOverlayLayout', () => {
 });
 
 describe('isTryxSensorGroup', () => {
-  it('accepts exactly the 7 monitoring groups, matching SENSOR_CATEGORIES', () => {
+  it('accepts exactly the 8 monitoring groups, matching SENSOR_CATEGORIES', () => {
     expect(TRYX_SENSOR_GROUPS).toEqual(SENSOR_CATEGORIES);
-    expect(TRYX_SENSOR_GROUPS).toEqual(['cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network', 'fps']);
+    expect(TRYX_SENSOR_GROUPS).toEqual(['quick', 'cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network', 'fps']);
     for (const group of TRYX_SENSOR_GROUPS) expect(isTryxSensorGroup(group)).toBe(true);
   });
 
@@ -180,6 +180,7 @@ function sensor(partial: Partial<HardwareSensor> & { id: string; name: string; t
 describe('tryxSensorOptionsForGroup', () => {
   it('strips the device-name prefix and appends the sensor type', () => {
     const sensorsByGroup: TryxSensorsByGroup = {
+      quick: [],
       cpu: [sensor({ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature' })],
       gpu: [],
       memory: [],
@@ -196,7 +197,7 @@ describe('tryxSensorOptionsForGroup', () => {
 
   it('does not strip a prefix for the motherboard group', () => {
     const sensorsByGroup: TryxSensorsByGroup = {
-      cpu: [], gpu: [], memory: [], storage: [], network: [], fps: [],
+      quick: [], cpu: [], gpu: [], memory: [], storage: [], network: [], fps: [],
       motherboard: [sensor({ id: 'fan-1', name: 'Fan 1', type: 'Fan' })],
     };
     const options = tryxSensorOptionsForGroup('motherboard', sensorsByGroup);
@@ -207,7 +208,7 @@ describe('tryxSensorOptionsForGroup', () => {
 
   it('does not strip a prefix for the fps group', () => {
     const sensorsByGroup: TryxSensorsByGroup = {
-      cpu: [], gpu: [], memory: [], motherboard: [], storage: [], network: [],
+      quick: [], cpu: [], gpu: [], memory: [], motherboard: [], storage: [], network: [],
       fps: [sensor({ id: 'fps/current', name: 'FPS', type: 'Framerate' })],
     };
     const options = tryxSensorOptionsForGroup('fps', sensorsByGroup);
@@ -216,8 +217,20 @@ describe('tryxSensorOptionsForGroup', () => {
     ]);
   });
 
+  it('does not strip a prefix and drops the type suffix for the quick group', () => {
+    const sensorsByGroup: TryxSensorsByGroup = {
+      quick: [sensor({ id: 'summary/cpu-temp', name: 'CPU Temperature', type: 'Temperature' })],
+      cpu: [], gpu: [], memory: [], motherboard: [], storage: [], network: [], fps: [],
+    };
+    const options = tryxSensorOptionsForGroup('quick', sensorsByGroup);
+    expect(options).toEqual([
+      { value: 'summary/cpu-temp', bareLabel: 'CPU Temperature', prefixedLabel: 'CPU Temperature', type: 'Temperature', optionLabel: 'CPU Temperature' },
+    ]);
+  });
+
   it('dedupes sensors sharing an id and skips ids missing entirely', () => {
     const sensorsByGroup: TryxSensorsByGroup = {
+      quick: [],
       cpu: [
         sensor({ id: 'x', name: 'CPU Total', type: 'Load' }),
         sensor({ id: 'x', name: 'CPU Total dup', type: 'Load' }),
@@ -294,6 +307,7 @@ describe('tryxStorageFreePercent / formatTryxStorageFreePercent', () => {
 
 describe('tryxOverlayPreviewValue', () => {
   const sensorsByGroup: TryxSensorsByGroup = {
+    quick: [],
     cpu: [sensor({ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 52.4, formatted: '52.4 °C' })],
     gpu: [], memory: [], motherboard: [], storage: [], network: [],
     fps: [sensor({ id: 'fps/current', name: 'FPS', type: 'Framerate', value: 59.6, formatted: '60' })],

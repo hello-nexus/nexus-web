@@ -25,6 +25,10 @@ vi.mock('../../../components/common/Select/Select', () => ({
 }));
 
 const mockSensors = {
+  summary: [
+    { id: 'summary/cpu-temp', name: 'CPU Temperature', type: 'Temperature', value: 45, units: '°C', formatted: '45°C', parent: { id: 'summary', name: 'Quick' } },
+    { id: 'summary/cpu-usage', name: 'CPU Usage', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'summary', name: 'Quick' } },
+  ],
   cpu: [{ id: 'cpu-total', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'CPU' } }],
   gpu: [{ id: 'gpu-core', name: 'GPU Core', type: 'Load', value: 36, units: '%', formatted: '36%', parent: { id: 'gpu', name: 'GPU' } }],
   memory: [{ id: 'mem-usage', name: 'Memory Usage', type: 'Load', value: 62, units: '%', formatted: '62%', parent: { id: 'mem', name: 'Memory' } }],
@@ -281,6 +285,7 @@ describe('resolveSensor - id-keyed lookup', () => {
   const clockSensor = { id: '/intelcpu/0/clock/1', name: 'P-Core #1', type: 'Clock', value: 5200, units: 'MHz', formatted: '5200 MHz', parent: { id: 'cpu', name: 'CPU' } };
 
   const emptySensors = {
+    summary: [],
     cpu: [tempSensor, clockSensor],
     gpu: [],
     memory: [],

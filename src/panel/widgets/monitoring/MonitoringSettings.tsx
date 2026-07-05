@@ -35,6 +35,7 @@ interface SensorOption {
 }
 
 const CATEGORY_LABELS: Record<SensorCategory, string> = {
+  quick: 'Quick',
   cpu: 'CPU',
   gpu: 'GPU',
   memory: 'Memory',
@@ -56,6 +57,9 @@ function sensorsForDevice(
 ): SensorOption[] {
   let options: SensorOption[];
   switch (device) {
+    case 'quick':
+      options = sensorsForCategory('quick', sensors, networkSensors, []).map(s => ({ value: s.id, label: s.name, sensorName: s.name }));
+      break;
     case 'cpu':
     case 'gpu':
     case 'memory':
@@ -119,8 +123,9 @@ function selectedSensorValue(options: SensorOption[], storedKey: string): string
 // Eligibility is gated on the active slot count: a device qualifies when it
 // exposes at least `count` distinct sensors. Network has exactly 3 sensors,
 // so it qualifies at count=3 and is hidden at count=4. Bumping count above
-// the device's sensor budget falls back to the first device that can fill
-// the slots (typically CPU).
+// the device's sensor budget falls back to the first eligible device in
+// DEVICE_OPTIONS order (Quick, whose 5 summary sensors clear every count,
+// unless the box lacks a GPU and the service omits the GPU-derived ones).
 function deviceHasEnoughSensorsForMicro(
   sensors: ReturnType<typeof useSensors>,
   networkSensors: ReturnType<typeof buildNetworkSensors>,

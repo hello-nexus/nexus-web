@@ -4,7 +4,7 @@ import type { GaugeDesignKey } from './gauges';
 // 'fan' is kept only so a widget saved before the motherboard category
 // existed keeps resolving its Fan-typed sensor; it is no longer offered in
 // either picker (see MonitoringSettings' DEVICE_OPTIONS).
-export type DeviceKey = 'cpu' | 'gpu' | 'memory' | 'motherboard' | 'fan' | 'storage' | 'network' | 'fps';
+export type DeviceKey = 'quick' | 'cpu' | 'gpu' | 'memory' | 'motherboard' | 'fan' | 'storage' | 'network' | 'fps';
 
 export interface SlotConfig {
   device: DeviceKey;

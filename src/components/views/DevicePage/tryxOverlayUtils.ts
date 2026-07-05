@@ -160,6 +160,7 @@ export const TRYX_SENSOR_GROUPS = SENSOR_CATEGORIES;
 export type TryxSensorGroup = (typeof TRYX_SENSOR_GROUPS)[number];
 
 export const TRYX_SENSOR_GROUP_LABEL_KEYS: Record<TryxSensorGroup, string> = {
+  quick: 'devices.tryx.deviceQuick',
   cpu: 'devices.tryx.deviceCpu',
   gpu: 'devices.tryx.deviceGpu',
   memory: 'devices.tryx.deviceMemory',
@@ -190,7 +191,8 @@ export interface TryxSensorOption {
 // bareSensorLabel/prefixedSensorLabel only prefix cpu/gpu/memory/network (their
 // DEVICE_PREFIXES map); motherboard and fps aren't valid DeviceKey lookups
 // there, so they're special-cased here rather than passed through as a type
-// error.
+// error. quick/storage fall through to the generic call below, which already
+// returns the name unchanged since neither is in DEVICE_PREFIXES.
 function bareLabelForGroup(group: TryxSensorGroup, name: string): string {
   if (group === 'motherboard' || group === 'fps') return name;
   return bareSensorLabel(group, name) || name;
@@ -216,7 +218,8 @@ export function tryxSensorOptionsForGroup(
     seen.add(s.id);
     const bareLabel = bareLabelForGroup(group, s.name);
     const prefixedLabel = prefixedLabelForGroup(group, s.name);
-    options.push({ value: s.id, bareLabel, prefixedLabel, type: s.type, optionLabel: `${bareLabel} (${s.type})` });
+    const optionLabel = group === 'quick' ? bareLabel : `${bareLabel} (${s.type})`;
+    options.push({ value: s.id, bareLabel, prefixedLabel, type: s.type, optionLabel });
   }
   return options;
 }

@@ -86,7 +86,7 @@ export function relativeHistoryDomain(
     // observed maximum instead (mirrors percentForSensor's value/maxValue scaling).
     return [0, Math.max(1, Math.ceil(observed))];
   }
-  // cpu/gpu/memory/storage report 0-100 percent; clamp to 100 ceiling.
+  // quick/cpu/gpu/memory/storage report 0-100 percent; clamp to 100 ceiling.
   const stretched = Math.ceil(observed / PERCENT_STEP) * PERCENT_STEP;
   return [0, Math.max(PERCENT_FLOOR, Math.min(100, stretched))];
 }

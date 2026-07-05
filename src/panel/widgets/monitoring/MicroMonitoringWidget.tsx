@@ -41,6 +41,7 @@ function bottomLabelForDevice(
   sensors: ReturnType<typeof useSensors>,
 ): string {
   switch (device) {
+    case 'quick': return 'Quick';
     case 'cpu': return sensors.cpuModel || 'CPU';
     case 'gpu': return sensors.gpuModel || 'GPU';
     case 'memory': return sensors.memoryTotal ? `RAM | ${sensors.memoryTotal}` : 'RAM';
