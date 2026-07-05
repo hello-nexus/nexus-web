@@ -1133,7 +1133,7 @@
   white-space: nowrap;
 }
 .curveAxisLabel {
-  font-size: 10px;
+  font-size: var(--type-mini);
   font-family: var(--font-mono);
   line-height: 1;
   // Faded so the live readouts read as the primary labels.
@@ -1147,7 +1147,7 @@
   position: absolute;
   background: var(--bg);
   color: var(--accent-glow);
-  font-size: 10px;
+  font-size: var(--type-mini);
   font-family: var(--font-mono);
   font-weight: var(--weight-strong);
   line-height: 1;
