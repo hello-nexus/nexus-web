@@ -68,6 +68,7 @@ import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/Se
 import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
+import { HeartBurst, useHeartBurstTrigger } from '../components/common/HeartBurst/HeartBurst';
 import { UpdateBadge } from '../components/common/UpdateBadge/UpdateBadge';
 import { TopBarStatusButton } from '../components/common/TopBarStatusButton/TopBarStatusButton';
 import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
@@ -164,6 +165,20 @@ function PreviewDatePicker() {
   const iso = new Date().toISOString().slice(0, 10);
   const [v, setV] = useState(iso);
   return <DatePicker value={v} max={iso} onChange={setV} />;
+}
+
+function PreviewHeartBurst() {
+  const [active, setActive] = useState(false);
+  const burstKey = useHeartBurstTrigger(active);
+  return (
+    <div className={styles.previewHoverCard} style={{ position: 'relative' }}>
+      <span>Anonymous telemetry</span>
+      <button type="button" className={styles.previewBtn} onClick={() => setActive(a => !a)}>
+        Toggle
+      </button>
+      <HeartBurst burstKey={burstKey} />
+    </div>
+  );
 }
 
 function PreviewPopover() {
@@ -1471,6 +1486,12 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'Opens on pointerenter and keyboard focus, closes on leave / blur. Tooltip itself is pointer-events: none so the trigger keeps ownership of the cursor. Pass `title` for the bold first line plus `body` for the description, or just `body` for a single-line variant.',
   },
   {
+    name: 'HeartBurst', category: 'status',
+    filePath: 'src/components/common/HeartBurst/HeartBurst.tsx',
+    description: 'Burst of small red hearts rising and drifting apart, then unmounting - fired from the telemetry consent toggle on an off-to-on flip. Pure CSS transform/opacity keyframes, each heart self-removes on its own animationend. useHeartBurstTrigger derives the required burstKey from a boolean so the burst never fires on mount.', Preview: PreviewHeartBurst,
+    notes: 'Respects prefers-reduced-motion (renders nothing). Caller wraps the anchor in a position:relative container - HeartBurst anchors to its top-right corner.',
+  },
+  {
     name: 'Popover', category: 'modals',
     filePath: 'src/components/common/Popover/Popover.tsx',
     description: 'Inline-anchored floating panel. Consumer wraps trigger + Popover in a position:relative container and passes the wrapper as anchorRef; Popover handles click-outside dismiss, Escape, and corner-anchored placement (bottom-start, bottom-end, right-start, right-end, top-start, left-start). Used by the sidebar Status Shield (Connected / Limited mode) popover.',
@@ -1583,6 +1604,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/AboutModal/AboutModal.tsx',
     description: 'Lightweight "About Nexus" dialog opened from the top-bar "..." menu. Brand mark + wordmark, build version, link to hellonexus.com. Composes Overlay (alert variant, Enter/Esc close).',
     Preview: PreviewAboutModal,
+  },
+  {
+    name: 'WelcomeScreen', category: 'modals',
+    filePath: 'src/components/common/WelcomeScreen/WelcomeScreen.tsx',
+    description: 'Non-dismissable first-run gate mounted on the desktop Dashboard: brand mark + heading, a start-with-OS toggle (platform-aware label) and an anonymous-telemetry toggle, and an Enter button that writes both plus /onboarding/complete before dismissing.',
+    notes: 'No live preview - the Enter button posts real /telemetry/consent, /start, and /onboarding/complete requests to the connected service, so opening it here would mutate the running install\'s actual first-run state.',
   },
   {
     name: 'UpdateBadge', category: 'status',

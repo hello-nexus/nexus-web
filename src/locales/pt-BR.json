@@ -2011,7 +2011,7 @@
   "settings.systemStartup.label": "Iniciar o Nexus na inicialização do sistema",
   "settings.tab.profiles": "Perfis",
   "settings.tab.tools": "Ferramentas de dev",
-  "settings.telemetry.description": "Ajuda a tornar o Nexus melhor. Sempre anônimo e criptografado.",
+  "settings.telemetry.description": "Não contém informações pessoais e nos ajuda a melhorar o Nexus. {privacy}",
   "settings.telemetry.label": "Compartilhar dados de uso anônimos",
   "settings.theme": "Tema",
   "settings.theme.dark": "Escuro",
@@ -2384,5 +2384,15 @@
   "devices.lianli-wireless.deviceStrimer": "Strimer",
   "devices.lianli-wireless.deviceWaterBlock": "Bloco d'água",
   "devices.lianli-wireless.deviceGeneric": "Dispositivo",
-  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2",
+  "settings.telemetry.infoTooltip": "Não contém informações pessoais. Nos ajuda a melhorar o Nexus.",
+  "settings.telemetry.privacyLink": "Política de privacidade",
+  "welcome.enter": "Continuar",
+  "welcome.preferences.title": "Preferências",
+  "welcome.startAtLogin.label": "Iniciar ao fazer login",
+  "welcome.startWithOs.label": "Iniciar com o Windows",
+  "welcome.tagline": "Controle unificado do computador",
+  "welcome.telemetry.label": "Telemetria anônima",
+  "welcome.title": "Bem-vindo ao Nexus",
+  "welcome.error": "Não foi possível salvar suas preferências. Tente novamente."
 }

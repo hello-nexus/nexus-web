@@ -1,0 +1,68 @@
+@use '../../../styles/text' as *;
+
+// Fills the backdrop's padded box (backdropDialog carries 2rem padding on
+// every side) - this is a gate, not a floating card.
+.surface {
+  width: calc(100vw - 4rem);
+  height: calc(100vh - 4rem);
+  max-width: calc(100vw - 4rem);
+  max-height: calc(100vh - 4rem);
+  border: none;
+  background: var(--backdrop-base);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  color: var(--text);
+  animation: heroPulse 3s ease-in-out infinite;
+}
+
+@keyframes heroPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero { animation: none; }
+}
+
+.title {
+  @include text-display;
+  margin: 0;
+  color: var(--text);
+}
+
+.tagline {
+  @include text-caption;
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.section {
+  width: min(440px, 100%);
+}
+
+.telemetryRow {
+  position: relative;
+}
+
+.enterButton {
+  width: min(280px, 100%);
+}
+
+.error {
+  @include text-caption;
+  margin: -1rem 0 0;
+  color: var(--bad);
+  text-align: center;
+}

@@ -2011,7 +2011,7 @@
   "settings.systemStartup.label": "システム起動時に Nexus を起動",
   "settings.tab.profiles": "プロファイル",
   "settings.tab.tools": "開発ツール",
-  "settings.telemetry.description": "Nexus の改善に役立ちます。常に匿名で暗号化されます。",
+  "settings.telemetry.description": "個人情報は含まれず、Nexus の改善に役立ちます。{privacy}",
   "settings.telemetry.label": "匿名の利用データを共有",
   "settings.theme": "テーマ",
   "settings.theme.dark": "ダーク",
@@ -2384,5 +2384,15 @@
   "devices.lianli-wireless.deviceStrimer": "Strimer",
   "devices.lianli-wireless.deviceWaterBlock": "ウォーターブロック",
   "devices.lianli-wireless.deviceGeneric": "デバイス",
-  "devices.lianli-wireless.fanTypeTlv2": "TL-V2"
+  "devices.lianli-wireless.fanTypeTlv2": "TL-V2",
+  "settings.telemetry.infoTooltip": "個人情報は含まれません。Nexus の改善に役立ちます。",
+  "settings.telemetry.privacyLink": "プライバシーポリシー",
+  "welcome.enter": "続ける",
+  "welcome.preferences.title": "設定",
+  "welcome.startAtLogin.label": "ログイン時に起動",
+  "welcome.startWithOs.label": "Windowsと同時に起動",
+  "welcome.tagline": "統合コンピューター制御",
+  "welcome.telemetry.label": "匿名テレメトリ",
+  "welcome.title": "Nexus へようこそ",
+  "welcome.error": "設定を保存できませんでした。もう一度お試しください。"
 }
