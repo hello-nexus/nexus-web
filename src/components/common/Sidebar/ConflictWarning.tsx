@@ -10,6 +10,8 @@ import styles from './ConflictWarning.module.scss';
 
 interface ConflictWarningProps {
   conflicts: readonly DetectedConflict[];
+  /** Pulse the badge to flag a conflicting app that just started running. */
+  pulsing: boolean;
   /** Whether conflict alerts are currently suppressed (the persisted setting). */
   suppressed: boolean;
   open: boolean;
@@ -30,7 +32,7 @@ interface ConflictWarningProps {
  * when the watcher clears the last conflict or the user ticks "don't show
  * again"; instead it shows an "all clear" empty state until dismissed.
  */
-export function ConflictWarningBadge({ conflicts, suppressed, open, onOpenChange, onSuppressedChange }: ConflictWarningProps) {
+export function ConflictWarningBadge({ conflicts, pulsing, suppressed, open, onOpenChange, onSuppressedChange }: ConflictWarningProps) {
   const { t } = useTranslation();
   const count = conflicts.length;
   const showButton = count > 0 && !suppressed;
@@ -43,6 +45,7 @@ export function ConflictWarningBadge({ conflicts, suppressed, open, onOpenChange
       {showButton && (
         <TopBarStatusButton
           tone="warn"
+          pulsing={pulsing}
           icon={<AlertTriangle size={16} />}
           label={t('conflicts.badge.text')}
           onClick={() => onOpenChange(true)}

@@ -905,57 +905,59 @@ export function TryxDevicePage() {
           )}
         </div>
 
-        {tab === 'display' && (
-          <div className={styles.previewPane}>
-            <div
-              ref={previewCanvasRef}
-              className={styles.previewCanvas}
-              style={previewThumbUrl ? { backgroundImage: `url(${previewThumbUrl})` } : undefined}
-            >
-              {overlayItems.map((item, i) => {
-                if (!item.enabled) return null;
-                const value = tryxOverlayPreviewValue(item.device, item.sensorId, item.sensorType, sensorsByGroup);
-                const fontStyle = tryxFontCssStyle(overlayFont);
-                const justify = tryxOverlayJustifyStyle(overlayAlign);
-                const valueFontPx = scalePanelMetric(TRYX_VALUE_FONT_PANEL_PX, overlaySize, previewHeightPx);
-                const labelFontPx = scalePanelMetric(TRYX_LABEL_FONT_PANEL_PX, overlaySize, previewHeightPx);
-                const labelTopPx = scalePanelMetric(TRYX_LABEL_OFFSET_PANEL_PX, overlaySize, previewHeightPx);
-                return (
-                  <div
-                    key={i}
-                    role="button"
-                    tabIndex={0}
-                    className={styles.previewStat}
-                    style={{ left: `${item.x * 100}%`, top: `${item.y * 100}%` }}
-                    aria-label={t('devices.tryx.overlayDragAria', { stat: item.label })}
-                    aria-pressed={draggingIndex === i}
-                    onPointerDown={e => handleStatPointerDown(i, e)}
-                    onPointerMove={e => handleStatPointerMove(i, e)}
-                    onPointerUp={handleStatPointerEnd}
-                    onPointerCancel={handleStatPointerEnd}
-                    onKeyDown={e => handleStatKeyDown(i, e)}
+        <div className={styles.previewPane}>
+          <div
+            ref={previewCanvasRef}
+            className={styles.previewCanvas}
+            style={previewThumbUrl ? { backgroundImage: `url(${previewThumbUrl})` } : undefined}
+          >
+            {overlayItems.map((item, i) => {
+              if (!item.enabled) return null;
+              const value = tryxOverlayPreviewValue(item.device, item.sensorId, item.sensorType, sensorsByGroup);
+              const fontStyle = tryxFontCssStyle(overlayFont);
+              const justify = tryxOverlayJustifyStyle(overlayAlign);
+              const valueFontPx = scalePanelMetric(TRYX_VALUE_FONT_PANEL_PX, overlaySize, previewHeightPx);
+              const labelFontPx = scalePanelMetric(TRYX_LABEL_FONT_PANEL_PX, overlaySize, previewHeightPx);
+              const labelTopPx = scalePanelMetric(TRYX_LABEL_OFFSET_PANEL_PX, overlaySize, previewHeightPx);
+              // Overlay stats are draggable only on the Display tab, where the
+              // docked toggle that a drag flips lives; on Media the canvas is a
+              // read-only preview so browsing can't silently un-dock the layout.
+              const editable = tab === 'display';
+              return (
+                <div
+                  key={i}
+                  role={editable ? 'button' : undefined}
+                  tabIndex={editable ? 0 : undefined}
+                  className={styles.previewStat}
+                  style={{ left: `${item.x * 100}%`, top: `${item.y * 100}%` }}
+                  aria-label={editable ? t('devices.tryx.overlayDragAria', { stat: item.label }) : undefined}
+                  aria-pressed={editable ? draggingIndex === i : undefined}
+                  onPointerDown={editable ? e => handleStatPointerDown(i, e) : undefined}
+                  onPointerMove={editable ? e => handleStatPointerMove(i, e) : undefined}
+                  onPointerUp={editable ? handleStatPointerEnd : undefined}
+                  onPointerCancel={editable ? handleStatPointerEnd : undefined}
+                  onKeyDown={editable ? e => handleStatKeyDown(i, e) : undefined}
+                >
+                  <span
+                    className={styles.previewValue}
+                    style={{ ...fontStyle, ...justify, fontSize: `${valueFontPx}px`, color: overlayColor }}
                   >
-                    <span
-                      className={styles.previewValue}
-                      style={{ ...fontStyle, ...justify, fontSize: `${valueFontPx}px`, color: overlayColor }}
-                    >
-                      {value}
-                    </span>
-                    <span
-                      className={styles.previewLabel}
-                      style={{ ...fontStyle, ...justify, fontSize: `${labelFontPx}px`, top: `${labelTopPx}px`, color: overlayColor }}
-                    >
-                      {item.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            {hasEnabledOverlayItem && (
-              <span className={styles.dragHint}>{t('devices.tryx.overlayDragHint')}</span>
-            )}
+                    {value}
+                  </span>
+                  <span
+                    className={styles.previewLabel}
+                    style={{ ...fontStyle, ...justify, fontSize: `${labelFontPx}px`, top: `${labelTopPx}px`, color: overlayColor }}
+                  >
+                    {item.label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-        )}
+          {tab === 'display' && hasEnabledOverlayItem && (
+            <span className={styles.dragHint}>{t('devices.tryx.overlayDragHint')}</span>
+          )}
+        </div>
       </div>
 
       {cropState && (

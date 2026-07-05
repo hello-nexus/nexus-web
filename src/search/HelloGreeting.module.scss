@@ -1,0 +1,19 @@
+@use '../styles/text' as *;
+
+// Sits in the TopSearch resting title slot (inside .pillButton) in place of
+// the page title, so it repeats that slot's layout rules (TopSearch.module.scss
+// .pillButton .title) rather than importing that module.
+.greeting {
+  @include text-body;
+  // One step down from the inherited page-title size (--type-body): see the
+  // --type-* scale in styles/variables.scss.
+  font-size: var(--type-small);
+  margin: 0;
+  flex: 1;
+  text-align: center;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}

@@ -34,3 +34,31 @@
     background: color-mix(in srgb, var(--good) 18%, transparent);
   }
 }
+
+// Attention flash: a single expanding ping ring in the button's tone
+// (currentColor), played once when the flagged state just changed.
+.pulsing {
+  animation: topbar-status-pulse 1s ease-out;
+}
+
+@keyframes topbar-status-pulse {
+  0% {
+    background: color-mix(in srgb, currentColor 20%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent);
+  }
+  70% {
+    background: transparent;
+    box-shadow: 0 0 0 7px color-mix(in srgb, currentColor 0%, transparent);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulsing {
+    animation: none;
+    background: color-mix(in srgb, currentColor 20%, transparent);
+  }
+}
