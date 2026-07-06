@@ -272,28 +272,19 @@ export function WeatherWidget({ widget }: WidgetProps) {
     );
   }
 
-  if (compact) {
-    return (
-      <div className={`${styles.compact} ${styles.compact2x2}`}>
-        <div className={styles.compactHead}>
-          <div className={styles.compactTop}>
-            {showLocation && <span className={styles.compactLocation}>{snap?.locationLabel || ''}</span>}
-            <WeatherIcon code={snap?.weatherCode} className={styles.compactIcon} strokeWidth={1.4} />
-          </div>
-          <div className={styles.compactBody}>
-            <div className={styles.compactTemp}>{tempText}</div>
-            {showCondition && <div className={styles.compactCondition}>{snap?.condition || ''}</div>}
-          </div>
-        </div>
-        {renderStats(styles.compactStats)}
-      </div>
-    );
-  }
-
   return (
-    <div className={`${styles.compact} ${styles.compact1x1}`}>
-      <WeatherIcon code={snap?.weatherCode} className={styles.compactIcon} strokeWidth={1.4} />
-      <div className={styles.compactTemp}>{tempText}</div>
+    <div className={`${styles.compact} ${compact ? styles.compact2x2 : styles.compact1x1}`}>
+      <div className={styles.compactCurrent}>
+        <div className={styles.compactIconWrap}>
+          <WeatherIcon code={snap?.weatherCode} className={styles.compactIcon} strokeWidth={1.4} />
+        </div>
+        <div className={styles.compactReadout}>
+          <div className={styles.compactTemp}>{tempText}</div>
+        </div>
+      </div>
+      {compact && renderStats(styles.compactStats)}
+      {showCondition && <div className={styles.compactCondition}>{snap?.condition || ''}</div>}
+      {showLocation && <div className={styles.compactLocation}>{snap?.locationLabel || ''}</div>}
     </div>
   );
 }
