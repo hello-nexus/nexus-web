@@ -234,24 +234,6 @@ function BackdropIcon(p: P) {
   );
 }
 
-function WaffleIcon(p: P) {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
-      <g fill="currentColor">
-        <rect x="3" y="14" width="5" height="5" rx="1" />
-        <rect x="9.5" y="14" width="5" height="5" rx="1" />
-        <rect x="16" y="14" width="5" height="5" rx="1" />
-        <rect x="3" y="7.5" width="5" height="5" rx="1" />
-        <rect x="9.5" y="7.5" width="5" height="5" rx="1" />
-        <rect x="16" y="7.5" width="5" height="5" rx="1" opacity="0.2" />
-        <rect x="3" y="1" width="5" height="5" rx="1" opacity="0.2" />
-        <rect x="9.5" y="1" width="5" height="5" rx="1" opacity="0.2" />
-        <rect x="16" y="1" width="5" height="5" rx="1" opacity="0.2" />
-      </g>
-    </svg>
-  );
-}
-
 export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   sparkline: AreaIcon,
   text: ValueIcon,
@@ -274,5 +256,4 @@ export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   dial: DialIcon,
   tickring: TickRingIcon,
   backdrop: BackdropIcon,
-  waffle: WaffleIcon,
 };

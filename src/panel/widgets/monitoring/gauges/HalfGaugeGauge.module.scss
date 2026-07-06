@@ -37,6 +37,14 @@
   stroke-linecap: round;
 }
 
+// Marker riding the fill tip; brighter than the arc and ringed by the tile
+// surface so it reads as a distinct knob.
+.fillDot {
+  fill: var(--panel-accent-glow);
+  stroke: var(--surface);
+  stroke-width: 2.5;
+}
+
 .info {
   display: flex;
   flex-direction: column;
