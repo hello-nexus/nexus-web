@@ -17,7 +17,8 @@
   align-items: center;
   justify-content: center;
   --gauge-track-width: 80%;
-  --gauge-track-height: 8px;
+  // Match the thermometer tube thickness.
+  --gauge-track-height: 14px;
   --gauge-track-glow: 8px;
 }
 

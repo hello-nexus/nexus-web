@@ -22,6 +22,7 @@
   width: 14px;
   height: 100%;
   background: var(--gauge-track);
+  border: 1.5px solid var(--panel-border-strong);
   border-radius: var(--radius-sm);
   overflow: hidden;
   display: flex;
