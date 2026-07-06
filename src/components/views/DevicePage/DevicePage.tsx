@@ -75,20 +75,11 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     return () => window.clearTimeout(id);
   }, [notConnected, deviceKey]);
 
-  // A USB replug elsewhere on the shared hub can drop the dashboard socket
-  // for a moment without the service itself going down; only a sustained
-  // outage shows ServiceRequired. A transient blip falls through to the
-  // normal device view using the last-known `unified` snapshot (useDevices
-  // et al. keep their state while `enabled` is momentarily false).
-  const [serviceOfflineElapsed, setServiceOfflineElapsed] = useState(false);
-  useEffect(() => {
-    setServiceOfflineElapsed(false);
-    if (serviceOnline) return;
-    const id = window.setTimeout(() => setServiceOfflineElapsed(true), DETECT_GRACE_MS);
-    return () => window.clearTimeout(id);
-  }, [serviceOnline]);
-
-  if (!serviceOnline && serviceOfflineElapsed) {
+  // Service reachability and its transient-blip grace are owned by
+  // useServiceStatus (the /ping poller, via offlineGraceMs). By the time
+  // serviceOnline is false here the service has been unreachable past that
+  // grace, so a brief display-rotate blip never reaches this point.
+  if (!serviceOnline) {
     return <ServiceRequired state={connectionState} skeleton={<div />} />;
   }
 

@@ -27,7 +27,7 @@ const ScreentimePage = lazy(() => import('../panel/widgets/screentime/Screentime
 const BenchmarkPage = lazy(() => import('../panel/widgets/benchmark/BenchmarkPage').then(m => ({ default: m.BenchmarkPage })));
 import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
-import { useServiceStatus } from '../hooks/useServiceStatus';
+import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useProfiles } from '../hooks/useProfiles';
@@ -174,7 +174,7 @@ export function Dashboard() {
     navigate, setView, setSubtab, navigateToComponent,
     canGoBack, canGoForward, goBack, goForward,
   } = useRoute();
-  const status = useServiceStatus();
+  const status = useServiceStatus(true, DESKTOP_OFFLINE_GRACE_MS);
   const online = status.state === 'online';
   const onboardingStatus = useOnboardingStatus();
   // Flips true once WelcomeScreen posts /onboarding/complete, so a later

@@ -32,6 +32,14 @@ export const INSTALLED_KEY = 'nexus_installed';
 // disconnect that should surface right away.
 export const HOST_DISPLAY_OFFLINE_GRACE_MS = 30_000;
 
+// Grace before the desktop dashboard declares the local service offline. The
+// dashboard runs against the host's own service, so a single failed /ping is
+// almost always a transient hiccup - most visibly a display-mode change (the
+// Y70 auto-orientation rotate) blinking the WebView2 network for a beat - not a
+// real outage. Holding last-known-good this long stops a rotate from flashing
+// "service required" while keeping a genuine sustained outage visible.
+export const DESKTOP_OFFLINE_GRACE_MS = 8_000;
+
 /**
  * @param enabled        poll while true
  * @param offlineGraceMs require the service to be continuously unreachable for
