@@ -91,10 +91,6 @@ vi.mock('../../../components/common/DeviceCanvas/DeviceCanvas', () => ({
   DeviceCanvas: () => <div data-testid="device-canvas" />,
 }));
 
-vi.mock('../common/SupportedDevicesModal/SupportedDevicesModal', () => ({
-  SupportedDevicesModal: () => null,
-}));
-
 vi.mock('./lighting/AnimateGrid', () => ({
   AnimateGrid: () => <div data-testid="animate-grid" />,
 }));

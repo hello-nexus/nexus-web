@@ -497,7 +497,7 @@ function PreviewSupportedDevicesModal() {
       <SupportedDevicesModal
         open={open}
         onClose={() => setOpen(false)}
-        source="peripherals"
+        source="all"
       />
     </>
   );
@@ -1619,7 +1619,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SupportedDevicesModal', category: 'modals',
     filePath: 'src/components/common/SupportedDevicesModal/SupportedDevicesModal.tsx',
-    description: 'Fullscreen device catalogue browser with search + pagination + highlight of currently-detected VID/PIDs. Used by Devices and Lighting views to surface the supported hardware list.', Preview: PreviewSupportedDevicesModal,
+    description: 'Fullscreen device catalogue browser with search + pagination + highlight of currently-detected VID/PIDs. Used by the Devices view to surface the full supported-hardware list (peripherals + lighting merged).', Preview: PreviewSupportedDevicesModal,
     notes: 'source="peripherals" | "lighting" selects which catalogue to load. Pass detectedVidPids to mark already-connected devices.',
   },
   {

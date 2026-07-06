@@ -1433,7 +1433,6 @@
   "lighting.settings.resetLayouts": "Reimposta posizioni",
   "lighting.settings.resetLayoutsHint": "Riporta ogni fotogramma dei dispositivi al suo slot predefinito sul canvas.",
   "lighting.settings.resetLayoutsLabel": "Reimposta layout canvas",
-  "lighting.settings.supportedDevicesBrowse": "Sfoglia",
   "lighting.settings.title": "Impostazioni illuminazione",
   "lighting.title": "Illuminazione",
   "marketplace.failedToLoad": "Impossibile caricare {name}",

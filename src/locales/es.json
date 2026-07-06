@@ -1433,7 +1433,6 @@
   "lighting.settings.resetLayouts": "Restablecer posiciones",
   "lighting.settings.resetLayoutsHint": "Devuelve cada fotograma de dispositivo a su posición predeterminada en el lienzo.",
   "lighting.settings.resetLayoutsLabel": "Restablecer disposición del lienzo",
-  "lighting.settings.supportedDevicesBrowse": "Explorar",
   "lighting.settings.title": "Ajustes de iluminación",
   "lighting.title": "Iluminación",
   "marketplace.failedToLoad": "No se pudo cargar {name}",

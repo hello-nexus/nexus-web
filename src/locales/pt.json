@@ -1433,7 +1433,6 @@
   "lighting.settings.resetLayouts": "Repor posições",
   "lighting.settings.resetLayoutsHint": "Repõe cada frame de dispositivo no respetivo espaço predefinido na tela.",
   "lighting.settings.resetLayoutsLabel": "Repor disposição da tela",
-  "lighting.settings.supportedDevicesBrowse": "Explorar",
   "lighting.settings.title": "Definições de iluminação",
   "lighting.title": "Iluminacao",
   "marketplace.failedToLoad": "Falha ao carregar {name}",

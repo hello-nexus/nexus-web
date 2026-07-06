@@ -32,8 +32,6 @@ import { usePageSettingsAction } from '../../../app/PageChrome';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
-import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
-import { useUsbDevices } from '../../../hooks/useUsbDevices';
 import { useSensors } from '../../../hooks/useSensors';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
@@ -156,7 +154,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const handleBeforeLayoutSave = useCallback(() => {
     pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), power: devicesToPower(devicesRef.current), activeId: layoutActiveIdRef.current, powerIds: [] });
   }, []);
-  const [catalogOpen, setCatalogOpen] = useState(false);
 
   const [smartHubFirmwareControl, setSmartHubFirmwareControlState] = useState(false);
   const [lianLiMode, setLianLiMode] = useState<string | null>(null);
@@ -822,15 +819,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return out;
   }, [visibleDevices, deviceOrder]);
 
-  const usb = useUsbDevices(serviceOnline);
-  const detectedVidPids = useMemo(() => {
-    const set = new Set<string>();
-    for (const d of usb.devices) {
-      set.add(`${d.vendorId.toLowerCase()}:${d.productId.toLowerCase()}`);
-    }
-    return set;
-  }, [usb.devices]);
-
   // Devices list: fetch on entry + profile change, then refresh push-driven.
   // The `lighting` topic fires on every /lighting mutation (layout edits,
   // renames). The `devices` topic fires on USB hardware add/remove. RGB
@@ -1094,14 +1082,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         serviceOnline={serviceOnline}
         platform={platform}
         gpus={sensors.gpuComponents}
-        onBrowseSupportedDevices={() => { setSettingsOpen(false); setCatalogOpen(true); }}
-      />
-      <SupportedDevicesModal
-        open={catalogOpen}
-        onClose={() => setCatalogOpen(false)}
-        // eslint-disable-next-line i18next/no-literal-string -- catalog source enum
-        source="lighting"
-        detectedVidPids={detectedVidPids}
       />
       {/* ViewHeader lives in the left grid column so the device column (right)
           can rise to the very top of the page, level with the mode tabs. Capped

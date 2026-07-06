@@ -1433,7 +1433,6 @@
   "lighting.settings.resetLayouts": "Redefinir posições",
   "lighting.settings.resetLayoutsHint": "Retorna cada quadro de dispositivo ao seu espaço padrão no canvas.",
   "lighting.settings.resetLayoutsLabel": "Redefinir layout do canvas",
-  "lighting.settings.supportedDevicesBrowse": "Explorar",
   "lighting.settings.title": "Configurações de iluminação",
   "lighting.title": "Iluminacao",
   "marketplace.failedToLoad": "Falha ao carregar {name}",

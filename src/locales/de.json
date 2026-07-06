@@ -1433,7 +1433,6 @@
   "lighting.settings.resetLayouts": "Positionen zurücksetzen",
   "lighting.settings.resetLayoutsHint": "Setzt jeden Geräte-Frame zurück auf seinen Standardplatz auf dem Canvas.",
   "lighting.settings.resetLayoutsLabel": "Canvas-Layout zurücksetzen",
-  "lighting.settings.supportedDevicesBrowse": "Durchsuchen",
   "lighting.settings.title": "Beleuchtungseinstellungen",
   "lighting.title": "Beleuchtung",
   "marketplace.failedToLoad": "{name} konnte nicht geladen werden",

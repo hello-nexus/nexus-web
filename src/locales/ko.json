@@ -1433,7 +1433,6 @@
   "lighting.settings.resetLayouts": "위치 초기화",
   "lighting.settings.resetLayoutsHint": "모든 장치 프레임을 캔버스의 기본 위치로 되돌립니다.",
   "lighting.settings.resetLayoutsLabel": "캔버스 레이아웃 초기화",
-  "lighting.settings.supportedDevicesBrowse": "둘러보기",
   "lighting.settings.title": "조명 설정",
   "lighting.title": "라이팅",
   "marketplace.failedToLoad": "{name} 로드 실패",

@@ -1433,7 +1433,6 @@
   "lighting.settings.resetLayouts": "Réinitialiser les positions",
   "lighting.settings.resetLayoutsHint": "Remet chaque cadre d'appareil à son emplacement par défaut sur le canevas.",
   "lighting.settings.resetLayoutsLabel": "Réinitialiser la disposition du canevas",
-  "lighting.settings.supportedDevicesBrowse": "Parcourir",
   "lighting.settings.title": "Paramètres d'éclairage",
   "lighting.title": "Éclairage",
   "marketplace.failedToLoad": "Échec du chargement de {name}",

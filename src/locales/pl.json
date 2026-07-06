@@ -1433,7 +1433,6 @@
   "lighting.settings.resetLayouts": "Resetuj pozycje",
   "lighting.settings.resetLayoutsHint": "Przywraca każdą ramkę urządzenia do jej domyślnego miejsca na kanwie.",
   "lighting.settings.resetLayoutsLabel": "Resetuj układ kanwy",
-  "lighting.settings.supportedDevicesBrowse": "Przeglądaj",
   "lighting.settings.title": "Ustawienia podświetlenia",
   "lighting.title": "Podswietlenie",
   "marketplace.failedToLoad": "Nie udało się wczytać {name}",

@@ -17,7 +17,13 @@ interface SupportedResponse {
   items: SupportedDevice[];
 }
 
-export type SupportedSource = 'peripherals' | 'lighting';
+export type SupportedSource = 'peripherals' | 'lighting' | 'all';
+
+const SOURCE_PATHS: Record<SupportedSource, string> = {
+  peripherals: '/peripherals/supported',
+  lighting: '/peripherals/lighting-supported',
+  all: '/peripherals/all-supported',
+};
 
 export function useSupportedDevices(enabled: boolean, source: SupportedSource = 'peripherals') {
   const [devices, setDevices] = useState<SupportedDevice[]>([]);
@@ -28,8 +34,7 @@ export function useSupportedDevices(enabled: boolean, source: SupportedSource = 
     let cancelled = false;
      
     setLoading(true);
-    const path = source === 'lighting' ? '/peripherals/lighting-supported' : '/peripherals/supported';
-    fetchService<SupportedResponse>(path).then(data => {
+    fetchService<SupportedResponse>(SOURCE_PATHS[source]).then(data => {
       if (cancelled) return;
       setDevices((data?.items as SupportedDevice[]) ?? []);
       setLoading(false);

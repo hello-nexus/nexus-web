@@ -1433,7 +1433,6 @@
   "lighting.settings.resetLayouts": "Сбросить положения",
   "lighting.settings.resetLayoutsHint": "Возвращает кадр каждого устройства в его слот по умолчанию на холсте.",
   "lighting.settings.resetLayoutsLabel": "Сбросить расположение холста",
-  "lighting.settings.supportedDevicesBrowse": "Обзор",
   "lighting.settings.title": "Настройки подсветки",
   "lighting.title": "Подсветка",
   "marketplace.failedToLoad": "Не удалось загрузить {name}",
