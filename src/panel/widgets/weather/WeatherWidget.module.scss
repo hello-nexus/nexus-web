@@ -16,78 +16,66 @@ $dim: 0.55;
   opacity: $dim;
 }
 
-// Compact (2x2 and 1x1): icon hero + temp + condition stacked
 .compact {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
-  padding: 16px;
-  gap: 6px;
   box-sizing: border-box;
+}
+
+// 2x2: location + icon on top, temp + condition, stats pinned bottom - all
+// left-aligned, spread top-to-bottom.
+.compact2x2 {
+  align-items: stretch;
+  justify-content: space-between;
+  padding: 18px;
+  text-align: left;
+}
+
+// 1x1: too small for anything but the icon over the temperature.
+.compact1x1 {
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px;
   text-align: center;
 }
 
-.compact2x2 {
-  align-items: stretch;
-  padding: 18px;
-  gap: 6px;
-}
-
-.compact1x1 {
-  gap: 4px;
-}
-
-.compactCurrent {
+// Primary block grouped at the top; stats sit at the bottom via space-between.
+.compactHead {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.compact2x2 .compactCurrent {
-  flex-direction: row;
   gap: 10px;
-  width: 100%;
+  min-width: 0;
 }
 
-.compactIconWrap {
+.compactTop {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 2px;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.compact2x2 .compactIconWrap {
-  margin-bottom: 0;
+.compactBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .compactIcon {
-  width: 58px;
-  height: 58px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
   color: var(--panel-accent-glow);
 }
 
-.compact2x2 .compactIcon {
-  width: 54px;
-  height: 54px;
-}
-
-.compactReadout {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 0;
-}
-
-.compact2x2 .compactReadout {
-  align-items: flex-start;
+.compact1x1 .compactIcon {
+  width: 42px;
+  height: 42px;
 }
 
 .compactTemp {
@@ -106,21 +94,21 @@ $dim: 0.55;
 
 .compactLocation {
   @include label-secondary;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
 }
 
 .compactStats {
   @include label-secondary;
   display: flex;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 12px;
   row-gap: 3px;
   flex-wrap: wrap;
   max-width: 100%;
-  margin-top: 4px;
 
   .stat {
     gap: 4px;
