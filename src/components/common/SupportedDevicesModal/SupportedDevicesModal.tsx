@@ -10,11 +10,11 @@ import styles from './SupportedDevicesModal.module.scss';
 interface SupportedDevicesModalProps {
   open: boolean;
   onClose: () => void;
-  /** Which catalog to show - "peripherals" (default) or "lighting" */
+  /** Which catalog to show - "peripherals" (default) or "all" (peripherals + lighting) */
   source?: SupportedSource;
   /** VID/PID of currently-detected devices - highlighted in the list */
   detectedVidPids?: Set<string>;
-  /** Filter the catalog - e.g. "mouse","keyboard" for Devices page, "lighting" for Lighting page */
+  /** Filter the catalog by category - e.g. "mouse","keyboard" */
   categoryFilter?: string[];
   /** Title override; defaults to "Supported Devices" */
   title?: string;

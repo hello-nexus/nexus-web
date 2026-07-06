@@ -17,11 +17,10 @@ interface SupportedResponse {
   items: SupportedDevice[];
 }
 
-export type SupportedSource = 'peripherals' | 'lighting' | 'all';
+export type SupportedSource = 'peripherals' | 'all';
 
 const SOURCE_PATHS: Record<SupportedSource, string> = {
   peripherals: '/peripherals/supported',
-  lighting: '/peripherals/lighting-supported',
   all: '/peripherals/all-supported',
 };
 
