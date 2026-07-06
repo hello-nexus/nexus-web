@@ -42,6 +42,7 @@
     width: 100%;
     max-width: 220px;
     height: auto;
+    max-height: none;
     aspect-ratio: 1;
     align-self: center;
   }
@@ -88,8 +89,8 @@
 .statusOnly {
   &.full {
     .artWrap {
-      width: 116px;
-      height: 116px;
+      max-width: 116px;
+      max-height: 116px;
     }
 
     .title {
@@ -120,10 +121,15 @@
 .artWrap {
   position: relative;
   flex-shrink: 0;
-  width: 92px;
-  height: 92px;
-  // Top-align in the row rather than vertically centred.
-  align-self: flex-start;
+  // Size the square art off the row height (capped by max-width/height) so
+  // on a short tile it shrinks with the row instead of keeping a fixed
+  // height and overflowing down onto the controls.
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 92px;
+  max-height: 92px;
+  aspect-ratio: 1;
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--panel-element-bg);
