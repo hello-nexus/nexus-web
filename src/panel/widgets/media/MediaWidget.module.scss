@@ -15,9 +15,38 @@
 
 .full { /* 4x2 layout - playback column with persistent mixer on the right */ }
 
-.compact { /* 2x2 - no album art, smaller controls */
-  padding: 10px 12px;
+.compact { /* 2x2 - album art hero centered with the title beneath */
+  padding: 12px;
   gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.compactArtWrap {
+  // Fill the remaining column height as a square, capped by the tile width,
+  // so the art scales to the 2x2 with the title sitting directly beneath.
+  flex: 1 1 auto;
+  min-height: 0;
+  align-self: center;
+  aspect-ratio: 1;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--panel-element-bg);
+  box-shadow: var(--shadow-md);
+}
+
+.compactTitle {
+  @include text-button;
+  color: var(--text);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 // 2x4 tall layout - portrait aspect (240 wide x 800 tall on Q60).
@@ -101,10 +130,6 @@
       @include text-button;
     }
   }
-
-  &.compact {
-    justify-content: center;
-  }
 }
 
 // Top row of the 4x2 layout: album art on the left, metadata column on the
@@ -163,15 +188,6 @@
   gap: 2px;
 }
 
-.compactMeta {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  justify-content: center;
-  gap: 2px;
-}
-
 .title {
   @include text-button;
   color: var(--text);
@@ -220,10 +236,6 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-}
-
-.compact .controls {
-  justify-content: center;
 }
 
 .btn {

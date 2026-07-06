@@ -60,7 +60,7 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
 
   useEffect(() => {
     if (preview) return;
-    if (!activeKey || compact) return;
+    if (!activeKey) return;
     let cancelled = false;
     let blobUrl: string | null = null;
 
@@ -80,7 +80,7 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
       cancelled = true;
       if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
-  }, [preview, activeKey, artSignature, compact]);
+  }, [preview, activeKey, artSignature]);
 
   const control = (action: string) => {
     if (!active) return;
@@ -132,24 +132,16 @@ export function MediaWidget({ widget, surface }: WidgetProps) {
     <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${tall ? styles.tall : ''} ${showControls ? '' : styles.statusOnly}`}>
       {compact ? (
         <>
-          <div className={styles.compactMeta}>
-            <div className={styles.title}>{s.song.title || '-'}</div>
-            <div className={styles.artist}>{s.song.artist}</div>
-            {s.song.album && <div className={styles.album}>{s.song.album}</div>}
+          <div className={styles.compactArtWrap} aria-hidden="true">
+            {artUrl ? (
+              <img src={artUrl} alt="" className={styles.art} />
+            ) : (
+              <div className={styles.artFallback}>
+                <Music strokeWidth={1.4} />
+              </div>
+            )}
           </div>
-          {showControls && (
-            <div className={styles.controls}>
-              <button type="button" onClick={() => control('previous')} disabled={!s.controls.isPrevEnabled} className={styles.btn} aria-label={t('panel.media.previous')}>
-                <SkipBack strokeWidth={1.8} />
-              </button>
-              <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? t('panel.media.pause') : t('panel.media.play')}>
-                {playing ? <Pause strokeWidth={2} /> : <Play strokeWidth={2} />}
-              </button>
-              <button type="button" onClick={() => control('next')} disabled={!s.controls.isNextEnabled} className={styles.btn} aria-label={t('panel.media.next')}>
-                <SkipForward strokeWidth={1.8} />
-              </button>
-            </div>
-          )}
+          <div className={styles.compactTitle}>{s.song.title || '-'}</div>
         </>
       ) : (
         <div className={styles.fullContent}>

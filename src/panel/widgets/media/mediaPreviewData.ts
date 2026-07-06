@@ -1,7 +1,7 @@
 // Catalog preview fixture - fake server payloads, untranslated by design.
-// ONE complete full-state snapshot, independent of widget size: compact meta,
-// full art card, progress, controls, and the volume rail all render from this.
-// Keep in sync with what MediaWidget renders (see
+// ONE complete full-state snapshot, independent of widget size: the compact
+// art+title, the full art card, progress, controls, and the volume rail all
+// render from this. Keep in sync with what MediaWidget renders (see
 // .agents/rules/widget-preview-fixtures.md in the master repo). MediaSession
 // has no artUrl field - art comes from the (gated) blob fetch, so preview
 // falls through to the built-in Music-icon fallback.
