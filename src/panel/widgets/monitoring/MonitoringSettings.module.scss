@@ -23,13 +23,17 @@
 
 .designRow {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(46px, 1fr));
   gap: 6px;
 }
 
+// Icon-only cards: prominent icon in a compact near-square button, matching
+// the layout/slots pickers rather than the smaller label-button default.
 .designBtn {
   width: 100%;
   min-width: 0;
+  --icon-label-icon-size: 24px;
+  --icon-label-button-height: 46px;
 }
 
 .scaleRow {
