@@ -324,7 +324,8 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
                     className={styles.designBtn}
                     active={active}
                     icon={Icon ? <Icon aria-hidden="true" /> : undefined}
-                    label={GAUGE_DESIGN_LABELS[k]}
+                    title={GAUGE_DESIGN_LABELS[k]}
+                    ariaLabel={GAUGE_DESIGN_LABELS[k]}
                     onPress={() => onUpdate({ [`slot${activeSlot}_design`]: k })}
                   />
                 );

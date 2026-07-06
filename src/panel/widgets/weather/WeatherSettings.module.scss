@@ -1,5 +1,13 @@
 @use '../../../styles/scrollbar' as *;
 
+// Stack the settings sections with the standard drawer gap (matches the
+// monitoring widget's settings root); without it the section boxes touch.
+.settingsRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .locationPicker {
   display: flex;
   flex-direction: column;

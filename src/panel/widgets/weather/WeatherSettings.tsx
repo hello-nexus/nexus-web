@@ -87,7 +87,7 @@ export function WeatherSettings({ widget, surface, desktopEditor, onUpdate }: Wi
   }
 
   return (
-    <>
+    <div className={styles.settingsRoot}>
       <SettingsSection title={t('panel.widget.weather.settings.units')}>
         <SettingsSelect
           label={t('panel.widget.weather.settings.temperature')}
@@ -171,7 +171,7 @@ export function WeatherSettings({ widget, surface, desktopEditor, onUpdate }: Wi
           onChange={checked => onUpdate({ showDetails: checked })}
         />
       </SettingsSection>
-    </>
+    </div>
   );
 }
 
