@@ -1429,7 +1429,6 @@
   "lighting.settings.resetLayouts": "重置位置",
   "lighting.settings.resetLayoutsHint": "将每个设备帧恢复到画布上的默认槽位。",
   "lighting.settings.resetLayoutsLabel": "重置画布布局",
-  "lighting.settings.supportedDevicesBrowse": "浏览",
   "lighting.settings.title": "灯效设置",
   "lighting.title": "灯光效果",
   "marketplace.failedToLoad": "加载 {name} 失败",

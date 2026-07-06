@@ -1429,7 +1429,6 @@
   "lighting.settings.resetLayouts": "重設位置",
   "lighting.settings.resetLayoutsHint": "將每個裝置框架還原到畫布上的預設位置。",
   "lighting.settings.resetLayoutsLabel": "重設畫布版面",
-  "lighting.settings.supportedDevicesBrowse": "瀏覽",
   "lighting.settings.title": "燈效設定",
   "lighting.title": "燈光效果",
   "marketplace.failedToLoad": "無法載入 {name}",

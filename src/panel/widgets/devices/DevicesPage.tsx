@@ -153,6 +153,8 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
       <SupportedDevicesModal
         open={supportedModalOpen}
         onClose={() => setSupportedModalOpen(false)}
+        // eslint-disable-next-line i18next/no-literal-string -- catalog source enum
+        source="all"
         detectedVidPids={detectedVidPids}
       />
 

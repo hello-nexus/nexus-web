@@ -1374,7 +1374,6 @@
   "lighting.settings.resetLayouts": "位置をリセット",
   "lighting.settings.resetLayoutsHint": "すべてのデバイスフレームをキャンバス上のデフォルトの位置に戻します。",
   "lighting.settings.resetLayoutsLabel": "キャンバスレイアウトをリセット",
-  "lighting.settings.supportedDevicesBrowse": "一覧",
   "lighting.settings.title": "ライティング設定",
   "lighting.title": "ライティング",
   "marketplace.failedToLoad": "{name} の読み込みに失敗しました",

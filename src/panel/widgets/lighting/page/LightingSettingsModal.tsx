@@ -15,19 +15,16 @@ interface LightingSettingsModalProps {
   serviceOnline: boolean;
   platform?: string;
   gpus?: GpuComponent[];
-  /** Opens the supported-devices catalog (the trigger lives on this page). */
-  onBrowseSupportedDevices?: () => void;
 }
 
 /**
  * Settings dialog for the lighting page: master brightness, an optional
  * render-GPU picker (which card runs the lighting shaders, Windows/Linux with
- * 2+ GPUs only), a supported-devices catalog link, and a "reset positions"
- * action. The render-GPU choice is restart-to-apply, so changing it opens a
- * restart confirm.
+ * 2+ GPUs only), and a "reset positions" action. The render-GPU choice is
+ * restart-to-apply, so changing it opens a restart confirm.
  */
 export function LightingSettingsModal({
-  open, onClose, serviceOnline, platform = '', gpus = [], onBrowseSupportedDevices,
+  open, onClose, serviceOnline, platform = '', gpus = [],
 }: LightingSettingsModalProps) {
   const { t } = useTranslation();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -114,20 +111,6 @@ export function LightingSettingsModal({
               ariaLabel={t('lighting.renderGpu.label')}
             />
           </label>
-        )}
-
-        {onBrowseSupportedDevices && (
-          <div className={styles.row}>
-            <span className={styles.rowLabel}>{t('supported.title')}</span>
-            <Button
-              type="button"
-              tone="neutral"
-              size="sm"
-              onClick={onBrowseSupportedDevices}
-            >
-              {t('lighting.settings.supportedDevicesBrowse')}
-            </Button>
-          </div>
         )}
 
         <div className={styles.row}>

@@ -1429,7 +1429,6 @@
   "lighting.settings.resetLayouts": "Konumları sıfırla",
   "lighting.settings.resetLayoutsHint": "Her cihaz karesini tuvaldeki varsayılan yuvasına geri döndürür.",
   "lighting.settings.resetLayoutsLabel": "Tuval düzenini sıfırla",
-  "lighting.settings.supportedDevicesBrowse": "Gözat",
   "lighting.settings.title": "Aydınlatma ayarları",
   "lighting.title": "Aydinlatma",
   "marketplace.failedToLoad": "{name} yüklenemedi",

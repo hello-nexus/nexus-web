@@ -1562,7 +1562,6 @@
   "lighting.settings.resetLayouts": "Reset positions",
   "lighting.settings.resetLayoutsHint": "Snaps every device frame back to its default slot on the canvas.",
   "lighting.settings.resetLayoutsLabel": "Reset canvas layout",
-  "lighting.settings.supportedDevicesBrowse": "Browse",
   "lighting.settings.title": "Lighting settings",
   "lighting.title": "Lighting",
   "marketplace.failedToLoad": "Failed to load {name}",
