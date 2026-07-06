@@ -49,6 +49,9 @@ export interface UnifiedDevice {
   // True only for first-party curated handlers; gates whether the on/off
   // toggle renders. False for panel/peripheral/app-device and plugin devices.
   supportsNexusControl: boolean;
+  // Device-level issue code (e.g. "usb-disconnected") surfaced as a warning
+  // icon on the sidebar row and the Devices-page card; undefined = no issue.
+  warning?: string;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -188,7 +191,7 @@ export function useUnifiedDevices(enabled: boolean) {
 
 function buildUnifiedList(
   panelDevices: PanelDevice[],
-  curated: { id: string; name: string; category: string; connected: boolean; firmwareVersion: string; nexusControlEnabled?: boolean; supportsNexusControl?: boolean }[],
+  curated: { id: string; name: string; category: string; connected: boolean; firmwareVersion: string; nexusControlEnabled?: boolean; supportsNexusControl?: boolean; warning?: string | null }[],
   peripherals: Peripheral[],
   deviceApps: AppInstalledListing[] = [],
 ): UnifiedDevice[] {
@@ -223,6 +226,7 @@ function buildUnifiedList(
       navigable: true,
       nexusControlEnabled: backing?.nexusControlEnabled ?? true,
       supportsNexusControl: backing?.supportsNexusControl ?? false,
+      warning: p.warning ?? undefined,
     });
   }
 
@@ -243,6 +247,7 @@ function buildUnifiedList(
       navigable: !CURATED_WITHOUT_PAGE.has(d.id),
       nexusControlEnabled: d.nexusControlEnabled ?? true,
       supportsNexusControl: d.supportsNexusControl ?? false,
+      warning: d.warning ?? undefined,
     });
   }
 

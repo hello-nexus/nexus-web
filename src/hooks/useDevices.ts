@@ -15,6 +15,10 @@ export interface DeviceListItem {
   // True only for first-party handlers whose worker honors the on/off gate.
   // Plugin devices manage their own hardware, so the toggle is hidden.
   supportsNexusControl?: boolean;
+  // Device-level issue code (e.g. "usb-disconnected") the service wants
+  // surfaced to the user; null/undefined means no issue. Code-driven so any
+  // handler can flag a problem without new UI per device family.
+  warning?: string | null;
 }
 
 export function useDevices(enabled: boolean) {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
@@ -64,7 +64,7 @@ interface PanelDevicePageProps {
 }
 
 interface BrightnessResponse { brightness: number }
-interface RotationParams { orientation: string }
+interface RotationParams { orientation: string; forceOrientation: boolean }
 interface ToggleResponse { toggle: boolean }
 
 const Y70_ORIENTATIONS = ['Landscape', 'Portrait', 'LandscapeFlipped', 'PortraitFlipped'] as const;
@@ -95,8 +95,9 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
   const [tab, setTab] = useState<Tab>('widgets');
   const [brightness, setBrightness] = useState(50);
   const [orientation, setOrientation] = useState<Y70Orientation>('PortraitFlipped');
+  const [forceOrientation, setForceOrientation] = useState(true);
   const [screenOn, setScreenOn] = useState(true);
-  const [autoLaunch, setAutoLaunch] = useState(false);
+  const [autoLaunch, setAutoLaunch] = useState(true);
   const [reserveMonitor, setReserveMonitor] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [layout, setLayout] = useState<PanelLayout>(() => defaultLayoutForSurface('y70'));
@@ -117,6 +118,10 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
   const surface = device?.runtimeSurface ?? 'y70';
   const supportsDisplayControls = device?.capabilities.displayControls ?? surface === 'y70';
   const supportsAutoLaunch = device?.capabilities.launchClose ?? surface === 'y70';
+  // Y70 connected as a monitor only (no USB serial channel): brightness and
+  // screen power have no hardware path, but layout/theme/orientation still
+  // work over the video connection.
+  const usbDisconnected = device?.warning === 'usb-disconnected';
   // Promoted monitor panels: bound to an OS display (per-panel reserve +
   // rotation live on the record / displays API).
   const isMonitorPanel = !!device?.displayId && !!device?.panelRecordId;
@@ -187,7 +192,10 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
     ]).then(([b, r, tog, prefs, devices]) => {
       if (cancelled) return;
       if (b) setBrightness(b.brightness);
-      if (r) setOrientation(normalizeOrientation(r.orientation));
+      if (r) {
+        setOrientation(normalizeOrientation(r.orientation));
+        setForceOrientation(r.forceOrientation ?? true);
+      }
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
       // Record-backed entries (promoted monitors) bind by their explicit
@@ -212,7 +220,7 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
       const savedLayout = match?.layout ?? defaultLayoutForSurface(surface);
       setLayout(normalizePanelLayout(savedLayout, surface, touchFromRecord));
       if (prefs) {
-        setAutoLaunch(prefs.panel?.autoLaunch ?? false);
+        setAutoLaunch(prefs.panel?.autoLaunch ?? true);
         setReserveMonitor(prefs.panel?.reserveMonitor ?? true);
       }
       setLoaded(true);
@@ -514,6 +522,13 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                         postService('/y70/rotation', { orientation: next }).catch(() => {});
                       }}
                       orientationOptions={Y70_ORIENTATIONS}
+                      forceOrientation={forceOrientation}
+                      onForceOrientationToggle={() => {
+                        const next = !forceOrientation;
+                        setForceOrientation(next);
+                        if (!supportsDisplayControls) return;
+                        postService('/y70/rotation', { forceOrientation: next }).catch(() => {});
+                      }}
                       screenOn={screenOn}
                       onScreenToggle={() => {
                         const next = !screenOn;
@@ -537,6 +552,7 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                       }}
                       showDisplayControls={supportsDisplayControls}
                       showAutoLaunch={supportsAutoLaunch}
+                      usbDisconnected={usbDisconnected}
                     />
                   )}
                   {activeTab === 'settings' && surface === 'q60' && (
@@ -819,6 +835,8 @@ interface SettingsPanelProps {
   orientation: Y70Orientation;
   onOrientation: (v: Y70Orientation) => void;
   orientationOptions: readonly Y70Orientation[];
+  forceOrientation: boolean;
+  onForceOrientationToggle: () => void;
   screenOn: boolean;
   onScreenToggle: () => void;
   autoLaunch: boolean;
@@ -827,16 +845,21 @@ interface SettingsPanelProps {
   onReserveMonitorToggle: () => void;
   showDisplayControls: boolean;
   showAutoLaunch: boolean;
+  // Y70 connected as a monitor only (no USB serial channel): brightness and
+  // screen power have no hardware path to apply to.
+  usbDisconnected: boolean;
 }
 
 function SettingsPanel({
   brightness, onBrightness,
   orientation, onOrientation, orientationOptions,
+  forceOrientation, onForceOrientationToggle,
   screenOn, onScreenToggle,
   autoLaunch, onAutoLaunchToggle,
   reserveMonitor, onReserveMonitorToggle,
   showDisplayControls,
   showAutoLaunch,
+  usbDisconnected,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
 
@@ -844,6 +867,20 @@ function SettingsPanel({
     <div className={styles.settingsContent}>
       {showDisplayControls && (
         <SettingsSection title={t('devices.y70.display')} boxClassName={styles.deviceSettingsBox}>
+          {usbDisconnected && (
+            <div className={styles.usbNotice}>
+              <AlertTriangle size={14} aria-hidden />
+              <span>{t('devices.y70.usbDisconnectedNotice')}</span>
+            </div>
+          )}
+
+          <SettingToggle
+            label={t('devices.y70.screen')}
+            checked={screenOn}
+            onChange={onScreenToggle}
+            disabled={usbDisconnected}
+          />
+
           <SettingSlider
             editable
             trackFill
@@ -853,24 +890,27 @@ function SettingsPanel({
             max={100}
             onChange={onBrightness}
             onCommit={onBrightness}
-          />
-
-          <SettingSelect
-            label={t('devices.y70.orientation')}
-            value={orientation}
-            onChange={(v) => onOrientation(v as Y70Orientation)}
-            options={orientationOptions.map(o => ({
-              value: o,
-              label: t(`devices.y70.orientation.${o}`),
-            }))}
+            disabled={usbDisconnected}
           />
 
           <SettingToggle
-            label={t('devices.y70.screen')}
-            description={screenOn ? t('devices.y70.screenOn') : t('devices.y70.screenOff')}
-            checked={screenOn}
-            onChange={onScreenToggle}
+            label={t('devices.y70.forceOrientation')}
+            description={t('devices.y70.forceOrientationHint')}
+            checked={forceOrientation}
+            onChange={onForceOrientationToggle}
           />
+
+          {!forceOrientation && (
+            <SettingSelect
+              label={t('devices.y70.orientation')}
+              value={orientation}
+              onChange={(v) => onOrientation(v as Y70Orientation)}
+              options={orientationOptions.map(o => ({
+                value: o,
+                label: t(`devices.y70.orientation.${o}`),
+              }))}
+            />
+          )}
         </SettingsSection>
       )}
 

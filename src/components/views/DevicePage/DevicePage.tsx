@@ -63,19 +63,36 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
 
   // The device appearing in `unified` re-renders and dispatches immediately,
   // independent of this timer; the grace only defers the empty-state UI.
+  // Also covers a device that resolves but reports itself disconnected (e.g.
+  // unplugged, or a Y70 whose monitor cable came out too) - not just one
+  // absent from `unified` altogether.
+  const notConnected = !device || !device.connected;
   const [graceElapsed, setGraceElapsed] = useState(false);
   useEffect(() => {
     setGraceElapsed(false);
-    if (device) return;
+    if (!notConnected) return;
     const id = window.setTimeout(() => setGraceElapsed(true), DETECT_GRACE_MS);
     return () => window.clearTimeout(id);
-  }, [device, deviceKey]);
+  }, [notConnected, deviceKey]);
 
-  if (!serviceOnline) {
+  // A USB replug elsewhere on the shared hub can drop the dashboard socket
+  // for a moment without the service itself going down; only a sustained
+  // outage shows ServiceRequired. A transient blip falls through to the
+  // normal device view using the last-known `unified` snapshot (useDevices
+  // et al. keep their state while `enabled` is momentarily false).
+  const [serviceOfflineElapsed, setServiceOfflineElapsed] = useState(false);
+  useEffect(() => {
+    setServiceOfflineElapsed(false);
+    if (serviceOnline) return;
+    const id = window.setTimeout(() => setServiceOfflineElapsed(true), DETECT_GRACE_MS);
+    return () => window.clearTimeout(id);
+  }, [serviceOnline]);
+
+  if (!serviceOnline && serviceOfflineElapsed) {
     return <ServiceRequired state={connectionState} skeleton={<div />} />;
   }
 
-  if (!device) {
+  if (notConnected) {
     return (
       <div className={styles.page}>
         <ViewHeader title={t('devices.page.title')} />

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import classNames from 'classnames';
 import { Ghost, Usb } from 'lucide-react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
+import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { useTranslation } from '../lib/i18n';
 import { ICON_SIZE } from './sidebarNav';
@@ -123,6 +124,7 @@ export function SidebarDevicesSection({
                       aria-label={t('devices.panels.simulated')}
                     />
                   )}
+                  {device.warning && <DeviceWarningIcon code={device.warning} />}
                 </>
               )}
             </button>

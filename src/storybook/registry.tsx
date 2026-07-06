@@ -22,6 +22,7 @@ import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { CardDeleteButton } from '../components/common/CardDeleteButton/CardDeleteButton';
 import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
+import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { Popover } from '../components/common/Popover/Popover';
 import { DatePicker } from '../components/common/DatePicker/DatePicker';
 import { EffectCard } from '../components/common/EffectCard/EffectCard';
@@ -260,6 +261,21 @@ function PreviewHoverTooltip() {
           <Settings size={14} aria-hidden />
         </button>
       </HoverTooltip>
+    </div>
+  );
+}
+
+function PreviewDeviceWarningIcon() {
+  return (
+    <div className={styles.previewStack}>
+      <div className={styles.previewHoverCard}>
+        <span>Y70 Touch Display</span>
+        <DeviceWarningIcon code="usb-disconnected" />
+      </div>
+      <div className={styles.previewHoverCard}>
+        <span>Unknown code</span>
+        <DeviceWarningIcon code="some-future-code" />
+      </div>
     </div>
   );
 }
@@ -1484,6 +1500,13 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/HoverTooltip/HoverTooltip.tsx',
     description: 'Instant hover tooltip that wraps any trigger element. Optional bold title line above a muted body line, portal\'d to document.body so curve-card overflow / scroll containers can\'t clip it. Companion to InfoTooltip - use this when the trigger is the surrounding content (chip button, icon-only control) rather than an (i) icon. Used by the cooling curve-type chips so each chip surfaces its description on hover with zero open delay.', Preview: PreviewHoverTooltip,
     notes: 'Opens on pointerenter and keyboard focus, closes on leave / blur. Tooltip itself is pointer-events: none so the trigger keeps ownership of the cursor. Pass `title` for the bold first line plus `body` for the description, or just `body` for a single-line variant.',
+  },
+  {
+    name: 'DeviceWarningIcon', category: 'status',
+    filePath: 'src/components/common/DeviceWarningIcon/DeviceWarningIcon.tsx',
+    description: 'Right-aligned warning glyph for a device row/card, shown whenever the service reports a device-level issue via DeviceListItem.warning. Code-driven - the warning code maps to a localized tooltip, so any handler can flag a problem without new UI per device family. Used by the sidebar DEVICES section and the Devices-page card grid.',
+    Preview: PreviewDeviceWarningIcon,
+    notes: 'Renders the raw code as a fallback tooltip if it has no mapped i18n key, so an unmapped code fails visibly instead of silently.',
   },
   {
     name: 'HeartBurst', category: 'status',

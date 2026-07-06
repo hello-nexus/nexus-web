@@ -47,6 +47,9 @@ export interface PanelDevice {
   // record (promoted monitors). The editor binds by this id instead of the
   // surface-match scan, which breaks with several same-surface records.
   panelRecordId?: string;
+  // Stamped from the backing curated DeviceListItem.warning (e.g. the Y70
+  // connected as a monitor only, no USB serial channel).
+  warning?: string | null;
 }
 
 export const PANEL_DEVICE_ICON = '/assets/devices/y70.svg';

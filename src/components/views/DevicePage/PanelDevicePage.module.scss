@@ -376,3 +376,21 @@
 .deviceSettingsBox {
   gap: 0.5rem;
 }
+
+// Monitor-only Y70 (no USB serial channel): brightness/screen have no
+// hardware path, so the Display section leads with this instead of them
+// silently no-oping.
+.usbNotice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  color: var(--warn);
+  font-size: var(--type-small);
+
+  svg {
+    flex-shrink: 0;
+  }
+}
