@@ -20,15 +20,17 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+  // Column count + cell size are set inline (measured to fill the tile width);
+  // these are the baseline fallbacks.
+  grid-template-columns: repeat(9, var(--dg-dot, 10px));
+  gap: var(--dg-gap, 4px);
   width: fit-content;
 }
 
 .dotFilled,
 .dotEmpty {
-  width: 10px;
-  height: 10px;
+  width: var(--dg-dot, 10px);
+  height: var(--dg-dot, 10px);
   border-radius: 50%;
 }
 

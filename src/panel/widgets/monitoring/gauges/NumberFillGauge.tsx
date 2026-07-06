@@ -2,14 +2,12 @@ import { splitFormatted } from './format';
 import type { GaugeProps } from './types';
 import styles from './NumberFillGauge.module.scss';
 
-// Square-root mapping so single-digit changes produce visible fill deltas
-// (1% -> ~10% bright, 2% -> ~14%, 5% -> ~22%) while 100% still maps to
-// full. Linear mapping makes 1-12% indistinguishable from "nothing" since
-// only the descenders of the glyphs sit in that band.
+// Linear fill: the bright water line sits at value% of the glyph height, so
+// the max value fills to the top of the number and intermediate values read
+// proportionally.
 export function NumberFillGauge({ value, formatted, label }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
-  const displayPct = clamped <= 0 ? 0 : Math.sqrt(clamped / 100) * 100;
-  const clipTop = 100 - displayPct;
+  const clipTop = 100 - clamped;
   const parts = splitFormatted(formatted);
   const renderText = () => (
     <>
