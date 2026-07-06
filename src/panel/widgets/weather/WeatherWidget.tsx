@@ -265,7 +265,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
 
   if (wide) {
     return (
-      <div className={`${styles.large} ${styles.wideForecast}`}>
+      <div className={styles.large}>
         {renderTop()}
         {renderHourly()}
       </div>
