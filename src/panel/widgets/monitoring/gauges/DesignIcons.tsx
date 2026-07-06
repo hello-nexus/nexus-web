@@ -142,7 +142,6 @@ function HalfGaugeIcon(p: P) {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
       <path d="M4 18 A8 8 0 0 1 20 18" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.15" />
       <path d="M4 18 A8 8 0 0 1 17.5 11" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-      <circle cx="17.5" cy="11" r="2" fill="currentColor" />
     </svg>
   );
 }

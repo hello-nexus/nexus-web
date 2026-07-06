@@ -13,12 +13,6 @@ export function HalfGaugeGauge({ value, formatted, label }: GaugeProps) {
   const fillLength = (clamped / 100) * circumference;
   const gapLength = circumference - fillLength;
 
-  // Dot at the fill tip. The arc sweeps 180deg (left -> top -> right), so the
-  // angle at fraction f is pi*(1-f); y grows downward in SVG.
-  const tipAngle = Math.PI * (1 - clamped / 100);
-  const dotX = cx + radius * Math.cos(tipAngle);
-  const dotY = cy - radius * Math.sin(tipAngle);
-
   return (
     <div className={styles.halfGauge}>
       <div className={styles.arcWrap}>
@@ -32,7 +26,6 @@ export function HalfGaugeGauge({ value, formatted, label }: GaugeProps) {
             className={styles.fillArc}
             strokeDasharray={`${fillLength} ${gapLength}`}
           />
-          <circle cx={dotX} cy={dotY} r={6} className={styles.fillDot} />
         </svg>
       </div>
       <div className={styles.info}>
