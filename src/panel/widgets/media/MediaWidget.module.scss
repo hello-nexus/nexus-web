@@ -15,8 +15,10 @@
 
 .full { /* 4x2 layout - playback column with persistent mixer on the right */ }
 
-.compact { /* 2x2 - small art + title centered, controls pinned at the bottom */
-  padding: 10px 12px;
+.compact { /* 2x2 - small art + title centered, controls at the 4x2 height */
+  // Match the 4x2 (.media base) padding + gap so the controls row lands at
+  // the same height as the 4x2; the art shrinks to fit the space above.
+  padding: 18px 14px;
   gap: 8px;
   align-items: center;
 }
