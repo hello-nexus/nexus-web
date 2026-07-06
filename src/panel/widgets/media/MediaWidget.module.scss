@@ -15,19 +15,30 @@
 
 .full { /* 4x2 layout - playback column with persistent mixer on the right */ }
 
-.compact { /* 2x2 - album art hero centered with the title beneath */
-  padding: 12px;
+.compact { /* 2x2 - small art + title centered, controls pinned at the bottom */
+  padding: 10px 12px;
   gap: 8px;
-  justify-content: center;
   align-items: center;
 }
 
-.compactArtWrap {
-  // Fill the remaining column height as a square, capped by the tile width,
-  // so the art scales to the 2x2 with the title sitting directly beneath.
+// Art + title grouped so they center together in the space above the
+// controls, which stay pinned to the bottom in their original position.
+.compactNowPlaying {
+  display: flex;
   flex: 1 1 auto;
   min-height: 0;
-  align-self: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.compactArtWrap {
+  // Square thumbnail sized off the group height (title + controls take the
+  // rest), capped by the tile width.
+  flex: 1 1 auto;
+  min-height: 0;
   aspect-ratio: 1;
   width: auto;
   height: auto;
@@ -236,6 +247,10 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+
+.compact .controls {
+  justify-content: center;
 }
 
 .btn {
