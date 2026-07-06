@@ -1,0 +1,87 @@
+@use '../../../styles/scrollbar' as *;
+
+.locationPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.currentLocation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card-hover);
+}
+
+.currentLocationLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-small);
+  color: var(--text);
+}
+
+.clearButton {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--panel-accent, var(--accent));
+  font-size: var(--type-mini);
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--panel-accent);
+    outline-offset: -2px;
+  }
+}
+
+.hint {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  padding: 0.25rem 0.1rem;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+  @include scrollbar-visible($gutter: false);
+}
+
+.resultRow {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.5rem;
+  color: var(--text);
+  font-size: var(--type-small);
+  cursor: pointer;
+  font-family: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--panel-accent);
+    outline-offset: -2px;
+  }
+}

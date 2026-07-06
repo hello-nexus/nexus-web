@@ -4,6 +4,7 @@ import {
   CloudSnow, CloudRainWind, CloudLightning, HelpCircle, Droplet, Wind,
 } from 'lucide-react';
 import { fetchService } from '../../../api/service';
+import { weatherLocationQuery, type WeatherLocation } from '../../../api/weather';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import styles from './WeatherWidget.module.scss';
@@ -100,10 +101,20 @@ export function WeatherWidget({ widget }: WidgetProps) {
   const [loaded, setLoaded] = useState(false);
   const [referenceNow, setReferenceNow] = useState(0);
 
+  const location = (widget.config?.location as WeatherLocation | null | undefined) ?? null;
+  const locationQuery = weatherLocationQuery(location);
+
   useEffect(() => {
     let cancelled = false;
+    // Reset the display when the query itself changes (a manual location
+    // pick or the auto/manual switch) so the tile doesn't show the previous
+    // location's weather while the new fetch is in flight. A same-location
+    // interval tick doesn't re-run this effect, so it keeps showing the last
+    // snapshot until the refresh resolves, matching the prior behavior.
+    setSnap(null);
+    setLoaded(false);
     async function load() {
-      const data = await fetchService<WeatherSnapshot>('/api/weather');
+      const data = await fetchService<WeatherSnapshot>(`/api/weather${locationQuery}`);
       if (!cancelled) {
         setReferenceNow(Date.now());
         setSnap(data);
@@ -113,7 +124,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
     load();
     const timer = setInterval(load, REFRESH_MS);
     return () => { cancelled = true; clearInterval(timer); };
-  }, []);
+  }, [locationQuery]);
 
   function hourLabel(time: string) {
     const date = new Date(time);
