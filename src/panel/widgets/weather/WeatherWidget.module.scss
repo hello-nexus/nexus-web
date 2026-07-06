@@ -1,5 +1,9 @@
 @use '../../../styles/text' as *;
 
+// Single dim level for all secondary text; full-opacity is reserved for the
+// temperature and forecast numbers, accent for icons and the range bar.
+$dim: 0.55;
+
 // Compact (2x2 and 1x1): icon hero + temp + condition stacked
 .compact {
   display: flex;
@@ -10,7 +14,7 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
-  padding: 12px;
+  padding: 14px;
   gap: 4px;
   box-sizing: border-box;
   text-align: center;
@@ -18,7 +22,7 @@
 
 .compact2x2 {
   align-items: stretch;
-  padding: 12px 14px;
+  padding: 16px 18px;
   gap: 5px;
 }
 
@@ -82,7 +86,7 @@
 
 .compactCondition {
   @include text-button;
-  opacity: 0.7;
+  opacity: $dim;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -91,7 +95,7 @@
 
 .compactLocation {
   @include text-caption;
-  opacity: 0.4;
+  opacity: $dim;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -107,7 +111,7 @@
   flex-wrap: wrap;
   max-width: 100%;
   margin-top: 4px;
-  opacity: 0.58;
+  opacity: $dim;
 
   .stat {
     gap: 3px;
@@ -135,7 +139,7 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
-  padding: 18px;
+  padding: 22px;
   box-sizing: border-box;
 }
 
@@ -194,7 +198,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  opacity: 0.72;
+  opacity: $dim;
 }
 
 .largeHiLo,
@@ -204,12 +208,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  opacity: 0.55;
+  opacity: $dim;
 }
 
 .largeLocation {
   @include text-caption;
-  opacity: 0.42;
 }
 
 .largeCurrentStats {
@@ -219,7 +222,7 @@
   row-gap: 4px;
   flex-wrap: wrap;
   max-width: 100%;
-  opacity: 0.58;
+  opacity: $dim;
 }
 
 .hourlyRow {
@@ -246,7 +249,7 @@
 }
 
 .hourlyLabel {
-  opacity: 0.48;
+  opacity: $dim;
 }
 
 .hourlyIcon {
@@ -257,7 +260,7 @@
 
 .wideForecast {
   justify-content: center;
-  padding: 14px 16px;
+  padding: 18px 20px;
 
   .largeTop {
     gap: 14px;
@@ -333,7 +336,7 @@
 
 .dailyLo {
   text-align: right;
-  opacity: 0.45;
+  opacity: $dim;
 }
 
 .dailyBarTrack {
@@ -363,5 +366,5 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  opacity: 0.48;
+  opacity: $dim;
 }
