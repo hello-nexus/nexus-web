@@ -4,6 +4,18 @@
 // temperature and forecast numbers, accent for icons and the range bar.
 $dim: 0.55;
 
+// One label size for every non-hero string; hierarchy comes from weight and
+// dim, never a third size. Primary = full opacity + heading weight, secondary
+// = dim + body weight.
+@mixin label-primary {
+  @include text-button;
+}
+@mixin label-secondary {
+  @include text-button;
+  font-weight: var(--weight-body);
+  opacity: $dim;
+}
+
 // Compact (2x2 and 1x1): icon hero + temp + condition stacked
 .compact {
   display: flex;
@@ -14,16 +26,16 @@ $dim: 0.55;
   height: 100%;
   min-width: 0;
   min-height: 0;
-  padding: 14px;
-  gap: 4px;
+  padding: 16px;
+  gap: 6px;
   box-sizing: border-box;
   text-align: center;
 }
 
 .compact2x2 {
   align-items: stretch;
-  padding: 16px 18px;
-  gap: 5px;
+  padding: 18px;
+  gap: 6px;
 }
 
 .compact1x1 {
@@ -80,13 +92,12 @@ $dim: 0.55;
 
 .compactTemp {
   font-size: 2.4em;
-  font-weight: var(--weight-heading);
+  font-weight: var(--weight-body);
   font-variant-numeric: tabular-nums;
 }
 
 .compactCondition {
-  @include text-button;
-  opacity: $dim;
+  @include label-primary;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -94,8 +105,7 @@ $dim: 0.55;
 }
 
 .compactLocation {
-  @include text-caption;
-  opacity: $dim;
+  @include label-secondary;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -103,23 +113,22 @@ $dim: 0.55;
 }
 
 .compactStats {
-  @include text-caption;
+  @include label-secondary;
   display: flex;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 10px;
   row-gap: 3px;
   flex-wrap: wrap;
   max-width: 100%;
   margin-top: 4px;
-  opacity: $dim;
 
   .stat {
-    gap: 3px;
+    gap: 4px;
   }
 
   .stat svg {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
   }
 }
 
@@ -128,7 +137,7 @@ $dim: 0.55;
   align-items: center;
   gap: 4px;
 
-  svg { width: 12px; height: 12px; }
+  svg { width: 13px; height: 13px; }
 }
 
 // Large (4x4): current conditions, hourly strip, daily forecast rows
@@ -158,12 +167,12 @@ $dim: 0.55;
   align-items: flex-start;
   flex-shrink: 0;
   min-width: 0;
-  gap: 6px;
+  gap: 8px;
 }
 
 .largeTemp {
-  font-size: 3.1em;
-  font-weight: var(--weight-heading);
+  font-size: 2.8em;
+  font-weight: var(--weight-body);
   font-variant-numeric: tabular-nums;
 }
 
@@ -171,7 +180,7 @@ $dim: 0.55;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
   text-align: right;
 }
@@ -193,44 +202,37 @@ $dim: 0.55;
 }
 
 .largeDescription {
-  @include text-button;
+  @include label-primary;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  opacity: $dim;
 }
 
 .largeHiLo,
 .largeLocation {
-  @include text-button;
+  @include label-secondary;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  opacity: $dim;
-}
-
-.largeLocation {
-  @include text-caption;
 }
 
 .largeCurrentStats {
-  @include text-caption;
+  @include label-secondary;
   display: flex;
-  gap: 11px;
+  gap: 12px;
   row-gap: 4px;
   flex-wrap: wrap;
   max-width: 100%;
-  opacity: $dim;
 }
 
 .hourlyRow {
   display: flex;
   justify-content: space-between;
-  gap: 3px;
+  gap: 4px;
   flex-shrink: 0;
-  margin-top: 22px;
+  margin-top: 16px;
 }
 
 .hourlyItem {
@@ -239,17 +241,17 @@ $dim: 0.55;
   min-width: 0;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
-.hourlyLabel,
 .hourlyTemp {
-  @include text-caption;
+  @include label-primary;
   font-variant-numeric: tabular-nums;
 }
 
 .hourlyLabel {
-  opacity: $dim;
+  @include label-secondary;
+  font-variant-numeric: tabular-nums;
 }
 
 .hourlyIcon {
@@ -260,29 +262,25 @@ $dim: 0.55;
 
 .wideForecast {
   justify-content: center;
-  padding: 18px 20px;
+  padding: 22px;
 
   .largeTop {
-    gap: 14px;
+    gap: 16px;
   }
 
   .hourlyRow {
-    margin-top: 15px;
+    margin-top: 16px;
   }
 
   .largeCurrent {
-    gap: 5px;
-  }
-
-  .largeCurrentStats {
-    @include text-caption;
+    gap: 8px;
   }
 }
 
 .divider {
   height: 1px;
   flex-shrink: 0;
-  margin: 16px 0 6px;
+  margin: 16px 0 12px;
   background: var(--panel-border);
 }
 
@@ -302,8 +300,8 @@ $dim: 0.55;
 }
 
 .dailyDay {
-  @include text-button;
-  width: 42px;
+  @include label-primary;
+  width: 46px;
   flex-shrink: 0;
 }
 
@@ -326,17 +324,19 @@ $dim: 0.55;
   height: 21px;
 }
 
-.dailyLo,
 .dailyHi {
-  @include text-button;
+  @include label-primary;
   width: 31px;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
 
 .dailyLo {
+  @include label-secondary;
+  width: 31px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
   text-align: right;
-  opacity: $dim;
 }
 
 .dailyBarTrack {
@@ -361,10 +361,9 @@ $dim: 0.55;
 }
 
 .forecastEmpty {
-  @include text-button;
+  @include label-secondary;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
-  opacity: $dim;
 }
