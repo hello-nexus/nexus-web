@@ -44,6 +44,11 @@ function normalizeOpacity(raw: number | undefined): number {
 // UiSettings.OverlayWidgetScale (50-200) multiplies this to give the
 // runtime cell px applied to both layout and content.
 const BASE_CELL_PX = 86;
+// The cell width every widget's content is authored against (the value the
+// dashboard renders at, --panel-cell-size, with --panel-scale 1). The
+// dashboard's .cellScaler scales content by real-cell ÷ this via --panel-scale;
+// the overlay applies the same ratio as a zoom (see the tile).
+const DESIGN_CELL_PX = 90;
 // Visual inset on each side of the cell footprint, matching the panel's
 // widget-card margins. 6px = panel's --panel-widget-card-margin-x default.
 const WIDGET_INSET_PX = 6;
@@ -248,10 +253,8 @@ export default function OverlayShell() {
     // re-read after each applyPrefs run so themeStyle picks up the right
     // resolved mode for the panel-card color tokens.
     const resolvedMode = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-    // --panel-cell-size stays at the base value so widget content lays out
-    // at its native size; CSS zoom on the widget body multiplies that by
-    // scaleFactor visually. The container around the widget uses cellPx
-    // (already scaled) so the rendered size matches.
+    // --panel-cell-size is vestigial here - no widget content reads it; content
+    // sizing is governed entirely by the widget body's zoom (see the tile).
     return {
       ...buildEmbeddedPanelThemeVars(accentColor ?? undefined, resolvedMode as 'light' | 'dark'),
       '--panel-cell-size': `${BASE_CELL_PX}px`,
@@ -453,7 +456,7 @@ export default function OverlayShell() {
             key={entry.id}
             entry={entry}
             cellPx={cellPx}
-            contentZoom={scaleFactor}
+            contentZoom={cellPx / DESIGN_CELL_PX}
             locked={!!entry.locked}
             isDragging={dragOverride?.id === entry.id}
             selectedSlot={editingThis ? selectedMonitoringSlot : undefined}
@@ -661,9 +664,11 @@ function OverlayWidgetTile({ entry, cellPx, contentZoom, locked, isDragging, sel
         // CSS `zoom` is non-standard but supported in Chromium (the only
         // renderer for the dashboard and the desktop overlay). It scales
         // every descendant pixel uniformly, including widgets that hardcode
-        // font sizes / paddings instead of reading --panel-cell-size. The
-        // container is already sized at cellPx (BASE_CELL_PX * contentZoom),
-        // so the zoomed body lines up.
+        // font sizes / paddings against DESIGN_CELL_PX. contentZoom is
+        // cellPx / DESIGN_CELL_PX - the same real-cell ÷ base ratio the panel
+        // feeds .cellScaler via --panel-scale - so design-sized content fills
+        // the actual cell. Zooming by the raw user scale (cellPx / BASE_CELL_PX)
+        // instead left content oversized in the smaller cell (collapsed padding).
         style={{ zoom: contentZoom }}
       >
         <Suspense fallback={null}>
