@@ -122,6 +122,9 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
   // screen power have no hardware path, but layout/theme/orientation still
   // work over the video connection.
   const usbDisconnected = device?.warning === 'usb-disconnected';
+  // Serial/USB up but no video display attached: the panel has nothing to
+  // render on, so prompt the user to connect the display cable.
+  const displayDisconnected = device?.warning === 'display-disconnected';
   // Promoted monitor panels: bound to an OS display (per-panel reserve +
   // rotation live on the record / displays API).
   const isMonitorPanel = !!device?.displayId && !!device?.panelRecordId;
@@ -553,6 +556,7 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                       showDisplayControls={supportsDisplayControls}
                       showAutoLaunch={supportsAutoLaunch}
                       usbDisconnected={usbDisconnected}
+                      displayDisconnected={displayDisconnected}
                     />
                   )}
                   {activeTab === 'settings' && surface === 'q60' && (
@@ -848,6 +852,8 @@ interface SettingsPanelProps {
   // Y70 connected as a monitor only (no USB serial channel): brightness and
   // screen power have no hardware path to apply to.
   usbDisconnected: boolean;
+  // Y70 serial/USB up but no video display attached: nothing to render on.
+  displayDisconnected: boolean;
 }
 
 function SettingsPanel({
@@ -860,6 +866,7 @@ function SettingsPanel({
   showDisplayControls,
   showAutoLaunch,
   usbDisconnected,
+  displayDisconnected,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
 
@@ -871,6 +878,13 @@ function SettingsPanel({
             <div className={styles.usbNotice}>
               <AlertTriangle size={14} aria-hidden />
               <span>{t('devices.y70.usbDisconnectedNotice')}</span>
+            </div>
+          )}
+
+          {displayDisconnected && (
+            <div className={styles.usbNotice}>
+              <AlertTriangle size={14} aria-hidden />
+              <span>{t('devices.y70.displayDisconnectedNotice')}</span>
             </div>
           )}
 

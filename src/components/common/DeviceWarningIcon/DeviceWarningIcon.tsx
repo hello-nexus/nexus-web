@@ -8,6 +8,7 @@ import styles from './DeviceWarningIcon.module.scss';
 // add the code's i18n key here.
 const WARNING_MESSAGE_KEYS: Record<string, string> = {
   'usb-disconnected': 'devices.warning.usbDisconnected',
+  'display-disconnected': 'devices.warning.displayDisconnected',
 };
 
 interface DeviceWarningIconProps {
