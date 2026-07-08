@@ -1,0 +1,795 @@
+@use '../styles/text' as *;
+
+// Marketing site layout. Reuses the app's design tokens (variables.scss);
+// only marketing-scale type sizes and section scaffolding live here.
+
+.page {
+  min-height: 100dvh;
+  color: var(--text);
+  // Solid backdrop: the app's --bg is translucent (it sits over the dashboard
+  // ribbon); the marketing page provides its own canvas.
+  background:
+    radial-gradient(1200px 700px at 85% -10%, color-mix(in srgb, var(--accent-deep) 26%, transparent), transparent 70%),
+    radial-gradient(1000px 600px at -10% 45%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%),
+    #0a0a0d;
+
+  h2 {
+    @include text-display;
+    font-size: clamp(1.7rem, 3.4vw, 2.4rem);
+    margin: 0 0 14px;
+  }
+}
+
+// ── Header ───────────────────────────────────────────────────────────────────
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  background: rgba(10, 10, 13, 0.72);
+  border-bottom: 1px solid var(--border);
+}
+
+.headerInner {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 12px 22px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.brandWordmark {
+  display: inline-flex;
+  color: var(--text);
+}
+
+.nav {
+  display: flex;
+  gap: 18px;
+  margin-left: 8px;
+
+  a {
+    @include text-label;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 140ms ease;
+
+    &:hover { color: var(--text); }
+  }
+
+  @media (max-width: 760px) { display: none; }
+}
+
+.headerActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.headerIconLink {
+  display: inline-flex;
+  color: var(--text-dim);
+  transition: color 140ms ease;
+
+  &:hover { color: var(--text); }
+
+  @media (max-width: 560px) { display: none; }
+}
+
+.headerLogin {
+  @include text-label;
+  color: var(--text-dim);
+  text-decoration: none;
+
+  &:hover { color: var(--text); }
+
+  @media (max-width: 560px) { display: none; }
+}
+
+.headerDownload {
+  @include text-button;
+  color: var(--text);
+  text-decoration: none;
+  padding: 7px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  transition: border-color 140ms ease, background 140ms ease;
+
+  &:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+  @media (max-width: 760px) { display: none; }
+}
+
+.headerMySystem {
+  @include text-button;
+  color: var(--accent-text);
+  text-decoration: none;
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  box-shadow: 0 0 18px var(--accent-glow-shadow);
+  transition: filter 140ms ease;
+
+  &:hover { filter: brightness(1.12); }
+}
+
+// ── Hero ─────────────────────────────────────────────────────────────────────
+
+.hero {
+  position: relative;
+  min-height: min(88vh, 900px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  text-align: center;
+  padding: 96px 24px 72px;
+}
+
+// Compound selector: .plasmaWrap (declared later) sets position: relative,
+// which would otherwise win the tie and collapse the absolutely-positioned
+// canvas to zero height.
+.hero .heroPlasma {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+}
+
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10, 10, 13, 0.78) 0%, rgba(10, 10, 13, 0.45) 45%, #0a0a0d 100%);
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+  max-width: 780px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.heroHello {
+  font-family: 'Great Vibes', cursive;
+  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  line-height: 1;
+  color: var(--text);
+  opacity: 0.85;
+  margin-bottom: 6px;
+}
+
+.heroTitle {
+  @include text-display;
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  line-height: 1.08;
+  margin: 0 0 18px;
+  letter-spacing: -0.02em;
+}
+
+.heroSubtitle {
+  @include text-body;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: var(--text-dim);
+  max-width: 620px;
+  margin: 0 0 30px;
+  line-height: 1.6;
+}
+
+.heroCtas {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.heroMeta {
+  @include text-caption;
+  color: var(--text-dim);
+  margin-top: 26px;
+}
+
+// ── CTAs ─────────────────────────────────────────────────────────────────────
+
+.ctaPrimary {
+  @include text-button;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-text);
+  text-decoration: none;
+  background: var(--accent);
+  padding: 13px 28px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 4px 30px var(--accent-glow-shadow);
+  transition: filter 140ms ease, transform 140ms ease;
+
+  &:hover { filter: brightness(1.12); transform: translateY(-1px); }
+}
+
+.ctaGhost {
+  @include text-button;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  text-decoration: none;
+  padding: 13px 28px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  transition: border-color 140ms ease, background 140ms ease;
+
+  &:hover { border-color: var(--accent); background: var(--accent-soft); }
+}
+
+// ── Feature sections ─────────────────────────────────────────────────────────
+
+.section {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 84px 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 56px 20px;
+  }
+}
+
+.sectionFlipped {
+  // Demo leads on desktop; on mobile the text always comes first.
+  @media (min-width: 901px) {
+    .sectionText { order: 2; }
+    .sectionDemo { order: 1; }
+  }
+}
+
+.sectionText {
+  h2 { margin-top: 6px; }
+}
+
+.eyebrow {
+  @include text-label;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-glow);
+  margin: 0;
+}
+
+.lead {
+  @include text-body;
+  color: var(--text-dim);
+  line-height: 1.65;
+  margin: 0 0 16px;
+}
+
+.points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  li {
+    @include text-body;
+    position: relative;
+    padding-left: 24px;
+    color: var(--text);
+    line-height: 1.5;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.42em;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow-shadow);
+    }
+  }
+}
+
+.hint {
+  @include text-caption;
+  color: var(--accent-glow);
+  margin: 18px 0 0;
+}
+
+// ── Demo frame ───────────────────────────────────────────────────────────────
+
+.demoFrame {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.25));
+  padding: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  // Panel-scoped tokens the embedded gauges read; the site has no .panel-root
+  // ancestor, so map them to the same app-level values tokens.scss uses.
+  --panel-accent: var(--accent);
+  --panel-accent-glow: var(--accent-glow);
+  --panel-element-radius: var(--radius);
+}
+
+.demoBadge {
+  @include text-caption;
+  position: absolute;
+  top: -11px;
+  right: 16px;
+  z-index: 2;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: #131318;
+  color: var(--text-dim);
+}
+
+.demoBody {
+  min-width: 0;
+}
+
+.demoStatic {
+  pointer-events: none;
+  user-select: none;
+}
+
+// ── Monitoring demo ──────────────────────────────────────────────────────────
+
+.monitoringGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.monitoringWide {
+  grid-column: 1 / -1;
+  height: 150px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 12px;
+}
+
+.monitoringCell {
+  height: 170px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 12px;
+}
+
+// ── Lighting demo ────────────────────────────────────────────────────────────
+
+.lightingDemo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lightingCanvas {
+  aspect-ratio: 16 / 8.2;
+}
+
+.plasmaWrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+
+.plasmaCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.plasmaFallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, #1d4ed8, #7c3aed 45%, #db2777 80%);
+}
+
+.lightingControls {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 24px;
+  align-items: center;
+
+  @media (max-width: 560px) {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+}
+
+.lightingRing {
+  grid-row: 1 / span 2;
+  width: 190px;
+
+  @media (max-width: 560px) { grid-row: auto; }
+}
+
+.lightingPresets {
+  display: flex;
+  gap: 10px;
+  align-self: end;
+}
+
+.presetChip {
+  width: 44px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 120ms ease, border-color 120ms ease;
+
+  &:hover { transform: translateY(-1px); border-color: var(--text-dim); }
+}
+
+.lightingSliders {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: start;
+  min-width: 0;
+  width: 100%;
+}
+
+// ── Cooling demo ─────────────────────────────────────────────────────────────
+
+.coolingDemo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.coolingReadout {
+  display: flex;
+  gap: 12px;
+}
+
+.coolingStat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 10px 14px;
+}
+
+.coolingStatLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.coolingStatValue {
+  @include text-numeric;
+  font-size: 1.5rem;
+}
+
+.coolingStatAccent {
+  color: var(--accent-glow);
+}
+
+// ── Remote demo ──────────────────────────────────────────────────────────────
+
+.remoteDemo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 4vw, 44px);
+  padding: 10px 0;
+  flex-wrap: wrap;
+}
+
+.remoteQrCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.remoteQr {
+  width: 128px;
+  height: 128px;
+  fill: var(--text);
+  opacity: 0.92;
+}
+
+.remoteQrLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.phoneFrame {
+  position: relative;
+  width: 180px;
+  border-radius: 26px;
+  border: 2px solid var(--border-strong);
+  background: #0c0c10;
+  padding: 14px 10px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+
+.phoneNotch {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 52px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--border-strong);
+}
+
+.phoneScreen {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.phoneTile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 10px 12px;
+}
+
+.phoneTileLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.phoneTileValue {
+  @include text-numeric;
+  font-size: 1.15rem;
+}
+
+// ── More grid ────────────────────────────────────────────────────────────────
+
+.moreSection {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 72px 24px;
+}
+
+.moreHeading {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 40px;
+}
+
+.moreGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+
+  @media (max-width: 900px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 560px) { grid-template-columns: minmax(0, 1fr); }
+}
+
+.moreCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 20px;
+  transition: border-color 140ms ease, transform 140ms ease;
+
+  &:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+
+  h3 {
+    @include text-heading;
+    margin: 10px 0 6px;
+  }
+
+  p {
+    @include text-body;
+    color: var(--text-dim);
+    line-height: 1.55;
+    margin: 0;
+  }
+}
+
+.moreIcon {
+  color: var(--accent-glow);
+}
+
+// ── Download ─────────────────────────────────────────────────────────────────
+
+.downloadSection {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 84px 24px;
+  text-align: center;
+
+  .lead { margin-bottom: 36px; }
+}
+
+.downloadGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 880px;
+  margin: 0 auto;
+
+  @media (max-width: 760px) { grid-template-columns: minmax(0, 1fr); }
+}
+
+.downloadCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 28px 20px 24px;
+
+  h3 {
+    @include text-heading;
+    margin: 0;
+  }
+}
+
+.downloadPrimary {
+  border-color: var(--accent);
+  box-shadow: 0 0 34px color-mix(in srgb, var(--accent-glow-shadow) 60%, transparent);
+}
+
+.downloadDetected {
+  @include text-caption;
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-text);
+  white-space: nowrap;
+}
+
+.downloadNote {
+  @include text-caption;
+  color: var(--text-dim);
+  margin-top: 28px;
+}
+
+// ── About ────────────────────────────────────────────────────────────────────
+
+.aboutSection {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 72px 24px 96px;
+  text-align: center;
+
+  p {
+    @include text-body;
+    color: var(--text-dim);
+    line-height: 1.7;
+    margin: 0 0 16px;
+  }
+}
+
+.aboutGithub {
+  @include text-button;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  text-decoration: none;
+  margin-top: 10px;
+  padding: 10px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  transition: border-color 140ms ease, background 140ms ease;
+
+  &:hover { border-color: var(--accent); background: var(--accent-soft); }
+}
+
+// ── Footer ───────────────────────────────────────────────────────────────────
+
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 40px 24px 28px;
+}
+
+.footerInner {
+  max-width: 1160px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.footerBrand {
+  color: var(--text);
+  max-width: 260px;
+}
+
+.footerTagline {
+  @include text-caption;
+  color: var(--text-dim);
+  margin: 10px 0 0;
+}
+
+.footerLinks {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+
+  a {
+    @include text-label;
+    color: var(--text-dim);
+    text-decoration: none;
+
+    &:hover { color: var(--text); }
+  }
+}
+
+.footerGithub {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.footerLocale {
+  margin-left: auto;
+
+  @media (max-width: 760px) { margin-left: 0; }
+}
+
+.footerCopyright {
+  @include text-caption;
+  max-width: 1160px;
+  margin: 24px auto 0;
+  color: var(--text-dim);
+}
+
+// ── Reveal ───────────────────────────────────────────────────────────────────
+
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 600ms ease, transform 600ms ease;
+
+  &[data-shown='true'] {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

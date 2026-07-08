@@ -196,6 +196,23 @@ export function saveSettings(settings: NexusSettings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
+/**
+ * The language explicitly persisted in stored settings, or null when none was
+ * ever saved. loadSettings() can't make that distinction (it merges defaults,
+ * so an unset language reads as 'en'); the marketing site needs it to prefer
+ * a saved choice over browser-language detection.
+ */
+export function loadStoredLanguage(): Language | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const lang: unknown = JSON.parse(raw)?.general?.language;
+    return LANGUAGES.includes(lang as Language) ? (lang as Language) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function cachePreferencesLocally(prefs: {
   language?: string; themeMode?: string; accentColor?: string;
   showConflictAlerts?: boolean; monitoringShowAverage?: boolean;

@@ -6,8 +6,10 @@
 // IMPORTANT: never intercept localhost - the local Nexus service must hit the
 // network directly so the SPA can detect it going up/down in real time.
 
-const CACHE_VERSION = 'nexus-web-v135-no-skipwaiting';
-const SHELL_URLS = ['/', '/index.html', '/favicon.svg', '/favicon.ico', '/icons.svg', '/manifest.webmanifest', '/panel-phone.webmanifest', '/fonts/lexend/lexend-latin.woff2'];
+const CACHE_VERSION = 'nexus-web-v136-marketing-site';
+// No '/': the navigate fallback below reads /index.html, and on the bare host
+// '/' is the marketing page - caching it would be dead weight there.
+const SHELL_URLS = ['/index.html', '/favicon.svg', '/favicon.ico', '/icons.svg', '/manifest.webmanifest', '/panel-phone.webmanifest', '/fonts/lexend/lexend-latin.woff2'];
 
 self.addEventListener('install', (event) => {
   // No skipWaiting(): a freshly-installed worker WAITS instead of jumping the
