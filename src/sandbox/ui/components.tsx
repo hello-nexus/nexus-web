@@ -3,7 +3,8 @@
 // feeds them synced properties + event listeners. An author can ONLY cause one of
 // these to render, which is the structural visual-consistency guarantee.
 
-import { type CSSProperties, type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react';
+import { Copy, Check } from 'lucide-react';
 import { Spinner as NativeSpinner } from '../../components/common/Spinner/Spinner';
 import { Stepper as NativeStepper } from '../../components/common/Stepper/Stepper';
 import { RangeBar as NativeRangeBar } from '../../components/common/RangeBar/RangeBar';
@@ -20,6 +21,7 @@ import { Sparkline as NativeSparkline } from '../../components/common/Sparkline/
 import { ICON_TABLE } from './icons';
 import { alignValue, justifyValue, weightValue, toneVar, cssSize } from './tokens';
 import { useLongPress } from './useLongPress';
+import { useTranslation } from '../../lib/i18n';
 
 export interface HostProps {
   children?: ReactNode;
@@ -284,6 +286,46 @@ export function Button(p: HostProps) {
     >
       {p.children ?? (label != null ? label : null)}
     </NativeButton>
+  );
+}
+
+// The worker can't reach the clipboard, so `value` crosses as a prop and the host
+// performs the write. The hover tooltip (native Button `title`) flips to a copied
+// confirmation and reverts after a beat.
+export function CopyButton(p: HostProps) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+  const resetRef = useRef<number | null>(null);
+  useEffect(() => () => { if (resetRef.current) window.clearTimeout(resetRef.current); }, []);
+  const value = str(p.value) ?? '';
+  const size: 'sm' | 'md' = str(p.size) === 'md' ? 'md' : 'sm';
+  const label = copied ? t('sdk.copybutton.copied') : t('sdk.copybutton.copy');
+  // Confirm only once the write resolves: the panel WebView served over plain
+  // HTTP has no async clipboard (navigator.clipboard is undefined) and a write
+  // can be denied - a false "Copied" in either case would lie.
+  const onCopy = async () => {
+    const clip = navigator.clipboard;
+    if (!value || !clip) return;
+    try {
+      await clip.writeText(value);
+    } catch {
+      return;
+    }
+    setCopied(true);
+    if (resetRef.current) window.clearTimeout(resetRef.current);
+    resetRef.current = window.setTimeout(() => setCopied(false), 1600);
+  };
+  const Glyph = copied ? Check : Copy;
+  return (
+    <NativeButton
+      tone="ghost"
+      size={size}
+      title={label}
+      aria-label={label}
+      disabled={!value}
+      icon={<Glyph size={size === 'sm' ? 14 : 16} aria-hidden="true" />}
+      onClick={onCopy}
+    />
   );
 }
 

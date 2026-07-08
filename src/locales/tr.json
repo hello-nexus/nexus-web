@@ -2122,6 +2122,8 @@
   "screentime.weekAverage": "Günlük ortalama",
   "screentime.weekTitle": "Son 7 gün",
   "screentime.weekTotal": "Hafta toplamı",
+  "sdk.copybutton.copied": "Panoya kopyalandı",
+  "sdk.copybutton.copy": "Panoya kopyala",
   "sdk.mediaimport.choose": "Video seç",
   "sdk.mediaimport.cropping": "Kırpılıyor…",
   "sdk.mediaimport.errorNetwork": "Yükleme başarısız. Bağlantınızı kontrol edin.",
