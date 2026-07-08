@@ -5,7 +5,8 @@ import { type ReactNode, createElement } from 'react';
 import { LayoutDashboard } from 'lucide-react';
 import { ICON_SIZE } from './sidebarNav';
 import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
-import { isMarketplaceType } from '../widgets/marketplaceRegistry';
+import { getMarketplaceListing, isMarketplaceType, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
+import { AppIconImage } from '../components/icons/AppIconImage';
 import { DASHBOARD_APP_KEY } from './sidebarAppKeys';
 
 // Re-export the leaf-module helpers so existing imports from
@@ -32,6 +33,16 @@ const DASHBOARD_META: SidebarAppMeta = {
   i18nKey: 'sidebar.section.apps',
 };
 
+// The authed asset URL for a preinstalled (OEM bake-in) app's own manifest
+// icon, or undefined for any other app (which falls back to the generic glyph).
+function preinstalledIconUrl(key: string): string | undefined {
+  if (!isMarketplaceType(key)) return undefined;
+  const id = marketplaceIdFromType(key);
+  if (!id) return undefined;
+  const listing = getMarketplaceListing(id);
+  return listing?.preinstalled && listing.iconUrl ? listing.iconUrl : undefined;
+}
+
 /**
  * Resolve the icon + label the sidebar should render for a given key.
  * Returns `null` when the key is unknown (defensive - sanitizePinnedTail
@@ -44,8 +55,11 @@ export function getSidebarAppMeta(key: string): SidebarAppMeta | null {
   // synthetic manifest so a pinned SDK page renders its icon + name.
   const manifest = APP_REGISTRY[key] ?? (isMarketplaceType(key) ? lookupApp(key) : undefined);
   if (!manifest || !manifest.Page) return null;
+  const iconUrl = preinstalledIconUrl(key);
   return {
-    icon: createElement(manifest.meta.icon, { size: ICON_SIZE }),
+    icon: iconUrl
+      ? <AppIconImage src={iconUrl} size={ICON_SIZE} />
+      : createElement(manifest.meta.icon, { size: ICON_SIZE }),
     i18nKey: manifest.meta.i18nKey,
   };
 }

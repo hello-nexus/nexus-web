@@ -108,7 +108,19 @@ export function Text(p: HostProps) {
     textOverflow: p.truncate ? 'ellipsis' : undefined,
   };
   const content: ReactNode = p.value != null ? String(p.value) : p.children;
-  return <span style={style}>{content}</span>;
+  // Selection/copy is disabled globally two ways: the desktop app root
+  // (global.scss `body`, opt back in with `.selectable`) and the panel
+  // (tokens.scss `.panel-root` + usePanelTextSelectionGuard, opt in with the
+  // data attribute). Stamp both so a copyable value works on either surface.
+  return (
+    <span
+      style={style}
+      className={p.copyable ? 'selectable' : undefined}
+      data-panel-allow-text-selection={p.copyable ? 'true' : undefined}
+    >
+      {content}
+    </span>
+  );
 }
 
 export function Icon(p: HostProps) {

@@ -37,7 +37,7 @@ export const UI_ELEMENTS = {
   'ui-text': {
     properties: [
       'value', 'tone', 'size', 'weight', 'align', 'transform', 'mono',
-      'opacity', 'letterSpacing', 'lineHeight', 'tabular', 'truncate',
+      'opacity', 'letterSpacing', 'lineHeight', 'tabular', 'truncate', 'copyable',
     ],
   },
   // --- iconography ---

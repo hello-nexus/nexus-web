@@ -68,6 +68,10 @@ export interface UiSettingsValue {
   // isPinnableAppKey in app/sidebarAppKeys.ts. Server-mirrored under
   // ui.pinnedSidebarApps.
   pinnedSidebarApps: string[];
+  // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
+  // have been reconciled onto this profile (see useOemAppSeed). Server-only,
+  // like the update block below - not mirrored to localStorage.
+  oemAppSeeded: boolean;
   // When true, lighting + cooling widgets show the rich UI (chart, chips,
   // mode buttons); default false (compact center-icon+arrows layout).
   // Per-widget config.advancedMode overrides this per instance.
@@ -114,6 +118,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     preferredGpuTempSensorId: '',
     preferredGpuId: '',
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
+    oemAppSeeded: false,
     widgetAdvancedMode: src.general.widgetAdvancedMode,
     updateMode: 'always' as UpdateMode,
     updateChannel: 'production' as UpdateChannel,
@@ -167,9 +172,10 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; pinnedSidebarApps: string[] }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; pinnedSidebarApps: string[]; oemAppSeeded: boolean }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
+  if (patch.oemAppSeeded !== undefined) ui.oemAppSeeded = patch.oemAppSeeded;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
   const update: Partial<{ updateMode: UpdateMode; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
@@ -202,6 +208,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     pinnedSidebarApps: server.ui?.pinnedSidebarApps !== undefined
       ? sanitizePinnedTail(server.ui.pinnedSidebarApps)
       : base.pinnedSidebarApps,
+    oemAppSeeded: server.ui?.oemAppSeeded ?? base.oemAppSeeded,
     updateMode: (server.update?.updateMode as UpdateMode) ?? base.updateMode,
     updateChannel: (server.update?.updateChannel as UpdateChannel) ?? base.updateChannel,
     lastDismissedUpdateVersion: server.update?.lastDismissedUpdateVersion ?? base.lastDismissedUpdateVersion,

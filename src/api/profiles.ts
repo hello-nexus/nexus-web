@@ -85,6 +85,10 @@ export interface UiPrefs {
   // row. Optional - older services return Preferences without this field;
   // the client falls back to DEFAULT_PINNED_TAIL in that case.
   pinnedSidebarApps?: string[];
+  // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
+  // have been reconciled onto this profile. Optional - older services
+  // return Preferences without this field, which the client treats as false.
+  oemAppSeeded?: boolean;
 }
 
 export interface UpdatePrefs {

@@ -284,7 +284,7 @@ describe('catalog listing (delist)', () => {
   });
 });
 
-describe('marketplace listing derives from the enable allowlist', () => {
+describe('marketplace listing derives from the preinstalled + page signal', () => {
   function listing(over: Partial<AppInstalledListing>): AppInstalledListing {
     return {
       id: 'x',
@@ -299,14 +299,28 @@ describe('marketplace listing derives from the enable allowlist', () => {
   }
   afterEach(() => _resetMarketplaceRegistryForTests());
 
-  it('delists every SDK app now that the allowlist is empty, preinstalled or not', () => {
+  it('delists a general-purpose SDK app (native equivalent already covers it)', () => {
     _seedMarketplaceRegistryForTests([
-      listing({ id: 'com.hellonexus.weather', name: 'Weather' }),
-      listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true }),
+      listing({ id: 'com.hellonexus.weather', name: 'Weather', page: true }),
     ]);
     const byType = new Map(getCatalogEntries());
     expect(byType.get(typeForMarketplace('com.hellonexus.weather'))?.meta.listed).toBe(false);
-    expect(byType.get(typeForMarketplace('com.ibuypower.control'))?.meta.listed).toBe(false);
+  });
+
+  it('delists a preinstalled app with no page surface', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'a.preinstalled.nopage', name: 'NoPage', preinstalled: true, page: false }),
+    ]);
+    const byType = new Map(getCatalogEntries());
+    expect(byType.get(typeForMarketplace('a.preinstalled.nopage'))?.meta.listed).toBe(false);
+  });
+
+  it('lists the OEM bake-in app on the machine it was bundled for', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true, page: true }),
+    ]);
+    const byType = new Map(getCatalogEntries());
+    expect(byType.get(typeForMarketplace('com.ibuypower.control'))?.meta.listed).toBe(true);
   });
 });
 

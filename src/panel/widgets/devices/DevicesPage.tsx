@@ -516,7 +516,7 @@ function SpecsPanel({ specs }: SpecsPanelProps) {
           {rows.map((row, i) => (
             <div key={i} className={styles.specsRow}>
               <dt className={styles.specsLabel}>{row.label || ' '}</dt>
-              <dd className={styles.specsValue}>
+              <dd className={`${styles.specsValue} selectable`} data-panel-allow-text-selection="true">
                 {specs ? (row.value || '-') : ' '}
               </dd>
             </div>
