@@ -45,8 +45,10 @@ describe('SiteApp', () => {
     for (const link of winLinks) {
       expect(link).toHaveAttribute('href', 'https://hellonexus.com/download/windows');
     }
-    const linux = screen.getByRole('link', { name: 'Download for Linux' });
-    expect(linux).toHaveAttribute('href', 'https://hellonexus.com/download/linux');
+    const linuxLinks = screen.getAllByRole('link', { name: 'Download for Linux' });
+    for (const link of linuxLinks) {
+      expect(link).toHaveAttribute('href', 'https://hellonexus.com/download/linux');
+    }
 
     const allDownloads = screen.getAllByRole('link', { name: 'All downloads' });
     expect(allDownloads[0]).toHaveAttribute('href', '/download');
