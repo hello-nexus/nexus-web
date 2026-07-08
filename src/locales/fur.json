@@ -597,6 +597,8 @@
   "devices.q60.saveCurve": "Salve lis curvis",
   "devices.q60.turbo": "Turbo",
   "devices.q60.turboHelp": "Al permet al rinfrescjadôr di lavorâ ae velocitât massime. Cuant che al è disabilitât, la velocitât dal ventilatôr e je limitade a 2000 RPM (65%) e la velocitât de pompe e je limitade a 3000 RPM (70%).",
+  "devices.qseries.disconnected.hint": "Il panel de serie Q nol è tacât vie USB. Tache il so cabli USB par configurâlu.",
+  "devices.qseries.disconnected.title": "Panel distacât",
   "devices.qseries.fwGate.cta": "Vierç firmware",
   "devices.qseries.fwGate.hint": "La aplicazion panel Nexus no je instalade su chest panel de serie Q. Instalile par abilitâ chescj controi.",
   "devices.qseries.fwGate.title": "Aplicazion panel necessarie",

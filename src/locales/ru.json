@@ -588,6 +588,8 @@
   "devices.peripheral.category": "Тип",
   "devices.peripheral.source": "Подключение",
   "devices.peripheral.vendor": "Производитель",
+  "devices.qseries.disconnected.hint": "Панель Q-Series не подключена по USB. Подключите её USB-кабель, чтобы настроить её.",
+  "devices.qseries.disconnected.title": "Панель отключена",
   "devices.qseries.fwGate.cta": "Открыть Firmware",
   "devices.qseries.fwGate.hint": "Приложение панели Nexus не установлено на этой панели Q-Series. Установите его, чтобы включить эти элементы управления.",
   "devices.qseries.fwGate.title": "Требуется приложение панели",

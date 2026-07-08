@@ -588,6 +588,8 @@
   "devices.peripheral.category": "유형",
   "devices.peripheral.source": "연결",
   "devices.peripheral.vendor": "제조사",
+  "devices.qseries.disconnected.hint": "Q 시리즈 패널이 USB로 연결되어 있지 않습니다. 구성하려면 USB 케이블을 연결하세요.",
+  "devices.qseries.disconnected.title": "패널 연결 안 됨",
   "devices.qseries.fwGate.cta": "펌웨어 열기",
   "devices.qseries.fwGate.hint": "이 Q 시리즈 패널에 Nexus 패널 앱이 설치되어 있지 않습니다. 이 컨트롤을 사용하려면 설치하세요.",
   "devices.qseries.fwGate.title": "패널 앱 필요",

@@ -588,6 +588,8 @@
   "devices.peripheral.category": "種類",
   "devices.peripheral.source": "接続",
   "devices.peripheral.vendor": "メーカー",
+  "devices.qseries.disconnected.hint": "Q シリーズ パネルが USB で接続されていません。設定するには USB ケーブルを接続してください。",
+  "devices.qseries.disconnected.title": "パネルが接続されていません",
   "devices.qseries.fwGate.cta": "ファームウェアを開く",
   "devices.qseries.fwGate.hint": "この Q シリーズ パネルに Nexus パネルアプリがインストールされていません。これらのコントロールを有効にするにはインストールしてください。",
   "devices.qseries.fwGate.title": "パネルアプリが必要です",

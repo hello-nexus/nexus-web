@@ -588,6 +588,8 @@
   "devices.peripheral.category": "Typ",
   "devices.peripheral.source": "Verbindung",
   "devices.peripheral.vendor": "Hersteller",
+  "devices.qseries.disconnected.hint": "Das Q-Series-Panel ist nicht per USB verbunden. Schließen Sie sein USB-Kabel an, um es zu konfigurieren.",
+  "devices.qseries.disconnected.title": "Panel getrennt",
   "devices.qseries.fwGate.cta": "Firmware öffnen",
   "devices.qseries.fwGate.hint": "Die Nexus-Panel-App ist auf diesem Q-Series-Panel nicht installiert. Installieren Sie sie, um diese Steuerungen zu aktivieren.",
   "devices.qseries.fwGate.title": "Panel-App erforderlich",

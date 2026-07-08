@@ -588,6 +588,8 @@
   "devices.peripheral.category": "类型",
   "devices.peripheral.source": "连接",
   "devices.peripheral.vendor": "制造商",
+  "devices.qseries.disconnected.hint": "Q 系列面板未通过 USB 连接。请连接其 USB 数据线进行配置。",
+  "devices.qseries.disconnected.title": "面板未连接",
   "devices.qseries.fwGate.cta": "打开固件",
   "devices.qseries.fwGate.hint": "此 Q 系列面板未安装 Nexus 面板应用。请安装以启用这些控件。",
   "devices.qseries.fwGate.title": "需要面板应用",

@@ -588,6 +588,8 @@
   "devices.peripheral.category": "Tipo",
   "devices.peripheral.source": "Conexao",
   "devices.peripheral.vendor": "Fabricante",
+  "devices.qseries.disconnected.hint": "O painel Q-Series não está conectado via USB. Conecte o cabo USB para configurá-lo.",
+  "devices.qseries.disconnected.title": "Painel desconectado",
   "devices.qseries.fwGate.cta": "Abrir Firmware",
   "devices.qseries.fwGate.hint": "O app do painel Nexus não está instalado neste painel Q-Series. Instale-o para ativar estes controles.",
   "devices.qseries.fwGate.title": "App do painel necessário",
