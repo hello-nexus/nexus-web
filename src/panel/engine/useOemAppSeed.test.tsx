@@ -157,7 +157,7 @@ describe('useOemAppSeed', () => {
     // reopen) must be persisted so it survives, not left to the default.
     expect(updateUiSettings).toHaveBeenCalledWith({
       oemAppSeeded: true,
-      pinnedSidebarApps: ['marketplace:com.ibuypower.control'],
+      pinnedSidebarApps: ['app:com.ibuypower.control'],
     });
   });
 
