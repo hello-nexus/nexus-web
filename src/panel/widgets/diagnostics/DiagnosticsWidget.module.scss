@@ -1,0 +1,51 @@
+.widget {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  height: 100%;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.icon {
+  color: var(--text-dim);
+}
+
+.overall {
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  font-family: var(--font-mono);
+}
+
+.dots {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.dotSlot {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 50%;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+.reason {
+  max-width: 100%;
+  text-align: center;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

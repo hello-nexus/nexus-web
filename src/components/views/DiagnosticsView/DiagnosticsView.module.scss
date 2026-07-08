@@ -1,0 +1,351 @@
+@use '../../../styles/scrollbar' as *;
+@use '../../../styles/text' as *;
+
+.diagnostics {
+  // No max-width cap - matches the other data-heavy views (Devices,
+  // Monitoring, Cooling), which stretch to the content column's full width.
+}
+
+// ── Header ──
+
+.headerStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.generatedAt {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+// ── Sections ──
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+
+  &:first-child { margin-top: 0.5rem; }
+}
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+// ── Component health grid ──
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+.healthCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.healthCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.healthCardName {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  color: var(--text-dim);
+
+  span {
+    color: var(--text);
+    font-weight: var(--weight-heading);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.reasonList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reasonItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.reasonText {
+  min-width: 0;
+  flex: 1;
+}
+
+.reasonLabel {
+  font-size: var(--type-small);
+  color: var(--text);
+  font-weight: var(--weight-heading);
+}
+
+.reasonSummary {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
+// ── Storage ──
+
+.driveGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.driveHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.driveHealthBar {
+  width: 120px;
+}
+
+.attrTableWrap {
+  overflow-x: auto;
+  @include scrollbar-visible($gutter: false);
+}
+
+.attrTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-small);
+
+  th, td {
+    text-align: left;
+    padding: 0.35rem 0.6rem;
+    border-bottom: 1px solid var(--separator);
+    white-space: nowrap;
+  }
+
+  th {
+    @include text-label;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+}
+
+.attrFlagged td {
+  color: var(--bad);
+}
+
+.nvmePanel {
+  margin-top: 0.5rem;
+}
+
+// ── Memory ──
+
+.moduleTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-small);
+
+  th, td {
+    text-align: left;
+    padding: 0.35rem 0.6rem;
+    border-bottom: 1px solid var(--separator);
+  }
+
+  th {
+    @include text-label;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+}
+
+.memoryMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.testActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+// ── GPU ──
+
+.gpuGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.throttleBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+// ── Cooling ──
+
+.coolingList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.coolingRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+// Same danger-callout recipe as ConfirmModal's .noteDanger (border + 12%-mix
+// background), applied to a row instead of a note block.
+.coolingRowStalled {
+  border: 1px solid var(--bad);
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+}
+
+.coolingName {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  font-weight: var(--weight-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coolingMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+// ── System ──
+
+.pnpList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pnpItem {
+  display: flex;
+  flex-direction: column;
+  padding: 0.4rem 0.6rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  font-size: var(--type-small);
+}
+
+.pnpCode {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+}
+
+// ── Incidents ──
+
+.incidentFilters {
+  margin-bottom: 0.25rem;
+}
+
+.incidentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.incidentRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.incidentIcon {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.incidentBody {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.incidentTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.incidentTitle {
+  color: var(--text);
+  font-weight: var(--weight-heading);
+  font-size: var(--type-small);
+}
+
+.incidentMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-dim);
+  font-size: var(--type-mini);
+}
+
+.incidentDetail {
+  color: var(--text-dim);
+  font-size: var(--type-mini);
+}
+
+.incidentTime {
+  flex-shrink: 0;
+  color: var(--text-dim);
+  font-size: var(--type-mini);
+  white-space: nowrap;
+}

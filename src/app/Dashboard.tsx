@@ -25,6 +25,7 @@ const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m =
 const GalleryPage = lazy(() => import('../panel/widgets/gallery/page/GalleryPage').then(m => ({ default: m.GalleryPage })));
 const ScreentimePage = lazy(() => import('../panel/widgets/screentime/ScreentimePage').then(m => ({ default: m.ScreentimePage })));
 const BenchmarkPage = lazy(() => import('../panel/widgets/benchmark/BenchmarkPage').then(m => ({ default: m.BenchmarkPage })));
+const DiagnosticsPage = lazy(() => import('../panel/widgets/diagnostics/DiagnosticsPage').then(m => ({ default: m.DiagnosticsPage })));
 import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
@@ -556,6 +557,7 @@ export function Dashboard() {
           onSectionNavigate={(target) => setView(target)}
         />
       );
+      case 'diagnostics': return <DiagnosticsPage serviceOnline={online} connectionState={status.state} />;
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;

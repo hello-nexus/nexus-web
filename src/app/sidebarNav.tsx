@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import {
   Activity, LayoutDashboard, Lightbulb, Fan, Settings,
-  Usb, Wrench, Gauge, Users, LampCeiling, House,
+  Usb, Wrench, Gauge, Users, LampCeiling, House, Stethoscope,
 } from 'lucide-react';
 import { ScreenTimeIcon } from '../panel/widgets/screentime/screentimeIcon';
 
@@ -21,6 +21,7 @@ export const NAV_ICONS: Record<string, ReactNode> = {
   'home-assistant': <House size={ICON_SIZE} />,
   cooling:    <Fan size={ICON_SIZE} />,
   devices:    <Usb size={ICON_SIZE} />,
+  diagnostics: <Stethoscope size={ICON_SIZE} />,
   settings:   <Settings size={ICON_SIZE} />,
   builder:    <Wrench size={ICON_SIZE} />,
   benchmark:  <Gauge size={ICON_SIZE} />,
