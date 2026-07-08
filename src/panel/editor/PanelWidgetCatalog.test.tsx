@@ -70,9 +70,9 @@ vi.mock('../../widgets/marketplaceRegistry', () => ({
   isMarketplaceRegistryStale: () => false,
   loadMarketplaceApps: () => Promise.resolve(),
   subscribeMarketplaceRegistry: () => () => {},
-  isMarketplaceType: (type: string) => type.startsWith('marketplace:'),
+  isMarketplaceType: (type: string) => type.startsWith('app:'),
   marketplaceIdFromType: (type: string) =>
-    type.startsWith('marketplace:') ? type.slice('marketplace:'.length) : null,
+    type.startsWith('app:') ? type.slice('app:'.length) : null,
   isMarketplaceIdEnabled: () => true,
 }));
 

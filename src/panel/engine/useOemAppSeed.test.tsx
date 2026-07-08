@@ -76,10 +76,10 @@ describe('useOemAppSeed', () => {
 
     await waitFor(() => expect(setLayout).toHaveBeenCalledTimes(1));
     const nextLayout: PanelLayout = setLayout.mock.calls[0][0];
-    expect(nextLayout.pages[0].widgets.map(w => w.type)).toEqual(['marketplace:com.ibuypower.control']);
+    expect(nextLayout.pages[0].widgets.map(w => w.type)).toEqual(['app:com.ibuypower.control']);
     expect(updateUiSettings).toHaveBeenCalledWith({
       oemAppSeeded: true,
-      pinnedSidebarApps: ['marketplace:com.ibuypower.control'],
+      pinnedSidebarApps: ['app:com.ibuypower.control'],
     });
   });
 
@@ -136,7 +136,7 @@ describe('useOemAppSeed', () => {
     const layout: PanelLayout = {
       layoutSchemaVersion: 2,
       surface: 'desktop',
-      pages: [{ id: 'p0', widgets: [{ id: 'w1', type: 'marketplace:com.ibuypower.control', size: '4x2', col: 0, row: 0 }] }],
+      pages: [{ id: 'p0', widgets: [{ id: 'w1', type: 'app:com.ibuypower.control', size: '4x2', col: 0, row: 0 }] }],
     };
 
     renderHook(() => useOemAppSeed({
@@ -146,7 +146,7 @@ describe('useOemAppSeed', () => {
       setLayout,
       capacity: { gridCols: 8, pageRows: 6 },
       uiHydrated: true,
-      uiSettings: uiSettings({ pinnedSidebarApps: ['marketplace:com.ibuypower.control'] }),
+      uiSettings: uiSettings({ pinnedSidebarApps: ['app:com.ibuypower.control'] }),
       updateUiSettings,
     }));
 

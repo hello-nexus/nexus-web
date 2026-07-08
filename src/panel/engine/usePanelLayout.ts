@@ -65,7 +65,7 @@ function reconcileAppsAgainstRegistry(
       // Marketplace widget rectangles can stick around in the layout
       // through one of two windows:
       //   1. App-start: the marketplace registry hasn't loaded yet, so
-      //      every marketplace:* type is "unknown" transiently. Preserve
+      //      every app:* type is "unknown" transiently. Preserve
       //      the rect so a slow first fetch doesn't silently delete the
       //      user's widgets; MarketplaceWidget renders a Loading…
       //      placeholder until the listing lands.

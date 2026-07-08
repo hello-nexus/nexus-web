@@ -53,15 +53,15 @@ describe('planOemAppSeed', () => {
       layout([]),
       [],
     );
-    expect(plan.widgetTypesToAdd).toEqual(['marketplace:com.ibuypower.control']);
-    expect(plan.sidebarKeysToAdd).toEqual(['marketplace:com.ibuypower.control']);
+    expect(plan.widgetTypesToAdd).toEqual(['app:com.ibuypower.control']);
+    expect(plan.sidebarKeysToAdd).toEqual(['app:com.ibuypower.control']);
   });
 
   it('is idempotent once the widget and pin already exist', () => {
     const plan = planOemAppSeed(
       [listing({ id: 'com.ibuypower.control', preinstalled: true, page: true })],
-      layout(['marketplace:com.ibuypower.control']),
-      ['marketplace:com.ibuypower.control'],
+      layout(['app:com.ibuypower.control']),
+      ['app:com.ibuypower.control'],
     );
     expect(plan.widgetTypesToAdd).toEqual([]);
     expect(plan.sidebarKeysToAdd).toEqual([]);
@@ -70,11 +70,11 @@ describe('planOemAppSeed', () => {
   it('plans only the missing half when the user removed just one of the two', () => {
     const withWidgetOnly = planOemAppSeed(
       [listing({ id: 'com.ibuypower.control', preinstalled: true, page: true })],
-      layout(['marketplace:com.ibuypower.control']),
+      layout(['app:com.ibuypower.control']),
       [],
     );
     expect(withWidgetOnly.widgetTypesToAdd).toEqual([]);
-    expect(withWidgetOnly.sidebarKeysToAdd).toEqual(['marketplace:com.ibuypower.control']);
+    expect(withWidgetOnly.sidebarKeysToAdd).toEqual(['app:com.ibuypower.control']);
   });
 
   it('ignores non-preinstalled or page-less listings', () => {
