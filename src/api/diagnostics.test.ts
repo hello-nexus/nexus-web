@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cancelMemoryTest,
   downloadDiagnosticsBundle,
+  downloadDiagnosticsReport,
   fetchDiagnosticsGpu,
   fetchDiagnosticsHealth,
   fetchDiagnosticsIncidents,
@@ -160,6 +161,45 @@ describe('downloadDiagnosticsBundle', () => {
 
     expect(await downloadDiagnosticsBundle()).toBe(true);
     expect(downloadedName).toBe('nexus-diagnostics-y70-20260708-0900.zip');
+
+    vi.restoreAllMocks();
+    URL.createObjectURL = realCreateObjectUrl;
+    URL.revokeObjectURL = realRevokeObjectUrl;
+  });
+});
+
+describe('downloadDiagnosticsReport', () => {
+  it('returns false when the report route fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
+    expect(await downloadDiagnosticsReport()).toBe(false);
+  });
+
+  it('requests /diagnostics/report.pdf and uses the server Content-Disposition filename', async () => {
+    const realCreateObjectUrl = URL.createObjectURL;
+    const realRevokeObjectUrl = URL.revokeObjectURL;
+    URL.createObjectURL = vi.fn(() => 'blob:test');
+    URL.revokeObjectURL = vi.fn();
+    let downloadedName = '';
+    const realCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = realCreateElement(tag);
+      if (tag === 'a') {
+        Object.defineProperty(el, 'download', {
+          get: () => downloadedName,
+          set: (v: string) => { downloadedName = v; },
+        });
+        el.click = vi.fn();
+      }
+      return el;
+    });
+
+    const fetchMock = vi.fn(async () => jsonResponse(200, {}, { 'Content-Disposition': 'attachment; filename="nexus-diagnostics-y70-20260708-0900.pdf"' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await downloadDiagnosticsReport()).toBe(true);
+    expect(downloadedName).toBe('nexus-diagnostics-y70-20260708-0900.pdf');
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toContain('/diagnostics/report.pdf');
 
     vi.restoreAllMocks();
     URL.createObjectURL = realCreateObjectUrl;

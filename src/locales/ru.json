@@ -754,6 +754,8 @@
   "diagnostics.gpu.throttle.title": "Троттлинг",
   "diagnostics.header.downloadBundle": "Скачать пакет поддержки",
   "diagnostics.header.downloadFailed": "Не удалось скачать пакет поддержки.",
+  "diagnostics.header.downloadReport": "Скачать диагностику Nexus",
+  "diagnostics.header.downloadReportFailed": "Не удалось скачать отчёт о диагностике.",
   "diagnostics.header.generatedAt": "Обновлено {time}",
   "diagnostics.incidents.empty": "За последние {days} дней инцидентов не было.",
   "diagnostics.incidents.filter.all": "Все",

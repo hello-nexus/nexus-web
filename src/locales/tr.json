@@ -754,6 +754,8 @@
   "diagnostics.gpu.throttle.title": "Kısıtlama",
   "diagnostics.header.downloadBundle": "Destek paketini indir",
   "diagnostics.header.downloadFailed": "Destek paketi indirilemedi.",
+  "diagnostics.header.downloadReport": "Nexus tanılamasını indir",
+  "diagnostics.header.downloadReportFailed": "Tanılama raporu indirilemedi.",
   "diagnostics.header.generatedAt": "Güncellendi: {time}",
   "diagnostics.incidents.empty": "Son {days} günde olay yok.",
   "diagnostics.incidents.filter.all": "Tümü",

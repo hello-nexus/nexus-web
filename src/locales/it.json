@@ -754,6 +754,8 @@
   "diagnostics.gpu.throttle.title": "Throttling",
   "diagnostics.header.downloadBundle": "Scarica pacchetto di assistenza",
   "diagnostics.header.downloadFailed": "Impossibile scaricare il pacchetto di assistenza.",
+  "diagnostics.header.downloadReport": "Scarica la diagnostica di Nexus",
+  "diagnostics.header.downloadReportFailed": "Impossibile scaricare il rapporto di diagnostica.",
   "diagnostics.header.generatedAt": "Aggiornato {time}",
   "diagnostics.incidents.empty": "Nessun incidente negli ultimi {days} giorni.",
   "diagnostics.incidents.filter.all": "Tutti",

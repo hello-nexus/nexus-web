@@ -6,6 +6,7 @@ import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
 import { useDiagnosticsResource } from '../../../hooks/useDiagnosticsResource';
 import {
   downloadDiagnosticsBundle,
+  downloadDiagnosticsReport,
   fetchDiagnosticsCooling,
   fetchDiagnosticsGpu,
   fetchDiagnosticsIncidents,
@@ -64,6 +65,14 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
     if (!ok) push({ title: t('diagnostics.header.downloadFailed') });
   }, [push, t]);
 
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const handleDownloadReport = useCallback(async () => {
+    setDownloadingReport(true);
+    const ok = await downloadDiagnosticsReport();
+    setDownloadingReport(false);
+    if (!ok) push({ title: t('diagnostics.header.downloadReportFailed') });
+  }, [push, t]);
+
   if (!serviceOnline) {
     return (
       <div className={styles.diagnostics}>
@@ -90,6 +99,9 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
             {anyMocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
             <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloading} onClick={handleDownload}>
               {t('diagnostics.header.downloadBundle')}
+            </Button>
+            <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloadingReport} onClick={handleDownloadReport}>
+              {t('diagnostics.header.downloadReport')}
             </Button>
           </>
         }

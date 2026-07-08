@@ -754,6 +754,8 @@
   "diagnostics.gpu.throttle.title": "スロットリング",
   "diagnostics.header.downloadBundle": "サポートバンドルをダウンロード",
   "diagnostics.header.downloadFailed": "サポートバンドルをダウンロードできませんでした。",
+  "diagnostics.header.downloadReport": "Nexus診断をダウンロード",
+  "diagnostics.header.downloadReportFailed": "診断レポートをダウンロードできませんでした。",
   "diagnostics.header.generatedAt": "更新: {time}",
   "diagnostics.incidents.empty": "過去{days}日間、問題は発生していません。",
   "diagnostics.incidents.filter.all": "すべて",

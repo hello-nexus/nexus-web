@@ -754,6 +754,8 @@
   "diagnostics.gpu.throttle.title": "Ograniczanie",
   "diagnostics.header.downloadBundle": "Pobierz pakiet wsparcia",
   "diagnostics.header.downloadFailed": "Nie udało się pobrać pakietu wsparcia.",
+  "diagnostics.header.downloadReport": "Pobierz diagnostykę Nexus",
+  "diagnostics.header.downloadReportFailed": "Nie udało się pobrać raportu diagnostycznego.",
   "diagnostics.header.generatedAt": "Zaktualizowano {time}",
   "diagnostics.incidents.empty": "Brak zdarzeń w ciągu ostatnich {days} dni.",
   "diagnostics.incidents.filter.all": "Wszystkie",

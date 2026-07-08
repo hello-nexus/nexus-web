@@ -352,3 +352,24 @@ export async function downloadDiagnosticsBundle(): Promise<boolean> {
   URL.revokeObjectURL(url);
   return true;
 }
+
+/**
+ * Downloads the diagnostics report PDF. Same fetchServiceBlobWithHeaders
+ * mechanism as downloadDiagnosticsBundle above: the route requires the
+ * session bearer token and may tunnel over the relay when off-LAN.
+ */
+export async function downloadDiagnosticsReport(): Promise<boolean> {
+  const result = await fetchServiceBlobWithHeaders('/diagnostics/report.pdf');
+  if (!result) return false;
+  const url = URL.createObjectURL(result.blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  a.download = filenameFromContentDisposition(result.headers.get('Content-Disposition'))
+    ?? `nexus-diagnostics-${stamp}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return true;
+}

@@ -754,6 +754,8 @@
   "diagnostics.gpu.throttle.title": "Drosselung",
   "diagnostics.header.downloadBundle": "Support-Paket herunterladen",
   "diagnostics.header.downloadFailed": "Das Support-Paket konnte nicht heruntergeladen werden.",
+  "diagnostics.header.downloadReport": "Nexus-Diagnose herunterladen",
+  "diagnostics.header.downloadReportFailed": "Der Diagnosebericht konnte nicht heruntergeladen werden.",
   "diagnostics.header.generatedAt": "Aktualisiert {time}",
   "diagnostics.incidents.empty": "Keine Vorfälle in den letzten {days} Tagen.",
   "diagnostics.incidents.filter.all": "Alle",
