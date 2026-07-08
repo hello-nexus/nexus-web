@@ -124,27 +124,31 @@ export const MODES: { key: LightingMode; labelKey: string }[] = [
   { key: 'gamesync', labelKey: 'lighting.mode.gamesync' },
 ];
 
-// Simple fills expose one tweak: a slight bipolar hue nudge around the fill's
-// fixed base colour (full left/right stays within the same colour family).
-// One shared array since every simple colour is the same shader; it's
+// Simple fills expose a bipolar hue nudge and a colour-temperature (warmth)
+// slider. White carries warmth only - a hue nudge is invisible on white. One
+// shared array per group since every simple colour is the same shader; they're
 // read-only so sharing the reference is safe.
-const SIMPLE_PARAMS: EffectParamDef[] = [
-  { name: 'u_hueShift', label: 'Hue shift', labelKey: 'lighting.controls.param.hueShift', min: -0.5, max: 0.5, step: 0.01, defaultValue: 0, zeroMarker: true },
+const SIMPLE_COLOR_PARAMS: EffectParamDef[] = [
+  { name: 'u_hueShift', label: 'Hue shift', labelKey: 'lighting.controls.param.hueShift', min: -1, max: 1, step: 0.01, defaultValue: 0, zeroMarker: true },
+  { name: 'u_warmth',   label: 'Warmth', labelKey: 'lighting.controls.param.warmth', min: -1, max: 1, step: 0.01, defaultValue: 0, zeroMarker: true },
+];
+const SIMPLE_WHITE_PARAMS: EffectParamDef[] = [
+  { name: 'u_warmth', label: 'Warmth', labelKey: 'lighting.controls.param.warmth', min: -1, max: 1, step: 0.01, defaultValue: 0, zeroMarker: true },
 ];
 
 export const EFFECTS: EffectDef[] = [
   // Simple solid-colour fills lead the list. A flat swatch with a slight
   // hue-shift nudge is the only per-effect tweak; base colour / saturation /
   // contrast come from the template feels. No speed (the fill is static).
-  { key: 'simplewhite',  labelKey: 'lighting.controls.simplewhite',  hideSpeed: true, params: SIMPLE_PARAMS },
-  { key: 'simplepink',   labelKey: 'lighting.controls.simplepink',   hideSpeed: true, params: SIMPLE_PARAMS },
-  { key: 'simpleviolet', labelKey: 'lighting.controls.simpleviolet', hideSpeed: true, params: SIMPLE_PARAMS },
-  { key: 'simpleblue',   labelKey: 'lighting.controls.simpleblue',   hideSpeed: true, params: SIMPLE_PARAMS },
-  { key: 'simplecyan',   labelKey: 'lighting.controls.simplecyan',   hideSpeed: true, params: SIMPLE_PARAMS },
-  { key: 'simplegreen',  labelKey: 'lighting.controls.simplegreen',  hideSpeed: true, params: SIMPLE_PARAMS },
-  { key: 'simpleyellow', labelKey: 'lighting.controls.simpleyellow', hideSpeed: true, params: SIMPLE_PARAMS },
-  { key: 'simpleorange', labelKey: 'lighting.controls.simpleorange', hideSpeed: true, params: SIMPLE_PARAMS },
-  { key: 'simplered',    labelKey: 'lighting.controls.simplered',    hideSpeed: true, params: SIMPLE_PARAMS },
+  { key: 'simplewhite',  labelKey: 'lighting.controls.simplewhite',  hideSpeed: true, params: SIMPLE_WHITE_PARAMS },
+  { key: 'simplepink',   labelKey: 'lighting.controls.simplepink',   hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simpleviolet', labelKey: 'lighting.controls.simpleviolet', hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simpleblue',   labelKey: 'lighting.controls.simpleblue',   hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simplecyan',   labelKey: 'lighting.controls.simplecyan',   hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simplegreen',  labelKey: 'lighting.controls.simplegreen',  hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simpleyellow', labelKey: 'lighting.controls.simpleyellow', hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simpleorange', labelKey: 'lighting.controls.simpleorange', hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simplered',    labelKey: 'lighting.controls.simplered',    hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
   { key: 'plasma',       labelKey: 'lighting.controls.plasma',       params: [
       { name: 'u_warp', label: 'Warp', labelKey: 'lighting.controls.param.warp',  min: 0,   max: 2,   step: 0.05, defaultValue: 1 },
       { name: 'u_zoom', label: 'Zoom', labelKey: 'lighting.controls.param.zoom',  min: 0.5, max: 3,   step: 0.05, defaultValue: 1 },

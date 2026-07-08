@@ -2535,6 +2535,7 @@
   "lighting.controls.param.twinkle": "またたき",
   "lighting.controls.param.twist": "ねじれ",
   "lighting.controls.param.viscosity": "粘度",
+  "lighting.controls.param.warmth": "色温度",
   "lighting.controls.param.warp": "ワープ",
   "lighting.controls.param.wave": "波",
   "lighting.controls.param.wavelength": "波長",
