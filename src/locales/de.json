@@ -2301,7 +2301,7 @@
   "site.footer.language": "Sprache",
   "site.footer.tagline": "Überwachung, Kühlung und Beleuchtung für Ihren PC.",
   "site.gate.backToSite": "Über Nexus",
-  "site.gate.updateHint": "Bereits installiert, aber keine Verbindung? Stellen Sie sicher, dass Nexus läuft und aktuell ist.",
+  "site.gate.updateHint": "Bereits installiert, aber keine Verbindung? Stellen Sie sicher, dass Nexus läuft und aktuell ist, und erlauben Sie den Zugriff auf das lokale Netzwerk, wenn Ihr Browser danach fragt.",
   "site.hero.ctaMySystem": "Mein System öffnen",
   "site.hero.subtitle": "Nexus vereint Live-Hardware-Monitoring, intelligente Kühlung und beeindruckende RGB-Beleuchtung in einer schnellen, kostenlosen Open-Source-App.",
   "site.hero.title": "Sagen Sie Ihrem PC Hallo.",

@@ -2301,7 +2301,7 @@
   "site.footer.language": "语言",
   "site.footer.tagline": "为您的电脑带来监控、散热与灯光效果。",
   "site.gate.backToSite": "关于 Nexus",
-  "site.gate.updateHint": "已经安装却无法连接？请确认 Nexus 正在运行且已是最新版本。",
+  "site.gate.updateHint": "已安装但无法连接？请确认 Nexus 正在运行且为最新版本，并在浏览器询问时允许访问本地网络。",
   "site.hero.ctaMySystem": "打开我的系统",
   "site.hero.subtitle": "Nexus 将实时硬件监控、智能散热与炫彩 RGB 灯光效果，集于一款快速、免费的开源应用之中。",
   "site.hero.title": "向您的电脑，说声你好。",

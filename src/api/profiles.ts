@@ -1,4 +1,4 @@
-import { fetchService, postService, putService, deleteService, resolveHttp, authFetchWithStatus } from './service';
+import { fetchService, postService, putService, deleteService, loopbackFetchInit, resolveHttp, authFetchWithStatus } from './service';
 import { getToken } from './auth';
 import type { PanelLayout } from '../panel/types';
 import type { OverlayWidgetDto } from './overlay';
@@ -209,7 +209,7 @@ export async function exportProfile(id: string, name: string): Promise<void> {
     const token = await getToken();
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const resp = await fetch(resolveHttp(`/profiles/${encodeURIComponent(id)}/export`), { headers });
+    const resp = await fetch(resolveHttp(`/profiles/${encodeURIComponent(id)}/export`), { ...loopbackFetchInit, headers });
     if (!resp.ok) return;
     const blob = await resp.blob();
     const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_');

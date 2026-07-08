@@ -2446,7 +2446,7 @@
   "site.footer.language": "Language",
   "site.footer.tagline": "Monitoring, cooling, and lighting for your PC.",
   "site.gate.backToSite": "About Nexus",
-  "site.gate.updateHint": "Already installed but not connecting? Make sure Nexus is running and up to date.",
+  "site.gate.updateHint": "Already installed but not connecting? Make sure Nexus is running and up to date, and allow local network access if your browser asks.",
   "site.hero.ctaMySystem": "Open My System",
   "site.hero.subtitle": "Nexus brings live hardware monitoring, smart cooling, and stunning RGB lighting together in one fast, free, open-source app.",
   "site.hero.title": "Say hello to your PC.",

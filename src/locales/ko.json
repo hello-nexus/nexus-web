@@ -2301,7 +2301,7 @@
   "site.footer.language": "언어",
   "site.footer.tagline": "PC를 위한 모니터링, 쿨링, 라이팅.",
   "site.gate.backToSite": "Nexus 소개",
-  "site.gate.updateHint": "이미 설치했는데 연결되지 않나요? Nexus가 실행 중이고 최신 버전인지 확인해 보세요.",
+  "site.gate.updateHint": "이미 설치했는데 연결되지 않나요? Nexus가 실행 중이고 최신 버전인지 확인하고, 브라우저가 요청하면 로컬 네트워크 접근을 허용하세요.",
   "site.hero.ctaMySystem": "내 시스템 열기",
   "site.hero.subtitle": "Nexus는 실시간 하드웨어 모니터링, 스마트 쿨링, 화려한 RGB 라이팅을 빠르고 무료인 오픈소스 앱 하나로 모읍니다.",
   "site.hero.title": "당신의 PC에게 인사하세요.",

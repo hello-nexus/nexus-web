@@ -2301,7 +2301,7 @@
   "site.footer.language": "Dil",
   "site.footer.tagline": "PC'niz için izleme, soğutma ve aydınlatma.",
   "site.gate.backToSite": "Nexus hakkında",
-  "site.gate.updateHint": "Zaten kurulu ama bağlanmıyor mu? Nexus'un çalıştığından ve güncel olduğundan emin olun.",
+  "site.gate.updateHint": "Zaten kurulu ama bağlanmıyor mu? Nexus'un çalıştığından ve güncel olduğundan emin olun; tarayıcınız sorarsa yerel ağ erişimine izin verin.",
   "site.hero.ctaMySystem": "Sistemim'i aç",
   "site.hero.subtitle": "Nexus; canlı donanım izleme, akıllı soğutma ve etkileyici RGB aydınlatmasını hızlı, ücretsiz, açık kaynaklı tek bir uygulamada bir araya getirir.",
   "site.hero.title": "Bilgisayarına merhaba de.",

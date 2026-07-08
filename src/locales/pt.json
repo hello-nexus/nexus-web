@@ -2301,7 +2301,7 @@
   "site.footer.language": "Idioma",
   "site.footer.tagline": "Monitorização, arrefecimento e iluminação para o seu PC.",
   "site.gate.backToSite": "Sobre o Nexus",
-  "site.gate.updateHint": "Já o tem instalado mas não liga? Certifique-se de que o Nexus está em execução e atualizado.",
+  "site.gate.updateHint": "Já está instalado mas não liga? Certifique-se de que o Nexus está em execução e atualizado, e permita o acesso à rede local se o navegador o pedir.",
   "site.hero.ctaMySystem": "Abra o Meu Sistema",
   "site.hero.subtitle": "O Nexus reúne monitorização de hardware em tempo real, arrefecimento inteligente e iluminação RGB espetacular numa única app rápida, grátis e de código aberto.",
   "site.hero.title": "Diga olá ao seu PC.",

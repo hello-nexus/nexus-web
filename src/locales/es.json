@@ -2301,7 +2301,7 @@
   "site.footer.language": "Idioma",
   "site.footer.tagline": "Monitorización, refrigeración e iluminación para tu PC.",
   "site.gate.backToSite": "Acerca de Nexus",
-  "site.gate.updateHint": "¿Ya lo tienes instalado pero no conecta? Asegúrate de que Nexus esté en ejecución y actualizado.",
+  "site.gate.updateHint": "¿Ya está instalado pero no se conecta? Asegúrate de que Nexus esté en ejecución y actualizado, y permite el acceso a la red local si tu navegador lo solicita.",
   "site.hero.ctaMySystem": "Abre Mi sistema",
   "site.hero.subtitle": "Nexus reúne monitorización de hardware en vivo, refrigeración inteligente e iluminación RGB espectacular en una sola app rápida, gratuita y de código abierto.",
   "site.hero.title": "Dile hola a tu PC.",
