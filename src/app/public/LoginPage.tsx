@@ -8,7 +8,13 @@ import { usePublicAccount } from './usePublicAccount';
 export function LoginPage() {
   const { account } = usePublicAccount();
 
-  const goToAccount = () => { window.location.href = '/account'; };
+  // On my.* hosts the root is the dashboard (or the launch/download gate),
+  // which is where a fresh sign-in should land. On the bare host the root is
+  // the marketing page with no signed-in affordance, so keep /account there.
+  const goHome = () => {
+    const my = window.location.hostname.toLowerCase().startsWith('my.');
+    window.location.href = my ? '/' : '/account';
+  };
   const goToRecover = () => { window.location.href = '/recover'; };
   const goToRegister = () => { window.location.href = '/register'; };
 
@@ -17,7 +23,7 @@ export function LoginPage() {
       <PublicPageFrame>
         <SignInForm
           backend={directApiBackend}
-          onSuccess={goToAccount}
+          onSuccess={goHome}
           onForgotPassword={goToRecover}
           onCreateAccount={goToRegister}
         />

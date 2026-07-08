@@ -164,6 +164,25 @@ app.get('/u/:username', async (req, res) => {
   res.type('html').send(indexHtml.replace('</head>', `    ${ogTags}\n  </head>`));
 });
 
+// Host-routed root: my.hellonexus.com (and my.localhost for local prod
+// preview - browsers resolve *.localhost to loopback) is the app surface and
+// gets the SPA shell; every other host (hellonexus.com, www, the Railway
+// internal domain, plain localhost) gets the marketing page. ONLY `/` is
+// host-dependent - every deeper path (/r/pair, /panel/phone, /login, /u/*,
+// /auth/*, /download*, .well-known) keeps serving identically on all hosts:
+// relay-paired phones hold session tokens under the hellonexus.com origin,
+// QR codes and account emails embed hellonexus.com URLs.
+function isMySystemHost(req) {
+  const host = String(req.headers.host || '').split(':')[0].toLowerCase();
+  return host === 'my.hellonexus.com' || host === 'my.localhost';
+}
+
+app.get('/', (req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  const file = isMySystemHost(req) ? 'index.html' : join('site', 'index.html');
+  res.sendFile(file, { root: join(__dirname, 'dist') });
+});
+
 app.use(express.static(join(__dirname, 'dist'), {
   maxAge: '1d',
   setHeaders: (res, filePath) => {

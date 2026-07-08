@@ -29,6 +29,16 @@ export interface ShaderSource { frag: string; }
 
 const shaderCache = new Map<string, ShaderSource>();
 
+/**
+ * Seeds the shader cache with locally bundled GLSL so useShaderRenderer works
+ * without a reachable service. The marketing site primes its committed copy of
+ * the composed plasma shader this way; fetchShaderSource then never hits the
+ * network for that effect.
+ */
+export function primeShaderSource(name: string, frag: string): void {
+  shaderCache.set(name, { frag });
+}
+
 export async function fetchShaderSource(name: string): Promise<ShaderSource | null> {
   const cached = shaderCache.get(name);
   if (cached) return cached;

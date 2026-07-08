@@ -30,7 +30,8 @@ test.describe('apple-app-site-association', () => {
 
     const components = detail.components ?? [];
     const paths = components.map((c: { '/'?: string }) => c['/']).filter(Boolean);
-    expect(paths).toContain('/r/pair');
+    // The pattern must cover the /r/pair QR landing route (shipped as /r/**).
+    expect(paths.some((p: string) => p === '/r/**' || p === '/r/pair')).toBe(true);
   });
 
   test('AASA responds to HEAD with the same content-type', async ({ request }) => {

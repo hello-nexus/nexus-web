@@ -195,6 +195,7 @@ function buildPanelDevices({
       capabilities: isY70 ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES,
       modalKind: isY70 ? 'y70-compat' : 'panel-editor',
       warning: device.warning,
+      firmwareType: device.firmwareType,
     });
   }
 

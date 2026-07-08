@@ -27,7 +27,8 @@ export function OpenInAppBanner() {
     if (localStorage.getItem(DISMISS_KEY) === '1') return;
 
     const host = window.location.hostname;
-    const isProdHost = host === 'hellonexus.com' || host === 'www.hellonexus.com';
+    const isProdHost = host === 'hellonexus.com' || host === 'www.hellonexus.com'
+      || host === 'my.hellonexus.com';
     if (!isProdHost) return;
 
     const path = window.location.pathname;

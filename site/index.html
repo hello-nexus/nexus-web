@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <meta name="theme-color" content="#0f0f0f" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Nexus - monitor, cool, and light up your PC</title>
+    <!-- Static SEO/OG meta stays English: the page body is client-rendered and
+         localized at runtime; crawlers read only these tags. -->
+    <meta name="description" content="Nexus is a free, open-source app for your PC: live hardware monitoring, fan curves, RGB lighting with GPU shader effects, phone remote control, and smart home integration. Windows, macOS, and Linux." />
+    <link rel="canonical" href="https://hellonexus.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Nexus - monitor, cool, and light up your PC" />
+    <meta property="og:description" content="Free, open-source hardware monitoring, cooling, and RGB lighting for Windows, macOS, and Linux." />
+    <meta property="og:url" content="https://hellonexus.com/" />
+    <meta property="og:image" content="https://hellonexus.com/nexus-mark-color.png" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="preload" href="/fonts/lexend/lexend-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;800&family=Great+Vibes&display=swap" rel="stylesheet" />
+    <script>
+      // Sync polyfills for pre-ES2021 Chromium. Master copy (with rationale)
+      // lives in index.html - keep the two blocks identical.
+      (function () {
+        if (typeof String.prototype.replaceAll !== 'function') {
+          Object.defineProperty(String.prototype, 'replaceAll', {
+            value: function (search, replacement) {
+              if (search instanceof RegExp) {
+                if (!search.flags.includes('g')) {
+                  throw new TypeError('replaceAll must be called with a global RegExp');
+                }
+                return String(this).replace(search, replacement);
+              }
+              var s = String(search);
+              var escaped = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              return String(this).replace(new RegExp(escaped, 'g'), replacement);
+            },
+            writable: true, configurable: true,
+          });
+        }
+        if (typeof Array.prototype.at !== 'function') {
+          Object.defineProperty(Array.prototype, 'at', {
+            value: function (n) {
+              var len = this.length;
+              var i = n < 0 ? len + n : n;
+              return i >= 0 && i < len ? this[i] : undefined;
+            },
+            writable: true, configurable: true,
+          });
+        }
+        if (typeof String.prototype.at !== 'function') {
+          Object.defineProperty(String.prototype, 'at', {
+            value: function (n) {
+              var s = String(this);
+              var len = s.length;
+              var i = n < 0 ? len + n : n;
+              return i >= 0 && i < len ? s[i] : undefined;
+            },
+            writable: true, configurable: true,
+          });
+        }
+        if (typeof Object.hasOwn !== 'function') {
+          Object.defineProperty(Object, 'hasOwn', {
+            value: function (o, k) {
+              return Object.prototype.hasOwnProperty.call(o, k);
+            },
+            writable: true, configurable: true,
+          });
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/site/main.tsx"></script>
+  </body>
+</html>

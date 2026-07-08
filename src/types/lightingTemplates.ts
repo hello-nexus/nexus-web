@@ -70,20 +70,13 @@ const simpleColorSlots = (hue: number): SimpleSlots => {
   };
 };
 
-// White fill: a hue nudge is invisible on pure white, so its 4 slots carry a
-// slight warm / cool / rose tint (tiny HSV saturation at that hue) around a
-// neutral base.
+// White fill: hue nudge and saturation are meaningless on pure white, so its 4
+// slots vary only the colour temperature (u_warmth): neutral, warm, cool, candle.
 const simpleWhiteSlots = (): SimpleSlots => {
-  const feel = (h: number, saturation: number): Feel =>
-    ({ hue: h, colorize: 0, speed: 50, saturation, contrast: 1, intensity: 1 });
+  const feel = (): Feel => ({ hue: 0, colorize: 0, speed: 50, saturation: 0, contrast: 1, intensity: 1 });
   return {
-    feels: [
-      feel(0.00, 0.00),  // neutral white
-      feel(0.09, 0.12),  // warm white
-      feel(0.60, 0.12),  // cool white
-      feel(0.95, 0.10),  // rose white
-    ],
-    variations: [{ u_hueShift: 0 }, { u_hueShift: 0 }, { u_hueShift: 0 }, { u_hueShift: 0 }],
+    feels: [feel(), feel(), feel(), feel()],
+    variations: [{ u_warmth: 0 }, { u_warmth: 0.6 }, { u_warmth: -0.6 }, { u_warmth: 1.0 }],
   };
 };
 

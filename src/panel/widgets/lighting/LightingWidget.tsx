@@ -566,6 +566,7 @@ function SingleItemView({ view, t, showArrows, overlay }: { view: SingleView; t:
             ? (
               <>
                 <img src={view.thumbUrl} alt="" draggable={false} />
+                <span className={styles.thumbVignette} aria-hidden="true" />
                 <span className={styles.thumbLabel}>{view.label}</span>
               </>
             )

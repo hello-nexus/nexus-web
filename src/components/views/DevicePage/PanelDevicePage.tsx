@@ -30,6 +30,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { InfoRow } from '../../common/InfoList/InfoList';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
@@ -557,6 +558,10 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                       showAutoLaunch={supportsAutoLaunch}
                       usbDisconnected={usbDisconnected}
                       displayDisconnected={displayDisconnected}
+                      // The handler reports the plain id until the serial
+                      // controller identifies the variant; showing that
+                      // fallback would read as an identified base model.
+                      variant={device?.firmwareType !== device?.sourceId ? device?.firmwareType : undefined}
                     />
                   )}
                   {activeTab === 'settings' && surface === 'q60' && (
@@ -854,6 +859,8 @@ interface SettingsPanelProps {
   usbDisconnected: boolean;
   // Y70 serial/USB up but no video display attached: nothing to render on.
   displayDisconnected: boolean;
+  // Firmware-catalog variant key (e.g. "y70-truly") for support diagnosis.
+  variant?: string;
 }
 
 function SettingsPanel({
@@ -867,6 +874,7 @@ function SettingsPanel({
   showAutoLaunch,
   usbDisconnected,
   displayDisconnected,
+  variant,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
 
@@ -924,6 +932,10 @@ function SettingsPanel({
                 label: t(`devices.y70.orientation.${o}`),
               }))}
             />
+          )}
+
+          {!!variant && (
+            <InfoRow label={t('devices.y70.variant')} value={variant} tone="dim" />
           )}
         </SettingsSection>
       )}
