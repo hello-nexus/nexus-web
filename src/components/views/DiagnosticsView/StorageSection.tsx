@@ -8,17 +8,18 @@ import { Button } from '../../common/Button/Button';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
+import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import { UsageBar } from '../../common/UsageBar/UsageBar';
-import type { DiagnosticsDrive, DiagnosticsSmartResponse, SmartAttribute } from '../../../api/diagnostics';
+import type { DiagnosticsDrive, DiagnosticsFetchOptions, DiagnosticsSmartResponse, SmartAttribute } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { driveStatusColor, driveStatusLabelKey, formatBytes, resolveSectionState } from './diagnosticsHelpers';
+import { diagnosticsSectionAnchorId, driveStatusColor, driveStatusLabelKey, formatBytes, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface StorageSectionProps {
   data: DiagnosticsSmartResponse | null;
   loading: boolean;
   error: boolean;
-  onRefresh: () => void;
+  onRefresh: (opts?: DiagnosticsFetchOptions) => void;
 }
 
 export function StorageSection({ data, loading, error, onRefresh }: StorageSectionProps) {
@@ -32,12 +33,16 @@ export function StorageSection({ data, loading, error, onRefresh }: StorageSecti
   });
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} id={diagnosticsSectionAnchorId('storage')}>
       <div className={styles.sectionHeaderRow}>
         <SectionHeader>{t('diagnostics.kind.storage')}</SectionHeader>
-        <Button tone="ghost" size="sm" icon={<RefreshCw size={13} />} title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')} onClick={onRefresh} />
+        <Button
+          tone="ghost" size="sm" icon={<RefreshCw size={13} />} loading={loading}
+          title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')}
+          onClick={() => onRefresh({ force: true })}
+        />
       </div>
-      {state === 'error' && <SectionLoadError onRetry={onRefresh} />}
+      {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<HardDrive size={22} />} title={t('diagnostics.storage.empty')} />}
       {state === 'content' && data && (
@@ -70,13 +75,21 @@ function DriveCard({ drive }: { drive: DiagnosticsDrive }) {
           <InfoRow label={t('diagnostics.storage.powerOnHours')} value={`${drive.powerOnHours}h`} />
           <InfoRow label={t('diagnostics.storage.powerCycles')} value={String(drive.powerCycles)} />
         </InfoList>
-        {drive.healthPercent !== null && (
-          <div className={styles.driveHealthBar}>
-            <InfoRow label={t('diagnostics.storage.health')} value={`${drive.healthPercent}%`} />
-            <UsageBar value={drive.healthPercent / 100} color={driveStatusColor(drive.status)} />
-          </div>
-        )}
       </div>
+      {drive.healthPercent !== null && (
+        <div className={styles.driveHealthSection}>
+          <InfoRow
+            label={
+              <span className={styles.healthLabelRow}>
+                {t('diagnostics.storage.health')}
+                <InfoTooltip message={t('diagnostics.storage.healthInfo')} side="top" />
+              </span>
+            }
+            value={`${drive.healthPercent}%`}
+          />
+          <UsageBar value={drive.healthPercent / 100} color={driveStatusColor(drive.status)} />
+        </div>
+      )}
 
       {drive.attributes.length > 0 && (
         <CollapsibleSection

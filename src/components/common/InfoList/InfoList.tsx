@@ -23,7 +23,7 @@ const TONE_CLASS: Record<InfoRowTone, string> = {
 };
 
 export interface InfoRowProps {
-  label: string;
+  label: ReactNode;
   value: ReactNode;
   tone?: InfoRowTone;
   /** Capitalize the value (first letter uppercase) for category-style copy. */

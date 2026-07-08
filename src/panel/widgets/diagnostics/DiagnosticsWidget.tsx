@@ -2,8 +2,9 @@ import { Stethoscope } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
 import { DIAGNOSTICS_PREVIEW } from './diagnosticsPreviewData';
-import type { DiagnosticsKind, DiagnosticsStatus } from '../../../api/diagnostics';
+import type { DiagnosticsStatus } from '../../../api/diagnostics';
 import {
+  DIAGNOSTICS_KIND_ORDER,
   kindStatus,
   reasonLabel,
   statusLabelKey,
@@ -14,8 +15,6 @@ import { PanelStatusDot, PanelWidgetEmpty, PanelWidgetShell } from '../common/Pa
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import type { WidgetProps } from '../types';
 import styles from './DiagnosticsWidget.module.scss';
-
-const KIND_ORDER: DiagnosticsKind[] = ['storage', 'memory', 'gpu', 'cooling', 'system'];
 
 // PanelStatusDot's tone set is presence-shaped (online/away/busy/offline);
 // this maps the ok/watch/act/unknown health scale onto it so the widget
@@ -54,7 +53,7 @@ export function DiagnosticsWidget({ widget }: WidgetProps) {
         <span className={styles.overall}>{t(statusLabelKey(health.overall))}</span>
       </div>
       <div className={styles.dots}>
-        {KIND_ORDER.map(kind => {
+        {DIAGNOSTICS_KIND_ORDER.map(kind => {
           const status = kindStatus(health.components, kind);
           const label = `${t(`diagnostics.kind.${kind}`)}: ${t(statusLabelKey(status))}`;
           return (

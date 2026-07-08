@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchDiagnosticsHealth, type DiagnosticsHealth } from '../api/diagnostics';
+import { fetchDiagnosticsHealth, type DiagnosticsFetchOptions, type DiagnosticsHealth } from '../api/diagnostics';
 
 const POLL_MS = 15_000;
 
@@ -8,7 +8,7 @@ export interface UseDiagnosticsHealth {
   loading: boolean;
   error: boolean;
   mocked: boolean;
-  refresh: () => void;
+  refresh: (opts?: DiagnosticsFetchOptions) => void;
 }
 
 /**
@@ -27,10 +27,10 @@ export function useDiagnosticsHealth(enabled: boolean): UseDiagnosticsHealth {
   // matching the most recently dispatched call is allowed to commit state.
   const seqRef = useRef(0);
 
-  const load = useCallback(() => {
+  const load = useCallback((opts?: DiagnosticsFetchOptions) => {
     const seq = ++seqRef.current;
     void (async () => {
-      const result = await fetchDiagnosticsHealth();
+      const result = await fetchDiagnosticsHealth(opts);
       if (!mountedRef.current || seq !== seqRef.current) return;
       if (result.data !== null) {
         setHealth(result.data);

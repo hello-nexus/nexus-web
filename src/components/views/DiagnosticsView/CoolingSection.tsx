@@ -8,7 +8,7 @@ import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import type { DiagnosticsCoolingResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { coolingStatusColor, coolingStatusLabelKey, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
+import { coolingStatusColor, coolingStatusLabelKey, diagnosticsSectionAnchorId, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface CoolingSectionProps {
@@ -31,12 +31,16 @@ export function CoolingSection({ data, loading, error, onRefresh }: CoolingSecti
   });
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} id={diagnosticsSectionAnchorId('cooling')}>
       <div className={styles.sectionHeaderRow}>
         <SectionHeader>{t('diagnostics.kind.cooling')}</SectionHeader>
-        <Button tone="ghost" size="sm" icon={<RefreshCw size={13} />} title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')} onClick={onRefresh} />
+        <Button
+          tone="ghost" size="sm" icon={<RefreshCw size={13} />} loading={loading}
+          title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')}
+          onClick={() => onRefresh()}
+        />
       </div>
-      {state === 'error' && <SectionLoadError onRetry={onRefresh} />}
+      {state === 'error' && <SectionLoadError onRetry={() => onRefresh()} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<Fan size={22} />} title={t('diagnostics.cooling.empty')} />}
       {state === 'content' && data && (

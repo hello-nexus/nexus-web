@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   coolingStatusColor,
+  diagnosticsSectionAnchorId,
   driveStatusColor,
   durationToken,
   formatBytes,
   incidentSeverityColor,
   kindStatus,
+  orderComponentsByKind,
+  pnpProblemLabel,
   reasonLabel,
   reasonLabelKey,
   relativeTimeToken,
@@ -155,5 +158,61 @@ describe('formatBytes', () => {
     expect(formatBytes(512)).toBe('512 B');
     expect(formatBytes(2000398934016)).toBe('1.8 TB');
     expect(formatBytes(17179869184)).toBe('16 GB');
+  });
+});
+
+describe('orderComponentsByKind', () => {
+  it('reorders to storage, memory, gpu, cooling, system regardless of server order', () => {
+    const components: DiagnosticsComponent[] = [
+      { id: 'system:host', kind: 'system', name: 'System', status: 'ok', reasons: [] },
+      { id: 'gpu:0', kind: 'gpu', name: 'GPU', status: 'ok', reasons: [] },
+      { id: 'cooling:pump', kind: 'cooling', name: 'Pump', status: 'ok', reasons: [] },
+      { id: 'storage:a', kind: 'storage', name: 'Drive A', status: 'ok', reasons: [] },
+      { id: 'memory:aggregate', kind: 'memory', name: 'Memory', status: 'ok', reasons: [] },
+    ];
+
+    expect(orderComponentsByKind(components).map(c => c.kind))
+      .toEqual(['storage', 'memory', 'gpu', 'cooling', 'system']);
+  });
+
+  it('keeps the relative server order for components sharing a kind', () => {
+    const components: DiagnosticsComponent[] = [
+      { id: 'storage:b', kind: 'storage', name: 'Drive B', status: 'ok', reasons: [] },
+      { id: 'storage:a', kind: 'storage', name: 'Drive A', status: 'ok', reasons: [] },
+    ];
+
+    expect(orderComponentsByKind(components).map(c => c.id)).toEqual(['storage:b', 'storage:a']);
+  });
+
+  it('does not mutate the input array', () => {
+    const components: DiagnosticsComponent[] = [
+      { id: 'system:host', kind: 'system', name: 'System', status: 'ok', reasons: [] },
+      { id: 'storage:a', kind: 'storage', name: 'Drive A', status: 'ok', reasons: [] },
+    ];
+    const original = [...components];
+
+    orderComponentsByKind(components);
+
+    expect(components).toEqual(original);
+  });
+});
+
+describe('diagnosticsSectionAnchorId', () => {
+  it('builds a stable id per kind', () => {
+    expect(diagnosticsSectionAnchorId('storage')).toBe('diagnostics-section-storage');
+    expect(diagnosticsSectionAnchorId('system')).toBe('diagnostics-section-system');
+  });
+});
+
+describe('pnpProblemLabel', () => {
+  it('resolves a mapped code to its translation key', () => {
+    const translate = (key: string) => (key === 'diagnostics.system.problemCode.28' ? 'Drivers for this device are not installed.' : key);
+    expect(pnpProblemLabel(28, translate)).toBe('Drivers for this device are not installed.');
+  });
+
+  it('falls back to a generic labeled line for an unmapped code', () => {
+    const translate = (key: string, params?: Record<string, string>) =>
+      key === 'diagnostics.system.problemCodeFallback' ? `Device Manager problem code ${params?.code}` : key;
+    expect(pnpProblemLabel(99, translate)).toBe('Device Manager problem code 99');
   });
 });

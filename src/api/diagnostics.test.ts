@@ -60,6 +60,26 @@ describe('fetchDiagnosticsHealth', () => {
 
     expect(await fetchDiagnosticsHealth()).toEqual({ data: null, mocked: false });
   });
+
+  it('appends ?refresh=1 when force is requested', async () => {
+    const health = { generatedAt: '2026-07-08T02:00:00Z', supported: true, overall: 'ok' as const, components: [] };
+    const fetchMock = vi.fn(async () => jsonResponse(200, health));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchDiagnosticsHealth({ force: true });
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toContain('/diagnostics/health?refresh=1');
+  });
+
+  it('omits the refresh param on a plain (non-forced) fetch', async () => {
+    const health = { generatedAt: '2026-07-08T02:00:00Z', supported: true, overall: 'ok' as const, components: [] };
+    const fetchMock = vi.fn(async () => jsonResponse(200, health));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchDiagnosticsHealth();
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).not.toContain('refresh=1');
+  });
 });
 
 describe('fetchDiagnosticsIncidents', () => {

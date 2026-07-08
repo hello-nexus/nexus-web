@@ -25,7 +25,22 @@ export interface CardProps {
 export function Card({ title, subtitle, actions, children, interactive, compact, className, onClick }: CardProps) {
   const hasHeader = title !== undefined || subtitle !== undefined || actions !== undefined;
   return (
-    <div className={`${styles.root} ${interactive || onClick ? styles.interactive : ''} ${compact ? styles.compact : ''} ${className ?? ''}`} onClick={onClick}>
+    <div
+      className={`${styles.root} ${interactive || onClick ? styles.interactive : ''} ${compact ? styles.compact : ''} ${className ?? ''}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => {
+        // Only react to a keypress on the card itself - a nested interactive
+        // child (e.g. a toggle button) handles its own Enter/Space and must
+        // not also trigger the card's onClick via bubbling.
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      } : undefined}
+    >
       {hasHeader && (
         <div className={styles.header}>
           <div className={styles.titleCol}>

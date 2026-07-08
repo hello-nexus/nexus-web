@@ -40,7 +40,7 @@ const INCIDENT_WINDOW_DAYS = 30;
 export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsViewProps) {
   const { t } = useTranslation();
   const { push } = useToast();
-  const { health, error: healthError, mocked: healthMocked, refresh: refreshHealth } = useDiagnosticsHealth(serviceOnline);
+  const { health, loading: healthLoading, error: healthError, mocked: healthMocked, refresh: refreshHealth } = useDiagnosticsHealth(serviceOnline);
   // Re-snapshot "now" whenever a fresh poll lands, so the header's relative
   // time stays current without calling Date.now() during render (impure).
   const [now, setNow] = useState(() => Date.now());
@@ -96,7 +96,7 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
       />
       <div className="pageBody">
         {!health ? (
-          healthError ? <SectionLoadError onRetry={refreshHealth} /> : <GenericSkeleton />
+          healthError ? <SectionLoadError onRetry={() => refreshHealth({ force: true })} loading={healthLoading} /> : <GenericSkeleton />
         ) : !health.supported ? <NotAvailableNote /> : (
           <ComponentHealthGrid components={health.components} />
         )}

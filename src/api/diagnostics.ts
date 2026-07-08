@@ -56,6 +56,11 @@ export interface DiagnosticsIncident {
   detail: string;
   app: DiagnosticsIncidentApp | null;
   data: Record<string, string>;
+  // Identical repeats are grouped server-side, newest kept: repeatCount > 1
+  // means this entry stands in for that many occurrences, and firstUtc (null
+  // when repeatCount is 1) is the earliest of them.
+  repeatCount: number;
+  firstUtc: string | null;
 }
 
 export interface DiagnosticsIncidentsResponse {
@@ -215,9 +220,20 @@ export interface DiagnosticsFetchResult<T> {
   mocked: boolean;
 }
 
+/** Passed to the cacheable GET endpoints (health/smart/gpu/memory/system) to
+ *  bust the service's server-side cache instead of returning a stale snapshot. */
+export interface DiagnosticsFetchOptions {
+  force?: boolean;
+}
+
 interface RequestOpts {
   method?: string;
   body?: unknown;
+}
+
+function withRefreshParam(path: string, force?: boolean): string {
+  if (!force) return path;
+  return `${path}${path.includes('?') ? '&' : '?'}refresh=1`;
 }
 
 async function requestJson<T>(path: string, opts?: RequestOpts): Promise<{ data: T | null; status: number }> {
@@ -255,32 +271,32 @@ async function withMockFallback<T>(
   return { data: null, mocked: false };
 }
 
-export function fetchDiagnosticsHealth(): Promise<DiagnosticsFetchResult<DiagnosticsHealth>> {
-  return withMockFallback('/diagnostics/health', mock => mock.mockDiagnosticsHealth());
+export function fetchDiagnosticsHealth(opts?: DiagnosticsFetchOptions): Promise<DiagnosticsFetchResult<DiagnosticsHealth>> {
+  return withMockFallback(withRefreshParam('/diagnostics/health', opts?.force), mock => mock.mockDiagnosticsHealth());
 }
 
 export function fetchDiagnosticsIncidents(days = 30): Promise<DiagnosticsFetchResult<DiagnosticsIncidentsResponse>> {
   return withMockFallback(`/diagnostics/incidents?days=${days}`, mock => mock.mockDiagnosticsIncidents());
 }
 
-export function fetchDiagnosticsSmart(): Promise<DiagnosticsFetchResult<DiagnosticsSmartResponse>> {
-  return withMockFallback('/diagnostics/smart', mock => mock.mockDiagnosticsSmart());
+export function fetchDiagnosticsSmart(opts?: DiagnosticsFetchOptions): Promise<DiagnosticsFetchResult<DiagnosticsSmartResponse>> {
+  return withMockFallback(withRefreshParam('/diagnostics/smart', opts?.force), mock => mock.mockDiagnosticsSmart());
 }
 
-export function fetchDiagnosticsMemory(): Promise<DiagnosticsFetchResult<DiagnosticsMemoryResponse>> {
-  return withMockFallback('/diagnostics/memory', mock => mock.mockDiagnosticsMemory());
+export function fetchDiagnosticsMemory(opts?: DiagnosticsFetchOptions): Promise<DiagnosticsFetchResult<DiagnosticsMemoryResponse>> {
+  return withMockFallback(withRefreshParam('/diagnostics/memory', opts?.force), mock => mock.mockDiagnosticsMemory());
 }
 
-export function fetchDiagnosticsGpu(): Promise<DiagnosticsFetchResult<DiagnosticsGpuResponse>> {
-  return withMockFallback('/diagnostics/gpu', mock => mock.mockDiagnosticsGpu());
+export function fetchDiagnosticsGpu(opts?: DiagnosticsFetchOptions): Promise<DiagnosticsFetchResult<DiagnosticsGpuResponse>> {
+  return withMockFallback(withRefreshParam('/diagnostics/gpu', opts?.force), mock => mock.mockDiagnosticsGpu());
 }
 
 export function fetchDiagnosticsCooling(): Promise<DiagnosticsFetchResult<DiagnosticsCoolingResponse>> {
   return withMockFallback('/diagnostics/cooling', mock => mock.mockDiagnosticsCooling());
 }
 
-export function fetchDiagnosticsSystem(): Promise<DiagnosticsFetchResult<DiagnosticsSystemResponse>> {
-  return withMockFallback('/diagnostics/system', mock => mock.mockDiagnosticsSystem());
+export function fetchDiagnosticsSystem(opts?: DiagnosticsFetchOptions): Promise<DiagnosticsFetchResult<DiagnosticsSystemResponse>> {
+  return withMockFallback(withRefreshParam('/diagnostics/system', opts?.force), mock => mock.mockDiagnosticsSystem());
 }
 
 export function scheduleMemoryTest(): Promise<DiagnosticsFetchResult<ScheduleMemoryTestResponse>> {

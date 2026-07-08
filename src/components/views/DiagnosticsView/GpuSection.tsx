@@ -6,16 +6,16 @@ import { Card } from '../../common/Card/Card';
 import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
-import type { DiagnosticsGpu, DiagnosticsGpuResponse } from '../../../api/diagnostics';
+import type { DiagnosticsFetchOptions, DiagnosticsGpu, DiagnosticsGpuResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { durationLabel, resolveSectionState } from './diagnosticsHelpers';
+import { diagnosticsSectionAnchorId, durationLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface GpuSectionProps {
   data: DiagnosticsGpuResponse | null;
   loading: boolean;
   error: boolean;
-  onRefresh: () => void;
+  onRefresh: (opts?: DiagnosticsFetchOptions) => void;
 }
 
 export function GpuSection({ data, loading, error, onRefresh }: GpuSectionProps) {
@@ -29,12 +29,16 @@ export function GpuSection({ data, loading, error, onRefresh }: GpuSectionProps)
   });
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} id={diagnosticsSectionAnchorId('gpu')}>
       <div className={styles.sectionHeaderRow}>
         <SectionHeader>{t('diagnostics.kind.gpu')}</SectionHeader>
-        <Button tone="ghost" size="sm" icon={<RefreshCw size={13} />} title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')} onClick={onRefresh} />
+        <Button
+          tone="ghost" size="sm" icon={<RefreshCw size={13} />} loading={loading}
+          title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')}
+          onClick={() => onRefresh({ force: true })}
+        />
       </div>
-      {state === 'error' && <SectionLoadError onRetry={onRefresh} />}
+      {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<Monitor size={22} />} title={t('diagnostics.gpu.empty')} />}
       {state === 'content' && data && (

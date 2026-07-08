@@ -7,16 +7,16 @@ import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast } from '../../common/Toast/Toast';
-import { cancelMemoryTest, scheduleMemoryTest, type DiagnosticsMemoryResponse } from '../../../api/diagnostics';
+import { cancelMemoryTest, scheduleMemoryTest, type DiagnosticsFetchOptions, type DiagnosticsMemoryResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { formatBytes, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
+import { diagnosticsSectionAnchorId, formatBytes, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface MemorySectionProps {
   data: DiagnosticsMemoryResponse | null;
   loading: boolean;
   error: boolean;
-  onRefresh: () => void;
+  onRefresh: (opts?: DiagnosticsFetchOptions) => void;
 }
 
 export function MemorySection({ data, loading, error, onRefresh }: MemorySectionProps) {
@@ -59,12 +59,16 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
     : t('diagnostics.memory.testResult.never');
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} id={diagnosticsSectionAnchorId('memory')}>
       <div className={styles.sectionHeaderRow}>
         <SectionHeader>{t('diagnostics.kind.memory')}</SectionHeader>
-        <Button tone="ghost" size="sm" icon={<RefreshCw size={13} />} title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')} onClick={onRefresh} />
+        <Button
+          tone="ghost" size="sm" icon={<RefreshCw size={13} />} loading={loading}
+          title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')}
+          onClick={() => onRefresh({ force: true })}
+        />
       </div>
-      {state === 'error' && <SectionLoadError onRetry={onRefresh} />}
+      {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<MemoryStick size={22} />} title={t('diagnostics.memory.empty')} />}
       {state === 'content' && data && (

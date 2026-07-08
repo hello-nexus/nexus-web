@@ -4,16 +4,17 @@ import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
-import type { DiagnosticsSystemResponse } from '../../../api/diagnostics';
+import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
+import type { DiagnosticsFetchOptions, DiagnosticsSystemResponse, PnpProblem } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { resolveSectionState } from './diagnosticsHelpers';
+import { diagnosticsSectionAnchorId, pnpProblemLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface SystemSectionProps {
   data: DiagnosticsSystemResponse | null;
   loading: boolean;
   error: boolean;
-  onRefresh: () => void;
+  onRefresh: (opts?: DiagnosticsFetchOptions) => void;
 }
 
 export function SystemSection({ data, loading, error, onRefresh }: SystemSectionProps) {
@@ -27,12 +28,16 @@ export function SystemSection({ data, loading, error, onRefresh }: SystemSection
   });
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} id={diagnosticsSectionAnchorId('system')}>
       <div className={styles.sectionHeaderRow}>
         <SectionHeader>{t('diagnostics.kind.system')}</SectionHeader>
-        <Button tone="ghost" size="sm" icon={<RefreshCw size={13} />} title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')} onClick={onRefresh} />
+        <Button
+          tone="ghost" size="sm" icon={<RefreshCw size={13} />} loading={loading}
+          title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')}
+          onClick={() => onRefresh({ force: true })}
+        />
       </div>
-      {state === 'error' && <SectionLoadError onRetry={onRefresh} />}
+      {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'content' && data && (
         <>
@@ -48,22 +53,30 @@ export function SystemSection({ data, loading, error, onRefresh }: SystemSection
           </InfoList>
 
           <SectionHeader>{t('diagnostics.system.pnpProblems')}</SectionHeader>
+          <div className={styles.reasonSummary}>{t('diagnostics.system.pnpDescription')}</div>
           {data.pnpProblems.length === 0 ? (
             <EmptyState compact icon={<ShieldCheck size={22} />} title={t('diagnostics.system.pnpEmpty')} />
           ) : (
             <ul className={styles.pnpList}>
-              {data.pnpProblems.map((problem, i) => (
-                <li key={i} className={styles.pnpItem}>
-                  <span>{problem.name}</span>
-                  <span className={styles.pnpCode}>
-                    {t('diagnostics.system.problemCode', { code: String(problem.problemCode) })} - {problem.problemText}
-                  </span>
-                </li>
-              ))}
+              {data.pnpProblems.map((problem, i) => <PnpProblemRow key={i} problem={problem} />)}
             </ul>
           )}
         </>
       )}
     </section>
+  );
+}
+
+function PnpProblemRow({ problem }: { problem: PnpProblem }) {
+  const { t } = useTranslation();
+  const tooltipMessage = `${t('diagnostics.system.problemCode', { code: String(problem.problemCode) })}: ${problem.problemText} · ${problem.deviceId}`;
+  return (
+    <li className={styles.pnpItem}>
+      <div className={styles.pnpItemRow}>
+        <span className={styles.pnpDeviceName}>{problem.name || t('diagnostics.system.unknownDevice')}</span>
+        <InfoTooltip message={tooltipMessage} side="top" />
+      </div>
+      <span className={styles.pnpExplanation}>{pnpProblemLabel(problem.problemCode, t)}</span>
+    </li>
   );
 }

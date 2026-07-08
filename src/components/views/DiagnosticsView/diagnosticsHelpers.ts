@@ -163,6 +163,54 @@ export function resolveSectionState(opts: {
   return 'content';
 }
 
+/** Client-side display order for health.components, matching the page's
+ *  section order (Storage, Memory, GPU, Cooling, System) regardless of what
+ *  order the server returns them in. Shared with the panel widget's dots row
+ *  so both surfaces agree on one ordering. */
+export const DIAGNOSTICS_KIND_ORDER: DiagnosticsKind[] = ['storage', 'memory', 'gpu', 'cooling', 'system'];
+
+/** Stable-sorts components by DIAGNOSTICS_KIND_ORDER; components sharing a
+ *  kind keep their relative server order. */
+export function orderComponentsByKind(components: DiagnosticsComponent[]): DiagnosticsComponent[] {
+  return [...components].sort((a, b) => DIAGNOSTICS_KIND_ORDER.indexOf(a.kind) - DIAGNOSTICS_KIND_ORDER.indexOf(b.kind));
+}
+
+/** DOM id shared by a section's root element and the health card that scrolls
+ *  to it, so the two never drift apart. */
+export function diagnosticsSectionAnchorId(kind: DiagnosticsKind): string {
+  return `diagnostics-section-${kind}`;
+}
+
+// Device Manager problem codes (Code N) mapped to their standard one-line
+// explanation. Curated subset; an unmapped code falls back to a generic
+// "Device Manager problem code N" line (pnpProblemLabel below) instead of a
+// raw translation key.
+const PNP_PROBLEM_CODE_KEYS: Record<number, string> = {
+  1: 'diagnostics.system.problemCode.1',
+  3: 'diagnostics.system.problemCode.3',
+  10: 'diagnostics.system.problemCode.10',
+  12: 'diagnostics.system.problemCode.12',
+  14: 'diagnostics.system.problemCode.14',
+  18: 'diagnostics.system.problemCode.18',
+  21: 'diagnostics.system.problemCode.21',
+  22: 'diagnostics.system.problemCode.22',
+  24: 'diagnostics.system.problemCode.24',
+  28: 'diagnostics.system.problemCode.28',
+  31: 'diagnostics.system.problemCode.31',
+  37: 'diagnostics.system.problemCode.37',
+  39: 'diagnostics.system.problemCode.39',
+  43: 'diagnostics.system.problemCode.43',
+  45: 'diagnostics.system.problemCode.45',
+};
+
+/** Human, one-line explanation of a Device Manager problem code, resolved via
+ *  the caller's t(). Unmapped codes fall back to a generic labeled line so a
+ *  future code still reads as something rather than a raw translation key. */
+export function pnpProblemLabel(code: number, translate: (key: string, params?: Record<string, string>) => string): string {
+  const key = PNP_PROBLEM_CODE_KEYS[code];
+  return key ? translate(key) : translate('diagnostics.system.problemCodeFallback', { code: String(code) });
+}
+
 /** The single highest-severity reason across every health component, or null
  *  when nothing is flagged. Used by the panel widget's compact card. */
 export function worstReason(components: DiagnosticsComponent[]): DiagnosticsReason | null {
