@@ -364,6 +364,8 @@
   "cooling.curves.resetBtn": "Zurücksetzen",
   "cooling.curves.resetToDefaults": "Auf Standardwerte zurücksetzen",
   "cooling.fan.disconnected": "Getrennt",
+  "cooling.fan.fixed": "Feste Drehzahl",
+  "cooling.fan.fixedHint": "Feste Drehzahl - nicht regelbar",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Lüfter",
   "cooling.label.gpu": "GPU",

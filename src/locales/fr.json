@@ -364,6 +364,8 @@
   "cooling.curves.resetBtn": "Réinitialiser",
   "cooling.curves.resetToDefaults": "Réinitialiser aux valeurs par défaut",
   "cooling.fan.disconnected": "Deconnecte",
+  "cooling.fan.fixed": "Vitesse fixe",
+  "cooling.fan.fixedHint": "Vitesse fixe - non réglable",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Vent.",
   "cooling.label.gpu": "GPU",

@@ -364,6 +364,8 @@
   "cooling.curves.resetBtn": "Sıfırla",
   "cooling.curves.resetToDefaults": "Varsayılanlara sıfırla",
   "cooling.fan.disconnected": "Baglanti yok",
+  "cooling.fan.fixed": "Sabit hız",
+  "cooling.fan.fixedHint": "Sabit hız - kontrol edilemez",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Fan",
   "cooling.label.gpu": "GPU",

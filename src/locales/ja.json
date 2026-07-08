@@ -364,6 +364,8 @@
   "cooling.curves.resetBtn": "リセット",
   "cooling.curves.resetToDefaults": "デフォルトにリセット",
   "cooling.fan.disconnected": "未接続",
+  "cooling.fan.fixed": "固定速度",
+  "cooling.fan.fixedHint": "固定速度 - 制御できません",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "ファン",
   "cooling.label.gpu": "GPU",
