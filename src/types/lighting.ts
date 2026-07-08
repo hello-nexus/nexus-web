@@ -26,6 +26,8 @@ export interface EffectParamDef {
   defaultValue: number;
   /** When present the control renders as a segmented choice; value is still a float. */
   options?: { value: number; labelKey: string }[];
+  /** Render the slider with a centre zero tick (bipolar look, like Speed). */
+  zeroMarker?: boolean;
 }
 
 export type EffectCategory =
@@ -47,6 +49,7 @@ export const EFFECT_CATEGORIES: EffectCategory[] = [
 // (hue / colorize / saturation), so each entry differs only by its template
 // feels - see SIMPLE_COLORS / buildDefaultTemplates in lightingTemplates.ts.
 export const SIMPLE_EFFECT_KEYS = [
+  'simplewhite',
   'simplered', 'simpleorange', 'simpleyellow', 'simplegreen', 'simplecyan',
   'simpleblue', 'simpleviolet', 'simplepink',
 ] as const;
@@ -74,7 +77,8 @@ export function categoryOf(key: string): EffectCategory {
 // anything also tagged audio"). When borderline (e.g. starpath could be
 // either cosmic or atmospheric), pick the dominant visual character.
 export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
-  // Simple solid-colour fills (8).
+  // Simple solid-colour fills (9).
+  simplewhite: 'simple',
   simplered: 'simple', simpleorange: 'simple', simpleyellow: 'simple',
   simplegreen: 'simple', simplecyan: 'simple', simpleblue: 'simple',
   simpleviolet: 'simple', simplepink: 'simple',
@@ -120,29 +124,27 @@ export const MODES: { key: LightingMode; labelKey: string }[] = [
   { key: 'gamesync', labelKey: 'lighting.mode.gamesync' },
 ];
 
-// Simple fills share three tweaks: gradient boldness (0 = flat solid colour,
-// max = strong dark->light ramp), wave amount (0 = still, max = a gentle wave
-// flowing along the gradient direction), and the gradient's rotation in degrees
-// (0 = vertical). One shared array since every simple colour is the same
-// shader; it's read-only so sharing the reference is safe.
+// Simple fills expose one tweak: a slight bipolar hue nudge around the fill's
+// fixed base colour (full left/right stays within the same colour family).
+// One shared array since every simple colour is the same shader; it's
+// read-only so sharing the reference is safe.
 const SIMPLE_PARAMS: EffectParamDef[] = [
-  { name: 'u_gradient', label: 'Gradient', labelKey: 'lighting.controls.param.gradient', min: 0, max: 1,   step: 0.02, defaultValue: 0.6 },
-  { name: 'u_wave',     label: 'Wave', labelKey: 'lighting.controls.param.wave',     min: 0, max: 1,   step: 0.02, defaultValue: 0.5 },
-  { name: 'u_rotation', label: 'Rotation', labelKey: 'lighting.controls.param.rotation', min: 0, max: 360, step: 5,    defaultValue: 0 },
+  { name: 'u_hueShift', label: 'Hue shift', labelKey: 'lighting.controls.param.hueShift', min: -1, max: 1, step: 0.01, defaultValue: 0, zeroMarker: true },
 ];
 
 export const EFFECTS: EffectDef[] = [
-  // Simple solid-colour fills lead the list. A vertical gradient (boldness +
-  // rotation) is the only per-effect tweak; hue / saturation / speed come from
-  // the template feels.
-  { key: 'simplered',    labelKey: 'lighting.controls.simplered',    params: SIMPLE_PARAMS },
-  { key: 'simpleorange', labelKey: 'lighting.controls.simpleorange', params: SIMPLE_PARAMS },
-  { key: 'simpleyellow', labelKey: 'lighting.controls.simpleyellow', params: SIMPLE_PARAMS },
-  { key: 'simplegreen',  labelKey: 'lighting.controls.simplegreen',  params: SIMPLE_PARAMS },
-  { key: 'simplecyan',   labelKey: 'lighting.controls.simplecyan',   params: SIMPLE_PARAMS },
-  { key: 'simpleblue',   labelKey: 'lighting.controls.simpleblue',   params: SIMPLE_PARAMS },
-  { key: 'simpleviolet', labelKey: 'lighting.controls.simpleviolet', params: SIMPLE_PARAMS },
-  { key: 'simplepink',   labelKey: 'lighting.controls.simplepink',   params: SIMPLE_PARAMS },
+  // Simple solid-colour fills lead the list. A flat swatch with a slight
+  // hue-shift nudge is the only per-effect tweak; base colour / saturation /
+  // contrast come from the template feels. No speed (the fill is static).
+  { key: 'simplewhite',  labelKey: 'lighting.controls.simplewhite',  hideSpeed: true, params: SIMPLE_PARAMS },
+  { key: 'simplered',    labelKey: 'lighting.controls.simplered',    hideSpeed: true, params: SIMPLE_PARAMS },
+  { key: 'simpleorange', labelKey: 'lighting.controls.simpleorange', hideSpeed: true, params: SIMPLE_PARAMS },
+  { key: 'simpleyellow', labelKey: 'lighting.controls.simpleyellow', hideSpeed: true, params: SIMPLE_PARAMS },
+  { key: 'simplegreen',  labelKey: 'lighting.controls.simplegreen',  hideSpeed: true, params: SIMPLE_PARAMS },
+  { key: 'simplecyan',   labelKey: 'lighting.controls.simplecyan',   hideSpeed: true, params: SIMPLE_PARAMS },
+  { key: 'simpleblue',   labelKey: 'lighting.controls.simpleblue',   hideSpeed: true, params: SIMPLE_PARAMS },
+  { key: 'simpleviolet', labelKey: 'lighting.controls.simpleviolet', hideSpeed: true, params: SIMPLE_PARAMS },
+  { key: 'simplepink',   labelKey: 'lighting.controls.simplepink',   hideSpeed: true, params: SIMPLE_PARAMS },
   { key: 'plasma',       labelKey: 'lighting.controls.plasma',       params: [
       { name: 'u_warp', label: 'Warp', labelKey: 'lighting.controls.param.warp',  min: 0,   max: 2,   step: 0.05, defaultValue: 1 },
       { name: 'u_zoom', label: 'Zoom', labelKey: 'lighting.controls.param.zoom',  min: 0.5, max: 3,   step: 0.05, defaultValue: 1 },

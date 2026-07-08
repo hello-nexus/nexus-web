@@ -215,6 +215,12 @@
   padding: 0 0.2rem 0.2rem;
 }
 
+// Simple solid-colour fills are captionless swatches, so they pack at half the
+// normal cell width - twice as many per row.
+.animateGridSectionSimple {
+  grid-template-columns: repeat(auto-fill, minmax(59px, 1fr));
+}
+
 // Usage markers pinned to a grid cell's thumbnail (panels only): bulb = this
 // effect drives the physical LEDs; monitor = a panel uses it as a background.
 // Both stack horizontally so the user knows edits here reach other surfaces.

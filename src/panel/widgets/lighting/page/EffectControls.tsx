@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
-import { EFFECTS, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
+import { EFFECTS, categoryOf, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { Select } from '../../../../components/common/Select/Select';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
@@ -38,6 +38,9 @@ export const EffectControls = memo(function EffectControls({
   const def = EFFECTS.find(e => e.key === effect);
   if (!def) return null;
   const selected = bundle.selected;
+  // Simple fills are a fixed base colour: no colour wheel, and the saturation
+  // slider is HSV saturation (0 = white .. 100 = full colour), capped at 100.
+  const isSimple = categoryOf(effect) === 'simple';
   return (
     <div className={styles.effectControls}>
       <EffectTemplateSelector
@@ -51,19 +54,21 @@ export const EffectControls = memo(function EffectControls({
         panelSlots={panelSlots}
       />
       <div className={styles.drawerSliders}>
-        <div className={styles.paletteRingWrap}>
-          <PaletteRing
-            hue={state.hue}
-            colorize={state.colorize}
-            onChange={(hue, colorize, commit) => onChange({ hue, colorize }, commit)}
-            onCommit={onCommit}
-          />
-        </div>
+        {!isSimple && (
+          <div className={styles.paletteRingWrap}>
+            <PaletteRing
+              hue={state.hue}
+              colorize={state.colorize}
+              onChange={(hue, colorize, commit) => onChange({ hue, colorize }, commit)}
+              onCommit={onCommit}
+            />
+          </div>
+        )}
         {!def.hideSpeed && (
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.speed')} value={state.speed} min={-100} max={100} zeroMarker
             onChange={(v, commit) => onChange({ speed: v }, commit)} onCommit={onCommit} />
         )}
-        <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')} value={Math.round(state.saturation * 100)} min={0} max={400}
+        <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')} value={Math.round(Math.min(state.saturation, isSimple ? 1 : 4) * 100)} min={0} max={isSimple ? 100 : 400}
           onChange={(v, commit) => onChange({ saturation: v / 100 }, commit)} onCommit={onCommit} />
         <Slider orientation="stacked" editable trackFill label={t('lighting.controls.contrast')} value={Math.round(state.contrast * 100)} min={0} max={400}
           onChange={(v, commit) => onChange({ contrast: v / 100 }, commit)} onCommit={onCommit} />
@@ -92,7 +97,7 @@ export const EffectControls = memo(function EffectControls({
           const min = Math.round(p.min * scale);
           const max = Math.round(p.max * scale);
           return (
-            <Slider orientation="stacked" editable trackFill key={p.name} label={label} value={displayValue} min={min} max={max}
+            <Slider orientation="stacked" editable trackFill key={p.name} label={label} value={displayValue} min={min} max={max} zeroMarker={p.zeroMarker}
               onChange={(v, commit) => onChange({ params: { ...state.params, [p.name]: v / scale } }, commit)}
               onCommit={onCommit} />
           );
