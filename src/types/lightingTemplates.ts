@@ -61,9 +61,9 @@ const simpleColorSlots = (hue: number): SimpleSlots => {
     ({ hue: norm1(hue), colorize: 0, speed: 50, saturation, contrast: 1, intensity: 1 });
   return {
     feels: [
-      feel(0.80),  // full (slider max)
+      feel(1.00),  // full (standard)
       feel(0.45),  // soft
-      feel(0.80),  // full, hue nudged one way
+      feel(1.00),  // full, hue nudged one way
       feel(0.62),  // medium, hue nudged the other way
     ],
     variations: [{ u_hueShift: 0 }, { u_hueShift: 0 }, { u_hueShift: -0.5 }, { u_hueShift: 0.5 }],
