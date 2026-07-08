@@ -21,10 +21,9 @@ import {
 import { hasOemApp, planOemAppSeed } from './oemAppSeed';
 import type { UiSettingsValue } from '../../hooks/useUiSettings';
 
-// Matches the size the OEM bake-in widget ships at in install-defaults for a
-// fresh profile - kept in lockstep so an existing profile catches up to the
-// same shape a new one gets.
-const OEM_WIDGET_SIZE: PanelWidgetSize = '4x2';
+// Size the OEM bake-in widget docks at on the dashboard. Must be one of the
+// app manifest's declared sizes (ibuypower ships 2x2 / 4x2 / 4x4).
+const OEM_WIDGET_SIZE: PanelWidgetSize = '2x2';
 
 interface UseOemAppSeedArgs {
   /** Gated to the embedded desktop dashboard - the only surface that owns dashboardLayout writes. */
