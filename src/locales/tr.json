@@ -588,6 +588,8 @@
   "devices.peripheral.category": "Tur",
   "devices.peripheral.source": "Baglanti",
   "devices.peripheral.vendor": "Uretici",
+  "devices.qseries.disconnected.hint": "Q-Series panel USB üzerinden bağlı değil. Yapılandırmak için USB kablosunu bağlayın.",
+  "devices.qseries.disconnected.title": "Panel bağlı değil",
   "devices.qseries.fwGate.cta": "Firmware'i aç",
   "devices.qseries.fwGate.hint": "Nexus panel uygulaması bu Q-Series panele yüklü değil. Bu kontrolleri etkinleştirmek için yükleyin.",
   "devices.qseries.fwGate.title": "Panel uygulaması gerekli",

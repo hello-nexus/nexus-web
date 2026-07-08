@@ -588,6 +588,8 @@
   "devices.peripheral.category": "Typ",
   "devices.peripheral.source": "Polaczenie",
   "devices.peripheral.vendor": "Producent",
+  "devices.qseries.disconnected.hint": "Panel Q-Series nie jest podłączony przez USB. Podłącz jego kabel USB, aby go skonfigurować.",
+  "devices.qseries.disconnected.title": "Panel odłączony",
   "devices.qseries.fwGate.cta": "Otwórz Firmware",
   "devices.qseries.fwGate.hint": "Aplikacja panelu Nexus nie jest zainstalowana na tym panelu Q-Series. Zainstaluj ją, aby włączyć te elementy sterujące.",
   "devices.qseries.fwGate.title": "Wymagana aplikacja panelu",

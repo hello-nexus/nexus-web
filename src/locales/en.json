@@ -609,6 +609,8 @@
   "devices.q60.saveCurve": "Save curves",
   "devices.q60.turbo": "Turbo",
   "devices.q60.turboHelp": "Allows the cooler to run at max speed. When disabled, the fan speed is limited to 2000 RPM (65%) and the pump speed is limited to 3000 RPM (70%).",
+  "devices.qseries.disconnected.hint": "The Q-series panel isn't connected over USB. Connect its USB cable to configure it.",
+  "devices.qseries.disconnected.title": "Panel disconnected",
   "devices.qseries.fwGate.cta": "Open Firmware",
   "devices.qseries.fwGate.hint": "The Nexus panel app isn't installed on this Q-series panel. Install it to enable these controls.",
   "devices.qseries.fwGate.title": "Panel app required",
