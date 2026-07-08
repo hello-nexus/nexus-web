@@ -34,10 +34,10 @@ const GREEN_MONO: Feel = { hue: 0.35, colorize: 0.75, speed: 65, saturation: 1.1
 // ── Simple solid-colour fills ──────────────────────────────────────────────
 // Each "simple" effect is the same flat-swatch shader; the colour is the
 // post-process tint. The 4 slots stay the same colour but differ by a slight
-// hue nudge (param u_hueShift) plus a small saturation/contrast change: pure,
-// pastel, and two opposite nudges. White varies a warm/cool tint instead.
-// `saturation` here is HSV S (1 = full colour, 0 = white); `speed` is unused
-// (the fill is static) but kept in the feel so every slot is a full EffectState.
+// hue nudge (param u_hueShift) and saturation: full, soft, and two opposite
+// nudges. White varies a warm / cool / rose tint instead. `saturation` here is
+// HSV S; `speed` and `contrast` are unused (the fill is static and flat) but
+// kept in the feel so every slot is a full EffectState.
 const SIMPLE_HUES: Record<string, number> = {
   simplered:    0.00,
   simpleorange: 0.05,
@@ -57,31 +57,31 @@ type SimpleSlots = {
 };
 
 const simpleColorSlots = (hue: number): SimpleSlots => {
-  const feel = (saturation: number, contrast: number): Feel =>
-    ({ hue: norm1(hue), colorize: 0, speed: 50, saturation, contrast, intensity: 1 });
+  const feel = (saturation: number): Feel =>
+    ({ hue: norm1(hue), colorize: 0, speed: 50, saturation, contrast: 1, intensity: 1 });
   return {
     feels: [
-      feel(1.00, 1.00),  // pure vivid base colour
-      feel(0.55, 1.05),  // pastel (soft)
-      feel(1.00, 1.10),  // vivid, nudged one way + a touch deeper
-      feel(0.80, 1.00),  // slightly soft, nudged the other way
+      feel(0.80),  // full (slider max)
+      feel(0.45),  // soft
+      feel(0.80),  // full, hue nudged one way
+      feel(0.62),  // medium, hue nudged the other way
     ],
-    variations: [{ u_hueShift: 0 }, { u_hueShift: 0 }, { u_hueShift: -1.0 }, { u_hueShift: 1.0 }],
+    variations: [{ u_hueShift: 0 }, { u_hueShift: 0 }, { u_hueShift: -0.5 }, { u_hueShift: 0.5 }],
   };
 };
 
 // White fill: a hue nudge is invisible on pure white, so its 4 slots carry a
-// slight warm/cool tint (tiny HSV saturation at a warm/cool hue) plus a crisp
-// high-contrast variant.
+// slight warm / cool / rose tint (tiny HSV saturation at that hue) around a
+// neutral base.
 const simpleWhiteSlots = (): SimpleSlots => {
-  const feel = (h: number, saturation: number, contrast: number): Feel =>
-    ({ hue: h, colorize: 0, speed: 50, saturation, contrast, intensity: 1 });
+  const feel = (h: number, saturation: number): Feel =>
+    ({ hue: h, colorize: 0, speed: 50, saturation, contrast: 1, intensity: 1 });
   return {
     feels: [
-      feel(0.00, 0.00, 1.00),  // neutral white
-      feel(0.09, 0.12, 1.00),  // warm white
-      feel(0.60, 0.12, 1.00),  // cool white
-      feel(0.00, 0.00, 1.20),  // crisp white
+      feel(0.00, 0.00),  // neutral white
+      feel(0.09, 0.12),  // warm white
+      feel(0.60, 0.12),  // cool white
+      feel(0.95, 0.10),  // rose white
     ],
     variations: [{ u_hueShift: 0 }, { u_hueShift: 0 }, { u_hueShift: 0 }, { u_hueShift: 0 }],
   };

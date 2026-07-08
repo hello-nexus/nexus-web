@@ -38,9 +38,15 @@ export const EffectControls = memo(function EffectControls({
   const def = EFFECTS.find(e => e.key === effect);
   if (!def) return null;
   const selected = bundle.selected;
-  // Simple fills are a fixed base colour: no colour wheel, and the saturation
-  // slider is HSV saturation (0 = white .. 100 = full colour), capped at 100.
+  // Simple fills are a fixed base colour: no colour wheel, no speed, no
+  // contrast. Saturation is HSV saturation on a tightened range - never down to
+  // white (that's the dedicated White fill) nor up to eye-searing full sat.
+  // White itself hides the saturation slider (its warmth comes from presets).
   const isSimple = categoryOf(effect) === 'simple';
+  const isSimpleWhite = effect === 'simplewhite';
+  const satMin = isSimple ? 40 : 0;
+  const satMax = isSimple ? 80 : 400;
+  const satValue = Math.max(satMin, Math.min(Math.round(state.saturation * 100), satMax));
   return (
     <div className={styles.effectControls}>
       <EffectTemplateSelector
@@ -68,10 +74,14 @@ export const EffectControls = memo(function EffectControls({
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.speed')} value={state.speed} min={-100} max={100} zeroMarker
             onChange={(v, commit) => onChange({ speed: v }, commit)} onCommit={onCommit} />
         )}
-        <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')} value={Math.round(Math.min(state.saturation, isSimple ? 1 : 4) * 100)} min={0} max={isSimple ? 100 : 400}
-          onChange={(v, commit) => onChange({ saturation: v / 100 }, commit)} onCommit={onCommit} />
-        <Slider orientation="stacked" editable trackFill label={t('lighting.controls.contrast')} value={Math.round(state.contrast * 100)} min={0} max={400}
-          onChange={(v, commit) => onChange({ contrast: v / 100 }, commit)} onCommit={onCommit} />
+        {!isSimpleWhite && (
+          <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')} value={satValue} min={satMin} max={satMax}
+            onChange={(v, commit) => onChange({ saturation: v / 100 }, commit)} onCommit={onCommit} />
+        )}
+        {!isSimple && (
+          <Slider orientation="stacked" editable trackFill label={t('lighting.controls.contrast')} value={Math.round(state.contrast * 100)} min={0} max={400}
+            onChange={(v, commit) => onChange({ contrast: v / 100 }, commit)} onCommit={onCommit} />
+        )}
         {def.showIntensity && (
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.intensity')} value={Math.round(state.intensity * 100)} min={0} max={100}
             onChange={(v, commit) => onChange({ intensity: v / 100 }, commit)} onCommit={onCommit} />
