@@ -9,7 +9,7 @@ import { Button } from '../../common/Button/Button';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
 import type { DiagnosticsIncident, DiagnosticsIncidentSeverity, DiagnosticsIncidentsResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { incidentSeverityColor, incidentSourceLabelKey, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
+import { incidentAppFaultLine, incidentSeverityColor, incidentSourceLabelKey, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface IncidentsSectionProps {
@@ -123,6 +123,7 @@ function IncidentRow({ incident, now }: { incident: DiagnosticsIncident; now: nu
   const [expanded, setExpanded] = useState(false);
   const Icon = SEVERITY_ICON[incident.severity];
   const hasDetail = Boolean(incident.detail) || incident.app !== null || incident.repeatCount > 1;
+  const appFaultLine = incident.app ? incidentAppFaultLine(incident.app) : null;
 
   const toggle = () => setExpanded(e => !e);
   const summary = (
@@ -174,9 +175,7 @@ function IncidentRow({ incident, now }: { incident: DiagnosticsIncident; now: nu
           {incident.app && (
             <div className={styles.incidentDetail}>{`${incident.app.name} - ${incident.app.path}`}</div>
           )}
-          {incident.app && (incident.app.faultingModule || incident.app.exceptionCode) && (
-            <div className={styles.incidentDetail}>{`${incident.app.faultingModule} (${incident.app.exceptionCode})`}</div>
-          )}
+          {appFaultLine && <div className={styles.incidentDetail}>{appFaultLine}</div>}
           {incident.repeatCount > 1 && incident.firstUtc && (
             <div className={styles.incidentDetail}>
               {t('diagnostics.incidents.firstSeen', { time: relativeTimeLabel(incident.firstUtc, now, t) })}

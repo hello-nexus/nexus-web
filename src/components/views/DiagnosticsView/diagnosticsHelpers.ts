@@ -5,6 +5,7 @@ import type {
   CoolingDeviceStatus,
   DiagnosticsComponent,
   DiagnosticsDriveStatus,
+  DiagnosticsIncidentApp,
   DiagnosticsIncidentSeverity,
   DiagnosticsKind,
   DiagnosticsReason,
@@ -68,6 +69,16 @@ export function incidentSeverityLabelKey(severity: DiagnosticsIncidentSeverity):
 
 export function incidentSourceLabelKey(source: string): string {
   return `diagnostics.incidents.source.${source}`;
+}
+
+/** "module (code)" from an incident's app fault, dropping either part when
+ *  the server left it empty so a partial fault never reads as "module ()"
+ *  or " (code)". Null when both parts are empty. */
+export function incidentAppFaultLine(app: DiagnosticsIncidentApp): string | null {
+  const module = app.faultingModule;
+  const code = app.exceptionCode;
+  if (module && code) return `${module} (${code})`;
+  return module || code || null;
 }
 
 /** A reason's translation key, built directly from its stable machine code

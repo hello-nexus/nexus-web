@@ -5,6 +5,7 @@ import {
   driveStatusColor,
   durationToken,
   formatBytes,
+  incidentAppFaultLine,
   incidentSeverityColor,
   kindStatus,
   orderComponentsByKind,
@@ -16,7 +17,7 @@ import {
   statusColor,
   worstReason,
 } from './diagnosticsHelpers';
-import type { DiagnosticsComponent, DiagnosticsReason } from '../../../api/diagnostics';
+import type { DiagnosticsComponent, DiagnosticsIncidentApp, DiagnosticsReason } from '../../../api/diagnostics';
 
 describe('statusColor', () => {
   it('maps every status to its token', () => {
@@ -214,5 +215,27 @@ describe('pnpProblemLabel', () => {
     const translate = (key: string, params?: Record<string, string>) =>
       key === 'diagnostics.system.problemCodeFallback' ? `Device Manager problem code ${params?.code}` : key;
     expect(pnpProblemLabel(99, translate)).toBe('Device Manager problem code 99');
+  });
+});
+
+describe('incidentAppFaultLine', () => {
+  const app = (overrides: Partial<DiagnosticsIncidentApp>): DiagnosticsIncidentApp => ({
+    name: 'app.exe', path: 'C:/app.exe', exceptionCode: '', faultingModule: '', isGame: false, ...overrides,
+  });
+
+  it('joins module and code when both are present', () => {
+    expect(incidentAppFaultLine(app({ faultingModule: 'ntdll.dll', exceptionCode: 'c0000005' }))).toBe('ntdll.dll (c0000005)');
+  });
+
+  it('drops the empty parens when only the module is known', () => {
+    expect(incidentAppFaultLine(app({ faultingModule: 'ntdll.dll', exceptionCode: '' }))).toBe('ntdll.dll');
+  });
+
+  it('drops the leading space when only the code is known', () => {
+    expect(incidentAppFaultLine(app({ faultingModule: '', exceptionCode: 'c0000005' }))).toBe('c0000005');
+  });
+
+  it('returns null when neither is known', () => {
+    expect(incidentAppFaultLine(app({ faultingModule: '', exceptionCode: '' }))).toBeNull();
   });
 });

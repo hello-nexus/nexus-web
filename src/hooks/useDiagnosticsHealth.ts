@@ -28,6 +28,7 @@ export function useDiagnosticsHealth(enabled: boolean): UseDiagnosticsHealth {
   const seqRef = useRef(0);
 
   const load = useCallback((opts?: DiagnosticsFetchOptions) => {
+    setLoading(true);
     const seq = ++seqRef.current;
     void (async () => {
       const result = await fetchDiagnosticsHealth(opts);

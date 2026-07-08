@@ -37,6 +37,7 @@ export function ComponentHealthGrid({ components }: { components: DiagnosticsCom
           interactive
           title={t(`diagnostics.kind.${component.kind}`)}
           subtitle={component.name !== t(`diagnostics.kind.${component.kind}`) ? component.name : undefined}
+          truncateSubtitle
           actions={<Badge label={t(statusLabelKey(component.status))} color={statusColor(component.status)} />}
           onClick={() => scrollToDiagnosticsSection(component.kind)}
         >
