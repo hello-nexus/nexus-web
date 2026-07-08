@@ -2102,6 +2102,8 @@
   "screentime.weekAverage": "Daily average",
   "screentime.weekTitle": "Last 7 days",
   "screentime.weekTotal": "Week total",
+  "sdk.copybutton.copied": "Copied to clipboard",
+  "sdk.copybutton.copy": "Copy to clipboard",
   "sdk.mediaimport.choose": "Choose video",
   "sdk.mediaimport.cropping": "Cropping…",
   "sdk.mediaimport.errorNetwork": "Upload failed. Check your connection.",

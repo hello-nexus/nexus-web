@@ -1969,6 +1969,8 @@
   "screentime.weekAverage": "每日平均",
   "screentime.weekTitle": "最近 7 天",
   "screentime.weekTotal": "本週總計",
+  "sdk.copybutton.copied": "已複製到剪貼簿",
+  "sdk.copybutton.copy": "複製到剪貼簿",
   "sdk.mediaimport.choose": "選擇影片",
   "sdk.mediaimport.cropping": "裁剪中…",
   "sdk.mediaimport.errorNetwork": "上傳失敗。請檢查連線。",

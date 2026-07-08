@@ -1969,6 +1969,8 @@
   "screentime.weekAverage": "일일 평균",
   "screentime.weekTitle": "지난 7일",
   "screentime.weekTotal": "주간 합계",
+  "sdk.copybutton.copied": "클립보드에 복사됨",
+  "sdk.copybutton.copy": "클립보드에 복사",
   "sdk.mediaimport.choose": "동영상 선택",
   "sdk.mediaimport.cropping": "자르는 중…",
   "sdk.mediaimport.errorNetwork": "업로드에 실패했습니다. 연결을 확인하세요.",

@@ -9,7 +9,7 @@ import type { HostProps } from './ui/components';
 import {
   Stack, Grid, Frame, Spacer, Divider, Text, Icon,
   Ring, Bar, Range, Gauge, Sparkline, Slider, Button, Stepper,
-  Image, Video, Scroll, Input, Chart, Badge, Spinner,
+  Image, Video, Scroll, Input, Chart, Badge, Spinner, CopyButton,
 } from './ui/components';
 import {
   WorldClock, ClockFace, ViewHeaderHost,
@@ -58,4 +58,5 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-confirm': ConfirmHost,
   'ui-collapsible': CollapsibleHost,
   'ui-tooltip': TooltipHost,
+  'ui-copybutton': CopyButton,
 };
