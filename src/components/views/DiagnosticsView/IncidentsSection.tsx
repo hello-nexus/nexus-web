@@ -65,7 +65,13 @@ export function IncidentsSection({ data, loading, error, onRefresh }: IncidentsS
       </div>
       {state === 'error' && <SectionLoadError onRetry={onRefresh} />}
       {state === 'notSupported' && <NotAvailableNote />}
-      {state === 'empty' && <EmptyState compact icon={<History size={22} />} title={t('diagnostics.incidents.empty')} />}
+      {state === 'empty' && (
+        <EmptyState
+          compact
+          icon={<History size={22} />}
+          title={t('diagnostics.incidents.empty', { days: String(data?.windowDays ?? 30) })}
+        />
+      )}
       {state === 'content' && data && (
         <>
           {presentSources.length > 1 && (

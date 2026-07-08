@@ -1,7 +1,7 @@
 import { Stethoscope } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
-import { mockDiagnosticsHealth } from '../../../api/diagnosticsMock';
+import { DIAGNOSTICS_PREVIEW } from './diagnosticsPreviewData';
 import type { DiagnosticsKind, DiagnosticsStatus } from '../../../api/diagnostics';
 import {
   kindStatus,
@@ -16,10 +16,6 @@ import type { WidgetProps } from '../types';
 import styles from './DiagnosticsWidget.module.scss';
 
 const KIND_ORDER: DiagnosticsKind[] = ['storage', 'memory', 'gpu', 'cooling', 'system'];
-
-// Fixed fixture (not `new Date()`-based), so the add-widget catalog preview
-// renders deterministically - same idiom as CoolingWidget's forced preset.
-const PREVIEW_HEALTH = mockDiagnosticsHealth();
 
 // PanelStatusDot's tone set is presence-shaped (online/away/busy/offline);
 // this maps the ok/watch/act/unknown health scale onto it so the widget
@@ -38,7 +34,7 @@ export function DiagnosticsWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const { health: liveHealth } = useDiagnosticsHealth(!preview);
-  const health = preview ? PREVIEW_HEALTH : liveHealth;
+  const health = preview ? DIAGNOSTICS_PREVIEW : liveHealth;
 
   if (!health) {
     return (

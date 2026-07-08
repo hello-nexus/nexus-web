@@ -41,8 +41,8 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
     setBusy(true);
     const res = await scheduleMemoryTest();
     setBusy(false);
-    push({ title: t(res?.scheduled ? 'diagnostics.memory.scheduledToast' : 'diagnostics.memory.scheduleFailed') });
-    if (res?.scheduled) onRefresh();
+    push({ title: t(res.data?.scheduled ? 'diagnostics.memory.scheduledToast' : 'diagnostics.memory.scheduleFailed') });
+    if (res.data?.scheduled) onRefresh();
   }, [onRefresh, push, t]);
 
   const handleCancel = useCallback(async () => {
@@ -50,8 +50,8 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
     setBusy(true);
     const res = await cancelMemoryTest();
     setBusy(false);
-    push({ title: t(res && !res.scheduled ? 'diagnostics.memory.cancelledToast' : 'diagnostics.memory.cancelFailed') });
-    if (res && !res.scheduled) onRefresh();
+    push({ title: t(res.data && !res.data.scheduled ? 'diagnostics.memory.cancelledToast' : 'diagnostics.memory.cancelFailed') });
+    if (res.data && !res.data.scheduled) onRefresh();
   }, [onRefresh, push, t]);
 
   const lastTestLabel = data?.lastTest

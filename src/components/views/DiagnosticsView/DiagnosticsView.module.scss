@@ -227,8 +227,8 @@
   border-radius: var(--radius);
 }
 
-// Same danger-callout recipe as ConfirmModal's .noteDanger (border + 12%-mix
-// background), applied to a row instead of a note block.
+// Same danger-callout recipe as ConfirmModal's .noteDanger, applied to a row
+// instead of a note block.
 .coolingRowStalled {
   border: 1px solid var(--bad);
   background: color-mix(in srgb, var(--bad) 12%, transparent);
@@ -328,14 +328,6 @@
   color: var(--text);
   font-weight: var(--weight-heading);
   font-size: var(--type-small);
-}
-
-.incidentMeta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-dim);
-  font-size: var(--type-mini);
 }
 
 .incidentDetail {

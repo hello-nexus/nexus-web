@@ -20,7 +20,7 @@ import { useToast } from '../../common/Toast/Toast';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { ComponentHealthGrid } from './ComponentHealthGrid';
-import { NotAvailableNote } from './DiagnosticsSectionStates';
+import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { StorageSection } from './StorageSection';
 import { MemorySection } from './MemorySection';
 import { GpuSection } from './GpuSection';
@@ -40,7 +40,7 @@ const INCIDENT_WINDOW_DAYS = 30;
 export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsViewProps) {
   const { t } = useTranslation();
   const { push } = useToast();
-  const { health } = useDiagnosticsHealth(serviceOnline);
+  const { health, error: healthError, mocked: healthMocked, refresh: refreshHealth } = useDiagnosticsHealth(serviceOnline);
   // Re-snapshot "now" whenever a fresh poll lands, so the header's relative
   // time stays current without calling Date.now() during render (impure).
   const [now, setNow] = useState(() => Date.now());
@@ -52,6 +52,9 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
   const cooling = useDiagnosticsResource(serviceOnline, fetchDiagnosticsCooling);
   const system = useDiagnosticsResource(serviceOnline, fetchDiagnosticsSystem);
   const incidents = useDiagnosticsResource(serviceOnline, useCallback(() => fetchDiagnosticsIncidents(INCIDENT_WINDOW_DAYS), []));
+
+  const anyMocked = healthMocked || smart.mocked || memory.mocked || gpu.mocked
+    || cooling.mocked || system.mocked || incidents.mocked;
 
   const [downloading, setDownloading] = useState(false);
   const handleDownload = useCallback(async () => {
@@ -84,6 +87,7 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
                 </span>
               </div>
             )}
+            {anyMocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
             <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloading} onClick={handleDownload}>
               {t('diagnostics.header.downloadBundle')}
             </Button>
@@ -91,7 +95,9 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
         }
       />
       <div className="pageBody">
-        {!health ? <GenericSkeleton /> : !health.supported ? <NotAvailableNote /> : (
+        {!health ? (
+          healthError ? <SectionLoadError onRetry={refreshHealth} /> : <GenericSkeleton />
+        ) : !health.supported ? <NotAvailableNote /> : (
           <ComponentHealthGrid components={health.components} />
         )}
 

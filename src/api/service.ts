@@ -578,6 +578,19 @@ export async function fetchServiceBlob(path: string): Promise<Blob | null> {
   }
 }
 
+/** Like fetchServiceBlob, but also exposes the response headers - callers
+ *  that need a server-supplied detail (e.g. Content-Disposition on a file
+ *  download) use this instead. */
+export async function fetchServiceBlobWithHeaders(path: string): Promise<{ blob: Blob; headers: Headers } | null> {
+  const r = await authFetch(path);
+  if (!r || !r.ok) return null;
+  try {
+    return { blob: await r.blob(), headers: r.headers };
+  } catch {
+    return null;
+  }
+}
+
 /** Ping is public - no token needed. Tunnels over the relay when off-LAN so a
  * remote-origin panel never fires an http://localhost ping (wrong host +
  * mixed-content-blocked); the host answers it over the rid_http channel. */

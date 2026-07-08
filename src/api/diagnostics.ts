@@ -1,14 +1,12 @@
 // Diagnostics API client - typed wrapper over the local service's
 // /diagnostics/* routes (contract: .deep-build/diagnostics-contract.md).
-// The service routes don't exist yet, so every fetch here falls back to
-// contract-shaped mock data in dev builds when the real call fails (see
-// withMockFallback). DEV_TOOLS is statically false in production, so the
-// mock branch (and the mock module it imports) dead-code-eliminates out of
-// release bundles.
+// The service routes don't exist yet, so a 404 here (missing route on an
+// older/partial service) falls back to contract-shaped mock data in a dev
+// build; any other failure (network down, 500) is a real error, not masked.
+// The mock module is dynamically imported behind the raw build-define gate
+// below so it never enters a production bundle.
 
-import { deleteService, fetchService, fetchServiceBlob, postService } from './service';
-import { DEV_TOOLS } from '../lib/devTools';
-import * as mock from './diagnosticsMock';
+import { authFetchWithStatus, fetchServiceBlobWithHeaders } from './service';
 
 export type DiagnosticsStatus = 'ok' | 'watch' | 'act' | 'unknown';
 export type DiagnosticsKind = 'storage' | 'memory' | 'gpu' | 'cooling' | 'system';
@@ -212,78 +210,126 @@ export interface DiagnosticsSystemResponse {
   counts30d: DiagnosticsCounts30d;
 }
 
-// Every real GET returns null on a network failure or a non-2xx status
-// (fetchService's contract). In a dev build that null is replaced with a
-// contract-shaped fixture so the UI renders while the service routes are
-// still being built; in production DEV_TOOLS is false, so a real failure
-// stays null and the view renders its error state, unchanged from today.
-async function withMockFallback<T>(real: Promise<T | null>, mockFn: () => T): Promise<T | null> {
-  const result = await real;
-  if (result !== null) return result;
-  if (DEV_TOOLS) return mockFn();
-  return null;
+export interface DiagnosticsFetchResult<T> {
+  data: T | null;
+  mocked: boolean;
 }
 
-export function fetchDiagnosticsHealth(): Promise<DiagnosticsHealth | null> {
-  return withMockFallback(fetchService<DiagnosticsHealth>('/diagnostics/health'), mock.mockDiagnosticsHealth);
+interface RequestOpts {
+  method?: string;
+  body?: unknown;
 }
 
-export function fetchDiagnosticsIncidents(days = 30): Promise<DiagnosticsIncidentsResponse | null> {
+async function requestJson<T>(path: string, opts?: RequestOpts): Promise<{ data: T | null; status: number }> {
+  const { response, status } = await authFetchWithStatus(path, opts);
+  if (!response || !response.ok) return { data: null, status };
+  try {
+    return { data: (await response.json()) as T, status };
+  } catch {
+    return { data: null, status };
+  }
+}
+
+type DiagnosticsMockModule = typeof import('./diagnosticsMock');
+
+// Raw build defines (NOT the DEV_TOOLS const re-exported from lib/devTools):
+// the transform-time constant fold only eliminates a dynamic import() when
+// the guard is this literal expression at the call site - see ToolsView.tsx's
+// StorybookModal for the same pattern. This keeps diagnosticsMock.ts's
+// fixtures out of a production bundle.
+const loadDiagnosticsMock = (import.meta.env.DEV || __DEV_TOOLS__)
+  ? (): Promise<DiagnosticsMockModule> => import('./diagnosticsMock')
+  : null;
+
+async function withMockFallback<T>(
+  path: string,
+  pickMock: (mock: DiagnosticsMockModule) => T,
+  opts?: RequestOpts,
+): Promise<DiagnosticsFetchResult<T>> {
+  const { data, status } = await requestJson<T>(path, opts);
+  if (data !== null) return { data, mocked: false };
+  if (status === 404 && loadDiagnosticsMock) {
+    const mock = await loadDiagnosticsMock();
+    return { data: pickMock(mock), mocked: true };
+  }
+  return { data: null, mocked: false };
+}
+
+export function fetchDiagnosticsHealth(): Promise<DiagnosticsFetchResult<DiagnosticsHealth>> {
+  return withMockFallback('/diagnostics/health', mock => mock.mockDiagnosticsHealth());
+}
+
+export function fetchDiagnosticsIncidents(days = 30): Promise<DiagnosticsFetchResult<DiagnosticsIncidentsResponse>> {
+  return withMockFallback(`/diagnostics/incidents?days=${days}`, mock => mock.mockDiagnosticsIncidents());
+}
+
+export function fetchDiagnosticsSmart(): Promise<DiagnosticsFetchResult<DiagnosticsSmartResponse>> {
+  return withMockFallback('/diagnostics/smart', mock => mock.mockDiagnosticsSmart());
+}
+
+export function fetchDiagnosticsMemory(): Promise<DiagnosticsFetchResult<DiagnosticsMemoryResponse>> {
+  return withMockFallback('/diagnostics/memory', mock => mock.mockDiagnosticsMemory());
+}
+
+export function fetchDiagnosticsGpu(): Promise<DiagnosticsFetchResult<DiagnosticsGpuResponse>> {
+  return withMockFallback('/diagnostics/gpu', mock => mock.mockDiagnosticsGpu());
+}
+
+export function fetchDiagnosticsCooling(): Promise<DiagnosticsFetchResult<DiagnosticsCoolingResponse>> {
+  return withMockFallback('/diagnostics/cooling', mock => mock.mockDiagnosticsCooling());
+}
+
+export function fetchDiagnosticsSystem(): Promise<DiagnosticsFetchResult<DiagnosticsSystemResponse>> {
+  return withMockFallback('/diagnostics/system', mock => mock.mockDiagnosticsSystem());
+}
+
+export function scheduleMemoryTest(): Promise<DiagnosticsFetchResult<ScheduleMemoryTestResponse>> {
   return withMockFallback(
-    fetchService<DiagnosticsIncidentsResponse>(`/diagnostics/incidents?days=${days}`),
-    mock.mockDiagnosticsIncidents,
+    '/diagnostics/memory/test',
+    mock => mock.mockScheduleMemoryTest(),
+    { method: 'POST', body: {} },
   );
 }
 
-export function fetchDiagnosticsSmart(): Promise<DiagnosticsSmartResponse | null> {
-  return withMockFallback(fetchService<DiagnosticsSmartResponse>('/diagnostics/smart'), mock.mockDiagnosticsSmart);
-}
-
-export function fetchDiagnosticsMemory(): Promise<DiagnosticsMemoryResponse | null> {
-  return withMockFallback(fetchService<DiagnosticsMemoryResponse>('/diagnostics/memory'), mock.mockDiagnosticsMemory);
-}
-
-export function fetchDiagnosticsGpu(): Promise<DiagnosticsGpuResponse | null> {
-  return withMockFallback(fetchService<DiagnosticsGpuResponse>('/diagnostics/gpu'), mock.mockDiagnosticsGpu);
-}
-
-export function fetchDiagnosticsCooling(): Promise<DiagnosticsCoolingResponse | null> {
-  return withMockFallback(fetchService<DiagnosticsCoolingResponse>('/diagnostics/cooling'), mock.mockDiagnosticsCooling);
-}
-
-export function fetchDiagnosticsSystem(): Promise<DiagnosticsSystemResponse | null> {
-  return withMockFallback(fetchService<DiagnosticsSystemResponse>('/diagnostics/system'), mock.mockDiagnosticsSystem);
-}
-
-export function scheduleMemoryTest(): Promise<ScheduleMemoryTestResponse | null> {
+export function cancelMemoryTest(): Promise<DiagnosticsFetchResult<CancelMemoryTestResponse>> {
   return withMockFallback(
-    postService<ScheduleMemoryTestResponse>('/diagnostics/memory/test', {}),
-    mock.mockScheduleMemoryTest,
+    '/diagnostics/memory/test',
+    mock => mock.mockCancelMemoryTest(),
+    { method: 'DELETE' },
   );
 }
 
-export function cancelMemoryTest(): Promise<CancelMemoryTestResponse | null> {
-  return withMockFallback(
-    deleteService<CancelMemoryTestResponse>('/diagnostics/memory/test'),
-    mock.mockCancelMemoryTest,
-  );
+// Content-Disposition: attachment; filename="foo.zip" or filename*=UTF-8''foo.zip.
+function filenameFromContentDisposition(header: string | null): string | null {
+  if (!header) return null;
+  const encodedMatch = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (encodedMatch) {
+    try {
+      return decodeURIComponent(encodedMatch[1]);
+    } catch {
+      // Malformed percent-encoding; fall through to the plain form.
+    }
+  }
+  const plainMatch = /filename="?([^";]+)"?/i.exec(header);
+  return plainMatch ? plainMatch[1] : null;
 }
 
 /**
- * Downloads the support bundle ZIP. Uses fetchServiceBlob (not a plain
- * anchor href) because the route requires the session bearer token, which a
- * browser navigation can't attach; fetchServiceBlob also tunnels over the
- * relay when the panel is off-LAN. Returns false on any failure so the
- * caller can surface a toast.
+ * Downloads the support bundle ZIP. Uses fetchServiceBlobWithHeaders (not a
+ * plain anchor href) because the route requires the session bearer token,
+ * which a browser navigation can't attach; it also tunnels over the relay
+ * when the panel is off-LAN. Returns false on any failure so the caller can
+ * surface a toast.
  */
 export async function downloadDiagnosticsBundle(): Promise<boolean> {
-  const blob = await fetchServiceBlob('/diagnostics/bundle/download');
-  if (!blob) return false;
-  const url = URL.createObjectURL(blob);
+  const result = await fetchServiceBlobWithHeaders('/diagnostics/bundle/download');
+  if (!result) return false;
+  const url = URL.createObjectURL(result.blob);
   const a = document.createElement('a');
   a.href = url;
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  a.download = `nexus-diagnostics-${stamp}.zip`;
+  a.download = filenameFromContentDisposition(result.headers.get('Content-Disposition'))
+    ?? `nexus-diagnostics-${stamp}.zip`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

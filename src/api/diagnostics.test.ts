@@ -9,12 +9,13 @@ import {
 } from './diagnostics';
 import { setActiveTransport } from './service';
 
-function jsonResponse(status: number, body: unknown): Response {
+function jsonResponse(status: number, body: unknown, headers: Record<string, string> = {}): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
     blob: async () => new Blob([JSON.stringify(body)]),
+    headers: new Headers(headers),
   } as unknown as Response;
 }
 
@@ -36,16 +37,28 @@ describe('fetchDiagnosticsHealth', () => {
     const health = { generatedAt: '2026-07-08T02:00:00Z', supported: true, overall: 'ok' as const, components: [] };
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, health)));
 
-    expect(await fetchDiagnosticsHealth()).toEqual(health);
+    expect(await fetchDiagnosticsHealth()).toEqual({ data: health, mocked: false });
   });
 
   it('falls back to contract-shaped mock data when the route 404s (dev only)', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, { error: true, msg: 'not_found' })));
 
     const result = await fetchDiagnosticsHealth();
-    expect(result).not.toBeNull();
-    expect(result?.supported).toBe(true);
-    expect(Array.isArray(result?.components)).toBe(true);
+    expect(result.mocked).toBe(true);
+    expect(result.data?.supported).toBe(true);
+    expect(Array.isArray(result.data?.components)).toBe(true);
+  });
+
+  it('does not fall back to mock data on a 500 - a real error stays a real error', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, { error: true, msg: 'server_error' })));
+
+    expect(await fetchDiagnosticsHealth()).toEqual({ data: null, mocked: false });
+  });
+
+  it('does not fall back to mock data when the service is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network down'); }));
+
+    expect(await fetchDiagnosticsHealth()).toEqual({ data: null, mocked: false });
   });
 });
 
@@ -70,25 +83,31 @@ describe('fetchDiagnosticsIncidents', () => {
 });
 
 describe('fetchDiagnosticsGpu', () => {
-  it('falls back to mock GPU data with a throttling GPU on failure', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network down'); }));
+  it('falls back to mock GPU data with a throttling GPU when the route 404s', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
 
     const result = await fetchDiagnosticsGpu();
-    expect(result?.gpus.length).toBeGreaterThan(0);
-    expect(result?.gpus[0].throttle.active.length).toBeGreaterThan(0);
+    expect(result.mocked).toBe(true);
+    expect(result.data?.gpus.length).toBeGreaterThan(0);
+    expect(result.data?.gpus[0].throttle.active.length).toBeGreaterThan(0);
   });
 });
 
 describe('scheduleMemoryTest / cancelMemoryTest', () => {
   it('resolves the real payload on a 2xx response', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { scheduled: true, requiresReboot: true })));
-    expect(await scheduleMemoryTest()).toEqual({ scheduled: true, requiresReboot: true });
+    expect(await scheduleMemoryTest()).toEqual({ data: { scheduled: true, requiresReboot: true }, mocked: false });
   });
 
-  it('falls back to the mock scheduler on failure so the confirm flow stays exercisable', async () => {
+  it('falls back to the mock scheduler when the route 404s, so the confirm flow stays exercisable', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
-    expect(await scheduleMemoryTest()).toEqual({ scheduled: true, requiresReboot: true });
-    expect(await cancelMemoryTest()).toEqual({ scheduled: false });
+    expect(await scheduleMemoryTest()).toEqual({ data: { scheduled: true, requiresReboot: true }, mocked: true });
+    expect(await cancelMemoryTest()).toEqual({ data: { scheduled: false }, mocked: true });
+  });
+
+  it('does not fall back to mock data on a 500', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
+    expect(await scheduleMemoryTest()).toEqual({ data: null, mocked: false });
   });
 });
 
@@ -96,5 +115,34 @@ describe('downloadDiagnosticsBundle', () => {
   it('returns false when the bundle route fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
     expect(await downloadDiagnosticsBundle()).toBe(false);
+  });
+
+  it('uses the server Content-Disposition filename when present', async () => {
+    const realCreateObjectUrl = URL.createObjectURL;
+    const realRevokeObjectUrl = URL.revokeObjectURL;
+    URL.createObjectURL = vi.fn(() => 'blob:test');
+    URL.revokeObjectURL = vi.fn();
+    let downloadedName = '';
+    const realCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = realCreateElement(tag);
+      if (tag === 'a') {
+        Object.defineProperty(el, 'download', {
+          get: () => downloadedName,
+          set: (v: string) => { downloadedName = v; },
+        });
+        el.click = vi.fn();
+      }
+      return el;
+    });
+
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, {}, { 'Content-Disposition': 'attachment; filename="nexus-diagnostics-y70-20260708-0900.zip"' })));
+
+    expect(await downloadDiagnosticsBundle()).toBe(true);
+    expect(downloadedName).toBe('nexus-diagnostics-y70-20260708-0900.zip');
+
+    vi.restoreAllMocks();
+    URL.createObjectURL = realCreateObjectUrl;
+    URL.revokeObjectURL = realRevokeObjectUrl;
   });
 });
