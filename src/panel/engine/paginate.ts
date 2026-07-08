@@ -1,5 +1,5 @@
 import type { PanelLayout, PanelPage, PanelWidget } from '../types';
-import { sizeToSpan, snapStride } from './grid';
+import { sizeToSpan, strideScanSteps } from './grid';
 
 export interface PaginateCapacity {
   gridCols: number;
@@ -41,17 +41,17 @@ export function firstFreeRect(
   const cs = Math.max(1, Math.min(colSpan, cols));
   const rs = Math.max(1, rowSpan);
   const rects = existing.map(w => widgetRect(w, cols));
-  // Snap-to-stride rule: new widgets land on (col, row) that are
-  // multiples of `snapStride(span)`. 1x1 walks every cell, every
-  // larger size walks in 2-cell increments so 4x4 / 4x2 / 2x4 can
-  // land off the full-span grid.
-  const colStep = snapStride(cs);
-  const rowStep = snapStride(rs);
-  for (let r = 0; r + rs <= rows; r += rowStep) {
-    for (let c = 0; c + cs <= cols; c += colStep) {
-      const candidate = { col: c, row: r, colSpan: cs, rowSpan: rs };
-      if (!rects.some(rect => rectsOverlap(rect, candidate))) {
-        return { col: c, row: r };
+  // Snap-to-stride rule: new widgets prefer (col, row) that are
+  // multiples of `snapStride(span)`. A second stride-1 pass catches
+  // off-stride holes so the widget lands in visible blank space
+  // instead of spilling to another page.
+  for (const step of strideScanSteps(cs, rs)) {
+    for (let r = 0; r + rs <= rows; r += step.row) {
+      for (let c = 0; c + cs <= cols; c += step.col) {
+        const candidate = { col: c, row: r, colSpan: cs, rowSpan: rs };
+        if (!rects.some(rect => rectsOverlap(rect, candidate))) {
+          return { col: c, row: r };
+        }
       }
     }
   }

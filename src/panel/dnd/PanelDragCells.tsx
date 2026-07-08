@@ -17,19 +17,23 @@ import styles from '../PanelApp.module.scss';
 
 // Highlights the cells the dragged widget would land on if dropped now.
 // Reads currentOverIdRef + the active widget's size to compute the
-// (col, row, colSpan, rowSpan) rect on the current page. Accent-tinted.
+// (col, row, colSpan, rowSpan) rect on the current page. Accent-tinted;
+// `invalid` switches to the bad tint so a refused drop telegraphs
+// before release instead of silently snapping back.
 export function DragTargetHighlight({
   pageId,
   activeWidgetId,
   paginatedLayout,
   overIdSignal,
   overIdRef,
+  invalid = false,
 }: {
   pageId: string;
   activeWidgetId: string;
   paginatedLayout: PanelLayout;
   overIdSignal: number;
   overIdRef: { current: string | null };
+  invalid?: boolean;
 }) {
   void overIdSignal;
    
@@ -68,6 +72,7 @@ export function DragTargetHighlight({
   if (!Number.isFinite(targetCol) || !Number.isFinite(targetRow)) return null;
   if (targetCol < 0 || targetRow < 0) return null;
 
+  const tint = invalid ? 'var(--bad)' : 'var(--accent)';
   return (
     <div
       aria-hidden="true"
@@ -75,8 +80,8 @@ export function DragTargetHighlight({
         gridColumn: `${targetCol + 1} / span ${span.cols}`,
         gridRow: `${targetRow + 1} / span ${span.rows}`,
         pointerEvents: 'none',
-        background: 'color-mix(in srgb, var(--accent) 18%, transparent)',
-        outline: '2px dashed color-mix(in srgb, var(--accent) 80%, transparent)',
+        background: `color-mix(in srgb, ${tint} 18%, transparent)`,
+        outline: `2px dashed color-mix(in srgb, ${tint} 80%, transparent)`,
         outlineOffset: '-2px',
         borderRadius: 'var(--radius)',
         zIndex: 1,
