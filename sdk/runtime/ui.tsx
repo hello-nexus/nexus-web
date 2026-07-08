@@ -70,6 +70,9 @@ export interface TextProps extends WithChildren {
   size?: number | string; weight?: Weight; align?: Align;
   transform?: Transform; mono?: boolean; opacity?: number;
   letterSpacing?: number; lineHeight?: number; tabular?: boolean; truncate?: boolean;
+  // Opt this value out of the panel's global no-select rule so it can be
+  // selected + copied (e.g. a serial number or product key).
+  copyable?: boolean;
 }
 export interface IconProps { name: string; size?: number; tone?: UiTone }
 export interface RingProps extends WithChildren {

@@ -11,6 +11,7 @@ import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
 import { Spinner } from '../components/common/Spinner/Spinner';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
+import { useOemAppSeed } from './engine/useOemAppSeed';
 import { useFlashWidgets } from './engine/useFlashWidgets';
 import { useAddedWidgetEntrance } from './engine/useAddedWidgetEntrance';
 import { useMachineName } from './engine/useMachineName';
@@ -295,7 +296,7 @@ export function PanelContent({
   // (only pinnable types not already pinned). Always inside a
   // UiSettingsProvider - every PanelContent mount wraps one (see
   // PanelEntrypoint / Dashboard).
-  const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
+  const { settings: uiSettings, update: updateUiSettings, hydrated: uiHydrated } = useUiSettings();
   const pinnedTail = sanitizePinnedTail(uiSettings.pinnedSidebarApps);
   // Side-channel signal for the sidebar to mount its drop target. Published
   // only for pinnable types on the embedded desktop surface; elsewhere it
@@ -479,6 +480,20 @@ export function PanelContent({
     if (!loaded) return;
     if (paginatedLayout !== layout) setLayout(paginatedLayout);
   }, [paginatedLayout, layout, setLayout, loaded]);
+
+  // Places the OEM bake-in app's widget + sidebar pin for a profile that
+  // predates the service reporting it - the embedded desktop dashboard is
+  // the only surface that owns dashboardLayout writes.
+  useOemAppSeed({
+    enabled: embedded && surface === 'desktop',
+    layoutLoaded: loaded,
+    layout: paginatedLayout,
+    setLayout,
+    capacity,
+    uiHydrated,
+    uiSettings,
+    updateUiSettings,
+  });
 
   // Abort an in-flight widget drag when the grid reshapes (device rotation /
   // viewport orientation flip). Rotation re-paginates every widget to the new

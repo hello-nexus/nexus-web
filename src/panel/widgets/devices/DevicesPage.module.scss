@@ -299,15 +299,13 @@
   margin-top: 1rem;
 }
 
-// Cap the card width so the spec sheet reads as a compact summary. On
-// narrow viewports it shrinks via max-width: 100%.
+// Full-width spec sheet, matching the other views (Monitoring, Cooling).
 .specsCard {
   margin-top: 0.75rem;
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-lg);
   background: var(--surface);
   padding: 0.4rem 0.9rem;
-  max-width: 640px;
 }
 
 .specsList {

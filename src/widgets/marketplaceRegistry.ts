@@ -9,26 +9,6 @@ import type { AppInstalledListing } from './types';
 
 export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
 
-/**
- * Marketplace widgets shown in the Add-a-Widget picker. nexus-service may
- * report more bundled widgets; the picker shows only the allowlisted ones to
- * stay curated. Installed widgets not on the list still resolve via
- * `lookupApp` (already-placed instances keep rendering) but aren't offered.
- *
- * Empty: screentime / displays / media / weather all have native built-in
- * equivalents, so their SDK copies stay delisted to avoid offering two of
- * each. A future SDK app with no native equivalent gets added here.
- */
-export const ENABLED_MARKETPLACE_IDS: ReadonlySet<string> = new Set<string>([]);
-
-// Picker visibility is the curated allowlist alone. `preinstalled` (OEM bake-in)
-// drives first-boot auto-pin via getPreinstalledPageAppTypes, NOT the
-// Add-a-Widget picker - otherwise an OEM app like com.ibuypower.control would
-// leak into the catalog on every build that bundles it, past the allowlist.
-export function isMarketplaceIdEnabled(id: string): boolean {
-  return ENABLED_MARKETPLACE_IDS.has(id);
-}
-
 export function isMarketplaceType(type: string | null | undefined): boolean {
   return typeof type === 'string' && type.startsWith(MARKETPLACE_TYPE_PREFIX);
 }
@@ -54,6 +34,20 @@ export function getMarketplaceListing(id: string): AppInstalledListing | undefin
 
 export function getAllMarketplaceListings(): AppInstalledListing[] {
   return [...cache.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Whether a marketplace app is shown in the Add-a-Widget picker. Every
+ * general-purpose SDK app (screentime / displays / media / weather, ...) has
+ * a native built-in equivalent, so those stay delisted to avoid offering two
+ * of each - the picker enables only a listing the service flags `preinstalled
+ * && page`, i.e. the OEM bake-in app on the machine it was bundled for.
+ * Installed-but-delisted widgets still resolve via `lookupApp`
+ * (already-placed instances keep rendering) but aren't offered.
+ */
+export function isMarketplaceIdEnabled(id: string): boolean {
+  const listing = getMarketplaceListing(id);
+  return !!listing?.preinstalled && !!listing?.page;
 }
 
 /**

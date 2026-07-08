@@ -41,12 +41,22 @@ describe('getPreinstalledPageAppTypes', () => {
 });
 
 describe('isMarketplaceIdEnabled', () => {
-  it('has no default allowlisted app (every SDK app currently has a native built-in equivalent)', () => {
+  it('is false for an app with no listing', () => {
     expect(isMarketplaceIdEnabled('com.hellonexus.weather')).toBe(false);
   });
 
-  it('does not enable a non-allowlisted app even when preinstalled (OEM bake-in)', () => {
+  it('is false for a general-purpose SDK app (not preinstalled)', () => {
+    _seedMarketplaceRegistryForTests([listing({ id: 'com.hellonexus.weather', name: 'Weather', page: true })]);
+    expect(isMarketplaceIdEnabled('com.hellonexus.weather')).toBe(false);
+  });
+
+  it('is false when preinstalled but page-less', () => {
+    _seedMarketplaceRegistryForTests([listing({ id: 'a.preinstalled.nopage', name: 'NoPage', preinstalled: true, page: false })]);
+    expect(isMarketplaceIdEnabled('a.preinstalled.nopage')).toBe(false);
+  });
+
+  it('is true for the OEM bake-in app on the machine it was bundled for', () => {
     _seedMarketplaceRegistryForTests([listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true, page: true })]);
-    expect(isMarketplaceIdEnabled('com.ibuypower.control')).toBe(false);
+    expect(isMarketplaceIdEnabled('com.ibuypower.control')).toBe(true);
   });
 });
