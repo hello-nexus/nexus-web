@@ -19,10 +19,10 @@ export const MICRO_MIN_COUNT = 3;
 export const MICRO_MAX_COUNT = 4;
 
 export const DEFAULT_SLOTS: SlotConfig[] = [
-  { device: 'cpu',         sensor: 'CPU Total',    design: 'sparkline' },
-  { device: 'gpu',         sensor: 'GPU Core',     design: 'sparkline' },
-  { device: 'memory',      sensor: 'Memory Usage', design: 'sparkline' },
-  { device: 'motherboard', sensor: '',             design: 'sparkline' },
+  { device: 'quick', sensor: 'summary/cpu-usage',    design: 'sparkline' },
+  { device: 'quick', sensor: 'summary/memory-usage', design: 'halfgauge' },
+  { device: 'quick', sensor: 'summary/cpu-temp',     design: 'sparkline' },
+  { device: 'quick', sensor: 'summary/vram-usage',   design: 'sparkline' },
 ];
 
 // Default slot count for a freshly-resized widget when no explicit count is
