@@ -732,6 +732,7 @@
   "devices.y70.title": "Display touch Y70",
   "devices.y70.displayDisconnectedNotice": "Tache il cjâf dal display dal Y70 par vê un schermi par mostrâ la imagjin sul panel.",
   "devices.y70.usbDisconnectedNotice": "Tache il cjâf USB dal Y70 par ativâ il tocâ, la luminositât e la impiade dal schermi.",
+  "devices.y70.variant": "Variante dal panel",
   "diagnostics.cooling.empty": "Nissun dispositîf di rinfrescjament rilevât.",
   "diagnostics.cooling.since": "Di {time}",
   "diagnostics.cooling.status.ok": "OK",

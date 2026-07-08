@@ -723,6 +723,7 @@
   "devices.y70.title": "Wyswietlacz dotykowy Y70",
   "devices.y70.displayDisconnectedNotice": "Podłącz kabel wyświetlacza Y70, aby panel miał ekran do wyświetlania obrazu.",
   "devices.y70.usbDisconnectedNotice": "Podłącz kabel USB Y70, aby włączyć dotyk, jasność i zasilanie ekranu.",
+  "devices.y70.variant": "Wariant panelu",
   "diagnostics.cooling.empty": "Nie wykryto urządzeń chłodzących.",
   "diagnostics.cooling.since": "Od {time}",
   "diagnostics.cooling.status.ok": "OK",

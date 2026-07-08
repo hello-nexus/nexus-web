@@ -723,6 +723,7 @@
   "devices.y70.title": "Y70 タッチディスプレイ",
   "devices.y70.displayDisconnectedNotice": "Y70 のディスプレイケーブルを接続して、パネルに表示先の画面があるようにしてください。",
   "devices.y70.usbDisconnectedNotice": "Y70 の USB ケーブルを接続して、タッチ操作・明るさ・画面電源を有効にしてください。",
+  "devices.y70.variant": "パネルの種類",
   "diagnostics.cooling.empty": "冷却デバイスが検出されませんでした。",
   "diagnostics.cooling.since": "{time}から",
   "diagnostics.cooling.status.ok": "OK",

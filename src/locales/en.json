@@ -745,6 +745,7 @@
   "devices.y70.theme.background": "Background",
   "devices.y70.title": "Y70 Touch Display",
   "devices.y70.usbDisconnectedNotice": "Connect the Y70's USB cable to enable touch, brightness, and screen power.",
+  "devices.y70.variant": "Panel variant",
   "diagnostics.cooling.empty": "No cooling devices detected.",
   "diagnostics.cooling.since": "Since {time}",
   "diagnostics.cooling.status.ok": "OK",

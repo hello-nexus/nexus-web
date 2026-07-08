@@ -723,6 +723,7 @@
   "devices.y70.title": "Y70 Dokunmatik Ekran",
   "devices.y70.displayDisconnectedNotice": "Panelin görüntü göstereceği bir ekranı olması için Y70'in ekran kablosunu bağlayın.",
   "devices.y70.usbDisconnectedNotice": "Dokunmatik, parlaklık ve ekran gücünü etkinleştirmek için Y70'in USB kablosunu bağlayın.",
+  "devices.y70.variant": "Panel varyantı",
   "diagnostics.cooling.empty": "Soğutma cihazı algılanmadı.",
   "diagnostics.cooling.since": "{time}'den beri",
   "diagnostics.cooling.status.ok": "Tamam",

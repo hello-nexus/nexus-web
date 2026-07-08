@@ -723,6 +723,7 @@
   "devices.y70.title": "Écran tactile Y70",
   "devices.y70.displayDisconnectedNotice": "Connectez le câble d'affichage du Y70 pour que le panneau ait un écran sur lequel afficher l'image.",
   "devices.y70.usbDisconnectedNotice": "Connectez le câble USB du Y70 pour activer le tactile, la luminosité et l'alimentation de l'écran.",
+  "devices.y70.variant": "Variante du panneau",
   "diagnostics.cooling.empty": "Aucun appareil de refroidissement détecté.",
   "diagnostics.cooling.since": "Depuis {time}",
   "diagnostics.cooling.status.ok": "OK",

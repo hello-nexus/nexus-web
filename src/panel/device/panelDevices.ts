@@ -50,6 +50,9 @@ export interface PanelDevice {
   // Stamped from the backing curated DeviceListItem.warning (e.g. the Y70
   // connected as a monitor only, no USB serial channel).
   warning?: string | null;
+  // Firmware-catalog key of the connected variant from the curated device
+  // list (e.g. "y70-truly"); shown in settings for support diagnosis.
+  firmwareType?: string;
 }
 
 export const PANEL_DEVICE_ICON = '/assets/devices/y70.svg';

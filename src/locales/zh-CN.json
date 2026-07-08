@@ -723,6 +723,7 @@
   "devices.y70.title": "Y70 触控显示屏",
   "devices.y70.displayDisconnectedNotice": "请连接 Y70 的显示器数据线，让面板有屏幕可以显示内容。",
   "devices.y70.usbDisconnectedNotice": "连接 Y70 的 USB 数据线以启用触控、亮度和屏幕电源。",
+  "devices.y70.variant": "面板型号",
   "diagnostics.cooling.empty": "未检测到散热设备。",
   "diagnostics.cooling.since": "自{time}起",
   "diagnostics.cooling.status.ok": "正常",

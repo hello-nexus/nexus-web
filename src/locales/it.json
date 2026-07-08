@@ -723,6 +723,7 @@
   "devices.y70.title": "Display touch Y70",
   "devices.y70.displayDisconnectedNotice": "Collega il cavo del display del Y70 in modo che il pannello abbia uno schermo su cui mostrare i contenuti.",
   "devices.y70.usbDisconnectedNotice": "Collega il cavo USB del Y70 per abilitare il tocco, la luminosità e l'accensione dello schermo.",
+  "devices.y70.variant": "Variante del pannello",
   "diagnostics.cooling.empty": "Nessun dispositivo di raffreddamento rilevato.",
   "diagnostics.cooling.since": "Da {time}",
   "diagnostics.cooling.status.ok": "OK",

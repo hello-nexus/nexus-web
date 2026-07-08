@@ -723,6 +723,7 @@
   "devices.y70.title": "Y70 觸控顯示器",
   "devices.y70.displayDisconnectedNotice": "請連接 Y70 的顯示器傳輸線，讓面板有螢幕可以顯示內容。",
   "devices.y70.usbDisconnectedNotice": "連接 Y70 的 USB 傳輸線以啟用觸控、亮度和螢幕電源。",
+  "devices.y70.variant": "面板型號",
   "diagnostics.cooling.empty": "未偵測到散熱裝置。",
   "diagnostics.cooling.since": "自{time}起",
   "diagnostics.cooling.status.ok": "正常",

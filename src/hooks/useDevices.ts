@@ -9,6 +9,9 @@ export interface DeviceListItem {
   category: string;
   connected: boolean;
   firmwareVersion: string;
+  // Firmware-catalog key for the connected variant (e.g. "y70-truly", "q60").
+  // Equals the device id when the variant is not yet identified.
+  firmwareType?: string;
   // Whether the service actively controls this device. Missing/undefined
   // means an older payload shape; treated as on (default) by callers.
   nexusControlEnabled?: boolean;

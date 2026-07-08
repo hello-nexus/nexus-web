@@ -723,6 +723,7 @@
   "devices.y70.title": "Y70 Touch-Display",
   "devices.y70.displayDisconnectedNotice": "Schließen Sie das Displaykabel des Y70 an, damit das Panel einen Bildschirm zur Anzeige hat.",
   "devices.y70.usbDisconnectedNotice": "Verbinden Sie das USB-Kabel des Y70, um Touch, Helligkeit und das Ein-/Ausschalten des Bildschirms zu aktivieren.",
+  "devices.y70.variant": "Panel-Variante",
   "diagnostics.cooling.empty": "Keine Kühlgeräte erkannt.",
   "diagnostics.cooling.since": "Seit {time}",
   "diagnostics.cooling.status.ok": "OK",

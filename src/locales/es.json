@@ -723,6 +723,7 @@
   "devices.y70.title": "Pantalla táctil Y70",
   "devices.y70.displayDisconnectedNotice": "Conecta el cable de pantalla del Y70 para que el panel tenga una pantalla en la que mostrar contenido.",
   "devices.y70.usbDisconnectedNotice": "Conecta el cable USB del Y70 para habilitar el táctil, el brillo y el encendido de la pantalla.",
+  "devices.y70.variant": "Variante del panel",
   "diagnostics.cooling.empty": "No se detectaron dispositivos de refrigeración.",
   "diagnostics.cooling.since": "Desde {time}",
   "diagnostics.cooling.status.ok": "OK",

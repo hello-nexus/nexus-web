@@ -723,6 +723,7 @@
   "devices.y70.title": "Y70 터치 디스플레이",
   "devices.y70.displayDisconnectedNotice": "패널에 표시할 화면이 있도록 Y70의 디스플레이 케이블을 연결하세요.",
   "devices.y70.usbDisconnectedNotice": "터치, 밝기, 화면 전원을 사용하려면 Y70의 USB 케이블을 연결하세요.",
+  "devices.y70.variant": "패널 종류",
   "diagnostics.cooling.empty": "냉각 장치가 감지되지 않았습니다.",
   "diagnostics.cooling.since": "{time} 전부터",
   "diagnostics.cooling.status.ok": "정상",

@@ -723,6 +723,7 @@
   "devices.y70.title": "Сенсорный дисплей Y70",
   "devices.y70.displayDisconnectedNotice": "Подключите кабель дисплея Y70, чтобы у панели был экран для вывода изображения.",
   "devices.y70.usbDisconnectedNotice": "Подключите USB-кабель Y70, чтобы включить сенсорное управление, яркость и питание экрана.",
+  "devices.y70.variant": "Вариант панели",
   "diagnostics.cooling.empty": "Устройства охлаждения не обнаружены.",
   "diagnostics.cooling.since": "С {time}",
   "diagnostics.cooling.status.ok": "ОК",

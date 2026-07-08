@@ -723,6 +723,7 @@
   "devices.y70.title": "Tela Touch Y70",
   "devices.y70.displayDisconnectedNotice": "Conecte o cabo de tela do Y70 para que o painel tenha uma tela para exibir conteúdo.",
   "devices.y70.usbDisconnectedNotice": "Conecte o cabo USB do Y70 para ativar o toque, o brilho e a energia da tela.",
+  "devices.y70.variant": "Variante do painel",
   "diagnostics.cooling.empty": "Nenhum dispositivo de resfriamento detectado.",
   "diagnostics.cooling.since": "Desde {time}",
   "diagnostics.cooling.status.ok": "OK",
